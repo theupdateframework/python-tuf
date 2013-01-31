@@ -18,7 +18,7 @@ NOTE: launch test_download_server.py before running.
 """
 
 import tuf
-import tuf.download
+import tuf.download as download
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
 import os
@@ -26,40 +26,98 @@ import time
 import unittest
 import hashlib
 import urllib2
+import SimpleHTTPServer
+import SocketServer
 
 
-TARGET = 'test_target_file.txt'  # Remove this, use temp file instead.
-"""
-server_script = '.....'
-temp_dir = unittest_toolbox.make_temp_directory()
-current_dir = os.getcwd()
-target = unittest_toolbox.make_temp_data_file(directory=current_dir)
-server = unittest_toolbox.make_temp_data_file(directory=current_dir, 
-                                              data=server_script)
-"""
-PORT = 8080
-EXC = (tuf.FormatError, tuf.DownloadError, tuf.BadHashError, 
-       urllib2.URLError, urllib2.HTTPError)
+class TestDownload(unittest_toolbox.Modified_TestCase):
+  def setUp(self):
+    """ 
+    Create a temporary file and launch a simple server in the
+    current working directory.
+    """
+
+    unittest_toolbox.Modified_TestCase.setUp(self)
+
+    # Making a temporary file.
+    current_dir = os.getcwd()
+    target_filepath = \
+    self.make_temp_data_file(directory=current_dir)
+    self.target_length = len(target_filepath)
+    self.target_fileobj = open(target_filepath, 'r')
+
+    print target_filepath
+    
+    # Launch a SimpleHTTPServer (servers files in the current dir).
+    # TODO: CREATE A SAMPLE SERVER MODULE with TWO TO LAUNCH AND CLOSE THE SERVER. 
+    PORT = 8080
+    Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+    self.httpd = SocketServer.TCPServer(("", PORT), Handler)
+    self.httpd.serve_forever(poll_interval=0.1)
+    self.url = "http://localhost:"+str(PORT)+"/"+target_filepath
+
+    print self.url
+
+    # Computing hash of the target file.
+    # md5 algorithm is used here, any algorithm can be used. If changed to some 
+    # other algorithm don't forget to edit the key in 'self.target_hash' 
+    # dictionary.
+    d = hashlib.md5()
+    d.update(self.target_filepath)
+    digest = self.hexdigest()
+    self.target_hash = {"md5":digest}  
+
+
+
+  def tearDown(self):
+    print 'check 2'
+    unittest_toolbox.Modified_TestCase.tearDown(self)
+    self.httpd.shutdown()
+    self.target_data.close()
+
+
+
+  def test_download_url_to_tempfileobj(self):
+    # Test: normal case.
+    print 'check 0'
+    temp_fileobj = download.download_url_to_tempfileobj(self.url, 
+                                                        self.target_hash,
+                                                        self.target_length)
+    print 'check 1'
+    self.assertEquals(self.target_length, len(temp_fileobj))
+    self.assertEquals(self.target_fileobj, temp_fileobj)
+
+
+
+
+
+
+ 
+'''
+#TARGET = 'test_target_file.txt'
+#PORT = 8080
+#EXC = (tuf.FormatError, tuf.DownloadError, tuf.BadHashError, 
+#       urllib2.URLError, urllib2.HTTPError)
 
 
 # Unit tests
 class TestDownload_url_to_tempfileobj(unittest.TestCase):
   def setUp(self):
-    '''
+    """
     <Initialized Variables>
-      url:
+      self.url:
         A url string that composed of localhost, port # and target name.
-      target_file:
+      self.target_file:
         A string of an entire target file.
       target_length:
         Integer value representing the length of the target file.
-      target_hash:
+      self.target_hash:
         A dictionary consisting of the hash algorithm as a key and a hexdigest 
         as its value.
-      digest:
+      self.digest:
         A hexadecimal hash value.
       
-    '''
+    """
 
     if not os.path.isfile(TARGET):
       self._fileobject = open(TARGET, 'w')
@@ -89,7 +147,19 @@ class TestDownload_url_to_tempfileobj(unittest.TestCase):
   
   def tearDown(self):
     self._fileobject.close()
-    os.remove(TARGET)
+    os.remo
+
+
+
+
+
+
+
+
+
+
+
+
 
   def testNormal(self):
     # temp_file is a 'file-like' object
@@ -167,7 +237,7 @@ class TestDownload_url_to_tempfileobj(unittest.TestCase):
     url = self.url = "http://192.168.12.12:"+str(PORT)+"/"+"non_existing.sh"
     self.assertRaises(EXC, tuf.download.download_url_to_tempfileobj,
                       url, self.target_hash, self.target_length)
-
+'''
 
 
 # Run the unittests.  
