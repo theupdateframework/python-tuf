@@ -1,0 +1,40 @@
+{
+ "signatures": [
+  {
+   "keyid": "b6422d4c8a4acb07317b032b89f7d03cc8b42a8b464355141d06a61c13849d92", 
+   "method": "evp", 
+   "sig": "6f9af25e35afe5bb450a48f9af3bb030a1a7665cfde346cd8e32a858608c86cf7cac21c9c61a01f7f466063b9956e09cc97bf480ecbe89be706474cc07b1d3c9ff67980bdc3196856eef59d3fe76856ab5f8a375a3c339057c68eeaf742ad7d78c22f9fea5935287ae458de3b294b42ba84d7447922b578daddf2dcf1d9188eea26351583878699ed1d7088d5e51612e24d6412f19c6bbfd307d3adb91471d740d7aec7a9fafdf0744fbe041cac4c8c4e36c50710e4b79f96e0d57f6d77bf4c9f081c2f68817cbfbe94ec5f3d987d7f60978c9f0594f095546aea25d838a89569ffca5a0d25fc45aa629b38f1551f19cbb948b7347294d6140a2113f526eec997b7dc72ad9250a83596ad5e80a81dbfbdce2d47f9d73dc2acd9313030d8b767e1837d10dcff9033199b24839f04d2bf43c8d893374a9223a920d1f81e6af5a24f75f511c5c26b8d1a4d713ec85969a173976d5efa86436e98ce602e9bda91d6c709695819e095e8e85f6b9fd28d35a66640c5a913b96c7bc9b9eea6a88c899fe"
+  }
+ ], 
+ "signed": {
+  "_type": "Release", 
+  "expires": "2013-12-17 02:19:33", 
+  "meta": {
+   "root.txt": {
+    "hashes": {
+     "sha256": "5adad012a2d1b3a8d695ac4f17056d205f127d59686d1a4b0c446c8d0beb2acf"
+    }, 
+    "length": 4804
+   }, 
+   "targets.txt": {
+    "hashes": {
+     "sha256": "3de89d8b0bea0a39aa533d08b57c76704f235428a274e21b55cf5f9e8ae05373"
+    }, 
+    "length": 2272
+   }, 
+   "targets/role1.txt": {
+    "hashes": {
+     "sha256": "666e84b3f67efe68e084a22584fbd1f554e232dadd8d0db14b1d43b86092006d"
+    }, 
+    "length": 2292
+   }, 
+   "targets/role1/role2.txt": {
+    "hashes": {
+     "sha256": "a1b60c9e758a9fe9812fb4a5fe0cf769bccb93a1eb066393c9252f0c702b3624"
+    }, 
+    "length": 1208
+   }
+  }, 
+  "ts": "2012-12-17 02:19:33"
+ }
+}

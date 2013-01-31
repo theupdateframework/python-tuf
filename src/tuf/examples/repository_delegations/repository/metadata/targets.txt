@@ -1,0 +1,44 @@
+{
+ "signatures": [
+  {
+   "keyid": "0e4b16ecd2fdde03651fe4d7e069ae3edeabbf781b7f6a2e56a71cc1955e202f", 
+   "method": "evp", 
+   "sig": "aca8ff23c3a666c7c7fe9569db5c84751f1fa173165a2dd9bb7797de572fd6ffad2f4eda95d9fc1cef7e2da04f63e45a3ef39665be01806f8eabe665339016bd00781af7178f399c2b85d815dfc7db58db18485a4a6b5ecbf3e5117163917fd21d4dbfc33c568eb33476241f13b5168b2685e3cd16848d5a249bd90a0876fa6bc1956237c61a25816732c25665a4d6bb08c7fb4d0aee4a6f77a856b34581045cbbf20490756ef2dbb798f4972411abaeaae2e299c41f202f38d7c551026a20db1ca9e3944bd88a4feff9cd3eb2d989beb41b585942ffbe3b86d9971753c5cb9d6836af75748d875cca9c83800d55f3394ac9b13838121dd15c57ef38566f530d1b40130ba7d5f9c9bef34d7e478b33ada036d3dc55eafe542ac67bd932cffc2b93fe93317d919f104b0d2576d084f743f7185d9d899ea4fc6ded1aaba4c9de51ba30af909c49c33292eaf093eb8945b61066fc286eb65beabf8b1cd92afb34d03c49000a77571eb13ffd51bba4015dac87f5c60af7b4f192456e9b8e35620b18"
+  }
+ ], 
+ "signed": {
+  "_type": "Targets", 
+  "delegations": {
+   "keys": {
+    "649077bc2acbc020e340a4c8f13a106787ca75d026ec60db5c2c0af3b9b60085": {
+     "keytype": "rsa", 
+     "keyval": {
+      "private": "", 
+      "public": "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAycGNqAn3w3H92H3uLnbw\nBoO/JHuPJSS+w/0d14h0Sn9lHigGKkDNBd3xyQNTTTL20WweFcYRS4T6Y/dLl6hH\njudMlHE6ieqDLKGT59zQdRM4X1L6kXxLH/0lwrF10MVz1KLhzFENQFe86sRqjoTP\nr6EoL72xnIvBiuUvRptpIIx5cighaOk7/3e72Xp27XMZWFW9rkjrMxP5MxEEU4Zk\nU9lmdKbYjVctVOtJ+b4XY6JgIGMgiNMUme+K7Jh/Ch7z4BGp83Bt1e6ZSlXAl51S\no/F8qzV32YlydRpbCZGdN0zXlsP46UhzWK08sehmL4o9BIlJEethVYHSl7tXq3jM\nq+BImbM/myghYyLvKKRt0yrdUz5k4Z1eRVtUnq8WAoXfJjLuQdJiPIZZIcL92GQu\nXfyEOef0Ov5V1dqrVrzUykO5S7VeE+hxrPOp/P1VS8GuK5AtVG4cUVXagevJRQ7x\n3mRikxFbXIkM+3NGu1PiulhceB06IQ0vB54bf97c03exAgMBAAE=\n-----END PUBLIC KEY-----\n"
+     }
+    }
+   }, 
+   "roles": {
+    "targets/role1": {
+     "keyids": [
+      "649077bc2acbc020e340a4c8f13a106787ca75d026ec60db5c2c0af3b9b60085"
+     ], 
+     "paths": [
+      "role1/delegated_target1.txt"
+     ], 
+     "threshold": 1
+    }
+   }
+  }, 
+  "expires": "2013-12-17 01:38:35", 
+  "targets": {
+   "LICENSE.txt": {
+    "hashes": {
+     "sha256": "cd65721176ce5fdbb05773c0b1349f993b94ce77a51062cfa7a78b34cc82fc71"
+    }, 
+    "length": 3286
+   }
+  }, 
+  "ts": "2012-12-17 01:38:35"
+ }
+}
