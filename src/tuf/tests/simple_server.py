@@ -1,3 +1,26 @@
+"""
+<Program>
+  simple_server.py
+ 
+<Author>
+  Konstantin Andrianov
+
+<Started>
+  February 15, 2012
+  
+<Copyright>
+  See LICENSE for licensing information.
+
+<Purpose>
+  This is a basic server that was designed to be used in conjunction with 
+  test_download.py to test download.py module. 
+
+<Referencesi>
+  SimpleHTTPServer:
+    http://docs.python.org/library/simplehttpserver.html#module-SimpleHTTPServer
+
+"""
+
 import sys
 import random
 import SimpleHTTPServer
@@ -21,21 +44,5 @@ else:
 Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
 httpd = SocketServer.TCPServer(("", PORT), Handler)
 
-print "serving at port", PORT
+print "PORT: ", PORT
 httpd.serve_forever()
-
-
-"""
-class PortGen(object):
-  def __init__(self, port=None):
-    if port is None:
-      self.port = random.randint(30000, 40000)
-
-PORT = PortGen()
-
-Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
-httpd = SocketServer.TCPServer(("", PORT.port), Handler)
-
-print "serving at port", PORT.port
-httpd.serve_forever()
-"""
