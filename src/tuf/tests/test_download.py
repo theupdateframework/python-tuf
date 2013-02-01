@@ -28,6 +28,10 @@ import hashlib
 import urllib2
 import SimpleHTTPServer
 import SocketServer
+import subprocess
+import random
+
+
 
 
 class TestDownload(unittest_toolbox.Modified_TestCase):
@@ -43,51 +47,51 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     current_dir = os.getcwd()
     target_filepath = \
     self.make_temp_data_file(directory=current_dir)
-    self.target_length = len(target_filepath)
     self.target_fileobj = open(target_filepath, 'r')
+    self.target_data = self.target_fileobj.read()
+    self.target_data_length = len(self.target_data)
 
-    print target_filepath
-    
     # Launch a SimpleHTTPServer (servers files in the current dir).
-    # TODO: CREATE A SAMPLE SERVER MODULE with TWO TO LAUNCH AND CLOSE THE SERVER. 
-    PORT = 8080
-    Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
-    self.httpd = SocketServer.TCPServer(("", PORT), Handler)
-    self.httpd.serve_forever(poll_interval=0.1)
-    self.url = "http://localhost:"+str(PORT)+"/"+target_filepath
+    PORT = random.randint(30000, 45000)
+    print '\nServer process started.\n'
+    self.server_proc = subprocess.Popen(['python', 'simple_server.py', str(PORT)])
+    junk, rel_target_filepath = os.path.split(target_filepath)
+    self.url = "http://localhost:"+str(PORT)+"/"+rel_target_filepath
 
-    print self.url
+    # NOTE: Following error is raised if delay is not applied:
+    #    <urlopen error [Errno 111] Connection refused>
+    time.sleep(.1)
 
     # Computing hash of the target file.
     # md5 algorithm is used here, any algorithm can be used. If changed to some 
     # other algorithm don't forget to edit the key in 'self.target_hash' 
     # dictionary.
-    d = hashlib.md5()
-    d.update(self.target_filepath)
-    digest = self.hexdigest()
+    m = hashlib.md5()
+    m.update(self.target_data)
+    digest = m.hexdigest()
     self.target_hash = {"md5":digest}  
 
 
-
+  # Stop server process and perform clean up.
   def tearDown(self):
-    print 'check 2'
     unittest_toolbox.Modified_TestCase.tearDown(self)
-    self.httpd.shutdown()
-    self.target_data.close()
+    if self.server_proc.returncode is None:
+      print '\nServer process terminated.\n'
+      self.server_proc.kill()
+    self.target_fileobj.close()
 
 
 
   def test_download_url_to_tempfileobj(self):
+    # Test: normal case without supplying hash and length argements.
+    temp_fileobj = download.download_url_to_tempfileobj(self.url) 
+    self.assertEquals(self.target_data, temp_fileobj.read())
+    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
+
     # Test: normal case.
-    print 'check 0'
-    temp_fileobj = download.download_url_to_tempfileobj(self.url, 
+    temp_fileobj = download.download_url_to_tempfileobj(self.url,
                                                         self.target_hash,
-                                                        self.target_length)
-    print 'check 1'
-    self.assertEquals(self.target_length, len(temp_fileobj))
-    self.assertEquals(self.target_fileobj, temp_fileobj)
-
-
+                                                        self.target_data_length) 
 
 
 
@@ -148,17 +152,6 @@ class TestDownload_url_to_tempfileobj(unittest.TestCase):
   def tearDown(self):
     self._fileobject.close()
     os.remo
-
-
-
-
-
-
-
-
-
-
-
 
 
   def testNormal(self):

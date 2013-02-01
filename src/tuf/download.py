@@ -101,7 +101,7 @@ def _check_hashes(input_file, trusted_hashes):
       The hashes should be in the hexdigest format.
     
   <Exceptions>
-    tuf.BadHash, if the hashes don't match.
+    tuf.BadHashError, if the hashes don't match.
     
   <Side Effects>
     Hash digest object is created using tfh 'tuf.hash' module.
@@ -118,7 +118,7 @@ def _check_hashes(input_file, trusted_hashes):
     computed_hash = digest_object.hexdigest()
     if trusted_hash != computed_hash:
       msg = 'Hashes do not match. Expected '+trusted_hash+' got '+computed_hash
-      raise tuf.BadHash(msg)
+      raise tuf.BadHashError(msg)
     else:
       logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
   
