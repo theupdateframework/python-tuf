@@ -13,7 +13,7 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  This module extracts a list of mirror urls corresponding to the file type and
+  To extract a list of mirror urls corresponding to the file type and
   the location of the file with respect to the base url.
 
 """
@@ -28,8 +28,8 @@ import tuf.formats
 def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   """
   <Purpose>
-    Gets a list of mirror urls from a mirrors dictionary, provided the type of
-    the file and the path of the file with respect to the base url.
+    Get a list of mirror urls from a mirrors dictionary, provided the type
+    and the path of the file with respect to the base url.
 
   <Arguments>
     file_type:
@@ -44,8 +44,8 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       It should correspond to RELPATH_SCHEMA format.
 
     mirrors_dict:
-      A mirrors_dict object that corresponds to MIRRORDICT_SCHEMA, where the
-      dict keys are strings and the dict values MIRROR_SCHEMA. An example format
+      A mirrors_dict object that corresponds to MIRRORDICT_SCHEMA, where
+      keys are strings and values are MIRROR_SCHEMA. An example format
       of MIRROR_SCHEMA:
 
     {'url_prefix':
@@ -70,6 +70,11 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   tuf.formats.RELPATH_SCHEMA.check_match(file_path)
   tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
   tuf.formats.NAME_SCHEMA.check_match(file_type)
+
+  if file_type not in ['meta', 'target']:
+    msg = ('Invalid input: \'file_type\' has to be either \'meta\' or '+
+          '\'target\'.')
+    raise tuf.FormatError(msg)
 
   # Reference to 'path_in_confined_paths' function.
   in_confined = tuf.util.path_in_confined_paths

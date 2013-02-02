@@ -19,102 +19,85 @@
 import tuf
 import tuf.formats as formats
 import tuf.mirrors as mirrors
-import copy
+import tuf.tests.unittest_toolbox
 import unittest
 
-# Unit tests
-class TestMirrors(unittest.TestCase):
-  mirrors = {'mirror1': {'url_prefix' : 'http://mirror1.com',
-                         'metadata_path' : 'metadata',
-                         'targets_path' : 'targets',
-                         'confined_target_paths' : ['targets/target1.py',
-                                                    'targets/target2.py']},
-             'mirror2': {'url_prefix' : 'http://mirror2.com',
-                         'metadata_path' : 'metadata',
-                         'targets_path' : 'targets',
-                         'confined_target_paths' : ['targets/target3.py',
-                                                    'targets/target4.py']},
-             'mirror3': {'url_prefix' : 'http://mirror3.com',
-                         'metadata_path' : 'metadata',
-                         'targets_path' : 'targets',
-                         'confined_target_paths' : ['targets/target1.py',
-                                                    'targets/target2.py']}}
+
+
+class TestMirrors(tuf.tests.unittest_toolbox.Modified_TestCase):
+
+  def setUp(self):
+    
+    tuf.tests.unittest_toolbox.Modified_TestCase.setUp(self)
+
+    self.mirrors = \
+    {'mirror1': {'url_prefix' : 'http://mirror1.com',
+                 'metadata_path' : 'metadata',
+                 'targets_path' : 'targets',
+                 'confined_target_paths' : ['']},
+     'mirror2': {'url_prefix' : 'http://mirror2.com',
+                 'metadata_path' : 'metadata',
+                 'targets_path' : 'targets',
+                 'confined_target_paths' : ['targets/target3.py',
+                                            'targets/target4.py']},
+     'mirror3': {'url_prefix' : 'http://mirror3.com',
+                 'metadata_path' : 'metadata',
+                 'targets_path' : 'targets',
+                 'confined_target_paths' : ['targets/target1.py',
+                                            'targets/target2.py']}}
 
 
 
-  # Testing if wrong formats are being detected.
-  def testFormatErrors(self):
 
-    # Checking if all the formats are correct.
-    self.assertTrue(formats.MIRRORDICT_SCHEMA.matches(TestMirrors.mirrors))
+  def test_get_list_of_mirrors(self):
+    # Test: Normal case.
+    mirror_list = \
+    mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors) 
+    self.assertEquals(len(mirror_list), 3)
+    for mirror, mirror_info in self.mirrors.items():
+      url = mirror_info['url_prefix']+'/metadata/release.txt'
+      self.assertTrue(url in mirror_list)
 
+    mirror_list = \
+    mirrors.get_list_of_mirrors('target', 'a', self.mirrors) 
+    self.assertEquals(len(mirror_list), 3)
+    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a' in \
+                    mirror_list)
 
-    file_path = 1234
-    file_type = 'meta'
+    mirror_list = \
+    mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors) 
+    self.assertEquals(len(mirror_list), 1)
+    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a/b' in \
+                    mirror_list)
+
+    mirror1 = self.mirrors['mirror1']
+    del self.mirrors['mirror1']
+    mirror_list = \
+    mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors)
+    self.assertFalse(mirror_list)
+    self.mirrors['mirror1'] = mirror1 
+
+    # Test: Incorrect 'file_type'.
     self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
-                      file_type, file_path, self.mirrors)
+                      self.random_string(), 'a', self.mirrors)
 
-    file_path = []
     self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
-                      file_type, file_path, TestMirrors.mirrors)
+                      12345, 'a', self.mirrors)
 
-    file_path = {}
+    # Test: Incorrect type of 'file_path'.
     self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
-                      file_type, file_path, TestMirrors.mirrors)
+                      'meta', 12345, self.mirrors)
 
-    file_type = 1234
-    file_path = 'meta2.txt'
+    # Test: Incorrect 'mirrors_dict' object.
     self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
-                      file_type, file_path, TestMirrors.mirrors)
+                      'meta', 'a', 12345)
 
-    file_type = 'blah'
-    self.assertEqual(mirrors.get_list_of_mirrors(file_type, file_path,
-                                                 TestMirrors.mirrors),
-                                                 [])
+    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+                      'meta', 'a', ['a'])
 
+    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+                      'meta', 'a', {'a':'b'})
 
-  """
-  def testNormalCases(self):
-    file_path = 'root.txt'
-    file_type = 'meta'
-    result = mirrors.get_list_of_mirrors(file_type, file_path,
-                                             TestMirrors.mirrors)
-    print result
-    expected_output = ['http://mirror1.com/metadata/root.txt',
-              'http://mirror2.com/metadata/root.txt',
-              'http://mirror3.com/metadata/root.txt']
-    self.assertEqual(expected_output, result, 'Expected output did not match')
-
-
-    file_path = 'target1.py'
-    file_type = 'target'
-    result = mirrors.get_list_of_mirrors(file_type, file_path,
-                                             TestMirrors.mirrors)
-    print result
-    expected_output = ['http://mirror1.com/targets/target1.py',
-              'http://mirror3.com/targets/target1.py']
-    self.assertEqual(expected_output, result, 'Expected output did not match')
-
-
-    file_path = 'target4.py'
-    file_type = 'targets'
-    result = mirrors.get_list_of_mirrors(file_type, file_path,
-                                             TestMirrors.mirrors)
-    print result
-    expected_output = ['http://mirror2.com/targets/target4.py']
-    self.assertEqual(expected_output, result, 'Expected output did not match')
-  """
-
-  """
-  def testNonExistingPath(self):
-    file_path = 'tArgetz.py'
-    file_type = 'target'
-    empty_list = mirrors.get_list_of_mirrors(file_type,
-                                             file_path,
-                                             self.mirrors)
-    msg = 'List returned on wrong \'file_path\' '+'should be empty.'
-    self.assertEqual([],empty_list, msg)
-  """
 
 
 # Run the unittests
