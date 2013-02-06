@@ -50,8 +50,19 @@ class TempFile(object):
     that are supported make additional common-case safe assumptions. There
     are additional functions that aren't part of file-like objects.  TempFile
     is used in download.py module.
-
+    TODO:
+      # We use TemporaryFile for the auto-delete aspects of it to ensure
+      # we don't leave behind temp files.
   """
+
+  def _default_temporary_directory(self, prefix):
+    """__init__ helper."""
+    try:
+      self.temporary_file = tempfile.TemporaryFile(prefix=prefix)
+    except OSError, err:
+      logger.critical('Temp file in '+temp_dir+'failed: '+repr(err))
+      raise tuf.Error(err)
+
 
   def __init__(self, prefix='tmp'):
     """
@@ -72,25 +83,18 @@ class TempFile(object):
     """
 
     self._compression = None
-
     # If compression is set then the original file is saved in 'self._orig_file'.
     self._orig_file = None
-
     temp_dir = tuf.conf.temporary_directory
-    if  temp_dir is not None:
-      # We use TemporaryFile for the auto-delete aspects of it to ensure
-      # we don't leave behind temp files.
+    if  temp_dir is not None and isinstance(temp_dir, str):
       try:
         self.temporary_file = tempfile.TemporaryFile(prefix=prefix, dir=temp_dir)
       except OSError, err:
-        logger.error('Temp file in '+temp_dir+' failed: '+err)
+        logger.error('Temp file in '+temp_dir+' failed: '+repr(err))
         logger.error('Will attempt to use system default temp dir.')
-
-    try:
-      self.temporary_file = tempfile.TemporaryFile(prefix=prefix)
-    except OSError, err:
-      logger.critical('Temp file in '+temp_dir+'failed: '+err)
-      raise tuf.Error(err)
+        self._default_temporary_directory(prefix)
+    else:
+      self._default_temporary_directory(prefix)
 
 
   def flush(self):
@@ -293,10 +297,7 @@ class TempFile(object):
 
 
 
-# TODO: Change the argument name to something like 'file_path'
-# TODO: Do something with 'repository_directory'
-# TODO: Make sure that you are able to run from anywhere on the system
-# TODO: not only from the repository directory.
+# TODO: remove 'repository_directory'.  Instead specify hash algorithm.
 def get_file_details(file_path, repository_directory=None):
   """
   <Purpose>
@@ -306,9 +307,7 @@ def get_file_details(file_path, repository_directory=None):
 
   <Arguments>
     file_path:
-      Absolute file path.  Otherwise, 'file_path' has to be relative to the
-      current working directory.
-      TODO: Include repository directory to
+      Absolute file path of a file.
 
   <Exceptions>
     tuf.FormatError: If hash of the file does not match HASHDICT_SCHEMA.
