@@ -2,6 +2,7 @@ import os.path
 import tempfile
 import tuf.client.updater
 import tuf.conf
+import types
 import urllib
 import urlparse
 
@@ -34,6 +35,34 @@ class TUFConfiguration( object ):
 
 
 class TUFancyURLOpener( urllib.FancyURLopener ):
+    # TODO: replicate complete behaviour of urllib.URLopener.open
+    def __tuf_open( self, parsed_url, tuf_configuration, data = None ):
+        def getcode( self ):
+            return 200
+
+        def geturl( self ):
+            return fullurl
+
+        def info( self ):
+            raise NotImplementedError
+
+        # get a file-like object for free
+        filename, headers = self.__tuf_retrieve(
+            parsed_url,
+            tuf_configuration,
+            data = data
+        )
+
+        tempfile = TUFile( filename )
+        # extend tempfile with info(), getcode(), geturl()
+        # http://docs.python.org/2/library/urllib.html#urllib.urlopen
+        # http://stackoverflow.com/a/2982
+        tempfile.getcode = types.MethodType( getcode, tempfile )
+        tempfile.geturl = types.MethodType( geturl, tempfile )
+        tempfile.info = types.MethodType( info, tempfile )
+
+        return tempfile
+
     # TODO: replicate complete behaviour of urllib.URLopener.retrieve
     def __tuf_retrieve(
         self,
@@ -54,6 +83,7 @@ class TUFancyURLOpener( urllib.FancyURLopener ):
                 target_filepath
             )
         else:
+            # TODO: think later about best course of action for filename
             if filename.endswith( target_filepath ):
                 last_index = filename.rfind( target_filepath )
                 destination_directory = filename[ : last_index ]
@@ -81,7 +111,6 @@ class TUFancyURLOpener( urllib.FancyURLopener ):
 
         return filename, headers
 
-    # TODO: replicate complete behaviour of urllib.URLopener.open
     def open( self, fullurl, data = None ):
         parsed_url = urlparse.urlparse( fullurl )
         tuf_configuration = _tuf_configurations.get( parsed_url.hostname )
@@ -89,7 +118,7 @@ class TUFancyURLOpener( urllib.FancyURLopener ):
         if tuf_configuration is None:
             return urllib.URLopener.open( self, fullurl, data = data )
         else:
-            raise NotImplementedError
+            return self.__tuf_open( parsed_url, tuf_configuration, data = data )
 
     def retrieve( self, url, filename = None, reporthook = None, data = None ):
         parsed_url = urlparse.urlparse( url )
@@ -113,14 +142,16 @@ class TUFancyURLOpener( urllib.FancyURLopener ):
             )
 
 
+class TUFile( file ):
+    pass
+
+
 def map( tuf_configuration ):
     global _tuf_configurations
 
     assert isinstance( tuf_configuration, TUFConfiguration )
     # TODO: clean up after old configurations
-    _tuf_configurations[
-        tuf_configuration.hostname
-    ] = tuf_configuration
+    _tuf_configurations[ tuf_configuration.hostname ] = tuf_configuration
 
 
 # http://docs.python.org/2/library/urllib.html#urllib._urlopener
