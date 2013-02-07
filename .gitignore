@@ -1,1 +1,8 @@
-tuf.log
+# root level directories
+/build/
+
+# global file patterns
+*.log
+*.pyc
+*.session
+*.swp
