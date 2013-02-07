@@ -1,5 +1,5 @@
 # root level directories
-/build/
+src/build/
 
 # global file patterns
 *.log
