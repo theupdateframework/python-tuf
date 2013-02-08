@@ -1,8 +1,10 @@
+import httplib
 import os.path
 import tempfile
 import tuf.client.updater
 import tuf.conf
 import urllib
+import urllib2
 import urlparse
 
 
@@ -14,10 +16,10 @@ class TUFConfiguration( object ):
         self.tempdir = tempfile.mkdtemp()
 
 
-class TUFancyURLOpener( urllib.FancyURLopener ):
-    # TODO: replicate complete behaviour of urllib.URLopener.open
-    def __tuf_open( self, tuf_updater, data = None ):
-        filename, headers = self.__tuf_retrieve( tuf_updater, data = data )
+# TODO: distinguish between urllib and urllib2 contracts
+class TUFDownloadMixin( object ):
+    def tuf_open( self, tuf_updater, data = None ):
+        filename, headers = self.tuf_retrieve( tuf_updater, data = data )
 
         # TODO: like tempfile, ensure file is deleted when closed?
         tempfile = open( filename )
@@ -32,8 +34,7 @@ class TUFancyURLOpener( urllib.FancyURLopener ):
 
         return response
 
-    # TODO: replicate complete behaviour of urllib.URLopener.retrieve
-    def __tuf_retrieve(
+    def tuf_retrieve(
         self,
         tuf_updater,
         filename = None,
@@ -80,14 +81,18 @@ class TUFancyURLOpener( urllib.FancyURLopener ):
 
         return filename, headers
 
+
+class TUFancyURLOpener( urllib.FancyURLopener, TUFDownloadMixin ):
+    # TODO: replicate complete behaviour of urllib.URLopener.open
     def open( self, fullurl, data = None ):
         tuf_updater = TUFUpdater.make_tuf_updater( fullurl )
 
         if tuf_updater is None:
             return urllib.FancyURLopener.open( self, fullurl, data = data )
         else:
-            return self.__tuf_open( tuf_updater, data = data )
+            return self.tuf_open( tuf_updater, data = data )
 
+    # TODO: replicate complete behaviour of urllib.URLopener.retrieve
     def retrieve( self, url, filename = None, reporthook = None, data = None ):
         tuf_updater = TUFUpdater.make_tuf_updater( url )
 
@@ -100,7 +105,7 @@ class TUFancyURLOpener( urllib.FancyURLopener ):
                 data = data
             )
         else:
-            return self.__tuf_retrieve(
+            return self.tuf_retrieve(
                 tuf_updater,
                 filename = filename,
                 reporthook = reporthook,
@@ -108,8 +113,19 @@ class TUFancyURLOpener( urllib.FancyURLopener ):
             )
 
 
-class TUFile( file ):
-    pass
+class TUFHTTPHandler( urllib2.HTTPHandler, TUFDownloadMixin ):
+    # TODO: replicate complete behaviour of urllib.HTTPHandler.http_open
+    def http_open( self, req ):
+        tuf_updater = TUFUpdater.make_tuf_updater( req.get_full_url() )
+
+        if tuf_updater is None:
+            return self.do_open( httplib.HTTPConnection, req )
+        else:
+            response = self.tuf_open( tuf_updater, data = req.get_data() )
+            # See urllib2.AbstractHTTPHandler.do_open
+            # TODO: let TUFDownloadMixin handle this
+            response.msg = ""
+            return response
 
 
 class TUFUpdater( object ):
@@ -146,6 +162,7 @@ class TUFUpdater( object ):
         filename = os.path.join( destination_directory, target_filepath )
         return destination_directory, filename
 
+    # TODO: not thread-safe
     def switch_context( self ):
         # Set the local repository directory containing the metadata files.
         tuf.conf.repository_directory = \
@@ -167,3 +184,8 @@ def go_away():
 
 # http://docs.python.org/2/library/urllib.html#urllib._urlopener
 urllib._urlopener = TUFancyURLOpener()
+
+# http://docs.python.org/2/library/urllib2.html#urllib2.build_opener
+# http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
+# TODO: override other default urllib2 handlers
+urllib2.install_opener( urllib2.build_opener( TUFHTTPHandler ) )
