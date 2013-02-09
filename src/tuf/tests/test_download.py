@@ -71,7 +71,6 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     m = hashlib.md5()
     m.update(self.target_data)
     digest = m.hexdigest()
-    print digest
     self.target_hash = {'md5':digest}  
 
 

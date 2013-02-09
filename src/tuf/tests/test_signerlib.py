@@ -174,7 +174,7 @@ class TestSignerlib(unit_tbox):
     self.assertTrue(signerlib.read_config_file(base_config[0]),
                     base_config[1])
 
-    #  Test: exceptions.
+    #  Test: Incorrect arguments.
     self.assertRaises(tuf.FormatError, signerlib.read_config_file, 123)
     self.assertRaises((tuf.Error, tuf.FormatError), signerlib.read_config_file,
                       '')
@@ -206,7 +206,7 @@ class TestSignerlib(unit_tbox):
     #  Test: Validate input.
     self.assertTrue(formats.SIGNABLE_SCHEMA.matches(target_signable_obj))
 
-    #  Test: various invalid parameters.
+    #  Test: Incorrect arguments.
     self.assertRaises(tuf.FormatError, generate_targets_meta,
                       repo_dir, 1234)
     self.assertRaises(tuf.FormatError, generate_targets_meta,
@@ -234,7 +234,7 @@ class TestSignerlib(unit_tbox):
     #  Test: normal case, check proper output.
     self.assertEqual(signerlib.check_directory(temp_dir), temp_dir)
 
-    #  Test exceptions.
+    #  Test: Incorrect arguments.
     self.assertRaises(tuf.FormatError, signerlib.check_directory, 1234)
     self.assertRaises(tuf.FormatError, signerlib.check_directory, [rand_str])
     self.assertRaises(tuf.FormatError, signerlib.check_directory,
@@ -272,7 +272,7 @@ class TestSignerlib(unit_tbox):
     #  from the file - 'stored_signable_dict'?
     self.assertEqual(signable_dict, stored_signable_dict)
 
-    #  Test: verify exceptions.
+    #  Test: Incorrect arguments.
     self.assertRaises(tuf.FormatError, signerlib.write_metadata_file,'','')
     self.assertRaises(tuf.FormatError, signerlib.write_metadata_file,
                       [self.random_string()], meta_file)
@@ -413,15 +413,15 @@ class TestSignerlib(unit_tbox):
       #  Check if signable is returned.
       self.assertTrue(formats.SIGNABLE_SCHEMA.matches(signable))
 
-      #  Test: various bogus parameters.
+      #  Test: Incorrect arguments.
       self.assertRaises(tuf.FormatError, signerlib.sign_metadata,
                         self.random_string(), role_info[1], filename)
       self.assertRaises(tuf.FormatError, signerlib.sign_metadata,
                         role_info[0], 12345, filename)
 
-      #  Test: Verifying 'keytype', once is sufficient.
+      #  Test: Verifying 'keytype' value, once is sufficient.
       if role == 'root':
-        #  Alter keytype field of the rsa key.  Restore it after.
+        #  Alter 'keytype' value of the rsa key.  Restore it after.
         for keyid in role_info[1]:
           key = self.get_keystore_key(keyid)
           key['keytype'] = 'unknown_type'
@@ -469,7 +469,7 @@ class TestSignerlib(unit_tbox):
     file_content = tuf.util.load_json_file(root_meta_path)
     self.assertEqual(signed_root_meta, file_content)
 
-    #  Test: variouse exeptions.
+    #  Test: various exceptions.
     self.assertRaises(tuf.Error, signerlib.build_root_file,
         self.random_path(), root_keyids, meta_dir)
     self.assertRaises(tuf.Error, signerlib.build_root_file,
@@ -511,7 +511,7 @@ class TestSignerlib(unit_tbox):
     file_content = tuf.util.load_json_file(targets_file_path)
     self.assertEqual(signed_targets_meta, file_content)
 
-    #  Test: variouse exeptions.
+    #  Test: various exceptions.
     self.assertRaises(tuf.Error, signerlib.build_targets_file,
         self.random_path(), targets_keyids, meta_dir)
     self.assertRaises(tuf.FormatError, signerlib.build_root_file,
@@ -698,7 +698,7 @@ class TestSignerlib(unit_tbox):
     self.assertTrue(os.path.exists(targets_file_path))
     file_content = tuf.util.load_json_file(targets_file_path)
     self.assertEqual(signed_targets_meta, file_content)
-    #  Generate some delegation metadata file.
+    #  TODO: Generate some delegation metadata files.
     
     #  Test: normal case.
     _target_keyids = signerlib.get_target_keyids(meta_dir)

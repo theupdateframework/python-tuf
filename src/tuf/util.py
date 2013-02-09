@@ -50,10 +50,21 @@ class TempFile(object):
     that are supported make additional common-case safe assumptions. There
     are additional functions that aren't part of file-like objects.  TempFile
     is used in download.py module.
-
+    TODO:
+      # We use TemporaryFile for the auto-delete aspects of it to ensure
+      # we don't leave behind temp files.
   """
 
-  def __init__(self, prefix='tmp'):
+  def _default_temporary_directory(self, prefix):
+    """__init__ helper."""
+    try:
+      self.temporary_file = tempfile.TemporaryFile(prefix=prefix)
+    except OSError, err:
+      logger.critical('Temp file in '+temp_dir+'failed: '+repr(err))
+      raise tuf.Error(err)
+
+
+  def __init__(self, prefix='tuf_temp_'):
     """
     <Purpose>
       Initializes TempFile.
@@ -72,25 +83,18 @@ class TempFile(object):
     """
 
     self._compression = None
-
     # If compression is set then the original file is saved in 'self._orig_file'.
     self._orig_file = None
-
     temp_dir = tuf.conf.temporary_directory
-    if  temp_dir is not None:
-      # We use TemporaryFile for the auto-delete aspects of it to ensure
-      # we don't leave behind temp files.
+    if  temp_dir is not None and isinstance(temp_dir, str):
       try:
         self.temporary_file = tempfile.TemporaryFile(prefix=prefix, dir=temp_dir)
       except OSError, err:
-        logger.error('Temp file in '+temp_dir+' failed: '+err)
+        logger.error('Temp file in '+temp_dir+' failed: '+repr(err))
         logger.error('Will attempt to use system default temp dir.')
-
-    try:
-      self.temporary_file = tempfile.TemporaryFile(prefix=prefix)
-    except OSError, err:
-      logger.critical('Temp file in '+temp_dir+'failed: '+err)
-      raise tuf.Error(err)
+        self._default_temporary_directory(prefix)
+    else:
+      self._default_temporary_directory(prefix)
 
 
   def flush(self):
@@ -293,11 +297,8 @@ class TempFile(object):
 
 
 
-# TODO: Change the argument name to something like 'file_path'
-# TODO: Do something with 'repository_directory'
-# TODO: Make sure that you are able to run from anywhere on the system
-# TODO: not only from the repository directory.
-def get_file_details(file_path, repository_directory=None):
+# TODO: remove 'repository_directory'.  Instead specify hash algorithm.
+def get_file_details(file_path):
   """
   <Purpose>
     To get file's length and hash information.  The hash is computed using
@@ -306,9 +307,7 @@ def get_file_details(file_path, repository_directory=None):
 
   <Arguments>
     file_path:
-      Absolute file path.  Otherwise, 'file_path' has to be relative to the
-      current working directory.
-      TODO: Include repository directory to
+      Absolute file path of a file.
 
   <Exceptions>
     tuf.FormatError: If hash of the file does not match HASHDICT_SCHEMA.
@@ -320,7 +319,7 @@ def get_file_details(file_path, repository_directory=None):
   """
   # Making sure that the format of 'file_path' is a path string.
   # tuf.FormatError is raised on incorrect format.
-  tuf.formats.RELPATH_SCHEMA.check_match(file_path)
+  tuf.formats.PATH_SCHEMA.check_match(file_path)
 
   # Does the path exists?
   if not os.path.exists(file_path):
@@ -349,6 +348,9 @@ def ensure_parent_dir(filename):
   <Purpose>
     To ensure existence of the parent directory of 'filename'.  If the parent
     directory of 'name' does not exist, create it.
+
+    Ex: If 'filename' is '/a/b/c/d.txt', and only the directory '/a/b/'
+    exists, then directory '/a/b/c/d/' will be created.
 
   <Arguments>
     filename:
@@ -388,7 +390,7 @@ def path_in_confined_paths(test_path, confined_paths):
       A list or a tuple of path strings.
 
   <Exceptions>
-   tuf.TypeError, if the arguments are improperly typed.
+   tuf.FormatError: On incorrect format of the input.
 
   <Return>
     Boolean.  True, if path is either the empty string
@@ -398,13 +400,8 @@ def path_in_confined_paths(test_path, confined_paths):
 
   # Do the arguments are the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(test_path)
-  tuf.formats.PATHS_SCHEMA.check_match(confined_paths)
-
-  if not isinstance(test_path, basestring):
-    raise TypeError('The test path must be a string')
-  if not isinstance(confined_paths, (list, tuple)):
-    raise TypeError('The confined paths must be a list or a tuple')
+  tuf.formats.RELPATH_SCHEMA.check_match(test_path)
+  tuf.formats.RELPATHS_SCHEMA.check_match(confined_paths)
 
   for pattern in confined_paths:
     # Ignore slashes at the beginning.
@@ -417,7 +414,6 @@ def path_in_confined_paths(test_path, confined_paths):
 
     # Get the directory name (i.e., strip off the file_path+extension)
     directory_name = os.path.dirname(test_path)
-
     if directory_name == os.path.dirname(pattern):
       return True
 
@@ -498,14 +494,14 @@ def import_json():
 
   raise ImportError('Could not import a working json module')
 
-
 json = import_json()
+
 
 
 def load_json_string(data):
   """
   <Purpose>
-    To deserialize a JSON object from a string 'data'.
+    Deserialize a JSON object from a string 'data'.
 
   <Arguments>
     data:
@@ -519,21 +515,30 @@ def load_json_string(data):
   return json.loads(data)
 
 
-def load_json_file(filename):
+
+def load_json_file(filepath):
   """
   <Purpose>
-    To deserialize a JSON object from a file containing the object.
+    Deserialize a JSON object from a file containing the object.
 
   <Arguments>
     data:
-      A JSON string.
+      Absolute path of JSON file.
 
   <Return>
     Deserialized object.  For example a dictionary.
 
   """
 
-  fp = open(filename)
+  # Making sure that the format of 'file_path' is a path string.
+  # tuf.FormatError is raised on incorrect format.
+  tuf.formats.PATH_SCHEMA.check_match(filepath)
+  
+  try:
+    fp = open(filepath)
+  except IOError, err:
+    raise tuf.Error(err)
+
   try:
     return json.load(fp)
   finally:
