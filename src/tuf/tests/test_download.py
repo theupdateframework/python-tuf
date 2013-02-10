@@ -15,7 +15,7 @@
   Test download.py module.
 
 
-NOTE: Make sure test_download.py is ran in 'src/tuf/test/' directory.
+NOTE: Make sure test_download.py is ran in 'src/tuf/tests' directory.
 Otherwise, module that launches simple server would not be found.  
 """
 
@@ -28,11 +28,15 @@ import sys
 import time
 import random
 import hashlib
+import logging
 import unittest
 import subprocess
 import SocketServer
 import SimpleHTTPServer
 
+# Disable/Enable logging.  Comment-out to Enable logging.
+logging.getLogger('tuf')
+logging.disable(logging.CRITICAL)
 
 
 class TestDownload(unittest_toolbox.Modified_TestCase):
@@ -46,20 +50,18 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # Making a temporary file.
     current_dir = os.getcwd()
-    target_filepath = \
-    self.make_temp_data_file(directory=current_dir)
+    target_filepath = self.make_temp_data_file(directory=current_dir)
     self.target_fileobj = open(target_filepath, 'r')
     self.target_data = self.target_fileobj.read()
     self.target_data_length = len(self.target_data)
 
     # Launch a SimpleHTTPServer (servers files in the current dir).
     self.PORT = random.randint(30000, 45000)
-    self.server_proc = \
-    subprocess.Popen(['python', 'simple_server.py', str(self.PORT)],
-                     stderr=subprocess.PIPE)
-    print '\nServer process started.'
-    print 'Server process id: '+str(self.server_proc.pid)
-    print 'Serving on port: '+str(self.PORT)+'\n'
+    command = ['python', 'simple_server.py', str(self.PORT)]
+    self.server_proc = subprocess.Popen(command, stderr=subprocess.PIPE)
+    print '\n\tServer process started.'
+    print '\tServer process id: '+str(self.server_proc.pid)
+    print '\tServing on port: '+str(self.PORT)
     junk, rel_target_filepath = os.path.split(target_filepath)
     self.url = 'http://localhost:'+str(self.PORT)+'/'+rel_target_filepath
 
@@ -79,7 +81,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     unittest_toolbox.Modified_TestCase.tearDown(self)
     if self.server_proc.returncode is None:
-      print '\nServer process '+str(self.server_proc.pid)+' was terminated.\n'
+      print '\tServer process '+str(self.server_proc.pid)+' terminated.'
       self.server_proc.kill()
     self.target_fileobj.close()
 
@@ -175,9 +177,6 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # TODO: [Not urgent] Show the difference by setting write(auto_flush=False)
     """
-
-
-
 
 
 # Run unit test.

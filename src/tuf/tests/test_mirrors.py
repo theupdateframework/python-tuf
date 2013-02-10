@@ -16,11 +16,11 @@
 
 """
 
+import unittest
 import tuf
 import tuf.formats as formats
 import tuf.mirrors as mirrors
 import tuf.tests.unittest_toolbox
-import unittest
 
 
 
@@ -48,8 +48,7 @@ class TestMirrors(tuf.tests.unittest_toolbox.Modified_TestCase):
 
 
 
-
-  def test_get_list_of_mirrors(self):
+  def testMirrors_GetListOfMirrors(self):
     # Test: Normal case.
     mirror_list = \
     mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors) 
@@ -58,22 +57,19 @@ class TestMirrors(tuf.tests.unittest_toolbox.Modified_TestCase):
       url = mirror_info['url_prefix']+'/metadata/release.txt'
       self.assertTrue(url in mirror_list)
 
-    mirror_list = \
-    mirrors.get_list_of_mirrors('target', 'a', self.mirrors) 
+    mirror_list = mirrors.get_list_of_mirrors('target', 'a', self.mirrors) 
     self.assertEquals(len(mirror_list), 3)
     self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a' in \
                     mirror_list)
 
-    mirror_list = \
-    mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors) 
+    mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors) 
     self.assertEquals(len(mirror_list), 1)
     self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a/b' in \
                     mirror_list)
 
     mirror1 = self.mirrors['mirror1']
     del self.mirrors['mirror1']
-    mirror_list = \
-    mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors)
+    mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors)
     self.assertFalse(mirror_list)
     self.mirrors['mirror1'] = mirror1 
 

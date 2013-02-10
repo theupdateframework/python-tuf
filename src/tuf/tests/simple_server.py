@@ -44,5 +44,5 @@ else:
 Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
 httpd = SocketServer.TCPServer(("", PORT), Handler)
 
-print "PORT: ", PORT
+#print "PORT: ", PORT
 httpd.serve_forever()
