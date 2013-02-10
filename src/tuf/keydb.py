@@ -16,13 +16,13 @@
   the layout of the collection remain consistent and easily verifiable.
   Provided are functions to add and delete keys from the database, retrieve a
   single key, and assemble a collection from keys stored in TUF 'Root' Metadata
-  files.
+  files. The Update Framework process maintains a single keydb. 
   
   RSA keys are currently supported and a collection of keys is organized as a 
   dictionary indexed by key ID.  Key IDs are used as identifiers for keys (e.g.,
   RSA key).  They are the hexadecimal representations of the hash of key objects
   (specifically, the key object containing only the public key).  See 'rsa_key.py'
-  and the '_get_keyid()' function to see precisely how keyids are generated.
+  and the '_get_keyid()' function to learn precisely how keyids are generated.
   One may get the keyid of a key object by simply accessing the dictionary's
   'keyid' key (i.e., rsakey['keyid']).
 
