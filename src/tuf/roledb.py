@@ -18,7 +18,8 @@
   'add_role()'.  There are many supplemental functions included here that yield
   useful information about the roles contained in the database, such as
   extracting all the parent rolenames for a specified rolename, deleting all the
-  delegated roles, retrieving role paths, etc.
+  delegated roles, retrieving role paths, etc.  The Update Framework process
+  maintains a single roledb.
 
   The role database is a dictionary conformant to 'tuf.formats.ROLEDICT_SCHEMA'
   and has the form:
