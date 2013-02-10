@@ -28,6 +28,35 @@
   when modifying the metadata files.  'client' should be initially distributed
   to users by the software updater utilizing TUF.
 
+  The Update Framework may be tested locally with the output of 'quickstart.py'
+  in two easy steps.
+
+  # If you need a basic server for testing purposes
+  $ cd repository; python -m SimpleHTTPServer 8001
+
+  # This next step is performed by the client.  Here we are using the basic
+  # client, which will securely update all target files.  In a new terminal ...
+  $ cd client; python basic_client.py --repo http://localhost:8001
+
+  # You can also test a custom client by running the 'example_client.py' script
+  # provided with TUF.
+  $ cd client; python example_client.py
+
+
+  'quickstart.py' is evoked once to set up the repository.  'signercli.py' is
+  used to update the repository on the server.  In the case of updated targets,
+  the repository maintainer would simply add/delete target files from the
+  'targets' directory on the server and execute the following three commands to
+  generate updated metadata files:
+
+  $ python signercli.py --maketargets ./keystore
+  $ python signercli.py --makerelease ./keystore
+  $ python signercli.py --maketimestamp ./keystore
+
+  The next time the client queries the server, the top-level metadata files are
+  updated and any updated target files downloaded.
+
+
 <Usage>
   $ python quickstart.py --<option> argument
 
