@@ -52,7 +52,7 @@ def _open_connection(url):
       URL string (e.g., 'http://...' or 'ftp://...' or 'file://...') 
     
   <Exceptions>
-    urllib2.URLError
+    tuf.DownloadError
     
   <Side Effects>
     Opens a connection to a remote server.
@@ -104,7 +104,7 @@ def _check_hashes(input_file, trusted_hashes):
     tuf.BadHashError, if the hashes don't match.
     
   <Side Effects>
-    Hash digest object is created using tfh 'tuf.hash' module.
+    Hash digest object is created using the 'tuf.hash' module.
     
   <Returns>
     None.

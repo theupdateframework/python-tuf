@@ -33,28 +33,27 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
 
   <Arguments>
     file_type:
-      Type of data needed for download, must correspond to one of the strings in
-      the list ['meta', 'target', 'targets'].  'meta' for metadata file type or
-      'target' or 'targets' for target file type.  It should correspond to
-      FILETYPE_SCHEMA format.
+      Type of data needed for download, must correspond to one of the strings
+      in the list ['meta', 'target'].  'meta' for metadata file type or
+      'target' for target file type.  It should correspond to
+      NAME_SCHEMA format.
 
     file_path:
-      Path to the file.  For instance if the file is a target then we
-      will have something like this: 'http://urlbase/targets_path/file_path'.
-      It should correspond to RELPATH_SCHEMA format.
+      A relative path to the file that corresponds to RELPATH_SCHEMA format.
+      Ex: 'http://url_prefix/targets_path/file_path'
 
     mirrors_dict:
       A mirrors_dict object that corresponds to MIRRORDICT_SCHEMA, where
       keys are strings and values are MIRROR_SCHEMA. An example format
       of MIRROR_SCHEMA:
 
-    {'url_prefix':
-     'metadata_path': 'metadata/'
-     'targets_path': 'targets/'
-     'confined_target_paths': ['targets/release1', ...]
-     'custom': {...}}
+      {'url_prefix': 'localhost'
+       'metadata_path': 'metadata/'
+       'targets_path': 'targets/'
+       'confined_target_paths': ['targets/release1', ...]
+       'custom': {...}}
 
-    The 'custom' field is optional.
+      The 'custom' field is optional.
 
   <Exceptions>
     tuf.Error on unknown file type.
@@ -76,7 +75,8 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
           '\'target\'.')
     raise tuf.FormatError(msg)
 
-  # Reference to 'path_in_confined_paths' function.
+  # Reference to 'tuf.util.path_in_confined_paths()'.
+  # This method checks whether a mirror serves the required file.
   in_confined = tuf.util.path_in_confined_paths
 
   list_of_mirrors = []
