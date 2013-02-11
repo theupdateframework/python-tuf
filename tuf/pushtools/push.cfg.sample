@@ -1,0 +1,10 @@
+[general]
+transfer_module = scp
+metadata_path = /var/tuf/test-repo/metadata/targets.txt
+targets_directory = /var/tuf/test-repo/targets
+
+[scp]
+host = localhost 
+user = user
+identity_file = ~/.ssh/id_rsa
+remote_directory = ~/pushes 
