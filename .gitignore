@@ -1,2 +1,6 @@
+MANIFEST
 tuf.log
-*swp
+dist/*
+build/*
+*.swp
+*.pyc
