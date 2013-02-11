@@ -21,25 +21,21 @@
 """
 
 
-import gzip
 import os
-import shutil
 import sys
-import re
-import tempfile
+import gzip
+import shutil
 import logging
+import tempfile
 
-import tuf.formats
+import logging
 import tuf.hash
-import tuf.log
 import tuf.conf
+import tuf.formats
 
 
 # See 'log.py' to learn how logging is handled in TUF
 logger = logging.getLogger('tuf.util')
-
-
-
 
 
 class TempFile(object):
@@ -47,12 +43,11 @@ class TempFile(object):
   <Purpose>
     A high-level temporary file that cleans itself up or can be manually
     cleaned up. This isn't a complete file-like object. The file functions
-    that are supported make additional common-case safe assumptions. There
+    that are supported make additional common-case safe assumptions.  There
     are additional functions that aren't part of file-like objects.  TempFile
-    is used in download.py module.
-    TODO:
-      # We use TemporaryFile for the auto-delete aspects of it to ensure
-      # we don't leave behind temp files.
+    is used in download.py module to temporarily store downloaded data whild
+    all security checks (file hashes/length) are performed.
+
   """
 
   def _default_temporary_directory(self, prefix):
@@ -62,6 +57,7 @@ class TempFile(object):
     except OSError, err:
       logger.critical('Temp file in '+temp_dir+'failed: '+repr(err))
       raise tuf.Error(err)
+
 
 
   def __init__(self, prefix='tuf_temp_'):
@@ -97,6 +93,7 @@ class TempFile(object):
       self._default_temporary_directory(prefix)
 
 
+
   def flush(self):
     """
     <Purpose>
@@ -114,6 +111,7 @@ class TempFile(object):
     """
 
     self.temporary_file.flush()
+
 
 
   def read(self, size=None):
@@ -144,6 +142,7 @@ class TempFile(object):
       return self.temporary_file.read(size)
 
 
+
   def write(self, data, auto_flush=True):
     """
     <Purpose>
@@ -168,6 +167,7 @@ class TempFile(object):
     self.temporary_file.write(data)
     if auto_flush:
       self.flush()
+
 
 
   def move(self, destination_path):
@@ -197,6 +197,7 @@ class TempFile(object):
     self.close_temp_file()
 
 
+
   def seek(self, *args):
     """
     <Purpose>
@@ -218,6 +219,7 @@ class TempFile(object):
     """
 
     self.temporary_file.seek(*args)
+
 
 
   def decompress_temp_file_object(self, compression):
@@ -265,6 +267,7 @@ class TempFile(object):
     self.temporary_file = gzip.GzipFile(fileobj=self.temporary_file, mode='rb')
 
 
+
   def close_temp_file(self):
     """
     <Purpose>
@@ -297,7 +300,7 @@ class TempFile(object):
 
 
 
-# TODO: remove 'repository_directory'.  Instead specify hash algorithm.
+
 def get_file_details(file_path):
   """
   <Purpose>

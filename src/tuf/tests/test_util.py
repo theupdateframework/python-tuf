@@ -48,9 +48,11 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     self.temp_fileobj.close_temp_file()
 
 
-  # TODO
-  def testUtil_A1_close_temp_file(self):
-    pass
+
+  def testUtil_A1_CloseTempFile(self):
+    # Was the temporary file closed?
+    self.temp_fileobj.close_temp_file()
+    self.assertTrue(self.temp_fileobj.temporary_file.closed)
 
 
 
@@ -106,19 +108,31 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
    
-  # TODO
-  def testTempFile_read(self):
-    pass
+  def testUtil_A3_TempFile_Read(self):
+    filepath = self.make_temp_data_file(data = '1234567890')
+    fileobj = open(filepath, 'rb')
+
+    # Patching 'temp_fileobj.temporary_file'.
+    self.temp_fileobj.temporary_file = fileobj
+
+    # Test: Expected input.
+    self.assertEquals(self.temp_fileobj.read(), '1234567890')
+    self.assertEquals(self.temp_fileobj.read(4), '1234')
+
+    # Test: Unexpected input.
+    for bogus_arg in ['abcd', ['abcd'], {'a':'a'}, -100]:
+      self.assertRaises(tuf.FormatError, self.temp_fileobj.read, bogus_arg)
 
 
 
-  # TODO
-  def testTempFile_write(self):
-    pass
+  def testUtil_A4_TempFile_Write(self):
+    data = self.random_string()
+    self.temp_fileobj.write(data)
+    self.assertEquals(data, self.temp_fileobj.read())
 
-  
 
-  def testUtil_A3_TempFile_Move(self):
+
+  def testUtil_A5_TempFile_Move(self):
     # Destination directory to save the temporary file in.
     dest_temp_dir = self.make_temp_directory()
     dest_path = os.path.join(dest_temp_dir, self.random_string())
@@ -160,7 +174,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
 
-  def testUtil_A4_TempFile_DecompressTempFileObject(self):
+  def testUtil_A6_TempFile_DecompressTempFileObject(self):
     # Setup: generate a temp file (self.make_temp_data_file()),
     # compress it.  Write it to self.temp_fileobj().
     filepath = self.make_temp_data_file()
@@ -262,7 +276,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     data = ['a', {'b': ['c', None, 30.3, 29]}]
     json_string = util.json.dumps(data)
     self.assertEquals(data, util.load_json_string(json_string))
-        
+ 
 
 
   def  testUtil_B6_LoadJsonFile(self):
