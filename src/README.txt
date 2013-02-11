@@ -29,7 +29,7 @@ the software on a client system. Debian's APT, Red Hat's YUM, and openSUSE's
 YaST are examples of these.
 
 
-Our approach
+Our Approach
 ------------
 
 There are literally thousands of different software update systems in common use
