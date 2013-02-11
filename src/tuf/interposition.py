@@ -1,4 +1,6 @@
 import httplib
+import json
+import logging
 import os.path
 import tempfile
 import tuf.client.updater
@@ -8,12 +10,79 @@ import urllib2
 import urlparse
 
 
+# TODO:
+# - failsafe: if TUF fails, offer option to unsafely resort back to urllib/urllib2
+# - match URLs not with hostnames, but with regular expressions
+_logger = logging.getLogger( "tuf.interposition" )
+
+
 class TUFConfiguration( object ):
     def __init__( self, hostname, repository_directory, repository_mirrors ):
         self.hostname = hostname
         self.repository_directory = repository_directory
         self.repository_mirrors = repository_mirrors
         self.tempdir = tempfile.mkdtemp()
+
+    @staticmethod
+    def load_from_json( hostname, configuration ):
+        repository_directory = configuration[ "repository_directory" ]
+        repository_mirrors = configuration[ "repository_mirrors" ]
+
+        return TUFConfiguration(
+            hostname,
+            repository_directory,
+            repository_mirrors
+        )
+
+
+class TUFUpdater( object ):
+    # hostname: str -> tuf_configuration: TUFConfiguration
+    __tuf_configurations = {}
+
+    def __init__( self, url, parsed_url, tuf_configuration ):
+        self.url = url
+        self.parsed_url = parsed_url
+        self.tuf_configuration = tuf_configuration
+
+        # must switch context before instantiating updater
+        # because updater depends on some module (tuf.conf) variables
+        self.switch_context()
+        self.updater = tuf.client.updater.Updater(
+            self.parsed_url.hostname,
+            self.tuf_configuration.repository_mirrors
+        )
+
+    @staticmethod
+    def add_tuf_configuration( tuf_configuration ):
+        assert isinstance( tuf_configuration, TUFConfiguration )
+        assert tuf_configuration.hostname not in TUFUpdater.__tuf_configurations
+
+        TUFUpdater.__tuf_configurations[
+            tuf_configuration.hostname
+        ] = tuf_configuration
+
+    @staticmethod
+    def make_tuf_updater( url ):
+        parsed_url = urlparse.urlparse( url )
+        # TODO: enable specificity beyond hostname (e.g. include scheme, port)
+        tuf_configuration = \
+            TUFUpdater.__tuf_configurations.get( parsed_url.hostname )
+
+        if tuf_configuration is None:
+            return None
+        else:
+            return TUFUpdater( url, parsed_url, tuf_configuration )
+
+    def make_tempfile( self, target_filepath ):
+        destination_directory = self.tuf_configuration.tempdir
+        filename = os.path.join( destination_directory, target_filepath )
+        return destination_directory, filename
+
+    # TODO: not thread-safe
+    def switch_context( self ):
+        # Set the local repository directory containing the metadata files.
+        tuf.conf.repository_directory = \
+            self.tuf_configuration.repository_directory
 
 
 # TODO: distinguish between urllib and urllib2 contracts
@@ -128,53 +197,66 @@ class TUFHTTPHandler( urllib2.HTTPHandler, TUFDownloadMixin ):
             return response
 
 
-class TUFUpdater( object ):
-    # hostname: str -> tuf_configuration: TUFConfiguration
-    _tuf_configurations = {}
+def interpose( filename = "tuf.interposition.json" ):
+    INVALID_TUF_CONFIGURATION = "Invalid TUF configuration for " + \
+        "{hostname}! TUF interposition will NOT be present for {hostname}."
+    INVALID_TUF_INTERPOSITION_JSON = "Invalid TUF configuration JSON file " + \
+        "{filename}! TUF interposition will NOT be present for any host."
+    NO_HOSTNAMES = "No hostnames found in TUF configuration JSON file " + \
+        "{filename}! TUF interposition will NOT be present for any host."
 
-    def __init__( self, url, parsed_url, tuf_configuration ):
-        self.url = url
-        self.parsed_url = parsed_url
-        self.tuf_configuration = tuf_configuration
+    """
+    {
+        'hostnames' : {
+            'seattle.cs.washington.edu': {
+                'repository_directory': '.client/',
+                'repository_mirrors' : {
+                    'mirror1': {
+                        'url_prefix': 'http://seattle-tuf.cs.washington.edu',
+                        'metadata_path': 'metadata',
+                        'targets_path': 'targets',
+                        'confined_target_paths': [ '' ]
+                    }
+                }
+            }
+        }
+    }
+    """
+    try:
+        with open( filename ) as tuf_interposition_json:
+            tuf_interpositions = json.load( tuf_interposition_json )
+            hostnames = tuf_interpositions.get( 'hostnames', {} )
 
-        # must switch context before instantiating updater
-        # because updater depends on some module (tuf.conf) variables
-        self.switch_context()
-        self.updater = tuf.client.updater.Updater(
-            self.parsed_url.hostname,
-            self.tuf_configuration.repository_mirrors
+            # TODO: more input sanity checks
+            if len( hostnames ) == 0:
+                log_warning( NO_HOSTNAMES.format( filename = filename ) )
+            else:
+                for hostname, configuration in hostnames.iteritems():
+                    try:
+                        TUFUpdater.add_tuf_configuration(
+                            TUFConfiguration.load_from_json(
+                                hostname,
+                                configuration
+                            )
+                        )
+                    except:
+                        log_warning(
+                            INVALID_TUF_CONFIGURATION.format(
+                                hostname = hostname
+                            )
+                        )
+    except:
+        log_warning(
+            INVALID_TUF_INTERPOSITION_JSON.format( filename = filename )
         )
+    else:
+        # http://docs.python.org/2/library/urllib.html#urllib._urlopener
+        urllib._urlopener = TUFancyURLOpener()
 
-    @staticmethod
-    def make_tuf_updater( url ):
-        parsed_url = urlparse.urlparse( url )
-        # TODO: enable specificity beyond hostname (e.g. include scheme, port)
-        tuf_configuration = \
-            TUFUpdater._tuf_configurations.get( parsed_url.hostname )
-
-        if tuf_configuration is None:
-            return None
-        else:
-            return TUFUpdater( url, parsed_url, tuf_configuration )
-
-    def make_tempfile( self, target_filepath ):
-        destination_directory = self.tuf_configuration.tempdir
-        filename = os.path.join( destination_directory, target_filepath )
-        return destination_directory, filename
-
-    # TODO: not thread-safe
-    def switch_context( self ):
-        # Set the local repository directory containing the metadata files.
-        tuf.conf.repository_directory = \
-            self.tuf_configuration.repository_directory
-
-
-# TODO: setup based on JSON file
-def interpose( tuf_configuration ):
-    if isinstance( tuf_configuration, TUFConfiguration ):
-        TUFUpdater._tuf_configurations[
-            tuf_configuration.hostname
-        ] = tuf_configuration
+        # http://docs.python.org/2/library/urllib2.html#urllib2.build_opener
+        # http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
+        # TODO: override other default urllib2 handlers
+        urllib2.install_opener( urllib2.build_opener( TUFHTTPHandler ) )
 
 
 def go_away():
@@ -182,10 +264,10 @@ def go_away():
     raise NotImplementedError
 
 
-# http://docs.python.org/2/library/urllib.html#urllib._urlopener
-urllib._urlopener = TUFancyURLOpener()
+def log_exception( message ):
+    _logger.exception( message )
 
-# http://docs.python.org/2/library/urllib2.html#urllib2.build_opener
-# http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
-# TODO: override other default urllib2 handlers
-urllib2.install_opener( urllib2.build_opener( TUFHTTPHandler ) )
+
+def log_warning( message ):
+    _logger.warn( message )
+    log_exception( message )
