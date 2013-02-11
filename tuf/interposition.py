@@ -207,15 +207,15 @@ def interpose( filename = "tuf.interposition.json" ):
 
     """
     {
-        'hostnames' : {
-            'seattle.cs.washington.edu': {
-                'repository_directory': '.client/',
-                'repository_mirrors' : {
-                    'mirror1': {
-                        'url_prefix': 'http://seattle-tuf.cs.washington.edu',
-                        'metadata_path': 'metadata',
-                        'targets_path': 'targets',
-                        'confined_target_paths': [ '' ]
+        "hostnames": {
+            "seattle.cs.washington.edu": {
+                "repository_directory": ".client/",
+                "repository_mirrors" : {
+                    "mirror1": {
+                        "url_prefix": "http://seattle-tuf.cs.washington.edu",
+                        "metadata_path": "metadata",
+                        "targets_path": "targets",
+                        "confined_target_paths": [ "" ]
                     }
                 }
             }
