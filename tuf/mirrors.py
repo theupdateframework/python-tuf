@@ -47,7 +47,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       keys are strings and values are MIRROR_SCHEMA. An example format
       of MIRROR_SCHEMA:
 
-      {'url_prefix': 'localhost'
+      {'url_prefix': 'http://localhost:8001'
        'metadata_path': 'metadata/'
        'targets_path': 'targets/'
        'confined_target_paths': ['targets/release1', ...]
@@ -75,8 +75,11 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
           '\'target\'.')
     raise tuf.FormatError(msg)
 
-  # Reference to 'tuf.util.path_in_confined_paths()'.
-  # This method checks whether a mirror serves the required file.
+  # Reference to 'tuf.util.path_in_confined_paths()' (improve readability).
+  # This function checks whether a mirror serves the required file.
+  # A client may be confined to certain paths on a repository mirror
+  # when fetching target files.  This field may be set by the client when
+  # the repository mirror is added to the 'tuf.client.updater.Updater' object.
   in_confined = tuf.util.path_in_confined_paths
 
   list_of_mirrors = []

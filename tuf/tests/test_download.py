@@ -15,7 +15,7 @@
   Test download.py module.
 
 
-NOTE: Make sure test_download.py is ran in 'src/tuf/tests' directory.
+NOTE: Make sure test_download.py is ran in 'tuf/tests/' directory.
 Otherwise, module that launches simple server would not be found.  
 """
 
