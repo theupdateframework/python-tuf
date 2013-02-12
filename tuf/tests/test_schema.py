@@ -21,7 +21,7 @@ import unittest
 import tuf.schema
 
 
-class Test(unittest.TestCase):
+class TestSchema(unittest.TestCase):
   def setUp(self):
     pass
 
@@ -91,6 +91,9 @@ class Test(unittest.TestCase):
     self.assertFalse(string_schema.matches(['test']))
     self.assertFalse(string_schema.matches(tuf.schema.Schema))
 
+    # See TODO comment in schema.py.
+    int_schema = tuf.schema.String(1)
+    self.assertTrue(int_schema.matches(1))
 
 
   def test_AnyString(self):
@@ -145,6 +148,7 @@ class Test(unittest.TestCase):
                     boolean_schema.matches(False))
     
     # Test conditions for invalid arguments.
+    self.assertRaises(tuf.FormatError, boolean_schema.check_match, 11)
     self.assertFalse(boolean_schema.matches(11))
 
 

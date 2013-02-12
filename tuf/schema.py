@@ -101,7 +101,7 @@ class Any(Schema):
 
     Supported methods include
       matches(): returns a Boolean result.
-      check_match(): raises 'tuf.FormatError' on a mismatch.
+      check_match(): passed
 
   <Example Use>
     
@@ -123,7 +123,10 @@ class Any(Schema):
 
 
 
-
+# TODO [Kon]: The name for this class is a misnomer, technically this class
+# can be instantiated with any type. Ex: String(123)
+# The class needs to either be renamed (description changed) or it needs to
+# perform a check of instantiation parameter to be a basestring. 
 class String(Schema):
   """
   <Purpose>
@@ -199,6 +202,7 @@ class AnyString(Schema):
 
 
 
+# TODO [Kon]: This class is not implemented anywhere.  Do we need it?
 class OneOf(Schema):
   """
   <Purpose>
@@ -245,6 +249,7 @@ class OneOf(Schema):
 
 
 
+# TODO [Kon]: This class is not implemented anywhere.  Do we need it?
 class AllOf(Schema):
   """
   <Purpose>  
@@ -392,7 +397,7 @@ class ListOf(Schema):
 
 
 
-
+# TODO [Kon]: Third sentence in Purpose description should probably be there.
 class Integer(Schema):
   """
   <Purpose>
@@ -443,10 +448,10 @@ class Integer(Schema):
     if isinstance(object, bool) or not isinstance(object, (int, long)):
       # We need to check for bool as a special case, since bool
       # is for historical reasons a subtype of int.
-      raise tuf.FormatError('Got '+repr(object)+' instead of an integer')
+      raise tuf.FormatError('Got '+repr(object)+' instead of an integer.')
     
     elif not (self._lo <= object <= self._hi):
-      int_range = '['+repr(self._lo)+','+repr(self._hi)+']'
+      int_range = '['+repr(self._lo)+','+repr(self._hi)+'].'
       raise tuf.FormatError(repr(object)+' not in range '+int_range)
 
 
