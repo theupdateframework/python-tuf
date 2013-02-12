@@ -148,7 +148,6 @@ class TestSchema(unittest.TestCase):
                     boolean_schema.matches(False))
     
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, boolean_schema.check_match, 11)
     self.assertFalse(boolean_schema.matches(11))
 
 

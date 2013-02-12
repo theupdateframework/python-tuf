@@ -397,7 +397,7 @@ class ListOf(Schema):
 
 
 
-# TODO [Kon]: Third sentence in Purpose description should probably be there.
+
 class Integer(Schema):
   """
   <Purpose>

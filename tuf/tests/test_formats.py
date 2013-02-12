@@ -23,7 +23,7 @@ import tuf.schema
 
 
 
-class Test(unittest.TestCase):
+class TestFormats(unittest.TestCase):
   def setUp(self):
     pass
 
