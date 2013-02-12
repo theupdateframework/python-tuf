@@ -48,7 +48,7 @@ class TestMirrors(tuf.tests.unittest_toolbox.Modified_TestCase):
 
 
 
-  def testMirrors_GetListOfMirrors(self):
+  def test_get_list_of_mirrors(self):
     # Test: Normal case.
     mirror_list = \
     mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors) 

@@ -49,7 +49,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
 
-  def testUtil_A1_CloseTempFile(self):
+  def test_A1_tempfile_close_temp_file(self):
     # Was the temporary file closed?
     self.temp_fileobj.close_temp_file()
     self.assertTrue(self.temp_fileobj.temporary_file.closed)
@@ -89,7 +89,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
  
-  def testUtil_A2_Init(self):
+  def test_A2_tempfile_init(self):
     # Goal: Verify that tempfile is stored in an appropriate temp directory.  
 
     # Test: Expected input verification.
@@ -108,7 +108,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
    
-  def testUtil_A3_TempFile_Read(self):
+  def test_A3_tempfile_read(self):
     filepath = self.make_temp_data_file(data = '1234567890')
     fileobj = open(filepath, 'rb')
 
@@ -125,14 +125,14 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
 
-  def testUtil_A4_TempFile_Write(self):
+  def test_A4_tempfile_write(self):
     data = self.random_string()
     self.temp_fileobj.write(data)
     self.assertEquals(data, self.temp_fileobj.read())
 
 
 
-  def testUtil_A5_TempFile_Move(self):
+  def test_A5_tempfile_move(self):
     # Destination directory to save the temporary file in.
     dest_temp_dir = self.make_temp_directory()
     dest_path = os.path.join(dest_temp_dir, self.random_string())
@@ -174,7 +174,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
 
-  def testUtil_A6_TempFile_DecompressTempFileObject(self):
+  def test_A6_tempfile_decompress_temp_file_object(self):
     # Setup: generate a temp file (self.make_temp_data_file()),
     # compress it.  Write it to self.temp_fileobj().
     filepath = self.make_temp_data_file()
@@ -206,7 +206,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     
 
 
-  def testUtil_B1_GetFileDetails(self):
+  def test_B1_get_file_details(self):
     # Goal: Verify proper output given certain expected/unexpected input.
 
     # Making a temporary file.
@@ -231,7 +231,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
  
     
-  def  testUtil_B2_EnsureParentDir(self):
+  def  test_B2_ensure_parent_dir(self):
     existing_parent_dir = self.make_temp_directory()
     non_existing_parent_dir = os.path.join(existing_parent_dir, 'a', 'b')
 
@@ -244,7 +244,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       
 
 
-  def  testUtil_B3_PathInConfinedPaths(self):
+  def  test_B3_path_in_confined_paths(self):
     # Goal: Provide invalid input for 'test_path' and 'confined_paths'.
     # Include inputs like: '[1, 2, "a"]' and such...
     Errors = (tuf.FormatError, TypeError)
@@ -267,19 +267,19 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
 
-  def testUtil_B4_ImportJson(self):
+  def test_B4_import_json(self):
     self.assertTrue('json' or 'simplejson' in sys.modules)
 
 
 
-  def  testUtil_B5_LoadJsonString(self):
+  def  test_B5_load_json_string(self):
     data = ['a', {'b': ['c', None, 30.3, 29]}]
     json_string = util.json.dumps(data)
     self.assertEquals(data, util.load_json_string(json_string))
  
 
 
-  def  testUtil_B6_LoadJsonFile(self):
+  def  test_B6_load_json_file(self):
     data = ['a', {'b': ['c', None, 30.3, 29]}]
     filepath = self.make_temp_file()
     fileobj = open(filepath, 'wb')

@@ -191,7 +191,7 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
     # Does the url's 'file_length' match 'required_length'?
     if required_length is not None and file_length != required_length:
       message = 'Incorrect length for '+url+'. Expected '+str(required_length)+ \
-                ', got '+str(file_length)+'.'
+                ', got '+str(file_length)+' bytes.'
       raise tuf.DownloadError(message)
 
     # While-block reads data from connection 8192-bytes at a time, or less,
@@ -201,7 +201,7 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
       # We might have no more data to read.  Let us check bytes downloaded. 
       if not data:
         message = 'Downloaded '+str(total_downloaded)+'/' \
-                  +str(file_length)+' bytes'
+                  +str(file_length)+' bytes.'
         logger.debug(message)
         # Did we download the correct amount indicated by 'Content-Length'? 
         if total_downloaded != file_length:
