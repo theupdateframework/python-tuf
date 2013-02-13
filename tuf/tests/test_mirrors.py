@@ -34,32 +34,31 @@ class TestMirrors(tuf.tests.unittest_toolbox.Modified_TestCase):
     {'mirror1': {'url_prefix' : 'http://mirror1.com',
                  'metadata_path' : 'metadata',
                  'targets_path' : 'targets',
-                 'confined_target_paths' : ['']},
+                 'confined_target_dirs' : ['']},
      'mirror2': {'url_prefix' : 'http://mirror2.com',
                  'metadata_path' : 'metadata',
                  'targets_path' : 'targets',
-                 'confined_target_paths' : ['targets/target3.py',
-                                            'targets/target4.py']},
+                 'confined_target_dirs' : ['targets/release/',
+                                            'targets/release/']},
      'mirror3': {'url_prefix' : 'http://mirror3.com',
                  'metadata_path' : 'metadata',
                  'targets_path' : 'targets',
-                 'confined_target_paths' : ['targets/target1.py',
-                                            'targets/target2.py']}}
+                 'confined_target_dirs' : ['targets/release/',
+                                            'targets/release/']}}
 
 
 
   def test_get_list_of_mirrors(self):
     # Test: Normal case.
-    mirror_list = \
-    mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors) 
+    mirror_list = mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors) 
     self.assertEquals(len(mirror_list), 3)
     for mirror, mirror_info in self.mirrors.items():
       url = mirror_info['url_prefix']+'/metadata/release.txt'
       self.assertTrue(url in mirror_list)
 
-    mirror_list = mirrors.get_list_of_mirrors('target', 'a', self.mirrors) 
-    self.assertEquals(len(mirror_list), 3)
-    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a' in \
+    mirror_list = mirrors.get_list_of_mirrors('target', 'a.txt', self.mirrors) 
+    self.assertEquals(len(mirror_list), 1)
+    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a.txt' in \
                     mirror_list)
 
     mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors) 

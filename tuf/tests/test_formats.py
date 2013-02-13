@@ -223,14 +223,14 @@ class TestFormats(unittest.TestCase):
         {'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
          'targets_path': 'targets/',
-         'confined_target_paths': ['path1/', 'path2/'],
+         'confined_target_dirs': ['path1/', 'path2/'],
          'custom': {'type': 'mirror'}}),
 
       'MIRRORDICT_SCHEMA': (tuf.formats.MIRRORDICT_SCHEMA,
         {'mirror1': {'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
          'targets_path': 'targets/',
-         'confined_target_paths': ['path1/', 'path2/'],
+         'confined_target_dirs': ['path1/', 'path2/'],
          'custom': {'type': 'mirror'}}}),
 
       'MIRRORLIST_SCHEMA': (tuf.formats.MIRRORLIST_SCHEMA,
@@ -240,7 +240,7 @@ class TestFormats(unittest.TestCase):
          'mirrors': [{'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
          'targets_path': 'targets/',
-         'confined_target_paths': ['path1/', 'path2/'],
+         'confined_target_dirs': ['path1/', 'path2/'],
          'custom': {'type': 'mirror'}}]})}
    
     # Iterate through 'valid_schemas', ensuring each 'valid_schema' correctly

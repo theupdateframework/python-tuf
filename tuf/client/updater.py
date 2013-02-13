@@ -62,16 +62,16 @@
   # mirror is located at 'http://localhost:8001', and all of the metadata
   # and targets files can be found in the 'metadata' and 'targets' directory,
   # respectively.  If the client wishes to only download target files from
-  # specific directories on the mirror, the 'confined_target_paths' field
+  # specific directories on the mirror, the 'confined_target_dirs' field
   # should be set.  In the example, the client has chosen '', which is
   # interpreted as no confinement.  In other words, the client can download
   # targets from any directory or subdirectories.  If the client had chosen
-  # 'targets1', they would have been confined to the '/targets/targets1/'
+  # 'targets1/', they would have been confined to the '/targets/targets1/'
   # directory on the 'http://localhost:8001' mirror. 
   repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
                                     'metadata_path': 'metadata',
                                     'targets_path': 'targets',
-                                    'confined_target_paths': ['']}}
+                                    'confined_target_dirs': ['']}}
 
   # The updater may now be instantiated.  The Updater class of 'updater.py'
   # is called with two arguments.  The first argument assigns a name to this
@@ -232,7 +232,7 @@ class Updater(object):
         repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
                                           'metadata_path': 'metadata',
                                           'targets_path': 'targets',
-                                          'confined_target_paths': ['']}}
+                                          'confined_target_dirs': ['']}}
     
     <Exceptions>
       tuf.FormatError:

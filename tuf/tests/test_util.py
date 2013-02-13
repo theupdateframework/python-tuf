@@ -21,16 +21,17 @@ import sys
 import gzip
 import shutil
 import logging
-import tuf.hash
 import tempfile
 import unittest
-import unittest_toolbox
 
 import tuf
+import tuf.log
+import tuf.hash
 import tuf.util as util
+import tuf.tests.unittest_toolbox as unittest_toolbox
 
-# Disable/Enable logging.  Uncomment to Disable.
-logging.getLogger('tuf')
+# Disable all logging calls of level CRITICAL and below.
+# Comment the line below to enable logging.
 logging.disable(logging.CRITICAL)
 
 
@@ -244,27 +245,35 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       
 
 
-  def  test_B3_path_in_confined_paths(self):
-    # Goal: Provide invalid input for 'test_path' and 'confined_paths'.
+  def  test_B3_file_in_confined_directories(self):
+    # Goal: Provide invalid input for 'filepath' and 'confined_directories'.
     # Include inputs like: '[1, 2, "a"]' and such...
-    Errors = (tuf.FormatError, TypeError)
-    list_of_confined_paths = ['a', 12, {'a':'a'}, [1]]
-    list_of_paths = [12, ['a'], {'a':'a'}, 'a']    
-    for bogus_confined_paths in list_of_confined_paths:
-      for bogus_path in list_of_paths:
-        self.assertRaises(tuf.FormatError, util.path_in_confined_paths, 
-                          bogus_path, bogus_confined_paths)
+    # Reference to 'file_in_confined_directories()' to improve readability.
+    in_confined_directory = tuf.util.file_in_confined_directories
+    list_of_confined_directories = ['a', 12, {'a':'a'}, [1]]
+    list_of_filepaths = [12, ['a'], {'a':'a'}, 'a']    
+    for bogus_confined_directory in list_of_confined_directories:
+      for filepath in list_of_filepaths:
+        self.assertRaises(tuf.FormatError, in_confined_directory, 
+                          filepath, bogus_confined_directory)
 
     # Test: Inputs that evaluate to False.
-    for confined_paths in [['/a/b/c.txt', 'a/b/c'], ['/a/b/c/d/e/']]:
-      for path in ['/a/b/d.txt', 'a', 'a/b/c/d/']:
-        self.assertFalse(util.path_in_confined_paths(path, confined_paths))
-
+    confined_directories = ['a/b/', 'a/b/c/d/']
+    self.assertFalse(in_confined_directory('a/b/c/1.txt', confined_directories))
+    
+    confined_directories = ['a/b/c/d/e/']
+    self.assertFalse(in_confined_directory('a', confined_directories))
+    self.assertFalse(in_confined_directory('a/b', confined_directories))
+    self.assertFalse(in_confined_directory('a/b/c', confined_directories))
+    self.assertFalse(in_confined_directory('a/b/c/d', confined_directories))
+    # Below, 'e' is a file in the 'a/b/c/d/' directory.
+    self.assertFalse(in_confined_directory('a/b/c/d/e', confined_directories))
+    
     # Test: Inputs that evaluate to True.
-    for confined_paths in [[''], ['/a/b/c.txt', '/a/', '/a/b/c/d/']]:
-      for path in ['a/b/d.txt', 'a/b/x', 'a/b', 'a/b/c/d/g']:
-        self.assertTrue(util.path_in_confined_paths(path, confined_paths))
-
+    self.assertTrue(in_confined_directory('a/b/c.txt', ['']))
+    self.assertTrue(in_confined_directory('a/b/c.txt', ['a/b/']))
+    self.assertTrue(in_confined_directory('a/b/c.txt', ['x', '']))
+    self.assertTrue(in_confined_directory('a/b/c/..', ['a/']))
 
 
   def test_B4_import_json(self):

@@ -50,7 +50,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       {'url_prefix': 'http://localhost:8001'
        'metadata_path': 'metadata/'
        'targets_path': 'targets/'
-       'confined_target_paths': ['targets/release1', ...]
+       'confined_target_dirs': ['targets/release1/', ...]
        'custom': {...}}
 
       The 'custom' field is optional.
@@ -75,12 +75,12 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
           '\'target\'.')
     raise tuf.FormatError(msg)
 
-  # Reference to 'tuf.util.path_in_confined_paths()' (improve readability).
-  # This function checks whether a mirror serves the required file.
+  # Reference to 'tuf.util.file_in_confined_directories()' (improve readability).
+  # This function checks whether a mirror should serve a file to the client.
   # A client may be confined to certain paths on a repository mirror
   # when fetching target files.  This field may be set by the client when
   # the repository mirror is added to the 'tuf.client.updater.Updater' object.
-  in_confined = tuf.util.path_in_confined_paths
+  in_confined_directory = tuf.util.file_in_confined_directories
 
   list_of_mirrors = []
   for mirror_name, mirror_info in mirrors_dict.items():
@@ -90,7 +90,8 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     else:
       targets_path = mirror_info['targets_path']
       full_filepath = os.path.join(targets_path, file_path)
-      if not in_confined(full_filepath, mirror_info['confined_target_paths']):
+      if not in_confined_directory(full_filepath,
+                                   mirror_info['confined_target_dirs']):
         continue
       base = mirror_info['url_prefix']+'/'+mirror_info['targets_path']
 

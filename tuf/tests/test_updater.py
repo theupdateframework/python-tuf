@@ -952,12 +952,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test:
     # Attempt a file download of a valid target, however, a download exception
     # occurs because the target is not within the mirror's confined
-    # target paths.
-    #  Adjust mirrors dictionary, so that 'confined_target_paths' field
+    # target directories.
+    #  Adjust mirrors dictionary, so that 'confined_target_dirs' field
     #  contains at least one confined target and excludes needed target file.
     mirrors = self.Repository.mirrors
     for mirror_name, mirror_info in mirrors.items():
-      mirrors[mirror_name]['confined_target_paths'] = [self.random_path()]
+      mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
 
     #  Get the target file info.
     file_path = target_rel_paths_src[0]
@@ -971,7 +971,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                       dest_dir)
       
     for mirror_name, mirror_info in mirrors.items():
-      mirrors[mirror_name]['confined_target_paths'] = ['']
+      mirrors[mirror_name]['confined_target_dirs'] = ['']
 
 
 
