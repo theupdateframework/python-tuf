@@ -123,10 +123,7 @@ class Any(Schema):
 
 
 
-# TODO [Kon]: The name for this class is a misnomer, technically this class
-# can be instantiated with any type. Ex: String(123)
-# The class needs to either be renamed (description changed) or it needs to
-# perform a check of instantiation parameter to be a basestring. 
+
 class String(Schema):
   """
   <Purpose>
@@ -150,6 +147,9 @@ class String(Schema):
   """
 
   def __init__(self, string):
+    if not isinstance(string, basestring):
+      raise tuf.FormatError('Expected a string but got '+repr(string))
+    
     self._string = string
 
 
@@ -202,7 +202,6 @@ class AnyString(Schema):
 
 
 
-# TODO [Kon]: This class is not implemented anywhere.  Do we need it?
 class OneOf(Schema):
   """
   <Purpose>
@@ -234,6 +233,13 @@ class OneOf(Schema):
   """
 
   def __init__(self, alternatives):
+    # Ensure each item of the list contains the expected object type.
+    if not isinstance(alternatives, list):
+      raise tuf.FormatError('Expected a list but got '+repr(alternatives))
+    for alternative in alternatives:
+      if not isinstance(alternative, Schema):
+        raise tuf.FormatError('List contains an invalid item '+repr(alternative))
+    
     self._alternatives = alternatives
 
 
@@ -249,7 +255,6 @@ class OneOf(Schema):
 
 
 
-# TODO [Kon]: This class is not implemented anywhere.  Do we need it?
 class AllOf(Schema):
   """
   <Purpose>  
@@ -274,6 +279,13 @@ class AllOf(Schema):
   """
 
   def __init__(self, required_schemas):
+    # Ensure each item of the list contains the expected object type.
+    if not isinstance(required_schemas, list):
+      raise tuf.FormatError('Expected a list but got'+repr(required_schemas))
+    for schema in required_schemas:
+      if not isinstance(schema, Schema):
+        raise tuf.FormatError('List contains an invalid item '+repr(schema))
+    
     self._required_schemas = required_schemas[:]
 
 
@@ -371,6 +383,10 @@ class ListOf(Schema):
         
     """
     
+    if not isinstance(schema, Schema):
+      message = 'Expected Schema type but got '+repr(schema)
+      raise tuf.FormatError(message)
+    
     self._schema = schema
     self._min_count = min_count
     self._max_count = max_count
@@ -379,7 +395,8 @@ class ListOf(Schema):
   
   def check_match(self, object):
     if not isinstance(object, (list, tuple)):
-      raise tuf.FormatError('Expected '+repr(self._list_name)+'; got '+repr(object))
+      message = 'Expected '+repr(self._list_name)+' but got '+repr(object)
+      raise tuf.FormatError(message)
 
     # Check if all the items in the 'object' list
     # match 'schema'.
@@ -499,6 +516,12 @@ class DictOf(Schema):
         
     """
     
+    if not isinstance(key_schema, Schema):
+      raise tuf.FormatError('Expected Schema but got '+repr(key_schema))
+   
+    if not isinstance(value_schema, Schema):
+      raise tuf.FormatError('Expected Schema but got '+repr(value_schema))
+    
     self._key_schema = key_schema
     self._value_schema = value_schema
 
@@ -545,6 +568,8 @@ class Optional(Schema):
   """
 
   def __init__(self, schema):
+    if not isinstance(schema, Schema):
+      raise tuf.FormatError('Expected Schema, but got '+repr(schema))
     self._schema = schema
 
   
@@ -593,14 +618,20 @@ class Object(Schema):
       A variable number of keyword arguments is accepted.
         
     """
-    
+  
+    # Ensure valid arguments. 
+    for key, schema in required.items():
+      if not isinstance(schema, Schema):
+        raise tuf.FormatError('Expected Schema but got '+repr(schema))
+
     self._object_name = object_name
     self._required = required.items()
 
 
   def check_match(self, object):
     if not isinstance(object, dict):
-      raise tuf.FormatError('Wanted a '+repr(self._object_name)+' did not get a dict')
+      message = 'Wanted a '+repr(self._object_name)+'.'
+      raise tuf.FormatError(message)
     
     # (key, schema) = (a, AnyString()) = (a=AnyString())
     for key, schema in self._required:
@@ -699,6 +730,14 @@ class Struct(Schema):
         
     """
     
+    # Ensure each item of the list contains the expected object type.
+    if not isinstance(sub_schemas, (list, tuple)):
+      message = 'Expected Schema but got '+repr(sub_schemas)
+      raise tuf.FormatError(message)
+    for schema in sub_schemas:
+      if not isinstance(schema, Schema):
+        raise tuf.FormatError('Expected Schema but got '+repr(schema))
+    
     self._sub_schemas = sub_schemas + optional_schemas
     self._min = len(sub_schemas)
     self._allow_more = allow_more
@@ -768,6 +807,9 @@ class RegularExpression(Schema):
       re_name: Identifier for the regular expression object.
         
     """
+
+    if not isinstance(pattern, basestring):
+      raise tuf.FormatError(repr(pattern)+' is not a string.')
         
     if re_object is None:
       if pattern is None:

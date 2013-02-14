@@ -91,9 +91,11 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(string_schema.matches(['test']))
     self.assertFalse(string_schema.matches(tuf.schema.Schema))
 
-    # See TODO comment in schema.py.
-    int_schema = tuf.schema.String(1)
-    self.assertTrue(int_schema.matches(1))
+    # Test conditions for invalid arguments in a schema definition.
+    self.assertRaises(tuf.FormatError, tuf.schema.String, 1)
+    self.assertRaises(tuf.FormatError, tuf.schema.String, [1])
+    self.assertRaises(tuf.FormatError, tuf.schema.String, {'a': 1})
+
 
 
   def test_AnyString(self):
@@ -125,7 +127,13 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(oneof_schema.matches(3))
     self.assertFalse(oneof_schema.matches(['Hi']))
     
-    
+    # Test conditions for invalid arguments in a schema definition.
+    self.assertRaises(tuf.FormatError, tuf.schema.OneOf, 1)
+    self.assertRaises(tuf.FormatError, tuf.schema.OneOf, [1])
+    self.assertRaises(tuf.FormatError, tuf.schema.OneOf, {'a': 1})
+    self.assertRaises(tuf.FormatError, tuf.schema.OneOf, [tuf.schema.AnyString(), 1])
+
+
 
   def test_AllOf(self):
     # Test conditions for valid arguments. 
@@ -138,6 +146,11 @@ class TestSchema(unittest.TestCase):
     # Test conditions for invalid arguments.
     self.assertFalse(allof_schema.matches('b'))
    
+    # Test conditions for invalid arguments in a schema definition.
+    self.assertRaises(tuf.FormatError, tuf.schema.AllOf, 1)
+    self.assertRaises(tuf.FormatError, tuf.schema.AllOf, [1])
+    self.assertRaises(tuf.FormatError, tuf.schema.AllOf, {'a': 1})
+    self.assertRaises(tuf.FormatError, tuf.schema.AllOf, [tuf.schema.AnyString(), 1])
 
 
   def test_Boolean(self):
@@ -173,6 +186,11 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(listof2_schema.matches([3]*2))
     self.assertFalse(listof2_schema.matches(([3]*11)))
 
+    # Test conditions for invalid arguments in a schema definition.
+    self.assertRaises(tuf.FormatError, tuf.schema.ListOf, 1)
+    self.assertRaises(tuf.FormatError, tuf.schema.ListOf, [1])
+    self.assertRaises(tuf.FormatError, tuf.schema.ListOf, {'a': 1})
+
 
 
   def test_Integer(self):
@@ -205,6 +223,12 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(dictof_schema.matches({'a': ['x', 'y'], 'e' : ['', ''],
                                             'd' : ['a', 'b']}))
 
+    # Test conditions for invalid arguments in a schema definition.
+    self.assertRaises(tuf.FormatError, tuf.schema.DictOf, 1, 1)
+    self.assertRaises(tuf.FormatError, tuf.schema.DictOf, [1], [1])
+    self.assertRaises(tuf.FormatError, tuf.schema.DictOf, {'a': 1}, 1)
+    self.assertRaises(tuf.FormatError, tuf.schema.DictOf, tuf.schema.AnyString(), 1)
+
 
 
   def test_Optional(self):
@@ -218,8 +242,13 @@ class TestSchema(unittest.TestCase):
     # Test conditions for invalid arguments.
     self.assertFalse(optional_schema.matches({'k1': 'X', 'k2': 'Z'}))
   
-  
-  
+    # Test conditions for invalid arguments in a schema definition.
+    self.assertRaises(tuf.FormatError, tuf.schema.Optional, 1)
+    self.assertRaises(tuf.FormatError, tuf.schema.Optional, [1])
+    self.assertRaises(tuf.FormatError, tuf.schema.Optional, {'a': 1})
+ 
+
+
   def test_Object(self):
     # Test conditions for valid arguments. 
     object_schema = tuf.schema.Object(a=tuf.schema.AnyString(),
@@ -233,6 +262,11 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(object_schema.matches({'a':'ZYYY', 'bc':[5,9,3]}))
     self.assertFalse(object_schema.matches({'a':'ZYYY'}))
 
+    # Test conditions for invalid arguments in a schema definition.
+    self.assertRaises(tuf.FormatError, tuf.schema.Object, a='a')
+    self.assertRaises(tuf.FormatError, tuf.schema.Object, a=[1])
+    self.assertRaises(tuf.FormatError, tuf.schema.Object, a=tuf.schema.AnyString(),
+                                                          b=1)
 
 
   def test_Struct(self):
@@ -268,6 +302,13 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(struct3_schema.matches(['X']))
     self.assertFalse(struct3_schema.matches(['X', 3, 9, 11]))
     self.assertFalse(struct3_schema.matches(['X', 3, 'A']))
+
+    # Test conditions for invalid arguments in a schema definition.
+    self.assertRaises(tuf.FormatError, tuf.schema.Struct, 1)
+    self.assertRaises(tuf.FormatError, tuf.schema.Struct, [1])
+    self.assertRaises(tuf.FormatError, tuf.schema.Struct, {'a': 1})
+    self.assertRaises(tuf.FormatError, tuf.schema.Struct,
+                      [tuf.schema.AnyString(), 1])
 
 
 
