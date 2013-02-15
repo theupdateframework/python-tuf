@@ -257,8 +257,10 @@ def build_repository(project_directory):
       raise
 
   # Move the temporary targets directory into place now that repository
-  # directory has been created.
+  # directory has been created and remove previously created temporary
+  # directory.
   shutil.move(temporary_targets, targets_directory)
+  os.rmdir(temporary_directory)
   
   # Try to create the metadata directory that will hold all of the
   # metadata files, such as 'root.txt' and 'release.txt'.
