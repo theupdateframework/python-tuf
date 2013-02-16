@@ -35,6 +35,7 @@
 
 
 import os
+import logging
 
 import tuf.formats
 import tuf.util
@@ -45,7 +46,15 @@ import tuf.repo.signercli as signercli
 #  Helper module unittest_toolbox.py
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
+reload(signercli)
+#reload(keystore)
+#reload(signerlib)
 
+logger = logging.getLogger('tuf')
+
+# Disable all logging calls of level CRITICAL and below.
+# Comment the line below to enable logging.
+logging.disable(logging.CRITICAL)
 
 # Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
 # We will need them when creating keystore directories.
@@ -255,7 +264,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Check if all the keysids were loaded.
     for keyid in self.rsa_keyids:
       if keyid not in loaded_keyids:
-        msg = '\nCould not load the keyid: '+repr(keyid)
+        msg = 'Could not load the keyid: '+repr(keyid)
         self.fail(msg)
    
     #  Test: invalid password.

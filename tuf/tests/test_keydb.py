@@ -25,13 +25,15 @@ import tuf.log
 
 logger = logging.getLogger('tuf')
 
+# Disable all logging calls of level CRITICAL and below.
+# Comment the line below to enable logging.
+logging.disable(logging.CRITICAL)
+
 
 # Generate the three keys to use in our test cases.
-print 'Generating keys...'
 KEYS = []
 for junk in range(3):
   KEYS.append(tuf.rsa_key.generate(2048))
-print 'Done.'
 
 
 

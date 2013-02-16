@@ -99,7 +99,7 @@ def _get_password(prompt='Password: ', confirm=False):
     if password == password2:
       return password
     else:
-      print 'Mismatch; try again.'
+      logger.info('Mismatch; try again.')
 
 
 
@@ -156,9 +156,9 @@ def _list_keyids(keystore_directory):
       key_paths.append(filename)
 
   # Print the keys without the '.key' extension.
-  print '\nListing the keyids in '+repr(keystore_directory)
+  logger.info('Listing the keyids in '+repr(keystore_directory))
   for keyid in key_paths:
-    print keyid[0:keyid.rfind('.key')]
+    logger.info(keyid[0:keyid.rfind('.key')])
 
 
 
@@ -295,7 +295,7 @@ def _get_role_config_keyids(config_filepath, keystore_directory, role):
           password = _get_password(message)
           loaded_key = load_key(keystore_directory, [keyid], [password])
           if not loaded_key or keyid not in loaded_key:
-            print 'Could not load keyid: '+keyid
+            logger.info('Could not load keyid: '+keyid)
             logger.error('Could not load keyid: '+keyid)
             continue
           role_keyids.append(keyid)
@@ -540,8 +540,8 @@ def dump_key(keystore_directory):
   show_private = False
   prompt = 'Should the private key be printed as well?' \
            ' (if yes, enter \'private\'): '
-  print '\n*WARNING* Printing the private key reveals' \
-        ' sensitive information *WARNING*'
+  logger.info('*WARNING* Printing the private key reveals' \
+        ' sensitive information *WARNING*')
   input = _prompt(prompt, str)
   if input.lower() == 'private':
     show_private = True
@@ -555,7 +555,7 @@ def dump_key(keystore_directory):
     raise tuf.RepositoryError(message)
 
   # Print the contents of the key metadata.
-  print json.dumps(key_metadata, indent=2, sort_keys=True)
+  logger.info(json.dumps(key_metadata, indent=2, sort_keys=True))
 
 
 
@@ -826,7 +826,7 @@ def sign_metadata_file(keystore_directory):
   _list_keyids(keystore_directory)
 
   # Retrieve the keyids of the signing keys from the user.
-  print '\nThe keyids that will sign the metadata file must be loaded.'
+  logger.info('The keyids that will sign the metadata file must be loaded.')
   loaded_keyids = _get_keyids(keystore_directory)
 
   if len(loaded_keyids) == 0:
@@ -945,16 +945,16 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
   load_key = tuf.repo.keystore.load_keystore_from_keyfiles
   
   # Get the parent role.  We need to modify the parent role's metadata file.
-  print '\nListing "targets" and all available delegated roles.'
+  logger.info('Listing "targets" and all available delegated roles.')
   for section in targets_roles.keys():
-    print section
+    logger.info(section)
   parent_role = None
   # Retrieve the parent role from the user.
   for attempt in range(MAX_INPUT_ATTEMPTS):
     prompt = '\nChoose and enter the parent role\'s full name: '
     parent_role = _prompt(prompt, str)
     if parent_role not in targets_roles:
-      print '\nInvalid role name entered'
+      logger.info('Invalid role name entered')
       parent_role = None
       continue
     else:
@@ -970,11 +970,11 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
   parent_keyids = []
   for keyid in targets_roles[parent_role]:
     for attempt in range(MAX_INPUT_ATTEMPTS):
-      prompt = 'Enter the password for '+parent_role+' ('+keyid+'): '
+      prompt = '\nEnter the password for '+parent_role+' ('+keyid+'): '
       password = _get_password(prompt)
       loaded_keyid = load_key(keystore_directory, [keyid], [password])
       if keyid not in loaded_keyid:
-        print '\nThe keyid could not be loaded.'
+        logger.info('The keyid could not be loaded.')
         continue
       parent_keyids.append(loaded_keyid[0])
       break
@@ -1005,7 +1005,7 @@ def _get_delegated_role(keystore_directory):
   _list_keyids(keystore_directory)
 
   # Retrieve the delegated role\'s keyid from the user.
-  print '\nThe keyid of the delegated role must be loaded.'
+  logger.info('The keyid of the delegated role must be loaded.')
   delegated_keyid = _get_keyids(keystore_directory)
 
   # Ensure we actually loaded one delegated key.  Delegated roles

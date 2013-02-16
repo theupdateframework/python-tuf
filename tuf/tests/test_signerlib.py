@@ -51,11 +51,18 @@ import filecmp
 import shutil
 import ConfigParser
 import gzip
+import logging
 
 import tuf.util
 import tuf.formats as formats
 import tuf.repo.signerlib as signerlib
 import tuf.tests.unittest_toolbox
+
+logger = logging.getLogger('tuf')
+
+# Disable all logging calls of level CRITICAL and below.
+# Comment the line below to enable logging.
+logging.disable(logging.CRITICAL)
 
 # 'unittest_toolbox.Modified_TestCase' is too long, I'll set it to 'unit_tbox'.
 unit_tbox = tuf.tests.unittest_toolbox.Modified_TestCase
@@ -457,17 +464,18 @@ class TestSignerlib(unit_tbox):
     root_keyids = root_info[1]
     config_path = root_info[3]
     meta_dir = root_info[2]  # Reuse config's directory.
-    root_meta_path = os.path.join(meta_dir, 'root.txt')
 
 
     # TESTS
     #  Test: normal case.
-    signerlib.build_root_file(config_path, root_keyids, meta_dir)
+    root_filepath = signerlib.build_root_file(config_path, root_keyids, meta_dir)
 
     #  Check existence of the file and validity of it's content.
-    self.assertTrue(os.path.exists(root_meta_path))
-    file_content = tuf.util.load_json_file(root_meta_path)
-    self.assertEqual(signed_root_meta, file_content)
+    self.assertTrue(os.path.exists(root_filepath))
+    file_content = tuf.util.load_json_file(root_filepath)
+    self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(file_content))
+    root_metadata = file_content['signed']
+    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
 
     #  Test: various exceptions.
     self.assertRaises(tuf.Error, signerlib.build_root_file,
@@ -498,18 +506,19 @@ class TestSignerlib(unit_tbox):
     repo_dir = targets_info[2]
     meta_dir = os.path.join(repo_dir, 'metadata')
     os.mkdir(meta_dir)
-    targets_file_path = os.path.join(meta_dir, 'targets.txt')
     targets_dir = os.path.join(repo_dir, 'targets')
-
 
     # TESTS
     #  Test: normal case.
-    signerlib.build_targets_file(targets_dir, targets_keyids, meta_dir)
+    targets_filepath = signerlib.build_targets_file(targets_dir,
+                                                    targets_keyids, meta_dir)
 
     #  Check existence of the file and validity of it's content.
-    self.assertTrue(os.path.exists(targets_file_path))
-    file_content = tuf.util.load_json_file(targets_file_path)
-    self.assertEqual(signed_targets_meta, file_content)
+    self.assertTrue(os.path.exists(targets_filepath))
+    file_content = tuf.util.load_json_file(targets_filepath)
+    self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(file_content))
+    targets_metadata = file_content['signed']
+    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
 
     #  Test: various exceptions.
     self.assertRaises(tuf.Error, signerlib.build_targets_file,
@@ -568,18 +577,19 @@ class TestSignerlib(unit_tbox):
     signed_release_meta, release_info = self._get_signed_role_info('release')
     meta_dir = release_info[2]
     release_keyids = release_info[1]
-    release_filepath = os.path.join(meta_dir, 'release.txt')
 
 
     # TESTS
     #  Test: normal case.
-    signerlib.build_release_file(release_keyids, meta_dir)
+    release_filepath = signerlib.build_release_file(release_keyids, meta_dir)
 
     # Check if 'release.txt' file was created in metadata directory.
     self.assertTrue(os.path.exists(release_filepath))
     file_content = tuf.util.load_json_file(release_filepath)
-    self.assertEqual(file_content, signed_release_meta)
-
+    self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(file_content))
+    release_metadata = file_content['signed']
+    self.assertTrue(tuf.formats.RELEASE_SCHEMA.matches(release_metadata))
+    
     #  Test: exceptions.
     self.assertRaises(tuf.Error, signerlib.build_release_file, release_keyids,
                       self.random_path())
@@ -635,7 +645,7 @@ class TestSignerlib(unit_tbox):
 
 
 
-  def test_9_build_timestamp_metadata(self):
+  def test_9_build_timestamp_file(self):
     """
     test_9_build_timestamp_file() uses previously tested
     generate_timestamp_metadata().
@@ -650,17 +660,18 @@ class TestSignerlib(unit_tbox):
 
     timestamp_keyids = timestamp_info[1]
     meta_dir = timestamp_info[2]
-    timestamp_filepath = os.path.join(meta_dir, 'timestamp.txt')
 
 
     # TESTS
     #  Test: normal case.
-    signerlib.build_timestamp_file(timestamp_keyids, meta_dir)
+    timestamp_filepath = signerlib.build_timestamp_file(timestamp_keyids, meta_dir)
 
     # Check if 'timestamp.txt' file was created in metadata directory.
     self.assertTrue(os.path.exists(timestamp_filepath))
     file_content = tuf.util.load_json_file(timestamp_filepath)
-    self.assertEqual(file_content, signed_timestamp_meta)
+    self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(file_content))
+    timestamp_metadata = file_content['signed']
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
 
     #  Test: try bogus parameters.
     self.assertRaises(tuf.Error, signerlib.build_timestamp_file,
@@ -686,18 +697,19 @@ class TestSignerlib(unit_tbox):
     repo_dir = targets_info[2]
     meta_dir = os.path.join(repo_dir, 'metadata')
     os.mkdir(meta_dir)
-    targets_file_path = os.path.join(meta_dir, 'targets.txt')
     targets_dir = os.path.join(repo_dir, 'targets')
-
 
     # TESTS
     #  Test: normal case.
-    signerlib.build_targets_file(targets_dir, targets_keyids, meta_dir)
+    targets_filepath = signerlib.build_targets_file(targets_dir,
+                                                    targets_keyids, meta_dir)
 
     #  Check existence of the file and validity of it's content.
-    self.assertTrue(os.path.exists(targets_file_path))
-    file_content = tuf.util.load_json_file(targets_file_path)
-    self.assertEqual(signed_targets_meta, file_content)
+    self.assertTrue(os.path.exists(targets_filepath))
+    file_content = tuf.util.load_json_file(targets_filepath)
+    self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(file_content))
+    targets_metadata = file_content['signed']
+    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
     #  TODO: Generate some delegation metadata files.
     
     #  Test: normal case.

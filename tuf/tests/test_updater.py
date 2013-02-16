@@ -38,6 +38,7 @@ import gzip
 import time
 import shutil
 import tempfile
+import logging
 
 import tuf.util
 import tuf.repo.keystore as keystore
@@ -46,8 +47,13 @@ import tuf.client.updater as updater
 import tuf.tests.repository_setup as setup
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
+logger = logging.getLogger('tuf')
 
-#  References to roledb and keydb dictionaries.
+# Disable all logging calls of level CRITICAL and below.
+# Comment the line below to enable logging.
+logging.disable(logging.CRITICAL)
+
+#  References to roledb and keydb dictionaries (improve readability).
 roledb_dict = tuf.roledb._roledb_dict
 keydb_dict = tuf.keydb._keydb_dict
 

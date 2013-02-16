@@ -17,6 +17,7 @@
 """
 
 import unittest
+
 import tuf
 import tuf.formats as formats
 import tuf.mirrors as mirrors

@@ -45,7 +45,6 @@ PASSWDS = []
 temp_keys_info = []
 temp_keys_vals = []
 
-print 'Generating keys...'
 for i in range(3):
   # Populating the original 'RSAKEYS' and 'PASSWDS' lists.
   RSAKEYS.append(tuf.rsa_key.generate())
@@ -57,7 +56,6 @@ for i in range(3):
   temp_keys_vals.append(RSAKEYS[i]['keyval'].values())
 
 temp_passwds=list(PASSWDS)
-print 'Done.'
 
 
 

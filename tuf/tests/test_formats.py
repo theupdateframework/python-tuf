@@ -245,9 +245,7 @@ class TestFormats(unittest.TestCase):
    
     # Iterate through 'valid_schemas', ensuring each 'valid_schema' correctly
     # matches its respective 'schema_type'.
-    print 'TESTING VALID SCHEMAS\n'
     for schema_name, (schema_type, valid_schema) in valid_schemas.items():
-      print schema_name+': '+repr(valid_schema)+'\n'
       self.assertEqual(True, schema_type.matches(valid_schema))
    
     # Test conditions for invalid schemas.

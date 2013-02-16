@@ -24,10 +24,16 @@
 import os
 import shutil
 import unittest
+import logging
 
 import quickstart
 import tuf.util
 import tuf.tests.unittest_toolbox
+
+
+# Disable all logging calls of level CRITICAL and below.
+# Comment the line below to enable logging.
+logging.disable(logging.CRITICAL)
 
 unit_tbox = tuf.tests.unittest_toolbox.Modified_TestCase
 
