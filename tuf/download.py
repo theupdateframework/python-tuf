@@ -75,9 +75,7 @@ def _open_connection(url):
   except Exception, e:
     raise tuf.DownloadError(e)
   
-  # urllib2.urlopen returns a file-like object, I think of it as a handle to the
-  # remote data.
-  
+  # urllib2.urlopen returns a file-like object: a handle to the remote data.
   return connection
 
 
