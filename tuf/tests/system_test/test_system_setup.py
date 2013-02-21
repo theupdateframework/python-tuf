@@ -13,20 +13,28 @@
 
 <Purpose>
   Provide automatic setup and clean-up functionality.  This module is based on
-  python's unittest.  In fact the main class TestCase inherits from 
+  python's unittest, the main class 'TestCase' inherits from 
   unittest.TestCase.
 
-simple server -->          repository_dir
-                                 |
-                     --------------------------
-                     |                        |
-                  filename1               filename2
+  Initial repository looks like this:
+  simple server -->          repository_dir
+                                   |
+                       --------------------------
+                       |                        |
+                    filename1               filename2
 
   This modules uses unittest module to provide easy setup and tear down
   capability.
 
-Repository + Server    <--------------->    Client
-Repository + TUF + Server    <--------->    TUF + Client
+  Essentially there are two choices: either a system that simply performs
+  update downloads without any protections or a system that utilizes TUF to
+  perform secure update downloads.
+
+  A structure that does NOT implementing TUF.  A direct download over http.
+  Repository + Server    <--------------->    Client
+
+  The TUF structure is described bellow in the class and tuf_tearDown() docs.
+  Repository + TUF + Server    <--------->    TUF + Client
 
 """
 
@@ -53,11 +61,21 @@ logging.disable(logging.CRITICAL)
 
 class TestCase(unittest.TestCase):
   """
+  <Class Methods>
+    TestCase inherits from unittest.TestCase class.
+
+    client_download(filename):
+      Downloads a file ('filename') from 'url' (described bellow).
+
+      <Returns>
+        The contents of the file.
+
   <Class Variables>
     TUF:
-      Indicates whether or not TUF structure should be implemented.
+      Indicates whether or not TUF is implemented.
+      Boolean values that implements TUF if True.  Otherwise TUF is skipped. 
 
-  <Instance Variables>
+  <Class Instance Variables>
     repository_dir:
       Repository directory, where updates are located.
     
@@ -68,7 +86,8 @@ class TestCase(unittest.TestCase):
       A subprocess object.
 
     url:
-      URL pointing to the repository directory ('repository_dir').
+      A loopback address pointing to the repository directory 
+      ('repository_dir').
 
 
     TUF related instance variables.  Refer to the diagram in tuf_setUp().
@@ -100,7 +119,8 @@ class TestCase(unittest.TestCase):
     Note: metadata files are root.txt, targets.txt, release.txt and
     timestamp.txt.  There could be more metadata files such us mirrors.txt.
     The metadata files are signed by their corresponding roles i.e. root,
-    targets etc.      
+    targets etc.
+
 
   """
 
@@ -153,6 +173,60 @@ class TestCase(unittest.TestCase):
       self.tuf_tearDown()
 
 
+  
+  def add_or_change_file_at_repository(self, filename=None, data=None):
+    """
+    <Purpose>
+      Adds or changes a file named 'filename' at the repository 
+      'repository_dir'.
+
+    <Arguments>
+      filename:
+        Name of the file located on the repository 'repository_dir'.
+        Ex: file1.txt
+
+      data:
+        A string to write to the indicated file.  If None, 'test' string is
+        used.
+
+    """
+
+    if filename is not None and isinstance(filename, basestring):
+      filepath = os.path.join(self.repository_dir, filename)
+      if not os.path.isfile(filepath):
+        print 'There is no filepath ' + repr(filepath)+' does not exit.\n'
+        sys.exit(1)
+      fileobj = open(filepath, 'wb')
+    else:
+      junk, filepath = tempfile.mkstemp(dir=self.repository_dir)
+      filename = os.path.basename(filepath)
+      fileobj = open(filepath, 'wb')
+
+    if data is None or not isinstance(data, basestring):
+      data = 'test'
+
+    fileobj.write(data)
+    fileobj.close()
+    return filepath
+
+
+  def delete_file_at_repository(self, filename):
+    """
+    <Purpose>
+      Attempt to delete a file named 'filename' at the repository.
+    """
+    if isinstance(filename, basestring):
+      filepath = os.path.join(self.repository_dir, filename)
+      if os.path.isfile(filepath):
+        os.remove(filepath)
+      else:
+        print 'There is no filepath ' + repr(filepath) + ' does not exit.\n'
+        sys.exit(1)
+    else:
+      print 'Wrong type: ' + repr(filepath) + '\n'
+      sys.exit(1)
+
+
 
   @staticmethod
   def _open_connection(url):
@@ -167,6 +241,9 @@ class TestCase(unittest.TestCase):
 
 
   def client_download(self, filename):
+    if not isinstance(filename, basestring):
+      print 'Wrong type: ' + repr(filepath) + '\n'
+      sys.exit(1)
     connection = self._open_connection(self.url+filename)
     return connection.read()
 
@@ -220,7 +297,7 @@ class TestCase(unittest.TestCase):
     # Set some role info.
     info = {'keyids': [key['keyid']], 'threshold': threshold}
 
-    # Setup keystore.  'role_info' dictionary looks like this:
+    # 'role_info' dictionary looks like this:
     # {'keyids : [keyid1, ...] , 'threshold' : 2}
     # In our case 'role_info[keyids]' will only have on entry since only one
     # is being used.
@@ -233,20 +310,21 @@ class TestCase(unittest.TestCase):
     # and metadata files.
 
     # Build the configuration file.
-    conf_filepath = signerlib.build_config_file(self.repository_dir, 365, role_info)
+    self._conf_filepath = signerlib.build_config_file(self.repository_dir,
+                                                      365, role_info)
 
     # Generate the 'root.txt' metadata file.
-    keyid = [key['keyid']]
-    signerlib.build_root_file(conf_filepath, keyid, self.tuf_metadata_dir)
+    self._keyid = [key['keyid']]
+    signerlib.build_root_file(self._conf_filepath, self._keyid, self.tuf_metadata_dir)
 
     # Generate the 'targets.txt' metadata file. 
-    signerlib.build_targets_file(self.tuf_targets_dir, keyid, self.tuf_metadata_dir)
+    signerlib.build_targets_file(self.tuf_targets_dir, self._keyid, self.tuf_metadata_dir)
 
     # Generate the 'release.txt' metadata file.
-    signerlib.build_release_file(keyid, self.tuf_metadata_dir)
+    signerlib.build_release_file(self._keyid, self.tuf_metadata_dir)
 
     # Generate the 'timestamp.txt' metadata file.
-    signerlib.build_timestamp_file(keyid, self.tuf_metadata_dir)
+    signerlib.build_timestamp_file(self._keyid, self.tuf_metadata_dir)
 
     # Setting up client's TUF directory structure.
     # 'tuf.client.updater.py' expects the 'current' and 'previous'
@@ -272,13 +350,38 @@ class TestCase(unittest.TestCase):
     shutil.rmtree(self.tuf_client_dir)
 
 
+  def tuf_refresh(self):
+    """
+    <Purpose>
+      Update TUF metadata files.  Call this method whenever targets files have
+      changed in the 'repository_dir'.
 
-  # Quick internal test to see if everything runs smoothly.
+    """
+
+    shutil.rmtree(self.tuf_targets_dir)
+    shutil.copytree(self.repository_dir, self.tuf_targets_dir)
+
+    # Regenerate the 'targets.txt' metadata file. 
+    signerlib.build_targets_file(self.tuf_targets_dir, self._keyid,
+                                 self.tuf_metadata_dir)
+
+    # Regenerate the 'release.txt' metadata file.
+    signerlib.build_release_file(self._keyid, self.tuf_metadata_dir)
+
+    # Regenerate the 'timestamp.txt' metadata file.
+    signerlib.build_timestamp_file(self._keyid, self.tuf_metadata_dir)
+
+
+
+  # A few quick internal tests to see if everything runs smoothly.
   def test_client_download(self):
     data = self.client_download(self.filename1)
     self.assertEquals(data, 'System Test File 1')
 
-    # Verify that all necessary paths exist.
+
+
+  def test_tuf_setup(self):
+    # Verify that all necessary TUF-paths exist.
     for role in ['root', 'targets', 'release', 'timestamp']:
       # Repository side.
       role_file = os.path.join(self.tuf_metadata_dir, role+'.txt')
@@ -293,7 +396,39 @@ class TestCase(unittest.TestCase):
     self.assertTrue(os.path.isfile(target1))
     self.assertTrue(os.path.isfile(target2))
 
+    self.tuf_refresh()
 
+  def test_methods(self):
+    """
+    Making sure following methods work as intended:
+    - add_or_change_file_at_repository()
+    - delete_file_at_repository()
+    - tuf_refresh()
+    """
+    new_file = self.add_or_change_file_at_repository()
+    fileobj = open(new_file, 'rb')
+    self.assertTrue(os.path.exists(new_file))
+    self.assertEquals('test', fileobj.read())
+
+    old_file = self.add_or_change_file_at_repository(filename=self.filename1)
+    fileobj = open(new_file, 'rb')
+    self.assertTrue(os.path.exists(new_file))
+    self.assertEquals('test', fileobj.read())
+
+    old_file = self.add_or_change_file_at_repository(filename=self.filename1,
+                                                     data='1234')
+    fileobj = open(old_file, 'rb')
+    self.assertTrue(os.path.exists(old_file))
+    self.assertEquals('1234', fileobj.read())
+
+    self.tuf_refresh()
+    new_target = os.path.join(self.tuf_targets_dir, os.path.basename(new_file))
+    self.assertTrue(os.path.exists(new_target))
+    # Here it is assumed that all relevant metadata has been updated
+    # successfully.  This is tested in signerlib and other unit tests.
+
+    self.delete_file_at_repository(os.path.basename(new_file))
+    self.assertFalse(os.path.exists(new_file))
 
 
 

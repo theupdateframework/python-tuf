@@ -731,7 +731,7 @@ def make_release_metadata(keystore_directory):
   try:
     release_keyids = _get_role_config_keyids(config_filepath,
                                               keystore_directory, 'release')
-    # Generate the root metadata and write it to 'release.txt'
+    # Generate the release metadata and write it to 'release.txt'
     tuf.repo.signerlib.build_release_file(release_keyids, metadata_directory)
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
@@ -785,7 +785,7 @@ def make_timestamp_metadata(keystore_directory):
   try:
     timestamp_keyids = _get_role_config_keyids(config_filepath,
                                                keystore_directory, 'timestamp')
-    # Generate the root metadata and write it to 'timestamp.txt'
+    # Generate the timestamp metadata and write it to 'timestamp.txt'
     tuf.repo.signerlib.build_timestamp_file(timestamp_keyids,
                                             metadata_directory)
   except (tuf.FormatError, tuf.Error), e:
