@@ -1226,43 +1226,43 @@ def parse_options():
 
   # Add the options supported by 'signercli' to the option parser.
   option_parser.add_option('--genrsakey', action='store', type='string',
-                           help='Generate an RSA key and save it to '
+                           help='Generate an RSA key and save it to '\
                            'the keystore.')
 
   option_parser.add_option('--listkeys', action='store', type='string',
-                           help='List the key IDs of the signing '
+                           help='List the key IDs of the signing '\
                            'keys located in the keystore.')
 
   option_parser.add_option('--changepass', action='store', type='string',
-                           help='Change the password for one of '
+                           help='Change the password for one of '\
                            'the signing keys.')
 
   option_parser.add_option('--dumpkey', action='store', type='string',
-                           help='Dump the contents of an encrypted '
+                           help='Dump the contents of an encrypted '\
                            'key file.')
 
   option_parser.add_option('--makeroot', action='store', type='string',
-                           help='Create the Root metadata file '
+                           help='Create the Root metadata file '\
                            '(root.txt).')
 
   option_parser.add_option('--maketargets', action='store', type='string',
-                           help='Create the Targets metadata file '
+                           help='Create the Targets metadata file '\
                            '(targets.txt).')
 
   option_parser.add_option('--makerelease', action='store', type='string',
-                           help='Create the Release metadata file '
+                           help='Create the Release metadata file '\
                            '(release.txt).')
 
   option_parser.add_option('--maketimestamp', action='store', type='string',
-                           help='Create the Timestamp metadata file '
+                           help='Create the Timestamp metadata file '\
                            '(timestamp.txt).')
 
   option_parser.add_option('--sign', action='store', type='string',
                            help='Sign a metadata file.')
 
   option_parser.add_option('--makedelegation', action='store', type='string',
-                           help='Create a delegated role by creating '
-                           'its metadata file and updating the parent '
+                           help='Create a delegated role by creating '\
+                           'its metadata file and updating the parent '\
                            'role\'s metadata file.')
 
   (options, remaining_arguments) = option_parser.parse_args()

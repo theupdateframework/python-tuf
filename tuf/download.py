@@ -175,7 +175,7 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
   # might put back-slashes in place of forward-slashes.  This converts it to the
   # common format. 
   url = url.replace('\\','/')
-  logger.info('Downloading '+url)
+  logger.info('Downloading: '+url)
   connection = _open_connection(url)
   temp_file = tuf.util.TempFile()
 
