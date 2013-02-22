@@ -86,6 +86,9 @@ class TestCase(unittest.TestCase):
       Boolean values that implements TUF if True.  Otherwise TUF is skipped. 
 
   <Class Instance Variables>
+    client_downloads_dir:
+      A directory where all client downloaded updates are stored.
+
     repository_dir:
       Repository directory, where updates are located.
     
@@ -137,22 +140,26 @@ class TestCase(unittest.TestCase):
 
   TUF = True
 
+
   def setUp(self):
     unittest.TestCase.setUp(self)
 
     # Repository directory with few files in it.
+    self.client_downloads_dir = tempfile.mkdtemp(dir=os.getcwd())
     self.repository_dir = tempfile.mkdtemp(dir=os.getcwd())
-    filepath1 = self.add_or_change_file_at_repository(data='SystemTestFile1')
-    filepath2 = self.add_or_change_file_at_repository(data='SystemTestFile2')
-    self.filename1 = os.path.basename(filepath1)
-    self.filename2 = os.path.basename(filepath2)
+    self.filepath1 = self.add_or_change_file_at_repository(data=
+                                                           'SystemTestFile1')
+    self.filepath2 = self.add_or_change_file_at_repository(data=
+                                                           'SystemTestFile2')
+    self.filename1 = os.path.basename(self.filepath1)
+    self.filename2 = os.path.basename(self.filepath2)
 
     # Start a simple server pointing to the repository directory.
-    port = random.randint(30000, 45000)
-    command = ['python', '-m', 'SimpleHTTPServer', str(port)]
+    self.port = random.randint(30000, 45000)
+    command = ['python', '-m', 'SimpleHTTPServer', str(self.port)]
     self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
-    relative_repository_dir = os.path.basename(self.repository_dir)
-    self.url = 'http://localhost:'+str(port)+'/'+relative_repository_dir+'/'
+    rel_repository_dir = os.path.basename(self.repository_dir)
+    self.url = 'http://localhost:'+str(self.port)+'/'+rel_repository_dir+'/'
 
     # NOTE: The delay is needed make up for asynchronous subprocess.
     # Otherwise following error might be raised:
@@ -173,12 +180,12 @@ class TestCase(unittest.TestCase):
 
     # Removing repository directory.
     shutil.rmtree(self.repository_dir)
+    shutil.rmtree(self.client_downloads_dir)
 
     if self.TUF is True:
       self.tuf_tearDown()
 
 
-  
 
 
   def add_or_change_file_at_repository(self, filename=None, data=None):
@@ -189,7 +196,8 @@ class TestCase(unittest.TestCase):
 
     <Arguments>
       filename:
-        Name of the file located on the repository 'repository_dir'.
+        Name of the file located on the repository 'repository_dir'.  If there
+        there is not such a file sys.exit(1) is called.
         Ex: file1.txt
 
       data:
@@ -218,8 +226,6 @@ class TestCase(unittest.TestCase):
 
 
 
-
-
   def delete_file_at_repository(self, filename):
     """
     <Purpose>
@@ -238,8 +244,6 @@ class TestCase(unittest.TestCase):
 
 
 
-
-
   @staticmethod
   def _open_connection(url):
     try:
@@ -252,8 +256,6 @@ class TestCase(unittest.TestCase):
 
 
 
-
-
   def client_download(self, filename):
     if not isinstance(filename, basestring):
       print 'Wrong type: ' + repr(filepath) + '\n'
@@ -262,6 +264,11 @@ class TestCase(unittest.TestCase):
     return connection.read()
 
 
+  def read_file_content(self, filepath):
+    try:
+      fileobj = open(filepath, 'rb')
+    except Exception, e:
+      raise
 
 
 
@@ -361,13 +368,12 @@ class TestCase(unittest.TestCase):
 
 
 
-
-
   def tuf_tearDown(self):
     """
     <Purpose>
       The clean-up method, removes all TUF directories created using
       tuf_setUp().
+
     """
     shutil.rmtree(self.tuf_repository_dir)
     shutil.rmtree(self.tuf_client_dir)
@@ -399,7 +405,15 @@ class TestCase(unittest.TestCase):
 
 
 
+class test_TestCase(TestCase):
+  """
+  <Purpose>
+    To make sure that everything in test_system_setup.TestCase() works
+    properly.
 
+  """
+
+  TestCase.TUF = False
 
   # A few quick internal tests to see if everything runs smoothly.
   def test_client_download(self):
@@ -408,7 +422,7 @@ class TestCase(unittest.TestCase):
 
 
 
-
+  TestCase.TUF = True
 
   def test_tuf_setup(self):
     # Verify that all necessary TUF-paths exist.
@@ -427,8 +441,6 @@ class TestCase(unittest.TestCase):
     self.assertTrue(os.path.isfile(target2))
 
     self.tuf_refresh()
-
-
 
 
 
@@ -467,5 +479,5 @@ class TestCase(unittest.TestCase):
 
 
 
-if __name__=='__main__':
-  unittest.main()
+suite = unittest.TestLoader().loadTestsFromTestCase(test_TestCase)
+unittest.TextTestRunner(verbosity=2).run(suite)
