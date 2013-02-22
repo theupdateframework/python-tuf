@@ -6,7 +6,7 @@
   Konstantin Andrianov
 
 <Started>
-  February 15, 2012
+  February 19, 2012
 
 <Copyright>
   See LICENSE for licensing information.
@@ -63,12 +63,22 @@ class TestCase(unittest.TestCase):
   """
   <Class Methods>
     TestCase inherits from unittest.TestCase class.
+    Not including setups, tear downs and tests.
 
     client_download(filename):
       Downloads a file ('filename') from 'url' (described bellow).
+      Returns the contents of the file.
 
-      <Returns>
-        The contents of the file.
+    add_or_change_file_at_repository(filename, data):
+      Allows to add or change a file on the repository ('repository_dir').
+      Returns full path of the added/changed file.
+
+    delete_file_at_repository(filename):
+      Deletes a file on the repository ('repository_dir').
+
+    tuf_refresh()
+      Updates TUF metadata files.
+
 
   <Class Variables>
     TUF:
@@ -116,6 +126,7 @@ class TestCase(unittest.TestCase):
     tuf_client_metadata_dir:
       Contains current and previous versions of metadata files.
 
+
     Note: metadata files are root.txt, targets.txt, release.txt and
     timestamp.txt.  There could be more metadata files such us mirrors.txt.
     The metadata files are signed by their corresponding roles i.e. root,
@@ -131,16 +142,10 @@ class TestCase(unittest.TestCase):
 
     # Repository directory with few files in it.
     self.repository_dir = tempfile.mkdtemp(dir=os.getcwd())
-    repository_file1 = tempfile.mkstemp(dir=self.repository_dir)
-    repository_file2 = tempfile.mkstemp(dir=self.repository_dir)
-    self.filename1 = os.path.basename(repository_file1[1])
-    self.filename2 = os.path.basename(repository_file2[1])
-    fileobj = open(repository_file1[1], 'wb')
-    fileobj.write('System Test File 1')
-    fileobj.close()
-    fileobj = open(repository_file2[1], 'wb')
-    fileobj.write('System Test File 1')
-    fileobj.close()
+    filepath1 = self.add_or_change_file_at_repository(data='SystemTestFile1')
+    filepath2 = self.add_or_change_file_at_repository(data='SystemTestFile2')
+    self.filename1 = os.path.basename(filepath1)
+    self.filename2 = os.path.basename(filepath2)
 
     # Start a simple server pointing to the repository directory.
     port = random.randint(30000, 45000)
@@ -174,6 +179,8 @@ class TestCase(unittest.TestCase):
 
 
   
+
+
   def add_or_change_file_at_repository(self, filename=None, data=None):
     """
     <Purpose>
@@ -210,6 +217,9 @@ class TestCase(unittest.TestCase):
     return filepath
 
 
+
+
+
   def delete_file_at_repository(self, filename):
     """
     <Purpose>
@@ -228,6 +238,8 @@ class TestCase(unittest.TestCase):
 
 
 
+
+
   @staticmethod
   def _open_connection(url):
     try:
@@ -240,12 +252,16 @@ class TestCase(unittest.TestCase):
 
 
 
+
+
   def client_download(self, filename):
     if not isinstance(filename, basestring):
       print 'Wrong type: ' + repr(filepath) + '\n'
       sys.exit(1)
     connection = self._open_connection(self.url+filename)
     return connection.read()
+
+
 
 
 
@@ -315,10 +331,12 @@ class TestCase(unittest.TestCase):
 
     # Generate the 'root.txt' metadata file.
     self._keyid = [key['keyid']]
-    signerlib.build_root_file(self._conf_filepath, self._keyid, self.tuf_metadata_dir)
+    signerlib.build_root_file(self._conf_filepath, self._keyid, 
+                              self.tuf_metadata_dir)
 
     # Generate the 'targets.txt' metadata file. 
-    signerlib.build_targets_file(self.tuf_targets_dir, self._keyid, self.tuf_metadata_dir)
+    signerlib.build_targets_file(self.tuf_targets_dir, self._keyid, 
+                                 self.tuf_metadata_dir)
 
     # Generate the 'release.txt' metadata file.
     signerlib.build_release_file(self._keyid, self.tuf_metadata_dir)
@@ -329,14 +347,19 @@ class TestCase(unittest.TestCase):
     # Setting up client's TUF directory structure.
     # 'tuf.client.updater.py' expects the 'current' and 'previous'
     # directories to exist under client's 'metadata' directory.
-    self.tuf_client_metadata_dir = os.path.join(self.tuf_client_dir, 'metadata')
+    self.tuf_client_metadata_dir = os.path.join(self.tuf_client_dir,
+                                                'metadata')
     os.mkdir(self.tuf_client_metadata_dir)
 
     # Move the metadata to the client's 'current' and 'previous' directories.
-    self.client_current = os.path.join(self.tuf_client_metadata_dir, 'current')
-    self.client_previous = os.path.join(self.tuf_client_metadata_dir, 'previous')
+    self.client_current = os.path.join(self.tuf_client_metadata_dir, 
+                                       'current')
+    self.client_previous = os.path.join(self.tuf_client_metadata_dir,
+                                        'previous')
     shutil.copytree(self.tuf_metadata_dir, self.client_current)
     shutil.copytree(self.tuf_metadata_dir, self.client_previous)
+
+
 
 
 
@@ -348,6 +371,9 @@ class TestCase(unittest.TestCase):
     """
     shutil.rmtree(self.tuf_repository_dir)
     shutil.rmtree(self.tuf_client_dir)
+
+
+
 
 
   def tuf_refresh(self):
@@ -373,10 +399,14 @@ class TestCase(unittest.TestCase):
 
 
 
+
+
   # A few quick internal tests to see if everything runs smoothly.
   def test_client_download(self):
     data = self.client_download(self.filename1)
-    self.assertEquals(data, 'System Test File 1')
+    self.assertEquals(data, 'SystemTestFile1')
+
+
 
 
 
@@ -397,6 +427,10 @@ class TestCase(unittest.TestCase):
     self.assertTrue(os.path.isfile(target2))
 
     self.tuf_refresh()
+
+
+
+
 
   def test_methods(self):
     """
@@ -422,7 +456,8 @@ class TestCase(unittest.TestCase):
     self.assertEquals('1234', fileobj.read())
 
     self.tuf_refresh()
-    new_target = os.path.join(self.tuf_targets_dir, os.path.basename(new_file))
+    new_target = os.path.join(self.tuf_targets_dir, 
+                              os.path.basename(new_file))
     self.assertTrue(os.path.exists(new_target))
     # Here it is assumed that all relevant metadata has been updated
     # successfully.  This is tested in signerlib and other unit tests.
