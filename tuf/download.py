@@ -23,13 +23,13 @@
 """
 
 import urllib2
-import urllib2_ssl
 import logging
 
 import tuf.conf
 import tuf.hash
 import tuf.util
 import tuf.formats
+import tuf.urllib2_ssl
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
@@ -76,12 +76,15 @@ def _open_connection(url):
     global _opener
 
     if _opener is None:
-        # TODO: urllib2_ssl.urllib2_ssl
+        # If user has not asked for SSL certificate verification,
+        # use default opener.
         if tuf.conf.ca_certs is None:
             _opener = urllib2.build_opener()
+        # Otherwise, use an opener which will provide SSL certificate
+        # verification.
         else:
             _opener = urllib2.build_opener(
-                urllib2_ssl.urllib2_ssl.HTTPSHandler(
+                tuf.urllib2_ssl.HTTPSHandler(
                     ca_certs = tuf.conf.ca_certs
                 )
             )

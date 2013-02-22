@@ -1,3 +1,0 @@
-[submodule "urllib2_ssl"]
-	path = urllib2_ssl
-	url = https://gist.github.com/1347055.git
