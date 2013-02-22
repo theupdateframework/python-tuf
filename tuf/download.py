@@ -23,14 +23,17 @@
 """
 
 import urllib2
+import urllib2_ssl
 import logging
 
+import tuf.conf
 import tuf.hash
 import tuf.util
 import tuf.formats
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
+_opener = None
 
 
 def _open_connection(url):
@@ -70,13 +73,25 @@ def _open_connection(url):
     # 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)' this can be useful if
     # servers do not recognize connections that originates from 
     # Python-urllib/x.y.
-    request = urllib2.Request(url)
-    connection = urllib2.urlopen(request)
+    global _opener
+
+    if _opener is None:
+        # TODO: urllib2_ssl.urllib2_ssl
+        if tuf.conf.ca_certs is None:
+            _opener = urllib2.build_opener()
+        else:
+            _opener = urllib2.build_opener(
+                urllib2_ssl.urllib2_ssl.HTTPSHandler(
+                    ca_certs = tuf.conf.ca_certs
+                )
+            )
+
+    response = _opener.open( url )
   except Exception, e:
     raise tuf.DownloadError(e)
   
   # urllib2.urlopen returns a file-like object: a handle to the remote data.
-  return connection
+  return response
 
 
 
