@@ -48,11 +48,14 @@ import shutil
 import random
 import urllib2
 import logging
+import optparse
 import tempfile
 import unittest
 import subprocess
 
+import tuf.client.updater
 import tuf.repo.signerlib as signerlib
+
 
 # Disable/Enable logging.  Comment-out to Enable logging.
 logging.getLogger('tuf')
@@ -76,7 +79,7 @@ class TestCase(unittest.TestCase):
     delete_file_at_repository(filename):
       Deletes a file on the repository ('repository_dir').
 
-    tuf_refresh()
+    refresh_tuf_repository()
       Updates TUF metadata files.
 
 
@@ -141,6 +144,7 @@ class TestCase(unittest.TestCase):
   TUF = True
 
 
+
   def setUp(self):
     unittest.TestCase.setUp(self)
 
@@ -154,6 +158,7 @@ class TestCase(unittest.TestCase):
     self.filename1 = os.path.basename(self.filepath1)
     self.filename2 = os.path.basename(self.filepath2)
 
+    print
     # Start a simple server pointing to the repository directory.
     self.port = random.randint(30000, 45000)
     command = ['python', '-m', 'SimpleHTTPServer', str(self.port)]
@@ -171,6 +176,8 @@ class TestCase(unittest.TestCase):
 
 
 
+
+
   def tearDown(self):
     unittest.TestCase.tearDown(self)
 
@@ -184,6 +191,7 @@ class TestCase(unittest.TestCase):
 
     if self.TUF is True:
       self.tuf_tearDown()
+
 
 
 
@@ -226,6 +234,8 @@ class TestCase(unittest.TestCase):
 
 
 
+
+
   def delete_file_at_repository(self, filename):
     """
     <Purpose>
@@ -244,6 +254,8 @@ class TestCase(unittest.TestCase):
 
 
 
+
+
   @staticmethod
   def _open_connection(url):
     try:
@@ -256,6 +268,8 @@ class TestCase(unittest.TestCase):
 
 
 
+
+
   def client_download(self, filename):
     if not isinstance(filename, basestring):
       print 'Wrong type: ' + repr(filepath) + '\n'
@@ -264,11 +278,20 @@ class TestCase(unittest.TestCase):
     return connection.read()
 
 
+
+
+
   def read_file_content(self, filepath):
     try:
       fileobj = open(filepath, 'rb')
     except Exception, e:
       raise
+
+    data = fileobj.read()
+    fileobj.close()
+    return data
+
+
 
 
 
@@ -351,12 +374,28 @@ class TestCase(unittest.TestCase):
     # Generate the 'timestamp.txt' metadata file.
     signerlib.build_timestamp_file(self._keyid, self.tuf_metadata_dir)
 
+    # The repository is setup!
+
+    # It's time time setup tuf client.
+    # Here is a mirrors dictionary that will allow a client to seek out
+    # places to download the metadata and targets from.
+    rel_repo_dir = os.path.basename(self.tuf_repository_dir)
+    self.tuf_url = 'http://localhost:'+str(self.port)+'/'+rel_repo_dir+'/'
+    self.repository_mirrors = {'mirror1': 
+                               {'url_prefix': self.tuf_url,
+                                'metadata_path': 'metadata',
+                                'targets_path': 'targets',
+                                'confined_target_dirs': ['']}}
+
     # Setting up client's TUF directory structure.
     # 'tuf.client.updater.py' expects the 'current' and 'previous'
     # directories to exist under client's 'metadata' directory.
     self.tuf_client_metadata_dir = os.path.join(self.tuf_client_dir,
                                                 'metadata')
+    self.tuf_client_downloads_dir = os.path.join(self.tuf_client_dir,
+                                                 'downloads')
     os.mkdir(self.tuf_client_metadata_dir)
+    os.mkdir(self.tuf_client_downloads_dir)
 
     # Move the metadata to the client's 'current' and 'previous' directories.
     self.client_current = os.path.join(self.tuf_client_metadata_dir, 
@@ -368,6 +407,9 @@ class TestCase(unittest.TestCase):
 
 
 
+
+
+
   def tuf_tearDown(self):
     """
     <Purpose>
@@ -375,6 +417,7 @@ class TestCase(unittest.TestCase):
       tuf_setUp().
 
     """
+
     shutil.rmtree(self.tuf_repository_dir)
     shutil.rmtree(self.tuf_client_dir)
 
@@ -382,7 +425,7 @@ class TestCase(unittest.TestCase):
 
 
 
-  def tuf_refresh(self):
+  def refresh_tuf_repository(self):
     """
     <Purpose>
       Update TUF metadata files.  Call this method whenever targets files have
@@ -402,6 +445,46 @@ class TestCase(unittest.TestCase):
 
     # Regenerate the 'timestamp.txt' metadata file.
     signerlib.build_timestamp_file(self._keyid, self.tuf_metadata_dir)
+
+
+
+
+
+  def tuf_client_download(self):
+    # Adjusting configuration file (tuf.conf.py).
+    tuf.conf.repository_directory = self.tuf_client_dir
+    self.destination_dir = self.tuf_client_downloads_dir
+
+    # Instantiate an updater.
+    updater = tuf.client.updater.Updater('updater', self.repository_mirrors)
+
+    # Update all metadata.
+    updater.refresh()
+
+    # Get the latest information on targets.
+    targets = updater.all_targets()
+
+    # Determine which targets have changed or new.
+    updated_targets = updater.updated_targets(targets, self.destination_dir)
+
+    # Download new/changed targets and store them in the destination
+    # directory 'destination_dir'.
+    for target in updated_targets:
+      updater.download_target(target, self.destination_dir)
+
+
+
+
+
+def tuf_option():
+  usage = 'usage: %prog [options]'
+  parser = optparse.OptionParser(usage=usage)
+  parser.add_option('-t', '--tuf', '--TUF', action='store_true', dest='tuf', 
+                    default=False, help='Implement tuf.')
+  option, args = parser.parse_args()
+  TestCase.TUF = option.tuf
+
+
 
 
 
@@ -440,7 +523,7 @@ class test_TestCase(TestCase):
     self.assertTrue(os.path.isfile(target1))
     self.assertTrue(os.path.isfile(target2))
 
-    self.tuf_refresh()
+    self.refresh_tuf_repository()
 
 
 
@@ -449,7 +532,7 @@ class test_TestCase(TestCase):
     Making sure following methods work as intended:
     - add_or_change_file_at_repository()
     - delete_file_at_repository()
-    - tuf_refresh()
+    - refresh_tuf_repository()
     """
     new_file = self.add_or_change_file_at_repository()
     fileobj = open(new_file, 'rb')
@@ -467,7 +550,7 @@ class test_TestCase(TestCase):
     self.assertTrue(os.path.exists(old_file))
     self.assertEquals('1234', fileobj.read())
 
-    self.tuf_refresh()
+    self.refresh_tuf_repository()
     new_target = os.path.join(self.tuf_targets_dir, 
                               os.path.basename(new_file))
     self.assertTrue(os.path.exists(new_target))
@@ -479,5 +562,7 @@ class test_TestCase(TestCase):
 
 
 
-suite = unittest.TestLoader().loadTestsFromTestCase(test_TestCase)
-unittest.TextTestRunner(verbosity=2).run(suite)
+
+# Uncomment to run the test of 'test_TestCase' class.
+#suite = unittest.TestLoader().loadTestsFromTestCase(test_TestCase)
+#unittest.TextTestRunner(verbosity=2).run(suite)
