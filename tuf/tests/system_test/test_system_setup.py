@@ -171,7 +171,7 @@ class TestCase(unittest.TestCase):
     #    <urlopen error [Errno 111] Connection refused>
     time.sleep(.1)
 
-    if self.TUF is True:
+    if self.TUF:
       self.tuf_setUp()
 
 
@@ -189,7 +189,7 @@ class TestCase(unittest.TestCase):
     shutil.rmtree(self.repository_dir)
     shutil.rmtree(self.client_downloads_dir)
 
-    if self.TUF is True:
+    if self.TUF:
       self.tuf_tearDown()
 
 
@@ -275,7 +275,9 @@ class TestCase(unittest.TestCase):
       print 'Wrong type: ' + repr(filepath) + '\n'
       sys.exit(1)
     connection = self._open_connection(self.url+filename)
-    return connection.read()
+    data = connection.read()
+    connection.close()
+    return data
 
 
 
@@ -405,6 +407,15 @@ class TestCase(unittest.TestCase):
     shutil.copytree(self.tuf_metadata_dir, self.client_current)
     shutil.copytree(self.tuf_metadata_dir, self.client_previous)
 
+    # Adjusting configuration file (tuf.conf.py).
+    tuf.conf.repository_directory = self.tuf_client_dir
+
+    # Add a destination directory, where all client's downloads are stored.
+    self.destination_dir = self.tuf_client_downloads_dir
+
+    # Instantiate an updater.
+    self.updater = tuf.client.updater.Updater('updater', 
+                                              self.repository_mirrors)
 
 
 
@@ -450,27 +461,26 @@ class TestCase(unittest.TestCase):
 
 
 
-  def tuf_client_download(self):
-    # Adjusting configuration file (tuf.conf.py).
-    tuf.conf.repository_directory = self.tuf_client_dir
-    self.destination_dir = self.tuf_client_downloads_dir
-
-    # Instantiate an updater.
-    updater = tuf.client.updater.Updater('updater', self.repository_mirrors)
-
+  def tuf_client_refresh_metadata(self):
     # Update all metadata.
-    updater.refresh()
+    self.updater.refresh()
 
+
+
+
+
+  def tuf_client_download_updates(self):
     # Get the latest information on targets.
-    targets = updater.all_targets()
+    targets = self.updater.all_targets()
 
     # Determine which targets have changed or new.
-    updated_targets = updater.updated_targets(targets, self.destination_dir)
+    updated_targets = self.updater.updated_targets(targets,
+                                                   self.destination_dir)
 
     # Download new/changed targets and store them in the destination
     # directory 'destination_dir'.
     for target in updated_targets:
-      updater.download_target(target, self.destination_dir)
+      self.updater.download_target(target, self.destination_dir)
 
 
 
@@ -563,6 +573,6 @@ class test_TestCase(TestCase):
 
 
 
-# Uncomment to run the test of 'test_TestCase' class.
-#suite = unittest.TestLoader().loadTestsFromTestCase(test_TestCase)
-#unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == '__main__':
+  unittest.main()
