@@ -896,6 +896,8 @@ def make_delegation(keystore_directory):
 
   # Verify 'delegated_targets_directory'.
   try:
+    # normalize path
+    delegated_targets_directory = os.path.abspath( delegated_targets_directory )
     tuf.repo.signerlib.check_directory(delegated_targets_directory)
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
