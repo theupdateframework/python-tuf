@@ -12,16 +12,14 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Provide automatic setup and clean-up functionality.  This module is based on
-  python's unittest, the main class 'TestCase' inherits from 
-  unittest.TestCase.
+  Provide automatic setup and clean-up functionality.
 
   Initial repository looks like this:
-  simple server -->          repository_dir
+  simple server -->           repository_dir
                                    |
                        --------------------------
                        |                        |
-                    filename1               filename2
+                     file0                    file1
 
   This modules uses unittest module to provide easy setup and tear down
   capability.
@@ -39,7 +37,7 @@
 """
 
 # Repository setup.  Repository will consist of a temporary  directory
-# with some files in it.
+# with few files in it.
 
 import os
 import sys
@@ -48,9 +46,7 @@ import shutil
 import random
 import urllib2
 import logging
-import optparse
 import tempfile
-import unittest
 import subprocess
 
 import tuf.client.updater
@@ -62,517 +58,560 @@ logging.getLogger('tuf')
 logging.disable(logging.CRITICAL)
 
 
-class TestCase(unittest.TestCase):
-  """
-  <Class Methods>
-    TestCase inherits from unittest.TestCase class.
-    Not including setups, tear downs and tests.
+"""
 
-    client_download(filename):
-      Downloads a file ('filename') from 'url' (described bellow).
-      Returns the contents of the file.
+client_download(repo_file):
+  Downloads a file ('repo_file') from the 'url' (described bellow).
+  Returns the contents of the file.
 
-    add_or_change_file_at_repository(filename, data):
-      Allows to add or change a file on the repository ('repository_dir').
-      Returns full path of the added/changed file.
+add_or_change_file_at_repository(filename, data):
+  Allows to add or change a file on the repository ('repo_path').
+  Modifies 'setup_info' and returns full path of the added/changed file.
 
-    delete_file_at_repository(filename):
-      Deletes a file on the repository ('repository_dir').
+delete_file_at_repository(filename):
+  Deletes a file on the repository ('repository_dir').
 
-    refresh_tuf_repository()
-      Updates TUF metadata files.
+refresh_tuf_repository()
+  Updates TUF metadata and targets paths.
 
+setup_info:
+  Main dictionary where all setup related information is stored.
+  Ex: setup_info['repo_path']
 
-  <Class Variables>
-    TUF:
-      Indicates whether or not TUF is implemented.
-      Boolean values that implements TUF if True.  Otherwise TUF is skipped. 
+  repo_path:
+    Repository directory, where updates are located.
 
-  <Class Instance Variables>
-    client_downloads_dir:
-      A directory where all client downloaded updates are stored.
+  repo:
+    file#:
+      Stores a tuple of file's basename and full path of the file.
+      setup_info['repo']['file0'] = (filename, fullpath)
 
-    repository_dir:
-      Repository directory, where updates are located.
+      Note:
+      *Access the files using the 'file#' (or whatever str) dictionary keys.
+      *'filename' is appended to the url in order to get the file.
+
+    repo_files:
+      A list that stores all dictionary keys of files available at the
+      repository that is all 'file#' dictionary keys described above.
+      setup_info['repo']['repo_files'] = ['file0', 'file1']
     
-    filename#:
-      Name of the update, which is located in the repository directory.
-    
-    server_process:
-      A subprocess object.
+  server_proc:
+    A subprocess object.
+    Ex: setup_info['server_proc']
 
-    url:
-      A loopback address pointing to the repository directory 
-      ('repository_dir').
+  url:
+    A loop-back address pointing to the repository directory.
+    Ex: setup_info['url']
 
 
-    TUF related instance variables.  Refer to the diagram in tuf_setUp().
+  TUF related variables.  Refer to the diagram in init_tuf().
 
-    tuf_repository_dir:
-      A tuf repository that contains all tuf related directories, such as
-      metadata, targets, and keystore. (Read docs on how to handle keys!)
+  tuf_repo_path:
+    A tuf repository that contains all tuf related directories, such as
+    metadata, targets, and keystore. (Read docs on how to handle keys!)
 
-    tuf_metadata_dir:
+  tuf_repo:
+    metadata:
       Metadata directory that contains metadata files and is located in the 
       tuf repository directory ('tuf_repository_dir').
+      Ex: setup_info['tuf_repo']['metadata']
 
-    tuf_keystore_dir:
+    keystore:
       Contains all tuf keys, i.e. keys that are used to sign metadata roles.
-      It's located in the tuf repository directory ('tuf_repository_dir').
+      It's located in the tuf repository directory ('tuf_repo_path').
+      Ex: setup_info['tuf_repo']['keystore']
 
-    tuf_targets_dir:
+    targets:
       All target files (updates) are stored in tuf targets directory.
-      It's populated using the content 'repository_dir' (devel's repository).
+      Basically contains all 'repo_path' files (devel's repository).
       It's located in the tuf repository directory ('tuf_repository_dir').
+      Ex: setup_info['tuf_repo']['targets']
 
-    tuf_client_dir:
-      Client side tuf directory.  It contains current and previous metadata
-      files.
+  tuf_client_path:
+    Client side tuf directory.  It contains current and previous metadata
+    files.
+    Ex: setup_info['tuf_client_path']
+
+  tuf_client:
+    metadata_path:
+      Stores path of client's metadata directory.
+      Ex; setup_info['tuf_client']['metadata_path']
+
+    metadata:
+      Client needs to keep track of metadata files.
+
+      current:
+        Latest known to client metadata is stored here.
+        Ex: setup_info['tuf_client']['metadata']['current']
+
+      previous:
+        Previous metadata is stored here.  It's used during metadata update
+        process.
+        Ex: setup_info['tuf_client']['metadata']['previous']
     
-    tuf_client_metadata_dir:
-      Contains current and previous versions of metadata files.
+  tuf_client_metadata_dir:
+    Contains current and previous versions of metadata files.
 
 
-    Note: metadata files are root.txt, targets.txt, release.txt and
-    timestamp.txt.  There could be more metadata files such us mirrors.txt.
-    The metadata files are signed by their corresponding roles i.e. root,
-    targets etc.
+  Note: metadata files are root.txt, targets.txt, release.txt and
+  timestamp.txt.  There could be more metadata files such us mirrors.txt.
+  The metadata files are signed by their corresponding roles i.e. root,
+  targets etc.
 
+More documentation is provided in comments and doc blocks.
+
+"""
+setup_info = {}
+def init_repo(tuf=False):
+  # Repository directory with few files in it.
+  setup_info['tuf'] = tuf
+  setup_info['repo_path'] = tempfile.mkdtemp(dir=os.getcwd())
+  setup_info['dest_path'] = tempfile.mkdtemp(dir=os.getcwd())
+  setup_info['repo'] = {'repo_files':[]}
+  add_or_change_file_at_repository(repo_file='file0', data='SystemTestFile0')
+  add_or_change_file_at_repository(repo_file='file1', data='SystemTestFile1')
+
+  # Start a simple server pointing to the repository directory.
+  setup_info['port'] = port = random.randint(30000, 45000)
+  command = ['python', '-m', 'SimpleHTTPServer', str(port)]
+  setup_info['server_proc'] = subprocess.Popen(command, stderr=subprocess.PIPE)
+
+  # Tailor url for the repository.
+  repo_relpath = os.path.basename(setup_info['repo_path'])
+  setup_info['url'] = 'http://localhost:'+str(port)+'/'+repo_relpath+'/'
+
+  # NOTE: The delay is needed to make up for asynchronous subprocess.
+  # Otherwise following error might be raised:
+  #    <urlopen error [Errno 111] Connection refused>
+  time.sleep(.1)
+
+  if tuf:
+    init_tuf()
+
+
+
+
+
+def cleanup():
+  if not setup_info:
+    msg = 'init_repo() must be called before cleanup().\n'
+    sys.exit(msg)
+  
+  if setup_info['server_proc'].returncode is None:
+    setup_info['server_proc'].kill()
+    print 'Server terminated.\n'
+
+  # Removing repository directory.
+  shutil.rmtree(setup_info['repo_path'])
+  shutil.rmtree(setup_info['dest_path'])
+
+  if setup_info['tuf']:
+    cleanup_tuf()
+
+
+
+
+
+def add_or_change_file_at_repository(repo_file, data=None):
+  """
+  <Purpose>
+    Adds or changes a file at the repository setup_info[repo_path].
+
+  <Arguments>
+    repo_file:
+      A key to setup_info[repo] dictionary.
+
+    data:
+      A string to write to the indicated file.  If None, 'test' string is
+      used.
 
   """
 
-  TUF = True
-
-
-
-  def setUp(self):
-    unittest.TestCase.setUp(self)
-
-    # Repository directory with few files in it.
-    self.client_downloads_dir = tempfile.mkdtemp(dir=os.getcwd())
-    self.repository_dir = tempfile.mkdtemp(dir=os.getcwd())
-    self.filepath1 = self.add_or_change_file_at_repository(data=
-                                                           'SystemTestFile1')
-    self.filepath2 = self.add_or_change_file_at_repository(data=
-                                                           'SystemTestFile2')
-    self.filename1 = os.path.basename(self.filepath1)
-    self.filename2 = os.path.basename(self.filepath2)
-
-    print
-    # Start a simple server pointing to the repository directory.
-    self.port = random.randint(30000, 45000)
-    command = ['python', '-m', 'SimpleHTTPServer', str(self.port)]
-    self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
-    rel_repository_dir = os.path.basename(self.repository_dir)
-    self.url = 'http://localhost:'+str(self.port)+'/'+rel_repository_dir+'/'
-
-    # NOTE: The delay is needed make up for asynchronous subprocess.
-    # Otherwise following error might be raised:
-    #    <urlopen error [Errno 111] Connection refused>
-    time.sleep(.1)
-
-    if self.TUF:
-      self.tuf_setUp()
-
-
-
-
-
-  def tearDown(self):
-    unittest.TestCase.tearDown(self)
-
-    if self.server_process.returncode is None:
-      print 'Server terminated.'
-      self.server_process.kill()
-
-    # Removing repository directory.
-    shutil.rmtree(self.repository_dir)
-    shutil.rmtree(self.client_downloads_dir)
-
-    if self.TUF:
-      self.tuf_tearDown()
-
-
-
-
-
-  def add_or_change_file_at_repository(self, filename=None, data=None):
-    """
-    <Purpose>
-      Adds or changes a file named 'filename' at the repository 
-      'repository_dir'.
-
-    <Arguments>
-      filename:
-        Name of the file located on the repository 'repository_dir'.  If there
-        there is not such a file sys.exit(1) is called.
-        Ex: file1.txt
-
-      data:
-        A string to write to the indicated file.  If None, 'test' string is
-        used.
-
-    """
-
-    if filename is not None and isinstance(filename, basestring):
-      filepath = os.path.join(self.repository_dir, filename)
-      if not os.path.isfile(filepath):
-        print 'There is no filepath ' + repr(filepath)+' does not exit.\n'
-        sys.exit(1)
-      fileobj = open(filepath, 'wb')
-    else:
-      junk, filepath = tempfile.mkstemp(dir=self.repository_dir)
+  if isinstance(repo_file, basestring):
+    if not setup_info['repo'].has_key(repo_file):
+      junk, filepath = tempfile.mkstemp(dir=setup_info['repo_path'])
       filename = os.path.basename(filepath)
-      fileobj = open(filepath, 'wb')
+      setup_info['repo'][repo_file] = [filename, filepath]
+      setup_info['repo']['repo_files'].append(repo_file)
 
-    if data is None or not isinstance(data, basestring):
+    fileobj = open(setup_info['repo'][repo_file][1], 'wb')
+
+    if data is None:
       data = 'test'
 
     fileobj.write(data)
     fileobj.close()
-    return filepath
+    return setup_info['repo'][repo_file][1]
 
+  msg = 'Nothing was added or changed.  Provide a valid string.\n'
+  sys.exit(msg)
 
 
 
 
-  def delete_file_at_repository(self, filename):
-    """
-    <Purpose>
-      Attempt to delete a file named 'filename' at the repository.
-    """
-    if isinstance(filename, basestring):
-      filepath = os.path.join(self.repository_dir, filename)
-      if os.path.isfile(filepath):
-        os.remove(filepath)
-      else:
-        print 'There is no filepath ' + repr(filepath) + ' does not exit.\n'
-        sys.exit(1)
-    else:
-      print 'Wrong type: ' + repr(filepath) + '\n'
-      sys.exit(1)
 
-
-
-
-
-  @staticmethod
-  def _open_connection(url):
-    try:
-      request = urllib2.Request(url)
-      connection = urllib2.urlopen(request)
-    except Exception, e:
-      print 'Couldn\'t open connection: ' + repr(e)
-      sys.exit(1)
-    return connection
-
-
-
-
-
-  def client_download(self, filename):
-    if not isinstance(filename, basestring):
-      print 'Wrong type: ' + repr(filepath) + '\n'
-      sys.exit(1)
-    connection = self._open_connection(self.url+filename)
-    data = connection.read()
-    connection.close()
-    return data
-
-
-
-
-
-  def read_file_content(self, filepath):
-    try:
-      fileobj = open(filepath, 'rb')
-    except Exception, e:
-      raise
-
-    data = fileobj.read()
-    fileobj.close()
-    return data
-
-
-
-
-
-  def tuf_setUp(self):
-    """
-    <Purpose>
-      Setup TUF directory structure and populated it with TUF metadata and 
-      congfiguration files.
-
-                           tuf_repository_dir
-                                  |
-            --------------------------------------------
-            |                     |                    |
-         keystore              metadata             targets
-            |                     |                    |
-      key.key files         role.txt files       targets (updates)
-           ...                   ...                  ...
-
-
-                             tuf_client_dir
-                                  |
-                               metadata
-                                  |
-                      ---------------------------
-                      |                         |  
-                   current                   previous
-                      |                         |
-                role.txt files            role.txt files
-                     ...                       ...
-
-    """ 
-
-    passwd = 'test'
-    threshold = 1
-
-    # Setup TUF directory structure.
-    self.tuf_repository_dir = tempfile.mkdtemp(suffix='tuf_r', dir=os.getcwd())
-    self.tuf_client_dir = tempfile.mkdtemp(suffix='tuf_c', dir=os.getcwd())
-    self.tuf_keystore_dir = os.path.join(self.tuf_repository_dir, 'keystore')
-    self.tuf_metadata_dir = os.path.join(self.tuf_repository_dir, 'metadata')
-    os.mkdir(self.tuf_keystore_dir)
-    os.mkdir(self.tuf_metadata_dir)
-    self.tuf_targets_dir = os.path.join(self.tuf_repository_dir, 'targets')
-    shutil.copytree(self.repository_dir, self.tuf_targets_dir)
-
-    # Generate at least one rsa key.
-    key = signerlib.generate_and_save_rsa_key(self.tuf_keystore_dir, passwd)
-
-    # Set some role info.
-    info = {'keyids': [key['keyid']], 'threshold': threshold}
-
-    # 'role_info' dictionary looks like this:
-    # {'keyids : [keyid1, ...] , 'threshold' : 2}
-    # In our case 'role_info[keyids]' will only have on entry since only one
-    # is being used.
-    role_info = {}
-    role_list = ['root', 'targets', 'release', 'timestamp']
-    for role in role_list:
-      role_info[role] = info
-
-    # At this point there is enough information to create TUF configuration 
-    # and metadata files.
-
-    # Build the configuration file.
-    self._conf_filepath = signerlib.build_config_file(self.repository_dir,
-                                                      365, role_info)
-
-    # Generate the 'root.txt' metadata file.
-    self._keyid = [key['keyid']]
-    signerlib.build_root_file(self._conf_filepath, self._keyid, 
-                              self.tuf_metadata_dir)
-
-    # Generate the 'targets.txt' metadata file. 
-    signerlib.build_targets_file(self.tuf_targets_dir, self._keyid, 
-                                 self.tuf_metadata_dir)
-
-    # Generate the 'release.txt' metadata file.
-    signerlib.build_release_file(self._keyid, self.tuf_metadata_dir)
-
-    # Generate the 'timestamp.txt' metadata file.
-    signerlib.build_timestamp_file(self._keyid, self.tuf_metadata_dir)
-
-    # The repository is setup!
-
-    # It's time time setup tuf client.
-    # Here is a mirrors dictionary that will allow a client to seek out
-    # places to download the metadata and targets from.
-    rel_repo_dir = os.path.basename(self.tuf_repository_dir)
-    self.tuf_url = 'http://localhost:'+str(self.port)+'/'+rel_repo_dir+'/'
-    self.repository_mirrors = {'mirror1': 
-                               {'url_prefix': self.tuf_url,
-                                'metadata_path': 'metadata',
-                                'targets_path': 'targets',
-                                'confined_target_dirs': ['']}}
-
-    # Setting up client's TUF directory structure.
-    # 'tuf.client.updater.py' expects the 'current' and 'previous'
-    # directories to exist under client's 'metadata' directory.
-    self.tuf_client_metadata_dir = os.path.join(self.tuf_client_dir,
-                                                'metadata')
-    self.tuf_client_downloads_dir = os.path.join(self.tuf_client_dir,
-                                                 'downloads')
-    os.mkdir(self.tuf_client_metadata_dir)
-    os.mkdir(self.tuf_client_downloads_dir)
-
-    # Move the metadata to the client's 'current' and 'previous' directories.
-    self.client_current = os.path.join(self.tuf_client_metadata_dir, 
-                                       'current')
-    self.client_previous = os.path.join(self.tuf_client_metadata_dir,
-                                        'previous')
-    shutil.copytree(self.tuf_metadata_dir, self.client_current)
-    shutil.copytree(self.tuf_metadata_dir, self.client_previous)
-
-    # Adjusting configuration file (tuf.conf.py).
-    tuf.conf.repository_directory = self.tuf_client_dir
-
-    # Add a destination directory, where all client's downloads are stored.
-    self.destination_dir = self.tuf_client_downloads_dir
-
-    # Instantiate an updater.
-    self.updater = tuf.client.updater.Updater('updater', 
-                                              self.repository_mirrors)
-
-
-
-
-
-  def tuf_tearDown(self):
-    """
-    <Purpose>
-      The clean-up method, removes all TUF directories created using
-      tuf_setUp().
-
-    """
-
-    shutil.rmtree(self.tuf_repository_dir)
-    shutil.rmtree(self.tuf_client_dir)
-
-
-
-
-
-  def refresh_tuf_repository(self):
-    """
-    <Purpose>
-      Update TUF metadata files.  Call this method whenever targets files have
-      changed in the 'repository_dir'.
-
-    """
-
-    shutil.rmtree(self.tuf_targets_dir)
-    shutil.copytree(self.repository_dir, self.tuf_targets_dir)
-
-    # Regenerate the 'targets.txt' metadata file. 
-    signerlib.build_targets_file(self.tuf_targets_dir, self._keyid,
-                                 self.tuf_metadata_dir)
-
-    # Regenerate the 'release.txt' metadata file.
-    signerlib.build_release_file(self._keyid, self.tuf_metadata_dir)
-
-    # Regenerate the 'timestamp.txt' metadata file.
-    signerlib.build_timestamp_file(self._keyid, self.tuf_metadata_dir)
-
-
-
-
-
-  def tuf_client_refresh_metadata(self):
-    # Update all metadata.
-    self.updater.refresh()
-
-
-
-
-
-  def tuf_client_download_updates(self):
-    # Get the latest information on targets.
-    targets = self.updater.all_targets()
-
-    # Determine which targets have changed or new.
-    updated_targets = self.updater.updated_targets(targets,
-                                                   self.destination_dir)
-
-    # Download new/changed targets and store them in the destination
-    # directory 'destination_dir'.
-    for target in updated_targets:
-      self.updater.download_target(target, self.destination_dir)
-
-
-
-
-
-def tuf_option():
-  usage = 'usage: %prog [options]'
-  parser = optparse.OptionParser(usage=usage)
-  parser.add_option('-t', '--tuf', '--TUF', action='store_true', dest='tuf', 
-                    default=False, help='Implement tuf.')
-  option, args = parser.parse_args()
-  TestCase.TUF = option.tuf
-
-
-
-
-
-class test_TestCase(TestCase):
+def delete_file_at_repository(repo_file):
   """
   <Purpose>
-    To make sure that everything in test_system_setup.TestCase() works
-    properly.
+    Attempt to delete a file at the repository setup_info['repo_path'].
 
   """
 
-  TestCase.TUF = False
+  if isinstance(repo_file, basestring):
+    if not setup_info['repo'].has_key(repo_file):
+      msg = 'Provide a valid dictionary key to remove the file.\n'
+      sys.exit(msg)
 
-  # A few quick internal tests to see if everything runs smoothly.
-  def test_client_download(self):
-    data = self.client_download(self.filename1)
-    self.assertEquals(data, 'SystemTestFile1')
-
-
-
-  TestCase.TUF = True
-
-  def test_tuf_setup(self):
-    # Verify that all necessary TUF-paths exist.
-    for role in ['root', 'targets', 'release', 'timestamp']:
-      # Repository side.
-      role_file = os.path.join(self.tuf_metadata_dir, role+'.txt')
-      self.assertTrue(os.path.isfile(role_file))
-
-      # Client side.
-      role_file = os.path.join(self.client_current, role+'.txt')
-      self.assertTrue(os.path.isfile(role_file))
-
-    target1 = os.path.join(self.tuf_targets_dir, self.filename1)
-    target2 = os.path.join(self.tuf_targets_dir, self.filename2)
-    self.assertTrue(os.path.isfile(target1))
-    self.assertTrue(os.path.isfile(target2))
-
-    self.refresh_tuf_repository()
+    os.remove(setup_info['repo'][repo_file][1])
+    del setup_info['repo'][repo_file]
 
 
 
-  def test_methods(self):
-    """
-    Making sure following methods work as intended:
-    - add_or_change_file_at_repository()
-    - delete_file_at_repository()
-    - refresh_tuf_repository()
-    """
-    new_file = self.add_or_change_file_at_repository()
-    fileobj = open(new_file, 'rb')
-    self.assertTrue(os.path.exists(new_file))
-    self.assertEquals('test', fileobj.read())
 
-    old_file = self.add_or_change_file_at_repository(filename=self.filename1)
-    fileobj = open(new_file, 'rb')
-    self.assertTrue(os.path.exists(new_file))
-    self.assertEquals('test', fileobj.read())
 
-    old_file = self.add_or_change_file_at_repository(filename=self.filename1,
-                                                     data='1234')
-    fileobj = open(old_file, 'rb')
-    self.assertTrue(os.path.exists(old_file))
-    self.assertEquals('1234', fileobj.read())
+def _open_connection(url):
+  try:
+    request = urllib2.Request(url)
+    connection = urllib2.urlopen(request)
+  except Exception, e:
+    msg = 'Couldn\'t open connection: ' + repr(e)
+    sys.exit(msg)
+  return connection
 
-    self.refresh_tuf_repository()
-    new_target = os.path.join(self.tuf_targets_dir, 
-                              os.path.basename(new_file))
-    self.assertTrue(os.path.exists(new_target))
-    # Here it is assumed that all relevant metadata has been updated
-    # successfully.  This is tested in signerlib and other unit tests.
 
-    self.delete_file_at_repository(os.path.basename(new_file))
-    self.assertFalse(os.path.exists(new_file))
+
+
+
+def client_download(repo_file):
+  """
+  <Purpose>
+    Attempt to download a file from repository without TUF.
+
+  """
+
+  if not isinstance(repo_file, basestring) or \
+     not setup_info['repo'].has_key(repo_file):
+    msg = 'Provide a valid key for a file that exists on the repository.\n'
+    sys.exit(msg)
+
+  connection = _open_connection(setup_info['url']+setup_info['repo'][repo_file][0])
+  data = connection.read()
+  connection.close()
+  return data
+
+
+
+
+
+def read_file_content(filepath):
+  try:
+    fileobj = open(filepath, 'rb')
+  except Exception, e:
+    raise
+
+  data = fileobj.read()
+  fileobj.close()
+  return data
+
+
+
+
+def init_tuf():
+  """
+  <Purpose>
+    Setup TUF directory structure and populated it with TUF metadata and 
+    congfiguration files.
+
+                         tuf_repository_dir
+                                |
+          --------------------------------------------
+          |                     |                    |
+       keystore              metadata             targets
+          |                     |                    |
+    key.key files         role.txt files       targets (updates)
+         ...                   ...                  ...
+
+
+                           tuf_client_dir
+                                |
+                             metadata
+                                |
+                    ---------------------------
+                    |                         |  
+                 current                   previous
+                    |                         |
+              role.txt files            role.txt files
+                   ...                       ...
+
+  """ 
+
+  passwd = 'test'
+  threshold = 1
+
+  # Setup TUF-repo directory structure.
+  setup_info['tuf_repo_path'] = \
+    tempfile.mkdtemp(prefix='tuf_repo_', dir=os.getcwd())
+  keystore_dir = os.path.join(setup_info['tuf_repo_path'], 'keystore')
+  metadata_dir = os.path.join(setup_info['tuf_repo_path'], 'metadata')
+  targets_dir = os.path.join(setup_info['tuf_repo_path'], 'targets')
+  setup_info['tuf_repo'] = {'keystore':keystore_dir,
+                            'metadata':metadata_dir,
+                            'targets':targets_dir}
+  os.mkdir(setup_info['tuf_repo']['keystore'])
+  os.mkdir(setup_info['tuf_repo']['metadata'])
+  shutil.copytree(setup_info['repo_path'], setup_info['tuf_repo']['targets'])
+
+  # Setting TUF-client directory structure.
+  # 'tuf.client.updater.py' expects the 'current' and 'previous'
+  # directories to exist under client's 'metadata' directory.
+  setup_info['tuf_client_path'] = tempfile.mkdtemp(suffix='tuf_client_', dir=os.getcwd())
+  tuf_client_metadata_dir = os.path.join(setup_info['tuf_client_path'], 'metadata')
+  current_dir = os.path.join(setup_info['tuf_client_path'], 'metadata', 'current')
+  previous_dir = os.path.join(setup_info['tuf_client_path'], 'metadata', 'previous')
+  setup_info['tuf_client'] = {'metadata_path': tuf_client_metadata_dir,
+                              'metadata': {'current':current_dir,
+                                           'previous':previous_dir}}
+  os.mkdir(setup_info['tuf_client']['metadata_path'])
+
+  # Generate at least one rsa key.
+  key = signerlib.generate_and_save_rsa_key(keystore_dir, passwd)
+  keyid = [key['keyid']]
+  setup_info['keyid'] = keyid
+
+  # Set role info.
+  info = {'keyids': [key['keyid']], 'threshold': threshold}
+
+  # 'role_info' dictionary looks like this:
+  # {role : {'keyids : [keyid1, ...] , 'threshold' : 1}}
+  # In our case 'role_info[keyids]' will only have on entry since only one
+  # is being used.
+  role_info = {}
+  role_list = ['root', 'targets', 'release', 'timestamp']
+  for role in role_list:
+    role_info[role] = info
+
+  # At this point there is enough information to create TUF configuration 
+  # and metadata files.
+
+  # Build the configuration file.
+  conf_path = signerlib.build_config_file(metadata_dir, 365, role_info)
+
+  # Generate the 'root.txt' metadata file.
+  signerlib.build_root_file(conf_path, keyid, metadata_dir)
+
+  # Generate the 'targets.txt' metadata file. 
+  signerlib.build_targets_file(targets_dir, keyid, metadata_dir)
+
+  # Generate the 'release.txt' metadata file.
+  signerlib.build_release_file(keyid, metadata_dir)
+
+  # Generate the 'timestamp.txt' metadata file.
+  signerlib.build_timestamp_file(keyid, metadata_dir)
+
+  # Move the metadata to the client's 'current' and 'previous' directories.
+  shutil.copytree(metadata_dir, current_dir)
+  shutil.copytree(metadata_dir, previous_dir)
+
+  # The repository is now setup!
+
+  # Here is a mirrors dictionary that will allow a client to seek out
+  # places to download the metadata and targets from.
+  tuf_repo_relpath = os.path.basename(setup_info['tuf_repo_path'])
+  setup_info['tuf_url'] = 'http://localhost:'+ \
+                          str(setup_info['port'])+'/'+tuf_repo_relpath+'/'
+  setup_info['mirrors'] = {'mirror1': 
+                            {'url_prefix': setup_info['tuf_url'],
+                             'metadata_path': 'metadata',
+                             'targets_path': 'targets',
+                             'confined_target_dirs': ['']}}
+
+  # Adjusting configuration file (tuf.conf.py).
+  tuf.conf.repository_directory = setup_info['tuf_client_path']
+
+  # Instantiate an updater.
+  setup_info['tuf_client']['updater'] = \
+    tuf.client.updater.Updater('updater', setup_info['mirrors'])
+
+
+
+
+
+def cleanup_tuf():
+  """
+  <Purpose>
+    Clean-up method, removes all TUF directories created using
+    tuf_init().
+
+  """
+
+  shutil.rmtree(setup_info['tuf_repo_path'])
+  shutil.rmtree(setup_info['tuf_client_path'])
+
+
+
+
+
+def refresh_tuf_repository():
+  """
+  <Purpose>
+    Update TUF metadata files.  Call this method whenever targets files have
+    changed in the 'repository_dir'.
+
+  """
+
+  if not setup_info['tuf']:
+    msg = 'TUF needs to be initialized.\n'
+    sys.exist(msg)
+
+  shutil.rmtree(setup_info['tuf_repo']['targets'])
+  shutil.copytree(setup_info['repo_path'], setup_info['tuf_repo']['targets'])
+
+  # Regenerate the 'targets.txt' metadata file. 
+  signerlib.build_targets_file(setup_info['tuf_repo']['targets'],
+                                setup_info['keyid'],
+                                setup_info['tuf_repo']['metadata'])
+
+  # Regenerate the 'release.txt' metadata file.
+  signerlib.build_release_file(setup_info['keyid'],
+                                setup_info['tuf_repo']['metadata'])
+
+  # Regenerate the 'timestamp.txt' metadata file.
+  signerlib.build_timestamp_file(setup_info['keyid'], 
+                                  setup_info['tuf_repo']['metadata'])
+
+
+
+
+
+def tuf_client_refresh_metadata():
+  if not setup_info['tuf']:
+    msg = 'TUF needs to be initialized.\n'
+    sys.exist(msg)
+
+  # Update all metadata.
+  setup_info['tuf_client']['updater'].refresh()
+
+
+
+
+
+def tuf_client_download_updates():
+  if not setup_info['tuf']:
+    msg = 'TUF needs to be initialized.\n'
+    sys.exist(msg)
+
+  # Get the latest information on targets.
+  targets = setup_info['tuf_client']['updater'].all_targets()
+
+  # Determine which targets have changed or are new.
+  updated_targets = \
+    setup_info['tuf_client']['updater'].updated_targets(targets, setup_info['dest_path'])
+
+  # Download new/changed targets and store them in the destination
+  # directory 'destination_dir'.
+  for target in updated_targets:
+    setup_info['tuf_client']['updater'].download_target(target, setup_info['dest_path'])
+
+
+
+
+
+#===========================================#
+#  Bellow are few quick tests to make sure  #
+#  that everything works smoothly.          #
+#===========================================#
+def test_client_download():
+  init_repo()
+  data = client_download('file0')
+  assert data == 'SystemTestFile0'
+
+
+
+
+
+def test_tuf_setup():
+  init_repo(tuf=True)
+
+  # Verify that all necessary TUF-paths exist.
+  for role in ['root', 'targets', 'release', 'timestamp']:
+    # Repository side.
+    role_file = os.path.join(setup_info['tuf_repo']['metadata'], role+'.txt')
+    msg = repr(role)+'repository metadata file missing!'
+    assert os.path.isfile(role_file), msg
+
+    # Client side.
+    current_dir = setup_info['tuf_client']['metadata']['current']
+    role_file = os.path.join(current_dir, role+'.txt')
+    msg = repr(role)+'client metadata file missing!'
+    assert os.path.isfile(role_file), msg
+
+  targets_dir = setup_info['tuf_repo']['targets']
+  target1 = os.path.join(targets_dir, setup_info['repo']['file0'][0])
+  target2 = os.path.join(targets_dir, setup_info['repo']['file1'][0])
+  msg = 'missing target file!'
+  assert os.path.isfile(target1), msg
+  assert os.path.isfile(target2), msg
+
+
+
+
+
+def test_methods():
+  """
+  Making sure following methods work as intended:
+  - add_or_change_file_at_repository()
+  - delete_file_at_repository()
+  - refresh_tuf_repository()
+  """
+  init_repo(tuf=True)
+  new_file = add_or_change_file_at_repository('file2')
+  fileobj = open(new_file, 'rb')
+  msg = 'add_or_change_file_at_repository() failed on file creation.'
+  assert os.path.exists(new_file), msg
+  msg = 'content of the new file did not match expected data.'
+  assert 'test' == fileobj.read(), msg
+  fileobj.close()
+
+  old_file = add_or_change_file_at_repository(repo_file='file1')
+  fileobj = open(old_file, 'rb')
+  msg = 'add_or_change_file_at_repository() failed on changing content of a file.'
+  assert os.path.exists(old_file), msg
+  msg = 'content of the changed file did not match expected data.'
+  assert 'test' == fileobj.read(), msg
+  fileobj.close()
+
+  old_file = add_or_change_file_at_repository(repo_file='file1', data='1234')
+  fileobj = open(old_file, 'rb')
+  msg = 'add_or_change_file_at_repository() failed on changing content of a file.'
+  assert os.path.exists(old_file), msg
+  msg = 'content of the changed file did not match expected data.'
+  assert '1234' == fileobj.read(), msg
+  fileobj.close()
+
+  refresh_tuf_repository()
+  targets_dir = setup_info['tuf_repo']['targets']
+  new_target = os.path.join(targets_dir, os.path.basename(new_file))
+  msg = 'failed to add a target to the tuf targets directory on refresh.'
+  assert os.path.exists(new_target)
+  # Here it's assumed that all relevant metadata has been updated
+  # successfully.  This is tested in signerlib and other unit tests.
+
+  delete_file_at_repository('file2')
+  msg = 'failed to delete a file on the repository.'
+  assert not os.path.exists(new_file), msg
 
 
 
 
 
 if __name__ == '__main__':
-  unittest.main()
+  tests = [test_client_download, test_tuf_setup, test_methods]
+  for test in tests:
+    try:
+      test()
+      print repr(test)+'.......  OKAY'
+    except Exception, e:
+      raise
+    finally:
+      cleanup()
+      setup_info = {}
