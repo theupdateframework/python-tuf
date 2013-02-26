@@ -895,11 +895,7 @@ def make_delegation(keystore_directory):
   delegated_targets_directory = _prompt(prompt, str)
 
   # Verify 'delegated_targets_directory'.
-  try:
-    tuf.repo.signerlib.check_directory(delegated_targets_directory)
-  except (tuf.FormatError, tuf.Error), e:
-    message = str(e)+'\n'
-    raise tuf.RepositoryError(message)
+  delegated_targets_directory = _check_directory(delegated_targets_directory)
 
   # Get all the target roles and their respective keyids.
   # These keyids will let the user know which roles are currently known.

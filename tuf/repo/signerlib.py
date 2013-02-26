@@ -721,7 +721,7 @@ def check_directory(directory):
 
   <Arguments>
     directory:
-      The directory (absolute path) to check.
+      The directory to check.
 
   <Exceptions>
     tuf.Error, if 'directory' could not be validated.
@@ -740,15 +740,12 @@ def check_directory(directory):
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(directory)
 
-  directory = os.path.abspath(directory)
-
-  if not os.path.isabs(directory):
-    raise tuf.Error(repr(directory)+' is not an absolute path.')
-
   # Check if the directory exists.
   if not os.path.isdir(directory):
     raise tuf.Error(repr(directory)+' directory does not exist')
 
+  directory = os.path.abspath(directory)
+  
   return directory
 
 
