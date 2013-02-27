@@ -314,7 +314,7 @@ def build_repository(project_directory):
     # and save them to the keystore.
     for threshold in range(role_threshold):
       message = 'Enter a password for '+repr(role)+' ('+str(threshold+1)+'): '
-      password = _get_password(message)
+      password = _get_password(message, confirm=True)
       key = tuf.repo.signerlib.generate_and_save_rsa_key(keystore_directory,
                                                          password)
       try:

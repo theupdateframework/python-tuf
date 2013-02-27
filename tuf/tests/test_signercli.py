@@ -1172,15 +1172,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
                         keystore_dir)
       self.rsa_passwords[keyid] = saved_pw
 
-    #  Test: delegated_keyids > 1 or (== 0).
-    keystore.clear_keystore()
-
-    #  Load keyids ( > 1).
-    #  'signing_keyids' already contains 'new_keyid', add more.
-    for keyid in self.top_level_role_info['release']['keyids']:
-      signing_keyids.append(keyid)
-    self.assertRaises(tuf.RepositoryError, signercli.make_delegation,
-                      keystore_dir)
+    #  Test: delegated_keyids == 0.
     keystore.clear_keystore()
 
     #  Load 0 keyids (== 0).
