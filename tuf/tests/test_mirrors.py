@@ -73,18 +73,18 @@ class TestMirrors(tuf.tests.unittest_toolbox.Modified_TestCase):
     self.assertFalse(mirror_list)
     self.mirrors['mirror1'] = mirror1 
 
-    # Test: Incorrect 'file_type'.
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    # Test: Invalid 'file_type'.
+    self.assertRaises(tuf.Error, mirrors.get_list_of_mirrors,
                       self.random_string(), 'a', self.mirrors)
 
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    self.assertRaises(tuf.Error, mirrors.get_list_of_mirrors,
                       12345, 'a', self.mirrors)
 
-    # Test: Incorrect type of 'file_path'.
+    # Test: Improperly formatted 'file_path'.
     self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 12345, self.mirrors)
 
-    # Test: Incorrect 'mirrors_dict' object.
+    # Test: Improperly formatted 'mirrors_dict' object.
     self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 'a', 12345)
 

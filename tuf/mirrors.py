@@ -60,7 +60,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       The 'custom' field is optional.
 
   <Exceptions>
-    tuf.Error, on unknown file type.
+    tuf.Error, on unsupported 'file_type'.
     
     tuf.FormatError, on bad argument.
 
@@ -78,7 +78,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   if file_type not in _SUPPORTED_FILE_TYPES:
     message = 'Invalid file_type argument.  '+ \
       'Supported file types: '+repr(_SUPPORTED_FILE_TYPES)
-    raise tuf.FormatError(message)
+    raise tuf.Error(message)
 
   # Reference to 'tuf.util.file_in_confined_directories()' (improve readability).
   # This function checks whether a mirror should serve a file to the client.
@@ -101,7 +101,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     else:
       message = repr(file_type)+' is not a supported file type.  '+ \
        'Supported file types: '+repr(_SUPPORTED_FILE_TYPES) 
-      raise tuf.FormatError(message)
+      raise tuf.Error(message)
 
     # urllib.quote(string) replaces special characters in string using the %xx
     # escape.  This is done to avoid parsing issues of the URL on the server
