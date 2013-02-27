@@ -180,6 +180,7 @@ def _get_keyids(keystore_directory):
   loaded_keyids = []
 
   # Save the 'load_keystore_from_keyfiles' function call.
+  # Set to improve readability.
   load_key = tuf.repo.keystore.load_keystore_from_keyfiles
 
   # Ask the user for the keyid and password.  Next, try to load the specified
@@ -868,8 +869,8 @@ def make_delegation(keystore_directory):
       cannot be created, or the parent role metadata file cannot be updated. 
 
   <Side Effects>
-    The targets metadata file is modified.  The 'delegations' field of
-    'targets.txt' is added.
+    The parent targets metadata file is modified.  The 'delegations' field of
+    is added or updated.
 
   <Returns>
     None.
@@ -900,7 +901,7 @@ def make_delegation(keystore_directory):
   # Get all the target roles and their respective keyids.
   # These keyids will let the user know which roles are currently known.
   # signerlib.get_target_keyids() returns a dictionary that looks something
-  # like this: {'targets': [keyid1, ...], 'targets/role1': [keyid], ...}
+  # like this: {'targets': [keyid1, ...], 'targets/role1': [keyid1, ...] ...}
   targets_roles = tuf.repo.signerlib.get_target_keyids(metadata_directory)
 
   # Load the parent role specified by the user.  The parent role must be loaded
@@ -911,17 +912,17 @@ def make_delegation(keystore_directory):
 
   # Load the delegated role specified by the user.  The delegated role must be
   # loaded so its metadata file can be created.
-  delegated_role, delegated_keyid = _get_delegated_role(keystore_directory)
+  delegated_role, delegated_keyids = _get_delegated_role(keystore_directory)
 
   # Create, sign, and write the delegated role's metadata file.
   delegated_paths = _make_delegated_metadata(metadata_directory,
                                              delegated_targets_directory,
                                              parent_role, delegated_role,
-                                             delegated_keyid)
+                                             delegated_keyids)
 
-  # Update the parent roles metadata file.  The parent role's delegation
+  # Update the parent role's metadata file.  The parent role's delegation
   # field must be updated with the newly created delegated role.
-  _update_parent_metadata(metadata_directory, delegated_role, delegated_keyid,
+  _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids,
                           delegated_paths, parent_role, parent_keyids)
 
 
@@ -931,13 +932,14 @@ def make_delegation(keystore_directory):
 def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
   """
     Load the parent role specified by the user.  The user is presented with a
-    list of known repository roles and asked to enter the parent role to load.
+    list of known targets roles and asked to enter the parent role to load.
     Ensure the parent role is loaded properly and return a string containing
-    the parent role's full rolename and a list of keyids belong to the parent.
+    the parent role's full rolename and a list of keyids belonging to the parent.
 
   """
 
   # 'load_key' is a reference to the 'load_keystore_from_keyfiles function'.
+  # Set to improve readability.
   load_key = tuf.repo.keystore.load_keystore_from_keyfiles
   
   # Get the parent role.  We need to modify the parent role's metadata file.
@@ -989,7 +991,7 @@ def _get_delegated_role(keystore_directory):
     Get the delegated role specified by the user.  The user is presented with
     a list of keyids available in the keystore and asked to enter the keyid
     belonging to the delegated role.  Return a string containing
-    the delegated role's full rolename and its keyid.
+    the delegated role's full rolename and its keyids.
 
   """
   
@@ -997,33 +999,31 @@ def _get_delegated_role(keystore_directory):
   delegated_role = _prompt('\nEnter the delegated role\'s name: ', str)
 
   # List the keyids available in the keystore.  The user will next
-  # identify the keyid for the new delegated role.
+  # identify the keyids for the new delegated role.
   _list_keyids(keystore_directory)
 
-  # Retrieve the delegated role\'s keyid from the user.
+  # Retrieve the delegated role\'s keyids from the user.
   logger.info('The keyid of the delegated role must be loaded.')
-  delegated_keyid = _get_keyids(keystore_directory)
+  delegated_keyids = _get_keyids(keystore_directory)
 
-  # Ensure we actually loaded one delegated key.  Delegated roles
-  # should have only one signing key.
-  if len(delegated_keyid) != 1:
-    message = 'Only one key must be loaded for the delegated role\n'
+  # Ensure at least one delegated key was loaded.
+  if not tuf.formats.THRESHOLD_SCHEMA.matches(len(delegated_keyids)):
+    message = 'The minimum required threshold of keyids was not loaded.\n'
     raise tuf.RepositoryError(message)
-  delegated_keyid = delegated_keyid[0]
 
-  return delegated_role, delegated_keyid
+  return delegated_role, delegated_keyids
 
 
 
 
 
 def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
-                             parent_role, delegated_role, delegated_keyid):
+                             parent_role, delegated_role, delegated_keyids):
   """
     Create, sign, and write the metadata file for the newly added delegated
     role.  Determine the delegated paths for the target files found in
     'delegated_targets_directory' and the other information needed
-    to generate the targets metadata file for 'delegated_keyid'.  Return
+    to generate the targets metadata file for 'delegated_role'.  Return
     the delegated paths to the caller.
 
   """
@@ -1070,7 +1070,7 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
   repository_directory, junk = os.path.split(metadata_directory)
   generate_metadata = tuf.repo.signerlib.generate_targets_metadata
   delegated_metadata = generate_metadata(repository_directory, delegated_paths)
-  _sign_and_write_metadata(delegated_metadata, [delegated_keyid],
+  _sign_and_write_metadata(delegated_metadata, delegated_keyids,
                            metadata_filename)
 
   return delegated_paths
@@ -1079,7 +1079,7 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
 
 
 
-def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyid,
+def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids,
                             delegated_paths, parent_role, parent_keyids):
   """
     Update the parent role's metadata file.  The delegations field of the
@@ -1088,9 +1088,6 @@ def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyid,
     is signed and written to the metadata directory.
 
   """
-  
-  # Retrieve the key belonging to 'delegated_keyid' from the keystore.
-  role_key = tuf.repo.keystore.get_key(delegated_keyid)
 
   # Extract the metadata from the parent role's file.
   parent_filename = os.path.join(metadata_directory, parent_role)
@@ -1103,22 +1100,28 @@ def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyid,
 
   # Update the keys field.
   keys = delegations.get('keys', {})
-  if role_key['keytype'] == 'rsa':
-    keyval = role_key['keyval']
-    keys[delegated_keyid] = tuf.rsa_key.create_in_metadata_format(keyval)
-  else:
-    message = 'Invalid keytype encountered: '+delegated_keyid+'\n'
-    raise tuf.RepositoryError(message)
+  for delegated_keyid in delegated_keyids:
+    # Retrieve the key belonging to 'delegated_keyid' from the keystore.
+    role_key = tuf.repo.keystore.get_key(delegated_keyid)
+    if role_key['keytype'] == 'rsa':
+      keyval = role_key['keyval']
+      keys[delegated_keyid] = tuf.rsa_key.create_in_metadata_format(keyval)
+    else:
+      message = 'Invalid keytype encountered: '+delegated_keyid+'\n'
+      raise tuf.RepositoryError(message)
+ 
+  # Add the full list of keys belonging to 'delegated_role' to the delegations
+  # field.
   delegations['keys'] = keys
 
   # Update the 'roles' field.
   roles = delegations.get('roles', {})
-  threshold = 1
+  threshold = len(delegated_keyids)
   delegated_role = parent_role+'/'+delegated_role
   relative_paths = []
   for path in delegated_paths:
     relative_paths.append(os.path.sep.join(path.split(os.path.sep)[1:]))
-  roles[delegated_role] = tuf.formats.make_role_metadata([delegated_keyid],
+  roles[delegated_role] = tuf.formats.make_role_metadata(delegated_keyids,
                                                          threshold,
                                                          relative_paths)
   delegations['roles'] = roles

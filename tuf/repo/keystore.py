@@ -128,7 +128,7 @@ def add_rsakey(rsakey_dict, password, keyid=None):
   # available in the key database.
   keyid = rsakey_dict['keyid']
   if keyid in _keystore:
-    raise tuf.KeyAlreadyExistsError('keyid: '+keyid)
+    raise tuf.KeyAlreadyExistsError('keyid: '+keyid+' already exists.')
   
   _key_passwords[keyid] = password
   _keystore[keyid] = rsakey_dict
@@ -234,8 +234,11 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
         
         # Ensure the '.key' extension is removed (keypath[:-4]), as we only
         # need the basefilename containing the full keyid.
-        add_rsakey(rsa_key, password, keyid=keypath[:-4])
-        logger.info('Loaded key: '+rsa_key['keyid'])
+        try: 
+          add_rsakey(rsa_key, password, keyid=keypath[:-4])
+          logger.info('Loaded key: '+rsa_key['keyid'])
+        except tuf.KeyAlreadyExistsError, e:
+          logger.info('Key already loaded: '+rsa_key['keyid'])
         loaded_keys.append(rsa_key['keyid'])
         continue
       else:
