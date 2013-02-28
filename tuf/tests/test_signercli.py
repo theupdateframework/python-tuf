@@ -217,8 +217,8 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     # SETUP
     # The 'root.txt' and 'targets.txt' metadata files are
-    # needed for _list_keyids() to the determine roles
-    # with each keyid.
+    # needed for _list_keyids() to determine the roles
+    # associated with each keyid.
     keystore_dir = self.create_temp_keystore_directory()
     repo_dir = self.make_temp_directory()
     
@@ -229,7 +229,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     config_filepath = signerlib.build_config_file(config_dir, 365,
         self.top_level_role_info)
     
-    #  Create a temp metadata directory needed by _list_keyids().
+    #  Create the metadata directory needed by _list_keyids().
     meta_dir = self.make_temp_directory()
 
     #  Patch signercli._get_metadata_directory().
@@ -240,7 +240,9 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     #  Patch signercli._get_password().
     self.get_passwords()
-    
+   
+    #  Create the root metadata file that will be loaded by _list_keyids()
+    #  to extract the keyids for the top-level roles. 
     signercli.make_root_metadata(keystore_dir)
     
     #  Create a directory containing target files.
@@ -250,12 +252,43 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Mock method for signercli._prompt().
     self.make_metadata_mock_prompts(targ_dir=targets_dir,
                                     conf_path=config_filepath)
-    
+   
+    #  Create the target metadata file that will be loaded by _list_keyids()
+    #  to extract the keyids for all the targets roles.
     signercli.make_targets_metadata(keystore_dir)
+
 
     # TESTS
     #  Test: normal case.
     signercli._list_keyids(keystore_dir, meta_dir)
+
+    #  Test: Improperly formatted 'root.txt' file.
+    root_filename = os.path.join(meta_dir, 'root.txt')
+    root_signable = tuf.util.load_json_file(root_filename)
+    saved_roles = root_signable['signed']['roles'] 
+    del root_signable['signed']['roles']
+    tuf.repo.signerlib.write_metadata_file(root_signable, root_filename)
+    
+    self.assertRaises(tuf.RepositoryError,
+                      signercli._list_keyids, keystore_dir, meta_dir)
+    
+    # Restore the properly formatted 'root.txt' file.
+    root_signable['signed']['roles'] = saved_roles
+    tuf.repo.signerlib.write_metadata_file(root_signable, root_filename)
+
+    #  Test:  Improperly formatted 'targets.txt' file.
+    targets_filename = os.path.join(meta_dir, 'targets.txt')
+    targets_signable = tuf.util.load_json_file(targets_filename)
+    saved_targets = targets_signable['signed']['targets']
+    del targets_signable['signed']['targets']
+    tuf.repo.signerlib.write_metadata_file(targets_signable, targets_filename)
+
+    self.assertRaises(tuf.RepositoryError,
+                      signercli._list_keyids, keystore_dir, meta_dir)
+
+    # Restore the properly formatted 'targets.txt' file.
+    targets_signable['signed']['targets'] = saved_targets
+    tuf.repo.signerlib.write_metadata_file(targets_signable, targets_filename)
 
 
 
