@@ -324,7 +324,7 @@ MIRROR_SCHEMA = SCHEMA.Object(
   url_prefix=URL_SCHEMA,
   metadata_path=RELPATH_SCHEMA,
   targets_path=RELPATH_SCHEMA,
-  confined_target_paths=SCHEMA.ListOf(PATH_SCHEMA),
+  confined_target_dirs=SCHEMA.ListOf(RELPATH_SCHEMA),
   custom=SCHEMA.Optional(SCHEMA.Object()))
 
 # A dictionary of mirrors where the dict keys hold the mirror's name and

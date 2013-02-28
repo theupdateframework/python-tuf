@@ -89,6 +89,7 @@ import ConfigParser
 import shutil
 import tempfile
 import logging
+import errno
 
 import tuf
 import tuf.repo.signerlib
@@ -245,16 +246,21 @@ def build_repository(project_directory):
   # Try to create the repository directory.
   try:
     os.mkdir(repository_directory)
-  # 'OSError' raised if the directory exists.
+  # 'OSError' raised if the directory cannot be created.
   except OSError, e:
     message = 'Trying to create a new repository over an old repository '+\
       'installation.  Remove '+repr(repository_directory)+' before '+\
       'trying again.'
-    raise tuf.RepositoryError(message)
+    if e.errno == errno.EEXIST:
+      raise tuf.RepositoryError(message)
+    else:
+      raise
 
   # Move the temporary targets directory into place now that repository
-  # directory has been created.
+  # directory has been created and remove previously created temporary
+  # directory.
   shutil.move(temporary_targets, targets_directory)
+  os.rmdir(temporary_directory)
   
   # Try to create the metadata directory that will hold all of the
   # metadata files, such as 'root.txt' and 'release.txt'.
@@ -263,7 +269,10 @@ def build_repository(project_directory):
     logger.info('Creating '+repr(metadata_directory))
     os.mkdir(metadata_directory)
   except OSError, e:
-    pass
+    if e.errno == errno.EEXIST:
+      pass
+    else:
+      raise
 
   # Set the keystore directory.
   keystore_directory = os.path.join(os.getcwd(), 'keystore')
@@ -271,9 +280,12 @@ def build_repository(project_directory):
   # Try to create the keystore directory.
   try:
     os.mkdir(keystore_directory)
-  # 'OSError' raised if the directory exists.
+  # 'OSError' raised if the directory cannot be created.
   except OSError, e:
-    pass
+    if e.errno == EEXIST:
+      pass
+    else:
+      raise
 
   # Build the keystore and save the generated keys.
   role_info = {}
@@ -302,7 +314,7 @@ def build_repository(project_directory):
     # and save them to the keystore.
     for threshold in range(role_threshold):
       message = 'Enter a password for '+repr(role)+' ('+str(threshold+1)+'): '
-      password = _get_password(message)
+      password = _get_password(message, confirm=True)
       key = tuf.repo.signerlib.generate_and_save_rsa_key(keystore_directory,
                                                          password)
       try:
@@ -347,7 +359,10 @@ def build_repository(project_directory):
     message = 'Cannot create a fresh client metadata directory: '+\
       repr(client_metadata_directory)+'.  The client metadata '+\
       'will need to be manually created.  See the README file.'
-    logger.warn(message)
+    if e.errno == errno.EEXIST:
+      logger.warn(message)
+    else:
+      raise
 
   # Move the metadata to the client's 'current' and 'previous' directories.
   client_current = os.path.join(client_metadata_directory, 'current')

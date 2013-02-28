@@ -721,7 +721,7 @@ def check_directory(directory):
 
   <Arguments>
     directory:
-      The directory (absolute path) to check.
+      The directory to check.
 
   <Exceptions>
     tuf.Error, if 'directory' could not be validated.
@@ -740,15 +740,12 @@ def check_directory(directory):
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(directory)
 
-  directory = os.path.abspath(directory)
-
-  if not os.path.isabs(directory):
-    raise tuf.Error(repr(directory)+' is not an absolute path.')
-
   # Check if the directory exists.
   if not os.path.isdir(directory):
     raise tuf.Error(repr(directory)+' directory does not exist')
 
+  directory = os.path.abspath(directory)
+  
   return directory
 
 
@@ -800,7 +797,7 @@ def get_target_keyids(metadata_directory):
   # Read the 'targets.txt' file.  This file must exist.
   targets_filepath = os.path.join(metadata_directory, 'targets.txt')
   if not os.path.exists(targets_filepath):
-    raise RepositoryError('"targets.txt" not found')
+    raise tuf.RepositoryError('"targets.txt" not found')
 
   # Read the contents of 'targets.txt' and save the signable.
   targets_signable = tuf.util.load_json_file(targets_filepath)
@@ -809,7 +806,7 @@ def get_target_keyids(metadata_directory):
   try:
     tuf.formats.check_signable_object_format(targets_signable)
   except tuf.FormatError, e:
-    raise RepositoryError('"targets.txt" is improperly formatted')
+    raise tuf.RepositoryError('"targets.txt" is improperly formatted')
 
   # Store the keyids of the 'targets' role.  This target role is
   # required.

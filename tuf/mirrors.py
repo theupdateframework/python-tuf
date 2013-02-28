@@ -24,6 +24,10 @@ import urllib
 import tuf.util
 import tuf.formats
 
+# The type of file to be downloaded from a repository.  The
+# 'get_list_of_mirrors' function supports these file types.
+_SUPPORTED_FILE_TYPES = ['meta', 'target']
+
 
 def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   """
@@ -47,17 +51,18 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       keys are strings and values are MIRROR_SCHEMA. An example format
       of MIRROR_SCHEMA:
 
-      {'url_prefix': 'http://localhost:8001'
-       'metadata_path': 'metadata/'
-       'targets_path': 'targets/'
-       'confined_target_paths': ['targets/release1', ...]
+      {'url_prefix': 'http://localhost:8001',
+       'metadata_path': 'metadata/',
+       'targets_path': 'targets/',
+       'confined_target_dirs': ['targets/release1/', ...],
        'custom': {...}}
 
       The 'custom' field is optional.
 
   <Exceptions>
-    tuf.Error on unknown file type.
-    tuf.FormatError on bad argument.
+    tuf.Error, on unsupported 'file_type'.
+    
+    tuf.FormatError, on bad argument.
 
   <Return>
     List of mirror urls corresponding to the file_type and file_path.  If no
@@ -70,29 +75,33 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
   tuf.formats.NAME_SCHEMA.check_match(file_type)
 
-  if file_type not in ['meta', 'target']:
-    msg = ('Invalid input: \'file_type\' has to be either \'meta\' or '+
-          '\'target\'.')
-    raise tuf.FormatError(msg)
+  if file_type not in _SUPPORTED_FILE_TYPES:
+    message = 'Invalid file_type argument.  '+ \
+      'Supported file types: '+repr(_SUPPORTED_FILE_TYPES)
+    raise tuf.Error(message)
 
-  # Reference to 'tuf.util.path_in_confined_paths()' (improve readability).
-  # This function checks whether a mirror serves the required file.
+  # Reference to 'tuf.util.file_in_confined_directories()' (improve readability).
+  # This function checks whether a mirror should serve a file to the client.
   # A client may be confined to certain paths on a repository mirror
   # when fetching target files.  This field may be set by the client when
   # the repository mirror is added to the 'tuf.client.updater.Updater' object.
-  in_confined = tuf.util.path_in_confined_paths
+  in_confined_directory = tuf.util.file_in_confined_directories
 
   list_of_mirrors = []
   for mirror_name, mirror_info in mirrors_dict.items():
     if file_type == 'meta':
       base = mirror_info['url_prefix']+'/'+mirror_info['metadata_path']
-
-    else:
+    elif file_type == 'target':
       targets_path = mirror_info['targets_path']
       full_filepath = os.path.join(targets_path, file_path)
-      if not in_confined(full_filepath, mirror_info['confined_target_paths']):
+      if not in_confined_directory(full_filepath,
+                                   mirror_info['confined_target_dirs']):
         continue
       base = mirror_info['url_prefix']+'/'+mirror_info['targets_path']
+    else:
+      message = repr(file_type)+' is not a supported file type.  '+ \
+       'Supported file types: '+repr(_SUPPORTED_FILE_TYPES) 
+      raise tuf.Error(message)
 
     # urllib.quote(string) replaces special characters in string using the %xx
     # escape.  This is done to avoid parsing issues of the URL on the server

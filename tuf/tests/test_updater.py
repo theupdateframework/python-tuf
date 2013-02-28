@@ -38,6 +38,7 @@ import gzip
 import time
 import shutil
 import tempfile
+import logging
 
 import tuf.util
 import tuf.repo.keystore as keystore
@@ -46,8 +47,13 @@ import tuf.client.updater as updater
 import tuf.tests.repository_setup as setup
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
+logger = logging.getLogger('tuf')
 
-#  References to roledb and keydb dictionaries.
+# Disable all logging calls of level CRITICAL and below.
+# Comment the line below to enable logging.
+logging.disable(logging.CRITICAL)
+
+#  References to roledb and keydb dictionaries (improve readability).
 roledb_dict = tuf.roledb._roledb_dict
 keydb_dict = tuf.keydb._keydb_dict
 
@@ -952,12 +958,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test:
     # Attempt a file download of a valid target, however, a download exception
     # occurs because the target is not within the mirror's confined
-    # target paths.
-    #  Adjust mirrors dictionary, so that 'confined_target_paths' field
+    # target directories.
+    #  Adjust mirrors dictionary, so that 'confined_target_dirs' field
     #  contains at least one confined target and excludes needed target file.
     mirrors = self.Repository.mirrors
     for mirror_name, mirror_info in mirrors.items():
-      mirrors[mirror_name]['confined_target_paths'] = [self.random_path()]
+      mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
 
     #  Get the target file info.
     file_path = target_rel_paths_src[0]
@@ -971,7 +977,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                       dest_dir)
       
     for mirror_name, mirror_info in mirrors.items():
-      mirrors[mirror_name]['confined_target_paths'] = ['']
+      mirrors[mirror_name]['confined_target_dirs'] = ['']
 
 
 

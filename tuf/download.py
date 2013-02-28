@@ -25,12 +25,15 @@
 import urllib2
 import logging
 
+import tuf.conf
 import tuf.hash
 import tuf.util
 import tuf.formats
+import tuf.urllib2_ssl
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
+_opener = None
 
 
 def _open_connection(url):
@@ -70,15 +73,28 @@ def _open_connection(url):
     # 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)' this can be useful if
     # servers do not recognize connections that originates from 
     # Python-urllib/x.y.
-    request = urllib2.Request(url)
-    connection = urllib2.urlopen(request)
+    global _opener
+
+    if _opener is None:
+        # If user has not asked for SSL certificate verification,
+        # use default opener.
+        if tuf.conf.ca_certs is None:
+            _opener = urllib2.build_opener()
+        # Otherwise, use an opener which will provide SSL certificate
+        # verification.
+        else:
+            _opener = urllib2.build_opener(
+                tuf.urllib2_ssl.HTTPSHandler(
+                    ca_certs = tuf.conf.ca_certs
+                )
+            )
+
+    response = _opener.open( url )
   except Exception, e:
     raise tuf.DownloadError(e)
   
-  # urllib2.urlopen returns a file-like object, I think of it as a handle to the
-  # remote data.
-  
-  return connection
+  # urllib2.urlopen returns a file-like object: a handle to the remote data.
+  return response
 
 
 
@@ -177,7 +193,7 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
   # might put back-slashes in place of forward-slashes.  This converts it to the
   # common format. 
   url = url.replace('\\','/')
-  logger.info('Downloading '+url)
+  logger.info('Downloading: '+url)
   connection = _open_connection(url)
   temp_file = tuf.util.TempFile()
 

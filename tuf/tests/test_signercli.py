@@ -35,6 +35,7 @@
 
 
 import os
+import logging
 
 import tuf.formats
 import tuf.util
@@ -45,7 +46,15 @@ import tuf.repo.signercli as signercli
 #  Helper module unittest_toolbox.py
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
+reload(signercli)
+#reload(keystore)
+#reload(signerlib)
 
+logger = logging.getLogger('tuf')
+
+# Disable all logging calls of level CRITICAL and below.
+# Comment the line below to enable logging.
+logging.disable(logging.CRITICAL)
 
 # Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
 # We will need them when creating keystore directories.
@@ -204,15 +213,49 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_1__list_keyids(self):
+  def test_4__list_keyids(self):
 
     # SETUP
+    # The 'root.txt' and 'targets.txt' metadata files are
+    # needed for _list_keyids() to the determine roles
+    # with each keyid.
     keystore_dir = self.create_temp_keystore_directory()
+    repo_dir = self.make_temp_directory()
+    
+    #  Create temp directory for config file.
+    config_dir = self.make_temp_directory()
 
+    #  Build a config file.
+    config_filepath = signerlib.build_config_file(config_dir, 365,
+        self.top_level_role_info)
+    
+    #  Create a temp metadata directory needed by _list_keyids().
+    meta_dir = self.make_temp_directory()
+
+    #  Patch signercli._get_metadata_directory().
+    self.mock_get_metadata_directory(directory=meta_dir)
+
+    #  Patch signercli._prompt().
+    self.mock_prompt(config_filepath)
+
+    #  Patch signercli._get_password().
+    self.get_passwords()
+    
+    signercli.make_root_metadata(keystore_dir)
+    
+    #  Create a directory containing target files.
+    targets_dir, targets_paths =\
+        self.make_temp_directory_with_data_files(directory=repo_dir)
+   
+    #  Mock method for signercli._prompt().
+    self.make_metadata_mock_prompts(targ_dir=targets_dir,
+                                    conf_path=config_filepath)
+    
+    signercli.make_targets_metadata(keystore_dir)
 
     # TESTS
     #  Test: normal case.
-    signercli._list_keyids(keystore_dir)
+    signercli._list_keyids(keystore_dir, meta_dir)
 
 
 
@@ -255,7 +298,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Check if all the keysids were loaded.
     for keyid in self.rsa_keyids:
       if keyid not in loaded_keyids:
-        msg = '\nCould not load the keyid: '+repr(keyid)
+        msg = 'Could not load the keyid: '+repr(keyid)
         self.fail(msg)
    
     #  Test: invalid password.
@@ -450,15 +493,44 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_2_change_password(self):
+  def test_4_change_password(self):
 
     # SETUP
+    #  Create keystore and repo directories.
+    keystore_dir = self.create_temp_keystore_directory()
+    repo_dir = self.make_temp_directory()
+    
+    #  Create temp directory for config file.
+    config_dir = self.make_temp_directory()
+
+    #  Build a config file.
+    config_filepath = signerlib.build_config_file(config_dir, 365,
+        self.top_level_role_info)
+
+    #  Create a temp metadata directory.
+    meta_dir = self.make_temp_directory()
+
+    #  Patch signercli._get_metadata_directory().
+    self.mock_get_metadata_directory(directory=meta_dir)
+
+    #  Patch signercli._prompt().
+    self.mock_prompt(config_filepath)
+
+    signercli.make_root_metadata(keystore_dir)
+
+    #  Create a directory containing target files.
+    targets_dir, targets_paths =\
+        self.make_temp_directory_with_data_files(directory=repo_dir)
+   
+    #  Mock method for signercli._prompt().
+    self.make_metadata_mock_prompts(targ_dir=targets_dir,
+                                    conf_path=config_filepath)
+    
+    signercli.make_targets_metadata(keystore_dir)
+    
     test_keyid = self.rsa_keyids[0]
     self.mock_prompt(test_keyid)
-
-    #  Create keystore directory.
-    keystore_dir = self.create_temp_keystore_directory()
-
+    
     #  Specify old password and create a new password.
     old_password = self.rsa_passwords[test_keyid]
     new_password = self.random_string()
@@ -533,9 +605,45 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_2_dump_key(self):
+  def test_4_dump_key(self):
 
     # SETUP
+    #  Create keystore and repo directories.
+    keystore_dir = self.create_temp_keystore_directory()
+    repo_dir = self.make_temp_directory()
+    
+    #  Create temp directory for config file.
+    config_dir = self.make_temp_directory()
+
+    #  Build a config file.
+    config_filepath = signerlib.build_config_file(config_dir, 365,
+        self.top_level_role_info)
+
+    #  Create a temp metadata directory.
+    meta_dir = self.make_temp_directory()
+
+    #  Patch signercli._get_metadata_directory().
+    self.mock_get_metadata_directory(directory=meta_dir)
+
+    #  Patch signercli._get_password().
+    self.get_passwords()
+    
+    #  Patch signercli._prompt().
+    self.mock_prompt(config_filepath)
+
+    signercli.make_root_metadata(keystore_dir)
+    
+    #  Create a directory containing target files.
+    targets_dir, targets_paths =\
+        self.make_temp_directory_with_data_files(directory=repo_dir)
+   
+    #  Mock method for signercli._prompt().
+    self.make_metadata_mock_prompts(targ_dir=targets_dir,
+                                    conf_path=config_filepath)
+    
+    signercli.make_targets_metadata(keystore_dir)
+    
+
     keyid = self.rsa_keyids[0]
     password = self.rsa_passwords[keyid]
     show_priv = 'private'
@@ -557,9 +665,6 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     #  Patch signercli._prompt().
     signercli._prompt = _mock_prompt
-
-    #  Create keystore directory.
-    keystore_dir = self.create_temp_keystore_directory()
 
 
     # TESTS
@@ -1099,6 +1204,9 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Load keystore.
     load_keystore = keystore.load_keystore_from_keyfiles
 
+    #  Build the root metadata file (root.txt).
+    signercli.make_root_metadata(keystore_dir)
+    
     #  Build targets metadata file (targets.txt).
     signercli.make_targets_metadata(keystore_dir)
 
@@ -1107,7 +1215,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     #  Mock method for signercli._prompt().
     def _mock_prompt(msg, junk):
-      if msg.startswith('\nNOTE: The directory entered'):
+      if msg.startswith('\nThe directory entered'):
         return delegated_targets_dir
       elif msg.startswith('\nChoose and enter the parent'):
         return parent_role
@@ -1163,15 +1271,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
                         keystore_dir)
       self.rsa_passwords[keyid] = saved_pw
 
-    #  Test: delegated_keyids > 1 or (== 0).
-    keystore.clear_keystore()
-
-    #  Load keyids ( > 1).
-    #  'signing_keyids' already contains 'new_keyid', add more.
-    for keyid in self.top_level_role_info['release']['keyids']:
-      signing_keyids.append(keyid)
-    self.assertRaises(tuf.RepositoryError, signercli.make_delegation,
-                      keystore_dir)
+    #  Test: delegated_keyids == 0.
     keystore.clear_keystore()
 
     #  Load 0 keyids (== 0).

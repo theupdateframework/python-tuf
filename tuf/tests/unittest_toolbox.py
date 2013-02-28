@@ -143,15 +143,15 @@ class Modified_TestCase(unittest.TestCase):
   mirrors = {'mirror1': {'url_prefix' : 'http://mirror1.com',
                          'metadata_path' : 'metadata',
                          'targets_path' : 'targets',
-                         'confined_target_paths' : ['']},
+                         'confined_target_dirs' : ['']},
              'mirror2': {'url_prefix' : 'http://mirror2.com',
                          'metadata_path' : 'metadata',
                          'targets_path' : 'targets',
-                         'confined_target_paths' : ['']},
+                         'confined_target_dirs' : ['']},
              'mirror3': {'url_prefix' : 'http://mirror3.com',
                          'metadata_path' : 'metadata',
                          'targets_path' : 'targets',
-                         'confined_target_paths' : ['']}}
+                         'confined_target_dirs' : ['']}}
 
 
 

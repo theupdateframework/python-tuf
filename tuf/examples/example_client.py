@@ -41,7 +41,7 @@ tuf.conf.repository_directory = '.'
 repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
                                   'metadata_path': 'metadata',
                                   'targets_path': 'targets',
-                                  'confined_target_paths': ['']}}
+                                  'confined_target_dirs': ['']}}
 
 # Create the Upater object using the updater name 'tuf-example'
 # and the repository mirrors defined above.

@@ -4,19 +4,18 @@
 
 <Author>
   Konstantin Andrianov
-  Derived from original util.py written by Geremy Condra.
 
 <Started>
-  March 24, 2012
+  March 24, 2012.  Derived from original util.py written by Geremy Condra.
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
   Provides utility services.  This module supplies utility functions such as:
-  get_file_details that computes length and hash of a file, import_json that
-  tries to import a working json module, load_json functions, TempFile class -
-  generates a file-like object temporary starage, etc.
+  get_file_details() that computes the length and hash of a file, import_json
+  that tries to import a working json module, load_json_* functions, and a
+  TempFile class that generates a file-like object for temporary storage, etc.
 
 """
 
@@ -28,13 +27,12 @@ import shutil
 import logging
 import tempfile
 
-import logging
 import tuf.hash
 import tuf.conf
 import tuf.formats
 
 
-# See 'log.py' to learn how logging is handled in TUF
+# See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.util')
 
 
@@ -45,7 +43,7 @@ class TempFile(object):
     cleaned up. This isn't a complete file-like object. The file functions
     that are supported make additional common-case safe assumptions.  There
     are additional functions that aren't part of file-like objects.  TempFile
-    is used in download.py module to temporarily store downloaded data whild
+    is used in the download.py module to temporarily store downloaded data while
     all security checks (file hashes/length) are performed.
 
   """
@@ -70,8 +68,7 @@ class TempFile(object):
         A string argument to be used with tempfile.TemporaryFile function.
 
     <Exceptions>
-      OSError on failure to load temp dir.
-      tuf.Error
+      tuf.Error on failure to load temp dir.
 
     <Return>
       None.
@@ -121,10 +118,11 @@ class TempFile(object):
       file is read and the file pointer is placed at the beginning of the file.
 
     <Arguments>
-      size: Number of bytes to be read.
+      size:
+        Number of bytes to be read.
 
     <Exceptions>
-      None
+      tuf.FormatError: if 'size' is invalid.
 
     <Return>
       String of data.
@@ -246,7 +244,9 @@ class TempFile(object):
         a file.  Only gzip is allowed.
 
     <Exceptions>
-      tuf.Error
+      tuf.FormatError: If 'compression' is improperly formatted.
+
+      tuf.Error: If an invalid compression is given.
 
     <Side Effects>
       'self._orig_file' is used to store the original data of 'temporary_file'.
@@ -256,6 +256,10 @@ class TempFile(object):
 
     """
 
+    # Does 'compression' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.NAME_SCHEMA.check_match(compression)
+    
     if self._orig_file is not None:
       raise tuf.Error('Can only set compression on a TempFile once.')
 
@@ -301,39 +305,40 @@ class TempFile(object):
 
 
 
-def get_file_details(file_path):
+def get_file_details(filepath):
   """
   <Purpose>
-    To get file's length and hash information.  The hash is computed using
-    sha256 algorithm.  This function is used in signerlib.py and updater.py
+    To get file's length and hash information.  The hash is computed using the
+    sha256 algorithm.  This function is used in the signerlib.py and updater.py
     modules.
 
   <Arguments>
-    file_path:
+    filepath:
       Absolute file path of a file.
 
   <Exceptions>
     tuf.FormatError: If hash of the file does not match HASHDICT_SCHEMA.
-    TODO: check non-existing path wich produces OSError.
+
+    tuf.Error: If 'filepath' does not exist. 
 
   <Returns>
-    A tuple (length, hashes) describing file_path.
+    A tuple (length, hashes) describing 'filepath'.
 
   """
-  # Making sure that the format of 'file_path' is a path string.
-  # tuf.FormatError is raised on incorrect format.
-  tuf.formats.PATH_SCHEMA.check_match(file_path)
+  # Making sure that the format of 'filepath' is a path string.
+  # 'tuf.FormatError' is raised on incorrect format.
+  tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # Does the path exists?
-  if not os.path.exists(file_path):
-    raise tuf.Error, 'Path '+repr(file_path)+' doest not exist.'
-  file_path = os.path.abspath(file_path)
+  if not os.path.exists(filepath):
+    raise tuf.Error('Path '+repr(filepath)+' doest not exist.')
+  filepath = os.path.abspath(filepath)
 
   # Obtaining length of the file.
-  file_length = os.path.getsize(file_path)
+  file_length = os.path.getsize(filepath)
 
   # Obtaining hash of the file.
-  digest_object = tuf.hash.digest_filename(file_path, algorithm='sha256')
+  digest_object = tuf.hash.digest_filename(filepath, algorithm='sha256')
   file_hash = {'sha256' : digest_object.hexdigest()}
 
   # Performing a format check to ensure 'file_hash' corresponds HASHDICT_SCHEMA.
@@ -359,17 +364,21 @@ def ensure_parent_dir(filename):
     filename:
       A path string.
 
+  <Exceptions>
+    tuf.FormatError: If 'filename' is improperly formatted.
+
   <Side Effects>
-    A directory is created whenever parent directory of 'filename' does not exist.
+    A directory is created whenever the parent directory of 'filename' does not
+    exist.
 
   <Return>
     None.
 
   """
 
-  # Ensure 'name' corresponds to 'RELPATH_SCHEMA'.
+  # Ensure 'filename' corresponds to 'PATH_SCHEMA'.
   # Raise 'tuf.FormatError' on a mismatch.
-  tuf.formats.RELPATH_SCHEMA.check_match(filename)
+  tuf.formats.PATH_SCHEMA.check_match(filename)
 
   # Split 'filename' into head and tail, check if head exists.
   directory = os.path.split(filename)[0]
@@ -380,17 +389,19 @@ def ensure_parent_dir(filename):
 
 
 
-def path_in_confined_paths(test_path, confined_paths):
+def file_in_confined_directories(filepath, confined_directories):
   """
   <Purpose>
-    Check whether 'test_path' is in the list/tuple of 'confined_paths'.
+    Check if the directory containing 'filepath' is in the list/tuple of
+    'confined_directories'.
 
   <Arguments>
-    test_path:
-      A string representing a path.
+    filepath:
+      A string representing the path of a file.  The following example path
+      strings are viewed as files and not directories: 'a/b/c', 'a/b/c.txt'.
 
-    confined_paths:
-      A list or a tuple of path strings.
+    confined_directories:
+      A list, or a tuple, of directory strings.
 
   <Exceptions>
    tuf.FormatError: On incorrect format of the input.
@@ -401,23 +412,28 @@ def path_in_confined_paths(test_path, confined_paths):
 
   """
 
-  # Do the arguments are the correct format?
+  # Do the arguments have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.RELPATH_SCHEMA.check_match(test_path)
-  tuf.formats.RELPATHS_SCHEMA.check_match(confined_paths)
+  tuf.formats.RELPATH_SCHEMA.check_match(filepath)
+  tuf.formats.RELPATHS_SCHEMA.check_match(confined_directories)
 
-  for pattern in confined_paths:
-    # Ignore slashes at the beginning.
-    pattern = pattern.lstrip('/')
-
-    # An empty string signifies the client should be confined to all
-    # directories and subdirectories.  No need to check 'test_path'.
-    if pattern == '':
+  for confined_directory in confined_directories:
+    # The empty string (arbitrarily chosen) signifies the client is confined
+    # to all directories and subdirectories.  No need to check 'filepath'.
+    if confined_directory == '':
       return True
 
-    # Get the directory name (i.e., strip off the file_path+extension)
-    directory_name = os.path.dirname(test_path)
-    if directory_name == os.path.dirname(pattern):
+    # Normalized paths needed, to account for up-level references, etc.
+    # TUF clients have the option of setting the list of directories in
+    # 'confined_directories'.
+    filepath = os.path.normpath(filepath)
+    confined_directory = os.path.normpath(confined_directory)
+    
+    # A TUF client may restrict himself to specific directories on the
+    # remote repository.  The list of paths in 'confined_path', not including
+    # each path's subdirectories, are the only directories the client will
+    # download targets from.
+    if os.path.dirname(filepath) == confined_directory:
       return True
 
   return False
@@ -437,8 +453,10 @@ def import_json():
     None.
 
   <Exceptions>
-    ImportError on failure to import json or simplejson modules.
-    NameError
+    ImportError: on failure to import the json or simplejson modules.
+
+  <Side Effects>
+    None.
 
   <Return>
     json/simplejson module
@@ -509,8 +527,14 @@ def load_json_string(data):
   <Arguments>
     data:
       A JSON string.
+  
+  <Exceptions>
+    None.
 
-  <Return>
+  <Side Effects>
+    None.
+
+  <Returns>
     Deserialized object.  For example a dictionary.
 
   """
@@ -528,22 +552,29 @@ def load_json_file(filepath):
     data:
       Absolute path of JSON file.
 
+  <Exceptions>
+    tuf.FormatError: If 'filepath' is improperly formatted.
+
+    tuf.Error: If 'filepath' could not be opened.
+
+  <Side Effects>
+    None.
+
   <Return>
-    Deserialized object.  For example a dictionary.
+    Deserialized object.  For example, a dictionary.
 
   """
 
-  # Making sure that the format of 'file_path' is a path string.
+  # Making sure that the format of 'filepath' is a path string.
   # tuf.FormatError is raised on incorrect format.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
   
   try:
-    fp = open(filepath)
+    fileobject = open(filepath)
   except IOError, err:
     raise tuf.Error(err)
 
   try:
-    return json.load(fp)
+    return json.load(fileobject)
   finally:
-    fp.close()
-
+    fileobject.close()

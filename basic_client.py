@@ -102,7 +102,7 @@ def update_client(repository_mirror):
   repository_mirrors = {'mirror': {'url_prefix': repository_mirror,
                                   'metadata_path': 'metadata',
                                   'targets_path': 'targets',
-                                  'confined_target_paths': ['']}}
+                                  'confined_target_dirs': ['']}}
 
   # Create the repository object using the repository name 'repository'
   # and the repository mirrors defined above.
