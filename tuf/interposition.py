@@ -3,11 +3,12 @@ import json
 import logging
 import os.path
 import tempfile
-import tuf.client.updater
-import tuf.conf
 import urllib
 import urllib2
 import urlparse
+
+import tuf.client.updater
+import tuf.conf
 
 
 # TODO:
@@ -208,7 +209,7 @@ class HTTPHandler( urllib2.HTTPHandler, DownloadMixin ):
             return response
 
 
-def interpose( filename = "tuf.interposition.json" ):
+def configure( filename = "tuf.interposition.json" ):
     INVALID_TUF_CONFIGURATION = "Invalid TUF configuration for " + \
         "{hostname}! TUF interposition will NOT be present for {hostname}."
     INVALID_TUF_INTERPOSITION_JSON = "Invalid TUF configuration JSON file " + \
@@ -226,7 +227,7 @@ def interpose( filename = "tuf.interposition.json" ):
                         "url_prefix": "http://seattle-tuf.cs.washington.edu",
                         "metadata_path": "metadata",
                         "targets_path": "targets",
-                        "confined_target_paths": [ "" ]
+                        "confined_target_dirs": [ "" ]
                     }
                 }
             }
@@ -260,16 +261,18 @@ def interpose( filename = "tuf.interposition.json" ):
         Logger.warn(
             INVALID_TUF_INTERPOSITION_JSON.format( filename = filename )
         )
-    else:
-        # http://docs.python.org/2/library/urllib.html#urllib._urlopener
-        urllib._urlopener = FancyURLOpener()
-
-        # http://docs.python.org/2/library/urllib2.html#urllib2.build_opener
-        # http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
-        # TODO: override other default urllib2 handlers
-        urllib2.install_opener( urllib2.build_opener( HTTPHandler ) )
 
 
 def go_away():
     """Remove TUF interposition and restore previous urllib openers."""
     raise NotImplementedError
+
+
+def interpose():
+    # http://docs.python.org/2/library/urllib.html#urllib._urlopener
+    urllib._urlopener = FancyURLOpener()
+
+    # http://docs.python.org/2/library/urllib2.html#urllib2.build_opener
+    # http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
+    # TODO: override other default urllib2 handlers
+    urllib2.install_opener( urllib2.build_opener( HTTPHandler ) )
