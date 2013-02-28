@@ -31,8 +31,3 @@ temporary_directory = None
 # which already exists and within that directory should have the file
 # 'metadata/current/root.txt'.  This must be set!
 repository_directory = None
-
-# A directory where you may find certificate authorities
-# https://en.wikipedia.org/wiki/Certificate_authority
-# http://docs.python.org/2/library/ssl.html#certificates
-ca_certs = None
