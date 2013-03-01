@@ -1,3 +1,4 @@
+import functools
 import httplib
 import json
 import logging
@@ -16,7 +17,9 @@ import tuf.conf
 
 
 # TODO:
-# failsafe: if TUF fails, offer option to unsafely resort back to urllib/urllib2?
+# - failsafe: if TUF fails, offer option to unsafely resort back to urllib/urllib2?
+# - review security issues resulting from regular expressions (e.g. complexity attacks)
+# - document design decisions: e.g. could pip recognize multiple TUF client metadata?
 
 
 class URLMatchesNoPattern( Exception ):
@@ -387,3 +390,22 @@ def interpose():
     # http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
     # TODO: override other default urllib2 handlers
     urllib2.install_opener( urllib2.build_opener( HTTPHandler ) )
+
+
+def open_url( method ):
+    """Wraps caller instance method( url, ... ) with TUF security."""
+
+    @functools.wraps( method )
+    def wrapper( self, *args, **kwargs ):
+        # TODO: ensure that the first argument to method is a URL
+        url = args[ 0 ]
+        data = kwargs.get( "data" )
+        updater = Updater.get_updater( url )
+
+        if updater is None:
+            # NOTE: revert to default behaviour
+            return method( self, *args, **kwargs )
+        else:
+            return updater.open( url, data = data )
+
+    return wrapper
