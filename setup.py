@@ -17,7 +17,6 @@ setup(name='tuf',
     'simplejson'],
   scripts=['quickstart.py',
     'basic_client.py',
-    'example_client.py',
     'tuf/pushtools/push.py',
     'tuf/pushtools/receivetools/receive.py',
     'tuf/repo/signercli.py'])
