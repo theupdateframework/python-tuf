@@ -143,7 +143,7 @@ def _get_metadata_directory():
 def _list_keyids(keystore_directory, metadata_directory):
   """
     List the key files found in 'keystore_directory'.
-    It is assumed the directories exist and have been validated by
+    It is assumed the directory arguments exist and have been validated by
     the caller.  The keyids are listed without the '.key' extension,
     along with their associated roles.
 
@@ -162,7 +162,8 @@ def _list_keyids(keystore_directory, metadata_directory):
   try: 
     tuf.formats.check_signable_object_format(metadata_signable)
   except tuf.FormatError, e:
-    raise RepositoryError('Invalid format: '+repr(metadata_filepath)+'.')
+    message = 'Invalid metadata format: '+repr(root_filename)+'.'
+    raise tuf.RepositoryError(message)
 
   # Extract the 'signed' role object from 'metadata_signable'.
   root_metadata = metadata_signable['signed']
@@ -173,7 +174,10 @@ def _list_keyids(keystore_directory, metadata_directory):
   top_level_keyids = root_metadata['roles']
 
   # Determine the keyids associated with all the targets roles.
-  targets_keyids = tuf.repo.signerlib.get_target_keyids(metadata_directory)
+  try: 
+    targets_keyids = tuf.repo.signerlib.get_target_keyids(metadata_directory)
+  except tuf.FormatError, e:
+    raise tuf.RepositoryError('Format error: '+str(e))
 
   # Extract the key files ending in a '.key' extension.
   key_paths = []
@@ -183,7 +187,7 @@ def _list_keyids(keystore_directory, metadata_directory):
       key_paths.append(filename)
 
   # For each keyid listed in the keystore, search 'top_level_keyids'
-  # and 'targets_keyids' for a possible listing.  'keyids_dict' stores
+  # and 'targets_keyids' for a possible entry.  'keyids_dict' stores
   # the associated roles for each keyid.
   keyids_dict = {}
   for keyid in key_paths:
@@ -194,8 +198,8 @@ def _list_keyids(keystore_directory, metadata_directory):
     # Is 'keyid' listed in any of the top-level roles?
     for top_level_role in top_level_keyids:
       if keyid in top_level_keyids[top_level_role]['keyids']:
-        # To avoid a duplicate, ignore the 'targets.txt' for now.
-        # 'targets_keyids' will also contain the keyids for this role.
+        # To avoid a duplicate, ignore the 'targets.txt' role for now.
+        # 'targets_keyids' will also contain the keyids for this top-level role.
         if top_level_role != 'targets':
           keyids_dict[keyid].append(top_level_role)
     # Is 'keyid' listed in any of the targets roles? 
@@ -421,7 +425,7 @@ def change_password(keystore_directory):
   keystore_directory = _check_directory(keystore_directory)
 
   # Retrieve the metadata directory.  The 'root.txt' and all the targets
-  # role metadata files are needed to extract rolenames and their corresponding
+  # metadata are needed to extract rolenames and their corresponding
   # keyids.
   try:
     metadata_directory = _get_metadata_directory()
