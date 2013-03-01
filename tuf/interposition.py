@@ -1,3 +1,4 @@
+import functools
 import httplib
 import json
 import logging
@@ -16,7 +17,9 @@ import tuf.conf
 
 
 # TODO:
-# failsafe: if TUF fails, offer option to unsafely resort back to urllib/urllib2?
+# - failsafe: if TUF fails, offer option to unsafely resort back to urllib/urllib2?
+# - review security issues resulting from regular expressions (e.g. complexity attacks)
+# - document design decisions: e.g. could pip recognize multiple TUF client metadata?
 
 
 class URLMatchesNoPattern( Exception ):
@@ -387,3 +390,25 @@ def interpose():
     # http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
     # TODO: override other default urllib2 handlers
     urllib2.install_opener( urllib2.build_opener( HTTPHandler ) )
+
+
+def open_url( method ):
+    """Decorate a caller instance method of the form method( self, url, ... )
+    with this decorator in order to provide it with TUF security."""
+
+    @functools.wraps( method )
+    def wrapper( self, *args, **kwargs ):
+        # TODO: Ensure that the first argument to method is a URL.
+        url = args[ 0 ]
+        data = kwargs.get( "data" )
+        updater = Updater.get_updater( url )
+
+        # If TUF has not been configured for this URL...
+        if updater is None:
+            # ...then revert to default behaviour.
+            return method( self, *args, **kwargs )
+        else:
+            # ...otherwise, use TUF to get this document.
+            return updater.open( url, data = data )
+
+    return wrapper
