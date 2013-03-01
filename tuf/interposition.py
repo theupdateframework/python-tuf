@@ -5,6 +5,7 @@ import mimetypes
 import os.path
 import shutil
 import tempfile
+import types
 import urllib
 import urllib2
 import urlparse
@@ -14,8 +15,7 @@ import tuf.conf
 
 
 # TODO:
-# - failsafe: if TUF fails, offer option to unsafely resort back to urllib/urllib2
-# - match URLs not with hostnames, but with regular expressions
+# failsafe: if TUF fails, offer option to unsafely resort back to urllib/urllib2?
 
 
 class Logger( object ):
@@ -32,21 +32,46 @@ class Logger( object ):
 
 
 class Configuration( object ):
-    def __init__( self, hostname, repository_directory, repository_mirrors ):
+    def __init__(
+        self,
+        hostname,
+        repository_directory,
+        repository_mirrors,
+        target_paths
+    ):
         self.hostname = hostname
         self.repository_directory = repository_directory
         self.repository_mirrors = repository_mirrors
+        self.target_paths = target_paths
         self.tempdir = tempfile.mkdtemp()
 
     @staticmethod
     def load_from_json( hostname, configuration ):
+        # An "identity" capture from source URL to target URL
+        WILD_TARGET_PATH = { "(.*)", "{0}" }
+
         repository_directory = configuration[ "repository_directory" ]
         repository_mirrors = configuration[ "repository_mirrors" ]
+        # Within a hostname, we match URLs with this list of regular expressions,
+        # which tell us to map from a source URL to a target URL.
+        # If there are multiple regular expressions which match a source URL,
+        # the order of appearance will be used to resolve ambiguity.
+        target_paths = \
+            configuration.get( "target_paths", [ WILD_TARGET_PATH  ] )
+
+        # target_paths: [ target_path, ... ]
+        assert isinstance( target_paths, types.ListType )
+        for target_path in target_paths:
+            # target_path: { "regex_with_groups", "target_with_group_captures" }
+            # e.g. { ".*(/some/directory)/$", "{0}/index.html" }
+            assert isinstance( target_path, types.DictType )
+            assert len( target_path ) == 1
 
         return Configuration(
             hostname,
             repository_directory,
-            repository_mirrors
+            repository_mirrors,
+            target_paths
         )
 
 
@@ -106,6 +131,49 @@ class Updater( object ):
 
         return destination_directory, filename
 
+    def get_target_filepath( self, source_url ):
+        """Given source->target map,
+        figure out what TUF *should* download given a URL."""
+
+        ERROR_MESSAGE = "Possibly invalid target_paths for " + \
+            "{hostname}! Assuming identity transformation for {url}..."
+
+        parsed_source_url = urlparse.urlparse( source_url )
+        # If there is no match, we simply resort to the source path.
+        target_filepath = parsed_source_url.path
+
+        try:
+            # Does this source URL match any regular expression which tells us
+            # how to map the source URL to a target URL understood by TUF?
+            for target_path in self.configuration.target_paths:
+                # target_path: { "regex_with_groups", "target_with_group_captures" }
+                # e.g. { ".*(/some/directory)/$", "{0}/index.html" }
+                source_path_pattern, target_path_pattern = \
+                    target_path = target_path.items()[ 0 ]
+                source_path_match = \
+                    re.match( source_path_pattern, parsed_source_url.path )
+
+                if source_path_match is not None:
+                    target_filepath = target_path_pattern.format(
+                        *source_path_match.groups()
+                    )
+                    # If there is more than one regular expression which
+                    # matches source_url, we resolve ambiguity by order of
+                    # appearance.
+                    break
+        except:
+            Logger.warn(
+                ERROR_MESSAGE.format(
+                    hostname = self.configuration.hostname,
+                    url = source_url
+                )
+            )
+            target_filepath = parsed_source_url.path
+        finally:
+            # TUF assumes that target_filepath does not begin with a '/'.
+            target_filepath = target_filepath.lstrip( '/' )
+            return target_filepath
+
     @staticmethod
     def get_updater( url ):
         parsed_url = urlparse.urlparse( url )
@@ -141,9 +209,7 @@ class Updater( object ):
         content_type, content_encoding = mimetypes.guess_type( url )
         headers = { "content-type": content_type }
 
-        parsed_url = urlparse.urlparse( url )
-        # TUF assumes that target_filepath does not begin with a '/'
-        target_filepath = parsed_url.path.lstrip( '/' )
+        target_filepath = self.get_target_filepath( url )
 
         temporary_directory, temporary_filename = \
             self.download_target( target_filepath )
@@ -218,6 +284,8 @@ def configure( filename = "tuf.interposition.json" ):
         "{filename}! TUF interposition will NOT be present for any host."
 
     """
+    Example of a TUF interposition configuration JSON object:
+
     {
         "hostnames": {
             "seattle.cs.washington.edu": {
@@ -229,11 +297,16 @@ def configure( filename = "tuf.interposition.json" ):
                         "targets_path": "targets",
                         "confined_target_dirs": [ "" ]
                     }
-                }
+                },
+                ("target_paths": [
+                    { ".*/(simple/\\w+)/$": "{0}/index.html" },
+                    { ".*/(packages/.+)$": "{0}" }
+                ])
             }
         }
     }
     """
+
     try:
         with open( filename ) as tuf_interposition_json:
             tuf_interpositions = json.load( tuf_interposition_json )
@@ -265,7 +338,7 @@ def configure( filename = "tuf.interposition.json" ):
 
 def go_away():
     """Remove TUF interposition and restore previous urllib openers."""
-    raise NotImplementedError
+    raise NotImplementedError()
 
 
 def interpose():
