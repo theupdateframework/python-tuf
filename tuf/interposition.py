@@ -2,6 +2,7 @@ import httplib
 import json
 import logging
 import os.path
+import shutil
 import tempfile
 import urllib
 import urllib2
@@ -49,58 +50,69 @@ class Configuration( object ):
 
 
 class Updater( object ):
-    # hostname: str -> configuration: Configuration
-    __configurations = {}
+    """
+    You can think of Updater as being a factory of Updaters;
+    given a Configuration, it will build and store an Updater
+    which you can get and use later.
+    """
 
-    def __init__( self, url, parsed_url, configuration ):
-        self.url = url
-        self.parsed_url = parsed_url
+    # A private collection of Updaters;
+    # hostname: str -> updater: Updater
+    __updaters = {}
+
+    def __init__( self, configuration ):
         self.configuration = configuration
 
         # must switch context before instantiating updater
         # because updater depends on some module (tuf.conf) variables
         self.switch_context()
         self.updater = tuf.client.updater.Updater(
-            self.parsed_url.hostname,
+            self.configuration.hostname,
             self.configuration.repository_mirrors
         )
 
     @staticmethod
-    def add_configuration( configuration ):
+    def build_updater( configuration ):
         assert isinstance( configuration, Configuration )
-        assert configuration.hostname not in Updater.__configurations
+        assert configuration.hostname not in Updater.__updaters
 
-        Updater.__configurations[ configuration.hostname ] = configuration
+        Updater.__updaters[ configuration.hostname ] = Updater( configuration )
 
-    @staticmethod
-    def make_updater( url ):
-        parsed_url = urlparse.urlparse( url )
-        # TODO: enable specificity beyond hostname (e.g. include scheme, port)
-        configuration = \
-            Updater.__configurations.get( parsed_url.hostname )
+    def download_target( self, target_filepath ):
+        """Downloads target with TUF as a side effect."""
 
-        if configuration is None:
-            return None
-        else:
-            # TODO: handle raised exceptions!
-            return Updater( url, parsed_url, configuration )
+        self.switch_context()
+        # update TUF client repository metadata
+        self.updater.refresh()
 
-    def make_tempfile( self, target_filepath ):
+        # download file into a temporary directory shared over runtime
         destination_directory = self.configuration.tempdir
         filename = os.path.join( destination_directory, target_filepath )
+
+        # then, update target at filepath
+        targets = [ self.updater.target( filepath ) ]
+
+        # TODO: targets are always updated if destination directory is new, right?
+        updated_targets = self.updater.updated_targets(
+            targets, destination_directory
+        )
+
+        for updated_target in updated_targets:
+            self.updater.download_target(
+                updated_target, destination_directory
+            )
+
         return destination_directory, filename
 
-    # TODO: not thread-safe
-    def switch_context( self ):
-        # Set the local repository directory containing the metadata files.
-        tuf.conf.repository_directory = \
-            self.configuration.repository_directory
+    @staticmethod
+    def get_updater( url ):
+        parsed_url = urlparse.urlparse( url )
+        # TODO: enable specificity beyond hostname (e.g. include scheme, port)
+        return Updater.__updaters.get( parsed_url.hostname )
 
-
-# TODO: distinguish between urllib and urllib2 contracts
-class DownloadMixin( object ):
-    def tuf_open( self, updater, data = None ):
-        filename, headers = self.tuf_retrieve( updater, data = data )
+    # TODO: distinguish between urllib and urllib2 contracts
+    def open( self, url, data = None ):
+        filename, headers = self.retrieve( url, data = data )
 
         # TODO: like tempfile, ensure file is deleted when closed?
         tempfile = open( filename )
@@ -109,73 +121,56 @@ class DownloadMixin( object ):
         response = urllib.addinfourl(
             tempfile,
             headers,
-            updater.url,
+            url,
             code = 200
         )
 
         return response
 
-    def tuf_retrieve(
+    # TODO: distinguish between urllib and urllib2 contracts
+    def retrieve(
         self,
-        updater,
+        url,
         filename = None,
         reporthook = None,
         data = None
     ):
         # TODO: set valid headers
         headers = None
+        parsed_url = urlparse.urlparse( url )
         # TUF assumes that target_filepath does not begin with a '/'
-        target_filepath = updater.parsed_url.path.lstrip( '/' )
+        target_filepath = parsed_url.path.lstrip( '/' )
 
-        # if filename does not exist, then we use a temporary directory
-        if filename is None:
-            destination_directory, filename = updater.make_tempfile(
-                target_filepath
-            )
-        else:
-            # TODO: think later about best course of action for filename
-            if filename.endswith( target_filepath ):
-                last_index = filename.rfind( target_filepath )
-                destination_directory = filename[ : last_index ]
-                if not os.path.isdir( destination_directory ):
-                    destination_directory, filename = \
-                        updater.make_tempfile( target_filepath )
-            else:
-                destination_directory, filename = \
-                    updater.make_tempfile( target_filepath )
+        temporary_directory, temporary_filename = \
+            self.download_target( target_filepath )
 
-        # TODO: higher-level download abstractions via Updater
-        updater.switch_context()
-        updater.updater.refresh()
-
-        targets = [ updater.updater.target( target_filepath ) ]
-        updated_targets = updater.updater.updated_targets(
-            targets,
-            destination_directory
-        )
-
-        for target in updated_targets:
-            updater.updater.download_target(
-                target,
-                destination_directory
-            )
+        # copy TUF-downloaded file in its own directory
+        # to the location user specified
+        if filename is not None:
+            shutil.copy2( temporary_filename, filename )
 
         return filename, headers
 
+    # TODO: thread-safety
+    def switch_context( self ):
+        # Set the local repository directory containing the metadata files.
+        tuf.conf.repository_directory = \
+            self.configuration.repository_directory
 
-class FancyURLOpener( urllib.FancyURLopener, DownloadMixin ):
+
+class FancyURLOpener( urllib.FancyURLopener ):
     # TODO: replicate complete behaviour of urllib.URLopener.open
     def open( self, fullurl, data = None ):
-        updater = Updater.make_updater( fullurl )
+        updater = Updater.get_updater( fullurl )
 
         if updater is None:
             return urllib.FancyURLopener.open( self, fullurl, data = data )
         else:
-            return self.tuf_open( updater, data = data )
+            return updater.open( fullurl, data = data )
 
     # TODO: replicate complete behaviour of urllib.URLopener.retrieve
     def retrieve( self, url, filename = None, reporthook = None, data = None ):
-        updater = Updater.make_updater( url )
+        updater = Updater.get_updater( url )
 
         if updater is None:
             return urllib.FancyURLopener.retrieve(
@@ -186,23 +181,24 @@ class FancyURLOpener( urllib.FancyURLopener, DownloadMixin ):
                 data = data
             )
         else:
-            return self.tuf_retrieve(
-                updater,
+            return updater.retrieve(
+                url,
                 filename = filename,
                 reporthook = reporthook,
                 data = data
             )
 
 
-class HTTPHandler( urllib2.HTTPHandler, DownloadMixin ):
+class HTTPHandler( urllib2.HTTPHandler ):
     # TODO: replicate complete behaviour of urllib.HTTPHandler.http_open
     def http_open( self, req ):
-        updater = Updater.make_updater( req.get_full_url() )
+        fullurl = req.get_full_url()
+        updater = Updater.get_updater( fullurl )
 
         if updater is None:
             return self.do_open( httplib.HTTPConnection, req )
         else:
-            response = self.tuf_open( updater, data = req.get_data() )
+            response = updater.open( fullurl, data = req.get_data() )
             # See urllib2.AbstractHTTPHandler.do_open
             # TODO: let DownloadMixin handle this
             response.msg = ""
@@ -245,7 +241,7 @@ def configure( filename = "tuf.interposition.json" ):
             else:
                 for hostname, configuration in hostnames.iteritems():
                     try:
-                        Updater.add_configuration(
+                        Updater.build_updater(
                             Configuration.load_from_json(
                                 hostname,
                                 configuration
