@@ -33,7 +33,7 @@
   of the repository.  For example, the repository owner wants to change the
   'targets.txt' signing key.  The owner would run 'signercli.py' to
   generate a new RSA key, add the new key to the configuration file created
-  by 'quickstart.py', and then run 'signercli' to update the metadata files.
+  by 'quickstart.py', and then run 'signercli.py' to update the metadata files.
 
 <Usage>
   $ python signercli.py --<option> <keystore_directory>
@@ -140,13 +140,44 @@ def _get_metadata_directory():
 
 
 
-def _list_keyids(keystore_directory):
+def _list_keyids(keystore_directory, metadata_directory):
   """
     List the key files found in 'keystore_directory'.
-    It is assumed the directory exists and has been validated by
-    the caller.  The keyids are listed without the '.key' extension.
+    It is assumed the directory arguments exist and have been validated by
+    the caller.  The keyids are listed without the '.key' extension,
+    along with their associated roles.
 
   """
+
+  # Determine the 'root.txt' filename.  This metadata file is needed
+  # to extract the keyids belonging to the top-level roles.
+  filenames = tuf.repo.signerlib.get_metadata_filenames(metadata_directory)
+  root_filename = filenames['root']
+ 
+  # Load the root metadata file.  The loaded object should conform to
+  # 'tuf.formats.SIGNABLE_SCHEMA'.
+  metadata_signable = tuf.util.load_json_file(root_filename)
+
+  # Ensure the loaded json object is properly formatted.
+  try: 
+    tuf.formats.check_signable_object_format(metadata_signable)
+  except tuf.FormatError, e:
+    message = 'Invalid metadata format: '+repr(root_filename)+'.'
+    raise tuf.RepositoryError(message)
+
+  # Extract the 'signed' role object from 'metadata_signable'.
+  root_metadata = metadata_signable['signed']
+ 
+  # Extract the 'roles' dict, where the dict keys are top-level roles and dict
+  # values a dictionary containing a list of corresponding keyids and a 
+  # threshold.
+  top_level_keyids = root_metadata['roles']
+
+  # Determine the keyids associated with all the targets roles.
+  try: 
+    targets_keyids = tuf.repo.signerlib.get_target_keyids(metadata_directory)
+  except tuf.FormatError, e:
+    raise tuf.RepositoryError('Format error: '+str(e))
 
   # Extract the key files ending in a '.key' extension.
   key_paths = []
@@ -155,10 +186,32 @@ def _list_keyids(keystore_directory):
     if filename.endswith('.key') and not os.path.isdir(full_path):
       key_paths.append(filename)
 
-  # Print the keys without the '.key' extension.
-  logger.info('Listing the keyids in '+repr(keystore_directory))
+  # For each keyid listed in the keystore, search 'top_level_keyids'
+  # and 'targets_keyids' for a possible entry.  'keyids_dict' stores
+  # the associated roles for each keyid.
+  keyids_dict = {}
   for keyid in key_paths:
-    logger.info(keyid[0:keyid.rfind('.key')])
+    # Strip the '.key' extension.  These raw keyids are needed to search
+    # for the roles attached to them in the metadata files.
+    keyid = keyid[0:keyid.rfind('.key')]
+    keyids_dict[keyid] = []
+    # Is 'keyid' listed in any of the top-level roles?
+    for top_level_role in top_level_keyids:
+      if keyid in top_level_keyids[top_level_role]['keyids']:
+        # To avoid a duplicate, ignore the 'targets.txt' role for now.
+        # 'targets_keyids' will also contain the keyids for this top-level role.
+        if top_level_role != 'targets':
+          keyids_dict[keyid].append(top_level_role)
+    # Is 'keyid' listed in any of the targets roles? 
+    for targets_role, keyids in targets_keyids.items():
+      if keyid in keyids:
+        keyids_dict[keyid].append(targets_role)
+  
+  # Print the keyids without the '.key' extension and the roles
+  # associated with them.
+  logger.info('Listing the keyids in '+repr(keystore_directory))
+  for keyid in keyids_dict:
+    logger.info(keyid+' : '+str(keyids_dict[keyid]))
 
 
 
@@ -371,9 +424,18 @@ def change_password(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
+  # Retrieve the metadata directory.  The 'root.txt' and all the targets
+  # metadata are needed to extract rolenames and their corresponding
+  # keyids.
+  try:
+    metadata_directory = _get_metadata_directory()
+  except (tuf.FormatError, tuf.Error), e:
+    message = str(e)+'\n'
+    raise tuf.RepositoryError(message)
+  
   # List the keyids in the keystore and prompt the user for the keyid they
   # wish to modify.
-  _list_keyids(keystore_directory)
+  _list_keyids(keystore_directory, metadata_directory)
 
   # Retrieve the keyid from the user.
   message = '\nEnter the keyid for the password you wish to change: '
@@ -460,8 +522,8 @@ def generate_rsa_key(keystore_directory):
 def list_signing_keys(keystore_directory):
   """
   <Purpose>
-    Print the key IDs of the signing keys listed in the keystore
-    directory.
+    Print the key IDs of the signing keys listed in the keystore directory.
+    The associated roles of each keyid is also listed.
 
   <Arguments>
     keystore_directory:
@@ -469,7 +531,8 @@ def list_signing_keys(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if the keystore directory is invalid.
+    tuf.RepositoryError, if the keystore directory is invalid or if the
+    required metadata files cannot be read.
 
   <Side Effects>
     None.
@@ -482,7 +545,16 @@ def list_signing_keys(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
-  _list_keyids(keystore_directory)
+  # Retrieve the metadata directory.  The 'root.txt' file and all the metadata
+  # for the targets roles are needed to extract rolenames and their associated
+  # keyids.
+  try:
+    metadata_directory = _get_metadata_directory()
+  except (tuf.FormatError, tuf.Error), e:
+    message = str(e)+'\n'
+    raise tuf.RepositoryError(message)
+  
+  _list_keyids(keystore_directory, metadata_directory)
 
 
 
@@ -518,8 +590,17 @@ def dump_key(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
+  # Retrieve the metadata directory.  The 'root.txt' and all the targets
+  # role metadata files are needed to extract rolenames and their corresponding
+  # keyids.
+  try:
+    metadata_directory = _get_metadata_directory()
+  except (tuf.FormatError, tuf.Error), e:
+    message = str(e)+'\n'
+    raise tuf.RepositoryError(message)
+  
   # List the keyids found in 'keystore_directory', minus the '.key' extension.
-  _list_keyids(keystore_directory)
+  _list_keyids(keystore_directory, metadata_directory)
 
   # Retrieve the keyid and password from the user.
   message = '\nEnter the keyid for the signing key you wish to dump: '
@@ -823,8 +904,17 @@ def sign_metadata_file(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
+  # Retrieve the metadata directory.  The 'root.txt' and all the targets
+  # role metadata files are needed to extract rolenames and their corresponding
+  # keyids.
+  try:
+    metadata_directory = _get_metadata_directory()
+  except (tuf.FormatError, tuf.Error), e:
+    message = str(e)+'\n'
+    raise tuf.RepositoryError(message)
+  
   # List the keyids available in the keystore.
-  _list_keyids(keystore_directory)
+  _list_keyids(keystore_directory, metadata_directory)
 
   # Retrieve the keyids of the signing keys from the user.
   logger.info('The keyids that will sign the metadata file must be loaded.')
@@ -890,7 +980,7 @@ def make_delegation(keystore_directory):
   # Get the delegated role's target directory, which should be located within
   # the repository's targets directory.  We need this directory to generate the
   # delegated role's target paths.
-  prompt = '\nNOTE: The directory entered below should be located within the '+\
+  prompt = '\nThe directory entered below should be located within the '+\
     'repository\'s targets directory.\nEnter the directory containing the '+\
     'delegated role\'s target files: '
   delegated_targets_directory = _prompt(prompt, str)
@@ -912,7 +1002,8 @@ def make_delegation(keystore_directory):
 
   # Load the delegated role specified by the user.  The delegated role must be
   # loaded so its metadata file can be created.
-  delegated_role, delegated_keyids = _get_delegated_role(keystore_directory)
+  delegated_role, delegated_keyids = _get_delegated_role(keystore_directory,
+                                                         metadata_directory)
 
   # Create, sign, and write the delegated role's metadata file.
   delegated_paths = _make_delegated_metadata(metadata_directory,
@@ -986,7 +1077,7 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
 
 
 
-def _get_delegated_role(keystore_directory):
+def _get_delegated_role(keystore_directory, metadata_directory):
   """
     Get the delegated role specified by the user.  The user is presented with
     a list of keyids available in the keystore and asked to enter the keyid
@@ -1000,7 +1091,7 @@ def _get_delegated_role(keystore_directory):
 
   # List the keyids available in the keystore.  The user will next
   # identify the keyids for the new delegated role.
-  _list_keyids(keystore_directory)
+  _list_keyids(keystore_directory, metadata_directory)
 
   # Retrieve the delegated role\'s keyids from the user.
   logger.info('The keyid of the delegated role must be loaded.')
