@@ -3,6 +3,7 @@ import json
 import logging
 import mimetypes
 import os.path
+import re
 import shutil
 import tempfile
 import types
@@ -117,7 +118,7 @@ class Updater( object ):
         self.updater.refresh()
 
         # then, update target at filepath
-        targets = [ self.updater.target( filepath ) ]
+        targets = [ self.updater.target( target_filepath ) ]
 
         # TODO: targets are always updated if destination directory is new, right?
         updated_targets = self.updater.updated_targets(
@@ -214,9 +215,12 @@ class Updater( object ):
         temporary_directory, temporary_filename = \
             self.download_target( target_filepath )
 
-        # copy TUF-downloaded file in its own directory
-        # to the location user specified
-        if filename is not None:
+        if filename is None:
+            # If no filename is given, use the temporary file.
+            filename = temporary_filename
+        else:
+            # Otherwise, copy TUF-downloaded file in its own directory
+            # to the location user specified.
             shutil.copy2( temporary_filename, filename )
 
         return filename, headers
@@ -341,6 +345,7 @@ def go_away():
     raise NotImplementedError()
 
 
+# TODO: warn when no configuration is present
 def interpose():
     # http://docs.python.org/2/library/urllib.html#urllib._urlopener
     urllib._urlopener = FancyURLOpener()
