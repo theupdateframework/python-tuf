@@ -1,5 +1,4 @@
 # root level directories
-src/build/
 dist/*
 build/*
 
@@ -7,4 +6,5 @@ build/*
 *.log
 *.pyc
 *.session
+*.swo
 *.swp

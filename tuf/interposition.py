@@ -1,6 +1,7 @@
 import httplib
 import json
 import logging
+import mimetypes
 import os.path
 import shutil
 import tempfile
@@ -81,13 +82,14 @@ class Updater( object ):
     def download_target( self, target_filepath ):
         """Downloads target with TUF as a side effect."""
 
-        self.switch_context()
-        # update TUF client repository metadata
-        self.updater.refresh()
-
         # download file into a temporary directory shared over runtime
         destination_directory = self.configuration.tempdir
         filename = os.path.join( destination_directory, target_filepath )
+
+        # switch TUF context
+        self.switch_context()
+        # update TUF client repository metadata
+        self.updater.refresh()
 
         # then, update target at filepath
         targets = [ self.updater.target( filepath ) ]
@@ -136,7 +138,9 @@ class Updater( object ):
         data = None
     ):
         # TODO: set valid headers
-        headers = None
+        content_type, content_encoding = mimetypes.guess_type( url )
+        headers = { "content-type": content_type }
+
         parsed_url = urlparse.urlparse( url )
         # TUF assumes that target_filepath does not begin with a '/'
         target_filepath = parsed_url.path.lstrip( '/' )
@@ -151,7 +155,7 @@ class Updater( object ):
 
         return filename, headers
 
-    # TODO: thread-safety
+    # TODO: thread-safety, perhaps with a context manager
     def switch_context( self ):
         # Set the local repository directory containing the metadata files.
         tuf.conf.repository_directory = \
