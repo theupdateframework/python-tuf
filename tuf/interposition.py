@@ -19,8 +19,20 @@ import tuf.conf
 # failsafe: if TUF fails, offer option to unsafely resort back to urllib/urllib2?
 
 
+class URLMatchesNoPattern( Exception ):
+    """We throw this to indicate that the URL matches no user-specified
+    regular expression pattern."""
+
+    pass
+
+
 class Logger( object ):
     __logger = logging.getLogger( "tuf.interposition" )
+
+    @staticmethod
+    def critical( message ):
+        Logger.__logger.critical( message )
+        Logger.exception( message )
 
     @staticmethod
     def exception( message ):
@@ -49,7 +61,7 @@ class Configuration( object ):
     @staticmethod
     def load_from_json( hostname, configuration ):
         # An "identity" capture from source URL to target URL
-        WILD_TARGET_PATH = { "(.*)", "{0}" }
+        WILD_TARGET_PATH = { "(.*)": "{0}" }
 
         repository_directory = configuration[ "repository_directory" ]
         repository_mirrors = configuration[ "repository_mirrors" ]
@@ -132,16 +144,16 @@ class Updater( object ):
 
         return destination_directory, filename
 
+    # TODO: decide prudent course of action in case of failure
     def get_target_filepath( self, source_url ):
         """Given source->target map,
         figure out what TUF *should* download given a URL."""
 
         ERROR_MESSAGE = "Possibly invalid target_paths for " + \
-            "{hostname}! Assuming identity transformation for {url}..."
+            "{hostname}! TUF interposition will NOT be present for {url}"
 
         parsed_source_url = urlparse.urlparse( source_url )
-        # If there is no match, we simply resort to the source path.
-        target_filepath = parsed_source_url.path
+        target_filepath = None
 
         try:
             # Does this source URL match any regular expression which tells us
@@ -162,24 +174,45 @@ class Updater( object ):
                     # matches source_url, we resolve ambiguity by order of
                     # appearance.
                     break
+
+            # If source_url does not match any regular expression...
+            if target_filepath is None:
+                # ...then we raise a predictable exception.
+                raise URLMatchesNoPattern( source_url )
         except:
-            Logger.warn(
+            Logger.critical(
                 ERROR_MESSAGE.format(
                     hostname = self.configuration.hostname,
                     url = source_url
                 )
             )
-            target_filepath = parsed_source_url.path
-        finally:
+            raise
+        else:
             # TUF assumes that target_filepath does not begin with a '/'.
             target_filepath = target_filepath.lstrip( '/' )
             return target_filepath
 
     @staticmethod
     def get_updater( url ):
-        parsed_url = urlparse.urlparse( url )
-        # TODO: enable specificity beyond hostname (e.g. include scheme, port)
-        return Updater.__updaters.get( parsed_url.hostname )
+        ERROR_MESSAGE = "Could not get updater for {hostname}! " + \
+            "TUF interposition will NOT be present for {url}"
+
+        updater = None
+
+        try:
+            parsed_url = urlparse.urlparse( url )
+            # TODO: enable specificity beyond hostname (e.g. include scheme, port)
+            updater = Updater.__updaters.get( parsed_url.hostname )
+            # This will raise an exception in case we do not recognize
+            # how to transform this URL for TUF. In that case, there will be
+            # no updater for this URL.
+            if updater is not None:
+                target_filepath = updater.get_target_filepath( url )
+        except:
+            Logger.critical( ERROR_MESSAGE )
+            updater = None
+        finally:
+            return updater
 
     # TODO: distinguish between urllib and urllib2 contracts
     def open( self, url, data = None ):
