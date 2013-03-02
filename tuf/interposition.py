@@ -165,7 +165,7 @@ class Updater( object ):
                 # target_path: { "regex_with_groups", "target_with_group_captures" }
                 # e.g. { ".*(/some/directory)/$", "{0}/index.html" }
                 source_path_pattern, target_path_pattern = \
-                    target_path = target_path.items()[ 0 ]
+                    target_path.items()[ 0 ]
                 source_path_match = \
                     re.match( source_path_pattern, parsed_source_url.path )
 
@@ -329,7 +329,7 @@ def configure( filename = "tuf.interposition.json" ):
     {
         "hostnames": {
             "seattle.cs.washington.edu": {
-                "repository_directory": ".client/",
+                "repository_directory": "client/",
                 "repository_mirrors" : {
                     "mirror1": {
                         "url_prefix": "http://seattle-tuf.cs.washington.edu",
@@ -345,6 +345,10 @@ def configure( filename = "tuf.interposition.json" ):
             }
         }
     }
+
+    "target_paths" is optional: If you do not tell TUF to selectively match
+    paths with regular expressions, TUF will work over any path under the given
+    hostname.
     """
 
     try:
