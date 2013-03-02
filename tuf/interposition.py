@@ -62,12 +62,35 @@ class Configuration( object ):
         self.tempdir = tempfile.mkdtemp()
 
     @staticmethod
-    def load_from_json( hostname, configuration ):
+    def load_from_json(
+        hostname,
+        configuration,
+        parent_repository_directory = None
+    ):
+
+        INVALID_PARENT_REPOSITORY_DIRECTORY = "Ignoring invalid " + \
+            "parent_repository_directory for {hostname}!"
         # An "identity" capture from source URL to target URL
         WILD_TARGET_PATH = { "(.*)": "{0}" }
 
         repository_directory = configuration[ "repository_directory" ]
+        if parent_repository_directory is not None:
+            parent_repository_directory = \
+                os.path.abspath( parent_repository_directory )
+            if os.path.isdir( parent_repository_directory ):
+                repository_directory = os.path.join(
+                    parent_repository_directory,
+                    repository_directory
+                )
+            else:
+                Logger.warn(
+                    INVALID_PARENT_REPOSITORY_DIRECTORY.format(
+                        hostname = hostname
+                    )
+                )
+
         repository_mirrors = configuration[ "repository_mirrors" ]
+
         # Within a hostname, we match URLs with this list of regular expressions,
         # which tell us to map from a source URL to a target URL.
         # If there are multiple regular expressions which match a source URL,
@@ -315,15 +338,21 @@ class HTTPHandler( urllib2.HTTPHandler ):
             return response
 
 
-def configure( filename = "tuf.interposition.json" ):
-    INVALID_TUF_CONFIGURATION = "Invalid TUF configuration for " + \
-        "{hostname}! TUF interposition will NOT be present for {hostname}."
-    INVALID_TUF_INTERPOSITION_JSON = "Invalid TUF configuration JSON file " + \
-        "{filename}! TUF interposition will NOT be present for any host."
-    NO_HOSTNAMES = "No hostnames found in TUF configuration JSON file " + \
-        "{filename}! TUF interposition will NOT be present for any host."
-
+# TODO: Is parent_repository_directory a security risk? For example, would it
+# allow the user to overwrite another TUF repository metadata on the filesystem?
+# On the other hand, it is beyond TUF's scope to handle filesystem permissions.
+def configure(
+    filename = "tuf.interposition.json",
+    parent_repository_directory = None
+):
     """
+    The optional parent_repository_directory parameter is used to specify the
+    containing parent directory of the "repository_directory" specified in a
+    configuration for *all* hostnames, because sometimes the absolute location
+    of the "repository_directory" is only known at runtime. If you need to
+    specify a different parent_repository_directory for other hostnames, simply
+    call this method again with different parameters.
+
     Example of a TUF interposition configuration JSON object:
 
     {
@@ -348,13 +377,22 @@ def configure( filename = "tuf.interposition.json" ):
 
     "target_paths" is optional: If you do not tell TUF to selectively match
     paths with regular expressions, TUF will work over any path under the given
-    hostname.
+    hostname. However, if you do specify it, you are then telling TUF how to
+    transform a specified path into another one, and TUF will *not* recognize
+    any unspecified path for the given hostname.
     """
+
+    INVALID_TUF_CONFIGURATION = "Invalid TUF configuration for " + \
+        "{hostname}! TUF interposition will NOT be present for {hostname}."
+    INVALID_TUF_INTERPOSITION_JSON = "Invalid TUF configuration JSON file " + \
+        "{filename}! TUF interposition will NOT be present for any host."
+    NO_HOSTNAMES = "No hostnames found in TUF configuration JSON file " + \
+        "{filename}! TUF interposition will NOT be present for any host."
 
     try:
         with open( filename ) as tuf_interposition_json:
             tuf_interpositions = json.load( tuf_interposition_json )
-            hostnames = tuf_interpositions.get( 'hostnames', {} )
+            hostnames = tuf_interpositions.get( "hostnames", {} )
 
             # TODO: more input sanity checks
             if len( hostnames ) == 0:
@@ -365,7 +403,8 @@ def configure( filename = "tuf.interposition.json" ):
                         Updater.build_updater(
                             Configuration.load_from_json(
                                 hostname,
-                                configuration
+                                configuration,
+                                parent_repository_directory = parent_repository_directory
                             )
                         )
                     except:
