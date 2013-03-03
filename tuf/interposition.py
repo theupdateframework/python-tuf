@@ -17,9 +17,14 @@ import tuf.conf
 
 
 # TODO:
+# - document design decisions: e.g. could pip recognize multiple TUF client metadata?
 # - failsafe: if TUF fails, offer option to unsafely resort back to urllib/urllib2?
 # - review security issues resulting from regular expressions (e.g. complexity attacks)
-# - document design decisions: e.g. could pip recognize multiple TUF client metadata?
+# - warn user when TUF is used without any configuration
+# - override other default (e.g. HTTPS) urllib2 handlers
+
+
+################################ GLOBAL CLASSES ################################
 
 
 class URLMatchesNoPattern( Exception ):
@@ -338,6 +343,9 @@ class HTTPHandler( urllib2.HTTPHandler ):
             return response
 
 
+############################## GLOBAL FUNCTIONS ################################
+
+
 # TODO: Is parent_repository_directory a security risk? For example, would it
 # allow the user to overwrite another TUF repository metadata on the filesystem?
 # On the other hand, it is beyond TUF's scope to handle filesystem permissions.
@@ -420,19 +428,38 @@ def configure(
 
 
 def go_away():
-    """Remove TUF interposition and restore previous urllib openers."""
-    raise NotImplementedError()
+    """Call me to restore previous urllib and urllib2 behaviour."""
+
+    global _previous_urllib_urlopener
+    global _previous_urllib2_opener
+
+    if _previous_urllib_urlopener is not False:
+        urllib._urlopener = _previous_urllib_urlopener
+        _previous_urllib_urlopener = None
+
+    if _previous_urllib2_opener is not False:
+        # NOTE: slightly rude and, furthermore, fragile
+        urllib2._opener = _previous_urllib2_opener
+        _previous_urllib2_opener = None
 
 
-# TODO: warn when no configuration is present
 def interpose():
-    # http://docs.python.org/2/library/urllib.html#urllib._urlopener
-    urllib._urlopener = FancyURLOpener()
+    """Call me to have TUF interpose as urllib and urllib2."""
 
-    # http://docs.python.org/2/library/urllib2.html#urllib2.build_opener
-    # http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
-    # TODO: override other default urllib2 handlers
-    urllib2.install_opener( urllib2.build_opener( HTTPHandler ) )
+    global _previous_urllib_urlopener
+    global _previous_urllib2_opener
+
+    if _previous_urllib_urlopener is False:
+        _previous_urllib_urlopener = urllib._urlopener
+        # http://docs.python.org/2/library/urllib.html#urllib._urlopener
+        urllib._urlopener = FancyURLOpener()
+
+    if _previous_urllib2_opener is False:
+        # NOTE: slightly rude and, furthermore, fragile
+        _previous_urllib2_opener = urllib2._opener
+        # http://docs.python.org/2/library/urllib2.html#urllib2.build_opener
+        # http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
+        urllib2.install_opener( urllib2.build_opener( HTTPHandler ) )
 
 
 def open_url( method ):
@@ -455,3 +482,11 @@ def open_url( method ):
             return updater.open( url, data = data )
 
     return wrapper
+
+
+############################## GLOBAL VARIABLES ################################
+
+
+# We use False as a sentinal value.
+_previous_urllib_urlopener = False
+_previous_urllib2_opener = False
