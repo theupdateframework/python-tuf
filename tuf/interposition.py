@@ -65,11 +65,17 @@ class Configuration( object ):
     def __init__(
         self,
         hostname,
+        port,
         repository_directory,
         repository_mirrors,
         target_paths
     ):
+        """This constructor assumes that its parameters are valid."""
+
         self.hostname = hostname
+        self.port = port
+        self.network_location = \
+            "{hostname}:{port}".format( hostname = hostname, port = port )
         self.repository_directory = repository_directory
         self.repository_mirrors = repository_mirrors
         self.target_paths = target_paths
@@ -77,16 +83,37 @@ class Configuration( object ):
 
     @staticmethod
     def load_from_json(
-        hostname,
+        network_location,
         configuration,
         parent_repository_directory = None
     ):
 
+        INVALID_REPOSITORY_MIRROR = \
+            "Invalid repository mirror {repository_mirror}!"
+        INVALID_NETWORK_LOCATION = \
+            "Invalid network location {network_location}!"
         INVALID_PARENT_REPOSITORY_DIRECTORY = "Invalid " + \
-            "parent_repository_directory for {hostname}!"
+            "parent_repository_directory for {network_location}!"
         # An "identity" capture from source URL to target URL
         WILD_TARGET_PATH = { "(.*)": "{0}" }
 
+        # Check network location
+        network_location_tokens = network_location.split( ':', 1 )
+        hostname = network_location_tokens[ 0 ]
+        port = 80
+
+        if len( network_location_tokens ) > 1:
+            try:
+                port = int( network_location_tokens[ 1 ], 10 )
+                assert port > 0 and port < 2**16
+            except:
+                error_message = INVALID_NETWORK_LOCATION.format(
+                    network_location = network_location
+                )
+                Logger.error( error_message )
+                raise InvalidConfiguration( error_message )
+
+        # Locate TUF client metadata repository
         repository_directory = configuration[ "repository_directory" ]
         if parent_repository_directory is not None:
             parent_repository_directory = \
@@ -99,14 +126,30 @@ class Configuration( object ):
             else:
                 raise InvalidConfiguration(
                     INVALID_PARENT_REPOSITORY_DIRECTORY.format(
-                        hostname = hostname
+                        network_location = network_location
                     )
                 )
 
+        # Parse TUF server repository mirrors
         repository_mirrors = configuration[ "repository_mirrors" ]
+        for repository_mirror in repository_mirrors:
+            mirror_configuration = repository_mirrors[ repository_mirror ]
+            try:
+                url_prefix = mirror_configuration[ "url_prefix" ]
+                parsed_url = urlparse.urlparse( url_prefix )
+                mirror_hostname = parsed_url.hostname
+                mirror_port = parsed_url.port or 80
+                # No infinite loop in interposition!
+                assert hostname != mirror_hostname or port != mirror_port
+            except:
+                error_message = INVALID_REPOSITORY_MIRROR.format(
+                    repository_mirror = repository_mirror
+                )
+                Logger.error( error_message )
+                raise InvalidConfiguration( error_message )
 
-        # Within a hostname, we match URLs with this list of regular expressions,
-        # which tell us to map from a source URL to a target URL.
+        # Within a network_location, we match URLs with this list of regular
+        # expressions, which tell us to map from a source URL to a target URL.
         # If there are multiple regular expressions which match a source URL,
         # the order of appearance will be used to resolve ambiguity.
         target_paths = \
@@ -120,8 +163,10 @@ class Configuration( object ):
             assert isinstance( target_path, types.DictType )
             assert len( target_path ) == 1
 
+        # If everything passes, we return a Configuration.
         return Configuration(
             hostname,
+            port,
             repository_directory,
             repository_mirrors,
             target_paths
@@ -136,7 +181,7 @@ class Updater( object ):
     """
 
     # A private collection of Updaters;
-    # hostname: str -> updater: Updater
+    # network_location: str -> updater: Updater
     __updaters = {}
 
     def __init__( self, configuration ):
@@ -153,9 +198,10 @@ class Updater( object ):
     @staticmethod
     def build_updater( configuration ):
         assert isinstance( configuration, Configuration )
-        assert configuration.hostname not in Updater.__updaters
+        assert configuration.network_location not in Updater.__updaters
 
-        Updater.__updaters[ configuration.hostname ] = Updater( configuration )
+        Updater.__updaters[ configuration.network_location ] = \
+            Updater( configuration )
 
     def download_target( self, target_filepath ):
         """Downloads target with TUF as a side effect."""
@@ -190,7 +236,7 @@ class Updater( object ):
         figure out what TUF *should* download given a URL."""
 
         WARNING_MESSAGE = "Possibly invalid target_paths for " + \
-            "{hostname}! TUF interposition will NOT be present for {url}"
+            "{network_location}! No TUF interposition for {url}"
 
         parsed_source_url = urlparse.urlparse( source_url )
         target_filepath = None
@@ -222,7 +268,7 @@ class Updater( object ):
         except:
             Logger.warn(
                 WARNING_MESSAGE.format(
-                    hostname = self.configuration.hostname,
+                    network_location = self.configuration.network_location,
                     url = source_url
                 )
             )
@@ -234,27 +280,25 @@ class Updater( object ):
 
     @staticmethod
     def get_updater( url ):
-        WARNING_MESSAGE = "Could not get updater for {hostname}! " + \
-            "TUF interposition will NOT be present for {url}"
+        WARNING_MESSAGE = "No updater and, hence, TUF interposition for {url}!"
 
         updater = None
 
         try:
             parsed_url = urlparse.urlparse( url )
-            # TODO: enable specificity beyond hostname (e.g. include scheme, port)
-            updater = Updater.__updaters.get( parsed_url.hostname )
+            hostname = parsed_url.hostname
+            port = parsed_url.port or 80
+            network_location = \
+                "{hostname}:{port}".format( hostname = hostname, port = port )
+
+            updater = Updater.__updaters.get( network_location )
             # This will raise an exception in case we do not recognize
             # how to transform this URL for TUF. In that case, there will be
             # no updater for this URL.
             if updater is not None:
                 target_filepath = updater.get_target_filepath( url )
         except:
-            Logger.warn(
-                WARNING_MESSAGE.format(
-                    hostname = parsed_url.hostname,
-                    url = url
-                )
-            )
+            Logger.warn( WARNING_MESSAGE.format( url = url ) )
             updater = None
         finally:
             return updater
@@ -370,15 +414,15 @@ def configure(
     """
     The optional parent_repository_directory parameter is used to specify the
     containing parent directory of the "repository_directory" specified in a
-    configuration for *all* hostnames, because sometimes the absolute location
-    of the "repository_directory" is only known at runtime. If you need to
-    specify a different parent_repository_directory for other hostnames, simply
-    call this method again with different parameters.
+    configuration for *all* network locations, because sometimes the absolute
+    location of the "repository_directory" is only known at runtime. If you
+    need to specify a different parent_repository_directory for other
+    network locations, simply call this method again with different parameters.
 
     Example of a TUF interposition configuration JSON object:
 
     {
-        "hostnames": {
+        "network_locations": {
             "seattle.cs.washington.edu": {
                 "repository_directory": "client/",
                 "repository_mirrors" : {
@@ -399,31 +443,31 @@ def configure(
 
     "target_paths" is optional: If you do not tell TUF to selectively match
     paths with regular expressions, TUF will work over any path under the given
-    hostname. However, if you do specify it, you are then telling TUF how to
-    transform a specified path into another one, and TUF will *not* recognize
-    any unspecified path for the given hostname.
+    network location. However, if you do specify it, you are then telling TUF
+    how to transform a specified path into another one, and TUF will *not*
+    recognize any unspecified path for the given network location.
     """
 
-    INVALID_TUF_CONFIGURATION = "Invalid configuration for {hostname}!"
+    INVALID_TUF_CONFIGURATION = "Invalid configuration for {network_location}!"
     INVALID_TUF_INTERPOSITION_JSON = "Invalid configuration in {filename}!"
-    NO_HOSTNAMES = "No hostnames found in configuration in {filename}!"
+    NO_NETWORK_LOCATIONS = "No network locations found in configuration in {filename}!"
 
     try:
         with open( filename ) as tuf_interposition_json:
             tuf_interpositions = json.load( tuf_interposition_json )
-            hostnames = tuf_interpositions.get( "hostnames", {} )
+            network_locations = tuf_interpositions.get( "network_locations", {} )
 
             # TODO: more input sanity checks
-            if len( hostnames ) == 0:
+            if len( network_locations ) == 0:
                 raise InvalidConfiguration(
-                    NO_HOSTNAMES.format( filename = filename )
+                    NO_NETWORK_LOCATIONS.format( filename = filename )
                 )
             else:
-                for hostname, configuration in hostnames.iteritems():
+                for network_location, configuration in network_locations.iteritems():
                     try:
                         Updater.build_updater(
                             Configuration.load_from_json(
-                                hostname,
+                                network_location,
                                 configuration,
                                 parent_repository_directory = parent_repository_directory
                             )
@@ -431,7 +475,7 @@ def configure(
                     except:
                         Logger.error(
                             INVALID_TUF_CONFIGURATION.format(
-                                hostname = hostname
+                                network_location = network_location
                             )
                         )
                         raise
