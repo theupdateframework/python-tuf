@@ -25,11 +25,18 @@ import util_test_tools
 class test_UtilTestTools(unittest.TestCase):
   def setUp(self):
     unittest.TestCase.setUp(self)
-    self.temp_root, self.url = util_test_tools.init_repo(tuf=True)
+
+    # Unpacking necessary parameters returned from init_repo()
+    essential_params = util_test_tools.init_repo(tuf=True)
+    self.root_repo = essential_params[0] 
+    self.url = essential_params[1]
+    self.server_proc = essential_params[2]
+    self.keyids = essential_params[3]
+    self.interpose_json = essential_params[4] 
 
   def tearDown(self):
     unittest.TestCase.tearDown(self)
-    util_test_tools.cleanup()
+    util_test_tools.cleanup(self.root_repo, self.server_proc)
 
 
 #================================================#
@@ -40,14 +47,15 @@ class test_UtilTestTools(unittest.TestCase):
   # A few quick internal tests to see if everything runs smoothly.
   def test_direct_download(self):
     # Setup.
-    downloads = os.path.join(self.temp_root, 'downloads')
-    filepath = util_test_tools.add_file_to_repository('Test')
+    reg_repo = os.path.join(self.root_repo, 'reg_repo')
+    downloads = os.path.join(self.root_repo, 'downloads')
+    filepath = util_test_tools.add_file_to_repository(reg_repo, 'Test')
     file_basename = os.path.basename(filepath)
-    url = self.url+'repo/'+file_basename
+    url_to_reg_repo = self.url+'reg_repo/'+file_basename
     downloaded_file = os.path.join(downloads, file_basename)
 
     # Test direct download using 'urllib.urlretrieve'.
-    urllib.urlretrieve(url, downloaded_file)
+    urllib.urlretrieve(url_to_reg_repo, downloaded_file)
     self.assertTrue(os.path.isfile(downloaded_file))
 
     # Verify the content of the downloaded file.
@@ -59,18 +67,18 @@ class test_UtilTestTools(unittest.TestCase):
 
 
   def test_correct_directory_structure(self):
-    # Verify following directories exists: '{temp_root}/repo/',
-    # '{temp_root}/downloads/.
-    self.assertTrue(os.path.isdir(os.path.join(self.temp_root, 'repo')))
-    self.assertTrue(os.path.isdir(os.path.join(self.temp_root, 'downloads')))
+    # Verify following directories exists: '{root_repo}/reg_repo/',
+    # '{root_repo}/downloads/.
+    self.assertTrue(os.path.isdir(os.path.join(self.root_repo, 'reg_repo')))
+    self.assertTrue(os.path.isdir(os.path.join(self.root_repo, 'downloads')))
 
     # Verify that all necessary TUF-paths exist.
-    tuf_repo = os.path.join(self.temp_root, 'tuf_repo')
-    tuf_client = os.path.join(self.temp_root, 'tuf_client')
+    tuf_repo = os.path.join(self.root_repo, 'tuf_repo')
+    tuf_client = os.path.join(self.root_repo, 'tuf_client')
     metadata_dir = os.path.join(tuf_repo, 'metadata')
     current_dir = os.path.join(tuf_client, 'metadata', 'current')
 
-    # Verify '{temp_root}/tuf_repo/metadata/role.txt' paths exists.
+    # Verify '{root_repo}/tuf_repo/metadata/role.txt' paths exists.
     for role in ['root', 'targets', 'release', 'timestamp']:
       # Repository side.
       role_file = os.path.join(metadata_dir, role+'.txt')
@@ -80,11 +88,11 @@ class test_UtilTestTools(unittest.TestCase):
       role_file = os.path.join(current_dir, role+'.txt')
       self.assertTrue(os.path.isfile(role_file))
 
-    # Verify '{temp_root}/tuf_repo/keystore/keyid.key' exists.
+    # Verify '{root_repo}/tuf_repo/keystore/keyid.key' exists.
     keys_list = os.listdir(os.path.join(tuf_repo, 'keystore'))
     self.assertEquals(len(keys_list), 1)
 
-    # Verify '{temp_root}/tuf_repo/targets/' directory exists.
+    # Verify '{root_repo}/tuf_repo/targets/' directory exists.
     self.assertTrue(os.path.isdir(os.path.join(tuf_repo, 'targets')))
 
 
@@ -103,19 +111,19 @@ class test_UtilTestTools(unittest.TestCase):
 
     Note: here file at the 'filepath' and the 'target' file at tuf-targets
     directory are identical files.
-    Ex: filepath = '{temp_root}/repo/file.txt'
-        target = '{temp_root}/tuf_repo/targets/file.txt'
+    Ex: filepath = '{root_repo}/reg_repo/file.txt'
+        target = '{root_repo}/tuf_repo/targets/file.txt'
     """
 
-    repo = os.path.join(self.temp_root, 'repo')
-    tuf_repo = os.path.join(self.temp_root, 'tuf_repo')
-    downloads = os.path.join(self.temp_root, 'downloads')
+    reg_repo = os.path.join(self.root_repo, 'reg_repo')
+    tuf_repo = os.path.join(self.root_repo, 'tuf_repo')
+    downloads = os.path.join(self.root_repo, 'downloads')
 
-    # Test 'add_file_to_repository(data)' and read_file_content(filepath)
-    # methods
-    filepath = util_test_tools.add_file_to_repository('Test')
+    # Test 'add_file_to_repository(directory, data)' and
+    # read_file_content(filepath) methods.
+    filepath = util_test_tools.add_file_to_repository(reg_repo, 'Test')
     self.assertTrue(os.path.isfile(filepath))
-    self.assertEquals(os.path.dirname(filepath), repo)
+    self.assertEquals(os.path.dirname(filepath), reg_repo)
     filepath_content = util_test_tools.read_file_content(filepath)
     self.assertEquals('Test', filepath_content)
 
@@ -126,14 +134,9 @@ class test_UtilTestTools(unittest.TestCase):
     self.assertEquals('Modify', filepath_content)
 
     # Test 'tuf_refresh_repo' method.
-    util_test_tools.tuf_refresh_repo()
+    util_test_tools.tuf_refresh_repo(self.root_repo, self.keyids)
     file_basename = os.path.basename(filepath)
     target = os.path.join(tuf_repo, 'targets', file_basename)
-    self.assertTrue(os.path.isfile(target))
-
-    # Test 'tuf_refresh_and_download()' method.
-    util_test_tools.tuf_refresh_and_download()
-    target = os.path.join(downloads, file_basename)
     self.assertTrue(os.path.isfile(target))
 
     # Test 'delete_file_at_repository(filepath)' method.
@@ -141,7 +144,7 @@ class test_UtilTestTools(unittest.TestCase):
     self.assertFalse(os.path.exists(filepath))
 
     # Test 'tuf_refresh_repo' method once more.
-    util_test_tools.tuf_refresh_repo()
+    util_test_tools.tuf_refresh_repo(self.root_repo, self.keyids)
     file_basename = os.path.basename(filepath)
     target = os.path.join(tuf_repo, 'targets', file_basename)
     self.assertFalse(os.path.isfile(target))

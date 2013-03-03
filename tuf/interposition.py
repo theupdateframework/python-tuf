@@ -546,6 +546,6 @@ def open_url( method ):
 ############################## GLOBAL VARIABLES ################################
 
 
-# We use False as a sentinal value.
+# We use False as a sentinel value.
 _previous_urllib_urlopener = False
 _previous_urllib2_opener = False
