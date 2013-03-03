@@ -17,19 +17,28 @@ import tuf.conf
 
 
 # TODO:
-# - document design decisions: e.g. could pip recognize multiple TUF client metadata?
-# - failsafe: if TUF fails, offer option to unsafely resort back to urllib/urllib2?
-# - review security issues resulting from regular expressions (e.g. complexity attacks)
-# - warn user when TUF is used without any configuration
-# - override other default (e.g. HTTPS) urllib2 handlers
+# - Document design decisions.
+# - Interposition: Honour urllib/urllib2 contract.
+# - Review security issues resulting from regular expressions (e.g. complexity attacks).
+# - Warn user when TUF is used without any configuration.
+# - Override other default (e.g. HTTPS) urllib2 handlers.
+# - Failsafe: If TUF fails, offer option to unsafely resort back to urllib/urllib2?
 
 
 ################################ GLOBAL CLASSES ################################
 
+class InterpositionException( Exception ):
+    """Base exception class."""
 
-class URLMatchesNoPattern( Exception ):
-    """We throw this to indicate that the URL matches no user-specified
-    regular expression pattern."""
+    pass
+
+class URLMatchesNoPattern( InterpositionException ):
+    """URL matches no user-specified regular expression pattern."""
+
+    pass
+
+class InvalidConfiguration( InterpositionException ):
+    """User configuration is invalid."""
 
     pass
 
@@ -38,8 +47,8 @@ class Logger( object ):
     __logger = logging.getLogger( "tuf.interposition" )
 
     @staticmethod
-    def critical( message ):
-        Logger.__logger.critical( message )
+    def error( message ):
+        Logger.__logger.error( message )
         Logger.exception( message )
 
     @staticmethod
@@ -73,7 +82,7 @@ class Configuration( object ):
         parent_repository_directory = None
     ):
 
-        INVALID_PARENT_REPOSITORY_DIRECTORY = "Ignoring invalid " + \
+        INVALID_PARENT_REPOSITORY_DIRECTORY = "Invalid " + \
             "parent_repository_directory for {hostname}!"
         # An "identity" capture from source URL to target URL
         WILD_TARGET_PATH = { "(.*)": "{0}" }
@@ -88,7 +97,7 @@ class Configuration( object ):
                     repository_directory
                 )
             else:
-                Logger.warn(
+                raise InvalidConfiguration(
                     INVALID_PARENT_REPOSITORY_DIRECTORY.format(
                         hostname = hostname
                     )
@@ -180,7 +189,7 @@ class Updater( object ):
         """Given source->target map,
         figure out what TUF *should* download given a URL."""
 
-        ERROR_MESSAGE = "Possibly invalid target_paths for " + \
+        WARNING_MESSAGE = "Possibly invalid target_paths for " + \
             "{hostname}! TUF interposition will NOT be present for {url}"
 
         parsed_source_url = urlparse.urlparse( source_url )
@@ -211,8 +220,8 @@ class Updater( object ):
                 # ...then we raise a predictable exception.
                 raise URLMatchesNoPattern( source_url )
         except:
-            Logger.critical(
-                ERROR_MESSAGE.format(
+            Logger.warn(
+                WARNING_MESSAGE.format(
                     hostname = self.configuration.hostname,
                     url = source_url
                 )
@@ -225,7 +234,7 @@ class Updater( object ):
 
     @staticmethod
     def get_updater( url ):
-        ERROR_MESSAGE = "Could not get updater for {hostname}! " + \
+        WARNING_MESSAGE = "Could not get updater for {hostname}! " + \
             "TUF interposition will NOT be present for {url}"
 
         updater = None
@@ -240,7 +249,12 @@ class Updater( object ):
             if updater is not None:
                 target_filepath = updater.get_target_filepath( url )
         except:
-            Logger.critical( ERROR_MESSAGE )
+            Logger.warn(
+                WARNING_MESSAGE.format(
+                    hostname = parsed_url.hostname,
+                    url = url
+                )
+            )
             updater = None
         finally:
             return updater
@@ -390,12 +404,9 @@ def configure(
     any unspecified path for the given hostname.
     """
 
-    INVALID_TUF_CONFIGURATION = "Invalid TUF configuration for " + \
-        "{hostname}! TUF interposition will NOT be present for {hostname}."
-    INVALID_TUF_INTERPOSITION_JSON = "Invalid TUF configuration JSON file " + \
-        "{filename}! TUF interposition will NOT be present for any host."
-    NO_HOSTNAMES = "No hostnames found in TUF configuration JSON file " + \
-        "{filename}! TUF interposition will NOT be present for any host."
+    INVALID_TUF_CONFIGURATION = "Invalid configuration for {hostname}!"
+    INVALID_TUF_INTERPOSITION_JSON = "Invalid configuration in {filename}!"
+    NO_HOSTNAMES = "No hostnames found in configuration in {filename}!"
 
     try:
         with open( filename ) as tuf_interposition_json:
@@ -404,7 +415,9 @@ def configure(
 
             # TODO: more input sanity checks
             if len( hostnames ) == 0:
-                Logger.warn( NO_HOSTNAMES.format( filename = filename ) )
+                raise InvalidConfiguration(
+                    NO_HOSTNAMES.format( filename = filename )
+                )
             else:
                 for hostname, configuration in hostnames.iteritems():
                     try:
@@ -416,15 +429,17 @@ def configure(
                             )
                         )
                     except:
-                        Logger.warn(
+                        Logger.error(
                             INVALID_TUF_CONFIGURATION.format(
                                 hostname = hostname
                             )
                         )
+                        raise
     except:
-        Logger.warn(
+        Logger.error(
             INVALID_TUF_INTERPOSITION_JSON.format( filename = filename )
         )
+        raise
 
 
 def go_away():
