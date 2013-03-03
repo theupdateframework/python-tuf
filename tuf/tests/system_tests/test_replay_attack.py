@@ -88,10 +88,8 @@ def test_replay_attack(TUF=False):
     # Client performs initial update.
     urllib.urlretrieve(url_to_repo, downloaded_file)
 
-    # Content of the downloaded file.
     # Downloads are stored in the same directory '{root_repo}/downloads/'
-    # independent of who stores there (tuf or regular client).  See warning
-    # in util_test_tools.init_repo().
+    # for regular and tuf clients.
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
     msg = '[Initial Updata] Failed to download the file.'
     if 'Test A' != downloaded_content:
@@ -99,6 +97,9 @@ def test_replay_attack(TUF=False):
 
     # Developer patches the file and updates the repository.
     util_test_tools.modify_file_at_repository(filepath, 'Test NOT A')
+
+    # Updating tuf repository.  This will copy files from regular repository
+    # into tuf repository and refresh the metad 
     if TUF:
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
@@ -147,10 +148,10 @@ def test_replay_attack(TUF=False):
 
 try:
   test_replay_attack(TUF=False)
-except ReplayAttackError, err:
-  print err
+except ReplayAttackError, error:
+  print error
 
 try:
   test_replay_attack(TUF=True)
-except ReplayAttackError, err:
-  print err
+except ReplayAttackError, error:
+  print error
