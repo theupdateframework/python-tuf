@@ -45,6 +45,9 @@ class Configuration( object ):
             "Invalid network location {network_location}!"
         INVALID_PARENT_REPOSITORY_DIRECTORY = "Invalid " + \
             "parent_repository_directory for {network_location}!"
+        INVALID_TARGET_PATH = \
+            "Invalid target path in {network_location}!"
+
         # An "identity" capture from source URL to target URL
         WILD_TARGET_PATH = { "(.*)": "{0}" }
 
@@ -90,7 +93,7 @@ class Configuration( object ):
                 parsed_url = urlparse.urlparse( url_prefix )
                 mirror_hostname = parsed_url.hostname
                 mirror_port = parsed_url.port or 80
-                # No infinite loop in interposition!
+                # No single-edge cycle in interposition.
                 assert hostname != mirror_hostname or port != mirror_port
             except:
                 error_message = INVALID_REPOSITORY_MIRROR.format(
@@ -109,10 +112,17 @@ class Configuration( object ):
         # target_paths: [ target_path, ... ]
         assert isinstance( target_paths, types.ListType )
         for target_path in target_paths:
-            # target_path: { "regex_with_groups", "target_with_group_captures" }
-            # e.g. { ".*(/some/directory)/$", "{0}/index.html" }
-            assert isinstance( target_path, types.DictType )
-            assert len( target_path ) == 1
+            try:
+                # target_path: { "regex_with_groups", "target_with_group_captures" }
+                # e.g. { ".*(/some/directory)/$", "{0}/index.html" }
+                assert isinstance( target_path, types.DictType )
+                assert len( target_path ) == 1
+            except:
+                error_message = INVALID_TARGET_PATH.format(
+                    network_location = network_location
+                )
+                Logger.error( error_message )
+                raise InvalidConfiguration( error_message )
 
         # If everything passes, we return a Configuration.
         return Configuration(
