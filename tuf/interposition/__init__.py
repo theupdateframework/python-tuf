@@ -4,7 +4,7 @@ import json
 import urllib
 import urllib2
 
-from configuration import Configuration
+from configuration import Configuration, InvalidConfiguration
 from utility import Logger
 from updater import Updater
 
