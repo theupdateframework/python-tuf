@@ -347,7 +347,7 @@ def init_tuf(root_repo, url):
   # In order to implement interposition we need to have a config file with
   # the following dictionary JSON-serialized.
   # tuf_url: http://localhost:port/root_repo/tuf_repo/
-  interposition_dict = {"network_locations": 
+  interposition_dict = {"configurations":
                           {"localhost": 
                             {"repository_directory": tuf_client+'/',
                              "repository_mirrors" : 

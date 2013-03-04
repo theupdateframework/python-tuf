@@ -8,7 +8,7 @@ import urlparse
 import tuf.client.updater
 import tuf.conf
 
-from configuration import Configuration
+from configuration import Configuration, InvalidConfiguration
 from utility import Logger, InterpositionException
 
 
@@ -25,9 +25,10 @@ class Updater( object ):
     which you can get and use later.
     """
 
-    # A private collection of Updaters;
-    # network_location: str -> updater: Updater
+    # A private map of Updaters (network_location: str -> updater: Updater)
     __updaters = {}
+    # A private set of repository mirror hostnames
+    __repository_mirror_hostnames = set()
 
     def __init__( self, configuration ):
         self.configuration = configuration
@@ -42,13 +43,50 @@ class Updater( object ):
 
     @staticmethod
     def build_updater( configuration ):
+        INVALID_REPOSITORY_MIRROR = \
+            "Invalid repository mirror {repository_mirror}!"
+
+        # Updater has a "global" view of configurations, so it performs
+        # additional checks after Configuration's own local checks.
         assert isinstance( configuration, Configuration )
 
-        # Restrict each hostname to correspond to a single updater;
-        # this prevents interposition cycles, amongst other things.
+        # Restrict each (incoming, outgoing) hostname pair to be unique across
+        # configurations; this prevents interposition cycles, amongst other
+        # things.
+        # GOOD: A -> { A:X, A:Y, B, ... }, C -> { D }, ...
+        # BAD: A -> { B }, B -> { C }, C -> { A }, ...
         assert configuration.hostname not in Updater.__updaters
+        assert configuration.hostname not in Updater.__repository_mirror_hostnames
 
+        # Parse TUF server repository mirrors.
+        repository_mirrors = configuration.repository_mirrors
+        repository_mirror_hostnames = set()
+
+        for repository_mirror in repository_mirrors:
+            mirror_configuration = repository_mirrors[ repository_mirror ]
+            try:
+                url_prefix = mirror_configuration[ "url_prefix" ]
+                parsed_url = urlparse.urlparse( url_prefix )
+                mirror_hostname = parsed_url.hostname
+
+                # Restrict each (incoming, outgoing) hostname pair to be unique
+                # across configurations; this prevents interposition cycles,
+                # amongst other things.
+                assert mirror_hostname not in Updater.__updaters
+                assert mirror_hostname not in Updater.__repository_mirror_hostnames
+
+                # Remember this mirror's hostname for the next network_location.
+                repository_mirror_hostnames.add( mirror_hostname )
+            except:
+                error_message = INVALID_REPOSITORY_MIRROR.format(
+                    repository_mirror = repository_mirror
+                )
+                Logger.error( error_message )
+                raise InvalidConfiguration( error_message )
+
+        # If all is well, build and store an Updater, and remember hostnames.
         Updater.__updaters[ configuration.hostname ] = Updater( configuration )
+        Updater.__repository_mirror_hostnames.update( repository_mirror_hostnames )
 
     def download_target( self, target_filepath ):
         """Downloads target with TUF as a side effect."""

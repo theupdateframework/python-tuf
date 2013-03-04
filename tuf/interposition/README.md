@@ -32,7 +32,7 @@ def instancemethod( self, url, ... )
 
 ```javascript
 {
-    "network_locations": {
+    "configurations": {
         "seattle.cs.washington.edu": {
             "repository_directory": "client/",
             "repository_mirrors" : {
@@ -60,3 +60,8 @@ with regular expressions, TUF will work over any path under the given network
 location. However, if you do specify it, you are then telling TUF how to
 transform a specified path into another one, and TUF will *not* recognize any
 unspecified path for the given network location.
+
+## Limitations (at the time of writing)
+
+- The entire `urllib` or `urllib2` contract is not honoured.
+- Downloads are not thread safe.

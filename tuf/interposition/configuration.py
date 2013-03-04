@@ -84,8 +84,10 @@ class Configuration( object ):
                     )
                 )
 
-        # Parse TUF server repository mirrors
+        # Parse TUF server repository mirrors.
         repository_mirrors = configuration[ "repository_mirrors" ]
+        repository_mirror_network_locations = set()
+
         for repository_mirror in repository_mirrors:
             mirror_configuration = repository_mirrors[ repository_mirror ]
             try:
@@ -93,8 +95,23 @@ class Configuration( object ):
                 parsed_url = urlparse.urlparse( url_prefix )
                 mirror_hostname = parsed_url.hostname
                 mirror_port = parsed_url.port or 80
+                mirror_netloc = "{hostname}:{port}".format(
+                    hostname = mirror_hostname,
+                    port = mirror_port
+                )
+
                 # No single-edge cycle in interposition.
-                assert hostname != mirror_hostname or port != mirror_port
+                # GOOD: A -> { A:XYZ, ... }
+                # BAD: A -> { A, ... }
+                assert not ( mirror_hostname == hostname and mirror_port == port )
+
+                # Unique network location over repository mirrors.
+                # GOOD: A -> { A:X, A:Y, ... }
+                # BAD: A -> { A:X, A:X, ... }
+                assert mirror_netloc not in repository_mirror_network_locations
+
+                # Remember this mirror's network location to check the rest of the mirrors.
+                repository_mirror_network_locations.add( mirror_netloc )
             except:
                 error_message = INVALID_REPOSITORY_MIRROR.format(
                     repository_mirror = repository_mirror

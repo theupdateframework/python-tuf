@@ -90,7 +90,7 @@ def configure(
     Example of a TUF interposition configuration JSON object:
 
     {
-        "network_locations": {
+        "configurations": {
             "seattle.cs.washington.edu": {
                 "repository_directory": "client/",
                 "repository_mirrors" : {
@@ -118,20 +118,20 @@ def configure(
 
     INVALID_TUF_CONFIGURATION = "Invalid configuration for {network_location}!"
     INVALID_TUF_INTERPOSITION_JSON = "Invalid configuration in {filename}!"
-    NO_NETWORK_LOCATIONS = "No network locations found in configuration in {filename}!"
+    NO_CONFIGURATIONS = "No configurations found in configuration in {filename}!"
 
     try:
         with open( filename ) as tuf_interposition_json:
             tuf_interpositions = json.load( tuf_interposition_json )
-            network_locations = tuf_interpositions.get( "network_locations", {} )
+            configurations = tuf_interpositions.get( "configurations", {} )
 
             # TODO: more input sanity checks
-            if len( network_locations ) == 0:
+            if len( configurations ) == 0:
                 raise InvalidConfiguration(
-                    NO_NETWORK_LOCATIONS.format( filename = filename )
+                    NO_CONFIGURATIONS.format( filename = filename )
                 )
             else:
-                for network_location, configuration in network_locations.iteritems():
+                for network_location, configuration in configurations.iteritems():
                     try:
                         Updater.build_updater(
                             Configuration.load_from_json(
