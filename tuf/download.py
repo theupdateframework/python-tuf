@@ -22,15 +22,114 @@
   
 """
 
-import urllib2
 import logging
+import os.path
+import socket
 
+import tuf
 import tuf.hash
 import tuf.util
 import tuf.formats
 
+from tuf.compatibility import httplib, ssl, urllib2, urlparse
+if ssl:
+    from tuf.compatibility import match_hostname
+else:
+    raise tuf.Error( "No SSL support!" )    # TODO: degrade gracefully
+
+
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
+
+
+class VerifiedHTTPSConnection( httplib.HTTPSConnection ):
+    """
+    A connection that wraps connections with ssl certificate verification.
+
+    https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L72
+    """
+    def connect(self):
+
+        self.connection_kwargs = {}
+
+        #TODO: refactor compatibility logic into tuf.compatibility?
+
+        # for > py2.5
+        if hasattr(self, 'timeout'):
+            self.connection_kwargs.update(timeout = self.timeout)
+
+        # for >= py2.7
+        if hasattr(self, 'source_address'):
+            self.connection_kwargs.update(source_address = self.source_address)
+
+        sock = socket.create_connection((self.host, self.port), **self.connection_kwargs)
+
+        # for >= py2.7
+        if getattr(self, '_tunnel_host', None):
+            self.sock = sock
+            self._tunnel()
+
+        # set location of certificate authorities
+        assert os.path.isfile( tuf.conf.ca_certs )
+        cert_path = tuf.conf.ca_certs
+
+        self.sock = ssl.wrap_socket(sock,
+                                self.key_file,
+                                self.cert_file,
+                                cert_reqs=ssl.CERT_REQUIRED,
+                                ca_certs=cert_path)
+
+        match_hostname(self.sock.getpeercert(), self.host)
+
+
+class VerifiedHTTPSHandler( urllib2.HTTPSHandler ):
+    """
+    A HTTPSHandler that uses our own VerifiedHTTPSConnection.
+
+    https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L109
+    """
+    def __init__(self, connection_class = VerifiedHTTPSConnection):
+        self.specialized_conn_class = connection_class
+        urllib2.HTTPSHandler.__init__(self)
+    def https_open(self, req):
+        return self.do_open(self.specialized_conn_class, req)
+
+
+def _get_request(url):
+    """
+    Wraps the URL to retrieve to protects against "creative"
+    interpretation of the RFC: http://bugs.python.org/issue8732
+
+    https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L147
+    """
+
+    return urllib2.Request(url, headers={'Accept-encoding': 'identity'})
+
+
+def _get_opener( scheme = None ):
+    """
+    Build a urllib2 opener based on whether the user now wants SSL.
+
+    https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L178
+    """
+
+    if scheme == "https":
+        assert os.path.isfile( tuf.conf.ca_certs )
+
+        # If we are going over https, use an opener which will provide SSL
+        # certificate verification.
+        https_handler = VerifiedHTTPSHandler()
+        opener = urllib2.build_opener( https_handler )
+
+        # strip out HTTPHandler to prevent MITM spoof
+        for handler in opener.handlers:
+            if isinstance( handler, urllib2.HTTPHandler ):
+                opener.handlers.remove( handler )
+    else:
+        # Otherwise, use the default opener.
+        opener = urllib2.build_opener()
+
+    return opener
 
 
 def _open_connection(url):
@@ -39,8 +138,7 @@ def _open_connection(url):
     Helper function that opens a connection to the url. urllib2 supports http, 
     ftp, and file. In python (2.6+) where the ssl module is available, urllib2 
     also supports https.
-    
-    TODO: Do proper ssl cert/name checking. 
+
     TODO: Disallow SSLv2. 	
     TODO: Support ssl with MCrypto.
     TODO: Determine whether this follows http redirects and decide if we like
@@ -71,11 +169,12 @@ def _open_connection(url):
     # servers do not recognize connections that originates from 
     # Python-urllib/x.y.
 
-    request = urllib2.Request(url)
-    connection = urllib2.urlopen(request)
-    # urllib2.urlopen returns a file-like object: a handle to the remote data.
-    return connection
+    parsed_url = urlparse.urlparse( url )
+    opener = _get_opener( scheme = parsed_url.scheme )
+    request = _get_request( url )
+    return opener.open( request )
   except Exception, e:
+    raise
     raise tuf.DownloadError(e)
 
 

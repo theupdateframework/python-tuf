@@ -1,4 +1,4 @@
-## Methods
+## Examples
 
 ```python
 import tuf.interposition
@@ -65,3 +65,5 @@ unspecified path for the given network location.
 
 - The entire `urllib` or `urllib2` contract is not honoured.
 - Downloads are not thread safe.
+- Uses some Python features (e.g. string formatting) not available in earlier versions (e.g. < 2.6).
+- Uses some Python features (e.g. `urllib, urllib2, urlparse`) not available in later versions (e.g. >= 3).
