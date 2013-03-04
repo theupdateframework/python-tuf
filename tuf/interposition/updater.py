@@ -2,6 +2,7 @@ import mimetypes
 import os.path
 import re
 import shutil
+import urllib
 import urlparse
 
 import tuf.client.updater
