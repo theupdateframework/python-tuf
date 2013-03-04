@@ -42,10 +42,12 @@ class Updater( object ):
     @staticmethod
     def build_updater( configuration ):
         assert isinstance( configuration, Configuration )
-        assert configuration.network_location not in Updater.__updaters
 
-        Updater.__updaters[ configuration.network_location ] = \
-            Updater( configuration )
+        # Restrict each hostname to correspond to a single updater;
+        # this prevents interposition cycles, amongst other things.
+        assert configuration.hostname not in Updater.__updaters
+
+        Updater.__updaters[ configuration.hostname ] = Updater( configuration )
 
     def download_target( self, target_filepath ):
         """Downloads target with TUF as a side effect."""
@@ -132,14 +134,13 @@ class Updater( object ):
             parsed_url = urlparse.urlparse( url )
             hostname = parsed_url.hostname
             port = parsed_url.port or 80
-            network_location = \
-                "{hostname}:{port}".format( hostname = hostname, port = port )
+            updater = Updater.__updaters.get( hostname )
 
-            updater = Updater.__updaters.get( network_location )
-            # This will raise an exception in case we do not recognize
-            # how to transform this URL for TUF. In that case, there will be
-            # no updater for this URL.
-            if updater is not None:
+            # Ensure that the updater is meant for this (hostname, port).
+            if updater is not None and updater.configuration.port == port:
+                # Raises an exception in case we do not recognize how to
+                # transform this URL for TUF. In that case, there will be no
+                # updater for this URL.
                 target_filepath = updater.get_target_filepath( url )
         except:
             Logger.warn( WARNING_MESSAGE.format( url = url ) )
