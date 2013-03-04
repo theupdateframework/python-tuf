@@ -190,8 +190,8 @@ def interpose():
 
 
 def open_url( instancemethod ):
-    """Decorate a caller instance method of the form
-    instancemethod( self, url,... ) with me in order to give it to TUF."""
+    """Decorate an instance method of the form
+    instancemethod( self, url,... ) with me in order to pass it to TUF."""
 
     @functools.wraps( instancemethod )
     def wrapper( self, *args, **kwargs ):

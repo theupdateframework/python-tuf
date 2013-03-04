@@ -135,14 +135,26 @@ class Updater( object ):
             parsed_url = urlparse.urlparse( url )
             hostname = parsed_url.hostname
             port = parsed_url.port or 80
+            netloc = parsed_url.netloc
+            network_location = \
+                "{hostname}:{port}".format( hostname = hostname, port = port )
+
+            # Sometimes parsed_url.netloc does not have a port (e.g. 80),
+            # so we do a double check.
+            network_locations = set( ( netloc, network_location ) )
+
             updater = Updater.__updaters.get( hostname )
 
             # Ensure that the updater is meant for this (hostname, port).
-            if updater is not None and updater.configuration.port == port:
-                # Raises an exception in case we do not recognize how to
-                # transform this URL for TUF. In that case, there will be no
-                # updater for this URL.
-                target_filepath = updater.get_target_filepath( url )
+            if updater is not None:
+                if updater.configuration.network_location in network_locations:
+                    # Raises an exception in case we do not recognize how to
+                    # transform this URL for TUF. In that case, there will be no
+                    # updater for this URL.
+                    target_filepath = updater.get_target_filepath( url )
+                else:
+                    # Same hostname, but different (not user-specified) port.
+                    updater = None
         except:
             Logger.warn( WARNING_MESSAGE.format( url = url ) )
             updater = None
