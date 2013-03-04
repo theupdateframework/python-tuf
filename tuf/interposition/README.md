@@ -1,7 +1,8 @@
-## How to interpose
+## Methods
 
 ```python
 import tuf.interposition
+# configuration is a JSON object in tuf.interposition.json
 tuf.interposition.configure()
 ```
 
@@ -9,20 +10,23 @@ tuf.interposition.configure()
 
 ```python
 tuf.interposition.interpose()
-urllib.urlopen( 'http://example.com/path/to/document' )
-urllib.urlretrieve( 'http://example.com/path/to/document' )
-urllib2.urlopen( 'http://example.com/path/to/document' )
+# now you have TUF
+url = 'http://example.com/path/to/document'
+urllib.urlopen( url )
+urllib.urlretrieve( url )
+urllib2.urlopen( url )
 tuf.interposition.go_away()
+# now you do not have TUF
 ```
 
 ### Option two
 
 ```python
 @tuf.interposition.open_url
-def method( self, url, ... )
+def instancemethod( self, url, ... )
 ```
 
-## Interposition configuration
+## Configuration
 
 ### Example of a configuration JSON object
 
@@ -48,7 +52,10 @@ def method( self, url, ... )
 }
 ```
 
-"target_paths" is optional: If you do not tell TUF to selectively match paths
+TODO: Explain `network_locations`, `target_paths`, and the rest of the
+parameters.
+
+`target_paths` is optional: If you do not tell TUF to selectively match paths
 with regular expressions, TUF will work over any path under the given network
 location. However, if you do specify it, you are then telling TUF how to
 transform a specified path into another one, and TUF will *not* recognize any

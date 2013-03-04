@@ -189,13 +189,13 @@ def interpose():
         urllib2.install_opener( urllib2.build_opener( HTTPHandler ) )
 
 
-def open_url( method ):
-    """Decorate a caller instance method of the form method( self, url, ... )
-    with this decorator in order to provide it with TUF security."""
+def open_url( instancemethod ):
+    """Decorate a caller instance method of the form
+    instancemethod( self, url,... ) with me in order to give it to TUF."""
 
-    @functools.wraps( method )
+    @functools.wraps( instancemethod )
     def wrapper( self, *args, **kwargs ):
-        # TODO: Ensure that the first argument to method is a URL.
+        # TODO: Ensure that the first argument to instancemethod is a URL.
         url = args[ 0 ]
         data = kwargs.get( "data" )
         updater = Updater.get_updater( url )
@@ -203,7 +203,7 @@ def open_url( method ):
         # If TUF has not been configured for this URL...
         if updater is None:
             # ...then revert to default behaviour.
-            return method( self, *args, **kwargs )
+            return instancemethod( self, *args, **kwargs )
         else:
             # ...otherwise, use TUF to get this document.
             return updater.open( url, data = data )
