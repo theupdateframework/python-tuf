@@ -70,9 +70,13 @@ class VerifiedHTTPSConnection( httplib.HTTPSConnection ):
             self._tunnel()
 
         # set location of certificate authorities
-        assert os.path.isfile( tuf.conf.ca_certs )
-        cert_path = tuf.conf.ca_certs
+        assert os.path.isfile( tuf.conf.ssl_certificates )
+        cert_path = tuf.conf.ssl_certificates
 
+        # TODO: Disallow SSLv2.
+        # http://docs.python.org/dev/library/ssl.html#protocol-versions
+        # TODO: Select the right ciphers.
+        # http://docs.python.org/dev/library/ssl.html#cipher-selection
         self.sock = ssl.wrap_socket(sock,
                                 self.key_file,
                                 self.cert_file,
@@ -114,7 +118,7 @@ def _get_opener( scheme = None ):
     """
 
     if scheme == "https":
-        assert os.path.isfile( tuf.conf.ca_certs )
+        assert os.path.isfile( tuf.conf.ssl_certificates )
 
         # If we are going over https, use an opener which will provide SSL
         # certificate verification.
@@ -139,8 +143,6 @@ def _open_connection(url):
     ftp, and file. In python (2.6+) where the ssl module is available, urllib2 
     also supports https.
 
-    TODO: Disallow SSLv2. 	
-    TODO: Support ssl with MCrypto.
     TODO: Determine whether this follows http redirects and decide if we like
     that. For example, would we not want to allow redirection from ssl to
      non-ssl urls?

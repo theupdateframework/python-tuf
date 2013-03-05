@@ -46,7 +46,8 @@ def instancemethod( self, url, ... )
             ("target_paths": [
                 { ".*/(simple/\\w+)/$": "{0}/index.html" },
                 { ".*/(packages/.+)$": "{0}" }
-            ])
+            ],
+            "ssl_certificates": "cacert.pem")
         }
     }
 }
@@ -60,6 +61,9 @@ with regular expressions, TUF will work over any path under the given network
 location. However, if you do specify it, you are then telling TUF how to
 transform a specified path into another one, and TUF will *not* recognize any
 unspecified path for the given network location.
+
+Unless any `url_prefix` begins with "https://", `ssl_certificates` is optional; it
+must specify certificates bundled as PEM (RFC 1422).
 
 ## Limitations (at the time of writing)
 

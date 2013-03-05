@@ -19,7 +19,8 @@ class Configuration( object ):
         port,
         repository_directory,
         repository_mirrors,
-        target_paths
+        target_paths,
+        ssl_certificates
     ):
         """This constructor assumes that its parameters are valid."""
 
@@ -30,28 +31,33 @@ class Configuration( object ):
         self.repository_directory = repository_directory
         self.repository_mirrors = repository_mirrors
         self.target_paths = target_paths
+        self.ssl_certificates = ssl_certificates
         self.tempdir = tempfile.mkdtemp()
 
     @staticmethod
     def load_from_json(
         network_location,
         configuration,
-        parent_repository_directory = None
+        parent_repository_directory = None,
+        parent_ssl_certificates_directory = None
     ):
 
-        INVALID_REPOSITORY_MIRROR = \
-            "Invalid repository mirror {repository_mirror}!"
+        INVALID_SSL_CERTIFICATES = "Invalid ssl_certificates " + \
+            "for {network_location}!"
         INVALID_NETWORK_LOCATION = \
             "Invalid network location {network_location}!"
+        INVALID_PARENT_SSL_CERTIFICATES_DIRECTORY = "Invalid " + \
+            "parent_ssl_certificates_directory for {network_location}!"
         INVALID_PARENT_REPOSITORY_DIRECTORY = "Invalid " + \
             "parent_repository_directory for {network_location}!"
-        INVALID_TARGET_PATH = \
-            "Invalid target path in {network_location}!"
+        INVALID_REPOSITORY_MIRROR = \
+            "Invalid repository mirror {repository_mirror}!"
+        INVALID_TARGET_PATH = "Invalid target path in {network_location}!"
 
-        # An "identity" capture from source URL to target URL
+        # An "identity" capture from source URL to target URL.
         WILD_TARGET_PATH = { "(.*)": "{0}" }
 
-        # Check network location
+        # Check network location.
         network_location_tokens = network_location.split( ':', 1 )
         hostname = network_location_tokens[ 0 ]
         port = 80
@@ -67,7 +73,7 @@ class Configuration( object ):
                 Logger.error( error_message )
                 raise InvalidConfiguration( error_message )
 
-        # Locate TUF client metadata repository
+        # Locate TUF client metadata repository.
         repository_directory = configuration[ "repository_directory" ]
         if parent_repository_directory is not None:
             parent_repository_directory = \
@@ -77,12 +83,38 @@ class Configuration( object ):
                     parent_repository_directory,
                     repository_directory
                 )
+                # TODO: assert os.path.isdir( repository_directory )
             else:
                 raise InvalidConfiguration(
                     INVALID_PARENT_REPOSITORY_DIRECTORY.format(
                         network_location = network_location
                     )
                 )
+
+        # Get any PEM certificate bundle.
+        ssl_certificates = configuration.get( "ssl_certificates" )
+
+        if ssl_certificates is not None:
+            if parent_ssl_certificates_directory is not None:
+                parent_ssl_certificates_directory = \
+                    os.path.abspath( parent_ssl_certificates_directory )
+                if os.path.isdir( parent_ssl_certificates_directory ):
+                    ssl_certificates = os.path.join(
+                        parent_ssl_certificates_directory,
+                        ssl_certificates
+                    )
+                    if not os.path.isfile( ssl_certificates ):
+                        raise InvalidConfiguration(
+                            INVALID_SSL_CERTIFICATES.format(
+                                network_location = network_location
+                            )
+                        )
+                else:
+                    raise InvalidConfiguration(
+                        INVALID_PARENT_SSL_CERTIFICATES_DIRECTORY.format(
+                            network_location = network_location
+                        )
+                    )
 
         # Parse TUF server repository mirrors.
         repository_mirrors = configuration[ "repository_mirrors" ]
@@ -95,10 +127,16 @@ class Configuration( object ):
                 parsed_url = urlparse.urlparse( url_prefix )
                 mirror_hostname = parsed_url.hostname
                 mirror_port = parsed_url.port or 80
+                mirror_scheme = parsed_url.scheme
                 mirror_netloc = "{hostname}:{port}".format(
                     hostname = mirror_hostname,
                     port = mirror_port
                 )
+
+                # TODO: warn is ssl_certificates is specified,
+                # but there is no mirror_scheme == "https"
+                if mirror_scheme == "https":
+                    assert os.path.isfile( ssl_certificates )
 
                 # No single-edge cycle in interposition.
                 # GOOD: A -> { A:XYZ, ... }
@@ -147,5 +185,6 @@ class Configuration( object ):
             port,
             repository_directory,
             repository_mirrors,
-            target_paths
+            target_paths,
+            ssl_certificates
         )

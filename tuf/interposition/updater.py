@@ -246,5 +246,6 @@ class Updater( object ):
     # TODO: thread-safety, perhaps with a context manager
     def switch_context( self ):
         # Set the local repository directory containing the metadata files.
-        tuf.conf.repository_directory = \
-            self.configuration.repository_directory
+        tuf.conf.repository_directory = self.configuration.repository_directory
+        # Set the local SSL certificates PEM file.
+        tuf.conf.ssl_certificates = self.configuration.ssl_certificates

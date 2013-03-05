@@ -75,9 +75,11 @@ class HTTPHandler( urllib2.HTTPHandler ):
 # TODO: Is parent_repository_directory a security risk? For example, would it
 # allow the user to overwrite another TUF repository metadata on the filesystem?
 # On the other hand, it is beyond TUF's scope to handle filesystem permissions.
+# TODO: Ditto for the parent_ssl_certificates_directory parameter.
 def configure(
     filename = "tuf.interposition.json",
-    parent_repository_directory = None
+    parent_repository_directory = None,
+    parent_ssl_certificates_directory = None
 ):
     """
     The optional parent_repository_directory parameter is used to specify the
@@ -86,6 +88,8 @@ def configure(
     location of the "repository_directory" is only known at runtime. If you
     need to specify a different parent_repository_directory for other
     network locations, simply call this method again with different parameters.
+
+    Ditto for the optional parent_ssl_certificates_directory parameter.
 
     Example of a TUF interposition configuration JSON object:
 
@@ -104,7 +108,8 @@ def configure(
                 ("target_paths": [
                     { ".*/(simple/\\w+)/$": "{0}/index.html" },
                     { ".*/(packages/.+)$": "{0}" }
-                ])
+                ],
+                "ssl_certificates": "cacert.pem")
             }
         }
     }
@@ -114,6 +119,9 @@ def configure(
     network location. However, if you do specify it, you are then telling TUF
     how to transform a specified path into another one, and TUF will *not*
     recognize any unspecified path for the given network location.
+
+    Unless any "url_prefix" begins with "https://", "ssl_certificates" is
+    optional; it must specify certificates bundled as PEM (RFC 1422).
     """
 
     INVALID_TUF_CONFIGURATION = "Invalid configuration for {network_location}!"
@@ -137,7 +145,10 @@ def configure(
                             Configuration.load_from_json(
                                 network_location,
                                 configuration,
-                                parent_repository_directory = parent_repository_directory
+                                parent_repository_directory = \
+                                    parent_repository_directory,
+                                parent_ssl_certificates_directory = \
+                                    parent_ssl_certificates_directory
                             )
                         )
                     except:
