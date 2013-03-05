@@ -40,6 +40,10 @@ unit_tbox = tuf.tests.unittest_toolbox.Modified_TestCase
 
 class TestQuickstart(unit_tbox):
   def test_1_get_password(self):
+    
+    # SETUP
+    original_getpass = quickstart.getpass.getpass
+    
     # A quick test of _get_password.
     password = self.random_string()
     def _mock_getpass(junk1, junk2, pw = password):
@@ -49,11 +53,17 @@ class TestQuickstart(unit_tbox):
     # Run _get_password().
     self.assertEqual(quickstart._get_password(), password)
 
+    # RESTORE
+    quickstart.getpass.getpass = original_getpass
+
+
 
   def test_2_build_repository(self):
 
     # SETUP
-
+    original_prompt = quickstart._prompt
+    original_get_password = quickstart._get_password
+    
     #  Create the project directories.
     repo_dir = os.path.join(os.getcwd(), 'repository')
     keystore_dir = os.path.join(os.getcwd(), 'keystore')
@@ -69,7 +79,7 @@ class TestQuickstart(unit_tbox):
                   'timestamp':{'threshold':1, 'password':'pass'}}
 
 
-    def _mock_prompt(message, junk=str, input_parameters=input_dict):
+    def _mock_prompt(message, confirm=False, input_parameters=input_dict):
       if message.startswith('\nWhen would you like your '+
           'certificates to expire?'):
         return input_parameters['expiration']
@@ -173,6 +183,10 @@ class TestQuickstart(unit_tbox):
         self.assertTrue(os.path.isfile(key_file))
 
     _remove_repository_directories(repo_dir, keystore_dir, client_dir) 
+
+    # RESTORE 
+    quickstart._prompt = original_prompt
+    quickstart._get_password = original_get_password
 
 
 

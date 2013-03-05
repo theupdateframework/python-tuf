@@ -4,11 +4,10 @@
 
 <Authors>
   Geremy Condra
-  Vladimir Diaz
-    vladimir.v.diaz AT gmail
+  Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
 <Started>
-  March 1, 2012.  Based on a previous version of this module.
+  Refactored March 1, 2012 (VLAD).  Based on a previous version of this module.
 
 <Copyright>
   See LICENSE for licensing information.
@@ -26,7 +25,7 @@ import unittest
 import tuf.hash
 
 
-class Test(unittest.TestCase):
+class TestHash(unittest.TestCase):
 
   def _run_with_all_hash_libraries(self, test_func):
     test_func('hashlib')
@@ -215,5 +214,7 @@ class Test(unittest.TestCase):
       self.assertEqual(digest_object_truth.digest(), digest_object.digest())
 
 
-if __name__ == "__main__":
-    unittest.main()
+
+# Run unit test.
+suite = unittest.TestLoader().loadTestsFromTestCase(TestHash)
+unittest.TextTestRunner(verbosity=2).run(suite)

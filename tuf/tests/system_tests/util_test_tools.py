@@ -194,7 +194,7 @@ def init_repo(tuf=False):
   # NOTE: The delay is needed to make up for asynchronous subprocess.
   # Otherwise following error might be raised:
   #    <urlopen error [Errno 111] Connection refused>
-  time.sleep(.1)
+  time.sleep(.3)
   if tuf:
     init_tuf()
 

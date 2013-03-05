@@ -70,6 +70,13 @@ def build_server_repository(server_repository_dir, targets_dir):
     'build_server_repository' builds a complete repository based on target
     files provided in the 'targets_dir'.  Delegated roles are included.
   """
+
+  # Save the originals of the functions patched by this function.
+  # The patched functions will be restored prior to returning.
+  original_get_metadata = signercli._get_metadata_directory
+  original_prompt = signercli._prompt
+  original_get_password = signercli._get_password
+  original_get_keyids = signercli._get_keyids
   
   server_metadata_dir = os.path.join(server_repository_dir, 'metadata')
   keystore_dir = os.path.join(server_repository_dir, 'keystore')
@@ -130,7 +137,7 @@ def build_server_repository(server_repository_dir, targets_dir):
 
   #  Mock method for signercli._prompt().
   def _mock_prompt(msg, junk):
-    if msg.startswith('\nNOTE: The directory entered'):
+    if msg.startswith('\nThe directory entered'):
       return delegated_targets_dir
     elif msg.startswith('\nChoose and enter the parent'):
       return parent_role
@@ -204,7 +211,11 @@ def build_server_repository(server_repository_dir, targets_dir):
   keystore._keystore = {}
   keystore._key_passwords = {}
 
-
+  # RESTORE
+  signercli._get_metadata_directory = original_get_metadata
+  signercli._prompt = original_prompt
+  signercli._get_password = original_get_password
+  signercli._get_keyids = original_get_keyids
 
 
 

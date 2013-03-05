@@ -37,6 +37,10 @@ class TestSig(unittest.TestCase):
     pass
 
 
+  def tearDown(self):
+    pass
+
+
   def test_get_signature_status_no_role(self):
     signable = {'signed' : 'test', 'signatures' : []}
     # Should verify we are not adding a duplicate signature
@@ -385,5 +389,7 @@ class TestSig(unittest.TestCase):
     self.assertRaises(tuf.FormatError, tuf.sig.get_signature_status, *args)
 
 
+
+# Run unit test.
 suite = unittest.TestLoader().loadTestsFromTestCase(TestSig)
 unittest.TextTestRunner(verbosity=2).run(suite)
