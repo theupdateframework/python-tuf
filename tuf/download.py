@@ -176,7 +176,6 @@ def _open_connection(url):
     request = _get_request( url )
     return opener.open( request )
   except Exception, e:
-    raise
     raise tuf.DownloadError(e)
 
 
