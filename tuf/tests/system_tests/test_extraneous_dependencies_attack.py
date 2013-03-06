@@ -132,16 +132,14 @@ def test():
     # Create a delegation.
     create_delegation(tuf_repo, delegated_targets_path, delegated_targets_keyids,
                       'pass1', 'targets', 'role1')
-    util_test_tools.tuf_refresh_repo(root_repo, keyids)
-
+    util_test_tools.tuf_refresh_release_timestamp(metadata_dir, keyids)
     # END Setup.
 
 
     # Perform a client download.
     urllib.urlretrieve(url_to_file, downloaded_file)
 
-    # Check whether the attack succeeded by inspecting the content of the
-    # update.  The update should contain 'Test NOT A'.
+    # The update should contain 'Test NOT A'.
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
     msg = 'OUCH 1'
     if 'Test A' != downloaded_content:
@@ -152,9 +150,10 @@ def test():
     util_test_tools.modify_file_at_repository(target_1, 'Test NOT A')
 
     # This is not correct!!!???
+    # TODO: Use signercli's make_release_file() and make_timestamp().
     util_test_tools.tuf_refresh_release_timestamp(metadata_dir, keyids)
 
-  #  util_test_tools.tuf_refresh_repo(root_repo, keyids)
+    #  util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
     # Rebuild the delegation role metadata.
     signerlib.build_delegated_role_file(delegated_targets_path, 
@@ -165,11 +164,11 @@ def test():
     # Perform another client download.
     urllib.urlretrieve(url_to_file, downloaded_file)
 
-    # Check whether the attack succeeded by inspecting the content of the
-    # update.  The update should contain 'Test NOT A'.
+    # The update should contain 'Test NOT A'.
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
     msg = 'OUCH 2'
     if 'Test NOT A' != downloaded_content:
+      print 'Test NOT A != '+downloaded_content
       print msg
 
 
