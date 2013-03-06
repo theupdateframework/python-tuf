@@ -1138,3 +1138,81 @@ def build_timestamp_file(timestamp_keyids, metadata_directory):
   signable = sign_metadata(timestamp_metadata, timestamp_keyids, timestamp_filepath)
 
   return write_metadata_file(signable, timestamp_filepath)
+
+
+
+
+
+def build_delegated_role_file(delegated_targets_directory, delegated_keyids, 
+                              metadata_directory, delegation_metadata_directory,
+                              delegation_role_name):
+  """
+  <Purpose>
+    Build the targets metadata file using the signing keys in 'targets_keyids'.
+    The generated metadata file is saved to 'metadata_directory'.  The target
+    files located in 'targets_directory' will be tracked by the built targets
+    metadata.
+
+  <Arguments>
+    delegated_targets_directory:
+      The directory (absolute path) containing all the delegated target
+      files.
+
+    delegated_keyids:
+      The list of keyids to be used as the signing keys for the delegated
+      role file.
+
+    metadata_directory:
+      The metadata directory (absolute path) containing all the metadata files.
+
+    delegation_metadata_directory:
+      The location of the delegated role's metadata.
+
+    delegation_role_name:
+      The delegated role's file name ending in '.txt'.  Ex: 'role1.txt'
+
+  <Exceptions>
+    tuf.FormatError, if any of the arguments are improperly formatted.
+
+    tuf.Error, if there was an error while building the targets file.
+
+  <Side Effects>
+    The targets metadata file is written to a file.
+
+  <Returns>
+    The path for the written targets metadata file.
+
+  """
+
+  # Do the arguments have the correct format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.PATH_SCHEMA.check_match(delegated_targets_directory)
+  tuf.formats.KEYIDS_SCHEMA.check_match(delegated_keyids)
+  tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
+  tuf.formats.PATH_SCHEMA.check_match(delegation_metadata_directory)
+  tuf.formats.NAME_SCHEMA.check_match(delegation_role_name)
+
+  # Check if 'targets_directory' and 'metadata_directory' are valid.
+  targets_directory = check_directory(delegated_targets_directory)
+  metadata_directory = check_directory(metadata_directory)
+
+  repository_directory, junk = os.path.split(metadata_directory)
+  repository_directory_length = len(repository_directory)
+
+  # Get the list of targets.
+  targets = []
+  for root, directories, files in os.walk(targets_directory):
+    for target_file in files:
+      # Note: '+1' in the line below is there to remove '/'.
+      filename = os.path.join(root, target_file)[repository_directory_length+1:]
+      targets.append(filename)
+
+  # Create the targets metadata object.
+  targets_metadata = generate_targets_metadata(repository_directory, targets)
+
+  # Sign it.
+  targets_filepath = os.path.join(delegation_metadata_directory,
+                                  delegation_role_name)
+  signable = sign_metadata(targets_metadata, delegated_keyids, targets_filepath)
+
+  return write_metadata_file(signable, targets_filepath)

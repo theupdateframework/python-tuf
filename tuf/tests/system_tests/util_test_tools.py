@@ -358,7 +358,7 @@ def init_tuf(root_repo, url):
                                  "confined_target_dirs": [ "" ]}},
                                  "target_paths": [ { "(.*\\.html)": "{0}" } ]}}}
 
-  junk, interpose_json = tempfile.mkstemp(dir=root_repo)
+  junk, interpose_json = tempfile.mkstemp(prefix='conf_', dir=root_repo)
   with open(interpose_json, 'wb') as fileobj:
     tuf.util.json.dump(interposition_dict, fileobj)
 
@@ -393,6 +393,17 @@ def tuf_refresh_repo(root_repo, keyids):
   # Regenerate the 'targets.txt' metadata file. 
   signerlib.build_targets_file(targets_dir, keyids, metadata_dir)
 
+  # Regenerate the 'release.txt' metadata file.
+  signerlib.build_release_file(keyids, metadata_dir)
+
+  # Regenerate the 'timestamp.txt' metadata file.
+  signerlib.build_timestamp_file(keyids, metadata_dir)
+
+
+
+
+
+def tuf_refresh_release_timestamp(metadata_dir, keyids):
   # Regenerate the 'release.txt' metadata file.
   signerlib.build_release_file(keyids, metadata_dir)
 
