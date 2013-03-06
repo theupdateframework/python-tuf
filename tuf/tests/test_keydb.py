@@ -37,7 +37,7 @@ for junk in range(3):
 
 
 
-class Test(unittest.TestCase):
+class TestKeydb(unittest.TestCase):
   def setUp(self):
     pass
 
@@ -216,5 +216,6 @@ class Test(unittest.TestCase):
 
 
 
-if __name__ == '__main__':
-  unittest.main()
+# Run unit test.
+suite = unittest.TestLoader().loadTestsFromTestCase(TestKeydb)
+unittest.TextTestRunner(verbosity=2).run(suite)

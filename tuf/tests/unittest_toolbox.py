@@ -46,9 +46,6 @@ class Modified_TestCase(unittest.TestCase):
         modified_TestCase.setUp(self)
 
   <Methods>
-    switch_wd(self, twd):
-      Switch from current working directory to temporary working directory (twd).
-
     make_temp_directory(self, directory=None):
       Creates and returns an absolute path of a temporary directory.
 
@@ -485,3 +482,15 @@ class Modified_TestCase(unittest.TestCase):
       rand_str += random.choice('abcdefABCDEF'+string.digits)
 
     return rand_str
+
+
+
+
+
+  @staticmethod
+  def clear_toolbox():
+    Modified_TestCase.rsa_keyids = []
+    Modified_TestCase.rsa_keystore.clear()
+    Modified_TestCase.rsa_passwords.clear()
+    Modified_TestCase.semi_roledict.clear()
+    Modified_TestCase.top_level_role_info.clear()

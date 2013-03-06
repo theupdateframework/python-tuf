@@ -46,9 +46,6 @@ import tuf.repo.signercli as signercli
 #  Helper module unittest_toolbox.py
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
-reload(signercli)
-#reload(keystore)
-#reload(signerlib)
 
 logger = logging.getLogger('tuf')
 
@@ -65,6 +62,15 @@ unittest_toolbox.Modified_TestCase.bind_keys_to_roles()
 class TestSignercli(unittest_toolbox.Modified_TestCase):
 
 
+  original_prompt = signercli._prompt
+  signercli._prompt = original_prompt
+
+  original_get_metadata_directory = signercli._get_metadata_directory
+  signercli._get_metadata_directory = original_get_metadata_directory
+  
+  original_get_password = signercli._get_password
+  signercli._get_password = original_get_password
+  
   #  HELPER METHODS.
 
   #  Generic patch for signerlib._prompt().
@@ -122,7 +128,6 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
   #  to some other value like self.random_string(), after the test reassign
   #  the saved value back to 'self.rsa_passwords[keyid]'.
   def get_passwords(self):
-
     #  Mock '_get_password' method.
     def _mock_get_password(msg):
       for role in self.role_list:
@@ -177,8 +182,10 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
 
   def test_1__get_password(self):
-
+    
     # SETUP
+    original_getpass = signercli.getpass.getpass
+
     password = self.random_string()
     def _mock_getpass(junk1, junk2, pw=password):
       return pw
@@ -189,14 +196,18 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     # Test: normal case.
     self.assertEqual(signercli._get_password(), password)
-
+    
+    # RESTORE
+    signercli.getpass.getpass = original_getpass
 
 
 
 
   def test_2__get_metadata_directory(self):
-
+    
     # SETUP
+    original_prompt = signercli._prompt
+    
     meta_directory = self.make_temp_directory()
     self.mock_prompt(meta_directory)
 
@@ -208,7 +219,9 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.RepositoryError, signercli._get_metadata_directory)
     self.mock_prompt([self.random_string()])
     self.assertRaises(tuf.RepositoryError, signercli._get_metadata_directory)
-
+    
+    # RESTORE
+    signercli._prompt = original_prompt
 
 
 
@@ -216,6 +229,10 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
   def test_4__list_keyids(self):
 
     # SETUP
+    original_get_metadata_directory = signercli._get_metadata_directory
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
+    
     # The 'root.txt' and 'targets.txt' metadata files are
     # needed for _list_keyids() to determine the roles
     # associated with each keyid.
@@ -290,13 +307,19 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     targets_signable['signed']['targets'] = saved_targets
     tuf.repo.signerlib.write_metadata_file(targets_signable, targets_filename)
 
-
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._prompt = original_prompt
+    signercli._get_metadata_directory = original_get_metadata_directory
 
 
 
   def test_2__get_keyids(self):
     
-    # SETUP    
+    # SETUP
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
+    
     #  Create a temp keystore directory.
     keystore_dir = self.create_temp_keystore_directory()
 
@@ -356,13 +379,17 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Restore passwords dictionary.
     del self.rsa_passwords[keyid]
 
-
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._prompt = original_prompt
 
 
 
   def test_2__get_all_config_keyids(self):
 
     # SETUP
+    original_get_password = signercli._get_password
+    
     #  Create temp directory for config file.
     config_dir = self.make_temp_directory()
 
@@ -419,6 +446,8 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     keystore.clear_keystore()
     signercli._get_all_config_keyids(config_filepath, keystore_dir)
 
+    # RESTORE
+    signercli._get_password = original_get_password
 
 
 
@@ -426,6 +455,8 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
   def test_2__get_role_config_keyids(self):
 
     # SETUP
+    original_get_password = signercli._get_password
+    
     #  Create temp directory for config file.
     config_dir = self.make_temp_directory()
 
@@ -467,6 +498,8 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.Error, signercli._get_role_config_keyids,
                       config_filepath, keystore_dir, 'no_such_role')
 
+    # RESTORE
+    signercli._get_password = original_get_password
 
 
 
@@ -529,6 +562,10 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
   def test_4_change_password(self):
 
     # SETUP
+    original_get_metadata_directory = signercli._get_metadata_directory
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
+    
     #  Create keystore and repo directories.
     keystore_dir = self.create_temp_keystore_directory()
     repo_dir = self.make_temp_directory()
@@ -549,6 +586,9 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Patch signercli._prompt().
     self.mock_prompt(config_filepath)
 
+    #  Patch '_get_password' method.
+    self.get_passwords()
+    
     signercli.make_root_metadata(keystore_dir)
 
     #  Create a directory containing target files.
@@ -602,6 +642,10 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.RepositoryError, signercli.change_password,
                       keystore_dir)
 
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._prompt = original_prompt
+    signercli._get_metadata_directory = original_get_metadata_directory
 
 
 
@@ -609,6 +653,9 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
   def test_2_generate_rsa_key(self):
 
     # SETUP
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
+    
     #  Method to patch signercli._get_password()
     def _mock_get_password(junk, confirm=False):
       return self.random_string()
@@ -634,6 +681,9 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Was the key file added to the directory?
     self.assertTrue(os.listdir(keystore_dir))
 
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._prompt = original_prompt
 
 
 
@@ -641,6 +691,10 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
   def test_4_dump_key(self):
 
     # SETUP
+    original_get_metadata_directory = signercli._get_metadata_directory
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
+    
     #  Create keystore and repo directories.
     keystore_dir = self.create_temp_keystore_directory()
     repo_dir = self.make_temp_directory()
@@ -719,6 +773,10 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
                       keystore_dir)
     keyid = self.rsa_keyids[0]
 
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._prompt = original_prompt
+    signercli._get_metadata_directory = original_get_metadata_directory
 
 
 
@@ -726,6 +784,10 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
   def test_3_make_root_metadata(self):
 
     # SETUP
+    original_get_metadata_directory = signercli._get_metadata_directory
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
+    
     #  Create temp directory for config file.
     config_dir = self.make_temp_directory()
 
@@ -779,6 +841,10 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
                         keystore_dir)
       self.rsa_passwords[keyid] = saved_pw
 
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._prompt = original_prompt
+    signercli._get_metadata_directory = original_get_metadata_directory
 
 
 
@@ -786,6 +852,10 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
   def test_3_make_targets_metadata(self):
 
     # SETUP
+    original_get_metadata_directory = signercli._get_metadata_directory
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
+    
     #  Create a temp repository and metadata directories.
     repo_dir = self.make_temp_directory()
     meta_dir = self.make_temp_directory(directory=repo_dir)
@@ -860,18 +930,25 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
       self.assertRaises(tuf.RepositoryError, signercli.make_targets_metadata,
                         keystore_dir)
       self.rsa_passwords[keyid] = saved_pw
-
+    
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._prompt = original_prompt
+    signercli._get_metadata_directory = original_get_metadata_directory
 
 
 
 
   def test_4_make_release_metadata(self):
 
+    # SETUP
+    original_get_metadata_directory = signercli._get_metadata_directory
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
+    
     #  In order to build release metadata file (release.txt),
     #  root and targets metadata files (root.txt, targets.txt)
     #  must exist in the metadata directory.
-
-    # SETUP
     #  Create temp directory for config file.
     config_dir = self.make_temp_directory()
 
@@ -959,18 +1036,24 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
           keystore_dir)
       self.rsa_passwords[keyid] = saved_pw
 
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._prompt = original_prompt
+    signercli._get_metadata_directory = original_get_metadata_directory
 
 
 
 
   def test_5_make_timestamp_metadata(self):
 
+    # SETUP
+    original_get_metadata_directory = signercli._get_metadata_directory
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
 
     #  In order to build timestamp metadata file (timestamp.txt),
     #  root, targets and release metadata files (root.txt, targets.txt
     #  release.txt) must exist in the metadata directory.
-
-    # SETUP
     #  Create temp directory for config file.
     config_dir = self.make_temp_directory()
 
@@ -1078,16 +1161,22 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
                         signercli.make_release_metadata, keystore_dir)
       self.rsa_passwords[keyid] = saved_pw
 
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._get_metadata_directory = original_get_metadata_directory
 
 
 
 
   def test_6_sign_metadata_file(self):
 
+    # SETUP
+    original_get_metadata_directory = signercli._get_metadata_directory
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
+    
     #  To test this method, an RSA key will be created with
     #  a password in addition to the existing RSA keys.
-
-    # SETUP
     #  Create temp directory for config file.
     config_dir = self.make_temp_directory()
 
@@ -1187,12 +1276,21 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     self.assertTrue(keyid_exists)
 
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._prompt = original_prompt
+    signercli._get_metadata_directory = original_get_metadata_directory
 
 
 
 
   def test_7_make_delegation(self):
+    
     # SETUP
+    original_get_metadata_directory = signercli._get_metadata_directory
+    original_prompt = signercli._prompt
+    original_get_password = signercli._get_password
+    
     #  Create a temp repository and metadata directories.
     repo_dir = self.make_temp_directory()
     meta_dir = self.make_temp_directory(directory=repo_dir)
@@ -1343,11 +1441,16 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
                                        delegated_role+'.txt')
     self.assertTrue(os.path.exists(delegated_meta_file))
 
-
-
+    # RESTORE
+    signercli._get_password = original_get_password
+    signercli._prompt = original_prompt
+    signercli._get_metadata_directory = original_get_metadata_directory
 
 
 # Run unit tests.
 loader = unittest_toolbox.unittest.TestLoader
 suite = loader().loadTestsFromTestCase(TestSignercli)
-unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
+try:
+  unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
+finally:
+  unittest_toolbox.Modified_TestCase.clear_toolbox()

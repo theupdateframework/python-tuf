@@ -176,10 +176,7 @@ def init_repo(tuf=False):
   # NOTE: The delay is needed to make up for asynchronous subprocess.
   # Otherwise following error might be raised:
   #    <urlopen error [Errno 111] Connection refused>
-  time.sleep(.1)
-
-  keyids = None
-  interpose_json = None
+  time.sleep(.3)
   if tuf:
     keyids, interpose_json = init_tuf(root_repo, url)
 
@@ -407,5 +404,13 @@ def tuf_refresh_release_timestamp(metadata_dir, keyids):
   # Regenerate the 'release.txt' metadata file.
   signerlib.build_release_file(keyids, metadata_dir)
 
-  # Regenerate the 'timestamp.txt' metadata file.
-  signerlib.build_timestamp_file(keyids, metadata_dir)
+def tuf_refresh_and_download():
+  """
+  Combines tuf_refresh_repo(), tuf_refresh_client_metadata(), and
+  tuf_download_updates().
+  Returns 'tuf_downloads' directory.
+  """
+  tuf_refresh_repo()
+  tuf_refresh_client_metadata()
+  tuf_download_updates()
+  return setup_info['downloads']

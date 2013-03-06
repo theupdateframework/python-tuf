@@ -54,8 +54,8 @@ logger = logging.getLogger('tuf')
 logging.disable(logging.CRITICAL)
 
 #  References to roledb and keydb dictionaries (improve readability).
-roledb_dict = tuf.roledb._roledb_dict
-keydb_dict = tuf.keydb._keydb_dict
+roledb = tuf.roledb
+keydb = tuf.keydb
 
 
 
@@ -173,8 +173,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
     #  Clear roledb and keydb dictionaries.
-    roledb_dict.clear()
-    keydb_dict.clear()
+    roledb.clear_roledb()
+    keydb.clear_keydb()
 
 
 
@@ -342,6 +342,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   # UNIT TESTS.
 
   def test_1__load_metadata_from_file(self):
+    
     # Setup
     #  Get root.txt file path.  Extract root metadata, 
     #  it will be compared with content of loaded root metadata.
@@ -364,11 +365,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-
   def test_1__rebuild_key_and_role_db(self):    
     # Setup
     root_meta = self.Repository.metadata['current']['root']
-
 
     # Test: normal case.
     self.Repository._rebuild_key_and_role_db()
@@ -377,14 +376,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  are populated.  'top_level_role_info' is a unittest_toolbox's dict
     #  that contains top level role information it corresponds to a
     #  ROLEDICT_SCHEMA where roles are keys and role information their values.
-    self.assertEqual(roledb_dict, self.top_level_role_info)
-    self.assertEqual(len(keydb_dict), 4)
+    self.assertEqual(roledb._roledb_dict, self.top_level_role_info)
+    self.assertEqual(len(keydb._keydb_dict), 4)
 
     #  Verify that keydb dictionary was updated.
     for role in self.role_list:
       keyids = self.top_level_role_info[role]['keyids']
       for keyid in keyids:
-        self.assertTrue(keyid in keydb_dict)
+        self.assertTrue(keyid in keydb._keydb_dict)
 
 
 
@@ -406,22 +405,22 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Verify that there was no change in roledb and keydb dictionaries
     #  by checking the number of elements in the dictionaries.
-    self.assertEqual(len(roledb_dict), 5)
-    self.assertEqual(len(keydb_dict), 5)
+    self.assertEqual(len(roledb._roledb_dict), 5)
+    self.assertEqual(len(keydb._keydb_dict), 5)
 
     # Test: normal case, first level delegation.
     self.Repository._import_delegations('targets/delegated_role1')
 
-    self.assertEqual(len(roledb_dict), 6)
-    self.assertEqual(len(keydb_dict), 6)
+    self.assertEqual(len(roledb._roledb_dict), 6)
+    self.assertEqual(len(keydb._keydb_dict), 6)
 
     #  Verify that roledb dictionary was updated.
-    self.assertTrue('targets/delegated_role1' in tuf.roledb._roledb_dict)
+    self.assertTrue('targets/delegated_role1' in roledb._roledb_dict)
     
     #  Verify that keydb dictionary was updated.
     keyids = self.semi_roledict['targets/delegated_role1']['keyids']
     for keyid in keyids:
-      self.assertTrue(keyid in keydb_dict)
+      self.assertTrue(keyid in keydb._keydb_dict)
 
 
 
@@ -475,6 +474,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     """
 
     # Setup
+    original_download = tuf.download.download_url_to_tempfileobj
+    
     #  Since client's '.../metadata/current' will need to have separate
     #  gzipped metadata file in order to test compressed file handling,
     #  we need to copy it there.  
@@ -533,7 +534,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     os.remove(os.path.join(self.client_current_dir,'targets.txt.gz'))
     self._remove_target_from_targets_dir(added_target_1)
 
-
+    # RESTORE
+    tuf.download.download_url_to_tempfileobj = original_download
 
 
 
@@ -595,6 +597,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     """
 
     # Setup
+    original_download = tuf.download.download_url_to_tempfileobj
+    
     #  To test updater._update_metadata_if_changed, 'targets' metadata file is
     #  going to be modified at the server's repository.
     #  Keyid's are required to build the metadata.
@@ -683,6 +687,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     os.remove(os.path.join(self.client_current_dir, 'release.txt.gz'))
     self._remove_target_from_targets_dir(added_target_1)
 
+    # RESTORE
+    tuf.download.download_url_to_tempfileobj = original_download
 
 
 
@@ -735,6 +741,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_4_refresh(self):
     # Setup.
+    original_download = tuf.download.download_url_to_tempfileobj
+    
     #  This unit test is based on adding an extra target file to the
     #  server and rebuilding all server-side metadata.  When 'refresh'
     #  function is called by the client all top level metadata should
@@ -765,15 +773,19 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self._mock_download_url_to_tempfileobj(self.all_role_paths)
     setup.build_server_repository(self.server_repo_dir, self.targets_dir)
 
+    # RESTORE
+    tuf.download.download_url_to_tempfileobj = original_download
 
 
 
 
   def test_4__refresh_targets_metadata(self):
-    # To test this method a target file would be added to a delegated role,
-    # and metadata on the server side would be rebuilt.
 
     # Setup
+    original_download = tuf.download.download_url_to_tempfileobj
+    
+    # To test this method a target file would be added to a delegated role,
+    # and metadata on the server side would be rebuilt.
     targets_deleg_dir1 = os.path.join(self.targets_dir, 'delegated_level1')
     targets_deleg_dir2 = os.path.join(targets_deleg_dir1, 'delegated_level2')
     shutil.rmtree(self.server_meta_dir)
@@ -826,6 +838,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.server_repo_dir, 'keystore'))
     setup.build_server_repository(self.server_repo_dir, self.targets_dir)
 
+    # RESTORE
+    tuf.download.download_url_to_tempfileobj = original_download
 
 
 
@@ -853,11 +867,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_5_all_targets(self):
+
+   # Setup
+   original_download = tuf.download.download_url_to_tempfileobj
+   
    # As with '_refresh_targets_metadata()', tuf.roledb._roledb_dict
    # has to be populated.  'tuf.download.download_url_to_tempfileobj' method
    # should be patched.
-
-   # Setup
    self._mock_download_url_to_tempfileobj(self.all_role_paths)
 
    # Update top-level metadata.
@@ -876,6 +892,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    #  delegated (basically 2 out of 4 counted twice).
    self.assertTrue(len(all_targets) is 6)   
 
+   # RESTORE
+   tuf.download.download_url_to_tempfileobj = original_download
 
 
 
@@ -933,9 +951,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_6_download_target(self):
-    # 'tuf.download.download_url_to_tempfileobj' method should be patched.
 
     # Setup:
+    original_download = tuf.download.download_url_to_tempfileobj
+    
+    # 'tuf.download.download_url_to_tempfileobj' method should be patched.
     target_rel_paths_src = self._get_list_of_target_paths(self.targets_dir)
 
     #  Create temporary directory that will be passed as an argument to the
@@ -979,17 +999,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     for mirror_name, mirror_info in mirrors.items():
       mirrors[mirror_name]['confined_target_dirs'] = ['']
 
+    # RESTORE
+    tuf.download.download_url_to_tempfileobj = original_download
 
 
 
 
   def test_7_updated_targets(self):
+    
+    # Setup:
+    original_download = tuf.download.download_url_to_tempfileobj
+    
     # In this test, client will have two target files.  Server will modify 
     # one of them.  As with 'all_targets' function, tuf.roledb._roledb_dict
     # has to be populated.  'tuf.download.download_url_to_tempfileobj' method
     # should be patched.
-    
-    # Setup:
     target_rel_paths_src = self._get_list_of_target_paths(self.targets_dir)
 
     #  Create temporary directory which will hold client's target files.
@@ -1046,16 +1070,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         msg = 'A file that need not to be updated is indicated as updated.'
         self.fail(msg)
 
+    # RESTORE
+    tuf.download.download_url_to_tempfileobj = original_download
 
     
 
 
   def test_8_remove_obsolete_targets(self):
+    
+    # Setup:
+    original_download = tuf.download.download_url_to_tempfileobj
+    
     # This unit test should be last, because it removes target files from the
     # server's targets directory. It is done to avoid adding files, rebuilding 
     # and updating metadata. 
-    
-    # Setup:
     target_rel_paths_src = self._get_list_of_target_paths(self.targets_dir)
 
     #  Create temporary directory which will hold client's target files.
@@ -1101,6 +1129,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.Repository.remove_obsolete_targets(dest_dir)
     self.assertTrue(os.listdir(dest_dir), 2)    
 
+    # RESTORE
+    tuf.download.download_url_to_tempfileobj = original_download
 
 
 
@@ -1120,3 +1150,4 @@ try:
 finally:
   #  Removing repositories.
   setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
+  unittest_toolbox.Modified_TestCase.clear_toolbox()

@@ -37,7 +37,8 @@ rsakey_dict = RSA_KEY.generate()
 temp_key_info_vals = rsakey_dict.values() 
 temp_key_vals = rsakey_dict['keyval'].values()
 
-class TestRSA_KEY(unittest.TestCase):
+
+class TestRsa_key(unittest.TestCase):
   def setUp(self):
     rsakey_dict['keytype']=temp_key_info_vals[0]
     rsakey_dict['keyid']=temp_key_info_vals[1]
@@ -178,8 +179,6 @@ class TestRSA_KEY(unittest.TestCase):
 
 
 
-
-
 # Run the unit tests.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestRSA_KEY)
+suite = unittest.TestLoader().loadTestsFromTestCase(TestRsa_key)
 unittest.TextTestRunner(verbosity=2).run(suite)

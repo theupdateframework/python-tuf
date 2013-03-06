@@ -52,11 +52,15 @@ import shutil
 import ConfigParser
 import gzip
 import logging
+import unittest
 
 import tuf.util
 import tuf.formats as formats
 import tuf.repo.signerlib as signerlib
+import tuf.repo.keystore
+
 import tuf.tests.unittest_toolbox
+
 
 logger = logging.getLogger('tuf')
 
@@ -66,15 +70,26 @@ logging.disable(logging.CRITICAL)
 
 # 'unittest_toolbox.Modified_TestCase' is too long, I'll set it to 'unit_tbox'.
 unit_tbox = tuf.tests.unittest_toolbox.Modified_TestCase
-test_loader = tuf.tests.unittest_toolbox.unittest.TestLoader
 
 # Generate rsa keys and roles dictionary dictionaries.
 unit_tbox.bind_keys_to_roles()
 
 
 class TestSignerlib(unit_tbox):
-  # Test methods.
+  
+  def setUp(self):
+    unit_tbox.setUp(self)
 
+
+
+
+  def tearDown(self):
+    unit_tbox.tearDown(self)
+
+
+
+
+  # Test methods.
   def test_1_get_metadata_filenames(self):
 
     # SETUP
@@ -352,6 +367,8 @@ class TestSignerlib(unit_tbox):
     """
 
     # SETUP
+    original_get_key = tuf.repo.keystore.get_key
+    
     build_config = signerlib.build_config_file
 
     #  Create a temp directory to hold a config file.
@@ -378,7 +395,7 @@ class TestSignerlib(unit_tbox):
 
     #  Patch keystore's get_key method.  No harm is done here since correct
     #  arguments are passed and keystore methods are tested separately.
-    signerlib.tuf.repo.keystore.get_key = self.get_keystore_key
+    tuf.repo.keystore.get_key = self.get_keystore_key
 
     #  Test: normal case.  Pass a correct config path.
     root_meta = signerlib.generate_root_metadata(config_path)
@@ -395,6 +412,8 @@ class TestSignerlib(unit_tbox):
     self.assertRaises(tuf.Error, signerlib.generate_root_metadata,
                       {self.random_string(): self.random_string()})
 
+    # RESTORE
+    tuf.repo.keystore.get_key = original_get_key
 
 
 
@@ -405,9 +424,11 @@ class TestSignerlib(unit_tbox):
     the generate_role_metadata() and use monkey patched keystore's get_key().
     """
 
+    # SETUP.
+    original_get_key = tuf.repo.keystore.get_key
+    
     for role in ['root', 'targets']:
 
-      # SETUP.
       role_info = self._get_role_info(role)
       filename = role+'.txt'
 
@@ -440,7 +461,8 @@ class TestSignerlib(unit_tbox):
           key = self.get_keystore_key(keyid)
           key['keytype'] = 'rsa'
 
-
+    # RESTORE
+    tuf.repo.keystore.get_key = original_get_key
 
 
 
@@ -460,6 +482,8 @@ class TestSignerlib(unit_tbox):
     """
 
     # SETUP
+    original_get_key = tuf.repo.keystore.get_key
+    
     signed_root_meta, root_info = self._get_signed_role_info('root')
     root_keyids = root_info[1]
     config_path = root_info[3]
@@ -485,6 +509,8 @@ class TestSignerlib(unit_tbox):
     self.assertRaises(tuf.FormatError, signerlib.build_root_file,
         config_path, self.random_string(), meta_dir)
 
+    # RESTORE
+    tuf.repo.keystore.get_key = original_get_key
 
 
 
@@ -498,6 +524,8 @@ class TestSignerlib(unit_tbox):
     """
 
     # SETUP
+    original_get_key = tuf.repo.keystore.get_key
+    
     signed_targets_meta, targets_info = self._get_signed_role_info('targets')
 
     #  'targets_info' is a tuple that includes targets meta, repository dir,
@@ -528,6 +556,8 @@ class TestSignerlib(unit_tbox):
     self.assertRaises((tuf.FormatError, tuf.Error), signerlib.build_root_file,
         targets_dir, targets_keyids, self.random_path())
 
+    # RESTORE
+    tuf.repo.keystore.get_key = original_get_key
 
 
 
@@ -542,6 +572,8 @@ class TestSignerlib(unit_tbox):
     """
 
     # SETUP
+    original_get_key = tuf.repo.keystore.get_key
+    
     #  Create root.txt and targets.txt as described above.
     meta_dir = self._create_root_and_targets_meta_files()
 
@@ -561,6 +593,8 @@ class TestSignerlib(unit_tbox):
     self.assertRaises(tuf.FormatError, signerlib.generate_release_metadata,
                       ['junk'])
 
+    # RESTORE
+    tuf.repo.keystore.get_key = original_get_key
 
 
 
@@ -572,6 +606,8 @@ class TestSignerlib(unit_tbox):
     """
 
     # SETUP
+    original_get_key = tuf.repo.keystore.get_key
+    
     #  Create root.txt and targets.txt as described above.  Also, get signed
     #  release metadata to compare it with the content of the file
     signed_release_meta, release_info = self._get_signed_role_info('release')
@@ -596,6 +632,8 @@ class TestSignerlib(unit_tbox):
     self.assertRaises(tuf.FormatError, signerlib.build_release_file,
                       self.random_string(), meta_dir)
 
+    # RESTORE
+    tuf.repo.keystore.get_key = original_get_key
 
 
 
@@ -607,6 +645,8 @@ class TestSignerlib(unit_tbox):
     """
 
     # SETUP
+    original_get_key = tuf.repo.keystore.get_key
+    
     generate_timestamp_meta = signerlib.generate_timestamp_metadata
 
     #  Create release metadata and create 'release.txt' file.
@@ -641,6 +681,8 @@ class TestSignerlib(unit_tbox):
     #  Test: invalid path.
     self.assertRaises(tuf.Error, generate_timestamp_meta, self.random_path())
 
+    # RESTORE
+    tuf.repo.keystore.get_key = original_get_key
 
 
 
@@ -652,6 +694,8 @@ class TestSignerlib(unit_tbox):
     """
 
     # SETUP
+    original_get_key = tuf.repo.keystore.get_key
+    
     #  Create all necessary files and metadata i.e. signed timestamp
     #  metadata, timestamp keyids, 'release.txt', 'root.txt', 'targets.txt',
     #  target files, etc.
@@ -679,6 +723,8 @@ class TestSignerlib(unit_tbox):
     self.assertRaises(tuf.FormatError, signerlib.build_timestamp_file,
                       self.random_string(), meta_dir)
 
+    # RESTORE
+    tuf.repo.keystore.get_key = original_get_key
 
 
 
@@ -686,6 +732,8 @@ class TestSignerlib(unit_tbox):
   def test_9_get_target_keyids(self):
 
     # SETUP
+    original_get_key = tuf.repo.keystore.get_key
+    
     #  Create metadata directory and targets metadata file.
     meta_dir = self._create_root_and_targets_meta_files()
 
@@ -717,6 +765,8 @@ class TestSignerlib(unit_tbox):
     for keyid in targets_keyids:
       self.assertTrue(keyid in _target_keyids['targets'])
 
+    # RESTORE
+    tuf.repo.keystore.get_key = original_get_key
 
 
 
@@ -789,7 +839,7 @@ class TestSignerlib(unit_tbox):
                                                 self.top_level_role_info)
 
       #  Patch keystore's get_key method.
-      signerlib.tuf.repo.keystore.get_key = self.get_keystore_key
+      tuf.repo.keystore.get_key = self.get_keystore_key
 
       #  Create root metadata.
       root_meta = signerlib.generate_root_metadata(config_path)
@@ -802,6 +852,9 @@ class TestSignerlib(unit_tbox):
       repo_dir, target_files = \
           self.make_temp_directory_with_data_files(directory=directory)
 
+      #  Patch keystore's get_key method.
+      tuf.repo.keystore.get_key = self.get_keystore_key
+      
       # Run the 'signerlib.generate_targets_metadata'.  Test its return value.
       # Its return value should correspond to tuf.formats.SIGNABLE_SCHEMA
       targets_meta = signerlib.generate_targets_metadata(repo_dir,
@@ -844,9 +897,10 @@ class TestSignerlib(unit_tbox):
 
 
 
-
-
-# RUN UNIT TESTS.
-print
-suite = test_loader().loadTestsFromTestCase(TestSignerlib)
-tuf.tests.unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
+# Run unit test.
+suite = unittest.TestLoader().loadTestsFromTestCase(TestSignerlib)
+try:
+  unittest.TextTestRunner(verbosity=2).run(suite) 
+finally:
+  unit_tbox.clear_toolbox()
+  tuf.repo.keystore.clear_keystore()

@@ -325,5 +325,6 @@ class TestSchema(unittest.TestCase):
 
 
 
-if __name__ == '__main__':
-  unittest.main()
+# Run the unit tests.
+suite = unittest.TestLoader().loadTestsFromTestCase(TestSchema)
+unittest.TextTestRunner(verbosity=2).run(suite)
