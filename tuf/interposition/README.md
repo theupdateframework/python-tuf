@@ -144,6 +144,19 @@ tuf.interposition.configure(
 )
 ```
 
+## Applications
+
+### Seattle + TUF
+
+We have a private demonstration of the
+[Seattle](https://seattle.cs.washington.edu/) software updater over TUF, which
+we expect to publish soon.
+
+### PyPI + TUF + pip
+
+We have a demonstration of the Python package manager, [pip, over
+TUF](https://github.com/dachshund/pip/tree/tuf).
+
 ## Limitations (at the time of writing)
 
 - The entire `urllib` or `urllib2` contract is not honoured.
