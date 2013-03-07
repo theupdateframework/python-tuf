@@ -6,7 +6,7 @@ import urllib2
 
 from configuration import Configuration, ConfigurationParser, InvalidConfiguration
 from utility import Logger
-from updater import Updater
+from updater import UpdaterController
 
 __all__ = []
 
@@ -25,7 +25,7 @@ __all__ = []
 class FancyURLOpener( urllib.FancyURLopener ):
     # TODO: replicate complete behaviour of urllib.URLopener.open
     def open( self, fullurl, data = None ):
-        updater = Updater.get_updater( fullurl )
+        updater = _updater_controller.get( fullurl )
 
         if updater is None:
             return urllib.FancyURLopener.open( self, fullurl, data = data )
@@ -34,7 +34,7 @@ class FancyURLOpener( urllib.FancyURLopener ):
 
     # TODO: replicate complete behaviour of urllib.URLopener.retrieve
     def retrieve( self, url, filename = None, reporthook = None, data = None ):
-        updater = Updater.get_updater( url )
+        updater = _updater_controller.get( url )
 
         if updater is None:
             return urllib.FancyURLopener.retrieve(
@@ -57,7 +57,7 @@ class HTTPHandler( urllib2.HTTPHandler ):
     # TODO: replicate complete behaviour of urllib.HTTPHandler.http_open
     def http_open( self, req ):
         fullurl = req.get_full_url()
-        updater = Updater.get_updater( fullurl )
+        updater = _updater_controller.get( fullurl )
 
         if updater is None:
             return self.do_open( httplib.HTTPConnection, req )
@@ -148,7 +148,7 @@ def configure(
                             parent_ssl_certificates_directory = parent_ssl_certificates_directory
                         )
                         configuration = configuration_parser.parse()
-                        Updater.build_updater( configuration )
+                        _updater_controller.add( configuration )
                     except:
                         Logger.error(
                             INVALID_TUF_CONFIGURATION.format(
@@ -207,7 +207,7 @@ def open_url( instancemethod ):
         # TODO: Ensure that the first argument to instancemethod is a URL.
         url = args[ 0 ]
         data = kwargs.get( "data" )
-        updater = Updater.get_updater( url )
+        updater = _updater_controller.get( url )
 
         # If TUF has not been configured for this URL...
         if updater is None:
@@ -226,3 +226,5 @@ def open_url( instancemethod ):
 # We use False as a sentinel value.
 _previous_urllib_urlopener = False
 _previous_urllib2_opener = False
+# A global Controller of Updaters.
+_updater_controller = UpdaterController()
