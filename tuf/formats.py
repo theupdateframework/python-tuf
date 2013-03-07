@@ -453,7 +453,6 @@ class RootFile(MetaFile):
     LENGTH_SCHEMA.check_match(expiration_seconds)
     
     result = {'_type' : 'Root'}
-    # TODO: set the expires time another way.
     result['ts'] = format_time(time.time())
     result['expires'] = format_time(time.time() + expiration_seconds)
     result['keys'] = keydict
