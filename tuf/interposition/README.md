@@ -23,11 +23,15 @@ tuf.interposition.go_away()
 # ...and now you don't!
 ```
 
+Note: We are planning to make this interposition mechanism more explicit.
+Please follow issue #28 for more details.
+
 ### Option two
 
 ```python
 @tuf.interposition.open_url
-def instancemethod( self, url, ... )
+def instancemethod( self, url, ... ):
+    ...
 ```
 
 ## Configuration
@@ -81,10 +85,11 @@ tuf.interposition.configure( filename = "/path/to/json" )
 prevents interposition cycles, amongst other things.
 
 Note that, presently, a network request to a specified network location will be
-intercepted no matter what its protocol scheme (e.g http, https).
+intercepted no matter what its protocol scheme (e.g http, https) may be.
 
-If you choose to specify "repository_directory" as a relative path, then how
-would you determine its absolute path at runtime? No problem:
+If you choose to specify `repository_directory` as a relative path, then how
+would you determine its absolute path at runtime? You should then configure
+interposition with this additional parameter:
 
 ```python
 tuf.interposition.configure(
@@ -92,12 +97,27 @@ tuf.interposition.configure(
 )
 ```
 
-#### Selecting target paths with regular expressions
+#### Matching and transforming URL paths with regular expressions
+
+Given a network location, you might want `tuf.interposition` to intercept only
+paths that match certain patterns. A related problem is that you might wish to
+transform a source path into another target path, perhaps because TUF might not
+recognize it readily (e.g. it is an implicit reference to file) or because you
+want to hide server-side changes from the client for its convenience. You can
+solve both of these problems by matching and transforming URL paths with
+regular expressions.
 
 ```javascript
 {
     "configurations": {
         "pypi.python.org": {
+            "repository_mirrors" : {
+                "mirror1": {
+                    "url_prefix": "http://pypi.updateframework.com",
+                    ...
+                },
+                ...
+            },
             ...,
             "target_paths": [
                 { ".*/(simple/\\w+)/$": "{0}/index.html" },
@@ -108,13 +128,49 @@ tuf.interposition.configure(
 }
 ```
 
-`target_paths` is optional: If you do not tell TUF to selectively match paths
-with regular expressions, TUF will work over *any* path under the given network
-location.
+In Javascript lingo, `target_paths` is an array of objects, wherein each object
+has exactly a single property mapping the transformation of a *source* path
+pattern S to a *target* path pattern T. Given a URL path U, `tuf.interposition`
+will attempt to match U against every pattern S in order of appearance in this
+list. If a match is found, then the
+[groups](http://docs.python.org/2/library/re.html#match-objects) captured with S
+will be applied to the [format
+string](http://docs.python.org/2/library/string.html#string-formatting) T;
+otherwise, `tuf.interposition` will log a warning that it will not interpose
+for U.
 
-However, if you do specify it, you are then telling TUF how to
-transform a specified path into another one, and TUF will *not* recognize any
-unspecified path for the given network location.
+This brings us to the following important note. `target_paths` is optional: if
+you do not configure a network location with this parameter, interposition will
+work over *any* path under the given network location. However, if you do
+specify this parameter, then you are implicitly telling `tuf.interposition` how
+to transform a specified path into another one, and `tuf.interposition` will
+*not* recognize any unspecified path for the given network location, *unless*
+you add a wildcard regular expression like so:
+
+```javascript
+"target_paths": [
+    ...,
+    { "(.*)", "{0}" }
+]
+```
+
+(Internally, this wildcard regular expression is added when `target_paths` is
+left unspecified; this is why interposition will then apply to *any* path given
+a specified network location.)
+
+In the example above, we will apply the following transformations:
+
+"http://pypi.python.org/simple/Django/" => "http://pypi.updateframework.com/simple/Django/index.html"
+"http://pypi.python.org/packages/source/D/Django/Django-1.4.5.tar.gz" => "http://pypi.updateframework.com/packages/source/D/Django/Django-1.4.5.tar.gz"
+
+(Actually, there is an implied "targets" root directory on the TUF server, but
+we ignore it for pedagogical purposes.)
+
+However, we will not match, and hence apply any transformation towards the
+following URLs patterns:
+
+"http://pypi.python.org/search"
+"http://pypi.python.org/serversig/(.+)"
 
 #### Mirror SSL certificate verification
 
@@ -124,7 +180,7 @@ unspecified path for the given network location.
         "pypi.python.org": {
             "repository_mirrors" : {
                 "main": {
-                    "url_prefix": "https://pip.updateframework.com",
+                    "url_prefix": "https://pypi.updateframework.com",
                     ...
                 }
             },
@@ -138,6 +194,10 @@ unspecified path for the given network location.
 Unless any `url_prefix` begins with "https://", `ssl_certificates` is optional; it
 must specify certificates bundled as PEM (RFC 1422).
 
+If you choose to specify `ssl_certificates` as a relative path, then how
+would you determine its absolute path at runtime? You should then configure
+interposition with this additional parameter:
+
 ```python
 tuf.interposition.configure(
     parent_ssl_certificates_directory = "/path/to/parent/to/ssl_certificates"
@@ -148,9 +208,8 @@ tuf.interposition.configure(
 
 ### Seattle + TUF
 
-We have a private demonstration of the
-[Seattle](https://seattle.cs.washington.edu/) software updater over TUF, which
-we expect to publish soon.
+We have a demonstration of the [Seattle](https://seattle.cs.washington.edu/)
+software updater over TUF, which we expect to publish soon.
 
 ### PyPI + TUF + pip
 
@@ -160,6 +219,6 @@ TUF](https://github.com/dachshund/pip/tree/tuf).
 ## Limitations (at the time of writing)
 
 - The entire `urllib` or `urllib2` contract is not honoured.
-- Downloads are not thread safe.
+- Downloads are not thread-safe.
 - Uses some Python features (e.g. string formatting) that are not backwards-compatible (e.g. with Python < 2.6).
 - Uses some Python features (e.g. `urllib, urllib2, urlparse`) that are not forwards-compatible (e.g. with Python >= 3).
