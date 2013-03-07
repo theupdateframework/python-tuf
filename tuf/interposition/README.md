@@ -168,12 +168,19 @@ In the example above, we will apply the following transformations:
 we ignore it for pedagogical purposes.)
 
 However, we will not match, and hence apply any transformation towards the
-following URLs patterns:
+following URLs patterns, or interpose for them:
 
 - "http://pypi.python.org/search"
 - "http://pypi.python.org/serversig/(.+)"
 
 #### Mirror SSL certificate verification
+
+For additional security, you may wish to configure a network location such that
+a repository mirror must communicate over the HTTPS protocol. You may do this by
+specifying the "https" protocol scheme in the `url_prefix` of a repository mirror.
+
+Furthermore, you may require `tuf.interposition` to verify the purported SSL
+certificate of a repository mirror with the `ssl_certificates` parameter.
 
 ```javascript
 {
@@ -192,8 +199,10 @@ following URLs patterns:
 }
 ```
 
-Unless any `url_prefix` begins with "https://", `ssl_certificates` is optional; it
-must specify certificates bundled as PEM (RFC 1422).
+If any `url_prefix` begins with "https://", then `ssl_certificates` is a
+required parameter; it must point to a file of
+[certificates](http://docs.python.org/2/library/ssl.html#certificates) bundled
+as PEM (RFC 1422).
 
 If you choose to specify `ssl_certificates` as a relative path, then how
 would you determine its absolute path at runtime? You should then configure
