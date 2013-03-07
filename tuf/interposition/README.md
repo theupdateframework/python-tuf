@@ -101,11 +101,11 @@ tuf.interposition.configure(
 #### Matching and transforming URL paths with regular expressions
 
 Given a network location, you might want `tuf.interposition` to intercept only
-paths that match certain patterns. A related problem is that you might wish to
-transform a source path into another target path, perhaps because TUF might not
-recognize it readily (e.g. it is an implicit reference to file) or because you
-want to hide server-side changes from the client for its convenience. You can
-solve both of these problems by matching and transforming URL paths with
+URL paths that match certain patterns. A related problem is that you might wish
+to transform a source path into another target path, perhaps because TUF might
+not recognize it readily (e.g. it is an implicit reference to file) or because
+you want to hide server-side changes from the client for its convenience. You
+can solve both of these problems by matching and transforming URL paths with
 regular expressions.
 
 ```javascript
@@ -133,12 +133,12 @@ In Javascript lingo, `target_paths` is an array of objects, wherein each object
 has exactly a single property mapping the transformation of a *source* path
 pattern S to a *target* path pattern T. Given a URL path U, `tuf.interposition`
 will attempt to match U against every pattern S in order of appearance in this
-list. If a match is found, then the
+array. If a match is found, then the
 [groups](http://docs.python.org/2/library/re.html#match-objects) captured with S
 will be applied to the [format
 string](http://docs.python.org/2/library/string.html#string-formatting) T;
-otherwise, `tuf.interposition` will log a warning that it will not interpose
-for U.
+otherwise, or in case of an error, `tuf.interposition` will log a warning that
+it will not interpose for U.
 
 This brings us to the following important note. `target_paths` is optional: if
 you do not configure a network location with this parameter, interposition will
@@ -176,8 +176,9 @@ following URLs patterns, or interpose for them:
 #### Mirror SSL certificate verification
 
 For additional security, you may wish to configure a network location such that
-a repository mirror must communicate over the HTTPS protocol. You may do this by
-specifying the "https" protocol scheme in the `url_prefix` of a repository mirror.
+a repository mirror must communicate over the HTTPS protocol. You may do this
+by specifying the "https" protocol scheme in the `url_prefix` of a repository
+mirror.
 
 Furthermore, you may require `tuf.interposition` to verify the purported SSL
 certificate of a repository mirror with the `ssl_certificates` parameter.
@@ -202,7 +203,7 @@ certificate of a repository mirror with the `ssl_certificates` parameter.
 If any `url_prefix` begins with "https://", then `ssl_certificates` is a
 required parameter; it must point to a file of
 [certificates](http://docs.python.org/2/library/ssl.html#certificates) bundled
-as PEM (RFC 1422).
+as [PEM](https://www.ietf.org/rfc/rfc1422).
 
 If you choose to specify `ssl_certificates` as a relative path, then how
 would you determine its absolute path at runtime? You should then configure

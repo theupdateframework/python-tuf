@@ -137,6 +137,7 @@ class Updater( object ):
                 source_path_match = \
                     re.match( source_path_pattern, parsed_source_url.path )
 
+                # TODO: A failure in string formatting is *critical*.
                 if source_path_match is not None:
                     target_filepath = target_path_pattern.format(
                         *source_path_match.groups()
