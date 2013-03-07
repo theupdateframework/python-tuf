@@ -34,50 +34,53 @@ class Configuration( object ):
         self.ssl_certificates = ssl_certificates
         self.tempdir = tempfile.mkdtemp()
 
-    @staticmethod
-    def load_from_json(
+
+class ConfigurationParser( object ):
+    def __init__(
+        self,
         network_location,
         configuration,
         parent_repository_directory = None,
         parent_ssl_certificates_directory = None
     ):
+        self.network_location = network_location
+        self.configuration = configuration
+        self.parent_repository_directory = parent_repository_directory
+        self.parent_ssl_certificates_directory = parent_ssl_certificates_directory
 
-        INVALID_SSL_CERTIFICATES = "Invalid ssl_certificates " + \
-            "for {network_location}!"
+
+    def get_network_location( self ):
+        """Check network location."""
+
         INVALID_NETWORK_LOCATION = \
             "Invalid network location {network_location}!"
-        INVALID_PARENT_SSL_CERTIFICATES_DIRECTORY = "Invalid " + \
-            "parent_ssl_certificates_directory for {network_location}!"
-        INVALID_PARENT_REPOSITORY_DIRECTORY = "Invalid " + \
-            "parent_repository_directory for {network_location}!"
-        INVALID_REPOSITORY_MIRROR = \
-            "Invalid repository mirror {repository_mirror}!"
-        INVALID_TARGET_PATH = "Invalid target path in {network_location}!"
 
-        # An "identity" capture from source URL to target URL.
-        WILD_TARGET_PATH = { "(.*)": "{0}" }
-
-        # Check network location.
-        network_location_tokens = network_location.split( ':', 1 )
+        network_location_tokens = self.network_location.split( ':', 1 )
         hostname = network_location_tokens[ 0 ]
         port = 80
 
         if len( network_location_tokens ) > 1:
-            try:
-                port = int( network_location_tokens[ 1 ], 10 )
-                assert port > 0 and port < 2**16
-            except:
-                error_message = INVALID_NETWORK_LOCATION.format(
-                    network_location = network_location
+            port = int( network_location_tokens[ 1 ], 10 )
+            if port <= 0 or port >= 2**16:
+                raise InvalidConfiguration(
+                    INVALID_NETWORK_LOCATION.format(
+                        network_location = self.network_location
+                    )
                 )
-                Logger.error( error_message )
-                raise InvalidConfiguration( error_message )
 
-        # Locate TUF client metadata repository.
-        repository_directory = configuration[ "repository_directory" ]
-        if parent_repository_directory is not None:
+        return hostname, port
+
+
+    def get_repository_directory( self ):
+        """Locate TUF client metadata repository."""
+
+        INVALID_PARENT_REPOSITORY_DIRECTORY = "Invalid " + \
+            "parent_repository_directory for {network_location}!"
+
+        repository_directory = self.configuration[ "repository_directory" ]
+        if self.parent_repository_directory is not None:
             parent_repository_directory = \
-                os.path.abspath( parent_repository_directory )
+                os.path.abspath( self.parent_repository_directory )
             if os.path.isdir( parent_repository_directory ):
                 repository_directory = os.path.join(
                     parent_repository_directory,
@@ -87,17 +90,27 @@ class Configuration( object ):
             else:
                 raise InvalidConfiguration(
                     INVALID_PARENT_REPOSITORY_DIRECTORY.format(
-                        network_location = network_location
+                        network_location = self.network_location
                     )
                 )
 
-        # Get any PEM certificate bundle.
-        ssl_certificates = configuration.get( "ssl_certificates" )
+        return repository_directory
+
+
+    def get_ssl_certificates( self ):
+        """Get any PEM certificate bundle."""
+
+        INVALID_SSL_CERTIFICATES = "Invalid ssl_certificates " + \
+            "for {network_location}!"
+        INVALID_PARENT_SSL_CERTIFICATES_DIRECTORY = "Invalid " + \
+            "parent_ssl_certificates_directory for {network_location}!"
+
+        ssl_certificates = self.configuration.get( "ssl_certificates" )
 
         if ssl_certificates is not None:
-            if parent_ssl_certificates_directory is not None:
+            if self.parent_ssl_certificates_directory is not None:
                 parent_ssl_certificates_directory = \
-                    os.path.abspath( parent_ssl_certificates_directory )
+                    os.path.abspath( self.parent_ssl_certificates_directory )
                 if os.path.isdir( parent_ssl_certificates_directory ):
                     ssl_certificates = os.path.join(
                         parent_ssl_certificates_directory,
@@ -106,18 +119,26 @@ class Configuration( object ):
                     if not os.path.isfile( ssl_certificates ):
                         raise InvalidConfiguration(
                             INVALID_SSL_CERTIFICATES.format(
-                                network_location = network_location
+                                network_location = self.network_location
                             )
                         )
                 else:
                     raise InvalidConfiguration(
                         INVALID_PARENT_SSL_CERTIFICATES_DIRECTORY.format(
-                            network_location = network_location
+                            network_location = self.network_location
                         )
                     )
 
-        # Parse TUF server repository mirrors.
-        repository_mirrors = configuration[ "repository_mirrors" ]
+        return ssl_certificates
+
+
+    def get_repository_mirrors( self, hostname, port, ssl_certificates ):
+        """Parse TUF server repository mirrors."""
+
+        INVALID_REPOSITORY_MIRROR = \
+            "Invalid repository mirror {repository_mirror}!"
+
+        repository_mirrors = self.configuration[ "repository_mirrors" ]
         repository_mirror_network_locations = set()
 
         for repository_mirror in repository_mirrors:
@@ -157,12 +178,23 @@ class Configuration( object ):
                 Logger.error( error_message )
                 raise InvalidConfiguration( error_message )
 
-        # Within a network_location, we match URLs with this list of regular
-        # expressions, which tell us to map from a source URL to a target URL.
-        # If there are multiple regular expressions which match a source URL,
-        # the order of appearance will be used to resolve ambiguity.
+        return repository_mirrors
+
+
+    def get_target_paths( self ):
+        """
+        Within a network_location, we match URLs with this list of regular
+        expressions, which tell us to map from a source URL to a target URL.
+        If there are multiple regular expressions which match a source URL,
+        the order of appearance will be used to resolve ambiguity.
+        """
+
+        INVALID_TARGET_PATH = "Invalid target path in {network_location}!"
+        # An "identity" capture from source URL to target URL.
+        WILD_TARGET_PATH = { "(.*)": "{0}" }
+
         target_paths = \
-            configuration.get( "target_paths", [ WILD_TARGET_PATH  ] )
+            self.configuration.get( "target_paths", [ WILD_TARGET_PATH  ] )
 
         # target_paths: [ target_path, ... ]
         assert isinstance( target_paths, types.ListType )
@@ -174,10 +206,22 @@ class Configuration( object ):
                 assert len( target_path ) == 1
             except:
                 error_message = INVALID_TARGET_PATH.format(
-                    network_location = network_location
+                    network_location = self.network_location
                 )
                 Logger.error( error_message )
                 raise InvalidConfiguration( error_message )
+
+        return target_paths
+
+
+    def parse( self ):
+        # Parse, check and get the required configuration parameters.
+        hostname, port = self.get_network_location()
+        ssl_certificates = self.get_ssl_certificates()
+        repository_directory = self.get_repository_directory()
+        repository_mirrors = \
+            self.get_repository_mirrors( hostname, port, ssl_certificates )
+        target_paths = self.get_target_paths()
 
         # If everything passes, we return a Configuration.
         return Configuration(

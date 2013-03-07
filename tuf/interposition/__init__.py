@@ -4,7 +4,7 @@ import json
 import urllib
 import urllib2
 
-from configuration import Configuration, InvalidConfiguration
+from configuration import Configuration, ConfigurationParser, InvalidConfiguration
 from utility import Logger
 from updater import Updater
 
@@ -141,16 +141,14 @@ def configure(
             else:
                 for network_location, configuration in configurations.iteritems():
                     try:
-                        Updater.build_updater(
-                            Configuration.load_from_json(
-                                network_location,
-                                configuration,
-                                parent_repository_directory = \
-                                    parent_repository_directory,
-                                parent_ssl_certificates_directory = \
-                                    parent_ssl_certificates_directory
-                            )
+                        configuration_parser = ConfigurationParser(
+                            network_location,
+                            configuration,
+                            parent_repository_directory = parent_repository_directory,
+                            parent_ssl_certificates_directory = parent_ssl_certificates_directory
                         )
+                        configuration = configuration_parser.parse()
+                        Updater.build_updater( configuration )
                     except:
                         Logger.error(
                             INVALID_TUF_CONFIGURATION.format(
