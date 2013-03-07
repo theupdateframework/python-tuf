@@ -24,7 +24,8 @@ tuf.interposition.go_away()
 ```
 
 Note: We are planning to make this interposition mechanism more explicit.
-Please follow issue #28 for more details.
+Please follow issue [#28](https://github.com/akonst/tuf/issues/28) for more
+details.
 
 ### Option two
 
@@ -160,8 +161,8 @@ a specified network location.)
 
 In the example above, we will apply the following transformations:
 
-"http://pypi.python.org/simple/Django/" => "http://pypi.updateframework.com/simple/Django/index.html"
-"http://pypi.python.org/packages/source/D/Django/Django-1.4.5.tar.gz" => "http://pypi.updateframework.com/packages/source/D/Django/Django-1.4.5.tar.gz"
+- "http://pypi.python.org/simple/Django/" => "http://pypi.updateframework.com/simple/Django/index.html"
+- "http://pypi.python.org/packages/source/D/Django/Django-1.4.5.tar.gz" => "http://pypi.updateframework.com/packages/source/D/Django/Django-1.4.5.tar.gz"
 
 (Actually, there is an implied "targets" root directory on the TUF server, but
 we ignore it for pedagogical purposes.)
@@ -169,8 +170,8 @@ we ignore it for pedagogical purposes.)
 However, we will not match, and hence apply any transformation towards the
 following URLs patterns:
 
-"http://pypi.python.org/search"
-"http://pypi.python.org/serversig/(.+)"
+- "http://pypi.python.org/search"
+- "http://pypi.python.org/serversig/(.+)"
 
 #### Mirror SSL certificate verification
 
