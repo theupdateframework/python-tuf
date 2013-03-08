@@ -4,11 +4,16 @@ import json
 import urllib
 import urllib2
 
-from configuration import Configuration, ConfigurationParser, InvalidConfiguration
+
+# We import them directly into our namespace so that there is no name conflict.
+from configuration import ConfigurationParser, InvalidConfiguration
 from utility import Logger
 from updater import UpdaterController
 
+
+# Export nothing when: from tuf.interposition import *
 __all__ = []
+
 
 # TODO:
 # - Document design decisions.
@@ -19,212 +24,230 @@ __all__ = []
 # - Failsafe: If TUF fails, offer option to unsafely resort back to urllib/urllib2?
 
 
+
+
+
 ################################ GLOBAL CLASSES ################################
 
 
-class FancyURLOpener( urllib.FancyURLopener ):
-    # TODO: replicate complete behaviour of urllib.URLopener.open
-    def open( self, fullurl, data = None ):
-        updater = _updater_controller.get( fullurl )
-
-        if updater is None:
-            return urllib.FancyURLopener.open( self, fullurl, data = data )
-        else:
-            return updater.open( fullurl, data = data )
-
-    # TODO: replicate complete behaviour of urllib.URLopener.retrieve
-    def retrieve( self, url, filename = None, reporthook = None, data = None ):
-        updater = _updater_controller.get( url )
-
-        if updater is None:
-            return urllib.FancyURLopener.retrieve(
-                self,
-                url,
-                filename = filename,
-                reporthook = reporthook,
-                data = data
-            )
-        else:
-            return updater.retrieve(
-                url,
-                filename = filename,
-                reporthook = reporthook,
-                data = data
-            )
 
 
-class HTTPHandler( urllib2.HTTPHandler ):
-    # TODO: replicate complete behaviour of urllib.HTTPHandler.http_open
-    def http_open( self, req ):
-        fullurl = req.get_full_url()
-        updater = _updater_controller.get( fullurl )
 
-        if updater is None:
-            return self.do_open( httplib.HTTPConnection, req )
-        else:
-            response = updater.open( fullurl, data = req.get_data() )
-            # See urllib2.AbstractHTTPHandler.do_open
-            # TODO: let DownloadMixin handle this
-            response.msg = ""
-            return response
+class FancyURLOpener(urllib.FancyURLopener):
+  # TODO: replicate complete behaviour of urllib.URLopener.open
+  def open(self, fullurl, data=None):
+    updater = _updater_controller.get(fullurl)
+
+    if updater is None:
+      return urllib.FancyURLopener.open(self, fullurl, data=data)
+    else:
+      return updater.open(fullurl, data=data)
+
+
+  # TODO: replicate complete behaviour of urllib.URLopener.retrieve
+  def retrieve(self, url, filename=None, reporthook=None, data=None):
+    updater = _updater_controller.get(url)
+
+    if updater is None:
+      return urllib.FancyURLopener.retrieve(self, url,
+                                            filename=filename,
+                                            reporthook=reporthook,
+                                            data=data)
+    else:
+      return updater.retrieve(url, filename=filename,
+                              reporthook=reporthook, data=data)
+
+
+
+
+
+class HTTPHandler(urllib2.HTTPHandler):
+  # TODO: replicate complete behaviour of urllib.HTTPHandler.http_open
+  def http_open(self, req):
+    fullurl = req.get_full_url()
+    updater = _updater_controller.get(fullurl)
+
+    if updater is None:
+      return self.do_open(httplib.HTTPConnection, req)
+    else:
+      response = updater.open(fullurl, data=req.get_data())
+      # See urllib2.AbstractHTTPHandler.do_open
+      # TODO: let DownloadMixin handle this
+      response.msg = ""
+      return response
+
+
+
 
 
 ############################## GLOBAL FUNCTIONS ################################
+
+
+
 
 
 # TODO: Is parent_repository_directory a security risk? For example, would it
 # allow the user to overwrite another TUF repository metadata on the filesystem?
 # On the other hand, it is beyond TUF's scope to handle filesystem permissions.
 # TODO: Ditto for the parent_ssl_certificates_directory parameter.
-def configure(
-    filename = "tuf.interposition.json",
-    parent_repository_directory = None,
-    parent_ssl_certificates_directory = None
-):
-    """
-    The optional parent_repository_directory parameter is used to specify the
-    containing parent directory of the "repository_directory" specified in a
-    configuration for *all* network locations, because sometimes the absolute
-    location of the "repository_directory" is only known at runtime. If you
-    need to specify a different parent_repository_directory for other
-    network locations, simply call this method again with different parameters.
 
-    Ditto for the optional parent_ssl_certificates_directory parameter.
+def configure(filename="tuf.interposition.json",
+              parent_repository_directory=None,
+              parent_ssl_certificates_directory=None):
+  """
+  The optional parent_repository_directory parameter is used to specify the
+  containing parent directory of the "repository_directory" specified in a
+  configuration for *all* network locations, because sometimes the absolute
+  location of the "repository_directory" is only known at runtime. If you
+  need to specify a different parent_repository_directory for other
+  network locations, simply call this method again with different parameters.
 
-    Example of a TUF interposition configuration JSON object:
+  Ditto for the optional parent_ssl_certificates_directory parameter.
 
-    {
-        "configurations": {
-            "seattle.cs.washington.edu": {
-                "repository_directory": "client/",
-                "repository_mirrors" : {
-                    "mirror1": {
-                        "url_prefix": "http://seattle-tuf.cs.washington.edu",
-                        "metadata_path": "metadata",
-                        "targets_path": "targets",
-                        "confined_target_dirs": [ "" ]
-                    }
-                },
-                ("target_paths": [
-                    { ".*/(simple/\\w+)/$": "{0}/index.html" },
-                    { ".*/(packages/.+)$": "{0}" }
-                ],
-                "ssl_certificates": "cacert.pem")
-            }
-        }
-    }
+  Example of a TUF interposition configuration JSON object:
 
-    "target_paths" is optional: If you do not tell TUF to selectively match
-    paths with regular expressions, TUF will work over any path under the given
-    network location. However, if you do specify it, you are then telling TUF
-    how to transform a specified path into another one, and TUF will *not*
-    recognize any unspecified path for the given network location.
+  {
+      "configurations": {
+          "seattle.cs.washington.edu": {
+              "repository_directory": "client/",
+              "repository_mirrors" : {
+                  "mirror1": {
+                      "url_prefix": "http://seattle-tuf.cs.washington.edu",
+                      "metadata_path": "metadata",
+                      "targets_path": "targets",
+                      "confined_target_dirs": [ "" ]
+                  }
+              },
+              ("target_paths": [
+                  { ".*/(simple/\\w+)/$": "{0}/index.html" },
+                  { ".*/(packages/.+)$": "{0}" }
+              ],
+              "ssl_certificates": "cacert.pem")
+          }
+      }
+  }
 
-    Unless any "url_prefix" begins with "https://", "ssl_certificates" is
-    optional; it must specify certificates bundled as PEM (RFC 1422).
-    """
+  "target_paths" is optional: If you do not tell TUF to selectively match
+  paths with regular expressions, TUF will work over any path under the given
+  network location. However, if you do specify it, you are then telling TUF
+  how to transform a specified path into another one, and TUF will *not*
+  recognize any unspecified path for the given network location.
 
-    INVALID_TUF_CONFIGURATION = "Invalid configuration for {network_location}!"
-    INVALID_TUF_INTERPOSITION_JSON = "Invalid configuration in {filename}!"
-    NO_CONFIGURATIONS = "No configurations found in configuration in {filename}!"
+  Unless any "url_prefix" begins with "https://", "ssl_certificates" is
+  optional; it must specify certificates bundled as PEM (RFC 1422).
+  """
 
-    try:
-        with open( filename ) as tuf_interposition_json:
-            tuf_interpositions = json.load( tuf_interposition_json )
-            configurations = tuf_interpositions.get( "configurations", {} )
+  INVALID_TUF_CONFIGURATION = "Invalid configuration for {network_location}!"
+  INVALID_TUF_INTERPOSITION_JSON = "Invalid configuration in {filename}!"
+  NO_CONFIGURATIONS = "No configurations found in configuration in {filename}!"
 
-            # TODO: more input sanity checks
-            if len( configurations ) == 0:
-                raise InvalidConfiguration(
-                    NO_CONFIGURATIONS.format( filename = filename )
-                )
-            else:
-                for network_location, configuration in configurations.iteritems():
-                    try:
-                        configuration_parser = ConfigurationParser(
-                            network_location,
-                            configuration,
-                            parent_repository_directory = parent_repository_directory,
-                            parent_ssl_certificates_directory = parent_ssl_certificates_directory
-                        )
-                        configuration = configuration_parser.parse()
-                        _updater_controller.add( configuration )
-                    except:
-                        Logger.error(
-                            INVALID_TUF_CONFIGURATION.format(
-                                network_location = network_location
-                            )
-                        )
-                        raise
-    except:
-        Logger.error(
-            INVALID_TUF_INTERPOSITION_JSON.format( filename = filename )
-        )
-        raise
+  try:
+    with open(filename) as tuf_interposition_json:
+      tuf_interpositions = json.load(tuf_interposition_json)
+      configurations = tuf_interpositions.get("configurations", {})
+
+      if len(configurations) == 0:
+        raise InvalidConfiguration(NO_CONFIGURATIONS.format(filename=filename))
+
+      else:
+        for network_location, configuration in configurations.iteritems():
+          try:
+            configuration_parser = ConfigurationParser(network_location,
+              configuration, parent_repository_directory=parent_repository_directory,
+              parent_ssl_certificates_directory=parent_ssl_certificates_directory)
+
+            configuration = configuration_parser.parse()
+            _updater_controller.add(configuration)
+
+          except:
+            Logger.error(INVALID_TUF_CONFIGURATION.format(network_location=network_location))
+            raise
+
+  except:
+    Logger.error(INVALID_TUF_INTERPOSITION_JSON.format(filename=filename))
+    raise
+
+
+
 
 
 def go_away():
-    """Call me to restore previous urllib and urllib2 behaviour."""
+  """Call me to restore previous urllib and urllib2 behaviour."""
 
-    global _previous_urllib_urlopener
-    global _previous_urllib2_opener
+  global _previous_urllib_urlopener
+  global _previous_urllib2_opener
 
-    if _previous_urllib_urlopener is not False:
-        urllib._urlopener = _previous_urllib_urlopener
-        _previous_urllib_urlopener = None
+  if _previous_urllib_urlopener is not False:
+    urllib._urlopener = _previous_urllib_urlopener
+    _previous_urllib_urlopener = None
 
-    if _previous_urllib2_opener is not False:
-        # NOTE: slightly rude and, furthermore, fragile
-        urllib2._opener = _previous_urllib2_opener
-        _previous_urllib2_opener = None
+  if _previous_urllib2_opener is not False:
+    # NOTE: slightly rude and, furthermore, fragile
+    urllib2._opener = _previous_urllib2_opener
+    _previous_urllib2_opener = None
+
+
+
 
 
 def interpose():
-    """Call me to have TUF interpose as urllib and urllib2."""
+  """Call me to have TUF interpose as urllib and urllib2."""
 
-    global _previous_urllib_urlopener
-    global _previous_urllib2_opener
+  global _previous_urllib_urlopener
+  global _previous_urllib2_opener
 
-    if _previous_urllib_urlopener is False:
-        _previous_urllib_urlopener = urllib._urlopener
-        # http://docs.python.org/2/library/urllib.html#urllib._urlopener
-        urllib._urlopener = FancyURLOpener()
+  if _previous_urllib_urlopener is False:
+    _previous_urllib_urlopener = urllib._urlopener
+    # http://docs.python.org/2/library/urllib.html#urllib._urlopener
+    urllib._urlopener = FancyURLOpener()
 
-    if _previous_urllib2_opener is False:
-        # NOTE: slightly rude and, furthermore, fragile
-        _previous_urllib2_opener = urllib2._opener
-        # http://docs.python.org/2/library/urllib2.html#urllib2.build_opener
-        # http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
-        urllib2.install_opener( urllib2.build_opener( HTTPHandler ) )
+  if _previous_urllib2_opener is False:
+    # NOTE: slightly rude and, furthermore, fragile
+    _previous_urllib2_opener = urllib2._opener
+    # http://docs.python.org/2/library/urllib2.html#urllib2.build_opener
+    # http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
+    urllib2.install_opener(urllib2.build_opener(HTTPHandler))
 
 
-def open_url( instancemethod ):
-    """Decorate an instance method of the form
-    instancemethod( self, url,... ) with me in order to pass it to TUF."""
 
-    @functools.wraps( instancemethod )
-    def wrapper( self, *args, **kwargs ):
-        # TODO: Ensure that the first argument to instancemethod is a URL.
-        url = args[ 0 ]
-        data = kwargs.get( "data" )
-        updater = _updater_controller.get( url )
 
-        # If TUF has not been configured for this URL...
-        if updater is None:
-            # ...then revert to default behaviour.
-            return instancemethod( self, *args, **kwargs )
-        else:
-            # ...otherwise, use TUF to get this document.
-            return updater.open( url, data = data )
 
-    return wrapper
+def open_url(instancemethod):
+  """Decorate an instance method of the form
+  instancemethod(self, url, ...) with me in order to pass it to TUF."""
+
+  @functools.wraps(instancemethod)
+  def wrapper(self, *args, **kwargs):
+    # TODO: Ensure that the first argument to instancemethod is a URL.
+    url = args[0]
+    data = kwargs.get("data")
+    updater = _updater_controller.get(url)
+
+    # If TUF has not been configured for this URL...
+    if updater is None:
+      # ...then revert to default behaviour.
+      return instancemethod(self, *args, **kwargs)
+    else:
+      # ...otherwise, use TUF to get this document.
+      return updater.open(url, data=data)
+
+  return wrapper
+
+
+
 
 
 ############################## GLOBAL VARIABLES ################################
 
 
+
+
+
+# Keep track of urllib/urllib2 openers.
 # We use False as a sentinel value.
 _previous_urllib_urlopener = False
 _previous_urllib2_opener = False
+
+
 # A global Controller of Updaters.
 _updater_controller = UpdaterController()

@@ -214,6 +214,7 @@ class ConfigurationParser( object ):
         return target_paths
 
 
+    # TODO: more input sanity checks?
     def parse( self ):
         # Parse, check and get the required configuration parameters.
         hostname, port = self.get_network_location()
