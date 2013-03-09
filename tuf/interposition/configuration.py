@@ -129,10 +129,10 @@ class ConfigurationParser(object):
             raise InvalidConfiguration(INVALID_SSL_CERTIFICATES.format(
                 network_location=self.network_location))
 
-          else:
-            raise InvalidConfiguration(
-              INVALID_PARENT_SSL_CERTIFICATES_DIRECTORY.format(
-                network_location=self.network_location))
+        else:
+          raise InvalidConfiguration(
+            INVALID_PARENT_SSL_CERTIFICATES_DIRECTORY.format(
+              network_location=self.network_location))
 
     return ssl_certificates
 
