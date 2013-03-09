@@ -13,19 +13,14 @@ tuf.interposition.configure()
 ### Option one
 
 ```python
-tuf.interposition.interpose()
-# Now you have TUF...
+from tuf.interposition import urllib_tuf as urllib
+from tuf.interposition import urllib2_tuf as urllib2
+
 url = 'http://example.com/path/to/document'
 urllib.urlopen( url )
 urllib.urlretrieve( url )
 urllib2.urlopen( url )
-tuf.interposition.go_away()
-# ...and now you don't!
 ```
-
-Note: We are planning to make this interposition mechanism more explicit.
-Please follow issue [#28](https://github.com/akonst/tuf/issues/28) for more
-details.
 
 ### Option two
 
