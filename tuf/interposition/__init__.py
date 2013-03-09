@@ -154,6 +154,7 @@ def __urllib2_urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
 def configure(filename="tuf.interposition.json",
               parent_repository_directory=None,
               parent_ssl_certificates_directory=None):
+
   """
   The optional parent_repository_directory parameter is used to specify the
   containing parent directory of the "repository_directory" specified in a
