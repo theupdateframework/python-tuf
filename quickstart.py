@@ -110,6 +110,19 @@ TARGETS_FILENAME = tuf.repo.signerlib.TARGETS_FILENAME
 RELEASE_FILENAME = tuf.repo.signerlib.RELEASE_FILENAME
 TIMESTAMP_FILENAME = tuf.repo.signerlib.TIMESTAMP_FILENAME
 
+# Expiration time, in seconds, of the top-level roles (excluding 'Root').
+# The expiration time of the 'Root' role is set by the user.  A metadata
+# expiration time is set by taking the current time and adding the expiration
+# seconds listed below.
+# Initial 'targets.txt' expiration time of 6 months. 
+TARGETS_EXPIRATION = 15780000 
+
+# Initial 'release.txt' expiration time of 1 month. 
+RELEASE_EXPIRATION = 2630000 
+
+# Initial 'timestamp.txt' expiration time of 3 days.
+TIMESTAMP_EXPIRATION = 259200
+
 # The maximum number of attempts the user has to enter
 # valid input.
 MAX_INPUT_ATTEMPTS = 3
@@ -197,7 +210,7 @@ def build_repository(project_directory):
   
   # Handle the expiration time.  The expiration date determines when
   # the top-level roles expire.
-  message = '\nWhen would you like your certificates to expire? (mm/dd/yyyy): '
+  message = '\nWhen would you like your "root.txt" metadata file to expire? (mm/dd/yyyy): '
   timeout = None
   for attempt in range(MAX_INPUT_ATTEMPTS):
     # Get the difference between the user's entered expiration date and today's
@@ -333,23 +346,29 @@ def build_repository(project_directory):
   config_filepath = tuf.repo.signerlib.build_config_file(repository_directory,
                                                          timeout, role_info)
 
-  # Generate the 'root.txt' metadata file.
+  # Generate the 'root.txt' metadata file. 
+  # Newly created metadata start at version 1.  The expiration date for the
+  # 'Root' role is extracted from the configuration file that was set, above,
+  # by the user.
   root_keyids = role_info['root']['keyids']
   tuf.repo.signerlib.build_root_file(config_filepath, root_keyids,
-                                     metadata_directory)
+                                     metadata_directory, 1)
 
   # Generate the 'targets.txt' metadata file.
   targets_keyids = role_info['targets']['keyids']
   tuf.repo.signerlib.build_targets_file(targets_directory, targets_keyids,
-                                        metadata_directory)
+                                        metadata_directory, 1,
+                                        TARGETS_EXPIRATION)
 
   # Generate the 'release.txt' metadata file.
   release_keyids = role_info['release']['keyids']
-  tuf.repo.signerlib.build_release_file(release_keyids, metadata_directory)
+  tuf.repo.signerlib.build_release_file(release_keyids, metadata_directory,
+                                        1, RELEASE_EXPIRATION)
 
   # Generate the 'timestamp.txt' metadata file.
   timestamp_keyids = role_info['timestamp']['keyids']
-  tuf.repo.signerlib.build_timestamp_file(timestamp_keyids, metadata_directory)
+  tuf.repo.signerlib.build_timestamp_file(timestamp_keyids, metadata_directory,
+                                          1, TIMESTAMP_EXPIRATION)
 
   # Generate the 'client' directory containing the metadata of the created
   # repository.  'tuf.client.updater.py' expects the 'current' and 'previous'
