@@ -1,6 +1,7 @@
 import functools
-import httplib
+import imp
 import json
+import socket
 import urllib
 import urllib2
 
@@ -27,60 +28,119 @@ __all__ = []
 
 
 
-################################ GLOBAL CLASSES ################################
+############################## GLOBAL VARIABLES ################################
 
 
 
 
 
-class FancyURLOpener(urllib.FancyURLopener):
-  # TODO: replicate complete behaviour of urllib.URLopener.open
-  def open(self, fullurl, data=None):
-    updater = _updater_controller.get(fullurl)
+# Our own public copies of the urllib and urllib2 modules.
+# We use None as sentinel values.
+urllib_tuf = None
+urllib2_tuf = None
 
-    if updater is None:
-      return urllib.FancyURLopener.open(self, fullurl, data=data)
+
+# A private, global Controller of Updaters.
+__updater_controller = UpdaterController()
+
+
+
+
+
+########################## GLOBAL PRIVATE FUNCTIONS ############################
+
+
+
+
+
+def __monkey_patch():
+  """Build and monkey patch public copies of the urllib and urllib2 modules.
+
+  We prefer simplicity, which leads to easier proof of security, even if it may
+  come at the cost of not honouring some provisions of the urllib and urllib2
+  module contracts unrelated to security.
+
+  References:
+    http://stackoverflow.com/a/11285504
+    http://docs.python.org/2/library/imp.html"""
+
+  global urllib_tuf
+  global urllib2_tuf
+
+  if urllib_tuf is None:
+    try:
+      module_file, pathname, description = imp.find_module("urllib")
+      urllib_tuf = \
+        imp.load_module( "urllib_tuf", module_file, pathname, description)
+      module_file.close()
+    except:
+      raise
     else:
-      return updater.open(fullurl, data=data)
+      urllib_tuf.urlopen = __urllib_urlopen
+      urllib_tuf.urlretrieve = __urllib_urlretrieve
 
-
-  # TODO: replicate complete behaviour of urllib.URLopener.retrieve
-  def retrieve(self, url, filename=None, reporthook=None, data=None):
-    updater = _updater_controller.get(url)
-
-    if updater is None:
-      return urllib.FancyURLopener.retrieve(self, url,
-                                            filename=filename,
-                                            reporthook=reporthook,
-                                            data=data)
+  if urllib2_tuf is None:
+    try:
+      module_file, pathname, description = imp.find_module("urllib2")
+      urllib2_tuf = \
+        imp.load_module( "urllib2_tuf", module_file, pathname, description)
+      module_file.close()
+    except:
+      raise
     else:
-      return updater.retrieve(url, filename=filename,
-                              reporthook=reporthook, data=data)
+      urllib2_tuf.urlopen = __urllib2_urlopen
 
 
 
 
 
-class HTTPHandler(urllib2.HTTPHandler):
-  # TODO: replicate complete behaviour of urllib.HTTPHandler.http_open
-  def http_open(self, req):
-    fullurl = req.get_full_url()
-    updater = _updater_controller.get(fullurl)
+def __urllib_urlopen(url, data=None, proxies=None):
+  """Create a file-like object for the specified URL to read from."""
 
-    if updater is None:
-      return self.do_open(httplib.HTTPConnection, req)
-    else:
-      response = updater.open(fullurl, data=req.get_data())
-      # See urllib2.AbstractHTTPHandler.do_open
-      # TODO: let DownloadMixin handle this
-      response.msg = ""
-      return response
+  updater = __updater_controller.get(url)
+
+  if updater is None:
+    return urllib.urlopen(url, data=data, proxies=proxies)
+  else:
+    return updater.open(url, data=data)
 
 
 
 
 
-############################## GLOBAL FUNCTIONS ################################
+def __urllib_urlretrieve(url, filename=None, reporthook=None, data=None):
+  """Copy a network object denoted by a URL to a local file, if necessary."""
+
+  updater = __updater_controller.get(url)
+
+  if updater is None:
+    return urllib.urlretrieve(url, filename=filename, reporthook=reporthook, data=data)
+  else:
+    return updater.retrieve(url, filename=filename, reporthook=reporthook, data=data)
+
+
+
+
+
+def __urllib2_urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
+  """Create a file-like object for the specified URL to read from."""
+
+  updater = __updater_controller.get(url)
+
+  if updater is None:
+    return urllib2.urlopen(url, data=data, timeout=timeout)
+  else:
+    response = updater.open(url, data=data)
+    # See urllib2.AbstractHTTPHandler.do_open
+    # TODO: let Updater handle this
+    response.msg = ""
+    return response
+
+
+
+
+
+########################### GLOBAL PUBLIC FUNCTIONS ############################
 
 
 
@@ -157,7 +217,7 @@ def configure(filename="tuf.interposition.json",
               parent_ssl_certificates_directory=parent_ssl_certificates_directory)
 
             configuration = configuration_parser.parse()
-            _updater_controller.add(configuration)
+            __updater_controller.add(configuration)
 
           except:
             Logger.error(INVALID_TUF_CONFIGURATION.format(network_location=network_location))
@@ -166,47 +226,6 @@ def configure(filename="tuf.interposition.json",
   except:
     Logger.error(INVALID_TUF_INTERPOSITION_JSON.format(filename=filename))
     raise
-
-
-
-
-
-def go_away():
-  """Call me to restore previous urllib and urllib2 behaviour."""
-
-  global _previous_urllib_urlopener
-  global _previous_urllib2_opener
-
-  if _previous_urllib_urlopener is not False:
-    urllib._urlopener = _previous_urllib_urlopener
-    _previous_urllib_urlopener = None
-
-  if _previous_urllib2_opener is not False:
-    # NOTE: slightly rude and, furthermore, fragile
-    urllib2._opener = _previous_urllib2_opener
-    _previous_urllib2_opener = None
-
-
-
-
-
-def interpose():
-  """Call me to have TUF interpose as urllib and urllib2."""
-
-  global _previous_urllib_urlopener
-  global _previous_urllib2_opener
-
-  if _previous_urllib_urlopener is False:
-    _previous_urllib_urlopener = urllib._urlopener
-    # http://docs.python.org/2/library/urllib.html#urllib._urlopener
-    urllib._urlopener = FancyURLOpener()
-
-  if _previous_urllib2_opener is False:
-    # NOTE: slightly rude and, furthermore, fragile
-    _previous_urllib2_opener = urllib2._opener
-    # http://docs.python.org/2/library/urllib2.html#urllib2.build_opener
-    # http://docs.python.org/2/library/urllib2.html#urllib2.install_opener
-    urllib2.install_opener(urllib2.build_opener(HTTPHandler))
 
 
 
@@ -221,7 +240,7 @@ def open_url(instancemethod):
     # TODO: Ensure that the first argument to instancemethod is a URL.
     url = args[0]
     data = kwargs.get("data")
-    updater = _updater_controller.get(url)
+    updater = __updater_controller.get(url)
 
     # If TUF has not been configured for this URL...
     if updater is None:
@@ -237,17 +256,11 @@ def open_url(instancemethod):
 
 
 
-############################## GLOBAL VARIABLES ################################
+############################## GLOBAL SIDE EFFECTS #############################
 
 
 
 
 
-# Keep track of urllib/urllib2 openers.
-# We use False as a sentinel value.
-_previous_urllib_urlopener = False
-_previous_urllib2_opener = False
-
-
-# A global Controller of Updaters.
-_updater_controller = UpdaterController()
+# Build and monkey patch public copies of the urllib and urllib2 modules.
+__monkey_patch()
