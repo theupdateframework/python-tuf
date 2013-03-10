@@ -143,8 +143,8 @@ you add a wildcard regular expression like so:
 
 ```javascript
 "target_paths": [
-    ...,
-    { "(.*)", "{0}" }
+  ...,
+  { "(.*)", "{0}" }
 ]
 ```
 
