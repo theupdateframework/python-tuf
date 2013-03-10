@@ -17,17 +17,17 @@ from tuf.interposition import urllib_tuf as urllib
 from tuf.interposition import urllib2_tuf as urllib2
 
 url = 'http://example.com/path/to/document'
-urllib.urlopen( url )
-urllib.urlretrieve( url )
-urllib2.urlopen( url )
+urllib.urlopen(url)
+urllib.urlretrieve(url)
+urllib2.urlopen(url)
 ```
 
 ### Option two
 
 ```python
 @tuf.interposition.open_url
-def instancemethod( self, url, ... ):
-    ...
+def instancemethod(self, url, ...):
+  ...
 ```
 
 ## Configuration
@@ -41,7 +41,7 @@ working directory in the file with the name "tuf.interposition.json". You may
 change this like so:
 
 ```python
-tuf.interposition.configure( filename = "/path/to/json" )
+tuf.interposition.configure(filename="/path/to/json")
 ```
 
 ### Examples
@@ -50,30 +50,30 @@ tuf.interposition.configure( filename = "/path/to/json" )
 
 ```javascript
 {
-    // This is a required root object.
-    "configurations": {
-        // Which network location should we intercept?
-        // Network locations may be specified as "hostname" or "hostname:port".
-        "seattle.cs.washington.edu": {
-            // Where do we find the client copy of the TUF server metadata?
-            "repository_directory": "client/",
-            // Where do we forward the requests to seattle.cs.washington.edu?
-            "repository_mirrors" : {
-                "mirror1": {
-                    // In this case, we forward them to http://tuf.seattle.cs.washington.edu
-                    "url_prefix": "http://tuf.seattle.cs.washington.edu",
-                    // You do not have to worry about these default parameters.
-                    "metadata_path": "metadata",
-                    "targets_path": "targets",
-                    "confined_target_dirs": [ "" ]
-                },
-                // You could specify more repository mirrors.
-                ...
-            }
-        }
-    },
-    // You could specify more network locations.
-    ...
+  // This is a required root object.
+  "configurations": {
+    // Which network location should we intercept?
+    // Network locations may be specified as "hostname" or "hostname:port".
+    "seattle.cs.washington.edu": {
+      // Where do we find the client copy of the TUF server metadata?
+      "repository_directory": "client/",
+      // Where do we forward the requests to seattle.cs.washington.edu?
+      "repository_mirrors" : {
+        "mirror1": {
+          // In this case, we forward them to http://tuf.seattle.cs.washington.edu
+          "url_prefix": "http://tuf.seattle.cs.washington.edu",
+          // You do not have to worry about these default parameters.
+          "metadata_path": "metadata",
+          "targets_path": "targets",
+          "confined_target_dirs": [ "" ]
+        },
+        // You could specify more repository mirrors.
+        ...
+      }
+    }
+  },
+  // You could specify more network locations.
+  ...
 }
 ```
 
@@ -88,9 +88,7 @@ would you determine its absolute path at runtime? You should then configure
 interposition with this additional parameter:
 
 ```python
-tuf.interposition.configure(
-    parent_repository_directory = "/path/to/parent/to/repository_directory"
-)
+tuf.interposition.configure(parent_repository_directory="/path/to/parent/to/repository_directory")
 ```
 
 #### Matching and transforming URL paths with regular expressions
@@ -105,22 +103,22 @@ regular expressions.
 
 ```javascript
 {
-    "configurations": {
-        "pypi.python.org": {
-            "repository_mirrors" : {
-                "mirror1": {
-                    "url_prefix": "http://pypi.updateframework.com",
-                    ...
-                },
-                ...
-            },
-            ...,
-            "target_paths": [
-                { ".*/(simple/\\w+)/$": "{0}/index.html" },
-                { ".*/(packages/.+)$": "{0}" }
-            ]
-        }
+  "configurations": {
+    "pypi.python.org": {
+      "repository_mirrors" : {
+        "mirror1": {
+            "url_prefix": "http://pypi.updateframework.com",
+            ...
+        },
+        ...
+      },
+      ...,
+      "target_paths": [
+        { ".*/(simple/\\w+)/$": "{0}/index.html" },
+        { ".*/(packages/.+)$": "{0}" }
+      ]
     }
+  }
 }
 ```
 
@@ -168,6 +166,10 @@ following URLs patterns, or interpose for them:
 - "http://pypi.python.org/search"
 - "http://pypi.python.org/serversig/(.+)"
 
+Note: We are considering replacing this feature with a simpler, and hence more
+provably secure, mechanism. Please follow issue
+[#32](https://github.com/akonst/tuf/issues/32) for more details.
+
 #### Mirror SSL certificate verification
 
 For additional security, you may wish to configure a network location such that
@@ -180,18 +182,18 @@ certificate of a repository mirror with the `ssl_certificates` parameter.
 
 ```javascript
 {
-    "configurations": {
-        "pypi.python.org": {
-            "repository_mirrors" : {
-                "main": {
-                    "url_prefix": "https://pypi.updateframework.com",
-                    ...
-                }
-            },
-            ...
-            "ssl_certificates": "cacert.pem"
+  "configurations": {
+    "pypi.python.org": {
+      "repository_mirrors" : {
+        "main": {
+          "url_prefix": "https://pypi.updateframework.com",
+          ...
         }
+      },
+      ...
+      "ssl_certificates": "cacert.pem"
     }
+  }
 }
 ```
 
@@ -205,9 +207,7 @@ would you determine its absolute path at runtime? You should then configure
 interposition with this additional parameter:
 
 ```python
-tuf.interposition.configure(
-    parent_ssl_certificates_directory = "/path/to/parent/to/ssl_certificates"
-)
+tuf.interposition.configure(parent_ssl_certificates_directory="/path/to/parent/to/ssl_certificates")
 ```
 
 ## Applications
