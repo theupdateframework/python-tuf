@@ -3,9 +3,9 @@
 from distutils.core import setup
 
 setup(name='tuf',
-  version='0.0.0',
+  version='0.1',
   description='A secure updater framework for Python',
-  author='numerous',
+  author='https://www.updateframework.com',
   author_email='info@updateframework.com',
   url='https://www.updateframework.com',
   packages=['tuf',
@@ -16,7 +16,6 @@ setup(name='tuf',
     'evpy',
     'simplejson'],
   scripts=['quickstart.py',
-    'basic_client.py',
     'tuf/pushtools/push.py',
     'tuf/pushtools/receivetools/receive.py',
     'tuf/repo/signercli.py'])
