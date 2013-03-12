@@ -1,31 +1,18 @@
 """
 <Program Name>
-  test_replay_attack.py
+  test_indefinite_freeze_attack.py
 
 <Author>
   Konstantin Andrianov
 
 <Started>
-  February 22, 2012
+  March 10, 2012
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
-  Simulate a replay attack.  A simple client update vs. client update 
-  implementing TUF.
-
-Note: The interposition provided by 'tuf.interposition' is used to intercept
-all calls made by urllib/urillib2 to certain network locations specified in 
-the interposition configuration file.  Look up interposition.py for more
-information and illustration of a sample contents of the interposition 
-configuration file.  Interposition was meant to make TUF integration with an
-existing software updater an easy process.  This allows for more flexibility
-to the existing software updater.  However, if you are planning to solely use
-TUF there should be no need for interposition, all necessary calls will be
-generated from within TUF.
-
-Note: There is no difference between 'updates' and 'target' files.
+  Simulate an indefinite freeze attack.
 
 """
 
@@ -35,10 +22,7 @@ import urllib
 import tempfile
 import util_test_tools
 
-from tuf.interposition import urllib_tuf
-
-# Disable logging.
-util_test_tools.disable_logging()
+import tuf.interposition
 
 
 class TestSetupError(Exception):
@@ -46,15 +30,6 @@ class TestSetupError(Exception):
 
 class ReplayAttackError(Exception):
   pass
-
-
-
-def download(url, filename, tuf=False):
-  if tuf:
-    urllib_tuf.urlretrieve(url, filename)
-  else:
-    urllib.urlretrieve(url, filename)
-
 
 
 def test_replay_attack(TUF=False):
@@ -71,7 +46,8 @@ def test_replay_attack(TUF=False):
 
   try:
     # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
+    root_repo, url, server_proc, keyids, interpose_json = \
+      util_test_tools.init_repo(tuf=TUF)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
     downloads = os.path.join(root_repo, 'downloads')
@@ -91,11 +67,13 @@ def test_replay_attack(TUF=False):
     # Refresh the tuf repository and apply tuf interpose.
     if TUF:
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
+      tuf.interposition.configure(interpose_json)
+      tuf.interposition.interpose()
 
     # End Setup.
 
     # Client performs initial update.
-    download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+    urllib.urlretrieve(url_to_repo, downloaded_file)
 
     # Downloads are stored in the same directory '{root_repo}/downloads/'
     # for regular and tuf clients.
@@ -113,7 +91,7 @@ def test_replay_attack(TUF=False):
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
     # Client downloads the patched file.
-    download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+    urllib.urlretrieve(url_to_repo, downloaded_file)
 
     # Content of the downloaded file.
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
@@ -138,7 +116,7 @@ def test_replay_attack(TUF=False):
       shutil.copy(vulnerable_file, reg_repo)
 
     # Client downloads the file once time.
-    download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+    urllib.urlretrieve(url_to_repo, downloaded_file)
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.
@@ -148,11 +126,8 @@ def test_replay_attack(TUF=False):
       raise ReplayAttackError(msg)
 
   finally:
+    tuf.interposition.go_away()
     util_test_tools.cleanup(root_repo, server_proc)
-
-
-
-
 
 
 
