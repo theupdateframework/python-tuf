@@ -284,8 +284,31 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
 
   try:
     # info().get('Content-Length') gets the length of the url file.
-    file_length = int(connection.info().get('Content-Length'))
-    
+    file_length = connection.info().get('Content-Length')
+
+    # If the HTTP server did not specify a Content-Length...
+    if file_length is None:
+        # Do we know what is the required_length for this file?
+        if required_length is None:
+            # No, we do not know this. Raise this to the user!
+            message = 'Do not know anything about how much to download for "' + url + '"!'
+            raise tuf.DownloadError(message)
+        else:
+            # Okay, the HTTP server has not told us the Content-Length,
+            # but we know how much we are required to download.
+            file_length = required_length
+    else:
+        # Do we know what is the required_length for this file?
+        if required_length is None:
+            # No, we do not know this. Avoid falling for an arbitrary-length data attack.
+            # FIXME: https://github.com/akonst/tuf/issues/26
+            message = 'Do not know how much is required to download for "' + url + '"!'
+            logger.debug(message)
+            file_length = int(file_length, 10)
+        else:
+            # Okay, we do know this. Go ahead with checks.
+            file_length = int(file_length, 10)
+
     # Does the url's 'file_length' match 'required_length'?
     if required_length is not None and file_length != required_length:
       message = 'Incorrect length for '+url+'. Expected '+str(required_length)+ \
