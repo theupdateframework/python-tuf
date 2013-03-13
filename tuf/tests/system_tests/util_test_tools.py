@@ -136,19 +136,23 @@ import logging
 import tempfile
 import subprocess
 
-import tuf.util
+import tuf
 import tuf.interposition
+import tuf.util
 import tuf.client.updater
+import tuf.repo.signercli as signercli
 import tuf.repo.signerlib as signerlib
+import tuf.repo.keystore as keystore
 
 
-# Disable/Enable logging.  Comment-out to Enable logging.
-logging.getLogger('tuf')
-logging.disable(logging.CRITICAL)
+
+# Disable logging for cleaner output.
+def disable_logging():
+  logging.getLogger('tuf')
+  logging.disable(logging.CRITICAL)
 
 
-# 'setup_info' stores all important setup information like the path of the
-# 'root_repo' directory, etc.
+
 
 
 def init_repo(tuf=False):
@@ -177,10 +181,12 @@ def init_repo(tuf=False):
   # Otherwise following error might be raised:
   #    <urlopen error [Errno 111] Connection refused>
   time.sleep(.3)
-  if tuf:
-    keyids, interpose_json = init_tuf(root_repo, url)
 
-  return root_repo, url, server_proc, keyids, interpose_json
+  keyids = None
+  if tuf:
+    keyids = init_tuf(root_repo, url)
+
+  return root_repo, url, server_proc, keyids
 
 
 
@@ -359,7 +365,9 @@ def init_tuf(root_repo, url):
   with open(interpose_json, 'wb') as fileobj:
     tuf.util.json.dump(interposition_dict, fileobj)
 
-  return keyids, interpose_json
+  tuf.interposition.configure(filename=interpose_json)
+
+  return keyids
 
 
 
@@ -414,3 +422,114 @@ def tuf_refresh_and_download():
   tuf_refresh_client_metadata()
   tuf_download_updates()
   return setup_info['downloads']
+
+
+
+def _get_metadata_directory(metadata_dir):
+  def _mock_get_meta_dir(directory=metadata_dir):
+    return directory
+  #  Patch signercli._get_metadata_directory()
+  signercli._get_metadata_directory = _mock_get_meta_dir
+
+
+#  This method patches signercli._prompt() that are called from
+#  make_role_metadata methods (e.g., tuf.signercli.make_root_metadata()).
+def _make_metadata_mock_prompts(targets_dir, conf_path):
+  def _mock_prompt(msg, junk):
+    if msg.startswith('\nEnter the directory containing the target'):
+      return targets_dir
+    elif msg.startswith('\nEnter the configuration file path'):
+      return conf_path
+    else:
+      error_msg = ('Prompt: '+'\''+msg[1:]+'\''+
+          ' did not match any predefined mock prompts.')
+      self.fail(error_msg)
+
+  #  Patch signercli._prompt().
+  signercli._prompt = _mock_prompt
+
+
+
+def _get_password(password):
+  #  Mock '_get_password' method.
+  def _mock_get_password(msg, password=password):
+    return password
+  #  Monkey patch '_prompt'.
+  signercli._get_password = _mock_get_password
+
+
+
+
+def make_targets_meta(root_repo):
+  original_get_metadata_directory = signercli._get_metadata_directory
+  original_prompt = signercli._prompt
+  original_get_password = signercli._get_password
+
+  tuf_repo = os.path.join(root_repo, 'tuf_repo')
+  reg_repo = os.path.join(root_repo, 'reg_repo')
+  targets_dir = os.path.join(tuf_repo, 'targets')
+  metadata_dir = os.path.join(tuf_repo, 'metadata')
+  keystore_dir = os.path.join(tuf_repo, 'keystore')
+  conf_path = os.path.join(metadata_dir, 'config.cfg')
+
+  shutil.rmtree(targets_dir)
+  shutil.copytree(reg_repo, targets_dir)
+
+  _get_metadata_directory(metadata_dir)
+  _get_password('test')
+  _make_metadata_mock_prompts(reg_repo, conf_path)
+
+  signercli.make_targets_metadata(keystore_dir)
+
+  keystore.clear_keystore()
+  signercli._get_password = original_get_password
+  signercli._prompt = original_prompt
+  signercli._get_metadata_directory = original_get_metadata_directory
+
+
+
+def make_release_meta(root_repo):
+  original_get_metadata_directory = signercli._get_metadata_directory
+  original_prompt = signercli._prompt
+  original_get_password = signercli._get_password
+
+  tuf_repo = os.path.join(root_repo, 'tuf_repo')
+  reg_repo = os.path.join(root_repo, 'reg_repo')
+  metadata_dir = os.path.join(tuf_repo, 'metadata')
+  keystore_dir = os.path.join(tuf_repo, 'keystore')
+  conf_path = os.path.join(metadata_dir, 'config.cfg')
+
+  _get_metadata_directory(metadata_dir)
+  _get_password('test')
+  _make_metadata_mock_prompts(reg_repo, conf_path)
+
+  signercli.make_release_metadata(keystore_dir)
+  
+  keystore.clear_keystore()
+  signercli._get_password = original_get_password
+  signercli._prompt = original_prompt
+  signercli._get_metadata_directory = original_get_metadata_directory
+
+
+
+def make_timestamp_meta(root_repo):
+  original_get_metadata_directory = signercli._get_metadata_directory
+  original_prompt = signercli._prompt
+  original_get_password = signercli._get_password
+
+  tuf_repo = os.path.join(root_repo, 'tuf_repo')
+  reg_repo = os.path.join(root_repo, 'reg_repo')
+  metadata_dir = os.path.join(tuf_repo, 'metadata')
+  keystore_dir = os.path.join(tuf_repo, 'keystore')
+  conf_path = os.path.join(metadata_dir, 'config.cfg')
+
+  _get_metadata_directory(metadata_dir)
+  _get_password('test')
+  _make_metadata_mock_prompts(reg_repo, conf_path)
+
+  signercli.make_timestamp_metadata(keystore_dir)
+  
+  keystore.clear_keystore()
+  signercli._get_password = original_get_password
+  signercli._prompt = original_prompt
+  signercli._get_metadata_directory = original_get_metadata_directory
