@@ -125,7 +125,23 @@ def __urllib_urlretrieve(url, filename=None, reporthook=None, data=None):
 def __urllib2_urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
   """Create a file-like object for the specified URL to read from."""
 
-  updater = __updater_controller.get(url)
+  # We assume that the first argument to instancemethod is a URL-like object;
+  # that is, either a string or a urllib2.Request.
+
+  updater = None
+
+  # If this is a urllib2.Request...
+  if isinstance( url, urllib2.Request ):
+    # If this is a GET HTTP method...
+    if url.get_method() == "GET":
+      # ...then you should check with TUF.
+      updater = __updater_controller.get(url.get_full_url())
+    else:
+      # ...otherwise, revert to default behaviour.
+      return urllib2.urlopen(url, data=data, timeout=timeout)
+  else:
+    # ...otherwise, we assume this is a string.
+    updater = __updater_controller.get(url)
 
   if updater is None:
     return urllib2.urlopen(url, data=data, timeout=timeout)
@@ -238,9 +254,24 @@ def open_url(instancemethod):
 
   @functools.wraps(instancemethod)
   def wrapper(self, *args, **kwargs):
-    # TODO: Ensure that the first argument to instancemethod is a URL.
-    url = args[0]
+    # We assume that the first argument to instancemethod is a URL-like object;
+    # that is, either a string or a urllib2.Request.
+    url_object = args[0]
     data = kwargs.get("data")
+
+    # If this is a urllib2.Request...
+    if isinstance( url_object, urllib2.Request ):
+      # If this is a GET HTTP method...
+      if url_object.get_method() == "GET":
+        # ...then you should check with TUF.
+        url = url_object.get_full_url()
+      else:
+        # ...otherwise, revert to default behaviour.
+        return instancemethod(self, *args, **kwargs)
+    # ...otherwise, we assume this is a string.
+    else:
+      url = url_object
+
     updater = __updater_controller.get(url)
 
     # If TUF has not been configured for this URL...
