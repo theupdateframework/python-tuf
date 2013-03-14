@@ -358,8 +358,9 @@ def init_tuf(root_repo, url):
                                 {"url_prefix": tuf_url,
                                  "metadata_path": "metadata",
                                  "targets_path": "targets",
-                                 "confined_target_dirs": [ "" ]}},
-                                 "target_paths": [ { "(.*\\.html)": "{0}" } ]}}}
+                                 "confined_target_dirs": [ "" ]}}}}}
+
+  #                               "target_paths": [ { "(.*\\.html)": "{0}" } ]
 
   junk, interpose_json = tempfile.mkstemp(prefix='conf_', dir=root_repo)
   with open(interpose_json, 'wb') as fileobj:

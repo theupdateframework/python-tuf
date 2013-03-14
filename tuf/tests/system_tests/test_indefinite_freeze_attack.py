@@ -28,7 +28,7 @@ import tuf.interposition
 class TestSetupError(Exception):
   pass
 
-class ReplayAttackError(Exception):
+class IndefineteFreezeAttackError(Exception):
   pass
 
 
@@ -40,7 +40,7 @@ def test_replay_attack(TUF=False):
       indicating that tuf is not implemented.
 
   <Purpose>
-    Illustrate replay attack vulnerability.
+    
 
   """
 

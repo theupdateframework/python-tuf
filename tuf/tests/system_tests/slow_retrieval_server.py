@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import random
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -40,7 +41,6 @@ def get_random_port():
 
 def run(port):
   server_address = ('localhost', port)
-  print server_address
   httpd = HTTPServer(server_address, Handler)
   print('Server is active...')
   httpd.handle_request()
@@ -48,6 +48,9 @@ def run(port):
 
 
 if __name__ == '__main__':
-    port = get_random_port()
+    if sys.argv[1]:
+      port = int(sys.argv[1])
+    else:
+      port = get_random_port()
     print 'Port: '+str(port)
     run(port)

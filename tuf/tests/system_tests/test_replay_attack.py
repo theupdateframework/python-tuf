@@ -38,13 +38,13 @@ import util_test_tools
 from tuf.interposition import urllib_tuf
 
 # Disable logging.
-util_test_tools.disable_logging()
+#util_test_tools.disable_logging()
 
 
 class TestSetupError(Exception):
   pass
 
-class ReplayAttackError(Exception):
+class ReplayAttackAlert(Exception):
   pass
 
 
@@ -145,7 +145,7 @@ def test_replay_attack(TUF=False):
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
     msg = 'Replay attack was successful!\n'
     if 'Test NOT A' != downloaded_content:
-      raise ReplayAttackError(msg)
+      raise ReplayAttackAlert(msg)
 
   finally:
     util_test_tools.cleanup(root_repo, server_proc)
@@ -154,16 +154,12 @@ def test_replay_attack(TUF=False):
 
 
 
-
-
-
-
 try:
   test_replay_attack(TUF=False)
-except ReplayAttackError, error:
+except ReplayAttackAlert, error:
   print error
 
 try:
   test_replay_attack(TUF=True)
-except ReplayAttackError, error:
+except ReplayAttackAlert, error:
   print error
