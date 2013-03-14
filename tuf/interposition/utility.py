@@ -21,19 +21,16 @@ class Logger(object):
 
   @staticmethod
   def error(message):
-    print message
-    #Logger.__logger.error(message)
-    #Logger.exception(message)
+    Logger.__logger.error(message)
+    Logger.exception(message)
 
 
   @staticmethod
   def exception(message):
-    print message
-    #Logger.__logger.exception(message)
+    Logger.__logger.exception(message)
 
 
   @staticmethod
   def warn(message):
-    print message
-    #Logger.__logger.warn(message)
-    #Logger.exception(message)
+    Logger.__logger.warn(message)
+    Logger.exception(message)
