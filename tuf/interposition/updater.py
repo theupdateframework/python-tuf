@@ -130,12 +130,14 @@ class Updater(object):
 
   # TODO: distinguish between urllib and urllib2 contracts
   def retrieve(self, url, filename=None, reporthook=None, data=None):
+    INTERPOSITION_MESSAGE = "Interposing for {url}"
+
     # TODO: set valid headers
     content_type, content_encoding = mimetypes.guess_type(url)
     headers = {"content-type": content_type}
 
+    Logger.info(INTERPOSITION_MESSAGE.format(url=url))
     target_filepath = self.get_target_filepath(url)
-
     temporary_directory, temporary_filename = self.download_target(target_filepath)
 
     if filename is None:
@@ -246,9 +248,10 @@ class UpdaterController(object):
     Assumptions:
       - @url is a string."""
 
-    GENERIC_WARNING_MESSAGE = "No updater and, hence, interposition for {url}!"
-    DIFFERENT_NETLOC_MESSAGE = "We have an updater for {netloc1} but not for {netloc2}."
-    HOSTNAME_NOT_FOUND_MESSAGE = "No updater for hostname {hostname}."
+    GENERIC_WARNING_MESSAGE = "No updater or interposition for url={url}"
+    DIFFERENT_NETLOC_MESSAGE = "We have an updater for netloc={netloc1} but not for netlocs={netloc2}"
+    HOSTNAME_FOUND_MESSAGE = "Found updater for hostname={hostname}"
+    HOSTNAME_NOT_FOUND_MESSAGE = "No updater for hostname={hostname}"
 
     updater = None
 
@@ -272,6 +275,7 @@ class UpdaterController(object):
 
         # Ensure that the updater is meant for this (hostname, port).
         if updater.configuration.network_location in network_locations:
+          Logger.info(HOSTNAME_FOUND_MESSAGE.format(hostname=hostname))
           # Raises an exception in case we do not recognize how to
           # transform this URL for TUF. In that case, there will be no
           # updater for this URL.
