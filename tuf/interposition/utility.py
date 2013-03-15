@@ -1,6 +1,10 @@
 import logging
 
 
+# Import our standard logger for its side effects.
+import tuf.log
+
+
 
 
 
@@ -20,17 +24,15 @@ class Logger(object):
 
 
   @staticmethod
-  def error(message):
-    Logger.__logger.error(message)
-    Logger.exception(message)
-
-
-  @staticmethod
   def exception(message):
     Logger.__logger.exception(message)
 
 
   @staticmethod
+  def info(message):
+    Logger.__logger.info(message)
+
+
+  @staticmethod
   def warn(message):
     Logger.__logger.warn(message)
-    Logger.exception(message)

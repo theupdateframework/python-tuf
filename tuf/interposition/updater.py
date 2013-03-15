@@ -104,7 +104,7 @@ class Updater(object):
         raise URLMatchesNoPattern(source_url)
 
     except:
-      Logger.warn(WARNING_MESSAGE.format(
+      Logger.exception(WARNING_MESSAGE.format(
         network_location=self.configuration.network_location, url=source_url))
       raise
 
@@ -220,7 +220,7 @@ class UpdaterController(object):
       except:
         error_message = \
           INVALID_REPOSITORY_MIRROR.format(repository_mirror=repository_mirror)
-        Logger.error(error_message)
+        Logger.exception(error_message)
         raise InvalidConfiguration(error_message)
 
     return repository_mirror_hostnames
@@ -229,17 +229,26 @@ class UpdaterController(object):
   def add(self, configuration):
     """Add an Updater based on the given Configuration."""
 
+    UPDATER_ADDED_MESSAGE = "Updater added for {configuration}."
+
     repository_mirror_hostnames = self.__check_configuration(configuration)
 
     # If all is well, build and store an Updater, and remember hostnames.
     self.__updaters[configuration.hostname] = Updater(configuration)
     self.__repository_mirror_hostnames.update(repository_mirror_hostnames)
 
+    Logger.info(UPDATER_ADDED_MESSAGE.format(configuration=configuration))
+
 
   def get(self, url):
-    """Get an Updater, if any, for this URL."""
+    """Get an Updater, if any, for this URL.
 
-    WARNING_MESSAGE = "No updater and, hence, TUF interposition for {url}!"
+    Assumptions:
+      - @url is a string."""
+
+    GENERIC_WARNING_MESSAGE = "No updater and, hence, interposition for {url}!"
+    DIFFERENT_NETLOC_MESSAGE = "We have an updater for {netloc1} but not for {netloc2}."
+    HOSTNAME_NOT_FOUND_MESSAGE = "No updater for hostname {hostname}."
 
     updater = None
 
@@ -256,22 +265,30 @@ class UpdaterController(object):
 
       updater = self.__updaters.get(hostname)
 
-      # Ensure that the updater is meant for this (hostname, port).
-      if updater is not None:
+      if updater is None:
+        Logger.warn(HOSTNAME_NOT_FOUND_MESSAGE.format(hostname=hostname))
 
-          if updater.configuration.network_location in network_locations:
-              # Raises an exception in case we do not recognize how to
-              # transform this URL for TUF. In that case, there will be no
-              # updater for this URL.
-              target_filepath = updater.get_target_filepath(url)
+      else:
 
-          else:
-              # Same hostname, but different (not user-specified) port.
-              updater = None
+        # Ensure that the updater is meant for this (hostname, port).
+        if updater.configuration.network_location in network_locations:
+          # Raises an exception in case we do not recognize how to
+          # transform this URL for TUF. In that case, there will be no
+          # updater for this URL.
+          target_filepath = updater.get_target_filepath(url)
+
+        else:
+          # Same hostname, but different (not user-specified) port.
+          Logger.warn(DIFFERENT_NETLOC_MESSAGE.format(
+            netloc1=updater.configuration.network_location, netloc2=network_locations))
+          updater = None
 
     except:
-        Logger.warn(WARNING_MESSAGE.format(url=url))
-        updater = None
+      Logger.exception(GENERIC_WARNING_MESSAGE.format(url=url))
+      updater = None
 
     finally:
-        return updater
+      if updater is None:
+        Logger.warn(GENERIC_WARNING_MESSAGE.format(url=url))
+
+      return updater

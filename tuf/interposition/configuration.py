@@ -46,6 +46,11 @@ class Configuration(object):
     self.tempdir = tempfile.mkdtemp()
 
 
+  def __repr__(self):
+    MESSAGE = "Configuration(netloc={network_location})"
+    return MESSAGE.format(network_location=self.network_location)
+
+
 
 
 
@@ -178,7 +183,7 @@ class ConfigurationParser(object):
       except:
         error_message = \
           INVALID_REPOSITORY_MIRROR.format(repository_mirror=repository_mirror)
-        Logger.error(error_message)
+        Logger.exception(error_message)
         raise InvalidConfiguration(error_message)
 
     return repository_mirrors
@@ -212,7 +217,7 @@ class ConfigurationParser(object):
       except:
         error_message = \
           INVALID_TARGET_PATH.format(network_location=self.network_location)
-        Logger.error(error_message)
+        Logger.exception(error_message)
         raise InvalidConfiguration(error_message)
 
     return target_paths

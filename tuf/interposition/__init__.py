@@ -34,6 +34,11 @@ __all__ = []
 
 
 
+# Constants
+NON_GET_HTTP_METHOD_MESSAGE = \
+  "Skipping {method} request to {url} because it is not a GET request."
+
+
 # Our own public copies of the urllib and urllib2 modules.
 # We use None as sentinel values.
 urllib_tuf = None
@@ -131,13 +136,15 @@ def __urllib2_urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
   updater = None
 
   # If this is a urllib2.Request...
-  if isinstance( url, urllib2.Request ):
+  if isinstance(url, urllib2.Request):
     # If this is a GET HTTP method...
     if url.get_method() == "GET":
       # ...then you should check with TUF.
       updater = __updater_controller.get(url.get_full_url())
     else:
       # ...otherwise, revert to default behaviour.
+      Logger.warn(NON_GET_HTTP_METHOD_MESSAGE.format(method=url.get_method(),
+                                                    url=url.get_full_url()))
       return urllib2.urlopen(url, data=data, timeout=timeout)
   else:
     # ...otherwise, we assume this is a string.
@@ -237,11 +244,11 @@ def configure(filename="tuf.interposition.json",
             __updater_controller.add(configuration)
 
           except:
-            Logger.error(INVALID_TUF_CONFIGURATION.format(network_location=network_location))
+            Logger.exception(INVALID_TUF_CONFIGURATION.format(network_location=network_location))
             raise
 
   except:
-    Logger.error(INVALID_TUF_INTERPOSITION_JSON.format(filename=filename))
+    Logger.exception(INVALID_TUF_INTERPOSITION_JSON.format(filename=filename))
     raise
 
 
@@ -260,13 +267,15 @@ def open_url(instancemethod):
     data = kwargs.get("data")
 
     # If this is a urllib2.Request...
-    if isinstance( url_object, urllib2.Request ):
+    if isinstance(url_object, urllib2.Request):
       # If this is a GET HTTP method...
       if url_object.get_method() == "GET":
         # ...then you should check with TUF.
         url = url_object.get_full_url()
       else:
         # ...otherwise, revert to default behaviour.
+        Logger.warn(NON_GET_HTTP_METHOD_MESSAGE.format(method=url_object.get_method(),
+                                                      url=url_object.get_full_url()))
         return instancemethod(self, *args, **kwargs)
     # ...otherwise, we assume this is a string.
     else:
