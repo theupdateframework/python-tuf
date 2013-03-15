@@ -29,7 +29,9 @@ Note: There is no difference between 'updates' and 'target' files.
 
 """
 
-# TODO: implemetn slow retrieval server.  And design the test.
+# TODO: implement slow retrieval server...  And design the test.
+# Should there be a time bracket, during which the download is
+# expected to happen? 
 
 import os
 import time
@@ -61,21 +63,21 @@ def test():
     
     # Path of the file relative to 'root_repo'.
     relative_filepath = os.path.relpath(filepath)
-    print relative_filepath
 
     # Tailor the url.
     url_to_file = 'http://localhost:'+str(port)+'/'+relative_filepath
-    print url_to_file
 
     # Download the content of the file using the server.
     file_content = urllib.urlopen(url_to_file)
 
     print file_content.read()
 
+
   finally:
     if server_process.returncode is None:
       server_process.kill()
       print 'Slow server terminated.\n'
+
     util_test_tools.cleanup(root_repo, server_proc)
 
 

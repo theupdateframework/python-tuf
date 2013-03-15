@@ -25,8 +25,6 @@ import util_test_tools
 import tuf.interposition
 
 
-class TestSetupError(Exception):
-  pass
 
 class IndefineteFreezeAttackError(Exception):
   pass

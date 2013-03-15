@@ -180,11 +180,11 @@ def init_repo(tuf=False):
   # NOTE: The delay is needed to make up for asynchronous subprocess.
   # Otherwise following error might be raised:
   #    <urlopen error [Errno 111] Connection refused>
-  time.sleep(.3)
+  time.sleep(.2)
 
   keyids = None
   if tuf:
-    keyids = init_tuf(root_repo, url)
+    keyids = init_tuf(root_repo, url, port)
 
   return root_repo, url, server_proc, keyids
 
@@ -264,7 +264,7 @@ def read_file_content(filepath):
 
 
 
-def init_tuf(root_repo, url):
+def init_tuf(root_repo, url, port):
   """
   <Purpose>
     Setup TUF directory structure and populated it with TUF metadata and 
@@ -350,8 +350,10 @@ def init_tuf(root_repo, url):
   # In order to implement interposition we need to have a config file with
   # the following dictionary JSON-serialized.
   # tuf_url: http://localhost:port/root_repo/tuf_repo/
+  hostname = 'localhost:9999'
+
   interposition_dict = {"configurations":
-                          {"localhost": 
+                          {hostname: 
                             {"repository_directory": tuf_client+'/',
                              "repository_mirrors" : 
                               {"mirror1": 
@@ -404,6 +406,7 @@ def tuf_refresh_repo(root_repo, keyids):
 
   # Regenerate the 'timestamp.txt' metadata file.
   signerlib.build_timestamp_file(keyids, metadata_dir)
+
 
 
 
@@ -478,7 +481,7 @@ def make_targets_meta(root_repo):
 
   _get_metadata_directory(metadata_dir)
   _get_password('test')
-  _make_metadata_mock_prompts(reg_repo, conf_path)
+  _make_metadata_mock_prompts(targets_dir, conf_path)
 
   signercli.make_targets_metadata(keystore_dir)
 

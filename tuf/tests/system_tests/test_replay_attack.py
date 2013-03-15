@@ -16,7 +16,7 @@
   implementing TUF.
 
 Note: The interposition provided by 'tuf.interposition' is used to intercept
-all calls made by urllib/urillib2 to certain network locations specified in 
+all calls made by urllib/urillib2 to certain hostname specified in 
 the interposition configuration file.  Look up interposition.py for more
 information and illustration of a sample contents of the interposition 
 configuration file.  Interposition was meant to make TUF integration with an
@@ -37,23 +37,31 @@ import util_test_tools
 
 from tuf.interposition import urllib_tuf
 
+
+
 # Disable logging.
-#util_test_tools.disable_logging()
+util_test_tools.disable_logging()
+
 
 
 class TestSetupError(Exception):
   pass
+
+
 
 class ReplayAttackAlert(Exception):
   pass
 
 
 
-def download(url, filename, tuf=False):
+def _download(url, filename, tuf=False):
   if tuf:
     urllib_tuf.urlretrieve(url, filename)
+    
   else:
     urllib.urlretrieve(url, filename)
+
+
 
 
 
@@ -68,6 +76,9 @@ def test_replay_attack(TUF=False):
     Illustrate replay attack vulnerability.
 
   """
+
+  ERROR_MSG = 'Replay Attack was Successful!\n'
+
 
   try:
     # Setup.
@@ -88,21 +99,28 @@ def test_replay_attack(TUF=False):
     vulnerable_file = os.path.join(evil_dir, file_basename)
     shutil.copy(filepath, evil_dir)
 
-    # Refresh the tuf repository and apply tuf interpose.
     if TUF:
+      # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
-    # End Setup.
+      # Modify the url.  Remember that the interposition will intercept 
+      # urls that have 'localhost:9999' hostname, which was specified in
+      # the json interposition configuration file.  Look for 'hostname'
+      # in 'util_test_tools.py'. Further, the 'file_basename' is the target
+      # path relative to 'targets_dir'. 
+      url_to_repo = 'http://localhost:9999/'+file_basename
+
+    # End of Setup.
+
 
     # Client performs initial update.
-    download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+    _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
 
     # Downloads are stored in the same directory '{root_repo}/downloads/'
     # for regular and tuf clients.
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
-    msg = '[Initial Updata] Failed to download the file.'
     if 'Test A' != downloaded_content:
-      raise TestSetupError(msg)
+      raise TestSetupError('[Initial Updata] Failed to download the file.')
 
     # Developer patches the file and updates the repository.
     util_test_tools.modify_file_at_repository(filepath, 'Test NOT A')
@@ -112,14 +130,14 @@ def test_replay_attack(TUF=False):
     if TUF:
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
+
     # Client downloads the patched file.
-    download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+    _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
 
     # Content of the downloaded file.
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
-    msg = '[Update] Failed to update the file.'
     if 'Test NOT A' != downloaded_content:
-      raise TestSetupError(msg)
+      raise TestSetupError('[Update] Failed to update the file.')
 
     # Attacker tries to be clever, he manages to modifies regular and tuf 
     # targets directory by replacing a patched file with an old one.
@@ -130,22 +148,23 @@ def test_replay_attack(TUF=False):
       # Verify that 'target' is an old, un-patched file.
       target = os.path.join(tuf_targets, file_basename)
       target_content = util_test_tools.read_file_content(target)
-      msg = "The 'target' file contains new data!"
       if 'Test A' != target_content:
-        raise TestSetupError(msg)
+        raise TestSetupError("The 'target' file contains new data!")
+
     else:
       util_test_tools.delete_file_at_repository(filepath)
       shutil.copy(vulnerable_file, reg_repo)
 
-    # Client downloads the file once time.
-    download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+
+    # Client downloads the file once more.
+    _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
-    msg = 'Replay attack was successful!\n'
     if 'Test NOT A' != downloaded_content:
-      raise ReplayAttackAlert(msg)
+      raise ReplayAttackAlert(ERROR_MSG)
+
 
   finally:
     util_test_tools.cleanup(root_repo, server_proc)
@@ -156,10 +175,14 @@ def test_replay_attack(TUF=False):
 
 try:
   test_replay_attack(TUF=False)
+
 except ReplayAttackAlert, error:
   print error
 
+
+
 try:
   test_replay_attack(TUF=True)
+
 except ReplayAttackAlert, error:
   print error

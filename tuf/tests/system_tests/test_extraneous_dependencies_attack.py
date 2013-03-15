@@ -138,6 +138,13 @@ def test():
     util_test_tools.make_release_meta(root_repo)
     util_test_tools.make_timestamp_meta(root_repo)
 
+    # Modify the url.  Remember that the interposition will intercept 
+    # urls that have 'localhost:9999' hostname, which was specified in
+    # the json interposition configuration file.  Look for 'hostname'
+    # in 'util_test_tools.py'. Further, the 'file_basename' is the target
+    # path relative to 'targets_dir'. 
+    url_to_file = 'http://localhost:9999/'+rel_filepath_1
+
     # END Setup.
 
 
