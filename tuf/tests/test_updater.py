@@ -41,6 +41,7 @@ import tempfile
 import logging
 
 import tuf.util
+import tuf.formats
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
 import tuf.client.updater as updater
@@ -730,7 +731,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # has future expiration date, and raises 'tuf.ExpiredMetadataError'
     # when metadata is actually expired.
     self.Repository._ensure_not_expired('root')
-    self.Repository.metadata['current']['root']['expires'] = time.time() - 10
+    expires = tuf.formats.format_time(time.time() - 10)
+    self.Repository.metadata['current']['root']['expires'] = expires
+    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(self.Repository.metadata\
+                                                    ['current']['root']))
     self.assertRaises(tuf.ExpiredMetadataError,
                       self.Repository._ensure_not_expired,
                       'root')
