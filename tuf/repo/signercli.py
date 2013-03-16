@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   signercli.py
