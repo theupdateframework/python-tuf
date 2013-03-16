@@ -393,7 +393,7 @@ class Updater(object):
       try: 
         tuf.formats.check_signable_object_format(metadata_signable)
       except tuf.FormatError, e:
-        raise RepositoryError('Invalid format: '+repr(metadata_filepath)+'.')
+        raise tuf.RepositoryError('Invalid format: '+repr(metadata_filepath)+'.')
 
       # Extract the 'signed' role object from 'metadata_signable'.
       metadata_object = metadata_signable['signed']
