@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   basic_client.py
@@ -207,7 +209,7 @@ if __name__ == '__main__':
   # the current directory.
   try:
     update_client(repository_mirror)
-  except tuf.RepositoryError, e:
+  except (tuf.RepositoryError, tuf.ExpiredMetadataError), e:
     sys.stderr.write(str(e)+'\n')
     sys.exit(1)
 

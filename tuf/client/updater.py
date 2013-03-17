@@ -1128,7 +1128,8 @@ class Updater(object):
     # to log the exact filename of the expired metadata.
     metadata_filename = metadata_role + '.txt'
     rolepath =  os.path.join(self.metadata_directory['current'],
-                             metadata_filename) 
+                             metadata_filename)
+    rolepath = os.path.abspath(rolepath)
     
     # Extract the expiration time.
     expires = self.metadata['current'][metadata_role]['expires']
@@ -1138,7 +1139,7 @@ class Updater(object):
     # convert it to seconds since the epoch, which is the time format
     # returned by time.time() (i.e., current time), before comparing.
     if tuf.formats.parse_time(expires) < time.time():
-      message = 'Metadata '+repr(rolepath)+' expired on '+expires+'.'
+      message = 'Metadata '+repr(rolepath)+' expired on '+expires+' UTC.'
       raise tuf.ExpiredMetadataError(message)
 
 
