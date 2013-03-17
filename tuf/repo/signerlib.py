@@ -320,7 +320,7 @@ def generate_root_metadata(config_filepath, version):
 
 
 def generate_targets_metadata(repository_directory, target_files, version,
-                              expiration_seconds):
+                              expiration_date):
   """
   <Purpose>
     Generate the targets metadata object. The targets must exist at the same
@@ -345,9 +345,9 @@ def generate_targets_metadata(repository_directory, target_files, version,
       The metadata version number.  Clients use the version number to
       determine if the downloaded version is newer than the one currently trusted.
 
-    expiration_seconds:
-      The expiration date for the metadata file is the current time plus 
-      'expiration_seconds'.
+    expiration_date:
+      The expiration date, in UTC, of the metadata file.
+      Conformant to 'tuf.formats.TIME_SCHEMA'.
   
   <Exceptions>
     tuf.FormatError, if an error occurred trying to generate the targets
@@ -368,7 +368,7 @@ def generate_targets_metadata(repository_directory, target_files, version,
   tuf.formats.PATHS_SCHEMA.check_match(target_files)
   tuf.formats.PATH_SCHEMA.check_match(repository_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.LENGTH_SCHEMA.check_match(expiration_seconds)
+  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
   filedict = {}
 
@@ -388,7 +388,7 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
   # Generate the targets metadata object.
   targets_metadata = tuf.formats.TargetsFile.make_metadata(version,
-                                                           expiration_seconds,
+                                                           expiration_date,
                                                            filedict)
 
   return tuf.formats.make_signable(targets_metadata)
@@ -397,7 +397,7 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
 
 
-def generate_release_metadata(metadata_directory, version, expiration_seconds):
+def generate_release_metadata(metadata_directory, version, expiration_date):
   """
   <Purpose>
     Create the release metadata.  The minimum metadata must exist
@@ -414,9 +414,9 @@ def generate_release_metadata(metadata_directory, version, expiration_seconds):
       The metadata version number.  Clients use the version number to
       determine if the downloaded version is newer than the one currently trusted.
 
-    expiration_seconds:
-      The expiration date for the metadata file is the current time plus 
-      'expiration_seconds'.
+    expiration_date:
+      The expiration date, in UTC, of the metadata file.
+      Conformant to 'tuf.formats.TIME_SCHEMA'.
 
   <Exceptions>
     tuf.FormatError, if 'metadata_directory' is improperly formatted.
@@ -436,7 +436,7 @@ def generate_release_metadata(metadata_directory, version, expiration_seconds):
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.LENGTH_SCHEMA.check_match(expiration_seconds)
+  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
   metadata_directory = check_directory(metadata_directory)
 
@@ -464,7 +464,7 @@ def generate_release_metadata(metadata_directory, version, expiration_seconds):
 
   # Generate the release metadata object.
   release_metadata = tuf.formats.ReleaseFile.make_metadata(version,
-                                                           expiration_seconds,
+                                                           expiration_date,
                                                            filedict)
 
   return tuf.formats.make_signable(release_metadata)
@@ -474,7 +474,7 @@ def generate_release_metadata(metadata_directory, version, expiration_seconds):
 
 
 def generate_timestamp_metadata(release_filename, version,
-                                expiration_seconds, compressions=()):
+                                expiration_date, compressions=()):
   """
   <Purpose>
     Generate the timestamp metadata object.  The 'release.txt' file must exist.
@@ -487,9 +487,9 @@ def generate_timestamp_metadata(release_filename, version,
       The metadata version number.  Clients use the version number to
       determine if the downloaded version is newer than the one currently trusted.
 
-    expiration_seconds:
-      The expiration date for the metadata file is the current time plus 
-      'expiration_seconds'.
+    expiration_date:
+      The expiration date, in UTC, of the metadata file.
+      Conformant to 'tuf.formats.TIME_SCHEMA'.
 
     compressions:
       Compression extensions (e.g., 'gz' and 'tgz').  If 'release.txt' is also
@@ -513,7 +513,7 @@ def generate_timestamp_metadata(release_filename, version,
   # Raise 'tuf.FormatError' if there is  mismatch.
   tuf.formats.PATH_SCHEMA.check_match(release_filename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.LENGTH_SCHEMA.check_match(expiration_seconds)
+  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
   # Retrieve the file info for the release metadata file.
   # This file information contains hashes, file length, custom data, etc.
@@ -528,7 +528,7 @@ def generate_timestamp_metadata(release_filename, version,
 
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
-                                                               expiration_seconds,
+                                                               expiration_date,
                                                                fileinfo)
 
   return tuf.formats.make_signable(timestamp_metadata)
@@ -1034,7 +1034,7 @@ def build_root_file(config_filepath, root_keyids, metadata_directory, version):
 
 
 def build_targets_file(targets_directory, targets_keyids, metadata_directory,
-                       version, expiration_seconds):
+                       version, expiration_date):
   """
   <Purpose>
     Build the targets metadata file using the signing keys in 'targets_keyids'.
@@ -1056,9 +1056,9 @@ def build_targets_file(targets_directory, targets_keyids, metadata_directory,
       The metadata version number.  Clients use the version number to
       determine if the downloaded version is newer than the one currently trusted.
 
-    expiration_seconds:
-      The expiration date for the metadata file is the current time plus 
-      'expiration_seconds'.
+    expiration_date:
+      The expiration date, in UTC, of the metadata file.
+      Conformant to 'tuf.formats.TIME_SCHEMA'.
 
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
@@ -1079,7 +1079,7 @@ def build_targets_file(targets_directory, targets_keyids, metadata_directory,
   tuf.formats.KEYIDS_SCHEMA.check_match(targets_keyids)
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.LENGTH_SCHEMA.check_match(expiration_seconds)
+  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
   
   # Check if 'targets_directory' and 'metadata_directory' are valid.
   targets_directory = check_directory(targets_directory)
@@ -1098,7 +1098,7 @@ def build_targets_file(targets_directory, targets_keyids, metadata_directory,
 
   # Create the targets metadata object.
   targets_metadata = generate_targets_metadata(repository_directory, targets,
-                                               version, expiration_seconds)
+                                               version, expiration_date)
 
   # Sign it.
   targets_filepath = os.path.join(metadata_directory, TARGETS_FILENAME)
@@ -1111,7 +1111,7 @@ def build_targets_file(targets_directory, targets_keyids, metadata_directory,
 
 
 def build_release_file(release_keyids, metadata_directory,
-                       version, expiration_seconds):
+                       version, expiration_date):
   """
   <Purpose>
     Build the release metadata file using the signing keys in 'release_keyids'.
@@ -1128,9 +1128,9 @@ def build_release_file(release_keyids, metadata_directory,
       The metadata version number.  Clients use the version number to
       determine if the downloaded version is newer than the one currently trusted.
 
-    expiration_seconds:
-      The expiration date for the metadata file is the current time plus 
-      'expiration_seconds'.
+    expiration_date:
+      The expiration date, in UTC, of the metadata file.
+      Conformant to 'tuf.formats.TIME_SCHEMA'.
 
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
@@ -1150,7 +1150,7 @@ def build_release_file(release_keyids, metadata_directory,
   tuf.formats.KEYIDS_SCHEMA.check_match(release_keyids)
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.LENGTH_SCHEMA.check_match(expiration_seconds)
+  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
   metadata_directory = check_directory(metadata_directory)
 
@@ -1159,7 +1159,7 @@ def build_release_file(release_keyids, metadata_directory,
 
   # Generate and sign the release metadata.
   release_metadata = generate_release_metadata(metadata_directory,
-                                               version, expiration_seconds)
+                                               version, expiration_date)
   signable = sign_metadata(release_metadata, release_keyids, release_filepath)
 
   return write_metadata_file(signable, release_filepath)
@@ -1169,7 +1169,7 @@ def build_release_file(release_keyids, metadata_directory,
 
 
 def build_timestamp_file(timestamp_keyids, metadata_directory,
-                         version, expiration_seconds):
+                         version, expiration_date):
   """
   <Purpose>
     Build the timestamp metadata file using the signing keys in 'timestamp_keyids'.
@@ -1186,9 +1186,9 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
       The metadata version number.  Clients use the version number to
       determine if the downloaded version is newer than the one currently trusted.
 
-    expiration_seconds:
-      The expiration date for the metadata file is the current time plus 
-      'expiration_seconds'.
+    expiration_date:
+      The expiration date, in UTC, of the metadata file.
+      Conformant to 'tuf.formats.TIME_SCHEMA'.
   
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
@@ -1208,7 +1208,7 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
   tuf.formats.KEYIDS_SCHEMA.check_match(timestamp_keyids)
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.LENGTH_SCHEMA.check_match(expiration_seconds)
+  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
   metadata_directory = check_directory(metadata_directory)
 
@@ -1219,7 +1219,7 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
   # Generate and sign the release metadata.
   timestamp_metadata = generate_timestamp_metadata(release_filepath,
                                                    version,
-                                                   expiration_seconds)
+                                                   expiration_date)
   signable = sign_metadata(timestamp_metadata, timestamp_keyids, timestamp_filepath)
 
   return write_metadata_file(signable, timestamp_filepath)

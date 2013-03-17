@@ -82,6 +82,7 @@
 
 """
 
+import time
 import datetime
 import getpass
 import sys
@@ -110,9 +111,9 @@ TARGETS_FILENAME = tuf.repo.signerlib.TARGETS_FILENAME
 RELEASE_FILENAME = tuf.repo.signerlib.RELEASE_FILENAME
 TIMESTAMP_FILENAME = tuf.repo.signerlib.TIMESTAMP_FILENAME
 
-# Expiration time, in seconds, of the top-level roles (excluding 'Root').
+# Expiration date, in seconds, of the top-level roles (excluding 'Root').
 # The expiration time of the 'Root' role is set by the user.  A metadata
-# expiration time is set by taking the current time and adding the expiration
+# expiration date is set by taking the current time and adding the expiration
 # seconds listed below.
 # Initial 'targets.txt' expiration time of 6 months. 
 TARGETS_EXPIRATION = 15780000 
@@ -356,19 +357,22 @@ def build_repository(project_directory):
 
   # Generate the 'targets.txt' metadata file.
   targets_keyids = role_info['targets']['keyids']
+  expiration_date = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
   tuf.repo.signerlib.build_targets_file(targets_directory, targets_keyids,
                                         metadata_directory, 1,
-                                        TARGETS_EXPIRATION)
+                                        expiration_date)
 
   # Generate the 'release.txt' metadata file.
   release_keyids = role_info['release']['keyids']
+  expiration_date = tuf.formats.format_time(time.time()+RELEASE_EXPIRATION)
   tuf.repo.signerlib.build_release_file(release_keyids, metadata_directory,
-                                        1, RELEASE_EXPIRATION)
+                                        1, expiration_date)
 
   # Generate the 'timestamp.txt' metadata file.
   timestamp_keyids = role_info['timestamp']['keyids']
+  expiration_date = tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION)
   tuf.repo.signerlib.build_timestamp_file(timestamp_keyids, metadata_directory,
-                                          1, TIMESTAMP_EXPIRATION)
+                                          1, expiration_date)
 
   # Generate the 'client' directory containing the metadata of the created
   # repository.  'tuf.client.updater.py' expects the 'current' and 'previous'

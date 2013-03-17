@@ -410,14 +410,10 @@ class TimestampFile(MetaFile):
     
     
   @staticmethod
-  def make_metadata(version, expiration_seconds, filedict):
-    # Is 'expiration_seconds' properly formatted?
-    # Raise 'tuf.FormatError' if not.
-    LENGTH_SCHEMA.check_match(expiration_seconds) 
-    
+  def make_metadata(version, expiration_date, filedict):
     result = {'_type' : 'Timestamp'}
     result['version'] = version 
-    result['expires'] = format_time(time.time() + expiration_seconds)
+    result['expires'] = expiration_date
     result['meta'] = filedict
 
     # Is 'result' a Timestamp metadata file?
@@ -497,14 +493,10 @@ class ReleaseFile(MetaFile):
 
 
   @staticmethod
-  def make_metadata(version, expiration_seconds, filedict):
-    # Is 'expiration_seconds' properly formatted?
-    # Raise 'tuf.FormatError' if not.
-    LENGTH_SCHEMA.check_match(expiration_seconds)
-    
+  def make_metadata(version, expiration_date, filedict):
     result = {'_type' : 'Release'}
     result['version'] = version 
-    result['expires'] = format_time(time.time() + expiration_seconds)
+    result['expires'] = expiration_date
     result['meta'] = filedict
 
     # Is 'result' a Release metadata file?
@@ -545,17 +537,13 @@ class TargetsFile(MetaFile):
 
 
   @staticmethod
-  def make_metadata(version, expiration_seconds, filedict=None, delegations=None):
-    # Is 'expiration_seconds' properly formatted?
-    # Raise 'tuf.FormatError' if not.
-    LENGTH_SCHEMA.check_match(expiration_seconds)
-    
+  def make_metadata(version, expiration_date, filedict=None, delegations=None):
     if filedict is None and delegations is None:
       raise tuf.Error('We don\'t allow completely empty targets metadata.')
 
     result = {'_type' : 'Targets'}
     result['version'] = version
-    result['expires'] = format_time(time.time() + expiration_seconds)
+    result['expires'] = expiration_date
     if filedict is not None:
       result['targets'] = filedict
     if delegations is not None:

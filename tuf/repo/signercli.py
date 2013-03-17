@@ -52,6 +52,8 @@
 import os
 import optparse
 import getpass
+import time
+import datetime
 import sys
 import logging
 import errno
@@ -395,6 +397,67 @@ def _sign_and_write_metadata(metadata, keyids, filename):
 
 
 
+def _get_metadata_version(metadata_filename):
+  """
+    If 'metadata_filename' exists, load it and extract the current version.
+    This version number is incremented by one prior to returning.  If
+    'metadata_filename' does not exist, return a version value of 1.
+    Return 1 if 'metadata_filename' cannot be read or validated.
+  
+  """
+  
+  # If 'metadata_filename' does not exist on the repository, this means
+  # it will be newly created and thus version 1 of the file.
+  if not os.path.exists(metadata_filename):
+    return 1
+
+  # Open 'metadata_filename', extract the version number, and return it
+  # incremented by 1.  A metadata's version is used to determine newer metadata
+  # from older.  The client should only accept newer metadata.
+  signable = tuf.repo.signerlib.read_metadata_file(metadata_filename)
+  try:
+    tuf.formats.check_signable_object_format(signable)
+  except tuf.FormatError, e:
+    return 1
+  current_version = signable['signed']['version']
+
+  return current_version+1
+
+
+
+
+
+def _get_metadata_expiration():
+  """
+    Prompt the user for the expiration date of the metadata file.
+    If the entered date is valid, it is returned in seconds till
+    expiration.
+
+    <Exceptions>
+      tuf.Error, if the entered expiration date is invalid.
+  
+  """
+
+  message = '\nCurrent time: '+tuf.formats.format_time(time.time())+' UTC.\n'+\
+    'Enter the expiration date, in UTC, of the metadata file (yyyy-mm-dd HH:MM:SS): '
+  try:
+    input_date = _prompt(message)
+    try:
+      expiration_date = tuf.formats.parse_time(input_date)
+    except tuf.FormatError, e:
+      raise tuf.Error('Invalid date entered.')
+    if expiration_date < time.time():
+      message = 'The expiration date must occur after the current date.'
+      raise tuf.Error(message)
+  except ValueError, e:
+    raise tuf.Error('Invalid date entered.')
+  
+  return input_date
+
+
+
+
+
 def change_password(keystore_directory):
   """
   <Purpose>
@@ -656,7 +719,7 @@ def make_root_metadata(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, 
+    tuf.RepositoryError, if required directories cannot be validated, 
       required keys cannot be loaded, or a properly formatted root
       metadata file cannot be created.
 
@@ -678,6 +741,13 @@ def make_root_metadata(keystore_directory):
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
   filenames = tuf.repo.signerlib.get_metadata_filenames(metadata_directory)
+  root_filename = filenames['root']
+
+  # If the metadata file currently exists, extract the version number and
+  # increment it by 1.  Otherwise, set the version to 1.  Incrementing
+  # the version number ensures the newly created metadata file is considered
+  # newer.
+  version = _get_metadata_version(root_filename)
 
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
@@ -694,7 +764,7 @@ def make_root_metadata(keystore_directory):
   # Generate the root metadata and write it to 'root.txt'.
   try:
     tuf.repo.signerlib.build_root_file(config_filepath, root_keyids,
-                                       metadata_directory)
+                                       metadata_directory, version)
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -716,7 +786,7 @@ def make_targets_metadata(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, 
+    tuf.RepositoryError, if required directories cannot be validated, 
       required keys cannot be loaded, or a properly formatted targets
       metadata file cannot be created.
 
@@ -744,10 +814,25 @@ def make_targets_metadata(keystore_directory):
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
+  filenames = tuf.repo.signerlib.get_metadata_filenames(metadata_directory)
+  targets_filename = filenames['targets']
+
+  # If the metadata file currently exists, extract the version number and
+  # increment it by 1.  Otherwise, set the version to 1.  Incrementing
+  # the version number ensures the newly created metadata file is considered
+  # newer.
+  version = _get_metadata_version(targets_filename)
+
+  # Prompt the user the metadata file's expiration date. 
+  try:
+    expiration_date = _get_metadata_expiration()
+  except tuf.Error, e:
+    message = str(e)+'\n'
+    raise tuf.RepositoryError(message)
+
 
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
-
   config_filepath = os.path.abspath(config_filepath)
 
   try:
@@ -761,7 +846,8 @@ def make_targets_metadata(keystore_directory):
   try:
     # Create, sign, and write the "targets.txt" file.
     tuf.repo.signerlib.build_targets_file(target_directory, targets_keyids,
-                                       metadata_directory)
+                                       metadata_directory, version,
+                                       expiration_date)
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -783,7 +869,7 @@ def make_release_metadata(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, 
+    tuf.RepositoryError, if required directories cannot be validated, 
       required keys cannot be loaded, or a properly formatted release
       metadata file cannot be created.
 
@@ -807,6 +893,19 @@ def make_release_metadata(keystore_directory):
   filenames = tuf.repo.signerlib.get_metadata_filenames(metadata_directory)
   release_filename = filenames['release']
 
+  # If the metadata file currently exists, extract the version number and
+  # increment it by 1.  Otherwise, set the version to 1.  Incrementing
+  # the version number ensures the newly created metadata file is considered
+  # newer.
+  version = _get_metadata_version(release_filename)
+
+  # Prompt the user the metadata file's expiration date. 
+  try:
+    expiration_date = _get_metadata_expiration()
+  except tuf.Error, e:
+    message = str(e)+'\n'
+    raise tuf.RepositoryError(message)
+
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
   config_filepath = os.path.abspath(config_filepath)
@@ -816,7 +915,8 @@ def make_release_metadata(keystore_directory):
     release_keyids = _get_role_config_keyids(config_filepath,
                                               keystore_directory, 'release')
     # Generate the release metadata and write it to 'release.txt'
-    tuf.repo.signerlib.build_release_file(release_keyids, metadata_directory)
+    tuf.repo.signerlib.build_release_file(release_keyids, metadata_directory,
+                                          version, expiration_date)
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -836,7 +936,7 @@ def make_timestamp_metadata(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, 
+    tuf.RepositoryError, if required directories cannot be validated, 
       required keys cannot be loaded, or a properly formatted timestamp
       metadata file cannot be created.
 
@@ -861,6 +961,19 @@ def make_timestamp_metadata(keystore_directory):
   filenames = tuf.repo.signerlib.get_metadata_filenames(metadata_directory)
   timestamp_filename = filenames['timestamp']
 
+  # If the metadata file currently exists, extract the version number and
+  # increment it by 1.  Otherwise, set the version to 1.  Incrementing
+  # the version number ensures the newly created metadata file is considered
+  # newer.
+  version = _get_metadata_version(timestamp_filename)
+
+  # Prompt the user the metadata file's expiration date. 
+  try:
+    expiration_date = _get_metadata_expiration()
+  except tuf.Error, e:
+    message = str(e)+'\n'
+    raise tuf.RepositoryError(message)
+
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
   config_filepath = os.path.abspath(config_filepath)
@@ -870,8 +983,8 @@ def make_timestamp_metadata(keystore_directory):
     timestamp_keyids = _get_role_config_keyids(config_filepath,
                                                keystore_directory, 'timestamp')
     # Generate the timestamp metadata and write it to 'timestamp.txt'
-    tuf.repo.signerlib.build_timestamp_file(timestamp_keyids,
-                                            metadata_directory)
+    tuf.repo.signerlib.build_timestamp_file(timestamp_keyids, metadata_directory,
+                                            version, expiration_date)
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -891,7 +1004,7 @@ def sign_metadata_file(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, 
+    tuf.RepositoryError, if required directories cannot be validated, 
       required keys cannot be loaded, or the specified metadata file
       is invalid.
 
@@ -956,7 +1069,7 @@ def make_delegation(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, the
+    tuf.RepositoryError, if required directories cannot be validated, the
       parent role cannot be loaded, the delegated role metadata file
       cannot be created, or the parent role metadata file cannot be updated. 
 
@@ -992,12 +1105,12 @@ def make_delegation(keystore_directory):
 
   # Get all the target roles and their respective keyids.
   # These keyids will let the user know which roles are currently known.
-  # signerlib.get_target_keyids() returns a dictionary that looks something
-  # like this: {'targets': [keyid1, ...], 'targets/role1': [keyid1, ...] ...}
+  # signerlib.get_target_keyids() returns a dictionary that has the form:
+  # {'targets': [keyid1, ...], 'targets/role1': [keyid1, ...] ...}
   targets_roles = tuf.repo.signerlib.get_target_keyids(metadata_directory)
 
   # Load the parent role specified by the user.  The parent role must be loaded
-  # so its delegation field can be updated.
+  # so its 'delegations' field can be updated.
   parent_role, parent_keyids = _load_parent_role(metadata_directory,
                                                  keystore_directory,
                                                  targets_roles)
@@ -1158,11 +1271,20 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
       pass
     else:
       raise
+
+  # Prompt the user the metadata file's expiration date. 
+  try:
+    expiration_date = _get_metadata_expiration()
+  except tuf.Error, e:
+    message = str(e)+'\n'
+    raise tuf.RepositoryError(message)
+
   delegated_role_filename = delegated_role+'.txt'
   metadata_filename = os.path.join(parent_directory, delegated_role_filename)
   repository_directory, junk = os.path.split(metadata_directory)
   generate_metadata = tuf.repo.signerlib.generate_targets_metadata
-  delegated_metadata = generate_metadata(repository_directory, delegated_paths)
+  delegated_metadata = generate_metadata(repository_directory, delegated_paths,
+                                         1, expiration_date)
   _sign_and_write_metadata(delegated_metadata, delegated_keyids,
                            metadata_filename)
 
@@ -1221,6 +1343,10 @@ def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids
 
   # Update the larger metadata structure.
   parent_metadata['delegations'] = delegations
+
+  # Increment the parent role's version.
+  version = parent_metadata['version']
+  parent_metadata['version'] = version+1 
 
   # Try to write the modified targets file.
   parent_signable = tuf.formats.make_signable(parent_metadata)

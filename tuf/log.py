@@ -43,13 +43,15 @@
 
 
 import logging
+import time
 
 
 _DEFAULT_LOG_LEVEL = logging.INFO
 _DEFAULT_LOG_FILENAME = 'tuf.log'
 
 # Set the format for logging messages.
-_FORMAT_STRING = "[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s"
+_FORMAT_STRING = "[%(asctime)s UTC] [%(name)s] [%(levelname)s] %(message)s"
+logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter(_FORMAT_STRING)
 
 # Set the handlers for the logger.
