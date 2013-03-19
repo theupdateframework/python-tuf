@@ -393,7 +393,7 @@ class Updater(object):
       try: 
         tuf.formats.check_signable_object_format(metadata_signable)
       except tuf.FormatError, e:
-        raise RepositoryError('Invalid format: '+repr(metadata_filepath)+'.')
+        raise tuf.RepositoryError('Invalid format: '+repr(metadata_filepath)+'.')
 
       # Extract the 'signed' role object from 'metadata_signable'.
       metadata_object = metadata_signable['signed']
@@ -709,11 +709,11 @@ class Updater(object):
     updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
 
-    # Finally, update the metadata store.
+    # Finally, update the metadata and fileinfo stores.
     logger.debug('Updated '+current_filepath+'.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-
+    self._update_fileinfo(metadata_filename) 
 
 
 
@@ -1134,10 +1134,11 @@ class Updater(object):
     expires = self.metadata['current'][metadata_role]['expires']
    
     # If the current time has surpassed the expiration date, raise
-    # an exception.
-    if expires < time.time():
-      expires_formatted = tuf.formats.format_time(expires)
-      message = 'Metadata '+repr(rolepath)+' expired on '+expires_formatted+'.'
+    # an exception.  'expires' is in YYYY-MM-DD HH:MM:SS format, so
+    # convert it to seconds since the epoch, which is the time format
+    # returned by time.time() (i.e., current time), before comparing.
+    if tuf.formats.parse_time(expires) < time.time():
+      message = 'Metadata '+repr(rolepath)+' expired on '+expires+'.'
       raise tuf.ExpiredMetadataError(message)
 
 

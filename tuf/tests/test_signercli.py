@@ -1441,6 +1441,33 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
                                        delegated_role+'.txt')
     self.assertTrue(os.path.exists(delegated_meta_file))
 
+    # Test: normal case 3.
+    #  Testing delegated_keyids > 1.
+    #  Ensure make_delegation() sets 'threshold' = 2 for the delegated role.
+    keystore.clear_keystore()
+
+    #  Populate 'signing_keyids' with multiple keys, so the
+    #  the delegated metadata is set to a threshold > 1.
+    signing_keyids = [new_keyid_1, new_keyid_2]
+    parent_role = 'targets'
+    delegated_role = 'delegated_role_1'
+    
+    signercli.make_delegation(keystore_dir)
+
+    #  Verify delegated metadata file exists.
+    delegated_meta_file = os.path.join(meta_dir, parent_role,
+                                       delegated_role+'.txt')
+    self.assertTrue(os.path.exists(delegated_meta_file))
+
+    #  Verify the threshold value of the delegated metadata file
+    #  by inspecting the parent role's 'delegations' field.
+    parent_role_file = os.path.join(meta_dir, parent_role+'.txt')
+    signable = signerlib.read_metadata_file(parent_role_file)
+    delegated_rolename = parent_role+'/'+delegated_role
+    threshold = signable['signed']['delegations']['roles']\
+                        [delegated_rolename]['threshold']
+    self.assertTrue(threshold == 2)
+
     # RESTORE
     signercli._get_password = original_get_password
     signercli._prompt = original_prompt

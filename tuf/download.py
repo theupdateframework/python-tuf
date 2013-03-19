@@ -300,8 +300,7 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
     else:
         # Do we know what is the required_length for this file?
         if required_length is None:
-            # No, we do not know this. Avoid falling for an arbitrary-length data attack.
-            # FIXME: https://github.com/akonst/tuf/issues/26
+            # No, we do not know this. Avoid falling for an arbitrary-length data attack (#26).
             message = 'Do not know how much is required to download for "' + url + '"!'
             logger.debug(message)
             file_length = int(file_length, 10)
