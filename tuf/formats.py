@@ -76,8 +76,8 @@ SCHEMA = tuf.schema
 # additional keys which are not defined. Thus, any additions to them will be
 # easily backwards compatible with clients that are already deployed.
 
-# A date in 'YYYY-MM-DD HH:MM:SS' format.
-TIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
+# A date in 'YYYY-MM-DD HH:MM:SS UTC' format.
+TIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC')
 
 # A hexadecimal value in '23432df87ab..' format.
 HASH_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
@@ -403,7 +403,7 @@ class TimestampFile(MetaFile):
     # Raise tuf.FormatError if not.
     TIMESTAMP_SCHEMA.check_match(object) 
 
-    version = parse_time(object['version'])
+    version = object['version']
     expires = parse_time(object['expires'])
     filedict = object['meta']
     return TimestampFile(version, expires, filedict)
@@ -441,7 +441,7 @@ class RootFile(MetaFile):
     # Raise 'tuf.FormatError' if not.
     ROOT_SCHEMA.check_match(object) 
     
-    version = parse_time(object['version'])
+    version = object['version']
     expires = parse_time(object['expires'])
     keys = object['keys']
     roles = object['roles']
@@ -485,7 +485,7 @@ class ReleaseFile(MetaFile):
     # Raise 'tuf.FormatError' if not.
     RELEASE_SCHEMA.check_match(object)
     
-    version = parse_time(object['version'])
+    version = object['version']
     expires = parse_time(object['expires'])
     filedict = object['meta']
     
@@ -528,7 +528,7 @@ class TargetsFile(MetaFile):
     # Raise tuf.FormatError if not.
     TARGETS_SCHEMA.check_match(object)
     
-    version = parse_time(object['version'])
+    version = object['version']
     expires = parse_time(object['expires'])
     filedict = object.get('targets')
     delegations = object.get('delegations')
@@ -603,16 +603,16 @@ ROLE_CLASSES_BY_TYPE = {
 def format_time(timestamp):
   """
   <Purpose>
-    Encode 'timestamp' in YYYY-MM-DD HH:MM:SS format.
+    Encode 'timestamp' in 'YYYY-MM-DD HH:MM:SS UTC' format.
     'timestamp' is a Unix timestamp value.  For example, it is the time
     format returned by calendar.timegm(). 
 
     >>> format_time(499137720)
-    '1985-10-26 01:22:00'
+    '1985-10-26 01:22:00 UTC'
 
   <Arguments>
     timestamp:
-      The time to format.
+      The time to format.  This is a Unix timestamp.
 
   <Exceptions>
     tuf.Error, if 'timestamp' is invalid.
@@ -621,12 +621,16 @@ def format_time(timestamp):
     None.
 
   <Returns>
-    A string in 'YYYY-MM-DD HH:MM:SS' format.
+    A string in 'YYYY-MM-DD HH:MM:SS UTC' format.
 
   """
    
   try:
-    return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(timestamp))
+    # Convert the timestamp to 'yyyy-mm-dd HH:MM:SS' format.
+    formatted_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(timestamp))
+    
+    # Attach 'UTC' to the formatted time string prior to returning.  
+    return formatted_time+' UTC' 
   except (ValueError, TypeError):
     raise tuf.FormatError('Invalid argument value')
 
@@ -636,11 +640,11 @@ def format_time(timestamp):
 def parse_time(string):
   """
   <Purpose>
-    Parse 'string' in YYYY-MM-DD HH:MM:SS format.
+    Parse 'string', in 'YYYY-MM-DD HH:MM:SS UTC' format, to a Unix timestamp.
 
   <Arguments>
     string:
-      A string representing the time (e.g., '1985-10-26 01:20:00').
+      A string representing the time (e.g., '1985-10-26 01:20:00 UTC').
 
   <Exceptions>
     tuf.FormatError, if parsing 'string' fails.
@@ -656,11 +660,14 @@ def parse_time(string):
   # Is 'string' properly formatted?
   # Raise 'tuf.FormatError' if there is a mismatch.
   TIME_SCHEMA.check_match(string)
-  
+ 
+  # Strip the ' UTC' attached to the string.  The string time, minus the ' UTC',
+  # is the time format expected by the time functions called below.
+  string = string[0:string.rfind(' UTC')]
   try:
     return calendar.timegm(time.strptime(string, '%Y-%m-%d %H:%M:%S'))
   except ValueError:
-    raise tuf.FormatError('Malformed time '+repr(string))
+    raise tuf.FormatError('Malformed time: '+repr(string))
 
 
 

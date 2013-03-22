@@ -727,17 +727,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_2__ensure_not_expired(self):
-    # This test will verify that nothing is raised when a metadata file
-    # has future expiration date, and raises 'tuf.ExpiredMetadataError'
-    # when metadata is actually expired.
+    # This test condition will verify that nothing is raised when a metadata
+    # file has a future expiration date.
     self.Repository._ensure_not_expired('root')
+    
+    # 'tuf.ExpiredMetadataError' should be raised in this next test condition,
+    # because the expiration_date has expired by 10 seconds.
     expires = tuf.formats.format_time(time.time() - 10)
     self.Repository.metadata['current']['root']['expires'] = expires
+    
+    # Ensure the 'expires' field of the root file is properly formatted.
     self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(self.Repository.metadata\
                                                     ['current']['root']))
     self.assertRaises(tuf.ExpiredMetadataError,
-                      self.Repository._ensure_not_expired,
-                      'root')
+                      self.Repository._ensure_not_expired, 'root')
 
 
 

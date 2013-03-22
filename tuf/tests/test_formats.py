@@ -37,7 +37,7 @@ class TestFormats(unittest.TestCase):
   def test_schemas(self):
     # Test conditions for valid schemas.
     valid_schemas = {
-      'TIME_SCHEMA': (tuf.formats.TIME_SCHEMA, '2012-10-14 06:42:12'),
+      'TIME_SCHEMA': (tuf.formats.TIME_SCHEMA, '2012-10-14 06:42:12 UTC'),
       
       'HASH_SCHEMA': (tuf.formats.HASH_SCHEMA, 'A4582BCF323BCEF'),
       
@@ -180,8 +180,8 @@ class TestFormats(unittest.TestCase):
 
       'ROOT_SCHEMA': (tuf.formats.ROOT_SCHEMA,
                       {'_type': 'Root',
-                       'ts': '2012-10-14 06:42:12',
-                       'expires': '2012-10-16 06:42:12',
+                       'version': 8,
+                       'expires': '2012-10-16 06:42:12 UTC',
                        'keys': {'123abc': {'keytype': 'rsa',
                                            'keyval': {'public': 'pubkey',
                                                       'private': 'privkey'}}},
@@ -191,8 +191,8 @@ class TestFormats(unittest.TestCase):
 
       'TARGETS_SCHEMA': (tuf.formats.TARGETS_SCHEMA,
         {'_type': 'Targets',
-         'ts': '2012-10-14 06:42:12',
-         'expires': '2012-10-16 06:42:12',
+         'version': 8,
+         'expires': '2012-10-16 06:42:12 UTC',
          'targets': {'metadata/targets.txt': {'length': 1024,
                                               'hashes': {'sha256': 'ABCD123'},
                                               'custom': {'type': 'metadata'}}},
@@ -205,16 +205,16 @@ class TestFormats(unittest.TestCase):
 
       'RELEASE_SCHEMA': (tuf.formats.RELEASE_SCHEMA,
         {'_type': 'Release',
-         'ts': '2012-10-14 06:42:12',
-         'expires': '2012-10-16 06:42:12',
+         'version': 8,
+         'expires': '2012-10-16 06:42:12 UTC',
          'meta': {'metadata/release.txt': {'length': 1024,
                                            'hashes': {'sha256': 'ABCD123'},
                                            'custom': {'type': 'metadata'}}}}),
 
       'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
         {'_type': 'Timestamp',
-         'ts': '2012-10-14 06:42:12',
-         'expires': '2012-10-16 06:42:12',
+         'version': 8,
+         'expires': '2012-10-16 06:42:12 UTC',
          'meta': {'metadata/timestamp.txt': {'length': 1024,
                                   'hashes': {'sha256': 'ABCD123'},
                                   'custom': {'type': 'metadata'}}}}),
@@ -235,8 +235,8 @@ class TestFormats(unittest.TestCase):
 
       'MIRRORLIST_SCHEMA': (tuf.formats.MIRRORLIST_SCHEMA,
         {'_type': 'Mirrors',
-         'ts': '2012-10-14 06:42:12',
-         'expires': '2012-10-16 06:42:12',
+         'version': 8,
+         'expires': '2012-10-16 06:42:12 UTC',
          'mirrors': [{'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
          'targets_path': 'targets/',
@@ -263,9 +263,9 @@ class TestFormats(unittest.TestCase):
     # Test conditions for instantiations of a class that inherits from
     # 'tuf.formats.MetaFile'.
     class NewMetadataFile(tuf.formats.MetaFile):
-      def __init__(self, timestamp, expires):
+      def __init__(self, version, expires):
         self.info = {}
-        self.info['ts'] = timestamp
+        self.info['version'] = version
         self.info['expires'] = expires
     
     metadata = NewMetadataFile(123, 456)
@@ -278,13 +278,15 @@ class TestFormats(unittest.TestCase):
     self.assertFalse(metadata == metadata3)
     
     # Test the 'getattr' method.
-    self.assertEqual(123, getattr(metadata, 'ts'))
+    self.assertEqual(123, getattr(metadata, 'version'))
     self.assertRaises(AttributeError, getattr, metadata, 'bad')
 
 
 
   def test_TimestampFile(self):
     # Test conditions for valid instances of 'tuf.formats.TimestampFile'.
+    version = 8
+    expires = '2012-10-16 06:42:12 UTC'
     filedict = {'metadata/timestamp.txt': {'length': 1024,
                                            'hashes': {'sha256': 'ABCD123'},
                                            'custom': {'type': 'metadata'}}}
@@ -293,13 +295,22 @@ class TestFormats(unittest.TestCase):
     from_metadata = tuf.formats.TimestampFile.from_metadata
     TIMESTAMP_SCHEMA = tuf.formats.TIMESTAMP_SCHEMA
 
-    self.assertTrue(TIMESTAMP_SCHEMA.matches(make_metadata(filedict)))
-    metadata = make_metadata(filedict)
+    self.assertTrue(TIMESTAMP_SCHEMA.matches(make_metadata(version, expires,
+                                                           filedict)))
+    metadata = make_metadata(version, expires, filedict)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TimestampFile))
 
     # Test conditions for invalid arguments.
-    filedict = 123
-    self.assertRaises(tuf.FormatError, make_metadata, filedict)
+    bad_version = 'eight'
+    bad_expires = '2000'
+    bad_filedict = 123
+    self.assertRaises(tuf.FormatError, make_metadata, bad_version,
+                                                      expires, filedict)
+    self.assertRaises(tuf.FormatError, make_metadata, version,
+                                                      bad_expires, filedict)
+    self.assertRaises(tuf.FormatError, make_metadata, version,
+                                                      expires, bad_filedict)
+    
     self.assertRaises(tuf.FormatError, from_metadata, 123)
 
 
@@ -307,6 +318,8 @@ class TestFormats(unittest.TestCase):
 
   def test_RootFile(self):
     # Test conditions for valid instances of 'tuf.formats.RootFile'.
+    version = 8
+    expiration_seconds = 691200
     keydict = {'123abc': {'keytype': 'rsa',
                           'keyval': {'public': 'pubkey',
                                      'private': 'privkey'}}}
@@ -319,17 +332,29 @@ class TestFormats(unittest.TestCase):
     from_metadata = tuf.formats.RootFile.from_metadata
     ROOT_SCHEMA = tuf.formats.ROOT_SCHEMA
 
-    self.assertTrue(ROOT_SCHEMA.matches(make_metadata(keydict, roledict, 12345)))
-    metadata = make_metadata(keydict, roledict, 12345)
+    self.assertTrue(ROOT_SCHEMA.matches(make_metadata(version, expiration_seconds,
+                                                      keydict, roledict)))
+    metadata = make_metadata(version, expiration_seconds, keydict, roledict,)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.RootFile))
 
     # Test conditions for invalid arguments.
+    bad_version = '8'
+    bad_expiration_seconds = 'eight'
     bad_keydict = 123
     bad_roledict = 123
 
-    self.assertRaises(tuf.FormatError, make_metadata, bad_keydict, roledict, 123)
-    self.assertRaises(tuf.FormatError, make_metadata, keydict, bad_roledict, 123)
-    self.assertRaises(tuf.FormatError, make_metadata, keydict, roledict, 'bad')
+    self.assertRaises(tuf.FormatError, make_metadata, bad_version,
+                                                      expiration_seconds,
+                                                      keydict, roledict)
+    self.assertRaises(tuf.FormatError, make_metadata, version,
+                                                      bad_expiration_seconds,
+                                                      keydict, roledict)
+    self.assertRaises(tuf.FormatError, make_metadata, version,
+                                                      expiration_seconds,
+                                                      bad_keydict, roledict)
+    self.assertRaises(tuf.FormatError, make_metadata, version,
+                                                      expiration_seconds,
+                                                      keydict, bad_roledict)
 
     self.assertRaises(tuf.FormatError, from_metadata, 'bad')
 
@@ -337,6 +362,8 @@ class TestFormats(unittest.TestCase):
 
   def test_ReleaseFile(self):
     # Test conditions for valid instances of 'tuf.formats.ReleaseFile'.
+    version = 8
+    expires = '2012-10-16 06:42:12 UTC'
     filedict = {'metadata/release.txt': {'length': 1024,
                                          'hashes': {'sha256': 'ABCD123'},
                                          'custom': {'type': 'metadata'}}}
@@ -345,19 +372,30 @@ class TestFormats(unittest.TestCase):
     from_metadata = tuf.formats.ReleaseFile.from_metadata
     RELEASE_SCHEMA = tuf.formats.RELEASE_SCHEMA
 
-    self.assertTrue(RELEASE_SCHEMA.matches(make_metadata(filedict)))
-    metadata = make_metadata(filedict)
+    self.assertTrue(RELEASE_SCHEMA.matches(make_metadata(version, expires,
+                                                         filedict)))
+    metadata = make_metadata(version, expires, filedict)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.ReleaseFile))
 
     # Test conditions for invalid arguments.
-    filedict = 123
-    self.assertRaises(tuf.FormatError, make_metadata, filedict)
+    bad_version = '8'
+    bad_expires = '2000'
+    bad_filedict = 123
+    self.assertRaises(tuf.FormatError, make_metadata, version,
+                                                      expires, bad_filedict)
+    self.assertRaises(tuf.FormatError, make_metadata, bad_version, expires, 
+                                                      filedict)
+    self.assertRaises(tuf.FormatError, make_metadata, version, bad_expires,
+                                                      bad_filedict)
+    
     self.assertRaises(tuf.FormatError, from_metadata, 123)
 
 
 
   def test_TargetsFile(self):
     # Test conditions for valid instances of 'tuf.formats.TargetsFile'.
+    version = 8
+    expires = '2012-10-16 06:42:12 UTC'
     filedict = {'metadata/targets.txt': {'length': 1024,
                                          'hashes': {'sha256': 'ABCD123'},
                                          'custom': {'type': 'metadata'}}}
@@ -373,16 +411,25 @@ class TestFormats(unittest.TestCase):
     from_metadata = tuf.formats.TargetsFile.from_metadata
     TARGETS_SCHEMA = tuf.formats.TARGETS_SCHEMA
 
-    self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(filedict, delegations)))
-    metadata = make_metadata(filedict, delegations)
+    self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(version, expires,
+                                                         filedict, delegations)))
+    metadata = make_metadata(version, expires, filedict, delegations)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
 
     # Test conditions for invalid arguments.
+    bad_version = 'eight'
+    bad_expires = '2000'
     bad_filedict = 123
     bad_delegations = 123
-    self.assertRaises(tuf.FormatError, make_metadata, bad_filedict, delegations)
-    self.assertRaises(tuf.FormatError, make_metadata, filedict, bad_delegations)
-    self.assertRaises(tuf.Error, make_metadata)
+    self.assertRaises(tuf.FormatError, make_metadata, bad_version, expires,
+                                                      filedict, delegations)
+    self.assertRaises(tuf.FormatError, make_metadata, version, bad_expires,
+                                                      filedict, delegations)
+    self.assertRaises(tuf.FormatError, make_metadata, version, expires,
+                                                      bad_filedict, delegations)
+    self.assertRaises(tuf.FormatError, make_metadata, version, expires,
+                                                      filedict, bad_delegations)
+    self.assertRaises(tuf.Error, make_metadata, version, expires)
 
     self.assertRaises(tuf.FormatError, from_metadata, 123)
 
@@ -392,7 +439,7 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid arguments.
     TIME_SCHEMA = tuf.formats.TIME_SCHEMA 
     self.assertTrue(TIME_SCHEMA.matches(tuf.formats.format_time(499137720)))
-    self.assertEqual('1985-10-26 01:22:00', tuf.formats.format_time(499137720))
+    self.assertEqual('1985-10-26 01:22:00 UTC', tuf.formats.format_time(499137720))
 
     # Test conditions for invalid arguments.
     self.assertRaises(tuf.FormatError, tuf.formats.format_time, 'bad')
@@ -403,7 +450,7 @@ class TestFormats(unittest.TestCase):
 
   def test_parse_time(self):
     # Test conditions for valid arguments.
-    self.assertEqual(499137600, tuf.formats.parse_time('1985-10-26 01:20:00'))
+    self.assertEqual(499137600, tuf.formats.parse_time('1985-10-26 01:20:00 UTC'))
 
     # Test conditions for invalid arguments.
     self.assertRaises(tuf.FormatError, tuf.formats.parse_time, 'bad')
@@ -440,8 +487,8 @@ class TestFormats(unittest.TestCase):
   def test_make_signable(self):
     # Test conditions for expected make_signable() behavior.
     root = {'_type': 'Root',
-            'ts': '2012-10-14 06:42:12',
-            'expires': '2012-10-16 06:42:12',
+            'version': 8,
+            'expires': '2012-10-16 06:42:12 UTC',
             'keys': {'123abc': {'keytype': 'rsa',
                                 'keyval': {'public': 'pubkey',
                                            'private': 'privkey'}}},
@@ -551,8 +598,8 @@ class TestFormats(unittest.TestCase):
   def test_check_signable_object_format(self):
     # Test condition for a valid argument.
     root = {'_type': 'Root',
-            'ts': '2012-10-14 06:42:12',
-            'expires': '2012-10-16 06:42:12',
+            'version': 8,
+            'expires': '2012-10-16 06:42:12 UTC',
             'keys': {'123abc': {'keytype': 'rsa',
                                 'keyval': {'public': 'pubkey',
                                            'private': 'privkey'}}},

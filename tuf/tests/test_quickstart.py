@@ -81,7 +81,7 @@ class TestQuickstart(unit_tbox):
 
     def _mock_prompt(message, confirm=False, input_parameters=input_dict):
       if message.startswith('\nWhen would you like your '+
-          'certificates to expire?'):
+          '"root.txt" metadata file to expire?'):
         return input_parameters['expiration']
       for role in self.role_list:  # role_list=['root', 'targets', ...]
         if message.startswith('\nEnter the desired threshold '+
@@ -121,7 +121,8 @@ class TestQuickstart(unit_tbox):
     input_dict['expiration'] = '5/8/2011'
     self.assertRaises(tuf.RepositoryError, quickstart.build_repository,
         proj_dir)
-    input_dict['expiration'] = self.random_string()  # random string
+    # Random string.
+    input_dict['expiration'] = self.random_string()
     self.assertRaises(tuf.RepositoryError, quickstart.build_repository,
         proj_dir)
     _remove_repository_directories(repo_dir, keystore_dir, client_dir) 

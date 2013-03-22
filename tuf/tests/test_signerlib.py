@@ -213,6 +213,8 @@ class TestSignerlib(unit_tbox):
 
     # SETUP
     generate_targets_meta = signerlib.generate_targets_metadata
+    version = 8
+    expiration_date = '1985-10-26 01:20:00 UTC'
 
     #  Generate target files.
     #  'repo_dir' represents repository base.
@@ -223,20 +225,31 @@ class TestSignerlib(unit_tbox):
     # TESTS
     #  Test: Run the generate_targets_metadata().  Test its return value.
     #  Its return value should correspond to tuf.formats.SIGNABLE_SCHEMA
-    target_signable_obj = generate_targets_meta(repo_dir, target_files)
+    target_signable_obj = generate_targets_meta(repo_dir, target_files,
+                                                version, expiration_date)
 
     #  Test: Validate input.
     self.assertTrue(formats.SIGNABLE_SCHEMA.matches(target_signable_obj))
 
     #  Test: Incorrect arguments.
     self.assertRaises(tuf.FormatError, generate_targets_meta,
-                      repo_dir, 1234)
+                                       self.random_string(), expiration_date,
+                                       repo_dir, target_files)
     self.assertRaises(tuf.FormatError, generate_targets_meta,
-                      repo_dir, self.random_string())
+                                       repo_dir, self.random_string(),
+                                       repo_dir, target_files)
     self.assertRaises(tuf.FormatError, generate_targets_meta,
-                      repo_dir, [self.random_string(), 1234])
+                                       version, expiration_date,
+                                       self.random_string(), target_files)
+    self.assertRaises(tuf.FormatError, generate_targets_meta,
+                                       version, expiration_date,
+                                       repo_dir, self.random_string())
+    self.assertRaises(tuf.FormatError, generate_targets_meta,
+                                       version, expiration_date,
+                                       repo_dir, [self.random_string(), 1234])
     self.assertRaises(tuf.Error, generate_targets_meta,
-                      self.random_path(), target_files)
+                                 version, expiration_date,
+                                 self.random_path(), target_files)
 
 
 
@@ -368,8 +381,8 @@ class TestSignerlib(unit_tbox):
 
     # SETUP
     original_get_key = tuf.repo.keystore.get_key
-    
     build_config = signerlib.build_config_file
+    version = 8
 
     #  Create a temp directory to hold a config file.
     config_dir = self.make_temp_directory()
@@ -391,26 +404,29 @@ class TestSignerlib(unit_tbox):
     # TESTS
     #  Test: What if keystore is not set up?
     self.assertRaises(tuf.UnknownKeyError, signerlib.generate_root_metadata,
-                      config_path)
+                      config_path, version)
 
     #  Patch keystore's get_key method.  No harm is done here since correct
     #  arguments are passed and keystore methods are tested separately.
     tuf.repo.keystore.get_key = self.get_keystore_key
 
     #  Test: normal case.  Pass a correct config path.
-    root_meta = signerlib.generate_root_metadata(config_path)
+    root_meta = signerlib.generate_root_metadata(config_path, version)
 
     #  Check if the returned dictionary corresponds to SIGNABLE_SCHEMA.
     self.assertTrue(formats.SIGNABLE_SCHEMA.matches(root_meta))
 
     #  Test: bogus arguments.
     self.assertRaises(tuf.Error, signerlib.generate_root_metadata,
-                      notargets_conf_path)
-    self.assertRaises(tuf.Error, signerlib.generate_root_metadata, '')
+                      notargets_conf_path, version)
+    self.assertRaises(tuf.Error, signerlib.generate_root_metadata, '', version)
     self.assertRaises(tuf.Error, signerlib.generate_root_metadata,
-                      self.random_string())
+                      self.random_string(), version)
     self.assertRaises(tuf.Error, signerlib.generate_root_metadata,
-                      {self.random_string(): self.random_string()})
+                      {self.random_string(): self.random_string()}, version)
+    self.assertRaises(tuf.FormatError, signerlib.generate_root_metadata,
+                      config_path, self.random_string())    
+                          
 
     # RESTORE
     tuf.repo.keystore.get_key = original_get_key
@@ -483,6 +499,7 @@ class TestSignerlib(unit_tbox):
 
     # SETUP
     original_get_key = tuf.repo.keystore.get_key
+    version = 8
     
     signed_root_meta, root_info = self._get_signed_role_info('root')
     root_keyids = root_info[1]
@@ -492,7 +509,8 @@ class TestSignerlib(unit_tbox):
 
     # TESTS
     #  Test: normal case.
-    root_filepath = signerlib.build_root_file(config_path, root_keyids, meta_dir)
+    root_filepath = signerlib.build_root_file(config_path, root_keyids,
+                                              meta_dir, version)
 
     #  Check existence of the file and validity of it's content.
     self.assertTrue(os.path.exists(root_filepath))
@@ -503,11 +521,13 @@ class TestSignerlib(unit_tbox):
 
     #  Test: various exceptions.
     self.assertRaises(tuf.Error, signerlib.build_root_file,
-        self.random_path(), root_keyids, meta_dir)
-    self.assertRaises(tuf.Error, signerlib.build_root_file,
-        config_path, root_keyids, self.random_path())
+        self.random_path(), root_keyids, meta_dir, version)
     self.assertRaises(tuf.FormatError, signerlib.build_root_file,
-        config_path, self.random_string(), meta_dir)
+        config_path, self.random_string(), meta_dir, version)
+    self.assertRaises(tuf.Error, signerlib.build_root_file,
+        config_path, root_keyids, self.random_path(), version)
+    self.assertRaises(tuf.Error, signerlib.build_root_file,
+        config_path, root_keyids, meta_dir, self.random_string())
 
     # RESTORE
     tuf.repo.keystore.get_key = original_get_key
@@ -525,7 +545,9 @@ class TestSignerlib(unit_tbox):
 
     # SETUP
     original_get_key = tuf.repo.keystore.get_key
-    
+    version = 8
+    expiration_date = '1985-10-26 01:20:00 UTC'
+
     signed_targets_meta, targets_info = self._get_signed_role_info('targets')
 
     #  'targets_info' is a tuple that includes targets meta, repository dir,
@@ -539,7 +561,8 @@ class TestSignerlib(unit_tbox):
     # TESTS
     #  Test: normal case.
     targets_filepath = signerlib.build_targets_file(targets_dir,
-                                                    targets_keyids, meta_dir)
+                                                    targets_keyids, meta_dir,
+                                                    version, expiration_date)
 
     #  Check existence of the file and validity of it's content.
     self.assertTrue(os.path.exists(targets_filepath))
@@ -550,11 +573,15 @@ class TestSignerlib(unit_tbox):
 
     #  Test: various exceptions.
     self.assertRaises(tuf.Error, signerlib.build_targets_file,
-        self.random_path(), targets_keyids, meta_dir)
-    self.assertRaises(tuf.FormatError, signerlib.build_root_file,
-        targets_dir, self.random_string(), meta_dir)
-    self.assertRaises((tuf.FormatError, tuf.Error), signerlib.build_root_file,
-        targets_dir, targets_keyids, self.random_path())
+        self.random_path(), targets_keyids, meta_dir, version, expiration_date)
+    self.assertRaises(tuf.FormatError, signerlib.build_targets_file,
+        targets_dir, self.random_string(), meta_dir, version, expiration_date)
+    self.assertRaises((tuf.FormatError, tuf.Error), signerlib.build_targets_file,
+        targets_dir, targets_keyids, self.random_path(), version, expiration_date)
+    self.assertRaises((tuf.FormatError, tuf.Error), signerlib.build_targets_file,
+        targets_dir, targets_keyids, meta_dir, self.random_string(), expiration_date)
+    self.assertRaises((tuf.FormatError, tuf.Error), signerlib.build_targets_file,
+        targets_dir, targets_keyids, meta_dir, version, self.random_string())
 
     # RESTORE
     tuf.repo.keystore.get_key = original_get_key
@@ -573,6 +600,8 @@ class TestSignerlib(unit_tbox):
 
     # SETUP
     original_get_key = tuf.repo.keystore.get_key
+    version = 8
+    expiration_date = '1985-10-26 01:20:00 UTC'
     
     #  Create root.txt and targets.txt as described above.
     meta_dir = self._create_root_and_targets_meta_files()
@@ -580,7 +609,8 @@ class TestSignerlib(unit_tbox):
 
     # TESTS
     #  Test: Run generate_release_metadata().
-    release_meta = signerlib.generate_release_metadata(meta_dir)
+    release_meta = signerlib.generate_release_metadata(meta_dir,
+                                                       version, expiration_date)
 
     #  Verify that created metadata dictionary corresponds to
     #  SIGNABLE_SCHEMA and its 'signed' value to RELEASE_SCHEMA.
@@ -589,9 +619,14 @@ class TestSignerlib(unit_tbox):
 
     #  Test: exceptions.
     self.assertRaises(tuf.Error, signerlib.generate_release_metadata,
-                      self.random_path())
+                      self.random_path(), version, expiration_date)
     self.assertRaises(tuf.FormatError, signerlib.generate_release_metadata,
-                      ['junk'])
+                      ['junk'], version, expiration_date)
+    self.assertRaises(tuf.Error, signerlib.generate_release_metadata,
+                      meta_dir, self.random_string(), expiration_date)
+    self.assertRaises(tuf.Error, signerlib.generate_release_metadata,
+                      meta_dir, version, self.random_string())
+
 
     # RESTORE
     tuf.repo.keystore.get_key = original_get_key
@@ -607,6 +642,8 @@ class TestSignerlib(unit_tbox):
 
     # SETUP
     original_get_key = tuf.repo.keystore.get_key
+    version = 8
+    expiration_date = '1985-10-26 01:20:00 UTC'
     
     #  Create root.txt and targets.txt as described above.  Also, get signed
     #  release metadata to compare it with the content of the file
@@ -617,7 +654,8 @@ class TestSignerlib(unit_tbox):
 
     # TESTS
     #  Test: normal case.
-    release_filepath = signerlib.build_release_file(release_keyids, meta_dir)
+    release_filepath = signerlib.build_release_file(release_keyids, meta_dir,
+                                                    version, expiration_date)
 
     # Check if 'release.txt' file was created in metadata directory.
     self.assertTrue(os.path.exists(release_filepath))
@@ -628,9 +666,14 @@ class TestSignerlib(unit_tbox):
     
     #  Test: exceptions.
     self.assertRaises(tuf.Error, signerlib.build_release_file, release_keyids,
-                      self.random_path())
+                      self.random_path(), version, expiration_date)
     self.assertRaises(tuf.FormatError, signerlib.build_release_file,
-                      self.random_string(), meta_dir)
+                      self.random_string(), meta_dir, version, expiration_date)
+    self.assertRaises(tuf.FormatError, signerlib.build_release_file,
+                      release_keyids, meta_dir, self.random_string(),
+                      expiration_date)
+    self.assertRaises(tuf.FormatError, signerlib.build_release_file,
+                      release_keyids, meta_dir, version, self.random_string())
 
     # RESTORE
     tuf.repo.keystore.get_key = original_get_key
@@ -646,12 +689,15 @@ class TestSignerlib(unit_tbox):
 
     # SETUP
     original_get_key = tuf.repo.keystore.get_key
+    version = 8
+    expiration_date = '1985-10-26 01:20:00 UTC'
     
     generate_timestamp_meta = signerlib.generate_timestamp_metadata
 
     #  Create release metadata and create 'release.txt' file.
     junk, release_keyids, meta_dir = self._get_role_info('release')
-    signerlib.build_release_file(release_keyids, meta_dir)
+    signerlib.build_release_file(release_keyids, meta_dir, version,
+                                 expiration_date)
     release_filepath = os.path.join(meta_dir, 'release.txt')
 
     #  To test compression we need to create compressed 'release.txt'.
@@ -665,21 +711,28 @@ class TestSignerlib(unit_tbox):
 
     # TESTS
     #  Test: normal case.
-    timestamp_meta = generate_timestamp_meta(release_filepath)
+    timestamp_meta = generate_timestamp_meta(release_filepath, version,
+                                             expiration_date)
 
     #  Verify metadata formats.
     self.assertTrue(formats.SIGNABLE_SCHEMA.matches(timestamp_meta))
     self.assertTrue(formats.TIMESTAMP_SCHEMA.matches(timestamp_meta['signed']))
 
     #  Test: normal case (with compression).
-    timestamp_meta = generate_timestamp_meta(release_filepath+'.gz')
+    timestamp_meta = generate_timestamp_meta(release_filepath+'.gz', version,
+                                             expiration_date)
 
     #  Verify metadata formats.
     self.assertTrue(formats.SIGNABLE_SCHEMA.matches(timestamp_meta))
     self.assertTrue(formats.TIMESTAMP_SCHEMA.matches(timestamp_meta['signed']))
 
     #  Test: invalid path.
-    self.assertRaises(tuf.Error, generate_timestamp_meta, self.random_path())
+    self.assertRaises(tuf.Error, generate_timestamp_meta, self.random_path(),
+                                 version, expiration_date)
+    self.assertRaises(tuf.FormatError, generate_timestamp_meta, release_filepath,
+                                       self.random_string(), expiration_date)
+    self.assertRaises(tuf.FormatError, generate_timestamp_meta, release_filepath,
+                                       version, self.random_string())
 
     # RESTORE
     tuf.repo.keystore.get_key = original_get_key
@@ -695,6 +748,8 @@ class TestSignerlib(unit_tbox):
 
     # SETUP
     original_get_key = tuf.repo.keystore.get_key
+    version = 8
+    expiration_date = '1985-10-26 01:20:00 UTC'
     
     #  Create all necessary files and metadata i.e. signed timestamp
     #  metadata, timestamp keyids, 'release.txt', 'root.txt', 'targets.txt',
@@ -708,7 +763,9 @@ class TestSignerlib(unit_tbox):
 
     # TESTS
     #  Test: normal case.
-    timestamp_filepath = signerlib.build_timestamp_file(timestamp_keyids, meta_dir)
+    timestamp_filepath = signerlib.build_timestamp_file(timestamp_keyids,
+                                                        meta_dir, version,
+                                                        expiration_date)
 
     # Check if 'timestamp.txt' file was created in metadata directory.
     self.assertTrue(os.path.exists(timestamp_filepath))
@@ -719,9 +776,15 @@ class TestSignerlib(unit_tbox):
 
     #  Test: try bogus parameters.
     self.assertRaises(tuf.Error, signerlib.build_timestamp_file,
-                      timestamp_keyids, self.random_path())
+                      timestamp_keyids, self.random_path(), version,
+                      expiration_date)
     self.assertRaises(tuf.FormatError, signerlib.build_timestamp_file,
-                      self.random_string(), meta_dir)
+                      self.random_string(), meta_dir, version, expiration_date)
+    self.assertRaises(tuf.FormatError, signerlib.build_timestamp_file,
+                      timestamp_keyids, meta_dir, self.random_string(),
+                      expiration_date)
+    self.assertRaises(tuf.FormatError, signerlib.build_timestamp_file,
+                      timestamp_keyids, meta_dir, version, self.random_string())
 
     # RESTORE
     tuf.repo.keystore.get_key = original_get_key
@@ -733,6 +796,8 @@ class TestSignerlib(unit_tbox):
 
     # SETUP
     original_get_key = tuf.repo.keystore.get_key
+    version = 8
+    expiration_date = '1985-10-26 01:20:00 UTC'
     
     #  Create metadata directory and targets metadata file.
     meta_dir = self._create_root_and_targets_meta_files()
@@ -750,7 +815,8 @@ class TestSignerlib(unit_tbox):
     # TESTS
     #  Test: normal case.
     targets_filepath = signerlib.build_targets_file(targets_dir,
-                                                    targets_keyids, meta_dir)
+                                                    targets_keyids, meta_dir,
+                                                    version, expiration_date)
 
     #  Check existence of the file and validity of it's content.
     self.assertTrue(os.path.exists(targets_filepath))
@@ -782,6 +848,11 @@ class TestSignerlib(unit_tbox):
       build_targets_file()
     """
 
+    # The version number and expiration date for the root and target
+    # metadata created.
+    version = 8
+    expiration_date = '1985-10-26 01:20:00 UTC'
+
     if not repo_dir:
       # Create repository directory.
       repo_dir = self.make_temp_directory()
@@ -793,14 +864,15 @@ class TestSignerlib(unit_tbox):
     # Create root.txt.
     junk, root_keyids, repo_dir, config_path = \
         self._get_role_info('root', directory=repo_dir)
-    signerlib.build_root_file(config_path, root_keyids, meta_dir)
+    signerlib.build_root_file(config_path, root_keyids, meta_dir, version)
     self.assertTrue(os.path.exists(os.path.join(meta_dir, 'root.txt')))
 
     # Create targets.txt.
     junk, targets_keyids, repo_dir, target_files = \
         self._get_role_info('targets', directory=repo_dir)
     path_to_targets = os.path.join(repo_dir, 'targets')
-    signerlib.build_targets_file(path_to_targets, targets_keyids, meta_dir)
+    signerlib.build_targets_file(path_to_targets, targets_keyids, meta_dir,
+                                 version, expiration_date)
     self.assertTrue(os.path.exists(os.path.join(meta_dir, 'root.txt')))
 
     return meta_dir
@@ -824,6 +896,11 @@ class TestSignerlib(unit_tbox):
       Tuple (role's metadata(not signed), role's keyids, directory, optional)
 
     """
+    
+    # The version number and expiration date for metadata files created.
+    version = 8
+    expiration_date = '1985-10-26 01:20:00 UTC'
+
 
     if not directory:
       # Create a temp directory to hold a config file.
@@ -842,7 +919,7 @@ class TestSignerlib(unit_tbox):
       tuf.repo.keystore.get_key = self.get_keystore_key
 
       #  Create root metadata.
-      root_meta = signerlib.generate_root_metadata(config_path)
+      root_meta = signerlib.generate_root_metadata(config_path, version)
       return root_meta, role_keyids, directory, config_path
 
     elif role == 'targets':
@@ -857,26 +934,31 @@ class TestSignerlib(unit_tbox):
       
       # Run the 'signerlib.generate_targets_metadata'.  Test its return value.
       # Its return value should correspond to tuf.formats.SIGNABLE_SCHEMA
-      targets_meta = signerlib.generate_targets_metadata(repo_dir,
-                                                         target_files)
+      targets_meta = signerlib.generate_targets_metadata(repo_dir, target_files,
+                                                         version, 
+                                                         expiration_date)
       return targets_meta, role_keyids, repo_dir, target_files
 
     elif role == 'release':
       # Generate 'root.txt' and 'targets.txt' with targets directory in
       # the repository containing files and directories.
       meta_dir = self._create_root_and_targets_meta_files()
-      release_meta = signerlib.generate_release_metadata(meta_dir)
+      release_meta = signerlib.generate_release_metadata(meta_dir, version,
+                                                         expiration_date)
       return release_meta, role_keyids, meta_dir
 
     elif role == 'timestamp':
       # Generate 'release.txt' which includes creation of 'root.txt',
       # 'targets.txt' and target files.
       junk, release_keyids, meta_dir = self._get_role_info('release')
-      signerlib.build_release_file(release_keyids, meta_dir)
+      signerlib.build_release_file(release_keyids, meta_dir, version,
+                                   expiration_date)
       release_filepath = os.path.join(meta_dir, 'release.txt')
 
       # Generate timestamp metadata.
-      timestamp_meta = signerlib.generate_timestamp_metadata(release_filepath)
+      timestamp_meta = signerlib.generate_timestamp_metadata(release_filepath,
+                                                             version,
+                                                             expiration_date)
       return timestamp_meta, role_keyids, meta_dir
 
     else:
