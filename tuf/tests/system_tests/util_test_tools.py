@@ -429,6 +429,9 @@ def tuf_refresh_and_download():
 
 
 
+
+
+
 def _get_metadata_directory(metadata_dir):
   def _mock_get_meta_dir(directory=metadata_dir):
     return directory
@@ -463,8 +466,7 @@ def _get_password(password):
 
 
 
-
-def make_targets_meta(root_repo):
+def _make_role_metadata_wrapper(root_repo, func):
   original_get_metadata_directory = signercli._get_metadata_directory
   original_prompt = signercli._prompt
   original_get_password = signercli._get_password
@@ -476,64 +478,83 @@ def make_targets_meta(root_repo):
   keystore_dir = os.path.join(tuf_repo, 'keystore')
   conf_path = os.path.join(metadata_dir, 'config.cfg')
 
-  shutil.rmtree(targets_dir)
-  shutil.copytree(reg_repo, targets_dir)
-
   _get_metadata_directory(metadata_dir)
   _get_password('test')
-  _make_metadata_mock_prompts(targets_dir, conf_path)
 
-  signercli.make_targets_metadata(keystore_dir)
+  if func.__name__ == 'make_targets_metadata':
+    shutil.rmtree(targets_dir)
+    shutil.copytree(reg_repo, targets_dir)
+    _make_metadata_mock_prompts(targets_dir, conf_path)
+  else:
+    _make_metadata_mock_prompts(reg_repo, conf_path)
+
+  func(keystore_dir)
 
   keystore.clear_keystore()
   signercli._get_password = original_get_password
   signercli._prompt = original_prompt
   signercli._get_metadata_directory = original_get_metadata_directory
 
+
+
+def make_targets_meta(root_repo):
+  _make_role_metadata_wrapper(root_repo, signercli.make_targets_metadata)
 
 
 def make_release_meta(root_repo):
-  original_get_metadata_directory = signercli._get_metadata_directory
-  original_prompt = signercli._prompt
-  original_get_password = signercli._get_password
-
-  tuf_repo = os.path.join(root_repo, 'tuf_repo')
-  reg_repo = os.path.join(root_repo, 'reg_repo')
-  metadata_dir = os.path.join(tuf_repo, 'metadata')
-  keystore_dir = os.path.join(tuf_repo, 'keystore')
-  conf_path = os.path.join(metadata_dir, 'config.cfg')
-
-  _get_metadata_directory(metadata_dir)
-  _get_password('test')
-  _make_metadata_mock_prompts(reg_repo, conf_path)
-
-  signercli.make_release_metadata(keystore_dir)
-  
-  keystore.clear_keystore()
-  signercli._get_password = original_get_password
-  signercli._prompt = original_prompt
-  signercli._get_metadata_directory = original_get_metadata_directory
-
+  _make_role_metadata_wrapper(root_repo, signercli.make_release_metadata)
 
 
 def make_timestamp_meta(root_repo):
-  original_get_metadata_directory = signercli._get_metadata_directory
-  original_prompt = signercli._prompt
-  original_get_password = signercli._get_password
+  _make_role_metadata_wrapper(root_repo, signercli.make_timestamp_metadata)
 
-  tuf_repo = os.path.join(root_repo, 'tuf_repo')
-  reg_repo = os.path.join(root_repo, 'reg_repo')
-  metadata_dir = os.path.join(tuf_repo, 'metadata')
+
+
+
+def create_delegation(tuf_repo, delegated_targets_path, keyid, keyid_password,
+                      parent_role, new_role_name):
   keystore_dir = os.path.join(tuf_repo, 'keystore')
-  conf_path = os.path.join(metadata_dir, 'config.cfg')
+  metadata_dir = os.path.join(tuf_repo, 'metadata')
 
+  #  Patch signercli._get_metadata_directory()
   _get_metadata_directory(metadata_dir)
-  _get_password('test')
-  _make_metadata_mock_prompts(reg_repo, conf_path)
 
-  signercli.make_timestamp_metadata(keystore_dir)
-  
-  keystore.clear_keystore()
-  signercli._get_password = original_get_password
-  signercli._prompt = original_prompt
-  signercli._get_metadata_directory = original_get_metadata_directory
+
+  #  Mock method for signercli._prompt().
+  def _mock_prompt(msg, junk, targets_path=delegated_targets_path,
+                  parent_role=parent_role, new_role_name=new_role_name):
+    if msg.startswith('\nThe directory entered'):
+      return targets_path
+    elif msg.startswith('\nChoose and enter the parent'):
+      return parent_role
+    elif msg.endswith('\nEnter the delegated role\'s name: '):
+      return new_role_name
+    else:
+      error_msg = ('Prompt: '+'\''+msg+'\''+
+                   ' did not match any predefined mock prompts.')
+      sys.exit(error_msg)
+
+  #  Patch signercli._prompt().
+  signercli._prompt = _mock_prompt
+
+
+  #  Mock method for signercli._get_password().
+  def _mock_get_password(msg, keyid=keyid, password=keyid_password):
+    _keyid = keyid[0]
+    if msg.endswith('('+_keyid+'): '):
+      return keyid_password
+    else:
+      return 'test'  # password for targets' keyid.
+
+  #  Patch signercli._get_password().
+  signercli._get_password = _mock_get_password
+
+
+  #  Method to patch signercli._get_keyids()
+  def _mock_get_keyid(junk, keyid=keyid):
+    return keyid
+
+  #  Patch signercli._get_keyids().
+  signercli._get_keyids = _mock_get_keyid
+
+  signercli.make_delegation(keystore_dir)

@@ -696,6 +696,8 @@ class Updater(object):
                                      metadata_filename)
     previous_filepath = os.path.abspath(previous_filepath)
     if os.path.exists(current_filepath):
+      # Previous metadata might not exist, say when delegations are added.
+      tuf.util.ensure_parent_dir(previous_filepath)
       shutil.move(current_filepath, previous_filepath)
 
     # Next, move the verified updated metadata file to the 'current' directory.
@@ -1054,6 +1056,7 @@ class Updater(object):
     
     # Move the current path to the previous path.  
     if os.path.exists(current_filepath):
+      tuf.util.ensure_parent_dir(previous_filepath)
       os.rename(current_filepath, previous_filepath)
 
 
@@ -1457,6 +1460,8 @@ class Updater(object):
           elif len(target) == 1:
             if target[0]['fileinfo'] == fileinfo:
               continue
+            # TODO: What if an existing file, that is listed in the targets
+            # metadata, gets delegated?  This needs to be looked at.
             # Okay, we have a matching filepath but a different fileinfo
             # for the duplicate.  Which one is the client expecting?
             # And why would the metadata list two different versions of the
@@ -1464,7 +1469,7 @@ class Updater(object):
             else:
               message = 'Found multiple '+repr(target_filepath)+'.'
               logger.error(message)
-              raise tuf.RespositoryError(message)
+              #raise tuf.RepositoryError(message)
    
     # Riase an exception if the target information could not be retrieved.
     if len(target) == 0:
