@@ -516,8 +516,9 @@ def generate_rsa_key(keystore_directory):
 
   # Generate the RSA key and save it to 'keystore_directory'.
   try:
-    save_rsa_key(keystore_directory=keystore_directory,
+    rsa_key = save_rsa_key(keystore_directory=keystore_directory,
                  password=password, bits=rsa_key_bits)
+    print('Generated a new key: '+rsa_key['keyid'])
   except (tuf.FormatError, tuf.CryptoError), e:
     message = 'The RSA key could not be generated. '+str(e)+'\n'
     raise tuf.RepositoryError(message)
