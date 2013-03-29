@@ -211,7 +211,9 @@ def build_repository(project_directory):
         raise ValueError
       break
     except ValueError, e:
-      logger.error('Invalid expiration date entered')
+      message = 'Invalid expiration date entered'
+      logger.error(message)
+      print(message)
       timeout = None
       continue
 
@@ -268,7 +270,9 @@ def build_repository(project_directory):
   # metadata files, such as 'root.txt' and 'release.txt'.
   try:
     metadata_directory = os.path.join(repository_directory, 'metadata')
-    logger.info('Creating '+repr(metadata_directory))
+    message = 'Creating '+repr(metadata_directory)
+    logger.info(message)
+    print(message)
     os.mkdir(metadata_directory)
   except OSError, e:
     if e.errno == errno.EEXIST:
@@ -304,7 +308,9 @@ def build_repository(project_directory):
           raise ValueError
         break
       except ValueError, e:
-        logger.warning('Invalid role threshold entered')
+        message = 'Invalid role threshold entered'
+        logger.warning(message)
+        print(message)
         role_threshold = None
         continue
 
@@ -358,11 +364,12 @@ def build_repository(project_directory):
   try:
     os.makedirs(client_metadata_directory)
   except OSError, e:
-    message = 'Cannot create a fresh client metadata directory: '+\
-      repr(client_metadata_directory)+'.  The client metadata '+\
-      'will need to be manually created.  See the README file.'
     if e.errno == errno.EEXIST:
+      message = 'Cannot create a fresh client metadata directory: '+\
+        repr(client_metadata_directory)+'.  The client metadata '+\
+        'will need to be manually created.  See the README file.'
       logger.warn(message)
+      print(message)
     else:
       raise
 
