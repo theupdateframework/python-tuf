@@ -438,11 +438,12 @@ def _get_metadata_expiration():
   
   """
 
-  message = '\nCurrent time: '+tuf.formats.format_time(time.time())+' UTC.\n'+\
+  message = '\nCurrent time: '+tuf.formats.format_time(time.time())+'.\n'+\
     'Enter the expiration date, in UTC, of the metadata file (yyyy-mm-dd HH:MM:SS): '
   try:
     input_date = _prompt(message, str)
     try:
+      input_date = input_date+' UTC'
       expiration_date = tuf.formats.parse_time(input_date)
     except tuf.FormatError, e:
       raise tuf.Error('Invalid date entered.')

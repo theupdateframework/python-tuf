@@ -193,7 +193,7 @@ def parse_options():
   # Ensure the '--repo' option was set by the user.
   if options.REPOSITORY_MIRROR is None:
     message = '"--repo" must be set on the command-line.'
-    option_parser.error(message)
+    parser.error(message)
     
   # Return the repository mirror containing the metadata and target files.
   return options.REPOSITORY_MIRROR
@@ -210,7 +210,7 @@ if __name__ == '__main__':
   try:
     update_client(repository_mirror)
   except (tuf.RepositoryError, tuf.ExpiredMetadataError), e:
-    sys.stderr.write(str(e)+'\n')
+    sys.stderr.write('Error: '+str(e)+'\n')
     sys.exit(1)
 
   # Successfully updated the client's target files.

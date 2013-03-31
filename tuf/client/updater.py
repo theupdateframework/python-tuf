@@ -680,6 +680,21 @@ class Updater(object):
       message = 'Unable to load '+repr(metadata_filename)+' after update: '+str(e)
       raise tuf.RepositoryError(message)
 
+    # Is 'metadata_signable' newer than the currently installed
+    # version?
+    current_metadata_role = self.metadata['current'].get(metadata_role)
+    
+    # Compare metadata version numbers.  Ensure there is a current
+    # version of the metadata role to be updated.
+    if current_metadata_role is not None:
+      current_version = current_metadata_role['version'] 
+      downloaded_version = metadata_signable['signed']['version']
+      if downloaded_version < current_version:
+        message = repr(mirror_url)+' is older than the version currently '+\
+          'installed.\nDownloaded version: '+str(downloaded_version)+'\n'+\
+          'Current version: '+str(current_version)
+        raise tuf.RepositoryError(message)
+      
     # Reject the metadata if any specified targets are not allowed.
     if metadata_signable['signed']['_type'] == 'Targets':
       self._ensure_all_targets_allowed(metadata_role, metadata_signable['signed'])
