@@ -1133,7 +1133,7 @@ def build_timestamp_file(timestamp_keyids, metadata_directory):
   release_filepath = os.path.join(metadata_directory, RELEASE_FILENAME)
   timestamp_filepath = os.path.join(metadata_directory, TIMESTAMP_FILENAME)
 
-  # Generate and sign the release metadata.
+  # Generate and sign the timestamp metadata.
   timestamp_metadata = generate_timestamp_metadata(release_filepath)
   signable = sign_metadata(timestamp_metadata, timestamp_keyids, timestamp_filepath)
 

@@ -40,35 +40,70 @@ import random
 import subprocess
 import util_test_tools
 
+from tuf.interposition import urllib_tuf
+
+
 # Disable logging.
 util_test_tools.disable_logging()
 
 
-def test():
+
+class SlowRetrievalAttackAlert(Exception):
+  pass
+
+
+def download_using_urlopen(url, tuf=False):
+  if tuf:
+    return urllib_tuf.urlopen(url)
+  else:
+    return urllib.urlopen(url)
+
+
+
+def test_slow_retrieval_attack(TUF=True):
+
+  ERROR_MSG = '\tSlow Retrieval Attack was Successful!\n\n'
 
   # Launch the server.
   port = random.randint(30000, 45000)
+  print port
   command = ['python', 'slow_retrieval_server.py', str(port)]
   server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
   time.sleep(.1)
 
   try:
-
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=True)
-
+    # Setup.
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF, port=port)
+    print 'root_repo: '+root_repo
     reg_repo = os.path.join(root_repo, 'reg_repo')
-
-    # Make a file in 'reg_repo'.
-    filepath = util_test_tools.add_file_to_repository(reg_repo, 'Test')
+    downloads = os.path.join(root_repo, 'downloads')
     
-    # Path of the file relative to 'root_repo'.
-    relative_filepath = os.path.relpath(filepath)
+    # Add file to 'repo' directory: {root_repo}
+    filepath = util_test_tools.add_file_to_repository(reg_repo, 'A'*10)
+    file_basename = os.path.basename(filepath)
+    url_to_file = url+'reg_repo/'+file_basename
+    downloaded_file = os.path.join(downloads, file_basename)
 
-    # Tailor the url.
-    url_to_file = 'http://localhost:'+str(port)+'/'+relative_filepath
+    if TUF:
+      print 'TUF ...'
+      tuf_repo = os.path.join(root_repo, 'tuf_repo')
+      
+      # Update TUF metadata before attacker modifies anything.
+      util_test_tools.tuf_refresh_repo(root_repo, keyids)
+
+      # Modify the url.  Remember that the interposition will intercept 
+      # urls that have 'localhost:9999' hostname, which was specified in
+      # the json interposition configuration file.  Look for 'hostname'
+      # in 'util_test_tools.py'. Further, the 'file_basename' is the target
+      # path relative to 'targets_dir'. 
+      url_to_file = 'http://localhost:9999/'+file_basename
+
+
 
     # Download the content of the file using the server.
-    file_content = urllib.urlopen(url_to_file)
+    # NOTE: if TUF is enabled the metadata files will be downloaded first.  This
+    # WILL take a long time.
+    file_content = download_using_urlopen(url_to_file, tuf=TUF)
 
     print file_content.read()
 
@@ -81,97 +116,4 @@ def test():
     util_test_tools.cleanup(root_repo, server_proc)
 
 
-test()
-
-
-
-'''
-import os
-import shutil
-import urllib
-import tempfile
-import util_test_tools
-
-from tuf.interposition import urllib_tuf
-
-# Disable logging.
-util_test_tools.disable_logging()
-
-
-class TestSetupError(Exception):
-  pass
-
-class SlowRetrievalAttack(Exception):
-  pass
-
-
-
-def download(url, filename, tuf=False):
-  if tuf:
-    urllib_tuf.urlretrieve(url, filename)
-  else:
-    urllib.urlretrieve(url, filename)
-
-
-
-def test_arbitrary_package_attack(TUF=False):
-  """
-  <Arguments>
-    TUF:
-      If set to 'False' all directories that start with 'tuf_' are ignored, 
-      indicating that tuf is not implemented.
-
-  <Purpose>
-    Illustrate endless data attack vulnerability.
-
-  """
-
-  try:
-    # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
-    reg_repo = os.path.join(root_repo, 'reg_repo')
-    tuf_repo = os.path.join(root_repo, 'tuf_repo')
-    downloads = os.path.join(root_repo, 'downloads')
-    tuf_targets = os.path.join(tuf_repo, 'targets')
-
-    # Add a file to 'repo' directory: {root_repo}
-    filepath = util_test_tools.add_file_to_repository(reg_repo, 'Test A')
-    file_basename = os.path.basename(filepath)
-    url_to_repo = url+'reg_repo/'+file_basename
-    downloaded_file = os.path.join(downloads, file_basename)
-
-    # Refresh the tuf repository and apply tuf interpose.
-    if TUF:
-      # Update TUF metadata before attacker modifies anything.
-      util_test_tools.tuf_refresh_repo(root_repo, keyids)
-
-    # End Setup.
-
-    # Client downloads (tries to download) the file.
-    download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
-
-    # Check whether the attack succeeded by inspecting the content of the
-    # update.  The update should contain 'Test A'.
-    downloaded_content = util_test_tools.read_file_content(downloaded_file)
-    msg = 'Slow Retrieval Attack was successful!\n'
-    print downloaded_content
-    if 'Test A' != downloaded_content:
-      raise SlowRetrievalAttack(msg)
-
-  finally:
-    util_test_tools.cleanup(root_repo, server_proc)
-
-
-
-
-try:
-  test_arbitrary_package_attack(TUF=False)
-except SlowRetrievalAttack, error:
-  print error
-
-try:
-  test_arbitrary_package_attack(TUF=True)
-except SlowRetrievalAttack, error:
-  print error
-
-'''
+test_slow_retrieval_attack()

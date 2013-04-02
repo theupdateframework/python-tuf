@@ -155,7 +155,7 @@ def disable_logging():
 
 
 
-def init_repo(tuf=False):
+def init_repo(tuf=False, port=None):
   # Temp root directory for regular and tuf repositories.
   # WARNING: tuf client stores files in '{root_repo}/downloads/' directory!
   # Make sure regular download are NOT stored in the that directory when
@@ -166,11 +166,12 @@ def init_repo(tuf=False):
   root_repo = tempfile.mkdtemp(dir=os.getcwd())
   os.mkdir(os.path.join(root_repo, 'reg_repo'))
   os.mkdir(os.path.join(root_repo, 'downloads'))
-
-  # Start a simple server pointing to the repository directory.
-  port = random.randint(30000, 45000)
-  command = ['python', '-m', 'SimpleHTTPServer', str(port)]
-  server_proc = subprocess.Popen(command, stderr=subprocess.PIPE)
+  server_proc = None
+  if port is None:
+    # Start a simple server pointing to the repository directory.
+    port = random.randint(30000, 45000)
+    command = ['python', '-m', 'SimpleHTTPServer', str(port)]
+    server_proc = subprocess.Popen(command, stderr=subprocess.PIPE)
 
   # Tailor url for the repository.  In order to download a 'file.txt' 
   # from 'reg_repo' do: url+'reg_repo/file.txt'
@@ -193,9 +194,14 @@ def init_repo(tuf=False):
 
 
 def cleanup(root_repo, server_process):
-  if server_process.returncode is None:
-    server_process.kill()
+  if server_process is not None:
+    if server_process.returncode is None:
+      server_process.kill()
+      
     print 'Server terminated.\n'
+
+  # Clear the keystore.
+  keystore.clear_keystore()
 
   # Removing repository directory.
   try:
@@ -516,6 +522,11 @@ def create_delegation(tuf_repo, delegated_targets_path, keyid, keyid_password,
   keystore_dir = os.path.join(tuf_repo, 'keystore')
   metadata_dir = os.path.join(tuf_repo, 'metadata')
 
+  original_get_metadata_directory = signercli._get_metadata_directory
+  original_prompt = signercli._prompt
+  original_get_password = signercli._get_password
+  original_get_keyids = signercli._get_keyids
+
   #  Patch signercli._get_metadata_directory()
   _get_metadata_directory(metadata_dir)
 
@@ -558,3 +569,9 @@ def create_delegation(tuf_repo, delegated_targets_path, keyid, keyid_password,
   signercli._get_keyids = _mock_get_keyid
 
   signercli.make_delegation(keystore_dir)
+
+  keystore.clear_keystore()
+  signercli._get_keyids = original_get_keyids
+  signercli._get_password = original_get_password
+  signercli._prompt = original_prompt
+  signercli._get_metadata_directory = original_get_metadata_directory
