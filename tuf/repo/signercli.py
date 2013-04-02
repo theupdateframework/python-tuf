@@ -101,7 +101,9 @@ def _get_password(prompt='Password: ', confirm=False):
     if password == password2:
       return password
     else:
-      logger.info('Mismatch; try again.')
+      message = 'Mismatch; try again.'
+      logger.info(message)
+      print(message)
 
 
 
@@ -211,9 +213,13 @@ def _list_keyids(keystore_directory, metadata_directory):
   
   # Print the keyids without the '.key' extension and the roles
   # associated with them.
-  logger.info('Listing the keyids in '+repr(keystore_directory))
+  message = 'Listing the keyids in '+repr(keystore_directory)
+  logger.info(message)
+  print(message)
   for keyid in keyids_dict:
-    logger.info(keyid+' : '+str(keyids_dict[keyid]))
+    message = keyid+' : '+str(keyids_dict[keyid])
+    logger.info(message)
+    print(message)
 
 
 
@@ -254,7 +260,9 @@ def _get_keyids(keystore_directory):
     loaded_keyid = load_key(keystore_directory, [keyid], [password])
     # Was 'keyid' loaded?
     if keyid not in loaded_keyid:
-      logger.error('Could not load keyid: '+keyid)
+      message = 'Could not load keyid: '+keyid
+      logger.error(message)
+      print(message)
       continue
 
     # Append 'keyid' to the loaded list of keyids.
@@ -304,7 +312,9 @@ def _get_all_config_keyids(config_filepath, keystore_directory):
           password = _get_password(message)
           loaded_key = load_key(keystore_directory, [keyid], [password])
           if not loaded_key or keyid not in loaded_key:
-            logger.error('Could not load keyid: '+keyid)
+            message = 'Could not load keyid: '+keyid
+            logger.error(message)
+            print(message)
             continue
           loaded_keyids[key].append(keyid)
           break
@@ -351,8 +361,9 @@ def _get_role_config_keyids(config_filepath, keystore_directory, role):
           password = _get_password(message)
           loaded_key = load_key(keystore_directory, [keyid], [password])
           if not loaded_key or keyid not in loaded_key:
-            logger.info('Could not load keyid: '+keyid)
-            logger.error('Could not load keyid: '+keyid)
+            message = 'Could not load keyid: '+keyid
+            logger.error(message)
+            print(message)
             continue
           role_keyids.append(keyid)
           break
@@ -511,8 +522,9 @@ def generate_rsa_key(keystore_directory):
 
   # Generate the RSA key and save it to 'keystore_directory'.
   try:
-    save_rsa_key(keystore_directory=keystore_directory,
+    rsa_key = save_rsa_key(keystore_directory=keystore_directory,
                  password=password, bits=rsa_key_bits)
+    print('Generated a new key: '+rsa_key['keyid'])
   except (tuf.FormatError, tuf.CryptoError), e:
     message = 'The RSA key could not be generated. '+str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -624,8 +636,10 @@ def dump_key(keystore_directory):
   show_private = False
   prompt = 'Should the private key be printed as well?' \
            ' (if yes, enter \'private\'): '
-  logger.info('*WARNING* Printing the private key reveals' \
-        ' sensitive information *WARNING*')
+  message = '*WARNING* Printing the private key reveals' \
+        ' sensitive information *WARNING*'
+  logger.warning(message)
+  print(message)
   input = _prompt(prompt, str)
   if input.lower() == 'private':
     show_private = True
@@ -639,7 +653,7 @@ def dump_key(keystore_directory):
     raise tuf.RepositoryError(message)
 
   # Print the contents of the key metadata.
-  logger.info(json.dumps(key_metadata, indent=2, sort_keys=True))
+  print(json.dumps(key_metadata, indent=2, sort_keys=True))
 
 
 
@@ -919,7 +933,9 @@ def sign_metadata_file(keystore_directory):
   _list_keyids(keystore_directory, metadata_directory)
 
   # Retrieve the keyids of the signing keys from the user.
-  logger.info('The keyids that will sign the metadata file must be loaded.')
+  message = 'The keyids that will sign the metadata file must be loaded.'
+  logger.info(message)
+  print(message)
   loaded_keyids = _get_keyids(keystore_directory)
 
   if len(loaded_keyids) == 0:
@@ -1036,16 +1052,21 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
   load_key = tuf.repo.keystore.load_keystore_from_keyfiles
   
   # Get the parent role.  We need to modify the parent role's metadata file.
-  logger.info('Listing "targets" and all available delegated roles.')
+  message = 'Listing "targets" and all available delegated roles.'
+  logger.info(message)
+  print(message)
   for section in targets_roles.keys():
     logger.info(section)
+    print(section)
   parent_role = None
   # Retrieve the parent role from the user.
   for attempt in range(MAX_INPUT_ATTEMPTS):
     prompt = '\nChoose and enter the parent role\'s full name: '
     parent_role = _prompt(prompt, str)
     if parent_role not in targets_roles:
-      logger.info('Invalid role name entered')
+      message = 'Invalid role name entered'
+      logger.info(message)
+      print(message)
       parent_role = None
       continue
     else:
@@ -1065,7 +1086,9 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
       password = _get_password(prompt)
       loaded_keyid = load_key(keystore_directory, [keyid], [password])
       if keyid not in loaded_keyid:
-        logger.info('The keyid could not be loaded.')
+        message = 'The keyid could not be loaded.'
+        logger.info(message)
+        print(message)
         continue
       parent_keyids.append(loaded_keyid[0])
       break
@@ -1096,7 +1119,9 @@ def _get_delegated_role(keystore_directory, metadata_directory):
   _list_keyids(keystore_directory, metadata_directory)
 
   # Retrieve the delegated role\'s keyids from the user.
-  logger.info('The keyid of the delegated role must be loaded.')
+  message = 'The keyid of the delegated role must be loaded.'
+  logger.info(message)
+  print(message)
   delegated_keyids = _get_keyids(keystore_directory)
 
   # Ensure at least one delegated key was loaded.
@@ -1135,8 +1160,9 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
       target_path = os.path.join(delegated_path, filename)
       delegated_paths.append(target_path)
   message = 'The target paths for '+repr(delegated_role)+': '+\
-    repr(delegated_paths)                                                     
+    repr(delegated_paths)
   logger.info(message)
+  print(message)
 
   # Create, sign, and write the delegated role's metadata file.
   # The first time a parent role creates a delegation, a directory
