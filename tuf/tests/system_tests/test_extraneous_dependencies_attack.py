@@ -12,12 +12,10 @@
   See LICENSE for licensing information.
 
 <Purpose>
+  Simulate an extraneous dependencies attack.
 
-<Plan>
-  1) Create a delegation role.
-  2) Make sure a client is able to download changes made by a delegation role.
-  3) Make sure a client is unable to download changes made by a delegation to
-     to parts of repository that he has no authority over.
+  In an extraneous dependencies attack, attacker is able to cause clients to
+  download software dependencies that are not the intended dependencies.
 
 """
 
@@ -71,6 +69,7 @@ def test_extraneous_dependencies_attack():
 
 
     def _make_delegation(rolename):
+
       # Indicate which file client downloads.
       rel_filepath = os.path.relpath(roles[rolename]['filepath'], reg_repo)
       roles[rolename]['target_path'] = os.path.join(targets_dir, rel_filepath)
@@ -111,25 +110,13 @@ def test_extraneous_dependencies_attack():
     _make_delegation('role1')
     _make_delegation('role2')
 
-    # The update should contain 'Test NOT A'.
-    downloaded_content = \
-      util_test_tools.read_file_content(roles['role1']['dest_path'])
-    msg = 'OUCH 1'
-    if 'Test A' != downloaded_content:
-      print msg
 
-    downloaded_content = \
-      util_test_tools.read_file_content(roles['role2']['dest_path'])
-    msg = 'OUCH 1'
-    if 'Test B' != downloaded_content:
-      print msg
-
-
+    # The attack.
     # Modify a target that was delegated to 'role2'.
     util_test_tools.modify_file_at_repository(roles['role2']['target_path'], 
                                               'Test NOT B')
 
-    # Load the keystore before you rebuild the metadata.
+    # Load the keystore before rebuilding the metadata.
     tuf.repo.keystore.load_keystore_from_keyfiles(keystore_dir,
                                                   roles['role1']['keyid'],
                                                   roles['role1']['password'])
@@ -143,7 +130,7 @@ def test_extraneous_dependencies_attack():
     # Update release and timestamp metadata.
     util_test_tools.make_release_meta(root_repo)
     util_test_tools.make_timestamp_meta(root_repo)
-    
+
 
     # Perform another client download.
     try:
@@ -153,6 +140,7 @@ def test_extraneous_dependencies_attack():
 
 
   finally:  
+    server_proc.kill()
     util_test_tools.cleanup(root_repo, server_proc)
 
 
@@ -160,4 +148,6 @@ def test_extraneous_dependencies_attack():
 try:
   test_extraneous_dependencies_attack()
 except tuf.MetadataNotAvailableError, error:
-  print error
+  print str(error)+'\n'
+else:
+  print 'Extraneous Dependencies Attack Succeeded!\n'
