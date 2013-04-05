@@ -1052,12 +1052,6 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
   load_key = tuf.repo.keystore.load_keystore_from_keyfiles
   
   # Get the parent role.  We need to modify the parent role's metadata file.
-  message = 'Listing "targets" and all available delegated roles.'
-  logger.info(message)
-  print(message)
-  for section in targets_roles.keys():
-    logger.info(section)
-    print(section)
   parent_role = None
   # Retrieve the parent role from the user.
   for attempt in range(MAX_INPUT_ATTEMPTS):
@@ -1113,10 +1107,6 @@ def _get_delegated_role(keystore_directory, metadata_directory):
   
   # Retrieve the delegated rolename from the user (e.g., 'role1').
   delegated_role = _prompt('\nEnter the delegated role\'s name: ', str)
-
-  # List the keyids available in the keystore.  The user will next
-  # identify the keyids for the new delegated role.
-  _list_keyids(keystore_directory, metadata_directory)
 
   # Retrieve the delegated role\'s keyids from the user.
   message = 'The keyid of the delegated role must be loaded.'
