@@ -208,7 +208,8 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
     for password in passwords:
       try:
         json_data = _decrypt(raw_contents, password)
-      except tuf.CryptoError:
+      except:
+        logger.warn(repr(full_filepath)+' contains an invalid key.')
         continue
      
       try: 
