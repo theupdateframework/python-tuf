@@ -190,61 +190,58 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
 
   # Make sure the directory exists.
   if not os.path.exists(directory_name):
-    logger.info('...no such directory.  Keystore cannot be loaded.')
-    return 
-
-  # Get the list of filenames with a '.key' extension from 'directory_name'.
-  keypaths = []
-  for filename in os.listdir(directory_name):
-    if filename.endswith('.key'):
-      keypaths.append(filename) 
-
-  # Decrypt the keys we can from those stored in 'keypaths'.
-  for keypath in keypaths:
-    full_filepath = os.path.join(directory_name, keypath)
-    raw_contents = open(full_filepath, 'rb').read()
-
-    # Try to decrypt the file using one of the passwords in 'passwords'.
-    for password in passwords:
+    logger.warn('...no such directory.  Keystore cannot be loaded.')
+  else:
+    # Decrypt the keys we can from those stored in 'keyids'.
+    for keyid in keyids:
       try:
-        json_data = _decrypt(raw_contents, password)
+        keyfilename = keyid+'.key'
+        full_filepath = os.path.join(directory_name, keyfilename)
+        raw_contents = open(full_filepath, 'rb').read()
       except:
-        logger.warn(repr(full_filepath)+' contains an invalid key.')
-        continue
-     
-      try: 
-        keydata = tuf.util.load_json_string(json_data)
-      except ValueError:
-        # 'keydata' could not be decoded.  This will be the case
-        # if the encrypted file could not be decrypted (e.g.,
-        # invalid password).
-        continue
-
-      # Create the key based on its key type.  RSA keys currently
-      # supported.
-      if keydata['keytype'] == 'rsa':
-        # 'keydata' is stored in KEY_SCHEMA format.  Call
-        # create_from_metadata_format() to get the key in RSAKEY_SCHEMA
-        # format, which is the format expected by 'add_rsakey()'.
-        rsa_key = tuf.rsa_key.create_from_metadata_format(keydata)
-
-        # Ensure the keyid for 'rsa_key' is one of the keys specified in
-        # 'keyids'.  If not, do not load the key.
-        if rsa_key['keyid'] not in keyids:
-          continue
-        
-        # Ensure the '.key' extension is removed (keypath[:-4]), as we only
-        # need the basefilename containing the full keyid.
-        try: 
-          add_rsakey(rsa_key, password, keyid=keypath[:-4])
-          logger.info('Loaded key: '+rsa_key['keyid'])
-        except tuf.KeyAlreadyExistsError, e:
-          logger.info('Key already loaded: '+rsa_key['keyid'])
-        loaded_keys.append(rsa_key['keyid'])
-        continue
+        logger.warn('Could not find key '+repr(full_filepath)+'!')
       else:
-        logger.warn(repr(full_filepath)+' contains an invalid key type.')
-        continue
+        # Try to decrypt the file using one of the passwords in 'passwords'.
+        for password in passwords:
+          try:
+            json_data = _decrypt(raw_contents, password)
+          except:
+            logger.warn(repr(full_filepath)+' contains an invalid key.')
+            continue
+
+          try:
+            keydata = tuf.util.load_json_string(json_data)
+          except ValueError:
+            # 'keydata' could not be decoded.  This will be the case
+            # if the encrypted file could not be decrypted (e.g.,
+            # invalid password).
+            continue
+
+          # Create the key based on its key type.  RSA keys currently
+          # supported.
+          if keydata['keytype'] == 'rsa':
+            # 'keydata' is stored in KEY_SCHEMA format.  Call
+            # create_from_metadata_format() to get the key in RSAKEY_SCHEMA
+            # format, which is the format expected by 'add_rsakey()'.
+            rsa_key = tuf.rsa_key.create_from_metadata_format(keydata)
+
+            # Ensure the keyid for 'rsa_key' is one of the keys specified in
+            # 'keyids'.  If not, do not load the key.
+            if rsa_key['keyid'] not in keyids:
+              continue
+
+            # Ensure the '.key' extension is removed, as we only
+            # need the basefilename containing the full keyid.
+            try:
+              add_rsakey(rsa_key, password, keyid=keyid)
+              logger.info('Loaded key: '+rsa_key['keyid'])
+            except tuf.KeyAlreadyExistsError, e:
+              logger.info('Key already loaded: '+rsa_key['keyid'])
+            loaded_keys.append(rsa_key['keyid'])
+            continue
+          else:
+            logger.warn(repr(full_filepath)+' contains an invalid key type.')
+            continue
 
   logger.info('Done.')
   return loaded_keys
