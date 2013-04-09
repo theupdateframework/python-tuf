@@ -277,7 +277,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
   def test_B4_import_json(self):
-    self.assertTrue('json' or 'simplejson' in sys.modules)
+    self.assertTrue('json' in sys.modules)
 
 
 
