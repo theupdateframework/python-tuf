@@ -69,7 +69,6 @@ setup(
   url='https://www.updateframework.com',
   packages=[
     'evpy',
-    'simplejson',
     'tuf',
     'tuf.client',
     'tuf.compatibility',

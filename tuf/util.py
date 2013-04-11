@@ -447,73 +447,36 @@ _json_module = None
 def import_json():
   """
   <Purpose>
-    Tries to import json module.
+    Tries to import json module. We used to fall back to the simplejson module,
+    but we have dropped support for that module. We are keeping this interface
+    intact for backwards compatibility.
 
   <Arguments>
     None.
 
   <Exceptions>
-    ImportError: on failure to import the json or simplejson modules.
+    ImportError: on failure to import the json module.
 
   <Side Effects>
     None.
 
   <Return>
-    json/simplejson module
+    json module
 
   """
 
   global _json_module
+
   if _json_module is not None:
     return _json_module
-
-  for name in [ 'json', 'simplejson' ]:
+  else:
     try:
-      module = __import__(name)
+      module = __import__('json')
     except ImportError:
-      continue
-    if not hasattr(module, 'dumps'):
-      # Some versions of Ubuntu have a module called 'json' that is
-      # not a recognizable simplejson module.
-      if name == 'json':
-        logger.warn('Your operating system has a nonfunctional json '
-                    'module.  That is going to break any programs that '
-                    'use the real json module in Python 2.6.  Trying '
-                    'simplejson instead.')
-      continue
-
-    # Some old versions of simplejson escape / as \/ in a misguided and
-    # inadequate attempt to fix XSS attacks.  Make them not do that.  This
-    # code is not guaranteed to work on all broken versions of simplejson:
-    # it replaces an entry in the internal character-replacement
-    # dictionary so that '/' is translated to itself rather than to \/.
-    # We also need to make sure that ensure_ascii is False, so that we
-    # do not call the C-optimized string encoder in these broken versions,
-    # which we can't fix easily.  Both parts are a kludge.
-    try:
-      escape_dct = module.encoder.ESCAPE_DCT
-    except NameError:
-      pass
+      raise ImportError('Could not import the json module')
     else:
-      if escape_dct.has_key('/'):
-        escape_dct['/'] = '/'
-        save_dumps = module.dumps
-        save_dump = module.dump
-        def dumps(*k, **v):
-          v['ensure_ascii'] = False
-          return save_dumps(*k, **v)
-        def dump(*k, **v):
-          v['ensure_ascii'] = False
-          return save_dump(*k, **v)
-        module.dump = dump
-        module.dumps = dumps
-        logger.warn('Your operating system has an old broken '
-                    'simplejson module.  I tried to fix it for you.')
-
-    _json_module = module
-    return module
-
-  raise ImportError('Could not import a working json module')
+      _json_module = module
+      return module
 
 json = import_json()
 
