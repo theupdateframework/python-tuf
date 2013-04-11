@@ -519,7 +519,7 @@ class Updater(object):
         try:
           tuf.roledb.add_role(rolename, roleinfo)
         except tuf.RoleAlreadyExistsError, e:
-          pass
+          logger.warn('Role already exists: '+rolename)
         except (tuf.FormatError, tuf.InvalidNameError), e:
           logger.exception('Failed to add delegated role: '+rolename+'.')
 
@@ -658,7 +658,7 @@ class Updater(object):
       except (tuf.UnknownRoleError, tuf.FormatError, tuf.Error), e:
         message = 'Unable to verify '+repr(metadata_filename)+':'+str(e)
         logger.warn(message)
-        metedata_signable = None
+        metadata_signable = None
         continue
       if valid:
         logger.debug('Good signature on '+mirror_url+'.')
