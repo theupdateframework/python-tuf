@@ -657,21 +657,24 @@ class Updater(object):
         valid = tuf.sig.verify(metadata_signable, metadata_role)
       except (tuf.UnknownRoleError, tuf.FormatError, tuf.Error), e:
         message = 'Unable to verify '+repr(metadata_filename)+':'+str(e)
-        logger.warn(message)
+        logger.exception(message)
         metadata_signable = None
         continue
-      if valid:
-        logger.debug('Good signature on '+mirror_url+'.')
-        break
       else:
-        logger.warn('Bad signature on '+mirror_url+'.')
-        metadata_signable = None
-        continue
+        if valid:
+          logger.debug('Good signature on '+mirror_url+'.')
+          break
+        else:
+          logger.warn('Bad signature on '+mirror_url+'.')
+          metadata_signable = None
+          continue
     
     # Raise an exception if a valid metadata signable could not be downloaded
     # from any of the mirrors.
     if metadata_signable is None:
-      raise tuf.RepositoryError('Unable to update '+repr(metadata_filename)+'.')
+      message = 'Unable to update '+repr(metadata_filename)+'.'
+      logger.error(message)
+      raise tuf.RepositoryError(message)
 
     # Ensure the loaded 'metadata_signable' is properly formatted.
     try:
@@ -811,6 +814,7 @@ class Updater(object):
       gzip_path = metadata_filename + '.gz'
       if gzip_path in self.metadata['current'][referenced_metadata]['meta']:
         compression = 'gzip'
+
     try:
       self._update_metadata(metadata_role, compression=compression)
     except tuf.RepositoryError, e:
@@ -825,13 +829,13 @@ class Updater(object):
       self._delete_metadata(metadata_role)
       message = 'Metadata for '+repr(metadata_role)+' could not be updated: '
       raise tuf.MetadataNotAvailableError(message+str(e))
-
-    # We need to remove delegated roles because the delegated roles
-    # may not be trusted anymore.
-    if metadata_role == 'targets' or metadata_role.startswith('targets/'):
-      logger.debug('Removing delegated roles of '+repr(metadata_role)+'.')
-      tuf.roledb.remove_delegated_roles(metadata_role)
-      self._import_delegations(metadata_role)
+    else:
+      # We need to remove delegated roles because the delegated roles
+      # may not be trusted anymore.
+      if metadata_role == 'targets' or metadata_role.startswith('targets/'):
+        logger.debug('Removing delegated roles of '+repr(metadata_role)+'.')
+        tuf.roledb.remove_delegated_roles(metadata_role)
+        self._import_delegations(metadata_role)
 
 
 
