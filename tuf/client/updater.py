@@ -513,15 +513,15 @@ class Updater(object):
         logger.warn('Invalid key type for '+repr(keyid)+'.')
         continue
 
-      # Add the roles to the role database.
-      for rolename, roleinfo in roles_info.items():
-        logger.debug('Adding delegated role: '+repr(rolename)+'.')
-        try:
-          tuf.roledb.add_role(rolename, roleinfo)
-        except tuf.RoleAlreadyExistsError, e:
-          logger.warn('Role already exists: '+rolename)
-        except (tuf.FormatError, tuf.InvalidNameError), e:
-          logger.exception('Failed to add delegated role: '+rolename+'.')
+    # Add the roles to the role database.
+    for rolename, roleinfo in roles_info.items():
+      logger.debug('Adding delegated role: '+repr(rolename)+'.')
+      try:
+        tuf.roledb.add_role(rolename, roleinfo)
+      except tuf.RoleAlreadyExistsError, e:
+        logger.warn('Role already exists: '+rolename)
+      except (tuf.FormatError, tuf.InvalidNameError), e:
+        logger.exception('Failed to add delegated role: '+rolename+'.')
 
 
 
