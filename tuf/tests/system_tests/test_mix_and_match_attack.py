@@ -39,6 +39,7 @@ import shutil
 import urllib
 import tempfile
 
+import tuf
 import util_test_tools
 from tuf.interposition import urllib_tuf
 
@@ -146,7 +147,6 @@ def test_mix_and_match_attack(TUF=False):
     _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
 
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
-    print downloaded_content
 
     # Stage 3
     # -------
@@ -167,19 +167,20 @@ def test_mix_and_match_attack(TUF=False):
     shutil.copyfile(unpatched_file, filepath)
 
     # Client tries to downloads the newly patched file.
-    _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
+    try:
+      _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
+    except tuf.MetadataNotAvailableError:
+      pass
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
-    if ('B'*10) != downloaded_content:
-      print downloaded_content
+    if ('B'*11) != downloaded_content:
       raise MixAndMatchAttackAlert(ERROR_MSG)
 
 
   finally:
-  	pass
-    #util_test_tools.cleanup(root_repo, server_proc)
+    util_test_tools.cleanup(root_repo, server_proc)
 
 
 
