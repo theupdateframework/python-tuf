@@ -15,7 +15,11 @@
   Simulate a replay attack.  A simple client update vs. client update 
   implementing TUF.
 
-Note: The interposition provided by 'tuf.interposition' is used to intercept
+  In the replay attack an attacker is able to trick clients into installing
+  software that is older than that which the client previously knew to be
+  available.
+
+NOTE: The interposition provided by 'tuf.interposition' is used to intercept
 all calls made by urllib/urillib2 to certain hostname specified in 
 the interposition configuration file.  Look up interposition.py for more
 information and illustration of a sample contents of the interposition 
@@ -33,8 +37,8 @@ import os
 import shutil
 import urllib
 import tempfile
-import util_test_tools
 
+import util_test_tools
 from tuf.interposition import urllib_tuf
 
 
@@ -77,7 +81,7 @@ def test_replay_attack(TUF=False):
 
   """
 
-  ERROR_MSG = 'Replay Attack was Successful!\n'
+  ERROR_MSG = '\tReplay Attack was Successful!\n\n'
 
 
   try:
@@ -100,6 +104,8 @@ def test_replay_attack(TUF=False):
     shutil.copy(filepath, evil_dir)
 
     if TUF:
+      print 'TUF ...'
+
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
@@ -126,7 +132,7 @@ def test_replay_attack(TUF=False):
     util_test_tools.modify_file_at_repository(filepath, 'Test NOT A')
 
     # Updating tuf repository.  This will copy files from regular repository
-    # into tuf repository and refresh the metad 
+    # into tuf repository and refresh the metadata
     if TUF:
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
@@ -175,7 +181,6 @@ def test_replay_attack(TUF=False):
 
 try:
   test_replay_attack(TUF=False)
-
 except ReplayAttackAlert, error:
   print error
 
@@ -183,6 +188,5 @@ except ReplayAttackAlert, error:
 
 try:
   test_replay_attack(TUF=True)
-
 except ReplayAttackAlert, error:
   print error
