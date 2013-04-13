@@ -581,7 +581,7 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, compression=None):
+  def _update_metadata(self, metadata_role, fileinfo=None, compression=None):
     """
     <Purpose>
       Download, verify, and 'install' the metadata belonging to 'metadata_role'.
@@ -595,6 +595,11 @@ class Updater(object):
         The name of the metadata. This is a role name and should not end
         in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
       
+      fileinfo:
+        A dictionary containing length and hashes of the metadata file.
+        Ex: {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
+             "length": 1340}
+
       compression:
         A string designating the compression type of 'metadata_role'.
         The 'release' metadata file may be optionally downloaded and stored in
@@ -631,6 +636,15 @@ class Updater(object):
     # Reference to the 'download_url_to_tempfileobj' function.
     download_file = tuf.download.download_url_to_tempfileobj
 
+    # Extract file length and file hashes.  They will be passed as arguments
+    # to 'download_file' function.
+    if fileinfo is not None:
+      file_length=fileinfo['length']
+      file_hashes=fileinfo['hashes']
+    else:
+      file_length=None
+      file_hashes=None
+
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
     # otherwise log a warning and try the next mirror.  'metadata_file_object'
@@ -642,7 +656,8 @@ class Updater(object):
     metadata_signable = None
     for mirror_url in get_mirrors('meta', metadata_filename, self.mirrors):
       try:
-        metadata_file_object = download_file(mirror_url)
+        metadata_file_object = download_file(mirror_url, file_hashes, 
+                                             file_length)
       except tuf.DownloadError, e:
         logger.warn('Download failed from '+mirror_url+'.')
         continue
@@ -816,7 +831,8 @@ class Updater(object):
         compression = 'gzip'
 
     try:
-      self._update_metadata(metadata_role, compression=compression)
+      self._update_metadata(metadata_role, fileinfo=new_fileinfo,
+                            compression=compression)
     except tuf.RepositoryError, e:
       # The current metadata we have is not current but we couldn't
       # get new metadata. We shouldn't use the old metadata anymore.
