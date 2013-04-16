@@ -35,8 +35,14 @@ from tuf.interposition import urllib_tuf
 util_test_tools.disable_logging()
 
 
+class ExtraneousDependenciesAttackAlert(Exception):
+  pass
+
+
 
 def test_extraneous_dependencies_attack():
+
+  ERROR_MSG = '\tExtraneous Dependencies Attack Succeeded!\n\n'
 
   try:
 
@@ -111,43 +117,66 @@ def test_extraneous_dependencies_attack():
     _make_delegation('role2')
 
 
-    # The attack.
+    # The attacks.
+    
+    def _write_rogue_metadata():
+      # Load the keystore before rebuilding the metadata.
+      tuf.repo.keystore.load_keystore_from_keyfiles(keystore_dir,
+                                                  roles['role1']['keyid'],
+                                                  roles['role1']['password'])
+
+      # Rebuild the delegation role metadata.
+      signerlib.build_delegated_role_file(roles['role2']['targets_dir'], 
+                                          roles['role1']['keyid'], metadata_dir,
+                                          roles['role1']['metadata_dir'],
+                                          'role1.txt')
+
+     # Update release and timestamp metadata.
+      util_test_tools.make_release_meta(root_repo)
+      util_test_tools.make_timestamp_meta(root_repo)
+
+
     # Modify a target that was delegated to 'role2'.
     util_test_tools.modify_file_at_repository(roles['role2']['target_path'], 
                                               'Test NOT B')
 
-    # Load the keystore before rebuilding the metadata.
-    tuf.repo.keystore.load_keystore_from_keyfiles(keystore_dir,
-                                                  roles['role1']['keyid'],
-                                                  roles['role1']['password'])
-
-    # Rebuild the delegation role metadata.
-    signerlib.build_delegated_role_file(roles['role2']['targets_dir'], 
-                                        roles['role1']['keyid'], metadata_dir,
-                                        roles['role1']['metadata_dir'],
-                                        'role1.txt')
-
-    # Update release and timestamp metadata.
-    util_test_tools.make_release_meta(root_repo)
-    util_test_tools.make_timestamp_meta(root_repo)
-
+    # Update rogue delegatee metadata.
+    _write_rogue_metadata()
 
     # Perform another client download.
     try:
       urllib_tuf.urlretrieve(roles['role2']['url'], roles['role2']['dest_path'])
     except tuf.MetadataNotAvailableError, e:
-      raise
+      pass
+    else:
+      raise ExtraneousDependenciesAttackAlert(ERROR_MSG)
 
 
-  finally:  
+    # Add a target file to the directory delegated to 'role2' but not 'role1'.
+    util_test_tools.add_file_to_repository(roles['role2']['targets_dir'], 'AAAA')
+
+    # Update rogue delegatee metadata.
+    _write_rogue_metadata()
+
+    # Perform another client download.
+    try:
+      urllib_tuf.urlretrieve(roles['role2']['url'], roles['role2']['dest_path'])
+    except tuf.MetadataNotAvailableError, e:
+      pass
+    else:
+      raise ExtraneousDependenciesAttackAlert(ERROR_MSG)
+
+
+
+  finally:
     server_proc.kill()
-    util_test_tools.cleanup(root_repo, server_proc)
+    #util_test_tools.cleanup(root_repo, server_proc)
+
+
 
 
 
 try:
   test_extraneous_dependencies_attack()
-except tuf.MetadataNotAvailableError, error:
-  print str(error)+'\n'
-else:
-  print 'Extraneous Dependencies Attack Succeeded!\n'
+except ExtraneousDependenciesAttackAlert, error:
+  print 'error'

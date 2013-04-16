@@ -1,8 +1,32 @@
+"""
+<Program Name>
+  slow_retrieval_server.py
+
+<Author>
+  Konstantin Andrianov
+
+<Started>
+  March 13, 2012
+
+<Copyright>
+  See LICENSE for licensing information.
+
+<Purpose>
+  Server that throttles data by sending one byte at a time 
+  (specified time interval 'DELAY').  The server is used in
+  test_slow_retrieval_attack.py.
+
+"""
+
 import os
 import sys
 import time
 import random
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+
+
+DELAY = 1
+
 
 
 # HTTP request handler.
@@ -22,8 +46,7 @@ class Handler(BaseHTTPRequestHandler):
 
       # Throttle the file by sending a character every few seconds.
       for i in range(len(data)):
-        print i
-        time.sleep(1)
+        time.sleep(DELAY)
         self.wfile.write(data[i])
 
       return
@@ -42,15 +65,15 @@ def get_random_port():
 def run(port):
   server_address = ('localhost', port)
   httpd = HTTPServer(server_address, Handler)
-  print('Server is active...')
+  print('Slow server is active on port: '+str(port)+' ...')
   httpd.handle_request()
-  
+
 
 
 if __name__ == '__main__':
-    if sys.argv[1]:
-      port = int(sys.argv[1])
-    else:
-      port = get_random_port()
-    print 'Port: '+str(port)
-    run(port)
+  if len(sys.argv) > 1:
+    port = int(sys.argv[1])
+  else:
+    port = get_random_port()
+
+  run(port)

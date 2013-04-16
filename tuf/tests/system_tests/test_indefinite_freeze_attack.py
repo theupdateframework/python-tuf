@@ -149,6 +149,7 @@ try:
 except IndefiniteFreezeAttackAlert, error:
   print error
 
+
 try:
   test_indefinite_freeze_attack(TUF=True)
 except IndefiniteFreezeAttackAlert, error:
