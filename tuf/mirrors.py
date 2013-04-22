@@ -105,7 +105,9 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
 
     # urllib.quote(string) replaces special characters in string using the %xx
     # escape.  This is done to avoid parsing issues of the URL on the server
-    # side.
+    # side. Do *NOT* pass URLs with Unicode characters without first encoding
+    # the URL as UTF-8. We need a long-term solution with #61.
+    # http://bugs.python.org/issue1712522
     file_path = urllib.quote(file_path)
     url = base+'/'+file_path
     list_of_mirrors.append(url)

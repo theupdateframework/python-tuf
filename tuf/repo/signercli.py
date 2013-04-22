@@ -1107,6 +1107,7 @@ def _get_delegated_role(keystore_directory, metadata_directory):
   
   # Retrieve the delegated rolename from the user (e.g., 'role1').
   delegated_role = _prompt('\nEnter the delegated role\'s name: ', str)
+  delegated_role = unicode(delegated_role, encoding="utf-8")
 
   # Retrieve the delegated role\'s keyids from the user.
   message = 'The keyid of the delegated role must be loaded.'

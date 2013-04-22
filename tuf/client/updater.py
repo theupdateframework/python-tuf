@@ -654,7 +654,7 @@ class Updater(object):
     # 'tuf.formats.SIGNABLE_SCHEMA'.
     metadata_file_object = None
     metadata_signable = None
-    for mirror_url in get_mirrors('meta', metadata_filename, self.mirrors):
+    for mirror_url in get_mirrors('meta', metadata_filename.encode("utf-8"), self.mirrors):
       try:
         metadata_file_object = download_file(mirror_url, file_hashes, 
                                              file_length)
@@ -671,7 +671,11 @@ class Updater(object):
       try:
         valid = tuf.sig.verify(metadata_signable, metadata_role)
       except (tuf.UnknownRoleError, tuf.FormatError, tuf.Error), e:
-        message = 'Unable to verify '+repr(metadata_filename)+':'+str(e)
+        # FIXME: Exception.message is deprecated in 2.6, and gone in 3.0,
+        # but this is a workaround for Unicode messages. We need a long-term
+        # solution with #61.
+        # http://bugs.python.org/issue2517
+        message = 'Unable to verify '+metadata_filename+':'+e.message.encode("utf-8")
         logger.exception(message)
         metadata_signable = None
         continue
