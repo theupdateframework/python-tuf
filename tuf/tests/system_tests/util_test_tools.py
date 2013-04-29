@@ -152,7 +152,7 @@ def disable_logging():
   logging.disable(logging.CRITICAL)
 
 
-
+PASSWD = 'test'
 
 
 def init_repo(tuf=False, port=None):
@@ -185,7 +185,8 @@ def init_repo(tuf=False, port=None):
 
   keyids = None
   if tuf:
-    keyids = init_tuf(root_repo, url, port)
+    keyids = init_tuf(root_repo)
+    create_interposition_config(root_repo, url)
 
   return root_repo, url, server_proc, keyids
 
@@ -193,7 +194,7 @@ def init_repo(tuf=False, port=None):
 
 
 
-def cleanup(root_repo, server_process):
+def cleanup(root_repo, server_process=None):
   if server_process is not None:
     if server_process.returncode is None:
       server_process.kill()
@@ -270,7 +271,7 @@ def read_file_content(filepath):
 
 
 
-def init_tuf(root_repo, url, port):
+def init_tuf(root_repo):
   """
   <Purpose>
     Setup TUF directory structure and populated it with TUF metadata and 
@@ -278,7 +279,6 @@ def init_tuf(root_repo, url, port):
 
   """ 
 
-  passwd = 'test'
   threshold = 1
 
   # Setup TUF-repo directory structure.
@@ -302,7 +302,7 @@ def init_tuf(root_repo, url, port):
   os.makedirs(tuf_client_metadata_dir)
 
   # Generate at least one rsa key.
-  key = signerlib.generate_and_save_rsa_key(keystore_dir, passwd)
+  key = signerlib.generate_and_save_rsa_key(keystore_dir, PASSWD)
   keyids = [key['keyid']]
 
   # Set role info.
@@ -340,24 +340,37 @@ def init_tuf(root_repo, url, port):
   shutil.copytree(metadata_dir, previous_dir)
 
   # The repository is now setup!
+  return keyids
+
+
+
+
+
+def create_interposition_config(root_repo, url):
+  """
+  <Purpose>
+    Create a configuration file for tuf interposition.
+    Usage:
+       from tuf.interposition import urllib_tuf 
+       (urllib_tuf replaces urllib module)
+       urllib_tuf.urlretrieve(url, filename)
+
+  """ 
+
+  tuf_repo = os.path.join(root_repo, 'tuf_repo')
+  tuf_client = os.path.join(root_repo, 'tuf_client')
 
   # Here is a mirrors dictionary that will allow a client to seek out
   # places to download the metadata and targets from.
   tuf_repo_relpath = os.path.basename(tuf_repo)
   tuf_url = url+tuf_repo_relpath
-  mirrors = {'mirror1': {'url_prefix': tuf_url,
-                         'metadata_path': 'metadata',
-                         'targets_path': 'targets',
-                         'confined_target_dirs': ['']}}
 
   # Adjusting configuration file (tuf.conf.py).
   tuf.conf.repository_directory = tuf_client
 
   # In order to implement interposition we need to have a config file with
   # the following dictionary JSON-serialized.
-  # tuf_url: http://localhost:port/root_repo/tuf_repo/
   hostname = 'localhost:9999'
-
   interposition_dict = {"configurations":
                           {hostname: 
                             {"repository_directory": tuf_client+'/',
@@ -375,8 +388,6 @@ def init_tuf(root_repo, url, port):
     tuf.util.json.dump(interposition_dict, fileobj)
 
   tuf.interposition.configure(filename=interpose_json)
-
-  return keyids
 
 
 
@@ -485,7 +496,7 @@ def _make_role_metadata_wrapper(root_repo, func):
   conf_path = os.path.join(metadata_dir, 'config.cfg')
 
   _get_metadata_directory(metadata_dir)
-  _get_password('test')
+  _get_password(PASSWD)
 
   if func.__name__ == 'make_targets_metadata':
     shutil.rmtree(targets_dir)
@@ -555,7 +566,7 @@ def create_delegation(tuf_repo, delegated_targets_path, keyid, keyid_password,
     if msg.endswith('('+_keyid+'): '):
       return keyid_password
     else:
-      return 'test'  # password for targets' keyid.
+      return PASSWD  # password for targets' keyid.
 
   #  Patch signercli._get_password().
   signercli._get_password = _mock_get_password
