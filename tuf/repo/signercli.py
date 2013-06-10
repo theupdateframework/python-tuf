@@ -1006,6 +1006,18 @@ def make_delegation(keystore_directory):
   # Verify 'delegated_targets_directory'.
   delegated_targets_directory = _check_directory(delegated_targets_directory)
 
+  # Recursively walk the delegated targets directory?
+  recursive_walk = None
+  while recursive_walk is None:
+    recursive_walk = \
+      _prompt("Recursively walk the given directory? (Y)es/(N)o: ", str)
+    if recursive_walk == 'Y':
+      recursive_walk = True
+    elif recursive_walk == 'N':
+      recursive_walk = False
+    else:
+      print("Sorry, I could not understand that; please try again.")
+
   # Get all the target roles and their respective keyids.
   # These keyids will let the user know which roles are currently known.
   # signerlib.get_target_keyids() returns a dictionary that looks something
@@ -1027,7 +1039,9 @@ def make_delegation(keystore_directory):
   delegated_paths = _make_delegated_metadata(metadata_directory,
                                              delegated_targets_directory,
                                              parent_role, delegated_role,
-                                             delegated_keyids)
+                                             delegated_keyids,
+                                             recursive_walk=recursive_walk,
+                                             followlinks=True)
 
   # Update the parent role's metadata file.  The parent role's delegation
   # field must be updated with the newly created delegated role.
@@ -1127,7 +1141,8 @@ def _get_delegated_role(keystore_directory, metadata_directory):
 
 
 def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
-                             parent_role, delegated_role, delegated_keyids):
+                             parent_role, delegated_role, delegated_keyids,
+                             recursive_walk=False, followlinks=False):
   """
     Create, sign, and write the metadata file for the newly added delegated
     role.  Determine the delegated paths for the target files found in
@@ -1139,19 +1154,29 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
 
   # Retrieve the file paths for the delegated targets.
   delegated_paths = []
-  for filename in os.listdir(delegated_targets_directory):
-    full_path = os.path.join(delegated_targets_directory, filename)
-    if os.path.isfile(full_path):
-      # The target paths need to be relative to the repository's targets
-      # directory (e.g., 'targets/role1/target_file.gif').
-      # [len(repository_directory)+1:] strips the repository path, including
-      # its trailing path separator.
-      repository_directory, junk = os.path.split(metadata_directory)
-      delegated_path = delegated_targets_directory[len(repository_directory)+1:]
-      target_path = os.path.join(delegated_path, filename)
+
+  # The target paths need to be relative to the repository's targets
+  # directory (e.g., 'targets/role1/target_file.gif').
+  # [len(repository_directory)+1:] strips the repository path, including
+  # its trailing path separator.
+  repository_directory, junk = os.path.split(metadata_directory)
+  delegated_path = delegated_targets_directory[len(repository_directory)+1:]
+
+  for dirpath, dirnames, filenames in os.walk(delegated_targets_directory,
+                                              followlinks=followlinks):
+    for filename in filenames:
+      target_path = os.path.join(dirpath, filename)
+      target_path = os.path.join(delegated_path, target_path)
+      logging.debug(target_path)
       delegated_paths.append(target_path)
-  message = 'The target paths for '+repr(delegated_role)+': '+\
-    repr(delegated_paths)
+
+    # Prune the subdirectories to walk right now if we do not wish to
+    # recursively walk the delegated targets directory.
+    if recursive_walk is False:
+      del dirnames[:]
+
+  message = 'There are '+str(len(delegated_paths))+' target paths for '+\
+            str(delegated_role)
   logger.info(message)
   print(message)
 
