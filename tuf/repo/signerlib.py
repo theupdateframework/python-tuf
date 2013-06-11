@@ -376,9 +376,9 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
   # Generate the file info for all the target files listed in 'target_files'.
   for target in target_files:
+    # Strip 'targets/' from from 'target' and keep the rest (e.g.,
+    # 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt'
     relative_targetpath = os.path.sep.join(target.split(os.path.sep)[1:])
-    # Ex: 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt'
-    # i.e. 'targets/' is removed from 'target'.
     target_path = os.path.join(repository_directory, target)
     if not os.path.exists(target_path):
       message = repr(target_path)+' could not be read.  Unable to generate '+\
@@ -1033,18 +1033,20 @@ def build_root_file(config_filepath, root_keyids, metadata_directory, version):
 
 
 
-def build_targets_file(targets_directory, targets_keyids, metadata_directory,
+def build_targets_file(target_paths, targets_keyids, metadata_directory,
                        version, expiration_date):
   """
   <Purpose>
     Build the targets metadata file using the signing keys in 'targets_keyids'.
     The generated metadata file is saved to 'metadata_directory'.  The target
-    files located in 'targets_directory' will be tracked by the built targets
+    files listed in 'target_paths' will be tracked by the built targets
     metadata.
 
   <Arguments>
-    targets_directory:
-      The directory (absolute path) containing all the target files.
+    target_paths:
+      The list of directories and/or filepaths specifying
+      the target files of the targets metadata.  For example:
+      ['targets/2.5/', 'targets/3.0/file.txt', 'targes/3.2/']
 
     targets_keyids:
       The list of keyids to be used as the signing keys for the targets file.
@@ -1075,26 +1077,41 @@ def build_targets_file(targets_directory, targets_keyids, metadata_directory,
 
   # Do the arguments have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(targets_directory)
+  tuf.formats.PATHS_SCHEMA.check_match(target_paths)
   tuf.formats.KEYIDS_SCHEMA.check_match(targets_keyids)
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
   
-  # Check if 'targets_directory' and 'metadata_directory' are valid.
-  targets_directory = check_directory(targets_directory)
+  # Check if 'metadata_directory' is valid.
   metadata_directory = check_directory(metadata_directory)
 
+  # The metadata directory is expected to live directly under
+  # the repository directory.  
   repository_directory, junk = os.path.split(metadata_directory)
   repository_directory_length = len(repository_directory)
 
-  # Get the list of targets.
+  # Retrieve the list of targets.  generate_targets_metadata() expects individual
+  # target paths relative to the targets directory on the repository.
   targets = []
-  for root, directories, files in os.walk(targets_directory):
-    for target_file in files:
-      # Note: '+1' in the line below is there to remove '/'.
-      filename = os.path.join(root, target_file)[repository_directory_length+1:]
+  
+  # Extract the filepaths and/or directories from the 'target_paths' list
+  # and append the individual target files to 'targets'.
+  for path in target_paths:
+    path = os.path.abspath(path)
+    if os.path.isfile(path):
+      # '+1' in the line below removes the leading '/'.
+      filename = path[repository_directory_length+1:]
       targets.append(filename)
+    elif os.path.isdir(path):
+      for root, directories, files in os.walk(path):
+        for target_file in files:
+          # '+1' in the line below removes the leading '/'.
+          filename = os.path.join(root, target_file)[repository_directory_length+1:]
+          targets.append(filename)
+    else:
+      # Invalid directory or file, so log a warning.
+      logger.warn('Skipping: '+repr(path))
 
   # Create the targets metadata object.
   targets_metadata = generate_targets_metadata(repository_directory, targets,

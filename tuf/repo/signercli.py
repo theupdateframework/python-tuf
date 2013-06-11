@@ -803,11 +803,10 @@ def make_targets_metadata(keystore_directory):
   keystore_directory = _check_directory(keystore_directory)
 
   # Retrieve the target files.
-  prompt_targets = '\nEnter the directory containing the target files: '
-  target_directory = _prompt(prompt_targets, str)
-
-  # Verify 'target_directory'.
-  target_directory = _check_directory(target_directory)
+  prompt_targets = '\nInput may be a directory, directories, or any '+\
+    'number of file paths.\nEnter the target files: '
+  targets_input = _prompt(prompt_targets, str)
+  targets = targets_input.split()
 
   # Retrieve the metadata directory and the 'targets' filename.
   try:
@@ -846,7 +845,7 @@ def make_targets_metadata(keystore_directory):
 
   try:
     # Create, sign, and write the "targets.txt" file.
-    tuf.repo.signerlib.build_targets_file(target_directory, targets_keyids,
+    tuf.repo.signerlib.build_targets_file(targets, targets_keyids,
                                        metadata_directory, version,
                                        expiration_date)
   except (tuf.FormatError, tuf.Error), e:
@@ -1093,16 +1092,23 @@ def make_delegation(keystore_directory):
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
 
-  # Get the delegated role's target directory, which should be located within
-  # the repository's targets directory.  We need this directory to generate the
-  # delegated role's target paths.
-  prompt = '\nThe directory entered below should be located within the '+\
-    'repository\'s targets directory.\nEnter the directory containing the '+\
-    'delegated role\'s target files: '
-  delegated_targets_directory = _prompt(prompt, str)
-
-  # Verify 'delegated_targets_directory'.
-  delegated_targets_directory = _check_directory(delegated_targets_directory)
+  # Get the delegated role's target paths, which should be located within
+  # the repository's targets directory.  We need these directory/file paths to
+  # generate the delegated role's metadata file.
+  prompt = '\nThe paths entered below should be located within the '+\
+    'repository\'s targets directory.\nEnter the directory, directories, or '+\
+    'any number of file paths containing the delegated role\'s target files: '
+  delegated_targets_input = _prompt(prompt, str)
+  delegated_targets_input = delegated_targets_input.split()
+  
+  # Verify the format of the delegated targets specified by the user.
+  # The paths in 'delegated_targets_input' will be verified in
+  # in the _make_delegated_metadata() call.
+  try:
+    tuf.formats.PATHS_SCHEMA.check_match(delegated_targets_input)
+  except (tuf.FormatError, tuf.Error), e:
+    message = str(e)+'\n'
+    raise tuf.RepositoryError(message)
 
   # Get all the target roles and their respective keyids.
   # These keyids will let the user know which roles are currently known.
@@ -1123,7 +1129,7 @@ def make_delegation(keystore_directory):
 
   # Create, sign, and write the delegated role's metadata file.
   delegated_paths = _make_delegated_metadata(metadata_directory,
-                                             delegated_targets_directory,
+                                             delegated_targets_input,
                                              parent_role, delegated_role,
                                              delegated_keyids)
 
@@ -1224,32 +1230,43 @@ def _get_delegated_role(keystore_directory, metadata_directory):
 
 
 
-def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
+def _make_delegated_metadata(metadata_directory, delegated_targets,
                              parent_role, delegated_role, delegated_keyids):
   """
     Create, sign, and write the metadata file for the newly added delegated
-    role.  Determine the delegated paths for the target files found in
-    'delegated_targets_directory' and the other information needed
-    to generate the targets metadata file for 'delegated_role'.  Return
-    the delegated paths to the caller.
+    role.  Determine the target files from the paths in 'delegated_targets'
+    and the other information needed to generate the targets metadata file for 
+    delegated_role'.  Return the delegated paths to the caller.
 
   """
 
-  # Retrieve the file paths for the delegated targets.
+  repository_directory, junk = os.path.split(metadata_directory)
+  
+  # Retrieve the file paths for the delegated targets.  Keep track of the valid
+  # paths in 'delegated_targets', which will be stored in the 'paths' entry
+  # of the parent's metadata.  Directories are preserved in the returned
+  # 'delegated_paths' list.
   delegated_paths = []
-  for filename in os.listdir(delegated_targets_directory):
-    full_path = os.path.join(delegated_targets_directory, filename)
-    if os.path.isfile(full_path):
+  delegated_filepaths = []
+  for path in delegated_targets:
+    path = os.path.abspath(path)
+    relative_path = path[len(repository_directory)+1:]
+    if os.path.isfile(path):
       # The target paths need to be relative to the repository's targets
       # directory (e.g., 'targets/role1/target_file.gif').
       # [len(repository_directory)+1:] strips the repository path, including
       # its trailing path separator.
-      repository_directory, junk = os.path.split(metadata_directory)
-      delegated_path = delegated_targets_directory[len(repository_directory)+1:]
-      target_path = os.path.join(delegated_path, filename)
-      delegated_paths.append(target_path)
+      delegated_filepaths.append(relative_path)
+      delegated_paths.append(relative_path)
+    elif os.path.isdir(path):
+      for entry in os.listdir(path):
+        relative_filepath = os.path.join(relative_path, entry)
+        if os.path.isfile(relative_filepath):
+          delegated_filepaths.append(relative_filepath)
+      # Add the relative path of 'path' to 'delegated_paths'.
+      delegated_paths.append(relative_path)
   message = 'The target paths for '+repr(delegated_role)+': '+\
-    repr(delegated_paths)                                                     
+    repr(delegated_filepaths)
   logger.info(message)
 
   # Create, sign, and write the delegated role's metadata file.
@@ -1273,7 +1290,7 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
     else:
       raise
 
-  # Prompt the user the metadata file's expiration date. 
+  # Prompt the user for the metadata file's expiration date. 
   try:
     expiration_date = _get_metadata_expiration()
   except tuf.Error, e:
@@ -1284,7 +1301,7 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
   metadata_filename = os.path.join(parent_directory, delegated_role_filename)
   repository_directory, junk = os.path.split(metadata_directory)
   generate_metadata = tuf.repo.signerlib.generate_targets_metadata
-  delegated_metadata = generate_metadata(repository_directory, delegated_paths,
+  delegated_metadata = generate_metadata(repository_directory, delegated_filepaths,
                                          1, expiration_date)
   _sign_and_write_metadata(delegated_metadata, delegated_keyids,
                            metadata_filename)

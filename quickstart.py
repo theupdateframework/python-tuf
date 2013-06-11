@@ -358,7 +358,7 @@ def build_repository(project_directory):
   # Generate the 'targets.txt' metadata file.
   targets_keyids = role_info['targets']['keyids']
   expiration_date = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
-  tuf.repo.signerlib.build_targets_file(targets_directory, targets_keyids,
+  tuf.repo.signerlib.build_targets_file([targets_directory], targets_keyids,
                                         metadata_directory, 1,
                                         expiration_date)
 

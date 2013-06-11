@@ -560,7 +560,7 @@ class TestSignerlib(unit_tbox):
 
     # TESTS
     #  Test: normal case.
-    targets_filepath = signerlib.build_targets_file(targets_dir,
+    targets_filepath = signerlib.build_targets_file([targets_dir],
                                                     targets_keyids, meta_dir,
                                                     version, expiration_date)
 
@@ -572,16 +572,14 @@ class TestSignerlib(unit_tbox):
     self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
 
     #  Test: various exceptions.
-    self.assertRaises(tuf.Error, signerlib.build_targets_file,
-        self.random_path(), targets_keyids, meta_dir, version, expiration_date)
     self.assertRaises(tuf.FormatError, signerlib.build_targets_file,
-        targets_dir, self.random_string(), meta_dir, version, expiration_date)
+        [targets_dir], self.random_string(), meta_dir, version, expiration_date)
     self.assertRaises((tuf.FormatError, tuf.Error), signerlib.build_targets_file,
-        targets_dir, targets_keyids, self.random_path(), version, expiration_date)
+        [targets_dir], targets_keyids, self.random_path(), version, expiration_date)
     self.assertRaises((tuf.FormatError, tuf.Error), signerlib.build_targets_file,
-        targets_dir, targets_keyids, meta_dir, self.random_string(), expiration_date)
+        [targets_dir], targets_keyids, meta_dir, self.random_string(), expiration_date)
     self.assertRaises((tuf.FormatError, tuf.Error), signerlib.build_targets_file,
-        targets_dir, targets_keyids, meta_dir, version, self.random_string())
+        [targets_dir], targets_keyids, meta_dir, version, self.random_string())
 
     # RESTORE
     tuf.repo.keystore.get_key = original_get_key
@@ -592,7 +590,7 @@ class TestSignerlib(unit_tbox):
   def test_6_generate_release_metadata(self):
     """
     test_6_generate_release_metadata() uses previously tested
-    singnerlib's build_root_file(), build_target_file()
+    singnerlib's build_root_file(), build_targets_file()
     and get_metadata_file_info.  In order to use generate_release_metadata()
     we need to have root.txt and targets.txt in the metadata directory,
     plus we need to have targets directory (with target files/directories).
@@ -814,7 +812,7 @@ class TestSignerlib(unit_tbox):
 
     # TESTS
     #  Test: normal case.
-    targets_filepath = signerlib.build_targets_file(targets_dir,
+    targets_filepath = signerlib.build_targets_file([targets_dir],
                                                     targets_keyids, meta_dir,
                                                     version, expiration_date)
 
@@ -871,7 +869,7 @@ class TestSignerlib(unit_tbox):
     junk, targets_keyids, repo_dir, target_files = \
         self._get_role_info('targets', directory=repo_dir)
     path_to_targets = os.path.join(repo_dir, 'targets')
-    signerlib.build_targets_file(path_to_targets, targets_keyids, meta_dir,
+    signerlib.build_targets_file([path_to_targets], targets_keyids, meta_dir,
                                  version, expiration_date)
     self.assertTrue(os.path.exists(os.path.join(meta_dir, 'root.txt')))
 

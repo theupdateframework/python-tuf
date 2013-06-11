@@ -84,6 +84,7 @@ def build_server_repository(server_repository_dir, targets_dir):
   # script.  The expiration date is set to 259200 seconds ahead of the current
   # time.  Set all the metadata versions numbers to 1.
   expiration_date = tuf.formats.format_time(time.time()+259200)
+  expiration_date = expiration_date[0:expiration_date.rfind(' UTC')] 
   version = 1
   
   server_metadata_dir = os.path.join(server_repository_dir, 'metadata')
@@ -114,8 +115,8 @@ def build_server_repository(server_repository_dir, targets_dir):
                             server_metadata_dir, version)
 
   #  Build targets file.
-  signerlib.build_targets_file(targets_dir, role_keyids['targets'],
-                            server_metadata_dir, version, expiration_date)
+  signerlib.build_targets_file([targets_dir], role_keyids['targets'],
+                            server_metadata_dir, version, expiration_date+' UTC')
 
   # MAKE DELEGATIONS.
   #  We will need to patch a few signercli prompts.
@@ -145,7 +146,7 @@ def build_server_repository(server_repository_dir, targets_dir):
 
   #  Mock method for signercli._prompt().
   def _mock_prompt(msg, junk):
-    if msg.startswith('\nThe directory entered'):
+    if msg.startswith('\nThe paths entered'):
       return delegated_targets_dir
     elif msg.startswith('\nChoose and enter the parent'):
       return parent_role
@@ -214,11 +215,11 @@ def build_server_repository(server_repository_dir, targets_dir):
 
   #  Build release file.
   signerlib.build_release_file(role_keyids['release'], server_metadata_dir,
-                               version, expiration_date)
+                               version, expiration_date+' UTC')
 
   #  Build timestamp file.
   signerlib.build_timestamp_file(role_keyids['timestamp'], server_metadata_dir,
-                                 version, expiration_date)
+                                 version, expiration_date+' UTC')
 
   keystore._keystore = {}
   keystore._key_passwords = {}

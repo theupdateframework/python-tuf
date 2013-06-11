@@ -893,13 +893,14 @@ class Updater(object):
     # to confirm 'metadata_role' contains valid targets.
     parent_role = tuf.roledb.get_parent_rolename(metadata_role)
 
-    # Iterate through the targets of 'metadata_role' and confirm
-    # these targets with the paths listed in the parent role.
+    # Loop through the targets of 'metadata_role' and confirm
+    # the targets, or their parent directory, exists in the role delegated paths
+    # of the parent role.
+    paths = self.metadata['current'][parent_role]['delegations'] \
+                         ['roles'][metadata_role]['paths']
     for target_filepath in metadata_object['targets'].keys():
-      if target_filepath not in self.metadata['current'][parent_role] \
-                                             ['delegations']['roles'] \
-                                             [metadata_role]['paths']:
-        
+      parent_directory, junk = os.path.split(target_filepath)
+      if target_filepath not in paths and parent_directory not in paths:
         message = 'Role '+repr(metadata_role)+' specifies target '+ \
                   target_filepath+' which is not an allowed path according '+ \
                   'to the delegations set by '+repr(parent_role)+'.'

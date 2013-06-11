@@ -108,7 +108,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
   #  make_role_metadata methods (e.g., tuf.signercli.make_root_metadata()).
   def make_metadata_mock_prompts(self, targ_dir, conf_path, expiration):
     def _mock_prompt(msg, junk):
-      if msg.startswith('\nEnter the directory containing the target'):
+      if msg.startswith('\nInput may be a directory, directories, or'):
         return targ_dir
       elif msg.startswith('\nEnter the configuration file path'):
         return conf_path
@@ -238,6 +238,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Creating root and target metadata requires an expiration date to be set.
     #  Expiration date set to expires 100 seconds from the current time.
     expiration_date = tuf.formats.format_time(time.time()+100)
+    expiration_date = expiration_date[0:expiration_date.rfind(' UTC')] 
     
     # The 'root.txt' and 'targets.txt' metadata files are
     # needed for _list_keyids() to determine the roles
@@ -576,6 +577,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Creating root and target metadata requires an expiration date to be set.
     #  Expiration date set to expires 100 seconds from the current time.
     expiration_date = tuf.formats.format_time(time.time()+100)
+    expiration_date = expiration_date[0:expiration_date.rfind(' UTC')] 
     
     #  Create keystore and repo directories.
     keystore_dir = self.create_temp_keystore_directory()
@@ -710,6 +712,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Creating root and target metadata requires an expiration date to be set.
     #  Expiration date set to expires 100 seconds from the current time.
     expiration_date = tuf.formats.format_time(time.time()+100)
+    expiration_date = expiration_date[0:expiration_date.rfind(' UTC')] 
     
     #  Create keystore and repo directories.
     keystore_dir = self.create_temp_keystore_directory()
@@ -876,7 +879,8 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Creating target metadata requires an expiration date to be set.
     #  Expiration date set to expires 100 seconds from the current time.
     expiration_date = tuf.formats.format_time(time.time()+100)
-    
+    expiration_date = expiration_date[0:expiration_date.rfind(' UTC')] 
+
     #  Create a temp repository and metadata directories.
     repo_dir = self.make_temp_directory()
     meta_dir = self.make_temp_directory(directory=repo_dir)
@@ -919,11 +923,13 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     keystore.clear_keystore()
 
     #  Supply a non-existing targets directory.
+    """
     self.make_metadata_mock_prompts(targ_dir=self.random_path(),
                                     conf_path=config_filepath,
                                     expiration=expiration_date)
     self.assertRaises(tuf.RepositoryError, signercli.make_targets_metadata,
                       keystore_dir)
+    """
 
     #  Restore the targets directory.
     self.make_metadata_mock_prompts(targ_dir=targets_dir,
@@ -991,6 +997,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Creating release metadata requires an expiration date to be set.
     #  Expiration date set to expires 100 seconds from the current time.
     expiration_date = tuf.formats.format_time(time.time()+100)
+    expiration_date = expiration_date[0:expiration_date.rfind(' UTC')] 
     
     #  In order to build release metadata file (release.txt),
     #  root and targets metadata files (root.txt, targets.txt)
@@ -1101,6 +1108,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Creating the top-level metadata requires an expiration date to be set.
     #  Expiration date set to expires 100 seconds from the current time.
     expiration_date = tuf.formats.format_time(time.time()+100)
+    expiration_date = expiration_date[0:expiration_date.rfind(' UTC')] 
     
     #  In order to build timestamp metadata file (timestamp.txt),
     #  root, targets and release metadata files (root.txt, targets.txt
@@ -1232,6 +1240,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Creating the top-level metadata requires an expiration date to be set.
     #  Expiration date set to expires 100 seconds from the current time.
     expiration_date = tuf.formats.format_time(time.time()+100)
+    expiration_date = expiration_date[0:expiration_date.rfind(' UTC')] 
     
     #  To test this method, an RSA key will be created with
     #  a password in addition to the existing RSA keys.
@@ -1353,6 +1362,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Creating the top-level metadata requires an expiration date to be set.
     #  Expiration date set to expires 100 seconds from the current time.
     expiration_date = tuf.formats.format_time(time.time()+100)
+    expiration_date = expiration_date[0:expiration_date.rfind(' UTC')] 
 
     #  Create a temp repository and metadata directories.
     repo_dir = self.make_temp_directory()
@@ -1410,7 +1420,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     #  Mock method for signercli._prompt().
     def _mock_prompt(msg, junk):
-      if msg.startswith('\nThe directory entered'):
+      if msg.startswith('\nThe paths entered'):
         return delegated_targets_dir
       elif msg.startswith('\nChoose and enter the parent'):
         return parent_role
