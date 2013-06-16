@@ -1160,15 +1160,13 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
   # [len(repository_directory)+1:] strips the repository path, including
   # its trailing path separator.
   repository_directory, junk = os.path.split(metadata_directory)
-  delegated_path = delegated_targets_directory[len(repository_directory)+1:]
 
   for dirpath, dirnames, filenames in os.walk(delegated_targets_directory,
                                               followlinks=followlinks):
     for filename in filenames:
-      target_path = os.path.join(dirpath, filename)
-      target_path = os.path.join(delegated_path, target_path)
-      logging.debug(target_path)
-      delegated_paths.append(target_path)
+      full_target_path = os.path.join(dirpath, filename)
+      relative_target_path = full_target_path[len(repository_directory)+1:]
+      delegated_paths.append(relative_target_path)
 
     # Prune the subdirectories to walk right now if we do not wish to
     # recursively walk the delegated targets directory.
