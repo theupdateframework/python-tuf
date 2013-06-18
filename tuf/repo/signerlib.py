@@ -359,9 +359,7 @@ def generate_targets_metadata(repository_directory, target_files):
   repository_directory = check_directory(repository_directory)
 
   # Generate the file info for all the target files listed in 'target_files'.
-  target_files_length = len(target_files)
-  for i in xrange(target_files_length):
-    target = target_files[i]
+  for target in target_files:
     relative_targetpath = os.path.sep.join(target.split(os.path.sep)[1:])
     # Ex: 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt'
     # i.e. 'targets/' is removed from 'target'.
