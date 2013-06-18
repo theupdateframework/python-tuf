@@ -577,14 +577,17 @@
    files under that directory.  The value of "/**" by itself therefore means
    all files.
 
-   We are currently investigating a few schemes to resolve conflicts between
-   delegated roles that share responsibility for identical target paths. One of
-   the simplest of schemes is for the client to prefer the metadata of the
-   delegated role which first describes the shared or conflicting target path
-   before any other delegated role. In order to accommodate this scheme, in
-   which the order of appearance of delegated roles is crucial, the "roles" key
-   in the DELEGATIONS object above should point to a list, instead of an
-   object, of delegated roles, like so:
+   We are currently investigating a few "priority tag" schemes to resolve
+   conflicts between delegated roles that share responsibility for overlapping
+   target paths. One of the simplest of such schemes is for the client to
+   consider metadata in order of appearance of delegations; we treat the order
+   of delegations such that the first delegation is trusted more than the
+   second one, the second delegation is trusted more than the third one, and so
+   on. The metadata of the first delegation will override that of the second delegation,
+   the metadata of the second delegation will override that of the third
+   delegation, and so on. In order to accommodate this scheme, the "roles" key
+   in the DELEGATIONS object above should point to an array, instead of a hash
+   table, of delegated roles, like so:
 
         "roles" : [{
             "role": ROLE,
@@ -593,12 +596,10 @@
             "paths" : [ PATHPATTERN, ... ]
         }, ... ]
 
-   A more robust conflict resolution scheme would be an implementation of
-   priority tags, in which some delegated roles are assigned different weights
-   of trust. Yet another scheme would have the clients prefer the delegated
-   role with the latest metadata for the conflicting target path. Similar ideas
-   were explored in the Stork package manager (University of Arizona Tech
-   Report 08-04)[https://isis.poly.edu/~jcappos/papers/cappos_stork_dissertation_08.pdf].
+   Another priority tag scheme would have the clients prefer the delegated role
+   with the latest metadata for a conflicting target path. Similar ideas were
+   explored in the Stork package manager (University of Arizona Tech Report
+       08-04)[https://isis.poly.edu/~jcappos/papers/cappos_stork_dissertation_08.pdf].
 
    The metadata files for delegated target roles has the same format as the
    top-level targets.txt metadata file.
