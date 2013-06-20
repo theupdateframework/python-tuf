@@ -1468,8 +1468,13 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     parent_role_file = os.path.join(meta_dir, parent_role+'.txt')
     signable = signerlib.read_metadata_file(parent_role_file)
     delegated_rolename = parent_role+'/'+delegated_role
-    threshold = signable['signed']['delegations']['roles']\
-                        [delegated_rolename]['threshold']
+
+    roles = signable['signed']['delegations']['roles']
+    role_index = signerlib.find_delegated_role(roles, delegated_rolename)
+    self.assertIsNotNone(role_index)
+    role = roles[role_index]
+
+    threshold = role['threshold']
     self.assertTrue(threshold == 2)
 
     # RESTORE

@@ -1148,10 +1148,10 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
                               delegation_role_name):
   """
   <Purpose>
-    Build the targets metadata file using the signing keys in 'targets_keyids'.
-    The generated metadata file is saved to 'metadata_directory'.  The target
-    files located in 'targets_directory' will be tracked by the built targets
-    metadata.
+    Build the targets metadata file using the signing keys in
+    'delegated_keyids'.  The generated metadata file is saved to
+    'metadata_directory'.  The target files located in 'targets_directory' will
+    be tracked by the built targets metadata.
 
   <Arguments>
     delegated_targets_directory:

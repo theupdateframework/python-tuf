@@ -1261,9 +1261,11 @@ def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids
 
   if role_index is None:
     # Append role to the end of the list of delegated roles.
+    logger.info('Appending role '+delegated_role+' to '+parent_role)
     roles.append(role_metadata)
   else:
     # Update role with the same name.
+    logger.info('Replacing role '+delegated_role+' in '+parent_role)
     roles[role_index] = role_metadata
 
   delegations['roles'] = roles
