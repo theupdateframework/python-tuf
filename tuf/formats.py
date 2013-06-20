@@ -272,7 +272,7 @@ RECEIVECONFIG_SCHEMA = SCHEMA.Object(
 ROLE_SCHEMA = SCHEMA.Object(
   object_name='role',
   keyids=SCHEMA.ListOf(KEYID_SCHEMA),
-  name=SCHEMA.Optional(NAME_SCHEMA),
+  name=SCHEMA.Optional(ROLENAME_SCHEMA),
   threshold=THRESHOLD_SCHEMA,
   paths=SCHEMA.Optional(SCHEMA.ListOf(RELPATH_SCHEMA)))
 
@@ -283,7 +283,7 @@ ROLEDICT_SCHEMA = SCHEMA.DictOf(
   value_schema=ROLE_SCHEMA)
 
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
-ROLELIST_SCHEMA = SCHEMA.ListOf(ROLENAME_SCHEMA)
+ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 
 # The root: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(
@@ -303,7 +303,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
   targets=FILEDICT_SCHEMA,
   delegations=SCHEMA.Optional(SCHEMA.Object(
     keys=KEYDICT_SCHEMA,
-    roles=ROLEDICT_SCHEMA)))
+    roles=ROLELIST_SCHEMA)))
 
 # A Release: indicates the latest versions of all metadata (except timestamp).
 RELEASE_SCHEMA = SCHEMA.Object(

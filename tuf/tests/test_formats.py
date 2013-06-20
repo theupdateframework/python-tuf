@@ -199,9 +199,9 @@ class TestFormats(unittest.TestCase):
          'delegations': {'keys': {'123abc': {'keytype':'rsa',
                                              'keyval': {'public': 'pubkey',
                                                         'private': 'privkey'}}},
-                         'roles': {'root': {'keyids': ['123abc'],
-                                            'threshold': 1,
-                                            'paths': ['path1/', 'path2']}}}}),
+                         'roles': [{'name': 'root', 'keyids': ['123abc'],
+                                    'threshold': 1,
+                                    'paths': ['path1/', 'path2']}]}}),
 
       'RELEASE_SCHEMA': (tuf.formats.RELEASE_SCHEMA,
         {'_type': 'Release',
@@ -365,9 +365,8 @@ class TestFormats(unittest.TestCase):
     delegations = {'keys': {'123abc': {'keytype':'rsa',
                                        'keyval': {'public': 'pubkey',
                                                   'private': 'privkey'}}},
-                   'roles': {'root': {'keyids': ['123abc'],
-                                      'threshold': 1,
-                                      'paths': ['path1/', 'path2']}}}
+                   'roles': [{'name': 'root', 'keyids': ['123abc'],
+                              'threshold': 1, 'paths': ['path1/', 'path2']}]}
 
     make_metadata = tuf.formats.TargetsFile.make_metadata
     from_metadata = tuf.formats.TargetsFile.from_metadata
