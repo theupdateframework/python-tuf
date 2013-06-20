@@ -1248,15 +1248,24 @@ def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids
   delegations['keys'] = keys
 
   # Update the 'roles' field.
-  roles = delegations.get('roles', {})
+  roles = delegations.get('roles', [])
   threshold = len(delegated_keyids)
   delegated_role = parent_role+'/'+delegated_role
   relative_paths = []
   for path in delegated_paths:
     relative_paths.append(os.path.sep.join(path.split(os.path.sep)[1:]))
-  roles[delegated_role] = tuf.formats.make_role_metadata(delegated_keyids,
-                                                         threshold,
-                                                         relative_paths)
+  role_metadata = tuf.formats.make_role_metadata(delegated_keyids, threshold,
+                                                 name=delegated_role,
+                                                 paths=relative_paths)
+  role_index = tuf.repo.signerlib.find_delegated_role(roles, delegated_role)
+
+  if role_index is None:
+    # Append role to the end of the list of delegated roles.
+    roles.append(role_metadata)
+  else:
+    # Update role with the same name.
+    roles[role_index] = role_metadata
+
   delegations['roles'] = roles
 
   # Update the larger metadata structure.
