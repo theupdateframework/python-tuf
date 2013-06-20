@@ -267,11 +267,12 @@ RECEIVECONFIG_SCHEMA = SCHEMA.Object(
     targets_directory=PATH_SCHEMA,
     backup_directory=PATH_SCHEMA)) 
 
-# Role object in {'keyids': [keydids..], 'threshold': 1, 'paths':[filepaths..]}
-# format.
+# Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
+# 'paths':[filepaths..]} # format.
 ROLE_SCHEMA = SCHEMA.Object(
   object_name='role',
   keyids=SCHEMA.ListOf(KEYID_SCHEMA),
+  name=SCHEMA.Optional(NAME_SCHEMA),
   threshold=THRESHOLD_SCHEMA,
   paths=SCHEMA.Optional(SCHEMA.ListOf(RELPATH_SCHEMA)))
 
@@ -280,6 +281,9 @@ ROLE_SCHEMA = SCHEMA.Object(
 ROLEDICT_SCHEMA = SCHEMA.DictOf(
   key_schema=ROLENAME_SCHEMA,
   value_schema=ROLE_SCHEMA)
+
+# Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
+ROLELIST_SCHEMA = SCHEMA.ListOf(ROLENAME_SCHEMA)
 
 # The root: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(
@@ -818,7 +822,7 @@ def make_fileinfo(length, hashes, custom=None):
 
 
 
-def make_role_metadata(keyids, threshold, paths=None):
+def make_role_metadata(keyids, threshold, name=None, paths=None):
   """
   <Purpose>
     Create a dictionary conforming to 'tuf.formats.ROLE_SCHEMA',
@@ -832,6 +836,9 @@ def make_role_metadata(keyids, threshold, paths=None):
     threshold:
       An integer denoting the number of required keys
       for the signing role.
+
+    name:
+      A string that is the name of this role.
 
     paths:
       The 'Target' role stores the paths of target files
@@ -856,6 +863,10 @@ def make_role_metadata(keyids, threshold, paths=None):
   role_meta = {}
   role_meta['keyids'] = keyids
   role_meta['threshold'] = threshold
+
+  if name is not None:
+    role_meta['name'] = name
+
   if paths is not None:
     role_meta['paths'] = paths
 
