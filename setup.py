@@ -75,7 +75,8 @@ setup(
     'tuf.interposition',
     'tuf.pushtools',
     'tuf.pushtools.transfer',
-    'tuf.repo'
+    'tuf.repo',
+    'tuf.tests'
   ],
   scripts=[
     'quickstart.py',
