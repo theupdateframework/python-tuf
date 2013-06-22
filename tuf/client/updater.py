@@ -106,13 +106,14 @@ import logging
 import shutil
 import errno
 
+import tuf.conf
+import tuf.download
 import tuf.formats
 import tuf.keydb
-import tuf.roledb
-import tuf.mirrors
-import tuf.download
-import tuf.conf
 import tuf.log
+import tuf.mirrors
+import tuf.repo.signerlib
+import tuf.roledb
 import tuf.sig
 import tuf.util
 
@@ -489,7 +490,7 @@ class Updater(object):
 
     # This could be quite slow with a huge number of delegations.
     keys_info = current_parent_metadata['delegations'].get('keys', {})
-    roles_info = current_parent_metadata['delegations'].get('roles', {})
+    roles_info = current_parent_metadata['delegations'].get('roles', [])
 
     logger.debug('Adding roles delegated from '+repr(parent_role)+'.')
    
@@ -514,14 +515,18 @@ class Updater(object):
         continue
 
     # Add the roles to the role database.
-    for rolename, roleinfo in roles_info.items():
-      logger.debug('Adding delegated role: '+repr(rolename)+'.')
+    for roleinfo in roles_info:
       try:
+        # NOTE: tuf.roledb.add_role will take care
+        # of the case where rolename is None.
+        rolename = roleinfo.get('name')
+        logger.debug('Adding delegated role: '+str(rolename)+'.')
         tuf.roledb.add_role(rolename, roleinfo)
       except tuf.RoleAlreadyExistsError, e:
         logger.warn('Role already exists: '+rolename)
-      except (tuf.FormatError, tuf.InvalidNameError), e:
+      except:
         logger.exception('Failed to add delegated role: '+rolename+'.')
+        raise
 
 
 
@@ -854,6 +859,7 @@ class Updater(object):
       # may not be trusted anymore.
       if metadata_role == 'targets' or metadata_role.startswith('targets/'):
         logger.debug('Removing delegated roles of '+repr(metadata_role)+'.')
+        # TODO: Should we also remove the keys of the delegated roles?
         tuf.roledb.remove_delegated_roles(metadata_role)
         self._import_delegations(metadata_role)
 
@@ -906,14 +912,15 @@ class Updater(object):
 
     # Iterate through the targets of 'metadata_role' and confirm
     # these targets with the paths listed in the parent role.
+    roles = self.metadata['current'][parent_role]['delegations']['roles']
+    role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
+    assert role_index is not None
+    role = roles[role_index]
     for target_filepath in metadata_object['targets'].keys():
-      if target_filepath not in self.metadata['current'][parent_role] \
-                                             ['delegations']['roles'] \
-                                             [metadata_role]['paths']:
-        
-        message = 'Role '+repr(metadata_role)+' specifies target '+ \
+      if target_filepath not in role['paths']:
+        message = 'Role '+str(metadata_role)+' specifies target '+ \
                   target_filepath+' which is not an allowed path according '+ \
-                  'to the delegations set by '+repr(parent_role)+'.'
+                  'to the delegations set by '+str(parent_role)+'.'
         raise tuf.RepositoryError(message)
     
 
