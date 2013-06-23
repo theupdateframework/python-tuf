@@ -549,8 +549,10 @@ def create_delegation(tuf_repo, delegated_targets_path, keyid, keyid_password,
       return targets_path
     elif msg.startswith('\nChoose and enter the parent'):
       return parent_role
-    elif msg.endswith('\nEnter the delegated role\'s name: '):
+    elif msg.startswith('\nEnter the delegated role\'s name: '):
       return new_role_name
+    elif msg.startswith('Recursively walk the given directory? (Y)es/(N)o: '):
+      return 'N'
     else:
       error_msg = ('Prompt: '+'\''+msg+'\''+
                    ' did not match any predefined mock prompts.')
