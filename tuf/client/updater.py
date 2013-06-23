@@ -100,11 +100,11 @@
 
 """
 
-import os
-import time
-import logging
-import shutil
 import errno
+import logging
+import os
+import shutil
+import time
 
 import tuf.conf
 import tuf.download
@@ -408,6 +408,7 @@ class Updater(object):
         if metadata_role == 'root':
           self._rebuild_key_and_role_db()
         elif metadata_object['_type'] == 'Targets':
+          # TODO: Should we also remove the keys of the delegated roles?
           tuf.roledb.remove_delegated_roles(metadata_role)
           self._import_delegations(metadata_role)
 
@@ -1433,8 +1434,11 @@ class Updater(object):
   def target(self, target_filepath):
     """
     <Purpose>
-      Return the target file information for 'target_filepath'.
-    
+      Return the target file information for 'target_filepath'. We interrogate
+      the tree of target delegations in order of appearance (which implicitly
+      order trustworthiness), and return the matching target found in the most
+      trusted role.
+
     <Arguments>    
       target_filepath:
         The path to the target file on the repository. This
@@ -1446,8 +1450,10 @@ class Updater(object):
         If 'target_filepath' is improperly formatted.
 
       tuf.RepositoryError:
-        If 'target_filepath' was not found or there were more multiple
-        versions (same file path but different file attributes).
+        If 'target_filepath' was not found.
+
+      Exception:
+        In case of an unforeseen runtime error.
    
     <Side Effects>
       The metadata for updated delegated roles are download and stored.
@@ -1464,51 +1470,44 @@ class Updater(object):
 
     # Refresh the target metadata for all the delegated roles. 
     self._refresh_targets_metadata(include_delegations=True)
-    all_rolenames = tuf.roledb.get_rolenames()
 
-    # Iterate through all the target metadata.  Take precautions
-    # to avoid duplicate files.
-    target = []
-    for rolename in all_rolenames:
-      if self.metadata['current'][rolename]['_type'] != 'Targets':
-        continue
-      # We have a target role.  Extract the filepath and fileinfo
-      # and compare it to 'target_filepath'.  Compare the fileinfo
-      # to avoid duplicates.
-      for filepath, fileinfo in self.metadata['current'][rolename] \
-                                             ['targets'].items():
-        if target_filepath == filepath:
-          # If 'target' is empty, we can just go ahead and add 'target_filepath'
-          # No need to check for duplicates in this case.
-          if len(target) == 0:
-            new_target = {}
-            new_target['filepath'] = filepath
-            new_target['fileinfo'] = fileinfo
-            target.append(new_target)
-            continue
-          # It appears we have a duplicate.  If the fileinfo match,
-          # do not add the duplicate.  Move on to the next target.
-          elif len(target) == 1:
-            if target[0]['fileinfo'] == fileinfo:
-              continue
-            # TODO: What if an existing file, that is listed in the targets
-            # metadata, gets delegated?  This needs to be looked at.
-            # Okay, we have a matching filepath but a different fileinfo
-            # for the duplicate.  Which one is the client expecting?
-            # And why would the metadata list two different versions of the
-            # same file?  Raise an exception.
-            else:
-              message = 'Found multiple '+repr(target_filepath)+'.'
-              logger.error(message)
-              #raise tuf.RepositoryError(message)
-   
-    # Riase an exception if the target information could not be retrieved.
-    if len(target) == 0:
-      message = repr(target_filepath)+' not found.'
-      logger.error(message)
-      raise tuf.RepositoryError(message)
-    
-    return target[0] 
+    # The target is assumed to be missing until proven otherwise.
+    target = None
+
+    try:
+      rolenames = ['targets']
+
+      # Preorder depth-first traversal of the tree of target delegations.
+      while len(rolenames) > 0 and target is None:
+        # Pop the rolename from the top of the stack.
+        rolename = rolenames.pop(-1)
+        metadata = self.metadata['current'][rolename]
+        targets = metadata['targets']
+        delegations = metadata.get('delegations', {})
+        child_roles = delegations.get('roles', [])
+
+        # Does the current rolename have our target?
+        logger.info('Asking role '+rolename+' about target '+target_filepath)
+        for filepath, fileinfo in targets.iteritems():
+          if target_filepath == filepath:
+            logger.info('Found target '+target_filepath+' in role '+rolename)
+            target = {'filepath': filepath, 'fileinfo': fileinfo}
+            break
+
+        # Push children in reverse order of appearance onto the stack.
+        for child_role in reversed(child_roles):
+          rolenames.append(child_role['name'])
+    except:
+      raise
+    finally:
+      # Raise an exception if the target information could not be retrieved.
+      if target is None:
+        message = target_filepath+' not found.'
+        logger.error(message)
+        raise tuf.RepositoryError(message)
+      # Otherwise, return the found target.
+      else:
+        return target
 
 
 
