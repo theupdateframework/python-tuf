@@ -1475,28 +1475,36 @@ class Updater(object):
     target = None
 
     try:
-      rolenames = ['targets']
+      current_metadata = self.metadata['current']
+      role_names = ['targets']
 
       # Preorder depth-first traversal of the tree of target delegations.
-      while len(rolenames) > 0 and target is None:
-        # Pop the rolename from the top of the stack.
-        rolename = rolenames.pop(-1)
-        metadata = self.metadata['current'][rolename]
-        targets = metadata['targets']
-        delegations = metadata.get('delegations', {})
+      while len(role_names) > 0 and target is None:
+        # Pop the role name from the top of the stack.
+        role_name = role_names.pop(-1)
+        role_metadata = current_metadata[role_name]
+        targets = role_metadata['targets']
+        delegations = role_metadata.get('delegations', {})
         child_roles = delegations.get('roles', [])
 
-        # Does the current rolename have our target?
-        logger.info('Asking role '+rolename+' about target '+target_filepath)
+        # Does the current role name have our target?
+        logger.info('Asking role '+role_name+' about target '+target_filepath)
         for filepath, fileinfo in targets.iteritems():
-          if target_filepath == filepath:
-            logger.info('Found target '+target_filepath+' in role '+rolename)
+          if filepath == target_filepath:
+            logger.info('Found target '+target_filepath+' in role '+role_name)
             target = {'filepath': filepath, 'fileinfo': fileinfo}
             break
 
         # Push children in reverse order of appearance onto the stack.
         for child_role in reversed(child_roles):
-          rolenames.append(child_role['name'])
+          child_role_name = child_role['name']
+          child_role_paths = child_role['paths']
+
+          # Ensure that we explore only delegated roles trusted with the target.
+          # Assuming conservation of delegated paths in the complete tree of
+          # delegations.
+          if target_filepath in child_role_paths:
+            role_names.append(child_role_name)
     except:
       raise
     finally:
