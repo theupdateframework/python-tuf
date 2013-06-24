@@ -274,7 +274,7 @@ ROLE_SCHEMA = SCHEMA.Object(
   keyids=SCHEMA.ListOf(KEYID_SCHEMA),
   name=SCHEMA.Optional(ROLENAME_SCHEMA),
   threshold=THRESHOLD_SCHEMA,
-  paths=SCHEMA.Optional(SCHEMA.ListOf(RELPATH_SCHEMA)))
+  paths=SCHEMA.Optional(RELPATHS_SCHEMA))
 
 # A dict of roles where the dict keys are role names and the dict values holding 
 # the role data/information.
@@ -328,7 +328,7 @@ MIRROR_SCHEMA = SCHEMA.Object(
   url_prefix=URL_SCHEMA,
   metadata_path=RELPATH_SCHEMA,
   targets_path=RELPATH_SCHEMA,
-  confined_target_dirs=SCHEMA.ListOf(RELPATH_SCHEMA),
+  confined_target_dirs=RELPATHS_SCHEMA,
   custom=SCHEMA.Optional(SCHEMA.Object()))
 
 # A dictionary of mirrors where the dict keys hold the mirror's name and
