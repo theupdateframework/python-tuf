@@ -53,7 +53,7 @@ class TempFile(object):
     try:
       self.temporary_file = tempfile.TemporaryFile(prefix=prefix)
     except OSError, err:
-      logger.critical('Temp file in '+temp_dir+'failed: '+repr(err))
+      logger.critical('Temp file in '+self.temp_dir+'failed: '+repr(err))
       raise tuf.Error(err)
 
 
@@ -78,12 +78,12 @@ class TempFile(object):
     self._compression = None
     # If compression is set then the original file is saved in 'self._orig_file'.
     self._orig_file = None
-    temp_dir = tuf.conf.temporary_directory
-    if  temp_dir is not None and isinstance(temp_dir, str):
+    self.temp_dir = tuf.conf.temporary_directory
+    if  self.temp_dir is not None and isinstance(self.temp_dir, str):
       try:
-        self.temporary_file = tempfile.TemporaryFile(prefix=prefix, dir=temp_dir)
+        self.temporary_file = tempfile.TemporaryFile(prefix=prefix, dir=self.temp_dir)
       except OSError, err:
-        logger.error('Temp file in '+temp_dir+' failed: '+repr(err))
+        logger.error('Temp file in '+self.temp_dir+' failed: '+repr(err))
         logger.error('Will attempt to use system default temp dir.')
         self._default_temporary_directory(prefix)
     else:
