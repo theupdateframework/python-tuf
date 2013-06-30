@@ -1501,8 +1501,13 @@ class Updater(object):
           child_role_paths = child_role['paths']
 
           # Ensure that we explore only delegated roles trusted with the target.
-          # Assuming conservation of delegated paths in the complete tree of
-          # delegations.
+          # We assume conservation of delegated paths in the complete tree of
+          # delegations. Note that the call to _ensure_all_targets_allowed in
+          # _update_metadata should already ensure that all targets metadata is
+          # valid; i.e. that the targets signed by a delegatee is a proper
+          # subset of the targets delegated to it by the delegator.
+          # Nevertheless, we check it again here for performance and safety
+          # reasons.
           if target_filepath in child_role_paths:
             role_names.append(child_role_name)
     except:

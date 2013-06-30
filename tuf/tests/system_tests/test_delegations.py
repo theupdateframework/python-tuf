@@ -14,103 +14,69 @@
   See LICENSE for licensing information.
 
 <Purpose>
-
-
+  Ensure that TUF meets expectations about target delegations.
 """
 
+
+
+
+
 import os
-import sys
 import tempfile
-import time
 import unittest
-import urllib
 
 import tuf.formats
-from tuf.interposition import urllib_tuf
 import tuf.repo.keystore as keystore
 import tuf.repo.signercli as signercli
 import tuf.repo.signerlib as signerlib
 import util_test_tools
 
 
-# Disable logging.
-#util_test_tools.disable_logging()
 
 
 
-def setup_tuf_repository():
-  root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=True)
+class TestDelegationFunctions(unittest.TestCase):
 
-  # Server side repository.
-  tuf_repo = os.path.join(root_repo, 'tuf_repo')
-  keystore_dir = os.path.join(tuf_repo, 'keystore')
-  metadata_dir = os.path.join(tuf_repo, 'metadata')
-  targets_dir = os.path.join(tuf_repo, 'targets')
 
-  # Add files to the server side repository.
-  # target1 = 'targets_dir/target1_rand.txt'
-  # target2 = 'targets_dir/target2_rand.txt'
-  # target3 = 'targets_dir/level1_rand/target3_rand.txt'
-  # target4 = 'targets_dir/level1_rand/target4_rand.txt'
-  # target5 = 'targets_dir/level1_rand/level2_rand/target5_rand.txt'
-  # target6 = 'targets_dir/level1_rand/level2_rand/target6_rand.txt'
-  add_target = util_test_tools.add_file_to_repository
-  level1 = tempfile.mkdtemp(dir=targets_dir, prefix='level1_')
-  level2 = tempfile.mkdtemp(dir=level1, prefix='level2_')
-  target1_path = add_target(targets_dir, data='target1')
-  target2_path = add_target(targets_dir, data='target2')
-  target3_path = add_target(level1, data='target3')
-  target4_path = add_target(level1, data='target4')
-  target5_path = add_target(level2, data='target5')
-  target6_path = add_target(level2, data='target6')
-  
-  # Target paths relative to the 'targets_dir'.
-  # Ex: targetX = 'level1_rand/targetX_rand.txt'
-  target1 = os.path.relpath(target1_path, tuf_repo)
-  target2 = os.path.relpath(target2_path, tuf_repo)
-  target3 = os.path.relpath(target3_path, tuf_repo)
-  target4 = os.path.relpath(target4_path, tuf_repo)
-  target5 = os.path.relpath(target5_path, tuf_repo)
-  target6 = os.path.relpath(target6_path, tuf_repo)
+  def do_update(self):
+    # Client side repository.
+    tuf_client = os.path.join(self.root_repo, 'tuf_client')
+    downloads_dir = os.path.join(self.root_repo, 'downloads')
 
-  # Relative to repository's targets directory.
-  target_filepaths = [target1, target2, target3, target4, target5, target6]
+    # Adjust client's configuration file.
+    tuf.conf.repository_directory = tuf_client
 
-  # Tracked targets.
-  targets_tracked_targets = [target1]
-  delegatee1_tracked_targets = [target1, target4]
-  delegatee2_tracked_targets = [target2, target4, target5]
-  delegatee3_tracked_targets = [target3, target4, target5, target6]
+    updater = tuf.client.updater.Updater('my_repo', self.mirrors)
 
-  # Assigned targets.
-  delegatee1_assigned_targets = [target1, target3, target4, target5, target6]
-  delegatee2_assigned_targets = [target2, target3, target4, target5, target6]
-  delegatee3_assigned_targets = [target3, target4, target5, target6]
+    # Refresh the repository's top-level roles, store the target information for
+    # all the targets tracked, and determine which of these targets have been
+    # updated.
+    updater.refresh()
 
-  # Make delegation directories at the server's repository.
-  metadata_targets_dir = os.path.join(metadata_dir, 'targets')
-  metadata_delegatee1_dir = os.path.join(metadata_targets_dir, 'delegatee1')
-  os.makedirs(metadata_delegatee1_dir)
+    targets = []
+    for target_filepath in self.relpath_from_targets(self.target_filepaths):
+      target_info = updater.target(target_filepath)
+      targets.append(target_info)
 
-  # Delegations metadata paths.
-  delegatee1_path = os.path.join(metadata_targets_dir, 'delegatee1.txt')
-  delegatee2_path = os.path.join(metadata_targets_dir, 'delegatee2.txt')
-  delegatee3_path = os.path.join(metadata_delegatee1_dir, 'delegatee3.txt')
+    updated_targets = updater.updated_targets(targets, downloads_dir)
+    # Download each of these updated targets and save them locally.
+    for target in updated_targets:
+      print('Downloading target '+str(target))
+      updater.download_target(target, downloads_dir)
 
-  # Generate delegation metadata.
-  generate_meta = signerlib.generate_targets_metadata
-  delegatee1 = generate_meta(tuf_repo, delegatee1_tracked_targets)
-  delegatee2 = generate_meta(tuf_repo, delegatee2_tracked_targets)
-  delegatee3 = generate_meta(tuf_repo, delegatee3_tracked_targets)
 
-  # Generate a set of RSA keys that will be assigned to the delegatees.
-  key1 = signerlib.generate_and_save_rsa_key(keystore_dir, 'delegatee1')
-  key2 = signerlib.generate_and_save_rsa_key(keystore_dir, 'delegatee2')
-  key3 = signerlib.generate_and_save_rsa_key(keystore_dir, 'delegatee3')
+  def make_targets_metadata(self):
+    """Subclasses will override this method to generate metadata for all
+    targets roles, with the understanding that there is a fixed structure of
+    the targets roles."""
 
-  def _relative_path_to_targets(target_filepaths):
-    # Ex: 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt'
-    # i.e. 'targets/' is removed from 'target'.
+    raise NotImplementedError()
+
+
+  def relpath_from_targets(self, target_filepaths):
+    """Ex: 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt'
+    i.e. 'targets/' is removed from 'target'."""
+
     new_target_filepaths = []
     for target in target_filepaths:
       relative_targetpath = os.path.sep.join(target.split(os.path.sep)[1:])
@@ -118,156 +84,189 @@ def setup_tuf_repository():
     return new_target_filepaths
 
 
-  # Create delegatee role metadata in order to later create 'delegations'
-  # object:
-  delegatee1_role_meta = \
-  tuf.formats.make_role_metadata([key1['keyid']], 1, name='targets/delegatee1',
-                                paths=_relative_path_to_targets(delegatee1_assigned_targets))
-  delegatee2_role_meta = \
-  tuf.formats.make_role_metadata([key2['keyid']], 1, name='targets/delegatee2',
-                                paths=_relative_path_to_targets(delegatee2_assigned_targets))
-  delegatee3_role_meta = \
-  tuf.formats.make_role_metadata([key3['keyid']], 1, name='targets/delegatee1/delegatee3',
-                                paths=_relative_path_to_targets(delegatee3_assigned_targets))
+  def setUp(self):
+    """
+    The target delegations tree is fixed as such:
+      targets -> [T1, T2]
+      T1 -> [T3]
+    """
 
-  # Create 'delegations' object for targets metadata:
-  targets_delegations = {}
-  key1_val = tuf.rsa_key.create_in_metadata_format(key1['keyval'])
-  key2_val = tuf.rsa_key.create_in_metadata_format(key2['keyval'])
-  targets_delegations['keys'] = {key1['keyid']:key1_val,
-                                 key2['keyid']:key2_val}
-  targets_delegations['roles'] = [delegatee1_role_meta, delegatee2_role_meta]
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=True)
 
-  # Create 'delegations' object for delegatee2 metadata:
-  delegatee1_delegations = {}
-  key3_val = tuf.rsa_key.create_in_metadata_format(key3['keyval'])
-  delegatee1_delegations['keys'] = {key3['keyid']:key3_val}
-  delegatee1_delegations['roles'] = [delegatee3_role_meta]
-  delegatee1['signed']['delegations'] = delegatee1_delegations
+    # Server side repository.
+    tuf_repo = os.path.join(root_repo, 'tuf_repo')
+    keystore_dir = os.path.join(tuf_repo, 'keystore')
+    metadata_dir = os.path.join(tuf_repo, 'metadata')
+    targets_dir = os.path.join(tuf_repo, 'targets')
 
-  # Read targets.txt metadata and add the 'delegations' field.
-  targets_metadata_path = os.path.join(metadata_dir, 'targets.txt')
-  targets_signable = signerlib.read_metadata_file(targets_metadata_path)
-  targets_metadata = targets_signable['signed']
-  targets_metadata['delegations'] = targets_delegations
+    # We need to provide clients with a way to reach the tuf repository.
+    tuf_repo_relpath = os.path.basename(tuf_repo)
+    tuf_url = url+tuf_repo_relpath
 
-  sign = signerlib.sign_metadata
-  write = signerlib.write_metadata_file
+    # Add files to the server side repository.
+    # target1 = 'targets_dir/[random].txt'
+    # target2 = 'targets_dir/[random].txt'
+    add_target = util_test_tools.add_file_to_repository
+    target1_path = add_target(targets_dir, data='target1')
+    target2_path = add_target(targets_dir, data='target2')
 
-  # Sign and save new metadata objects.
-  targets_signable = sign(targets_metadata, keyids, targets_metadata_path)
-  delegatee1_signable = sign(delegatee1, [key1['keyid']], delegatee1_path)
-  delegatee2_signable = sign(delegatee2, [key2['keyid']], delegatee2_path)
-  delegatee3_signable = sign(delegatee3, [key3['keyid']], delegatee3_path)
-  write(targets_signable, targets_metadata_path)
-  write(delegatee1_signable, delegatee1_path)
-  write(delegatee2_signable, delegatee2_path)
-  write(delegatee3_signable, delegatee3_path)
+    # Target paths relative to the 'targets_dir'.
+    # Ex: targetX = 'targets/delegator/delegatee.txt'
+    target1 = os.path.relpath(target1_path, tuf_repo)
+    target2 = os.path.relpath(target2_path, tuf_repo)
 
-  # Repository is set up.  Refresh release and timestamp metadata to reflect
-  # the new changes.
-  signerlib.build_release_file(keyids, metadata_dir)
-  signerlib.build_timestamp_file(keyids, metadata_dir)
+    # Relative to repository's targets directory.
+    target_filepaths = [target1, target2]
 
-  # Unload all keys.
-  keystore.clear_keystore()
+    # Store in self only the variables relevant for tests.
+    self.root_repo = root_repo
+    self.tuf_repo = tuf_repo
+    self.server_proc = server_proc
+    self.target_filepaths = target_filepaths
+    # Targets delegated from A to B.
+    self.delegated_targets = {}
+    # Targets actually signed by B.
+    self.signed_targets = {}
+    self.mirrors = {
+      "mirror1": {
+        "url_prefix": tuf_url,
+        "metadata_path": "metadata",
+        "targets_path": "targets",
+        "confined_target_dirs": [""]
+      }
+    }
+    # Aliases for targets roles.
+    self.T0 = 'targets'
+    self.T1 = 'targets/T1'
+    self.T2 = 'targets/T2'
+    self.T3 = 'targets/T1/T3'
 
-  # We need to provide clients with a way to reach the tuf repository.
-  tuf_repo_relpath = os.path.basename(tuf_repo)
-  tuf_url = url+tuf_repo_relpath
-  mirrors = {"mirror1": 
-              {"url_prefix": tuf_url,
-               "metadata_path": "metadata",
-               "targets_path": "targets",
-               "confined_target_dirs": [ "" ]}}
+    # Get tracked and assigned targets, and generate targets metadata.
+    self.make_targets_metadata()
+    assert hasattr(self, 'T0_metadata')
+    assert hasattr(self, 'T1_metadata')
+    assert hasattr(self, 'T2_metadata')
+    assert hasattr(self, 'T3_metadata')
 
-  return (root_repo, mirrors, server_proc, keyids,
-          _relative_path_to_targets(target_filepaths))
+    # Make delegation directories at the server's repository.
+    metadata_targets_dir = os.path.join(metadata_dir, 'targets')
+    metadata_T1_dir = os.path.join(metadata_targets_dir, 'T1')
+    os.makedirs(metadata_T1_dir)
+
+    # Delegations metadata paths for the 3 delegated targets roles.
+    T0_path = os.path.join(metadata_dir, 'targets.txt')
+    T1_path = os.path.join(metadata_targets_dir, 'T1.txt')
+    T2_path = os.path.join(metadata_targets_dir, 'T2.txt')
+    T3_path = os.path.join(metadata_T1_dir, 'T3.txt')
+
+    # Generate RSA keys for the 3 delegatees.
+    key1 = signerlib.generate_and_save_rsa_key(keystore_dir, 'T1')
+    key2 = signerlib.generate_and_save_rsa_key(keystore_dir, 'T2')
+    key3 = signerlib.generate_and_save_rsa_key(keystore_dir, 'T3')
+
+    # ID for each of the 3 keys.
+    key1_id = key1['keyid']
+    key2_id = key2['keyid']
+    key3_id = key3['keyid']
+
+    # ID, in a list, for each of the 3 keys.
+    key1_ids = [key1_id]
+    key2_ids = [key2_id]
+    key3_ids = [key3_id]
+
+    # Public-key JSON for each of the 3 keys.
+    key1_val = tuf.rsa_key.create_in_metadata_format(key1['keyval'])
+    key2_val = tuf.rsa_key.create_in_metadata_format(key2['keyval'])
+    key3_val = tuf.rsa_key.create_in_metadata_format(key3['keyval'])
+
+    # Create delegation role metadata for each of the 3 delegated targets roles.
+    make_role_metadata = tuf.formats.make_role_metadata
+
+    T1_targets = self.relpath_from_targets(self.delegated_targets[self.T1])
+    T1_role = make_role_metadata(key1_ids, 1, name=self.T1, paths=T1_targets)
+
+    T2_targets = self.relpath_from_targets(self.delegated_targets[self.T2])
+    T2_role = make_role_metadata(key2_ids, 1, name=self.T2, paths=T2_targets)
+
+    T3_targets = self.relpath_from_targets(self.delegated_targets[self.T3])
+    T3_role = make_role_metadata(key3_ids, 1, name=self.T3, paths=T3_targets)
+
+    # Assign 'delegations' object for 'targets':
+    self.T0_metadata['signed']['delegations'] = {
+      'keys': {key1_id: key1_val, key2_id: key2_val},
+      'roles': [T1_role, T2_role]
+    }
+
+    # Assign 'delegations' object for 'targets/T1':
+    self.T1_metadata['signed']['delegations'] = {
+      'keys': {key3_id: key3_val},
+      'roles': [T3_role]
+    }
+
+    sign = signerlib.sign_metadata
+    write = signerlib.write_metadata_file
+
+    # Sign new metadata objects.
+    T0_signable = sign(self.T0_metadata, keyids, T0_path)
+    T1_signable = sign(self.T1_metadata, key1_ids, T1_path)
+    T2_signable = sign(self.T2_metadata, key2_ids, T2_path)
+    T3_signable = sign(self.T3_metadata, key3_ids, T3_path)
+    # Save new metadata objects.
+    write(T0_signable, T0_path)
+    write(T1_signable, T1_path)
+    write(T2_signable, T2_path)
+    write(T3_signable, T3_path)
+
+    # Timestamp a new release to reflect latest targets.
+    signerlib.build_release_file(keyids, metadata_dir)
+    signerlib.build_timestamp_file(keyids, metadata_dir)
+
+    # Unload all keys.
+    keystore.clear_keystore()
+
+
+  def tearDown(self):
+    util_test_tools.cleanup(self.root_repo, server_process=self.server_proc)
 
 
 
 
 
-def test(rm_repo=True):
-  """
-  rm_repo:
-    Boolean signalling whether or not we should remove the created repos.
-  """
-
-  # Setup.
-  root_repo, mirrors, server_proc, keyids, target_filepaths = \
-  setup_tuf_repository()
-
-  # Server side repository.
-  tuf_repo = os.path.join(root_repo, 'tuf_repo')
-  keystore_dir = os.path.join(tuf_repo, 'keystore')
-  metadata_dir = os.path.join(tuf_repo, 'metadata')
-  targets_dir = os.path.join(tuf_repo, 'targets')
-
-  # Client side repository.
-  tuf_client = os.path.join(root_repo, 'tuf_client')
-  current_dir = os.path.join(tuf_client, 'metadata', 'current')
-  previous_dir = os.path.join(tuf_client, 'metadata', 'previous')
-  downloads_dir = os.path.join(root_repo, 'downloads')
-
-  # Adjust client's configuration file.
-  # Here the repository_directory is referred to client's local repository.
-  original_repo = tuf.conf.repository_directory
-  tuf.conf.repository_directory = tuf_client
-
-  # At this point all metadata at the server's repository is in sync.
-  
-  start_time = time.time()
-  _client_update(mirrors, downloads_dir, target_filepaths)
-  end_time = time.time()
-  print "Client update takes",
-  print end_time - start_time,
-  print "seconds."
-
-  # TearDown and restore value of previous repository directory.
-  tuf.conf.repository_directory = original_repo
-  if rm_repo:
-    server_proc.kill()
-  else:
-    util_test_tools.cleanup(root_repo, server_proc)
+class Test1(TestDelegationFunctions):
+  """We test that the basic update mechanism works."""
 
 
+  def make_targets_metadata(self):
+    make_metadata = signerlib.generate_targets_metadata
+    target1, target2 = self.target_filepaths
+
+    # Tracked targets.
+    self.signed_targets[self.T0] = [target1]
+    self.signed_targets[self.T1] = [target1]
+    self.signed_targets[self.T2] = [target2]
+    self.signed_targets[self.T3] = [target1, target2]
+
+    # Assigned targets.
+    self.delegated_targets[self.T1] = [target1]
+    self.delegated_targets[self.T2] = [target2]
+    self.delegated_targets[self.T3] = [target1, target2]
+
+    self.T0_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T0])
+    self.T1_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T1])
+    self.T2_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T2])
+    self.T3_metadata = \
+      make_metadata(self.tuf_repo, self.signed_targets[self.T3])
 
 
-
-def _client_update(mirrors, dest, target_filepaths=[], initial_update=False):
-  # We need to initialize an updater class.
-  updater = tuf.client.updater.Updater('my_repo', mirrors)
-
-  # Refresh the repository's top-level roles, store the target information for
-  # all the targets tracked, and determine which of these targets have been
-  # updated.
-  updater.refresh()
-
-  if initial_update:
-    targets = updater.all_targets()
-  else:
-    targets = []
-    for target_filepath in target_filepaths:
-      target_info = updater.target(target_filepath)
-      targets.append(target_info)
-
-  updated_targets = updater.updated_targets(targets, dest)
-
-  # Download each of these updated targets and save them locally.
-  for target in updated_targets:
-    try:
-      print('Downloading target '+str(target))
-      updater.download_target(target, dest)
-    except tuf.DownloadError, e:
-      pass
+  def test_update_works_with_delegations(self):
+    self.do_update()
 
 
 
 
 
 if __name__ == '__main__':
-  start_time = time.time()
-  test(True)
-  end_time = time.time()
-  print end_time - start_time
+  unittest.main()
