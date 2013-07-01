@@ -53,16 +53,26 @@ class TestDelegationFunctions(unittest.TestCase):
     # updated.
     updater.refresh()
 
+    # Obtain a list of available targets.
     targets = []
-    for target_filepath in self.relpath_from_targets(self.target_filepaths):
+    relative_target_filepaths = self.relpath_from_targets(self.target_filepaths)
+    for target_filepath in relative_target_filepaths:
       target_info = updater.target(target_filepath)
       targets.append(target_info)
 
-    updated_targets = updater.updated_targets(targets, downloads_dir)
     # Download each of these updated targets and save them locally.
+    updated_targets = updater.updated_targets(targets, downloads_dir)
     for target in updated_targets:
-      print('Downloading target '+str(target))
       updater.download_target(target, downloads_dir)
+
+    # Return metadata about downloaded targets.
+    make_fileinfo = signerlib.get_metadata_file_info
+    targets_metadata = {}
+    for target_filepath in relative_target_filepaths:
+      download_filepath = os.path.join(downloads_dir, target_filepath)
+      target_fileinfo = signerlib.get_metadata_file_info(download_filepath)
+      targets_metadata[target_filepath] = target_fileinfo
+    return targets_metadata
 
 
   def make_targets_metadata(self):
@@ -232,8 +242,9 @@ class TestDelegationFunctions(unittest.TestCase):
 
 
 
-class Test1(TestDelegationFunctions):
-  """We test that the basic update mechanism works."""
+class TestInitialUpdateWithDelegations(TestDelegationFunctions):
+  """We show that making target delegations results in a successful initial
+  update of targets."""
 
 
   def make_targets_metadata(self):
@@ -261,8 +272,14 @@ class Test1(TestDelegationFunctions):
       make_metadata(self.tuf_repo, self.signed_targets[self.T3])
 
 
-  def test_update_works_with_delegations(self):
-    self.do_update()
+  def test_that_initial_update_works_with_target_delegations(self):
+    # Get relative target paths, because that is what TUF recognizes.
+    relative_target_filepaths = self.relpath_from_targets(self.target_filepaths)
+    # Get metadata about downloaded targets.
+    targets_metadata = self.do_update()
+    # Do we have metadata about all the expected targets?
+    for target_filepath in relative_target_filepaths:
+      self.assertIn(target_filepath, targets_metadata)
 
 
 
