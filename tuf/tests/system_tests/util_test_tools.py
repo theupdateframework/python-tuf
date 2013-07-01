@@ -204,6 +204,10 @@ def cleanup(root_repo, server_process=None):
   # Clear the keystore.
   keystore.clear_keystore()
 
+  # Deconfigure interposition.
+  interpose_json = os.path.join(root_repo, 'tuf.interposition.json')
+  tuf.interposition.deconfigure(filename=interpose_json)
+
   # Removing repository directory.
   try:
     shutil.rmtree(root_repo)
@@ -381,9 +385,8 @@ def create_interposition_config(root_repo, url):
                                  "targets_path": "targets",
                                  "confined_target_dirs": [ "" ]}}}}}
 
-  #                               "target_paths": [ { "(.*\\.html)": "{0}" } ]
-
-  junk, interpose_json = tempfile.mkstemp(prefix='conf_', dir=root_repo)
+  # We write the interposition JSON configuration at a deterministic location.
+  interpose_json = os.path.join(root_repo, 'tuf.interposition.json')
   with open(interpose_json, 'wb') as fileobj:
     tuf.util.json.dump(interposition_dict, fileobj)
 
