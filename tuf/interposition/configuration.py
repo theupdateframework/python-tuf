@@ -51,6 +51,24 @@ class Configuration(object):
     return MESSAGE.format(network_location=self.network_location)
 
 
+  def get_repository_mirror_hostnames(self):
+    """Get a set of hostnames of every repository mirror of this
+    configuration."""
+
+    # Parse TUF server repository mirrors.
+    repository_mirrors = self.repository_mirrors
+    repository_mirror_hostnames = set()
+
+    for repository_mirror in repository_mirrors:
+      mirror_configuration = repository_mirrors[repository_mirror]
+      url_prefix = mirror_configuration["url_prefix"]
+      parsed_url = urlparse.urlparse(url_prefix)
+      mirror_hostname = parsed_url.hostname
+      repository_mirror_hostnames.add(mirror_hostname)
+
+    return repository_mirror_hostnames
+
+
 
 
 
