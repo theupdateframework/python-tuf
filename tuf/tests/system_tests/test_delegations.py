@@ -242,7 +242,7 @@ class TestDelegationFunctions(unittest.TestCase):
 
 
 
-class TestInitialUpdateWithDelegations(TestDelegationFunctions):
+class TestInitialUpdateWithTargetDelegations(TestDelegationFunctions):
   """We show that making target delegations results in a successful initial
   update of targets."""
 
@@ -251,13 +251,13 @@ class TestInitialUpdateWithDelegations(TestDelegationFunctions):
     make_metadata = signerlib.generate_targets_metadata
     target1, target2 = self.target_filepaths
 
-    # Tracked targets.
+    # Targets signed for by each of the targets roles.
     self.signed_targets[self.T0] = [target1]
     self.signed_targets[self.T1] = [target1]
     self.signed_targets[self.T2] = [target2]
     self.signed_targets[self.T3] = [target1, target2]
 
-    # Assigned targets.
+    # Targets delegated to each of the delegated targets roles.
     self.delegated_targets[self.T1] = [target1]
     self.delegated_targets[self.T2] = [target2]
     self.delegated_targets[self.T3] = [target1, target2]
@@ -280,6 +280,44 @@ class TestInitialUpdateWithDelegations(TestDelegationFunctions):
     # Do we have metadata about all the expected targets?
     for target_filepath in relative_target_filepaths:
       self.assertIn(target_filepath, targets_metadata)
+
+
+
+
+
+class TestBreachOfTargetDelegation(TestDelegationFunctions):
+  """We show that a delegated targets role B cannot talk about targets that A
+  did not delegate to B."""
+
+
+  def make_targets_metadata(self):
+    make_metadata = signerlib.generate_targets_metadata
+    target1, target2 = self.target_filepaths
+
+    # Targets signed for by each of the targets roles.
+    self.signed_targets[self.T0] = []
+    self.signed_targets[self.T1] = [target2]
+    self.signed_targets[self.T2] = [target1]
+    self.signed_targets[self.T3] = []
+
+    # Targets delegated to each of the delegated targets roles.
+    self.delegated_targets[self.T1] = [target1]
+    self.delegated_targets[self.T2] = [target2]
+    self.delegated_targets[self.T3] = []
+
+    self.T0_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T0])
+    self.T1_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T1])
+    self.T2_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T2])
+    self.T3_metadata = \
+      make_metadata(self.tuf_repo, self.signed_targets[self.T3])
+
+
+  def test_that_initial_update_fails_with_undelegated_signing_of_targets(self):
+    # Expect to see a particular exception on initial update.
+    self.assertRaises(tuf.MetadataNotAvailableError, self.do_update)
 
 
 
