@@ -563,7 +563,7 @@ class Updater(object):
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
     # Raise 'tuf.RepositoryError' if an update fails.
-    self._update_metadata('timestamp', fileinfo={'length':4096000, 'hashes':None})
+    self._update_metadata('timestamp')
 
     self._update_metadata_if_changed('release', referenced_metadata='timestamp')
 
@@ -641,6 +641,10 @@ class Updater(object):
     if fileinfo is not None:
       file_length=fileinfo['length']
       file_hashes=fileinfo['hashes']
+    # We do not know the length of metadata timestamp and root, so we add a default length
+    elif metadata_role == 'timestamp' or metadata_tole == 'root':
+      file_length=4096000
+      file_hashes=None
     else:
       file_length=None
       file_hashes=None
