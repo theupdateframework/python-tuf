@@ -563,7 +563,7 @@ class Updater(object):
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
     # Raise 'tuf.RepositoryError' if an update fails.
-    self._update_metadata('timestamp')
+    self._update_metadata('timestamp', fileinfo={'length':4096000, 'hashes':None})
 
     self._update_metadata_if_changed('release', referenced_metadata='timestamp')
 
