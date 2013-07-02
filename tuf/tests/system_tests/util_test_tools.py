@@ -206,7 +206,8 @@ def cleanup(root_repo, server_process=None):
 
   # Deconfigure interposition.
   interpose_json = os.path.join(root_repo, 'tuf.interposition.json')
-  tuf.interposition.deconfigure(filename=interpose_json)
+  if os.path.exists(interpose_json):
+    tuf.interposition.deconfigure(filename=interpose_json)
 
   # Removing repository directory.
   try:
