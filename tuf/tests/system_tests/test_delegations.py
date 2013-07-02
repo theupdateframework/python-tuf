@@ -323,5 +323,108 @@ class TestBreachOfTargetDelegation(TestDelegationFunctions):
 
 
 
+class TestOrderOfTargetDelegationWithSuccess(TestDelegationFunctions):
+  """We show that when multiple delegated targets roles talk about a target,
+  the first one in order of appearance of delegation wins.
+
+  In this case, the first role has the correct metadata about the target."""
+
+
+  def make_targets_metadata(self):
+    make_metadata = signerlib.generate_targets_metadata
+    target1, target2 = self.target_filepaths
+
+    # Targets signed for by each of the targets roles.
+    self.signed_targets[self.T0] = [target2]
+    self.signed_targets[self.T1] = []
+    self.signed_targets[self.T2] = [target1]
+    self.signed_targets[self.T3] = [target1]
+
+    # Targets delegated to each of the delegated targets roles.
+    self.delegated_targets[self.T1] = [target1]
+    self.delegated_targets[self.T2] = [target1]
+    self.delegated_targets[self.T3] = [target1]
+
+    self.T0_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T0])
+    self.T1_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T1])
+    self.T2_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T2])
+    self.T3_metadata = \
+      make_metadata(self.tuf_repo, self.signed_targets[self.T3])
+
+    # Modify the hash for target1 in T2.
+    for target_filepath in self.relpath_from_targets([target1]):
+      target_metadata = self.T2_metadata['signed']['targets'][target_filepath]
+      sha256_hash = target_metadata['hashes']['sha256']
+      last_character = sha256_hash[-1]
+      last_character = chr(ord(last_character)-1)
+      # "Subtract" the last character of the hash.
+      target_metadata['hashes']['sha256'] = sha256_hash[:-1] + last_character
+
+
+  def test_that_initial_update_works_with_many_roles_sharing_a_target(self):
+    # Get relative target paths, because that is what TUF recognizes.
+    relative_target_filepaths = self.relpath_from_targets(self.target_filepaths)
+    # Get metadata about downloaded targets.
+    targets_metadata = self.do_update()
+    # Do we have metadata about all the expected targets?
+    for target_filepath in relative_target_filepaths:
+      self.assertIn(target_filepath, targets_metadata)
+
+
+
+
+
+class TestOrderOfTargetDelegationWithFailure(TestDelegationFunctions):
+  """We show that when multiple delegated targets roles talk about a target,
+  the first one in order of appearance of delegation wins.
+
+  In this case, the first role has the wrong metadata about the target."""
+
+
+  def make_targets_metadata(self):
+    make_metadata = signerlib.generate_targets_metadata
+    target1, target2 = self.target_filepaths
+
+    # Targets signed for by each of the targets roles.
+    self.signed_targets[self.T0] = [target2]
+    self.signed_targets[self.T1] = []
+    self.signed_targets[self.T2] = [target1]
+    self.signed_targets[self.T3] = [target1]
+
+    # Targets delegated to each of the delegated targets roles.
+    self.delegated_targets[self.T1] = [target1]
+    self.delegated_targets[self.T2] = [target1]
+    self.delegated_targets[self.T3] = [target1]
+
+    self.T0_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T0])
+    self.T1_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T1])
+    self.T2_metadata =\
+      make_metadata(self.tuf_repo, self.signed_targets[self.T2])
+    self.T3_metadata = \
+      make_metadata(self.tuf_repo, self.signed_targets[self.T3])
+
+    # Modify the hash for target1 in T3.
+    for target_filepath in self.relpath_from_targets([target1]):
+      target_metadata = self.T3_metadata['signed']['targets'][target_filepath]
+      sha256_hash = target_metadata['hashes']['sha256']
+      last_character = sha256_hash[-1]
+      last_character = chr(ord(last_character)-1)
+      # "Subtract" the last character of the hash.
+      target_metadata['hashes']['sha256'] = sha256_hash[:-1] + last_character
+
+
+  def test_that_initial_update_fails_with_many_roles_sharing_a_target(self):
+    # Expect to see a particular exception on initial update.
+    self.assertRaises(tuf.DownloadError, self.do_update)
+
+
+
+
+
 if __name__ == '__main__':
   unittest.main()
