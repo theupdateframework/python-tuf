@@ -1035,13 +1035,27 @@ def make_delegation(keystore_directory):
   delegated_role, delegated_keyids = _get_delegated_role(keystore_directory,
                                                          metadata_directory)
 
+  # Retrieve the file paths for the delegated targets.
+  delegated_paths =\
+    tuf.repo.signerlib.get_targets(delegated_targets_directory,
+                                   recursive_walk=recursive_walk,
+                                   followlinks=True)
+
+  # The target paths need to be relative to the repository's targets
+  # directory (e.g., 'targets/role1/target_file.gif').
+  # [len(repository_directory)+1:] strips the repository path, including
+  # its trailing path separator.
+  repository_directory, junk = os.path.split(metadata_directory)
+
+  for index in xrange(len(delegated_paths)):
+    full_target_path = delegated_paths[index]
+    assert full_target_path.startswith(repository_directory)
+    relative_target_path = full_target_path[len(repository_directory)+1:]
+    delegated_paths[index] = relative_target_path
+
   # Create, sign, and write the delegated role's metadata file.
-  delegated_paths = _make_delegated_metadata(metadata_directory,
-                                             delegated_targets_directory,
-                                             parent_role, delegated_role,
-                                             delegated_keyids,
-                                             recursive_walk=recursive_walk,
-                                             followlinks=True)
+  _make_delegated_metadata(metadata_directory, delegated_paths, parent_role,
+                           delegated_role, delegated_keyids)
 
   # Update the parent role's metadata file.  The parent role's delegation
   # field must be updated with the newly created delegated role.
@@ -1140,38 +1154,16 @@ def _get_delegated_role(keystore_directory, metadata_directory):
 
 
 
-def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
-                             parent_role, delegated_role, delegated_keyids,
-                             recursive_walk=False, followlinks=False):
+def _make_delegated_metadata(metadata_directory, delegated_paths, parent_role,
+                             delegated_role, delegated_keyids):
   """
     Create, sign, and write the metadata file for the newly added delegated
-    role.  Determine the delegated paths for the target files found in
-    'delegated_targets_directory' and the other information needed
+    role.  Determine the delegated paths for the target files in
+    'delegated_paths' and the other information needed
     to generate the targets metadata file for 'delegated_role'.  Return
     the delegated paths to the caller.
 
   """
-
-  # Retrieve the file paths for the delegated targets.
-  delegated_paths = []
-
-  # The target paths need to be relative to the repository's targets
-  # directory (e.g., 'targets/role1/target_file.gif').
-  # [len(repository_directory)+1:] strips the repository path, including
-  # its trailing path separator.
-  repository_directory, junk = os.path.split(metadata_directory)
-
-  for dirpath, dirnames, filenames in os.walk(delegated_targets_directory,
-                                              followlinks=followlinks):
-    for filename in filenames:
-      full_target_path = os.path.join(dirpath, filename)
-      relative_target_path = full_target_path[len(repository_directory)+1:]
-      delegated_paths.append(relative_target_path)
-
-    # Prune the subdirectories to walk right now if we do not wish to
-    # recursively walk the delegated targets directory.
-    if recursive_walk is False:
-      del dirnames[:]
 
   message = 'There are '+str(len(delegated_paths))+' target paths for '+\
             str(delegated_role)
@@ -1191,6 +1183,7 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
   # When creating a delegated role, if the parent directory already
   # exists, this means a prior delegation has been perform by the parent. 
   parent_directory = os.path.join(metadata_directory, parent_role)
+
   try:
     os.mkdir(parent_directory)
   except OSError, e:
@@ -1198,6 +1191,7 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
       pass
     else:
       raise
+
   delegated_role_filename = delegated_role+'.txt'
   metadata_filename = os.path.join(parent_directory, delegated_role_filename)
   repository_directory, junk = os.path.split(metadata_directory)
@@ -1205,8 +1199,6 @@ def _make_delegated_metadata(metadata_directory, delegated_targets_directory,
   delegated_metadata = generate_metadata(repository_directory, delegated_paths)
   _sign_and_write_metadata(delegated_metadata, delegated_keyids,
                            metadata_filename)
-
-  return delegated_paths
 
 
 

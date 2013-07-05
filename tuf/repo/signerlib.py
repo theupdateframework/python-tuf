@@ -1276,3 +1276,82 @@ def find_delegated_role(roles, delegated_role):
 
   return role_index
 
+
+
+
+
+def accept_any_file(full_target_path):
+  """
+  <Purpose>
+    Simply accept any given file.
+
+  <Arguments>
+    full_target_path:
+      The absolute path to a target file.
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    True.
+  """
+
+  return True
+
+
+
+
+
+def get_targets(files_directory, recursive_walk=False, followlinks=True,
+                file_predicate=accept_any_file):
+  """
+  <Purpose>
+    Walk the given files_directory to build a list of target files in it.
+
+  <Arguments>
+    files_directory:
+      The path to a directory of target files.
+
+    recursive_walk:
+      To recursively walk the directory, set recursive_walk=True.
+
+    followlinks:
+      To follow symbolic links, set followlinks=True.
+
+    file_predicate:
+      To filter a file based on a predicate, set file_predicate to a function
+      which accepts a full path to a file and returns a Boolean.
+
+  <Exceptions>
+    Python IO exceptions.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    A list of absolute paths to target files in the given files_directory.
+  """
+
+  targets = []
+
+  for dirpath, dirnames, filenames in os.walk(files_directory,
+                                              followlinks=followlinks):
+    for filename in filenames:
+      full_target_path = os.path.join(dirpath, filename)
+      if file_predicate(full_target_path):
+        targets.append(full_target_path)
+
+    # Prune the subdirectories to walk right now if we do not wish to
+    # recursively walk files_directory.
+    if recursive_walk is False:
+      del dirnames[:]
+
+  return targets
+
+
+
+
+
