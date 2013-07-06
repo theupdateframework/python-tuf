@@ -1338,7 +1338,7 @@ def get_targets(files_directory, recursive_walk=False, followlinks=True,
   targets = []
 
   # FIXME: We need a way to tell Python 2, but not Python 3, to return
-  # filenames in Unicode; see # 61 and:
+  # filenames in Unicode; see #61 and:
   # http://docs.python.org/2/howto/unicode.html#unicode-filenames
 
   for dirpath, dirnames, filenames in os.walk(files_directory,
