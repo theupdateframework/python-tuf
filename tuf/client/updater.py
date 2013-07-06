@@ -647,6 +647,10 @@ class Updater(object):
     if fileinfo is not None:
       file_length=fileinfo['length']
       file_hashes=fileinfo['hashes']
+    # We do not know the length of metadata timestamp and root, so we add a default length
+    elif metadata_role == 'timestamp' or metadata_tole == 'root':
+      file_length=4096000
+      file_hashes=None
     else:
       file_length=None
       file_hashes=None
