@@ -900,29 +900,47 @@ class Updater(object):
       None.
     
     """
-    
+
+    MISSING_ROLE_MESSAGE = '{parent_role} has not delegated to ' \
+                           '{metadata_role}!'
+    UNDELEGATED_TARGETS_MESSAGE = 'Role {metadata_role} specifies targets ' \
+                                  '{undelegated_targets} which are not ' \
+                                  'allowed paths according to the ' \
+                                  'delegations set by {parent_role}.'
+
     # Return if 'metadata_role' is 'targets'.  'targets' is not
     # a delegated role.
     if metadata_role == 'targets':
       return
- 
-    # The targets of delegated roles are stored in the parent's
-    # metadata file.  Retrieve the parent role of 'metadata_role'
-    # to confirm 'metadata_role' contains valid targets.
-    parent_role = tuf.roledb.get_parent_rolename(metadata_role)
+    else:
+      # The targets of delegated roles are stored in the parent's
+      # metadata file.  Retrieve the parent role of 'metadata_role'
+      # to confirm 'metadata_role' contains valid targets.
+      parent_role = tuf.roledb.get_parent_rolename(metadata_role)
 
-    # Iterate through the targets of 'metadata_role' and confirm
-    # these targets with the paths listed in the parent role.
-    roles = self.metadata['current'][parent_role]['delegations']['roles']
-    role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
-    assert role_index is not None
-    role = roles[role_index]
-    for target_filepath in metadata_object['targets'].keys():
-      if target_filepath not in role['paths']:
-        message = 'Role '+str(metadata_role)+' specifies target '+ \
-                  target_filepath+' which is not an allowed path according '+ \
-                  'to the delegations set by '+str(parent_role)+'.'
-        raise tuf.RepositoryError(message)
+      # Iterate through the targets of 'metadata_role' and confirm
+      # these targets with the paths listed in the parent role.
+      roles = self.metadata['current'][parent_role]['delegations']['roles']
+      role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
+
+      if role_index is None:
+        raise tuf.RepositoryError(MISSING_ROLE_MESSAGE.format(
+                                  parent_role=parent_role,
+                                  metadata_role=metadata_role))
+      else:
+        role = roles[role_index]
+
+        # Test for breach of delegation with set operations; asymptotically, this
+        # is faster than a linear scan, but at the expense of memory.
+        delegated_targets = set(role['paths'])
+        signed_targets = set(metadata_object['targets'].keys())
+        undelegated_targets = signed_targets - delegated_targets
+
+        if len(undelegated_targets) > 0:
+          raise tuf.RepositoryError(UNDELEGATED_TARGETS_MESSAGE.format(
+                                    metadata_role=metadata_role,
+                                    undelegated_targets=undelegated_targets,
+                                    parent_role=parent_role))
     
 
 
