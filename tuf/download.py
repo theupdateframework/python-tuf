@@ -281,6 +281,7 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
 
   # Keep track of total bytes downloaded.
   total_downloaded = 0
+  
 
   try:
     # info().get('Content-Length') gets the length of the url file.
@@ -303,7 +304,15 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
             # No, we do not know this. Avoid falling for an arbitrary-length data attack (#26).
             message = 'Do not know how much is required to download for "' + url + '"!'
             logger.debug(message)
+            # We do not know the length of metadata timestamp and root, so we add a default length.
+            required_length = 51200
             file_length = int(file_length, 10)
+            # if file_length is longer than default required_length, it's possible we are suffering from endless attack.
+            if file_length <= required_length:
+                required_length = file_length
+            else:
+                message = 'The length of "' + url + '" is longer than defalut required_length, it maybe an endless attack!'
+                raise tuf.DownloadError(message)
         else:
             # Okay, we do know this. Go ahead with checks.
             file_length = int(file_length, 10)
