@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 """
 <Program Name>
@@ -38,6 +37,7 @@ import shutil
 import urllib
 import tempfile
 import util_test_tools
+import tuf.download as download
 
 import tuf
 from tuf.interposition import urllib_tuf
@@ -53,22 +53,30 @@ class EndlessDataAttack(Exception):
   pass
 
 
-
-def _download(url, filename, tuf=False):
-  if tuf:
-    urllib_tuf.urlretrieve(url, filename)
-
+#Because the download_url_to_tempfileobj function just saves target
+#in a temporary file, we should read it and move it.
+def _download(url, filename, tuf=False, testDownload=False):
+  if testDownload and tuf:
+    temp = download.download_url_to_tempfileobj(url, None, None)
+    string = temp.read()
+    fp = open(filename, 'w')
+    fp.write(string) 
+  elif (not testDownload) and tuf:
+    urllib_tuf.urlretrieve(url, filename)  
   else:
     urllib.urlretrieve(url, filename)
 
 
 
-def test_arbitrary_package_attack(TUF=False):
+def test_arbitrary_package_attack(TUF=False, TESTDOWNLOAD=False):
   """
   <Arguments>
     TUF:
       If set to 'False' all directories that start with 'tuf_' are ignored, 
       indicating that tuf is not implemented.
+    TESTDOWNLOAD:
+      If set to 'True', will call the download_url_to_tempfileobj function
+      to perform download.
 
   <Purpose>
     Illustrate endless data attack vulnerability.
@@ -91,9 +99,10 @@ def test_arbitrary_package_attack(TUF=False):
     file_basename = os.path.basename(filepath)
     url_to_repo = url+'reg_repo/'+file_basename
     downloaded_file = os.path.join(downloads, file_basename)
-    endless_data = 'A'*100
+    endless_data = 'A'*100000
 
 
+    
     if TUF:
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
@@ -103,7 +112,9 @@ def test_arbitrary_package_attack(TUF=False):
       # the json interposition configuration file.  Look for 'hostname'
       # in 'util_test_tools.py'. Further, the 'file_basename' is the target
       # path relative to 'targets_dir'. 
-      url_to_repo = 'http://localhost:9999/'+file_basename
+      # If we add the code in next line, the path of downloaded_file will 
+      # wrong.
+      "url_to_repo = 'http://localhost:9999/'+file_basename"
 
       # Attacker modifies the file at the targets repository.
       target = os.path.join(tuf_targets, file_basename)
@@ -117,13 +128,18 @@ def test_arbitrary_package_attack(TUF=False):
 
     try:
       # Client downloads (tries to download) the file.
-      _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+      _download(url=url_to_repo, filename=downloaded_file, tuf=TUF, testDownload=TESTDOWNLOAD)
 
-    except tuf.DownloadError:
+    except tuf.DownloadError, e:
       # If tuf.DownloadError is raised, this means that TUF has prevented
       # the download of an unrecognized file.  Enable the logging to see,
       # what actually happened.
-      pass
+      if TUF and TESTDOWNLOAD:
+        print("With TUF calling the download_url_to_tempfileobj function: " + str(e))
+      elif (not TESTDOWNLOAD) and TUF:
+        print("With TUF not calling the download_url_to_tempfileobj function: " + str(e))
+      else:
+        print("Without TUF: " + str(e))  
 
     else:
       # Check whether the attack succeeded by inspecting the content of the
@@ -131,6 +147,7 @@ def test_arbitrary_package_attack(TUF=False):
       # to check whether the file was downloaded or not.
       downloaded_content = util_test_tools.read_file_content(downloaded_file)
       if 'Test A' != downloaded_content:
+        
         raise EndlessDataAttack(ERROR_MSG)
 
 
@@ -142,7 +159,7 @@ def test_arbitrary_package_attack(TUF=False):
 
 
 try:
-  test_arbitrary_package_attack(TUF=False)
+  test_arbitrary_package_attack(TUF=False, TESTDOWNLOAD=False)
 
 except EndlessDataAttack, error:
   print('Without TUF: '+str(error))
@@ -150,7 +167,14 @@ except EndlessDataAttack, error:
 
 
 try:
-  test_arbitrary_package_attack(TUF=True)
+  test_arbitrary_package_attack(TUF=True, TESTDOWNLOAD=False)
 
 except EndlessDataAttack, error:
-  print('With TUF: '+str(error))
+  print('With TUF not calling the download_url_to_tempfileobj function: '+str(error))
+
+
+try:
+  test_arbitrary_package_attack(TUF=True, TESTDOWNLOAD=True)
+
+except EndlessDataAttack, error:
+  print('With TUF calling the download_url_to_tempfileobj function: '+str(error))
