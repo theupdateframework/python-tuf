@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_endless_data_attack.py
@@ -143,7 +145,7 @@ try:
   test_arbitrary_package_attack(TUF=False)
 
 except EndlessDataAttack, error:
-  print error
+  print('Without TUF: '+str(error))
 
 
 
@@ -151,4 +153,4 @@ try:
   test_arbitrary_package_attack(TUF=True)
 
 except EndlessDataAttack, error:
-  print error
+  print('With TUF: '+str(error))

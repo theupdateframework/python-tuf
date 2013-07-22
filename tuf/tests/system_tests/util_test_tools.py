@@ -204,6 +204,11 @@ def cleanup(root_repo, server_process=None):
   # Clear the keystore.
   keystore.clear_keystore()
 
+  # Deconfigure interposition.
+  interpose_json = os.path.join(root_repo, 'tuf.interposition.json')
+  if os.path.exists(interpose_json):
+    tuf.interposition.deconfigure(filename=interpose_json)
+
   # Removing repository directory.
   try:
     shutil.rmtree(root_repo)
@@ -381,9 +386,8 @@ def create_interposition_config(root_repo, url):
                                  "targets_path": "targets",
                                  "confined_target_dirs": [ "" ]}}}}}
 
-  #                               "target_paths": [ { "(.*\\.html)": "{0}" } ]
-
-  junk, interpose_json = tempfile.mkstemp(prefix='conf_', dir=root_repo)
+  # We write the interposition JSON configuration at a deterministic location.
+  interpose_json = os.path.join(root_repo, 'tuf.interposition.json')
   with open(interpose_json, 'wb') as fileobj:
     tuf.util.json.dump(interposition_dict, fileobj)
 
@@ -549,8 +553,10 @@ def create_delegation(tuf_repo, delegated_targets_path, keyid, keyid_password,
       return targets_path
     elif msg.startswith('\nChoose and enter the parent'):
       return parent_role
-    elif msg.endswith('\nEnter the delegated role\'s name: '):
+    elif msg.startswith('\nEnter the delegated role\'s name: '):
       return new_role_name
+    elif msg.startswith('Recursively walk the given directory? (Y)es/(N)o: '):
+      return 'N'
     else:
       error_msg = ('Prompt: '+'\''+msg+'\''+
                    ' did not match any predefined mock prompts.')

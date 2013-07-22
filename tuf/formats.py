@@ -267,19 +267,23 @@ RECEIVECONFIG_SCHEMA = SCHEMA.Object(
     targets_directory=PATH_SCHEMA,
     backup_directory=PATH_SCHEMA)) 
 
-# Role object in {'keyids': [keydids..], 'threshold': 1, 'paths':[filepaths..]}
-# format.
+# Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
+# 'paths':[filepaths..]} # format.
 ROLE_SCHEMA = SCHEMA.Object(
   object_name='role',
   keyids=SCHEMA.ListOf(KEYID_SCHEMA),
+  name=SCHEMA.Optional(ROLENAME_SCHEMA),
   threshold=THRESHOLD_SCHEMA,
-  paths=SCHEMA.Optional(SCHEMA.ListOf(RELPATH_SCHEMA)))
+  paths=SCHEMA.Optional(RELPATHS_SCHEMA))
 
 # A dict of roles where the dict keys are role names and the dict values holding 
 # the role data/information.
 ROLEDICT_SCHEMA = SCHEMA.DictOf(
   key_schema=ROLENAME_SCHEMA,
   value_schema=ROLE_SCHEMA)
+
+# Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
+ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 
 # The root: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(
@@ -299,7 +303,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
   targets=FILEDICT_SCHEMA,
   delegations=SCHEMA.Optional(SCHEMA.Object(
     keys=KEYDICT_SCHEMA,
-    roles=ROLEDICT_SCHEMA)))
+    roles=ROLELIST_SCHEMA)))
 
 # A Release: indicates the latest versions of all metadata (except timestamp).
 RELEASE_SCHEMA = SCHEMA.Object(
@@ -324,7 +328,7 @@ MIRROR_SCHEMA = SCHEMA.Object(
   url_prefix=URL_SCHEMA,
   metadata_path=RELPATH_SCHEMA,
   targets_path=RELPATH_SCHEMA,
-  confined_target_dirs=SCHEMA.ListOf(RELPATH_SCHEMA),
+  confined_target_dirs=RELPATHS_SCHEMA,
   custom=SCHEMA.Optional(SCHEMA.Object()))
 
 # A dictionary of mirrors where the dict keys hold the mirror's name and
@@ -818,7 +822,7 @@ def make_fileinfo(length, hashes, custom=None):
 
 
 
-def make_role_metadata(keyids, threshold, paths=None):
+def make_role_metadata(keyids, threshold, name=None, paths=None):
   """
   <Purpose>
     Create a dictionary conforming to 'tuf.formats.ROLE_SCHEMA',
@@ -832,6 +836,9 @@ def make_role_metadata(keyids, threshold, paths=None):
     threshold:
       An integer denoting the number of required keys
       for the signing role.
+
+    name:
+      A string that is the name of this role.
 
     paths:
       The 'Target' role stores the paths of target files
@@ -856,6 +863,10 @@ def make_role_metadata(keyids, threshold, paths=None):
   role_meta = {}
   role_meta['keyids'] = keyids
   role_meta['threshold'] = threshold
+
+  if name is not None:
+    role_meta['name'] = name
+
   if paths is not None:
     role_meta['paths'] = paths
 

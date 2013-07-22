@@ -289,7 +289,7 @@ def build_repository(project_directory):
     os.mkdir(keystore_directory)
   # 'OSError' raised if the directory cannot be created.
   except OSError, e:
-    if e.errno == EEXIST:
+    if e.errno == errno.EEXIST:
       pass
     else:
       raise

@@ -100,19 +100,20 @@
 
 """
 
-import os
-import time
-import logging
-import shutil
 import errno
+import logging
+import os
+import shutil
+import time
 
+import tuf.conf
+import tuf.download
 import tuf.formats
 import tuf.keydb
-import tuf.roledb
-import tuf.mirrors
-import tuf.download
-import tuf.conf
 import tuf.log
+import tuf.mirrors
+import tuf.repo.signerlib
+import tuf.roledb
 import tuf.sig
 import tuf.util
 
@@ -407,6 +408,7 @@ class Updater(object):
         if metadata_role == 'root':
           self._rebuild_key_and_role_db()
         elif metadata_object['_type'] == 'Targets':
+          # TODO: Should we also remove the keys of the delegated roles?
           tuf.roledb.remove_delegated_roles(metadata_role)
           self._import_delegations(metadata_role)
 
@@ -489,7 +491,7 @@ class Updater(object):
 
     # This could be quite slow with a huge number of delegations.
     keys_info = current_parent_metadata['delegations'].get('keys', {})
-    roles_info = current_parent_metadata['delegations'].get('roles', {})
+    roles_info = current_parent_metadata['delegations'].get('roles', [])
 
     logger.debug('Adding roles delegated from '+repr(parent_role)+'.')
    
@@ -514,14 +516,18 @@ class Updater(object):
         continue
 
     # Add the roles to the role database.
-    for rolename, roleinfo in roles_info.items():
-      logger.debug('Adding delegated role: '+repr(rolename)+'.')
+    for roleinfo in roles_info:
       try:
+        # NOTE: tuf.roledb.add_role will take care
+        # of the case where rolename is None.
+        rolename = roleinfo.get('name')
+        logger.debug('Adding delegated role: '+str(rolename)+'.')
         tuf.roledb.add_role(rolename, roleinfo)
       except tuf.RoleAlreadyExistsError, e:
         logger.warn('Role already exists: '+rolename)
-      except (tuf.FormatError, tuf.InvalidNameError), e:
+      except:
         logger.exception('Failed to add delegated role: '+rolename+'.')
+        raise
 
 
 
@@ -854,6 +860,7 @@ class Updater(object):
       # may not be trusted anymore.
       if metadata_role == 'targets' or metadata_role.startswith('targets/'):
         logger.debug('Removing delegated roles of '+repr(metadata_role)+'.')
+        # TODO: Should we also remove the keys of the delegated roles?
         tuf.roledb.remove_delegated_roles(metadata_role)
         self._import_delegations(metadata_role)
 
@@ -893,28 +900,47 @@ class Updater(object):
       None.
     
     """
-    
+
+    MISSING_ROLE_MESSAGE = '{parent_role} has not delegated to ' \
+                           '{metadata_role}!'
+    UNDELEGATED_TARGETS_MESSAGE = 'Role {metadata_role} specifies targets ' \
+                                  '{undelegated_targets} which are not ' \
+                                  'allowed paths according to the ' \
+                                  'delegations set by {parent_role}.'
+
     # Return if 'metadata_role' is 'targets'.  'targets' is not
     # a delegated role.
     if metadata_role == 'targets':
       return
- 
-    # The targets of delegated roles are stored in the parent's
-    # metadata file.  Retrieve the parent role of 'metadata_role'
-    # to confirm 'metadata_role' contains valid targets.
-    parent_role = tuf.roledb.get_parent_rolename(metadata_role)
+    else:
+      # The targets of delegated roles are stored in the parent's
+      # metadata file.  Retrieve the parent role of 'metadata_role'
+      # to confirm 'metadata_role' contains valid targets.
+      parent_role = tuf.roledb.get_parent_rolename(metadata_role)
 
-    # Iterate through the targets of 'metadata_role' and confirm
-    # these targets with the paths listed in the parent role.
-    for target_filepath in metadata_object['targets'].keys():
-      if target_filepath not in self.metadata['current'][parent_role] \
-                                             ['delegations']['roles'] \
-                                             [metadata_role]['paths']:
-        
-        message = 'Role '+repr(metadata_role)+' specifies target '+ \
-                  target_filepath+' which is not an allowed path according '+ \
-                  'to the delegations set by '+repr(parent_role)+'.'
-        raise tuf.RepositoryError(message)
+      # Iterate through the targets of 'metadata_role' and confirm
+      # these targets with the paths listed in the parent role.
+      roles = self.metadata['current'][parent_role]['delegations']['roles']
+      role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
+
+      if role_index is None:
+        raise tuf.RepositoryError(MISSING_ROLE_MESSAGE.format(
+                                  parent_role=parent_role,
+                                  metadata_role=metadata_role))
+      else:
+        role = roles[role_index]
+
+        # Test for breach of delegation with set operations; asymptotically, this
+        # is faster than a linear scan, but at the expense of memory.
+        delegated_targets = set(role['paths'])
+        signed_targets = set(metadata_object['targets'].keys())
+        undelegated_targets = signed_targets - delegated_targets
+
+        if len(undelegated_targets) > 0:
+          raise tuf.RepositoryError(UNDELEGATED_TARGETS_MESSAGE.format(
+                                    metadata_role=metadata_role,
+                                    undelegated_targets=undelegated_targets,
+                                    parent_role=parent_role))
     
 
 
@@ -1426,8 +1452,11 @@ class Updater(object):
   def target(self, target_filepath):
     """
     <Purpose>
-      Return the target file information for 'target_filepath'.
-    
+      Return the target file information for 'target_filepath'. We interrogate
+      the tree of target delegations in order of appearance (which implicitly
+      order trustworthiness), and return the matching target found in the most
+      trusted role.
+
     <Arguments>    
       target_filepath:
         The path to the target file on the repository. This
@@ -1439,8 +1468,10 @@ class Updater(object):
         If 'target_filepath' is improperly formatted.
 
       tuf.RepositoryError:
-        If 'target_filepath' was not found or there were more multiple
-        versions (same file path but different file attributes).
+        If 'target_filepath' was not found.
+
+      Exception:
+        In case of an unforeseen runtime error.
    
     <Side Effects>
       The metadata for updated delegated roles are download and stored.
@@ -1457,51 +1488,57 @@ class Updater(object):
 
     # Refresh the target metadata for all the delegated roles. 
     self._refresh_targets_metadata(include_delegations=True)
-    all_rolenames = tuf.roledb.get_rolenames()
 
-    # Iterate through all the target metadata.  Take precautions
-    # to avoid duplicate files.
-    target = []
-    for rolename in all_rolenames:
-      if self.metadata['current'][rolename]['_type'] != 'Targets':
-        continue
-      # We have a target role.  Extract the filepath and fileinfo
-      # and compare it to 'target_filepath'.  Compare the fileinfo
-      # to avoid duplicates.
-      for filepath, fileinfo in self.metadata['current'][rolename] \
-                                             ['targets'].items():
-        if target_filepath == filepath:
-          # If 'target' is empty, we can just go ahead and add 'target_filepath'
-          # No need to check for duplicates in this case.
-          if len(target) == 0:
-            new_target = {}
-            new_target['filepath'] = filepath
-            new_target['fileinfo'] = fileinfo
-            target.append(new_target)
-            continue
-          # It appears we have a duplicate.  If the fileinfo match,
-          # do not add the duplicate.  Move on to the next target.
-          elif len(target) == 1:
-            if target[0]['fileinfo'] == fileinfo:
-              continue
-            # TODO: What if an existing file, that is listed in the targets
-            # metadata, gets delegated?  This needs to be looked at.
-            # Okay, we have a matching filepath but a different fileinfo
-            # for the duplicate.  Which one is the client expecting?
-            # And why would the metadata list two different versions of the
-            # same file?  Raise an exception.
-            else:
-              message = 'Found multiple '+repr(target_filepath)+'.'
-              logger.error(message)
-              #raise tuf.RepositoryError(message)
-   
-    # Riase an exception if the target information could not be retrieved.
-    if len(target) == 0:
-      message = repr(target_filepath)+' not found.'
-      logger.error(message)
-      raise tuf.RepositoryError(message)
-    
-    return target[0] 
+    # The target is assumed to be missing until proven otherwise.
+    target = None
+
+    try:
+      current_metadata = self.metadata['current']
+      role_names = ['targets']
+
+      # Preorder depth-first traversal of the tree of target delegations.
+      while len(role_names) > 0 and target is None:
+        # Pop the role name from the top of the stack.
+        role_name = role_names.pop(-1)
+        role_metadata = current_metadata[role_name]
+        targets = role_metadata['targets']
+        delegations = role_metadata.get('delegations', {})
+        child_roles = delegations.get('roles', [])
+
+        # Does the current role name have our target?
+        logger.info('Asking role '+role_name+' about target '+target_filepath)
+        for filepath, fileinfo in targets.iteritems():
+          if filepath == target_filepath:
+            logger.info('Found target '+target_filepath+' in role '+role_name)
+            target = {'filepath': filepath, 'fileinfo': fileinfo}
+            break
+
+        # Push children in reverse order of appearance onto the stack.
+        for child_role in reversed(child_roles):
+          child_role_name = child_role['name']
+          child_role_paths = child_role['paths']
+
+          # Ensure that we explore only delegated roles trusted with the target.
+          # We assume conservation of delegated paths in the complete tree of
+          # delegations. Note that the call to _ensure_all_targets_allowed in
+          # _update_metadata should already ensure that all targets metadata is
+          # valid; i.e. that the targets signed by a delegatee is a proper
+          # subset of the targets delegated to it by the delegator.
+          # Nevertheless, we check it again here for performance and safety
+          # reasons.
+          if target_filepath in child_role_paths:
+            role_names.append(child_role_name)
+    except:
+      raise
+    finally:
+      # Raise an exception if the target information could not be retrieved.
+      if target is None:
+        message = target_filepath+' not found.'
+        logger.error(message)
+        raise tuf.RepositoryError(message)
+      # Otherwise, return the found target.
+      else:
+        return target
 
 
 
