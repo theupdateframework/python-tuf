@@ -141,8 +141,10 @@ def build_server_repository(server_repository_dir, targets_dir):
       return delegated_targets_dir
     elif msg.startswith('\nChoose and enter the parent'):
       return parent_role
-    elif msg.endswith('\nEnter the delegated role\'s name: '):
+    elif msg.startswith('\nEnter the delegated role\'s name: '):
       return delegated_role_name
+    elif msg.startswith('Recursively walk the given directory? (Y)es/(N)o: '):
+      return 'N'
     else:
       error_msg = ('Prompt: '+'\''+msg+'\''+
                    ' did not match any predefined mock prompts.')

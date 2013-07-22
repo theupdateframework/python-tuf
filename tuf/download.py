@@ -226,7 +226,91 @@ def _check_hashes(input_file, trusted_hashes):
 
 
 
-def download_url_to_tempfileobj(url, required_hashes=None, required_length=None):
+def _download_fixed_amount_of_data(connection, temp_file, file_length,
+                                   required_length):
+  """
+  <Purpose>
+    This is a helper function, where the download really happens. While-block
+    reads data from connection a fixed chunk of data at a time, or less, until
+    'file_length' is reached.
+  
+  <Arguments>
+    connection:
+      The object that the _open_connection returns for communicating with the
+      server about the contents of a URL.
+
+    temp_file:
+      A temporary file where the contents at the URL specified by the
+      'connection' object will be stored.
+
+    file_length:
+      The number of bytes that the server claims is the size of the file.
+
+    required_length:
+      The number of bytes that we must download for the file.  This is almost
+      always specified by the TUF metadata for the data file in question
+      (except in the case of timestamp metadata, in which case we would fix a
+      reasonable upper bound).
+  
+  <Side Effects>
+    Data from the server will be written to 'temp_file'.
+ 
+  <Exceptions>
+    Runtime or network exceptions will be raised without question.
+ 
+  <Returns>
+    total_downloaded:
+      The total number of bytes we have downloaded for the desired file and
+      which should be equal to 'required_length'.
+
+  """
+
+  # The maximum chunk of data, in bytes, we would download in every round.
+  BLOCK_SIZE = 8192
+
+  # Keep track of total bytes downloaded.
+  total_downloaded = 0
+
+  try:
+    while True:
+      # We download a fixed chunk of data in every round. This is so that we
+      # can defend against slow retrieval attacks. Furthermore, we do not wish
+      # to download an extremely large file in one shot.
+      data = connection.read(min(BLOCK_SIZE, file_length-total_downloaded))
+
+      # We might have no more data to read. Check number of bytes downloaded. 
+      if not data:
+        message = 'Downloaded '+str(total_downloaded)+'/'+ \
+          str(file_length)+' bytes.'
+        logger.debug(message)
+
+        # Did we download the correct amount indicated by 'Content-Length'
+        # or user? Because file_length is always eaqual to required_length
+        # we just need check one of them. 
+        if total_downloaded != file_length:
+          message = 'Downloaded '+str(total_downloaded)+'.  Expected '+ \
+            str(file_length)+' for '+url
+          raise tuf.DownloadError(message)
+
+        # Finally, we signal that the download is complete.
+        break
+
+      # Data successfully read from the connection.  Store it. 
+      temp_file.write(data)
+      total_downloaded = total_downloaded + len(data)
+  except:
+    raise
+  else:
+    return total_downloaded
+  finally:
+    connection.close()
+
+
+
+
+
+def download_url_to_tempfileobj(url, required_hashes=None,
+                                required_length=None):
   """
   <Purpose>
     Given the url, hashes and length of the desired file, this function 
@@ -260,7 +344,7 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
  
   <Returns>
     'tuf.util.TempFile' instance.
-  
+
   """
 
   # Do all of the arguments have the appropriate format?
@@ -279,8 +363,6 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
   connection = _open_connection(url)
   temp_file = tuf.util.TempFile()
 
-  # Keep track of total bytes downloaded.
-  total_downloaded = 0
 
   try:
     # info().get('Content-Length') gets the length of the url file.
@@ -314,32 +396,14 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
                 ', got '+str(file_length)+' bytes.'
       raise tuf.DownloadError(message)
 
-    # While-block reads data from connection 8192-bytes at a time, or less,
-    # until 'file_length' is reached.
-    while True:
-      data = connection.read(min(8192, file_length - total_downloaded))
-      # We might have no more data to read.  Let us check bytes downloaded. 
-      if not data:
-        message = 'Downloaded '+str(total_downloaded)+'/' \
-                  +str(file_length)+' bytes.'
-        logger.debug(message)
-        # Did we download the correct amount indicated by 'Content-Length'? 
-        if total_downloaded != file_length:
-          message = 'Downloaded '+str(total_downloaded)+'.  Expected '+ \
-                    str(file_length)+' for '+url
-          raise tuf.DownloadError(message)
-        # Did we download the correct amount indicated by the user? 
-        if required_length is not None and total_downloaded != required_length:
-          message = 'The user-required length of '+str(required_length)+ \
-                    'did not match the '+str(len(total_downloaded))+' downloaded'
-          raise tuf.DownloadError(message)
-        break
-      # Data successfully read from the connection.  Store it. 
-      temp_file.write(data)
-      total_downloaded = total_downloaded + len(data)
+    # For readibility, we perform the download in a separate function, which
+    # returns the total number of downloaded bytes; this number should be equal
+    # to required_length. 
+    total_downloaded = _download_fixed_amount_of_data(connection, temp_file,
+                                                      file_length,
+                                                      required_length)
  
     # We appear to have downloaded the correct amount.  Check the hashes.
-    connection.close()
     if required_length is not None and required_hashes is not None: 
       _check_hashes(temp_file, required_hashes)
 
@@ -351,3 +415,5 @@ def download_url_to_tempfileobj(url, required_hashes=None, required_length=None)
     raise tuf.DownloadError(e)
 
   return temp_file
+
+

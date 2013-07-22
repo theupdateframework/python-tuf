@@ -561,12 +561,12 @@
      { "keys" : {
            KEYID : KEY,
            ... },
-       "roles" : {
-           ROLE : {
-             "keyids" : [ KEYID, ... ] ,
-             "threshold" : THRESHOLD,
-             "paths" : [ PATHPATTERN, ... ] }
-           , ... }
+       "roles" : [{
+           "name": ROLE,
+           "keyids" : [ KEYID, ... ] ,
+           "threshold" : THRESHOLD,
+           "paths" : [ PATHPATTERN, ... ]
+       }, ... ]
      }
 
    The "paths" list describes paths that the role is trusted to provide.
@@ -586,15 +586,8 @@
    on. The metadata of the first delegation will override that of the second delegation,
    the metadata of the second delegation will override that of the third
    delegation, and so on. In order to accommodate this scheme, the "roles" key
-   in the DELEGATIONS object above should point to an array, instead of a hash
-   table, of delegated roles, like so:
-
-        "roles" : [{
-            "role": ROLE,
-            "keyids" : [ KEYID, ... ] ,
-            "threshold" : THRESHOLD,
-            "paths" : [ PATHPATTERN, ... ]
-        }, ... ]
+   in the DELEGATIONS object above points to an array, instead of a hash
+   table, of delegated roles.
 
    Another priority tag scheme would have the clients prefer the delegated role
    with the latest metadata for a conflicting target path. Similar ideas were

@@ -105,7 +105,7 @@ def generate(bits=_DEFAULT_RSA_KEY_BITS):
   
   try:
     public_key, private_key = evpy.envelope.keygen(bits, pem=True)
-  except (EnvelopeError, KeygenError, MemoryError), e:
+  except (evpy.envelope.EnvelopeError, evpy.envelope.KeygenError, MemoryError), e:
     raise tuf.CryptoError(e)
 
   # Generate the keyid for the RSA key.  'key_value' corresponds to the

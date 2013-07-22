@@ -538,7 +538,8 @@ def get_delegated_rolenames(rolename):
     None.
 
   <Returns>
-    A list of rolenames.
+    A list of rolenames. Note that the rolenames are *NOT* sorted by order of
+    delegation!
 
   """
 

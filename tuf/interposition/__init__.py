@@ -167,6 +167,46 @@ def __urllib2_urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
 
 
 
+def __read_configuration(configuration_handler,
+                         filename="tuf.interposition.json",
+                         parent_repository_directory=None,
+                         parent_ssl_certificates_directory=None):
+  """
+  A generic function to read a TUF interposition configuration off the disk,
+  and handle it. configuration_handler must be a function which accepts a
+  tuf.interposition.Configuration instance."""
+
+  INVALID_TUF_CONFIGURATION = "Invalid configuration for {network_location}!"
+  INVALID_TUF_INTERPOSITION_JSON = "Invalid configuration in {filename}!"
+  NO_CONFIGURATIONS = "No configurations found in configuration in {filename}!"
+
+  try:
+    with open(filename) as tuf_interposition_json:
+      tuf_interpositions = json.load(tuf_interposition_json)
+      configurations = tuf_interpositions.get("configurations", {})
+
+      if len(configurations) == 0:
+        raise InvalidConfiguration(NO_CONFIGURATIONS.format(filename=filename))
+
+      else:
+        for network_location, configuration in configurations.iteritems():
+          try:
+            configuration_parser = ConfigurationParser(network_location,
+              configuration, parent_repository_directory=parent_repository_directory,
+              parent_ssl_certificates_directory=parent_ssl_certificates_directory)
+
+            configuration = configuration_parser.parse()
+            configuration_handler(configuration)
+
+          except:
+            Logger.exception(INVALID_TUF_CONFIGURATION.format(network_location=network_location))
+            raise
+
+  except:
+    Logger.exception(INVALID_TUF_INTERPOSITION_JSON.format(filename=filename))
+    raise
+
+
 
 
 # TODO: Is parent_repository_directory a security risk? For example, would it
@@ -221,35 +261,18 @@ def configure(filename="tuf.interposition.json",
   optional; it must specify certificates bundled as PEM (RFC 1422).
   """
 
-  INVALID_TUF_CONFIGURATION = "Invalid configuration for {network_location}!"
-  INVALID_TUF_INTERPOSITION_JSON = "Invalid configuration in {filename}!"
-  NO_CONFIGURATIONS = "No configurations found in configuration in {filename}!"
+  __read_configuration(__updater_controller.add, filename=filename,
+                       parent_repository_directory=parent_repository_directory,
+                       parent_ssl_certificates_directory=parent_ssl_certificates_directory)
 
-  try:
-    with open(filename) as tuf_interposition_json:
-      tuf_interpositions = json.load(tuf_interposition_json)
-      configurations = tuf_interpositions.get("configurations", {})
 
-      if len(configurations) == 0:
-        raise InvalidConfiguration(NO_CONFIGURATIONS.format(filename=filename))
 
-      else:
-        for network_location, configuration in configurations.iteritems():
-          try:
-            configuration_parser = ConfigurationParser(network_location,
-              configuration, parent_repository_directory=parent_repository_directory,
-              parent_ssl_certificates_directory=parent_ssl_certificates_directory)
 
-            configuration = configuration_parser.parse()
-            __updater_controller.add(configuration)
 
-          except:
-            Logger.exception(INVALID_TUF_CONFIGURATION.format(network_location=network_location))
-            raise
+def deconfigure(filename="tuf.interposition.json"):
+  """Remove TUF interposition for a previously read configuration."""
 
-  except:
-    Logger.exception(INVALID_TUF_INTERPOSITION_JSON.format(filename=filename))
-    raise
+  __read_configuration(__updater_controller.remove, filename=filename)
 
 
 

@@ -177,7 +177,7 @@ class UpdaterController(object):
     self.__repository_mirror_hostnames = set()
 
 
-  def __check_configuration(self, configuration):
+  def __check_configuration_on_add(self, configuration):
     """
     If the given Configuration is invalid, I raise an exception.
     Otherwise, I return some information about the Configuration,
@@ -198,34 +198,25 @@ class UpdaterController(object):
     assert configuration.hostname not in self.__updaters
     assert configuration.hostname not in self.__repository_mirror_hostnames
 
-    # Parse TUF server repository mirrors.
-    repository_mirrors = configuration.repository_mirrors
-    repository_mirror_hostnames = set()
+    # Check for redundancy in server repository mirrors.
+    repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
 
-    for repository_mirror in repository_mirrors:
-      mirror_configuration = repository_mirrors[repository_mirror]
-
+    for mirror_hostname in repository_mirror_hostnames:
       try:
-        url_prefix = mirror_configuration["url_prefix"]
-        parsed_url = urlparse.urlparse(url_prefix)
-        mirror_hostname = parsed_url.hostname
-
-        # Restrict each (incoming, outgoing) hostname pair to be unique
-        # across configurations; this prevents interposition cycles,
+        # Restrict each hostname in every (incoming, outgoing) pair to be
+        # unique across configurations; this prevents interposition cycles,
         # amongst other things.
         assert mirror_hostname not in self.__updaters
         assert mirror_hostname not in self.__repository_mirror_hostnames
 
-        # Remember this mirror's hostname for the next network_location.
-        repository_mirror_hostnames.add(mirror_hostname)
-
       except:
         error_message = \
-          INVALID_REPOSITORY_MIRROR.format(repository_mirror=repository_mirror)
+          INVALID_REPOSITORY_MIRROR.format(repository_mirror=mirror_hostname)
         Logger.exception(error_message)
         raise InvalidConfiguration(error_message)
 
     return repository_mirror_hostnames
+
 
 
   def add(self, configuration):
@@ -233,7 +224,7 @@ class UpdaterController(object):
 
     UPDATER_ADDED_MESSAGE = "Updater added for {configuration}."
 
-    repository_mirror_hostnames = self.__check_configuration(configuration)
+    repository_mirror_hostnames = self.__check_configuration_on_add(configuration)
 
     # If all is well, build and store an Updater, and remember hostnames.
     self.__updaters[configuration.hostname] = Updater(configuration)
@@ -296,3 +287,23 @@ class UpdaterController(object):
         Logger.warn(GENERIC_WARNING_MESSAGE.format(url=url))
 
       return updater
+
+
+  def remove(self, configuration):
+    """Remove an Updater matching the given Configuration."""
+
+    UPDATER_REMOVED_MESSAGE = "Updater removed for {configuration}."
+
+    assert isinstance(configuration, Configuration)
+
+    repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
+
+    assert configuration.hostname in self.__updaters
+    assert repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames)
+
+    # If all is well, remove the stored Updater as well as its associated
+    # repository mirror hostnames.
+    del self.__updaters[configuration.hostname]
+    self.__repository_mirror_hostnames.difference_update(repository_mirror_hostnames)
+
+    Logger.info(UPDATER_REMOVED_MESSAGE.format(configuration=configuration))

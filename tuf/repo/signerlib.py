@@ -1148,10 +1148,10 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
                               delegation_role_name):
   """
   <Purpose>
-    Build the targets metadata file using the signing keys in 'targets_keyids'.
-    The generated metadata file is saved to 'metadata_directory'.  The target
-    files located in 'targets_directory' will be tracked by the built targets
-    metadata.
+    Build the targets metadata file using the signing keys in
+    'delegated_keyids'.  The generated metadata file is saved to
+    'metadata_directory'.  The target files located in 'targets_directory' will
+    be tracked by the built targets metadata.
 
   <Arguments>
     delegated_targets_directory:
@@ -1216,3 +1216,146 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
   signable = sign_metadata(targets_metadata, delegated_keyids, targets_filepath)
 
   return write_metadata_file(signable, targets_filepath)
+
+
+
+
+
+def find_delegated_role(roles, delegated_role):
+  """
+  <Purpose>
+    Find the index, if any, of a role with a given name in a list of roles.
+
+  <Arguments>
+    roles:
+      The list of roles, each of which must have a name.
+
+    delegated_role:
+      The name of the role to be found in the list of roles.
+
+  <Exceptions>
+    tuf.RepositoryError, if the list of roles has invalid data.
+
+  <Side Effects>
+    No known side effects.
+
+  <Returns>
+    None, if the role with the given name does not exist, or its unique index
+    in the list of roles.
+
+  """
+
+  # Check argument types.
+  tuf.formats.ROLELIST_SCHEMA.check_match(roles)
+  tuf.formats.ROLENAME_SCHEMA.check_match(delegated_role)
+
+  # The index of a role, if any, with the same name.
+  role_index = None
+
+  for index in xrange(len(roles)):
+    role = roles[index]
+    name = role.get('name')
+    # This role has no name.
+    if name is None:
+      no_name_message = 'Role with no name!'
+      raise tuf.RepositoryError(no_name_message)
+    # Does this role have the same name?
+    else:
+      # This role has the same name, and...
+      if name == delegated_role:
+        # ...it is the only known role with the same name.
+        if role_index is None:
+          role_index = index
+        # ...there are at least two roles with the same name!
+        else:
+          duplicate_role_message = 'Duplicate role ('+str(delegated_role)+')!'
+          raise tuf.RepositoryError(duplicate_role_message)
+      # This role has a different name.
+      else:
+        continue
+
+  return role_index
+
+
+
+
+
+def accept_any_file(full_target_path):
+  """
+  <Purpose>
+    Simply accept any given file.
+
+  <Arguments>
+    full_target_path:
+      The absolute path to a target file.
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    True.
+  """
+
+  return True
+
+
+
+
+
+def get_targets(files_directory, recursive_walk=False, followlinks=True,
+                file_predicate=accept_any_file):
+  """
+  <Purpose>
+    Walk the given files_directory to build a list of target files in it.
+
+  <Arguments>
+    files_directory:
+      The path to a directory of target files.
+
+    recursive_walk:
+      To recursively walk the directory, set recursive_walk=True.
+
+    followlinks:
+      To follow symbolic links, set followlinks=True.
+
+    file_predicate:
+      To filter a file based on a predicate, set file_predicate to a function
+      which accepts a full path to a file and returns a Boolean.
+
+  <Exceptions>
+    Python IO exceptions.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    A list of absolute paths to target files in the given files_directory.
+  """
+
+  targets = []
+
+  # FIXME: We need a way to tell Python 2, but not Python 3, to return
+  # filenames in Unicode; see #61 and:
+  # http://docs.python.org/2/howto/unicode.html#unicode-filenames
+
+  for dirpath, dirnames, filenames in os.walk(files_directory,
+                                              followlinks=followlinks):
+    for filename in filenames:
+      full_target_path = os.path.join(dirpath, filename)
+      if file_predicate(full_target_path):
+        targets.append(full_target_path)
+
+    # Prune the subdirectories to walk right now if we do not wish to
+    # recursively walk files_directory.
+    if recursive_walk is False:
+      del dirnames[:]
+
+  return targets
+
+
+
+
+
