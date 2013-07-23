@@ -200,7 +200,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     """
 
-    def _mock_download(url, hashes=None, length=None):
+    def _mock_download(url, hashes=None, length=None, SET_DEFAULT_REQUIRED_LENGTH=False):
       if isinstance(output, (str, unicode)):
         file_path = output
       elif isinstance(output, list):
