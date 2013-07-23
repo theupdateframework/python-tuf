@@ -36,3 +36,10 @@ repository_directory = None
 # https://en.wikipedia.org/wiki/Certificate_authority
 # http://docs.python.org/2/library/ssl.html#certificates
 ssl_certificates = None
+
+# A default value used in the tuf.download.download_url_to_tempfileobj
+# function. When metadata does not tell what the length of target file
+# is(for example, the timestamp.txt), set it with this default value 
+# to avoid endless data attack. the default length is set based on the 
+# timestamp.txt with two signature.
+DEFAULT_REQUIRED_LENGTH = 1995
