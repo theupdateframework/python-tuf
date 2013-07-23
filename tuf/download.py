@@ -226,8 +226,7 @@ def _check_hashes(input_file, trusted_hashes):
 
 
 
-def _download_fixed_amount_of_data(connection, temp_file, file_length,
-                                   required_length):
+def _download_fixed_amount_of_data(connection, temp_file, required_length):
   """
   <Purpose>
     This is a helper function, where the download really happens. While-block
@@ -242,9 +241,6 @@ def _download_fixed_amount_of_data(connection, temp_file, file_length,
     temp_file:
       A temporary file where the contents at the URL specified by the
       'connection' object will be stored.
-
-    file_length:
-      The number of bytes that the server claims is the size of the file.
 
     required_length:
       The number of bytes that we must download for the file.  This is almost
@@ -276,21 +272,14 @@ def _download_fixed_amount_of_data(connection, temp_file, file_length,
       # We download a fixed chunk of data in every round. This is so that we
       # can defend against slow retrieval attacks. Furthermore, we do not wish
       # to download an extremely large file in one shot.
-      data = connection.read(min(BLOCK_SIZE, file_length-total_downloaded))
+      data = connection.read(min(BLOCK_SIZE, required_length-total_downloaded))
+    
 
       # We might have no more data to read. Check number of bytes downloaded. 
       if not data:
         message = 'Downloaded '+str(total_downloaded)+'/'+ \
-          str(file_length)+' bytes.'
+          str(required_length)+' bytes.'
         logger.debug(message)
-
-        # Did we download the correct amount indicated by 'Content-Length'
-        # or user? Because file_length is always eaqual to required_length
-        # we just need check one of them. 
-        if total_downloaded != file_length:
-          message = 'Downloaded '+str(total_downloaded)+'.  Expected '+ \
-            str(file_length)+' for '+url
-          raise tuf.DownloadError(message)
 
         # Finally, we signal that the download is complete.
         break
@@ -309,8 +298,9 @@ def _download_fixed_amount_of_data(connection, temp_file, file_length,
 
 
 
-def download_url_to_tempfileobj(url, required_hashes=None,
-                                required_length=None):
+def download_url_to_tempfileobj(url, required_length,
+                                required_hashes=None,
+                                SET_DEFAULT_REQUIRED_LENGTH=False):
   """
   <Purpose>
     Given the url, hashes and length of the desired file, this function 
@@ -333,6 +323,10 @@ def download_url_to_tempfileobj(url, required_hashes=None,
   
     required_length:
       An integer value representing the length of the file.
+
+    SET_DEFAULT_REQUIRED_LENGTH:
+      A boolean value which indicates if the required_length passed into this 
+      function is a default length.
   
   <Side Effects>
     'tuf.util.TempFile' object is created.
@@ -365,46 +359,35 @@ def download_url_to_tempfileobj(url, required_hashes=None,
 
 
   try:
+  
     # info().get('Content-Length') gets the length of the url file.
     file_length = connection.info().get('Content-Length')
 
-    # If the HTTP server did not specify a Content-Length...
-    if file_length is None:
-        # Do we know what is the required_length for this file?
-        if required_length is None:
-            # No, we do not know this. Raise this to the user!
-            message = 'Do not know anything about how much to download for "' + url + '"!'
-            raise tuf.DownloadError(message)
-        else:
-            # Okay, the HTTP server has not told us the Content-Length,
-            # but we know how much we are required to download.
-            file_length = required_length
-    else:
-        # Do we know what is the required_length for this file?
-        if required_length is None:
-            # No, we do not know this. Avoid falling for an arbitrary-length data attack (#26).
-            message = 'Do not know how much is required to download for "' + url + '"!'
-            logger.debug(message)
-            file_length = int(file_length, 10)
-        else:
-            # Okay, we do know this. Go ahead with checks.
-            file_length = int(file_length, 10)
 
-    # Does the url's 'file_length' match 'required_length'?
-    if required_length is not None and file_length != required_length:
-      message = 'Incorrect length for '+url+'. Expected '+str(required_length)+ \
-                ', got '+str(file_length)+' bytes.'
-      raise tuf.DownloadError(message)
+    if file_length is not None:
+      file_length = int(file_length ,10)
+      # The length of downloading file obtained from server is larger than which 
+      # obtained from metadata or default length. So it could be a endless data 
+      # attack.
+      if file_length > required_length:
+        message = 'It is maybe endlessattack!'
+        raise tuf.DownloadError(message)
 
     # For readibility, we perform the download in a separate function, which
     # returns the total number of downloaded bytes; this number should be equal
     # to required_length. 
-    total_downloaded = _download_fixed_amount_of_data(connection, temp_file,
-                                                      file_length,
+    total_downloaded = _download_fixed_amount_of_data(connection, temp_file, 
                                                       required_length)
- 
+    
+    # If the required_length is not the default value, we will check whether
+    # the total_downloaded is equal to required_length.
+    if not SET_DEFAULT_REQUIRED_LENGTH and total_downloaded != required_length:
+      message = 'Incorrect length for '+url+'. Expected '+str(required_length)+ \
+                ', got '+str(total_downloaded)+' bytes.'
+      raise tuf.DownloadError(message)
+
     # We appear to have downloaded the correct amount.  Check the hashes.
-    if required_length is not None and required_hashes is not None: 
+    if required_hashes is not None: 
       _check_hashes(temp_file, required_hashes)
 
   # Exception is a base class for all non-exiting exceptions.
