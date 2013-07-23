@@ -90,23 +90,13 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
   # Unit Test.
   def test_download_url_to_tempfileobj(self):
-    # Test: Normal cases without supplying hash and/or length arguments.
-    temp_fileobj = download.download_url_to_tempfileobj(self.url) 
-    self.assertEquals(self.target_data, temp_fileobj.read())
-    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file()
+    # Test: Normal cases without supplying hash arguments.
 
     temp_fileobj = download.download_url_to_tempfileobj(self.url,
                       required_length=self.target_data_length)
     self.assertEquals(self.target_data, temp_fileobj.read())
     self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file()
-
-    temp_fileobj = download.download_url_to_tempfileobj(self.url,
-                      required_hashes=self.target_hash) 
-    self.assertEquals(self.target_data, temp_fileobj.read())
-    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file()
+    temp_fileobj.close_temp_file();
 
     # Test: Normal case.
     temp_fileobj = download.download_url_to_tempfileobj(self.url,
@@ -156,6 +146,14 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
                       'http://localhost:'+str(self.PORT+1)+'/'+self.random_string(),
                       required_hashes=self.target_hash, 
                       required_length=self.target_data_length)
+
+    # Test: Set the required_length to default value.
+
+    temp_fileobj = download.download_url_to_tempfileobj(self.url,required_length=2000,
+                                                      SET_DEFAULT_REQUIRED_LENGTH=True)
+    self.assertEquals(self.target_data, temp_fileobj.read())
+    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
+    temp_fileobj.close_temp_file();
 
     """
     # Measuring performance of 'auto_flush = False' vs. 'auto_flush = True'
