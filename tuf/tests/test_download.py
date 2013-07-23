@@ -24,6 +24,7 @@ Otherwise, module that launches simple server would not be found.
 import tuf
 import tuf.download as download
 import tuf.tests.unittest_toolbox as unittest_toolbox
+import tuf.conf
 
 import os
 import sys
@@ -96,7 +97,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
                       required_length=self.target_data_length)
     self.assertEquals(self.target_data, temp_fileobj.read())
     self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file();
+    temp_fileobj.close_temp_file()
 
     # Test: Normal case.
     temp_fileobj = download.download_url_to_tempfileobj(self.url,
@@ -149,8 +150,9 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # Test: Set the required_length to default value.
 
-    temp_fileobj = download.download_url_to_tempfileobj(self.url,required_length=2000,
-                                                      SET_DEFAULT_REQUIRED_LENGTH=True)
+    temp_fileobj = download.download_url_to_tempfileobj(self.url,
+                                                        required_length=tuf.conf.DEFAULT_REQUIRED_LENGTH,
+                                                        SET_DEFAULT_REQUIRED_LENGTH=True)
     self.assertEquals(self.target_data, temp_fileobj.read())
     self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file();
