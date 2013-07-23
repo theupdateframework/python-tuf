@@ -880,7 +880,7 @@ class TestSignerlib(unit_tbox):
       return timestamp_meta, role_keyids, meta_dir
 
     else:
-      print '\nUnrecognized top-level role.'
+      logger.warning('\nUnrecognized top-level role.')
 
 
 
