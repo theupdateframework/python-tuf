@@ -38,6 +38,8 @@ import shutil
 import urllib
 import tempfile
 import util_test_tools
+import tuf.download as download
+import tuf.conf as conf
 
 import tuf
 from tuf.interposition import urllib_tuf
@@ -56,7 +58,10 @@ class EndlessDataAttack(Exception):
 
 def _download(url, filename, tuf=False):
   if tuf:
-    urllib_tuf.urlretrieve(url, filename)
+    temp = download.download_url_to_tempfileobj(url, conf.DEFAULT_REQUIRED_LENGTH,SET_DEFAULT_REQUIRED_LENGTH = True)
+    string = temp.read()
+    fp = open(filename, 'w')
+    fp.write(string) 
 
   else:
     urllib.urlretrieve(url, filename)
@@ -91,7 +96,7 @@ def test_arbitrary_package_attack(TUF=False):
     file_basename = os.path.basename(filepath)
     url_to_repo = url+'reg_repo/'+file_basename
     downloaded_file = os.path.join(downloads, file_basename)
-    endless_data = 'A'*100
+    endless_data = 'A'*100000
 
 
     if TUF:
@@ -103,7 +108,6 @@ def test_arbitrary_package_attack(TUF=False):
       # the json interposition configuration file.  Look for 'hostname'
       # in 'util_test_tools.py'. Further, the 'file_basename' is the target
       # path relative to 'targets_dir'. 
-      url_to_repo = 'http://localhost:9999/'+file_basename
 
       # Attacker modifies the file at the targets repository.
       target = os.path.join(tuf_targets, file_basename)
@@ -119,11 +123,11 @@ def test_arbitrary_package_attack(TUF=False):
       # Client downloads (tries to download) the file.
       _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
 
-    except tuf.DownloadError:
+    except tuf.DownloadError, e:
       # If tuf.DownloadError is raised, this means that TUF has prevented
       # the download of an unrecognized file.  Enable the logging to see,
       # what actually happened.
-      pass
+      print("With TUF: "+str(e))
 
     else:
       # Check whether the attack succeeded by inspecting the content of the
