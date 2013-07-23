@@ -32,7 +32,7 @@ import tuf.tests.system_tests.util_test_tools as util_test_tools
 
 class TestPush(unittest.TestCase):
   src_push_dict = {}
-  print scp.transfer
+  logger.info(scp.transfer)
   
   ORIGINAL_PUSH_CONFIG = pushtoolslib.PUSH_CONFIG
 
