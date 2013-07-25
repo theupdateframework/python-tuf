@@ -115,14 +115,14 @@ TIMESTAMP_FILENAME = tuf.repo.signerlib.TIMESTAMP_FILENAME
 # The expiration time of the 'Root' role is set by the user.  A metadata
 # expiration date is set by taking the current time and adding the expiration
 # seconds listed below.
-# Initial 'targets.txt' expiration time of 6 months. 
-TARGETS_EXPIRATION = 15780000 
+# Initial 'targets.txt' expiration time of 3 months. 
+TARGETS_EXPIRATION = 7889230 
 
-# Initial 'release.txt' expiration time of 1 month. 
-RELEASE_EXPIRATION = 2630000 
+# Initial 'release.txt' expiration time of 1 week. 
+RELEASE_EXPIRATION = 604800 
 
-# Initial 'timestamp.txt' expiration time of 3 days.
-TIMESTAMP_EXPIRATION = 259200
+# Initial 'timestamp.txt' expiration time of 1 day.
+TIMESTAMP_EXPIRATION = 86400
 
 # The maximum number of attempts the user has to enter
 # valid input.
