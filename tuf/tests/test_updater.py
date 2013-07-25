@@ -879,8 +879,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    original_download = tuf.download.download_url_to_tempfileobj
    
    # As with '_refresh_targets_metadata()', tuf.roledb._roledb_dict
-   # has to be populated.  'tuf.download.download_url_to_tempfileobj' method
-   # should be patched.
+   # has to be populated.  The 'tuf.download.download_url_to_tempfileobj' method
+   # should be patched.  The 'self.all_role_paths' argument is passed so that
+   # the top-level roles and delegations may be all "downloaded" when
+   # Repository.refresh() is called below.  '_mock_download_url_to_tempfileobj'
+   # returns each filepath listed in 'self.all_role_paths' in the listed
+   # order.
    self._mock_download_url_to_tempfileobj(self.all_role_paths)
 
    # Update top-level metadata.
@@ -894,9 +898,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    #  'TARGETFILES_SCHEMA'.
    self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(all_targets))
 
-   #  Verify that there is a correct number of records in 'all_targets' list.
-   #  The expected number is '6' since we have 4 targets and 2 of them are
-   #  delegated (basically 2 out of 4 counted twice).
+   # Verify that there is a correct number of records in 'all_targets' list.
+   # On the repository there are 4 target files, 2 of which are delegated.
+   # The targets role lists all targets, for a total of 4.  The two delegated
+   # roles each list 1 of the already listed targets in 'targets.txt', for a
+   # total of 2 (the delegated targets are listed twice).  The total number of
+   # targets in 'all_targets' should then be 6.
    self.assertTrue(len(all_targets) is 6)   
 
    # RESTORE

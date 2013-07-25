@@ -1100,7 +1100,7 @@ def make_delegation(keystore_directory):
     'any number of file paths containing the delegated role\'s target files: '
   delegated_targets_input = _prompt(prompt, str)
   delegated_targets_input = delegated_targets_input.split()
-  
+
   # Verify the format of the delegated targets specified by the user.
   # The paths in 'delegated_targets_input' will be verified in
   # in the _make_delegated_metadata() call.
@@ -1260,8 +1260,9 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
       delegated_paths.append(relative_path)
     elif os.path.isdir(path):
       for entry in os.listdir(path):
-        relative_filepath = os.path.join(relative_path, entry)
-        if os.path.isfile(relative_filepath):
+        filepath = os.path.join(path, entry)
+        if os.path.isfile(filepath):
+          relative_filepath = os.path.join(relative_path, entry)
           delegated_filepaths.append(relative_filepath)
       # Add the relative path of 'path' to 'delegated_paths'.
       delegated_paths.append(relative_path)
