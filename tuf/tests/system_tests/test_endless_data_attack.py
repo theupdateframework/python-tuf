@@ -123,7 +123,8 @@ def test_arbitrary_package_attack(TUF=False):
       # If tuf.DownloadError is raised, this means that TUF has prevented
       # the download of an unrecognized file.  Enable the logging to see,
       # what actually happened.
-      pass
+      #pass
+      raise
 
     else:
       # Check whether the attack succeeded by inspecting the content of the

@@ -1727,6 +1727,7 @@ class Updater(object):
                                            trusted_length)
         break
       except (tuf.DownloadError, tuf.FormatError), e:
+	raise
         logger.warn('Download failed from '+mirror_url+'.')
         target_file_object = None
         continue
