@@ -1,6 +1,10 @@
-MANIFEST
-tuf.log
+# root level directories
 dist/*
 build/*
-*.swp
+
+# global file patterns
+*.log
 *.pyc
+*.session
+*.swo
+*.swp

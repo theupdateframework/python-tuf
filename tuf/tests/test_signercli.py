@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_signercli.py
@@ -1424,7 +1426,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
         return delegated_targets_dir
       elif msg.startswith('\nChoose and enter the parent'):
         return parent_role
-      elif msg.endswith('\nEnter the delegated role\'s name: '):
+      elif msg.startswith('\nEnter the delegated role\'s name: '):
         return delegated_role
       elif msg.startswith('\nCurrent time:'):
         return expiration_date
@@ -1492,6 +1494,8 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     #  Test: normal case 1.
     #  Testing first level delegation.
+    print 'delegated_targets_dir: '+str(delegated_targets_dir)
+    print 'files in delegated_targets_dir: '+repr(os.listdir(delegated_targets_dir))
     signercli.make_delegation(keystore_dir)
 
     #  Verify delegated metadata file exists.
@@ -1540,8 +1544,13 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     parent_role_file = os.path.join(meta_dir, parent_role+'.txt')
     signable = signerlib.read_metadata_file(parent_role_file)
     delegated_rolename = parent_role+'/'+delegated_role
-    threshold = signable['signed']['delegations']['roles']\
-                        [delegated_rolename]['threshold']
+
+    roles = signable['signed']['delegations']['roles']
+    role_index = signerlib.find_delegated_role(roles, delegated_rolename)
+    self.assertIsNotNone(role_index)
+    role = roles[role_index]
+
+    threshold = role['threshold']
     self.assertTrue(threshold == 2)
 
     # RESTORE

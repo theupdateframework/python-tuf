@@ -74,7 +74,11 @@ def read_config_file(filename, config_type):
   # it does not provide magical interpolation/expansion
   # of variables (e.g., '%(option)s' would be ignored).
   config = ConfigParser.RawConfigParser()
-  config.read(filename)
+  try:
+    config.read(filename)
+  except ConfigParser.MissingSectionHeaderError, error:
+    raise tuf.Error(error)
+
   if config.sections() is None:
     raise tuf.Error('Could not read '+repr(filename))
 

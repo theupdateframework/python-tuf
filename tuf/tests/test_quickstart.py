@@ -81,7 +81,7 @@ class TestQuickstart(unit_tbox):
 
     def _mock_prompt(message, confirm=False, input_parameters=input_dict):
       if message.startswith('\nWhen would you like your '+
-          '"root.txt" metadata file to expire?'):
+          '"root.txt" metadata to expire?'):
         return input_parameters['expiration']
       for role in self.role_list:  # role_list=['root', 'targets', ...]
         if message.startswith('\nEnter the desired threshold '+

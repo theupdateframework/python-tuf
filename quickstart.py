@@ -211,13 +211,14 @@ def build_repository(project_directory):
   
   # Handle the expiration time.  The expiration date determines when
   # the top-level roles expire.
-  message = '\nWhen would you like your "root.txt" metadata file to expire? (mm/dd/yyyy): '
+  prompt_message = \
+    '\nWhen would you like your "root.txt" metadata to expire? (mm/dd/yyyy): '
   timeout = None
   for attempt in range(MAX_INPUT_ATTEMPTS):
     # Get the difference between the user's entered expiration date and today's
     # date.  Convert and store the difference to total days till expiration.
     try:
-      input_date = _prompt(message)
+      input_date = _prompt(prompt_message)
       expiration_date = datetime.datetime.strptime(input_date, '%m/%d/%Y')
       time_difference = expiration_date - datetime.datetime.now()
       timeout = time_difference.days
@@ -225,7 +226,9 @@ def build_repository(project_directory):
         raise ValueError
       break
     except ValueError, e:
-      logger.error('Invalid expiration date entered')
+      message = 'Invalid expiration date entered'
+      logger.error(message)
+      print(message)
       timeout = None
       continue
 
@@ -282,7 +285,9 @@ def build_repository(project_directory):
   # metadata files, such as 'root.txt' and 'release.txt'.
   try:
     metadata_directory = os.path.join(repository_directory, 'metadata')
-    logger.info('Creating '+repr(metadata_directory))
+    message = 'Creating '+repr(metadata_directory)
+    logger.info(message)
+    print(message)
     os.mkdir(metadata_directory)
   except OSError, e:
     if e.errno == errno.EEXIST:
@@ -298,7 +303,7 @@ def build_repository(project_directory):
     os.mkdir(keystore_directory)
   # 'OSError' raised if the directory cannot be created.
   except OSError, e:
-    if e.errno == EEXIST:
+    if e.errno == errno.EEXIST:
       pass
     else:
       raise
@@ -309,16 +314,19 @@ def build_repository(project_directory):
     # Ensure the user inputs a valid threshold value.
     role_threshold = None
     for attempt in range(MAX_INPUT_ATTEMPTS):
-      message = '\nEnter the desired threshold for the role '+repr(role)+': '
+      prompt_message = \
+        '\nEnter the desired threshold for the role '+repr(role)+': '
 
       # Check for non-integers and values less than one.
       try:
-        role_threshold = _prompt(message, int)
+        role_threshold = _prompt(prompt_message, int)
         if not tuf.formats.THRESHOLD_SCHEMA.matches(role_threshold):
           raise ValueError
         break
       except ValueError, e:
-        logger.warning('Invalid role threshold entered')
+        message = 'Invalid role threshold entered'
+        logger.warning(message)
+        print(message)
         role_threshold = None
         continue
 
@@ -381,11 +389,12 @@ def build_repository(project_directory):
   try:
     os.makedirs(client_metadata_directory)
   except OSError, e:
-    message = 'Cannot create a fresh client metadata directory: '+\
-      repr(client_metadata_directory)+'.  The client metadata '+\
-      'will need to be manually created.  See the README file.'
     if e.errno == errno.EEXIST:
+      message = 'Cannot create a fresh client metadata directory: '+\
+        repr(client_metadata_directory)+'.  The client metadata '+\
+        'will need to be manually created.  See the README file.'
       logger.warn(message)
+      print(message)
     else:
       raise
 

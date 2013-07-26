@@ -363,8 +363,10 @@ def remove_delegated_roles(rolename):
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename)
 
+  # Ensure that we only care about delegated roles!
+  rolename_with_slash = rolename + '/'
   for name in get_rolenames():
-    if name.startswith(rolename) and name != rolename:
+    if name.startswith(rolename_with_slash):
       del _roledb_dict[name]
 
 
@@ -536,7 +538,8 @@ def get_delegated_rolenames(rolename):
     None.
 
   <Returns>
-    A list of rolenames.
+    A list of rolenames. Note that the rolenames are *NOT* sorted by order of
+    delegation!
 
   """
 
@@ -546,9 +549,10 @@ def get_delegated_rolenames(rolename):
   # The list of delegated roles to be returned. 
   delegated_roles = []
 
+  # Ensure that we only care about delegated roles!
   rolename_with_slash = rolename + '/'
   for name in get_rolenames():
-    if name.startswith(rolename_with_slash) and name != rolename:
+    if name.startswith(rolename_with_slash):
       delegated_roles.append(name)
   
   return delegated_roles

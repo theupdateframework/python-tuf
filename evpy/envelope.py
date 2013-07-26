@@ -51,6 +51,9 @@ from signature import _string_to_bio
 class EnvelopeError(evp.SSLError):
 	pass
 
+class KeygenError(evp.SSLError):
+	pass
+
 def _build_dkey_from_file(keyfile):
 	fp = evp.fopen(keyfile, "r")
 	if not fp:

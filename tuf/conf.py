@@ -31,3 +31,8 @@ temporary_directory = None
 # which already exists and within that directory should have the file
 # 'metadata/current/root.txt'.  This must be set!
 repository_directory = None
+
+# A PEM (RFC 1422) file where you may find SSL certificate authorities
+# https://en.wikipedia.org/wiki/Certificate_authority
+# http://docs.python.org/2/library/ssl.html#certificates
+ssl_certificates = None
