@@ -887,11 +887,17 @@ class Updater(object):
     """
     <Purpose>
       Ensure the delegated targets of 'metadata_role' are allowed; this is
-      determined by inspecting the delegations field of the parent role
+      determined by inspecting the 'delegations' field of the parent role
       of 'metadata_role'.  If a target specified by 'metadata_object'
-      is not found in the parent role's delegations field, raise an
-      exception.
+      is not found in the parent role's delegations field, raise an exception.
    
+      Targets allowed are either exlicitly listed under the 'paths' field, or
+      implicitly exist under a subdirectory of a parent directory listed
+      under 'paths'.  A parent role may delegate trust to all files under a 
+      particular directory, including files in subdirectories, by simply
+      listing the directory (e.g., 'packages/source/Django/', the equivalent
+      of 'packages/source/Django/*').
+
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
@@ -920,66 +926,45 @@ class Updater(object):
     # a delegated role.
     if metadata_role == 'targets':
       return
-    else: 
-      # The targets of delegated roles are stored in the parent's
-      # metadata file.  Retrieve the parent role of 'metadata_role'
-      # to confirm 'metadata_role' contains valid targets.
-      parent_role = tuf.roledb.get_parent_rolename(metadata_role)
-
-      # Loop through the targets of 'metadata_role' and confirm
-      # the targets, or their parent directory, exists in the role delegated
-      # paths of the parent role.
-      roles = self.metadata['current'][parent_role]['delegations']['roles']
-      role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
-
-      if role_index is None:
-        message = parent_role+' has not delegated to '+metadata_role
-        raise tuf.RepositoryError(message)
-      else:
-        role = roles[role_index]
-        paths = role['paths']
     
-        for target_filepath in metadata_object['targets'].keys():
-          parent_directory, junk = os.path.split(target_filepath)
-          if target_filepath not in paths and parent_directory not in paths:
-            message = 'Role '+repr(metadata_role)+' specifies target '+ \
-              target_filepath+' which is not an allowed path according '+ \
-              'to the delegations set by '+repr(parent_role)+'.'
-            raise tuf.RepositoryError(message)
-   
-    # TODO:
-    """
+    # The targets of delegated roles are stored in the parent's
+    # metadata file.  Retrieve the parent role of 'metadata_role'
+    # to confirm 'metadata_role' contains valid targets.
+    parent_role = tuf.roledb.get_parent_rolename(metadata_role)
+
+    # Iterate over the targets of 'metadata_role' and confirm they are trusted,
+    # or their root parent directory exists in the role delegated paths of the
+    # parent role.
+    roles = self.metadata['current'][parent_role]['delegations']['roles']
+    role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
+
+    # Ensure the delegated role exists prior to extracting trusted paths
+    # from the parent's 'paths'.
+    if role_index is not None:
+      role = roles[role_index] 
+      allowed_child_paths = role['paths']
+      delegated_targets = metadata_object['targets'].keys()
+      
+      # Check that each delegated target is either explicitly listed or a parent
+      # directory is found under role['paths'], otherwise raise an exception.
+      for delegated_target in delegated_targets:
+        for allowed_child_path in allowed_child_paths:
+          prefix = os.path.commonprefix([delegated_target, allowed_child_path])
+          if prefix == allowed_child_path:
+            break
+        else: 
+          message = 'Role '+repr(metadata_role)+' specifies target '+\
+            repr(delegated_target)+' which is not an allowed path according '+\
+            'to the delegations set by '+repr(parent_role)+'.'
+          raise tuf.RepositoryError(message)
+    
+    # Raise an exception if the parent has not delegated to the specified
+    # 'metadata_role' child role.
     else:
-      # The targets of delegated roles are stored in the parent's
-      # metadata file.  Retrieve the parent role of 'metadata_role'
-      # to confirm 'metadata_role' contains valid targets.
-      parent_role = tuf.roledb.get_parent_rolename(metadata_role)
-
-      # Iterate through the targets of 'metadata_role' and confirm
-      # these targets with the paths listed in the parent role.
-      roles = self.metadata['current'][parent_role]['delegations']['roles']
-      role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
-
-      if role_index is None:
-        raise tuf.RepositoryError(MISSING_ROLE_MESSAGE.format(
-                                  parent_role=parent_role,
-                                  metadata_role=metadata_role))
-      else:
-        role = roles[role_index]
-
-        # Test for breach of delegation with set operations; asymptotically, this
-        # is faster than a linear scan, but at the expense of memory.
-        delegated_targets = set(role['paths'])
-        signed_targets = set(metadata_object['targets'].keys())
-        undelegated_targets = signed_targets - delegated_targets
-
-        if len(undelegated_targets) > 0:
-          raise tuf.RepositoryError(UNDELEGATED_TARGETS_MESSAGE.format(
-                                    metadata_role=metadata_role,
-                                    undelegated_targets=undelegated_targets,
-                                    parent_role=parent_role))
-    """
-
+      message = repr(parent_role)+' has not delegated to '+\
+        repr(metadata_role)+'.'
+      raise tuf.RepositoryError(message)
+          
 
 
 

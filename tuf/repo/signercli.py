@@ -1264,6 +1264,14 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
   # 'delegated_paths' list.
   delegated_paths = []
   delegated_filepaths = []
+  
+  # The 'delegated_paths' list contains either file paths or the paths of
+  # directories.  A child role may list any target(s) under a directory or sub-
+  # directory.  Below, sort 'delegated_targets' so that root-most directories
+  # are easier to calculate (i.e., replicate directory wildcards using 
+  # os.path.commonprefix() instead of regular expressions, which may be abused
+  # by input carefully-crafted for this purpose).
+  delegated_targets.sort()
   for path in delegated_targets:
     path = os.path.abspath(path)
     relative_path = path[len(repository_directory)+1:]
@@ -1274,18 +1282,23 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
       # its trailing path separator.
       delegated_filepaths.append(relative_path)
       delegated_paths.append(relative_path)
+    # A directory implies the child role may list any targets under this
+    # directory.
     elif os.path.isdir(path):
       for entry in os.listdir(path):
         filepath = os.path.join(path, entry)
         if os.path.isfile(filepath):
           relative_filepath = os.path.join(relative_path, entry)
           delegated_filepaths.append(relative_filepath)
-      # Add the relative path of 'path' to 'delegated_paths'.
-      delegated_paths.append(relative_path)
+      for delegated_path in delegated_paths:
+        if os.path.commonprefix([relative_path, delegated_path]) == delegated_path:
+          break
+      # Add the relative path of 'path' to 'delegated_paths'.  'relative_path'
+      # has not been added to 'delegated_paths', nor a parent directory of it.
+      else: 
+        delegated_paths.append(relative_path+os.sep)
   message = 'There are '+str(len(delegated_filepaths))+' target paths for '+\
     repr(delegated_role)
-  print message
-  print 'delegated_paths: '+repr(delegated_paths)
   logger.info(message)
 
   # Create, sign, and write the delegated role's metadata file.
