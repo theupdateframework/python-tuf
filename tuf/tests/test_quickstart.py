@@ -25,8 +25,8 @@ import os
 import shutil
 import unittest
 import logging
+import tuf.repo.quickstart as quickstart
 
-import quickstart
 import tuf.util
 import tuf.tests.unittest_toolbox
 
