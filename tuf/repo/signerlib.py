@@ -1247,7 +1247,7 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
 
 def build_delegated_role_file(delegated_targets_directory, delegated_keyids, 
                               metadata_directory, delegation_metadata_directory,
-                              delegation_role_name):
+                              delegation_role_name, version, expiration_date):
   """
   <Purpose>
     Build the targets metadata file using the signing keys in
@@ -1271,7 +1271,16 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
       The location of the delegated role's metadata.
 
     delegation_role_name:
-      The delegated role's file name ending in '.txt'.  Ex: 'role1.txt'
+      The delegated role's file name ending in '.txt'.  Ex: 'role1.txt'.
+
+    version:
+      The metadata version number.  Clients use the version number to
+      determine if the downloaded version is newer than the one currently
+      trusted.
+
+    expiration_date:
+      The expiration date, in UTC, of the metadata file.
+      Conformant to 'tuf.formats.TIME_SCHEMA'.
 
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
@@ -1310,7 +1319,8 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
       targets.append(filename)
 
   # Create the targets metadata object.
-  targets_metadata = generate_targets_metadata(repository_directory, targets)
+  targets_metadata = generate_targets_metadata(repository_directory, targets,
+                                               version, expiration_date)
 
   # Sign it.
   targets_filepath = os.path.join(delegation_metadata_directory,
