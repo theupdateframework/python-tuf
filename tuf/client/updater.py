@@ -1719,6 +1719,12 @@ class Updater(object):
     trusted_hashes = target['fileinfo']['hashes']
 
     target_file_object = None
+    
+    # Store mirrors which doesn't work well
+    mirror_errors = {}
+    
+    logger.info('Trying to download: '+repr(target_filepath))
+
     # Iterate through the repositority mirrors until we successfully
     # download a target.
     for mirror_url in get_mirrors('target', target_filepath, self.mirrors):
@@ -1727,13 +1733,13 @@ class Updater(object):
                                            trusted_length)
         break
       except (tuf.DownloadError, tuf.FormatError), e:
-	raise
+	mirror_errors[mirror_url] = e
         logger.warn('Download failed from '+mirror_url+'.')
         target_file_object = None
         continue
     # We have gone through all the mirrors.  Did we get a target file object?
     if target_file_object == None: 
-      raise tuf.DownloadError('No download locations known.')
+      raise tuf.DownloadError('No download locations known: '+repr(mirror_errors))
    
     # We acquired a target file object from a mirror.  Move the file into
     # place (i.e., locally to 'destination_directory').
