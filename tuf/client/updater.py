@@ -1733,7 +1733,7 @@ class Updater(object):
                                            trusted_length)
         break
       except (tuf.DownloadError, tuf.FormatError), e:
-	mirror_errors[mirror_url] = e
+        mirror_errors[mirror_url] = e
         logger.warn('Download failed from '+mirror_url+'.')
         target_file_object = None
         continue

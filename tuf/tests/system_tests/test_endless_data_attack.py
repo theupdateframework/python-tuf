@@ -97,13 +97,14 @@ def test_arbitrary_package_attack(TUF=False):
     if TUF:
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
-      print "refresh finished"
       # Modify the url.  Remember that the interposition will intercept 
       # urls that have 'localhost:9999' hostname, which was specified in
       # the json interposition configuration file.  Look for 'hostname'
       # in 'util_test_tools.py'. Further, the 'file_basename' is the target
       # path relative to 'targets_dir'. 
+      print url_to_repo
       url_to_repo = 'http://localhost:9999/'+file_basename
+      print url_to_repo
 
       # Attacker modifies the file at the targets repository.
       target = os.path.join(tuf_targets, file_basename)
@@ -119,12 +120,11 @@ def test_arbitrary_package_attack(TUF=False):
       # Client downloads (tries to download) the file.
       _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
 
-    except tuf.DownloadError:
+    except tuf.DownloadError,e:
       # If tuf.DownloadError is raised, this means that TUF has prevented
       # the download of an unrecognized file.  Enable the logging to see,
       # what actually happened.
-      #pass
-      raise
+      logger.warn('Download failed: '+repr(e))
 
     else:
       # Check whether the attack succeeded by inspecting the content of the

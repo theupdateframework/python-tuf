@@ -404,8 +404,8 @@ def download_url_to_tempfileobj(url, required_hashes=None,
                                                       required_length)
   
     # Does 'total_downloaded' match 'required_length'?
-    if required_length is not None and total_downloaded != required_length:
-      message = 'Total downloded length '+str(total_downloaded)+ \
+    if total_downloaded != required_length:
+      message = 'Total downloaded length '+str(total_downloaded)+ \
 		' bytes doesn\'t match required length '+str(required_length)+' bytes.'
       raise tuf.DownloadError(message)
  
