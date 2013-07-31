@@ -102,9 +102,7 @@ def test_arbitrary_package_attack(TUF=False):
       # the json interposition configuration file.  Look for 'hostname'
       # in 'util_test_tools.py'. Further, the 'file_basename' is the target
       # path relative to 'targets_dir'. 
-      print url_to_repo
       url_to_repo = 'http://localhost:9999/'+file_basename
-      print url_to_repo
 
       # Attacker modifies the file at the targets repository.
       target = os.path.join(tuf_targets, file_basename)
