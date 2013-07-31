@@ -186,5 +186,5 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
 
 # Run unit test.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestDownload)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()
