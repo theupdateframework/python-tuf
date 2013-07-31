@@ -4,6 +4,7 @@
 
 <Author>
   Konstantin Andrianov
+  Zane Fisher
 
 <Started>
   January 26, 2013
@@ -12,15 +13,21 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Run all the unit tests in 'tuf/tests'.
+  Run all the unit tests from every .py file beginning with "test_" in 'tuf/tests'.
 
 """
 
+import unittest
 import glob
+import tuf.keydb as keydb
+import tuf.repo.keystore as keystore
+import tuf.roledb as roledb
 
 tests_list = glob.glob('test_*.py')
-for test in tests_list:
-  __import__(test[:-3])
 
-import system_tests.test_util_test_tools
-import system_tests.test_replay_attack
+# Remove '.py' from each filename.
+tests_list = [test[:-3] for test in tests_list]
+
+suite = unittest.TestLoader().loadTestsFromNames(tests_list)
+
+unittest.TextTestRunner(verbosity=2).run(suite)

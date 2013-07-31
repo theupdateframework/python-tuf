@@ -1484,9 +1484,12 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
 
 # Run unit tests.
-loader = unittest_toolbox.unittest.TestLoader
-suite = loader().loadTestsFromTestCase(TestSignercli)
-try:
-  unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
-finally:
-  unittest_toolbox.Modified_TestCase.clear_toolbox()
+#loader = unittest_toolbox.unittest.TestLoader
+#suite = loader().loadTestsFromTestCase(TestSignercli)
+#try:
+#  unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
+#finally:
+#  unittest_toolbox.Modified_TestCase.clear_toolbox()
+
+if __name__ == '__main__':
+  unittest.main()

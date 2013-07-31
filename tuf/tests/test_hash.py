@@ -225,5 +225,5 @@ class TestHash(unittest.TestCase):
 
 
 # Run unit test.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestHash)
-unittest.TextTestRunner(verbosity=3).run(suite)
+if __name__ == '__main__':
+  unittest.main()
