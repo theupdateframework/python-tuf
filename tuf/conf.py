@@ -42,4 +42,4 @@ ssl_certificates = None
 # is(for example, the timestamp.txt), set it with this default value 
 # to avoid endless data attack. the default length is set based on the 
 # timestamp.txt with two signature.
-DEFAULT_REQUIRED_LENGTH = 1995
+DEFAULT_TIMESTAMP_LENGTH = 1995
