@@ -42,6 +42,7 @@ import shutil
 import tempfile
 import logging
 
+import tuf.conf
 import tuf.util
 import tuf.formats
 import tuf.repo.keystore as keystore
@@ -60,7 +61,7 @@ logging.disable(logging.CRITICAL)
 roledb = tuf.roledb
 keydb = tuf.keydb
 
-
+DEFAULT_TIMESTAMP_FILEINFO = {'length': tuf.conf.DEFAULT_TIMESTAMP_LENGTH, 'hashes':None}  
 
 class TestUpdater_init_(unittest_toolbox.Modified_TestCase):
 
@@ -200,7 +201,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     """
 
-    def _mock_download(url, hashes=None, length=None, SET_DEFAULT_REQUIRED_LENGTH=False):
+    def _mock_download(url, length, hashes=None, HARD_LIMIT_REQUIRED_LENGTH=True):
       if isinstance(output, (str, unicode)):
         file_path = output
       elif isinstance(output, list):
@@ -324,7 +325,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def _update_top_level_roles(self):
     self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
-    self.Repository._update_metadata('timestamp')
+    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
 
     # Reference self.Repository._update_metadata_if_changed().
     update_if_changed = self.Repository._update_metadata_if_changed    
@@ -501,13 +502,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: Invalid file downloaded.
     #  Patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(self.release_filepath)
-    self.assertRaises(tuf.RepositoryError, _update_metadata, 'targets')
+    self.assertRaises(tuf.RepositoryError, _update_metadata, 'targets', None)
 
 
     # Test: normal case.
     #  Patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(self.targets_filepath)
-    _update_metadata('targets')
+    _update_metadata('targets', None)
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
     #  Verify that the added target's path is listed in target's metadata.
@@ -524,7 +525,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Re-patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
-    _update_metadata('targets', compression='gzip')
+    _update_metadata('targets', None, compression='gzip')
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
     #  Verify that the added target's path is listed in target's metadata.
@@ -620,7 +621,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
 
     #  Update timestamp metadata, it will indicate change in release metadata.
-    self.Repository._update_metadata('timestamp')
+    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
 
     #  Save current release metadata before updating.  It will be used to
     #  verify the update.
@@ -664,7 +665,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
 
     #  Update timestamp metadata, it will indicate change in release metadata.
-    self.Repository._update_metadata('timestamp')
+    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
 
     #  Save current release metadata before updating.  It will be used to
     #  verify the update.
