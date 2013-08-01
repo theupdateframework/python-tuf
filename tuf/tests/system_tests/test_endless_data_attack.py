@@ -38,8 +38,6 @@ import shutil
 import urllib
 import tempfile
 import util_test_tools
-import tuf.download as download
-import tuf.conf as conf
 
 import tuf
 from tuf.interposition import urllib_tuf
@@ -58,17 +56,14 @@ class EndlessDataAttack(Exception):
 
 def _download(url, filename, tuf=False):
   if tuf:
-    temp = download.download_url_to_tempfileobj(url, conf.DEFAULT_REQUIRED_LENGTH,SET_DEFAULT_REQUIRED_LENGTH = True)
-    string = temp.read()
-    fp = open(filename, 'w')
-    fp.write(string) 
+    urllib_tuf.urlretrieve(url, filename)
 
   else:
     urllib.urlretrieve(url, filename)
 
 
 
-def test_arbitrary_package_attack(TUF=False):
+def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
   """
   <Arguments>
     TUF:
@@ -108,10 +103,16 @@ def test_arbitrary_package_attack(TUF=False):
       # the json interposition configuration file.  Look for 'hostname'
       # in 'util_test_tools.py'. Further, the 'file_basename' is the target
       # path relative to 'targets_dir'. 
+      url_to_repo = 'http://localhost:9999/'+file_basename
 
       # Attacker modifies the file at the targets repository.
       target = os.path.join(tuf_targets, file_basename)
       util_test_tools.modify_file_at_repository(target, endless_data)
+      # Attacker modifies the timestamp.txt metadata.
+      if TIMESTAMP:
+        metadata = os.path.join(tuf_repo, 'metadata')
+        timestamp = os.path.join(metadata, 'timestamp.txt')
+        util_test_tools.modify_file_at_repository(timestamp, endless_data)  
 
     # Attacker modifies the file at the regular repository.
     util_test_tools.modify_file_at_repository(filepath, endless_data)
@@ -123,11 +124,11 @@ def test_arbitrary_package_attack(TUF=False):
       # Client downloads (tries to download) the file.
       _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
 
-    except tuf.DownloadError, e:
-      # If tuf.DownloadError is raised, this means that TUF has prevented
-      # the download of an unrecognized file.  Enable the logging to see,
-      # what actually happened.
-      print("With TUF: "+str(e))
+    except (tuf.DownloadError,tuf.RepositoryError), e:
+      # If tuf.DownloadError or tuf.RepositoryError is raised, this means
+      # that TUF has prevented the download of an unrecognized file. Enable
+      # the logging to see, what actually happened.
+      pass
 
     else:
       # Check whether the attack succeeded by inspecting the content of the
@@ -146,7 +147,7 @@ def test_arbitrary_package_attack(TUF=False):
 
 
 try:
-  test_arbitrary_package_attack(TUF=False)
+  test_arbitrary_package_attack(TUF=False, TIMESTAMP=False)
 
 except EndlessDataAttack, error:
   print('Without TUF: '+str(error))
@@ -154,7 +155,15 @@ except EndlessDataAttack, error:
 
 
 try:
-  test_arbitrary_package_attack(TUF=True)
+  test_arbitrary_package_attack(TUF=True, TIMESTAMP=False)
 
 except EndlessDataAttack, error:
   print('With TUF: '+str(error))
+
+
+
+try:
+  test_arbitrary_package_attack(TUF=True, TIMESTAMP=True)
+
+except EndlessDataAttack, error:
+  print('With TUF: '+str(error))  
