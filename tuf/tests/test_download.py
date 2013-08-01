@@ -151,8 +151,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # Test: Set the required_length to default value.
 
     temp_fileobj = download.download_url_to_tempfileobj(self.url,
-                                                        required_length=tuf.conf.DEFAULT_REQUIRED_LENGTH,
-                                                        SET_DEFAULT_REQUIRED_LENGTH=True)
+                                                        required_length=tuf.conf.DEFAULT_TIMESTAMP_LENGTH,
+                                                        HARD_LIMIT_REQUIRED_LENGTH=False)
     self.assertEquals(self.target_data, temp_fileobj.read())
     self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file();
