@@ -67,9 +67,7 @@ import re
 import string
 import time
 
-import tuf.schema
-
-SCHEMA = tuf.schema
+import tuf.schema as SCHEMA
 
 
 # Note that in the schema definitions below, the 'SCHEMA.Object' types allow
@@ -274,7 +272,8 @@ ROLE_SCHEMA = SCHEMA.Object(
   keyids=SCHEMA.ListOf(KEYID_SCHEMA),
   name=SCHEMA.Optional(ROLENAME_SCHEMA),
   threshold=THRESHOLD_SCHEMA,
-  paths=SCHEMA.Optional(RELPATHS_SCHEMA))
+  paths=SCHEMA.Optional(RELPATHS_SCHEMA),
+  path_hash_prefix=SCHEMA.Optional(HEX_SCHEMA))
 
 # A dict of roles where the dict keys are role names and the dict values holding 
 # the role data/information.
@@ -822,7 +821,8 @@ def make_fileinfo(length, hashes, custom=None):
 
 
 
-def make_role_metadata(keyids, threshold, name=None, paths=None):
+def make_role_metadata(keyids, threshold, name=None, paths=None,
+                       path_hash_prefix=None):
   """
   <Purpose>
     Create a dictionary conforming to 'tuf.formats.ROLE_SCHEMA',
@@ -867,7 +867,12 @@ def make_role_metadata(keyids, threshold, name=None, paths=None):
   if name is not None:
     role_meta['name'] = name
 
-  if paths is not None:
+  # According to the specification, the 'paths' and 'path_hash_prefix' must be
+  # mutually exclusive. In case both are specified, 'paths' is ignored while
+  # 'path_hash_prefix' is recorded.
+  if path_hash_prefix is not None:
+    role_meta['path_hash_prefix'] = path_hash_prefix
+  elif paths is not None:
     role_meta['paths'] = paths
 
   # Does 'role_meta' have the correct type?

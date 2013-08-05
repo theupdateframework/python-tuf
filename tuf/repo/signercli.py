@@ -1204,15 +1204,39 @@ def _make_delegated_metadata(metadata_directory, delegated_paths, parent_role,
 
 
 
-def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids,
-                            delegated_paths, parent_role, parent_keyids):
+def _update_parent_metadata(metadata_directory, delegated_role,
+                            delegated_keyids, delegated_paths, parent_role,
+                            parent_keyids, path_hash_prefix=None):
   """
     Update the parent role's metadata file.  The delegations field of the
     metadata file is updated with the key and role information belonging
     to the newly added delegated role.  Finally, the metadata file
     is signed and written to the metadata directory.
 
+    If the optional 'path_hash_prefix' is specified with the required
+    'delegated_paths', then 'path_hash_prefix' is checked to be consistent with
+    'delegated_paths', and then 'path_hash_prefix', instead of
+    'delegated_paths', is written to the parent role metadata file. Otherwise,
+    'delegated_paths' is written to the parent role metadata file in
+    the absense of 'path_hash_prefix'.
+
   """
+
+  # The 'delegated_paths' are relative to 'repository'.
+  # The 'relative_paths' are relative to 'repository/targets'.
+  relative_paths = []
+  for path in delegated_paths:
+    relative_paths.append(os.path.sep.join(path.split(os.path.sep)[1:]))
+
+  if path_hash_prefix:
+    # Ensure that 'delegated_paths' is consistent with 'path_hash_prefix'.
+    if not tuf.repo.signerlib.paths_are_consistent_with_hash_prefix(
+            relative_paths, path_hash_prefix):
+      raise tuf.RepositoryError('path_hash_prefix '+str(path_hash_prefix)+
+                                ' is inconsistent with paths: '+
+                                str(delegated_paths))
+  else:
+    logger.debug('"path_hash_prefix" is unspecified; reading "paths" instead.')
 
   # Extract the metadata from the parent role's file.
   parent_filename = os.path.join(metadata_directory, parent_role)
@@ -1243,12 +1267,19 @@ def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids
   roles = delegations.get('roles', [])
   threshold = len(delegated_keyids)
   delegated_role = parent_role+'/'+delegated_role
-  relative_paths = []
-  for path in delegated_paths:
-    relative_paths.append(os.path.sep.join(path.split(os.path.sep)[1:]))
-  role_metadata = tuf.formats.make_role_metadata(delegated_keyids, threshold,
-                                                 name=delegated_role,
-                                                 paths=relative_paths)
+
+  # If the "path_hash_prefix" attribute is available, write it.
+  # Otherwise, write the "paths" attribute.
+  if path_hash_prefix is None:
+    role_metadata = tuf.formats.make_role_metadata(delegated_keyids, threshold,
+                                                   name=delegated_role,
+                                                   paths=relative_paths)
+  else:
+    role_metadata = tuf.formats.make_role_metadata(delegated_keyids, threshold,
+                                                   name=delegated_role,
+                                                   path_hash_prefix=path_hash_prefix)
+
+  # Find the appropriate role to create or update.
   role_index = tuf.repo.signerlib.find_delegated_role(roles, delegated_role)
 
   if role_index is None:

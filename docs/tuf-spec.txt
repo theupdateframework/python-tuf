@@ -565,17 +565,31 @@
            "name": ROLE,
            "keyids" : [ KEYID, ... ] ,
            "threshold" : THRESHOLD,
-           "paths" : [ PATHPATTERN, ... ]
+           "paths" : [ PATHPATTERN, ... ],
+           "path_hash_prefix" : HEX_STRING
        }, ... ]
      }
+
+   In order to discuss target paths, a role must specify either one of the
+   "paths" or "path_hash_prefix" attribute, each of which we discuss next. In
+   case the client specifies both attributes, "path_hash_prefix" is to be read
+   from or written to while "paths" should be ignored.
 
    The "paths" list describes paths that the role is trusted to provide.
    Clients MUST check that a target is in one of the trusted paths of all roles
    in a delegation chain, not just in a trusted path of the role that describes
    the target file.  The format of a PATHPATTERN may be either a path to a
-   single file or a path to a directory and end with "/**" to indicate all
-   files under that directory.  The value of "/**" by itself therefore means
-   all files.
+   single file or a path to a directory. A path to a directory is used to
+   indicate all possible targets sharing that directory as a prefix; e.g. if
+   the directory is "targets/A", then targets which match that directory
+   include "targets/A/B.txt" and "targets/A/B/C.txt".
+
+   The "path_hash_prefix" is used to succinctly describe a set of target paths.
+   The target paths must meet this condition: each target path, when hashed
+   with the SHA-256 hash function to produce a 64-byte hexadecimal digest, must
+   share the same prefix as the specified "path_hash_prefix". This is useful to
+   split a large number of targets into separate bins identified by consistent
+   hashing.
 
    We are currently investigating a few "priority tag" schemes to resolve
    conflicts between delegated roles that share responsibility for overlapping

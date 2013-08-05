@@ -24,6 +24,7 @@ import ConfigParser
 import logging
 
 import tuf.formats
+import tuf.hash
 import tuf.rsa_key
 import tuf.repo.keystore
 import tuf.sig
@@ -1354,6 +1355,47 @@ def get_targets(files_directory, recursive_walk=False, followlinks=True,
       del dirnames[:]
 
   return targets
+
+
+
+
+
+def paths_are_consistent_with_hash_prefix(paths, path_hash_prefix,
+                                          hash_function='sha256'):
+  """
+  <Purpose>
+    Determine whether a list of paths are consistent with their alleged path
+    hash prefix. By default, the SHA256 hash function will be used.
+
+  <Arguments>
+    paths:
+      A list of paths for which their hashes will be checked.
+
+    path_hash_prefix:
+      The hash prefix with which to check the list of paths.
+
+  <Exceptions>
+    No known exceptions.
+
+  <Side Effects>
+    No known side effects.
+
+  <Returns>
+    A Boolean indicating whether or not the paths are consistent with the hash
+    prefix.
+  """
+
+  consistent = True
+
+  for path in paths:
+    digest = tuf.hash.digest(algorithm='sha256')
+    digest.update(path)
+    path_hash = digest.hexdigest()
+    if not path_hash.startswith(path_hash_prefix):
+      consistent = False
+      break
+
+  return consistent
 
 
 
