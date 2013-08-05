@@ -628,5 +628,5 @@ class TestFormats(unittest.TestCase):
 
 
 # Run unit test.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestFormats)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

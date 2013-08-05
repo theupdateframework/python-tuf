@@ -25,8 +25,8 @@ import os
 import shutil
 import unittest
 import logging
+import tuf.repo.quickstart as quickstart
 
-import quickstart
 import tuf.util
 import tuf.tests.unittest_toolbox
 
@@ -191,5 +191,5 @@ class TestQuickstart(unit_tbox):
 
 
 # Run the unit tests.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestQuickstart)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

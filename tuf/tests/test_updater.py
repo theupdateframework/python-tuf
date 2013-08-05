@@ -408,7 +408,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Verify that there was no change in roledb and keydb dictionaries
     #  by checking the number of elements in the dictionaries.
-    self.assertEqual(len(roledb._roledb_dict), 5)
+    self.assertEqual(len(roledb._roledb_dict), 5)       
     self.assertEqual(len(keydb._keydb_dict), 5)
 
     # Test: normal case, first level delegation.
@@ -1142,18 +1142,22 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 # Run all unit tests.
-loader = unittest_toolbox.unittest.TestLoader()
-suite = unittest_toolbox.unittest.TestSuite()
+#loader = unittest_toolbox.unittest.TestLoader()
+#suite = unittest_toolbox.unittest.TestSuite()
 
-class1_tests = loader.loadTestsFromTestCase(TestUpdater_init_)
-class2_tests = loader.loadTestsFromTestCase(TestUpdater)
+#class1_tests = loader.loadTestsFromTestCase(TestUpdater_init_)
+#class2_tests = loader.loadTestsFromTestCase(TestUpdater)
  
-suite.addTest(class1_tests)
-suite.addTest(class2_tests)
+#suite.addTest(class1_tests)
+#suite.addTest(class2_tests)
 
-try:
-  unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
-finally:
-  #  Removing repositories.
-  setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
-  unittest_toolbox.Modified_TestCase.clear_toolbox()
+#try:
+#  unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
+#finally:
+#  #  Removing repositories.
+#  setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
+#  unittest_toolbox.Modified_TestCase.clear_toolbox()
+
+
+if __name__ == '__main__':
+  unittest.main()

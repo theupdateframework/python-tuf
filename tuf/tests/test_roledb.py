@@ -65,6 +65,7 @@ class TestRoledb(unittest.TestCase):
 
   def test_add_role(self):
     # Test conditions where the arguments are valid.
+    print('ROLES: '+str(tuf.roledb._roledb_dict.keys()))
     self.assertEqual(0, len(tuf.roledb._roledb_dict)) 
     rolename = 'targets'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
@@ -396,5 +397,5 @@ class TestRoledb(unittest.TestCase):
 
 
 # Run the unit tests.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestRoledb)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

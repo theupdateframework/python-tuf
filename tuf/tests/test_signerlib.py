@@ -880,7 +880,7 @@ class TestSignerlib(unit_tbox):
       return timestamp_meta, role_keyids, meta_dir
 
     else:
-      print '\nUnrecognized top-level role.'
+      logger.warning('\nUnrecognized top-level role.')
 
 
 
@@ -898,9 +898,12 @@ class TestSignerlib(unit_tbox):
 
 
 # Run unit test.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSignerlib)
-try:
-  unittest.TextTestRunner(verbosity=2).run(suite) 
-finally:
-  unit_tbox.clear_toolbox()
-  tuf.repo.keystore.clear_keystore()
+#suite = unittest.TestLoader().loadTestsFromTestCase(TestSignerlib)
+#try:
+#  unittest.TextTestRunner(verbosity=2).run(suite) 
+#finally:
+#  unit_tbox.clear_toolbox()
+#  tuf.repo.keystore.clear_keystore()
+
+if __name__ == '__main__':
+  unittest.main()
