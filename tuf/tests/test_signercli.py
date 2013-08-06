@@ -1494,8 +1494,6 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     #  Test: normal case 1.
     #  Testing first level delegation.
-    print 'delegated_targets_dir: '+str(delegated_targets_dir)
-    print 'files in delegated_targets_dir: '+repr(os.listdir(delegated_targets_dir))
     signercli.make_delegation(keystore_dir)
 
     #  Verify delegated metadata file exists.
@@ -1559,10 +1557,5 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     signercli._get_metadata_directory = original_get_metadata_directory
 
 
-# Run unit tests.
-loader = unittest_toolbox.unittest.TestLoader
-suite = loader().loadTestsFromTestCase(TestSignercli)
-try:
-  unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
-finally:
-  unittest_toolbox.Modified_TestCase.clear_toolbox()
+if __name__ == '__main__':
+  unittest.main()
