@@ -896,14 +896,5 @@ class TestSignerlib(unit_tbox):
     return signed_meta, role_info
 
 
-
-# Run unit test.
-#suite = unittest.TestLoader().loadTestsFromTestCase(TestSignerlib)
-#try:
-#  unittest.TextTestRunner(verbosity=2).run(suite) 
-#finally:
-#  unit_tbox.clear_toolbox()
-#  tuf.repo.keystore.clear_keystore()
-
 if __name__ == '__main__':
   unittest.main()
