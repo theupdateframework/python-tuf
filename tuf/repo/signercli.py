@@ -53,7 +53,6 @@ import os
 import optparse
 import getpass
 import time
-import datetime
 import sys
 import logging
 import errno
@@ -413,7 +412,8 @@ def _get_metadata_version(metadata_filename):
     If 'metadata_filename' exists, load it and extract the current version.
     This version number is incremented by one prior to returning.  If
     'metadata_filename' does not exist, return a version value of 1.
-    Return 1 if 'metadata_filename' cannot be read or validated.
+    Raise 'tuf.RepositoryError' if 'metadata_filename' cannot be read or
+    validated.
   
   """
   
@@ -425,11 +425,13 @@ def _get_metadata_version(metadata_filename):
   # Open 'metadata_filename', extract the version number, and return it
   # incremented by 1.  A metadata's version is used to determine newer metadata
   # from older.  The client should only accept newer metadata.
-  signable = tuf.repo.signerlib.read_metadata_file(metadata_filename)
   try:
+    signable = tuf.repo.signerlib.read_metadata_file(metadata_filename)
     tuf.formats.check_signable_object_format(signable)
-  except tuf.FormatError, e:
-    return 1
+  except (tuf.FormatError, tuf.Error), e:
+    message = repr(metadata_filename)+' could not be opened or is invalid.'+\
+      '  Backup or replace it and try again.'
+    raise tuf.RepositoryError(message)
   current_version = signable['signed']['version']
 
   return current_version+1
@@ -441,8 +443,7 @@ def _get_metadata_version(metadata_filename):
 def _get_metadata_expiration():
   """
     Prompt the user for the expiration date of the metadata file.
-    If the entered date is valid, it is returned in seconds till
-    expiration.
+    If the entered date is valid, it is returned unmodified.
 
     <Exceptions>
       tuf.Error, if the entered expiration date is invalid.
@@ -451,18 +452,17 @@ def _get_metadata_expiration():
 
   message = '\nCurrent time: '+tuf.formats.format_time(time.time())+'.\n'+\
     'Enter the expiration date, in UTC, of the metadata file (yyyy-mm-dd HH:MM:SS): '
+    
   try:
     input_date = _prompt(message, str)
-    try:
-      input_date = input_date+' UTC'
-      expiration_date = tuf.formats.parse_time(input_date)
-    except tuf.FormatError, e:
-      raise tuf.Error('Invalid date entered.')
-    if expiration_date < time.time():
-      message = 'The expiration date must occur after the current date.'
-      raise tuf.Error(message)
-  except ValueError, e:
+    input_date = input_date+' UTC'
+    expiration_date = tuf.formats.parse_time(input_date)
+  except (tuf.FormatError, ValueError), e:
     raise tuf.Error('Invalid date entered.')
+  
+  if expiration_date < time.time():
+    message = 'The expiration date must occur after the current date.'
+    raise tuf.Error(message)
   
   return input_date
 
@@ -816,7 +816,9 @@ def make_targets_metadata(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
-  # Retrieve the target files.
+  # Retrieve the target files.  The target paths entered by the user should be
+  # separated by white space.  'targets' is a list of the target path strings
+  # extracted from user input.
   prompt_targets = '\nInput may be a directory, directories, or any '+\
     'number of file paths.\nEnter the target files: '
   targets_input = _prompt(prompt_targets, str)

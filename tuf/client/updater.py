@@ -719,8 +719,8 @@ class Updater(object):
       downloaded_version = metadata_signable['signed']['version']
       if downloaded_version < current_version:
         message = repr(mirror_url)+' is older than the version currently '+\
-          'installed.\nDownloaded version: '+str(downloaded_version)+'\n'+\
-          'Current version: '+str(current_version)
+          'installed.\nDownloaded version: '+repr(downloaded_version)+'\n'+\
+          'Current version: '+repr(current_version)
         raise tuf.RepositoryError(message)
       
     # Reject the metadata if any specified targets are not allowed.
@@ -943,18 +943,23 @@ class Updater(object):
     if role_index is not None:
       role = roles[role_index] 
       allowed_child_paths = role['paths']
-      delegated_targets = metadata_object['targets'].keys()
+      actual_child_targets = metadata_object['targets'].keys()
       
       # Check that each delegated target is either explicitly listed or a parent
       # directory is found under role['paths'], otherwise raise an exception.
-      for delegated_target in delegated_targets:
+      # If the parent role explicitly lists target file paths in 'paths',
+      # this loop will run in O(n^2), the worst-case.  The repository
+      # maintainer will likely delegate entire directories, and opt for
+      # explicit file paths if the targets in a directory are delegated to 
+      # different roles/developers.
+      for child_target in actual_child_targets:
         for allowed_child_path in allowed_child_paths:
-          prefix = os.path.commonprefix([delegated_target, allowed_child_path])
+          prefix = os.path.commonprefix([child_target, allowed_child_path])
           if prefix == allowed_child_path:
             break
         else: 
           message = 'Role '+repr(metadata_role)+' specifies target '+\
-            repr(delegated_target)+' which is not an allowed path according '+\
+            repr(child_target)+' which is not an allowed path according '+\
             'to the delegations set by '+repr(parent_role)+'.'
           raise tuf.RepositoryError(message)
     

@@ -599,6 +599,8 @@ def read_metadata_file(filename):
   <Exceptions>
     tuf.FormatError, if 'filename' is improperly formatted.
 
+    tuf.Error, if 'filename' cannot be opened.
+
   <Side Effects>
     The contents of 'filename' are extracted.
 
