@@ -144,7 +144,7 @@ import tuf.repo.signercli as signercli
 import tuf.repo.signerlib as signerlib
 import tuf.repo.keystore as keystore
 
-
+logger = logging.getLogger('tuf')
 
 # Disable logging for cleaner output.
 def disable_logging():
@@ -200,7 +200,7 @@ def cleanup(root_repo, server_process=None):
     if server_process.returncode is None:
       server_process.kill()
       
-    print 'Server terminated.\n'
+    logger.info('Server terminated.\n')
 
   # Clear the keystore.
   keystore.clear_keystore()

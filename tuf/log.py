@@ -55,6 +55,14 @@ _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s]'+\
 logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter(_FORMAT_STRING)
 
+# Set the handlers for the logger.
+# The built-in stream handler will log
+# messages to 'sys.stderr' and capture
+# '_DEFAULT_LOG_LEVEL' messages.
+stream_handler = logging.StreamHandler()
+stream_handler.setLevel(_DEFAULT_LOG_LEVEL)
+stream_handler.setFormatter(formatter)
+
 # Set the built-in file handler.  Messages
 # will be logged to '_DEFAULT_LOG_FILENAME'
 # and use the logger's default log level.
@@ -65,6 +73,7 @@ file_handler.setFormatter(formatter)
 # Set the logger and its settings.
 logger = logging.getLogger('tuf')
 logger.setLevel(_DEFAULT_LOG_LEVEL)
+logger.addHandler(stream_handler)
 logger.addHandler(file_handler)
 
 # Silently ignore logger exceptions.
@@ -97,3 +106,4 @@ def set_log_level(log_level):
   """
 
   logger.setLevel(log_level)
+  stream_handler.setLevel(log_level)
