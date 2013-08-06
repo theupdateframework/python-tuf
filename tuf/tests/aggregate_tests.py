@@ -8,6 +8,9 @@
 
 <Started>
   January 26, 2013
+
+  August 2013. Modified previous behavior that explicitly imported individual
+  unit tests. -Zane Fisher
  
 <Copyright>
   See LICENSE for licensing information.

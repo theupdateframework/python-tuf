@@ -1139,25 +1139,5 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.download.download_url_to_tempfileobj = original_download
 
 
-
-
-# Run all unit tests.
-#loader = unittest_toolbox.unittest.TestLoader()
-#suite = unittest_toolbox.unittest.TestSuite()
-
-#class1_tests = loader.loadTestsFromTestCase(TestUpdater_init_)
-#class2_tests = loader.loadTestsFromTestCase(TestUpdater)
- 
-#suite.addTest(class1_tests)
-#suite.addTest(class2_tests)
-
-#try:
-#  unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
-#finally:
-#  #  Removing repositories.
-#  setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
-#  unittest_toolbox.Modified_TestCase.clear_toolbox()
-
-
 if __name__ == '__main__':
   unittest.main()
