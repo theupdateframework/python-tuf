@@ -61,10 +61,13 @@ logging.disable(logging.CRITICAL)
 roledb = tuf.roledb
 keydb = tuf.keydb
 
+# This is the default metadata that we would create for the timestamp role,
+# because it has no signed metadata for itself.
 DEFAULT_TIMESTAMP_FILEINFO = {
-  'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
-  'hashes':None
+  'hashes': None,
+  'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 }
+
 
 class TestUpdater_init_(unittest_toolbox.Modified_TestCase):
 
@@ -204,7 +207,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     """
 
-    def _mock_download(url, length, hashes=None, HARD_LIMIT_REQUIRED_LENGTH=True):
+    def _mock_download(url, length, hashes=None, STRICT_REQUIRED_LENGTH=True):
       if isinstance(output, (str, unicode)):
         file_path = output
       elif isinstance(output, list):
@@ -505,12 +508,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: Invalid file downloaded.
     #  Patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(self.release_filepath)
+    # TODO: Set fileinfo to a valid object.
     self.assertRaises(tuf.RepositoryError, _update_metadata, 'targets', None)
 
 
     # Test: normal case.
     #  Patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(self.targets_filepath)
+    # TODO: Set fileinfo to a valid object.
     _update_metadata('targets', None)
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
@@ -528,6 +533,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Re-patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
+    # TODO: Set fileinfo to a valid object.
     _update_metadata('targets', None, compression='gzip')
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 

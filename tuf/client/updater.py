@@ -117,7 +117,7 @@ import tuf.roledb
 import tuf.sig
 import tuf.util
 
-logger = logging.getLogger('tuf')
+from tuf.log import logger
 
 
 class Updater(object):
@@ -664,12 +664,8 @@ class Updater(object):
 
     # Extract file length and file hashes.  They will be passed as arguments
     # to 'download_file' function.
-    if fileinfo is not None:
-      file_length=fileinfo['length']
-      file_hashes=fileinfo['hashes']
-    else:
-      file_length=None
-      file_hashes=None
+    file_length=fileinfo['length']
+    file_hashes=fileinfo['hashes']
 
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
@@ -836,12 +832,9 @@ class Updater(object):
     # The 'root' role may be updated without having 'release'
     # available.  
     if referenced_metadata not in self.metadata['current']:
-      if metadata_role == 'root':
-        new_fileinfo = None
-      else:
-        message = 'Cannot update '+repr(metadata_role)+' because ' \
-                  +referenced_metadata+' is missing.'
-        raise tuf.RepositoryError(message)
+      message = 'Cannot update '+repr(metadata_role)+' because ' \
+                +referenced_metadata+' is missing.'
+      raise tuf.RepositoryError(message)
     # The referenced metadata has been loaded.  Extract the new
     # fileinfo for 'metadata_role' from it. 
     else:
@@ -1017,11 +1010,6 @@ class Updater(object):
     # 'metadata_filename' is not in the 'self.fileinfo' store
     # and it doesn't exist in the 'current' metadata location.
     if self.fileinfo.get(metadata_filename) is None:
-      return True
-
-    # 'new_fileinfo' should only be 'None' if updating 'root.txt'
-    # without having 'release.txt'.
-    if new_fileinfo is None:
       return True
 
     current_fileinfo = self.fileinfo[metadata_filename]
