@@ -153,6 +153,7 @@ def disable_logging():
 
 
 PASSWD = 'test'
+version = 1
 
 
 def init_repo(tuf=False, port=None):
@@ -285,6 +286,9 @@ def init_tuf(root_repo):
   """ 
 
   threshold = 1
+  global version
+  version = version+1
+  expiration = tuf.formats.format_time(time.time()+86400)
 
   # Setup TUF-repo directory structure.
   tuf_repo = os.path.join(root_repo, 'tuf_repo')
@@ -329,16 +333,17 @@ def init_tuf(root_repo):
   conf_path = signerlib.build_config_file(metadata_dir, 365, role_info)
 
   # Generate the 'root.txt' metadata file.
-  signerlib.build_root_file(conf_path, keyids, metadata_dir)
+  signerlib.build_root_file(conf_path, keyids, metadata_dir, version)
 
   # Generate the 'targets.txt' metadata file. 
-  signerlib.build_targets_file(targets_dir, keyids, metadata_dir)
+  signerlib.build_targets_file([targets_dir], keyids, metadata_dir, version,
+                               expiration)
 
   # Generate the 'release.txt' metadata file.
-  signerlib.build_release_file(keyids, metadata_dir)
+  signerlib.build_release_file(keyids, metadata_dir, version, expiration)
 
   # Generate the 'timestamp.txt' metadata file.
-  signerlib.build_timestamp_file(keyids, metadata_dir)
+  signerlib.build_timestamp_file(keyids, metadata_dir, version, expiration)
 
   # Move the metadata to the client's 'current' and 'previous' directories.
   shutil.copytree(metadata_dir, current_dir)
@@ -405,6 +410,9 @@ def tuf_refresh_repo(root_repo, keyids):
 
   """
 
+  global version
+  expiration = tuf.formats.format_time(time.time()+86400)
+
   reg_repo = os.path.join(root_repo, 'reg_repo')
   tuf_repo = os.path.join(root_repo, 'tuf_repo')
   targets_dir = os.path.join(tuf_repo, 'targets')
@@ -419,14 +427,16 @@ def tuf_refresh_repo(root_repo, keyids):
   shutil.rmtree(targets_dir)
   shutil.copytree(reg_repo, targets_dir)
 
-  # Regenerate the 'targets.txt' metadata file. 
-  signerlib.build_targets_file(targets_dir, keyids, metadata_dir)
+  version = version+1
+  # Regenerate the 'targets.txt' metadata file.
+  signerlib.build_targets_file([targets_dir], keyids, metadata_dir,
+                               version, expiration)
 
   # Regenerate the 'release.txt' metadata file.
-  signerlib.build_release_file(keyids, metadata_dir)
+  signerlib.build_release_file(keyids, metadata_dir, version, expiration)
 
   # Regenerate the 'timestamp.txt' metadata file.
-  signerlib.build_timestamp_file(keyids, metadata_dir)
+  signerlib.build_timestamp_file(keyids, metadata_dir, version, expiration)
 
 
 
@@ -462,12 +472,14 @@ def _get_metadata_directory(metadata_dir):
 
 #  This method patches signercli._prompt() that are called from
 #  make_role_metadata methods (e.g., tuf.signercli.make_root_metadata()).
-def _make_metadata_mock_prompts(targets_dir, conf_path):
+def _make_metadata_mock_prompts(targets_dir, conf_path, expiration):
   def _mock_prompt(msg, junk):
-    if msg.startswith('\nEnter the directory containing the target'):
+    if msg.startswith('\nInput may be a directory, directories, or any'):
       return targets_dir
     elif msg.startswith('\nEnter the configuration file path'):
       return conf_path
+    elif msg.startswith('\nCurrent time: '):
+      return expiration
     else:
       error_msg = ('Prompt: '+'\''+msg[1:]+'\''+
           ' did not match any predefined mock prompts.')
@@ -488,6 +500,8 @@ def _get_password(password):
 
 
 def _make_role_metadata_wrapper(root_repo, func):
+  expiration = tuf.formats.format_time(time.time()+86400)
+  expiration = expiration[0:expiration.rfind(' UTC')]
   original_get_metadata_directory = signercli._get_metadata_directory
   original_prompt = signercli._prompt
   original_get_password = signercli._get_password
@@ -505,9 +519,9 @@ def _make_role_metadata_wrapper(root_repo, func):
   if func.__name__ == 'make_targets_metadata':
     shutil.rmtree(targets_dir)
     shutil.copytree(reg_repo, targets_dir)
-    _make_metadata_mock_prompts(targets_dir, conf_path)
+    _make_metadata_mock_prompts(targets_dir, conf_path, expiration)
   else:
-    _make_metadata_mock_prompts(reg_repo, conf_path)
+    _make_metadata_mock_prompts(reg_repo, conf_path, expiration)
 
   func(keystore_dir)
 
@@ -533,7 +547,7 @@ def make_timestamp_meta(root_repo):
 
 
 def create_delegation(tuf_repo, delegated_targets_path, keyid, keyid_password,
-                      parent_role, new_role_name):
+                      parent_role, new_role_name, expiration_date):
   keystore_dir = os.path.join(tuf_repo, 'keystore')
   metadata_dir = os.path.join(tuf_repo, 'metadata')
 
@@ -548,15 +562,16 @@ def create_delegation(tuf_repo, delegated_targets_path, keyid, keyid_password,
 
   #  Mock method for signercli._prompt().
   def _mock_prompt(msg, junk, targets_path=delegated_targets_path,
-                  parent_role=parent_role, new_role_name=new_role_name):
-    if msg.startswith('\nThe directory entered'):
+                  parent_role=parent_role, new_role_name=new_role_name,
+                  expiration=expiration_date):
+    if msg.startswith('\nThe paths entered below should be located'):
       return targets_path
     elif msg.startswith('\nChoose and enter the parent'):
       return parent_role
     elif msg.startswith('\nEnter the delegated role\'s name: '):
       return new_role_name
-    elif msg.startswith('Recursively walk the given directory? (Y)es/(N)o: '):
-      return 'N'
+    elif msg.startswith('\nCurrent time: '):
+      return expiration
     else:
       error_msg = ('Prompt: '+'\''+msg+'\''+
                    ' did not match any predefined mock prompts.')

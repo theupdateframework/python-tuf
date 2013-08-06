@@ -171,8 +171,12 @@ class TestKeydb(unittest.TestCase):
     keydict = {keyid: rsakey, keyid2: rsakey2}
     roledict = {'Root': {'keyids': [keyid], 'threshold': 1},
                 'Targets': {'keyids': [keyid2], 'threshold': 1}}
+    version = 8
+    expiration_seconds = 200
 
-    root_metadata = tuf.formats.RootFile.make_metadata(keydict, roledict, 12345)
+    root_metadata = tuf.formats.RootFile.make_metadata(version,
+                                                       expiration_seconds,
+                                                       keydict, roledict)
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
     # Ensure 'keyid' and 'keyid2' were added to the keydb database.
     self.assertEqual(rsakey, tuf.keydb.get_key(keyid))
@@ -203,8 +207,12 @@ class TestKeydb(unittest.TestCase):
     keyid3 = KEYS[2]['keyid']
     rsakey3['keytype'] = 'bad_keytype'
     keydict[keyid3] = rsakey3
+    version = 8
+    expiration_seconds = 200
     
-    root_metadata = tuf.formats.RootFile.make_metadata(keydict, roledict, 12345)
+    root_metadata = tuf.formats.RootFile.make_metadata(version,
+                                                       expiration_seconds,
+                                                       keydict, roledict)
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
 
     # Ensure only 'keyid2' was added to the keydb database.  'keyid' and
