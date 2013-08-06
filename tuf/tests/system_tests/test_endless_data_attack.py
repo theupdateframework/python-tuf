@@ -63,7 +63,7 @@ def _download(url, filename, tuf=False):
 
 
 
-def test_arbitrary_package_attack(TUF=False):
+def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
   """
   <Arguments>
     TUF:
@@ -91,7 +91,7 @@ def test_arbitrary_package_attack(TUF=False):
     file_basename = os.path.basename(filepath)
     url_to_repo = url+'reg_repo/'+file_basename
     downloaded_file = os.path.join(downloads, file_basename)
-    endless_data = 'A'*100
+    endless_data = 'A'*100000
 
 
     if TUF:
@@ -108,6 +108,11 @@ def test_arbitrary_package_attack(TUF=False):
       # Attacker modifies the file at the targets repository.
       target = os.path.join(tuf_targets, file_basename)
       util_test_tools.modify_file_at_repository(target, endless_data)
+      # Attacker modifies the timestamp.txt metadata.
+      if TIMESTAMP:
+        metadata = os.path.join(tuf_repo, 'metadata')
+        timestamp = os.path.join(metadata, 'timestamp.txt')
+        util_test_tools.modify_file_at_repository(timestamp, endless_data)  
 
     # Attacker modifies the file at the regular repository.
     util_test_tools.modify_file_at_repository(filepath, endless_data)
@@ -119,10 +124,10 @@ def test_arbitrary_package_attack(TUF=False):
       # Client downloads (tries to download) the file.
       _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
 
-    except tuf.DownloadError:
-      # If tuf.DownloadError is raised, this means that TUF has prevented
-      # the download of an unrecognized file.  Enable the logging to see,
-      # what actually happened.
+    except (tuf.DownloadError,tuf.RepositoryError), e:
+      # If tuf.DownloadError or tuf.RepositoryError is raised, this means
+      # that TUF has prevented the download of an unrecognized file. Enable
+      # the logging to see, what actually happened.
       pass
 
     else:
@@ -142,7 +147,7 @@ def test_arbitrary_package_attack(TUF=False):
 
 
 try:
-  test_arbitrary_package_attack(TUF=False)
+  test_arbitrary_package_attack(TUF=False, TIMESTAMP=False)
 
 except EndlessDataAttack, error:
   print('Without TUF: '+str(error))
@@ -150,7 +155,15 @@ except EndlessDataAttack, error:
 
 
 try:
-  test_arbitrary_package_attack(TUF=True)
+  test_arbitrary_package_attack(TUF=True, TIMESTAMP=False)
 
 except EndlessDataAttack, error:
   print('With TUF: '+str(error))
+
+
+
+try:
+  test_arbitrary_package_attack(TUF=True, TIMESTAMP=True)
+
+except EndlessDataAttack, error:
+  print('With TUF: '+str(error))  

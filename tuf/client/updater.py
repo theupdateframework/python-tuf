@@ -564,12 +564,17 @@ class Updater(object):
       None.
     
     """
-        
+    
+    DEFAULT_TIMESTAMP_FILEINFO = {'length': tuf.conf.DEFAULT_TIMESTAMP_LENGTH, 'hashes':None}  
+
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
     # Raise 'tuf.RepositoryError' if an update fails.
-    self._update_metadata('timestamp')
+
+    # Set a default length for timestamp metadata.
+    self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO, 
+                         HARD_LIMIT_REQUIRED_LENGTH=False)
 
     self._update_metadata_if_changed('release', referenced_metadata='timestamp')
 
@@ -587,7 +592,8 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, fileinfo=None, compression=None):
+  def _update_metadata(self, metadata_role, fileinfo, compression=None,
+                       HARD_LIMIT_REQUIRED_LENGTH=True):
     """
     <Purpose>
       Download, verify, and 'install' the metadata belonging to 'metadata_role'.
@@ -605,6 +611,10 @@ class Updater(object):
         A dictionary containing length and hashes of the metadata file.
         Ex: {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
              "length": 1340}
+
+      HARD_LIMIT_REQUIRED_LENGTH:
+        A boolean value which indicates if the required_length passed into this 
+        function is a default length.
 
       compression:
         A string designating the compression type of 'metadata_role'.
@@ -662,8 +672,8 @@ class Updater(object):
     metadata_signable = None
     for mirror_url in get_mirrors('meta', metadata_filename.encode("utf-8"), self.mirrors):
       try:
-        metadata_file_object = download_file(mirror_url, file_hashes, 
-                                             file_length)
+        metadata_file_object = download_file(mirror_url, file_length, file_hashes,
+                                             HARD_LIMIT_REQUIRED_LENGTH)
       except tuf.DownloadError, e:
         logger.warn('Download failed from '+mirror_url+'.')
         continue
@@ -1723,8 +1733,8 @@ class Updater(object):
     # download a target.
     for mirror_url in get_mirrors('target', target_filepath, self.mirrors):
       try: 
-        target_file_object = download_file(mirror_url, trusted_hashes,
-                                           trusted_length)
+        target_file_object = download_file(mirror_url, trusted_length,
+                                           trusted_hashes)
         break
       except (tuf.DownloadError, tuf.FormatError), e:
         logger.warn('Download failed from '+mirror_url+'.')
