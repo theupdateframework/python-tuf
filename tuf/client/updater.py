@@ -564,17 +564,24 @@ class Updater(object):
       None.
     
     """
-    
-    DEFAULT_TIMESTAMP_FILEINFO = {'length': tuf.conf.DEFAULT_TIMESTAMP_LENGTH, 'hashes':None}  
+
+    # The timestamp role does not have signed metadata about it; otherwise we
+    # would need an infinite regress of metadata. Therefore, we use some
+    # default, sane metadata about it.
+    DEFAULT_TIMESTAMP_FILEINFO = {
+      'hashes':None,
+      'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    }
 
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
     # Raise 'tuf.RepositoryError' if an update fails.
 
-    # Set a default length for timestamp metadata.
+    # Use default but sane information for timestamp metadata, and do not
+    # require strict checks on its required length.
     self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO, 
-                         HARD_LIMIT_REQUIRED_LENGTH=False)
+                          STRICT_REQUIRED_LENGTH=False)
 
     self._update_metadata_if_changed('release', referenced_metadata='timestamp')
 
@@ -593,7 +600,7 @@ class Updater(object):
 
 
   def _update_metadata(self, metadata_role, fileinfo, compression=None,
-                       HARD_LIMIT_REQUIRED_LENGTH=True):
+                       STRICT_REQUIRED_LENGTH=True):
     """
     <Purpose>
       Download, verify, and 'install' the metadata belonging to 'metadata_role'.
@@ -612,9 +619,12 @@ class Updater(object):
         Ex: {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
              "length": 1340}
 
-      HARD_LIMIT_REQUIRED_LENGTH:
-        A boolean value which indicates if the required_length passed into this 
-        function is a default length.
+      STRICT_REQUIRED_LENGTH:
+        A Boolean indicator used to signal whether we should perform strict
+        checking of the required length in 'fileinfo'. True by default.  True
+        by default. We explicitly set this to False when we know that we want
+        to turn this off for downloading the timestamp metadata, which has no
+        signed required_length.
 
       compression:
         A string designating the compression type of 'metadata_role'.
@@ -670,10 +680,13 @@ class Updater(object):
     # 'tuf.formats.SIGNABLE_SCHEMA'.
     metadata_file_object = None
     metadata_signable = None
-    for mirror_url in get_mirrors('meta', metadata_filename.encode("utf-8"), self.mirrors):
+    for mirror_url in get_mirrors('meta',
+                                  metadata_filename.encode("utf-8"),
+                                  self.mirrors):
       try:
-        metadata_file_object = download_file(mirror_url, file_length, file_hashes,
-                                             HARD_LIMIT_REQUIRED_LENGTH)
+        metadata_file_object = \
+          download_file(mirror_url, file_length, file_hashes,
+                        STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH)
       except tuf.DownloadError, e:
         logger.warn('Download failed from '+mirror_url+'.')
         continue
@@ -691,7 +704,8 @@ class Updater(object):
         # but this is a workaround for Unicode messages. We need a long-term
         # solution with #61.
         # http://bugs.python.org/issue2517
-        message = 'Unable to verify '+metadata_filename+':'+e.message.encode("utf-8")
+        message = 'Unable to verify '+metadata_filename+':'+\
+                  e.message.encode("utf-8")
         logger.exception(message)
         metadata_signable = None
         continue

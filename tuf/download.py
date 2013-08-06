@@ -182,17 +182,18 @@ def _open_connection(url):
 
 
 
-def _check_hashes(input_file, trusted_hashes):
+def _check_hashes(input_file, trusted_hashes=None):
   """
   <Purpose>
-    Helper function that verifies multiple secure hashes of the downloaded file.
-    If any of these fail it raises an exception.  This is to conform with the 
-    TUF specs, which support clients with different hashing algorithms. The
-    'hash.py' module is used to compute the hashes of the 'input_file'. 
+    A helper function that verifies multiple secure hashes of the downloaded
+    file.  If any of these fail it raises an exception.  This is to conform
+    with the TUF specs, which support clients with different hashing
+    algorithms. The 'hash.py' module is used to compute the hashes of the
+    'input_file'. 
 
   <Arguments>
     input_file:
-      A file or file-like object.
+      A file-like object.
     
     trusted_hashes: 
       A dictionary with hash-algorithm names as keys and hashes as dict values.
@@ -206,21 +207,24 @@ def _check_hashes(input_file, trusted_hashes):
     
   <Returns>
     None.
-    
+
   """
-  # Verify each trusted hash of 'trusted_hashes'.  Raise exception if
-  # any of the hashes are incorrect and return if all are correct.
-  for algorithm, trusted_hash in trusted_hashes.items():
-    digest_object = tuf.hash.digest(algorithm)
-    digest_object.update(input_file.read())
-    computed_hash = digest_object.hexdigest()
-    if trusted_hash != computed_hash:
-      msg = 'Hashes do not match. Expected '+trusted_hash+' got '+computed_hash
-      raise tuf.BadHashError(msg)
-    else:
-      logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
-  
-  return
+
+  if trusted_hashes:
+    # Verify each trusted hash of 'trusted_hashes'.  Raise exception if
+    # any of the hashes are incorrect and return if all are correct.
+    for algorithm, trusted_hash in trusted_hashes.items():
+      digest_object = tuf.hash.digest(algorithm)
+      digest_object.update(input_file.read())
+      computed_hash = digest_object.hexdigest()
+      if trusted_hash != computed_hash:
+        raise tuf.BadHashError('Hashes do not match! Expected '+
+                               trusted_hash+' got '+computed_hash)
+      else:
+        logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
+  else:
+    logger.warn('No trusted hashes supplied to verify file at: '+
+                str(input_file))
 
 
 
@@ -286,15 +290,12 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       # Data successfully read from the connection.  Store it. 
       temp_file.write(data)
       total_downloaded = total_downloaded + len(data)
-
-      # This is to make sure we did not make a mistake!
-      #if total_downloaded > required_length:
-      #  logger.error('This should NEVER happen!')
   except:
     raise
   else:
     return total_downloaded
   finally:
+    # Whatever happens, make sure that we always close the connection.
     connection.close()
 
 
@@ -304,34 +305,39 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
 def _get_content_length(connection):
   """
   <Purpose>
-    Helper function thst get the file length from server, if any of these fail,
-    the length reported by server will be simply set to None.
+    A helper function that gets the purported file length from server.
   
   <Arguments>
     connection:
-      The object that the _open_connection returns for communicating with the
-      server about the contents of a URL.
+      The object that the _open_connection function returns for communicating
+      with the server about the contents of a URL.
   
   <Side Effects>
-    Length from server will be written to 'reported_length'.
+    No known side effects.
  
   <Exceptions>
-    Runtime or network exceptions will be raised without question.
+    Runtime exceptions will be suppressed but logged.
  
   <Returns>
     reported_length:
-      The total number of bytes reported by server.
+      The total number of bytes reported by server. If the process fails, we
+      return None; otherwise we would return a nonnegative integer.
 
   """
 
   try:
-  # info().get('Content-Length') gets the length of the url file.
+    # What is the length of this document according to the HTTP spec?
     reported_length = connection.info().get('Content-Length')
+    # Try casting it as a decimal number.
     reported_length = int(reported_length, 10)
+    # Make sure that it is a nonnegative integer.
+    assert reported_length > -1
   except:
+    logger.exception('Could not get content length about '+str(connection)+
+                     ' from server!')
     reported_length = None
-   
-  return reported_length
+  finally:
+    return reported_length
 
 
 
@@ -340,73 +346,70 @@ def _get_content_length(connection):
 def _check_content_length(reported_length, required_length):
   """
   <Purpose>
-    Helper function that checks whether the length reported by server is equal 
-    to the length we expected. If the reported length is larger than we expected,
-    it will rise tuf.DownloadError exception to avoid the endless data attack.
+    A helper function that checks whether the length reported by server is
+    equal to the length we expected.
   
   <Arguments>
     reported_length:
-      The total number of bytes reported by server.
+      The total number of bytes reported by the server.
 
     required_length:
-      The total number of bytes obtained from metadata or default value.
+      The total number of bytes obtained from (possibly default) metadata.
 
   <Side Effects>
-    None.
+    No known side effects.
  
   <Exceptions>
-    tuf.DownloadError, if reported_length is more than required_length.
+    No known exceptions.
  
   <Returns>
     None.
 
   """
 
-  # The length of downloading file obtained from server is larger than which 
-  # obtained from metadata or default length. So it could be a endless data 
-  # attack.
-  if reported_length is not None:
-    if reported_length != required_length:
-      if reported_length > required_length:
-        message = 'Incorrect length for '+url+'. The length reported by server is'+ \
-                  ' larger than expected. Expected '+str(required_length)+', got '+ \
-                  str(reported_length)+' bytes. It could be an endless data attack!'
-        raise tuf.DownloadError(message)
-      else:
-        message = 'The length reported by server is smaller than expected!'
-        logger.warn(message)
+  try:
+    if reported_length < required_length:
+      logger.warn('reported_length ('+str(reported_length)+
+                  ') < required_length ('+str(required_length)+')')
+    elif reported_length > required_length:
+      logger.warn('reported_length ('+str(reported_length)+
+                  ') > required_length ('+str(required_length)+')')
     else:
-      logger.info('Everything is OK. Download will start!')
-  else:
-     logger.warn('Server is being crappy, DownloadError will start!')
-
+      logger.debug('reported_length ('+str(reported_length)+
+                   ') == required_length ('+str(required_length)+')')
+  except:
+    logger.exception('Could not check reported and required lengths!')
 
 
 
 
   
-def _check_downloaded_length(total_downloaded, required_length, HARD_LIMIT_REQUIRED_LENGTH):
+def _check_downloaded_length(total_downloaded, required_length,
+                             STRICT_REQUIRED_LENGTH=True):
   """
   <Purpose>
-    This is a helper function, which checks if the length of downloaded is equal to the length
-    we expected. 
-  
+    A helper function which checks whether the total number of downloaded bytes
+    matches our expectation. 
+ 
   <Arguments>
-    reported_length:
-      The total number of bytes reported by server.
+    total_downloaded:
+      The total number of bytes supposedly downloaded for the file in question.
 
     required_length:
-      The total number of bytes obtained from metadata or default value.
-      
-    HARD_LIMIT_REQUIRED_LENGTH:
-      A boolean value which indicates if the required_length passed into this 
-      function is a default length.
+      The total number of bytes expected of the file as seen from its (possibly
+      default) metadata.
+
+    STRICT_REQUIRED_LENGTH:
+      A Boolean indicator used to signal whether we should perform strict
+      checking of required_length. True by default. We explicitly set this to
+      False when we know that we want to turn this off for downloading the
+      timestamp metadata, which has no signed required_length.
   
   <Side Effects>
     None.
  
   <Exceptions>
-    tuf.DownloadError, if HARD_LIMIT_REQUIRED_LENGTH is set to True and total_downloaded 
+    tuf.DownloadError, if STRICT_REQUIRED_LENGTH is True and total_downloaded
     is not equal required_length.
  
   <Returns>
@@ -414,28 +417,34 @@ def _check_downloaded_length(total_downloaded, required_length, HARD_LIMIT_REQUI
 
   """
 
-  # If the required_length is not the default value, we will check whether
-  # the total_downloaded is equal to required_length.
-  if HARD_LIMIT_REQUIRED_LENGTH:  
-    if total_downloaded != required_length:
-      message = 'Downloaded '+str(total_downloaded)+'. Expected '+str(required_length)+\
-                ' for '+url+'. There are still '+str(required_length-total_downloaded)+\
-                'bytes expected to be downloaded!'
+  if total_downloaded == required_length:
+    logger.debug('total_downloaded == required_length == '+
+                 str(required_length))
+  else:
+    difference_in_bytes = abs(total_downloaded-required_length)
+    message = 'Downloaded '+str(total_downloaded)+' bytes, but expected '+\
+              str(required_length)+' bytes. There is a difference of '+\
+              str(difference_in_bytes)+' bytes!'
+
+    # What we downloaded is not equal to the required length, but did we ask
+    # for strict checking of required length?
+    if STRICT_REQUIRED_LENGTH:  
+      # This must be due to a programming error, and must never happen!
       logger.error(message)          
       raise tuf.DownloadError(message)
     else:
-      logger.info('Successful download!')
-  
-  else:  
-    message = 'Required_length is default value, skip the safety check of total downloaded.'
-    logger.warn(message)
+      # We specifically disabled strict checking of required length, but we
+      # will log a warning anyway. This is useful when we wish to download the
+      # timestamp metadata, for which we have no signed metadata; so, we must
+      # guess a reasonable required_length for it.
+      logger.warn(message)
 
 
 
 
-def download_url_to_tempfileobj(url, required_length,
-                                required_hashes=None,
-                                HARD_LIMIT_REQUIRED_LENGTH=True):
+
+def download_url_to_tempfileobj(url, required_length, required_hashes=None,
+                                STRICT_REQUIRED_LENGTH=True):
   """
   <Purpose>
     Given the url, hashes and length of the desired file, this function 
@@ -447,7 +456,10 @@ def download_url_to_tempfileobj(url, required_length,
   
   <Arguments>
     url:
-      A url string that represents the location of the file. 
+      A URL string that represents the location of the file. 
+  
+    required_length:
+      An integer value representing the length of the file.
   
     required_hashes:
       A dictionary, where the keys represent the hashing algorithm used to 
@@ -455,69 +467,80 @@ def download_url_to_tempfileobj(url, required_length,
   
       For instance, a hash pair might look something like this:
       {'md5': '37544f383be1fc1a32f42801c9c4b4d6'}
-  
-    required_length:
-      An integer value representing the length of the file.
 
-    HARD_LIMIT_REQUIRED_LENGTH:
-      A boolean value which indicates if the required_length passed into this 
-      function is a default length.
-  
+    STRICT_REQUIRED_LENGTH:
+      A Boolean indicator used to signal whether we should perform strict
+      checking of required_length. True by default. We explicitly set this to
+      False when we know that we want to turn this off for downloading the
+      timestamp metadata, which has no signed required_length.
+
   <Side Effects>
-    'tuf.util.TempFile' object is created.
+    A 'tuf.util.TempFile' object is created on disk to store the contents of
+    'url'.
  
   <Exceptions>
     tuf.DownloadError, if there was an error while downloading the file.
-    
-    tuf.FormatError, if any of the arguments are improperly formatted. 
+ 
+    tuf.FormatError, if any of the arguments are improperly formatted.
+
+    tuf.BadHashError, if the hashes don't match.
+
+    Any other unforeseen runtime exception.
  
   <Returns>
-    'tuf.util.TempFile' instance.
+    A 'tuf.util.TempFile' file-like object which points to the contents of
+    'url'.
 
   """
 
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.URL_SCHEMA.check_match(url)
-  if required_hashes is not None:
-    tuf.formats.HASHDICT_SCHEMA.check_match(required_hashes)
-  if required_length is not None:
-    tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
 
-  # 'url.replace()' is for compatibility with Windows-based systems because they 
-  # might put back-slashes in place of forward-slashes.  This converts it to the
-  # common format. 
-  url = url.replace('\\','/')
-  logger.info('Downloading: '+url)
+  if required_hashes:
+    tuf.formats.HASHDICT_SCHEMA.check_match(required_hashes)
+  else:
+    logger.warn('Missing hashes for: '+str(url))
+
+  # 'url.replace()' is for compatibility with Windows-based systems because
+  # they might put back-slashes in place of forward-slashes.  This converts it
+  # to the common format. 
+  url = url.replace('\\', '/')
+  logger.info('Downloading: '+str(url))
   connection = _open_connection(url)
   temp_file = tuf.util.TempFile()
 
   try:
+    # We ask the server about how big it thinks this file should be.
     reported_length = _get_content_length(connection)
-    # call the function to check whether the length reported by server is equal 
-    # to expected.
+
+    # Then, we check whether the required length matches the reported length.
     _check_content_length(reported_length, required_length)
 
-    # For readibility, we perform the download in a separate function, which
-    # returns the total number of downloaded bytes; this number should be equal
-    # to required_length. 
+    # Download the contents of the URL, up to the required length, to a
+    # temporary file, and get the total number of downloaded bytes.
     total_downloaded = _download_fixed_amount_of_data(connection, temp_file, 
                                                       required_length)
-    # call the function to check whether the length of total_downloaded is equal to 
-    # expected.
-    _check_downloaded_length(total_downloaded, required_length, HARD_LIMIT_REQUIRED_LENGTH)
-      
-    # We appear to have downloaded the correct amount.  Check the hashes.
-    if required_hashes is not None: 
-      _check_hashes(temp_file, required_hashes)
 
-  # Exception is a base class for all non-exiting exceptions.
-  except Exception, e:
-    # Closing 'temp_file'.  The 'temp_file' data is destroyed.
+    # Does the total number of downloaded bytes match the required length?
+    _check_downloaded_length(total_downloaded, required_length,
+                             STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH)
+
+    # Finally, check the hashes expected of the file.
+    _check_hashes(temp_file, trusted_hashes=required_hashes)
+
+  except:
+    # Something unfortunately went wrong, so we will close 'temp_file'; that
+    # means any data written to it will be lost.
     temp_file.close_temp_file()
-    logger.error(str(e))
-    raise tuf.DownloadError(e)
+    logger.exception('Could not download URL: '+str(url))
+    raise
 
-  return temp_file
+  else:
+    return temp_file
+
+
+
 
 

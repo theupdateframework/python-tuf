@@ -37,9 +37,6 @@ repository_directory = None
 # http://docs.python.org/2/library/ssl.html#certificates
 ssl_certificates = None
 
-# A default value used in the tuf.download.download_url_to_tempfileobj
-# function. When metadata does not tell what the length of target file
-# is(for example, the timestamp.txt), set it with this default value 
-# to avoid endless data attack. the default length is set based on the 
-# timestamp.txt with two signature.
-DEFAULT_TIMESTAMP_LENGTH = 1995
+# Since the timestamp role does not have signed metadata about itself, we set a
+# default but sane upper bound for the number of bytes required to download it.
+DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 2048

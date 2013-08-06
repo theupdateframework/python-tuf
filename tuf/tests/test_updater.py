@@ -61,7 +61,10 @@ logging.disable(logging.CRITICAL)
 roledb = tuf.roledb
 keydb = tuf.keydb
 
-DEFAULT_TIMESTAMP_FILEINFO = {'length': tuf.conf.DEFAULT_TIMESTAMP_LENGTH, 'hashes':None}  
+DEFAULT_TIMESTAMP_FILEINFO = {
+  'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH,
+  'hashes':None
+}
 
 class TestUpdater_init_(unittest_toolbox.Modified_TestCase):
 
