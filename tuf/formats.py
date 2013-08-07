@@ -74,8 +74,8 @@ import tuf.schema as SCHEMA
 # additional keys which are not defined. Thus, any additions to them will be
 # easily backwards compatible with clients that are already deployed.
 
-# A date in 'YYYY-MM-DD HH:MM:SS' format.
-TIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
+# A date in 'YYYY-MM-DD HH:MM:SS UTC' format.
+TIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC')
 
 # A hexadecimal value in '23432df87ab..' format.
 HASH_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
@@ -113,7 +113,11 @@ VERSION_SCHEMA = SCHEMA.Object(
   minor=SCHEMA.Integer(lo=0),
   fix=SCHEMA.Integer(lo=0))
 
-# An integer representing length.  Must be 0 and greater.
+# An integer representing the numbered version of a metadata file.
+# Must be 1, or greater.
+METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=1)
+
+# An integer representing length.  Must be 0, or greater.
 LENGTH_SCHEMA = SCHEMA.Integer(lo=0)
 
 # A string representing a named object.
@@ -288,7 +292,7 @@ ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 ROOT_SCHEMA = SCHEMA.Object(
   object_name='root',
   _type=SCHEMA.String('Root'),
-  ts=TIME_SCHEMA,
+  version=METADATAVERSION_SCHEMA,
   expires=TIME_SCHEMA,
   keys=KEYDICT_SCHEMA,
   roles=ROLEDICT_SCHEMA)
@@ -297,7 +301,7 @@ ROOT_SCHEMA = SCHEMA.Object(
 TARGETS_SCHEMA = SCHEMA.Object(
   object_name='targets',
   _type=SCHEMA.String('Targets'),
-  ts=TIME_SCHEMA,
+  version=METADATAVERSION_SCHEMA,
   expires=TIME_SCHEMA,
   targets=FILEDICT_SCHEMA,
   delegations=SCHEMA.Optional(SCHEMA.Object(
@@ -308,7 +312,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
 RELEASE_SCHEMA = SCHEMA.Object(
   object_name='release',
   _type=SCHEMA.String('Release'),
-  ts=TIME_SCHEMA,
+  version=METADATAVERSION_SCHEMA,
   expires=TIME_SCHEMA,
   meta=FILEDICT_SCHEMA)
 
@@ -316,7 +320,7 @@ RELEASE_SCHEMA = SCHEMA.Object(
 TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name='timestamp',
   _type=SCHEMA.String('Timestamp'),
-  ts=TIME_SCHEMA,
+  version=METADATAVERSION_SCHEMA,
   expires=TIME_SCHEMA,
   meta=FILEDICT_SCHEMA)
 
@@ -343,7 +347,7 @@ MIRRORDICT_SCHEMA = SCHEMA.DictOf(
 MIRRORLIST_SCHEMA = SCHEMA.Object(
   object_name='mirrorlist',
   _type=SCHEMA.String('Mirrors'),
-  ts=TIME_SCHEMA,
+  version=METADATAVERSION_SCHEMA,
   expires=TIME_SCHEMA,
   mirrors=SCHEMA.ListOf(MIRROR_SCHEMA))
 
@@ -389,9 +393,9 @@ class MetaFile(object):
 
 
 class TimestampFile(MetaFile):
-  def __init__(self, timestamp, expires, filedict):
+  def __init__(self, version, expires, filedict):
     self.info = {}
-    self.info['ts'] = timestamp
+    self.info['version'] = version
     self.info['expires'] = expires
     self.info['meta'] = filedict
 
@@ -402,18 +406,17 @@ class TimestampFile(MetaFile):
     # Raise tuf.FormatError if not.
     TIMESTAMP_SCHEMA.check_match(object) 
 
-    timestamp = parse_time(object['ts'])
+    version = object['version']
     expires = parse_time(object['expires'])
     filedict = object['meta']
-    return TimestampFile(timestamp, expires, filedict)
+    return TimestampFile(version, expires, filedict)
     
     
   @staticmethod
-  def make_metadata(filedict):
+  def make_metadata(version, expiration_date, filedict):
     result = {'_type' : 'Timestamp'}
-    # TODO: set the expires time another way.
-    result['ts'] = format_time(time.time())
-    result['expires'] = format_time(time.time() + 3600 * 24 * 365)
+    result['version'] = version 
+    result['expires'] = expiration_date
     result['meta'] = filedict
 
     # Is 'result' a Timestamp metadata file?
@@ -427,9 +430,9 @@ class TimestampFile(MetaFile):
 
 
 class RootFile(MetaFile):
-  def __init__(self, timestamp, expires, keys, roles):
+  def __init__(self, version, expires, keys, roles):
     self.info = {}
-    self.info['ts'] = timestamp
+    self.info['version'] = version
     self.info['expires'] = expires
     self.info['keys'] = keys
     self.info['roles'] = roles
@@ -438,26 +441,25 @@ class RootFile(MetaFile):
   @staticmethod
   def from_metadata(object):
     # Is 'object' a Root metadata file?
-    # Raise tuf.FormatError if not.
+    # Raise 'tuf.FormatError' if not.
     ROOT_SCHEMA.check_match(object) 
     
-    timestamp = parse_time(object['ts'])
+    version = object['version']
     expires = parse_time(object['expires'])
     keys = object['keys']
     roles = object['roles']
     
-    return RootFile(timestamp, expires, keys, roles)
+    return RootFile(version, expires, keys, roles)
 
 
   @staticmethod
-  def make_metadata(keydict, roledict, expiration_seconds):
+  def make_metadata(version, expiration_seconds, keydict, roledict):
     # Is 'expiration_seconds' properly formatted?
     # Raise 'tuf.FormatError' if not.
     LENGTH_SCHEMA.check_match(expiration_seconds)
     
     result = {'_type' : 'Root'}
-    # TODO: set the expires time another way.
-    result['ts'] = format_time(time.time())
+    result['version'] = version
     result['expires'] = format_time(time.time() + expiration_seconds)
     result['keys'] = keydict
     result['roles'] = roledict
@@ -473,9 +475,9 @@ class RootFile(MetaFile):
 
 
 class ReleaseFile(MetaFile):
-  def __init__(self, timestamp, expires, filedict):
+  def __init__(self, version, expires, filedict):
     self.info = {}
-    self.info['ts'] = timestamp
+    self.info['version'] = version
     self.info['expires'] = expires
     self.info['meta'] = filedict
 
@@ -483,22 +485,21 @@ class ReleaseFile(MetaFile):
   @staticmethod
   def from_metadata(object):
     # Is 'object' a Release metadata file?
-    # Raise tuf.FormatError if not.
+    # Raise 'tuf.FormatError' if not.
     RELEASE_SCHEMA.check_match(object)
     
-    timestamp = parse_time(object['ts'])
+    version = object['version']
     expires = parse_time(object['expires'])
     filedict = object['meta']
     
-    return ReleaseFile(timestamp, expires, filedict)
+    return ReleaseFile(version, expires, filedict)
 
 
   @staticmethod
-  def make_metadata(filedict):
+  def make_metadata(version, expiration_date, filedict):
     result = {'_type' : 'Release'}
-    # TODO: set the expires time another way.
-    result['ts'] = format_time(time.time())
-    result['expires'] = format_time(time.time() + 3600 * 24 * 365)
+    result['version'] = version 
+    result['expires'] = expiration_date
     result['meta'] = filedict
 
     # Is 'result' a Release metadata file?
@@ -512,13 +513,13 @@ class ReleaseFile(MetaFile):
 
 
 class TargetsFile(MetaFile):
-  def __init__(self, timestamp, expires, filedict=None, delegations=None):
+  def __init__(self, version, expires, filedict=None, delegations=None):
     if filedict is None:
       filedict = {}
     if delegations is None:
       delegations = {}
     self.info = {}
-    self.info['ts'] = timestamp
+    self.info['version'] = version
     self.info['expires'] = expires
     self.info['targets'] = filedict
     self.info['delegations'] = delegations
@@ -530,23 +531,22 @@ class TargetsFile(MetaFile):
     # Raise tuf.FormatError if not.
     TARGETS_SCHEMA.check_match(object)
     
-    timestamp = parse_time(object['ts'])
+    version = object['version']
     expires = parse_time(object['expires'])
     filedict = object.get('targets')
     delegations = object.get('delegations')
     
-    return TargetsFile(timestamp, expires, filedict, delegations)
+    return TargetsFile(version, expires, filedict, delegations)
 
 
   @staticmethod
-  def make_metadata(filedict=None, delegations=None):
+  def make_metadata(version, expiration_date, filedict=None, delegations=None):
     if filedict is None and delegations is None:
       raise tuf.Error('We don\'t allow completely empty targets metadata.')
 
     result = {'_type' : 'Targets'}
-    # TODO: set the expires time another way.
-    result['ts'] = format_time(time.time())
-    result['expires'] = format_time(time.time() + 3600 * 24 * 365)
+    result['version'] = version
+    result['expires'] = expiration_date
     if filedict is not None:
       result['targets'] = filedict
     if delegations is not None:
@@ -563,9 +563,9 @@ class TargetsFile(MetaFile):
 
 
 class MirrorsFile(MetaFile):
-  def __init__(self, timestamp, expires):
+  def __init__(self, version, expires):
     self.info = {}
-    self.info['ts'] = timestamp
+    self.info['version'] = version
     self.info['expires'] = expires
 
 
@@ -606,16 +606,16 @@ ROLE_CLASSES_BY_TYPE = {
 def format_time(timestamp):
   """
   <Purpose>
-    Encode 'timestamp' in YYYY-MM-DD HH:MM:SS format.
+    Encode 'timestamp' in 'YYYY-MM-DD HH:MM:SS UTC' format.
     'timestamp' is a Unix timestamp value.  For example, it is the time
     format returned by calendar.timegm(). 
 
     >>> format_time(499137720)
-    '1985-10-26 01:22:00'
+    '1985-10-26 01:22:00 UTC'
 
   <Arguments>
     timestamp:
-      The time to format.
+      The time to format.  This is a Unix timestamp.
 
   <Exceptions>
     tuf.Error, if 'timestamp' is invalid.
@@ -624,12 +624,16 @@ def format_time(timestamp):
     None.
 
   <Returns>
-    A string in 'YYYY-MM-DD HH:MM:SS' format.
+    A string in 'YYYY-MM-DD HH:MM:SS UTC' format.
 
   """
    
   try:
-    return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(timestamp))
+    # Convert the timestamp to 'yyyy-mm-dd HH:MM:SS' format.
+    formatted_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(timestamp))
+    
+    # Attach 'UTC' to the formatted time string prior to returning.  
+    return formatted_time+' UTC' 
   except (ValueError, TypeError):
     raise tuf.FormatError('Invalid argument value')
 
@@ -639,11 +643,11 @@ def format_time(timestamp):
 def parse_time(string):
   """
   <Purpose>
-    Parse 'string' in YYYY-MM-DD HH:MM:SS format.
+    Parse 'string', in 'YYYY-MM-DD HH:MM:SS UTC' format, to a Unix timestamp.
 
   <Arguments>
     string:
-      A string representing the time (e.g., '1985-10-26 01:20:00').
+      A string representing the time (e.g., '1985-10-26 01:20:00 UTC').
 
   <Exceptions>
     tuf.FormatError, if parsing 'string' fails.
@@ -659,11 +663,14 @@ def parse_time(string):
   # Is 'string' properly formatted?
   # Raise 'tuf.FormatError' if there is a mismatch.
   TIME_SCHEMA.check_match(string)
-  
+ 
+  # Strip the ' UTC' attached to the string.  The string time, minus the ' UTC',
+  # is the time format expected by the time functions called below.
+  string = string[0:string.rfind(' UTC')]
   try:
     return calendar.timegm(time.strptime(string, '%Y-%m-%d %H:%M:%S'))
   except ValueError:
-    raise tuf.FormatError('Malformed time '+repr(string))
+    raise tuf.FormatError('Malformed time: '+repr(string))
 
 
 
