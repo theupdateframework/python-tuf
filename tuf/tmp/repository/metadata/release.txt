@@ -1,0 +1,58 @@
+{
+ "signatures": [
+  {
+   "keyid": "9a0933bdae0a2c387f086ecd2d79d8e59d7bce66aa21bf1de9b5069c30369dc9", 
+   "method": "evp", 
+   "sig": "adb041550a26327056b17409c59c2294930bcee1dc88008a9b458d828da673e2da4ae3c40257dfa51a25cd2cd23189fd1753546fd441879f275e515b433919e0403478bc2a7b7d9e455283f742fe5d059097be55eb2d705123194f31b13cb7d2a96421e5b7fb09df2f0a5d4245676b71c4630fd20ee29f962b3d327eb3362cd5e2f104b3a036d9c305817df955e19c49f3878cf3e65915c8a542adfd057f62522c1eca75cba513c81adb14994152934ecb4de1fb707d1aca4cc0f2b5ecb09e6645cb6f27f0769c8aeeff7f5728a910af9d310737c17e6b1cd611b07d70ee80de1457b13f54102ec5c58fdcf75470fe4db41c18f93f18a92f9929b8a9693e6e96b6231fc63705f47e05e079259e1eff17234060870685868da555d0bb05546f26d77ff7f091c3bd1a3e77633f2f5505597f8126a2130cacaee9a119c2915b48a0b08ff2152495462119b6a4ca05d302629bb7f7da60346a8cdd12f2820a00af6d1f3debffaf5052c2d31afa9c3fce3f82dbd139fcd0cd5062bede2c77c5e19407"
+  }
+ ], 
+ "signed": {
+  "_type": "Release", 
+  "expires": "2014-08-01 16:19:08 UTC", 
+  "meta": {
+   "root.txt": {
+    "hashes": {
+     "sha256": "2e496d43eb877fc725dd3bd616da0c1e018057982d3c8acf8906a4104680feb1"
+    }, 
+    "length": 4793
+   }, 
+   "targets.txt": {
+    "hashes": {
+     "sha256": "c5cbeeaaa617fa9ecf282ed4ed3051ecba2d8f9535f148e14103c6d6ed6bfd39"
+    }, 
+    "length": 2260
+   }, 
+   "targets/packages.txt": {
+    "hashes": {
+     "sha256": "324aff11e6488e3619f8a291dc94f82faf60ab00ce67443ba32997bd0d1ad0cb"
+    }, 
+    "length": 2325
+   }, 
+   "targets/packages/A.txt": {
+    "hashes": {
+     "sha256": "0af576b49df40cc310ba314a82dc264202ec74d4238eb526d85230aacf9d2282"
+    }, 
+    "length": 2123
+   }, 
+   "targets/packages/A/Alice.txt": {
+    "hashes": {
+     "sha256": "49d0adb568d9323161f987087894df88cc0eb45ad2e4b7972b017915899226af"
+    }, 
+    "length": 1377
+   }, 
+   "targets/packages/B.txt": {
+    "hashes": {
+     "sha256": "e3618668fe88e9fa99cb305e24d8c78ed3083270bb3de8bbc42dbf4234f2e894"
+    }, 
+    "length": 2119
+   }, 
+   "targets/packages/B/Bob.txt": {
+    "hashes": {
+     "sha256": "3fb4ac73a78e66408b6192e28aa3b02e8180793a64fd99e49842b4a4ad45b7e9"
+    }, 
+    "length": 1369
+   }
+  }, 
+  "version": 2
+ }
+}
