@@ -565,15 +565,12 @@
            "name": ROLE,
            "keyids" : [ KEYID, ... ] ,
            "threshold" : THRESHOLD,
-           "paths" : [ PATHPATTERN, ... ],
-           "path_hash_prefix" : HEX_STRING
+           ("paths" : [ PATHPATTERN, ... ] | "path_hash_prefix" : HEX_DIGEST)
        }, ... ]
      }
 
-   In order to discuss target paths, a role must specify either one of the
-   "paths" or "path_hash_prefix" attribute, each of which we discuss next. In
-   case the client specifies both attributes, "path_hash_prefix" is to be read
-   from or written to while "paths" should be ignored.
+   In order to discuss target paths, a role MUST specify only one of the
+   "paths" or "path_hash_prefix" attributes, each of which we discuss next.
 
    The "paths" list describes paths that the role is trusted to provide.
    Clients MUST check that a target is in one of the trusted paths of all roles

@@ -875,12 +875,17 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
     role_meta['name'] = name
 
   # According to the specification, the 'paths' and 'path_hash_prefix' must be
-  # mutually exclusive. In case both are specified, 'paths' is ignored while
-  # 'path_hash_prefix' is recorded.
-  if path_hash_prefix is not None:
-    role_meta['path_hash_prefix'] = path_hash_prefix
-  elif paths is not None:
+  # mutually exclusive. However, at the time of writing we do not always ensure
+  # that this is the case with the schema checks (see #83). Therefore, we must
+  # do it for ourselves.
+
+  if paths is not None and path_hash_prefix is not None:
+    raise tuf.FormatError('Both "paths" and "path_hash_prefix" are specified!')
+
+  if paths is not None:
     role_meta['paths'] = paths
+  elif path_hash_prefix is not None:
+    role_meta['path_hash_prefix'] = path_hash_prefix
 
   # Does 'role_meta' have the correct type?
   # This check ensures 'role_meta' conforms to
