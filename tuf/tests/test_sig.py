@@ -391,5 +391,5 @@ class TestSig(unittest.TestCase):
 
 
 # Run unit test.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSig)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

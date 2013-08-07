@@ -43,18 +43,23 @@ class IndefiniteFreezeAttackAlert(Exception):
 
 
 EXPIRATION = 1  # second(s)
-
+version = 1
 
 
 def _remake_timestamp(metadata_dir, keyids):
   """Create timestamp metadata object.  Modify expiration date.  Sign and
   write the metadata.
   """
+  
+  global version
+  version = version+1
+  expiration_date = tuf.formats.format_time(time.time()+EXPIRATION)
+  
   release_filepath = os.path.join(metadata_dir, 'release.txt')
   timestamp_filepath = os.path.join(metadata_dir, 'timestamp.txt')
-  timestamp_metadata = signerlib.generate_timestamp_metadata(release_filepath)
-  timestamp_metadata['signed']['expires'] = \
-    tuf.formats.format_time(time.time() + EXPIRATION)
+  timestamp_metadata = signerlib.generate_timestamp_metadata(release_filepath,
+                                                             version,
+                                                             expiration_date)
   signable = \
     signerlib.sign_metadata(timestamp_metadata, keyids, timestamp_filepath)
   signerlib.write_metadata_file(signable, timestamp_filepath)
