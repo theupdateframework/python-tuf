@@ -165,5 +165,5 @@ class TestPushtoolslib(unittest.TestCase):
 
 
 # Run the unittests
-suite = unittest.TestLoader().loadTestsFromTestCase(TestPushtoolslib)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

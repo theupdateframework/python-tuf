@@ -52,6 +52,7 @@
 import os
 import optparse
 import getpass
+import time
 import sys
 import logging
 import errno
@@ -103,7 +104,6 @@ def _get_password(prompt='Password: ', confirm=False):
     else:
       message = 'Mismatch; try again.'
       logger.info(message)
-      print(message)
 
 
 
@@ -211,15 +211,13 @@ def _list_keyids(keystore_directory, metadata_directory):
       if keyid in keyids:
         keyids_dict[keyid].append(targets_role)
   
-  # Print the keyids without the '.key' extension and the roles
+  # Log the keyids without the '.key' extension and the roles
   # associated with them.
   message = 'Listing the keyids in '+repr(keystore_directory)
   logger.info(message)
-  print(message)
   for keyid in keyids_dict:
     message = keyid+' : '+str(keyids_dict[keyid])
     logger.info(message)
-    print(message)
 
 
 
@@ -262,7 +260,6 @@ def _get_keyids(keystore_directory):
     if keyid not in loaded_keyid:
       message = 'Could not load keyid: '+keyid
       logger.error(message)
-      print(message)
       continue
 
     # Append 'keyid' to the loaded list of keyids.
@@ -314,7 +311,6 @@ def _get_all_config_keyids(config_filepath, keystore_directory):
           if not loaded_key or keyid not in loaded_key:
             message = 'Could not load keyid: '+keyid
             logger.error(message)
-            print(message)
             continue
           loaded_keyids[key].append(keyid)
           break
@@ -363,7 +359,6 @@ def _get_role_config_keyids(config_filepath, keystore_directory, role):
           if not loaded_key or keyid not in loaded_key:
             message = 'Could not load keyid: '+keyid
             logger.error(message)
-            print(message)
             continue
           role_keyids.append(keyid)
           break
@@ -401,6 +396,69 @@ def _sign_and_write_metadata(metadata, keyids, filename):
   # Write the 'signable' object to 'filename'.  The 'filename' file is
   # the final metadata file, such as 'root.txt' and 'targets.txt'.
   tuf.repo.signerlib.write_metadata_file(signable, filename)
+
+
+
+
+
+def _get_metadata_version(metadata_filename):
+  """
+    If 'metadata_filename' exists, load it and extract the current version.
+    This version number is incremented by one prior to returning.  If
+    'metadata_filename' does not exist, return a version value of 1.
+    Raise 'tuf.RepositoryError' if 'metadata_filename' cannot be read or
+    validated.
+  
+  """
+  
+  # If 'metadata_filename' does not exist on the repository, this means
+  # it will be newly created and thus version 1 of the file.
+  if not os.path.exists(metadata_filename):
+    return 1
+
+  # Open 'metadata_filename', extract the version number, and return it
+  # incremented by 1.  A metadata's version is used to determine newer metadata
+  # from older.  The client should only accept newer metadata.
+  try:
+    signable = tuf.repo.signerlib.read_metadata_file(metadata_filename)
+    tuf.formats.check_signable_object_format(signable)
+  except (tuf.FormatError, tuf.Error), e:
+    message = repr(metadata_filename)+' could not be opened or is invalid.'+\
+      '  Backup or replace it and try again.'
+    raise tuf.RepositoryError(message)
+  current_version = signable['signed']['version']
+
+  return current_version+1
+
+
+
+
+
+def _get_metadata_expiration():
+  """
+    Prompt the user for the expiration date of the metadata file.
+    If the entered date is valid, it is returned unmodified.
+
+    <Exceptions>
+      tuf.RepositoryError, if the entered expiration date is invalid.
+  
+  """
+
+  message = '\nCurrent time: '+tuf.formats.format_time(time.time())+'.\n'+\
+    'Enter the expiration date, in UTC, of the metadata file (yyyy-mm-dd HH:MM:SS): '
+    
+  try:
+    input_date = _prompt(message, str)
+    input_date = input_date+' UTC'
+    expiration_date = tuf.formats.parse_time(input_date)
+  except (tuf.FormatError, ValueError), e:
+    raise tuf.RepositoryError('Invalid date entered.')
+  
+  if expiration_date < time.time():
+    message = 'The expiration date must occur after the current date.'
+    raise tuf.RepositoryError(message)
+  
+  return input_date
 
 
 
@@ -524,7 +582,7 @@ def generate_rsa_key(keystore_directory):
   try:
     rsa_key = save_rsa_key(keystore_directory=keystore_directory,
                  password=password, bits=rsa_key_bits)
-    print('Generated a new key: '+rsa_key['keyid'])
+    logger.info('Generated a new key: '+rsa_key['keyid'])
   except (tuf.FormatError, tuf.CryptoError), e:
     message = 'The RSA key could not be generated. '+str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -639,7 +697,6 @@ def dump_key(keystore_directory):
   message = '*WARNING* Printing the private key reveals' \
         ' sensitive information *WARNING*'
   logger.warning(message)
-  print(message)
   input = _prompt(prompt, str)
   if input.lower() == 'private':
     show_private = True
@@ -653,7 +710,7 @@ def dump_key(keystore_directory):
     raise tuf.RepositoryError(message)
 
   # Print the contents of the key metadata.
-  print(json.dumps(key_metadata, indent=2, sort_keys=True))
+  logger.info(json.dumps(key_metadata, indent=2, sort_keys=True))
 
 
 
@@ -670,7 +727,7 @@ def make_root_metadata(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, 
+    tuf.RepositoryError, if required directories cannot be validated, 
       required keys cannot be loaded, or a properly formatted root
       metadata file cannot be created.
 
@@ -692,6 +749,13 @@ def make_root_metadata(keystore_directory):
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
   filenames = tuf.repo.signerlib.get_metadata_filenames(metadata_directory)
+  root_filename = filenames['root']
+
+  # If the metadata file currently exists, extract the version number and
+  # increment it by 1.  Otherwise, set the version to 1.  Incrementing
+  # the version number ensures the newly created metadata file is considered
+  # newer.
+  version = _get_metadata_version(root_filename)
 
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
@@ -708,7 +772,7 @@ def make_root_metadata(keystore_directory):
   # Generate the root metadata and write it to 'root.txt'.
   try:
     tuf.repo.signerlib.build_root_file(config_filepath, root_keyids,
-                                       metadata_directory)
+                                       metadata_directory, version)
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -730,7 +794,7 @@ def make_targets_metadata(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, 
+    tuf.RepositoryError, if required directories cannot be validated, 
       required keys cannot be loaded, or a properly formatted targets
       metadata file cannot be created.
 
@@ -745,12 +809,13 @@ def make_targets_metadata(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
-  # Retrieve the target files.
-  prompt_targets = '\nEnter the directory containing the target files: '
-  target_directory = _prompt(prompt_targets, str)
-
-  # Verify 'target_directory'.
-  target_directory = _check_directory(target_directory)
+  # Retrieve the target files.  The target paths entered by the user should be
+  # separated by white space.  'targets' is a list of the target path strings
+  # extracted from user input.
+  prompt_targets = '\nInput may be a directory, directories, or any '+\
+    'number of file paths.\nEnter the target files: '
+  targets_input = _prompt(prompt_targets, str)
+  targets = targets_input.split()
 
   # Retrieve the metadata directory and the 'targets' filename.
   try:
@@ -758,10 +823,23 @@ def make_targets_metadata(keystore_directory):
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
+  filenames = tuf.repo.signerlib.get_metadata_filenames(metadata_directory)
+  targets_filename = filenames['targets']
+
+  # If the metadata file currently exists, extract the version number and
+  # increment it by 1.  Otherwise, set the version to 1.  Incrementing
+  # the version number ensures the newly created metadata file is considered
+  # newer.
+  version = _get_metadata_version(targets_filename)
+
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
+
 
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
-
   config_filepath = os.path.abspath(config_filepath)
 
   try:
@@ -774,8 +852,9 @@ def make_targets_metadata(keystore_directory):
 
   try:
     # Create, sign, and write the "targets.txt" file.
-    tuf.repo.signerlib.build_targets_file(target_directory, targets_keyids,
-                                       metadata_directory)
+    tuf.repo.signerlib.build_targets_file(targets, targets_keyids,
+                                       metadata_directory, version,
+                                       expiration_date)
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -797,7 +876,7 @@ def make_release_metadata(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, 
+    tuf.RepositoryError, if required directories cannot be validated, 
       required keys cannot be loaded, or a properly formatted release
       metadata file cannot be created.
 
@@ -821,6 +900,17 @@ def make_release_metadata(keystore_directory):
   filenames = tuf.repo.signerlib.get_metadata_filenames(metadata_directory)
   release_filename = filenames['release']
 
+  # If the metadata file currently exists, extract the version number and
+  # increment it by 1.  Otherwise, set the version to 1.  Incrementing
+  # the version number ensures the newly created metadata file is considered
+  # newer.
+  version = _get_metadata_version(release_filename)
+
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
+
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
   config_filepath = os.path.abspath(config_filepath)
@@ -830,7 +920,8 @@ def make_release_metadata(keystore_directory):
     release_keyids = _get_role_config_keyids(config_filepath,
                                               keystore_directory, 'release')
     # Generate the release metadata and write it to 'release.txt'
-    tuf.repo.signerlib.build_release_file(release_keyids, metadata_directory)
+    tuf.repo.signerlib.build_release_file(release_keyids, metadata_directory,
+                                          version, expiration_date)
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -850,7 +941,7 @@ def make_timestamp_metadata(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, 
+    tuf.RepositoryError, if required directories cannot be validated, 
       required keys cannot be loaded, or a properly formatted timestamp
       metadata file cannot be created.
 
@@ -875,6 +966,17 @@ def make_timestamp_metadata(keystore_directory):
   filenames = tuf.repo.signerlib.get_metadata_filenames(metadata_directory)
   timestamp_filename = filenames['timestamp']
 
+  # If the metadata file currently exists, extract the version number and
+  # increment it by 1.  Otherwise, set the version to 1.  Incrementing
+  # the version number ensures the newly created metadata file is considered
+  # newer.
+  version = _get_metadata_version(timestamp_filename)
+
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
+
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
   config_filepath = os.path.abspath(config_filepath)
@@ -884,8 +986,8 @@ def make_timestamp_metadata(keystore_directory):
     timestamp_keyids = _get_role_config_keyids(config_filepath,
                                                keystore_directory, 'timestamp')
     # Generate the timestamp metadata and write it to 'timestamp.txt'
-    tuf.repo.signerlib.build_timestamp_file(timestamp_keyids,
-                                            metadata_directory)
+    tuf.repo.signerlib.build_timestamp_file(timestamp_keyids, metadata_directory,
+                                            version, expiration_date)
   except (tuf.FormatError, tuf.Error), e:
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -905,7 +1007,7 @@ def sign_metadata_file(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, 
+    tuf.RepositoryError, if required directories cannot be validated, 
       required keys cannot be loaded, or the specified metadata file
       is invalid.
 
@@ -935,7 +1037,6 @@ def sign_metadata_file(keystore_directory):
   # Retrieve the keyids of the signing keys from the user.
   message = 'The keyids that will sign the metadata file must be loaded.'
   logger.info(message)
-  print(message)
   loaded_keyids = _get_keyids(keystore_directory)
 
   if len(loaded_keyids) == 0:
@@ -972,7 +1073,7 @@ def make_delegation(keystore_directory):
       in '.key').
 
   <Exceptions>
-    tuf.RepositoryError, if required directories cannot be valided, the
+    tuf.RepositoryError, if required directories cannot be validated, the
       parent role cannot be loaded, the delegated role metadata file
       cannot be created, or the parent role metadata file cannot be updated. 
 
@@ -995,37 +1096,32 @@ def make_delegation(keystore_directory):
     message = str(e)+'\n'
     raise tuf.RepositoryError(message)
 
-  # Get the delegated role's target directory, which should be located within
-  # the repository's targets directory.  We need this directory to generate the
-  # delegated role's target paths.
-  prompt = '\nThe directory entered below should be located within the '+\
-    'repository\'s targets directory.\nEnter the directory containing the '+\
-    'delegated role\'s target files: '
-  delegated_targets_directory = _prompt(prompt, str)
+  # Get the delegated role's target paths, which should be located within
+  # the repository's targets directory.  We need these directory/file paths to
+  # generate the delegated role's metadata file.
+  prompt = '\nThe paths entered below should be located within the '+\
+    'repository\'s targets directory.\nEnter the directory, directories, or '+\
+    'any number of file paths containing the delegated role\'s target files: '
+  delegated_targets_input = _prompt(prompt, str)
+  delegated_targets_input = delegated_targets_input.split()
 
-  # Verify 'delegated_targets_directory'.
-  delegated_targets_directory = _check_directory(delegated_targets_directory)
-
-  # Recursively walk the delegated targets directory?
-  recursive_walk = None
-  while recursive_walk is None:
-    recursive_walk = \
-      _prompt("Recursively walk the given directory? (Y)es/(N)o: ", str)
-    if recursive_walk == 'Y':
-      recursive_walk = True
-    elif recursive_walk == 'N':
-      recursive_walk = False
-    else:
-      print("Sorry, I could not understand that; please try again.")
+  # Verify the format of the delegated targets specified by the user.
+  # The paths in 'delegated_targets_input' will be verified in
+  # in the _make_delegated_metadata() call.
+  try:
+    tuf.formats.PATHS_SCHEMA.check_match(delegated_targets_input)
+  except (tuf.FormatError, tuf.Error), e:
+    message = str(e)+'\n'
+    raise tuf.RepositoryError(message)
 
   # Get all the target roles and their respective keyids.
   # These keyids will let the user know which roles are currently known.
-  # signerlib.get_target_keyids() returns a dictionary that looks something
-  # like this: {'targets': [keyid1, ...], 'targets/role1': [keyid1, ...] ...}
+  # signerlib.get_target_keyids() returns a dictionary that has the form:
+  # {'targets': [keyid1, ...], 'targets/role1': [keyid1, ...] ...}
   targets_roles = tuf.repo.signerlib.get_target_keyids(metadata_directory)
 
   # Load the parent role specified by the user.  The parent role must be loaded
-  # so its delegation field can be updated.
+  # so its 'delegations' field can be updated.
   parent_role, parent_keyids = _load_parent_role(metadata_directory,
                                                  keystore_directory,
                                                  targets_roles)
@@ -1035,27 +1131,11 @@ def make_delegation(keystore_directory):
   delegated_role, delegated_keyids = _get_delegated_role(keystore_directory,
                                                          metadata_directory)
 
-  # Retrieve the file paths for the delegated targets.
-  delegated_paths =\
-    tuf.repo.signerlib.get_targets(delegated_targets_directory,
-                                   recursive_walk=recursive_walk,
-                                   followlinks=True)
-
-  # The target paths need to be relative to the repository's targets
-  # directory (e.g., 'targets/role1/target_file.gif').
-  # [len(repository_directory)+1:] strips the repository path, including
-  # its trailing path separator.
-  repository_directory, junk = os.path.split(metadata_directory)
-
-  for index in xrange(len(delegated_paths)):
-    full_target_path = delegated_paths[index]
-    assert full_target_path.startswith(repository_directory)
-    relative_target_path = full_target_path[len(repository_directory)+1:]
-    delegated_paths[index] = relative_target_path
-
   # Create, sign, and write the delegated role's metadata file.
-  _make_delegated_metadata(metadata_directory, delegated_paths, parent_role,
-                           delegated_role, delegated_keyids)
+  delegated_paths = _make_delegated_metadata(metadata_directory,
+                                             delegated_targets_input,
+                                             parent_role, delegated_role,
+                                             delegated_keyids)
 
   # Update the parent role's metadata file.  The parent role's delegation
   # field must be updated with the newly created delegated role.
@@ -1088,7 +1168,6 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
     if parent_role not in targets_roles:
       message = 'Invalid role name entered'
       logger.info(message)
-      print(message)
       parent_role = None
       continue
     else:
@@ -1110,7 +1189,6 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
       if keyid not in loaded_keyid:
         message = 'The keyid could not be loaded.'
         logger.info(message)
-        print(message)
         continue
       parent_keyids.append(loaded_keyid[0])
       break
@@ -1140,7 +1218,6 @@ def _get_delegated_role(keystore_directory, metadata_directory):
   # Retrieve the delegated role\'s keyids from the user.
   message = 'The keyid of the delegated role must be loaded.'
   logger.info(message)
-  print(message)
   delegated_keyids = _get_keyids(keystore_directory)
 
   # Ensure at least one delegated key was loaded.
@@ -1154,21 +1231,58 @@ def _get_delegated_role(keystore_directory, metadata_directory):
 
 
 
-def _make_delegated_metadata(metadata_directory, delegated_paths, parent_role,
-                             delegated_role, delegated_keyids):
+def _make_delegated_metadata(metadata_directory, delegated_targets,
+                             parent_role, delegated_role, delegated_keyids):
   """
     Create, sign, and write the metadata file for the newly added delegated
-    role.  Determine the delegated paths for the target files in
-    'delegated_paths' and the other information needed
-    to generate the targets metadata file for 'delegated_role'.  Return
-    the delegated paths to the caller.
+    role.  Determine the target files from the paths in 'delegated_targets'
+    and the other information needed to generate the targets metadata file for 
+    delegated_role'.  Return the delegated paths to the caller.
 
   """
 
-  message = 'There are '+str(len(delegated_paths))+' target paths for '+\
-            str(delegated_role)
+  repository_directory, junk = os.path.split(metadata_directory)
+  
+  # Retrieve the file paths for the delegated targets.  Keep track of the valid
+  # paths in 'delegated_targets', which will be stored in the 'paths' entry
+  # of the parent's metadata.  Directories are preserved in the returned
+  # 'delegated_paths' list.
+  delegated_paths = []
+  delegated_filepaths = []
+  
+  # The 'delegated_paths' list contains either file paths or the paths of
+  # directories.  A child role may list any target(s) under a directory or sub-
+  # directory.  Replicate directory wildcards using os.path.commonprefix()
+  # instead of regular expressions, which may be abused by input
+  # carefully-crafted for this purpose.
+  for path in delegated_targets:
+    path = os.path.abspath(path)
+    relative_path = path[len(repository_directory)+1:]
+    if os.path.isfile(path):
+      # The target paths need to be relative to the repository's targets
+      # directory (e.g., 'targets/role1/target_file.gif').
+      # [len(repository_directory)+1:] strips the repository path, including
+      # its trailing path separator.
+      delegated_filepaths.append(relative_path)
+      delegated_paths.append(relative_path)
+    # A directory implies the child role may list any targets under this
+    # directory.
+    elif os.path.isdir(path):
+      for entry in os.listdir(path):
+        filepath = os.path.join(path, entry)
+        if os.path.isfile(filepath):
+          relative_filepath = os.path.join(relative_path, entry)
+          delegated_filepaths.append(relative_filepath)
+      for delegated_path in delegated_paths:
+        if os.path.commonprefix([relative_path, delegated_path]) == delegated_path:
+          break
+      # Add the relative path of 'path' to 'delegated_paths'.  'relative_path'
+      # has not been added to 'delegated_paths', nor a parent directory of it.
+      else: 
+        delegated_paths.append(relative_path+os.sep)
+  message = 'There are '+repr(len(delegated_filepaths))+' target paths for '+\
+    repr(delegated_role)
   logger.info(message)
-  print(message)
 
   # Create, sign, and write the delegated role's metadata file.
   # The first time a parent role creates a delegation, a directory
@@ -1192,14 +1306,22 @@ def _make_delegated_metadata(metadata_directory, delegated_paths, parent_role,
     else:
       raise
 
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
+ 
+  # Sign and write the delegated metadata file.
   delegated_role_filename = delegated_role+'.txt'
   metadata_filename = os.path.join(parent_directory, delegated_role_filename)
   repository_directory, junk = os.path.split(metadata_directory)
   generate_metadata = tuf.repo.signerlib.generate_targets_metadata
-  delegated_metadata = generate_metadata(repository_directory, delegated_paths)
+  delegated_metadata = generate_metadata(repository_directory, delegated_filepaths,
+                                         1, expiration_date)
   _sign_and_write_metadata(delegated_metadata, delegated_keyids,
                            metadata_filename)
 
+  return delegated_paths
 
 
 
@@ -1264,6 +1386,10 @@ def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids
 
   # Update the larger metadata structure.
   parent_metadata['delegations'] = delegations
+
+  # Increment the parent role's version.
+  version = parent_metadata['version']
+  parent_metadata['version'] = version+1 
 
   # Try to write the modified targets file.
   parent_signable = tuf.formats.make_signable(parent_metadata)

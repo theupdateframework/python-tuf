@@ -25,6 +25,7 @@ import os
 import sys
 import urllib
 import tempfile
+import time
 
 import util_test_tools
 import tuf.repo.keystore
@@ -36,6 +37,7 @@ from tuf.interposition import urllib_tuf
 # Disable logging.
 util_test_tools.disable_logging()
 
+version = 1
 
 class ExtraneousDependenciesAttackAlert(Exception):
   pass
@@ -77,7 +79,8 @@ def test_extraneous_dependencies_attack():
 
 
     def _make_delegation(rolename):
-
+      expiration_date = tuf.formats.format_time(time.time()+86400)
+      expiration_date = expiration_date[0:expiration_date.rfind(' UTC')]
       # Indicate which file client downloads.
       rel_filepath = os.path.relpath(roles[rolename]['filepath'], reg_repo)
       roles[rolename]['target_path'] = os.path.join(targets_dir, rel_filepath)
@@ -96,7 +99,7 @@ def test_extraneous_dependencies_attack():
       util_test_tools.create_delegation(tuf_repo, 
                                         roles[rolename]['targets_dir'], 
                                         roles[rolename]['keyid'], password, 
-                                        'targets', rolename)
+                                        'targets', rolename, expiration_date)
 
       # Update TUF repository.
       # util_test_tools.make_targets_meta(root_repo)
@@ -122,6 +125,9 @@ def test_extraneous_dependencies_attack():
     # The attacks.
     
     def _write_rogue_metadata():
+      global version
+      version = version+1
+      expiration_date = tuf.formats.format_time(time.time()+86400)
       # Load the keystore before rebuilding the metadata.
       tuf.repo.keystore.load_keystore_from_keyfiles(keystore_dir,
                                                   roles['role1']['keyid'],
@@ -131,9 +137,9 @@ def test_extraneous_dependencies_attack():
       signerlib.build_delegated_role_file(roles['role2']['targets_dir'], 
                                           roles['role1']['keyid'], metadata_dir,
                                           roles['role1']['metadata_dir'],
-                                          'role1.txt')
+                                          'role1.txt', version, expiration_date)
 
-     # Update release and timestamp metadata.
+      # Update release and timestamp metadata.
       util_test_tools.make_release_meta(root_repo)
       util_test_tools.make_timestamp_meta(root_repo)
 
