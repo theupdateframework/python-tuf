@@ -518,7 +518,7 @@ def load_json_file(filepath):
   <Exceptions>
     tuf.FormatError: If 'filepath' is improperly formatted.
 
-    tuf.Error: If 'filepath' could not be opened.
+    IOError in case of runtime IO exceptions.
 
   <Side Effects>
     None.
@@ -531,13 +531,18 @@ def load_json_file(filepath):
   # Making sure that the format of 'filepath' is a path string.
   # tuf.FormatError is raised on incorrect format.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
-  
-  try:
+
+  # The file is mostly likely gzipped.
+  if filepath.endswith('.gz'):
+    logger.debug('gzip.open('+str(filepath)+')')
+    fileobject = gzip.open(filepath)
+  else:
+    logger.debug('open('+str(filepath)+')')
     fileobject = open(filepath)
-  except IOError, err:
-    raise tuf.Error(err)
 
   try:
     return json.load(fileobject)
   finally:
     fileobject.close()
+
+
