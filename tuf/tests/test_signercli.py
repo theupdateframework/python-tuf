@@ -39,7 +39,9 @@
 import os
 import time
 import logging
+import unittest
 
+import tuf
 import tuf.formats
 import tuf.util
 import tuf.repo.keystore as keystore
