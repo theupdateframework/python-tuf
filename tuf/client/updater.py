@@ -631,7 +631,7 @@ class Updater(object):
     # Construct the metadata filename as expected by the download/mirror modules.
     metadata_filename = metadata_role + '.txt'
    
-    # The 'release' metadata file may be compressed.  Add the appropriate
+    # The 'release' or Targets metadata may be compressed.  Add the appropriate
     # extension to 'metadata_filename'. 
     if compression == 'gzip':
       metadata_filename = metadata_filename + '.gz'
@@ -708,6 +708,21 @@ class Updater(object):
       message = 'Unable to load '+repr(metadata_filename)+' after update: '+str(e)
       raise tuf.RepositoryError(message)
 
+    # Is 'metadata_signable' newer than the currently installed
+    # version?
+    current_metadata_role = self.metadata['current'].get(metadata_role)
+    
+    # Compare metadata version numbers.  Ensure there is a current
+    # version of the metadata role to be updated.
+    if current_metadata_role is not None:
+      current_version = current_metadata_role['version'] 
+      downloaded_version = metadata_signable['signed']['version']
+      if downloaded_version < current_version:
+        message = repr(mirror_url)+' is older than the version currently '+\
+          'installed.\nDownloaded version: '+repr(downloaded_version)+'\n'+\
+          'Current version: '+repr(current_version)
+        raise tuf.RepositoryError(message)
+      
     # Reject the metadata if any specified targets are not allowed.
     if metadata_signable['signed']['_type'] == 'Targets':
       self._ensure_all_targets_allowed(metadata_role, metadata_signable['signed'])
@@ -831,14 +846,30 @@ class Updater(object):
 
     logger.info('Metadata '+repr(metadata_filename)+' has changed.')
 
-    # There might be a compressed version of the 'release' metadata
-    # that may be downloaded.  Check the 'meta' field of
-    # 'referenced_metadata' to see if it is listed. 
+    # There might be a compressed version of 'release.txt' or Targets
+    # metadata available for download.  Check the 'meta' field of
+    # 'referenced_metadata' to see if it is listed when 'metadata_role'
+    # is 'release'.  Check the 'meta' field of 'release' when 'metadata_role'
+    # is Targets metadata.  The full rolename for delegated Targets metadata
+    # must begin with 'targets/'.  The Release role lists all the Targets
+    # metadata available on the repository, including any that may be in
+    # compressed form.
     compression = None
+    gzip_path = metadata_filename + '.gz'
     if metadata_role == 'release':
-      gzip_path = metadata_filename + '.gz'
       if gzip_path in self.metadata['current'][referenced_metadata]['meta']:
         compression = 'gzip'
+    # Check for available compressed versions of 'targets.txt' and delegated
+    # Targets, which also start with 'targets'.
+    elif metadata_role.startswith('targets'):
+      # For 'targets.txt' and delegated metadata, 'referenced_metata'
+      # should always be 'release'.  'release.txt' specifies all roles
+      # provided by a repository, including their file sizes and hashes.
+      if gzip_path in self.metadata['current'][referenced_metadata]['meta']:
+        compression = 'gzip'
+    else:
+      message = 'Compressed version of '+repr(metadata_filename)+' not available.'
+      logger.debug(message)
 
     try:
       self._update_metadata(metadata_role, fileinfo=new_fileinfo,
@@ -872,11 +903,17 @@ class Updater(object):
     """
     <Purpose>
       Ensure the delegated targets of 'metadata_role' are allowed; this is
-      determined by inspecting the delegations field of the parent role
+      determined by inspecting the 'delegations' field of the parent role
       of 'metadata_role'.  If a target specified by 'metadata_object'
-      is not found in the parent role's delegations field, raise an
-      exception.
+      is not found in the parent role's delegations field, raise an exception.
    
+      Targets allowed are either exlicitly listed under the 'paths' field, or
+      implicitly exist under a subdirectory of a parent directory listed
+      under 'paths'.  A parent role may delegate trust to all files under a 
+      particular directory, including files in subdirectories, by simply
+      listing the directory (e.g., 'packages/source/Django/', the equivalent
+      of 'packages/source/Django/*').
+
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
@@ -901,47 +938,54 @@ class Updater(object):
     
     """
 
-    MISSING_ROLE_MESSAGE = '{parent_role} has not delegated to ' \
-                           '{metadata_role}!'
-    UNDELEGATED_TARGETS_MESSAGE = 'Role {metadata_role} specifies targets ' \
-                                  '{undelegated_targets} which are not ' \
-                                  'allowed paths according to the ' \
-                                  'delegations set by {parent_role}.'
-
     # Return if 'metadata_role' is 'targets'.  'targets' is not
     # a delegated role.
     if metadata_role == 'targets':
       return
-    else:
-      # The targets of delegated roles are stored in the parent's
-      # metadata file.  Retrieve the parent role of 'metadata_role'
-      # to confirm 'metadata_role' contains valid targets.
-      parent_role = tuf.roledb.get_parent_rolename(metadata_role)
-
-      # Iterate through the targets of 'metadata_role' and confirm
-      # these targets with the paths listed in the parent role.
-      roles = self.metadata['current'][parent_role]['delegations']['roles']
-      role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
-
-      if role_index is None:
-        raise tuf.RepositoryError(MISSING_ROLE_MESSAGE.format(
-                                  parent_role=parent_role,
-                                  metadata_role=metadata_role))
-      else:
-        role = roles[role_index]
-
-        # Test for breach of delegation with set operations; asymptotically, this
-        # is faster than a linear scan, but at the expense of memory.
-        delegated_targets = set(role['paths'])
-        signed_targets = set(metadata_object['targets'].keys())
-        undelegated_targets = signed_targets - delegated_targets
-
-        if len(undelegated_targets) > 0:
-          raise tuf.RepositoryError(UNDELEGATED_TARGETS_MESSAGE.format(
-                                    metadata_role=metadata_role,
-                                    undelegated_targets=undelegated_targets,
-                                    parent_role=parent_role))
     
+    # The targets of delegated roles are stored in the parent's
+    # metadata file.  Retrieve the parent role of 'metadata_role'
+    # to confirm 'metadata_role' contains valid targets.
+    parent_role = tuf.roledb.get_parent_rolename(metadata_role)
+
+    # Iterate over the targets of 'metadata_role' and confirm they are trusted,
+    # or their root parent directory exists in the role delegated paths of the
+    # parent role.
+    roles = self.metadata['current'][parent_role]['delegations']['roles']
+    role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
+
+    # Ensure the delegated role exists prior to extracting trusted paths
+    # from the parent's 'paths'.
+    if role_index is not None:
+      role = roles[role_index] 
+      allowed_child_paths = role['paths']
+      actual_child_targets = metadata_object['targets'].keys()
+      
+      # Check that each delegated target is either explicitly listed or a parent
+      # directory is found under role['paths'], otherwise raise an exception.
+      # If the parent role explicitly lists target file paths in 'paths',
+      # this loop will run in O(n^2), the worst-case.  The repository
+      # maintainer will likely delegate entire directories, and opt for
+      # explicit file paths if the targets in a directory are delegated to 
+      # different roles/developers.
+      for child_target in actual_child_targets:
+        for allowed_child_path in allowed_child_paths:
+          prefix = os.path.commonprefix([child_target, allowed_child_path])
+          if prefix == allowed_child_path:
+            break
+        else: 
+          message = 'Role '+repr(metadata_role)+' specifies target '+\
+            repr(child_target)+' which is not an allowed path according '+\
+            'to the delegations set by '+repr(parent_role)+'.'
+          raise tuf.RepositoryError(message)
+    
+    # Raise an exception if the parent has not delegated to the specified
+    # 'metadata_role' child role.
+    else:
+      message = repr(parent_role)+' has not delegated to '+\
+        repr(metadata_role)+'.'
+      raise tuf.RepositoryError(message)
+          
 
 
 
@@ -1181,7 +1225,8 @@ class Updater(object):
     # to log the exact filename of the expired metadata.
     metadata_filename = metadata_role + '.txt'
     rolepath =  os.path.join(self.metadata_directory['current'],
-                             metadata_filename) 
+                             metadata_filename)
+    rolepath = os.path.abspath(rolepath)
     
     # Extract the expiration time.
     expires = self.metadata['current'][metadata_role]['expires']
@@ -1191,7 +1236,7 @@ class Updater(object):
     # convert it to seconds since the epoch, which is the time format
     # returned by time.time() (i.e., current time), before comparing.
     if tuf.formats.parse_time(expires) < time.time():
-      message = 'Metadata '+repr(rolepath)+' expired on '+expires+'.'
+      message = 'Metadata '+repr(rolepath)+' expired on '+expires+' UTC.'
       raise tuf.ExpiredMetadataError(message)
 
 
@@ -1472,9 +1517,12 @@ class Updater(object):
 
       Exception:
         In case of an unforeseen runtime error.
+
+      TODO: Update these exceptions once the final 'path_hash_prefix'
+      changes have been implemented.
    
     <Side Effects>
-      The metadata for updated delegated roles are download and stored.
+      The metadata for updated delegated roles are downloaded and stored.
     
     <Returns>
       The target information for 'target_filepath', conformant to
@@ -1486,8 +1534,13 @@ class Updater(object):
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
-    # Refresh the target metadata for all the delegated roles. 
-    self._refresh_targets_metadata(include_delegations=True)
+    # Ensure the client has the most up-to-date version of 'targets.txt'.
+    # Raise 'tuf.MetadataNotAvailableError' if the changed metadata
+    # cannot be successfully downloaded and 'tuf.RepositoryError' if the
+    # referenced metadata is missing.  Target methods such as this one
+    # are called after the top-level metadata have been refreshed (i.e.,
+    # updater.refresh()).
+    self._update_metadata_if_changed('targets')
 
     # The target is assumed to be missing until proven otherwise.
     target = None
@@ -1500,6 +1553,14 @@ class Updater(object):
       while len(role_names) > 0 and target is None:
         # Pop the role name from the top of the stack.
         role_name = role_names.pop(-1)
+        
+        # The metadata for 'role_name' must be downloaded/updated before
+        # its targets, delegations, and child roles can be inspected.
+        # self.metadata['current'][role_name] is currently missing.
+        # _refresh_targets_metadata() does not refresh 'targets.txt', it
+        # expects _update_metadata_if_changed() to have already refreshed it,
+        # which this function has checked above.
+        self._refresh_targets_metadata(role_name, include_delegations=False)
         role_metadata = current_metadata[role_name]
         targets = role_metadata['targets']
         delegations = role_metadata.get('delegations', {})
