@@ -631,7 +631,7 @@ class Updater(object):
     # Construct the metadata filename as expected by the download/mirror modules.
     metadata_filename = metadata_role + '.txt'
    
-    # The 'release' metadata file may be compressed.  Add the appropriate
+    # The 'release' or Targets metadata may be compressed.  Add the appropriate
     # extension to 'metadata_filename'. 
     if compression == 'gzip':
       metadata_filename = metadata_filename + '.gz'
@@ -846,14 +846,25 @@ class Updater(object):
 
     logger.info('Metadata '+repr(metadata_filename)+' has changed.')
 
-    # There might be a compressed version of the 'release' metadata
-    # that may be downloaded.  Check the 'meta' field of
-    # 'referenced_metadata' to see if it is listed. 
+    # There might be a compressed version of 'release.txt' or Targets
+    # metadata available for download.  Check the 'meta' field of
+    # 'referenced_metadata' to see if it is listed when 'metadata_role'
+    # is 'release'.  Check the 'meta' field of 'release' when 'metadata_role'
+    # is Targets metadata.  The full rolename for delegated Targets metadata
+    # must begin with 'targets/'.  The Release role lists all the Targets
+    # metadata available on the repository, including any that may be in
+    # compressed form.
     compression = None
+    gzip_path = metadata_filename + '.gz'
     if metadata_role == 'release':
-      gzip_path = metadata_filename + '.gz'
       if gzip_path in self.metadata['current'][referenced_metadata]['meta']:
         compression = 'gzip'
+    elif metadata_role.startswith('targets/'):
+      if gzip_path in self.metadata['current']['release']['meta']:
+        compression = 'gzip'
+    else:
+      message = 'Compressed version of '+repr(metadata_filename)+' not available.'
+      logger.debug(message)
 
     try:
       self._update_metadata(metadata_role, fileinfo=new_fileinfo,
@@ -1501,9 +1512,12 @@ class Updater(object):
 
       Exception:
         In case of an unforeseen runtime error.
+
+      TODO: Update these exceptions once the final 'path_hash_prefix'
+      changes have been implemented.
    
     <Side Effects>
-      The metadata for updated delegated roles are download and stored.
+      The metadata for updated delegated roles are downloaded and stored.
     
     <Returns>
       The target information for 'target_filepath', conformant to
@@ -1515,8 +1529,13 @@ class Updater(object):
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
-    # Refresh the target metadata for all the delegated roles. 
-    self._refresh_targets_metadata(include_delegations=True)
+    # Ensure the client has the most up-to-date version of 'targets.txt'.
+    # Raise 'tuf.MetadataNotAvailableError' if the changed metadata
+    # cannot be successfully downloaded and 'tuf.RepositoryError' if the
+    # referenced metadata is missing.  Target methods such as this one
+    # are called after the top-level metadata have been refreshed (i.e.,
+    # updater.refresh()).
+    self._update_metadata_if_changed('targets')
 
     # The target is assumed to be missing until proven otherwise.
     target = None
@@ -1529,6 +1548,14 @@ class Updater(object):
       while len(role_names) > 0 and target is None:
         # Pop the role name from the top of the stack.
         role_name = role_names.pop(-1)
+        
+        # The metadata for 'role_name' must be downloaded/updated before
+        # its targets, delegations, and child roles can be inspected.
+        # self.metadata['current'][role_name] is currently missing.
+        # _refresh_targets_metadata() does not refresh 'targets.txt', it
+        # expects _update_metadata_if_changed() to have already refreshed it,
+        # which this function has checked above.
+        self._refresh_targets_metadata(role_name, include_delegations=False)
         role_metadata = current_metadata[role_name]
         targets = role_metadata['targets']
         delegations = role_metadata.get('delegations', {})

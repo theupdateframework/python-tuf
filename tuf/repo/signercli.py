@@ -440,7 +440,7 @@ def _get_metadata_expiration():
     If the entered date is valid, it is returned unmodified.
 
     <Exceptions>
-      tuf.Error, if the entered expiration date is invalid.
+      tuf.RepositoryError, if the entered expiration date is invalid.
   
   """
 
@@ -452,11 +452,11 @@ def _get_metadata_expiration():
     input_date = input_date+' UTC'
     expiration_date = tuf.formats.parse_time(input_date)
   except (tuf.FormatError, ValueError), e:
-    raise tuf.Error('Invalid date entered.')
+    raise tuf.RepositoryError('Invalid date entered.')
   
   if expiration_date < time.time():
     message = 'The expiration date must occur after the current date.'
-    raise tuf.Error(message)
+    raise tuf.RepositoryError(message)
   
   return input_date
 
@@ -832,12 +832,10 @@ def make_targets_metadata(keystore_directory):
   # newer.
   version = _get_metadata_version(targets_filename)
 
-  # Prompt the user the metadata file's expiration date. 
-  try:
-    expiration_date = _get_metadata_expiration()
-  except tuf.Error, e:
-    message = str(e)+'\n'
-    raise tuf.RepositoryError(message)
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
 
 
   # Get the configuration file.
@@ -908,12 +906,10 @@ def make_release_metadata(keystore_directory):
   # newer.
   version = _get_metadata_version(release_filename)
 
-  # Prompt the user the metadata file's expiration date. 
-  try:
-    expiration_date = _get_metadata_expiration()
-  except tuf.Error, e:
-    message = str(e)+'\n'
-    raise tuf.RepositoryError(message)
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
 
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
@@ -976,12 +972,10 @@ def make_timestamp_metadata(keystore_directory):
   # newer.
   version = _get_metadata_version(timestamp_filename)
 
-  # Prompt the user the metadata file's expiration date. 
-  try:
-    expiration_date = _get_metadata_expiration()
-  except tuf.Error, e:
-    message = str(e)+'\n'
-    raise tuf.RepositoryError(message)
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
 
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
@@ -1259,11 +1253,9 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
   
   # The 'delegated_paths' list contains either file paths or the paths of
   # directories.  A child role may list any target(s) under a directory or sub-
-  # directory.  Below, sort 'delegated_targets' so that root-most directories
-  # are easier to calculate (i.e., replicate directory wildcards using 
-  # os.path.commonprefix() instead of regular expressions, which may be abused
-  # by input carefully-crafted for this purpose).
-  delegated_targets.sort()
+  # directory.  Replicate directory wildcards using os.path.commonprefix()
+  # instead of regular expressions, which may be abused by input
+  # carefully-crafted for this purpose.
   for path in delegated_targets:
     path = os.path.abspath(path)
     relative_path = path[len(repository_directory)+1:]
@@ -1289,7 +1281,7 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
       # has not been added to 'delegated_paths', nor a parent directory of it.
       else: 
         delegated_paths.append(relative_path+os.sep)
-  message = 'There are '+str(len(delegated_filepaths))+' target paths for '+\
+  message = 'There are '+repr(len(delegated_filepaths))+' target paths for '+\
     repr(delegated_role)
   logger.info(message)
 
@@ -1315,12 +1307,10 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
     else:
       raise
 
-  # Prompt the user for the metadata file's expiration date. 
-  try:
-    expiration_date = _get_metadata_expiration()
-  except tuf.Error, e:
-    message = str(e)+'\n'
-    raise tuf.RepositoryError(message)
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
  
   # Sign and write the delegated metadata file.
   delegated_role_filename = delegated_role+'.txt'
