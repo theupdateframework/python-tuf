@@ -859,8 +859,13 @@ class Updater(object):
     if metadata_role == 'release':
       if gzip_path in self.metadata['current'][referenced_metadata]['meta']:
         compression = 'gzip'
-    elif metadata_role.startswith('targets/'):
-      if gzip_path in self.metadata['current']['release']['meta']:
+    # Check for available compressed versions of 'targets.txt' and delegated
+    # Targets, which also start with 'targets'.
+    elif metadata_role.startswith('targets'):
+      # For 'targets.txt' and delegated metadata, 'referenced_metata'
+      # should always be 'release'.  'release.txt' specifies all roles
+      # provided by a repository, including their file sizes and hashes.
+      if gzip_path in self.metadata['current'][referenced_metadata]['meta']:
         compression = 'gzip'
     else:
       message = 'Compressed version of '+repr(metadata_filename)+' not available.'
