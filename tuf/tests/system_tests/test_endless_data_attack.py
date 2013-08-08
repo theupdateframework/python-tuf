@@ -42,11 +42,14 @@ import util_test_tools
 import tuf
 from tuf.interposition import urllib_tuf
 
+import logging
+
 
 
 # Disable logging.
 util_test_tools.disable_logging()
 
+logger = logging.getLogger('tuf')
 
 
 class EndlessDataAttack(Exception):
