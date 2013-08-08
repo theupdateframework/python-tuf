@@ -19,6 +19,7 @@
 
 """
 
+import gzip
 import os
 import ConfigParser
 import logging
@@ -493,9 +494,9 @@ def generate_timestamp_metadata(release_filename, version,
       Conformant to 'tuf.formats.TIME_SCHEMA'.
 
     compressions:
-      Compression extensions (e.g., 'gz' and 'tgz').  If 'release.txt' is also
-      saved in compressed form, these compression extensions should be stored
-      in 'compressions' so the compressed timestamp files can be added to the
+      Compression extensions (e.g., 'gz').  If 'release.txt' is also saved in
+      compressed form, these compression extensions should be stored in
+      'compressions' so the compressed timestamp files can be added to the
       timestamp metadata object.
 
   <Exceptions>
@@ -524,8 +525,13 @@ def generate_timestamp_metadata(release_filename, version,
   # Save the file info of the compressed versions of 'timestamp.txt'.
   for file_extension in compressions:
     compressed_filename = release_filename + '.' + file_extension
-    compressed_fileinfo = get_metadata_file_info(compressed_filename)
-    fileinfo['release.txt.' + file_extension] = compressed_fileinfo
+    try:
+      compressed_fileinfo = get_metadata_file_info(compressed_filename)
+    except:
+      logger.warn('Could not get fileinfo about '+str(compressed_fileinfo))
+    else:
+      logger.info('Including fileinfo about '+str(compressed_filename))
+      fileinfo['release.txt.' + file_extension] = compressed_fileinfo
 
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
@@ -538,7 +544,7 @@ def generate_timestamp_metadata(release_filename, version,
 
 
 
-def write_metadata_file(metadata, filename):
+def write_metadata_file(metadata, filename, compression=None):
   """
   <Purpose>
     Create the file containing the metadata.
@@ -551,10 +557,16 @@ def write_metadata_file(metadata, filename):
       The filename (absolute path) of the metadata to be
       written (e.g., 'root.txt').
 
+    compression:
+      Specify an algorithm as a string to compress the file; otherwise, the
+      file will be left uncompressed. Available options are 'gz' (gzip).
+
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
     tuf.Error, if 'filename' doesn't exist.
+
+    Any other runtime (e.g. IO) exception.
 
   <Side Effects>
     The 'filename' file is created or overwritten if it exists.
@@ -569,20 +581,44 @@ def write_metadata_file(metadata, filename):
   tuf.formats.SIGNABLE_SCHEMA.check_match(metadata)
   tuf.formats.PATH_SCHEMA.check_match(filename)
 
-  # Split 'filename' into head and tail.  Verify that head exists.
-  check_directory(os.path.split(filename)[0])
+  # Verify 'filename' directory.
+  check_directory(os.path.dirname(filename))
 
-  logger.info('Writing to '+repr(filename))
-  file_object = open(filename, 'w')
+  # We choose a file-like object that depends on the compression algorithm.
+  file_object = None
+  # We may modify the filename, depending on the compression algorithm, so we
+  # store it separately.
+  filename_with_compression = filename
 
-  # The metadata object is saved to 'file_object'.  The keys
-  # of the objects are sorted and indentation is used.
-  json.dump(metadata, file_object, indent=1, sort_keys=True)
+  # Take care of compression.
+  if compression is None:
+    logger.info('No compression for '+str(filename))
+    file_object = open(filename_with_compression, 'w')
+  elif compression == 'gz':
+    logger.info('gzip compression for '+str(filename))
+    filename_with_compression += '.gz'
+    file_object = gzip.open(filename_with_compression, 'w')
+  else:
+    raise tuf.FormatError('Unknown compression algorithm: '+str(compression))
 
-  file_object.write('\n')
-  file_object.close()
+  try:
+    tuf.formats.PATH_SCHEMA.check_match(filename_with_compression)
+    logger.info('Writing to '+str(filename_with_compression))
 
-  return filename
+    # The metadata object is saved to 'file_object'.  The keys
+    # of the objects are sorted and indentation is used.
+    json.dump(metadata, file_object, indent=1, sort_keys=True)
+
+    file_object.write('\n')
+  except:
+    # Raise any runtime exception.
+    raise
+  else:
+    # Otherwise, return the written filename.
+    return filename_with_compression
+  finally:
+    # Always close the file.
+    file_object.close()
 
 
 
@@ -1131,7 +1167,7 @@ def build_targets_file(target_paths, targets_keyids, metadata_directory,
 
 
 def build_release_file(release_keyids, metadata_directory,
-                       version, expiration_date):
+                       version, expiration_date, compress=False):
   """
   <Purpose>
     Build the release metadata file using the signing keys in 'release_keyids'.
@@ -1151,6 +1187,10 @@ def build_release_file(release_keyids, metadata_directory,
     expiration_date:
       The expiration date, in UTC, of the metadata file.
       Conformant to 'tuf.formats.TIME_SCHEMA'.
+
+    compress:
+      Should we *include* a compressed version of the release file? By default,
+      the answer is no.
 
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
@@ -1182,14 +1222,27 @@ def build_release_file(release_keyids, metadata_directory,
                                                version, expiration_date)
   signable = sign_metadata(release_metadata, release_keyids, release_filepath)
 
-  return write_metadata_file(signable, release_filepath)
+  # Should we also include a compressed version of release.txt?
+  if compress:
+    # If so, write a gzip version of release.txt.
+    compressed_written_filepath = \
+        write_metadata_file(signable, release_filepath, compression='gz')
+    logger.info('Wrote '+str(compressed_written_filepath))
+  else:
+    logger.debug('No compressed version of release metadata will be included.')
+
+  written_filepath = write_metadata_file(signable, release_filepath)
+  logger.info('Wrote '+str(written_filepath))
+
+  return written_filepath
 
 
 
 
 
 def build_timestamp_file(timestamp_keyids, metadata_directory,
-                         version, expiration_date):
+                         version, expiration_date,
+                         include_compressed_release=True):
   """
   <Purpose>
     Build the timestamp metadata file using the signing keys in 'timestamp_keyids'.
@@ -1209,6 +1262,10 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
     expiration_date:
       The expiration date, in UTC, of the metadata file.
       Conformant to 'tuf.formats.TIME_SCHEMA'.
+
+    include_compressed_release:
+      Should the timestamp role *include* compression versions of the release
+      metadata, if any? We do this by default.
   
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
@@ -1236,11 +1293,24 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
   release_filepath = os.path.join(metadata_directory, RELEASE_FILENAME)
   timestamp_filepath = os.path.join(metadata_directory, TIMESTAMP_FILENAME)
 
+  # Should we include compressed versions of release in timestamp?
+  compressions = ()
+  if include_compressed_release:
+    # Presently, we include only gzip versions by default.
+    compressions = ('gz',)
+    logger.info('Including '+str(compressions)+' versions of release in '\
+                'timestamp.')
+  else:
+    logger.warn('No compressed versions of release will be included in '\
+                'timestamp.')
+
   # Generate and sign the timestamp metadata.
   timestamp_metadata = generate_timestamp_metadata(release_filepath,
                                                    version,
-                                                   expiration_date)
-  signable = sign_metadata(timestamp_metadata, timestamp_keyids, timestamp_filepath)
+                                                   expiration_date,
+                                                   compressions=compressions)
+  signable = sign_metadata(timestamp_metadata, timestamp_keyids,
+                           timestamp_filepath)
 
   return write_metadata_file(signable, timestamp_filepath)
 
