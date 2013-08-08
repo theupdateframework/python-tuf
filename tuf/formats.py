@@ -67,9 +67,8 @@ import re
 import string
 import time
 
-import tuf.schema
-
-SCHEMA = tuf.schema
+import tuf
+import tuf.schema as SCHEMA
 
 
 # Note that in the schema definitions below, the 'SCHEMA.Object' types allow
