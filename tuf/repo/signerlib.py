@@ -528,7 +528,7 @@ def generate_timestamp_metadata(release_filename, version,
     try:
       compressed_fileinfo = get_metadata_file_info(compressed_filename)
     except:
-      logger.warn('Could not get fileinfo about '+str(compressed_fileinfo))
+      logger.warn('Could not get fileinfo about '+str(compressed_filename))
     else:
       logger.info('Including fileinfo about '+str(compressed_filename))
       fileinfo['release.txt.' + file_extension] = compressed_fileinfo
