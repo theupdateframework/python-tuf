@@ -67,6 +67,7 @@ import re
 import string
 import time
 
+import tuf
 import tuf.schema as SCHEMA
 
 
