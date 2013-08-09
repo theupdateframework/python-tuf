@@ -824,55 +824,53 @@ class Updater(object):
         
     metadata_filename = metadata_role + '.txt'
 
-    # Need to ensure the referenced metadata has been loaded.
-    # The 'root' role may be updated without having 'release'
-    # available.  
+    # Ensure the referenced metadata has been loaded.  The 'root' role may be
+    # updated without having 'release' available.  
     if referenced_metadata not in self.metadata['current']:
-      message = 'Cannot update '+repr(metadata_role)+' because ' \
-                +referenced_metadata+' is missing.'
+      message = 'Cannot update '+repr(metadata_role)+' because '+\
+        repr(referenced_metadata)+' is missing.'
       raise tuf.RepositoryError(message)
-    # The referenced metadata has been loaded.  Extract the new
-    # fileinfo for 'metadata_role' from it. 
     else:
-      new_fileinfo = self.metadata['current'][referenced_metadata] \
-                                  ['meta'][metadata_filename]
+      message = repr(metadata_role)+' referenced in '+\
+        repr(referenced_metadata)+'.  '+repr(metadata_role)+' may be updated.'
+      logger.debug(message)
+    
+    # There might be a compressed version of 'release.txt' or Targets
+    # metadata available for download.  Check the 'meta' field of
+    # 'referenced_metadata' to see if it is listed when 'metadata_role'
+    # is 'release'.  The full rolename for delegated Targets metadata
+    # must begin with 'targets/'.  The Release role lists all the Targets
+    # metadata available on the repository, including any that may be in
+    # compressed form.
+    compression = None
+    gzip_metadata_filename = metadata_filename + '.gz'
+    
+    # Extract the new fileinfo of the uncompressed version of 'metadata_role'.
+    new_fileinfo = self.metadata['current'][referenced_metadata] \
+                                ['meta'][metadata_filename]
+    
+    # Check for availability of compressed versions of 'release.txt',
+    # 'targets.txt', and delegated Targets, which also start with 'targets'.
+    # For 'targets.txt' and delegated metadata, 'referenced_metata'
+    # should always be 'release'.  'release.txt' specifies all roles
+    # provided by a repository, including their file sizes and hashes.
+    if metadata_role == 'release' or metadata_role.startswith('targets'):
+      if gzip_metadata_filename in self.metadata['current'] \
+                                                [referenced_metadata]['meta']:
+        compression = 'gzip'
+        new_fileinfo = self.metadata['current'][referenced_metadata] \
+                                    ['meta'][gzip_metadata_filename]
+      else:
+        message = 'Compressed version of '+repr(metadata_filename)+\
+          ' not available.'
+        logger.debug(message)
 
-    # Simply return if the fileinfo has not changed according to the
+    # Simply return if the fileinfo has not changed, according to the
     # fileinfo provided by the referenced metadata.
     if not self._fileinfo_has_changed(metadata_filename, new_fileinfo):
       return
 
     logger.info('Metadata '+repr(metadata_filename)+' has changed.')
-
-    # There might be a compressed version of 'release.txt' or Targets
-    # metadata available for download.  Check the 'meta' field of
-    # 'referenced_metadata' to see if it is listed when 'metadata_role'
-    # is 'release'.  Check the 'meta' field of 'release' when 'metadata_role'
-    # is Targets metadata.  The full rolename for delegated Targets metadata
-    # must begin with 'targets/'.  The Release role lists all the Targets
-    # metadata available on the repository, including any that may be in
-    # compressed form.
-    compression = None
-    gzip_path = metadata_filename + '.gz'
-
-    if metadata_role == 'release':
-      if gzip_path in self.metadata['current'][referenced_metadata]['meta']:
-        compression = 'gzip'
-        new_fileinfo = self.metadata['current'][referenced_metadata] \
-                                    ['meta'][gzip_path]
-    # Check for available compressed versions of 'targets.txt' and delegated
-    # Targets, which also start with 'targets'.
-    elif metadata_role.startswith('targets'):
-      # For 'targets.txt' and delegated metadata, 'referenced_metata'
-      # should always be 'release'.  'release.txt' specifies all roles
-      # provided by a repository, including their file sizes and hashes.
-      if gzip_path in self.metadata['current'][referenced_metadata]['meta']:
-        compression = 'gzip'
-        new_fileinfo = self.metadata['current'][referenced_metadata] \
-                                    ['meta'][gzip_path]
-    else:
-      message = 'Compressed version of '+repr(metadata_filename)+' not available.'
-      logger.debug(message)
 
     try:
       self._update_metadata(metadata_role, fileinfo=new_fileinfo,
