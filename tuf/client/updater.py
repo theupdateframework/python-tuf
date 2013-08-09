@@ -726,8 +726,7 @@ class Updater(object):
       
     # Reject the metadata if any specified targets are not allowed.
     if metadata_signable['signed']['_type'] == 'Targets':
-      #self._ensure_all_targets_allowed(metadata_role, metadata_signable['signed'])
-      pass
+      self._ensure_all_targets_allowed(metadata_role, metadata_signable['signed'])
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -916,7 +915,13 @@ class Updater(object):
       under 'paths'.  A parent role may delegate trust to all files under a 
       particular directory, including files in subdirectories, by simply
       listing the directory (e.g., 'packages/source/Django/', the equivalent
-      of 'packages/source/Django/*').
+      of 'packages/source/Django/*').  Targets listed in hashed bins are
+      also validated (i.e., its calculated path hash prefix must be delegated
+      by the parent role.
+
+      TODO: Should the TUF spec restrict the repository to one particular
+      algorithm?  Should we allow the repository to specify in the role
+      dictionary the algorithm used for these generated hashed paths?
 
     <Arguments>
       metadata_role:
@@ -932,7 +937,8 @@ class Updater(object):
     <Exceptions>
       tuf.RepositoryError:
         If the targets of 'metadata_role' are not allowed according to
-        the parent's metadata file.
+        the parent's metadata file.  The 'paths' and 'path_hash_prefix' fields
+        are verified.
     
     <Side Effects>
       None.
@@ -941,7 +947,7 @@ class Updater(object):
       None.
     
     """
-
+    
     # Return if 'metadata_role' is 'targets'.  'targets' is not
     # a delegated role.
     if metadata_role == 'targets':
@@ -959,29 +965,54 @@ class Updater(object):
     role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
 
     # Ensure the delegated role exists prior to extracting trusted paths
-    # from the parent's 'paths'.
+    # from the parent's 'paths', or trusted path hash prefixes from the parent's
+    # 'path_hash_prefix'.
     if role_index is not None:
       role = roles[role_index] 
-      allowed_child_paths = role['paths']
+      allowed_child_paths = role.get('paths')
+      allowed_child_path_hash_prefix = role.get('path_hash_prefix') 
       actual_child_targets = metadata_object['targets'].keys()
-      
-      # Check that each delegated target is either explicitly listed or a
-      # parent directory is found under role['paths'], otherwise raise an
-      # exception.  If the parent role explicitly lists target file paths in
-      # 'paths', this loop will run in O(n^2). The repository maintainer will
-      # likely delegate entire directories, and opt for explicit file paths if
-      # the targets in a directory are delegated to different roles/developers.
-      for child_target in actual_child_targets:
-        for allowed_child_path in allowed_child_paths:
-          prefix = os.path.commonprefix([child_target, allowed_child_path])
-          if prefix == allowed_child_path:
-            break
-        else: 
-          message = 'Role '+repr(metadata_role)+' specifies target '+\
-            repr(child_target)+' which is not an allowed path according '+\
-            'to the delegations set by '+repr(parent_role)+'.'
-          raise tuf.RepositoryError(message)
     
+      if allowed_child_path_hash_prefix is not None:
+        for child_target in actual_child_targets:
+          # Calculate the hash of 'child_target' to determine if it has been
+          # placed in the correct bin. 
+          child_target_path_hash = self._get_target_hash(child_target)
+
+          if not child_target_path_hash.startswith(allowed_child_path_hash_prefix):
+            message = 'Role '+repr(metadata_role)+' specifies target '+\
+              repr(child_target)+ ' which does not have a path hash prefix '+\
+              'matching the prefix listed by the parent role '+\
+              repr(parent_role)+'.'
+            raise tuf.RepositoryError(message)
+      elif allowed_child_paths is not None: 
+
+        # Check that each delegated target is either explicitly listed or a parent
+        # directory is found under role['paths'], otherwise raise an exception.
+        # If the parent role explicitly lists target file paths in 'paths',
+        # this loop will run in O(n^2), the worst-case.  The repository
+        # maintainer will likely delegate entire directories, and opt for
+        # explicit file paths if the targets in a directory are delegated to 
+        # different roles/developers.
+        for child_target in actual_child_targets:
+          for allowed_child_path in allowed_child_paths:
+            prefix = os.path.commonprefix([child_target, allowed_child_path])
+            if prefix == allowed_child_path:
+              break
+          else: 
+            message = 'Role '+repr(metadata_role)+' specifies target '+\
+              repr(child_target)+' which is not an allowed path according '+\
+              'to the delegations set by '+repr(parent_role)+'.'
+            raise tuf.RepositoryError(message)
+      else:
+        
+        # 'role' should have been validated when it was downloaded.
+        # The 'paths' or 'path_hash_prefix' fields should not be missing,
+        # so log a warning if this else clause is reached. 
+        message = repr(role)+' unexpectedly did not contain one of '+\
+          'the required fields ("paths" or "path_hash_prefix").'
+        logger.warn(message)
+
     # Raise an exception if the parent has not delegated to the specified
     # 'metadata_role' child role.
     else:
@@ -1017,7 +1048,7 @@ class Updater(object):
         dict conforms to 'tuf.formats.FILEINFO_SCHEMA' and has
         the form:
         {'length': 23423
-         'hashes': {'sha256': adfbc32343..}}
+         'hashes': {'sha256': /dfbc32343..}}
         
     <Exceptions>
       None.
@@ -1500,10 +1531,7 @@ class Updater(object):
   def target(self, target_filepath):
     """
     <Purpose>
-      Return the target file information for 'target_filepath'. We interrogate
-      the tree of target delegations in order of appearance (which implicitly
-      order trustworthiness), and return the matching target found in the most
-      trusted role.
+      Return the target file information for 'target_filepath'.
 
     <Arguments>    
       target_filepath:
@@ -1533,6 +1561,54 @@ class Updater(object):
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
+    # Get target by looking at roles in order of priority tags.
+    target = self._preorder_depth_first_walk(target_filepath)
+
+    # Raise an exception if the target information could not be retrieved.
+    if target is None:
+      message = target_filepath+' not found.'
+      logger.error(message)
+      raise tuf.RepositoryError(message)
+    # Otherwise, return the found target.
+    else:
+      return target
+
+
+
+
+
+  def _preorder_depth_first_walk(self, target_filepath):
+    """
+    <Purpose>
+      Interrogate the tree of target delegations in order of appearance (which
+      implicitly order trustworthiness), and return the matching target
+      found in the most trusted role.
+
+    <Arguments>    
+      target_filepath:
+        The path to the target file on the repository. This will be relative to
+        the 'targets' (or equivalent) directory on a given mirror.
+
+    <Exceptions>
+      tuf.FormatError:
+        If 'target_filepath' is improperly formatted.
+
+      tuf.RepositoryError:
+        If 'target_filepath' was not found.
+   
+    <Side Effects>
+      The metadata for updated delegated roles are downloaded and stored.
+    
+    <Returns>
+      The target information for 'target_filepath', conformant to
+      'tuf.formats.TARGETFILE_SCHEMA'.
+    
+    """
+
+    target = None
+    current_metadata = self.metadata['current']
+    role_names = ['targets']
+
     # Ensure the client has the most up-to-date version of 'targets.txt'.
     # Raise 'tuf.MetadataNotAvailableError' if the changed metadata
     # cannot be successfully downloaded and 'tuf.RepositoryError' if the
@@ -1541,21 +1617,9 @@ class Updater(object):
     # updater.refresh()).
     self._update_metadata_if_changed('targets')
 
-    # The target is assumed to be missing until proven otherwise.
-    target = None
-
-    # According to the specification, the target_filepath must be hashed with
-    # the SHA256 hash function in order to be compared with the
-    # "path_hash_prefix" attribute.
-    target_filepath_digest = tuf.hash.digest(algorithm='sha256')
-    target_filepath_digest.update(target_filepath)
-    target_filepath_hash = target_filepath_digest.hexdigest()
-
-    current_metadata = self.metadata['current']
-    role_names = ['targets']
-
     # Preorder depth-first traversal of the tree of target delegations.
     while len(role_names) > 0 and target is None:
+
       # Pop the role name from the top of the stack.
       role_name = role_names.pop(-1)
 
@@ -1566,58 +1630,215 @@ class Updater(object):
       # expects _update_metadata_if_changed() to have already refreshed it,
       # which this function has checked above.
       self._refresh_targets_metadata(role_name, include_delegations=False)
+
       role_metadata = current_metadata[role_name]
       targets = role_metadata['targets']
       delegations = role_metadata.get('delegations', {})
       child_roles = delegations.get('roles', [])
+      target = self._get_target_from_targets_role(role_name, targets,
+                                                  target_filepath)
 
-      # Does the current role name have our target?
-      logger.info('Asking role '+role_name+' about target '+target_filepath)
-      for filepath, fileinfo in targets.iteritems():
-        if filepath == target_filepath:
-          logger.info('Found target '+target_filepath+' in role '+role_name)
-          target = {'filepath': filepath, 'fileinfo': fileinfo}
-          break
+      if target is None:
 
-      # Push children in reverse order of appearance onto the stack.
-      for child_role in reversed(child_roles):
-        child_role_name = child_role['name']
-        child_role_paths = child_role.get('paths')
-        child_role_path_hash_prefix = child_role.get('path_hash_prefix')
-
-        # Ensure that we explore only delegated roles trusted with the target.
-        # We assume conservation of delegated paths in the complete tree of
-        # delegations. Note that the call to _ensure_all_targets_allowed in
-        # _update_metadata should already ensure that all targets metadata is
-        # valid; i.e. that the targets signed by a delegatee is a proper
-        # subset of the targets delegated to it by the delegator.
-        # Nevertheless, we check it again here for performance and safety
-        # reasons.
-
-        if child_role_path_hash_prefix is not None:
-          if target_filepath_hash.startswith(child_role_path_hash_prefix):
+        # Push children in reverse order of appearance onto the stack.
+        # NOTE: This may be a slow operation if there are many delegated roles.
+        for child_role in reversed(child_roles):
+          child_role_name = self._visit_child_role(child_role, target_filepath)
+          if child_role_name is None:
+            logger.debug('Skipping child role '+repr(child_role_name))
+          else:
+            logger.info('Adding child role '+repr(child_role_name))
             role_names.append(child_role_name)
-        elif child_role_paths is not None:
-          # TODO: is child_role_paths directories or paths?
-          for child_role_path in child_role_paths:
-            if child_role_path.endswith('/'):
-              if target_filepath.startswith(child_role_path):
-                role_names.append(child_role_name)
-            else:
-              if target_filepath == child_role_path:
-                role_names.append(child_role_name)
-        else:
-          raise tuf.RepositoryError(str(child_role_name)+' has neither ' \
-                                    '"paths" nor "path_hash_prefix"!')
 
-    # Raise an exception if the target information could not be retrieved.
-    if target is None:
-      message = target_filepath+' not found.'
-      logger.error(message)
-      raise tuf.RepositoryError(message)
-    # Otherwise, return the found target.
+      else:
+        logger.info('Found target in current role '+repr(role_name))
+
+    return target
+
+
+
+
+
+  def _get_target_from_targets_role(self, role_name, targets, target_filepath):
+    """
+    <Purpose>
+      Determine whether the targets role with the given 'role_name' has the
+      target with the name 'target_filepath'.
+
+    <Arguments>
+      role_name:
+        The name of the targets role that we are inspecting.
+
+      targets:
+        The targets of the Targets role with the name 'role_name'.
+        
+      target_filepath:
+        The path to the target file on the repository. This will be relative to
+        the 'targets' (or equivalent) directory on a given mirror.
+
+    <Exceptions>
+      None.
+   
+    <Side Effects>
+      None.
+    
+    <Returns>
+      The target information for 'target_filepath', conformant to
+      'tuf.formats.TARGETFILE_SCHEMA'.
+    
+    """
+
+    target = None
+
+    # Does the current role name have our target?
+    logger.info('Asking role '+role_name+' about target '+target_filepath)
+    for filepath, fileinfo in targets.iteritems():
+      if filepath == target_filepath:
+        logger.info('Found target '+target_filepath+' in role '+role_name)
+        target = {'filepath': filepath, 'fileinfo': fileinfo}
+        break
+      else:
+        logger.debug('No target '+target_filepath+' in role '+role_name)
+
+    return target
+
+
+
+
+
+
+  def _visit_child_role(self, child_role, target_filepath):
+    """
+    <Purpose>
+      Determine whether the given 'child_role' has been delegated the target
+      with the name 'target_filepath'.
+
+      Ensure that we explore only delegated roles trusted with the target. We
+      assume conservation of delegated paths in the complete tree of
+      delegations. Note that the call to _ensure_all_targets_allowed in
+      _update_metadata should already ensure that all targets metadata is
+      valid; i.e. that the targets signed by a delegatee is a proper subset of
+      the targets delegated to it by the delegator. Nevertheless, we check it
+      again here for performance and safety reasons.
+
+      TODO: Should the TUF spec restrict the repository to one particular
+      algorithm?  Should we allow the repository to specify in the role
+      dictionary the algorithm used for these generated hashed paths?
+
+    <Arguments>
+      child_role:
+        The delegation targets role object of 'child_role', containing its
+        paths, path_hash_prefix, keys and so on.
+
+      target_filepath:
+        The path to the target file on the repository. This will be relative to
+        the 'targets' (or equivalent) directory on a given mirror.
+
+    <Exceptions>
+      None.
+   
+    <Side Effects>
+      None.
+    
+    <Returns>
+      If 'child_role' has been delegated the target with the name
+      'target_filepath', then we return the role name of 'child_role'.
+
+      Otherwise, we return None.
+    
+    """
+
+    child_role_name = child_role['name']
+    child_role_paths = child_role.get('paths')
+    child_role_path_hash_prefix = child_role.get('path_hash_prefix')
+    # A boolean indicator that tell us whether 'child_role' has been delegated
+    # the target with the name 'target_filepath'.
+    child_role_is_relevant = False
+
+    if child_role_path_hash_prefix is not None:
+      target_filepath_hash = self._get_target_hash(target_filepath)
+
+      if target_filepath_hash.startswith(child_role_path_hash_prefix):
+        logger.info('Child role '+repr(child_role_name)+' has target '+
+                    repr(target_filepath))
+        child_role_is_relevant = True
+      else:
+        logger.debug('Child role '+repr(child_role_name)+
+                     ' does not have target '+repr(target_filepath))
+
+    elif child_role_paths is not None:
+
+      for child_role_path in child_role_paths:
+        
+        # A child role path may be a filepath or directory.  The child
+        # role 'child_role_name' is added if 'target_filepath' is located
+        # under 'child_role_path'.  Explicit filepaths are also added.
+        prefix = os.path.commonprefix([target_filepath, child_role_path])
+
+        if prefix == child_role_path:
+          logger.info('Child role '+repr(child_role_name)+' has target '+
+                      repr(target_filepath))
+          child_role_is_relevant = True
+        else:
+          logger.debug('Child role '+repr(child_role_name)+
+                       ' does not have target '+repr(target_filepath))
+
     else:
-      return target
+      
+      # 'role_name' should have been validated when it was downloaded.
+      # The 'paths' or 'path_hash_prefix' fields should not be missing,
+      # so log a warning if this else clause is reached. 
+      raise tuf.FormatError(repr(child_role_name)+' has neither ' \
+                                '"paths" nor "path_hash_prefix"!')
+
+    if child_role_is_relevant:
+      return child_role_name
+    else:
+      return None
+
+
+
+
+
+  def _get_target_hash(self, target_filepath, hash_function='sha256'):
+    """
+    <Purpose>
+      Compute the hash of 'target_filepath'. This is useful in conjunction with
+      the "path_hash_prefix" attribute in a delegated targets role, which tells
+      us which paths it is implicitly responsible for.
+
+    <Arguments>
+      target_filepath:
+        The path to the target file on the repository. This will be relative to
+        the 'targets' (or equivalent) directory on a given mirror.
+
+      hash_function:
+        The algorithm used by the repository to generate the hashes of the
+        target filepaths.  The repository may optionally organize targets into
+        hashed bins to ease target delegations and role metadata management.
+        The use of consistent hashing allows for a uniform distribution of
+        targets into bins. 
+
+    <Exceptions>
+      None.
+   
+    <Side Effects>
+      None.
+    
+    <Returns>
+      The hash of 'target_filepath'.
+    
+    """
+
+    # Calculate the hash of the filepath to determine which bin to find the 
+    # target.  The client currently assumes the repository uses
+    # 'hash_function' to generate hashes.
+
+    digest_object = tuf.hash.digest(hash_function)
+    digest_object.update(target_filepath)
+    target_filepath_hash = digest_object.hexdigest() 
+
+    return target_filepath_hash
 
 
 
