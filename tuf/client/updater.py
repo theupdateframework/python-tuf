@@ -109,6 +109,7 @@ import time
 import tuf.conf
 import tuf.download
 import tuf.formats
+import tuf.hash
 import tuf.keydb
 import tuf.log
 import tuf.mirrors
@@ -725,7 +726,8 @@ class Updater(object):
       
     # Reject the metadata if any specified targets are not allowed.
     if metadata_signable['signed']['_type'] == 'Targets':
-      self._ensure_all_targets_allowed(metadata_role, metadata_signable['signed'])
+      #self._ensure_all_targets_allowed(metadata_role, metadata_signable['signed'])
+      pass
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -827,12 +829,9 @@ class Updater(object):
     # The 'root' role may be updated without having 'release'
     # available.  
     if referenced_metadata not in self.metadata['current']:
-      if metadata_role == 'root':
-        new_fileinfo = None
-      else:
-        message = 'Cannot update '+repr(metadata_role)+' because ' \
-                  +referenced_metadata+' is missing.'
-        raise tuf.RepositoryError(message)
+      message = 'Cannot update '+repr(metadata_role)+' because ' \
+                +referenced_metadata+' is missing.'
+      raise tuf.RepositoryError(message)
     # The referenced metadata has been loaded.  Extract the new
     # fileinfo for 'metadata_role' from it. 
     else:
@@ -856,9 +855,12 @@ class Updater(object):
     # compressed form.
     compression = None
     gzip_path = metadata_filename + '.gz'
+
     if metadata_role == 'release':
       if gzip_path in self.metadata['current'][referenced_metadata]['meta']:
         compression = 'gzip'
+        new_fileinfo = self.metadata['current'][referenced_metadata] \
+                                    ['meta'][gzip_path]
     # Check for available compressed versions of 'targets.txt' and delegated
     # Targets, which also start with 'targets'.
     elif metadata_role.startswith('targets'):
@@ -867,6 +869,8 @@ class Updater(object):
       # provided by a repository, including their file sizes and hashes.
       if gzip_path in self.metadata['current'][referenced_metadata]['meta']:
         compression = 'gzip'
+        new_fileinfo = self.metadata['current'][referenced_metadata] \
+                                    ['meta'][gzip_path]
     else:
       message = 'Compressed version of '+repr(metadata_filename)+' not available.'
       logger.debug(message)
@@ -961,13 +965,12 @@ class Updater(object):
       allowed_child_paths = role['paths']
       actual_child_targets = metadata_object['targets'].keys()
       
-      # Check that each delegated target is either explicitly listed or a parent
-      # directory is found under role['paths'], otherwise raise an exception.
-      # If the parent role explicitly lists target file paths in 'paths',
-      # this loop will run in O(n^2), the worst-case.  The repository
-      # maintainer will likely delegate entire directories, and opt for
-      # explicit file paths if the targets in a directory are delegated to 
-      # different roles/developers.
+      # Check that each delegated target is either explicitly listed or a
+      # parent directory is found under role['paths'], otherwise raise an
+      # exception.  If the parent role explicitly lists target file paths in
+      # 'paths', this loop will run in O(n^2). The repository maintainer will
+      # likely delegate entire directories, and opt for explicit file paths if
+      # the targets in a directory are delegated to different roles/developers.
       for child_target in actual_child_targets:
         for allowed_child_path in allowed_child_paths:
           prefix = os.path.commonprefix([child_target, allowed_child_path])
@@ -1515,11 +1518,7 @@ class Updater(object):
       tuf.RepositoryError:
         If 'target_filepath' was not found.
 
-      Exception:
-        In case of an unforeseen runtime error.
-
-      TODO: Update these exceptions once the final 'path_hash_prefix'
-      changes have been implemented.
+      Any other unforeseen runtime exception.
    
     <Side Effects>
       The metadata for updated delegated roles are downloaded and stored.
@@ -1545,61 +1544,80 @@ class Updater(object):
     # The target is assumed to be missing until proven otherwise.
     target = None
 
-    try:
-      current_metadata = self.metadata['current']
-      role_names = ['targets']
+    # According to the specification, the target_filepath must be hashed with
+    # the SHA256 hash function in order to be compared with the
+    # "path_hash_prefix" attribute.
+    target_filepath_digest = tuf.hash.digest(algorithm='sha256')
+    target_filepath_digest.update(target_filepath)
+    target_filepath_hash = target_filepath_digest.hexdigest()
 
-      # Preorder depth-first traversal of the tree of target delegations.
-      while len(role_names) > 0 and target is None:
-        # Pop the role name from the top of the stack.
-        role_name = role_names.pop(-1)
-        
-        # The metadata for 'role_name' must be downloaded/updated before
-        # its targets, delegations, and child roles can be inspected.
-        # self.metadata['current'][role_name] is currently missing.
-        # _refresh_targets_metadata() does not refresh 'targets.txt', it
-        # expects _update_metadata_if_changed() to have already refreshed it,
-        # which this function has checked above.
-        self._refresh_targets_metadata(role_name, include_delegations=False)
-        role_metadata = current_metadata[role_name]
-        targets = role_metadata['targets']
-        delegations = role_metadata.get('delegations', {})
-        child_roles = delegations.get('roles', [])
+    current_metadata = self.metadata['current']
+    role_names = ['targets']
 
-        # Does the current role name have our target?
-        logger.info('Asking role '+role_name+' about target '+target_filepath)
-        for filepath, fileinfo in targets.iteritems():
-          if filepath == target_filepath:
-            logger.info('Found target '+target_filepath+' in role '+role_name)
-            target = {'filepath': filepath, 'fileinfo': fileinfo}
-            break
+    # Preorder depth-first traversal of the tree of target delegations.
+    while len(role_names) > 0 and target is None:
+      # Pop the role name from the top of the stack.
+      role_name = role_names.pop(-1)
 
-        # Push children in reverse order of appearance onto the stack.
-        for child_role in reversed(child_roles):
-          child_role_name = child_role['name']
-          child_role_paths = child_role['paths']
+      # The metadata for 'role_name' must be downloaded/updated before
+      # its targets, delegations, and child roles can be inspected.
+      # self.metadata['current'][role_name] is currently missing.
+      # _refresh_targets_metadata() does not refresh 'targets.txt', it
+      # expects _update_metadata_if_changed() to have already refreshed it,
+      # which this function has checked above.
+      self._refresh_targets_metadata(role_name, include_delegations=False)
+      role_metadata = current_metadata[role_name]
+      targets = role_metadata['targets']
+      delegations = role_metadata.get('delegations', {})
+      child_roles = delegations.get('roles', [])
 
-          # Ensure that we explore only delegated roles trusted with the target.
-          # We assume conservation of delegated paths in the complete tree of
-          # delegations. Note that the call to _ensure_all_targets_allowed in
-          # _update_metadata should already ensure that all targets metadata is
-          # valid; i.e. that the targets signed by a delegatee is a proper
-          # subset of the targets delegated to it by the delegator.
-          # Nevertheless, we check it again here for performance and safety
-          # reasons.
-          if target_filepath in child_role_paths:
+      # Does the current role name have our target?
+      logger.info('Asking role '+role_name+' about target '+target_filepath)
+      for filepath, fileinfo in targets.iteritems():
+        if filepath == target_filepath:
+          logger.info('Found target '+target_filepath+' in role '+role_name)
+          target = {'filepath': filepath, 'fileinfo': fileinfo}
+          break
+
+      # Push children in reverse order of appearance onto the stack.
+      for child_role in reversed(child_roles):
+        child_role_name = child_role['name']
+        child_role_paths = child_role.get('paths')
+        child_role_path_hash_prefix = child_role.get('path_hash_prefix')
+
+        # Ensure that we explore only delegated roles trusted with the target.
+        # We assume conservation of delegated paths in the complete tree of
+        # delegations. Note that the call to _ensure_all_targets_allowed in
+        # _update_metadata should already ensure that all targets metadata is
+        # valid; i.e. that the targets signed by a delegatee is a proper
+        # subset of the targets delegated to it by the delegator.
+        # Nevertheless, we check it again here for performance and safety
+        # reasons.
+
+        if child_role_path_hash_prefix is not None:
+          if target_filepath_hash.startswith(child_role_path_hash_prefix):
             role_names.append(child_role_name)
-    except:
-      raise
-    finally:
-      # Raise an exception if the target information could not be retrieved.
-      if target is None:
-        message = target_filepath+' not found.'
-        logger.error(message)
-        raise tuf.RepositoryError(message)
-      # Otherwise, return the found target.
-      else:
-        return target
+        elif child_role_paths is not None:
+          # TODO: is child_role_paths directories or paths?
+          for child_role_path in child_role_paths:
+            if child_role_path.endswith('/'):
+              if target_filepath.startswith(child_role_path):
+                role_names.append(child_role_name)
+            else:
+              if target_filepath == child_role_path:
+                role_names.append(child_role_name)
+        else:
+          raise tuf.RepositoryError(str(child_role_name)+' has neither ' \
+                                    '"paths" nor "path_hash_prefix"!')
+
+    # Raise an exception if the target information could not be retrieved.
+    if target is None:
+      message = target_filepath+' not found.'
+      logger.error(message)
+      raise tuf.RepositoryError(message)
+    # Otherwise, return the found target.
+    else:
+      return target
 
 
 
