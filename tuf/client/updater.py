@@ -1619,10 +1619,11 @@ class Updater(object):
             # reasons.
             for child_role_path in child_role_paths:
               
-              # A child role path may be a filepath or directory.  Explore
-              # directories which may contain 'target_filepath'. 
+              # A child role path may be a filepath or directory.  The child
+              # role 'child_role_name' is added if 'target_filepath' is located
+              # under 'child_role_path'.  Explicit filepaths are also added.
               prefix = os.path.commonprefix([target_filepath, child_role_path])
-              if target_filepath in child_role_paths:
+              if prefix == child_role_path:
                 
                 # The metadata for 'child_role_name' will be retrieved on the next
                 # iteration of the while-loop.
