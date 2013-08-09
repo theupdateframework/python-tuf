@@ -1534,6 +1534,13 @@ class Updater(object):
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
+    # The algorithm used by the repository to generate the hashes of the
+    # target filepaths.  The repository may optionally organize
+    # targets into hashed bins to ease target delegations and role metadata
+    # management.  The use of consistent hashing allows for a uniform
+    # distribution of targets into bins. 
+    HASH_PATH_ALGORITHM = 'sha256'
+    
     # Ensure the client has the most up-to-date version of 'targets.txt'.
     # Raise 'tuf.MetadataNotAvailableError' if the changed metadata
     # cannot be successfully downloaded and 'tuf.RepositoryError' if the
@@ -1545,12 +1552,23 @@ class Updater(object):
     # The target is assumed to be missing until proven otherwise.
     target = None
 
+    # Calculate the hash of the filepath to determine which bin to find the 
+    # target.  The client currently assumes the repository uses
+    # 'HASH_PATH_ALGORITHM' to generate hashes.
+    # TODO: Should the TUF spec restrict the repository to one particular
+    # algorithm?  Should we allow the repository to specify in the role
+    # dictionary the algorithm used for these generated hashed paths?
+    digest_object = tuf.hash.digest(HASH_PATH_ALGORITHM)
+    digest_object.update(target_filepath)
+    target_file_path_hash = digest_object.hexdigest() 
+
     try:
       current_metadata = self.metadata['current']
       role_names = ['targets']
 
       # Preorder depth-first traversal of the tree of target delegations.
       while len(role_names) > 0 and target is None:
+        
         # Pop the role name from the top of the stack.
         role_name = role_names.pop(-1)
         
@@ -1575,20 +1593,48 @@ class Updater(object):
             break
 
         # Push children in reverse order of appearance onto the stack.
+        # NOTE: This may be a slow operation if there are many delegated roles
+        # or bins.
         for child_role in reversed(child_roles):
           child_role_name = child_role['name']
-          child_role_paths = child_role['paths']
+          child_role_paths = child_role.get('paths')
+          child_role_path_hash_prefix = child_role.get('path_hash_prefix')
 
-          # Ensure that we explore only delegated roles trusted with the target.
-          # We assume conservation of delegated paths in the complete tree of
-          # delegations. Note that the call to _ensure_all_targets_allowed in
-          # _update_metadata should already ensure that all targets metadata is
-          # valid; i.e. that the targets signed by a delegatee is a proper
-          # subset of the targets delegated to it by the delegator.
-          # Nevertheless, we check it again here for performance and safety
-          # reasons.
-          if target_filepath in child_role_paths:
-            role_names.append(child_role_name)
+          if child_role_path_hash_prefix is not None:
+            if target_file_path_hash.startswith(child_role_path_hash_prefix):
+              
+              # Found a matching path hash prefix.  The metadata for
+              # 'child_role_name' will be retrieved on the next iteration
+              # of the while-loop.
+              role_names.append(child_role_name)
+          elif child_role_paths is not None:
+            
+            # Ensure that we explore only delegated roles trusted with the target.
+            # We assume conservation of delegated paths in the complete tree of
+            # delegations. Note that the call to _ensure_all_targets_allowed in
+            # _update_metadata should already ensure that all targets metadata is
+            # valid; i.e. that the targets signed by a delegatee is a proper
+            # subset of the targets delegated to it by the delegator.
+            # Nevertheless, we check it again here for performance and safety
+            # reasons.
+            for child_role_path in child_role_paths:
+              
+              # A child role path may be a filepath or directory.  Explore
+              # directories which may contain 'target_filepath'. 
+              prefix = os.path.commonprefix([target_filepath, child_role_path])
+              if target_filepath in child_role_paths:
+                
+                # The metadata for 'child_role_name' will be retrieved on the next
+                # iteration of the while-loop.
+                role_names.append(child_role_name)
+          else:
+            
+            # 'role_name' should have been validated when it was downloaded.
+            # The 'paths' or 'path_hash_prefix' fields should not be missing,
+            # but log a warning if this else clause is reached. 
+            message = repr(child_role)+' unexpectedly did not contain one of '+\
+              'the required fields ("paths" or "path_hash_prefix").'
+            logger.warn(message)
     except:
       raise
     finally:
