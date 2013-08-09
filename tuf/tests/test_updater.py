@@ -41,6 +41,7 @@ import time
 import shutil
 import tempfile
 import logging
+import unittest
 
 import tuf.util
 import tuf.formats
