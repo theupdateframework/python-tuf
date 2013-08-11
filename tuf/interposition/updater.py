@@ -132,12 +132,25 @@ class Updater(object):
   def retrieve(self, url, filename=None, reporthook=None, data=None):
     INTERPOSITION_MESSAGE = "Interposing for {url}"
 
-    # TODO: set valid headers
-    content_type, content_encoding = mimetypes.guess_type(url)
-    headers = {"content-type": content_type}
-
     Logger.info(INTERPOSITION_MESSAGE.format(url=url))
+
+    # What is the actual target to download given the URL? Sometimes we would
+    # like to transform the given URL to the intended target; e.g. "/simple/"
+    # => "/simple/index.html".
     target_filepath = self.get_target_filepath(url)
+
+    # TODO: Set valid headers fetched from the actual download.
+    # NOTE: Important to guess the mime type from the target_filepath, not the
+    # unmodified URL.
+    content_type, content_encoding = mimetypes.guess_type(target_filepath)
+    headers = {
+      # NOTE: pip refers to this same header in at least these two duplicate
+      # ways.
+      "content-type": content_type,
+      "Content-Type": content_type,
+    }
+
+    # Download the target filepath determined by the original URL.
     temporary_directory, temporary_filename = self.download_target(target_filepath)
 
     if filename is None:
