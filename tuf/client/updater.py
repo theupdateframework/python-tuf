@@ -631,6 +631,7 @@ class Updater(object):
     
     # Construct the metadata filename as expected by the download/mirror modules.
     metadata_filename = metadata_role + '.txt'
+    uncompressed_metadata_filename = metadata_filename
    
     # The 'release' or Targets metadata may be compressed.  Add the appropriate
     # extension to 'metadata_filename'. 
@@ -661,6 +662,7 @@ class Updater(object):
     # 'tuf.formats.SIGNABLE_SCHEMA'.
     metadata_file_object = None
     metadata_signable = None
+    compressed_file_object = None
     for mirror_url in get_mirrors('meta', metadata_filename.encode("utf-8"), self.mirrors):
       try:
         metadata_file_object = download_file(mirror_url, file_hashes, 
@@ -669,6 +671,8 @@ class Updater(object):
         logger.warn('Download failed from '+mirror_url+'.')
         continue
       if compression:
+        compressed_file_object = tuf.util.TempFile()
+        shutil.copyfileobj(metadata_file_object, compressed_file_object)
         metadata_file_object.decompress_temp_file_object(compression)
 
       # Read and load the downloaded file.
@@ -747,7 +751,14 @@ class Updater(object):
     # Next, move the verified updated metadata file to the 'current' directory.
     # Note that the 'move' method comes from tuf.util's TempFile class.
     # 'metadata_file_object' is an instance of tuf.util.TempFile.
-    metadata_file_object.move(current_filepath)
+    if compression == 'gzip':
+      current_uncompressed_filepath = os.path.join(self.metadata_directory['current'],
+                                                   uncompressed_metadata_filename)
+      current_uncompressed_filepath = os.path.abspath(current_uncompressed_filepath)
+      metadata_file_object.move(current_uncompressed_filepath)
+      compressed_file_object.move(current_filepath)
+    else:
+      metadata_file_object.move(current_filepath)
     
     # Extract the metadata object so we can store it to the metadata store.
     # 'current_metadata_object' set to 'None' if there is not an object
@@ -756,7 +767,7 @@ class Updater(object):
     current_metadata_object = self.metadata['current'].get(metadata_role)
 
     # Finally, update the metadata and fileinfo stores.
-    logger.debug('Updated '+current_filepath+'.')
+    logger.debug('Updated '+repr(current_filepath)+'.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
     self._update_fileinfo(metadata_filename) 
@@ -843,7 +854,6 @@ class Updater(object):
     # metadata available on the repository, including any that may be in
     # compressed form.
     compression = None
-    gzip_metadata_filename = metadata_filename + '.gz'
     
     # Extract the new fileinfo of the uncompressed version of 'metadata_role'.
     new_fileinfo = self.metadata['current'][referenced_metadata] \
@@ -855,11 +865,13 @@ class Updater(object):
     # should always be 'release'.  'release.txt' specifies all roles
     # provided by a repository, including their file sizes and hashes.
     if metadata_role == 'release' or metadata_role.startswith('targets'):
+      gzip_metadata_filename = metadata_filename + '.gz'
       if gzip_metadata_filename in self.metadata['current'] \
                                                 [referenced_metadata]['meta']:
         compression = 'gzip'
         new_fileinfo = self.metadata['current'][referenced_metadata] \
                                     ['meta'][gzip_metadata_filename]
+        metadata_filename = gzip_metadata_filename
       else:
         message = 'Compressed version of '+repr(metadata_filename)+\
           ' not available.'
@@ -870,7 +882,7 @@ class Updater(object):
     if not self._fileinfo_has_changed(metadata_filename, new_fileinfo):
       return
 
-    logger.info('Metadata '+repr(metadata_filename)+' has changed.')
+    logger.debug('Metadata '+repr(metadata_filename)+' has changed.')
 
     try:
       self._update_metadata(metadata_role, fileinfo=new_fileinfo,
@@ -1046,7 +1058,7 @@ class Updater(object):
         dict conforms to 'tuf.formats.FILEINFO_SCHEMA' and has
         the form:
         {'length': 23423
-         'hashes': {'sha256': /dfbc32343..}}
+         'hashes': {'sha256': adfbc32343..}}
         
     <Exceptions>
       None.
@@ -1104,7 +1116,7 @@ class Updater(object):
     <Purpose>
       Update the 'self.fileinfo' entry for the metadata belonging to
       'metadata_filename'.  If the 'current' metadata for 'metadata_filename'
-      cannot be loaded, set the its fileinfo' to 'None' to  signal that
+      cannot be loaded, set its fileinfo' to 'None' to  signal that
       it is not in the 'self.fileinfo' AND it also doesn't exist locally.
 
     <Arguments>
@@ -1117,7 +1129,7 @@ class Updater(object):
 
     <Side Effects>
       The file details of 'metadata_filename' is calculated and
-      stored to the 'self.fileinfo' store.
+      stored in 'self.fileinfo'.
 
     <Returns>
       None.
@@ -1645,11 +1657,11 @@ class Updater(object):
           if child_role_name is None:
             logger.debug('Skipping child role '+repr(child_role_name))
           else:
-            logger.info('Adding child role '+repr(child_role_name))
+            logger.debug('Adding child role '+repr(child_role_name))
             role_names.append(child_role_name)
 
       else:
-        logger.info('Found target in current role '+repr(role_name))
+        logger.debug('Found target in current role '+repr(role_name))
 
     return target
 
@@ -1689,10 +1701,11 @@ class Updater(object):
     target = None
 
     # Does the current role name have our target?
-    logger.info('Asking role '+role_name+' about target '+target_filepath)
+    logger.debug('Asking role '+repr(role_name)+' about target '+\
+      repr(target_filepath))
     for filepath, fileinfo in targets.iteritems():
       if filepath == target_filepath:
-        logger.info('Found target '+target_filepath+' in role '+role_name)
+        logger.debug('Found target '+target_filepath+' in role '+role_name)
         target = {'filepath': filepath, 'fileinfo': fileinfo}
         break
       else:
@@ -1757,7 +1770,7 @@ class Updater(object):
       target_filepath_hash = self._get_target_hash(target_filepath)
 
       if target_filepath_hash.startswith(child_role_path_hash_prefix):
-        logger.info('Child role '+repr(child_role_name)+' has target '+
+        logger.debug('Child role '+repr(child_role_name)+' has target '+
                     repr(target_filepath))
         child_role_is_relevant = True
       else:
@@ -1774,7 +1787,7 @@ class Updater(object):
         prefix = os.path.commonprefix([target_filepath, child_role_path])
 
         if prefix == child_role_path:
-          logger.info('Child role '+repr(child_role_name)+' has target '+
+          logger.debug('Child role '+repr(child_role_name)+' has target '+
                       repr(target_filepath))
           child_role_is_relevant = True
         else:
