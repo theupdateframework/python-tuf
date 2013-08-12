@@ -1326,7 +1326,7 @@ class Updater(object):
     # convert it to seconds since the epoch, which is the time format
     # returned by time.time() (i.e., current time), before comparing.
     if tuf.formats.parse_time(expires) < time.time():
-      message = 'Metadata '+repr(rolepath)+' expired on '+expires+' UTC.'
+      message = 'Metadata '+repr(rolepath)+' expired on '+repr(expires)+'.'
       raise tuf.ExpiredMetadataError(message)
 
 
