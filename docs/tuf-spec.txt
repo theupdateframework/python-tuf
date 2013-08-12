@@ -564,29 +564,21 @@
            "name": ROLE,
            "keyids" : [ KEYID, ... ] ,
            "threshold" : THRESHOLD,
-           ("paths" : [ PATHPATTERN, ... ] | "path_hash_prefix" : HEX_DIGEST)
+           ("path_hash_prefixes" : [ HEX_DIGEST, ... ] |
+            "paths" : [ PATHPATTERN, ... ])
        }, ... ]
      }
 
    In order to discuss target paths, a role MUST specify only one of the
-   "paths" or "path_hash_prefix" attributes, each of which we discuss next.
+   "path_hash_prefixes" or "paths" attributes, each of which we discuss next.
 
-   The "paths" list describes paths that the role is trusted to provide.
-   Clients MUST check that a target is in one of the trusted paths of all roles
-   in a delegation chain, not just in a trusted path of the role that describes
-   the target file.  The format of a PATHPATTERN may be either a path to a single
-   file, or a path to a directory to indicate all files and/or subdirectories
-   under that directory.
-
-   A path to a directory is used to indicate all possible targets sharing that
-   directory as a prefix; e.g. if the directory is "targets/A", then targets
-   which match that directory include "targets/A/B.txt" and
-   "targets/A/B/C.txt".
-
-   The "path_hash_prefix" is used to succinctly describe a set of target paths.
-   The target paths must meet this condition: each target path, when hashed
-   with the SHA-256 hash function to produce a 64-byte hexadecimal digest, must
-   share the same prefix as the specified "path_hash_prefix". This is useful to
+   The "path_hash_prefixes" list is used to succinctly describe a set of target
+   paths. Specifically, each HEX_DIGEST in "path_hash_prefixes" describes a set
+   of target paths; therefore, "path_hash_prefixes" is the union over each
+   prefix of its set of target paths. The target paths must meet this
+   condition: each target path, when hashed with the SHA-256 hash function to
+   produce a 64-byte hexadecimal digest (HEX_DIGEST), must share the same
+   prefix as one of the prefixes in "path_hash_prefixes". This is useful to
    split a large number of targets into separate bins identified by consistent
    hashing.
 
@@ -594,17 +586,29 @@
    algorithm?  Should we allow the repository to specify in the role dictionary
    the algorithm used for these generated hashed paths?
 
+   The "paths" list describes paths that the role is trusted to provide.
+   Clients MUST check that a target is in one of the trusted paths of all roles
+   in a delegation chain, not just in a trusted path of the role that describes
+   the target file.  The format of a PATHPATTERN may be either a path to a
+   single file, or a path to a directory to indicate all files and/or
+   subdirectories under that directory.
+
+   A path to a directory is used to indicate all possible targets sharing that
+   directory as a prefix; e.g. if the directory is "targets/A", then targets
+   which match that directory include "targets/A/B.txt" and
+   "targets/A/B/C.txt".
+
    We are currently investigating a few "priority tag" schemes to resolve
    conflicts between delegated roles that share responsibility for overlapping
    target paths. One of the simplest of such schemes is for the client to
    consider metadata in order of appearance of delegations; we treat the order
    of delegations such that the first delegation is trusted more than the
    second one, the second delegation is trusted more than the third one, and so
-   on. The metadata of the first delegation will override that of the second delegation,
-   the metadata of the second delegation will override that of the third
-   delegation, and so on. In order to accommodate this scheme, the "roles" key
-   in the DELEGATIONS object above points to an array, instead of a hash
-   table, of delegated roles.
+   on. The metadata of the first delegation will override that of the second
+   delegation, the metadata of the second delegation will override that of the
+   third delegation, and so on. In order to accommodate this scheme, the
+   "roles" key in the DELEGATIONS object above points to an array, instead of a
+   hash table, of delegated roles.
 
    Another priority tag scheme would have the clients prefer the delegated role
    with the latest metadata for a conflicting target path. Similar ideas were

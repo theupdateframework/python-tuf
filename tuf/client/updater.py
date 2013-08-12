@@ -935,9 +935,9 @@ class Updater(object):
     <Exceptions>
       tuf.RepositoryError:
         If the targets of 'metadata_role' are not allowed according to
-        the parent's metadata file.  The 'paths' and 'path_hash_prefix' fields
-        are verified.
-    
+        the parent's metadata file.  The 'paths' and 'path_hash_prefixes'
+        attributes are verified.
+
     <Side Effects>
       None.
 
@@ -962,27 +962,24 @@ class Updater(object):
     roles = self.metadata['current'][parent_role]['delegations']['roles']
     role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
 
-    # Ensure the delegated role exists prior to extracting trusted paths
-    # from the parent's 'paths', or trusted path hash prefixes from the parent's
-    # 'path_hash_prefix'.
+    # Ensure the delegated role exists prior to extracting trusted paths from
+    # the parent's 'paths', or trusted path hash prefixes from the parent's
+    # 'path_hash_prefixes'.
     if role_index is not None:
       role = roles[role_index] 
       allowed_child_paths = role.get('paths')
-      allowed_child_path_hash_prefix = role.get('path_hash_prefix') 
+      allowed_child_path_hash_prefixes = role.get('path_hash_prefixes')
       actual_child_targets = metadata_object['targets'].keys()
-    
-      if allowed_child_path_hash_prefix is not None:
-        for child_target in actual_child_targets:
-          # Calculate the hash of 'child_target' to determine if it has been
-          # placed in the correct bin. 
-          child_target_path_hash = self._get_target_hash(child_target)
 
-          if not child_target_path_hash.startswith(allowed_child_path_hash_prefix):
-            message = 'Role '+repr(metadata_role)+' specifies target '+\
-              repr(child_target)+ ' which does not have a path hash prefix '+\
-              'matching the prefix listed by the parent role '+\
-              repr(parent_role)+'.'
-            raise tuf.RepositoryError(message)
+      if allowed_child_path_hash_prefixes is not None:
+        consistent = self._paths_are_consistent_with_hash_prefixes
+        if not consistent(actual_child_targets,
+                          allowed_child_path_hash_prefixes):
+          raise tuf.RepositoryError('Role '+repr(metadata_role)+' specifies '+\
+                                    'target which does not have a path hash '+\
+                                    'prefix matching the prefix listed by '+\
+                                    'the parent role '+repr(parent_role)+'.')
+
       elif allowed_child_paths is not None: 
 
         # Check that each delegated target is either explicitly listed or a parent
@@ -1002,14 +999,14 @@ class Updater(object):
               repr(child_target)+' which is not an allowed path according '+\
               'to the delegations set by '+repr(parent_role)+'.'
             raise tuf.RepositoryError(message)
+
       else:
-        
+
         # 'role' should have been validated when it was downloaded.
-        # The 'paths' or 'path_hash_prefix' fields should not be missing,
-        # so log a warning if this else clause is reached. 
-        message = repr(role)+' unexpectedly did not contain one of '+\
-          'the required fields ("paths" or "path_hash_prefix").'
-        logger.warn(message)
+        # The 'paths' or 'path_hash_prefixes' attributes should not be missing,
+        # so log a warning if this clause is reached.
+        logger.warn(repr(role)+' unexpectedly did not contain one of '+\
+                    'the required fields ("paths" or "path_hash_prefixes").')
 
     # Raise an exception if the parent has not delegated to the specified
     # 'metadata_role' child role.
@@ -1017,7 +1014,55 @@ class Updater(object):
       message = repr(parent_role)+' has not delegated to '+\
         repr(metadata_role)+'.'
       raise tuf.RepositoryError(message)
-          
+
+
+
+
+
+    def _paths_are_consistent_with_hash_prefixes(paths, path_hash_prefixes):
+      """
+      <Purpose>
+        Determine whether a list of paths are consistent with theirs alleged
+        path hash prefixes. By default, the SHA256 hash function will be used.
+
+      <Arguments>
+        paths:
+          A list of paths for which their hashes will be checked.
+
+        path_hash_prefixes:
+          The list of path hash prefixes with which to check the list of paths.
+
+      <Exceptions>
+        No known exceptions.
+
+      <Side Effects>
+        No known side effects.
+
+      <Returns>
+        A Boolean indicating whether or not the paths are consistent with the
+        hash prefix.
+      """
+
+      # Assume that 'paths' and 'path_hash_prefixes' are inconsistent until
+      # proven otherwise.
+      consistent = False
+
+      if len(paths) > 0 and len(path_hash_prefixes) > 0:
+        for path in paths:
+          path_hash = self._get_target_hash(path)
+          # Assume that every path is inconsistent until proven otherwise.
+          consistent = False
+
+          for path_hash_prefix in path_hash_prefixes:
+            if path_hash.startswith(path_hash_prefix):
+              consistent = True
+              break
+
+          # This path has no matching path_hash_prefix. Stop looking further.
+          if not consistent: break
+
+      return consistent
+
 
 
 
@@ -1726,7 +1771,7 @@ class Updater(object):
     <Arguments>
       child_role:
         The delegation targets role object of 'child_role', containing its
-        paths, path_hash_prefix, keys and so on.
+        paths, path_hash_prefixes, keys and so on.
 
       target_filepath:
         The path to the target file on the repository. This will be relative to
@@ -1748,50 +1793,40 @@ class Updater(object):
 
     child_role_name = child_role['name']
     child_role_paths = child_role.get('paths')
-    child_role_path_hash_prefix = child_role.get('path_hash_prefix')
+    child_role_path_hash_prefixes = child_role.get('path_hash_prefixes')
     # A boolean indicator that tell us whether 'child_role' has been delegated
     # the target with the name 'target_filepath'.
     child_role_is_relevant = False
 
-    if child_role_path_hash_prefix is not None:
+    if child_role_path_hash_prefixes is not None:
       target_filepath_hash = self._get_target_hash(target_filepath)
-
-      if target_filepath_hash.startswith(child_role_path_hash_prefix):
-        logger.info('Child role '+repr(child_role_name)+' has target '+
-                    repr(target_filepath))
-        child_role_is_relevant = True
-      else:
-        logger.debug('Child role '+repr(child_role_name)+
-                     ' does not have target '+repr(target_filepath))
+      for child_role_path_hash_prefix in child_role_path_hash_prefixes:
+        if target_filepath_hash.startswith(child_role_path_hash_prefix):
+          child_role_is_relevant = True
 
     elif child_role_paths is not None:
-
       for child_role_path in child_role_paths:
-        
         # A child role path may be a filepath or directory.  The child
         # role 'child_role_name' is added if 'target_filepath' is located
         # under 'child_role_path'.  Explicit filepaths are also added.
         prefix = os.path.commonprefix([target_filepath, child_role_path])
-
         if prefix == child_role_path:
-          logger.info('Child role '+repr(child_role_name)+' has target '+
-                      repr(target_filepath))
           child_role_is_relevant = True
-        else:
-          logger.debug('Child role '+repr(child_role_name)+
-                       ' does not have target '+repr(target_filepath))
 
     else:
-      
       # 'role_name' should have been validated when it was downloaded.
-      # The 'paths' or 'path_hash_prefix' fields should not be missing,
-      # so log a warning if this else clause is reached. 
+      # The 'paths' or 'path_hash_prefixes' fields should not be missing,
+      # so we raise a format error here in case they are both missing.
       raise tuf.FormatError(repr(child_role_name)+' has neither ' \
-                                '"paths" nor "path_hash_prefix"!')
+                                '"paths" nor "path_hash_prefixes"!')
 
     if child_role_is_relevant:
+      logger.info('Child role '+repr(child_role_name)+' has target '+
+                  repr(target_filepath))
       return child_role_name
     else:
+      logger.debug('Child role '+repr(child_role_name)+
+                   ' does not have target '+repr(target_filepath))
       return None
 
 
@@ -1802,8 +1837,8 @@ class Updater(object):
     """
     <Purpose>
       Compute the hash of 'target_filepath'. This is useful in conjunction with
-      the "path_hash_prefix" attribute in a delegated targets role, which tells
-      us which paths it is implicitly responsible for.
+      the "path_hash_prefixes" attribute in a delegated targets role, which
+      tells us which paths it is implicitly responsible for.
 
     <Arguments>
       target_filepath:
