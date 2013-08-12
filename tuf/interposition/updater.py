@@ -2,6 +2,7 @@ import mimetypes
 import os.path
 import re
 import shutil
+import tempfile
 import urllib
 import urlparse
 
@@ -37,7 +38,12 @@ class Updater(object):
 
 
   def __init__(self, configuration):
+    CREATED_TEMPDIR_MESSAGE = "Created temporary directory at {tempdir}"
+
     self.configuration = configuration
+    # A temporary directory used for this updater over runtime.
+    self.tempdir = tempfile.mkdtemp()
+    Logger.debug(CREATED_TEMPDIR_MESSAGE.format(tempdir=self.tempdir))
 
     # must switch context before instantiating updater
     # because updater depends on some module (tuf.conf) variables
@@ -46,11 +52,19 @@ class Updater(object):
                                               self.configuration.repository_mirrors)
 
 
+  def cleanup(self):
+    """Clean up after certain side effects, such as temporary directories."""
+
+    DELETED_TEMPDIR_MESSAGE = "Deleted temporary directory at {tempdir}"
+    shutil.rmtree(self.tempdir)
+    Logger.debug(DELETED_TEMPDIR_MESSAGE.format(tempdir=self.tempdir))
+
+
   def download_target(self, target_filepath):
     """Downloads target with TUF as a side effect."""
 
     # download file into a temporary directory shared over runtime
-    destination_directory = self.configuration.tempdir
+    destination_directory = self.tempdir
     filename = os.path.join(destination_directory, target_filepath)
 
     self.switch_context()   # switch TUF context
@@ -314,8 +328,12 @@ class UpdaterController(object):
     assert configuration.hostname in self.__updaters
     assert repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames)
 
+    # Get the updater.
+    updater = self.__updaters.get(configuration.hostname)
+
     # If all is well, remove the stored Updater as well as its associated
     # repository mirror hostnames.
+    updater.cleanup()
     del self.__updaters[configuration.hostname]
     self.__repository_mirror_hostnames.difference_update(repository_mirror_hostnames)
 
