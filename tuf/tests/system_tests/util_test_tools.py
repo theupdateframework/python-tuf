@@ -154,6 +154,8 @@ def disable_logging():
 
 PASSWD = 'test'
 version = 1
+# Where we keep TUF configurations, if any, between every iteration.
+tuf_configurations = None
 
 
 def init_repo(tuf=False, port=None):
@@ -196,6 +198,8 @@ def init_repo(tuf=False, port=None):
 
 
 def cleanup(root_repo, server_process=None):
+  global tuf_configurations
+
   if server_process is not None:
     if server_process.returncode is None:
       server_process.kill()
@@ -206,9 +210,9 @@ def cleanup(root_repo, server_process=None):
   keystore.clear_keystore()
 
   # Deconfigure interposition.
-  interpose_json = os.path.join(root_repo, 'tuf.interposition.json')
-  if os.path.exists(interpose_json):
-    tuf.interposition.deconfigure(filename=interpose_json)
+  if tuf_configurations is not None:
+    tuf.interposition.deconfigure(tuf_configurations)
+    tuf_configurations = None
 
   # Removing repository directory.
   try:
@@ -365,7 +369,9 @@ def create_interposition_config(root_repo, url):
        (urllib_tuf replaces urllib module)
        urllib_tuf.urlretrieve(url, filename)
 
-  """ 
+  """
+
+  global tuf_configurations
 
   tuf_repo = os.path.join(root_repo, 'tuf_repo')
   tuf_client = os.path.join(root_repo, 'tuf_client')
@@ -396,7 +402,8 @@ def create_interposition_config(root_repo, url):
   with open(interpose_json, 'wb') as fileobj:
     tuf.util.json.dump(interposition_dict, fileobj)
 
-  tuf.interposition.configure(filename=interpose_json)
+  assert tuf_configurations is None
+  tuf_configurations = tuf.interposition.configure(filename=interpose_json)
 
 
 

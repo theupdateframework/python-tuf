@@ -338,3 +338,8 @@ class UpdaterController(object):
     self.__repository_mirror_hostnames.difference_update(repository_mirror_hostnames)
 
     Logger.info(UPDATER_REMOVED_MESSAGE.format(configuration=configuration))
+
+
+
+
+
