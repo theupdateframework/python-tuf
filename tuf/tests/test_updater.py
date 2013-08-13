@@ -1150,5 +1150,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.download.download_url_to_tempfileobj = original_download
 
 
+def tearDownModule():
+  setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
+  unittest_toolbox.Modified_TestCase.clear_toolbox()
+
 if __name__ == '__main__':
   unittest.main()

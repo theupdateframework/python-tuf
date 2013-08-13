@@ -27,11 +27,14 @@ import glob
 import tuf.keydb as keydb
 import tuf.repo.keystore as keystore
 import tuf.roledb as roledb
+import random
 
 tests_list = glob.glob('test_*.py')
 
 # Remove '.py' from each filename.
 tests_list = [test[:-3] for test in tests_list]
+
+random.shuffle(tests_list)
 
 suite = unittest.TestLoader().loadTestsFromNames(tests_list)
 
