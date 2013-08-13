@@ -394,7 +394,7 @@ def download_url_to_tempfileobj(url, required_hashes=None,
     if required_length is not None and file_length != required_length:
       message = 'Incorrect length for '+url+'. Expected '+str(required_length)+ \
                 ', got '+str(file_length)+' bytes.'
-      raise tuf.DownloadError(message)
+      logger.warn(message)
 
     # For readibility, we perform the download in a separate function, which
     # returns the total number of downloaded bytes; this number should be equal
@@ -402,6 +402,12 @@ def download_url_to_tempfileobj(url, required_hashes=None,
     total_downloaded = _download_fixed_amount_of_data(connection, temp_file,
                                                       file_length,
                                                       required_length)
+  
+    # Does 'total_downloaded' match 'required_length'?
+    if total_downloaded != required_length:
+      message = 'Total downloaded length '+str(total_downloaded)+ \
+		' bytes doesn\'t match required length '+str(required_length)+' bytes.'
+      raise tuf.DownloadError(message)
  
     # We appear to have downloaded the correct amount.  Check the hashes.
     if required_length is not None and required_hashes is not None: 

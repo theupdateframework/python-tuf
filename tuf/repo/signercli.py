@@ -116,6 +116,10 @@ def _prompt(message, result_type=str):
     caller.
 
   """
+  # we need to use unicode in python 2
+  python_version = sys.version_info[0]
+  if python_version==2:
+    str = unicode
 
   return result_type(raw_input(message))
 
