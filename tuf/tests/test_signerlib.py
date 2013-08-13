@@ -975,6 +975,10 @@ class TestSignerlib(unit_tbox):
                                           filename)
     return signed_meta, role_info
 
+def tearDownModule():
+  unit_tbox.clear_toolbox()
+  tuf.repo.keystore.clear_keystore()
+
 
 if __name__ == '__main__':
   unittest.main()
