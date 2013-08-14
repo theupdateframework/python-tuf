@@ -1882,7 +1882,16 @@ class Updater(object):
     # 'hash_function' to generate hashes.
 
     digest_object = tuf.hash.digest(hash_function)
-    digest_object.update(target_filepath)
+
+    try:
+      digest_object.update(target_filepath)
+    except UnicodeEncodeError:
+      # Sometimes, there are Unicode characters in target paths. We assume a
+      # UTF-8 encoding and try to hash that.
+      digest_object = tuf.hash.digest(hash_function)
+      encoded_target_filepath = target_filepath.encode('utf-8')
+      digest_object.update(encoded_target_filepath)
+
     target_filepath_hash = digest_object.hexdigest() 
 
     return target_filepath_hash
