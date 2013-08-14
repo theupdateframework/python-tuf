@@ -55,6 +55,7 @@ import logging
 import time
 
 import tuf
+import tuf.formats
 
 # Setting a handler's log level filters only logging messages of that level
 # (and above).  For example, setting the built-in StreamHandler's log level to
