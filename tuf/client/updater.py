@@ -1835,8 +1835,8 @@ class Updater(object):
                                 '"paths" nor "path_hash_prefixes"!')
 
     if child_role_is_relevant:
-      logger.info('Child role '+repr(child_role_name)+' has target '+
-                  repr(target_filepath))
+      logger.debug('Child role '+repr(child_role_name)+' has target '+
+                   repr(target_filepath))
       return child_role_name
     else:
       logger.debug('Child role '+repr(child_role_name)+

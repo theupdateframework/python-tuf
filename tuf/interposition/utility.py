@@ -20,6 +20,7 @@ class Logger(object):
   """A static logging object for tuf.interposition."""
 
 
+  tuf.log.add_console_handler()
   __logger = logging.getLogger("tuf.interposition")
 
 
