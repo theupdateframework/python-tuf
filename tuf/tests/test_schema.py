@@ -17,8 +17,13 @@
 """
 
 import unittest
+import logging
 
+import tuf
+import tuf.log
 import tuf.schema
+
+logger = logging.getLogger('tuf.test_schema')
 
 
 class TestSchema(unittest.TestCase):

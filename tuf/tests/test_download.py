@@ -19,12 +19,9 @@
 
 NOTE: Make sure test_download.py is ran in 'tuf/tests/' directory.
 Otherwise, module that launches simple server would not be found.  
+
 """
 
-import tuf
-import tuf.log
-import tuf.download as download
-import tuf.tests.unittest_toolbox as unittest_toolbox
 
 import os
 import sys
@@ -37,11 +34,12 @@ import subprocess
 import SocketServer
 import SimpleHTTPServer
 
-logger = logging.getLogger('tuf')
+import tuf
+import tuf.log
+import tuf.download as download
+import tuf.tests.unittest_toolbox as unittest_toolbox
 
-# Disable/Enable logging.  Comment-out to Enable logging.
-logging.getLogger('tuf')
-logging.disable(logging.CRITICAL)
+logger = logging.getLogger('tuf.test_download')
 
 
 class TestDownload(unittest_toolbox.Modified_TestCase):

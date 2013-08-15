@@ -106,6 +106,7 @@ import os
 import shutil
 import time
 
+import tuf
 import tuf.conf
 import tuf.download
 import tuf.formats
@@ -117,7 +118,7 @@ import tuf.roledb
 import tuf.sig
 import tuf.util
 
-logger = logging.getLogger('tuf')
+logger = logging.getLogger('tuf.client.updater')
 
 
 class Updater(object):
@@ -912,7 +913,9 @@ class Updater(object):
       under 'paths'.  A parent role may delegate trust to all files under a 
       particular directory, including files in subdirectories, by simply
       listing the directory (e.g., 'packages/source/Django/', the equivalent
-      of 'packages/source/Django/*').
+      of 'packages/source/Django/*').  Targets listed in hashed bins are
+      also validated (i.e., its calculated path hash prefix must be delegated
+      by the parent role.
 
     <Arguments>
       metadata_role:
@@ -928,7 +931,8 @@ class Updater(object):
     <Exceptions>
       tuf.RepositoryError:
         If the targets of 'metadata_role' are not allowed according to
-        the parent's metadata file.
+        the parent's metadata file.  The 'paths' and 'path_hash_prefix' fields
+        are verified.
     
     <Side Effects>
       None.
@@ -938,6 +942,13 @@ class Updater(object):
     
     """
 
+    # The algorithm used by the repository to generate the hashes of the
+    # target filepaths.  The repository may optionally organize
+    # targets into hashed bins to ease target delegations and role metadata
+    # management.  The use of consistent hashing allows for a uniform
+    # distribution of targets into bins. 
+    HASH_PATH_ALGORITHM = 'sha256'
+    
     # Return if 'metadata_role' is 'targets'.  'targets' is not
     # a delegated role.
     if metadata_role == 'targets':
@@ -955,30 +966,60 @@ class Updater(object):
     role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
 
     # Ensure the delegated role exists prior to extracting trusted paths
-    # from the parent's 'paths'.
+    # from the parent's 'paths', or trusted path hash prefixes from the parent's
+    # 'path_hash_prefix'.
     if role_index is not None:
       role = roles[role_index] 
-      allowed_child_paths = role['paths']
+      allowed_child_paths = role.get('paths')
+      allowed_child_path_hash_prefix = role.get('path_hash_prefix') 
       actual_child_targets = metadata_object['targets'].keys()
-      
-      # Check that each delegated target is either explicitly listed or a parent
-      # directory is found under role['paths'], otherwise raise an exception.
-      # If the parent role explicitly lists target file paths in 'paths',
-      # this loop will run in O(n^2), the worst-case.  The repository
-      # maintainer will likely delegate entire directories, and opt for
-      # explicit file paths if the targets in a directory are delegated to 
-      # different roles/developers.
-      for child_target in actual_child_targets:
-        for allowed_child_path in allowed_child_paths:
-          prefix = os.path.commonprefix([child_target, allowed_child_path])
-          if prefix == allowed_child_path:
-            break
-        else: 
-          message = 'Role '+repr(metadata_role)+' specifies target '+\
-            repr(child_target)+' which is not an allowed path according '+\
-            'to the delegations set by '+repr(parent_role)+'.'
-          raise tuf.RepositoryError(message)
     
+      if allowed_child_path_hash_prefix is not None:
+        for child_target in actual_child_targets:
+          # Calculate the hash of 'child_target' to determine if it has been
+          # placed in the correct bin.  The client currently assumes the
+          # repository uses 'HASH_PATH_ALGORITHM' to generate hashes.
+          # TODO: Should the TUF spec restrict the repository to one particular
+          # algorithm?  Should we allow the repository to specify in the role
+          # dictionary the algorithm used for these generated hashed paths?
+          digest_object = tuf.hash.digest(HASH_PATH_ALGORITHM)
+          digest_object.update(child_target)
+          child_target_path_hash = digest_object.hexdigest()
+
+          if not child_target_path_hash.startswith(allowed_child_path_hash_prefix):
+            message = 'Role '+repr(metadata_role)+' specifies target '+\
+              repr(child_target)+ ' which does not have a path hash prefix '+\
+              'matching the prefix listed by the parent role '+\
+              repr(parent_role)+'.'
+            raise tuf.RepositoryError(message)
+      elif allowed_child_paths is not None: 
+
+        # Check that each delegated target is either explicitly listed or a parent
+        # directory is found under role['paths'], otherwise raise an exception.
+        # If the parent role explicitly lists target file paths in 'paths',
+        # this loop will run in O(n^2), the worst-case.  The repository
+        # maintainer will likely delegate entire directories, and opt for
+        # explicit file paths if the targets in a directory are delegated to 
+        # different roles/developers.
+        for child_target in actual_child_targets:
+          for allowed_child_path in allowed_child_paths:
+            prefix = os.path.commonprefix([child_target, allowed_child_path])
+            if prefix == allowed_child_path:
+              break
+          else: 
+            message = 'Role '+repr(metadata_role)+' specifies target '+\
+              repr(child_target)+' which is not an allowed path according '+\
+              'to the delegations set by '+repr(parent_role)+'.'
+            raise tuf.RepositoryError(message)
+      else:
+        
+        # 'role' should have been validated when it was downloaded.
+        # The 'paths' or 'path_hash_prefix' fields should not be missing,
+        # so log a warning if this else clause is reached. 
+        message = repr(role)+' unexpectedly did not contain one of '+\
+          'the required fields ("paths" or "path_hash_prefix").'
+        logger.warn(message)
+
     # Raise an exception if the parent has not delegated to the specified
     # 'metadata_role' child role.
     else:
@@ -1014,7 +1055,7 @@ class Updater(object):
         dict conforms to 'tuf.formats.FILEINFO_SCHEMA' and has
         the form:
         {'length': 23423
-         'hashes': {'sha256': adfbc32343..}}
+         'hashes': {'sha256': /dfbc32343..}}
         
     <Exceptions>
       None.
@@ -1534,6 +1575,13 @@ class Updater(object):
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
+    # The algorithm used by the repository to generate the hashes of the
+    # target filepaths.  The repository may optionally organize
+    # targets into hashed bins to ease target delegations and role metadata
+    # management.  The use of consistent hashing allows for a uniform
+    # distribution of targets into bins. 
+    HASH_PATH_ALGORITHM = 'sha256'
+    
     # Ensure the client has the most up-to-date version of 'targets.txt'.
     # Raise 'tuf.MetadataNotAvailableError' if the changed metadata
     # cannot be successfully downloaded and 'tuf.RepositoryError' if the
@@ -1545,12 +1593,23 @@ class Updater(object):
     # The target is assumed to be missing until proven otherwise.
     target = None
 
+    # Calculate the hash of the filepath to determine which bin to find the 
+    # target.  The client currently assumes the repository uses
+    # 'HASH_PATH_ALGORITHM' to generate hashes.
+    # TODO: Should the TUF spec restrict the repository to one particular
+    # algorithm?  Should we allow the repository to specify in the role
+    # dictionary the algorithm used for these generated hashed paths?
+    digest_object = tuf.hash.digest(HASH_PATH_ALGORITHM)
+    digest_object.update(target_filepath)
+    target_file_path_hash = digest_object.hexdigest() 
+
     try:
       current_metadata = self.metadata['current']
       role_names = ['targets']
 
       # Preorder depth-first traversal of the tree of target delegations.
       while len(role_names) > 0 and target is None:
+        
         # Pop the role name from the top of the stack.
         role_name = role_names.pop(-1)
         
@@ -1575,20 +1634,49 @@ class Updater(object):
             break
 
         # Push children in reverse order of appearance onto the stack.
+        # NOTE: This may be a slow operation if there are many delegated roles
+        # or bins.
         for child_role in reversed(child_roles):
           child_role_name = child_role['name']
-          child_role_paths = child_role['paths']
+          child_role_paths = child_role.get('paths')
+          child_role_path_hash_prefix = child_role.get('path_hash_prefix')
 
-          # Ensure that we explore only delegated roles trusted with the target.
-          # We assume conservation of delegated paths in the complete tree of
-          # delegations. Note that the call to _ensure_all_targets_allowed in
-          # _update_metadata should already ensure that all targets metadata is
-          # valid; i.e. that the targets signed by a delegatee is a proper
-          # subset of the targets delegated to it by the delegator.
-          # Nevertheless, we check it again here for performance and safety
-          # reasons.
-          if target_filepath in child_role_paths:
-            role_names.append(child_role_name)
+          if child_role_path_hash_prefix is not None:
+            if target_file_path_hash.startswith(child_role_path_hash_prefix):
+              
+              # Found a matching path hash prefix.  The metadata for
+              # 'child_role_name' will be retrieved on the next iteration
+              # of the while-loop.
+              role_names.append(child_role_name)
+          elif child_role_paths is not None:
+            
+            # Ensure that we explore only delegated roles trusted with the target.
+            # We assume conservation of delegated paths in the complete tree of
+            # delegations. Note that the call to _ensure_all_targets_allowed in
+            # _update_metadata should already ensure that all targets metadata is
+            # valid; i.e. that the targets signed by a delegatee is a proper
+            # subset of the targets delegated to it by the delegator.
+            # Nevertheless, we check it again here for performance and safety
+            # reasons.
+            for child_role_path in child_role_paths:
+              
+              # A child role path may be a filepath or directory.  The child
+              # role 'child_role_name' is added if 'target_filepath' is located
+              # under 'child_role_path'.  Explicit filepaths are also added.
+              prefix = os.path.commonprefix([target_filepath, child_role_path])
+              if prefix == child_role_path:
+                
+                # The metadata for 'child_role_name' will be retrieved on the next
+                # iteration of the while-loop.
+                role_names.append(child_role_name)
+          else:
+            
+            # 'role_name' should have been validated when it was downloaded.
+            # The 'paths' or 'path_hash_prefix' fields should not be missing,
+            # so log a warning if this else clause is reached. 
+            message = repr(child_role)+' unexpectedly did not contain one of '+\
+              'the required fields ("paths" or "path_hash_prefix").'
+            logger.warn(message)
     except:
       raise
     finally:

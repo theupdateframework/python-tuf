@@ -25,18 +25,18 @@ import os
 import shutil
 import unittest
 import logging
-import tuf.repo.quickstart as quickstart
 
+import tuf
+import tuf.log
+import tuf.repo.quickstart as quickstart
 import tuf.util
 import tuf.tests.unittest_toolbox
 
-
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
-
+logger = logging.getLogger('tuf.test_quickstart')
 unit_tbox = tuf.tests.unittest_toolbox.Modified_TestCase
 
+
+logger.info('from test_quickstart')
 
 class TestQuickstart(unit_tbox):
   def test_1_get_password(self):

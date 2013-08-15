@@ -20,6 +20,7 @@
 
 import unittest
 
+import tuf
 import tuf.formats
 import tuf.schema
 
