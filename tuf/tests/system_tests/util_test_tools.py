@@ -147,12 +147,6 @@ import tuf.repo.keystore as keystore
 
 logger = logging.getLogger('tuf.tests.system_tests.util_test_tools')
 
-# Disable logging for cleaner output.
-def disable_logging():
-  logging.getLogger('tuf')
-  logging.disable(logging.CRITICAL)
-
-
 PASSWD = 'test'
 version = 1
 
