@@ -23,6 +23,7 @@ import os
 import ConfigParser
 import logging
 
+import tuf
 import tuf.formats
 import tuf.rsa_key
 import tuf.repo.keystore

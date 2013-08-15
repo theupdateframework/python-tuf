@@ -59,6 +59,7 @@ import os
 import sys
 import optparse
 
+import tuf
 import tuf.formats
 import tuf.pushtools.pushtoolslib
 import tuf.pushtools.transfer.scp

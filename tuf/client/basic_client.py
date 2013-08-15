@@ -55,6 +55,8 @@ import sys
 import optparse
 import logging
 
+import tuf
+import tuf.formats
 import tuf.client.updater
 import tuf.log
 

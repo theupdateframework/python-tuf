@@ -24,12 +24,13 @@
 """
 
 
+import logging
+
 # Import tuf Exceptions.
 import tuf
 import tuf.log
 
 # Import tuf logger to log warning messages.
-import logging
 logger = logging.getLogger('tuf.hash')
 
 # The list of hash libraries imported successfully.
@@ -50,7 +51,7 @@ try:
   from Crypto.Hash import SHA512
   _supported_libraries.append('pycrypto')
 except ImportError:
-  logger.warn('Pycrypto hash algorithms could not be imported.  '
+  logger.debug('Pycrypto hash algorithms could not be imported.  '
               'Supported libraries: '+str(_SUPPORTED_LIB_LIST))
 
   pass
@@ -61,7 +62,7 @@ try:
   import hashlib
   _supported_libraries.append('hashlib')
 except ImportError:
-  logger.warn('Hashlib could not be imported.  '
+  logger.debug('Hashlib could not be imported.  '
               'Supported libraries: '+str(_SUPPORTED_LIB_LIST)) 
   pass
 

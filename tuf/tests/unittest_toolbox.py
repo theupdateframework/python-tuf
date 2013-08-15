@@ -159,10 +159,11 @@ class Modified_TestCase(unittest.TestCase):
 
   def tearDown(self):
     # Removing 'tuf.log' file from current working directory.
+    """
     tuf_log_path = os.path.join(os.getcwd(), 'tuf.log')
     if os.path.exists(tuf_log_path):
       os.unlink(tuf_log_path)
-
+    """
     for cleanup_function in self._cleanup:
       # Perform clean up by executing clean-up functions.
       try:
