@@ -24,9 +24,7 @@ import time
 import random
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
-
 DELAY = 1
-
 
 
 # HTTP request handler.
