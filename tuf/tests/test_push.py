@@ -24,20 +24,17 @@ import unittest
 import ConfigParser
 
 import tuf
+import tuf.log
 import tuf.pushtools.push as push
 import tuf.pushtools.transfer.scp as scp
 import tuf.pushtools.pushtoolslib as pushtoolslib
-import system_tests.util_test_tools as util_test_tools
+import tuf.tests.system_tests.util_test_tools as util_test_tools
 
-logger = logging.getLogger('tuf')
+logger = logging.getLogger('tuf.test_push')
 
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
 
 class TestPush(unittest.TestCase):
   src_push_dict = {}
-  logger.info(scp.transfer)
   
   ORIGINAL_PUSH_CONFIG = pushtoolslib.PUSH_CONFIG
 

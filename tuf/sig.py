@@ -36,6 +36,7 @@
 
 """
 
+import tuf
 import tuf.formats
 import tuf.keydb
 import tuf.roledb

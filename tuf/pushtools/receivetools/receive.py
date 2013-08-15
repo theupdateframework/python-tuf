@@ -155,6 +155,7 @@ import time
 import logging
 import optparse
 
+import tuf
 import tuf.formats
 import tuf.keydb
 import tuf.roledb
@@ -165,7 +166,7 @@ import tuf.log
 import tuf.pushtools.pushtoolslib
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.receive')
+logger = logging.getLogger('tuf.pushtools.receivetools.receive')
 
 
 def receive(config_filepath):
@@ -257,7 +258,7 @@ def receive(config_filepath):
   
   for directory_name, path in directories_to_check.items():
     if not os.path.exists(path):
-      message = directory_name+' directory does not exist: '+str(path)
+      message = directory_name+' directory does not exist: '+repr(path)
       logger.error(message)
       raise tuf.Error(message)
   
@@ -270,13 +271,13 @@ def receive(config_filepath):
   # Process all the pushes for each of the pushroots.
   for pushroot in pushroots:
     if not os.path.exists(pushroot):
-      logger.error('The pushroot '+str(pushroot)+' does not exist. Skipping.')
+      logger.error('The pushroot '+repr(pushroot)+' does not exist. Skipping.')
       continue
    
     # Add the 'processed' and 'processing' directories if not present.
     # These directories must exist so that we can properly process
     # a push.
-    logger.debug('Looking for pushes in pushroot '+str(pushroot))
+    logger.debug('Looking for pushes in pushroot '+repr(pushroot))
     if not os.path.exists(os.path.join(pushroot, 'processed')):
       os.mkdir(os.path.join(pushroot, 'processed'))
     if not os.path.exists(os.path.join(pushroot, 'processing')):
@@ -297,7 +298,7 @@ def receive(config_filepath):
         # Ensure the 'info' file exists.  A successful push operation creates
         # and saves this 'info' file to the push directory.
         if not os.path.exists(os.path.join(pushpath, 'info')):
-          message = 'Skipping incomplete push '+str(pushpath)+' (no info file).'
+          message = 'Skipping incomplete push '+repr(pushpath)+' (no info file).'
           logger.warn(message)
           continue
         
@@ -313,7 +314,7 @@ def receive(config_filepath):
    
     # Done.  Log the result of processing the pushes for 'pushroot'.
     message = 'Completed processing of all pushes.  Push successes = '+\
-               str(success_count)+', failures = '+str(failure_count)+'.'
+               repr(success_count)+', failures = '+repr(failure_count)+'.'
     logger.info(message)
 
 
@@ -364,11 +365,11 @@ def _process_new_push(pushroot, pushname, metadata_directory,
   
   """
     
-  logger.info('Processing '+str(pushroot)+'/'+str(pushname))
+  logger.info('Processing '+repr(pushroot)+'/'+repr(pushname))
 
   # Move the pushed directory to the 'processing' directory.
   pushpath = os.path.join(pushroot, 'processing', pushname)
-  logger.debug('Moving push directory to '+str(pushpath))
+  logger.debug('Moving push directory to '+repr(pushpath))
   if os.path.isdir(pushpath) or os.path.isfile(pushpath):
     os.remove(pushpath)
   os.rename(os.path.join(pushroot, pushname), pushpath)
@@ -418,14 +419,14 @@ def _process_new_push(pushroot, pushname, metadata_directory,
       finally:
         file_object.close()
       
-      message = 'Could not process: '+str(pushroot)+'/'+str(pushname)
+      message = 'Could not process: '+repr(pushroot)+'/'+repr(pushname)
       logger.exception(message)
       return False
   
   # On success or failure, move 'pushpath' to the processed directory.
   finally:
     processedpath = os.path.join(pushroot, 'processed', pushname)
-    logger.debug('Moving push directory to '+str(processedpath))
+    logger.debug('Moving push directory to '+repr(processedpath))
     if os.path.isdir(processedpath) or os.path.isfile(processedpath):
       os.remove(processedpath)
     os.rename(pushpath, processedpath)
@@ -575,17 +576,17 @@ def _process_copied_push(pushpath, metadata_directory,
 
     # Allowing equality makes testing/development easier.
     if formatted_timestamp > new_formatted_timestamp:
-      message = 'Existing metadata timestamp '+str(timestamp)+' is newer '+\
-      'than the new metadata\'s timestamp '+str(new_timestamp)
+      message = 'Existing metadata timestamp '+repr(timestamp)+' is newer '+\
+      'than the new metadata\'s timestamp '+repr(new_timestamp)
       raise tuf.Error(message)
     else:
-      message = 'New metadata timestamp is '+str(new_timestamp)+'. '+\
-        ' Replacing old metadata with timestamp '+str(timestamp)
+      message = 'New metadata timestamp is '+repr(new_timestamp)+'. '+\
+        ' Replacing old metadata with timestamp '+repr(timestamp)
       logger.debug(message)
 
   # There appears to be no 'targets.txt' metadata file on the repository.
   else:
-    message = 'The old targets metadata file '+str(targets_metadatapath)+'. '+\
+    message = 'The old targets metadata file '+repr(targets_metadatapath)+'. '+\
       'doesn\'t exist in the repo. Skipping the timestamp check.'
     logger.warn(message)
 
@@ -594,10 +595,10 @@ def _process_copied_push(pushpath, metadata_directory,
   formatted_expiration = tuf.formats.parse_time(expiration)
   
   if formatted_expiration <= time.time():
-    message = 'Pushed metadata expired at '+str(expiration)
+    message = 'Pushed metadata expired at '+repr(expiration)
     raise tuf.Error(message)
   else:
-    message = 'Metadata will expire at '+str(expiration)
+    message = 'Metadata will expire at '+repr(expiration)
     logger.debug(message)
 
   # Verify the signatures of the new targets metadata.
@@ -608,11 +609,11 @@ def _process_copied_push(pushpath, metadata_directory,
   # Log the status of the signatures.  For example, the number of good,
   # bad, untrusted, unknown, signatures. 
   status = tuf.sig.get_signature_status(new_targets_signable, 'targets')
-  logger.debug(str(status))
+  logger.debug(repr(status))
 
   # Log the number of targets specified in the new targets metadata file.
   targets_count = len(new_targets_signable['signed']['targets'].keys())
-  message = 'Number of targets specified: '+str(targets_count)
+  message = 'Number of targets specified: '+repr(targets_count)
   logger.info(message)
 
   # Verify the files of the new targets metadata file.
@@ -625,39 +626,39 @@ def _process_copied_push(pushpath, metadata_directory,
     # Check that the target was provided.
     if not os.path.exists(targetpath):
       message = 'The specified target file was not provided: '+\
-        str(target_relativepath)
+        repr(target_relativepath)
       raise tuf.Error(message)
 
     # Check the target's size.  A valid size is required of target files.
     target_size = os.path.getsize(targetpath)
     if target_size != target_info['length']:
-      message = 'The size of target file '+str(target_relativepath)+\
-        ' is incorrect: was '+str(target_size)+', expected '+\
-        str(target_info['length'])
+      message = 'The size of target file '+repr(target_relativepath)+\
+        ' is incorrect: was '+repr(target_size)+', expected '+\
+        repr(target_info['length'])
       raise tuf.Error(message)
     else:
-      message = 'Size of target '+str(targetpath)+' is correct '+\
-        '('+str(target_size)+' bytes).'
+      message = 'Size of target '+repr(targetpath)+' is correct '+\
+        '('+repr(target_size)+' bytes).'
       logger.debug(message)
 
     # Check hashes.  Valid target files is required.
     hash_count = len(target_info['hashes'].items())
     if hash_count == 0:
-      message = str(targetpath)+' contains an empty hashes dictionary.'
+      message = repr(targetpath)+' contains an empty hashes dictionary.'
       raise tuf.Error(message)
     else:
-      logger.debug(str(hash_count)+' hash(es) to check.')
+      logger.debug(repr(hash_count)+' hash(es) to check.')
     
     for algorithm, digest in target_info['hashes'].items():
       digest_object = tuf.hash.digest_filename(targetpath, algorithm=algorithm)
       if digest_object.hexdigest() != digest:
-        message = str(algorithm)+' hash does not match: '+\
-          ' was '+str(digest_object.hexdigest())+', expected '+\
-          str(digest)
+        message = repr(algorithm)+' hash does not match: '+\
+          ' was '+repr(digest_object.hexdigest())+', expected '+\
+          repr(digest)
         raise tuf.Error(message)
       else:
-        message = str(algorithm)+' hash of target '+str(targetpath)+\
-          ' is correct ('+str(digest)+').'
+        message = repr(algorithm)+' hash of target '+repr(targetpath)+\
+          ' is correct ('+repr(digest)+').'
         logger.debug(message)
 
   # At this point, the targets metadata and all specified files have been
@@ -673,14 +674,14 @@ def _process_copied_push(pushpath, metadata_directory,
     source_path = os.path.join(push_temporary_directory, targets_basename,
                                target_relativepath)
     destination_path = os.path.join(targets_directory, target_relativepath)
-    logger.info('Adding target to repository: '+str(destination_path))
+    logger.info('Adding target to repository: '+repr(destination_path))
     destination_directory = os.path.dirname(destination_path)
     if not os.path.exists(destination_directory):
       os.mkdir(destination_directory)
     shutil.copy(source_path, destination_path)
 
   # Copy the new targets metadata file into place on the repository.
-  message = 'Adding new targets metadata to repository: '+str(targets_metadatapath)
+  message = 'Adding new targets metadata to repository: '+repr(targets_metadatapath)
   logger.info(message)
   shutil.copy(new_targets_metadatapath, targets_metadatapath)
 
@@ -745,7 +746,7 @@ def _remove_old_files(targets_metadatapath, pushname,
   for target_relativepath in targets_signable['signed']['targets'].keys():
     targetpath = os.path.join(targets_directory, target_relativepath)
     backup_targetpath = os.path.join(backup_targetsdirectory, target_relativepath)
-    message = 'Backing up target '+str(targetpath)+' to '+str(backup_targetpath)
+    message = 'Backing up target '+repr(targetpath)+' to '+repr(backup_targetpath)
     logger.info(message)
    
     # Move the old target file to the backup directory.  Create any
@@ -760,13 +761,13 @@ def _remove_old_files(targets_metadatapath, pushname,
           raise tuf.Error(str(e))
       os.rename(targetpath, backup_targetpath)
     else:
-      message = 'The old target '+str(targetpath)+' doesn\'t exist in the repo.'
+      message = 'The old target '+repr(targetpath)+' doesn\'t exist in the repo.'
       logger.warn(message)
 
   # Backup the old 'targets.txt' metadata file.
   backup_targets_metadatafile = os.path.join(backup_destdirectory, 'targets.txt')
-  message = 'Backing up old metadata '+str(targets_metadatapath)+\
-    ' to '+str(backup_targets_metadatafile)
+  message = 'Backing up old metadata '+repr(targets_metadatapath)+\
+    ' to '+repr(backup_targets_metadatafile)
   logger.info(message)
   if os.path.isfile(backup_targets_metadatafile):
     os.remove(backup_targets_metadatafile)

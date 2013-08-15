@@ -27,6 +27,7 @@ import shutil
 import logging
 import tempfile
 
+import tuf
 import tuf.hash
 import tuf.conf
 import tuf.formats
