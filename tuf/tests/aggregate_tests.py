@@ -24,9 +24,6 @@
 
 import unittest
 import glob
-import tuf.keydb as keydb
-import tuf.repo.keystore as keystore
-import tuf.roledb as roledb
 import random
 
 tests_list = glob.glob('test_*.py')
