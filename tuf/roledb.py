@@ -29,9 +29,10 @@
 
 """
 
-import tuf.formats
 import logging
 
+import tuf
+import tuf.formats
 import tuf.log
 
 # See 'tuf.log' to learn how logging is handled in TUF.

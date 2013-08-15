@@ -21,6 +21,7 @@
 import os
 import urllib
 
+import tuf
 import tuf.util
 import tuf.formats
 

@@ -102,7 +102,7 @@ import tuf.util
 import tuf.log
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf')
+logger = logging.getLogger('tuf.quickstart')
 
 # Set the default file names for the top-level roles.
 # For instance: in 'signerlib.py', ROOT_FILENAME = 'root.txt'.

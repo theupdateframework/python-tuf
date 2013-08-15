@@ -42,26 +42,23 @@ import logging
 import unittest
 
 import tuf
+import tuf.log
 import tuf.formats
 import tuf.util
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
+
 #  Module to test: signercli.py
 import tuf.repo.signercli as signercli
+
 #  Helper module unittest_toolbox.py
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
-
-logger = logging.getLogger('tuf')
-
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
+logger = logging.getLogger('tuf.test_signercli')
 
 # Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
 # We will need them when creating keystore directories.
 unittest_toolbox.Modified_TestCase.bind_keys_to_roles()
-
 
 
 class TestSignercli(unittest_toolbox.Modified_TestCase):

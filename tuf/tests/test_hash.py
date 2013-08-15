@@ -23,9 +23,12 @@ import logging
 import tempfile
 import unittest
 
+import tuf
+import tuf.log
 import tuf.hash
 
-logger = logging.getLogger('tuf')
+logger = logging.getLogger('tuf.test_hash')
+
 
 if not 'hashlib' in tuf.hash._supported_libraries:
   logger.warn('Not testing hashlib: could not be imported.')

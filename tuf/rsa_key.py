@@ -42,6 +42,8 @@ import binascii
 import evpy.signature
 import evpy.envelope
 
+import tuf
+
 # Digest objects needed to generate hashes.
 import tuf.hash
 
