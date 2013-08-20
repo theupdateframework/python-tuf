@@ -61,12 +61,6 @@ logging.disable(logging.CRITICAL)
 roledb = tuf.roledb
 keydb = tuf.keydb
 
-# This is the default metadata that we would create for the timestamp role,
-# because it has no signed metadata for itself.
-DEFAULT_TIMESTAMP_FILEINFO = {
-  'hashes': None,
-  'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
-}
 
 
 class TestUpdater_init_(unittest_toolbox.Modified_TestCase):
@@ -121,7 +115,7 @@ class TestUpdater_init_(unittest_toolbox.Modified_TestCase):
 class TestUpdater(unittest_toolbox.Modified_TestCase):
   # Create repositories.  'repositories' is a tuple that looks like this:
   # (repository_dir, client_repository_dir, server_repository_dir), see 
-  # repository_setup.py odule.
+  # repository_setup.py module.
   repositories = setup.create_repositories()
 
   # Save references to repository directories and metadata.
@@ -195,7 +189,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def _mock_download_url_to_tempfileobj(self, output):
     """
     <Purpose>
-      Patch 'tuf.download.download_url_to_fileobject' method.
+      Patch 'tuf.download.safe_download_url_to_fileobject' and 
+      'tuf.download.unsafe_download_url_to_fileobject'method.
       
     <Arguments>
       output:
@@ -206,8 +201,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         of is returned every time the patch is called.
 
     """
-
-    def _mock_download(url, length, hashes=None, STRICT_REQUIRED_LENGTH=True):
+    
+    def _mock_safe_download(url, length=None, hashes=None):
+      if isinstance(output, (str, unicode)):
+        file_path = output
+      elif isinstance(output, list):
+        file_path = output.pop(0)
+      file_obj = open(file_path, 'rb')
+      temp_fileobj = tuf.util.TempFile()
+      temp_fileobj.write(file_obj.read())
+      return temp_fileobj
+    
+    def _mock_unsafe_download(url):
       if isinstance(output, (str, unicode)):
         file_path = output
       elif isinstance(output, list):
@@ -217,8 +222,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       temp_fileobj.write(file_obj.read())
       return temp_fileobj
 
+
     # Patch tuf.download.download_url_to_tempfileobj().
-    tuf.download.download_url_to_tempfileobj = _mock_download
+    tuf.download.safe_download_url_to_tempfileobj = _mock_safe_download
+    tuf.download.unsafe_download_url_to_tempfileobj = _mock_unsafe_download
 
 
 
@@ -331,7 +338,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def _update_top_level_roles(self):
     self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
-    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+    self.Repository._unsafe_update_metadata('timestamp')
 
     # Reference self.Repository._update_metadata_if_changed().
     update_if_changed = self.Repository._update_metadata_if_changed    
@@ -484,8 +491,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     """
 
     # Setup
-    original_download = tuf.download.download_url_to_tempfileobj
-    
+    original_safe_download = tuf.download.safe_download_url_to_tempfileobj
+    original_unsafe_download = tuf.download.unsafe_download_url_to_tempfileobj
+
     #  Since client's '.../metadata/current' will need to have separate
     #  gzipped metadata file in order to test compressed file handling,
     #  we need to copy it there.  
@@ -502,21 +510,24 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     added_target_1 = self._add_target_to_targets_dir(targets_keyids)
 
     #  Reference 'self.Repository._update_metadata'.
-    _update_metadata = self.Repository._update_metadata
-
+    _update_metadata = self.Repository._safe_update_metadata
+    
+    # Set fileinfo to 'target'.
+    file_length, hashes = tuf.util.get_file_details(self.targets_filepath)
+    fileinfo = metadata_fileinfo = tuf.formats.make_fileinfo(file_length, hashes)
 
     # Test: Invalid file downloaded.
     #  Patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(self.release_filepath)
     # TODO: Set fileinfo to a valid object.
-    self.assertRaises(tuf.RepositoryError, _update_metadata, 'targets', None)
+    self.assertRaises(tuf.RepositoryError, _update_metadata, 'targets', fileinfo)
 
 
     # Test: normal case.
     #  Patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(self.targets_filepath)
-    # TODO: Set fileinfo to a valid object.
-    _update_metadata('targets', None)
+    
+    _update_metadata('targets', fileinfo)
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
     #  Verify that the added target's path is listed in target's metadata.
@@ -525,7 +536,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   
     # Test: normal case, compressed metadata file.
-    #  Add a file to targets directory and rebuild targets metadata. 
+    # Add a file to targets directory and rebuild targets metadata. 
     added_target_2 = self._add_target_to_targets_dir(targets_keyids)
 
     #  To test compressed file handling, compress targets metadata file.
@@ -533,8 +544,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Re-patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
-    # TODO: Set fileinfo to a valid object.
-    _update_metadata('targets', None, compression='gzip')
+    
+    # Set fileinfo to 'target'.
+    file_length, hashes = tuf.util.get_file_details(self.targets_filepath)
+    fileinfo = metadata_fileinfo = tuf.formats.make_fileinfo(file_length, hashes)
+
+    _update_metadata('targets', fileinfo, compression='gzip')
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
     #  Verify that the added target's path is listed in target's metadata.
@@ -548,7 +563,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self._remove_target_from_targets_dir(added_target_1)
 
     # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
+    tuf.download.safe_download_url_to_tempfileobj = original_safe_download
+    tuf.download.unsafe_download_url_to_tempfileobj = original_unsafe_download
 
 
 
@@ -610,7 +626,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     """
 
     # Setup
-    original_download = tuf.download.download_url_to_tempfileobj
+    original_safe_download = tuf.download.safe_download_url_to_tempfileobj
+    original_unsafe_download = tuf.download.unsafe_download_url_to_tempfileobj
     
     #  To test updater._update_metadata_if_changed, 'targets' metadata file is
     #  going to be modified at the server's repository.
@@ -630,7 +647,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
 
     #  Update timestamp metadata, it will indicate change in release metadata.
-    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+    self.Repository._unsafe_update_metadata('timestamp')
 
     #  Save current release metadata before updating.  It will be used to
     #  verify the update.
@@ -674,7 +691,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
 
     #  Update timestamp metadata, it will indicate change in release metadata.
-    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+    self.Repository._unsafe_update_metadata('timestamp')
 
     #  Save current release metadata before updating.  It will be used to
     #  verify the update.
@@ -701,7 +718,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self._remove_target_from_targets_dir(added_target_1)
 
     # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
+    tuf.download.safe_download_url_to_tempfileobj = original_safe_download
+    tuf.download.unsafe_download_url_to_tempfileobj = original_unsafe_download
 
 
 
@@ -757,7 +775,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_4_refresh(self):
     # Setup.
-    original_download = tuf.download.download_url_to_tempfileobj
+    original_safe_download = tuf.download.safe_download_url_to_tempfileobj
+    original_unsafe_download = tuf.download.unsafe_download_url_to_tempfileobj
     
     #  This unit test is based on adding an extra target file to the
     #  server and rebuilding all server-side metadata.  When 'refresh'
@@ -790,7 +809,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     setup.build_server_repository(self.server_repo_dir, self.targets_dir)
 
     # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
+    tuf.download.safe_download_url_to_tempfileobj = original_safe_download
+    tuf.download.unsafe_download_url_to_tempfileobj = original_unsafe_download
 
 
 
@@ -798,7 +818,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_4__refresh_targets_metadata(self):
 
     # Setup
-    original_download = tuf.download.download_url_to_tempfileobj
+    original_safe_download = tuf.download.safe_download_url_to_tempfileobj
+    original_unsafe_download = tuf.download.unsafe_download_url_to_tempfileobj
     
     # To test this method a target file would be added to a delegated role,
     # and metadata on the server side would be rebuilt.
@@ -855,7 +876,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     setup.build_server_repository(self.server_repo_dir, self.targets_dir)
 
     # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
+    tuf.download.safe_download_url_to_tempfileobj = original_safe_download
+    tuf.download.unsafe_download_url_to_tempfileobj = original_unsafe_download
 
 
 
@@ -885,7 +907,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_5_all_targets(self):
 
    # Setup
-   original_download = tuf.download.download_url_to_tempfileobj
+   original_safe_download = tuf.download.safe_download_url_to_tempfileobj
+   original_unsafe_download = tuf.download.unsafe_download_url_to_tempfileobj
    
    # As with '_refresh_targets_metadata()', tuf.roledb._roledb_dict
    # has to be populated.  'tuf.download.download_url_to_tempfileobj' method
@@ -909,7 +932,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    self.assertTrue(len(all_targets) is 6)   
 
    # RESTORE
-   tuf.download.download_url_to_tempfileobj = original_download
+   tuf.download.safe_download_url_to_tempfileobj = original_safe_download
+   tuf.download.unsafe_download_url_to_tempfileobj = original_unsafe_download
 
 
 
@@ -969,7 +993,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_6_download_target(self):
 
     # Setup:
-    original_download = tuf.download.download_url_to_tempfileobj
+    original_safe_download = tuf.download.safe_download_url_to_tempfileobj
+    original_unsafe_download = tuf.download.unsafe_download_url_to_tempfileobj
     
     # 'tuf.download.download_url_to_tempfileobj' method should be patched.
     target_rel_paths_src = self._get_list_of_target_paths(self.targets_dir)
@@ -1016,15 +1041,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       mirrors[mirror_name]['confined_target_dirs'] = ['']
 
     # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
-
+    tuf.download.safe_download_url_to_tempfileobj = original_safe_download
+    tuf.download.unsafe_download_url_to_tempfileobj = original_unsafe_download
 
 
 
   def test_7_updated_targets(self):
     
     # Setup:
-    original_download = tuf.download.download_url_to_tempfileobj
+    original_safe_download = tuf.download.safe_download_url_to_tempfileobj
+    original_unsafe_download = tuf.download.unsafe_download_url_to_tempfileobj
     
     # In this test, client will have two target files.  Server will modify 
     # one of them.  As with 'all_targets' function, tuf.roledb._roledb_dict
@@ -1087,7 +1113,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.fail(msg)
 
     # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
+    tuf.download.safe_download_url_to_tempfileobj = original_safe_download
+    tuf.download.unsafe_download_url_to_tempfileobj = original_unsafe_download
 
     
 
@@ -1095,8 +1122,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_8_remove_obsolete_targets(self):
     
     # Setup:
-    original_download = tuf.download.download_url_to_tempfileobj
-    
+    original_safe_download = tuf.download.safe_download_url_to_tempfileobj
+    original_unsafe_download = tuf.download.unsafe_download_url_to_tempfileobj
+
     # This unit test should be last, because it removes target files from the
     # server's targets directory. It is done to avoid adding files, rebuilding 
     # and updating metadata. 
@@ -1146,7 +1174,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertTrue(os.listdir(dest_dir), 2)    
 
     # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
+    tuf.download.safe_download_url_to_tempfileobj = original_safe_download
+    tuf.download.unsafe_download_url_to_tempfileobj = original_unsafe_download
 
 
 

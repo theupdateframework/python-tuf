@@ -41,6 +41,9 @@ import urllib
 import random
 import subprocess
 from multiprocessing import Process
+import tuf
+import socket
+
 
 import util_test_tools
 from tuf.interposition import urllib_tuf
@@ -50,28 +53,32 @@ from tuf.interposition import urllib_tuf
 util_test_tools.disable_logging()
 
 
-
 class SlowRetrievalAttackAlert(Exception):
   pass
 
 
-def _download(url, filename, tuf=False):
-  if tuf:
-    urllib_tuf.urlretrieve(url, filename)
-    
+def _download(url, filename, TUF=False):
+  if TUF:
+    try:
+      urllib_tuf.urlretrieve(url, filename)
+    # If timeout or RepositoryError is raised, this means
+    # that TUF has prevented the slow retrieval attack. Enable
+    # the logging to see, what actually happened.
+    except (socket.timeout, tuf.RepositoryError), e:
+      print "Download exits with " + str(e) + "! Successfully avoid slow retrieval attack!\n\n"
   else:
     urllib.urlretrieve(url, filename)
 
 
 
-def test_slow_retrieval_attack(TUF=False):
+def test_slow_retrieval_attack(TUF=False, mode=None):
 
-  WAIT_TIME = 5  # Number of seconds to wait until download completes.
-  ERROR_MSG = '\tSlow Retrieval Attack was Successful!\n\n'
+  WAIT_TIME = 10  # Number of seconds to wait until download completes.
+  ERROR_MSG = mode + '\tSlow Retrieval Attack was Successful!\n\n'
 
   # Launch the server.
   port = random.randint(30000, 45000)
-  command = ['python', 'slow_retrieval_server.py', str(port)]
+  command = ['python', 'slow_retrieval_server.py', str(port), mode]
   server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
   time.sleep(.1)
 
@@ -109,6 +116,7 @@ def test_slow_retrieval_attack(TUF=False):
     proc = Process(target=_download, args=(url_to_file, downloaded_file, TUF))
     proc.start()
     proc.join(WAIT_TIME)
+
     if proc.exitcode is None:
       proc.terminate()
       raise SlowRetrievalAttackAlert(ERROR_MSG)
@@ -117,21 +125,34 @@ def test_slow_retrieval_attack(TUF=False):
   finally:
     if server_process.returncode is None:
       server_process.kill()
-      print 'Slow server terminated.\n'
-
+      print 'Communication with slow server aborted. Terminate the slow server.\n'
+    
     util_test_tools.cleanup(root_repo, server_proc)
 
 
 
 
-
+# Stimulates two kinds of slow retrieval attacks.
+# mode_1: When download begins,the server blocks the download
+# for a long time by doing nothing before it sends first byte of data.
+# mode_2: During the download process, the server blocks the download 
+# by sending just several characters every few seconds.
 try:
-  test_slow_retrieval_attack(TUF=False)
+  test_slow_retrieval_attack(TUF=False, mode = "mode_1")
 except SlowRetrievalAttackAlert, error:
   print error
 
+try:
+  test_slow_retrieval_attack(TUF=False, mode = "mode_2")
+except SlowRetrievalAttackAlert, error:
+  print error  
 
 try:
-  test_slow_retrieval_attack(TUF=True)
+  test_slow_retrieval_attack(TUF=True, mode = "mode_1")
+except SlowRetrievalAttackAlert, error:
+  print error
+
+try:
+  test_slow_retrieval_attack(TUF=True, mode = "mode_2")
 except SlowRetrievalAttackAlert, error:
   print error

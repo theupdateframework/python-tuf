@@ -87,27 +87,35 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
 
   # Test: Normal case.
-  def test_download_url_to_tempfileobj(self):
-
-    download_file = download.download_url_to_tempfileobj
+  def test_safe_and_unsafe_download_url_to_tempfileobj(self):
+    
+    # Test the safe mode download function.
+    download_file = download.safe_download_url_to_tempfileobj
 
     temp_fileobj = download_file(self.url, self.target_data_length,
                                  required_hashes=self.target_hash)
     self.assertEquals(self.target_data, temp_fileobj.read())
     self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
+    
+    # Test the unsafe mode download function.
+    download_file = download.unsafe_download_url_to_tempfileobj
 
-
-  # Test: Incorrect hashes.
-  def test_download_url_to_tempfileobj_and_hashes(self):
-
-    download_file = download.download_url_to_tempfileobj
-
-    # Test: Normal cases without supplying hash arguments.
-    temp_fileobj = download_file(self.url, self.target_data_length)
+    temp_fileobj = download_file(self.url)
     self.assertEquals(self.target_data, temp_fileobj.read())
     self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
+
+
+  # Test: Incorrect hashes.
+  def test_safe_download_url_to_tempfileobj_and_hashes(self):
+    
+    # Only safe mode download function has required_hashes passes in.
+    download_file = download.safe_download_url_to_tempfileobj
+
+    # Test: Incorrect cases without supplying hash arguments.
+    self.assertRaises(tuf.FormatError,
+                      download_file, self.url, self.target_data_length, None)
 
     # What happens when we pass bad hashes to check the downloaded file?
     self.assertRaises(tuf.BadHashError,
@@ -116,20 +124,21 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
 
   # Test: Incorrect lengths.
-  def test_download_url_to_tempfileobj_and_lengths(self):
-
-    download_file = download.download_url_to_tempfileobj
+  def test_safe_download_url_to_tempfileobj_and_lengths(self):
+    
+    download_file = download.safe_download_url_to_tempfileobj
 
     # NOTE: We catch tuf.BadHashError here because the file, shorter by a byte,
     # would not match the expected hashes. We log a warning when we find that
     # the server-reported length of the file does not match our
-    # required_length. We also see that STRICT_REQUIRED_LENGTH does not change
-    # the outcome of the previous test.
-    for strict_required_length in (True, False):
-      self.assertRaises(tuf.BadHashError, 
-                        download_file, self.url, self.target_data_length - 1,
-                        required_hashes=self.target_hash,
-                        STRICT_REQUIRED_LENGTH=strict_required_length)
+    # required_length.
+    self.assertRaises(tuf.BadHashError, 
+                      download_file, self.url, self.target_data_length - 1,
+                      required_hashes=self.target_hash)
+
+    # Test: Incorrect cases without supplying length arguments.
+    self.assertRaises(tuf.FormatError,
+                      download_file, self.url, None, self.target_hash)
 
     # NOTE: We catch tuf.DownloadError here because the STRICT_REQUIRED_LENGTH,
     # which is True by default, mandates that we must download exactly what is
@@ -142,19 +151,19 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
                       download_file, self.url, self.target_data_length + 1,
                       required_hashes=self.target_hash)
 
-    # NOTE: However, we do not catch a tuf.DownloadError here for the same test
-    # as the previous one because we have disabled STRICT_REQUIRED_LENGTH.
-    temp_fileobj = download_file(self.url, self.target_data_length + 1,
-                                 required_hashes=self.target_hash,
-                                 STRICT_REQUIRED_LENGTH=False)
-    self.assertEquals(self.target_data, temp_fileobj.read())
-    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file()
+
+  # Test: Incorrect cases without supplying length and hashes arguments.    
+  def test_safe_download_url_to_tempfileobj_without_lengths_and_hashes(self):
+
+    download_file = download.safe_download_url_to_tempfileobj
+
+    self.assertRaises(tuf.FormatError,
+                      download_file, self.url, None, None)
 
 
-  def test_download_url_to_tempfileobj_and_performance(self):
+  def test_safe_download_url_to_tempfileobj_and_performance(self):
 
-    download_file = download.download_url_to_tempfileobj
+    download_file = download.safe_download_url_to_tempfileobj
 
     """
     # Measuring performance of 'auto_flush = False' vs. 'auto_flush = True'
@@ -181,9 +190,10 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
 
   # Test: Incorrect/Unreachable URLs.
-  def test_download_url_to_tempfileobj_and_urls(self):
+  def test_safe_and_unsafe_download_url_to_tempfileobj_and_urls(self):
 
-    download_file = download.download_url_to_tempfileobj
+    # Test: safe download function.
+    download_file = download.safe_download_url_to_tempfileobj
 
     self.assertRaises(tuf.FormatError,
                       download_file, None, self.target_data_length,
@@ -206,6 +216,18 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
                       self.target_data_length,
                       required_hashes=self.target_hash)
 
+    # Test: unsafe download function.
+    download_file = download.unsafe_download_url_to_tempfileobj
+
+    self.assertRaises(tuf.FormatError, download_file, None)
+
+    self.assertRaises(tuf.DownloadError, download_file, self.random_string())
+
+    self.assertRaises(tuf.DownloadError, download_file,
+                      'http://localhost:'+str(self.PORT)+'/'+self.random_string())
+
+    self.assertRaises(tuf.DownloadError, download_file,
+                      'http://localhost:'+str(self.PORT+1)+'/'+self.random_string())
 
 # Run unit test.
 suite = unittest.TestLoader().loadTestsFromTestCase(TestDownload)

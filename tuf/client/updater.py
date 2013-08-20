@@ -565,23 +565,14 @@ class Updater(object):
     
     """
 
-    # The timestamp role does not have signed metadata about it; otherwise we
-    # would need an infinite regress of metadata. Therefore, we use some
-    # default, sane metadata about it.
-    DEFAULT_TIMESTAMP_FILEINFO = {
-      'hashes':None,
-      'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
-    }
-
     # Update the top-level metadata.  The _update_metadata_if_changed() and
-    # _update_metadata() calls below do NOT perform an update if there
+    # _unsafe_update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
     # Raise 'tuf.RepositoryError' if an update fails.
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
-    self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO, 
-                          STRICT_REQUIRED_LENGTH=False)
+    self._unsafe_update_metadata('timestamp')
 
     self._update_metadata_if_changed('release', referenced_metadata='timestamp')
 
@@ -599,32 +590,25 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, fileinfo, compression=None,
-                       STRICT_REQUIRED_LENGTH=True):
+  def _download_metadata_from_mirrors(self, get_mirrors, metadata_filename, 
+                                      metadata_role, compression, fileinfo=None):
+    
     """
     <Purpose>
-      Download, verify, and 'install' the metadata belonging to 'metadata_role'.
-      Calling this function implies the metadata has been updated by the
-      repository and thus needs to be re-downloaded.  The current and previous
-      metadata stores are updated if the newly downloaded metadata is
-      successfully downloaded and verified.
+      Attempt a file download from each mirror until the file is downloaded and
+      verified.
    
     <Arguments>
+      get_mirrors:
+        List of mirror urls.
+
+      metadata_filename:
+        The whole name of the metadata, which includes suffix.
+        Examples: 'root.txt', 'targets.txt'
+
       metadata_role:
         The name of the metadata. This is a role name and should not end
         in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
-      
-      fileinfo:
-        A dictionary containing length and hashes of the metadata file.
-        Ex: {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
-             "length": 1340}
-
-      STRICT_REQUIRED_LENGTH:
-        A Boolean indicator used to signal whether we should perform strict
-        checking of the required length in 'fileinfo'. True by default.  True
-        by default. We explicitly set this to False when we know that we want
-        to turn this off for downloading the timestamp metadata, which has no
-        signed required_length.
 
       compression:
         A string designating the compression type of 'metadata_role'.
@@ -632,57 +616,44 @@ class Updater(object):
         compressed form.  Currently, only metadata files compressed with 'gzip'
         are considered.  Any other string is ignored.
 
+      safe_download:
+        A boolean indicating if the safe_download_url_to_tempfileobj function will
+        be used to download medata.
+
     <Exceptions>
-      tuf.RepositoryError:
-        The metadata could not be updated. This is not specific to a single
-        failure but rather indicates that all possible ways to update the
-        metadata have been tried and failed.
+      None.
 
     <Side Effects>
       The metadata file belonging to 'metadata_role' is downloaded from a
-      repository mirror.  If the metadata is valid, it is stored to the 
-      metadata store.
+      repository mirror. 
 
     <Returns>
-      None.
+      A tuple which includes metadata_signable and metadata_object. If download is failed,
+      (None,None) will be returned.
     
     """
-    
-    # Construct the metadata filename as expected by the download/mirror modules.
-    metadata_filename = metadata_role + '.txt'
-   
-    # The 'release' metadata file may be compressed.  Add the appropriate
-    # extension to 'metadata_filename'. 
-    if compression == 'gzip':
-      metadata_filename = metadata_filename + '.gz'
 
-    # Reference to the 'get_list_of_mirrors' function.
-    get_mirrors = tuf.mirrors.get_list_of_mirrors
+    # Do we have the fileinfo of metadata? If so, use safe mode to download.  
+    if fileinfo:
+      download_file = tuf.download.safe_download_url_to_tempfileobj
+      # Extract file length and file hashes.  They will be passed as arguments
+      # to 'download_file' function.
+      file_length=fileinfo['length']
+      file_hashes=fileinfo['hashes']
+    else:
+      download_file = tuf.download.unsafe_download_url_to_tempfileobj
 
-    # Reference to the 'download_url_to_tempfileobj' function.
-    download_file = tuf.download.download_url_to_tempfileobj
-
-    # Extract file length and file hashes.  They will be passed as arguments
-    # to 'download_file' function.
-    file_length=fileinfo['length']
-    file_hashes=fileinfo['hashes']
-
-    # Attempt a file download from each mirror until the file is downloaded and
-    # verified.  If the signature of the downloaded file is valid, proceed,
-    # otherwise log a warning and try the next mirror.  'metadata_file_object'
-    # is the file-like object returned by 'download.py'.  'metadata_signable'
-    # is the object extracted from 'metadata_file_object'.  Metadata saved to
-    # files are regarded as 'signable' objects, conformant to
-    # 'tuf.formats.SIGNABLE_SCHEMA'.
     metadata_file_object = None
     metadata_signable = None
+
     for mirror_url in get_mirrors('meta',
                                   metadata_filename.encode("utf-8"),
                                   self.mirrors):
       try:
-        metadata_file_object = \
-          download_file(mirror_url, file_length, file_hashes,
-                        STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH)
+        if fileinfo:
+          metadata_file_object = download_file(mirror_url, file_length, file_hashes)
+        else:
+          metadata_file_object = download_file(mirror_url)
       except tuf.DownloadError, e:
         logger.warn('Download failed from '+mirror_url+'.')
         continue
@@ -713,7 +684,48 @@ class Updater(object):
           logger.warn('Bad signature on '+mirror_url+'.')
           metadata_signable = None
           continue
+
+    return (metadata_file_object, metadata_signable)  
+
+
+
+
+
+
+  def _verify_downloaded_metadata(self, metadata_signable, metadata_filename, metadata_role):
+
+    """
+    <Purpose>
+      Make sure that the 'metadata_signable' of downloaded metadata is valid and 
+      the metadata role is not any particular targers that not allowed.
+   
+    <Arguments>
+      metadata_signable:
+        A dictionary containing a list of signatures and a 'signed' identifier.
+        signable = {'signed':, 'signatures': [{'keyid':, 'method':, 'sig':}]}
+
+      metadata_filename:
+        The whole name of the metadata, which includes suffix.
+        Examples: 'root.txt', 'targets.txt'
+
+      metadata_role:
+        The name of the metadata. This is a role name and should not end
+        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+
+    <Exceptions>
+      tuf.RepositoryError:
+        The metadata could not be updated. This is not specific to a single
+        failure but rather indicates that all possible ways to update the
+        metadata have been tried and failed.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      None.
     
+    """
+
     # Raise an exception if a valid metadata signable could not be downloaded
     # from any of the mirrors.
     if metadata_signable is None:
@@ -731,6 +743,49 @@ class Updater(object):
     # Reject the metadata if any specified targets are not allowed.
     if metadata_signable['signed']['_type'] == 'Targets':
       self._ensure_all_targets_allowed(metadata_role, metadata_signable['signed'])
+
+
+
+
+
+  def _store_downloaded_metadata_and_fileinfo(self, metadata_signable, metadata_filename, 
+                                              metadata_role, metadata_file_object):
+
+    """
+    <Purpose>
+      Unsafe version of _safe_update_metadata. When fileinfo of a metadata is 
+      unknown, use this function to update metadata. Because no fileinfo is provided,
+      it will call unsafe download function to download data. 
+   
+    <Arguments>
+      metadata_signable:
+        A dictionary containing a list of signatures and a 'signed' identifier.
+        signable = {'signed':, 'signatures': [{'keyid':, 'method':, 'sig':}]}
+
+      metadata_filename:
+        The whole name of the metadata, which includes suffix.
+        Examples: 'root.txt', 'targets.txt'
+
+      metadata_role:
+        The name of the metadata. This is a role name and should not end
+        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+      
+      metadata_file_object:
+         The file-like object returned by 'download.py'. It is an 
+         instance of tuf.util.TempFile.
+
+      
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      The metadata is moved to the metadata store.
+
+    <Returns>
+      None.
+    
+    """
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -768,6 +823,151 @@ class Updater(object):
 
 
 
+
+  def _unsafe_update_metadata(self, metadata_role, compression=None):
+
+    """
+    <Purpose>
+      Unsafe version of _safe_update_metadata. When fileinfo of a metadata is 
+      unknown, use this function to update metadata. Because no fileinfo is provided,
+      it will call unsafe download function to download data. 
+   
+    <Arguments>
+      metadata_role:
+        The name of the metadata. This is a role name and should not end
+        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+
+      compression:
+        A string designating the compression type of 'metadata_role'.
+        The 'release' metadata file may be optionally downloaded and stored in
+        compressed form.  Currently, only metadata files compressed with 'gzip'
+        are considered.  Any other string is ignored.
+
+    <Exceptions>
+      tuf.RepositoryError:
+        The metadata could not be updated. This is not specific to a single
+        failure but rather indicates that all possible ways to update the
+        metadata have been tried and failed.
+
+    <Side Effects>
+      The metadata file belonging to 'metadata_role' is downloaded from a
+      repository mirror.  If the metadata is valid, it is stored to the 
+      metadata store.
+
+    <Returns>
+      None.
+    
+    """
+
+    # Construct the metadata filename as expected by the download/mirror modules.
+    metadata_filename = metadata_role + '.txt'
+   
+    # The 'release' metadata file may be compressed.  Add the appropriate
+    # extension to 'metadata_filename'. 
+    if compression == 'gzip':
+      metadata_filename = metadata_filename + '.gz'
+
+    # Reference to the 'get_list_of_mirrors' function.
+    get_mirrors = tuf.mirrors.get_list_of_mirrors
+
+    # Reference to the 'unsafe_download_url_to_tempfileobj' function. 
+    download_file = tuf.download.unsafe_download_url_to_tempfileobj
+
+    # Attempt a file download from each mirror until the file is downloaded and
+    # verified.  If the signature of the downloaded file is valid, proceed,
+    # otherwise log a warning and try the next mirror.  'metadata_file_object'
+    # is the file-like object returned by 'download.py'.  'metadata_signable'
+    # is the object extracted from 'metadata_file_object'.  Metadata saved to
+    # files are regarded as 'signable' objects, conformant to
+    # 'tuf.formats.SIGNABLE_SCHEMA'.
+    metadata_file_object, metadata_signable =  self._download_metadata_from_mirrors(get_mirrors,metadata_filename,
+                                                                                    metadata_role, compression)
+
+    self._verify_downloaded_metadata(metadata_signable, metadata_filename, metadata_role)
+    
+    self._store_downloaded_metadata_and_fileinfo(metadata_signable, metadata_filename,
+                                              metadata_role, metadata_file_object)
+
+
+
+
+
+  def _safe_update_metadata(self, metadata_role, fileinfo, compression=None):
+
+    """
+    <Purpose>
+      Download, verify, and 'install' the metadata belonging to 'metadata_role'.
+      Calling this function implies the metadata has been updated by the
+      repository and thus needs to be re-downloaded.  The current and previous
+      metadata stores are updated if the newly downloaded metadata is
+      successfully downloaded and verified.
+   
+    <Arguments>
+      metadata_role:
+        The name of the metadata. This is a role name and should not end
+        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+      
+      fileinfo:
+        A dictionary containing length and hashes of the metadata file.
+        Ex: {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
+             "length": 1340}
+
+      compression:
+        A string designating the compression type of 'metadata_role'.
+        The 'release' metadata file may be optionally downloaded and stored in
+        compressed form.  Currently, only metadata files compressed with 'gzip'
+        are considered.  Any other string is ignored.
+
+    <Exceptions>
+      tuf.RepositoryError:
+        The metadata could not be updated. This is not specific to a single
+        failure but rather indicates that all possible ways to update the
+        metadata have been tried and failed.
+
+    <Side Effects>
+      The metadata file belonging to 'metadata_role' is downloaded from a
+      repository mirror.  If the metadata is valid, it is stored to the 
+      metadata store.
+
+    <Returns>
+      None.
+    
+    """
+    
+    # Construct the metadata filename as expected by the download/mirror modules.
+    metadata_filename = metadata_role + '.txt'
+   
+    # The 'release' metadata file may be compressed.  Add the appropriate
+    # extension to 'metadata_filename'. 
+    if compression == 'gzip':
+      metadata_filename = metadata_filename + '.gz'
+
+    # Reference to the 'get_list_of_mirrors' function.
+    get_mirrors = tuf.mirrors.get_list_of_mirrors
+
+    # Reference to the 'safe_download_url_to_tempfileobj' function. 
+    download_file = tuf.download.safe_download_url_to_tempfileobj
+
+    # Attempt a file download from each mirror until the file is downloaded and
+    # verified.  If the signature of the downloaded file is valid, proceed,
+    # otherwise log a warning and try the next mirror.  'metadata_file_object'
+    # is the file-like object returned by 'download.py'.  'metadata_signable'
+    # is the object extracted from 'metadata_file_object'.  Metadata saved to
+    # files are regarded as 'signable' objects, conformant to
+    # 'tuf.formats.SIGNABLE_SCHEMA'.
+    metadata_file_object, metadata_signable =  self._download_metadata_from_mirrors(get_mirrors,metadata_filename,
+                                                                                    metadata_role, compression,
+                                                                                    fileinfo)
+
+    self._verify_downloaded_metadata(metadata_signable, metadata_filename, metadata_role)
+    
+    self._store_downloaded_metadata_and_fileinfo(metadata_signable, metadata_filename,
+                                         metadata_role, metadata_file_object)
+
+
+
+
+
   def _update_metadata_if_changed(self, metadata_role, referenced_metadata='release'):
     """
     <Purpose>
@@ -775,7 +975,7 @@ class Updater(object):
       exception of the 'timestamp' role, all the top-level roles are updated
       by this function.  The 'timestamp' role is always downloaded from a mirror
       without first checking if it has been updated; it is updated in refresh()
-      by calling _update_metadata('timestamp').  This function is also called for
+      by calling _unsafe_update_metadata('timestamp').  This function is also called for
       delegated role metadata, which are referenced by 'release'.
         
       If the metadata needs to be updated but an update cannot be obtained,
@@ -801,7 +1001,7 @@ class Updater(object):
         'metadata_role'.  For the top-level roles, the 'release' role
         is the referenced metadata for the 'root', and 'targets' roles.
         The 'timestamp' metadata is always downloaded regardless.  In
-        other words, it is updated by calling _update_metadata('timestamp')
+        other words, it is updated by calling _unsafe_update_metadata('timestamp')
         and not by this function.  The referenced metadata for 'release'
         is 'timestamp'.  See refresh().
         
@@ -829,8 +1029,6 @@ class Updater(object):
     metadata_filename = metadata_role + '.txt'
 
     # Need to ensure the referenced metadata has been loaded.
-    # The 'root' role may be updated without having 'release'
-    # available.  
     if referenced_metadata not in self.metadata['current']:
       message = 'Cannot update '+repr(metadata_role)+' because ' \
                 +referenced_metadata+' is missing.'
@@ -858,7 +1056,7 @@ class Updater(object):
         compression = 'gzip'
 
     try:
-      self._update_metadata(metadata_role, fileinfo=new_fileinfo,
+      self._safe_update_metadata(metadata_role, fileinfo=new_fileinfo,
                             compression=compression)
     except tuf.RepositoryError, e:
       # The current metadata we have is not current but we couldn't
@@ -1533,11 +1731,11 @@ class Updater(object):
           # Ensure that we explore only delegated roles trusted with the target.
           # We assume conservation of delegated paths in the complete tree of
           # delegations. Note that the call to _ensure_all_targets_allowed in
-          # _update_metadata should already ensure that all targets metadata is
-          # valid; i.e. that the targets signed by a delegatee is a proper
-          # subset of the targets delegated to it by the delegator.
-          # Nevertheless, we check it again here for performance and safety
-          # reasons.
+          # _safe_update_metadata and _unsafe_update_metadatashould already 
+          # ensure that all targets metadata is valid; i.e. that the targets 
+          # signed by a delegatee is a proper subset of the targets delegated 
+          # to it by the delegator. Nevertheless, we check it again here for 
+          # performance and safety reasons.
           if target_filepath in child_role_paths:
             role_names.append(child_role_name)
     except:
@@ -1723,7 +1921,7 @@ class Updater(object):
     get_mirrors = tuf.mirrors.get_list_of_mirrors
 
     # Reference to the 'download_url_to_tempfileobj' function.
-    download_file = tuf.download.download_url_to_tempfileobj
+    download_file = tuf.download.safe_download_url_to_tempfileobj
 
     # Extract the target file information.
     target_filepath = target['filepath']

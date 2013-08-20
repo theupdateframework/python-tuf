@@ -124,7 +124,7 @@ def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
       # Client downloads (tries to download) the file.
       _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
 
-    except (tuf.DownloadError,tuf.RepositoryError), e:
+    except (tuf.DownloadError,tuf.RepositoryError, tuf.BadHashError), e:
       # If tuf.DownloadError or tuf.RepositoryError is raised, this means
       # that TUF has prevented the download of an unrecognized file. Enable
       # the logging to see, what actually happened.

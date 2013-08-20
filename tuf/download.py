@@ -25,11 +25,13 @@
 import logging
 import os.path
 import socket
+import time
 
 import tuf
 import tuf.hash
 import tuf.util
 import tuf.formats
+import tuf.conf
 
 from tuf.compatibility import httplib, ssl, urllib2, urlparse
 if ssl:
@@ -37,6 +39,16 @@ if ssl:
 else:
     raise tuf.Error( "No SSL support!" )    # TODO: degrade gracefully
 
+try:
+  from cStringIO import StringIO
+except ImportError:
+  from StringIO import StringIO
+
+try:
+  import errno
+except ImportError:
+  errno = None
+EINTR = getattr(errno, 'EINTR', 4)
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
@@ -170,7 +182,6 @@ def _open_connection(url):
     # 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)' this can be useful if
     # servers do not recognize connections that originates from 
     # Python-urllib/x.y.
-
     parsed_url = urlparse.urlparse( url )
     opener = _get_opener( scheme = parsed_url.scheme )
     request = _get_request( url )
@@ -230,6 +241,112 @@ def _check_hashes(input_file, trusted_hashes=None):
 
 
 
+class safe_fileobject(socket._fileobject):
+  """
+  A socket fileobject that uses our own safe read function to avoid slow
+  retrieval attack.
+  """   
+  # Keep track of the number of times receiving data with shorter length than
+  # required. Each time a new download begins, that is, a new instance of this
+  # class is created, it will be reset to 0. 
+  abnormal_length_count = 0
+  def read(self,size):
+    """
+    <Purpose>
+      This is a safer version of the socket._fileobject.read(). Prevent client
+      from the slow retrieval attack by checking the received data lenth.
+
+    <Arguments>
+      size:
+        The length of data that expected to download.
+    
+    <Exceptions>
+      tuf.SlowRetrievalError, if the abnormal_length_count is bigger than we
+      expected.
+      socket.error, if errors happend in the lower layer socket.
+    
+    <Side Effects>
+      None.
+    
+    <Returns>
+      "size" length of received data or empty string.
+
+  """
+    # Use max, disallow tiny reads in a loop as they are very inefficient.
+    # We never leave read() with any leftover data from a new recv() call
+    # in our internal buffer.
+    rbufsize = max(self._rbufsize, self.default_bufsize)
+    # Our use of StringIO rather than lists of string objects returned by
+    # recv() minimizes memory usage and fragmentation that occurs when
+    # rbufsize is large compared to the typical return value of recv().
+    buf = self._rbuf
+    buf.seek(0, 2)  # seek end
+
+    max_count = tuf.conf.maximum_abnormal_length_count
+
+    # Read until size bytes or EOF seen, whichever comes first
+    buf_len = buf.tell()
+    if buf_len >= size:
+      # Already have size bytes in our buffer?  Extract and return.
+      buf.seek(0)
+      rv = buf.read(size)
+      self._rbuf = StringIO()
+      self._rbuf.write(buf.read())
+      return rv
+    
+    else:
+      self._rbuf = StringIO()  # reset _rbuf.  we consume it via buf.
+      # When received  more shorter length data than we can tolorate,
+      # exit current download process and raise a slow retrieval 
+      # attack exception.
+      while self.abnormal_length_count < max_count:
+        left = size - buf_len
+        # recv() will malloc the amount of memory given as its
+        # parameter even though it often returns much less data
+        # than that.  The returned data string is short lived
+        # as we copy it into a StringIO and free it.  This avoids
+        # fragmentation issues on many platforms.
+        try:
+          data = self._sock.recv(left)
+        except socket.error, e:
+          if e.args[0] != EINTR:
+            raise
+        if not data:
+          break
+        
+        else:
+          n = len(data)
+          if n == size and not buf_len:
+            # Shortcut.  Avoid buffer data copies when:
+            # - We have no data in our buffer.
+            # AND
+            # - Our call to recv returned exactly the
+            #   number of bytes we were asked to read.
+            return data
+
+          elif n == left:
+            buf.write(data)
+            del data  # explicit free
+            break
+
+          else:
+            self.abnormal_length_count += 1
+            assert n <= left, "recv(%d) returned %d bytes" % (left, n)
+            buf.write(data)
+            buf_len += n
+            del data  # explicit free
+      else:
+        message = "received " + str(self.abnormal_length_count + 1) + \
+                  "times of abnormal length data. it could be " + \
+                  "slow retrieve attack!"
+        logger.error(message) 
+        raise tuf.SlowRetrievalError(message)
+      return buf.getvalue()
+
+      
+
+
+
 def _download_fixed_amount_of_data(connection, temp_file, required_length):
   """
   <Purpose>
@@ -270,13 +387,17 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
 
   # Keep track of total bytes downloaded.
   total_downloaded = 0
+  
 
   try:
     while True:
+      socket.setdefaulttimeout(5)
+      start = time.time()
       # We download a fixed chunk of data in every round. This is so that we
       # can defend against slow retrieval attacks. Furthermore, we do not wish
       # to download an extremely large file in one shot.
-      data = connection.read(min(BLOCK_SIZE, required_length-total_downloaded))
+      length_to_read = min(BLOCK_SIZE, required_length-total_downloaded)
+      data = connection.read(length_to_read)
 
       # We might have no more data to read. Check number of bytes downloaded. 
       if not data:
@@ -443,8 +564,105 @@ def _check_downloaded_length(total_downloaded, required_length,
 
 
 
-def download_url_to_tempfileobj(url, required_length, required_hashes=None,
-                                STRICT_REQUIRED_LENGTH=True):
+def unsafe_download_url_to_tempfileobj(url):
+
+  """
+  <Purpose>
+    The unsafe version of safe_download_url_to_tempfileobj function for timestamp.txt and
+    expired root.txt which do not have fileinfo recorded. Because there is no information
+    about hashes and length, it could not ensure downloadingthe correct file. No more than
+    2048 bytes will be download by default. Set the maximum allowed length in tuf.conf file. 
+  
+  <Arguments>
+    url:
+      A URL string that represents the location of the file. 
+
+  <Side Effects>
+    A 'tuf.util.TempFile' object is created on disk to store the contents of
+    'url'.
+ 
+  <Exceptions>
+    tuf.DownloadError, if there was an error while downloading the file.
+ 
+    tuf.FormatError, if any of the arguments are improperly formatted.
+
+    tuf.BadHashError, if the hashes don't match.
+
+    Any other unforeseen runtime exception.
+ 
+  <Returns>
+    A 'tuf.util.TempFile' file-like object which points to the contents of
+    'url'.
+
+  """
+  
+  logger.warning('Unknown target length and hashes, download will be executed' +\
+                 'in unsafe mode, up to ' + str(tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH) +\
+                 'will be downloaded!')
+
+  # The timestamp role does not have signed metadata about it; otherwise we
+  # would need an infinite regress of metadata. Therefore, we use some
+  # default, sane metadata about it.
+  required_length = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+  # Do all of the arguments have the appropriate format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.URL_SCHEMA.check_match(url)
+  # 'url.replace()' is for compatibility with Windows-based systems because
+  # they might put back-slashes in place of forward-slashes.  This converts it
+  # to the common format. 
+  url = url.replace('\\', '/')
+  logger.info('Downloading: '+str(url))
+
+  # Set the timeout for the recv() function inside the connection.read().
+  recv_timeout = tuf.conf.recv_timeout
+  socket.setdefaulttimeout(recv_timeout)
+
+  # Save the original _fileobject class for later restore.
+  original_fileobject = socket._fileobject
+  # Change the original _fileobject class into our own _fileobject which has a
+  # safe read() function to avoid slow retrieval attack.
+  socket._fileobject = safe_fileobject
+
+  connection = _open_connection(url)
+  temp_file = tuf.util.TempFile()
+
+  try:
+    # We ask the server about how big it thinks this file should be.
+    reported_length = _get_content_length(connection)
+
+    # Then, we check whether the required length matches the reported length.
+    _check_content_length(reported_length, required_length)
+
+    # Download the contents of the URL, up to the required length, to a
+    # temporary file, and get the total number of downloaded bytes.
+    total_downloaded = _download_fixed_amount_of_data(connection, temp_file, 
+                                                      required_length)
+
+    # Does the total number of downloaded bytes match the required length?
+    _check_downloaded_length(total_downloaded, required_length,
+                             STRICT_REQUIRED_LENGTH=False)
+
+  except:
+    # Something unfortunately went wrong, so we will close 'temp_file'; that
+    # means any data written to it will be lost.
+    temp_file.close_temp_file()
+    logger.exception('Could not download URL: '+str(url))
+    raise
+
+  else:
+    return temp_file
+
+  finally:
+    #After download is done or a exception is raised, restore the socket timeout 
+    # and socket._fileobject to default.
+    socket.setdefaulttimeout(None)
+    socket._fileobject = original_fileobject
+
+
+
+
+
+def safe_download_url_to_tempfileobj(url, required_length, required_hashes):
   """
   <Purpose>
     Given the url, hashes and length of the desired file, this function 
@@ -468,12 +686,6 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
       For instance, a hash pair might look something like this:
       {'md5': '37544f383be1fc1a32f42801c9c4b4d6'}
 
-    STRICT_REQUIRED_LENGTH:
-      A Boolean indicator used to signal whether we should perform strict
-      checking of required_length. True by default. We explicitly set this to
-      False when we know that we want to turn this off for downloading the
-      timestamp metadata, which has no signed required_length.
-
   <Side Effects>
     A 'tuf.util.TempFile' object is created on disk to store the contents of
     'url'.
@@ -493,21 +705,30 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
 
   """
 
+
+
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.URL_SCHEMA.check_match(url)
   tuf.formats.LENGTH_SCHEMA.check_match(required_length)
-
-  if required_hashes:
-    tuf.formats.HASHDICT_SCHEMA.check_match(required_hashes)
-  else:
-    logger.warn('Missing hashes for: '+str(url))
+  tuf.formats.HASHDICT_SCHEMA.check_match(required_hashes)
 
   # 'url.replace()' is for compatibility with Windows-based systems because
   # they might put back-slashes in place of forward-slashes.  This converts it
   # to the common format. 
   url = url.replace('\\', '/')
   logger.info('Downloading: '+str(url))
+  
+  # Set the timeout for the recv() function inside the connection.read().
+  recv_timeout = tuf.conf.recv_timeout
+  socket.setdefaulttimeout(recv_timeout)
+
+  # Save the original _fileobject class for later restore.
+  original_fileobject = socket._fileobject
+  # Change the original _fileobject class into our own _fileobject which has a
+  # safe read() function to avoid slow retrieval attack.
+  socket._fileobject = safe_fileobject
+
   connection = _open_connection(url)
   temp_file = tuf.util.TempFile()
 
@@ -525,7 +746,7 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
 
     # Does the total number of downloaded bytes match the required length?
     _check_downloaded_length(total_downloaded, required_length,
-                             STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH)
+                             STRICT_REQUIRED_LENGTH=True)
 
     # Finally, check the hashes expected of the file.
     _check_hashes(temp_file, trusted_hashes=required_hashes)
@@ -540,6 +761,12 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
   else:
     return temp_file
 
+  finally:
+    #After download is done or a exception is raised, restore the socket timeout 
+    # and socket._fileobject to default.
+    socket.setdefaulttimeout(None)
+    socket._fileobject = original_fileobject
+    
 
 
 
