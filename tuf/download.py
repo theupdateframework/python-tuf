@@ -25,6 +25,7 @@
 import logging
 import os.path
 import socket
+import time
 
 import tuf
 import tuf.hash
@@ -40,7 +41,7 @@ else:
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
-
+recv_timeout = tuf.conf.recv_timeout
 
 class VerifiedHTTPSConnection( httplib.HTTPSConnection ):
     """
@@ -266,17 +267,29 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
   """
 
   # The maximum chunk of data, in bytes, we would download in every round.
-  BLOCK_SIZE = 8192
+  # Shrink the BLOCK_SIZE to reduce the blocking time of connection.read()
+  # function if slow retrieval attack happens. 
+  BLOCK_SIZE = 512
 
   # Keep track of total bytes downloaded.
   total_downloaded = 0
+  
+  # Set the maximum running time of connection.read() when it is called.
+  read_timeout = tuf.conf.download_timeout
 
   try:
     while True:
+
+      begin_time = time.time()
       # We download a fixed chunk of data in every round. This is so that we
       # can defend against slow retrieval attacks. Furthermore, we do not wish
       # to download an extremely large file in one shot.
       data = connection.read(min(BLOCK_SIZE, required_length-total_downloaded))
+      
+      end_time = time.time()
+
+      if end_time - begin_time > read_timeout:
+        raise tuf.DownloadError("Timeout error when download, it could be a slow retrieval attack!")
 
       # We might have no more data to read. Check number of bytes downloaded. 
       if not data:
@@ -297,7 +310,6 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
   finally:
     # Whatever happens, make sure that we always close the connection.
     connection.close()
-
 
 
 
@@ -508,7 +520,17 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
   # to the common format. 
   url = url.replace('\\', '/')
   logger.info('Downloading: '+str(url))
+  
+  # Set the timeout for the recv() function inside the connection.read().
+  recv_timeout = tuf.conf.recv_timeout
+  socket.setdefaulttimeout(recv_timeout)
+
   connection = _open_connection(url)
+  
+  # After download is done, restore the socket timeout to default.
+  socket.setdefaulttimeout(None)
+
+
   temp_file = tuf.util.TempFile()
 
   try:
