@@ -136,6 +136,10 @@ class DownloadError(Error):
 
 
 
+class SlowRetrievalError(DownloadError):
+  """"Indicate that a downloading a file took longer than we would like it to."""
+  pass
+
 
 
 class KeyAlreadyExistsError(Error):
