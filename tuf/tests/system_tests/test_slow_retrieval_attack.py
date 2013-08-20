@@ -64,14 +64,14 @@ def _download(url, filename, tuf=False):
 
 
 
-def test_slow_retrieval_attack(TUF=False):
+def test_slow_retrieval_attack(TUF=False, mode=None):
 
-  WAIT_TIME = 5  # Number of seconds to wait until download completes.
-  ERROR_MSG = '\tSlow Retrieval Attack was Successful!\n\n'
+  WAIT_TIME = 10  # Number of seconds to wait until download completes.
+  ERROR_MSG = mode + '\tSlow Retrieval Attack was Successful!\n\n'
 
   # Launch the server.
   port = random.randint(30000, 45000)
-  command = ['python', 'slow_retrieval_server.py', str(port)]
+  command = ['python', 'slow_retrieval_server.py', str(port), mode]
   server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
   time.sleep(.1)
 
@@ -124,14 +124,27 @@ def test_slow_retrieval_attack(TUF=False):
 
 
 
-
+# Stimulates two kinds of slow retrieval attacks.
+# mode_1: When download begins,the server blocks the download
+# for a long time by doing nothing before it sends first byte of data.
+# mode_2: During the download process, the server blocks the download 
+# by sending just several characters every few seconds.
 try:
-  test_slow_retrieval_attack(TUF=False)
+  test_slow_retrieval_attack(TUF=False, mode = "mode_1")
 except SlowRetrievalAttackAlert, error:
   print error
 
+try:
+  test_slow_retrieval_attack(TUF=False, mode = "mode_2")
+except SlowRetrievalAttackAlert, error:
+  print error  
 
 try:
-  test_slow_retrieval_attack(TUF=True)
+  test_slow_retrieval_attack(TUF=True, mode = "mode_1")
+except SlowRetrievalAttackAlert, error:
+  print error
+
+try:
+  test_slow_retrieval_attack(TUF=True, mode = "mode_2")
 except SlowRetrievalAttackAlert, error:
   print error
