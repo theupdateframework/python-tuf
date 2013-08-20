@@ -41,6 +41,7 @@ import urllib
 import random
 import subprocess
 from multiprocessing import Process
+import tuf
 
 import util_test_tools
 from tuf.interposition import urllib_tuf
@@ -57,8 +58,14 @@ class SlowRetrievalAttackAlert(Exception):
 
 def _download(url, filename, tuf=False):
   if tuf:
-    urllib_tuf.urlretrieve(url, filename)
-    
+    try:
+      urllib_tuf.urlretrieve(url, filename)
+
+    # If timeout or RepositoryError is raised, this means
+    # that TUF has prevented the slow retrieval attack. Enable
+    # the logging to see, what actually happened.
+    except Exception, e:
+      print "Download exits with " + str(e) + "! Successfully avoid slow retrieval attack!\n\n"
   else:
     urllib.urlretrieve(url, filename)
 
@@ -103,21 +110,20 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
       # path relative to 'targets_dir'. 
       url_to_file = 'http://localhost:9999/'+file_basename
 
-
     # Client tries to download.
     # NOTE: if TUF is enabled the metadata files will be downloaded first.
     proc = Process(target=_download, args=(url_to_file, downloaded_file, TUF))
     proc.start()
     proc.join(WAIT_TIME)
+
     if proc.exitcode is None:
       proc.terminate()
       raise SlowRetrievalAttackAlert(ERROR_MSG)
 
-
   finally:
     if server_process.returncode is None:
       server_process.kill()
-      print 'Slow server terminated.\n'
+      print 'Communication with slow server aborted. Terminate the slow server.\n'
 
     util_test_tools.cleanup(root_repo, server_proc)
 
