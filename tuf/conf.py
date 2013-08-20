@@ -40,3 +40,9 @@ ssl_certificates = None
 # Since the timestamp role does not have signed metadata about itself, we set a
 # default but sane upper bound for the number of bytes required to download it.
 DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 2048
+
+# Set a maximum time of downloading every 512 Bytes data to avoid slow retrieval data attack. 
+download_timeout = 5
+
+# set the maximum time of waiting for the server before download.
+recv_timeout = 5
