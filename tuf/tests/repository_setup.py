@@ -31,16 +31,20 @@ import tuf.repo.signercli as signercli
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
 
-# Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
-# We will need them in creating keystore directory.
-unittest_toolbox.Modified_TestCase.bind_keys_to_roles()
-
 
 #  Role:keyids dictionary.
 role_keyids = {}
-for role in unittest_toolbox.Modified_TestCase.semi_roledict.keys():
-  role_keyids[role] = unittest_toolbox.Modified_TestCase.semi_roledict[role]['keyids']
 
+
+def _init_role_keyids():
+  # Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
+  # We will need them in creating keystore directory.
+  unittest_toolbox.Modified_TestCase.bind_keys_to_roles()
+
+  global role_keyids
+
+  for role in unittest_toolbox.Modified_TestCase.semi_roledict.keys():
+    role_keyids[role] = unittest_toolbox.Modified_TestCase.semi_roledict[role]['keyids']
 
 
 
@@ -54,6 +58,7 @@ def _create_keystore(keystore_directory):
   _rsa_keystore = unittest_toolbox.Modified_TestCase.rsa_keystore
   _rsa_passwords = unittest_toolbox.Modified_TestCase.rsa_passwords
   if not _rsa_keystore or not _rsa_passwords:
+    import pdb; pdb.set_trace()
     msg = 'Populate \'rsa_keystore\' and \'rsa_passwords\''+\
           ' before invoking this method.'
     sys.exit(msg)
@@ -275,6 +280,7 @@ def create_repositories():
 
   """
 
+  _init_role_keyids()
 
   #  Make a temporary general repository directory.
   repository_dir = tempfile.mkdtemp()
