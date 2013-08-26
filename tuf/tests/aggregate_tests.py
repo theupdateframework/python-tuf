@@ -19,9 +19,11 @@
 
 <Purpose>
   Run all the unit tests from every .py file beginning with "test_" in 'tuf/tests'.
+  Use --random to run the tests in random order.
 
 """
 
+import sys
 import unittest
 import glob
 import random
@@ -31,7 +33,8 @@ tests_list = glob.glob('test_*.py')
 # Remove '.py' from each filename.
 tests_list = [test[:-3] for test in tests_list]
 
-random.shuffle(tests_list)
+if '--random' in sys.argv:
+  random.shuffle(tests_list)
 
 suite = unittest.TestLoader().loadTestsFromNames(tests_list)
 
