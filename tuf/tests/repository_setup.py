@@ -58,7 +58,6 @@ def _create_keystore(keystore_directory):
   _rsa_keystore = unittest_toolbox.Modified_TestCase.rsa_keystore
   _rsa_passwords = unittest_toolbox.Modified_TestCase.rsa_passwords
   if not _rsa_keystore or not _rsa_passwords:
-    import pdb; pdb.set_trace()
     msg = 'Populate \'rsa_keystore\' and \'rsa_passwords\''+\
           ' before invoking this method.'
     sys.exit(msg)
