@@ -1466,6 +1466,82 @@ class Updater(object):
 
 
 
+  def refresh_targets_metadata_chain(self, rolename):
+    """
+    Proof-of-concept.
+
+    """
+    
+    # List of parent roles to update.
+    parent_roles = []
+
+    parts = rolename.split('/')
+
+    # Append the first role to the list.
+    parent_roles.append(parts[0])
+
+    # The 'roles_added' string contains the roles already added.  If 'a' and 'a/b'
+    # have been added to 'parent_roles', 'roles_added' would contain 'a/b'
+    roles_added = parts[0]
+
+    # Add each subsequent role to the previous string (with a '/' separator).
+    # This only goes to -1 because we only want to return the parents (so we
+    # ignore the last element).
+    for next_role in parts[1:-1]:
+      parent_roles.append(roles_added+'/'+next_role)
+      roles_added = roles_added+'/'+next_role
+
+    message = 'Minimum metadata to download to set chain of trust: '+\
+      repr(parent_roles)+'.'
+    logger.info(message)
+
+    # See if this role provides metadata.  All the available roles
+    # on the repository are specified in the 'release.txt' metadata.
+    targets_metadata_allowed = self.metadata['current']['release']['meta'].keys()
+    for parent_role in parent_roles:
+      parent_role = parent_role + '.txt'
+
+      if parent_role not in targets_metadata_allowed:
+        message = '"release.txt" does not provide all the parent roles'+\
+          'of '+repr(rolename)+'.'
+        raise tuf.Repository(message)
+
+    # Remove the 'targets' role because it gets updated when the targets.txt
+    # file is updated in _update_metadata_if_changed('targets').
+    if rolename == 'targets':
+      try:
+        parent_roles.remove('targets')
+      except ValueError:
+        message = 'The Release metadata file is missing the "targets.txt" entry.'
+        raise tuf.RepositoryError(message)
+  
+    # If there is nothing to refresh, we are done.
+    if not parent_roles:
+      return
+
+    # Sort the roles so that parent roles always come first.
+    parent_roles.sort()
+    logger.debug('Roles to update: '+repr(parent_roles)+'.')
+
+    # Iterate over 'roles_to_update', load its metadata
+    # file, and update it if it has changed.
+    for rolename in parent_roles:
+      self._load_metadata_from_file('previous', rolename)
+      self._load_metadata_from_file('current', rolename)
+
+      self._update_metadata_if_changed(rolename)
+
+      # Remove the role if it has expired.
+      try:
+        self._ensure_not_expired(rolename)
+      except tuf.ExpiredMetadataError:
+        tuf.roledb.remove_role(rolename)
+
+
+
+
+
+
   def _targets_of_role(self, rolename, targets=None, skip_refresh=False):
     """
     <Purpose>
