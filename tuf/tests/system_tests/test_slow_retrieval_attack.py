@@ -42,13 +42,8 @@ import random
 import subprocess
 from multiprocessing import Process
 
-import util_test_tools
+import tuf.tests.system_tests.util_test_tools as util_test_tools
 from tuf.interposition import urllib_tuf
-
-
-# Disable logging.
-util_test_tools.disable_logging()
-
 
 
 class SlowRetrievalAttackAlert(Exception):
@@ -72,7 +67,8 @@ def test_slow_retrieval_attack(TUF=False):
   # Launch the server.
   port = random.randint(30000, 45000)
   command = ['python', 'slow_retrieval_server.py', str(port)]
-  server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+  server_process = subprocess.Popen(command, stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE)
   time.sleep(.1)
 
   try:
