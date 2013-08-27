@@ -97,5 +97,5 @@ class TestMirrors(tuf.tests.unittest_toolbox.Modified_TestCase):
 
 
 # Run the unittests
-suite = unittest.TestLoader().loadTestsFromTestCase(TestMirrors)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

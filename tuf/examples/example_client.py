@@ -22,10 +22,12 @@
 
 import logging
 
+import tuf
+import tuf.log
 import tuf.client.updater
 
-# Uncomment the line below to enable printing of debugging information.
-#tuf.log.set_log_level(logging.DEBUG)
+logger = logging.getLogger('tuf.cient.basic_client')
+
 
 # Set the local repository directory containing the metadata files.
 tuf.conf.repository_directory = '.'
