@@ -44,6 +44,7 @@ from tuf.interposition import urllib_tuf
 
 import logging
 
+logger = logging.getLogger('tuf.test_endless_data_attack')
 
 class EndlessDataAttack(Exception):
   pass
