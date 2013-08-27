@@ -106,6 +106,7 @@ import os
 import shutil
 import time
 
+import tuf
 import tuf.conf
 import tuf.download
 import tuf.formats
@@ -117,7 +118,7 @@ import tuf.roledb
 import tuf.sig
 import tuf.util
 
-logger = logging.getLogger('tuf')
+logger = logging.getLogger('tuf.client.updater')
 
 
 class Updater(object):

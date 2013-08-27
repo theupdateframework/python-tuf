@@ -58,15 +58,16 @@ import logging
 import errno
 
 import tuf
+import tuf.formats
 import tuf.repo.signerlib
 import tuf.repo.keystore
 import tuf.util
 import tuf.log
 
-json = tuf.util.import_json()
-
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.signercli')
+
+json = tuf.util.import_json()
 
 # The maximum number of attempts the user has to enter
 # valid input.

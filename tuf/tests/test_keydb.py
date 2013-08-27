@@ -19,15 +19,13 @@
 import unittest
 import logging
 
+import tuf
+import tuf.formats
 import tuf.rsa_key
 import tuf.keydb
 import tuf.log
 
-logger = logging.getLogger('tuf')
-
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
+logger = logging.getLogger('tuf.test_keydb')
 
 
 # Generate the three keys to use in our test cases.
