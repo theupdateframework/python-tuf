@@ -38,14 +38,8 @@ import shutil
 import urllib
 import tempfile
 
-import util_test_tools
+import tuf.tests.system_tests.util_test_tools as util_test_tools
 from tuf.interposition import urllib_tuf
-
-
-
-# Disable logging.
-util_test_tools.disable_logging()
-
 
 
 class TestSetupError(Exception):

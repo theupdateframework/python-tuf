@@ -24,12 +24,13 @@
 """
 
 
+import logging
+
 # Import tuf Exceptions.
 import tuf
 import tuf.log
 
 # Import tuf logger to log warning messages.
-import logging
 logger = logging.getLogger('tuf.hash')
 
 # The list of hash libraries imported successfully.

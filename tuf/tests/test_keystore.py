@@ -21,16 +21,14 @@ import shutil
 import os
 import logging
 
+import tuf
 import tuf.repo.keystore
 import tuf.rsa_key
 import tuf.formats
 import tuf.util
+import tuf.log
 
-logger = logging.getLogger('tuf')
-
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
+logger = logging.getLogger('tuf.test_keystore')
 
 # We'll need json module for testing '_encrypt()' and '_decrypt()'
 # internal function.

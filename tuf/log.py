@@ -89,7 +89,7 @@ console_handler = None
 # may be modified with 'set_filehandler_log_level()'.  '_DEFAULT_LOG_FILENAME'
 # will be opened in append mode.
 file_handler = logging.FileHandler(_DEFAULT_LOG_FILENAME)
-file_handler.setLevel(_DEFAULT_LOG_LEVEL)
+file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
 file_handler.setFormatter(formatter)
 
 # Set the logger and its settings.
