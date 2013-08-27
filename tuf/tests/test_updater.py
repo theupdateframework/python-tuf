@@ -43,6 +43,9 @@ import tempfile
 import logging
 import unittest
 
+
+import tuf
+import tuf.log
 import tuf.util
 import tuf.formats
 import tuf.repo.keystore as keystore
@@ -51,11 +54,7 @@ import tuf.client.updater as updater
 import tuf.tests.repository_setup as setup
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
-logger = logging.getLogger('tuf')
-
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
+logger = logging.getLogger('tuf.test_updater')
 
 #  References to roledb and keydb dictionaries (improve readability).
 roledb = tuf.roledb

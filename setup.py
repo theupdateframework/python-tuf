@@ -76,7 +76,8 @@ setup(
     'tuf.pushtools',
     'tuf.pushtools.transfer',
     'tuf.repo',
-    'tuf.tests'
+    'tuf.tests',
+    'tuf.tests.system_tests'
   ],
   scripts=[
     'tuf/repo/quickstart.py',

@@ -54,6 +54,7 @@ import subprocess
 import tempfile
 import time
 
+import tuf
 import tuf.formats
 
 

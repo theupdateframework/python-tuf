@@ -27,17 +27,16 @@ import urllib
 import tempfile
 import time
 
-import util_test_tools
+import tuf
+import tuf.formats
+import tuf.tests.system_tests.util_test_tools
 import tuf.repo.keystore
 import tuf.repo.signerlib as signerlib
 import tuf.repo.signercli as signercli
 from tuf.interposition import urllib_tuf
 
-
-# Disable logging.
-util_test_tools.disable_logging()
-
 version = 1
+
 
 class ExtraneousDependenciesAttackAlert(Exception):
   pass
