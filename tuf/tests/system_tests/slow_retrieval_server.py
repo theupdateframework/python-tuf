@@ -56,17 +56,14 @@ class Handler(BaseHTTPRequestHandler):
 
         return
 
-      else:
+      elif self.server.test_mode == "mode_2":
         DELAY = 1
-        send_bytes_per_time = len(data) / 10
-        count = 0
-        # Throttle the file by sending several characters every few seconds.
-        while count <= len(data) / send_bytes_per_time:
+        # Throttle the file by sending a character every few seconds.
+        for i in range(len(data)):
+          self.wfile.write(data[i])
           time.sleep(DELAY)
-          self.wfile.write(data[count * send_bytes_per_time:(count + 1) * send_bytes_per_time])
-          count += 1
-
         return
+
     except IOError, e:
       self.send_error(404, 'File Not Found!')
 

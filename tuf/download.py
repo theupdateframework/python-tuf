@@ -26,11 +26,13 @@ import logging
 import os.path
 import socket
 import time
+import signal
 
 import tuf
 import tuf.hash
 import tuf.util
 import tuf.formats
+import tuf.conf
 
 from tuf.compatibility import httplib, ssl, urllib2, urlparse
 if ssl:
@@ -38,10 +40,20 @@ if ssl:
 else:
     raise tuf.Error( "No SSL support!" )    # TODO: degrade gracefully
 
+try:
+  from cStringIO import StringIO
+except ImportError:
+  from StringIO import StringIO
+
+try:
+  import errno
+except ImportError:
+  errno = None
+EINTR = getattr(errno, 'EINTR', 4)
+
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
-recv_timeout = tuf.conf.recv_timeout
 
 class VerifiedHTTPSConnection( httplib.HTTPSConnection ):
     """
@@ -231,6 +243,74 @@ def _check_hashes(input_file, trusted_hashes=None):
 
 
 
+class safe_fileObject(socket._fileobject):
+  def read(self,size=-1):
+    # Use max, disallow tiny reads in a loop as they are very inefficient.
+    # We never leave read() with any leftover data from a new recv() call
+    # in our internal buffer.
+    rbufsize = max(self._rbufsize, self.default_bufsize)
+    # Our use of StringIO rather than lists of string objects returned by
+    # recv() minimizes memory usage and fragmentation that occurs when
+    # rbufsize is large compared to the typical return value of recv().
+    buf = self._rbuf
+    buf.seek(0, 2)  # seek end
+    # Read until size bytes or EOF seen, whichever comes first
+    buf_len = buf.tell()
+    if buf_len >= size:
+      # Already have size bytes in our buffer?  Extract and return.
+      buf.seek(0)
+      rv = buf.read(size)
+      self._rbuf = StringIO()
+      self._rbuf.write(buf.read())
+      return rv
+ 
+    self._rbuf = StringIO()  # reset _rbuf.  we consume it via buf.
+    abnormal_length_count = 0
+    while abnormal_length_count < 6:
+      left = size - buf_len
+      # recv() will malloc the amount of memory given as its
+      # parameter even though it often returns much less data
+      # than that.  The returned data string is short lived
+      # as we copy it into a StringIO and free it.  This avoids
+      # fragmentation issues on many platforms.
+      try:
+        data = self._sock.recv(left)
+      except socket.error, e:
+        if e.args[0] != EINTR:
+          raise
+      if not data:
+        break
+        #return buf.getvalue()
+      n = len(data)
+      if n == size and not buf_len:
+        # Shortcut.  Avoid buffer data copies when:
+        # - We have no data in our buffer.
+        # AND
+        # - Our call to recv returned exactly the
+        #   number of bytes we were asked to read.
+        return data
+      if n == left:
+        buf.write(data)
+        del data  # explicit free
+        break
+        #return buf.getvalue()
+      if n < 10:
+        abnormal_length_count += 1
+
+      assert n <= left, "recv(%d) returned %d bytes" % (left, n)
+      buf.write(data)
+      buf_len += n
+      del data  # explicit free
+      #assert buf_len == buf.tell()
+    else:
+      #socket._fileobject = original_fileobject
+      raise tuf.SlowRetrievalError("slow")
+    return buf.getvalue()
+
+      
+
+
+
 def _download_fixed_amount_of_data(connection, temp_file, required_length):
   """
   <Purpose>
@@ -269,34 +349,29 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
   # The maximum chunk of data, in bytes, we would download in every round.
   # Shrink the BLOCK_SIZE to reduce the blocking time of connection.read()
   # function if slow retrieval attack happens. 
-  BLOCK_SIZE = 512
+  BLOCK_SIZE = 8192
 
   # Keep track of total bytes downloaded.
   total_downloaded = 0
   
-  # Set the maximum running time of connection.read() when it is called.
-  read_timeout = tuf.conf.download_timeout
-
   try:
     while True:
-
-      begin_time = time.time()
+      # calls the _slow_retrieval_attack_handler when SIGALRM signal is 
+      #signal.signal(signal.SIGALRM, _slow_retrieval_attack_handler)
+      #signal.alarm(timeout)
       # We download a fixed chunk of data in every round. This is so that we
       # can defend against slow retrieval attacks. Furthermore, we do not wish
       # to download an extremely large file in one shot.
-      data = connection.read(min(BLOCK_SIZE, required_length-total_downloaded))
-      
-      end_time = time.time()
-
-      if end_time - begin_time > read_timeout:
-        raise tuf.DownloadError("Timeout error when download, it could be a slow retrieval attack!")
+      length_to_read = min(BLOCK_SIZE, required_length-total_downloaded)
+      data = connection.read(length_to_read)
+      # TODO: where to put this?
+      #assert len(data) == length_to_read
 
       # We might have no more data to read. Check number of bytes downloaded. 
       if not data:
         message = 'Downloaded '+str(total_downloaded)+'/'+ \
           str(required_length)+' bytes.'
         logger.debug(message)
-
         # Finally, we signal that the download is complete.
         break
 
@@ -522,13 +597,18 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
   logger.info('Downloading: '+str(url))
   
   # Set the timeout for the recv() function inside the connection.read().
-  recv_timeout = tuf.conf.recv_timeout
-  socket.setdefaulttimeout(recv_timeout)
+  #recv_timeout = tuf.conf.recv_timeout
+  socket.setdefaulttimeout(5)
+
+  original_fileobject = socket._fileobject
+  socket._fileobject = safe_fileObject
 
   connection = _open_connection(url)
   
-  # After download is done, restore the socket timeout to default.
+  #After download is done, restore the socket timeout to default.
   socket.setdefaulttimeout(None)
+
+  socket._fileobject = original_fileobject
 
 
   temp_file = tuf.util.TempFile()
