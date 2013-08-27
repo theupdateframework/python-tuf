@@ -186,4 +186,5 @@ def test_extraneous_dependencies_attack():
 try:
   test_extraneous_dependencies_attack()
 except ExtraneousDependenciesAttackAlert, error:
+  raise
   print 'error'

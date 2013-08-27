@@ -42,6 +42,9 @@ import util_test_tools
 import tuf
 from tuf.interposition import urllib_tuf
 
+import logging
+
+logger = logging.getLogger('tuf.test_endless_data_attack')
 
 class EndlessDataAttack(Exception):
   pass
@@ -91,7 +94,6 @@ def test_arbitrary_package_attack(TUF=False):
     if TUF:
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
-
       # Modify the url.  Remember that the interposition will intercept 
       # urls that have 'localhost:9999' hostname, which was specified in
       # the json interposition configuration file.  Look for 'hostname'
@@ -113,11 +115,11 @@ def test_arbitrary_package_attack(TUF=False):
       # Client downloads (tries to download) the file.
       _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
 
-    except tuf.DownloadError:
+    except tuf.DownloadError,e:
       # If tuf.DownloadError is raised, this means that TUF has prevented
       # the download of an unrecognized file.  Enable the logging to see,
       # what actually happened.
-      pass
+      logger.warn('Download failed: '+repr(e))
 
     else:
       # Check whether the attack succeeded by inspecting the content of the

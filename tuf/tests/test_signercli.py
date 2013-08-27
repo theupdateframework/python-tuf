@@ -1556,5 +1556,9 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     signercli._get_metadata_directory = original_get_metadata_directory
 
 
+def tearDownModule():
+  unittest_toolbox.Modified_TestCase.clear_toolbox()
+
+
 if __name__ == '__main__':
   unittest.main()
