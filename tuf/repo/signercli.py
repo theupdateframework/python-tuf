@@ -53,21 +53,21 @@ import os
 import optparse
 import getpass
 import time
-import datetime
 import sys
 import logging
 import errno
 
 import tuf
+import tuf.formats
 import tuf.repo.signerlib
 import tuf.repo.keystore
 import tuf.util
 import tuf.log
 
-json = tuf.util.import_json()
-
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.signercli')
+
+json = tuf.util.import_json()
 
 # The maximum number of attempts the user has to enter
 # valid input.
@@ -105,7 +105,6 @@ def _get_password(prompt='Password: ', confirm=False):
     else:
       message = 'Mismatch; try again.'
       logger.info(message)
-      print(message)
 
 
 
@@ -213,15 +212,13 @@ def _list_keyids(keystore_directory, metadata_directory):
       if keyid in keyids:
         keyids_dict[keyid].append(targets_role)
   
-  # Print the keyids without the '.key' extension and the roles
+  # Log the keyids without the '.key' extension and the roles
   # associated with them.
   message = 'Listing the keyids in '+repr(keystore_directory)
   logger.info(message)
-  print(message)
   for keyid in keyids_dict:
     message = keyid+' : '+str(keyids_dict[keyid])
     logger.info(message)
-    print(message)
 
 
 
@@ -264,7 +261,6 @@ def _get_keyids(keystore_directory):
     if keyid not in loaded_keyid:
       message = 'Could not load keyid: '+keyid
       logger.error(message)
-      print(message)
       continue
 
     # Append 'keyid' to the loaded list of keyids.
@@ -316,7 +312,6 @@ def _get_all_config_keyids(config_filepath, keystore_directory):
           if not loaded_key or keyid not in loaded_key:
             message = 'Could not load keyid: '+keyid
             logger.error(message)
-            print(message)
             continue
           loaded_keyids[key].append(keyid)
           break
@@ -365,7 +360,6 @@ def _get_role_config_keyids(config_filepath, keystore_directory, role):
           if not loaded_key or keyid not in loaded_key:
             message = 'Could not load keyid: '+keyid
             logger.error(message)
-            print(message)
             continue
           role_keyids.append(keyid)
           break
@@ -413,7 +407,8 @@ def _get_metadata_version(metadata_filename):
     If 'metadata_filename' exists, load it and extract the current version.
     This version number is incremented by one prior to returning.  If
     'metadata_filename' does not exist, return a version value of 1.
-    Return 1 if 'metadata_filename' cannot be read or validated.
+    Raise 'tuf.RepositoryError' if 'metadata_filename' cannot be read or
+    validated.
   
   """
   
@@ -425,11 +420,13 @@ def _get_metadata_version(metadata_filename):
   # Open 'metadata_filename', extract the version number, and return it
   # incremented by 1.  A metadata's version is used to determine newer metadata
   # from older.  The client should only accept newer metadata.
-  signable = tuf.repo.signerlib.read_metadata_file(metadata_filename)
   try:
+    signable = tuf.repo.signerlib.read_metadata_file(metadata_filename)
     tuf.formats.check_signable_object_format(signable)
-  except tuf.FormatError, e:
-    return 1
+  except (tuf.FormatError, tuf.Error), e:
+    message = repr(metadata_filename)+' could not be opened or is invalid.'+\
+      '  Backup or replace it and try again.'
+    raise tuf.RepositoryError(message)
   current_version = signable['signed']['version']
 
   return current_version+1
@@ -441,28 +438,26 @@ def _get_metadata_version(metadata_filename):
 def _get_metadata_expiration():
   """
     Prompt the user for the expiration date of the metadata file.
-    If the entered date is valid, it is returned in seconds till
-    expiration.
+    If the entered date is valid, it is returned unmodified.
 
     <Exceptions>
-      tuf.Error, if the entered expiration date is invalid.
+      tuf.RepositoryError, if the entered expiration date is invalid.
   
   """
 
   message = '\nCurrent time: '+tuf.formats.format_time(time.time())+'.\n'+\
     'Enter the expiration date, in UTC, of the metadata file (yyyy-mm-dd HH:MM:SS): '
+    
   try:
     input_date = _prompt(message, str)
-    try:
-      input_date = input_date+' UTC'
-      expiration_date = tuf.formats.parse_time(input_date)
-    except tuf.FormatError, e:
-      raise tuf.Error('Invalid date entered.')
-    if expiration_date < time.time():
-      message = 'The expiration date must occur after the current date.'
-      raise tuf.Error(message)
-  except ValueError, e:
-    raise tuf.Error('Invalid date entered.')
+    input_date = input_date+' UTC'
+    expiration_date = tuf.formats.parse_time(input_date)
+  except (tuf.FormatError, ValueError), e:
+    raise tuf.RepositoryError('Invalid date entered.')
+  
+  if expiration_date < time.time():
+    message = 'The expiration date must occur after the current date.'
+    raise tuf.RepositoryError(message)
   
   return input_date
 
@@ -588,7 +583,7 @@ def generate_rsa_key(keystore_directory):
   try:
     rsa_key = save_rsa_key(keystore_directory=keystore_directory,
                  password=password, bits=rsa_key_bits)
-    print('Generated a new key: '+rsa_key['keyid'])
+    logger.info('Generated a new key: '+rsa_key['keyid'])
   except (tuf.FormatError, tuf.CryptoError), e:
     message = 'The RSA key could not be generated. '+str(e)+'\n'
     raise tuf.RepositoryError(message)
@@ -703,7 +698,6 @@ def dump_key(keystore_directory):
   message = '*WARNING* Printing the private key reveals' \
         ' sensitive information *WARNING*'
   logger.warning(message)
-  print(message)
   input = _prompt(prompt, str)
   if input.lower() == 'private':
     show_private = True
@@ -717,7 +711,7 @@ def dump_key(keystore_directory):
     raise tuf.RepositoryError(message)
 
   # Print the contents of the key metadata.
-  print(json.dumps(key_metadata, indent=2, sort_keys=True))
+  logger.info(json.dumps(key_metadata, indent=2, sort_keys=True))
 
 
 
@@ -816,7 +810,9 @@ def make_targets_metadata(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
-  # Retrieve the target files.
+  # Retrieve the target files.  The target paths entered by the user should be
+  # separated by white space.  'targets' is a list of the target path strings
+  # extracted from user input.
   prompt_targets = '\nInput may be a directory, directories, or any '+\
     'number of file paths.\nEnter the target files: '
   targets_input = _prompt(prompt_targets, str)
@@ -837,12 +833,10 @@ def make_targets_metadata(keystore_directory):
   # newer.
   version = _get_metadata_version(targets_filename)
 
-  # Prompt the user the metadata file's expiration date. 
-  try:
-    expiration_date = _get_metadata_expiration()
-  except tuf.Error, e:
-    message = str(e)+'\n'
-    raise tuf.RepositoryError(message)
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
 
 
   # Get the configuration file.
@@ -913,12 +907,10 @@ def make_release_metadata(keystore_directory):
   # newer.
   version = _get_metadata_version(release_filename)
 
-  # Prompt the user the metadata file's expiration date. 
-  try:
-    expiration_date = _get_metadata_expiration()
-  except tuf.Error, e:
-    message = str(e)+'\n'
-    raise tuf.RepositoryError(message)
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
 
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
@@ -981,12 +973,10 @@ def make_timestamp_metadata(keystore_directory):
   # newer.
   version = _get_metadata_version(timestamp_filename)
 
-  # Prompt the user the metadata file's expiration date. 
-  try:
-    expiration_date = _get_metadata_expiration()
-  except tuf.Error, e:
-    message = str(e)+'\n'
-    raise tuf.RepositoryError(message)
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
 
   # Get the configuration file.
   config_filepath = _prompt('\nEnter the configuration file path: ', str)
@@ -1048,7 +1038,6 @@ def sign_metadata_file(keystore_directory):
   # Retrieve the keyids of the signing keys from the user.
   message = 'The keyids that will sign the metadata file must be loaded.'
   logger.info(message)
-  print(message)
   loaded_keyids = _get_keyids(keystore_directory)
 
   if len(loaded_keyids) == 0:
@@ -1180,7 +1169,6 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
     if parent_role not in targets_roles:
       message = 'Invalid role name entered'
       logger.info(message)
-      print(message)
       parent_role = None
       continue
     else:
@@ -1202,7 +1190,6 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
       if keyid not in loaded_keyid:
         message = 'The keyid could not be loaded.'
         logger.info(message)
-        print(message)
         continue
       parent_keyids.append(loaded_keyid[0])
       break
@@ -1232,7 +1219,6 @@ def _get_delegated_role(keystore_directory, metadata_directory):
   # Retrieve the delegated role\'s keyids from the user.
   message = 'The keyid of the delegated role must be loaded.'
   logger.info(message)
-  print(message)
   delegated_keyids = _get_keyids(keystore_directory)
 
   # Ensure at least one delegated key was loaded.
@@ -1267,11 +1253,9 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
   
   # The 'delegated_paths' list contains either file paths or the paths of
   # directories.  A child role may list any target(s) under a directory or sub-
-  # directory.  Below, sort 'delegated_targets' so that root-most directories
-  # are easier to calculate (i.e., replicate directory wildcards using 
-  # os.path.commonprefix() instead of regular expressions, which may be abused
-  # by input carefully-crafted for this purpose).
-  delegated_targets.sort()
+  # directory.  Replicate directory wildcards using os.path.commonprefix()
+  # instead of regular expressions, which may be abused by input
+  # carefully-crafted for this purpose.
   for path in delegated_targets:
     path = os.path.abspath(path)
     relative_path = path[len(repository_directory)+1:]
@@ -1297,7 +1281,7 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
       # has not been added to 'delegated_paths', nor a parent directory of it.
       else: 
         delegated_paths.append(relative_path+os.sep)
-  message = 'There are '+str(len(delegated_filepaths))+' target paths for '+\
+  message = 'There are '+repr(len(delegated_filepaths))+' target paths for '+\
     repr(delegated_role)
   logger.info(message)
 
@@ -1323,12 +1307,10 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
     else:
       raise
 
-  # Prompt the user for the metadata file's expiration date. 
-  try:
-    expiration_date = _get_metadata_expiration()
-  except tuf.Error, e:
-    message = str(e)+'\n'
-    raise tuf.RepositoryError(message)
+  # Prompt the user the metadata file's expiration date.
+  # Raise 'tuf.RepositoryError' if invalid date is entered
+  # by the user.
+  expiration_date = _get_metadata_expiration()
  
   # Sign and write the delegated metadata file.
   delegated_role_filename = delegated_role+'.txt'

@@ -23,10 +23,14 @@
 """
 
 import unittest
+import logging
 
+import tuf
+import tuf.log
 import tuf.formats
 import tuf.rsa_key
 
+logger = logging.getLogger('tuf.test_rsa_key')
 
 RSA_KEY = tuf.rsa_key
 FORMAT_ERROR_MSG = 'tuf.FormatError was raised! Check object\'s format.'
@@ -180,5 +184,5 @@ class TestRsa_key(unittest.TestCase):
 
 
 # Run the unit tests.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestRsa_key)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

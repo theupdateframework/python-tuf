@@ -20,10 +20,14 @@ import os
 import tempfile
 import unittest
 import ConfigParser
+import logging
 
+import tuf
+import tuf.log
 import tuf.formats
 import tuf.pushtools.pushtoolslib as pushtoolslib
 
+logger = logging.getLogger('tuf.test_pushtoolslib')
 
 
 class TestPushtoolslib(unittest.TestCase):
@@ -165,5 +169,5 @@ class TestPushtoolslib(unittest.TestCase):
 
 
 # Run the unittests
-suite = unittest.TestLoader().loadTestsFromTestCase(TestPushtoolslib)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

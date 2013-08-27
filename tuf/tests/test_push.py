@@ -18,21 +18,23 @@
 
 import os
 import getpass
+import logging
 import tempfile
 import unittest
 import ConfigParser
 
 import tuf
+import tuf.log
 import tuf.pushtools.push as push
 import tuf.pushtools.transfer.scp as scp
 import tuf.pushtools.pushtoolslib as pushtoolslib
 import tuf.tests.system_tests.util_test_tools as util_test_tools
 
+logger = logging.getLogger('tuf.test_push')
 
 
 class TestPush(unittest.TestCase):
   src_push_dict = {}
-  print scp.transfer
   
   ORIGINAL_PUSH_CONFIG = pushtoolslib.PUSH_CONFIG
 
@@ -160,5 +162,5 @@ class TestPush(unittest.TestCase):
 
 
 # Run the unittests
-suite = unittest.TestLoader().loadTestsFromTestCase(TestPush)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

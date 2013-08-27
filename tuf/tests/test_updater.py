@@ -41,7 +41,11 @@ import time
 import shutil
 import tempfile
 import logging
+import unittest
 
+
+import tuf
+import tuf.log
 import tuf.util
 import tuf.formats
 import tuf.repo.keystore as keystore
@@ -50,11 +54,7 @@ import tuf.client.updater as updater
 import tuf.tests.repository_setup as setup
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
-logger = logging.getLogger('tuf')
-
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
+logger = logging.getLogger('tuf.test_updater')
 
 #  References to roledb and keydb dictionaries (improve readability).
 roledb = tuf.roledb
@@ -408,7 +408,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Verify that there was no change in roledb and keydb dictionaries
     #  by checking the number of elements in the dictionaries.
-    self.assertEqual(len(roledb._roledb_dict), 5)
+    self.assertEqual(len(roledb._roledb_dict), 5)       
     self.assertEqual(len(keydb._keydb_dict), 5)
 
     # Test: normal case, first level delegation.
@@ -1149,21 +1149,5 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.download.download_url_to_tempfileobj = original_download
 
 
-
-
-# Run all unit tests.
-loader = unittest_toolbox.unittest.TestLoader()
-suite = unittest_toolbox.unittest.TestSuite()
-
-class1_tests = loader.loadTestsFromTestCase(TestUpdater_init_)
-class2_tests = loader.loadTestsFromTestCase(TestUpdater)
- 
-suite.addTest(class1_tests)
-suite.addTest(class2_tests)
-
-try:
-  unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
-finally:
-  #  Removing repositories.
-  setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
-  unittest_toolbox.Modified_TestCase.clear_toolbox()
+if __name__ == '__main__':
+  unittest.main()

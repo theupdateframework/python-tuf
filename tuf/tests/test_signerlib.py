@@ -54,6 +54,8 @@ import gzip
 import logging
 import unittest
 
+import tuf
+import tuf.log
 import tuf.util
 import tuf.formats as formats
 import tuf.repo.signerlib as signerlib
@@ -61,12 +63,7 @@ import tuf.repo.keystore
 
 import tuf.tests.unittest_toolbox
 
-
-logger = logging.getLogger('tuf')
-
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
+logger = logging.getLogger('tuf.test_signerlib')
 
 # 'unittest_toolbox.Modified_TestCase' is too long, I'll set it to 'unit_tbox'.
 unit_tbox = tuf.tests.unittest_toolbox.Modified_TestCase
@@ -960,7 +957,7 @@ class TestSignerlib(unit_tbox):
       return timestamp_meta, role_keyids, meta_dir
 
     else:
-      print '\nUnrecognized top-level role.'
+      logger.warning('\nUnrecognized top-level role.')
 
 
 
@@ -976,11 +973,5 @@ class TestSignerlib(unit_tbox):
     return signed_meta, role_info
 
 
-
-# Run unit test.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSignerlib)
-try:
-  unittest.TextTestRunner(verbosity=2).run(suite) 
-finally:
-  unit_tbox.clear_toolbox()
-  tuf.repo.keystore.clear_keystore()
+if __name__ == '__main__':
+  unittest.main()

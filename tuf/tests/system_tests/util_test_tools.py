@@ -137,6 +137,7 @@ import tempfile
 import subprocess
 
 import tuf
+import tuf.formats
 import tuf.interposition
 import tuf.util
 import tuf.client.updater
@@ -144,13 +145,7 @@ import tuf.repo.signercli as signercli
 import tuf.repo.signerlib as signerlib
 import tuf.repo.keystore as keystore
 
-
-
-# Disable logging for cleaner output.
-def disable_logging():
-  logging.getLogger('tuf')
-  logging.disable(logging.CRITICAL)
-
+logger = logging.getLogger('tuf.tests.system_tests.util_test_tools')
 
 PASSWD = 'test'
 version = 1
@@ -172,7 +167,8 @@ def init_repo(tuf=False, port=None):
     # Start a simple server pointing to the repository directory.
     port = random.randint(30000, 45000)
     command = ['python', '-m', 'SimpleHTTPServer', str(port)]
-    server_proc = subprocess.Popen(command, stderr=subprocess.PIPE)
+    server_proc = subprocess.Popen(command, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE)
 
   # Tailor url for the repository.  In order to download a 'file.txt' 
   # from 'reg_repo' do: url+'reg_repo/file.txt'
@@ -200,7 +196,7 @@ def cleanup(root_repo, server_process=None):
     if server_process.returncode is None:
       server_process.kill()
       
-    print 'Server terminated.\n'
+    logger.info('Server terminated.\n')
 
   # Clear the keystore.
   keystore.clear_keystore()

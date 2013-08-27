@@ -39,27 +39,26 @@
 import os
 import time
 import logging
+import unittest
 
+import tuf
+import tuf.log
 import tuf.formats
 import tuf.util
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
+
 #  Module to test: signercli.py
 import tuf.repo.signercli as signercli
+
 #  Helper module unittest_toolbox.py
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
-
-logger = logging.getLogger('tuf')
-
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
+logger = logging.getLogger('tuf.test_signercli')
 
 # Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
 # We will need them when creating keystore directories.
 unittest_toolbox.Modified_TestCase.bind_keys_to_roles()
-
 
 
 class TestSignercli(unittest_toolbox.Modified_TestCase):
@@ -1494,8 +1493,6 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     #  Test: normal case 1.
     #  Testing first level delegation.
-    print 'delegated_targets_dir: '+str(delegated_targets_dir)
-    print 'files in delegated_targets_dir: '+repr(os.listdir(delegated_targets_dir))
     signercli.make_delegation(keystore_dir)
 
     #  Verify delegated metadata file exists.
@@ -1559,10 +1556,5 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     signercli._get_metadata_directory = original_get_metadata_directory
 
 
-# Run unit tests.
-loader = unittest_toolbox.unittest.TestLoader
-suite = loader().loadTestsFromTestCase(TestSignercli)
-try:
-  unittest_toolbox.unittest.TextTestRunner(verbosity=2).run(suite)
-finally:
-  unittest_toolbox.Modified_TestCase.clear_toolbox()
+if __name__ == '__main__':
+  unittest.main()

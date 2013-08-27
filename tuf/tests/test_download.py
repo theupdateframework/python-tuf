@@ -19,11 +19,9 @@
 
 NOTE: Make sure test_download.py is ran in 'tuf/tests/' directory.
 Otherwise, module that launches simple server would not be found.  
+
 """
 
-import tuf
-import tuf.download as download
-import tuf.tests.unittest_toolbox as unittest_toolbox
 
 import os
 import sys
@@ -36,9 +34,12 @@ import subprocess
 import SocketServer
 import SimpleHTTPServer
 
-# Disable/Enable logging.  Comment-out to Enable logging.
-logging.getLogger('tuf')
-logging.disable(logging.CRITICAL)
+import tuf
+import tuf.log
+import tuf.download as download
+import tuf.tests.unittest_toolbox as unittest_toolbox
+
+logger = logging.getLogger('tuf.test_download')
 
 
 class TestDownload(unittest_toolbox.Modified_TestCase):
@@ -61,9 +62,9 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.PORT = random.randint(30000, 45000)
     command = ['python', 'simple_server.py', str(self.PORT)]
     self.server_proc = subprocess.Popen(command, stderr=subprocess.PIPE)
-    print '\n\tServer process started.'
-    print '\tServer process id: '+str(self.server_proc.pid)
-    print '\tServing on port: '+str(self.PORT)
+    logger.info('\n\tServer process started.')
+    logger.info('\tServer process id: '+str(self.server_proc.pid))
+    logger.info('\tServing on port: '+str(self.PORT))
     junk, rel_target_filepath = os.path.split(target_filepath)
     self.url = 'http://localhost:'+str(self.PORT)+'/'+rel_target_filepath
 
@@ -83,7 +84,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     unittest_toolbox.Modified_TestCase.tearDown(self)
     if self.server_proc.returncode is None:
-      print '\tServer process '+str(self.server_proc.pid)+' terminated.'
+      logger.info('\tServer process '+str(self.server_proc.pid)+' terminated.')
       self.server_proc.kill()
     self.target_fileobj.close()
 
@@ -183,5 +184,5 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
 
 # Run unit test.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestDownload)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

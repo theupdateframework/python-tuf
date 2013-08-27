@@ -31,6 +31,7 @@
 
 import logging
 
+import tuf
 import tuf.formats
 import tuf.rsa_key
 

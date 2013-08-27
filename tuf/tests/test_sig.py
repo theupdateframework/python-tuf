@@ -17,13 +17,19 @@
 
 """
 
-import unittest
 
+import unittest
+import logging
+
+import tuf
+import tuf.log
+import tuf.formats
 import tuf.keydb
 import tuf.roledb
 import tuf.rsa_key
 import tuf.sig
 
+logger = logging.getLogger('tuf.test_sig')
 
 # Setup the keys to use in our test cases.
 KEYS = []
@@ -391,5 +397,5 @@ class TestSig(unittest.TestCase):
 
 
 # Run unit test.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSig)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()
