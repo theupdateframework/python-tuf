@@ -131,7 +131,7 @@ def update_client(repository_mirror):
 
   # Remove any files from the destination directory that are no longer being
   # tracked.
-  updater.remove_obsolete_targets(destination_directory)
+  #updater.remove_obsolete_targets(destination_directory)
 
 
 

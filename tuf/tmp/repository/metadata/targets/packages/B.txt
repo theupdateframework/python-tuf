@@ -1,0 +1,38 @@
+{
+ "signatures": [
+  {
+   "keyid": "845dc45bcd742df57d984dbaa46a959623950923470897b6230ae859bbffad6b", 
+   "method": "evp", 
+   "sig": "6be3f064c985d60a1ab0ede575b8f86ff55f4bbbe457d30e330ae53ef4377751793282639d914c66028620f7d0076f73ae7ebf816cf1c98d77e765f1c76d64bebe79fb759d7307146458e206725fee8c9371f755cb49a59bd06458a5f214797175dbd6a745c290f968c43d15a8bb993cac6b02860a9e6fc351a083e72ea63a3298f138db25cb0441946ef88f09a3e4b3dfdd88622f79f3d3bdbc9d1f280a160e0e5a6a80dab324a7764b7f8951a0fd75a071f2b0e71a0a2914559bf1c2c7272dba42e5d171d36323afe98bf1eb48773c6a6ea23af941eb79a707be607b3e6a096ad330b6009db637460139e6aef0891455aa8e7b6c8953a409841357a43dd6b93e66c308d96ab80822d37eee2cd24c928f46f353957764dfd3c01a19aadc8c8d61d7f335d3d45cb6c28efae840ce3cc9324afcd4501a254a2283b0beaf4b590cb498ba3615244acf3a64b09fc216601222de8abb22b7c9e042b63e840c52c0cc31482c46e3a31e21d3267676249f0f7468b754748dfc6d83190d05b735343b88"
+  }
+ ], 
+ "signed": {
+  "_type": "Targets", 
+  "delegations": {
+   "keys": {
+    "845dc45bcd742df57d984dbaa46a959623950923470897b6230ae859bbffad6b": {
+     "keytype": "rsa", 
+     "keyval": {
+      "private": "", 
+      "public": "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0HjJD27+MwJ6xCPS4TrT\ntehsJQZDz2W10/ZixTWI0x9k6fXwvd18wqGLwz+vS13ow6SrUHBYXwBO/5Pblpgu\nN2mE/CWPzQ59vaVvcT3yb8gKqrtqcaT4tYSumzJzBNocDTik2Tyx2g0VincnDPAa\nVnsrkk9zmh+f1WMffaT4w2cu82NRTCoVVB43bk1UyjHQD0+moDb9UL2lQk2pBdMZ\n+PaChhMtgzf1mlmOicnb/OZgJK5uJfq6umv5oO4Io0tzEF/6xnj+6CsQWwMhiQpK\nZHNsGO+f/WE/SFOXd9C+Ljnu9JsqWIPAYJG9x8PCNY4sZhv+cBYDwqTav/NmcwtZ\nfaw0RTuKQBwD8C2syS2LdU14H5koWY8H6+TQVQp0JnddzTsO2PRrbB/whQpYwN3L\nY9Q+H5/AurrlIjv/HehoPRHceeBrlRNiqF0OKraYQicI/pPcfH/UcHvp/GsGxTMd\nwEIEszVoDK579WtJtDvK1CZPISeJ7RDxspG2Shz6ID8vAgMBAAE=\n-----END PUBLIC KEY-----\n"
+     }
+    }
+   }, 
+   "roles": [
+    {
+     "keyids": [
+      "845dc45bcd742df57d984dbaa46a959623950923470897b6230ae859bbffad6b"
+     ], 
+     "name": "targets/packages/B/Bob", 
+     "paths": [
+      "packages/B/Bob/"
+     ], 
+     "threshold": 1
+    }
+   ]
+  }, 
+  "expires": "2014-08-01 15:48:49 UTC", 
+  "targets": {}, 
+  "version": 2
+ }
+}

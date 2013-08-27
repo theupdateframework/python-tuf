@@ -1,0 +1,48 @@
+{
+ "signatures": [
+  {
+   "keyid": "845dc45bcd742df57d984dbaa46a959623950923470897b6230ae859bbffad6b", 
+   "method": "evp", 
+   "sig": "028e6e6c93e3973bdbc295a5e96fb9d67926dc5a67b3127a77d3dbdd55e1b87bf82183e64f3e0ce133d0cf75b64a0c80f432c91c95bcd583af073473e991c7bc2a12cce0290b17232d82f010268eeb1192a242a14aa992b9b6036fff5dcf3fe5a2fcc0d15d9ca6aee54ca2a053779889968eac11c160fed1056b2ad0092f69deac9d286657b64a92f0b9182bdfee32930117b83baf729bd494b259d60a3ebd54c0a154ba87d710f9f8ab5ef6cfd563dffe346ef6bcb6551c5323f5c68839089a3ea65926c0fa159c43272d1323fd521b403dbe88d7213955e3c121328eb816db3521e059fc37b2e88741f517747344ce9b5520693061848b627077db692ab44afc1cab484270aa826339b1181862b461433b79d066cfb289fdd5f91b4e193bbdf5053d33e93b615e40ade38d7c74d8d3da8ae2df4fbaf4792a867cf08ba182666f465d0a0723058eebbec94b1c9e9f46560e05a45d58fdf98e5b5362077d63f00b0c8cf5ca00f60ef3ef5b2559a1c129eca3422a228aac3fa6882b368bfc233c"
+  }
+ ], 
+ "signed": {
+  "_type": "Targets", 
+  "delegations": {
+   "keys": {
+    "845dc45bcd742df57d984dbaa46a959623950923470897b6230ae859bbffad6b": {
+     "keytype": "rsa", 
+     "keyval": {
+      "private": "", 
+      "public": "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0HjJD27+MwJ6xCPS4TrT\ntehsJQZDz2W10/ZixTWI0x9k6fXwvd18wqGLwz+vS13ow6SrUHBYXwBO/5Pblpgu\nN2mE/CWPzQ59vaVvcT3yb8gKqrtqcaT4tYSumzJzBNocDTik2Tyx2g0VincnDPAa\nVnsrkk9zmh+f1WMffaT4w2cu82NRTCoVVB43bk1UyjHQD0+moDb9UL2lQk2pBdMZ\n+PaChhMtgzf1mlmOicnb/OZgJK5uJfq6umv5oO4Io0tzEF/6xnj+6CsQWwMhiQpK\nZHNsGO+f/WE/SFOXd9C+Ljnu9JsqWIPAYJG9x8PCNY4sZhv+cBYDwqTav/NmcwtZ\nfaw0RTuKQBwD8C2syS2LdU14H5koWY8H6+TQVQp0JnddzTsO2PRrbB/whQpYwN3L\nY9Q+H5/AurrlIjv/HehoPRHceeBrlRNiqF0OKraYQicI/pPcfH/UcHvp/GsGxTMd\nwEIEszVoDK579WtJtDvK1CZPISeJ7RDxspG2Shz6ID8vAgMBAAE=\n-----END PUBLIC KEY-----\n"
+     }
+    }
+   }, 
+   "roles": [
+    {
+     "keyids": [
+      "845dc45bcd742df57d984dbaa46a959623950923470897b6230ae859bbffad6b"
+     ], 
+     "name": "targets/packages/A", 
+     "paths": [
+      "packages/A/"
+     ], 
+     "threshold": 1
+    }, 
+    {
+     "keyids": [
+      "845dc45bcd742df57d984dbaa46a959623950923470897b6230ae859bbffad6b"
+     ], 
+     "name": "targets/packages/B", 
+     "paths": [
+      "packages/B/"
+     ], 
+     "threshold": 1
+    }
+   ]
+  }, 
+  "expires": "2014-08-01 15:37:45 UTC", 
+  "targets": {}, 
+  "version": 3
+ }
+}
