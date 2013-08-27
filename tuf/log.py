@@ -95,7 +95,6 @@ file_handler.setFormatter(formatter)
 # Set the logger and its settings.
 logger = logging.getLogger('tuf')
 logger.setLevel(_DEFAULT_LOG_LEVEL)
-logger.addHandler(stream_handler)
 logger.addHandler(file_handler)
 
 # Silently ignore logger exceptions.
