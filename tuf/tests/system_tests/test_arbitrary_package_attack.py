@@ -40,11 +40,6 @@ from tuf.interposition import urllib_tuf
 
 
 
-# Disable logging.
-util_test_tools.disable_logging()
-
-
-
 class ArbitraryPackageAlert(Exception):
   pass
 

@@ -22,6 +22,7 @@
 
 
 import os
+import time
 import tempfile
 import unittest
 
@@ -31,8 +32,7 @@ import tuf.repo.signercli as signercli
 import tuf.repo.signerlib as signerlib
 import util_test_tools
 
-
-
+version = 1
 
 
 class TestDelegationFunctions(unittest.TestCase):
@@ -100,6 +100,9 @@ class TestDelegationFunctions(unittest.TestCase):
       targets -> [T1, T2]
       T1 -> [T3]
     """
+    global version
+    version = version+1
+    expiration = tuf.formats.format_time(time.time()+86400)
 
     root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=True)
 
@@ -228,8 +231,8 @@ class TestDelegationFunctions(unittest.TestCase):
     write(T3_signable, T3_path)
 
     # Timestamp a new release to reflect latest targets.
-    signerlib.build_release_file(keyids, metadata_dir)
-    signerlib.build_timestamp_file(keyids, metadata_dir)
+    signerlib.build_release_file(keyids, metadata_dir, version, expiration)
+    signerlib.build_timestamp_file(keyids, metadata_dir, version, expiration)
 
     # Unload all keys.
     keystore.clear_keystore()
@@ -248,6 +251,9 @@ class TestInitialUpdateWithTargetDelegations(TestDelegationFunctions):
 
 
   def make_targets_metadata(self):
+    global version
+    version = version+1
+    expiration = tuf.formats.format_time(time.time()+86400)
     make_metadata = signerlib.generate_targets_metadata
     target1, target2 = self.target_filepaths
 
@@ -263,13 +269,17 @@ class TestInitialUpdateWithTargetDelegations(TestDelegationFunctions):
     self.delegated_targets[self.T3] = [target1, target2]
 
     self.T0_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T0])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T0],
+                    version, expiration)
     self.T1_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T1])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T1],
+                    version, expiration)
     self.T2_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T2])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T2],
+                    version, expiration)
     self.T3_metadata = \
-      make_metadata(self.tuf_repo, self.signed_targets[self.T3])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T3],
+                    version, expiration)
 
 
   def test_that_initial_update_works_with_target_delegations(self):
@@ -291,6 +301,10 @@ class TestBreachOfTargetDelegation(TestDelegationFunctions):
 
 
   def make_targets_metadata(self):
+    global version
+    version = version+1
+    expiration = tuf.formats.format_time(time.time()+86400)
+
     make_metadata = signerlib.generate_targets_metadata
     target1, target2 = self.target_filepaths
 
@@ -306,13 +320,17 @@ class TestBreachOfTargetDelegation(TestDelegationFunctions):
     self.delegated_targets[self.T3] = []
 
     self.T0_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T0])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T0],
+                    version, expiration)
     self.T1_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T1])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T1],
+                    version, expiration)
     self.T2_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T2])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T2],
+                    version, expiration)
     self.T3_metadata = \
-      make_metadata(self.tuf_repo, self.signed_targets[self.T3])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T3],
+                    version, expiration)
 
 
   def test_that_initial_update_fails_with_undelegated_signing_of_targets(self):
@@ -331,6 +349,10 @@ class TestOrderOfTargetDelegationWithSuccess(TestDelegationFunctions):
 
 
   def make_targets_metadata(self):
+    global version
+    version = version+1
+    expiration = tuf.formats.format_time(time.time()+86400)
+    
     make_metadata = signerlib.generate_targets_metadata
     target1, target2 = self.target_filepaths
 
@@ -346,13 +368,17 @@ class TestOrderOfTargetDelegationWithSuccess(TestDelegationFunctions):
     self.delegated_targets[self.T3] = [target1]
 
     self.T0_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T0])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T0],
+                    version, expiration)
     self.T1_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T1])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T1],
+                    version, expiration)
     self.T2_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T2])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T2],
+                    version, expiration)
     self.T3_metadata = \
-      make_metadata(self.tuf_repo, self.signed_targets[self.T3])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T3],
+                    version, expiration)
 
     # Modify the hash for target1 in T2.
     for target_filepath in self.relpath_from_targets([target1]):
@@ -385,6 +411,9 @@ class TestOrderOfTargetDelegationWithFailure(TestDelegationFunctions):
 
 
   def make_targets_metadata(self):
+    global version
+    version = version+1
+    expiration = tuf.formats.format_time(time.time()+86400)
     make_metadata = signerlib.generate_targets_metadata
     target1, target2 = self.target_filepaths
 
@@ -400,13 +429,17 @@ class TestOrderOfTargetDelegationWithFailure(TestDelegationFunctions):
     self.delegated_targets[self.T3] = [target1]
 
     self.T0_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T0])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T0],
+                    version, expiration)
     self.T1_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T1])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T1],
+                    version, expiration)
     self.T2_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T2])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T2],
+                    version, expiration)
     self.T3_metadata = \
-      make_metadata(self.tuf_repo, self.signed_targets[self.T3])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T3],
+                    version, expiration)
 
     # Modify the hash for target1 in T3.
     for target_filepath in self.relpath_from_targets([target1]):
@@ -432,6 +465,9 @@ class TestConservationOfTargetDelegation(TestDelegationFunctions):
 
 
   def make_targets_metadata(self):
+    global version
+    expiration = tuf.formats.format_time(time.time()+86400)
+
     make_metadata = signerlib.generate_targets_metadata
     target1, target2 = self.target_filepaths
 
@@ -447,13 +483,17 @@ class TestConservationOfTargetDelegation(TestDelegationFunctions):
     self.delegated_targets[self.T3] = []
 
     self.T0_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T0])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T0],
+                    version, expiration)
     self.T1_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T1])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T1],
+                    version, expiration)
     self.T2_metadata =\
-      make_metadata(self.tuf_repo, self.signed_targets[self.T2])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T2],
+                    version, expiration)
     self.T3_metadata = \
-      make_metadata(self.tuf_repo, self.signed_targets[self.T3])
+      make_metadata(self.tuf_repo, self.signed_targets[self.T3],
+                    version, expiration)
 
 
   def test_that_initial_update_works_with_unconserved_targets(self):

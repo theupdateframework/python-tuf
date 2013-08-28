@@ -30,9 +30,7 @@ import tuf.hash
 import tuf.util as util
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
+logger = logging.getLogger('tuf.test_util')
 
 
 class TestUtil(unittest_toolbox.Modified_TestCase):
@@ -302,5 +300,5 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
 # Run unit test.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestUtil)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

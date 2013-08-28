@@ -26,17 +26,17 @@ import shutil
 import unittest
 import logging
 
-import quickstart
+import tuf
+import tuf.log
+import tuf.repo.quickstart as quickstart
 import tuf.util
 import tuf.tests.unittest_toolbox
 
-
-# Disable all logging calls of level CRITICAL and below.
-# Comment the line below to enable logging.
-logging.disable(logging.CRITICAL)
-
+logger = logging.getLogger('tuf.test_quickstart')
 unit_tbox = tuf.tests.unittest_toolbox.Modified_TestCase
 
+
+logger.info('from test_quickstart')
 
 class TestQuickstart(unit_tbox):
   def test_1_get_password(self):
@@ -81,7 +81,7 @@ class TestQuickstart(unit_tbox):
 
     def _mock_prompt(message, confirm=False, input_parameters=input_dict):
       if message.startswith('\nWhen would you like your '+
-          'certificates to expire?'):
+          '"root.txt" metadata to expire?'):
         return input_parameters['expiration']
       for role in self.role_list:  # role_list=['root', 'targets', ...]
         if message.startswith('\nEnter the desired threshold '+
@@ -121,7 +121,8 @@ class TestQuickstart(unit_tbox):
     input_dict['expiration'] = '5/8/2011'
     self.assertRaises(tuf.RepositoryError, quickstart.build_repository,
         proj_dir)
-    input_dict['expiration'] = self.random_string()  # random string
+    # Random string.
+    input_dict['expiration'] = self.random_string()
     self.assertRaises(tuf.RepositoryError, quickstart.build_repository,
         proj_dir)
     _remove_repository_directories(repo_dir, keystore_dir, client_dir) 
@@ -191,5 +192,5 @@ class TestQuickstart(unit_tbox):
 
 
 # Run the unit tests.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestQuickstart)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()
