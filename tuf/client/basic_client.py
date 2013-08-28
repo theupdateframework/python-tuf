@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   basic_client.py
@@ -53,6 +55,8 @@ import sys
 import optparse
 import logging
 
+import tuf
+import tuf.formats
 import tuf.client.updater
 import tuf.log
 
@@ -207,8 +211,8 @@ if __name__ == '__main__':
   # the current directory.
   try:
     update_client(repository_mirror)
-  except tuf.RepositoryError, e:
-    sys.stderr.write(str(e)+'\n')
+  except (tuf.RepositoryError, tuf.ExpiredMetadataError), e:
+    sys.stderr.write('Error: '+str(e)+'\n')
     sys.exit(1)
 
   # Successfully updated the client's target files.

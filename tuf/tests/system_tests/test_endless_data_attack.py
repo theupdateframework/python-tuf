@@ -43,12 +43,6 @@ import tuf
 from tuf.interposition import urllib_tuf
 
 
-
-# Disable logging.
-util_test_tools.disable_logging()
-
-
-
 class EndlessDataAttack(Exception):
   pass
 

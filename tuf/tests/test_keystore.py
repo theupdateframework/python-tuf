@@ -19,11 +19,16 @@
 import unittest
 import shutil
 import os
+import logging
 
+import tuf
 import tuf.repo.keystore
 import tuf.rsa_key
 import tuf.formats
 import tuf.util
+import tuf.log
+
+logger = logging.getLogger('tuf.test_keystore')
 
 # We'll need json module for testing '_encrypt()' and '_decrypt()'
 # internal function.
@@ -321,5 +326,5 @@ class TestKeystore(unittest.TestCase):
 
 
 # Run the unit tests.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestKeystore)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

@@ -44,11 +44,6 @@ import util_test_tools
 from tuf.interposition import urllib_tuf
 
 
-# Disable logging.
-util_test_tools.disable_logging()
-
-
-
 class MixAndMatchAttackAlert(Exception):
   pass
 

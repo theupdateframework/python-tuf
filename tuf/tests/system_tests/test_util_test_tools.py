@@ -32,7 +32,10 @@ class test_UtilTestTools(unittest.TestCase):
     self.url = essential_params[1]
     self.server_proc = essential_params[2]
     self.keyids = essential_params[3]
-    self.interpose_json = essential_params[4] 
+    # TODO: In the line below, 'util_test_tools.init_repo' does
+    # not return the interposition config and this unit test
+    # does not directly use it.  WIP? 
+    #self.interpose_json = essential_params[4] 
 
   def tearDown(self):
     unittest.TestCase.tearDown(self)
@@ -40,7 +43,7 @@ class test_UtilTestTools(unittest.TestCase):
 
 
 #================================================#
-#  Bellow are few quick tests to make sure that  #
+#  Below are few quick tests to make sure that  #
 #  everything works smoothly in util_test_tools. #
 #================================================#
 

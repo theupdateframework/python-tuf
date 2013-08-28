@@ -19,17 +19,29 @@
 
 import os
 import StringIO
+import logging
 import tempfile
 import unittest
 
+import tuf
+import tuf.log
 import tuf.hash
 
+logger = logging.getLogger('tuf.test_hash')
+
+
+if not 'hashlib' in tuf.hash._supported_libraries:
+  logger.warn('Not testing hashlib: could not be imported.')
+if not 'pycrypto' in tuf.hash._supported_libraries:
+  logger.warn('Not testing pycrypto: could not be imported.')
 
 class TestHash(unittest.TestCase):
 
   def _run_with_all_hash_libraries(self, test_func):
-    test_func('hashlib')
-    test_func('pycrypto')
+    if 'hashlib' in tuf.hash._supported_libraries:
+      test_func('hashlib')
+    if 'pycrypto' in tuf.hash._supported_libraries:
+      test_func('pycrypto')
 
 
   def test_md5_update(self):
@@ -216,5 +228,5 @@ class TestHash(unittest.TestCase):
 
 
 # Run unit test.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestHash)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

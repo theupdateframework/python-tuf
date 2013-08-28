@@ -32,7 +32,10 @@
    in all popular Linux package managers.  More information and current
    versions of this document can be found at https://www.updateframework.com/
 
-   The development of TUF is supported by GENI (http://www.geni.net/).
+   The Global Environment for Network Innovations (GENI) and the National
+   Science Foundation (NSF) have provided support for the development of TUF.
+   (http://www.geni.net/)
+   (http://www.nsf.gov/)
 
    TUF's Python implementation is based heavily on Thandy, the application
    updater for Tor (http://www.torproject.org/). Its design and this spec are
@@ -409,26 +412,24 @@
 4.2. File formats: general principles
 
    All signed files are of the format:
-       { "signed" : X,
+       { "signed" : ROLE,
          "signatures" : [
-            { "keyid" : K,
-              "method" : M,
-              "sig" : S }
+            { "keyid" : KEYID,
+              "method" : METHOD,
+              "sig" : SIGNATURE }
             , ... ]
        }
 
-   where: X is a list whose first element describes the signed object.
-          K is the identifier of a key signing the document
-          M is the method to be used to make the signature
-          S is a signature of the canonical encoding of X using the
-          identified key.
+   where: ROLE is a dictionary whose "_type" field describes the role type.
+          KEYID is the identifier of the key signing the ROLE dictionary.
+          METHOD is the key signing method used to generate the signature.
+          SIGNATURE is a signature of the canonical encoding of ROLE using the
+          signing key belonging to KEYID.
 
    We define one signing method at present:
-       sha256-pkcs1 : A base64 encoded signature of the SHA256 hash of the
-         canonical encoding of X, using PKCS-1 padding.
+       "evp" : An interface to OpenSSL's EVP functions.
 
-   All times are given as strings of the format "YYYY-MM-DD HH:MM:SS",
-   in UTC.
+   All times are given as strings of the format "YYYY-MM-DD HH:MM:SS UTC".
 
    All keys are of the format:
       { "keytype" : KEYTYPE,
@@ -443,13 +444,12 @@
 
    We define one keytype at present: 'rsa'.  Its format is:
       { "keytype" : "rsa",
-        "keyval" : { "e" : E,
-                     "n" : N }
+        "keyval" : { "public" : PUBLIC,
+                     "private" : PRIVATE }
       }
 
-   where E and N are the binary representations of the exponent and
-   modulus, encoded as big-endian numbers in base64.  All RSA keys must
-   be at least 2048 bits long.
+   where PUBLIC and PRIVATE are in PEM format and are strings.  All RSA keys
+   must be at least 2048 bits long.
 
 4.3. File formats: root.txt
 
@@ -462,7 +462,7 @@
    The format of root.txt is as follows:
 
      { "_type" : "Root",
-       "ts" : TIME,
+       "version" : VERSION,
        "expires" : EXPIRES,
        "keys" : {
            KEYID : KEY
@@ -474,12 +474,11 @@
            , ... }
      }
 
-   The "ts" line describes when this file was updated.  Clients
-   MUST NOT replace a file with an older one, and SHOULD NOT accept a
-   file too far in the future.
+   VERSION is an integer that is greater than 0.  Clients MUST NOT replace a
+   metadata file with a version number less than the one currently trusted.
 
-   The "expires" line states when the metadata should be considered expired
-   and no longer trusted by clients.  Clients MUST NOT trust an expired file.
+   EXPIRES determines when metadata should be considered expired and no longer
+   trusted by clients.  Clients MUST NOT trust an expired file.
 
    A ROLE is one of "root", "release", "targets", "timestamp", or "mirrors".
    A role for each of "root", "release", "timestamp", and "targets" MUST be
@@ -505,7 +504,7 @@
    The format of release.txt is as follows:
 
      { "_type" : "Release",
-       "ts" : TIME,
+       "version" : VERSION,
        "expires" : EXPIRES,
        "meta" : METAFILES
      }
@@ -527,7 +526,7 @@
    The format of targets.txt is as follows:
 
      { "_type" : "Targets",
-       "ts" : TIME,
+       "version" : VERSION,
        "expires" : EXPIRES,
        "targets" : TARGETS,
        ("delegations" : DELEGATIONS)
@@ -572,10 +571,9 @@
    The "paths" list describes paths that the role is trusted to provide.
    Clients MUST check that a target is in one of the trusted paths of all roles
    in a delegation chain, not just in a trusted path of the role that describes
-   the target file.  The format of a PATHPATTERN may be either a path to a
-   single file or a path to a directory and end with "/**" to indicate all
-   files under that directory.  The value of "/**" by itself therefore means
-   all files.
+   the target file.  The format of a PATHPATTERN may be either a path to a single
+   file, or a path to a directory to indicate all files and/or subdirectories
+   under that directory.
 
    We are currently investigating a few "priority tag" schemes to resolve
    conflicts between delegated roles that share responsibility for overlapping
@@ -610,7 +608,7 @@
    The format of the timestamp file is as follows:
 
      { "_type" : "Timestamp",
-       "ts" : TIME,
+       "version" : VERSION,
        "expires" : EXPIRES,
        "meta" : METAFILES
      }
@@ -628,7 +626,7 @@
    The format of mirrors.txt is as follows:
 
      { "_type" : "Mirrorlist",
-       "ts" : TIME,
+       "version" : VERSION,
        "expires" : EXPIRES,
        "mirrors" : [
           { "urlbase" : URLBASE,

@@ -147,7 +147,7 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
   <Arguments>
     directory_name:
       The name of the directory containing the key files ('<keyid>.key'),
-      conformant to tuf.formats.RELPATH_SCHEMA.
+      conformant to 'tuf.formats.RELPATH_SCHEMA'.
 
     keyids:
       A list containing the keyids of the signing keys to load.
@@ -188,10 +188,8 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
   
   logger.info('Loading private key(s) from '+repr(directory_name))
 
-  # Make sure the directory exists.
-  if not os.path.exists(directory_name):
-    logger.warn('...no such directory.  Keystore cannot be loaded.')
-  else:
+  # Load the private key(s) if 'directory_name' exists, otherwise log a warning.
+  if os.path.exists(directory_name):
     # Decrypt the keys we can from those stored in 'keyids'.
     for keyid in keyids:
       try:
@@ -243,7 +241,11 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
             logger.warn(repr(full_filepath)+' contains an invalid key type.')
             continue
 
+  else:
+    logger.warn('...no such directory.  Keystore cannot be loaded.')
+
   logger.info('Done.')
+
   return loaded_keys
 
 

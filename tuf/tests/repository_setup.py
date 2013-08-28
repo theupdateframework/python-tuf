@@ -19,9 +19,11 @@
 
 import os
 import sys
+import time
 import shutil
 import tempfile
 
+import tuf.formats
 import tuf.rsa_key as rsa_key
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
@@ -77,6 +79,13 @@ def build_server_repository(server_repository_dir, targets_dir):
   original_prompt = signercli._prompt
   original_get_password = signercli._get_password
   original_get_keyids = signercli._get_keyids
+ 
+  # The expiration date for created metadata, required by the 'signercli.py'
+  # script.  The expiration date is set to 259200 seconds ahead of the current
+  # time.  Set all the metadata versions numbers to 1.
+  expiration_date = tuf.formats.format_time(time.time()+259200)
+  expiration_date = expiration_date[0:expiration_date.rfind(' UTC')] 
+  version = 1
   
   server_metadata_dir = os.path.join(server_repository_dir, 'metadata')
   keystore_dir = os.path.join(server_repository_dir, 'keystore')
@@ -103,11 +112,11 @@ def build_server_repository(server_repository_dir, targets_dir):
   # BUILD ROLE FILES.
   #  Build root file.
   signerlib.build_root_file(config_filepath, role_keyids['root'],
-                            server_metadata_dir)
+                            server_metadata_dir, version)
 
   #  Build targets file.
-  signerlib.build_targets_file(targets_dir, role_keyids['targets'],
-                            server_metadata_dir)
+  signerlib.build_targets_file([targets_dir], role_keyids['targets'],
+                            server_metadata_dir, version, expiration_date+' UTC')
 
   # MAKE DELEGATIONS.
   #  We will need to patch a few signercli prompts.
@@ -137,14 +146,14 @@ def build_server_repository(server_repository_dir, targets_dir):
 
   #  Mock method for signercli._prompt().
   def _mock_prompt(msg, junk):
-    if msg.startswith('\nThe directory entered'):
+    if msg.startswith('\nThe paths entered'):
       return delegated_targets_dir
     elif msg.startswith('\nChoose and enter the parent'):
       return parent_role
     elif msg.startswith('\nEnter the delegated role\'s name: '):
       return delegated_role_name
-    elif msg.startswith('Recursively walk the given directory? (Y)es/(N)o: '):
-      return 'N'
+    elif msg.startswith('\nCurrent time:'):
+      return expiration_date
     else:
       error_msg = ('Prompt: '+'\''+msg+'\''+
                    ' did not match any predefined mock prompts.')
@@ -205,10 +214,12 @@ def build_server_repository(server_repository_dir, targets_dir):
   keystore._key_passwords = unittest_toolbox.Modified_TestCase.rsa_passwords
 
   #  Build release file.
-  signerlib.build_release_file(role_keyids['release'], server_metadata_dir)
+  signerlib.build_release_file(role_keyids['release'], server_metadata_dir,
+                               version, expiration_date+' UTC')
 
   #  Build timestamp file.
-  signerlib.build_timestamp_file(role_keyids['timestamp'], server_metadata_dir)
+  signerlib.build_timestamp_file(role_keyids['timestamp'], server_metadata_dir,
+                                 version, expiration_date+' UTC')
 
   keystore._keystore = {}
   keystore._key_passwords = {}

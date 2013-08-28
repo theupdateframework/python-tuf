@@ -17,8 +17,13 @@
 """
 
 import unittest
+import logging
 
+import tuf
+import tuf.log
 import tuf.schema
+
+logger = logging.getLogger('tuf.test_schema')
 
 
 class TestSchema(unittest.TestCase):
@@ -326,5 +331,5 @@ class TestSchema(unittest.TestCase):
 
 
 # Run the unit tests.
-suite = unittest.TestLoader().loadTestsFromTestCase(TestSchema)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  unittest.main()

@@ -76,10 +76,11 @@ setup(
     'tuf.pushtools',
     'tuf.pushtools.transfer',
     'tuf.repo',
-    'tuf.tests'
+    'tuf.tests',
+    'tuf.tests.system_tests'
   ],
   scripts=[
-    'quickstart.py',
+    'tuf/repo/quickstart.py',
     'tuf/pushtools/push.py',
     'tuf/pushtools/receivetools/receive.py',
     'tuf/repo/signercli.py'
