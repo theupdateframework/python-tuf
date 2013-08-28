@@ -105,6 +105,7 @@ import logging
 import os
 import shutil
 import time
+import traceback
 
 import tuf
 import tuf.conf
@@ -668,6 +669,9 @@ class Updater(object):
     file_length=fileinfo['length']
     file_hashes=fileinfo['hashes']
 
+    # A dictionary to keep the error from every mirror that we try.
+    mirror_errors = {}
+
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
     # otherwise log a warning and try the next mirror.  'metadata_file_object'
@@ -677,6 +681,7 @@ class Updater(object):
     # 'tuf.formats.SIGNABLE_SCHEMA'.
     metadata_file_object = None
     metadata_signable = None
+
     for mirror_url in get_mirrors('meta',
                                   metadata_filename.encode("utf-8"),
                                   self.mirrors):
@@ -684,41 +689,50 @@ class Updater(object):
         metadata_file_object = \
           download_file(mirror_url, file_length, file_hashes,
                         STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH)
-      except tuf.DownloadError, e:
-        logger.warn('Download failed from '+mirror_url+'.')
-        continue
-      if compression:
-        metadata_file_object.decompress_temp_file_object(compression)
-
-      # Read and load the downloaded file.
-      metadata_signable = tuf.util.load_json_string(metadata_file_object.read())
-
-      # Verify the signature on the downloaded metadata object.
-      try:
-        valid = tuf.sig.verify(metadata_signable, metadata_role)
-      except (tuf.UnknownRoleError, tuf.FormatError, tuf.Error), e:
-        # FIXME: Exception.message is deprecated in 2.6, and gone in 3.0,
-        # but this is a workaround for Unicode messages. We need a long-term
-        # solution with #61.
-        # http://bugs.python.org/issue2517
-        message = 'Unable to verify '+metadata_filename+':'+\
-                  e.message.encode("utf-8")
-        logger.exception(message)
-        metadata_signable = None
-        continue
+      except:
+        logger.exception('Download failed from '+mirror_url+'.')
+        mirror_errors[mirror_url] = traceback.format_exc(1)
       else:
-        if valid:
-          logger.debug('Good signature on '+mirror_url+'.')
-          break
-        else:
-          logger.warn('Bad signature on '+mirror_url+'.')
+        if compression:
+          metadata_file_object.decompress_temp_file_object(compression)
+
+        # Read and load the downloaded file.
+        try:
+          metadata_signable = \
+            tuf.util.load_json_string(metadata_file_object.read())
+        except:
+          logger.exception('Invalid metadata from '+mirror_url+'.')
+          mirror_errors[mirror_url] = traceback.format_exc(1)
           metadata_signable = None
-          continue
-    
+        else:
+          # Verify the signature on the downloaded metadata object.
+          try:
+            valid = tuf.sig.verify(metadata_signable, metadata_role)
+          except (tuf.UnknownRoleError, tuf.FormatError, tuf.Error), e:
+            # FIXME: Exception.message is deprecated in 2.6, and gone in 3.0,
+            # but this is a workaround for Unicode messages. We need a
+            # long-term solution with #61.
+            # http://bugs.python.org/issue2517
+            message = 'Unable to verify '+metadata_filename+':'+\
+                      e.message.encode("utf-8")
+            logger.exception(message)
+            mirror_errors[mirror_url] = message
+            metadata_signable = None
+          else:
+            if valid:
+              logger.debug('Good signature on '+mirror_url+'.')
+              break
+            else:
+              message = 'Bad signature on '+mirror_url+'.'
+              logger.warn(message)
+              mirror_errors[mirror_url] = message
+              metadata_signable = None
+
     # Raise an exception if a valid metadata signable could not be downloaded
     # from any of the mirrors.
     if metadata_signable is None:
-      message = 'Unable to update '+repr(metadata_filename)+'.'
+      message = 'Unable to update '+str(metadata_filename)+\
+                ' from all known mirrors: '+str(mirror_errors)
       logger.error(message)
       raise tuf.RepositoryError(message)
 
@@ -1867,7 +1881,7 @@ class Updater(object):
     # Raise 'tuf.FormatError' if the check fail.
     tuf.formats.TARGETFILE_SCHEMA.check_match(target)
     tuf.formats.PATH_SCHEMA.check_match(destination_directory)
-   
+
     # Reference to the 'get_list_of_mirrors' function.
     get_mirrors = tuf.mirrors.get_list_of_mirrors
 
@@ -1879,7 +1893,14 @@ class Updater(object):
     trusted_length = target['fileinfo']['length']
     trusted_hashes = target['fileinfo']['hashes']
 
+    # A dictionary to keep the error from every mirror that we try.
+    mirror_errors = {}
+
+    # Wherein the downloaded target file will be stored.
     target_file_object = None
+
+    logger.info('Trying to download: '+str(target_filepath))
+
     # Iterate through the repositority mirrors until we successfully
     # download a target.
     for mirror_url in get_mirrors('target', target_filepath, self.mirrors):
@@ -1887,13 +1908,19 @@ class Updater(object):
         target_file_object = download_file(mirror_url, trusted_length,
                                            trusted_hashes)
         break
-      except (tuf.DownloadError, tuf.FormatError), e:
-        logger.warn('Download failed from '+mirror_url+'.')
+      except:
+        # Remember the error from this mirror, and "reset" the target file.
+        logger.exception('Download failed from '+mirror_url+'.')
+        mirror_errors[mirror_url] = traceback.format_exc(1)
         target_file_object = None
         continue
+
     # We have gone through all the mirrors.  Did we get a target file object?
     if target_file_object == None: 
-      raise tuf.DownloadError('No download locations known.')
+      raise tuf.DownloadError('Failed to download target '+\
+                              str(target_filepath)+\
+                              ' from all known mirrors: '+\
+                              str(mirror_errors))
    
     # We acquired a target file object from a mirror.  Move the file into
     # place (i.e., locally to 'destination_directory').
