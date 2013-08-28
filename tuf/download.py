@@ -26,7 +26,6 @@ import logging
 import os.path
 import socket
 import time
-import signal
 
 import tuf
 import tuf.hash
