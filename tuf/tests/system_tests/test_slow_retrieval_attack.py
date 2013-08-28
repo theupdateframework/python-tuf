@@ -111,6 +111,7 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
       # path relative to 'targets_dir'. 
       url_to_file = 'http://localhost:9999/'+file_basename
 
+
     # Client tries to download.
     # NOTE: if TUF is enabled the metadata files will be downloaded first.
     proc = Process(target=_download, args=(url_to_file, downloaded_file, TUF))
@@ -120,6 +121,7 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
     if proc.exitcode is None:
       proc.terminate()
       raise SlowRetrievalAttackAlert(ERROR_MSG)
+
 
   finally:
     if server_process.returncode is None:

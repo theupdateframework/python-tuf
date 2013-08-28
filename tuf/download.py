@@ -54,6 +54,7 @@ EINTR = getattr(errno, 'EINTR', 4)
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
 
+
 class VerifiedHTTPSConnection( httplib.HTTPSConnection ):
     """
     A connection that wraps connections with ssl certificate verification.
@@ -402,6 +403,7 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
         message = 'Downloaded '+str(total_downloaded)+'/'+ \
           str(required_length)+' bytes.'
         logger.debug(message)
+
         # Finally, we signal that the download is complete.
         break
 
@@ -415,6 +417,7 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
   finally:
     # Whatever happens, make sure that we always close the connection.
     connection.close()
+
 
 
 
