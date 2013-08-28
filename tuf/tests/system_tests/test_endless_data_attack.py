@@ -31,8 +31,6 @@ Note: There is no difference between 'updates' and 'target' files.
 
 """
 
-# TODO:...
-
 import os
 import shutil
 import urllib
@@ -41,7 +39,7 @@ import util_test_tools
 
 import tuf
 from tuf.interposition import urllib_tuf
-
+from tuf.log import logger
 
 class EndlessDataAttack(Exception):
   pass
@@ -91,7 +89,6 @@ def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
     if TUF:
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
-
       # Modify the url.  Remember that the interposition will intercept 
       # urls that have 'localhost:9999' hostname, which was specified in
       # the json interposition configuration file.  Look for 'hostname'
@@ -102,10 +99,12 @@ def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
       # Attacker modifies the file at the targets repository.
       target = os.path.join(tuf_targets, file_basename)
       util_test_tools.modify_file_at_repository(target, endless_data)
+
       # Attacker modifies the timestamp.txt metadata.
       if TIMESTAMP:
         metadata = os.path.join(tuf_repo, 'metadata')
         timestamp = os.path.join(metadata, 'timestamp.txt')
+        # FIXME: This does not correctly "patch" the timestamp metadata.
         util_test_tools.modify_file_at_repository(timestamp, endless_data)  
 
     # Attacker modifies the file at the regular repository.
@@ -118,11 +117,11 @@ def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
       # Client downloads (tries to download) the file.
       _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
 
-    except (tuf.DownloadError,tuf.RepositoryError), e:
+    except (tuf.DownloadError, tuf.RepositoryError), e:
       # If tuf.DownloadError or tuf.RepositoryError is raised, this means
       # that TUF has prevented the download of an unrecognized file. Enable
-      # the logging to see, what actually happened.
-      pass
+      # logging to see what actually happened.
+      logger.warn('Download failed: '+repr(e))
 
     else:
       # Check whether the attack succeeded by inspecting the content of the
@@ -157,7 +156,11 @@ except EndlessDataAttack, error:
 
 
 try:
+  # FIXME: This test passes, but not yet because we avoided an endless data
+  # attack with timestamp metadata, but rather because the timestamp metadata
+  # is invalid.
   test_arbitrary_package_attack(TUF=True, TIMESTAMP=True)
+  raise EndlessDataAttack('Timestamp metadata is not yet immune from the endless data attack!')
 
 except EndlessDataAttack, error:
   print('With TUF: '+str(error))  
