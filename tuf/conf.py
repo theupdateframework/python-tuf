@@ -40,3 +40,10 @@ ssl_certificates = None
 # Since the timestamp role does not have signed metadata about itself, we set a
 # default but sane upper bound for the number of bytes required to download it.
 DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 2048
+
+# set the maximum waiting time for the socket.recv() before receives anything.
+recv_timeout = 2
+
+# the maximum tolorated number of times that receive data with shorter length than required
+# when download a file. 
+maximum_abnormal_length_count = 5
