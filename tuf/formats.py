@@ -138,6 +138,9 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 # The minimum number of bits for an RSA key.  Must be 2048 bits and greater.
 RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
 
+# An RSA key in PEM format.
+PEMRSA_SCHEMA = SCHEMA.AnyString()
+
 # A string representing a password.
 PASSWORD_SCHEMA = SCHEMA.AnyString()
 

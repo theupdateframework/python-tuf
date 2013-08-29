@@ -171,9 +171,10 @@ class TestRsa_key(unittest.TestCase):
     self.assertFalse(verified, 
                      'Returned \'True\' on an incorrect signature.')
 
-    # Modifying 'signature' to pass an incorrect method since only 'evp' 
+    # Modifying 'signature' to pass an incorrect method since only
+    # 'PyCrypto-PKCS#1 PSS' 
     # is accepted.
-    signature['method'] = 'not_evp'
+    signature['method'] = 'Biff'
 
     args = (rsakey_dict, signature, DATA)
     self.assertRaises(tuf.UnknownMethodError, RSA_KEY.verify_signature, *args) 
