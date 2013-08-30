@@ -38,7 +38,7 @@ role_keyids = {}
 
 def _init_role_keyids():
   # Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
-  # We will need them in creating keystore directory.
+  # We will need them in creating the keystore directory and metadata files.
   unittest_toolbox.Modified_TestCase.bind_keys_to_roles()
 
   global role_keyids
@@ -279,6 +279,8 @@ def create_repositories():
 
   """
 
+  # Ensure the keyids for the required roles are loaded.  Role keyids are
+  # needed for the creation of metadata file and the keystore.
   _init_role_keyids()
 
   #  Make a temporary general repository directory.

@@ -112,9 +112,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def setUpClass(cls):
+    # setUpClass() is called before tests in an individual class run.
     # Create repositories.  'repositories' is a tuple that looks like this:
     # (repository_dir, client_repository_dir, server_repository_dir), see 
-    # repository_setup.py odule.
+    # 'repository_setup.py' module.
     cls.repositories = setup.create_repositories()
 
     # Save references to repository directories and metadata.
@@ -128,9 +129,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  References to delegated metadata paths and directories.
     cls.delegated_dir1 = os.path.join(cls.server_meta_dir, 'targets')
-    cls.delegated_filepath1 = os.path.join(cls.delegated_dir1, 'delegated_role1.txt')
+    cls.delegated_filepath1 = os.path.join(cls.delegated_dir1,
+                                           'delegated_role1.txt')
     cls.delegated_dir2 = os.path.join(cls.delegated_dir1, 'delegated_role1')
-    cls.delegated_filepath2 = os.path.join(cls.delegated_dir2, 'delegated_role2.txt')
+    cls.delegated_filepath2 = os.path.join(cls.delegated_dir2,
+                                           'delegated_role2.txt')
     cls.targets_dir = os.path.join(cls.server_repo_dir, 'targets')  
 
     #  Client side references.
@@ -1150,6 +1153,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 def tearDownModule():
+  # tearDownModule() is called after all the tests have run.
+  # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
   setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
   unittest_toolbox.Modified_TestCase.clear_toolbox()
 
