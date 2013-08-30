@@ -56,9 +56,6 @@ import tuf.tests.unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_signercli')
 
-# Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
-# We will need them when creating keystore directories.
-unittest_toolbox.Modified_TestCase.bind_keys_to_roles()
 
 
 class TestSignercli(unittest_toolbox.Modified_TestCase):
@@ -1554,6 +1551,16 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     signercli._get_password = original_get_password
     signercli._prompt = original_prompt
     signercli._get_metadata_directory = original_get_metadata_directory
+
+
+def setUpModule():
+  # Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
+  # We will need them when creating keystore directories.
+  unittest_toolbox.Modified_TestCase.bind_keys_to_roles()
+
+
+def tearDownModule():
+  unittest_toolbox.Modified_TestCase.clear_toolbox()
 
 
 if __name__ == '__main__':

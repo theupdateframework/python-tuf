@@ -68,8 +68,6 @@ logger = logging.getLogger('tuf.test_signerlib')
 # 'unittest_toolbox.Modified_TestCase' is too long, I'll set it to 'unit_tbox'.
 unit_tbox = tuf.tests.unittest_toolbox.Modified_TestCase
 
-# Generate rsa keys and roles dictionary dictionaries.
-unit_tbox.bind_keys_to_roles()
 
 
 class TestSignerlib(unit_tbox):
@@ -971,6 +969,15 @@ class TestSignerlib(unit_tbox):
     signed_meta = signerlib.sign_metadata(role_info[0], role_info[1],
                                           filename)
     return signed_meta, role_info
+
+
+def setUpModule():
+  # Generate rsa keys and roles dictionary dictionaries.
+  unit_tbox.bind_keys_to_roles()
+
+def tearDownModule():
+  unit_tbox.clear_toolbox()
+  tuf.repo.keystore.clear_keystore()
 
 
 if __name__ == '__main__':
