@@ -1554,12 +1554,14 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
 
 def setUpModule():
+  # setUpModule() is called before any test cases run. 
   # Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
   # We will need them when creating keystore directories.
   unittest_toolbox.Modified_TestCase.bind_keys_to_roles()
 
 
 def tearDownModule():
+  # tearDownModule() is called after all the test cases have run.
   unittest_toolbox.Modified_TestCase.clear_toolbox()
 
 

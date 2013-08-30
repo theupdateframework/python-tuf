@@ -972,10 +972,12 @@ class TestSignerlib(unit_tbox):
 
 
 def setUpModule():
+  # setUpModule() is called before any test cases run.
   # Generate rsa keys and roles dictionary dictionaries.
   unit_tbox.bind_keys_to_roles()
 
 def tearDownModule():
+  # tearDownModule() is called after all the test cases have run.
   unit_tbox.clear_toolbox()
   tuf.repo.keystore.clear_keystore()
 
