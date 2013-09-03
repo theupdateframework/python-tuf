@@ -693,6 +693,9 @@ class Updater(object):
         logger.exception('Download failed from '+mirror_url+'.')
         mirror_errors[mirror_url] = traceback.format_exc(1)
       else:
+        # FIXME: mirror_errors for a mirror_url must not be overwritten!
+
+        # FIXME: Another point of failure which we should handle.
         if compression:
           metadata_file_object.decompress_temp_file_object(compression)
 

@@ -29,7 +29,7 @@ temporary_directory = None
 # not be deleted. At a minimum, each key in the mirrors dictionary
 # below should have a directory under 'repository_directory'
 # which already exists and within that directory should have the file
-# 'metadata/current/root.txt'.  This must be set!
+# 'metadata/current/root.txt'. This MUST be set.
 repository_directory = None
 
 # A PEM (RFC 1422) file where you may find SSL certificate authorities
@@ -40,3 +40,14 @@ ssl_certificates = None
 # Since the timestamp role does not have signed metadata about itself, we set a
 # default but sane upper bound for the number of bytes required to download it.
 DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 2048
+
+# Set a timeout value in seconds (float) for non-blocking socket operations.
+SOCKET_TIMEOUT = 1
+
+# The maximum chunk of data, in bytes, we would download in every round.
+CHUNK_SIZE = 8192
+
+# The maximum number of slowly-retrieved chunks that we would tolerate.
+MAX_NUM_OF_SLOW_CHUNKS = 5
+
+

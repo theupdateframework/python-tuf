@@ -26,6 +26,9 @@
 __all__ = ['formats']
 
 
+
+
+
 class Error(Exception):
   """Indicate a generic error."""
   pass
@@ -138,6 +141,16 @@ class DownloadError(Error):
 
 
 
+class SlowRetrievalError(DownloadError):
+  """"Indicate that downloading a file took an unreasonably long time."""
+
+  def __init__(self, number_of_slow_chunks):
+    self.number_of_slow_chunks = number_of_slow_chunks
+
+
+
+
+
 class KeyAlreadyExistsError(Error):
   """Indicate that a key already exists and cannot be added."""
   pass
@@ -165,3 +178,8 @@ class UnknownRoleError(Error):
 class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object"""
   pass
+
+
+
+
+
