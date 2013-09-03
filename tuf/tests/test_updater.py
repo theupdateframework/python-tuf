@@ -49,17 +49,16 @@ import tuf.client.updater as updater
 import tuf.conf
 import tuf.log
 import tuf.formats
+import tuf.keydb
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
+import tuf.roledb
 import tuf.tests.repository_setup as setup
 import tuf.tests.unittest_toolbox as unittest_toolbox
 import tuf.util
 
 logger = logging.getLogger('tuf.test_updater')
 
-#  References to roledb and keydb dictionaries (improve readability).
-roledb = tuf.roledb
-keydb = tuf.keydb
 
 # This is the default metadata that we would create for the timestamp role,
 # because it has no signed metadata for itself.
@@ -112,39 +111,46 @@ class TestUpdater_init_(unittest_toolbox.Modified_TestCase):
         os.remove(role_filepath)
     updater.Updater('Repo_Name', self.mirrors)
 
-    #  Remove all created repositories.
+    #  Remove all created repositories and roles.
     setup.remove_all_repositories(repositories['main_repository'])
+    tuf.roledb.clear_roledb()
 
 
 
 
 class TestUpdater(unittest_toolbox.Modified_TestCase):
-  # Create repositories.  'repositories' is a tuple that looks like this:
-  # (repository_dir, client_repository_dir, server_repository_dir), see 
-  # repository_setup.py odule.
-  repositories = setup.create_repositories()
 
-  # Save references to repository directories and metadata.
-  #  Server side references.
-  server_repo_dir = repositories['server_repository']
-  server_meta_dir = os.path.join(server_repo_dir, 'metadata')
-  root_filepath = os.path.join(server_meta_dir, 'root.txt')
-  timestamp_filepath = os.path.join(server_meta_dir, 'timestamp.txt')
-  targets_filepath = os.path.join(server_meta_dir, 'targets.txt')
-  release_filepath = os.path.join(server_meta_dir, 'release.txt')
+  @classmethod
+  def setUpClass(cls):
+    # setUpClass() is called before tests in an individual class run.
+    # Create repositories.  'repositories' is a tuple that looks like this:
+    # (repository_dir, client_repository_dir, server_repository_dir), see 
+    # 'repository_setup.py' module.
+    cls.repositories = setup.create_repositories()
 
-  #  References to delegated metadata paths and directories.
-  delegated_dir1 = os.path.join(server_meta_dir, 'targets')
-  delegated_filepath1 = os.path.join(delegated_dir1, 'delegated_role1.txt')
-  delegated_dir2 = os.path.join(delegated_dir1, 'delegated_role1')
-  delegated_filepath2 = os.path.join(delegated_dir2, 'delegated_role2.txt')
-  targets_dir = os.path.join(server_repo_dir, 'targets')  
+    # Save references to repository directories and metadata.
+    #  Server side references.
+    cls.server_repo_dir = cls.repositories['server_repository']
+    cls.server_meta_dir = os.path.join(cls.server_repo_dir, 'metadata')
+    cls.root_filepath = os.path.join(cls.server_meta_dir, 'root.txt')
+    cls.timestamp_filepath = os.path.join(cls.server_meta_dir, 'timestamp.txt')
+    cls.targets_filepath = os.path.join(cls.server_meta_dir, 'targets.txt')
+    cls.release_filepath = os.path.join(cls.server_meta_dir, 'release.txt')
 
-  #  Client side references.
-  client_repo_dir = repositories['client_repository']
-  client_meta_dir = os.path.join(client_repo_dir, 'metadata')
-  client_current_dir = os.path.join(client_meta_dir, 'current')
-  client_previous_dir = os.path.join(client_meta_dir, 'previous')
+    #  References to delegated metadata paths and directories.
+    cls.delegated_dir1 = os.path.join(cls.server_meta_dir, 'targets')
+    cls.delegated_filepath1 = os.path.join(cls.delegated_dir1,
+                                           'delegated_role1.txt')
+    cls.delegated_dir2 = os.path.join(cls.delegated_dir1, 'delegated_role1')
+    cls.delegated_filepath2 = os.path.join(cls.delegated_dir2,
+                                           'delegated_role2.txt')
+    cls.targets_dir = os.path.join(cls.server_repo_dir, 'targets')  
+
+    #  Client side references.
+    cls.client_repo_dir = cls.repositories['client_repository']
+    cls.client_meta_dir = os.path.join(cls.client_repo_dir, 'metadata')
+    cls.client_current_dir = os.path.join(cls.client_meta_dir, 'current')
+    cls.client_previous_dir = os.path.join(cls.client_meta_dir, 'previous')
 
 
 
@@ -183,8 +189,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
     #  Clear roledb and keydb dictionaries.
-    roledb.clear_roledb()
-    keydb.clear_keydb()
+    tuf.roledb.clear_roledb()
+    tuf.keydb.clear_keydb()
 
 
 
@@ -386,14 +392,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  are populated.  'top_level_role_info' is a unittest_toolbox's dict
     #  that contains top level role information it corresponds to a
     #  ROLEDICT_SCHEMA where roles are keys and role information their values.
-    self.assertEqual(roledb._roledb_dict, self.top_level_role_info)
-    self.assertEqual(len(keydb._keydb_dict), 4)
+    self.assertEqual(tuf.roledb._roledb_dict, self.top_level_role_info)
+    self.assertEqual(len(tuf.keydb._keydb_dict), 4)
 
     #  Verify that keydb dictionary was updated.
     for role in self.role_list:
       keyids = self.top_level_role_info[role]['keyids']
       for keyid in keyids:
-        self.assertTrue(keyid in keydb._keydb_dict)
+        self.assertTrue(keyid in tuf.keydb._keydb_dict)
 
 
 
@@ -415,22 +421,22 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Verify that there was no change in roledb and keydb dictionaries
     #  by checking the number of elements in the dictionaries.
-    self.assertEqual(len(roledb._roledb_dict), 5)       
-    self.assertEqual(len(keydb._keydb_dict), 5)
+    self.assertEqual(len(tuf.roledb._roledb_dict), 5)       
+    self.assertEqual(len(tuf.keydb._keydb_dict), 5)
 
     # Test: normal case, first level delegation.
     self.Repository._import_delegations('targets/delegated_role1')
 
-    self.assertEqual(len(roledb._roledb_dict), 6)
-    self.assertEqual(len(keydb._keydb_dict), 6)
+    self.assertEqual(len(tuf.roledb._roledb_dict), 6)
+    self.assertEqual(len(tuf.keydb._keydb_dict), 6)
 
     #  Verify that roledb dictionary was updated.
-    self.assertTrue('targets/delegated_role1' in roledb._roledb_dict)
+    self.assertTrue('targets/delegated_role1' in tuf.roledb._roledb_dict)
     
     #  Verify that keydb dictionary was updated.
     keyids = self.semi_roledict['targets/delegated_role1']['keyids']
     for keyid in keyids:
-      self.assertTrue(keyid in keydb._keydb_dict)
+      self.assertTrue(keyid in tuf.keydb._keydb_dict)
 
 
 
@@ -1158,6 +1164,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # RESTORE
     tuf.download.download_url_to_tempfileobj = original_download
 
+
+def tearDownModule():
+  # tearDownModule() is called after all the tests have run.
+  # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
+  setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
+  unittest_toolbox.Modified_TestCase.clear_toolbox()
 
 if __name__ == '__main__':
   unittest.main()
