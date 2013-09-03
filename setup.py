@@ -68,6 +68,7 @@ setup(
   author_email='info@updateframework.com',
   url='https://www.updateframework.com',
   packages=[
+    'evpy',
     'tuf',
     'tuf.client',
     'tuf.compatibility',
