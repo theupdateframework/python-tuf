@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   slow_retrieval_server.py
@@ -24,7 +26,18 @@ import time
 import random
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
-DELAY = 1
+
+
+
+
+# Modify the HTTPServer class to pass the test_mode argument to do_GET function.
+class HTTPServer_Test(HTTPServer):
+  def __init__(self, server_address, Handler, test_mode):
+    HTTPServer.__init__(self, server_address, Handler)
+    self.test_mode = test_mode
+
+
+
 
 
 # HTTP request handler.
@@ -41,16 +54,27 @@ class Handler(BaseHTTPRequestHandler):
       self.send_response(200)
       self.send_header('Content-length', str(len(data)))
       self.end_headers()
-
-      # Throttle the file by sending a character every few seconds.
-      for i in range(len(data)):
+      
+      if self.server.test_mode == "mode_1":
+      # before sends any data, the server does nothing during a long time.
+        DELAY = 1000
         time.sleep(DELAY)
-        self.wfile.write(data[i])
+        self.wfile.write(data)
 
-      return
+        return
+
+      else: # "mode_2"
+        DELAY = 1
+        # Throttle the file by sending a character every few seconds.
+        for i in range(len(data)):
+          self.wfile.write(data[i])
+          time.sleep(DELAY)
+        return
 
     except IOError, e:
       self.send_error(404, 'File Not Found!')
+
+
 
 
 
@@ -60,18 +84,20 @@ def get_random_port():
 
 
 
-def run(port):
+
+
+def run(port, test_mode):
   server_address = ('localhost', port)
-  httpd = HTTPServer(server_address, Handler)
+  httpd = HTTPServer_Test(server_address, Handler, test_mode)
   print('Slow server is active on port: '+str(port)+' ...')
   httpd.handle_request()
 
 
 
-if __name__ == '__main__':
-  if len(sys.argv) > 1:
-    port = int(sys.argv[1])
-  else:
-    port = get_random_port()
 
-  run(port)
+
+if __name__ == '__main__':
+  port = int(sys.argv[1])
+  test_mode = sys.argv[2]
+  assert test_mode in ("mode_1", "mode_2")
+  run(port, test_mode)
