@@ -502,17 +502,16 @@ def create_encrypted_pem(rsakey_dict, passphrase):
 
     passphrase:
       The passphrase, or password, to encrypt the private part of the RSA
-      key.  'passphrase' is not used directly as the encryption key, but used
-      to derive a stronger encryption key. 
+      key.  'passphrase' is not used directly as the encryption key, a stronger
+      encryption key is derived from it. 
 
   <Exceptions>
     TypeError, if a private key is not defined for 'rsakey_dict'.
 
-    tuf.FormatError, if an incorrect format is found for the
-    'rsakey_dict' object.
+    tuf.FormatError, if an incorrect format is found for 'rsakey_dict'.
 
   <Side Effects>
-    PyCrypto's 'Crypto.PublicKey.RSA.exportKey()' called to perform the actual
+    PyCrypto's Crypto.PublicKey.RSA.exportKey() called to perform the actual
     generation of the PEM-formatted output.
 
   <Returns>
@@ -608,7 +607,7 @@ def create_from_encrypted_pem(encrypted_pem, passphrase):
   try:
     rsa_key_object = Crypto.PublicKey.RSA.importKey(encrypted_pem, passphrase)
   except (ValueError, IndexError, TypeError), e:
-    message = 'An RSA key object could not be generated from the encrypted'+\
+    message = 'An RSA key object could not be generated from the encrypted '+\
       'PEM string.'
     raise tuf.CryptoError(message)
 
