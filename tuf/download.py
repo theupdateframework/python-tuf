@@ -336,7 +336,7 @@ def _open_connection(url):
       URL string (e.g., 'http://...' or 'ftp://...' or 'file://...') 
     
   <Exceptions>
-    tuf.DownloadError
+    None.
     
   <Side Effects>
     Opens a connection to a remote server.
@@ -590,8 +590,8 @@ def _check_downloaded_length(total_downloaded, required_length,
     None.
  
   <Exceptions>
-    tuf.DownloadError, if STRICT_REQUIRED_LENGTH is True and total_downloaded
-    is not equal required_length.
+    tuf.DownloadLengthMismatchError, if STRICT_REQUIRED_LENGTH is True and
+    total_downloaded is not equal required_length.
  
   <Returns>
     None.
@@ -612,7 +612,7 @@ def _check_downloaded_length(total_downloaded, required_length,
     if STRICT_REQUIRED_LENGTH:  
       # This must be due to a programming error, and must never happen!
       logger.error(message)          
-      raise tuf.DownloadError(message)
+      raise tuf.DownloadLengthMismatchError(message)
     else:
       # We specifically disabled strict checking of required length, but we
       # will log a warning anyway. This is useful when we wish to download the
@@ -660,11 +660,10 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
     'url'.
  
   <Exceptions>
-    tuf.DownloadError, if there was an error while downloading the file.
+    tuf.DownloadLengthMismatchError, if there was a mismatch of observed vs
+    expected lengths while downloading the file.
  
     tuf.FormatError, if any of the arguments are improperly formatted.
-
-    tuf.BadHashError, if the hashes don't match.
 
     Any other unforeseen runtime exception.
  
