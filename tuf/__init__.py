@@ -53,6 +53,14 @@ class FormatError(Error):
 
 
 
+class InvalidMetadataJSONError(FormatError):
+  """Indicate that some metadata file is not valid JSON."""
+  pass
+
+
+
+
+
 class UnsupportedAlgorithmError(Error):
   """Indicate an error while trying to identify a user-specified algorithm."""
   pass
@@ -93,6 +101,22 @@ class RepositoryError(Error):
 
 
 
+class ForbiddenTargetError(RepositoryError):
+  """Indicate that a role signed for a target that it was not delegated to."""
+  pass
+
+
+
+
+
+class ReplayError(RepositoryError):
+  """Indicate that some metadata has been replayed to the client."""
+  pass
+
+
+
+
+
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
   pass
@@ -117,8 +141,8 @@ class CryptoError(Error):
 
 
 
-class UnsupportedLibraryError(Error):
-  """Indicate that a supported library could not be located or imported."""
+class BadSignatureError(CryptoError):
+  """Indicate that some metadata file had a bad signature."""
   pass
 
 
@@ -133,8 +157,32 @@ class UnknownMethodError(CryptoError):
 
 
 
+class UnsupportedLibraryError(Error):
+  """Indicate that a supported library could not be located or imported."""
+  pass
+
+
+
+
+
+class DecompressionError(Error):
+  """Indicate that some error happened while decompressing a file."""
+  pass
+
+
+
+
+
 class DownloadError(Error):
   """Indicate an error occurred while attempting to download a file."""
+  pass
+
+
+
+
+
+class DownloadLengthMismatchError(DownloadError):
+  """Indicate that a mismatch of lengths was seen while downloading a file."""
   pass
 
 
@@ -178,6 +226,20 @@ class UnknownRoleError(Error):
 class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object"""
   pass
+
+
+
+
+class UpdateError(Error):
+  """An updater will throw this exception in case it could not download a
+  metadata or target file.
+
+  A dictionary of Exception instances indexed by every mirror URL will also be
+  provided."""
+
+  def __init__(self, mirror_errors):
+    # Dictionary of URL strings to Exception instances
+    self.mirror_errors = mirror_errors
 
 
 
