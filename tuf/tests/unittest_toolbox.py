@@ -114,8 +114,12 @@ class Modified_TestCase(unittest.TestCase):
   # {keyid : {-- rsa key --}, ...}
   rsa_keystore = {}
 
-  # 'rsa_passwords' stores passwords for all created rsa keys.
+  # 'rsa_passwords' stores the passwords for all created rsa keys.
   rsa_passwords = {}
+
+  # 'derived_keys' stores the salt and derived keys (e.g., PBKDF2) for the
+  # RSA keys. 
+  rsa_derived_keys = {}
 
   # 'semi_roledict' because it lacks an item that a fully pledged
   # ROLEDICT_SCHEMA dictionary would have i.e. 'path' key is absent.
@@ -380,8 +384,13 @@ class Modified_TestCase(unittest.TestCase):
     rsakey = rsa_key.generate()
     keyid = rsakey['keyid']
     Modified_TestCase.rsa_keyids.append(keyid)
-    Modified_TestCase.rsa_passwords[keyid] = Modified_TestCase.random_string()
+    password = Modified_TestCase.random_string()
+    Modified_TestCase.rsa_passwords[keyid] = password
+    salt, derived_key = keystore._generate_derived_key(password)
+    Modified_TestCase.rsa_derived_keys[keyid] = {'salt': salt,
+                                                 'derived_key': derived_key}
     Modified_TestCase.rsa_keystore[keyid] = rsakey
+    
     return keyid
 
 
@@ -390,19 +399,18 @@ class Modified_TestCase(unittest.TestCase):
 
   def create_temp_keystore_directory(self, keystore_dicts=False):
 
-    if not self.rsa_keystore or not self.rsa_passwords:
+    if not self.rsa_keystore or not self.rsa_derived_keys:
       msg = 'Populate \'rsa_keystore\' and \'rsa_passwords\''+\
           ' before invoking this method.'
       sys.exit(msg)
 
     temp_keystore_directory = self.make_temp_directory()
     keystore._keystore = self.rsa_keystore
-    keystore._key_passwords = self.rsa_passwords
+    keystore._derived_keys = self.rsa_derived_keys
     keystore.save_keystore_to_keyfiles(temp_keystore_directory)
     if not keystore_dicts:
       keystore._keystore={}
-      keystore._key_passwords={}
-      #keystore.clear_keystore()
+      keystore._derived_keys={}
 
     return temp_keystore_directory
 
@@ -487,5 +495,6 @@ class Modified_TestCase(unittest.TestCase):
     Modified_TestCase.rsa_keyids = []
     Modified_TestCase.rsa_keystore.clear()
     Modified_TestCase.rsa_passwords.clear()
+    Modified_TestCase.rsa_derived_keys.clear()
     Modified_TestCase.semi_roledict.clear()
     Modified_TestCase.top_level_role_info.clear()

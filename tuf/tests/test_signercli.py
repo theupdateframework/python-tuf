@@ -479,7 +479,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     # TESTS
     for role in self.role_list:
       #  Test: normal cases.
-      keystore.clear_keystore()
+      #keystore.clear_keystore()
       signercli._get_role_config_keyids(config_filepath, keystore_dir, role)
       
       #  Test: incorrect passwords.

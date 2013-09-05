@@ -165,7 +165,7 @@ def add_rsakey(rsakey_dict, password, keyid=None):
   # The _derived_keys dictionary does not store the user's password.  A key
   # derivation function is applied to 'password' prior to storing it in
   # _derived_keys.
-  salt, derived_key= _generate_derived_key(password)
+  salt, derived_key = _generate_derived_key(password)
   _derived_keys[keyid] = {'salt': salt, 'derived_key': derived_key}
   _keystore[keyid] = rsakey_dict
 
