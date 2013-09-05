@@ -249,6 +249,8 @@ class TempFile(object):
 
       tuf.Error: If an invalid compression is given.
 
+      tuf.DecompressionError: If the compression failed for any reason.
+
     <Side Effects>
       'self._orig_file' is used to store the original data of 'temporary_file'.
 
@@ -266,10 +268,17 @@ class TempFile(object):
 
     if compression != 'gzip':
       raise tuf.Error('Only gzip compression is supported.')
+
     self.seek(0)
     self._compression = compression
     self._orig_file = self.temporary_file
-    self.temporary_file = gzip.GzipFile(fileobj=self.temporary_file, mode='rb')
+
+    try:
+      self.temporary_file = gzip.GzipFile(fileobj=self.temporary_file, mode='rb')
+    except:
+      raise tuf.DecompressionError(self.temporary_file)
+
+
 
 
 

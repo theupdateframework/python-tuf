@@ -105,7 +105,6 @@ import logging
 import os
 import shutil
 import time
-import traceback
 
 import tuf
 import tuf.conf
@@ -600,35 +599,34 @@ class Updater(object):
 
 
 
-def _check_hashes(input_file, trusted_hashes=None):
-  """
-  <Purpose>
-    A helper function that verifies multiple secure hashes of the downloaded
-    file.  If any of these fail it raises an exception.  This is to conform
-    with the TUF specs, which support clients with different hashing
-    algorithms. The 'hash.py' module is used to compute the hashes of the
-    'input_file'. 
+  def __check_hashes(self, input_file, trusted_hashes):
+    """
+    <Purpose>
+      A helper function that verifies multiple secure hashes of the downloaded
+      file.  If any of these fail it raises an exception.  This is to conform
+      with the TUF specs, which support clients with different hashing
+      algorithms. The 'hash.py' module is used to compute the hashes of the
+      'input_file'.
 
-  <Arguments>
-    input_file:
-      A file-like object.
-    
-    trusted_hashes: 
-      A dictionary with hash-algorithm names as keys and hashes as dict values.
-      The hashes should be in the hexdigest format.
-    
-  <Exceptions>
-    tuf.BadHashError, if the hashes don't match.
-    
-  <Side Effects>
-    Hash digest object is created using the 'tuf.hash' module.
-    
-  <Returns>
-    None.
+    <Arguments>
+      input_file:
+        A file-like object.
 
-  """
+      trusted_hashes:
+        A dictionary with hash-algorithm names as keys and hashes as dict values.
+        The hashes should be in the hexdigest format.
 
-  if trusted_hashes:
+    <Exceptions>
+      tuf.BadHashError, if the hashes don't match.
+
+    <Side Effects>
+      Hash digest object is created using the 'tuf.hash' module.
+
+    <Returns>
+      None.
+
+    """
+
     # Verify each trusted hash of 'trusted_hashes'.  Raise exception if
     # any of the hashes are incorrect and return if all are correct.
     for algorithm, trusted_hash in trusted_hashes.items():
@@ -640,9 +638,6 @@ def _check_hashes(input_file, trusted_hashes=None):
                                trusted_hash+' got '+computed_hash)
       else:
         logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
-  else:
-    logger.warn('No trusted hashes supplied to verify file at: '+
-                str(input_file))
 
 
 
@@ -651,21 +646,19 @@ def _check_hashes(input_file, trusted_hashes=None):
   def get_target_file(self, target_filepath, file_length, file_hashes):
 
     def verify_target_file(self, target_file_object):
-      self._check_hashes(target_file_object, file_hashes)
+      self.__check_hashes(target_file_object, file_hashes)
     
     return self.__get_file(target_filepath, verify_target_file, 'target',
-              file_length, download_safely=True)
+              file_length, download_safely=True, compression=None)
 
 
 
 
 
-  def __verify_metadata_file(self, metadata_file_object, metadata_role, file_hashes):
-    # FIXME: Decompression should be handled elsewhere.
-    #if compression:
-    #  metadata_file_object.decompress_temp_file_object(compression)
+  def __verify_metadata_file(self, metadata_file_object, metadata_role,
+                             file_hashes):
 
-    self._check_hashes(metadata_file_object, file_hashes)
+    self.__check_hashes(metadata_file_object, file_hashes)
 
     # Read and load the downloaded file.
     try:
@@ -692,59 +685,72 @@ def _check_hashes(input_file, trusted_hashes=None):
 
 
 
-  def unsafely_get_metadata_file(self, metadata_role, metadata_filepath, file_length):
+  def unsafely_get_metadata_file(self, metadata_role, metadata_filepath,
+                                 file_length):
 
     def unsafely_verify_metadata_file(metadata_file_object):
-      self.__verify_metadata_file(metadata_file_object, metadata_role, None)
+      self.__verify_metadata_file(metadata_file_object, metadata_role,
+                                  file_hashes=None)
 
     return self.__get_file(metadata_filepath, unsafely_verify_metadata_file,
-                            'meta', file_length, download_safely=False)
+                           'meta', file_length, download_safely=False,
+                           compression=None)
 
 
-  def safely_get_metadata_file(self, metadata_role, metadata_filepath, file_length, file_hashes):
+
+
+
+  def safely_get_metadata_file(self, metadata_role, metadata_filepath,
+                                 file_length, file_hashes, compression):
 
     def safely_verify_metadata_file(metadata_file_object):
-      self.__verify_metadata_file(metadata_file_object, metadata_role, file_hashes)
-  
+      self.__verify_metadata_file(metadata_file_object, metadata_role,
+                                  file_hashes=file_hashes)
+
     return self.__get_file(metadata_filepath, _verify_metadata_file,
-                            'meta', file_length, download_safely=True)
+                           'meta', file_length, download_safely=True,
+                           compression=compression)
 
 
 
 
 
-  def __get_file(self, filepath, verify_file, reference_metadata, trusted_length, download_safely):
-    file_mirrors = tuf.mirrors.get_list_of_mirrors(reference_metadata, filepath,
-                                                   self.mirrors)
+  def __get_file(self, filepath, verify_file, reference_metadata,
+                 trusted_length, download_safely, compression):
+    file_mirrors = tuf.mirrors.get_list_of_mirrors(reference_metadata,
+                                                   filepath, self.mirrors)
     # file_mirror (URL): error (Exception)
     file_mirror_errors = {}
-    target_file_object = None
+    file_object = None
 
     for file_mirror in file_mirrors:
       try:
-        if (download_safely):
-          target_file_object = tuf.download.safe_download(file_mirror, trusted_length)
+        if download_safely:
+          file_object = tuf.download.safe_download(file_mirror, trusted_length)
         else:
-          target_file_object = tuf.download.unsafe_download(file_mirror, trusted_length)
+          file_object = tuf.download.unsafe_download(file_mirror,
+                                                     trusted_length)
+
+        if compression:
+          file_object.decompress_temp_file_object(compression)
 
       except Exception, e:
         # Remember the error from this mirror, and "reset" the target file.
         logger.exception('Download failed from '+file_mirror+'.')
         file_mirror_errors[file_mirror] = e
-        target_file_object = None
+        file_object = None
       else:
         try:
           verify_file(file_object)
         except Exception, e:
           file_mirror_errors[file_mirror] = e
-          target_file_object = None
+          file_object = None
         else:
           break
 
-    if target_file_object:
-      return target_file_object
+    if file_object:
+      return file_object
     else:
-      # TODO: wrap file_mirror_errors in an Exception
       raise tuf.UpdateError(file_mirror_errors)
 
 
@@ -807,12 +813,6 @@ def _check_hashes(input_file, trusted_hashes=None):
     if compression == 'gzip':
       metadata_filename = metadata_filename + '.gz'
 
-    # Reference to the 'get_list_of_mirrors' function.
-    # get_mirrors = tuf.mirrors.get_list_of_mirrors
-
-    # Reference to the 'download_url_to_tempfileobj' function.
-    download_file = tuf.download.download_url_to_tempfileobj
-
     # Extract file length and file hashes.  They will be passed as arguments
     # to 'download_file' function.
     file_length = fileinfo['length']
@@ -832,10 +832,13 @@ def _check_hashes(input_file, trusted_hashes=None):
     metadata_signable = None
     if metadata_role == 'timestamp':
         metadata_file_object = \
-          self.unsafely_get_metadata_file(metadata_role, metadata_filename, file_length)
+          self.unsafely_get_metadata_file(metadata_role, metadata_filename,
+                                          file_length)
     else:
         metadata_file_object = \
-          self.safely_get_metadata_file(metadata_role, metadata_filename, file_length, file_hashes)
+          self.safely_get_metadata_file(metadata_role, metadata_filename,
+                                        file_length, file_hashes,
+                                        compression=compression)
 
     # Read and load the downloaded file.
     metadata_signable = tuf.util.load_json_string(metadata_file_object.read())

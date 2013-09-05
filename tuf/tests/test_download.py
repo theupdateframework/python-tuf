@@ -30,6 +30,7 @@ import random
 import subprocess
 import time
 import unittest
+import urllib2
 
 
 import tuf
@@ -69,7 +70,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # NOTE: Following error is raised if delay is not applied:
     #    <urlopen error [Errno 111] Connection refused>
-    time.sleep(.1)
+    time.sleep(1)
 
     # Computing hash of target file data.
     m = hashlib.md5()
@@ -90,47 +91,24 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   # Test: Normal case.
   def test_download_url_to_tempfileobj(self):
 
-    download_file = download.download_url_to_tempfileobj
+    download_file = download.safe_download
 
-    temp_fileobj = download_file(self.url, self.target_data_length,
-                                 required_hashes=self.target_hash)
-    self.assertEquals(self.target_data, temp_fileobj.read())
-    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file()
-
-
-  # Test: Incorrect hashes.
-  def test_download_url_to_tempfileobj_and_hashes(self):
-
-    download_file = download.download_url_to_tempfileobj
-
-    # Test: Normal cases without supplying hash arguments.
     temp_fileobj = download_file(self.url, self.target_data_length)
     self.assertEquals(self.target_data, temp_fileobj.read())
     self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
 
-    # What happens when we pass bad hashes to check the downloaded file?
-    self.assertRaises(tuf.BadHashError,
-                      download_file, self.url, self.target_data_length,
-                      required_hashes={'md5':self.random_string()})
-
 
   # Test: Incorrect lengths.
   def test_download_url_to_tempfileobj_and_lengths(self):
-
-    download_file = download.download_url_to_tempfileobj
 
     # NOTE: We catch tuf.BadHashError here because the file, shorter by a byte,
     # would not match the expected hashes. We log a warning when we find that
     # the server-reported length of the file does not match our
     # required_length. We also see that STRICT_REQUIRED_LENGTH does not change
     # the outcome of the previous test.
-    for strict_required_length in (True, False):
-      self.assertRaises(tuf.BadHashError, 
-                        download_file, self.url, self.target_data_length - 1,
-                        required_hashes=self.target_hash,
-                        STRICT_REQUIRED_LENGTH=strict_required_length)
+    download.safe_download(self.url, self.target_data_length - 1)
+    download.unsafe_download(self.url, self.target_data_length - 1)
 
     # NOTE: We catch tuf.DownloadError here because the STRICT_REQUIRED_LENGTH,
     # which is True by default, mandates that we must download exactly what is
@@ -140,14 +118,12 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
                         str(self.target_data_length+1)+\
                         ' bytes. There is a difference of 1 bytes!'
     self.assertRaisesRegexp(tuf.DownloadError, exception_message,
-                      download_file, self.url, self.target_data_length + 1,
-                      required_hashes=self.target_hash)
+                            download.safe_download, self.url,
+                            self.target_data_length + 1)
 
     # NOTE: However, we do not catch a tuf.DownloadError here for the same test
     # as the previous one because we have disabled STRICT_REQUIRED_LENGTH.
-    temp_fileobj = download_file(self.url, self.target_data_length + 1,
-                                 required_hashes=self.target_hash,
-                                 STRICT_REQUIRED_LENGTH=False)
+    temp_fileobj = download.unsafe_download(self.url, self.target_data_length + 1)
     self.assertEquals(self.target_data, temp_fileobj.read())
     self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
@@ -155,17 +131,14 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
   def test_download_url_to_tempfileobj_and_performance(self):
 
-    download_file = download.download_url_to_tempfileobj
-
     """
     # Measuring performance of 'auto_flush = False' vs. 'auto_flush = True'
-    # in download_url_to_tempfileobj() during write. No change was observed.
+    # in download._download_file() during write. No change was observed.
     star_cpu = time.clock()
     star_real = time.time()
 
     temp_fileobj = download_file(self.url, 
-                                 self.target_data_length,
-                                 required_hashes=self.target_hash)
+                                 self.target_data_length)
 
     end_cpu = time.clock()
     end_real = time.time()  
@@ -184,28 +157,24 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   # Test: Incorrect/Unreachable URLs.
   def test_download_url_to_tempfileobj_and_urls(self):
 
-    download_file = download.download_url_to_tempfileobj
+    download_file = download.safe_download
 
     self.assertRaises(tuf.FormatError,
-                      download_file, None, self.target_data_length,
-                      required_hashes=self.target_hash)
+                      download_file, None, self.target_data_length)
 
-    self.assertRaises(tuf.DownloadError,
+    self.assertRaises(ValueError,
                       download_file,
-                      self.random_string(), self.target_data_length,
-                      required_hashes=self.target_hash)
+                      self.random_string(), self.target_data_length)
 
-    self.assertRaises(tuf.DownloadError,
+    self.assertRaises(urllib2.HTTPError,
                       download_file,
                       'http://localhost:'+str(self.PORT)+'/'+self.random_string(), 
-                      self.target_data_length,
-                      required_hashes=self.target_hash)
+                      self.target_data_length)
 
-    self.assertRaises(tuf.DownloadError,
+    self.assertRaises(urllib2.URLError,
                       download_file,
                       'http://localhost:'+str(self.PORT+1)+'/'+self.random_string(), 
-                      self.target_data_length,
-                      required_hashes=self.target_hash)
+                      self.target_data_length)
 
 
 # Run unit test.
