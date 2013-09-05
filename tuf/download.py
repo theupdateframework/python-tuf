@@ -18,7 +18,7 @@
   supplied by the metadata of that file.  The downloaded file is technically a 
   file-like object that will automatically destroys itself once closed.  Note
   that the file-like object, 'tuf.util.TempFile', is returned by the
-  'download_url_to_tempfileobj()' function.
+  '_download_file()' function.
   
 """
 
@@ -576,6 +576,20 @@ def _check_downloaded_length(total_downloaded, required_length,
 
 
 
+def safe_download(url, required_length):
+  return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
+
+
+
+
+
+def unsafe_download(url, required_length):
+  return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
+
+
+
+
+
 def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   """
   <Purpose>
@@ -676,14 +690,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     # Restore previously saved values or functions.
     httplib.HTTPConnection.response_class = previous_http_response_class
     socket.setdefaulttimeout(previous_socket_timeout)
-    
 
-def safe_download(url, required_length):
-  return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
-
-
-def unsafe_download(url, required_length):
-  return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
 
 
 
