@@ -23,20 +23,20 @@ Otherwise, module that launches simple server would not be found.
 """
 
 
-import os
-import sys
-import time
-import random
 import hashlib
 import logging
-import unittest
+import os
+import random
 import subprocess
-import SocketServer
-import SimpleHTTPServer
+import time
+import unittest
+import urllib2
+
 
 import tuf
-import tuf.log
+import tuf.conf as conf
 import tuf.download as download
+import tuf.log
 import tuf.tests.unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_download')
@@ -70,14 +70,13 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # NOTE: Following error is raised if delay is not applied:
     #    <urlopen error [Errno 111] Connection refused>
-    time.sleep(.1)
+    time.sleep(1)
 
     # Computing hash of target file data.
     m = hashlib.md5()
     m.update(self.target_data)
     digest = m.hexdigest()
     self.target_hash = {'md5':digest}  
-
 
 
   # Stop server process and perform clean up.
@@ -89,84 +88,57 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.target_fileobj.close()
 
 
-  # Unit Test.
+  # Test: Normal case.
   def test_download_url_to_tempfileobj(self):
-    # Test: Normal cases without supplying hash and/or length arguments.
-    temp_fileobj = download.download_url_to_tempfileobj(self.url) 
+
+    download_file = download.safe_download
+
+    temp_fileobj = download_file(self.url, self.target_data_length)
     self.assertEquals(self.target_data, temp_fileobj.read())
     self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
 
-    temp_fileobj = download.download_url_to_tempfileobj(self.url,
-                      required_length=self.target_data_length)
+
+  # Test: Incorrect lengths.
+  def test_download_url_to_tempfileobj_and_lengths(self):
+
+    # NOTE: We catch tuf.BadHashError here because the file, shorter by a byte,
+    # would not match the expected hashes. We log a warning when we find that
+    # the server-reported length of the file does not match our
+    # required_length. We also see that STRICT_REQUIRED_LENGTH does not change
+    # the outcome of the previous test.
+    download.safe_download(self.url, self.target_data_length - 1)
+    download.unsafe_download(self.url, self.target_data_length - 1)
+
+    # NOTE: We catch tuf.DownloadError here because the STRICT_REQUIRED_LENGTH,
+    # which is True by default, mandates that we must download exactly what is
+    # required.
+    exception_message = 'Downloaded '+str(self.target_data_length)+\
+                        ' bytes, but expected '+\
+                        str(self.target_data_length+1)+\
+                        ' bytes. There is a difference of 1 bytes!'
+    self.assertRaisesRegexp(tuf.DownloadError, exception_message,
+                            download.safe_download, self.url,
+                            self.target_data_length + 1)
+
+    # NOTE: However, we do not catch a tuf.DownloadError here for the same test
+    # as the previous one because we have disabled STRICT_REQUIRED_LENGTH.
+    temp_fileobj = download.unsafe_download(self.url, self.target_data_length + 1)
     self.assertEquals(self.target_data, temp_fileobj.read())
     self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
 
-    temp_fileobj = download.download_url_to_tempfileobj(self.url,
-                      required_hashes=self.target_hash) 
-    self.assertEquals(self.target_data, temp_fileobj.read())
-    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file()
 
-    # Test: Normal case.
-    temp_fileobj = download.download_url_to_tempfileobj(self.url,
-                      required_hashes=self.target_hash, 
-                      required_length=self.target_data_length)
-    self.assertEquals(self.target_data, temp_fileobj.read())
-    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file()
-
-    # Test: Incorrect length.
-    self.assertRaises(tuf.DownloadError, 
-                      download.download_url_to_tempfileobj, self.url,
-                      required_hashes=self.target_hash, 
-                      required_length=self.target_data_length - 1)
-
-    self.assertRaises(tuf.DownloadError, 
-                      download.download_url_to_tempfileobj, self.url,
-                      required_hashes=self.target_hash, 
-                      required_length=self.target_data_length + 1)
-
-    # Test: Incorrect hashs.
-    self.assertRaises(tuf.DownloadError, 
-                      download.download_url_to_tempfileobj, self.url,
-                      required_hashes={'md5':self.random_string()},
-                      required_length=self.target_data_length)
-
-    # Test: Incorrect/Unreachable url.
-    self.assertRaises(tuf.FormatError,
-                      download.download_url_to_tempfileobj, None,
-                      required_hashes=self.target_hash, 
-                      required_length=self.target_data_length)
-
-    self.assertRaises(tuf.DownloadError,
-                      download.download_url_to_tempfileobj,
-                      self.random_string(),
-                      required_hashes=self.target_hash, 
-                      required_length=self.target_data_length)
-
-    self.assertRaises(tuf.DownloadError,
-                      download.download_url_to_tempfileobj,
-                      'http://localhost:'+str(self.PORT)+'/'+self.random_string(),
-                      required_hashes=self.target_hash, 
-                      required_length=self.target_data_length)
-
-    self.assertRaises(tuf.DownloadError,
-                      download.download_url_to_tempfileobj,
-                      'http://localhost:'+str(self.PORT+1)+'/'+self.random_string(),
-                      required_hashes=self.target_hash, 
-                      required_length=self.target_data_length)
+  def test_download_url_to_tempfileobj_and_performance(self):
 
     """
     # Measuring performance of 'auto_flush = False' vs. 'auto_flush = True'
-    # in download_url_to_tempfileobj() during write. No change was observed.
+    # in download._download_file() during write. No change was observed.
     star_cpu = time.clock()
     star_real = time.time()
 
-    temp_fileobj = download.download_url_to_tempfileobj(self.url,
-                      required_hashes=self.target_hash, 
-                      required_length=self.target_data_length)
+    temp_fileobj = download_file(self.url, 
+                                 self.target_data_length)
 
     end_cpu = time.clock()
     end_real = time.time()  
@@ -181,6 +153,28 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # TODO: [Not urgent] Show the difference by setting write(auto_flush=False)
     """
 
+
+  # Test: Incorrect/Unreachable URLs.
+  def test_download_url_to_tempfileobj_and_urls(self):
+
+    download_file = download.safe_download
+
+    self.assertRaises(tuf.FormatError,
+                      download_file, None, self.target_data_length)
+
+    self.assertRaises(ValueError,
+                      download_file,
+                      self.random_string(), self.target_data_length)
+
+    self.assertRaises(urllib2.HTTPError,
+                      download_file,
+                      'http://localhost:'+str(self.PORT)+'/'+self.random_string(), 
+                      self.target_data_length)
+
+    self.assertRaises(urllib2.URLError,
+                      download_file,
+                      'http://localhost:'+str(self.PORT+1)+'/'+self.random_string(), 
+                      self.target_data_length)
 
 
 # Run unit test.
