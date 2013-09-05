@@ -18,122 +18,306 @@
   supplied by the metadata of that file.  The downloaded file is technically a 
   file-like object that will automatically destroys itself once closed.  Note
   that the file-like object, 'tuf.util.TempFile', is returned by the
-  'download_url_to_tempfileobj()' function.
+  '_download_file()' function.
   
 """
 
+import httplib
 import logging
 import os.path
 import socket
 
 import tuf
+import tuf.conf
 import tuf.hash
 import tuf.util
 import tuf.formats
 
 from tuf.compatibility import httplib, ssl, urllib2, urlparse
+
 if ssl:
     from tuf.compatibility import match_hostname
 else:
-    raise tuf.Error( "No SSL support!" )    # TODO: degrade gracefully
+    raise tuf.Error("No SSL support!")    # TODO: degrade gracefully
+
+# We will be overriding socket._fileobject to perform non-blocking socket
+# reads.  Therefore, we will need these global variables.
+# http://hg.python.org/cpython/file/5be3fa83d436/Lib/socket.py#l84
+
+try:
+  from cStringIO import StringIO
+except ImportError:
+  from StringIO import StringIO
+
+try:
+  import errno
+except ImportError:
+  errno = None
+EINTR = getattr(errno, 'EINTR', 4)
 
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
 
 
-class VerifiedHTTPSConnection( httplib.HTTPSConnection ):
+
+
+
+class SaferSocketFileObject(socket._fileobject):
+  """We override socket._fileobject to produce a file-like object which reads
+  from a socket more safely than its ancestor. One the safety properties is
+  that reading from a socket must be a non-blocking operation."""
+
+  def __init__(self, sock, mode='rb', bufsize=-1, close=False):
+    super(SaferSocketFileObject, self).__init__(sock, mode=mode,
+                                                bufsize=bufsize, close=close)
+
+    # Count the number of slowly-retrieved chunks.
+    self.__number_of_slow_chunks = 0
+
+
+
+
+
+  # TODO: Better protection against slow-retrieval attacks. For example, we do
+  # not take into consideration that a sufficiently large file might take an
+  # intolerably long time with our present methods. We should be able to better
+  # protect ourselves with more careful state-keeping (such as measuring time).
+  def read(self, size):
     """
-    A connection that wraps connections with ssl certificate verification.
+    <Purpose>
+      We override the ancestor read (socket._fileobject.read) operation to be a
+      non-blocking operation.
 
-    https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L72
+      Original code is at:
+      http://hg.python.org/cpython/file/5be3fa83d436/Lib/socket.py#l336
+
+    <Arguments>
+      size:
+        The length of the data chunk that we would like to download. We assume
+        that the size of the expected data chunk is accurate; otherwise, we are
+        liable to miscount the number of truly slowly-retrieved chunks.
+
+    <Exceptions>
+      tuf.SlowRetrievalError, in case we detect a slow-retrieval attack.
+
+      Any other exception thrown by socket._fileobject.read.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      Received data up to 'size' bytes.
+
     """
-    def connect(self):
 
-        self.connection_kwargs = {}
+    # We should never try to specify a negative size.
+    assert size >= 0
 
-        #TODO: refactor compatibility logic into tuf.compatibility?
+    # Use max, disallow tiny reads in a loop as they are very inefficient.
+    # We never leave read() with any leftover data from a new recv() call
+    # in our internal buffer.
+    rbufsize = max(self._rbufsize, self.default_bufsize)
+    # Our use of StringIO rather than lists of string objects returned by
+    # recv() minimizes memory usage and fragmentation that occurs when
+    # rbufsize is large compared to the typical return value of recv().
+    buf = self._rbuf
+    buf.seek(0, 2)  # seek end
 
-        # for > py2.5
-        if hasattr(self, 'timeout'):
-            self.connection_kwargs.update(timeout = self.timeout)
+    # Read until size bytes or EOF seen, whichever comes first
+    buf_len = buf.tell()
+    if buf_len >= size:
+      # Already have size bytes in our buffer?  Extract and return.
+      buf.seek(0)
+      rv = buf.read(size)
+      self._rbuf = StringIO()
+      self._rbuf.write(buf.read())
+      return rv
 
-        # for >= py2.7
-        if hasattr(self, 'source_address'):
-            self.connection_kwargs.update(source_address = self.source_address)
+    self._rbuf = StringIO()  # reset _rbuf.  we consume it via buf.
+    while self.__number_of_slow_chunks < tuf.conf.MAX_NUM_OF_SLOW_CHUNKS:
+      left = size - buf_len
+      # recv() will malloc the amount of memory given as its
+      # parameter even though it often returns much less data
+      # than that.  The returned data string is short lived
+      # as we copy it into a StringIO and free it.  This avoids
+      # fragmentation issues on many platforms.
+      try:
+        data = self._sock.recv(left)
+      except socket.timeout:
+        # Since the socket recv operation timed out, we increment the running
+        # counter of slow chunks and try again.
+        self.__number_of_slow_chunks += 1
+        logger.warn('slow chunk {0}'.format(self.__number_of_slow_chunks))
+        continue
+      except socket.error, e:
+        if e.args[0] == EINTR:
+          continue
+        raise
+      if not data:
+        break
+      n = len(data)
+      if n == size and not buf_len:
+        # Shortcut.  Avoid buffer data copies when:
+        # - We have no data in our buffer.
+        # AND
+        # - Our call to recv returned exactly the
+        #   number of bytes we were asked to read.
+        return data
+      if n == left:
+        buf.write(data)
+        del data  # explicit free
+        break
+      assert n <= left, "recv(%d) returned %d bytes" % (left, n)
+      buf.write(data)
+      buf_len += n
+      del data  # explicit free
+      #assert buf_len == buf.tell()
+      # Since n < left with timeout on self._sock.recv, this is a slow chunk.
+      # We assume that 'size' is accurate w.r.t. to the overall file length;
+      # otherwise, we will miscount the number of truly slow chunks.
+      self.__number_of_slow_chunks += 1
+      logger.warn('slow chunk {0}: {1} <= {2}'.format(self.__number_of_slow_chunks, n, left))
+    else:
+      # Since we saw more than a tolerable number of slow chunks, we flag this
+      # as a possible slow-retrieval attack. This threshold will determine our
+      # bias: if it is too slow, we will have more false negatives; if it is
+      # too high, we will have more false positives.
+      logger.warn('slow chunks: {0}'.format(self.__number_of_slow_chunks))
+      raise tuf.SlowRetrievalError(self.__number_of_slow_chunks)
+    return buf.getvalue()
 
-        sock = socket.create_connection((self.host, self.port), **self.connection_kwargs)
 
-        # for >= py2.7
-        if getattr(self, '_tunnel_host', None):
-            self.sock = sock
-            self._tunnel()
 
-        # set location of certificate authorities
-        assert os.path.isfile( tuf.conf.ssl_certificates )
-        cert_path = tuf.conf.ssl_certificates
 
-        # TODO: Disallow SSLv2.
-        # http://docs.python.org/dev/library/ssl.html#protocol-versions
-        # TODO: Select the right ciphers.
-        # http://docs.python.org/dev/library/ssl.html#cipher-selection
-        self.sock = ssl.wrap_socket(sock,
-                                self.key_file,
-                                self.cert_file,
+
+class SaferHTTPResponse(httplib.HTTPResponse):
+  """A safer version of httplib.HTTPResponse, in which we only use safe socket
+  file-like objects."""
+
+  def __init__(self, sock, debuglevel=0, strict=0, method=None,
+               buffering=False):
+    httplib.HTTPResponse.__init__(self, sock, debuglevel=debuglevel,
+                                  strict=strict, method=method,
+                                  buffering=buffering)
+
+    # Delete the previous socket file-like object...
+    del self.fp
+    # ...and replace it with our safer version.
+    if buffering:
+      self.fp = SaferSocketFileObject(sock._sock, 'rb')
+    else:
+      self.fp = SaferSocketFileObject(sock._sock, 'rb', 0)
+
+
+
+
+
+class VerifiedHTTPSConnection(httplib.HTTPSConnection):
+  """
+  A connection that wraps connections with ssl certificate verification.
+
+  https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L72
+  """
+
+  def connect(self):
+
+    self.connection_kwargs = {}
+
+    #TODO: refactor compatibility logic into tuf.compatibility?
+
+    # for > py2.5
+    if hasattr(self, 'timeout'):
+      self.connection_kwargs.update(timeout = self.timeout)
+
+    # for >= py2.7
+    if hasattr(self, 'source_address'):
+      self.connection_kwargs.update(source_address = self.source_address)
+
+    sock = socket.create_connection((self.host, self.port), **self.connection_kwargs)
+
+    # for >= py2.7
+    if getattr(self, '_tunnel_host', None):
+      self.sock = sock
+      self._tunnel()
+
+    # set location of certificate authorities
+    assert os.path.isfile( tuf.conf.ssl_certificates )
+    cert_path = tuf.conf.ssl_certificates
+
+    # TODO: Disallow SSLv2.
+    # http://docs.python.org/dev/library/ssl.html#protocol-versions
+    # TODO: Select the right ciphers.
+    # http://docs.python.org/dev/library/ssl.html#cipher-selection
+    self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file,
                                 cert_reqs=ssl.CERT_REQUIRED,
                                 ca_certs=cert_path)
 
-        match_hostname(self.sock.getpeercert(), self.host)
+    match_hostname(self.sock.getpeercert(), self.host)
 
 
-class VerifiedHTTPSHandler( urllib2.HTTPSHandler ):
-    """
-    A HTTPSHandler that uses our own VerifiedHTTPSConnection.
 
-    https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L109
-    """
-    def __init__(self, connection_class = VerifiedHTTPSConnection):
-        self.specialized_conn_class = connection_class
-        urllib2.HTTPSHandler.__init__(self)
-    def https_open(self, req):
-        return self.do_open(self.specialized_conn_class, req)
+
+
+class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
+  """
+  A HTTPSHandler that uses our own VerifiedHTTPSConnection.
+
+  https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L109
+  """
+
+  def __init__(self, connection_class = VerifiedHTTPSConnection):
+    self.specialized_conn_class = connection_class
+    urllib2.HTTPSHandler.__init__(self)
+
+  def https_open(self, req):
+    return self.do_open(self.specialized_conn_class, req)
+
+
+
 
 
 def _get_request(url):
-    """
-    Wraps the URL to retrieve to protects against "creative"
-    interpretation of the RFC: http://bugs.python.org/issue8732
+  """
+  Wraps the URL to retrieve to protects against "creative"
+  interpretation of the RFC: http://bugs.python.org/issue8732
 
-    https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L147
-    """
+  https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L147
+  """
 
-    return urllib2.Request(url, headers={'Accept-encoding': 'identity'})
+  return urllib2.Request(url, headers={'Accept-encoding': 'identity'})
 
 
-def _get_opener( scheme = None ):
-    """
-    Build a urllib2 opener based on whether the user now wants SSL.
 
-    https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L178
-    """
 
-    if scheme == "https":
-        assert os.path.isfile( tuf.conf.ssl_certificates )
 
-        # If we are going over https, use an opener which will provide SSL
-        # certificate verification.
-        https_handler = VerifiedHTTPSHandler()
-        opener = urllib2.build_opener( https_handler )
+def _get_opener(scheme=None):
+  """
+  Build a urllib2 opener based on whether the user now wants SSL.
 
-        # strip out HTTPHandler to prevent MITM spoof
-        for handler in opener.handlers:
-            if isinstance( handler, urllib2.HTTPHandler ):
-                opener.handlers.remove( handler )
-    else:
-        # Otherwise, use the default opener.
-        opener = urllib2.build_opener()
+  https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L178
+  """
 
-    return opener
+  if scheme == "https":
+    assert os.path.isfile(tuf.conf.ssl_certificates)
+
+    # If we are going over https, use an opener which will provide SSL
+    # certificate verification.
+    https_handler = VerifiedHTTPSHandler()
+    opener = urllib2.build_opener(https_handler)
+
+    # strip out HTTPHandler to prevent MITM spoof
+    for handler in opener.handlers:
+      if isinstance(handler, urllib2.HTTPHandler):
+        opener.handlers.remove(handler)
+  else:
+    # Otherwise, use the default opener.
+    opener = urllib2.build_opener()
+
+  return opener
+
+
+
 
 
 def _open_connection(url):
@@ -152,7 +336,7 @@ def _open_connection(url):
       URL string (e.g., 'http://...' or 'ftp://...' or 'file://...') 
     
   <Exceptions>
-    tuf.DownloadError
+    None.
     
   <Side Effects>
     Opens a connection to a remote server.
@@ -161,78 +345,30 @@ def _open_connection(url):
     File-like object.
     
   """
-  
-  try:
-    # urllib2.Request produces a Request object that allows for a finer control 
-    # of the requesting process. Request object allows to add headers or data to
-    # the HTTP request. For instance, request method add_header(key, val) can be
-    # used to change/spoof 'User-Agent' from default Python-urllib/x.y to 
-    # 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)' this can be useful if
-    # servers do not recognize connections that originates from 
-    # Python-urllib/x.y.
 
-    parsed_url = urlparse.urlparse( url )
-    opener = _get_opener( scheme = parsed_url.scheme )
-    request = _get_request( url )
-    return opener.open( request )
-  except Exception, e:
-    raise tuf.DownloadError(e)
+  # urllib2.Request produces a Request object that allows for a finer control 
+  # of the requesting process. Request object allows to add headers or data to
+  # the HTTP request. For instance, request method add_header(key, val) can be
+  # used to change/spoof 'User-Agent' from default Python-urllib/x.y to 
+  # 'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1)' this can be useful if
+  # servers do not recognize connections that originates from 
+  # Python-urllib/x.y.
+
+  parsed_url = urlparse.urlparse(url)
+  opener = _get_opener(scheme=parsed_url.scheme)
+  request = _get_request(url)
+  return opener.open(request)
 
 
 
 
 
-def _check_hashes(input_file, trusted_hashes):
-  """
-  <Purpose>
-    Helper function that verifies multiple secure hashes of the downloaded file.
-    If any of these fail it raises an exception.  This is to conform with the 
-    TUF specs, which support clients with different hashing algorithms. The
-    'hash.py' module is used to compute the hashes of the 'input_file'. 
-
-  <Arguments>
-    input_file:
-      A file or file-like object.
-    
-    trusted_hashes: 
-      A dictionary with hash-algorithm names as keys and hashes as dict values.
-      The hashes should be in the hexdigest format.
-    
-  <Exceptions>
-    tuf.BadHashError, if the hashes don't match.
-    
-  <Side Effects>
-    Hash digest object is created using the 'tuf.hash' module.
-    
-  <Returns>
-    None.
-    
-  """
-  # Verify each trusted hash of 'trusted_hashes'.  Raise exception if
-  # any of the hashes are incorrect and return if all are correct.
-  for algorithm, trusted_hash in trusted_hashes.items():
-    digest_object = tuf.hash.digest(algorithm)
-    digest_object.update(input_file.read())
-    computed_hash = digest_object.hexdigest()
-    if trusted_hash != computed_hash:
-      msg = 'Hashes do not match. Expected '+trusted_hash+' got '+computed_hash
-      raise tuf.BadHashError(msg)
-    else:
-      logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
-  
-  return
-
-
-
-
-
-def _download_fixed_amount_of_data(connection, temp_file, file_length,
-                                   required_length):
+def _download_fixed_amount_of_data(connection, temp_file, required_length):
   """
   <Purpose>
     This is a helper function, where the download really happens. While-block
     reads data from connection a fixed chunk of data at a time, or less, until
-    'file_length' is reached.
+    'required_length' is reached.
   
   <Arguments>
     connection:
@@ -242,9 +378,6 @@ def _download_fixed_amount_of_data(connection, temp_file, file_length,
     temp_file:
       A temporary file where the contents at the URL specified by the
       'connection' object will be stored.
-
-    file_length:
-      The number of bytes that the server claims is the size of the file.
 
     required_length:
       The number of bytes that we must download for the file.  This is almost
@@ -265,9 +398,6 @@ def _download_fixed_amount_of_data(connection, temp_file, file_length,
 
   """
 
-  # The maximum chunk of data, in bytes, we would download in every round.
-  BLOCK_SIZE = 8192
-
   # Keep track of total bytes downloaded.
   total_downloaded = 0
 
@@ -276,21 +406,16 @@ def _download_fixed_amount_of_data(connection, temp_file, file_length,
       # We download a fixed chunk of data in every round. This is so that we
       # can defend against slow retrieval attacks. Furthermore, we do not wish
       # to download an extremely large file in one shot.
-      data = connection.read(min(BLOCK_SIZE, file_length-total_downloaded))
+      amount_to_read = min(tuf.conf.CHUNK_SIZE,
+                           required_length-total_downloaded)
+      logger.debug('Reading next chunk...')
+      data = connection.read(amount_to_read)
 
       # We might have no more data to read. Check number of bytes downloaded. 
       if not data:
         message = 'Downloaded '+str(total_downloaded)+'/'+ \
-          str(file_length)+' bytes.'
+          str(required_length)+' bytes.'
         logger.debug(message)
-
-        # Did we download the correct amount indicated by 'Content-Length'
-        # or user? Because file_length is always eaqual to required_length
-        # we just need check one of them. 
-        if total_downloaded != file_length:
-          message = 'Downloaded '+str(total_downloaded)+'.  Expected '+ \
-            str(file_length)+' for '+url
-          raise tuf.DownloadError(message)
 
         # Finally, we signal that the download is complete.
         break
@@ -303,14 +428,169 @@ def _download_fixed_amount_of_data(connection, temp_file, file_length,
   else:
     return total_downloaded
   finally:
+    # Whatever happens, make sure that we always close the connection.
     connection.close()
 
 
 
 
 
-def download_url_to_tempfileobj(url, required_hashes=None,
-                                required_length=None):
+def _get_content_length(connection):
+  """
+  <Purpose>
+    A helper function that gets the purported file length from server.
+  
+  <Arguments>
+    connection:
+      The object that the _open_connection function returns for communicating
+      with the server about the contents of a URL.
+  
+  <Side Effects>
+    No known side effects.
+ 
+  <Exceptions>
+    Runtime exceptions will be suppressed but logged.
+ 
+  <Returns>
+    reported_length:
+      The total number of bytes reported by server. If the process fails, we
+      return None; otherwise we would return a nonnegative integer.
+
+  """
+
+  try:
+    # What is the length of this document according to the HTTP spec?
+    reported_length = connection.info().get('Content-Length')
+    # Try casting it as a decimal number.
+    reported_length = int(reported_length, 10)
+    # Make sure that it is a nonnegative integer.
+    assert reported_length > -1
+  except:
+    logger.exception('Could not get content length about '+str(connection)+
+                     ' from server!')
+    reported_length = None
+  finally:
+    return reported_length
+
+
+
+
+
+def _check_content_length(reported_length, required_length):
+  """
+  <Purpose>
+    A helper function that checks whether the length reported by server is
+    equal to the length we expected.
+  
+  <Arguments>
+    reported_length:
+      The total number of bytes reported by the server.
+
+    required_length:
+      The total number of bytes obtained from (possibly default) metadata.
+
+  <Side Effects>
+    No known side effects.
+ 
+  <Exceptions>
+    No known exceptions.
+ 
+  <Returns>
+    None.
+
+  """
+
+  try:
+    if reported_length < required_length:
+      logger.warn('reported_length ('+str(reported_length)+
+                  ') < required_length ('+str(required_length)+')')
+    elif reported_length > required_length:
+      logger.warn('reported_length ('+str(reported_length)+
+                  ') > required_length ('+str(required_length)+')')
+    else:
+      logger.debug('reported_length ('+str(reported_length)+
+                   ') == required_length ('+str(required_length)+')')
+  except:
+    logger.exception('Could not check reported and required lengths!')
+
+
+
+
+  
+def _check_downloaded_length(total_downloaded, required_length,
+                             STRICT_REQUIRED_LENGTH=True):
+  """
+  <Purpose>
+    A helper function which checks whether the total number of downloaded bytes
+    matches our expectation. 
+ 
+  <Arguments>
+    total_downloaded:
+      The total number of bytes supposedly downloaded for the file in question.
+
+    required_length:
+      The total number of bytes expected of the file as seen from its (possibly
+      default) metadata.
+
+    STRICT_REQUIRED_LENGTH:
+      A Boolean indicator used to signal whether we should perform strict
+      checking of required_length. True by default. We explicitly set this to
+      False when we know that we want to turn this off for downloading the
+      timestamp metadata, which has no signed required_length.
+  
+  <Side Effects>
+    None.
+ 
+  <Exceptions>
+    tuf.DownloadLengthMismatchError, if STRICT_REQUIRED_LENGTH is True and
+    total_downloaded is not equal required_length.
+ 
+  <Returns>
+    None.
+
+  """
+
+  if total_downloaded == required_length:
+    logger.debug('total_downloaded == required_length == '+
+                 str(required_length))
+  else:
+    difference_in_bytes = abs(total_downloaded-required_length)
+    message = 'Downloaded '+str(total_downloaded)+' bytes, but expected '+\
+              str(required_length)+' bytes. There is a difference of '+\
+              str(difference_in_bytes)+' bytes!'
+
+    # What we downloaded is not equal to the required length, but did we ask
+    # for strict checking of required length?
+    if STRICT_REQUIRED_LENGTH:  
+      # This must be due to a programming error, and must never happen!
+      logger.error(message)          
+      raise tuf.DownloadLengthMismatchError(message)
+    else:
+      # We specifically disabled strict checking of required length, but we
+      # will log a warning anyway. This is useful when we wish to download the
+      # timestamp metadata, for which we have no signed metadata; so, we must
+      # guess a reasonable required_length for it.
+      logger.warn(message)
+
+
+
+
+
+def safe_download(url, required_length):
+  return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
+
+
+
+
+
+def unsafe_download(url, required_length):
+  return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
+
+
+
+
+
+def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   """
   <Purpose>
     Given the url, hashes and length of the desired file, this function 
@@ -322,98 +602,96 @@ def download_url_to_tempfileobj(url, required_hashes=None,
   
   <Arguments>
     url:
-      A url string that represents the location of the file. 
-  
-    required_hashes:
-      A dictionary, where the keys represent the hashing algorithm used to 
-      hash the file and the dict values the hexdigest.
-  
-      For instance, a hash pair might look something like this:
-      {'md5': '37544f383be1fc1a32f42801c9c4b4d6'}
+      A URL string that represents the location of the file. 
   
     required_length:
       An integer value representing the length of the file.
-  
+
+    STRICT_REQUIRED_LENGTH:
+      A Boolean indicator used to signal whether we should perform strict
+      checking of required_length. True by default. We explicitly set this to
+      False when we know that we want to turn this off for downloading the
+      timestamp metadata, which has no signed required_length.
+
   <Side Effects>
-    'tuf.util.TempFile' object is created.
+    A 'tuf.util.TempFile' object is created on disk to store the contents of
+    'url'.
  
   <Exceptions>
-    tuf.DownloadError, if there was an error while downloading the file.
-    
-    tuf.FormatError, if any of the arguments are improperly formatted. 
+    tuf.DownloadLengthMismatchError, if there was a mismatch of observed vs
+    expected lengths while downloading the file.
+ 
+    tuf.FormatError, if any of the arguments are improperly formatted.
+
+    Any other unforeseen runtime exception.
  
   <Returns>
-    'tuf.util.TempFile' instance.
+    A 'tuf.util.TempFile' file-like object which points to the contents of
+    'url'.
 
   """
 
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.URL_SCHEMA.check_match(url)
-  if required_hashes is not None:
-    tuf.formats.HASHDICT_SCHEMA.check_match(required_hashes)
-  if required_length is not None:
-    tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
 
-  # 'url.replace()' is for compatibility with Windows-based systems because they 
-  # might put back-slashes in place of forward-slashes.  This converts it to the
-  # common format. 
-  url = url.replace('\\','/')
-  logger.info('Downloading: '+url)
-  connection = _open_connection(url)
+  # 'url.replace()' is for compatibility with Windows-based systems because
+  # they might put back-slashes in place of forward-slashes.  This converts it
+  # to the common format. 
+  url = url.replace('\\', '/')
+  logger.info('Downloading: '+str(url))
+
+  # NOTE: Not thread-safe.
+  # Save current values or functions for restoration later.
+  previous_socket_timeout = socket.getdefaulttimeout()
+  previous_http_response_class = httplib.HTTPConnection.response_class
+
+  # This is the temporary file that we will return to contain the contents of
+  # the downloaded file.
   temp_file = tuf.util.TempFile()
 
-
   try:
-    # info().get('Content-Length') gets the length of the url file.
-    file_length = connection.info().get('Content-Length')
+    # NOTE: Not thread-safe.
+    # Set timeout to induce non-blocking socket operations.
+    socket.setdefaulttimeout(tuf.conf.SOCKET_TIMEOUT)
+    # Replace the socket file-like object class with our safer version.
+    httplib.HTTPConnection.response_class = SaferHTTPResponse
 
-    # If the HTTP server did not specify a Content-Length...
-    if file_length is None:
-        # Do we know what is the required_length for this file?
-        if required_length is None:
-            # No, we do not know this. Raise this to the user!
-            message = 'Do not know anything about how much to download for "' + url + '"!'
-            raise tuf.DownloadError(message)
-        else:
-            # Okay, the HTTP server has not told us the Content-Length,
-            # but we know how much we are required to download.
-            file_length = required_length
-    else:
-        # Do we know what is the required_length for this file?
-        if required_length is None:
-            # No, we do not know this. Avoid falling for an arbitrary-length data attack (#26).
-            message = 'Do not know how much is required to download for "' + url + '"!'
-            logger.debug(message)
-            file_length = int(file_length, 10)
-        else:
-            # Okay, we do know this. Go ahead with checks.
-            file_length = int(file_length, 10)
+    # Open the connection to the remote file.
+    connection = _open_connection(url)
 
-    # Does the url's 'file_length' match 'required_length'?
-    if required_length is not None and file_length != required_length:
-      message = 'Incorrect length for '+url+'. Expected '+str(required_length)+ \
-                ', got '+str(file_length)+' bytes.'
-      raise tuf.DownloadError(message)
+    # We ask the server about how big it thinks this file should be.
+    reported_length = _get_content_length(connection)
 
-    # For readibility, we perform the download in a separate function, which
-    # returns the total number of downloaded bytes; this number should be equal
-    # to required_length. 
-    total_downloaded = _download_fixed_amount_of_data(connection, temp_file,
-                                                      file_length,
+    # Then, we check whether the required length matches the reported length.
+    _check_content_length(reported_length, required_length)
+
+    # Download the contents of the URL, up to the required length, to a
+    # temporary file, and get the total number of downloaded bytes.
+    total_downloaded = _download_fixed_amount_of_data(connection, temp_file, 
                                                       required_length)
- 
-    # We appear to have downloaded the correct amount.  Check the hashes.
-    if required_length is not None and required_hashes is not None: 
-      _check_hashes(temp_file, required_hashes)
 
-  # Exception is a base class for all non-exiting exceptions.
-  except Exception, e:
-    # Closing 'temp_file'.  The 'temp_file' data is destroyed.
+    # Does the total number of downloaded bytes match the required length?
+    _check_downloaded_length(total_downloaded, required_length,
+                             STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH)
+
+  except:
+    # Close 'temp_file'; any written data is lost.
     temp_file.close_temp_file()
-    logger.error(str(e))
-    raise tuf.DownloadError(e)
+    logger.exception('Could not download URL: '+str(url))
+    raise
 
-  return temp_file
+  else:
+    return temp_file
+
+  finally:
+    # NOTE: Not thread-safe.
+    # Restore previously saved values or functions.
+    httplib.HTTPConnection.response_class = previous_http_response_class
+    socket.setdefaulttimeout(previous_socket_timeout)
+
+
+
 
 
