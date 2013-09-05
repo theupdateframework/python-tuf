@@ -363,54 +363,6 @@ def _open_connection(url):
 
 
 
-def _check_hashes(input_file, trusted_hashes=None):
-  """
-  <Purpose>
-    A helper function that verifies multiple secure hashes of the downloaded
-    file.  If any of these fail it raises an exception.  This is to conform
-    with the TUF specs, which support clients with different hashing
-    algorithms. The 'hash.py' module is used to compute the hashes of the
-    'input_file'. 
-
-  <Arguments>
-    input_file:
-      A file-like object.
-    
-    trusted_hashes: 
-      A dictionary with hash-algorithm names as keys and hashes as dict values.
-      The hashes should be in the hexdigest format.
-    
-  <Exceptions>
-    tuf.BadHashError, if the hashes don't match.
-    
-  <Side Effects>
-    Hash digest object is created using the 'tuf.hash' module.
-    
-  <Returns>
-    None.
-
-  """
-
-  if trusted_hashes:
-    # Verify each trusted hash of 'trusted_hashes'.  Raise exception if
-    # any of the hashes are incorrect and return if all are correct.
-    for algorithm, trusted_hash in trusted_hashes.items():
-      digest_object = tuf.hash.digest(algorithm)
-      digest_object.update(input_file.read())
-      computed_hash = digest_object.hexdigest()
-      if trusted_hash != computed_hash:
-        raise tuf.BadHashError('Hashes do not match! Expected '+
-                               trusted_hash+' got '+computed_hash)
-      else:
-        logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
-  else:
-    logger.warn('No trusted hashes supplied to verify file at: '+
-                str(input_file))
-
-      
-
-
-
 def _download_fixed_amount_of_data(connection, temp_file, required_length):
   """
   <Purpose>
@@ -624,8 +576,7 @@ def _check_downloaded_length(total_downloaded, required_length,
 
 
 
-def download_url_to_tempfileobj(url, required_length, required_hashes=None,
-                                STRICT_REQUIRED_LENGTH=True):
+def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   """
   <Purpose>
     Given the url, hashes and length of the desired file, this function 
@@ -641,13 +592,6 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
   
     required_length:
       An integer value representing the length of the file.
-  
-    required_hashes:
-      A dictionary, where the keys represent the hashing algorithm used to 
-      hash the file and the dict values the hexdigest.
-  
-      For instance, a hash pair might look something like this:
-      {'md5': '37544f383be1fc1a32f42801c9c4b4d6'}
 
     STRICT_REQUIRED_LENGTH:
       A Boolean indicator used to signal whether we should perform strict
@@ -677,13 +621,6 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.URL_SCHEMA.check_match(url)
   tuf.formats.LENGTH_SCHEMA.check_match(required_length)
-
-  # FIXME: This function should only download files up to an expected length,
-  # and not check hashes; that is the job of the updater.
-  if required_hashes:
-    tuf.formats.HASHDICT_SCHEMA.check_match(required_hashes)
-  else:
-    logger.warn('Missing hashes for: '+str(url))
 
   # 'url.replace()' is for compatibility with Windows-based systems because
   # they might put back-slashes in place of forward-slashes.  This converts it
@@ -725,9 +662,6 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
     _check_downloaded_length(total_downloaded, required_length,
                              STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH)
 
-    # Finally, check the hashes expected of the file.
-    _check_hashes(temp_file, trusted_hashes=required_hashes)
-
   except:
     # Close 'temp_file'; any written data is lost.
     temp_file.close_temp_file()
@@ -743,6 +677,13 @@ def download_url_to_tempfileobj(url, required_length, required_hashes=None,
     httplib.HTTPConnection.response_class = previous_http_response_class
     socket.setdefaulttimeout(previous_socket_timeout)
     
+
+def safe_download(url, required_length):
+  return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
+
+
+def unsafe_download(url, required_length):
+  return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
 
 
 
