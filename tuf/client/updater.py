@@ -353,10 +353,6 @@ class Updater(object):
         not end in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
 
     <Exceptions>
-      tuf.RepositoryError:
-        If the metadata could not be loaded or the extracted data is not a 
-        valid metadata object.
-
       tuf.FormatError:
         If role information belonging to a delegated role of 'metadata_role'
         is improperly formatted.
@@ -391,11 +387,7 @@ class Updater(object):
       # 'tuf.formats.SIGNABLE_SCHEMA'.
       metadata_signable = tuf.util.load_json_file(metadata_filepath)
 
-      # Ensure the loaded json object is properly formatted.
-      try: 
-        tuf.formats.check_signable_object_format(metadata_signable)
-      except tuf.FormatError, e:
-        raise tuf.RepositoryError('Invalid format: '+repr(metadata_filepath)+'.')
+      tuf.formats.check_signable_object_format(metadata_signable)
 
       # Extract the 'signed' role object from 'metadata_signable'.
       metadata_object = metadata_signable['signed']
@@ -551,7 +543,7 @@ class Updater(object):
       None.
 
     <Exceptions>
-      tuf.RepositoryError:
+      tuf.UpdateError:
         If the metadata for any of the top-level roles cannot be updated.
 
       tuf.ExpiredMetadataError:
@@ -577,7 +569,7 @@ class Updater(object):
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
-    # Raise 'tuf.RepositoryError' if an update fails.
+    # Raise 'tuf.UpdateError' if an update fails.
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
@@ -645,7 +637,7 @@ class Updater(object):
 
   def get_target_file(self, target_filepath, file_length, file_hashes):
 
-    def verify_target_file(self, target_file_object):
+    def verify_target_file(target_file_object):
       self.__check_hashes(target_file_object, file_hashes)
     
     return self.__get_file(target_filepath, verify_target_file, 'target',
@@ -655,11 +647,7 @@ class Updater(object):
 
 
 
-  def __verify_metadata_file(self, metadata_file_object, metadata_role,
-                             file_hashes):
-
-    self.__check_hashes(metadata_file_object, file_hashes)
-
+  def __verify_metadata_file(self, metadata_file_object, metadata_role):
     # Read and load the downloaded file.
     try:
       metadata_signable = \
@@ -676,10 +664,8 @@ class Updater(object):
         logger.exception(message)
         raise
       else:
-        if valid:
-          logger.debug('Good signature on '+mirror_url+'.')
-        else:
-          raise tuf.BadSignatureError('Bad signature on '+mirror_url+'.')
+        if not valid:
+          raise tuf.BadSignatureError()
 
 
 
@@ -689,8 +675,7 @@ class Updater(object):
                                  file_length):
 
     def unsafely_verify_metadata_file(metadata_file_object):
-      self.__verify_metadata_file(metadata_file_object, metadata_role,
-                                  file_hashes=None)
+      self.__verify_metadata_file(metadata_file_object, metadata_role)
 
     return self.__get_file(metadata_filepath, unsafely_verify_metadata_file,
                            'meta', file_length, download_safely=False,
@@ -704,10 +689,10 @@ class Updater(object):
                                  file_length, file_hashes, compression):
 
     def safely_verify_metadata_file(metadata_file_object):
-      self.__verify_metadata_file(metadata_file_object, metadata_role,
-                                  file_hashes=file_hashes)
+      self.__check_hashes(metadata_file_object, file_hashes)
+      self.__verify_metadata_file(metadata_file_object, metadata_role)
 
-    return self.__get_file(metadata_filepath, _verify_metadata_file,
+    return self.__get_file(metadata_filepath, safely_verify_metadata_file,
                            'meta', file_length, download_safely=True,
                            compression=compression)
 
@@ -751,6 +736,8 @@ class Updater(object):
     if file_object:
       return file_object
     else:
+      logger.exception('Failed to download {0}: {1}'.format(filepath,
+                       file_mirror_errors))
       raise tuf.UpdateError(file_mirror_errors)
 
 
@@ -790,7 +777,7 @@ class Updater(object):
         are considered.  Any other string is ignored.
 
     <Exceptions>
-      tuf.RepositoryError:
+      tuf.UpdateError:
         The metadata could not be updated. This is not specific to a single
         failure but rather indicates that all possible ways to update the
         metadata have been tried and failed.
@@ -860,7 +847,7 @@ class Updater(object):
       current_version = current_metadata_role['version'] 
       downloaded_version = metadata_signable['signed']['version']
       if downloaded_version < current_version:
-        message = repr(mirror_url)+' is older than the version currently '+\
+        message = str(current_metadata_role)+' is older than the version currently '+\
           'installed.\nDownloaded version: '+repr(downloaded_version)+'\n'+\
           'Current version: '+repr(current_version)
         raise tuf.RepositoryError(message)
@@ -1013,7 +1000,7 @@ class Updater(object):
     try:
       self._update_metadata(metadata_role, fileinfo=new_fileinfo,
                             compression=compression)
-    except tuf.RepositoryError, e:
+    except:
       # The current metadata we have is not current but we couldn't
       # get new metadata. We shouldn't use the old metadata anymore.
       # This will get rid of in-memory knowledge of the role and
@@ -1023,8 +1010,8 @@ class Updater(object):
       # We shouldn't need to, but we need to check the trust
       # implications of the current implementation.
       self._delete_metadata(metadata_role)
-      message = 'Metadata for '+repr(metadata_role)+' could not be updated: '
-      raise tuf.MetadataNotAvailableError(message+str(e))
+      logger.error('Metadata for '+str(metadata_role)+' could not be updated')
+      raise
     else:
       # We need to remove delegated roles because the delegated roles
       # may not be trusted anymore.
@@ -1970,7 +1957,7 @@ class Updater(object):
       tuf.FormatError:
         If 'target' is not properly formatted.
 
-      tuf.DownloadError:
+      tuf.UpdateError:
         If a target could not be downloaded from any of the mirrors.
 
     <Side Effects>
