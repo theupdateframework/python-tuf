@@ -111,8 +111,8 @@ class SaferSocketFileObject(socket._fileobject):
 
     """
 
-    # We should never try to specify a nonpositive size.
-    assert size > 0
+    # We should never try to specify a negative size.
+    assert size >= 0
 
     # Use max, disallow tiny reads in a loop as they are very inefficient.
     # We never leave read() with any leftover data from a new recv() call
