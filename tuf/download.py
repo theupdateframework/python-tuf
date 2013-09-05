@@ -177,7 +177,7 @@ class SaferSocketFileObject(socket._fileobject):
       # We assume that 'size' is accurate w.r.t. to the overall file length;
       # otherwise, we will miscount the number of truly slow chunks.
       self.__number_of_slow_chunks += 1
-      logger.warn('slow chunk {0}'.format(self.__number_of_slow_chunks))
+      logger.warn('slow chunk {0}: {1} <= {2}'.format(self.__number_of_slow_chunks, n, left))
     else:
       # Since we saw more than a tolerable number of slow chunks, we flag this
       # as a possible slow-retrieval attack. This threshold will determine our
