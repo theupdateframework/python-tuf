@@ -1996,7 +1996,8 @@ class Updater(object):
 
     # get_target_file checks every mirror and returns the first target
     # that passes verification.
-    target_file_object = get_target_file(target_filepath, trusted_length, trusted_hashes)
+    target_file_object = self.get_target_file(target_filepath, trusted_length,
+                                              trusted_hashes)
    
     # We acquired a target file object from a mirror.  Move the file into
     # place (i.e., locally to 'destination_directory').
