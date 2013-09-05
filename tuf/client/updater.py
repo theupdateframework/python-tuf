@@ -582,8 +582,7 @@ class Updater(object):
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
-    self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO, 
-                          STRICT_REQUIRED_LENGTH=False)
+    self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
 
     self._update_metadata_if_changed('release', referenced_metadata='timestamp')
 
@@ -601,8 +600,158 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, fileinfo, compression=None,
-                       STRICT_REQUIRED_LENGTH=True):
+def _check_hashes(input_file, trusted_hashes=None):
+  """
+  <Purpose>
+    A helper function that verifies multiple secure hashes of the downloaded
+    file.  If any of these fail it raises an exception.  This is to conform
+    with the TUF specs, which support clients with different hashing
+    algorithms. The 'hash.py' module is used to compute the hashes of the
+    'input_file'. 
+
+  <Arguments>
+    input_file:
+      A file-like object.
+    
+    trusted_hashes: 
+      A dictionary with hash-algorithm names as keys and hashes as dict values.
+      The hashes should be in the hexdigest format.
+    
+  <Exceptions>
+    tuf.BadHashError, if the hashes don't match.
+    
+  <Side Effects>
+    Hash digest object is created using the 'tuf.hash' module.
+    
+  <Returns>
+    None.
+
+  """
+
+  if trusted_hashes:
+    # Verify each trusted hash of 'trusted_hashes'.  Raise exception if
+    # any of the hashes are incorrect and return if all are correct.
+    for algorithm, trusted_hash in trusted_hashes.items():
+      digest_object = tuf.hash.digest(algorithm)
+      digest_object.update(input_file.read())
+      computed_hash = digest_object.hexdigest()
+      if trusted_hash != computed_hash:
+        raise tuf.BadHashError('Hashes do not match! Expected '+
+                               trusted_hash+' got '+computed_hash)
+      else:
+        logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
+  else:
+    logger.warn('No trusted hashes supplied to verify file at: '+
+                str(input_file))
+
+
+
+
+
+  def get_target_file(self, target_filepath, file_length, file_hashes):
+
+    def verify_target_file(self, target_file_object):
+      self._check_hashes(target_file_object, file_hashes)
+    
+    return self.__get_file(target_filepath, verify_target_file, 'target',
+              file_length, download_safely=True)
+
+
+
+
+
+  def __verify_metadata_file(self, metadata_file_object, metadata_role, file_hashes):
+    # FIXME: Decompression should be handled elsewhere.
+    #if compression:
+    #  metadata_file_object.decompress_temp_file_object(compression)
+
+    self._check_hashes(metadata_file_object, file_hashes)
+
+    # Read and load the downloaded file.
+    try:
+      metadata_signable = \
+        tuf.util.load_json_string(metadata_file_object.read())
+    except:
+      logger.exception('Invalid metadata from '+mirror_url+'.')
+      raise
+    else:
+      # Verify the signature on the downloaded metadata object.
+      try:
+        valid = tuf.sig.verify(metadata_signable, metadata_role)
+      except:
+        message = 'Unable to verify '+metadata_filename
+        logger.exception(message)
+        raise
+      else:
+        if valid:
+          logger.debug('Good signature on '+mirror_url+'.')
+        else:
+          raise tuf.BadSignatureError('Bad signature on '+mirror_url+'.')
+
+
+
+
+
+  def unsafely_get_metadata_file(self, metadata_role, metadata_filepath, file_length):
+
+    def unsafely_verify_metadata_file(metadata_file_object):
+      self.__verify_metadata_file(metadata_file_object, metadata_role, None)
+
+    return self.__get_file(metadata_filepath, unsafely_verify_metadata_file,
+                            'meta', file_length, download_safely=False)
+
+
+  def safely_get_metadata_file(self, metadata_role, metadata_filepath, file_length, file_hashes):
+
+    def safely_verify_metadata_file(metadata_file_object):
+      self.__verify_metadata_file(metadata_file_object, metadata_role, file_hashes)
+  
+    return self.__get_file(metadata_filepath, _verify_metadata_file,
+                            'meta', file_length, download_safely=True)
+
+
+
+
+
+  def __get_file(self, filepath, verify_file, reference_metadata, trusted_length, download_safely):
+    file_mirrors = tuf.mirrors.get_list_of_mirrors(reference_metadata, filepath,
+                                                   self.mirrors)
+    # file_mirror (URL): error (Exception)
+    file_mirror_errors = {}
+    target_file_object = None
+
+    for file_mirror in file_mirrors:
+      try:
+        if (download_safely):
+          target_file_object = tuf.download.safe_download(file_mirror, trusted_length)
+        else:
+          target_file_object = tuf.download.unsafe_download(file_mirror, trusted_length)
+
+      except Exception, e:
+        # Remember the error from this mirror, and "reset" the target file.
+        logger.exception('Download failed from '+file_mirror+'.')
+        file_mirror_errors[file_mirror] = e
+        target_file_object = None
+      else:
+        try:
+          verify_file(file_object)
+        except Exception, e:
+          file_mirror_errors[file_mirror] = e
+          target_file_object = None
+        else:
+          break
+
+    if target_file_object:
+      return target_file_object
+    else:
+      # TODO: wrap file_mirror_errors in an Exception
+      raise tuf.UpdateError(file_mirror_errors)
+
+
+
+
+
+  def _update_metadata(self, metadata_role, fileinfo, compression=None):
     """
     <Purpose>
       Download, verify, and 'install' the metadata belonging to 'metadata_role'.
@@ -659,15 +808,15 @@ class Updater(object):
       metadata_filename = metadata_filename + '.gz'
 
     # Reference to the 'get_list_of_mirrors' function.
-    get_mirrors = tuf.mirrors.get_list_of_mirrors
+    # get_mirrors = tuf.mirrors.get_list_of_mirrors
 
     # Reference to the 'download_url_to_tempfileobj' function.
     download_file = tuf.download.download_url_to_tempfileobj
 
     # Extract file length and file hashes.  They will be passed as arguments
     # to 'download_file' function.
-    file_length=fileinfo['length']
-    file_hashes=fileinfo['hashes']
+    file_length = fileinfo['length']
+    file_hashes = fileinfo['hashes']
 
     # A dictionary to keep the error from every mirror that we try.
     mirror_errors = {}
@@ -681,63 +830,15 @@ class Updater(object):
     # 'tuf.formats.SIGNABLE_SCHEMA'.
     metadata_file_object = None
     metadata_signable = None
-
-    for mirror_url in get_mirrors('meta',
-                                  metadata_filename.encode("utf-8"),
-                                  self.mirrors):
-      try:
+    if metadata_role == 'timestamp':
         metadata_file_object = \
-          download_file(mirror_url, file_length, file_hashes,
-                        STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH)
-      except:
-        logger.exception('Download failed from '+mirror_url+'.')
-        mirror_errors[mirror_url] = traceback.format_exc(1)
-      else:
-        # FIXME: mirror_errors for a mirror_url must not be overwritten!
+          self.unsafely_get_metadata_file(metadata_role, metadata_filename, file_length)
+    else:
+        metadata_file_object = \
+          self.safely_get_metadata_file(metadata_role, metadata_filename, file_length, file_hashes)
 
-        # FIXME: Another point of failure which we should handle.
-        if compression:
-          metadata_file_object.decompress_temp_file_object(compression)
-
-        # Read and load the downloaded file.
-        try:
-          metadata_signable = \
-            tuf.util.load_json_string(metadata_file_object.read())
-        except:
-          logger.exception('Invalid metadata from '+mirror_url+'.')
-          mirror_errors[mirror_url] = traceback.format_exc(1)
-          metadata_signable = None
-        else:
-          # Verify the signature on the downloaded metadata object.
-          try:
-            valid = tuf.sig.verify(metadata_signable, metadata_role)
-          except (tuf.UnknownRoleError, tuf.FormatError, tuf.Error), e:
-            # FIXME: Exception.message is deprecated in 2.6, and gone in 3.0,
-            # but this is a workaround for Unicode messages. We need a
-            # long-term solution with #61.
-            # http://bugs.python.org/issue2517
-            message = 'Unable to verify '+metadata_filename+':'+\
-                      e.message.encode("utf-8")
-            logger.exception(message)
-            mirror_errors[mirror_url] = message
-            metadata_signable = None
-          else:
-            if valid:
-              logger.debug('Good signature on '+mirror_url+'.')
-              break
-            else:
-              message = 'Bad signature on '+mirror_url+'.'
-              logger.warn(message)
-              mirror_errors[mirror_url] = message
-              metadata_signable = None
-
-    # Raise an exception if a valid metadata signable could not be downloaded
-    # from any of the mirrors.
-    if metadata_signable is None:
-      message = 'Unable to update '+str(metadata_filename)+\
-                ' from all known mirrors: '+str(mirror_errors)
-      logger.error(message)
-      raise tuf.RepositoryError(message)
+    # Read and load the downloaded file.
+    metadata_signable = tuf.util.load_json_string(metadata_file_object.read())
 
     # Ensure the loaded 'metadata_signable' is properly formatted.
     try:
@@ -1885,45 +1986,14 @@ class Updater(object):
     tuf.formats.TARGETFILE_SCHEMA.check_match(target)
     tuf.formats.PATH_SCHEMA.check_match(destination_directory)
 
-    # Reference to the 'get_list_of_mirrors' function.
-    get_mirrors = tuf.mirrors.get_list_of_mirrors
-
-    # Reference to the 'download_url_to_tempfileobj' function.
-    download_file = tuf.download.download_url_to_tempfileobj
-
     # Extract the target file information.
     target_filepath = target['filepath']
     trusted_length = target['fileinfo']['length']
     trusted_hashes = target['fileinfo']['hashes']
 
-    # A dictionary to keep the error from every mirror that we try.
-    mirror_errors = {}
-
-    # Wherein the downloaded target file will be stored.
-    target_file_object = None
-
-    logger.info('Trying to download: '+str(target_filepath))
-
-    # Iterate through the repositority mirrors until we successfully
-    # download a target.
-    for mirror_url in get_mirrors('target', target_filepath, self.mirrors):
-      try: 
-        target_file_object = download_file(mirror_url, trusted_length,
-                                           trusted_hashes)
-        break
-      except:
-        # Remember the error from this mirror, and "reset" the target file.
-        logger.exception('Download failed from '+mirror_url+'.')
-        mirror_errors[mirror_url] = traceback.format_exc(1)
-        target_file_object = None
-        continue
-
-    # We have gone through all the mirrors.  Did we get a target file object?
-    if target_file_object == None: 
-      raise tuf.DownloadError('Failed to download target '+\
-                              str(target_filepath)+\
-                              ' from all known mirrors: '+\
-                              str(mirror_errors))
+    # get_target_file checks every mirror and returns the first target
+    # that passes verification.
+    target_file_object = get_target_file(target_filepath, trusted_length, trusted_hashes)
    
     # We acquired a target file object from a mirror.  Move the file into
     # place (i.e., locally to 'destination_directory').
