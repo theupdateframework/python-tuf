@@ -880,7 +880,6 @@ class Updater(object):
                                                    uncompressed_metadata_filename)
       current_uncompressed_filepath = os.path.abspath(current_uncompressed_filepath)
       metadata_file_object.move(current_uncompressed_filepath)
-      compressed_file_object.move(current_filepath)
     else:
       metadata_file_object.move(current_filepath)
     
@@ -995,8 +994,14 @@ class Updater(object):
       if gzip_metadata_filename in self.metadata['current'] \
                                                 [referenced_metadata]['meta']:
         compression = 'gzip'
+        # FIXME: Get the hash of the uncompressed file, because we will be
+        # checking the hash of the uncompressed file, not the compressed file.
+        previous_hashes = new_fileinfo['hashes']
         new_fileinfo = self.metadata['current'][referenced_metadata] \
                                     ['meta'][gzip_metadata_filename]
+        # FIXME: Replace the hashes to point to the uncompressed file ones, not
+        # the compressed file ones.
+        new_fileinfo['hashes'] = previous_hashes
         metadata_filename = gzip_metadata_filename
       else:
         message = 'Compressed version of '+repr(metadata_filename)+\
