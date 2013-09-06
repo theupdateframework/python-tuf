@@ -232,7 +232,8 @@ class InvalidNameError(Error):
 
 
 
-class UpdateError(Error):
+
+class NoWorkingMirrorError(Error):
   """An updater will throw this exception in case it could not download a
   metadata or target file.
 
