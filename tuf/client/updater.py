@@ -544,7 +544,7 @@ class Updater(object):
       None.
 
     <Exceptions>
-      tuf.UpdateError:
+      tuf.NoWorkingMirrorError:
         If the metadata for any of the top-level roles cannot be updated.
 
       tuf.ExpiredMetadataError:
@@ -570,7 +570,7 @@ class Updater(object):
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
-    # Raise 'tuf.UpdateError' if an update fails.
+    # Raise 'tuf.NoWorkingMirrorError' if an update fails.
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
@@ -653,7 +653,7 @@ class Updater(object):
         The expected hashes of the target file.
 
     <Exceptions>
-      tuf.UpdateError:
+      tuf.NoWorkingMirrorError:
         The target could not be fetched. This is raised only when all known
         mirrors failed to provide a valid copy of the desired target file.
 
@@ -766,7 +766,7 @@ class Updater(object):
         The expected length of the metadata file.
 
     <Exceptions>
-      tuf.UpdateError:
+      tuf.NoWorkingMirrorError:
         The metadata could not be fetched. This is raised only when all known
         mirrors failed to provide a valid copy of the desired metadata file.
 
@@ -815,7 +815,7 @@ class Updater(object):
         The name of the compression algorithm used to compress the metadata.
 
     <Exceptions>
-      tuf.UpdateError:
+      tuf.NoWorkingMirrorError:
         The metadata could not be fetched. This is raised only when all known
         mirrors failed to provide a valid copy of the desired metadata file.
 
@@ -876,7 +876,7 @@ class Updater(object):
         The name of the compression algorithm used to compress the file.
 
     <Exceptions>
-      tuf.UpdateError:
+      tuf.NoWorkingMirrorError:
         The metadata could not be fetched. This is raised only when all known
         mirrors failed to provide a valid copy of the desired metadata file.
 
@@ -921,7 +921,7 @@ class Updater(object):
     else:
       logger.exception('Failed to download {0}: {1}'.format(filepath,
                        file_mirror_errors))
-      raise tuf.UpdateError(file_mirror_errors)
+      raise tuf.NoWorkingMirrorError(file_mirror_errors)
 
 
 
@@ -960,7 +960,7 @@ class Updater(object):
         are considered.  Any other string is ignored.
 
     <Exceptions>
-      tuf.UpdateError:
+      tuf.NoWorkingMirrorError:
         The metadata could not be updated. This is not specific to a single
         failure but rather indicates that all possible ways to update the
         metadata have been tried and failed.
@@ -1101,7 +1101,7 @@ class Updater(object):
         is 'timestamp'.  See refresh().
         
     <Exceptions>
-      tuf.UpdateError:
+      tuf.NoWorkingMirrorError:
         If 'metadata_role' could not be downloaded after determining
         that it had changed.
         
@@ -1980,7 +1980,7 @@ class Updater(object):
     <Returns>
       The target information for 'target_filepath', conformant to
       'tuf.formats.TARGETFILE_SCHEMA'.
-    
+
     """
 
     # Does 'target_filepath' have the correct format?
@@ -2036,7 +2036,7 @@ class Updater(object):
     role_names = ['targets']
 
     # Ensure the client has the most up-to-date version of 'targets.txt'.
-    # Raise 'tuf.UpdateError' if the changed metadata cannot be successfully
+    # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be successfully
     # downloaded and 'tuf.RepositoryError' if the referenced metadata is
     # missing.  Target methods such as this one are called after the top-level
     # metadata have been refreshed (i.e., updater.refresh()).
@@ -2413,7 +2413,7 @@ class Updater(object):
       tuf.FormatError:
         If 'target' is not properly formatted.
 
-      tuf.UpdateError:
+      tuf.NoWorkingMirrorError:
         If a target could not be downloaded from any of the mirrors.
 
     <Side Effects>
