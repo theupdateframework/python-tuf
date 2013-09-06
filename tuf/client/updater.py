@@ -729,19 +729,15 @@ class Updater(object):
         if compression:
           file_object.decompress_temp_file_object(compression)
 
+        verify_file(file_object)
+
       except Exception, exception:
         # Remember the error from this mirror, and "reset" the target file.
         logger.exception('Download failed from '+file_mirror+'.')
         file_mirror_errors[file_mirror] = exception
         file_object = None
       else:
-        try:
-          verify_file(file_object)
-        except Exception, exception:
-          file_mirror_errors[file_mirror] = exception
-          file_object = None
-        else:
-          break
+        break
 
     if file_object:
       return file_object
