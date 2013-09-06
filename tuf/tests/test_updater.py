@@ -223,7 +223,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       temp_fileobj.write(file_obj.read())
       return temp_fileobj
 
-    # Patch tuf.download.safe_download().
+    # Patch tuf.download functions.
+    tuf.download.unsafe_download = _mock_download
     tuf.download.safe_download = _mock_download
 
 
