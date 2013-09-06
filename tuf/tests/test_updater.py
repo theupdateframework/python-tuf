@@ -489,9 +489,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     """
     This unit test verifies the method's proper behaviour on the expected input.
     """
-
-    # Setup
-    original_download = tuf.download.safe_download
     
     #  Since client's '.../metadata/current' will need to have separate
     #  gzipped metadata file in order to test compressed file handling,
@@ -554,9 +551,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     os.remove(os.path.join(self.client_current_dir,'targets.txt.gz'))
     self._remove_target_from_targets_dir(added_target_1)
 
-    # RESTORE
-    tuf.download.safe_download = original_download
-
 
 
   def test_1__update_fileinfo(self):
@@ -615,9 +609,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     """
     This unit test verifies the method's proper behaviour on expected input.
     """
-
-    # Setup
-    original_download = tuf.download.safe_download
     
     #  To test updater._update_metadata_if_changed, 'targets' metadata file is
     #  going to be modified at the server's repository.
@@ -707,9 +698,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     os.remove(os.path.join(self.client_current_dir, 'release.txt.gz'))
     self._remove_target_from_targets_dir(added_target_1)
 
-    # RESTORE
-    tuf.download.safe_download = original_download
-
 
 
 
@@ -766,8 +754,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_4_refresh(self):
-    # Setup.
-    original_download = tuf.download.safe_download
     
     #  This unit test is based on adding an extra target file to the
     #  server and rebuilding all server-side metadata.  When 'refresh'
@@ -799,16 +785,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self._mock_download_url_to_tempfileobj(self.all_role_paths)
     setup.build_server_repository(self.server_repo_dir, self.targets_dir)
 
-    # RESTORE
-    tuf.download.safe_download = original_download
-
 
 
 
   def test_4__refresh_targets_metadata(self):
-
-    # Setup
-    original_download = tuf.download.safe_download
     
     # To test this method a target file would be added to a delegated role,
     # and metadata on the server side would be rebuilt.
@@ -864,9 +844,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.server_repo_dir, 'keystore'))
     setup.build_server_repository(self.server_repo_dir, self.targets_dir)
 
-    # RESTORE
-    tuf.download.safe_download = original_download
-
 
 
 
@@ -893,9 +870,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_5_all_targets(self):
-
-   # Setup
-   original_download = tuf.download.safe_download
    
    # As with '_refresh_targets_metadata()', tuf.roledb._roledb_dict
    # has to be populated.  The 'tuf.download.safe_download' method
@@ -924,9 +898,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    # total of 2 (the delegated targets are listed twice).  The total number of
    # targets in 'all_targets' should then be 6.
    self.assertTrue(len(all_targets) is 6)   
-
-   # RESTORE
-   tuf.download.safe_download = original_download
 
 
 
@@ -984,9 +955,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_6_download_target(self):
-
-    # Setup:
-    original_download = tuf.download.safe_download
     
     # 'tuf.download.safe_download' method should be patched.
     target_rel_paths_src = self._get_list_of_target_paths(self.targets_dir)
@@ -1032,16 +1000,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     for mirror_name, mirror_info in mirrors.items():
       mirrors[mirror_name]['confined_target_dirs'] = ['']
 
-    # RESTORE
-    tuf.download.safe_download = original_download
-
 
 
 
   def test_7_updated_targets(self):
-    
-    # Setup:
-    original_download = tuf.download.safe_download
     
     # In this test, client will have two target files.  Server will modify 
     # one of them.  As with 'all_targets' function, tuf.roledb._roledb_dict
@@ -1103,16 +1065,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         msg = 'A file that need not to be updated is indicated as updated.'
         self.fail(msg)
 
-    # RESTORE
-    tuf.download.safe_download = original_download
-
     
 
 
   def test_8_remove_obsolete_targets(self):
-    
-    # Setup:
-    original_download = tuf.download.safe_download
     
     # This unit test should be last, because it removes target files from the
     # server's targets directory. It is done to avoid adding files, rebuilding 
@@ -1161,9 +1117,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  in the 'dest_dir' remains the same.
     self.Repository.remove_obsolete_targets(dest_dir)
     self.assertTrue(os.listdir(dest_dir), 2)    
-
-    # RESTORE
-    tuf.download.safe_download = original_download
 
 
 def tearDownModule():
