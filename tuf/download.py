@@ -72,8 +72,8 @@ class SaferSocketFileObject(socket._fileobject):
     super(SaferSocketFileObject, self).__init__(sock, mode=mode,
                                                 bufsize=bufsize, close=close)
 
-    # Count the number of slowly-retrieved chunks.
-    self.__number_of_slow_chunks = 0
+    # Count the number of socket operation time-outs.
+    self.__number_of_socket_timeouts = 0
 
 
 
@@ -135,7 +135,7 @@ class SaferSocketFileObject(socket._fileobject):
       return rv
 
     self._rbuf = StringIO()  # reset _rbuf.  we consume it via buf.
-    while self.__number_of_slow_chunks < tuf.conf.MAX_NUM_OF_SLOW_CHUNKS:
+    while self.__number_of_socket_timeouts < tuf.conf.MAX_NUM_OF_SOCKET_TIMEOUTS:
       left = size - buf_len
       # recv() will malloc the amount of memory given as its
       # parameter even though it often returns much less data
@@ -147,8 +147,8 @@ class SaferSocketFileObject(socket._fileobject):
       except socket.timeout:
         # Since the socket recv operation timed out, we increment the running
         # counter of slow chunks and try again.
-        self.__number_of_slow_chunks += 1
-        logger.warn('slow chunk {0}'.format(self.__number_of_slow_chunks))
+        self.__number_of_socket_timeouts += 1
+        logger.warn('socket timeouts {0}'.format(self.__number_of_socket_timeouts))
         continue
       except socket.error, e:
         if e.args[0] == EINTR:
@@ -173,18 +173,13 @@ class SaferSocketFileObject(socket._fileobject):
       buf_len += n
       del data  # explicit free
       #assert buf_len == buf.tell()
-      # Since n < left with timeout on self._sock.recv, this is a slow chunk.
-      # We assume that 'size' is accurate w.r.t. to the overall file length;
-      # otherwise, we will miscount the number of truly slow chunks.
-      self.__number_of_slow_chunks += 1
-      logger.warn('slow chunk {0}: {1} <= {2}'.format(self.__number_of_slow_chunks, n, left))
     else:
       # Since we saw more than a tolerable number of slow chunks, we flag this
       # as a possible slow-retrieval attack. This threshold will determine our
       # bias: if it is too slow, we will have more false negatives; if it is
       # too high, we will have more false positives.
-      logger.warn('slow chunks: {0}'.format(self.__number_of_slow_chunks))
-      raise tuf.SlowRetrievalError(self.__number_of_slow_chunks)
+      logger.warn('socket timeouts: {0}'.format(self.__number_of_socket_timeouts))
+      raise tuf.SlowRetrievalError(self.__number_of_socket_timeouts)
     return buf.getvalue()
 
 

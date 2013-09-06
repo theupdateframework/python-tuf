@@ -47,7 +47,7 @@ SOCKET_TIMEOUT = 1
 # The maximum chunk of data, in bytes, we would download in every round.
 CHUNK_SIZE = 8192
 
-# The maximum number of slowly-retrieved chunks that we would tolerate.
-MAX_NUM_OF_SLOW_CHUNKS = 5
+# The maximum number of socket operation time-outs that we would tolerate.
+MAX_NUM_OF_SOCKET_TIMEOUTS = 5
 
 
