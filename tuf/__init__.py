@@ -217,6 +217,14 @@ class UnknownRoleError(Error):
 
 
 
+class UnknownTargetError(Error):
+  """Indicate an error trying to locate or identify a specified target."""
+  pass
+
+
+
+
+
 class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object"""
   pass
@@ -234,6 +242,9 @@ class UpdateError(Error):
   def __init__(self, mirror_errors):
     # Dictionary of URL strings to Exception instances
     self.mirror_errors = mirror_errors
+
+  def __str__(self):
+    return str(self.mirror_errors)
 
 
 

@@ -637,18 +637,84 @@ class Updater(object):
 
 
   def get_target_file(self, target_filepath, file_length, file_hashes):
+    """
+    <Purpose>
+      Safely download a target file up to a certain length, and check its
+      hashes thereafter.
+
+    <Arguments>
+      target_filepath:
+        The relative target filepath obtained from TUF targets metadata.
+
+      file_length:
+        The expected length of the target file.
+
+      file_hashes:
+        The expected hashes of the target file.
+
+    <Exceptions>
+      tuf.UpdateError:
+        The target could not be fetched. This is raised only when all known
+        mirrors failed to provide a valid copy of the desired target file.
+
+    <Side Effects>
+      The target file is downloaded from all known repository mirrors in the
+      worst case. If a valid copy of the target file is found, it is stored in
+      a temporary file and returned.
+
+    <Returns>
+      A tuf.util.TempFile file-like object containing the target.
+
+    """
 
     def verify_target_file(target_file_object):
+      # Every target file must have its hashes inspected.
       self.__check_hashes(target_file_object, file_hashes)
-    
+
     return self.__get_file(target_filepath, verify_target_file, 'target',
-              file_length, download_safely=True, compression=None)
+                           file_length, download_safely=True, compression=None)
 
 
 
 
 
   def __verify_metadata_file(self, metadata_file_object, metadata_role):
+    """
+    <Purpose>
+      A private helpe function to verify a downloaded metadata file.
+
+    <Arguments>
+      metadata_file_object:
+        A tuf.util.TempFile instance containing the metadata file.
+
+      metadata_role:
+        The role name of the metadata.
+
+    <Exceptions>
+      tuf.ForbiddenTargetError:
+        In case a targets role has signed for a target it was not delegated to.
+
+      tuf.FormatError:
+        In case the metadata file is somehow not valid.
+
+      tuf.ReplayedMetadataError:
+        In case the downloaded metadata file is older than the current one.
+
+      tuf.RepositoryError:
+        In case the repository is somehow inconsistent; e.g. a parent has not
+        delegated to a child (contrary to expectations).
+
+      tuf.SignatureError:
+        In case the metadata file does not have a valid signature.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      None.
+
+    """
+
     # Ensure the loaded 'metadata_signable' is properly formatted.
     metadata_signable = \
       tuf.util.load_json_string(metadata_file_object.read())
@@ -683,6 +749,36 @@ class Updater(object):
 
   def unsafely_get_metadata_file(self, metadata_role, metadata_filepath,
                                  file_length):
+    """
+    <Purpose>
+      Unsafely download a metadata file up to a certain length. The actual file
+      length may not be strictly equal to its expected length. File hashes will
+      not be checked because it is expected to be unknown.
+
+    <Arguments>
+      metadata_role:
+        The role name of the metadata.
+
+      metadata_filepath:
+        The relative metadata filepath.
+
+      file_length:
+        The expected length of the metadata file.
+
+    <Exceptions>
+      tuf.UpdateError:
+        The metadata could not be fetched. This is raised only when all known
+        mirrors failed to provide a valid copy of the desired metadata file.
+
+    <Side Effects>
+      The metadata file is downloaded from all known repository mirrors in the
+      worst case. If a valid copy of the metadata file is found, it is stored
+      in a temporary file and returned.
+
+    <Returns>
+      A tuf.util.TempFile file-like object containing the metadata.
+
+    """
 
     def unsafely_verify_metadata_file(metadata_file_object):
       self.__verify_metadata_file(metadata_file_object, metadata_role)
@@ -696,7 +792,42 @@ class Updater(object):
 
 
   def safely_get_metadata_file(self, metadata_role, metadata_filepath,
-                                 file_length, file_hashes, compression):
+                               file_length, file_hashes, compression):
+    """
+    <Purpose>
+      Safely download a metadata file up to a certain length, and check its
+      hashes thereafter.
+
+    <Arguments>
+      metadata_role:
+        The role name of the metadata.
+
+      metadata_filepath:
+        The relative metadata filepath.
+
+      file_length:
+        The expected length of the metadata file.
+
+      file_hashes:
+        The expected hashes of the metadata file.
+
+      compression:
+        The name of the compression algorithm used to compress the metadata.
+
+    <Exceptions>
+      tuf.UpdateError:
+        The metadata could not be fetched. This is raised only when all known
+        mirrors failed to provide a valid copy of the desired metadata file.
+
+    <Side Effects>
+      The metadata file is downloaded from all known repository mirrors in the
+      worst case. If a valid copy of the metadata file is found, it is stored
+      in a temporary file and returned.
+
+    <Returns>
+      A tuf.util.TempFile file-like object containing the metadata.
+
+    """
 
     def safely_verify_metadata_file(metadata_file_object):
       self.__check_hashes(metadata_file_object, file_hashes)
@@ -710,10 +841,57 @@ class Updater(object):
 
 
 
-  def __get_file(self, filepath, verify_file, reference_metadata,
-                 trusted_length, download_safely, compression):
-    file_mirrors = tuf.mirrors.get_list_of_mirrors(reference_metadata,
-                                                   filepath, self.mirrors)
+  # TODO: Instead of the more fragile 'download_safely' switch, unroll the
+  # function into two separate ones: one for "safe" download, and the other one
+  # for "unsafe" download? This should induce safer and more readable code.
+  def __get_file(self, filepath, verify_file, file_type,
+                 file_length, download_safely, compression):
+    """
+    <Purpose>
+      Try downloading, up to a certain length, a metadata or target file from a
+      list of known mirrors. As soon as the first valid copy of the file is
+      found, the rest of the mirrors will be skipped.
+
+    <Arguments>
+      filepath:
+        The relative metadata or target filepath.
+
+      verify_file:
+        A function which expects a file-like object and which will raise an
+        exception in case the file is not valid for any reason.
+
+      file_type:
+        Type of data needed for download, must correspond to one of the strings
+        in the list ['meta', 'target'].  'meta' for metadata file type or
+        'target' for target file type.  It should correspond to NAME_SCHEMA
+        format.
+
+      file_length:
+        The expected length of the metadata or target file.
+
+      download_safely:
+        A boolean switch to toggle safe or unsafe download of the file.
+
+      compression:
+        The name of the compression algorithm used to compress the file.
+
+    <Exceptions>
+      tuf.UpdateError:
+        The metadata could not be fetched. This is raised only when all known
+        mirrors failed to provide a valid copy of the desired metadata file.
+
+    <Side Effects>
+      The file is downloaded from all known repository mirrors in the worst
+      case. If a valid copy of the file is found, it is stored in a temporary
+      file and returned.
+
+    <Returns>
+      A tuf.util.TempFile file-like object containing the metadata or target.
+
+    """
+
+    file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
+                                                   self.mirrors)
     # file_mirror (URL): error (Exception)
     file_mirror_errors = {}
     file_object = None
@@ -721,10 +899,9 @@ class Updater(object):
     for file_mirror in file_mirrors:
       try:
         if download_safely:
-          file_object = tuf.download.safe_download(file_mirror, trusted_length)
+          file_object = tuf.download.safe_download(file_mirror, file_length)
         else:
-          file_object = tuf.download.unsafe_download(file_mirror,
-                                                     trusted_length)
+          file_object = tuf.download.unsafe_download(file_mirror, file_length)
 
         if compression:
           file_object.decompress_temp_file_object(compression)
@@ -1064,7 +1241,7 @@ class Updater(object):
         'signable' object).
 
     <Exceptions>
-      tuf.RepositoryError:
+      tuf.ForbiddenTargetError:
         If the targets of 'metadata_role' are not allowed according to
         the parent's metadata file.  The 'paths' and 'path_hash_prefixes'
         attributes are verified.
@@ -1106,10 +1283,11 @@ class Updater(object):
         consistent = self._paths_are_consistent_with_hash_prefixes
         if not consistent(actual_child_targets,
                           allowed_child_path_hash_prefixes):
-          raise tuf.RepositoryError('Role '+repr(metadata_role)+' specifies '+\
-                                    'target which does not have a path hash '+\
-                                    'prefix matching the prefix listed by '+\
-                                    'the parent role '+repr(parent_role)+'.')
+          raise tuf.ForbiddenTargetError('Role '+repr(metadata_role)+\
+                                         ' specifies target which does not'+\
+                                         ' have a path hash prefix matching'+\
+                                         ' the prefix listed by the parent'+\
+                                         ' role '+repr(parent_role)+'.')
 
       elif allowed_child_paths is not None: 
 
@@ -1126,25 +1304,27 @@ class Updater(object):
             if prefix == allowed_child_path:
               break
           else: 
-            message = 'Role '+repr(metadata_role)+' specifies target '+\
-              repr(child_target)+' which is not an allowed path according '+\
-              'to the delegations set by '+repr(parent_role)+'.'
-            raise tuf.RepositoryError(message)
+            raise tuf.ForbiddenTargetError('Role '+repr(metadata_role)+\
+                                           ' specifies target '+\
+                                           repr(child_target)+' which is not'+\
+                                           ' an allowed path according to'+\
+                                           ' the delegations set by '+\
+                                           repr(parent_role)+'.')
 
       else:
 
         # 'role' should have been validated when it was downloaded.
         # The 'paths' or 'path_hash_prefixes' attributes should not be missing,
-        # so log a warning if this clause is reached.
-        logger.warn(repr(role)+' unexpectedly did not contain one of '+\
-                    'the required fields ("paths" or "path_hash_prefixes").')
+        # so raise an error in case this clause is reached.
+        raise tuf.FormatError(repr(role)+' did not contain one of '+\
+                              'the required fields ("paths" or '+\
+                              '"path_hash_prefixes").')
 
     # Raise an exception if the parent has not delegated to the specified
     # 'metadata_role' child role.
     else:
-      message = repr(parent_role)+' has not delegated to '+\
-        repr(metadata_role)+'.'
-      raise tuf.RepositoryError(message)
+      raise tuf.RepositoryError(repr(parent_role)+' has not delegated to '+\
+                                repr(metadata_role)+'.')
 
 
 
@@ -1789,7 +1969,7 @@ class Updater(object):
       tuf.FormatError:
         If 'target_filepath' is improperly formatted.
 
-      tuf.RepositoryError:
+      tuf.UnknownTargetError:
         If 'target_filepath' was not found.
 
       Any other unforeseen runtime exception.
@@ -1814,7 +1994,7 @@ class Updater(object):
     if target is None:
       message = target_filepath+' not found.'
       logger.error(message)
-      raise tuf.RepositoryError(message)
+      raise tuf.UnknownTargetError(message)
     # Otherwise, return the found target.
     else:
       return target
@@ -1962,7 +2142,7 @@ class Updater(object):
       Ensure that we explore only delegated roles trusted with the target. We
       assume conservation of delegated paths in the complete tree of
       delegations. Note that the call to _ensure_all_targets_allowed in
-      _update_metadata should already ensure that all targets metadata is
+      __verify_metadata_file should already ensure that all targets metadata is
       valid; i.e. that the targets signed by a delegatee is a proper subset of
       the targets delegated to it by the delegator. Nevertheless, we check it
       again here for performance and safety reasons.
