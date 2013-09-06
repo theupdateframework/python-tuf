@@ -1164,7 +1164,7 @@ class Updater(object):
                                     ['meta'][gzip_metadata_filename]
         # NOTE: When we download the compressed file, we care about its
         # compressed length.  However, we check the hash of the decompressed
-        # file, therefore we use the hashes of the uncompressed file.
+        # file; therefore we use the hashes of the uncompressed file.
         fileinfo = {'length': compressed_fileinfo['length'],
                     'hashes': uncompressed_fileinfo['hashes']}
         logger.debug('Compressed version of '+\
