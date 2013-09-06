@@ -649,24 +649,33 @@ class Updater(object):
 
 
   def __verify_metadata_file(self, metadata_file_object, metadata_role):
-    # Read and load the downloaded file.
-    try:
-      metadata_signable = \
-        tuf.util.load_json_string(metadata_file_object.read())
-    except:
-      logger.exception('Invalid metadata from '+mirror_url+'.')
-      raise
-    else:
-      # Verify the signature on the downloaded metadata object.
-      try:
-        valid = tuf.sig.verify(metadata_signable, metadata_role)
-      except:
-        message = 'Unable to verify '+metadata_filename
-        logger.exception(message)
-        raise
-      else:
-        if not valid:
-          raise tuf.BadSignatureError()
+    # Ensure the loaded 'metadata_signable' is properly formatted.
+    metadata_signable = \
+      tuf.util.load_json_string(metadata_file_object.read())
+    tuf.formats.check_signable_object_format(metadata_signable)
+
+    # Is 'metadata_signable' newer than the currently installed
+    # version?
+    current_metadata_role = self.metadata['current'].get(metadata_role)
+
+    # Compare metadata version numbers.  Ensure there is a current
+    # version of the metadata role to be updated.
+    if current_metadata_role is not None:
+      current_version = current_metadata_role['version']
+      downloaded_version = metadata_signable['signed']['version']
+      if downloaded_version < current_version:
+        raise tuf.ReplayedMetadataError(metadata_role, downloaded_version,
+                                        current_version)
+
+    # Reject the metadata if any specified targets are not allowed.
+    if metadata_signable['signed']['_type'] == 'Targets':
+      self._ensure_all_targets_allowed(metadata_role,
+                                       metadata_signable['signed'])
+
+    # Verify the signature on the downloaded metadata object.
+    valid = tuf.sig.verify(metadata_signable, metadata_role)
+    if not valid:
+      raise tuf.BadSignatureError()
 
 
 
@@ -720,16 +729,16 @@ class Updater(object):
         if compression:
           file_object.decompress_temp_file_object(compression)
 
-      except Exception, e:
+      except Exception, exception:
         # Remember the error from this mirror, and "reset" the target file.
         logger.exception('Download failed from '+file_mirror+'.')
-        file_mirror_errors[file_mirror] = e
+        file_mirror_errors[file_mirror] = exception
         file_object = None
       else:
         try:
           verify_file(file_object)
-        except Exception, e:
-          file_mirror_errors[file_mirror] = e
+        except Exception, exception:
+          file_mirror_errors[file_mirror] = exception
           file_object = None
         else:
           break
@@ -792,7 +801,7 @@ class Updater(object):
       None.
     
     """
-    
+
     # Construct the metadata filename as expected by the download/mirror modules.
     metadata_filename = metadata_role + '.txt'
     uncompressed_metadata_filename = metadata_filename
@@ -807,9 +816,6 @@ class Updater(object):
     file_length = fileinfo['length']
     file_hashes = fileinfo['hashes']
 
-    # A dictionary to keep the error from every mirror that we try.
-    mirror_errors = {}
-
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
     # otherwise log a warning and try the next mirror.  'metadata_file_object'
@@ -817,44 +823,28 @@ class Updater(object):
     # is the object extracted from 'metadata_file_object'.  Metadata saved to
     # files are regarded as 'signable' objects, conformant to
     # 'tuf.formats.SIGNABLE_SCHEMA'.
+    #
+    # Some metadata (presently timestamp) will be downloaded "unsafely", in the
+    # sense that we can only estimate its true length and know nothing about
+    # its hashes.  This is because not all metadata will have other metadata
+    # for it; otherwise we will have an infinite regress of metadata signing
+    # for each other. In this case, we will download the metadata up to the
+    # best length we can get for it, not check its hashes, but perform the rest
+    # of the checks (e.g signature verification).
+    #
+    # Note also that we presently support decompression of only "safe"
+    # metadata, but this is easily extend to "unsafe" metadata as well as
+    # "safe" targets.
+
     if metadata_role == 'timestamp':
-        metadata_file_object = \
-          self.unsafely_get_metadata_file(metadata_role, metadata_filename,
-                                          file_length)
+      metadata_file_object = \
+        self.unsafely_get_metadata_file(metadata_role, metadata_filename,
+                                        file_length)
     else:
-        metadata_file_object = \
-          self.safely_get_metadata_file(metadata_role, metadata_filename,
-                                        file_length, file_hashes,
-                                        compression=compression)
-
-    # Read and load the downloaded file.
-    metadata_signable = tuf.util.load_json_string(metadata_file_object.read())
-
-    # Ensure the loaded 'metadata_signable' is properly formatted.
-    try:
-      tuf.formats.check_signable_object_format(metadata_signable)
-    except tuf.FormatError, e:
-      message = 'Unable to load '+repr(metadata_filename)+' after update: '+str(e)
-      raise tuf.RepositoryError(message)
-
-    # Is 'metadata_signable' newer than the currently installed
-    # version?
-    current_metadata_role = self.metadata['current'].get(metadata_role)
-    
-    # Compare metadata version numbers.  Ensure there is a current
-    # version of the metadata role to be updated.
-    if current_metadata_role is not None:
-      current_version = current_metadata_role['version'] 
-      downloaded_version = metadata_signable['signed']['version']
-      if downloaded_version < current_version:
-        message = str(current_metadata_role)+' is older than the version currently '+\
-          'installed.\nDownloaded version: '+repr(downloaded_version)+'\n'+\
-          'Current version: '+repr(current_version)
-        raise tuf.RepositoryError(message)
-      
-    # Reject the metadata if any specified targets are not allowed.
-    if metadata_signable['signed']['_type'] == 'Targets':
-      self._ensure_all_targets_allowed(metadata_role, metadata_signable['signed'])
+      metadata_file_object = \
+        self.safely_get_metadata_file(metadata_role, metadata_filename,
+                                      file_length, file_hashes,
+                                      compression=compression)
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -882,10 +872,11 @@ class Updater(object):
       metadata_file_object.move(current_uncompressed_filepath)
     else:
       metadata_file_object.move(current_filepath)
-    
+
     # Extract the metadata object so we can store it to the metadata store.
     # 'current_metadata_object' set to 'None' if there is not an object
     # stored for 'metadata_role'.
+    metadata_signable = tuf.util.load_json_string(metadata_file_object.read())
     updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
 
@@ -894,6 +885,7 @@ class Updater(object):
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
     self._update_fileinfo(metadata_filename) 
+
 
 
 
@@ -2283,9 +2275,14 @@ class Updater(object):
       try:
         os.makedirs(target_dirpath)
       except OSError, e:
-        if e.errno == errno.EEXIST:
-          pass
-        else:
-          raise
-    
+        if e.errno == errno.EEXIST: pass
+        else: raise
+    else:
+      logger.warn(str(target_dirpath)+' does not exist.')
+
     target_file_object.move(destination)
+
+
+
+
+
