@@ -865,6 +865,7 @@ class Updater(object):
     # Next, move the verified updated metadata file to the 'current' directory.
     # Note that the 'move' method comes from tuf.util's TempFile class.
     # 'metadata_file_object' is an instance of tuf.util.TempFile.
+    metadata_signable = tuf.util.load_json_string(metadata_file_object.read())
     if compression == 'gzip':
       current_uncompressed_filepath = os.path.join(self.metadata_directory['current'],
                                                    uncompressed_metadata_filename)
@@ -876,7 +877,6 @@ class Updater(object):
     # Extract the metadata object so we can store it to the metadata store.
     # 'current_metadata_object' set to 'None' if there is not an object
     # stored for 'metadata_role'.
-    metadata_signable = tuf.util.load_json_string(metadata_file_object.read())
     updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
 
