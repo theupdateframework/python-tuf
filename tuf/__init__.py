@@ -53,14 +53,6 @@ class FormatError(Error):
 
 
 
-class InvalidMetadataJSONError(FormatError):
-  """Indicate that some metadata file is not valid JSON."""
-  pass
-
-
-
-
-
 class UnsupportedAlgorithmError(Error):
   """Indicate an error while trying to identify a user-specified algorithm."""
   pass
@@ -109,17 +101,27 @@ class ForbiddenTargetError(RepositoryError):
 
 
 
-class ReplayError(RepositoryError):
-  """Indicate that some metadata has been replayed to the client."""
-  pass
-
-
-
-
-
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
   pass
+
+
+
+
+
+class ReplayedMetadataError(RepositoryError):
+  """Indicate that some metadata has been replayed to the client."""
+
+  def __init__(self, metadata_role, previous_version, current_version):
+    self.metadata_role = metadata_role
+    self.previous_version = previous_version
+    self.current_version = current_version
+
+
+  def __str__(self):
+    return str(self.metadata_role)+' is older than the version currently'+\
+      'installed.\nDownloaded version: '+repr(self.previous_version)+'\n'+\
+      'Current version: '+repr(self.current_version)
 
 
 
