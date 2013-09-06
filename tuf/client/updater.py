@@ -1121,7 +1121,7 @@ class Updater(object):
     
     """
         
-    metadata_filename = metadata_role + '.txt'
+    uncompressed_metadata_filename = metadata_role + '.txt'
 
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'release' available.  
@@ -1144,44 +1144,48 @@ class Updater(object):
     # metadata available on the repository, including any that may be in
     # compressed form.
     compression = None
-    
-    # Extract the new fileinfo of the uncompressed version of 'metadata_role'.
-    new_fileinfo = self.metadata['current'][referenced_metadata] \
-                                ['meta'][metadata_filename]
-    
+
+    # Extract the fileinfo of the uncompressed version of 'metadata_role'.
+    uncompressed_fileinfo = self.metadata['current'][referenced_metadata] \
+                                         ['meta'] \
+                                         [uncompressed_metadata_filename]
+
     # Check for availability of compressed versions of 'release.txt',
     # 'targets.txt', and delegated Targets, which also start with 'targets'.
     # For 'targets.txt' and delegated metadata, 'referenced_metata'
     # should always be 'release'.  'release.txt' specifies all roles
     # provided by a repository, including their file sizes and hashes.
     if metadata_role == 'release' or metadata_role.startswith('targets'):
-      gzip_metadata_filename = metadata_filename + '.gz'
+      gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
       if gzip_metadata_filename in self.metadata['current'] \
                                                 [referenced_metadata]['meta']:
         compression = 'gzip'
-        # FIXME: Get the hash of the uncompressed file, because we will be
-        # checking the hash of the uncompressed file, not the compressed file.
-        previous_hashes = new_fileinfo['hashes']
-        new_fileinfo = self.metadata['current'][referenced_metadata] \
+        compressed_fileinfo = self.metadata['current'][referenced_metadata] \
                                     ['meta'][gzip_metadata_filename]
-        # FIXME: Replace the hashes to point to the uncompressed file ones, not
-        # the compressed file ones.
-        new_fileinfo['hashes'] = previous_hashes
-        metadata_filename = gzip_metadata_filename
+        # NOTE: When we download the compressed file, we care about its
+        # compressed length.  However, we check the hash of the decompressed
+        # file, therefore we use the hashes of the uncompressed file.
+        fileinfo = {'length': compressed_fileinfo['length'],
+                    'hashes': uncompressed_fileinfo['hashes']}
+        logger.debug('Compressed version of '+\
+                     repr(uncompressed_metadata_filename)+' is available at '+\
+                     repr(gzip_metadata_filename)+'.')
       else:
-        message = 'Compressed version of '+repr(metadata_filename)+\
-          ' not available.'
-        logger.debug(message)
+        logger.debug('Compressed version of '+\
+                     repr(uncompressed_metadata_filename)+' not available.')
+        fileinfo = uncompressed_fileinfo
 
-    # Simply return if the fileinfo has not changed, according to the
-    # fileinfo provided by the referenced metadata.
-    if not self._fileinfo_has_changed(metadata_filename, new_fileinfo):
+    # Simply return if the file has not changed, according to the metadata
+    # about the uncompressed file provided by the referenced metadata.
+    if not self._fileinfo_has_changed(uncompressed_metadata_filename,
+                                      uncompressed_fileinfo):
       return
 
-    logger.debug('Metadata '+repr(metadata_filename)+' has changed.')
+    logger.debug('Metadata '+repr(uncompressed_metadata_filename)+\
+                 ' has changed.')
 
     try:
-      self._update_metadata(metadata_role, fileinfo=new_fileinfo,
+      self._update_metadata(metadata_role, fileinfo=fileinfo,
                             compression=compression)
     except:
       # The current metadata we have is not current but we couldn't
@@ -1527,11 +1531,11 @@ class Updater(object):
                                      metadata_filepath)
     current_filepath = os.path.join(self.metadata_directory['current'],
                                     metadata_filepath)
-   
+
     # Remove the previous path if it exists.
     if os.path.exists(previous_filepath):
       os.remove(previous_filepath)
-    
+
     # Move the current path to the previous path.  
     if os.path.exists(current_filepath):
       tuf.util.ensure_parent_dir(previous_filepath)
