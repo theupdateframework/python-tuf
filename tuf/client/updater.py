@@ -936,7 +936,7 @@ class Updater(object):
         is 'timestamp'.  See refresh().
         
     <Exceptions>
-      tuf.MetadataNotAvailableError:
+      tuf.UpdateError:
         If 'metadata_role' could not be downloaded after determining
         that it had changed.
         
@@ -1868,11 +1868,10 @@ class Updater(object):
     role_names = ['targets']
 
     # Ensure the client has the most up-to-date version of 'targets.txt'.
-    # Raise 'tuf.MetadataNotAvailableError' if the changed metadata
-    # cannot be successfully downloaded and 'tuf.RepositoryError' if the
-    # referenced metadata is missing.  Target methods such as this one
-    # are called after the top-level metadata have been refreshed (i.e.,
-    # updater.refresh()).
+    # Raise 'tuf.UpdateError' if the changed metadata cannot be successfully
+    # downloaded and 'tuf.RepositoryError' if the referenced metadata is
+    # missing.  Target methods such as this one are called after the top-level
+    # metadata have been refreshed (i.e., updater.refresh()).
     self._update_metadata_if_changed('targets')
 
     # Preorder depth-first traversal of the tree of target delegations.

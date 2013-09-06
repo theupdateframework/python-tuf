@@ -125,14 +125,6 @@ class ExpiredMetadataError(Error):
 
 
 
-class MetadataNotAvailableError(Error):
-  """Indicate an error locating a Metadata file for a specified target/role."""
-  pass
-
-
-
-
-
 class CryptoError(Error):
   """Indicate any cryptography-related errors."""
   pass
