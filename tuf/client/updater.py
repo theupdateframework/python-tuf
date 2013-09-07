@@ -1174,6 +1174,8 @@ class Updater(object):
         logger.debug('Compressed version of '+\
                      repr(uncompressed_metadata_filename)+' not available.')
         fileinfo = uncompressed_fileinfo
+    else:
+      fileinfo = uncompressed_fileinfo
 
     # Simply return if the file has not changed, according to the metadata
     # about the uncompressed file provided by the referenced metadata.
