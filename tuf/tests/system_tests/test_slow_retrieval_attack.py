@@ -71,14 +71,14 @@ def _download(url, filename, TUF=False):
 
 def test_slow_retrieval_attack(TUF=False, mode=None):
 
-  WAIT_TIME = 10  # Number of seconds to wait until download completes.
+  WAIT_TIME = 20  # Number of seconds to wait until download completes.
   ERROR_MSG = mode + '\tSlow Retrieval Attack was Successful!\n\n'
 
   # Launch the server.
   port = random.randint(30000, 45000)
   command = ['python', 'slow_retrieval_server.py', str(port), mode]
   server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
-  time.sleep(.1)
+  time.sleep(1)
 
   try:
     # Setup.
@@ -119,11 +119,9 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
       proc.terminate()
       raise SlowRetrievalAttackAlert(ERROR_MSG)
 
-
   finally:
     if server_process.returncode is None:
       server_process.kill()
-      print 'Communication with slow server aborted. Terminate the slow server.\n'
     
     util_test_tools.cleanup(root_repo, server_proc)
 
