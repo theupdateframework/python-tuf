@@ -186,8 +186,13 @@ class DownloadLengthMismatchError(DownloadError):
 class SlowRetrievalError(DownloadError):
   """"Indicate that downloading a file took an unreasonably long time."""
 
-  def __init__(self, number_of_slow_chunks):
-    self.number_of_slow_chunks = number_of_slow_chunks
+  def __init__(self, cumulative_moving_average_of_speed):
+    self.__cumulative_moving_average_of_speed = \
+      cumulative_moving_average_of_speed#bytes/second
+
+  def __str__(self):
+    return "Cumulative moving average of download speed: "+\
+           str(self.__cumulative_moving_average_of_speed)+" bytes/second"
 
 
 

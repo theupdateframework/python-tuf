@@ -22,10 +22,14 @@
   
 """
 
+# Induce "true division" (http://www.python.org/dev/peps/pep-0238/).
+from __future__ import division
+
 import httplib
 import logging
 import os.path
 import socket
+import time
 
 import tuf
 import tuf.conf
@@ -55,7 +59,6 @@ except ImportError:
   errno = None
 EINTR = getattr(errno, 'EINTR', 4)
 
-
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
 
@@ -72,17 +75,96 @@ class SaferSocketFileObject(socket._fileobject):
     super(SaferSocketFileObject, self).__init__(sock, mode=mode,
                                                 bufsize=bufsize, close=close)
 
-    # Count the number of socket operation time-outs.
-    self.__number_of_socket_timeouts = 0
+    # Measure the cumulative moving average of download speed.
+    self.__cumulative_moving_average_of_speed = 0
+    # Count the number of socket receive operations.
+    self.__number_of_receive_operations = 0
+    # Remember the time a clock was started.
+    self.__start_time = None
 
 
 
 
 
-  # TODO: Better protection against slow-retrieval attacks. For example, we do
-  # not take into consideration that a sufficiently large file might take an
-  # intolerably long time with our present methods. We should be able to better
-  # protect ourselves with more careful state-keeping (such as measuring time).
+  def __start_clock(self):
+    """
+    <Purpose>
+      Start the clock to measure time difference later.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      AssertionError: When any internal condition is not true.
+
+    <Side Effects>
+      Start time is kept inside this object.
+
+    <Returns>
+      None.
+
+    """
+
+    # We must have reset the clock before this.
+    assert self.__start_time is None
+    self.__start_time = time.time()
+
+
+
+
+
+  def __stop_clock(self, data_length):
+    """
+    <Purpose>
+      Stop the clock and try to detect slow retrieval.
+
+    <Arguments>
+      data_length: A nonnegative integer indicating the size of data retrieved.
+
+    <Exceptions>
+      tuf.SlowRetrievalError: When slow retrieval is detected.
+
+      AssertionError: When any internal condition is not true.
+
+    <Side Effects>
+      Start time is cleared inside this object.
+
+    <Returns>
+      None.
+
+    """
+
+    stop_time = time.time()
+    # We must have already started the clock.
+    assert self.__start_time > 0, self.__start_time
+    time_delta = stop_time-self.__start_time
+    # Reset the clock.
+    self.__start_time = None
+    speed = data_length/time_delta
+    logger.debug('Speed: '+str(speed)+' ('+str(data_length)+'/'+\
+                 str(time_delta)+') bytes/second')
+
+    # Measure the cumulative moving average of the download speed.
+    #https://en.wikipedia.org/wiki/Moving_average#Cumulative_moving_average
+    self.__number_of_receive_operations += 1
+    numerator = speed+((self.__number_of_receive_operations-1)*self.__cumulative_moving_average_of_speed)
+    denominator = self.__number_of_receive_operations
+    self.__cumulative_moving_average_of_speed = numerator/denominator
+
+    # If the cumulative moving average of the download speed is below a certain
+    # threshold, we flag this as a possible slow-retrieval attack. This
+    # threshold will determine our bias: if it is too slow, we will have more
+    # false negatives; if it is too high, we will have more false positives.
+    if self.__cumulative_moving_average_of_speed < tuf.conf.MIN_CUMULATIVE_MOVING_AVERAGE_OF_DOWNLOAD_SPEED:
+      raise tuf.SlowRetrievalError(self.__cumulative_moving_average_of_speed)
+    logger.debug('Cumulative moving average of download speed: '+\
+                 str(self.__cumulative_moving_average_of_speed)+\
+                 ' bytes/second')
+
+
+
+
+
   def read(self, size):
     """
     <Purpose>
@@ -135,7 +217,8 @@ class SaferSocketFileObject(socket._fileobject):
       return rv
 
     self._rbuf = StringIO()  # reset _rbuf.  we consume it via buf.
-    while self.__number_of_socket_timeouts < tuf.conf.MAX_NUM_OF_SOCKET_TIMEOUTS:
+    # Since we try to detect slow retrieval, this should not be an infinite loop.
+    while True:
       left = size - buf_len
       # recv() will malloc the amount of memory given as its
       # parameter even though it often returns much less data
@@ -143,17 +226,18 @@ class SaferSocketFileObject(socket._fileobject):
       # as we copy it into a StringIO and free it.  This avoids
       # fragmentation issues on many platforms.
       try:
+        self.__start_clock()
         data = self._sock.recv(left)
       except socket.timeout:
-        # Since the socket recv operation timed out, we increment the running
-        # counter of slow chunks and try again.
-        self.__number_of_socket_timeouts += 1
-        logger.warn('socket timeouts {0}'.format(self.__number_of_socket_timeouts))
+        self.__stop_clock(0)
         continue
       except socket.error, e:
         if e.args[0] == EINTR:
+          self.__stop_clock(0)
           continue
         raise
+      else:
+        self.__stop_clock(len(data))
       if not data:
         break
       n = len(data)
@@ -173,13 +257,6 @@ class SaferSocketFileObject(socket._fileobject):
       buf_len += n
       del data  # explicit free
       #assert buf_len == buf.tell()
-    else:
-      # Since we saw more than a tolerable number of slow chunks, we flag this
-      # as a possible slow-retrieval attack. This threshold will determine our
-      # bias: if it is too slow, we will have more false negatives; if it is
-      # too high, we will have more false positives.
-      logger.warn('socket timeouts: {0}'.format(self.__number_of_socket_timeouts))
-      raise tuf.SlowRetrievalError(self.__number_of_socket_timeouts)
     return buf.getvalue()
 
 
