@@ -137,13 +137,14 @@ import tempfile
 import subprocess
 
 import tuf
+import tuf.client.updater
 import tuf.formats
 import tuf.interposition
-import tuf.util
-import tuf.client.updater
+import tuf.log
 import tuf.repo.signercli as signercli
 import tuf.repo.signerlib as signerlib
 import tuf.repo.keystore as keystore
+import tuf.util
 
 logger = logging.getLogger('tuf.tests.system_tests.util_test_tools')
 
@@ -151,6 +152,10 @@ PASSWD = 'test'
 version = 1
 # Where we keep TUF configurations, if any, between every iteration.
 tuf_configurations = None
+
+
+def disable_console_logging():
+  tuf.log.logger.removeHandler(tuf.log.console_handler)
 
 
 def init_repo(tuf=False, port=None):
@@ -184,6 +189,7 @@ def init_repo(tuf=False, port=None):
 
   keyids = None
   if tuf:
+    disable_console_logging()
     keyids = init_tuf(root_repo)
     create_interposition_config(root_repo, url)
 
