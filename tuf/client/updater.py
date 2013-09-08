@@ -695,7 +695,10 @@ class Updater(object):
         In case a targets role has signed for a target it was not delegated to.
 
       tuf.FormatError:
-        In case the metadata file is somehow not valid.
+        In case the metadata file is valid JSON, but not valid TUF metadata.
+
+      tuf.InvalidMetadataJSONError:
+        In case the metadata file is not valid JSON.
 
       tuf.ReplayedMetadataError:
         In case the downloaded metadata file is older than the current one.
@@ -715,10 +718,14 @@ class Updater(object):
 
     """
 
-    # Ensure the loaded 'metadata_signable' is properly formatted.
-    metadata_signable = \
-      tuf.util.load_json_string(metadata_file_object.read())
-    tuf.formats.check_signable_object_format(metadata_signable)
+    metadata = metadata_file_object.read()
+    try:
+      metadata_signable = tuf.util.load_json_string(metadata)
+    except Exception, exception:
+      raise tuf.InvalidMetadataJSONError(exception)
+    else:
+      # Ensure the loaded 'metadata_signable' is properly formatted.
+      tuf.formats.check_signable_object_format(metadata_signable)
 
     # Is 'metadata_signable' newer than the currently installed
     # version?
