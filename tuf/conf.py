@@ -39,16 +39,16 @@ ssl_certificates = None
 
 # Since the timestamp role does not have signed metadata about itself, we set a
 # default but sane upper bound for the number of bytes required to download it.
-DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 2048#bytes
+DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 2048 #bytes
 
 # Set a timeout value in seconds (float) for non-blocking socket operations.
-SOCKET_TIMEOUT = 1#seconds
+SOCKET_TIMEOUT = 1 #seconds
 
 # The maximum chunk of data, in bytes, we would download in every round.
-CHUNK_SIZE = 8192#bytes
+CHUNK_SIZE = 8192 #bytes
 
 # The minimum cumulative moving average of download speed (bytes/second) that
 # must be met to avoid being considered as a slow retrieval attack.
-MIN_CUMULATIVE_MOVING_AVERAGE_OF_DOWNLOAD_SPEED = CHUNK_SIZE#bytes/second
+MIN_CUMULATIVE_MOVING_AVERAGE_OF_DOWNLOAD_SPEED = CHUNK_SIZE #bytes/second
 
 

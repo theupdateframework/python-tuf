@@ -188,7 +188,7 @@ class SlowRetrievalError(DownloadError):
 
   def __init__(self, cumulative_moving_average_of_speed):
     self.__cumulative_moving_average_of_speed = \
-      cumulative_moving_average_of_speed#bytes/second
+      cumulative_moving_average_of_speed #bytes/second
 
   def __str__(self):
     return "Cumulative moving average of download speed: "+\
