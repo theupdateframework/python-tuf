@@ -54,8 +54,15 @@ class FormatError(Error):
 
 
 class InvalidMetadataJSONError(FormatError):
-  """Indicate that some metadata file is not valid JSON."""
-  pass
+  """Indicate that a metadata file is not valid JSON."""
+
+  def __init__(self, exception):
+    # Store the original exception.
+    self.exception = exception
+
+  def __str__(self):
+    # Show the original exception.
+    return str(self.exception)
 
 
 
@@ -109,14 +116,6 @@ class ForbiddenTargetError(RepositoryError):
 
 
 
-class ReplayError(RepositoryError):
-  """Indicate that some metadata has been replayed to the client."""
-  pass
-
-
-
-
-
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
   pass
@@ -125,9 +124,19 @@ class ExpiredMetadataError(Error):
 
 
 
-class MetadataNotAvailableError(Error):
-  """Indicate an error locating a Metadata file for a specified target/role."""
-  pass
+class ReplayedMetadataError(RepositoryError):
+  """Indicate that some metadata has been replayed to the client."""
+
+  def __init__(self, metadata_role, previous_version, current_version):
+    self.metadata_role = metadata_role
+    self.previous_version = previous_version
+    self.current_version = current_version
+
+
+  def __str__(self):
+    return str(self.metadata_role)+' is older than the version currently'+\
+      'installed.\nDownloaded version: '+repr(self.previous_version)+'\n'+\
+      'Current version: '+repr(self.current_version)
 
 
 
@@ -192,8 +201,13 @@ class DownloadLengthMismatchError(DownloadError):
 class SlowRetrievalError(DownloadError):
   """"Indicate that downloading a file took an unreasonably long time."""
 
-  def __init__(self, number_of_slow_chunks):
-    self.number_of_slow_chunks = number_of_slow_chunks
+  def __init__(self, cumulative_moving_average_of_speed):
+    self.__cumulative_moving_average_of_speed = \
+      cumulative_moving_average_of_speed #bytes/second
+
+  def __str__(self):
+    return "Cumulative moving average of download speed: "+\
+           str(self.__cumulative_moving_average_of_speed)+" bytes/second"
 
 
 
@@ -223,6 +237,14 @@ class UnknownRoleError(Error):
 
 
 
+class UnknownTargetError(Error):
+  """Indicate an error trying to locate or identify a specified target."""
+  pass
+
+
+
+
+
 class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object"""
   pass
@@ -230,7 +252,8 @@ class InvalidNameError(Error):
 
 
 
-class UpdateError(Error):
+
+class NoWorkingMirrorError(Error):
   """An updater will throw this exception in case it could not download a
   metadata or target file.
 
@@ -240,6 +263,9 @@ class UpdateError(Error):
   def __init__(self, mirror_errors):
     # Dictionary of URL strings to Exception instances
     self.mirror_errors = mirror_errors
+
+  def __str__(self):
+    return str(self.mirror_errors)
 
 
 
