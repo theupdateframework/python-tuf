@@ -37,14 +37,15 @@ Note: There is no difference between 'updates' and 'target' files.
 
 """
 
+from __future__ import print_function
+
+from multiprocessing import Process
 import os
-import time
-import urllib
 import random
 import subprocess
-from multiprocessing import Process
+import time
 import tuf
-import socket
+import urllib
 
 
 import tuf.tests.system_tests.util_test_tools as util_test_tools
@@ -59,11 +60,21 @@ def _download(url, filename, TUF=False):
   if TUF:
     try:
       urllib_tuf.urlretrieve(url, filename)
-    # If timeout or RepositoryError is raised, this means
-    # that TUF has prevented the slow retrieval attack. Enable
-    # the logging to see, what actually happened.
     except tuf.NoWorkingMirrorError, exception:
-      print "Download exits with " + str(exception) + "! Successfully avoid slow retrieval attack!\n\n"
+      slow_retrieval = False
+      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+        if isinstance(mirror_error, tuf.SlowRetrievalError):
+          slow_retrieval = True
+          break
+
+      # We must fail due to a slow retrieval error; otherwise we will exit with
+      # a "successful termination" exit status to indicate that slow retrieval
+      # detection failed.
+      if slow_retrieval:
+        print('TUF stopped the update because it detected slow retrieval.')
+      else:
+        print('TUF stopped the update due to something other than slow retrieval.')
+        sys.exit(0)
   else:
     urllib.urlretrieve(url, filename)
 
@@ -72,7 +83,8 @@ def _download(url, filename, TUF=False):
 def test_slow_retrieval_attack(TUF=False, mode=None):
 
   WAIT_TIME = 60  # Number of seconds to wait until download completes.
-  ERROR_MSG = mode + '\tSlow Retrieval Attack was Successful!\n\n'
+  ERROR_MSG = 'Slow retrieval attack succeeded (TUF: '+str(TUF)+', mode: '+\
+              str(mode)+').'
 
   # Launch the server.
   port = random.randint(30000, 45000)
@@ -95,7 +107,6 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
 
 
     if TUF:
-      print 'TUF ...'
       tuf_repo = os.path.join(root_repo, 'tuf_repo')
       
       # Update TUF metadata before attacker modifies anything.
@@ -115,14 +126,13 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
     proc.start()
     proc.join(WAIT_TIME)
 
-    if proc.exitcode is None:
+    # In case the process did not exit or successfully exited, we failed.
+    if not proc.exitcode:
       proc.terminate()
       raise SlowRetrievalAttackAlert(ERROR_MSG)
 
   finally:
-    if server_process.returncode is None:
-      server_process.kill()
-    
+    server_process.kill()
     util_test_tools.cleanup(root_repo, server_proc)
 
 
@@ -137,22 +147,26 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
 try:
   test_slow_retrieval_attack(TUF=False, mode = "mode_1")
 except SlowRetrievalAttackAlert, error:
-  print error
+  print(error)
+  print()
 
 try:
   test_slow_retrieval_attack(TUF=False, mode = "mode_2")
 except SlowRetrievalAttackAlert, error:
-  print error  
+  print(error)
+  print()
 
 try:
   test_slow_retrieval_attack(TUF=True, mode = "mode_1")
 except SlowRetrievalAttackAlert, error:
-  print error
+  print(error)
+  print()
 
 try:
   test_slow_retrieval_attack(TUF=True, mode = "mode_2")
 except SlowRetrievalAttackAlert, error:
-  print error
+  print(error)
+  print()
 
 
 
