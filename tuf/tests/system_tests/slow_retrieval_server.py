@@ -89,7 +89,6 @@ def get_random_port():
 def run(port, test_mode):
   server_address = ('localhost', port)
   httpd = HTTPServer_Test(server_address, Handler, test_mode)
-  print('Slow server is active on port: '+str(port)+' ...')
   httpd.handle_request()
 
 

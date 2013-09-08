@@ -107,13 +107,14 @@ class SaferSocketFileObject(socket._fileobject):
 
     # We must have reset the clock before this.
     assert self.__start_time is None
+    # We are using wall time, so it will be imprecise sometimes.
     self.__start_time = time.time()
 
 
 
 
 
-  def __stop_clock(self, data_length):
+  def __stop_clock_and_check_speed(self, data_length):
     """
     <Purpose>
       Stop the clock and try to detect slow retrieval.
@@ -134,9 +135,10 @@ class SaferSocketFileObject(socket._fileobject):
 
     """
 
+    # We are using wall time, so it will be imprecise sometimes.
     stop_time = time.time()
     # We must have already started the clock.
-    assert self.__start_time > 0, self.__start_time
+    assert self.__start_time > 0
     time_delta = stop_time-self.__start_time
     # Reset the clock.
     self.__start_time = None
@@ -153,8 +155,9 @@ class SaferSocketFileObject(socket._fileobject):
 
     # If the cumulative moving average of the download speed is below a certain
     # threshold, we flag this as a possible slow-retrieval attack. This
-    # threshold will determine our bias: if it is too slow, we will have more
-    # false negatives; if it is too high, we will have more false positives.
+    # threshold will determine our bias: if it is too low, we will have more
+    # false positives; if it is too high, we will have more false negatives.
+    # Presently, we know that this will punish a server with a slow start.
     if self.__cumulative_moving_average_of_speed < tuf.conf.MIN_CUMULATIVE_MOVING_AVERAGE_OF_DOWNLOAD_SPEED:
       raise tuf.SlowRetrievalError(self.__cumulative_moving_average_of_speed)
     logger.debug('Cumulative moving average of download speed: '+\
@@ -229,15 +232,15 @@ class SaferSocketFileObject(socket._fileobject):
         self.__start_clock()
         data = self._sock.recv(left)
       except socket.timeout:
-        self.__stop_clock(0)
+        self.__stop_clock_and_check_speed(0)
         continue
       except socket.error, e:
         if e.args[0] == EINTR:
-          self.__stop_clock(0)
+          self.__stop_clock_and_check_speed(0)
           continue
         raise
       else:
-        self.__stop_clock(len(data))
+        self.__stop_clock_and_check_speed(len(data))
       if not data:
         break
       n = len(data)
