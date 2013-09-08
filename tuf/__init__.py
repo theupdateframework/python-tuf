@@ -53,6 +53,21 @@ class FormatError(Error):
 
 
 
+class InvalidMetadataJSONError(FormatError):
+  """Indicate that a metadata file is not valid JSON."""
+
+  def __init__(self, exception):
+    # Store the original exception.
+    self.exception = exception
+
+  def __str__(self):
+    # Show the original exception.
+    return str(self.exception)
+
+
+
+
+
 class UnsupportedAlgorithmError(Error):
   """Indicate an error while trying to identify a user-specified algorithm."""
   pass
