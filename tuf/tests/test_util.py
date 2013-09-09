@@ -28,7 +28,7 @@ import tuf
 import tuf.log
 import tuf.hash
 import tuf.util as util
-import tuf.tests.unittest_toolbox as unittest_toolbox
+import unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_util')
 
