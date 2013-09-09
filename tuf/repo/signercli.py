@@ -1141,7 +1141,8 @@ def make_delegation(keystore_directory):
   # Update the parent role's metadata file.  The parent role's delegation
   # field must be updated with the newly created delegated role.
   _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids,
-                          delegated_paths, parent_role, parent_keyids)
+                          parent_role, parent_keyids,
+                          delegated_paths=delegated_paths)
 
 
 
@@ -1327,8 +1328,9 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
 
 
 
-def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids,
-                            delegated_paths, parent_role, parent_keyids):
+def _update_parent_metadata(metadata_directory, delegated_role,
+                            delegated_keyids, parent_role, parent_keyids,
+                            delegated_paths=None, path_hash_prefixes=None):
   """
     Update the parent role's metadata file.  The delegations field of the
     metadata file is updated with the key and role information belonging
@@ -1336,6 +1338,28 @@ def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids
     is signed and written to the metadata directory.
 
   """
+
+  # According to the specification, the 'paths' and 'path_hash_prefixes'
+  # attributes must be mutually exclusive. However, at the time of writing we
+  # do not always ensure that this is the case with the schema checks (see
+  # #83). Therefore, we must do it for ourselves.
+
+  if delegated_paths is not None and path_hash_prefixes is not None:
+    raise \
+      tuf.FormatError('Both "paths" and "path_hash_prefixes" are specified!')
+
+  if delegated_paths is None and path_hash_prefixes is None:
+    raise \
+      tuf.FormatError('Neither "paths" nor`"path_hash_prefixes" is specified!')
+
+  # The 'delegated_paths' are relative to 'repository'.
+  # The 'relative_paths' are relative to 'repository/targets'.
+  if delegated_paths is None:
+    relative_paths = None
+  else:
+    relative_paths = []
+    for path in delegated_paths:
+      relative_paths.append(os.path.sep.join(path.split(os.path.sep)[1:]))
 
   # Extract the metadata from the parent role's file.
   parent_filename = os.path.join(metadata_directory, parent_role)
@@ -1366,12 +1390,14 @@ def _update_parent_metadata(metadata_directory, delegated_role, delegated_keyids
   roles = delegations.get('roles', [])
   threshold = len(delegated_keyids)
   delegated_role = parent_role+'/'+delegated_role
-  relative_paths = []
-  for path in delegated_paths:
-    relative_paths.append(os.path.sep.join(path.split(os.path.sep)[1:]))
-  role_metadata = tuf.formats.make_role_metadata(delegated_keyids, threshold,
-                                                 name=delegated_role,
-                                                 paths=relative_paths)
+
+  # Write either the "paths" or the "path_hash_prefixes" attribute.
+  role_metadata = \
+    tuf.formats.make_role_metadata(delegated_keyids, threshold,
+                                   name=delegated_role, paths=relative_paths,
+                                   path_hash_prefixes=path_hash_prefixes)
+
+  # Find the appropriate role to create or update.
   role_index = tuf.repo.signerlib.find_delegated_role(roles, delegated_role)
 
   if role_index is None:

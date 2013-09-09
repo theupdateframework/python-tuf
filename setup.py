@@ -62,7 +62,7 @@ from distutils.core import setup
 
 setup(
   name='tuf',
-  version='0.1',
+  version='0.7.5',
   description='A secure updater framework for Python',
   author='https://www.updateframework.com',
   author_email='info@updateframework.com',
