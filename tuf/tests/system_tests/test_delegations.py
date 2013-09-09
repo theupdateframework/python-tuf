@@ -33,6 +33,9 @@ import tuf.repo.signerlib as signerlib
 import util_test_tools
 
 version = 1
+# Modify the number of iterations (from the higher default count) so the unit
+# tests run faster.
+keystore._PBKDF2_ITERATIONS = 1000
 
 
 class TestDelegationFunctions(unittest.TestCase):
