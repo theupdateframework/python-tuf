@@ -53,8 +53,8 @@ import tuf.keydb
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
 import tuf.roledb
-import tuf.tests.repository_setup as setup
-import tuf.tests.unittest_toolbox as unittest_toolbox
+import repository_setup as setup
+import unittest_toolbox as unittest_toolbox
 import tuf.util
 
 logger = logging.getLogger('tuf.test_updater')
