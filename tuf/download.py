@@ -75,10 +75,10 @@ class SaferSocketFileObject(socket._fileobject):
     super(SaferSocketFileObject, self).__init__(sock, mode=mode,
                                                 bufsize=bufsize, close=close)
 
-    # Measure the cumulative moving average of download speed.
-    self.__cumulative_moving_average_of_speed = 0
-    # Count the number of socket receive operations.
-    self.__number_of_receive_operations = 0
+    # Count the number of bytes received with this socket.
+    self.__number_of_bytes_received = 0
+    # Count the seconds spent receiving with this socket.
+    self.__seconds_spent_receiving = 0
     # Remember the time a clock was started.
     self.__start_time = None
 
@@ -95,7 +95,8 @@ class SaferSocketFileObject(socket._fileobject):
       None.
 
     <Exceptions>
-      AssertionError: When any internal condition is not true.
+      AssertionError:
+        When any internal condition is not true.
 
     <Side Effects>
       Start time is kept inside this object.
@@ -120,12 +121,15 @@ class SaferSocketFileObject(socket._fileobject):
       Stop the clock and try to detect slow retrieval.
 
     <Arguments>
-      data_length: A nonnegative integer indicating the size of data retrieved.
+      data_length:
+        A nonnegative integer indicating the size of data retrieved in bytes.
 
     <Exceptions>
-      tuf.SlowRetrievalError: When slow retrieval is detected.
+      tuf.SlowRetrievalError:
+        When slow retrieval is detected.
 
-      AssertionError: When any internal condition is not true.
+      AssertionError:
+        When any internal condition is not true.
 
     <Side Effects>
       Start time is cleared inside this object.
@@ -142,27 +146,26 @@ class SaferSocketFileObject(socket._fileobject):
     time_delta = stop_time-self.__start_time
     # Reset the clock.
     self.__start_time = None
-    speed = data_length/time_delta
-    logger.debug('Speed: '+str(speed)+' ('+str(data_length)+'/'+\
-                 str(time_delta)+') bytes/second')
 
-    # Measure the cumulative moving average of the download speed.
-    #https://en.wikipedia.org/wiki/Moving_average#Cumulative_moving_average
-    self.__number_of_receive_operations += 1
-    numerator = speed+((self.__number_of_receive_operations-1)*self.__cumulative_moving_average_of_speed)
-    denominator = self.__number_of_receive_operations
-    self.__cumulative_moving_average_of_speed = numerator/denominator
+    # Measure the average download speed.
+    self.__number_of_bytes_received += data_length
+    self.__seconds_spent_receiving += time_delta
+    average_download_speed = \
+      self.__number_of_bytes_received/self.__seconds_spent_receiving
 
-    # If the cumulative moving average of the download speed is below a certain
-    # threshold, we flag this as a possible slow-retrieval attack. This
-    # threshold will determine our bias: if it is too low, we will have more
-    # false positives; if it is too high, we will have more false negatives.
-    # Presently, we know that this will punish a server with a slow start.
-    if self.__cumulative_moving_average_of_speed < tuf.conf.MIN_CUMULATIVE_MOVING_AVERAGE_OF_DOWNLOAD_SPEED:
-      raise tuf.SlowRetrievalError(self.__cumulative_moving_average_of_speed)
-    logger.debug('Cumulative moving average of download speed: '+\
-                 str(self.__cumulative_moving_average_of_speed)+\
-                 ' bytes/second')
+    # If the average download speed is below a certain threshold, we flag this
+    # as a possible slow-retrieval attack. This threshold will determine our
+    # bias: if it is too low, we will have more false positives; if it is too
+    # high, we will have more false negatives.
+    if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
+      if self.__seconds_spent_receiving <= tuf.conf.SLOW_START_GRACE_PERIOD:
+        logger.debug('Slow average download speed: '+\
+                     str(average_download_speed)+' bytes/second')
+      else:
+        raise tuf.SlowRetrievalError(average_download_speed)
+    else:
+      logger.debug('Good average download speed: '+\
+                   str(average_download_speed)+' bytes/second')
 
 
 
