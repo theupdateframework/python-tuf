@@ -366,7 +366,7 @@ def _get_role_config_keyids(config_filepath, keystore_directory, role):
       # Ensure we loaded all the keyids.
       for keyid in value['keyids']:
         if keyid not in role_keyids:
-          raise tuf.Error('Could not load a required role key.')
+          raise tuf.Error('Could not load a required role key: '+keyid+'.')
   if not role_keyids:
     raise tuf.Error('Could not load the required keys for '+role)
 

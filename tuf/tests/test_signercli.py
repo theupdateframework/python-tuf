@@ -365,7 +365,7 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
    
     #  Test: invalid password.
     keyids = ['quit', self.rsa_keyids[0]]
-    saved_pw = self.rsa_passwords[keyid]
+    saved_pw = self.rsa_passwords[self.rsa_keyids[0]]
     
     #  Invalid password
     self.rsa_passwords[self.rsa_keyids[0]] = self.random_string()
@@ -475,11 +475,10 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
     #  Patch '_get_password' method.
     self.get_passwords()
 
-
     # TESTS
     for role in self.role_list:
       #  Test: normal cases.
-      #keystore.clear_keystore()
+      keystore.clear_keystore()
       signercli._get_role_config_keyids(config_filepath, keystore_dir, role)
       
       #  Test: incorrect passwords.
@@ -634,10 +633,15 @@ class TestSignercli(unittest_toolbox.Modified_TestCase):
 
     # TESTS
     #  Test: normal case.
+    # Verify that the derived key is modified.  A new salt is generated, so
+    # we cannot predict or verify a specific derived key corresponding for
+    # the new password.  Save the derived key for 'test_keyid' and check that
+    # is updated.
+    old_derived_key = keystore._derived_keys[test_keyid]
     signercli.change_password(keystore_dir)
 
     #  Verify password change.
-    self.assertEqual(keystore._key_passwords[test_keyid], new_password)
+    self.assertNotEqual(keystore._derived_keys[test_keyid], old_derived_key)
 
     #  Test: non-existing keyid.
     keystore.clear_keystore()
