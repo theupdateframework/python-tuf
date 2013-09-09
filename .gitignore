@@ -8,3 +8,4 @@ build/*
 *.session
 *.swo
 *.swp
+tuf.egg-info
