@@ -229,6 +229,7 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   # Set the console handler for the logger.  The built-in console handler will
   # log messages to 'sys.stderr' and capture 'log_level' messages.
+  global console_handler
   console_handler = logging.StreamHandler()
   console_handler.setLevel(log_level)
   console_handler.setFormatter(formatter)

@@ -172,13 +172,20 @@ def __read_configuration(configuration_handler,
                          parent_repository_directory=None,
                          parent_ssl_certificates_directory=None):
   """
-  A generic function to read a TUF interposition configuration off the disk,
-  and handle it. configuration_handler must be a function which accepts a
-  tuf.interposition.Configuration instance."""
+  A generic function to read TUF interposition configurations off a file, and
+  then handle those configurations with a given function. configuration_handler
+  must be a function which accepts a tuf.interposition.Configuration
+  instance.
+
+  Returns the parsed configurations as a dictionary of configurations indexed
+  by hostnames."""
 
   INVALID_TUF_CONFIGURATION = "Invalid configuration for {network_location}!"
   INVALID_TUF_INTERPOSITION_JSON = "Invalid configuration in {filename}!"
   NO_CONFIGURATIONS = "No configurations found in configuration in {filename}!"
+
+  # Configurations indexed by hostnames.
+  parsed_configurations = {}
 
   try:
     with open(filename) as tuf_interposition_json:
@@ -197,6 +204,7 @@ def __read_configuration(configuration_handler,
 
             configuration = configuration_parser.parse()
             configuration_handler(configuration)
+            parsed_configurations[configuration.hostname] = configuration
 
           except:
             Logger.exception(INVALID_TUF_CONFIGURATION.format(network_location=network_location))
@@ -205,6 +213,10 @@ def __read_configuration(configuration_handler,
   except:
     Logger.exception(INVALID_TUF_INTERPOSITION_JSON.format(filename=filename))
     raise
+
+  else:
+    return parsed_configurations
+
 
 
 
@@ -218,8 +230,7 @@ def configure(filename="tuf.interposition.json",
               parent_repository_directory=None,
               parent_ssl_certificates_directory=None):
 
-  """
-  The optional parent_repository_directory parameter is used to specify the
+  """The optional parent_repository_directory parameter is used to specify the
   containing parent directory of the "repository_directory" specified in a
   configuration for *all* network locations, because sometimes the absolute
   location of the "repository_directory" is only known at runtime. If you
@@ -259,20 +270,26 @@ def configure(filename="tuf.interposition.json",
 
   Unless any "url_prefix" begins with "https://", "ssl_certificates" is
   optional; it must specify certificates bundled as PEM (RFC 1422).
-  """
 
-  __read_configuration(__updater_controller.add, filename=filename,
-                       parent_repository_directory=parent_repository_directory,
-                       parent_ssl_certificates_directory=parent_ssl_certificates_directory)
+  Returns the parsed configurations as a dictionary of configurations indexed
+  by hostnames."""
+
+  configurations = \
+    __read_configuration(__updater_controller.add, filename=filename,
+                         parent_repository_directory=parent_repository_directory,
+                         parent_ssl_certificates_directory=parent_ssl_certificates_directory)
+
+  return configurations
 
 
 
 
 
-def deconfigure(filename="tuf.interposition.json"):
-  """Remove TUF interposition for a previously read configuration."""
+def deconfigure(configurations):
+  """Remove TUF interposition for previously read configurations."""
 
-  __read_configuration(__updater_controller.remove, filename=filename)
+  for configuration in configurations.itervalues():
+    __updater_controller.remove(configuration)
 
 
 
@@ -328,3 +345,8 @@ def open_url(instancemethod):
 
 # Build and monkey patch public copies of the urllib and urllib2 modules.
 __monkey_patch()
+
+
+
+
+
