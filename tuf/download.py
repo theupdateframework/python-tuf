@@ -29,7 +29,7 @@ import httplib
 import logging
 import os.path
 import socket
-import time
+import timeit
 
 import tuf
 import tuf.conf
@@ -77,8 +77,11 @@ class SaferSocketFileObject(socket._fileobject):
 
     # Count the number of bytes received with this socket.
     self.__number_of_bytes_received = 0
-    # Count the seconds spent receiving with this socket.
-    self.__seconds_spent_receiving = 0
+    # Count the seconds spent receiving with this socket. Tolerate servers with
+    # a slow start by ignoring their delivery speed for
+    # tuf.conf.SLOW_START_GRACE_PERIOD seconds.
+    assert tuf.conf.SLOW_START_GRACE_PERIOD > 0
+    self.__seconds_spent_receiving = -tuf.conf.SLOW_START_GRACE_PERIOD
     # Remember the time a clock was started.
     self.__start_time = None
 
@@ -108,8 +111,8 @@ class SaferSocketFileObject(socket._fileobject):
 
     # We must have reset the clock before this.
     assert self.__start_time is None
-    # We are using wall time, so it will be imprecise sometimes.
-    self.__start_time = time.time()
+    # We use (platform-specific) wall time, so it will be imprecise sometimes.
+    self.__start_time = timeit.default_timer()
 
 
 
@@ -139,8 +142,8 @@ class SaferSocketFileObject(socket._fileobject):
 
     """
 
-    # We are using wall time, so it will be imprecise sometimes.
-    stop_time = time.time()
+    # We use (platform-specific) wall time, so it will be imprecise sometimes.
+    stop_time = timeit.default_timer()
     # We must have already started the clock.
     assert self.__start_time > 0
     time_delta = stop_time-self.__start_time
@@ -150,22 +153,24 @@ class SaferSocketFileObject(socket._fileobject):
     # Measure the average download speed.
     self.__number_of_bytes_received += data_length
     self.__seconds_spent_receiving += time_delta
-    average_download_speed = \
-      self.__number_of_bytes_received/self.__seconds_spent_receiving
 
-    # If the average download speed is below a certain threshold, we flag this
-    # as a possible slow-retrieval attack. This threshold will determine our
-    # bias: if it is too low, we will have more false positives; if it is too
-    # high, we will have more false negatives.
-    if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
-      if self.__seconds_spent_receiving <= tuf.conf.SLOW_START_GRACE_PERIOD:
-        logger.debug('Slow average download speed: '+\
-                     str(average_download_speed)+' bytes/second')
+    if self.__seconds_spent_receiving > 0:
+      average_download_speed = \
+        self.__number_of_bytes_received/self.__seconds_spent_receiving
+
+      # If the average download speed is below a certain threshold, we flag this
+      # as a possible slow-retrieval attack. This threshold will determine our
+      # bias: if it is too low, we will have more false positives; if it is too
+      # high, we will have more false negatives.
+      if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
+          raise tuf.SlowRetrievalError(average_download_speed)
       else:
-        raise tuf.SlowRetrievalError(average_download_speed)
+        logger.debug('Good average download speed: '+\
+                     str(average_download_speed)+' bytes/second')
     else:
-      logger.debug('Good average download speed: '+\
-                   str(average_download_speed)+' bytes/second')
+      logger.debug('Ignoring average download speed for another: '+\
+                   str(-self.__seconds_spent_receiving)+' seconds')
+
 
 
 
