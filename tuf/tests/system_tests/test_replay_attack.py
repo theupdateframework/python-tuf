@@ -38,7 +38,7 @@ import shutil
 import urllib
 import tempfile
 
-import tuf.tests.system_tests.util_test_tools as util_test_tools
+import util_test_tools as util_test_tools
 from tuf.interposition import urllib_tuf
 
 
