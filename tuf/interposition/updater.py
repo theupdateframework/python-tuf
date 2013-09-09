@@ -2,6 +2,7 @@ import mimetypes
 import os.path
 import re
 import shutil
+import tempfile
 import urllib
 import urlparse
 
@@ -37,7 +38,12 @@ class Updater(object):
 
 
   def __init__(self, configuration):
+    CREATED_TEMPDIR_MESSAGE = "Created temporary directory at {tempdir}"
+
     self.configuration = configuration
+    # A temporary directory used for this updater over runtime.
+    self.tempdir = tempfile.mkdtemp()
+    Logger.debug(CREATED_TEMPDIR_MESSAGE.format(tempdir=self.tempdir))
 
     # must switch context before instantiating updater
     # because updater depends on some module (tuf.conf) variables
@@ -46,11 +52,19 @@ class Updater(object):
                                               self.configuration.repository_mirrors)
 
 
+  def cleanup(self):
+    """Clean up after certain side effects, such as temporary directories."""
+
+    DELETED_TEMPDIR_MESSAGE = "Deleted temporary directory at {tempdir}"
+    shutil.rmtree(self.tempdir)
+    Logger.debug(DELETED_TEMPDIR_MESSAGE.format(tempdir=self.tempdir))
+
+
   def download_target(self, target_filepath):
     """Downloads target with TUF as a side effect."""
 
     # download file into a temporary directory shared over runtime
-    destination_directory = self.configuration.tempdir
+    destination_directory = self.tempdir
     filename = os.path.join(destination_directory, target_filepath)
 
     self.switch_context()   # switch TUF context
@@ -132,12 +146,25 @@ class Updater(object):
   def retrieve(self, url, filename=None, reporthook=None, data=None):
     INTERPOSITION_MESSAGE = "Interposing for {url}"
 
-    # TODO: set valid headers
-    content_type, content_encoding = mimetypes.guess_type(url)
-    headers = {"content-type": content_type}
-
     Logger.info(INTERPOSITION_MESSAGE.format(url=url))
+
+    # What is the actual target to download given the URL? Sometimes we would
+    # like to transform the given URL to the intended target; e.g. "/simple/"
+    # => "/simple/index.html".
     target_filepath = self.get_target_filepath(url)
+
+    # TODO: Set valid headers fetched from the actual download.
+    # NOTE: Important to guess the mime type from the target_filepath, not the
+    # unmodified URL.
+    content_type, content_encoding = mimetypes.guess_type(target_filepath)
+    headers = {
+      # NOTE: pip refers to this same header in at least these two duplicate
+      # ways.
+      "content-type": content_type,
+      "Content-Type": content_type,
+    }
+
+    # Download the target filepath determined by the original URL.
     temporary_directory, temporary_filename = self.download_target(target_filepath)
 
     if filename is None:
@@ -301,9 +328,18 @@ class UpdaterController(object):
     assert configuration.hostname in self.__updaters
     assert repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames)
 
+    # Get the updater.
+    updater = self.__updaters.get(configuration.hostname)
+
     # If all is well, remove the stored Updater as well as its associated
     # repository mirror hostnames.
+    updater.cleanup()
     del self.__updaters[configuration.hostname]
     self.__repository_mirror_hostnames.difference_update(repository_mirror_hostnames)
 
     Logger.info(UPDATER_REMOVED_MESSAGE.format(configuration=configuration))
+
+
+
+
+

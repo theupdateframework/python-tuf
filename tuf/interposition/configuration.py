@@ -1,5 +1,4 @@
 import os.path
-import tempfile
 import types
 import urlparse
 
@@ -43,7 +42,6 @@ class Configuration(object):
     self.repository_mirrors = repository_mirrors
     self.target_paths = target_paths
     self.ssl_certificates = ssl_certificates
-    self.tempdir = tempfile.mkdtemp()
 
 
   def __repr__(self):
