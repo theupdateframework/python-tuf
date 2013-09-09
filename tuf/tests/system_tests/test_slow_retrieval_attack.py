@@ -43,6 +43,7 @@ from multiprocessing import Process
 import os
 import random
 import subprocess
+import sys
 import time
 import tuf
 import urllib
@@ -72,6 +73,7 @@ def _download(url, filename, TUF=False):
       # detection failed.
       if slow_retrieval:
         print('TUF stopped the update because it detected slow retrieval.')
+        sys.exit(-1)
       else:
         print('TUF stopped the update due to something other than slow retrieval.')
         sys.exit(0)

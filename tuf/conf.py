@@ -47,8 +47,11 @@ SOCKET_TIMEOUT = 1 #seconds
 # The maximum chunk of data, in bytes, we would download in every round.
 CHUNK_SIZE = 8192 #bytes
 
-# The minimum cumulative moving average of download speed (bytes/second) that
-# must be met to avoid being considered as a slow retrieval attack.
-MIN_CUMULATIVE_MOVING_AVERAGE_OF_DOWNLOAD_SPEED = CHUNK_SIZE #bytes/second
+# The minimum average of download speed (bytes/second) that must be met to
+# avoid being considered as a slow retrieval attack.
+MIN_AVERAGE_DOWNLOAD_SPEED = CHUNK_SIZE #bytes/second
+
+# The time (in seconds) we ignore a server with a slow initial retrieval speed.
+SLOW_START_GRACE_PERIOD = 30 #seconds
 
 
