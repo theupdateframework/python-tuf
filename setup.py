@@ -58,7 +58,7 @@
 
 """
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(
   name='tuf',
@@ -67,6 +67,7 @@ setup(
   author='https://www.updateframework.com',
   author_email='info@updateframework.com',
   url='https://www.updateframework.com',
+  install_requires=['pycrypto>2.0'],
   packages=[
     'evpy',
     'tuf',
