@@ -31,7 +31,7 @@ Note: There is no difference between 'updates' and 'target' files.
 
 """
 
-# TODO:...
+from __future__ import print_function
 
 import os
 import shutil
@@ -41,23 +41,22 @@ import util_test_tools
 
 import tuf
 from tuf.interposition import urllib_tuf
-
+from tuf.log import logger
 
 class EndlessDataAttack(Exception):
   pass
 
 
 
-def _download(url, filename, tuf=False):
-  if tuf:
+def _download(url, filename, TUF=False):
+  if TUF:
     urllib_tuf.urlretrieve(url, filename)
-
   else:
     urllib.urlretrieve(url, filename)
 
 
 
-def test_arbitrary_package_attack(TUF=False):
+def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
   """
   <Arguments>
     TUF:
@@ -85,13 +84,12 @@ def test_arbitrary_package_attack(TUF=False):
     file_basename = os.path.basename(filepath)
     url_to_repo = url+'reg_repo/'+file_basename
     downloaded_file = os.path.join(downloads, file_basename)
-    endless_data = 'A'*100
+    endless_data = 'A'*100000
 
 
     if TUF:
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
-
       # Modify the url.  Remember that the interposition will intercept 
       # urls that have 'localhost:9999' hostname, which was specified in
       # the json interposition configuration file.  Look for 'hostname'
@@ -103,6 +101,13 @@ def test_arbitrary_package_attack(TUF=False):
       target = os.path.join(tuf_targets, file_basename)
       util_test_tools.modify_file_at_repository(target, endless_data)
 
+      # Attacker modifies the timestamp.txt metadata.
+      if TIMESTAMP:
+        metadata = os.path.join(tuf_repo, 'metadata')
+        timestamp = os.path.join(metadata, 'timestamp.txt')
+        # FIXME: This does not correctly "patch" the timestamp metadata.
+        util_test_tools.modify_file_at_repository(timestamp, endless_data)  
+
     # Attacker modifies the file at the regular repository.
     util_test_tools.modify_file_at_repository(filepath, endless_data)
 
@@ -111,13 +116,28 @@ def test_arbitrary_package_attack(TUF=False):
 
     try:
       # Client downloads (tries to download) the file.
-      _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+      _download(url=url_to_repo, filename=downloaded_file, TUF=TUF)
 
-    except tuf.DownloadError:
-      # If tuf.DownloadError is raised, this means that TUF has prevented
-      # the download of an unrecognized file.  Enable the logging to see,
-      # what actually happened.
-      pass
+    except tuf.NoWorkingMirrorError, exception:
+      endless_data_attack = False
+
+      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+        # We would get a bad hash error if the file was actually larger than
+        # the metadata said it was.
+        if isinstance(mirror_error, tuf.BadHashError):
+          endless_data_attack = True
+          break
+        # We would get invalid metadata JSON if the server deliberately sent
+        # malformed JSON as part of an endless data attack.
+        elif isinstance(mirror_error, tuf.InvalidMetadataJSONError):
+          endless_data_attack = True
+          break
+
+      # In case we did not detect what was likely an endless data attack, we
+      # reraise the exception to indicate that endless data attack detection
+      # failed.
+      if not endless_data_attack:
+        raise
 
     else:
       # Check whether the attack succeeded by inspecting the content of the
@@ -136,7 +156,7 @@ def test_arbitrary_package_attack(TUF=False):
 
 
 try:
-  test_arbitrary_package_attack(TUF=False)
+  test_arbitrary_package_attack(TUF=False, TIMESTAMP=False)
 
 except EndlessDataAttack, error:
   print('Without TUF: '+str(error))
@@ -144,7 +164,20 @@ except EndlessDataAttack, error:
 
 
 try:
-  test_arbitrary_package_attack(TUF=True)
+  test_arbitrary_package_attack(TUF=True, TIMESTAMP=False)
 
 except EndlessDataAttack, error:
   print('With TUF: '+str(error))
+
+
+
+try:
+  # This test fails because the timestamp metadata has been extended with
+  # random data from its true length, thereby resulting in invalid JSON.
+  test_arbitrary_package_attack(TUF=True, TIMESTAMP=True)
+
+except EndlessDataAttack, error:
+  print('With TUF: '+str(error))
+
+
+

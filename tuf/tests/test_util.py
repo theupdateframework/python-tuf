@@ -293,7 +293,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     util.json.dump(data, fileobj)
     fileobj.close()
     self.assertEquals(data, util.load_json_file(filepath))
-    Errors = (tuf.FormatError, tuf.Error)
+    Errors = (tuf.FormatError, IOError)
     for bogus_arg in ['a', 1, ['a'], {'a':'b'}]:
       self.assertRaises(Errors, util.load_json_file, bogus_arg)
 
