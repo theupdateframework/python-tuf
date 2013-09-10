@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_util_test_tools.py
@@ -18,7 +20,8 @@
 import os
 import urllib
 import unittest
-import util_test_tools
+
+from tuf.tests import util_test_tools
 
 
 

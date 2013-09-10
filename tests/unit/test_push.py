@@ -28,7 +28,7 @@ import tuf.log
 import tuf.pushtools.push as push
 import tuf.pushtools.transfer.scp as scp
 import tuf.pushtools.pushtoolslib as pushtoolslib
-import tuf.tests.system_tests.util_test_tools as util_test_tools
+import tuf.tests.util_test_tools as util_test_tools
 
 logger = logging.getLogger('tuf.test_push')
 

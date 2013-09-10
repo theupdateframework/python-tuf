@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_extraneous_dependencies_attack.py
@@ -42,7 +44,7 @@ import tempfile
 
 import tuf
 import tuf.interposition 
-import util_test_tools
+from tuf.tests import util_test_tools
 
 
 class ExtraneousDependencyAlert(Exception):

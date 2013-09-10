@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_util.py
@@ -28,7 +30,7 @@ import tuf
 import tuf.log
 import tuf.hash
 import tuf.util as util
-import tuf.tests.unittest_toolbox as unittest_toolbox
+import unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_util')
 
@@ -37,7 +39,6 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
   def setUp(self):
     unittest_toolbox.Modified_TestCase.setUp(self)
-    util.tempfile.TemporaryFile = tempfile.TemporaryFile
     self.temp_fileobj = util.TempFile()
 
 		
@@ -71,10 +72,10 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     # Patching 'tempfile.TemporaryFile()' (by substituting 
     # temfile.TemporaryFile() with tempfile.mkstemp()) in order to get the 
     # directory of the stored tempfile object.
-    saved_tempfile_TemporaryFile = util.tempfile.TemporaryFile
-    util.tempfile.TemporaryFile = tempfile.mkstemp
+    saved_tempfile_TemporaryFile = util.tempfile.NamedTemporaryFile
+    util.tempfile.NamedTemporaryFile = tempfile.mkstemp
     _temp_fileobj = util.TempFile()
-    util.tempfile.TemporaryFile = saved_tempfile_TemporaryFile
+    util.tempfile.NamedTemporaryFile = saved_tempfile_TemporaryFile
     junk, _tempfilepath = _temp_fileobj.temporary_file
     _tempfile_dir = os.path.dirname(_tempfilepath)
 
