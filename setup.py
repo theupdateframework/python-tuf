@@ -67,9 +67,8 @@ setup(
   author='https://www.updateframework.com',
   author_email='info@updateframework.com',
   url='https://www.updateframework.com',
-  install_requires=['pycrypto>2.0'],
+  install_requires=['pycrypto>=2.6'],
   packages=[
-    'evpy',
     'tuf',
     'tuf.client',
     'tuf.compatibility',
