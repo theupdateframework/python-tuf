@@ -35,10 +35,10 @@ from __future__ import print_function
 
 import os
 import urllib
-import util_test_tools
 
 import tuf
 from tuf.interposition import urllib_tuf
+from tuf.tests import util_test_tools
 
 
 

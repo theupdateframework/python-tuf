@@ -40,8 +40,8 @@ import urllib
 import tempfile
 
 import tuf
-import util_test_tools
 from tuf.interposition import urllib_tuf
+from tuf.tests import util_test_tools
 
 
 class MixAndMatchAttackAlert(Exception):

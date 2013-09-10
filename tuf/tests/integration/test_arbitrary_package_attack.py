@@ -33,10 +33,10 @@ import os
 import shutil
 import urllib
 import tempfile
-import util_test_tools
 
 import tuf
 from tuf.interposition import urllib_tuf
+from tuf.tests import util_test_tools
 
 
 
