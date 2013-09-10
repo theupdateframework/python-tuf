@@ -647,7 +647,7 @@ def _check_downloaded_length(total_downloaded, required_length,
     if STRICT_REQUIRED_LENGTH:  
       # This must be due to a programming error, and must never happen!
       logger.error(message)          
-      raise tuf.DownloadLengthMismatchError(message)
+      raise tuf.DownloadLengthMismatchError(required_length, total_downloaded)
     else:
       # We specifically disabled strict checking of required length, but we
       # will log a warning anyway. This is useful when we wish to download the

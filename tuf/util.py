@@ -52,7 +52,7 @@ class TempFile(object):
   def _default_temporary_directory(self, prefix):
     """__init__ helper."""
     try:
-      self.temporary_file = tempfile.TemporaryFile(prefix=prefix)
+      self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix)
     except OSError, err:
       logger.critical('Temp file in '+temp_dir+'failed: '+repr(err))
       raise tuf.Error(err)
@@ -66,7 +66,7 @@ class TempFile(object):
 
     <Arguments>
       prefix:
-        A string argument to be used with tempfile.TemporaryFile function.
+        A string argument to be used with tempfile.NamedTemporaryFile function.
 
     <Exceptions>
       tuf.Error on failure to load temp dir.
@@ -82,13 +82,34 @@ class TempFile(object):
     temp_dir = tuf.conf.temporary_directory
     if  temp_dir is not None and isinstance(temp_dir, str):
       try:
-        self.temporary_file = tempfile.TemporaryFile(prefix=prefix, dir=temp_dir)
+        self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix,
+                                                          dir=temp_dir)
       except OSError, err:
         logger.error('Temp file in '+temp_dir+' failed: '+repr(err))
         logger.error('Will attempt to use system default temp dir.')
         self._default_temporary_directory(prefix)
     else:
       self._default_temporary_directory(prefix)
+
+
+
+  def __len__(self):
+    """
+    <Purpose>
+      Initializes TempFile.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      OSError.
+
+    <Return>
+      Nonnegative integer representing file size.
+
+    """
+
+    return os.stat(self.temporary_file.name).st_size
 
 
 

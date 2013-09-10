@@ -534,15 +534,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     added_target_2 = self._add_target_to_targets_dir(targets_keyids)
 
     #  To test compressed file handling, compress targets metadata file.
-    targets_filepath_compressed = self._compress_file(self.targets_filepath) 
+    targets_filepath_compressed = self._compress_file(self.targets_filepath)
 
     #  Re-patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
-    # TODO: Not convinced this is actually being tested correctly.
-    # See how we get fileinfo in tuf.client.updater._update_metadata_if_changed
+    # FIXME: The length (but not the hash) passed to this function is
+    # incorrect. The length must be that of the compressed file, whereas the
+    # hash must be that of the uncompressed file.
     _update_metadata('targets',
-                     #signerlib.get_metadata_file_info(self.targets_filepath),
-                     None,
+                     signerlib.get_metadata_file_info(self.targets_filepath),
                      compression='gzip')
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
@@ -696,12 +696,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  Patch 'download.download_url_to_tempfileobj' and update targets.
     self._mock_download_url_to_tempfileobj(self.root_filepath)
 
-    # TODO: Is this the original intent of this test?
+    # FIXME: What is the original intent of this test?
     try:
       update_if_changed('targets')
     except tuf.NoWorkingMirrorError, exception:
       for mirror_url, mirror_error in exception.mirror_errors.iteritems():
-        assert isinstance(mirror_error, tuf.BadHashError)
+        assert isinstance(mirror_error, tuf.DownloadLengthMismatchError)
 
     # Restoring repositories to the initial state.
     os.remove(release_filepath_compressed)
