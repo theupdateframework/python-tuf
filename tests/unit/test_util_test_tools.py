@@ -20,7 +20,8 @@
 import os
 import urllib
 import unittest
-import util_test_tools
+
+from tuf.tests import util_test_tools
 
 
 
