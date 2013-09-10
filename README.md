@@ -1,4 +1,4 @@
-# A Framework for Securing Software Update Systems
+## A Framework for Securing Software Update Systems
 
 TUF (The Update Framework) helps developers secure their new or existing
 software update systems. Software update systems are vulnerable to many known
@@ -6,7 +6,7 @@ attacks, including those that can result in clients being compromised or
 crashed.  TUF helps solve this problem by providing a flexible security
 framework that can be added to software updaters.
 
-# What Is a Software Update System?
+## What Is a Software Update System?
 
 Generally, a software update system is an application (or part of an
 application) running on a client system that obtains and installs software.
@@ -27,7 +27,7 @@ Python's pip/easy_install + PyPI, Perl's CPAN, Ruby's Gems, and PHP's PEAR.
 of the software on a client system. Debian's APT, Red Hat's YUM, and openSUSE's
 YaST are examples of these.
 
-# Our Approach
+## Our Approach
 
 There are literally thousands of different software update systems in common
 use today. (In fact the average Windows user has about  two dozen different

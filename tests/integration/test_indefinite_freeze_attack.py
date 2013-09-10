@@ -25,12 +25,12 @@ import time
 import shutil
 import urllib
 import tempfile
-import util_test_tools
 
 import tuf
 import tuf.formats
 import tuf.repo.signerlib as signerlib
 from tuf.interposition import urllib_tuf
+from tuf.tests import util_test_tools
 
 
 class IndefiniteFreezeAttackAlert(Exception):

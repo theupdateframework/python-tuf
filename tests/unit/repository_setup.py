@@ -28,7 +28,7 @@ import tuf.rsa_key as rsa_key
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
 import tuf.repo.signercli as signercli
-import tuf.tests.unittest_toolbox as unittest_toolbox
+import unittest_toolbox as unittest_toolbox
 
 
 

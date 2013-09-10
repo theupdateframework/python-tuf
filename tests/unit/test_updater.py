@@ -53,8 +53,8 @@ import tuf.keydb
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
 import tuf.roledb
-import tuf.tests.repository_setup as setup
-import tuf.tests.unittest_toolbox as unittest_toolbox
+import repository_setup as setup
+import unittest_toolbox as unittest_toolbox
 import tuf.util
 
 logger = logging.getLogger('tuf.test_updater')
@@ -67,6 +67,8 @@ DEFAULT_TIMESTAMP_FILEINFO = {
   'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 }
 
+original_safe_download = tuf.download.safe_download
+original_unsafe_download = tuf.download.unsafe_download
 
 class TestUpdater_init_(unittest_toolbox.Modified_TestCase):
 
@@ -404,6 +406,27 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_1__update_fileinfo(self):
+    # Tests
+    #  Verify that fileinfo dictionary is empty.
+    self.assertFalse(self.Repository.fileinfo)
+
+    #  Load file info for top level roles.  This populates the fileinfo 
+    #  dictionary.
+    for role in self.role_list:
+      self.Repository._update_fileinfo(role+'.txt')
+
+    #  Verify that fileinfo has been populated and contains appropriate data.
+    self.assertTrue(self.Repository.fileinfo)
+    for role in self.role_list:
+      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
+      role_info = tuf.util.get_file_details(role_filepath)
+      role_info_dict = {'length':role_info[0], 'hashes':role_info[1]}
+      self.assertTrue(role+'.txt' in self.Repository.fileinfo.keys())
+      self.assertEqual(self.Repository.fileinfo[role+'.txt'], role_info_dict)
+
+
+
 
 
   def test_2__import_delegations(self):
@@ -485,6 +508,86 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_2__fileinfo_has_changed(self):
+    #  Verify that the method returns 'False' if file info was not changed.
+    for role in self.role_list:
+      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
+      role_info = tuf.util.get_file_details(role_filepath)
+      role_info_dict = {'length':role_info[0], 'hashes':role_info[1]}
+      self.assertFalse(self.Repository._fileinfo_has_changed(role+'.txt',
+                                                             role_info_dict))
+
+    # Verify that the method returns 'True' if length or hashes were changed.
+    for role in self.role_list:
+      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
+      role_info = tuf.util.get_file_details(role_filepath)
+      role_info_dict = {'length':8, 'hashes':role_info[1]}
+      self.assertTrue(self.Repository._fileinfo_has_changed(role+'.txt',
+                                                             role_info_dict))
+
+    for role in self.role_list:
+      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
+      role_info = tuf.util.get_file_details(role_filepath)
+      role_info_dict = {'length':role_info[0],
+                        'hashes':{'sha256':self.random_string()}}
+      self.assertTrue(self.Repository._fileinfo_has_changed(role+'.txt',
+                                                             role_info_dict))
+
+
+
+
+  def test_2__move_current_to_previous(self):
+    # The test will consist of removing a metadata file from client's
+    # {client_repository}/metadata/previous directory, executing the method
+    # and then verifying that the 'previous' directory contains
+    # the release file.
+    release_meta_path = os.path.join(self.client_previous_dir, 'release.txt')
+    os.remove(release_meta_path)
+    self.assertFalse(os.path.exists(release_meta_path))
+    self.Repository._move_current_to_previous('release')
+    self.assertTrue(os.path.exists(release_meta_path))
+    shutil.copy(release_meta_path, self.client_current_dir)
+
+
+
+
+
+  def test_2__delete_metadata(self):
+    # This test will verify that 'root' metadata is never deleted, when
+    # role is deleted verify that the file is not present in the 
+    # self.Repository.metadata dictionary.
+    self.Repository._delete_metadata('root')
+    self.assertTrue('root' in self.Repository.metadata['current'])
+    self.Repository._delete_metadata('timestamp')
+    self.assertFalse('timestamp' in self.Repository.metadata['current'])
+    timestamp_meta_path = os.path.join(self.client_previous_dir,
+                                       'timestamp.txt')
+    shutil.copy(timestamp_meta_path, self.client_current_dir)
+
+
+
+
+
+  def test_2__ensure_not_expired(self):
+    # This test condition will verify that nothing is raised when a metadata
+    # file has a future expiration date.
+    self.Repository._ensure_not_expired('root')
+    
+    # 'tuf.ExpiredMetadataError' should be raised in this next test condition,
+    # because the expiration_date has expired by 10 seconds.
+    expires = tuf.formats.format_time(time.time() - 10)
+    self.Repository.metadata['current']['root']['expires'] = expires
+    
+    # Ensure the 'expires' field of the root file is properly formatted.
+    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(self.Repository.metadata\
+                                                    ['current']['root']))
+    self.assertRaises(tuf.ExpiredMetadataError,
+                      self.Repository._ensure_not_expired, 'root')
+
+
+
+
+
   def test_3__update_metadata(self):
     """
     This unit test verifies the method's proper behaviour on the expected input.
@@ -520,8 +623,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: normal case.
     #  Patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(self.targets_filepath)
-    _update_metadata('targets',
-                     signerlib.get_metadata_file_info(self.targets_filepath))
+    uncompressed_fileinfo = \
+      signerlib.get_metadata_file_info(self.targets_filepath)
+    _update_metadata('targets', uncompressed_fileinfo)
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
     #  Verify that the added target's path is listed in target's metadata.
@@ -532,18 +636,24 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: normal case, compressed metadata file.
     #  Add a file to targets directory and rebuild targets metadata. 
     added_target_2 = self._add_target_to_targets_dir(targets_keyids)
+    uncompressed_fileinfo = \
+      signerlib.get_metadata_file_info(self.targets_filepath)
 
     #  To test compressed file handling, compress targets metadata file.
-    targets_filepath_compressed = self._compress_file(self.targets_filepath) 
+    targets_filepath_compressed = self._compress_file(self.targets_filepath)
+    compressed_fileinfo = \
+      signerlib.get_metadata_file_info(targets_filepath_compressed)
 
     #  Re-patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
-    # TODO: Not convinced this is actually being tested correctly.
-    # See how we get fileinfo in tuf.client.updater._update_metadata_if_changed
-    _update_metadata('targets',
-                     #signerlib.get_metadata_file_info(self.targets_filepath),
-                     None,
-                     compression='gzip')
+    # The length (but not the hash) passed to this function is incorrect. The
+    # length must be that of the compressed file, whereas the hash must be that
+    # of the uncompressed file.
+    mixed_fileinfo = {
+      'length': compressed_fileinfo['length'],
+      'hashes': uncompressed_fileinfo['hashes']
+    }
+    _update_metadata('targets', mixed_fileinfo, compression='gzip')
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
     #  Verify that the added target's path is listed in target's metadata.
@@ -555,56 +665,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     os.remove(targets_filepath_compressed)
     os.remove(os.path.join(self.client_current_dir,'targets.txt'))
     self._remove_target_from_targets_dir(added_target_1)
-
-
-
-  def test_1__update_fileinfo(self):
-    # Tests
-    #  Verify that fileinfo dictionary is empty.
-    self.assertFalse(self.Repository.fileinfo)
-
-    #  Load file info for top level roles.  This populates the fileinfo 
-    #  dictionary.
-    for role in self.role_list:
-      self.Repository._update_fileinfo(role+'.txt')
-
-    #  Verify that fileinfo has been populated and contains appropriate data.
-    self.assertTrue(self.Repository.fileinfo)
-    for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
-      role_info = tuf.util.get_file_details(role_filepath)
-      role_info_dict = {'length':role_info[0], 'hashes':role_info[1]}
-      self.assertTrue(role+'.txt' in self.Repository.fileinfo.keys())
-      self.assertEqual(self.Repository.fileinfo[role+'.txt'], role_info_dict)
-
-
-
-
-
-  def test_2__fileinfo_has_changed(self):
-    #  Verify that the method returns 'False' if file info was not changed.
-    for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
-      role_info = tuf.util.get_file_details(role_filepath)
-      role_info_dict = {'length':role_info[0], 'hashes':role_info[1]}
-      self.assertFalse(self.Repository._fileinfo_has_changed(role+'.txt',
-                                                             role_info_dict))
-
-    # Verify that the method returns 'True' if length or hashes were changed.
-    for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
-      role_info = tuf.util.get_file_details(role_filepath)
-      role_info_dict = {'length':8, 'hashes':role_info[1]}
-      self.assertTrue(self.Repository._fileinfo_has_changed(role+'.txt',
-                                                             role_info_dict))
-
-    for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
-      role_info = tuf.util.get_file_details(role_filepath)
-      role_info_dict = {'length':role_info[0],
-                        'hashes':{'sha256':self.random_string()}}
-      self.assertTrue(self.Repository._fileinfo_has_changed(role+'.txt',
-                                                             role_info_dict))
 
 
 
@@ -696,12 +756,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  Patch 'download.download_url_to_tempfileobj' and update targets.
     self._mock_download_url_to_tempfileobj(self.root_filepath)
 
-    # TODO: Is this the original intent of this test?
+    # FIXME: What is the original intent of this test?
     try:
       update_if_changed('targets')
     except tuf.NoWorkingMirrorError, exception:
       for mirror_url, mirror_error in exception.mirror_errors.iteritems():
-        assert isinstance(mirror_error, tuf.BadHashError)
+        assert isinstance(mirror_error, tuf.DownloadLengthMismatchError)
 
     # Restoring repositories to the initial state.
     os.remove(release_filepath_compressed)
@@ -711,53 +771,23 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_2__move_current_to_previous(self):
-    # The test will consist of removing a metadata file from client's
-    # {client_repository}/metadata/previous directory, executing the method
-    # and then verifying that the 'previous' directory contains
-    # the release file.
-    release_meta_path = os.path.join(self.client_previous_dir, 'release.txt')
-    os.remove(release_meta_path)
-    self.assertFalse(os.path.exists(release_meta_path))
-    self.Repository._move_current_to_previous('release')
-    self.assertTrue(os.path.exists(release_meta_path))
-    shutil.copy(release_meta_path, self.client_current_dir)
+  def test_3__targets_of_role(self):
+    # Setup
+    targets_dir_content = os.listdir(self.targets_dir)
 
 
-
-
-
-  def test_2__delete_metadata(self):
-    # This test will verify that 'root' metadata is never deleted, when
-    # role is deleted verify that the file is not present in the 
-    # self.Repository.metadata dictionary.
-    self.Repository._delete_metadata('root')
-    self.assertTrue('root' in self.Repository.metadata['current'])
-    self.Repository._delete_metadata('timestamp')
-    self.assertFalse('timestamp' in self.Repository.metadata['current'])
-    timestamp_meta_path = os.path.join(self.client_previous_dir,
-                                       'timestamp.txt')
-    shutil.copy(timestamp_meta_path, self.client_current_dir)
-
-
-
-
-
-  def test_2__ensure_not_expired(self):
-    # This test condition will verify that nothing is raised when a metadata
-    # file has a future expiration date.
-    self.Repository._ensure_not_expired('root')
+    # Test: normal case.
+    targets_list = self.Repository._targets_of_role('targets')
     
-    # 'tuf.ExpiredMetadataError' should be raised in this next test condition,
-    # because the expiration_date has expired by 10 seconds.
-    expires = tuf.formats.format_time(time.time() - 10)
-    self.Repository.metadata['current']['root']['expires'] = expires
-    
-    # Ensure the 'expires' field of the root file is properly formatted.
-    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(self.Repository.metadata\
-                                                    ['current']['root']))
-    self.assertRaises(tuf.ExpiredMetadataError,
-                      self.Repository._ensure_not_expired, 'root')
+    #  Verify that list of targets was returned,
+    #  and that it contains valid target file.
+    self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
+    targets_filepaths = []
+    for target in range(len(targets_list)):
+      targets_filepaths.append(targets_list[target]['filepath'])
+    for dir_target in targets_dir_content:
+      if dir_target.endswith('.txt'):
+        self.assertTrue(dir_target in targets_filepaths)
 
 
 
@@ -853,27 +883,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.server_repo_dir, 'metadata'))
     shutil.rmtree(os.path.join(self.server_repo_dir, 'keystore'))
     setup.build_server_repository(self.server_repo_dir, self.targets_dir)
-
-
-
-
-  def test_3__targets_of_role(self):
-    # Setup
-    targets_dir_content = os.listdir(self.targets_dir)
-
-
-    # Test: normal case.
-    targets_list = self.Repository._targets_of_role('targets')
-    
-    #  Verify that list of targets was returned,
-    #  and that it contains valid target file.
-    self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
-    targets_filepaths = []
-    for target in range(len(targets_list)):
-      targets_filepaths.append(targets_list[target]['filepath'])
-    for dir_target in targets_dir_content:
-      if dir_target.endswith('.txt'):
-        self.assertTrue(dir_target in targets_filepaths)
 
 
 
@@ -1138,6 +1147,8 @@ def tearDownModule():
   # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
   setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
   unittest_toolbox.Modified_TestCase.clear_toolbox()
+  tuf.download.safe_download = original_safe_download
+  tuf.download.unsafe_download = original_unsafe_download
 
 if __name__ == '__main__':
   unittest.main()

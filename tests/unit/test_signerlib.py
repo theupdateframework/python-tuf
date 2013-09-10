@@ -61,12 +61,12 @@ import tuf.formats as formats
 import tuf.repo.signerlib as signerlib
 import tuf.repo.keystore
 
-import tuf.tests.unittest_toolbox
+import unittest_toolbox
 
 logger = logging.getLogger('tuf.test_signerlib')
 
 # 'unittest_toolbox.Modified_TestCase' is too long, I'll set it to 'unit_tbox'.
-unit_tbox = tuf.tests.unittest_toolbox.Modified_TestCase
+unit_tbox = unittest_toolbox.Modified_TestCase
 
 
 

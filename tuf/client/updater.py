@@ -592,17 +592,17 @@ class Updater(object):
 
 
 
-  def __check_hashes(self, input_file, trusted_hashes):
+  def __check_hashes(self, file_object, trusted_hashes):
     """
     <Purpose>
       A helper function that verifies multiple secure hashes of the downloaded
       file.  If any of these fail it raises an exception.  This is to conform
       with the TUF specs, which support clients with different hashing
       algorithms. The 'hash.py' module is used to compute the hashes of the
-      'input_file'.
+      'file_object'.
 
     <Arguments>
-      input_file:
+      file_object:
         A file-like object.
 
       trusted_hashes:
@@ -624,13 +624,81 @@ class Updater(object):
     # any of the hashes are incorrect and return if all are correct.
     for algorithm, trusted_hash in trusted_hashes.items():
       digest_object = tuf.hash.digest(algorithm)
-      digest_object.update(input_file.read())
+      digest_object.update(file_object.read())
       computed_hash = digest_object.hexdigest()
       if trusted_hash != computed_hash:
         raise tuf.BadHashError('Hashes do not match! Expected '+
                                trusted_hash+' got '+computed_hash)
       else:
         logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
+
+
+
+
+
+  def __hard_check_length(self, file_object, trusted_length):
+    """
+    <Purpose>
+      A helper function that checks the expected length of a file-like object.
+      The length of the file must be strictly equal to the expected length.
+      This is a deliberately redundant implementation designed to complement
+      tuf.download._check_downloaded_length().
+
+    <Arguments>
+      file_object:
+        A file-like object.
+
+      trusted_length:
+        A nonnegative integer that is the expected length of the file.
+
+    <Exceptions>
+      tuf.DownloadLengthMismatchError, if the lengths don't match.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      None.
+
+    """
+
+    observed_length = len(file_object)
+    if observed_length != trusted_length:
+      raise tuf.DownloadLengthMismatchError(trusted_length, observed_length)
+
+
+
+
+
+  def __soft_check_length(self, file_object, trusted_length):
+    """
+    <Purpose>
+      A helper function that checks the expected length of a file-like object.
+      The length of the file must be less than or equal to the expected length.
+      This is a deliberately redundant implementation designed to complement
+      tuf.download._check_downloaded_length().
+
+    <Arguments>
+      file_object:
+        A file-like object.
+
+      trusted_length:
+        A nonnegative integer that is the expected length of the file.
+
+    <Exceptions>
+      tuf.DownloadLengthMismatchError, if the lengths don't match.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      None.
+
+    """
+
+    observed_length = len(file_object)
+    if observed_length > trusted_length:
+      raise tuf.DownloadLengthMismatchError(trusted_length, observed_length)
 
 
 
@@ -667,21 +735,25 @@ class Updater(object):
 
     """
 
-    def verify_target_file(target_file_object):
-      # Every target file must have its hashes inspected.
+    def verify_decompressed_target_file(target_file_object):
+      # Every target file must have its length and hashes inspected.
+      self.__hard_check_length(target_file_object, file_length)
       self.__check_hashes(target_file_object, file_hashes)
 
-    return self.__get_file(target_filepath, verify_target_file, 'target',
-                           file_length, download_safely=True, compression=None)
+    return self.__get_file(target_filepath, verify_decompressed_target_file,
+                           'target', file_length, download_safely=True,
+                           compression=None)
 
 
 
 
 
-  def __verify_metadata_file(self, metadata_file_object, metadata_role):
+  def __verify_decompressed_metadata_file(self, metadata_file_object,
+                                          metadata_role):
     """
     <Purpose>
-      A private helpe function to verify a downloaded metadata file.
+      A private helper function to verify a decompressed downloaded metadata
+      file.
 
     <Arguments>
       metadata_file_object:
@@ -787,11 +859,14 @@ class Updater(object):
 
     """
 
-    def unsafely_verify_metadata_file(metadata_file_object):
-      self.__verify_metadata_file(metadata_file_object, metadata_role)
+    def unsafely_verify_decompressed_metadata_file(metadata_file_object):
+      self.__soft_check_length(metadata_file_object, file_length)
+      self.__verify_decompressed_metadata_file(metadata_file_object,
+                                               metadata_role)
 
-    return self.__get_file(metadata_filepath, unsafely_verify_metadata_file,
-                           'meta', file_length, download_safely=False,
+    return self.__get_file(metadata_filepath,
+                           unsafely_verify_decompressed_metadata_file, 'meta',
+                           file_length, download_safely=False, 
                            compression=None)
 
 
@@ -836,12 +911,15 @@ class Updater(object):
 
     """
 
-    def safely_verify_metadata_file(metadata_file_object):
+    def safely_verify_decompressed_metadata_file(metadata_file_object):
+      self.__hard_check_length(metadata_file_object, file_length)
       self.__check_hashes(metadata_file_object, file_hashes)
-      self.__verify_metadata_file(metadata_file_object, metadata_role)
+      self.__verify_decompressed_metadata_file(metadata_file_object,
+                                               metadata_role)
 
-    return self.__get_file(metadata_filepath, safely_verify_metadata_file,
-                           'meta', file_length, download_safely=True,
+    return self.__get_file(metadata_filepath,
+                           safely_verify_decompressed_metadata_file, 'meta',
+                           file_length, download_safely=True,
                            compression=compression)
 
 
@@ -851,7 +929,7 @@ class Updater(object):
   # TODO: Instead of the more fragile 'download_safely' switch, unroll the
   # function into two separate ones: one for "safe" download, and the other one
   # for "unsafe" download? This should induce safer and more readable code.
-  def __get_file(self, filepath, verify_file, file_type,
+  def __get_file(self, filepath, verify_decompressed_file, file_type,
                  file_length, download_safely, compression):
     """
     <Purpose>
@@ -863,9 +941,9 @@ class Updater(object):
       filepath:
         The relative metadata or target filepath.
 
-      verify_file:
-        A function which expects a file-like object and which will raise an
-        exception in case the file is not valid for any reason.
+      verify_decompressed_file:
+        A function which expects a decompressed file-like object and which will
+        raise an exception in case the file is not valid for any reason.
 
       file_type:
         Type of data needed for download, must correspond to one of the strings
@@ -911,9 +989,12 @@ class Updater(object):
           file_object = tuf.download.unsafe_download(file_mirror, file_length)
 
         if compression:
+          logger.debug('Decompressing '+str(file_mirror))
           file_object.decompress_temp_file_object(compression)
+        else:
+          logger.debug('Not decompressing '+str(file_mirror))
 
-        verify_file(file_object)
+        verify_decompressed_file(file_object)
 
       except Exception, exception:
         # Remember the error from this mirror, and "reset" the target file.
@@ -2155,10 +2236,10 @@ class Updater(object):
       Ensure that we explore only delegated roles trusted with the target. We
       assume conservation of delegated paths in the complete tree of
       delegations. Note that the call to _ensure_all_targets_allowed in
-      __verify_metadata_file should already ensure that all targets metadata is
-      valid; i.e. that the targets signed by a delegatee is a proper subset of
-      the targets delegated to it by the delegator. Nevertheless, we check it
-      again here for performance and safety reasons.
+      __verify_decompressed_metadata_file should already ensure that all
+      targets metadata is valid; i.e. that the targets signed by a delegatee is
+      a proper subset of the targets delegated to it by the delegator.
+      Nevertheless, we check it again here for performance and safety reasons.
 
       TODO: Should the TUF spec restrict the repository to one particular
       algorithm?  Should we allow the repository to specify in the role
