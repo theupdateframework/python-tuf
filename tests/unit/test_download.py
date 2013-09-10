@@ -37,7 +37,7 @@ import tuf
 import tuf.conf as conf
 import tuf.download as download
 import tuf.log
-import unittest_toolbox as unittest_toolbox
+import tuf.tests.unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_download')
 

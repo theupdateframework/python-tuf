@@ -21,7 +21,7 @@ import unittest
 import tuf
 import tuf.formats as formats
 import tuf.mirrors as mirrors
-import unittest_toolbox
+import tuf.tests.unittest_toolbox as unittest_toolbox
 
 
 

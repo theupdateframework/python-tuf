@@ -60,8 +60,8 @@ import tuf.util
 import tuf.formats as formats
 import tuf.repo.signerlib as signerlib
 import tuf.repo.keystore
+import tuf.tests.unittest_toolbox as unittest_toolbox
 
-import unittest_toolbox
 
 logger = logging.getLogger('tuf.test_signerlib')
 
