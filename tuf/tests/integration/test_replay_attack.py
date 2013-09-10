@@ -38,8 +38,8 @@ import shutil
 import urllib
 import tempfile
 
-import util_test_tools as util_test_tools
 from tuf.interposition import urllib_tuf
+from tuf.tests import util_test_tools
 
 
 class TestSetupError(Exception):

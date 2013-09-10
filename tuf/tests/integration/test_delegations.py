@@ -30,7 +30,7 @@ import tuf.formats
 import tuf.repo.keystore as keystore
 import tuf.repo.signercli as signercli
 import tuf.repo.signerlib as signerlib
-import util_test_tools
+from tuf.tests import util_test_tools
 
 version = 1
 # Modify the number of iterations (from the higher default count) so the unit
