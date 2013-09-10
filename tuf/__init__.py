@@ -192,7 +192,14 @@ class DownloadError(Error):
 
 class DownloadLengthMismatchError(DownloadError):
   """Indicate that a mismatch of lengths was seen while downloading a file."""
-  pass
+
+  def __init__(self, expected_length, observed_length):
+    self.expected_length = expected_length #bytes
+    self.observed_length = observed_length #bytes
+
+  def __str__(self):
+    return 'Observed length ('+str(self.observed_length)+\
+           ') <= expected length ('+str(self.expected_length)+')'
 
 
 
