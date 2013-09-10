@@ -30,7 +30,7 @@ import tuf
 import tuf.log
 import tuf.repo.quickstart as quickstart
 import tuf.util
-import unittest_toolbox
+import tuf.tests.unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_quickstart')
 unit_tbox = unittest_toolbox.Modified_TestCase

@@ -52,7 +52,7 @@ import tuf.repo.signerlib as signerlib
 import tuf.repo.signercli as signercli
 
 #  Helper module unittest_toolbox.py
-import unittest_toolbox as unittest_toolbox
+import tuf.tests.unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_signercli')
 
