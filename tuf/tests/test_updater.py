@@ -520,8 +520,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: normal case.
     #  Patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(self.targets_filepath)
-    _update_metadata('targets',
-                     signerlib.get_metadata_file_info(self.targets_filepath))
+    uncompressed_fileinfo = \
+      signerlib.get_metadata_file_info(self.targets_filepath)
+    _update_metadata('targets', uncompressed_fileinfo)
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
     #  Verify that the added target's path is listed in target's metadata.
@@ -532,18 +533,24 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: normal case, compressed metadata file.
     #  Add a file to targets directory and rebuild targets metadata. 
     added_target_2 = self._add_target_to_targets_dir(targets_keyids)
+    uncompressed_fileinfo = \
+      signerlib.get_metadata_file_info(self.targets_filepath)
 
     #  To test compressed file handling, compress targets metadata file.
     targets_filepath_compressed = self._compress_file(self.targets_filepath)
+    compressed_fileinfo = \
+      signerlib.get_metadata_file_info(targets_filepath_compressed)
 
     #  Re-patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
-    # FIXME: The length (but not the hash) passed to this function is
-    # incorrect. The length must be that of the compressed file, whereas the
-    # hash must be that of the uncompressed file.
-    _update_metadata('targets',
-                     signerlib.get_metadata_file_info(self.targets_filepath),
-                     compression='gzip')
+    # The length (but not the hash) passed to this function is incorrect. The
+    # length must be that of the compressed file, whereas the hash must be that
+    # of the uncompressed file.
+    mixed_fileinfo = {
+      'length': compressed_fileinfo['length'],
+      'hashes': uncompressed_fileinfo['hashes']
+    }
+    _update_metadata('targets', mixed_fileinfo, compression='gzip')
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
     #  Verify that the added target's path is listed in target's metadata.
