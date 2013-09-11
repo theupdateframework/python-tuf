@@ -404,14 +404,14 @@ class TestRoledb(unittest.TestCase):
 
 
 def setUpModule():
-  # setUpModule is called before any test cases run.
+  # setUpModule() is called before any test cases run.
   # Ensure the roledb has not been modified by a previous test, which may
   # affect assumptions (i.e., empty roledb) made by the tests cases in this
   # unit test.
   tuf.roledb.clear_roledb()
 
 def tearDownModule():
-  # tearDownModule is called after all the tests have run.
+  # tearDownModule() is called after all the tests have run.
   # Ensure we clean up roledb.  Courtesy is contagious, and it begins with
   # test_roledb.py.
   tuf.roledb.clear_roledb()
