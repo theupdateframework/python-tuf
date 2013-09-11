@@ -49,8 +49,8 @@ import tuf
 import urllib
 
 
-from tuf.interposition import urllib_tuf
-from tuf.tests import util_test_tools
+import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.tests.util_test_tools as util_test_tools
 
 
 class SlowRetrievalAttackAlert(Exception):
