@@ -21,7 +21,7 @@ import os
 import urllib
 import unittest
 
-from tuf.tests import util_test_tools
+import tuf.tests.util_test_tools as util_test_tools
 
 
 

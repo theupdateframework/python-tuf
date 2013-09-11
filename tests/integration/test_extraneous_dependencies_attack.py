@@ -43,8 +43,8 @@ import urllib
 import tempfile
 
 import tuf
-import tuf.interposition 
-from tuf.tests import util_test_tools
+import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.tests.util_test_tools as util_test_tools
 
 
 class ExtraneousDependencyAlert(Exception):
@@ -57,7 +57,7 @@ class ExtraneousDependencyAlert(Exception):
 def _download(url, filename, directory, TUF=False):
   destination = os.path.join(directory, filename)
   if TUF:
-    tuf.interposition.urllib_tuf.urlretrieve(url, destination)
+    urllib_tuf.urlretrieve(url, destination)
   else:
     urllib.urlretrieve(url, destination)
 
