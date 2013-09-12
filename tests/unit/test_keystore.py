@@ -36,6 +36,8 @@ logger = logging.getLogger('tuf.test_keystore')
 # internal function.
 json = tuf.util.import_json()
 
+tuf.repo.keystore._PBKDF2_ITERATIONS = 1000
+
 # Creating a directory string in current directory. 
 _CURRENT_DIR = os.getcwd()
 _DIR = os.path.join(_CURRENT_DIR, 'test_keystore')
@@ -297,8 +299,10 @@ class TestKeystore(unittest.TestCase):
   def test_internal_encrypt(self):
     # Test for valid arguments to '_encrypt()' and a valid return type.
     salt = Crypto.Random.new().read(16)
+    iterations = tuf.repo.keystore._PBKDF2_ITERATIONS
     derived_key = Crypto.Protocol.KDF.PBKDF2(PASSWDS[0], salt)
-    derived_key_information = {'salt': salt, 'derived_key': derived_key}
+    derived_key_information = {'salt': salt, 'derived_key': derived_key,
+                               'iterations': iterations}
     encrypted_key = KEYSTORE._encrypt(json.dumps(RSAKEYS[0]),
                                       derived_key_information)
     self.assertEqual(type(encrypted_key), str)
@@ -310,8 +314,11 @@ class TestKeystore(unittest.TestCase):
     tuf.formats.KEY_SCHEMA.check_match(RSAKEYS[0])
     
     salt = Crypto.Random.new().read(16)
-    salt, derived_key = tuf.repo.keystore._generate_derived_key(PASSWDS[0], salt)
-    derived_key_information = {'salt': salt, 'derived_key': derived_key}
+    salt, iterations, derived_key = \
+      tuf.repo.keystore._generate_derived_key(PASSWDS[0], salt)
+    derived_key_information = {'salt': salt,
+                               'iterations': iterations,
+                               'derived_key': derived_key}
     
     # Getting a valid encrypted key using '_encrypt()'.
     encrypted_key = KEYSTORE._encrypt(json.dumps(RSAKEYS[0]),
@@ -341,6 +348,7 @@ def tearDownModule():
   # tearDownModule() is called after all the tests have run.
   # Ensure we clean up the keystore.  They say courtesy is contagious.
   tuf.repo.keystore.clear_keystore()
+
 
 
 # Run the unit tests.
