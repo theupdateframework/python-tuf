@@ -93,10 +93,11 @@ class TempFile(object):
 
 
 
-  def __len__(self):
+  def get_compressed_length(self):
     """
     <Purpose>
-      Initializes TempFile.
+      Get the compressed length of the file. This will be correct information
+      even when the file is read as an uncompressed one.
 
     <Arguments>
       None.
@@ -105,10 +106,12 @@ class TempFile(object):
       OSError.
 
     <Return>
-      Nonnegative integer representing file size.
+      Nonnegative integer representing compressed file size.
 
     """
 
+    # Even if we read a compressed file with the gzip standard library module,
+    # the original file will remain compressed.
     return os.stat(self.temporary_file.name).st_size
 
 
@@ -295,9 +298,10 @@ class TempFile(object):
     self._orig_file = self.temporary_file
 
     try:
-      self.temporary_file = gzip.GzipFile(fileobj=self.temporary_file, mode='rb')
-    except:
-      raise tuf.DecompressionError(self.temporary_file)
+      self.temporary_file = gzip.GzipFile(fileobj=self.temporary_file,
+                                          mode='rb')
+    except Exception, exception:
+      raise tuf.DecompressionError(exception)
 
 
 
