@@ -30,6 +30,7 @@ import ConfigParser
 import tuf.rsa_key as rsa_key
 import tuf.repo.keystore as keystore
 
+
 # Modify the number of iterations (from the higher default count) so the unit
 # tests run faster.
 keystore._PBKDF2_ITERATIONS = 1000
@@ -390,9 +391,10 @@ class Modified_TestCase(unittest.TestCase):
     Modified_TestCase.rsa_keyids.append(keyid)
     password = Modified_TestCase.random_string()
     Modified_TestCase.rsa_passwords[keyid] = password
-    salt, derived_key = keystore._generate_derived_key(password)
+    salt, iterations, derived_key = keystore._generate_derived_key(password)
     Modified_TestCase.rsa_derived_keys[keyid] = {'salt': salt,
-                                                 'derived_key': derived_key}
+                                                 'derived_key': derived_key,
+                                                 'iterations': iterations}
     Modified_TestCase.rsa_keystore[keyid] = rsakey
     
     return keyid
