@@ -257,15 +257,15 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
         keyfilename = keyid+'.key'
         full_filepath = os.path.join(directory_name, keyfilename)
         raw_contents = open(full_filepath, 'rb').read()
-      except:
-        logger.warn('Could not find key '+repr(full_filepath)+'.')
+      except (OSError, IOError), e:
+        logger.warn('Could not load key file: '+repr(full_filepath)+'.')
       else:
         # Try to decrypt the file using one of the passwords in 'passwords'.
         for password in passwords:
           try:
             json_data = _decrypt(raw_contents, password)
-          except:
-            logger.warn(repr(full_filepath)+' contains an invalid key.')
+          except tuf.CryptoError, e:
+            logger.warn(repr(full_filepath)+' could not be decrypted.')
             continue
 
           try:
@@ -577,7 +577,7 @@ def _encrypt(key_data, derived_key_information):
   
   # Generate a random initialization vector (IV).  The 'iv' is treated as the
   # initial counter block to a stateful counter block function (i.e.,
-  # PyCrypto's 'Crypto.Util.Counter'.  The AES block cipher operates on 128-bit
+  # PyCrypto's 'Crypto.Util.Counter').  The AES block cipher operates on 128-bit
   # blocks, so generate a random 16-byte initialization block.  PyCrypto expects
   # the initial value of the stateful counter to be an integer.
   # Follow the provably secure encrypt-then-MAC approach, which affords the
@@ -597,7 +597,10 @@ def _encrypt(key_data, derived_key_information):
   # repetitions are performed by AES, 14 cycles for 256-bit keys.
   try:
     ciphertext = aes_cipher.encrypt(key_data)
-  except:
+  
+  # Raise generic exception message to avoid revealing sensitive information,
+  # such as invalid passwords, encryption keys, etc.
+  except Exception, e:
     message = 'The key data could not be encrypted.' 
     raise tuf.CryptoError(message)
 
@@ -673,7 +676,10 @@ def _decrypt(file_contents, password):
                                      counter=stateful_counter_128bit_blocks)
   try:
     key_plaintext = aes_cipher.decrypt(ciphertext)
-  except: 
+  
+  # Raise generic exception message to avoid revealing sensitive information,
+  # such as invalid passwords, encryption keys, etc.
+  except Exception, e: 
     raise tuf.CryptoError('Decryption failed.')
 
   return key_plaintext
