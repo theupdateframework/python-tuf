@@ -69,7 +69,7 @@ import Crypto.Util.Counter
 
 import tuf.rsa_key
 import tuf.util
-
+import tuf.conf
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.keystore')
@@ -89,11 +89,17 @@ _AES_KEY_SIZE = 32
 # to protect against dictionary attacks) is generated for PBKDF2.  
 _SALT_SIZE = 16 
 
-# Default PBKDF2 passphrase iterations.  The current (2013) "good enough" number
+# Default PBKDF2 passphrase iterations.  The current "good enough" number
 # of passphrase iterations.  We recommend that important keys, such as root,
-# be kept offline.  Are we going overboard with respect to our use case?
-# http://security.stackexchange.com/questions/3959/recommended-of-iterations-when-using-pkbdf2-sha256
-_PBKDF2_ITERATIONS = 100000
+# be kept offline.  'tuf.conf.PBKDF2_ITERATIONS' should increase as CPU
+# speeds increase, set here at 100,000 iterations by default (in 2013).  The
+# repository maintainer may opt to modify the default setting according to
+# their security needs and computational restrictions.  A strong user password
+# is still important.  Modifying the number of iterations will result in a new
+# derived key+PBDKF2 combination if the key is loaded and re-saved, overriding
+# any previous iteration setting used by the old '<keyid>.key'.
+# https://en.wikipedia.org/wiki/PBKDF2
+_PBKDF2_ITERATIONS = tuf.conf.PBKDF2_ITERATIONS
 
 # A user password is read and a derived key generated.  The derived key and
 # salt returned by the key derivation function (PBKDF2) is saved in
@@ -171,8 +177,8 @@ def add_rsakey(rsakey_dict, password, keyid=None):
         'Expected: '+repr(keyid)
       raise tuf.Error(message)
  
-  # Check if the keyid belonging to 'rsakey_dict' is not already
-  # available in the key database.
+  # Check if the keyid belonging to 'rsakey_dict' is not already available in
+  # the key database.
   keyid = rsakey_dict['keyid']
   if keyid in _keystore:
     message = 'Keyid: '+repr(keyid)+' already exists.'
@@ -181,8 +187,10 @@ def add_rsakey(rsakey_dict, password, keyid=None):
   # The '_derived_keys' dictionary does not store the user's password.  A key
   # derivation function is applied to 'password' prior to storing it in
   # _derived_key and may then be used as a symmetric key.
-  salt, derived_key = _generate_derived_key(password)
-  _derived_keys[keyid] = {'salt': salt, 'derived_key': derived_key}
+  salt, iterations, derived_key = _generate_derived_key(password)
+  _derived_keys[keyid] = {'salt': salt,
+                          'derived_key': derived_key,
+                          'iterations': iterations}
   _keystore[keyid] = rsakey_dict
 
 
@@ -447,16 +455,19 @@ def change_password(keyid, old_password, new_password):
   # stores derived keys instead of user passwords, according to the
   # key derivation function used by _generate_derived_key().
   salt = _derived_keys[keyid]['salt']
-  junk, old_derived_key = _generate_derived_key(old_password, salt)
+  iterations = _derived_keys[keyid]['iterations']
+  junk, junk, old_derived_key = _generate_derived_key(old_password,
+                                                salt, iterations)
   if _derived_keys[keyid]['derived_key'] != old_derived_key:
     message = 'Old password invalid.'
     raise tuf.BadPasswordError(message)
 
   # Update '_derived_keys[keyid]' with the new derived key and salt.
-  salt, new_derived_key = _generate_derived_key(new_password) 
+  salt, iterations, new_derived_key = _generate_derived_key(new_password)
   _derived_keys[keyid] = {}
   _derived_keys[keyid]['salt'] = salt
   _derived_keys[keyid]['derived_key'] = new_derived_key
+  _derived_keys[keyid]['iterations'] = iterations
 
 
 
@@ -502,7 +513,7 @@ def get_key(keyid):
 
 
 
-def _generate_derived_key(password, salt=None):
+def _generate_derived_key(password, salt=None, iterations=None):
   """
   Generate a derived key by feeding 'password' to the Password-Based Key
   Derivation Function (PBKDF2).  PyCrypto's PBKDF2 implementation is
@@ -514,6 +525,8 @@ def _generate_derived_key(password, salt=None):
   if salt is None:
     salt = Crypto.Random.new().read(_SALT_SIZE) 
 
+  if iterations is None:
+    iterations = _PBKDF2_ITERATIONS
 
   def pseudorandom_function(password, salt):
     """
@@ -530,10 +543,10 @@ def _generate_derived_key(password, salt=None):
   # must be callable. 
   derived_key = Crypto.Protocol.KDF.PBKDF2(password, salt,
                                            dkLen=_AES_KEY_SIZE,
-                                           count=_PBKDF2_ITERATIONS,
+                                           count=iterations,
                                            prf=pseudorandom_function)
 
-  return salt, derived_key
+  return salt, iterations, derived_key
 
 
 
@@ -554,8 +567,9 @@ def _encrypt(key_data, derived_key_information):
               'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
 
   'derived_key_information' is a dictionary of the form:
-    {'salt': '...'
-     'derived_key': '...'}
+    {'salt': '...',
+     'derived_key': '...',
+     'iterations': '...'}
 
   'tuf.CryptoError' raised if the encryption fails.
   
@@ -591,15 +605,22 @@ def _encrypt(key_data, derived_key_information):
   # The decryption routine may verify a ciphertext without having to perform
   # a decryption operation.
   salt = derived_key_information['salt'] 
-  derived_key = derived_key_information['derived_key']
-  hmac_object = Crypto.Hash.HMAC.new(derived_key, ciphertext, Crypto.Hash.SHA256)
+  hmac_object = Crypto.Hash.HMAC.new(symmetric_key, ciphertext,
+                                     Crypto.Hash.SHA256)
   hmac = hmac_object.hexdigest()
 
-  # Return the hmac, initialization vector, and ciphertext as a single string.
-  # These three values are delimited by '_ENCRYPTION_DELIMITER' to make
-  # extraction easier.  This delimiter is arbitrarily chosen and should not
-  # occur in the hexadecimal representations of the fields it is separating.
+  # Store the number of PBKDF2 iterations used to derive the symmetric key so
+  # that the decryption routine can regenerate the symmetric key successfully.
+  # The pbkdf2 iterations are allowed to vary for the keys loaded and saved.
+  iterations = derived_key_information['iterations']
+
+  # Return the salt, iterations, hmac, initialization vector, and ciphertext
+  # as a single string.  These five values are delimited by
+  # '_ENCRYPTION_DELIMITER' to make extraction easier.  This delimiter is
+  # arbitrarily chosen and should not occur in the hexadecimal representations
+  # of the fields it is separating.
   return binascii.hexlify(salt) + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(str(iterations)) + _ENCRYPTION_DELIMITER + \
          binascii.hexlify(hmac) + _ENCRYPTION_DELIMITER + \
          binascii.hexlify(iv) + _ENCRYPTION_DELIMITER + \
          binascii.hexlify(ciphertext)
@@ -620,17 +641,19 @@ def _decrypt(file_contents, password):
   # 'file_contents'.  These three values are delimited by '_ENCRYPTION_DELIMITER'.
   # This delimiter is arbitrarily chosen and should not occur in the
   # hexadecimal representations of the fields it is separating.
-  salt, hmac, iv, ciphertext = file_contents.split(_ENCRYPTION_DELIMITER)
+  salt, iterations, hmac, iv, ciphertext = \
+    file_contents.split(_ENCRYPTION_DELIMITER)
   
   # Ensure we have the expected raw data for the delimited cryptographic data. 
-  salt =  binascii.unhexlify(salt)
+  salt = binascii.unhexlify(salt)
+  iterations = int(binascii.unhexlify(iterations))
   hmac = binascii.unhexlify(hmac)
   iv = binascii.unhexlify(iv)
   ciphertext = binascii.unhexlify(ciphertext)
 
-  # Generate derived key from 'password'.  The salt is specified so that
-  # the expected derived key is regenerated correctly.
-  junk, derived_key = _generate_derived_key(password, salt)
+  # Generate derived key from 'password'.  The salt and iterations are specified
+  # so that the expected derived key is regenerated correctly.
+  junk, junk, derived_key = _generate_derived_key(password, salt, iterations)
 
   # Verify the hmac to ensure the ciphertext is valid and has not been altered.
   # See the encryption routine for why we use the encrypt-then-MAC approach.
