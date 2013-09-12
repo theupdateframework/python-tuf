@@ -54,4 +54,14 @@ MIN_AVERAGE_DOWNLOAD_SPEED = CHUNK_SIZE #bytes/second
 # The time (in seconds) we ignore a server with a slow initial retrieval speed.
 SLOW_START_GRACE_PERIOD = 30 #seconds
 
-
+# The current "good enough" number of PBKDF2 passphrase iterations.
+# We recommend that important keys, such as root, be kept offline.
+# 'tuf.conf.PBKDF2_ITERATIONS' should increase as CPU speeds increase, set here
+# at 100,000 iterations by default (in 2013).  The repository maintainer may opt
+# to modify the default setting according to their security needs and
+# computational restrictions.  A strong user password is still important.
+# Modifying the number of iterations will result in a new derived key+PBDKF2
+# combination if the key is loaded and re-saved, overriding any previous
+# iteration setting used by the old '<keyid>.key'.
+# https://en.wikipedia.org/wiki/PBKDF2
+PBKDF2_ITERATIONS = 100000
