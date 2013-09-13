@@ -73,16 +73,14 @@ _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s]'+\
   '[%(funcName)s:%(lineno)s@%(filename)s] %(message)s'
 
 
-# Ask all Formatter instances to talk GMT.
-# http://docs.python.org/2/library/logging.html#logging.Formatter.formatException
 logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter(_FORMAT_STRING)
 
-# Set the handlers for the logger. The console handler is unset by default. A
+# Set the handlers for the logger.  The console handler is unset by default.  A
 # module importing 'log.py' should explicitly set the console handler if
-# outputting log messages to the screen is needed. Adding a console handler can
-# be done with tuf.log.add_console_handler(). Logging messages to a file *is*
-# set by default.
+# outputting log messages to the screen is needed.  Adding a console handler
+# can be done with tuf.log.add_console_handler().  Logging messages to a file
+# *is* set by default. 
 console_handler = None
 
 # Set the built-in file handler.  Messages will be logged to
@@ -101,51 +99,6 @@ logger.addHandler(file_handler)
 
 # Silently ignore logger exceptions.
 logging.raiseExceptions = False
-
-
-
-
-
-class ConsoleFilter(logging.Filter):
-  def filter(self, record):
-    """
-    <Purpose>
-      Use Vinay Sajip's recommendation from Python issue #6435 to modify a
-      LogRecord object. This is meant to be used with our console handler.
-
-      http://stackoverflow.com/q/6177520
-      http://stackoverflow.com/q/5875225
-      http://bugs.python.org/issue6435
-      http://docs.python.org/2/howto/logging-cookbook.html#filters-contextual
-      http://docs.python.org/2/library/logging.html#logrecord-attributes
-
-    <Arguments>
-      record:
-        A logging.LogRecord object.
-
-    <Exceptions>
-      None.
-
-    <Side Effects>
-      Replaces the LogRecord exception text attribute.
-
-    <Returns>
-      True.
-
-    """
-
-    # If this LogRecord object has an exception, then we will replace its text.
-    if record.exc_info:
-      # We place the record's cached exception text (which usually contains the
-      # exception traceback) with much simpler exception information. This is
-      # most useful for the console handler, which we do not wish to deluge
-      # with too much data. Assuming that this filter is not applied to the
-      # file logging handler, the user may always consult the file log for the
-      # original exception traceback.
-      record.exc_text = str(record.exc_info)
-
-    # Always return True to signal that any given record must be formatted.
-    return True
 
 
 
@@ -247,6 +200,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
 
 
+
 def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   """
   <Purpose>
@@ -268,46 +222,15 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
     None.
 
   """
-  # Assign to the global console_handler object.
-  global console_handler
-
+  
   # Does 'log_level' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.LENGTH_SCHEMA.check_match(log_level)
 
-  if not console_handler:
-    # Set the console handler for the logger. The built-in console handler will
-    # log messages to 'sys.stderr' and capture 'log_level' messages.
-    # NOTE: This is not thread-safe.
-    console_handler = logging.StreamHandler()
-    # Get our filter for the console handler.
-    console_filter = ConsoleFilter()
-
-    console_handler.setLevel(log_level)
-    console_handler.setFormatter(formatter)
-    console_handler.addFilter(console_filter)
-    logger.addHandler(console_handler)
-    logger.debug('Added a console handler.')
-  else:
-    logger.warn('We already have a console handler.')
-
-
-
-
-
-def remove_console_handler():
-  # Assign to the global console_handler object.
+  # Set the console handler for the logger.  The built-in console handler will
+  # log messages to 'sys.stderr' and capture 'log_level' messages.
   global console_handler
-
-  if console_handler:
-    logger.removeHandler(console_handler)
-    # NOTE: This is not thread-safe.
-    console_handler = None
-    logger.debug('Removed a console handler.')
-  else:
-    logger.warn('We do not have a console handler.')
-
-
-
-
-
+  console_handler = logging.StreamHandler()
+  console_handler.setLevel(log_level)
+  console_handler.setFormatter(formatter)
+  logger.addHandler(console_handler)

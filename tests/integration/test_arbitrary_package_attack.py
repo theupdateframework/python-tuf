@@ -30,12 +30,10 @@ Note: There is no difference between 'updates' and 'target' files.
 """
 
 import os
-import shutil
 import urllib
-import tempfile
 
 import tuf
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -45,9 +43,9 @@ class ArbitraryPackageAlert(Exception):
 
 
 
-def _download(url, filename, tuf=False):
-  if tuf:
-    urllib_tuf.urlretrieve(url, filename)
+def _download(url, filename, using_tuf=False):
+  if using_tuf:
+    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
 
   else:
     urllib.urlretrieve(url, filename)
@@ -56,10 +54,10 @@ def _download(url, filename, tuf=False):
 
 
 
-def test_arbitrary_package_attack(TUF=False):
+def test_arbitrary_package_attack(using_tuf=False):
   """
   <Arguments>
-    TUF:
+    using_tuf:
       If set to 'False' all directories that start with 'tuf_' are ignored, 
       indicating that tuf is not implemented.
 
@@ -68,12 +66,12 @@ def test_arbitrary_package_attack(TUF=False):
 
   """
 
-  ERROR_MSG = 'Arbitrary Package Attack was Successful!\n'
+  ERROR_MSG = 'Arbitrary Package Attack was Successful!'
 
 
   try:
     # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
     downloads = os.path.join(root_repo, 'downloads')
@@ -85,7 +83,7 @@ def test_arbitrary_package_attack(TUF=False):
     url_to_repo = url+'reg_repo/'+file_basename
     downloaded_file = os.path.join(downloads, file_basename)
 
-    if TUF:
+    if using_tuf:
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
@@ -108,13 +106,15 @@ def test_arbitrary_package_attack(TUF=False):
 
     try:
       # Client downloads (tries to download) the file.
-      _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+      _download(url_to_repo, downloaded_file, using_tuf)
 
-    except tuf.DownloadError:
-      # If tuf.DownloadError is raised, this means that TUF has prevented
-      # the download of an unrecognized file.  Enable the logging to see,
-      # what actually happened.
-      pass
+    except tuf.NoWorkingMirrorError, error:
+      # We only set up one mirror, so if it fails, we expect a
+      # NoWorkingMirrorError. If TUF has worked as intended, the mirror error
+      # contained within should be a BadHashError.
+      mirror_error = error.mirror_errors[url+'tuf_repo/targets/'+file_basename]
+
+      assert isinstance(mirror_error, tuf.BadHashError)
 
     else:
       # Check whether the attack succeeded by inspecting the content of the
@@ -131,17 +131,24 @@ def test_arbitrary_package_attack(TUF=False):
 
 
 
-
+print 'Attempting arbitrary package attack without TUF:'
 try:
-  test_arbitrary_package_attack(TUF=False)
+  test_arbitrary_package_attack(using_tuf=False)
 
 except ArbitraryPackageAlert, error:
   print error
+else:
+  print 'Extraneous dependency attack failed.'
+print
 
 
 
+print 'Attempting arbitrary package attack with TUF:'
 try:
-  test_arbitrary_package_attack(TUF=True)
+  test_arbitrary_package_attack(using_tuf=True)
 
 except ArbitraryPackageAlert, error:
   print error
+else:
+  print 'Extraneous dependency attack failed.'
+print
