@@ -154,10 +154,6 @@ version = 1
 tuf_configurations = None
 
 
-def disable_console_logging():
-  tuf.log.logger.removeHandler(tuf.log.console_handler)
-
-
 def init_repo(using_tuf=False, port=None):
   # Temp root directory for regular and tuf repositories.
   # WARNING: tuf client stores files in '{root_repo}/downloads/' directory!
@@ -189,7 +185,8 @@ def init_repo(using_tuf=False, port=None):
 
   keyids = None
   if using_tuf:
-    disable_console_logging()
+    # We remove the console handler so that tests are silent by default.
+    tuf.log.remove_console_handler()
     keyids = init_tuf(root_repo)
     create_interposition_config(root_repo, url)
 
