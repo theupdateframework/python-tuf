@@ -81,7 +81,7 @@
   previous metadata files.
 
 <Methods>
-  init_repo(tuf=True):
+  init_repo(using_tuf=True):
     Initializes the repositories (depicted in the diagram above) and
     starts the server process.  init_repo takes one boolean argument
     which when True sets-up tuf repository i.e. adds all of the
@@ -158,7 +158,7 @@ def disable_console_logging():
   tuf.log.logger.removeHandler(tuf.log.console_handler)
 
 
-def init_repo(tuf=False, port=None):
+def init_repo(using_tuf=False, port=None):
   # Temp root directory for regular and tuf repositories.
   # WARNING: tuf client stores files in '{root_repo}/downloads/' directory!
   # Make sure regular download are NOT stored in the that directory when
@@ -188,7 +188,7 @@ def init_repo(tuf=False, port=None):
   time.sleep(.2)
 
   keyids = None
-  if tuf:
+  if using_tuf:
     disable_console_logging()
     keyids = init_tuf(root_repo)
     create_interposition_config(root_repo, url)

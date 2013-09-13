@@ -52,8 +52,8 @@ class ReplayAttackAlert(Exception):
 
 
 
-def _download(url, filename, tuf=False):
-  if tuf:
+def _download(url, filename, using_tuf=False):
+  if using_tuf:
     urllib_tuf.urlretrieve(url, filename)
     
   else:
@@ -63,10 +63,10 @@ def _download(url, filename, tuf=False):
 
 
 
-def test_replay_attack(TUF=False):
+def test_replay_attack(using_tuf=False):
   """
   <Arguments>
-    TUF:
+    using_tuf:
       If set to 'False' all directories that start with 'tuf_' are ignored, 
       indicating that tuf is not implemented.
 
@@ -80,7 +80,7 @@ def test_replay_attack(TUF=False):
 
   try:
     # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
     downloads = os.path.join(root_repo, 'downloads')
@@ -97,7 +97,7 @@ def test_replay_attack(TUF=False):
     vulnerable_file = os.path.join(evil_dir, file_basename)
     shutil.copy(filepath, evil_dir)
 
-    if TUF:
+    if using_tuf:
       print 'TUF ...'
 
       # Update TUF metadata before attacker modifies anything.
@@ -114,7 +114,7 @@ def test_replay_attack(TUF=False):
 
 
     # Client performs initial update.
-    _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+    _download(url=url_to_repo, filename=downloaded_file, using_tuf)
 
     # Downloads are stored in the same directory '{root_repo}/downloads/'
     # for regular and tuf clients.
@@ -127,12 +127,12 @@ def test_replay_attack(TUF=False):
 
     # Updating tuf repository.  This will copy files from regular repository
     # into tuf repository and refresh the metadata
-    if TUF:
+    if using_tuf:
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
 
     # Client downloads the patched file.
-    _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+    _download(url=url_to_repo, filename=downloaded_file, using_tuf)
 
     # Content of the downloaded file.
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
@@ -157,7 +157,7 @@ def test_replay_attack(TUF=False):
 
 
     # Client downloads the file once more.
-    _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+    _download(url=url_to_repo, filename=downloaded_file, using_tuf)
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.
@@ -174,13 +174,13 @@ def test_replay_attack(TUF=False):
 
 
 try:
-  test_replay_attack(TUF=False)
+  test_replay_attack(using_tuf=False)
 except ReplayAttackAlert, error:
   print error
 
 
 
 try:
-  test_replay_attack(TUF=True)
+  test_replay_attack(using_tuf=True)
 except ReplayAttackAlert, error:
   print error
