@@ -37,7 +37,7 @@ import os
 import urllib
 
 import tuf
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -49,7 +49,7 @@ class EndlessDataAttack(Exception):
 
 def _download(url, filename, using_tuf=False):
   if using_tuf:
-    urllib_tuf.urlretrieve(url, filename)
+    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
   else:
     urllib.urlretrieve(url, filename)
 
@@ -126,7 +126,7 @@ def test_arbitrary_package_attack(using_tuf=False, TIMESTAMP=False):
 
     # Client downloads (tries to download) the file.
     try:
-      _download(url=url_to_repo, filename=downloaded_file, using_tuf)
+      _download(url_to_repo, downloaded_file, using_tuf)
     except Exception, exception:
       # Because we are extending the true timestamp TUF metadata with invalid
       # JSON, we except to catch an error about invalid metadata JSON.

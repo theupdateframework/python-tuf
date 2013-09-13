@@ -126,7 +126,7 @@ def test_mix_and_match_attack(using_tuf=False):
 
 
     # Client's initial download.
-    _download(url=url_to_file, filename=downloaded_file, using_tuf)
+    _download(url_to_file, downloaded_file, using_tuf)
 
     # Stage 2
     # -------
@@ -139,7 +139,7 @@ def test_mix_and_match_attack(using_tuf=False):
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
     # Client downloads the patched file.
-    _download(url=url_to_file, filename=downloaded_file, using_tuf)
+    _download(url_to_file, downloaded_file, using_tuf)
 
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
 
@@ -163,7 +163,7 @@ def test_mix_and_match_attack(using_tuf=False):
 
     # Client tries to downloads the newly patched file.
     try:
-      _download(url=url_to_file, filename=downloaded_file, using_tuf)
+      _download(url_to_file, downloaded_file, using_tuf)
     except tuf.MetadataNotAvailableError:
       pass
 
