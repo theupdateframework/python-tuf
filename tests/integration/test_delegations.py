@@ -107,7 +107,7 @@ class TestDelegationFunctions(unittest.TestCase):
     version = version+1
     expiration = tuf.formats.format_time(time.time()+86400)
 
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=True)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf=True)
 
     # Server side repository.
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
@@ -338,9 +338,17 @@ class TestBreachOfTargetDelegation(TestDelegationFunctions):
 
   def test_that_initial_update_fails_with_undelegated_signing_of_targets(self):
     # Expect to see a particular exception on initial update.
-    self.assertRaises(tuf.MetadataNotAvailableError, self.do_update)
+    with self.assertRaises(tuf.NoWorkingMirrorError) as contextManager:
+      self.do_update()
 
+    exception = contextManager.exception
+    ForbiddenTargetError = False
+    for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+      if isinstance(mirror_error, tuf.ForbiddenTargetError):
+        ForbiddenTargetError = True
+        break 
 
+    self.assertEqual(ForbiddenTargetError, True)
 
 
 
@@ -456,7 +464,17 @@ class TestOrderOfTargetDelegationWithFailure(TestDelegationFunctions):
 
   def test_that_initial_update_fails_with_many_roles_sharing_a_target(self):
     # Expect to see a particular exception on initial update.
-    self.assertRaises(tuf.DownloadError, self.do_update)
+    with self.assertRaises(tuf.NoWorkingMirrorError) as contextManager:
+      self.do_update()
+
+    exception = contextManager.exception
+    BadHashError = False
+    for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+      if isinstance(mirror_error, tuf.BadHashError):
+        BadHashError = True
+        break 
+
+    self.assertEqual(BadHashError, True)
 
 
 
