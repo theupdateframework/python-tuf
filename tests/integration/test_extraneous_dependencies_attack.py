@@ -143,8 +143,7 @@ def test_extraneous_dependency_attack(using_tuf=False):
 
     try:
       # Client downloads (tries to download) the file.
-      _download(url=url_to_repo, filename=dependent_basename,
-                directory=downloads, using_tuf)
+      _download(url_to_repo, dependent_basename, downloads, using_tuf)
 
     except tuf.NoWorkingMirrorError, error:
       # We only set up one mirror, so if it fails, we expect a

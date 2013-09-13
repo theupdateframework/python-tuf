@@ -66,7 +66,7 @@ def test_arbitrary_package_attack(using_tuf=False):
 
   """
 
-  ERROR_MSG = 'Arbitrary Package Attack was Successful!\n'
+  ERROR_MSG = 'Arbitrary Package Attack was Successful!'
 
 
   try:
@@ -106,14 +106,13 @@ def test_arbitrary_package_attack(using_tuf=False):
 
     try:
       # Client downloads (tries to download) the file.
-      _download(url=url_to_repo, filename=downloaded_file, using_tuf)
+      _download(url_to_repo, downloaded_file, using_tuf)
 
-    except tuf.NoWorkingMirrorError:
+    except tuf.NoWorkingMirrorError, error:
       # We only set up one mirror, so if it fails, we expect a
       # NoWorkingMirrorError. If TUF has worked as intended, the mirror error
       # contained within should be a BadHashError.
-      mirror_error = \
-              error.mirror_errors[url+'tuf_repo/targets/'+dependent_basename]
+      mirror_error = error.mirror_errors[url+'tuf_repo/targets/'+file_basename]
 
       assert isinstance(mirror_error, tuf.BadHashError)
 
