@@ -49,7 +49,7 @@ import tuf
 import urllib
 
 
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -60,7 +60,7 @@ class SlowRetrievalAttackAlert(Exception):
 def _download(url, filename, TUF=False):
   if TUF:
     try:
-      urllib_tuf.urlretrieve(url, filename)
+      tuf.interposition.urllib_tuf.urlretrieve(url, filename)
     except tuf.NoWorkingMirrorError, exception:
       slow_retrieval = False
       for mirror_url, mirror_error in exception.mirror_errors.iteritems():
@@ -97,7 +97,7 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
   try:
     # Setup.
     root_repo, url, server_proc, keyids = \
-      util_test_tools.init_repo(tuf=TUF, port=port)
+      util_test_tools.init_repo(using_tuf=TUF, port=port)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     downloads = os.path.join(root_repo, 'downloads')
     
