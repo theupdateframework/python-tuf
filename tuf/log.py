@@ -78,11 +78,11 @@ _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s]'+\
 logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter(_FORMAT_STRING)
 
-# Set the handlers for the logger.  The console handler is unset by default.  A
+# Set the handlers for the logger. The console handler is unset by default. A
 # module importing 'log.py' should explicitly set the console handler if
-# outputting log messages to the screen is needed.  Adding a console handler
-# can be done with tuf.log.add_console_handler().  Logging messages to a file
-# *is* set by default. 
+# outputting log messages to the screen is needed. Adding a console handler can
+# be done with tuf.log.add_console_handler(). Logging messages to a file *is*
+# set by default.
 console_handler = None
 
 # Set the built-in file handler.  Messages will be logged to
@@ -275,16 +275,37 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.LENGTH_SCHEMA.check_match(log_level)
 
-  # Set the console handler for the logger.  The built-in console handler will
-  # log messages to 'sys.stderr' and capture 'log_level' messages.
-  console_handler = logging.StreamHandler()
-  # Get our filter for the console handler.
-  console_filter = ConsoleFilter()
+  if not console_handler:
+    # Set the console handler for the logger. The built-in console handler will
+    # log messages to 'sys.stderr' and capture 'log_level' messages.
+    # NOTE: This is not thread-safe.
+    console_handler = logging.StreamHandler()
+    # Get our filter for the console handler.
+    console_filter = ConsoleFilter()
 
-  console_handler.setLevel(log_level)
-  console_handler.setFormatter(formatter)
-  console_handler.addFilter(console_filter)
-  logger.addHandler(console_handler)
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(formatter)
+    console_handler.addFilter(console_filter)
+    logger.addHandler(console_handler)
+    logger.debug('Added a console handler.')
+  else:
+    logger.warn('We already have a console handler.')
+
+
+
+
+
+def remove_console_handler():
+  # Assign to the global console_handler object.
+  global console_handler
+
+  if console_handler:
+    logger.removeHandler(console_handler)
+    # NOTE: This is not thread-safe.
+    console_handler = None
+    logger.debug('Removed a console handler.')
+  else:
+    logger.warn('We do not have a console handler.')
 
 
 
