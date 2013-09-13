@@ -52,9 +52,9 @@ class ExtraneousDependencyAlert(Exception):
 
 # Interpret anything following 'requires:' in the contents of the file it
 # downloads as a comma-separated list of dependent files from the same repository.
-def _download(url, filename, directory, TUF=False):
+def _download(url, filename, directory, using_tuf=False):
   destination = os.path.join(directory, filename)
-  if TUF:
+  if using_tuf:
     tuf.interposition.urllib_tuf.urlretrieve(url, destination)
   else:
     urllib.urlretrieve(url, destination)
@@ -66,17 +66,17 @@ def _download(url, filename, directory, TUF=False):
     required_files = file_contents[file_contents.find('requires:') + 9:].split(',')
     for required_filename in required_files:
       required_file_url = os.path.dirname(url)+os.sep+required_filename
-      _download(required_file_url, required_filename, directory, TUF)
+      _download(required_file_url, required_filename, directory, using_tuf)
 
 
 
-def test_extraneous_dependency_attack(TUF=False):
+def test_extraneous_dependency_attack(using_tuf=False):
   """
   <Purpose>
     Illustrate extraneous dependency attack vulnerability.
 
   <Arguments>
-    TUF:
+    using_tuf:
       If set to 'False' all directories that start with 'tuf_' are ignored, 
       indicating that tuf is not implemented.
 
@@ -87,7 +87,7 @@ def test_extraneous_dependency_attack(TUF=False):
 
   try:
     # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
     downloads = os.path.join(root_repo, 'downloads')
@@ -116,7 +116,7 @@ def test_extraneous_dependency_attack(TUF=False):
     modified_dependency_list = bad_dependency_basename+','+\
       good_dependency_basename
 
-    if TUF:
+    if using_tuf:
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
@@ -127,12 +127,14 @@ def test_extraneous_dependency_attack(TUF=False):
       # path relative to 'targets_dir'. 
       url_to_repo = 'http://localhost:9999/'+dependent_basename
 
-      # Attacker adds the dependency in the targets repository.
-      target = os.path.join(targets_dir, dependent_basename)
-      util_test_tools.modify_file_at_repository(target,
+      # Attacker modifies the depenent file in the targets repository, adding
+      # the bad dependency to its list.
+      dependent_target_filepath = os.path.join(targets_dir, dependent_basename)
+      util_test_tools.modify_file_at_repository(dependent_target_filepath,
                                         'requires:'+modified_dependency_list)
 
-    # Attacker adds the dependency in the regular repository.
+    # Attacker modifies the depenent file in the regular repository, adding
+    # the bad dependency to its list.
     util_test_tools.modify_file_at_repository(dependent_filepath,
                                         'requires:'+modified_dependency_list)
 
@@ -142,7 +144,7 @@ def test_extraneous_dependency_attack(TUF=False):
     try:
       # Client downloads (tries to download) the file.
       _download(url=url_to_repo, filename=dependent_basename,
-                directory=downloads, TUF=TUF)
+                directory=downloads, using_tuf)
 
     except tuf.NoWorkingMirrorError, error:
       # We only set up one mirror, so if it fails, we expect a
@@ -169,7 +171,7 @@ def test_extraneous_dependency_attack(TUF=False):
 
 print 'Attempting extraneous dependency attack without TUF:'
 try:
-  test_extraneous_dependency_attack(TUF=False)
+  test_extraneous_dependency_attack(using_tuf=False)
   
 except ExtraneousDependencyAlert, error:
   print error
@@ -179,7 +181,7 @@ print
 
 print 'Attempting extraneous dependency attack with TUF:'
 try:
-  test_extraneous_dependency_attack(TUF=True)
+  test_extraneous_dependency_attack(using_tuf=True)
 
 except ExtraneousDependencyAlert, error:
   print error

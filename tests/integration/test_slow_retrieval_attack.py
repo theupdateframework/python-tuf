@@ -57,8 +57,8 @@ class SlowRetrievalAttackAlert(Exception):
   pass
 
 
-def _download(url, filename, TUF=False):
-  if TUF:
+def _download(url, filename, using_tuf=False):
+  if using_tuf:
     try:
       urllib_tuf.urlretrieve(url, filename)
     except tuf.NoWorkingMirrorError, exception:
@@ -82,10 +82,10 @@ def _download(url, filename, TUF=False):
 
 
 
-def test_slow_retrieval_attack(TUF=False, mode=None):
+def test_slow_retrieval_attack(using_tuf=False, mode=None):
 
   WAIT_TIME = 60  # Number of seconds to wait until download completes.
-  ERROR_MSG = 'Slow retrieval attack succeeded (TUF: '+str(TUF)+', mode: '+\
+  ERROR_MSG = 'Slow retrieval attack succeeded (using_tuf: '+str(using_tuf)+', mode: '+\
               str(mode)+').'
 
   # Launch the server.
@@ -97,7 +97,7 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
   try:
     # Setup.
     root_repo, url, server_proc, keyids = \
-      util_test_tools.init_repo(tuf=TUF, port=port)
+      util_test_tools.init_repo(using_tuf, port=port)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     downloads = os.path.join(root_repo, 'downloads')
     
@@ -108,7 +108,7 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
     downloaded_file = os.path.join(downloads, file_basename)
 
 
-    if TUF:
+    if using_tuf:
       tuf_repo = os.path.join(root_repo, 'tuf_repo')
       
       # Update TUF metadata before attacker modifies anything.
@@ -147,25 +147,25 @@ def test_slow_retrieval_attack(TUF=False, mode=None):
 # mode_2: During the download process, the server blocks the download 
 # by sending just several characters every few seconds.
 try:
-  test_slow_retrieval_attack(TUF=False, mode = "mode_1")
+  test_slow_retrieval_attack(using_tuf=False, mode = "mode_1")
 except SlowRetrievalAttackAlert, error:
   print(error)
   print()
 
 try:
-  test_slow_retrieval_attack(TUF=False, mode = "mode_2")
+  test_slow_retrieval_attack(using_tuf=False, mode = "mode_2")
 except SlowRetrievalAttackAlert, error:
   print(error)
   print()
 
 try:
-  test_slow_retrieval_attack(TUF=True, mode = "mode_1")
+  test_slow_retrieval_attack(using_tuf=True, mode = "mode_1")
 except SlowRetrievalAttackAlert, error:
   print(error)
   print()
 
 try:
-  test_slow_retrieval_attack(TUF=True, mode = "mode_2")
+  test_slow_retrieval_attack(using_tuf=True, mode = "mode_2")
 except SlowRetrievalAttackAlert, error:
   print(error)
   print()
