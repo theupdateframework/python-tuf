@@ -38,12 +38,10 @@
 
 
 import os
-import shutil
 import urllib
-import tempfile
 
 import tuf
-from tuf.interposition import urllib_tuf
+import tuf.interposition
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -57,7 +55,7 @@ class ExtraneousDependencyAlert(Exception):
 def _download(url, filename, directory, TUF=False):
   destination = os.path.join(directory, filename)
   if TUF:
-    urllib_tuf.urlretrieve(url, destination)
+    tuf.interposition.urllib_tuf.urlretrieve(url, destination)
   else:
     urllib.urlretrieve(url, destination)
 
@@ -75,7 +73,7 @@ def _download(url, filename, directory, TUF=False):
 def test_extraneous_dependency_attack(TUF=False):
   """
   <Purpose>
-    Illustrate arbitrary package attack vulnerability.
+    Illustrate extraneous dependency attack vulnerability.
 
   <Arguments>
     TUF:
@@ -165,8 +163,7 @@ def test_extraneous_dependency_attack(TUF=False):
         raise ExtraneousDependencyAlert(ERROR_MSG)
   
   finally:
-    pass
-    # util_test_tools.cleanup(root_repo, server_proc)
+    util_test_tools.cleanup(root_repo, server_proc)
 
 
 
@@ -178,9 +175,9 @@ except ExtraneousDependencyAlert, error:
   print error
 else:
   print 'Extraneous dependency attack failed.'
+print
 
-
-print '\nAttempting extraneous dependency attack with TUF:'
+print 'Attempting extraneous dependency attack with TUF:'
 try:
   test_extraneous_dependency_attack(TUF=True)
 
@@ -188,5 +185,4 @@ except ExtraneousDependencyAlert, error:
   print error
 else:
   print 'Extraneous dependency attack failed.'
-
-print ''
+print
