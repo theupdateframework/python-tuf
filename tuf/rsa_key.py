@@ -372,8 +372,9 @@ def create_signature(rsakey_dict, data):
   method = 'PyCrypto-PKCS#1 PSS'
   sig = None
   
-  if private_key:
-    # Take
+  if private_key is not '':
+    # Calculate the SHA256 hash of 'data' and generate the hash's PKCS1-PSS
+    # signature. 
     try:
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
       sha256_object = Crypto.Hash.SHA256.new(data)

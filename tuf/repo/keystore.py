@@ -61,10 +61,11 @@ import Crypto.Cipher.AES
 import Crypto.Random
 
 # The mode of operation is presently set to CTR (CounTeR Mode) for symmetric
-# block encryption (AES-256).  PyCrypto provides a callable stateful block
-# counter that can update successive blocks when needed.  The initial random
-# block (IV) can be set to begin the process of incrementing the 128-bit blocks
-# and allowing the AES algorithm to perform cipher block operations on them. 
+# block encryption (AES-256, where the symmetric is 256 bits).  PyCrypto
+# provides a callable stateful block counter that can update successive blocks
+# when needed.  The initial random block, or initialization vector (IV), can
+# be set to begin the process of incrementing the 128-bit blocks and allowing
+# the AES algorithm to perform cipher block operations on them. 
 import Crypto.Util.Counter
 
 import tuf.rsa_key
@@ -77,7 +78,7 @@ logger = logging.getLogger('tuf.keystore')
 json = tuf.util.import_json()
 
 # The delimiter symbol used to separate the different sections
-# of encrypted files (i.e., salt, IV, ciphertext, passphrase).
+# of encrypted files (i.e., salt, iterations, hmac, IV, ciphertext).
 # This delimiter is arbitrarily chosen and should not occur in
 # the hexadecimal representations of the fields it is separating.
 _ENCRYPTION_DELIMITER = '@@@@'
@@ -86,14 +87,15 @@ _ENCRYPTION_DELIMITER = '@@@@'
 _AES_KEY_SIZE = 32
 
 # Default salt size, in bytes.  A 128-bit salt (i.e., a random sequence of data
-# to protect against dictionary attacks) is generated for PBKDF2.  
+# to protect against attacks that use precomputed rainbow tables to crack
+# password hashes) is generated for PBKDF2.  
 _SALT_SIZE = 16 
 
 # Default PBKDF2 passphrase iterations.  The current "good enough" number
 # of passphrase iterations.  We recommend that important keys, such as root,
 # be kept offline.  'tuf.conf.PBKDF2_ITERATIONS' should increase as CPU
-# speeds increase, set here at 100,000 iterations by default (in 2013).  The
-# repository maintainer may opt to modify the default setting according to
+# speeds increase, set here at 100,000 iterations by default (in 2013).
+# Repository maintainers may opt to modify the default setting according to
 # their security needs and computational restrictions.  A strong user password
 # is still important.  Modifying the number of iterations will result in a new
 # derived key+PBDKF2 combination if the key is loaded and re-saved, overriding
@@ -101,14 +103,19 @@ _SALT_SIZE = 16
 # https://en.wikipedia.org/wiki/PBKDF2
 _PBKDF2_ITERATIONS = tuf.conf.PBKDF2_ITERATIONS
 
-# A user password is read and a derived key generated.  The derived key and
-# salt returned by the key derivation function (PBKDF2) is saved in
-# '_derived_keys', which has the form:
-# {keyid: {'salt': ..., 'derived_key': ...}}
+# A user password is read and a derived key generated.  The derived key returned
+# by the key derivation function (PBKDF2) is saved in '_derived_keys', along
+# with the salt and iterations used, which has the form:
+# {keyid: {'salt': '\x9b\x90\xf1g\xb9li\x04\x8d\x10h\xb5T\xaa\xc1',
+#          'iterations': 10000, 
+#          'derived_key': '\xda\xed\xf2\xe0\x8f\x03\xeb\xde!\xc4RJ'},
+#  keyid2: ...}
 _derived_keys = {}
 
 # The keystore database, which has the form:
-# {keyid: key, keyid2: key2, ...}
+# {keyid: key,
+#  keyid2: key2,
+#  ...}
 _keystore = {}
 
 
@@ -599,7 +606,8 @@ def _encrypt(key_data, derived_key_information):
     ciphertext = aes_cipher.encrypt(key_data)
   
   # Raise generic exception message to avoid revealing sensitive information,
-  # such as invalid passwords, encryption keys, etc.
+  # such as invalid passwords, encryption keys, etc., that an attacker can use
+  # to his advantage.
   except Exception, e:
     message = 'The key data could not be encrypted.' 
     raise tuf.CryptoError(message)
@@ -640,10 +648,10 @@ def _decrypt(file_contents, password):
   
   """
  
-  # Extract the salt, hmac, initialization vector, and ciphertext from
-  # 'file_contents'.  These three values are delimited by '_ENCRYPTION_DELIMITER'.
-  # This delimiter is arbitrarily chosen and should not occur in the
-  # hexadecimal representations of the fields it is separating.
+  # Extract the salt, iterations, hmac, initialization vector, and ciphertext
+  # from 'file_contents'.  These five values are delimited by
+  # '_ENCRYPTION_DELIMITER'.  This delimiter is arbitrarily chosen and should
+  # not occur in the hexadecimal representations of the fields it is separating.
   salt, iterations, hmac, iv, ciphertext = \
     file_contents.split(_ENCRYPTION_DELIMITER)
   
@@ -678,7 +686,8 @@ def _decrypt(file_contents, password):
     key_plaintext = aes_cipher.decrypt(ciphertext)
   
   # Raise generic exception message to avoid revealing sensitive information,
-  # such as invalid passwords, encryption keys, etc.
+  # such as invalid passwords, encryption keys, etc., that an attacker can
+  # use to his advantage.
   except Exception, e: 
     raise tuf.CryptoError('Decryption failed.')
 
