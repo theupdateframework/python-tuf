@@ -898,6 +898,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    # returns each filepath listed in 'self.all_role_paths' in the listed
    # order.
    self._mock_download_url_to_tempfileobj(self.all_role_paths)
+   setup.build_server_repository(self.server_repo_dir, self.targets_dir)
 
    # Update top-level metadata.
    self.Repository.refresh()
