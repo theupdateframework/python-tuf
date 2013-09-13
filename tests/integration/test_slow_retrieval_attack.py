@@ -49,7 +49,7 @@ import tuf
 import urllib
 
 
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -60,7 +60,7 @@ class SlowRetrievalAttackAlert(Exception):
 def _download(url, filename, using_tuf=False):
   if using_tuf:
     try:
-      urllib_tuf.urlretrieve(url, filename)
+      tuf.interposition.urllib_tuf.urlretrieve(url, filename)
     except tuf.NoWorkingMirrorError, exception:
       slow_retrieval = False
       for mirror_url, mirror_error in exception.mirror_errors.iteritems():
@@ -124,7 +124,7 @@ def test_slow_retrieval_attack(using_tuf=False, mode=None):
 
     # Client tries to download.
     # NOTE: if TUF is enabled the metadata files will be downloaded first.
-    proc = Process(target=_download, args=(url_to_file, downloaded_file, TUF))
+    proc = Process(target=_download, args=(url_to_file, downloaded_file, using_tuf))
     proc.start()
     proc.join(WAIT_TIME)
 

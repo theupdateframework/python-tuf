@@ -38,7 +38,7 @@ import shutil
 import urllib
 import tempfile
 
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -54,7 +54,7 @@ class ReplayAttackAlert(Exception):
 
 def _download(url, filename, using_tuf=False):
   if using_tuf:
-    urllib_tuf.urlretrieve(url, filename)
+    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
     
   else:
     urllib.urlretrieve(url, filename)
@@ -114,7 +114,7 @@ def test_replay_attack(using_tuf=False):
 
 
     # Client performs initial update.
-    _download(url=url_to_repo, filename=downloaded_file, using_tuf)
+    _download(url_to_repo, downloaded_file, using_tuf)
 
     # Downloads are stored in the same directory '{root_repo}/downloads/'
     # for regular and tuf clients.
@@ -132,7 +132,7 @@ def test_replay_attack(using_tuf=False):
 
 
     # Client downloads the patched file.
-    _download(url=url_to_repo, filename=downloaded_file, using_tuf)
+    _download(url_to_repo, downloaded_file, using_tuf)
 
     # Content of the downloaded file.
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
@@ -157,7 +157,7 @@ def test_replay_attack(using_tuf=False):
 
 
     # Client downloads the file once more.
-    _download(url=url_to_repo, filename=downloaded_file, using_tuf)
+    _download(url_to_repo, downloaded_file, using_tuf)
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.

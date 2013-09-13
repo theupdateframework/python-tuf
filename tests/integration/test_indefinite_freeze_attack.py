@@ -28,7 +28,7 @@ import tempfile
 
 import tuf
 import tuf.formats
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.repo.signerlib as signerlib
 import tuf.tests.util_test_tools as util_test_tools
 
@@ -63,7 +63,7 @@ def _remake_timestamp(metadata_dir, keyids):
 
 def _download(url, filename, using_tuf=False):
   if using_tuf:
-    urllib_tuf.urlretrieve(url, filename)
+    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
     
   else:
     urllib.urlretrieve(url, filename)
@@ -119,7 +119,7 @@ def test_indefinite_freeze_attack(using_tuf=False):
 
     # Client performs initial download.
     try:
-      _download(url=url_to_repo, filename=downloaded_file, using_tuf)
+      _download(url_to_repo, downloaded_file, using_tuf)
     except tuf.ExpiredMetadataError:
       msg = ('Metadata has expired too soon, extend expiration period. '+
              'Current expiration is set to: '+repr(EXPIRATION)+' second(s).')
@@ -130,7 +130,7 @@ def test_indefinite_freeze_attack(using_tuf=False):
 
     # Try downloading again, this should raise an error.
     try:
-      _download(url=url_to_repo, filename=downloaded_file, using_tuf)
+      _download(url_to_repo, downloaded_file, using_tuf)
     except tuf.ExpiredMetadataError, error:
       pass
     else:
