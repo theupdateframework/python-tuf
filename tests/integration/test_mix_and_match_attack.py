@@ -40,7 +40,7 @@ import urllib
 import tempfile
 
 import tuf
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -48,9 +48,9 @@ class MixAndMatchAttackAlert(Exception):
   pass
 
 
-def _download(url, filename, tuf=False):
-  if tuf:
-    urllib_tuf.urlretrieve(url, filename)
+def _download(url, filename, using_tuf=False):
+  if using_tuf:
+    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
     
   else:
     urllib.urlretrieve(url, filename)
@@ -126,7 +126,7 @@ def test_mix_and_match_attack(TUF=False):
 
 
     # Client's initial download.
-    _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
+    _download(url=url_to_file, filename=downloaded_file, using_tuf=TUF)
 
     # Stage 2
     # -------
@@ -139,7 +139,7 @@ def test_mix_and_match_attack(TUF=False):
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
     # Client downloads the patched file.
-    _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
+    _download(url=url_to_file, filename=downloaded_file, using_tuf=TUF)
 
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
 
@@ -163,9 +163,11 @@ def test_mix_and_match_attack(TUF=False):
 
     # Client tries to downloads the newly patched file.
     try:
-      _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
-    except tuf.MetadataNotAvailableError:
-      pass
+      _download(url=url_to_file, filename=downloaded_file, using_tuf=TUF)
+    except tuf.NoWorkingMirrorError as errors:
+      for mirror_url, mirror_error in errors.mirror_errors.iteritems():
+	if type(mirror_error) == tuf.BadHashError:
+	  print 'Catched a Bad Hash Error!'
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.
