@@ -141,8 +141,11 @@ class ConsoleFilter(logging.Filter):
       # most useful for the console handler, which we do not wish to deluge
       # with too much data. Assuming that this filter is not applied to the
       # file logging handler, the user may always consult the file log for the
-      # original exception traceback.
-      record.exc_text = str(record.exc_info)
+      # original exception traceback. The exc_info is explained here:
+      # http://docs.python.org/2/library/sys.html#sys.exc_info
+      exc_type, exc_value, exc_traceback = record.exc_info
+      # Simply set the class name as the exception text.
+      record.exc_text = exc_type.__name__
 
     # Always return True to signal that any given record must be formatted.
     return True
