@@ -166,8 +166,8 @@ def test_mix_and_match_attack(TUF=False):
       _download(url=url_to_file, filename=downloaded_file, using_tuf=TUF)
     except tuf.NoWorkingMirrorError as errors:
       for mirror_url, mirror_error in errors.mirror_errors.iteritems():
-	if type(mirror_error) == tuf.BadHashError:
-	  print 'Catched a Bad Hash Error!'
+			 if type(mirror_error) == tuf.BadHashError:
+				print 'Catched a Bad Hash Error!'
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.
