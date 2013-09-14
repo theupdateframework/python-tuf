@@ -56,14 +56,13 @@ def _download(url, filename, using_tuf=False):
 
 def test_arbitrary_package_attack(using_tuf=False):
   """
+  <Purpose>
+    Illustrate arbitrary package attack vulnerability.
+    
   <Arguments>
     using_tuf:
       If set to 'False' all directories that start with 'tuf_' are ignored, 
       indicating that tuf is not implemented.
-
-  <Purpose>
-    Illustrate arbitrary package attack vulnerability.
-
   """
 
   ERROR_MSG = 'Arbitrary Package Attack was Successful!'
