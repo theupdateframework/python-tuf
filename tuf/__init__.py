@@ -134,9 +134,9 @@ class ReplayedMetadataError(RepositoryError):
 
 
   def __str__(self):
-    return str(self.metadata_role)+' is older than the version currently'+\
-      'installed.\nDownloaded version: '+repr(self.previous_version)+'\n'+\
-      'Current version: '+repr(self.current_version)
+    return 'Downloaded '+str(self.metadata_role)+' is older ('+\
+           str(self.previous_version)+') than the version currently '+\
+           'installed ('+repr(self.current_version)+').'
 
 
 

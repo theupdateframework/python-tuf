@@ -1021,7 +1021,7 @@ class Updater(object):
 
       except Exception, exception:
         # Remember the error from this mirror, and "reset" the target file.
-        logger.exception('Download failed from '+file_mirror+'.')
+        logger.exception('Update failed from '+file_mirror+'.')
         file_mirror_errors[file_mirror] = exception
         file_object = None
       else:
@@ -1030,8 +1030,8 @@ class Updater(object):
     if file_object:
       return file_object
     else:
-      logger.exception('Failed to download {0}: {1}'.format(filepath,
-                       file_mirror_errors))
+      logger.exception('Failed to update {0} from all mirrors: {1}'.format(
+                       filepath, file_mirror_errors))
       raise tuf.NoWorkingMirrorError(file_mirror_errors)
 
 
@@ -1744,6 +1744,7 @@ class Updater(object):
     # returned by time.time() (i.e., current time), before comparing.
     if tuf.formats.parse_time(expires) < time.time():
       message = 'Metadata '+repr(rolepath)+' expired on '+repr(expires)+'.'
+      logger.error(message)
       raise tuf.ExpiredMetadataError(message)
 
 
