@@ -88,7 +88,7 @@ def test_indefinite_freeze_attack(TUF=False):
 
   try:
     # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf=TUF)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
     metadata_dir = os.path.join(tuf_repo, 'metadata')
