@@ -1021,7 +1021,7 @@ class Updater(object):
 
       except Exception, exception:
         # Remember the error from this mirror, and "reset" the target file.
-        logger.exception('Download failed from '+file_mirror+'.')
+        logger.exception('Update failed from '+file_mirror+'.')
         file_mirror_errors[file_mirror] = exception
         file_object = None
       else:
@@ -1030,8 +1030,8 @@ class Updater(object):
     if file_object:
       return file_object
     else:
-      logger.exception('Failed to download {0}: {1}'.format(filepath,
-                       file_mirror_errors))
+      logger.exception('Failed to update {0} from all mirrors: {1}'.format(
+                       filepath, file_mirror_errors))
       raise tuf.NoWorkingMirrorError(file_mirror_errors)
 
 
