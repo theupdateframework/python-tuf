@@ -1744,6 +1744,7 @@ class Updater(object):
     # returned by time.time() (i.e., current time), before comparing.
     if tuf.formats.parse_time(expires) < time.time():
       message = 'Metadata '+repr(rolepath)+' expired on '+repr(expires)+'.'
+      logger.error(message)
       raise tuf.ExpiredMetadataError(message)
 
 
