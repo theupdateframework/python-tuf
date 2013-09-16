@@ -38,9 +38,10 @@ import os
 import shutil
 import urllib
 import tempfile
+import time
 
 import tuf
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -48,9 +49,9 @@ class MixAndMatchAttackAlert(Exception):
   pass
 
 
-def _download(url, filename, tuf=False):
-  if tuf:
-    urllib_tuf.urlretrieve(url, filename)
+def _download(url, filename, using_tuf=False):
+  if using_tuf:
+    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
     
   else:
     urllib.urlretrieve(url, filename)
@@ -81,7 +82,7 @@ def test_mix_and_match_attack(TUF=False):
   try:
     # Setup / Stage 1
     # ---------------
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf=TUF)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     downloads = os.path.join(root_repo, 'downloads')
     evil_dir = tempfile.mkdtemp(dir=root_repo)
@@ -125,8 +126,10 @@ def test_mix_and_match_attack(TUF=False):
       url_to_file = 'http://localhost:9999/'+file_basename
 
 
+    # Wait for some time to let program set up local http server
+    time.sleep(1)
     # Client's initial download.
-    _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
+    _download(url=url_to_file, filename=downloaded_file, using_tuf=TUF)
 
     # Stage 2
     # -------
@@ -139,7 +142,7 @@ def test_mix_and_match_attack(TUF=False):
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
     # Client downloads the patched file.
-    _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
+    _download(url=url_to_file, filename=downloaded_file, using_tuf=TUF)
 
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
 
@@ -163,9 +166,11 @@ def test_mix_and_match_attack(TUF=False):
 
     # Client tries to downloads the newly patched file.
     try:
-      _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
-    except tuf.MetadataNotAvailableError:
-      pass
+      _download(url=url_to_file, filename=downloaded_file, using_tuf=TUF)
+    except tuf.NoWorkingMirrorError as errors:
+      for mirror_url, mirror_error in errors.mirror_errors.iteritems():
+        if type(mirror_error) == tuf.BadHashError:
+          print 'Catched a Bad Hash Error!'
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.
