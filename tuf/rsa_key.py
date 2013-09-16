@@ -34,10 +34,10 @@
   get the keyid of a key object by simply accessing the dictionary's 'keyid'
   key (i.e., rsakey['keyid']).
 
-"""
+ """
 
 
-# Required for hexadecimal conversions.
+# Required for hexadecimal conversions.  Signatures are hexlified.
 import binascii
 
 # Crypto.PublicKey (i.e., PyCrypto public-key cryptography) provides algorithms
@@ -47,8 +47,15 @@ import Crypto.PublicKey.RSA
 
 # PyCrypto requires 'Crypto.Hash' hash objects to generate PKCS#1 PSS
 # signatures (i.e., Crypto.Signature.PKCS1_PSS).
-# https://tools.ietf.org/html/rfc3447 
 import Crypto.Hash.SHA256
+
+# RSA's probabilistic signature scheme with appendix (RSASSA-PSS).
+# PKCS#1 v1.5 is provided for compatability with existing applications, but
+# RSASSA-PSS is encouraged for newer applications.  RSASSA-PSS generates
+# a random salt to ensure the signature generated is probabilistic rather than
+# deterministic, like PKCS#1 v1.5.
+# http://en.wikipedia.org/wiki/RSA-PSS#Schemes 
+# https://tools.ietf.org/html/rfc3447#section-8.1 
 import Crypto.Signature.PKCS1_PSS
 
 import tuf
@@ -89,6 +96,7 @@ def generate(bits=_DEFAULT_RSA_KEY_BITS):
   <Exceptions>
     ValueError, if an exception occurs after calling the RSA key generation
     routine.  'bits' must be 1024, or greater, and a multiple of 256.
+    Raised by Cryptography library.  
 
     tuf.FormatError, if 'bits' does not contain the correct format.
 
@@ -148,17 +156,18 @@ def generate(bits=_DEFAULT_RSA_KEY_BITS):
 def create_in_metadata_format(key_value, private=False):
   """
   <Purpose>
-    Return a dictionary conformant to tuf.formats.KEY_SCHEMA.
+    Return a dictionary conformant to 'tuf.formats.KEY_SCHEMA'.
     If 'private' is True, include the private key.  The dictionary
     returned has the form:
     {'keytype': 'rsa',
      'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
                 'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
-    or
+    
+    or if 'private' is False:
 
     {'keytype': 'rsa',
      'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
-                'private': ''}} if 'private' is False.
+                'private': ''}}
     
     The private and public keys are in PEM format.
     
@@ -172,7 +181,7 @@ def create_in_metadata_format(key_value, private=False):
 
       {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
        'private': '-----BEGIN RSA PRIVATE KEY----- ...'}},
-      conformat to tuf.formats.KEYVAL_SCHEMA.
+      conformat to 'tuf.formats.KEYVAL_SCHEMA'.
 
     private:
       Indicates if the private key should be included in the
@@ -197,7 +206,7 @@ def create_in_metadata_format(key_value, private=False):
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.KEYVAL_SCHEMA.check_match(key_value)
 
-  if private and key_value['private']:
+  if private is True and key_value['private']:
     return {'keytype': 'rsa', 'keyval': key_value}
   else:
     public_key_value = {'public': key_value['public'], 'private': ''}
@@ -262,6 +271,8 @@ def create_from_metadata_format(key_metadata):
   keytype = 'rsa'
   key_value = key_metadata['keyval']
 
+  # Convert 'key_value' to 'tuf.formats.KEY_SCHEMA' and generate its hash
+  # The hash is in hexdigest form. 
   keyid = _get_keyid(key_value)
 
   # We now have all the required key values.  Build 'rsakey_dict'.
@@ -563,6 +574,8 @@ def create_from_encrypted_pem(encrypted_pem, passphrase):
     where the private part of the RSA key is encrypted.  PyCrypto's importKey
     method is used, where a passphrase is specified.  PyCrypto uses PBKDF1+MD5
     to strengthen 'passphrase', and 3DES with CBC mode for encryption/decryption.    
+    Alternatively, key data may be encrypted with AES-CTR-Mode and the passphrase
+    strengthened with PBKDF2+SHA256.  See 'keystore.py'.
 
   <Arguments>
     encrypted_pem:
@@ -609,6 +622,9 @@ def create_from_encrypted_pem(encrypted_pem, passphrase):
   except (ValueError, IndexError, TypeError), e:
     message = 'An RSA key object could not be generated from the encrypted '+\
       'PEM string.'
+    # Raise 'tuf.CryptoError' instead of PyCrypto's exception to avoid
+    # revealing sensitive error, such as a decryption error due to an
+    # invalid passphrase.
     raise tuf.CryptoError(message)
 
   # Extract the public & private halves of the RSA key and generate their

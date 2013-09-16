@@ -134,9 +134,9 @@ class ReplayedMetadataError(RepositoryError):
 
 
   def __str__(self):
-    return str(self.metadata_role)+' is older than the version currently'+\
-      'installed.\nDownloaded version: '+repr(self.previous_version)+'\n'+\
-      'Current version: '+repr(self.current_version)
+    return 'Downloaded '+str(self.metadata_role)+' is older ('+\
+           str(self.previous_version)+') than the version currently '+\
+           'installed ('+repr(self.current_version)+').'
 
 
 
@@ -176,7 +176,14 @@ class UnsupportedLibraryError(Error):
 
 class DecompressionError(Error):
   """Indicate that some error happened while decompressing a file."""
-  pass
+
+  def __init__(self, exception):
+    # Store the original exception.
+    self.exception = exception
+
+  def __str__(self):
+    # Show the original exception.
+    return str(self.exception)
 
 
 
