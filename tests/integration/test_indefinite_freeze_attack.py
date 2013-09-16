@@ -130,11 +130,11 @@ def test_indefinite_freeze_attack(TUF=False):
 
       # Try downloading again, this should raise an error.
       try:
-	_download(url=url_to_repo, filename=downloaded_file, using_tuf=TUF)
+        _download(url=url_to_repo, filename=downloaded_file, using_tuf=TUF)
       except tuf.ExpiredMetadataError, error:
-	print('Caught an expiration error!')
+        print('Caught an expiration error!')
       else:
-	raise IndefiniteFreezeAttackAlert(ERROR_MSG)
+        raise IndefiniteFreezeAttackAlert(ERROR_MSG)
   finally:
     util_test_tools.cleanup(root_repo, server_proc)
 
