@@ -38,6 +38,7 @@ import os
 import shutil
 import urllib
 import tempfile
+import time
 
 import tuf
 import tuf.interposition
@@ -125,6 +126,8 @@ def test_mix_and_match_attack(TUF=False):
       url_to_file = 'http://localhost:9999/'+file_basename
 
 
+    # Wait for some time to let program set up local http server
+    time.sleep(1)
     # Client's initial download.
     _download(url=url_to_file, filename=downloaded_file, using_tuf=TUF)
 
