@@ -28,9 +28,9 @@ import tempfile
 
 import tuf
 import tuf.formats
+import tuf.interposition.urllib_tuf as urllib_tuf
 import tuf.repo.signerlib as signerlib
-from tuf.interposition import urllib_tuf
-from tuf.tests import util_test_tools
+import tuf.tests.util_test_tools as util_test_tools
 
 
 class IndefiniteFreezeAttackAlert(Exception):

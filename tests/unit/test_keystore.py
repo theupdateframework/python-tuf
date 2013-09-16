@@ -330,6 +330,19 @@ class TestKeystore(unittest.TestCase):
 
 
 
+def setUpModule():
+  # setUpModule() is called before any test cases run.
+  # Ensure the keystore has not been modified by a previous test, which may
+  # affect assumptions (i.e., empty keystore) made by the tests cases in this
+  # unit test.
+  tuf.repo.keystore.clear_keystore()
+
+def tearDownModule():
+  # tearDownModule() is called after all the tests have run.
+  # Ensure we clean up the keystore.  They say courtesy is contagious.
+  tuf.repo.keystore.clear_keystore()
+
+
 # Run the unit tests.
 if __name__ == '__main__':
   unittest.main()
