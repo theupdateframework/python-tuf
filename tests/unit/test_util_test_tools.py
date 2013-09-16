@@ -34,7 +34,7 @@ class test_UtilTestTools(unittest.TestCase):
     tuf.repo.keystore.clear_keystore()
 
     # Unpacking necessary parameters returned from init_repo()
-    essential_params = util_test_tools.init_repo(tuf=True)
+    essential_params = util_test_tools.init_repo(using_tuf=True)
     self.root_repo = essential_params[0] 
     self.url = essential_params[1]
     self.server_proc = essential_params[2]
