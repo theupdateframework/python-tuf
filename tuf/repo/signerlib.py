@@ -37,7 +37,8 @@ logger = logging.getLogger('tuf.signerlib')
 
 json = tuf.util.import_json()
 
-# Recommended RSA key sizes: http://www.rsa.com/rsalabs/node.asp?id=2004
+# Recommended RSA key sizes:
+# http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1 
 # According to the document above, revised May 6, 2003, RSA keys of
 # size 3072 provide security through 2031 and beyond.  2048-bit keys
 # are the recommended minimum and are good from the present through 2030.
@@ -746,6 +747,9 @@ def generate_and_save_rsa_key(keystore_directory, password,
 
     bits:
       The key size, or key length, of the RSA key.
+      If 'bits' is unspecified, a 3072-bit RSA key is generated, which is the
+      key size recommended by TUF, although 2048-bit keys are accepted
+      (minimum key size).
 
   <Exceptions>
     tuf.FormatError, if 'bits' or 'password' does not have the
