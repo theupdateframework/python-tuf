@@ -21,6 +21,8 @@
 
 """
 
+import urlparse
+
 # Import 'tuf.formats' if a module tries to import the
 # entire tuf package (i.e., from tuf import *). 
 __all__ = ['formats']
@@ -278,7 +280,21 @@ class NoWorkingMirrorError(Error):
     self.mirror_errors = mirror_errors
 
   def __str__(self):
-    return str(self.mirror_errors)
+    all_errors = 'No working mirror was found:'
+
+    for mirror_url, mirror_error in self.mirror_errors.iteritems():
+      try:
+        # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
+        mirror_url_tokens = urlparse.urlparse(mirror_url)
+      except:
+        logging.exception('Failed to parse mirror URL: '+str(mirror_url))
+        mirror_netloc = mirror_url
+      else:
+        mirror_netloc = mirror_url_tokens.netloc
+
+      all_errors += '\n  '+str(mirror_netloc)+': '+str(mirror_error)
+
+    return all_errors
 
 
 
