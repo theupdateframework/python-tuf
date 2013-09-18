@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_extraneous_dependencies_attack.py
@@ -36,13 +38,11 @@
 
 
 import os
-import shutil
 import urllib
-import tempfile
 
 import tuf
-import tuf.interposition 
-import util_test_tools
+import tuf.interposition
+import tuf.tests.util_test_tools as util_test_tools
 
 
 class ExtraneousDependencyAlert(Exception):
@@ -50,63 +50,73 @@ class ExtraneousDependencyAlert(Exception):
 
 
 
-# Interpret the contents of the file it downloads as a list of dependent
-# files from the same repository.
-def _download(url, filename, directory, TUF=False):
+# Interpret anything following 'requires:' in the contents of the file it
+# downloads as a comma-separated list of dependent files from the same repository.
+def _download(url, filename, directory, using_tuf=False):
   destination = os.path.join(directory, filename)
-  if TUF:
+  if using_tuf:
     tuf.interposition.urllib_tuf.urlretrieve(url, destination)
   else:
     urllib.urlretrieve(url, destination)
 
-  if util_test_tools.read_file_content(destination) != '':
-    required_files = util_test_tools.read_file_content(destination).split(',')
+  file_contents = util_test_tools.read_file_content(destination)
+
+  # Parse the list of required files (if it exists) and download them.
+  if file_contents.find('requires:') != -1:
+    required_files = file_contents[file_contents.find('requires:') + 9:].split(',')
     for required_filename in required_files:
       required_file_url = os.path.dirname(url)+os.sep+required_filename
-      _download(required_file_url, required_filename, directory, TUF)
+      _download(required_file_url, required_filename, directory, using_tuf)
 
 
 
-def test_extraneous_dependency_attack(TUF=False):
+def test_extraneous_dependency_attack(using_tuf=False):
   """
   <Purpose>
-    Illustrate arbitrary package attack vulnerability.
+    Illustrate extraneous dependency attack vulnerability.
 
   <Arguments>
-    TUF:
+    using_tuf:
       If set to 'False' all directories that start with 'tuf_' are ignored, 
       indicating that tuf is not implemented.
 
   """
 
-  ERROR_MSG = 'Extraneous Dependency Attack was Successful!\n'
+  ERROR_MSG = 'Extraneous Dependency Attack was Successful!'
 
 
   try:
     # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
     downloads = os.path.join(root_repo, 'downloads')
     targets_dir = os.path.join(tuf_repo, 'targets')
 
     # Add files to 'repo' directory: {root_repo}.
-    good_dependency_filepath = util_test_tools.add_file_to_repository(reg_repo, '')
+    good_dependency_filepath = util_test_tools.add_file_to_repository(reg_repo,
+                                          'the file you need')
     good_dependency_basename = os.path.basename(good_dependency_filepath)
 
-    bad_dependency_filepath = util_test_tools.add_file_to_repository(reg_repo, '')
+    bad_dependency_filepath = util_test_tools.add_file_to_repository(reg_repo,
+                                          'the file you don\'t need')
     bad_dependency_basename = os.path.basename(bad_dependency_filepath)
 
     # The dependent file lists the good dependency.
     dependent_filepath = util_test_tools.add_file_to_repository(reg_repo,
-                                                      good_dependency_basename)
+                                          'requires:'+good_dependency_basename)
     dependent_basename = os.path.basename(dependent_filepath)
 
     url_to_repo = url+'reg_repo/'+dependent_basename
-    modified_dependency_list = good_dependency_basename+','+\
-      bad_dependency_basename
 
-    if TUF:
+    # List the bad dependency first. If an attacker modifies a target by
+    # simply appending the file contents, tuf.download will ignore the appended
+    # data, downloading only as much data as the TUF metadata says the target
+    # should contain.
+    modified_dependency_list = bad_dependency_basename+','+\
+      good_dependency_basename
+
+    if using_tuf:
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
@@ -117,28 +127,32 @@ def test_extraneous_dependency_attack(TUF=False):
       # path relative to 'targets_dir'. 
       url_to_repo = 'http://localhost:9999/'+dependent_basename
 
-      # Attacker adds the dependency in the targets repository.
-      target = os.path.join(targets_dir, dependent_basename)
-      util_test_tools.modify_file_at_repository(target,
-                                                modified_dependency_list)
+      # Attacker modifies the depenent file in the targets repository, adding
+      # the bad dependency to its list.
+      dependent_target_filepath = os.path.join(targets_dir, dependent_basename)
+      util_test_tools.modify_file_at_repository(dependent_target_filepath,
+                                        'requires:'+modified_dependency_list)
 
-    # Attacker adds the dependency in the regular repository.
+    # Attacker modifies the depenent file in the regular repository, adding
+    # the bad dependency to its list.
     util_test_tools.modify_file_at_repository(dependent_filepath,
-                                              modified_dependency_list)
+                                        'requires:'+modified_dependency_list)
 
     # End of Setup.
 
 
     try:
       # Client downloads (tries to download) the file.
-      _download(url=url_to_repo, filename=dependent_basename,
-                directory=downloads, TUF=TUF)
+      _download(url_to_repo, dependent_basename, downloads, using_tuf)
 
-    except tuf.DownloadError:
-      # If tuf.DownloadError is raised, this means that TUF has prevented
-      # the download of an unrecognized file.  Enable the logging to see,
-      # what actually happened.
-      pass
+    except tuf.NoWorkingMirrorError, error:
+      # We only set up one mirror, so if it fails, we expect a
+      # NoWorkingMirrorError. If TUF has worked as intended, the mirror error
+      # contained within should be a BadHashError.
+      mirror_error = \
+              error.mirror_errors[url+'tuf_repo/targets/'+dependent_basename]
+
+      assert isinstance(mirror_error, tuf.BadHashError)
 
     else:
       # Check if the legitimate dependency was downloaded.
@@ -156,16 +170,20 @@ def test_extraneous_dependency_attack(TUF=False):
 
 print 'Attempting extraneous dependency attack without TUF:'
 try:
-  test_extraneous_dependency_attack(TUF=False)
+  test_extraneous_dependency_attack(using_tuf=False)
   
 except ExtraneousDependencyAlert, error:
   print error
-
-
+else:
+  print 'Extraneous dependency attack failed.'
+print
 
 print 'Attempting extraneous dependency attack with TUF:'
 try:
-  test_extraneous_dependency_attack(TUF=True)
+  test_extraneous_dependency_attack(using_tuf=True)
 
 except ExtraneousDependencyAlert, error:
   print error
+else:
+  print 'Extraneous dependency attack failed.'
+print

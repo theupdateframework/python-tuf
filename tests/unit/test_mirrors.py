@@ -21,15 +21,15 @@ import unittest
 import tuf
 import tuf.formats as formats
 import tuf.mirrors as mirrors
-import tuf.tests.unittest_toolbox
+import tuf.tests.unittest_toolbox as unittest_toolbox
 
 
 
-class TestMirrors(tuf.tests.unittest_toolbox.Modified_TestCase):
+class TestMirrors(unittest_toolbox.Modified_TestCase):
 
   def setUp(self):
     
-    tuf.tests.unittest_toolbox.Modified_TestCase.setUp(self)
+    unittest_toolbox.Modified_TestCase.setUp(self)
 
     self.mirrors = \
     {'mirror1': {'url_prefix' : 'http://mirror1.com',

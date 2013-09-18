@@ -171,9 +171,10 @@ class TestRsa_key(unittest.TestCase):
     self.assertFalse(verified, 
                      'Returned \'True\' on an incorrect signature.')
 
-    # Modifying 'signature' to pass an incorrect method since only 'evp' 
+    # Modifying 'signature' to pass an incorrect method since only
+    # 'PyCrypto-PKCS#1 PSS' 
     # is accepted.
-    signature['method'] = 'not_evp'
+    signature['method'] = 'Biff'
 
     args = (rsakey_dict, signature, DATA)
     self.assertRaises(tuf.UnknownMethodError, RSA_KEY.verify_signature, *args) 
@@ -181,6 +182,75 @@ class TestRsa_key(unittest.TestCase):
     # Passing incorrect number of arguments.
     self.assertRaises(TypeError,RSA_KEY.verify_signature)
 
+
+  def test_create_encrypted_pem(self):
+    passphrase = 'pw'
+
+    # Check format of 'rsakey_dict'.
+    self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(rsakey_dict),
+                     FORMAT_ERROR_MSG)
+    
+    # Check format of 'passphrase'.
+    self.assertEqual(None, tuf.formats.PASSWORD_SCHEMA.check_match(passphrase),
+                     FORMAT_ERROR_MSG)
+
+    # Generate the encrypted PEM string of 'rsakey_dict'.
+    pem_rsakey = tuf.rsa_key.create_encrypted_pem(rsakey_dict, passphrase)
+
+    # Check for invalid arguments.
+    self.assertRaises(tuf.FormatError,
+                      tuf.rsa_key.create_encrypted_pem, 'Biff', passphrase)
+    self.assertRaises(tuf.FormatError,
+                      tuf.rsa_key.create_encrypted_pem, rsakey_dict, ['pw'])
+  
+  
+  
+  def test_create_from_encrypted_pem(self):
+    passphrase = 'pw'
+
+    # Check format of 'rsakey_dict'.
+    self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(rsakey_dict),
+                     FORMAT_ERROR_MSG)
+    
+    # Check format of 'passphrase'.
+    self.assertEqual(None, tuf.formats.PASSWORD_SCHEMA.check_match(passphrase),
+                     FORMAT_ERROR_MSG)
+
+    # Generate the encrypted PEM string of 'rsakey_dict'.
+    pem_rsakey = tuf.rsa_key.create_encrypted_pem(rsakey_dict, passphrase)
+
+    # Decrypt 'pem_rsakey' and verify the decrypted object is properly
+    # formatted.
+    decrypted_rsakey = tuf.rsa_key.create_from_encrypted_pem(pem_rsakey,
+                                                             passphrase)
+    self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(decrypted_rsakey),
+                     FORMAT_ERROR_MSG)
+
+    # Does 'decrypted_rsakey' match the original 'rsakey_dict'.
+    self.assertEqual(rsakey_dict, decrypted_rsakey)
+
+    # Attempt decryption of 'pem_rsakey' using an incorrect passphrase.
+    self.assertRaises(tuf.CryptoError,
+                      tuf.rsa_key.create_from_encrypted_pem, pem_rsakey,
+                                                             'bad_pw')
+    # Check for non-encrypted PEM string.  create_from_encrypted_pem()/PyCrypto
+    # returns a tuf.formats.RSAKEY_SCHEMA object if PEM formatted string is
+    # not actually encrypted but still a valid PEM string.
+    non_encrypted_private_key = rsakey_dict['keyval']['private']
+    decrypted_non_encrypted = tuf.rsa_key.create_from_encrypted_pem(
+                              non_encrypted_private_key, passphrase)
+    self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(
+                           decrypted_non_encrypted), FORMAT_ERROR_MSG)
+
+    # Check for invalid arguments.
+    self.assertRaises(tuf.FormatError,
+                      tuf.rsa_key.create_from_encrypted_pem, 123, passphrase)
+    self.assertRaises(tuf.FormatError,
+                      tuf.rsa_key.create_from_encrypted_pem, pem_rsakey, ['pw'])
+    self.assertRaises(tuf.CryptoError,
+                      tuf.rsa_key.create_from_encrypted_pem, 'invalid_pem',
+                                                              passphrase)
+ 
 
 
 # Run the unit tests.

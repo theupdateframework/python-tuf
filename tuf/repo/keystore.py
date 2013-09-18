@@ -30,34 +30,79 @@
   have only one key for the entire keystore, and as a result, we're requiring 
   that the password be set at the point where the key is added.
 
+  The <keyid>.key files are encrypted with the AES-256-CTR-Mode symmetric key
+  algorithm.  User passwords are strengthened with PBKDF2, currently set to
+  100,000 passphrase iterations.  The previous evpy implementation used 1,000
+  iterations.
+
 """
 
 import os
 import binascii
 import logging
 
-import evpy.cipher
+# Import PyCrypto's Key Derivation Function (KDF) module.  'keystore.py'
+# needs this module to derive a secret key according to the Password-Based
+# Key Derivation Function 2 specification.  The derived key is used as the
+# symmetric key to encrypt TUF key information.  PyCrypto's implementation:
+# Crypto.Protocol.KDF.PBKDF2().  PKCS#5 v2.0 PBKDF2 specification:
+# http://tools.ietf.org/html/rfc2898#section-5.2 
+import Crypto.Protocol.KDF
+
+# PyCrypto's AES implementation.  AES is a symmetric key algorithm that
+# operates on fixed block sizes of 128-bits.
+# https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+import Crypto.Cipher.AES
+
+# 'Crypto.Random' is a cryptographically strong version of Python's standard
+# "random" module.  Random bits of data is needed for salts and 
+# initialization vectors suitable for the encryption algorithms used in 
+# 'keystore.py'.
+import Crypto.Random
+
+# The mode of operation is presently set to CTR (CounTeR Mode) for symmetric
+# block encryption (AES-256).  PyCrypto provides a callable stateful block
+# counter that can update successive blocks when needed.  The initial random
+# block (IV) can be set to begin the process of incrementing the 128-bit blocks
+# and allowing the AES algorithm to perform cipher block operations on them. 
+import Crypto.Util.Counter
 
 import tuf.rsa_key
 import tuf.util
+
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.keystore')
 
 json = tuf.util.import_json()
 
-# The delimeter symbol used to separate the different sections
+# The delimiter symbol used to separate the different sections
 # of encrypted files (i.e., salt, IV, ciphertext, passphrase).
-# This delimeter is arbitrarily chosen and should not occur in
+# This delimiter is arbitrarily chosen and should not occur in
 # the hexadecimal representations of the fields it is separating.
-_ENCRYPTION_DELIMETER = '@@@@'
+_ENCRYPTION_DELIMITER = '@@@@'
 
-# A password is set for each key added to the keystore.
-# The passwords dict has the form: {keyid: 'password', ...}
-_key_passwords = {}
+# AES key size.  Default key size = 32 bytes = AES-256.
+_AES_KEY_SIZE = 32
+
+# Default salt size, in bytes.  A 128-bit salt (i.e., a random sequence of data
+# to protect against dictionary attacks) is generated for PBKDF2.  
+_SALT_SIZE = 16 
+
+# Default PBKDF2 passphrase iterations.  The current (2013) "good enough" number
+# of passphrase iterations.  We recommend that important keys, such as root,
+# be kept offline.  Are we going overboard with respect to our use case?
+# http://security.stackexchange.com/questions/3959/recommended-of-iterations-when-using-pkbdf2-sha256
+_PBKDF2_ITERATIONS = 100000
+
+# A user password is read and a derived key generated.  The derived key and
+# salt returned by the key derivation function (PBKDF2) is saved in
+# '_derived_keys', which has the form:
+# {keyid: {'salt': ..., 'derived_key': ...}}
+_derived_keys = {}
 
 # The keystore database, which has the form:
-# {keyid: key, ...}.
+# {keyid: key, keyid2: key2, ...}
 _keystore = {}
 
 
@@ -96,7 +141,7 @@ def add_rsakey(rsakey_dict, password, keyid=None):
     tuf.KeyAlreadyExistsError, if 'rsakey_dict' is found in the keystore.
 
   <Side Effects>
-    The '_keystore' and '_key_passwords' dictionaries are modified.
+    The '_keystore' and '_derived_keys' dictionaries are modified.
 
   <Returns>
     None.
@@ -115,22 +160,29 @@ def add_rsakey(rsakey_dict, password, keyid=None):
 
   # If 'keyid' was passed as an argument, does it
   # have the correct format?
-  if keyid:
+  if keyid is not None:
     # Raise 'tuf.FormatError' if the check fails.
     tuf.formats.KEYID_SCHEMA.check_match(keyid)
 
     # Check if the keyid found in 'rsakey_dict' matches
     # the 'keyid' supplied as an argument. 
     if keyid != rsakey_dict['keyid']:
-      raise tuf.Error('Incorrect keyid '+rsakey_dict['keyid']+' expected '+keyid)
+      message = 'Incorrect keyid: '+repr(rsakey_dict['keyid'])+'.'+\
+        'Expected: '+repr(keyid)
+      raise tuf.Error(message)
  
   # Check if the keyid belonging to 'rsakey_dict' is not already
   # available in the key database.
   keyid = rsakey_dict['keyid']
   if keyid in _keystore:
-    raise tuf.KeyAlreadyExistsError('keyid: '+keyid+' already exists.')
-  
-  _key_passwords[keyid] = password
+    message = 'Keyid: '+repr(keyid)+' already exists.'
+    raise tuf.KeyAlreadyExistsError(message)
+ 
+  # The '_derived_keys' dictionary does not store the user's password.  A key
+  # derivation function is applied to 'password' prior to storing it in
+  # _derived_key and may then be used as a symmetric key.
+  salt, derived_key = _generate_derived_key(password)
+  _derived_keys[keyid] = {'salt': salt, 'derived_key': derived_key}
   _keystore[keyid] = rsakey_dict
 
 
@@ -142,7 +194,8 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
   <Purpose>
     Populate the keystore database with the key files found in
     'directory_name'.  Use the user-supplied passwords in 'passwords' to
-    decrypt the key files.  Each key file has a corresponding password.
+    decrypt the key files.  Each '<keyid>.key' file has a corresponding
+    password.
 
   <Arguments>
     directory_name:
@@ -161,7 +214,7 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
     format.
 
   <Side Effects>
-    The '_keystore' and '_key_passwords' dictionaries are modified.
+    The '_keystore' and '_derived_keys' dictionaries are modified.
     The key files found in 'directory_name' are read.
 
   <Returns>
@@ -183,8 +236,8 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PASSWORDS_SCHEMA.check_match(passwords)
 
-  # Keep a list of the keys loaded.
-  loaded_keys = [] 
+  # Keep a list of the keyids loaded, which is returned to the caller.
+  loaded_keyids = [] 
   
   logger.info('Loading private key(s) from '+repr(directory_name))
 
@@ -197,7 +250,7 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
         full_filepath = os.path.join(directory_name, keyfilename)
         raw_contents = open(full_filepath, 'rb').read()
       except:
-        logger.warn('Could not find key '+repr(full_filepath)+'!')
+        logger.warn('Could not find key '+repr(full_filepath)+'.')
       else:
         # Try to decrypt the file using one of the passwords in 'passwords'.
         for password in passwords:
@@ -235,7 +288,7 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
               logger.info('Loaded key: '+rsa_key['keyid'])
             except tuf.KeyAlreadyExistsError, e:
               logger.info('Key already loaded: '+rsa_key['keyid'])
-            loaded_keys.append(rsa_key['keyid'])
+            loaded_keyids.append(rsa_key['keyid'])
             continue
           else:
             logger.warn(repr(full_filepath)+' contains an invalid key type.')
@@ -246,7 +299,7 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
 
   logger.info('Done.')
 
-  return loaded_keys
+  return loaded_keyids
 
 
 
@@ -255,15 +308,16 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
 def save_keystore_to_keyfiles(directory_name):
   """
   <Purpose>
-    Save all the keys found in the keystore to separate files.  The password
-    for each key is stored when it is added to the keystore.  Use these 
-    passwords to encrypt the key files and save them in encrypted form to
-    'directory_name'.
+    Save all the keys found in the keystore to individual files.  The derived
+    symmetric key and salt for each key is stored when it is added to the
+    keystore.  Use the symmetric key to encrypt the key files and save the
+    the ciphertext to 'directory_name' (Note: salt, IV, etc. is also appended
+    to the generated '<keyid>.key').
 
   <Arguments>
     directory_name:
       The name of the directory containing the key files ('<keyid>.key'),
-      conformant to tuf.formats.RELPATH_SCHEMA.
+      conformant to 'tuf.formats.RELPATH_SCHEMA'.
 
   <Exceptions>
     tuf.FormatError if 'directory_name is incorrectly formatted.
@@ -289,7 +343,7 @@ def save_keystore_to_keyfiles(directory_name):
     logger.info('...no such directory.  The directory will be created.')
     os.mkdir(directory_name)
 
-  # Iterate through the keystore keys and save them individually to a file.
+  # Iterate the keystore keys and save them individually to a file.
   for keyid, key in _keystore.items():
     basefilename = os.path.join(directory_name, str(keyid)+'.key')
     file_object = open(basefilename, 'w')
@@ -303,7 +357,8 @@ def save_keystore_to_keyfiles(directory_name):
       continue
     
     # Encrypt 'key_metadata_format' and save it.
-    encrypted_key = _encrypt(json.dumps(key_metadata_format), _key_passwords[keyid])
+    encrypted_key = _encrypt(json.dumps(key_metadata_format),
+                             _derived_keys[keyid])
     file_object.write(encrypted_key)
     file_object.close()
     logger.info(repr(basefilename)+' saved.')
@@ -317,7 +372,8 @@ def save_keystore_to_keyfiles(directory_name):
 def clear_keystore():
   """
   <Purpose>
-    Clear the keystore and key passwords.
+    Clear '_keystore', containing the all key data, and '_derived_keys',
+    containing the salt and symmetric keys.
 
   <Arguments>
     None.
@@ -334,7 +390,7 @@ def clear_keystore():
   """
 
   _keystore.clear()
-  _key_passwords.clear()
+  _derived_keys.clear()
 
 
 
@@ -343,7 +399,9 @@ def clear_keystore():
 def change_password(keyid, old_password, new_password):
   """
   <Purpose>
-    Change the password for 'keyid'.
+    Change the password for 'keyid'.  'old_password' is verified prior to
+    any changes.  Since user passwords are not stored, the derived key
+    information generated from these passwords is what's verified and updated. 
 
   <Arguments>
     keyid:
@@ -360,27 +418,45 @@ def change_password(keyid, old_password, new_password):
     keystore.
     
     tuf.BadPasswordError, if 'old_password' is invalid or
-    'new_password' does not have to correct format.
+    'new_password' does not have the correct format.
 
   <Side Effects>
-    The old password for 'keyid' is changed to 'new_password'.
+    The old key information generated from the user password for 'keyid'
+    is changed for the new key information from 'new_password'.
 
   <Returns>
     None.
 
   """
   
-  # Check if 'keyid' is the keystore.
-  if keyid not in _keystore or keyid not in _key_passwords:
-    raise tuf.UnknownKeyError(keyid+' not recognized.')
+  # Does 'keyid' have the correct format?
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.KEYID_SCHEMA.check_match(keyid)
+  
+  # Does 'old_password' and 'new_password' have the correct format?
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.PASSWORD_SCHEMA.check_match(old_password)
+  tuf.formats.PASSWORD_SCHEMA.check_match(new_password)
+  
+  # Check if 'keyid' is in the keystore.
+  if keyid not in _keystore or keyid not in _derived_keys:
+    message = repr(keyid)+' not recognized.'
+    raise tuf.UnknownKeyError(message)
 
-  # Check if the old password matches.
-  if _key_passwords[keyid] != old_password:
-    raise tuf.BadPasswordError('Old password invalid')
+  # Check if the old password is valid.  The _derived_keys dictionary
+  # stores derived keys instead of user passwords, according to the
+  # key derivation function used by _generate_derived_key().
+  salt = _derived_keys[keyid]['salt']
+  junk, old_derived_key = _generate_derived_key(old_password, salt)
+  if _derived_keys[keyid]['derived_key'] != old_derived_key:
+    message = 'Old password invalid.'
+    raise tuf.BadPasswordError(message)
 
-  # If 'new_password' has the correct format, update '_key_passwords'.
-  if tuf.formats.PASSWORD_SCHEMA.matches(new_password):
-    _key_passwords[keyid] = new_password
+  # Update '_derived_keys[keyid]' with the new derived key and salt.
+  salt, new_derived_key = _generate_derived_key(new_password) 
+  _derived_keys[keyid] = {}
+  _derived_keys[keyid]['salt'] = salt
+  _derived_keys[keyid]['derived_key'] = new_derived_key
 
 
 
@@ -426,12 +502,50 @@ def get_key(keyid):
 
 
 
-def _encrypt(key_data, password):
+def _generate_derived_key(password, salt=None):
   """
-  Encrypt 'key_data' using the Advanced Encryption Standard algorithm.
-  'password' is treated as the symmetric key, strengthened using SHA512.
-  The key size is 192 bits and AES's mode of operation is set to CBC
-  (Cipher-Block Chaining).
+  Generate a derived key by feeding 'password' to the Password-Based Key
+  Derivation Function (PBKDF2).  PyCrypto's PBKDF2 implementation is
+  currently used.  'salt' may be specified so that a previous derived key
+  may be regenerated.
+  
+  """
+  
+  if salt is None:
+    salt = Crypto.Random.new().read(_SALT_SIZE) 
+
+
+  def pseudorandom_function(password, salt):
+    """
+    PyCrypto's PBKDF2() expects a callable function for its optional
+    'prf' argument.  'prf' is set to HMAC-SHA1 (in PyCrypto's PBKDF2 function)
+    by default.  'pseudorandom_function' instead sets 'prf' to HMAC-SHA256. 
+    """
+    
+    return Crypto.Hash.HMAC.new(password, salt, Crypto.Hash.SHA256).digest()  
+
+
+  # 'dkLen' is the desired key length.  'count' is the number of password
+  # iterations performed by PBKDF2.  'prf' is a pseudorandom function, which
+  # must be callable. 
+  derived_key = Crypto.Protocol.KDF.PBKDF2(password, salt,
+                                           dkLen=_AES_KEY_SIZE,
+                                           count=_PBKDF2_ITERATIONS,
+                                           prf=pseudorandom_function)
+
+  return salt, derived_key
+
+
+
+
+
+def _encrypt(key_data, derived_key_information):
+  """
+  Encrypt 'key_data' using the Advanced Encryption Standard (AES-256) algorithm.
+  'derived_key_information' should contain a key strengthened by PBKDF2.  The
+  key size is 256 bits and AES's mode of operation is set to CTR (CounTeR Mode).
+  The HMAC of the ciphertext is generated to ensure the ciphertext has not been
+  modified.
 
   'key_data' is the JSON string representation of the key.  In the case
   of RSA keys, this format would be 'tuf.formats.RSAKEY_SCHEMA':
@@ -439,50 +553,104 @@ def _encrypt(key_data, password):
    'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
               'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
 
-  tuf.CryptoError raised if the encryption fails.
+  'derived_key_information' is a dictionary of the form:
+    {'salt': '...'
+     'derived_key': '...'}
+
+  'tuf.CryptoError' raised if the encryption fails.
   
   """
   
-  # Use AES192 to encrypt 'key_data'.
+  # Generate a random initialization vector (IV).  The 'iv' is treated as the
+  # initial counter block to a stateful counter block function (i.e.,
+  # PyCrypto's 'Crypto.Util.Counter'.  The AES block cipher operates on 128-bit
+  # blocks, so generate a random 16-byte initialization block.  PyCrypto expects
+  # the initial value of the stateful counter to be an integer.
+  # Follow the provably secure encrypt-then-MAC approach, which affords the
+  # ability to verify ciphertext without needing to decrypt it and preventing
+  # an attacker from feeding the block cipher malicious data.  Modes like GCM
+  # provide both encryption and authentication, whereas CTR only provides
+  # encryption.  
+  iv = Crypto.Random.new().read(16)
+  stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
+                                      initial_value=long(iv.encode('hex'), 16)) 
+  symmetric_key = derived_key_information['derived_key'] 
+  aes_cipher = Crypto.Cipher.AES.new(symmetric_key,
+                                     Crypto.Cipher.AES.MODE_CTR,
+                                     counter=stateful_counter_128bit_blocks)
+ 
+  # Use AES-256 to encrypt 'key_data'.  The key size determines how many cycle
+  # repetitions are performed by AES, 14 cycles for 256-bit keys.
   try:
-    salt, iv, ciphertext = evpy.cipher.encrypt(key_data, password)
-  except evpy.cipher.CipherError:
-    raise tuf.CryptoError
+    ciphertext = aes_cipher.encrypt(key_data)
+  except:
+    message = 'The key data could not be encrypted.' 
+    raise tuf.CryptoError(message)
 
-  # Return the salt, initialization vector, and ciphertext as a single string.
-  # These three values are delimited by '_ENCRYPTION_DELIMETER' to make
-  # extraction easier.  This delimeter is arbitrarily chosen and should not
+  # Generate the hmac of the ciphertext to ensure it has not been modified.
+  # The decryption routine may verify a ciphertext without having to perform
+  # a decryption operation.
+  salt = derived_key_information['salt'] 
+  derived_key = derived_key_information['derived_key']
+  hmac_object = Crypto.Hash.HMAC.new(derived_key, ciphertext, Crypto.Hash.SHA256)
+  hmac = hmac_object.hexdigest()
+
+  # Return the hmac, initialization vector, and ciphertext as a single string.
+  # These three values are delimited by '_ENCRYPTION_DELIMITER' to make
+  # extraction easier.  This delimiter is arbitrarily chosen and should not
   # occur in the hexadecimal representations of the fields it is separating.
-  return binascii.hexlify(salt) + _ENCRYPTION_DELIMETER + \
-         binascii.hexlify(iv) + _ENCRYPTION_DELIMETER + \
+  return binascii.hexlify(salt) + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(hmac) + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(iv) + _ENCRYPTION_DELIMITER + \
          binascii.hexlify(ciphertext)
 
 
 
 
 
-def _decrypt(key_data, password):
+def _decrypt(file_contents, password):
   """
   The corresponding decryption routine for _encrypt().
 
-  tuf.CryptoError raised if the decryption fails.
+  'tuf.CryptoError' raised if the decryption fails.
   
   """
  
-  # Extract the salt, initialization vector, and ciphertext from 'key_data'. 
-  # These three values are delimited by '_ENCRYPTION_DELIMETER'.
-  # This delimeter is arbitrarily chosen and should not occur in the
+  # Extract the salt, hmac, initialization vector, and ciphertext from
+  # 'file_contents'.  These three values are delimited by '_ENCRYPTION_DELIMITER'.
+  # This delimiter is arbitrarily chosen and should not occur in the
   # hexadecimal representations of the fields it is separating.
-  salt, iv, ciphertext = key_data.split(_ENCRYPTION_DELIMETER)
+  salt, hmac, iv, ciphertext = file_contents.split(_ENCRYPTION_DELIMITER)
+  
+  # Ensure we have the expected raw data for the delimited cryptographic data. 
+  salt =  binascii.unhexlify(salt)
+  hmac = binascii.unhexlify(hmac)
+  iv = binascii.unhexlify(iv)
+  ciphertext = binascii.unhexlify(ciphertext)
 
-  # The following decryption routine assumes 'key_data' was encrypted
-  # using AES192.
+  # Generate derived key from 'password'.  The salt is specified so that
+  # the expected derived key is regenerated correctly.
+  junk, derived_key = _generate_derived_key(password, salt)
+
+  # Verify the hmac to ensure the ciphertext is valid and has not been altered.
+  # See the encryption routine for why we use the encrypt-then-MAC approach.
+  generated_hmac_object = Crypto.Hash.HMAC.new(derived_key, ciphertext,
+                                               Crypto.Hash.SHA256)
+  generated_hmac = generated_hmac_object.hexdigest()
+
+  if generated_hmac != hmac:
+    raise tuf.CryptoError('Decryption failed.')
+
+  # The following decryption routine assumes 'ciphertext' was encrypted with
+  # AES-256.
+  stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
+                                      initial_value=long(iv.encode('hex'), 16)) 
+  aes_cipher = Crypto.Cipher.AES.new(derived_key,
+                                     Crypto.Cipher.AES.MODE_CTR,
+                                     counter=stateful_counter_128bit_blocks)
   try:
-    key_plaintext = evpy.cipher.decrypt(binascii.unhexlify(salt),
-                                        binascii.unhexlify(iv),
-                                        binascii.unhexlify(ciphertext),
-                                        password)
-  except evpy.cipher.CipherError:
-    raise tuf.CryptoError
+    key_plaintext = aes_cipher.decrypt(ciphertext)
+  except: 
+    raise tuf.CryptoError('Decryption failed.')
 
   return key_plaintext

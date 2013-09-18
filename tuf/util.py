@@ -52,7 +52,7 @@ class TempFile(object):
   def _default_temporary_directory(self, prefix):
     """__init__ helper."""
     try:
-      self.temporary_file = tempfile.TemporaryFile(prefix=prefix)
+      self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix)
     except OSError, err:
       logger.critical('Temp file in '+temp_dir+'failed: '+repr(err))
       raise tuf.Error(err)
@@ -66,7 +66,7 @@ class TempFile(object):
 
     <Arguments>
       prefix:
-        A string argument to be used with tempfile.TemporaryFile function.
+        A string argument to be used with tempfile.NamedTemporaryFile function.
 
     <Exceptions>
       tuf.Error on failure to load temp dir.
@@ -82,13 +82,37 @@ class TempFile(object):
     temp_dir = tuf.conf.temporary_directory
     if  temp_dir is not None and isinstance(temp_dir, str):
       try:
-        self.temporary_file = tempfile.TemporaryFile(prefix=prefix, dir=temp_dir)
+        self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix,
+                                                          dir=temp_dir)
       except OSError, err:
         logger.error('Temp file in '+temp_dir+' failed: '+repr(err))
         logger.error('Will attempt to use system default temp dir.')
         self._default_temporary_directory(prefix)
     else:
       self._default_temporary_directory(prefix)
+
+
+
+  def get_compressed_length(self):
+    """
+    <Purpose>
+      Get the compressed length of the file. This will be correct information
+      even when the file is read as an uncompressed one.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      OSError.
+
+    <Return>
+      Nonnegative integer representing compressed file size.
+
+    """
+
+    # Even if we read a compressed file with the gzip standard library module,
+    # the original file will remain compressed.
+    return os.stat(self.temporary_file.name).st_size
 
 
 
@@ -249,6 +273,8 @@ class TempFile(object):
 
       tuf.Error: If an invalid compression is given.
 
+      tuf.DecompressionError: If the compression failed for any reason.
+
     <Side Effects>
       'self._orig_file' is used to store the original data of 'temporary_file'.
 
@@ -266,10 +292,18 @@ class TempFile(object):
 
     if compression != 'gzip':
       raise tuf.Error('Only gzip compression is supported.')
+
     self.seek(0)
     self._compression = compression
     self._orig_file = self.temporary_file
-    self.temporary_file = gzip.GzipFile(fileobj=self.temporary_file, mode='rb')
+
+    try:
+      self.temporary_file = gzip.GzipFile(fileobj=self.temporary_file,
+                                          mode='rb')
+    except Exception, exception:
+      raise tuf.DecompressionError(exception)
+
+
 
 
 
@@ -519,7 +553,7 @@ def load_json_file(filepath):
   <Exceptions>
     tuf.FormatError: If 'filepath' is improperly formatted.
 
-    tuf.Error: If 'filepath' could not be opened.
+    IOError in case of runtime IO exceptions.
 
   <Side Effects>
     None.
@@ -532,13 +566,18 @@ def load_json_file(filepath):
   # Making sure that the format of 'filepath' is a path string.
   # tuf.FormatError is raised on incorrect format.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
-  
-  try:
+
+  # The file is mostly likely gzipped.
+  if filepath.endswith('.gz'):
+    logger.debug('gzip.open('+str(filepath)+')')
+    fileobject = gzip.open(filepath)
+  else:
+    logger.debug('open('+str(filepath)+')')
     fileobject = open(filepath)
-  except IOError, err:
-    raise tuf.Error(err)
 
   try:
     return json.load(fileobject)
   finally:
     fileobject.close()
+
+

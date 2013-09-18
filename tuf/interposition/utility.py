@@ -24,6 +24,11 @@ class Logger(object):
 
 
   @staticmethod
+  def debug(message):
+    Logger.__logger.debug(message)
+
+
+  @staticmethod
   def exception(message):
     Logger.__logger.exception(message)
 

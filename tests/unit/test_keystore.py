@@ -20,6 +20,8 @@ import unittest
 import shutil
 import os
 import logging
+import Crypto.Random
+import Crypto.Protocol.KDF
 
 import tuf
 import tuf.repo.keystore
@@ -88,20 +90,20 @@ class TestKeystore(unittest.TestCase):
 
 
   def test_clear_keystore(self):
-    # Populate KEYSTORE's internal databases '_keystore' and '_key_passwords'.
+    # Populate KEYSTORE's internal databases '_keystore' and '_derived_keys'.
     for i in range(3):
       KEYSTORE.add_rsakey(RSAKEYS[i], PASSWDS[i], RSAKEYS[i]['keyid'])
    
     # Verify KEYSTORE's internal databases ARE NOT EMPTY.
     self.assertTrue(len(KEYSTORE._keystore) > 0)
-    self.assertTrue(len(KEYSTORE._key_passwords) > 0)
+    self.assertTrue(len(KEYSTORE._derived_keys) > 0)
    
     # Clear KEYSTORE's internal databases.
     KEYSTORE.clear_keystore()
 
     # Verify KEYSTORE's internal databases ARE EMPTY.
     self.assertFalse(len(KEYSTORE._keystore) > 0)
-    self.assertFalse(len(KEYSTORE._key_passwords) > 0)
+    self.assertFalse(len(KEYSTORE._derived_keys) > 0)
 
   
 
@@ -113,8 +115,7 @@ class TestKeystore(unittest.TestCase):
     self.assertEqual(RSAKEYS[0], KEYSTORE._keystore[RSAKEYS[0]['keyid']], 
                      'Adding an rsa key dict was unsuccessful.')
 
-    self.assertEqual(PASSWDS[0], 
-              KEYSTORE._key_passwords[RSAKEYS[0]['keyid']], 
+    self.assertTrue(len(KEYSTORE._derived_keys) == 1,
               'Adding a password pertaining to \'_keyid\' was unsuccessful.')
     
     # Passing three arguments to the function, i.e. including the 'keyid'.
@@ -124,8 +125,7 @@ class TestKeystore(unittest.TestCase):
                      KEYSTORE._keystore[RSAKEYS[1]['keyid']], 
                      'Adding an rsa key dict was unsuccessful.')
 
-    self.assertEqual(PASSWDS[1], 
-              KEYSTORE._key_passwords[RSAKEYS[1]['keyid']],
+    self.assertTrue(len(KEYSTORE._derived_keys) == 2,
               'Adding a password pertaining to \'_keyid\' was unsuccessful.')
 
     # Passing a keyid that does not match the keyid in 'rsakey_dict'.
@@ -149,7 +149,7 @@ class TestKeystore(unittest.TestCase):
     # Extract and store keyids in '_keyids' list.
     keyids = []
 
-    # Populate KEYSTORE's internal databases '_keystore' and '_key_passwords'.
+    # Populate KEYSTORE's internal databases '_keystore' and '_derived_keys'.
     for i in range(3):
       KEYSTORE.add_rsakey(RSAKEYS[i], PASSWDS[i], RSAKEYS[i]['keyid'])
       keyids.append(RSAKEYS[i]['keyid'])      
@@ -167,7 +167,7 @@ class TestKeystore(unittest.TestCase):
     for keyid in keyids:
       key_file = os.path.join(_DIR, str(keyid)+'.key')
       # Checks if key file has been created.
-      self.assertTrue(os.path.exists(key_file), 'Key file does not exits.')
+      self.assertTrue(os.path.exists(key_file), 'Key file does not exist.')
 
       file_stats = os.stat(key_file)
       # Checks if key file is not empty.
@@ -216,7 +216,7 @@ class TestKeystore(unittest.TestCase):
 
     # The keystore should not have loaded any keys.
     self.assertEqual(0, len(KEYSTORE._keystore))
-    self.assertEqual(0, len(KEYSTORE._key_passwords))
+    self.assertEqual(0, len(KEYSTORE._derived_keys))
 
     # Passing nonexistent 'keyids'.
     # AS EXPECTED, THIS CALL SHOULDN'T RAISE ANY ERRORS.
@@ -225,7 +225,7 @@ class TestKeystore(unittest.TestCase):
    
     # The keystore should not have loaded any keys.
     self.assertEqual(0, len(KEYSTORE._keystore))
-    self.assertEqual(0, len(KEYSTORE._key_passwords))
+    self.assertEqual(0, len(KEYSTORE._derived_keys))
 
     # Passing an invalid 'directory_name' argument - an integer value.
     self.assertRaises(tuf.FormatError, KEYSTORE.load_keystore_from_keyfiles,
@@ -254,6 +254,7 @@ class TestKeystore(unittest.TestCase):
     for i in range(2):
       KEYSTORE.add_rsakey(RSAKEYS[i], PASSWDS[i], RSAKEYS[i]['keyid'])
 
+    derived_key_0 = KEYSTORE._derived_keys[RSAKEYS[0]['keyid']]
     # Create a new password.
     new_passwd = 'changed_password'
 
@@ -261,13 +262,12 @@ class TestKeystore(unittest.TestCase):
     KEYSTORE.change_password(RSAKEYS[0]['keyid'], PASSWDS[0], new_passwd)
     
     # Check if password was changed.
-    self.assertNotEqual(KEYSTORE._key_passwords[RSAKEYS[0]['keyid']], 
-                        PASSWDS[0])
-    self.assertEqual(KEYSTORE._key_passwords[RSAKEYS[0]['keyid']], 
-                     new_passwd)
+    new_derived_key = KEYSTORE._derived_keys[RSAKEYS[0]['keyid']]['derived_key']
+    self.assertNotEqual(new_derived_key, 
+                        derived_key_0['derived_key'])
 
-    # Passing an invalid keyid i.e. RSAKEY[2] that was not loaded into
-    # the '_keystore'.
+    # Passing an invalid keyid (i.e., RSAKEY[2] that was not loaded into
+    # the '_keystore').
     self.assertRaises(tuf.UnknownKeyError, KEYSTORE.change_password, 
                       RSAKEYS[2]['keyid'], PASSWDS[1], new_passwd)
 
@@ -295,26 +295,31 @@ class TestKeystore(unittest.TestCase):
 
 
   def test_internal_encrypt(self):
-    # Test for valid arguments to '_encrypt()' and a valid return type. 
-    encrypted_key = KEYSTORE._encrypt(json.dumps(RSAKEYS[0]), PASSWDS[0])
+    # Test for valid arguments to '_encrypt()' and a valid return type.
+    salt = Crypto.Random.new().read(16)
+    derived_key = Crypto.Protocol.KDF.PBKDF2(PASSWDS[0], salt)
+    derived_key_information = {'salt': salt, 'derived_key': derived_key}
+    encrypted_key = KEYSTORE._encrypt(json.dumps(RSAKEYS[0]),
+                                      derived_key_information)
     self.assertEqual(type(encrypted_key), str)
    
-    # Test for invalid arguments to _encrypt().
-    self.assertRaises(tuf.CryptoError, KEYSTORE._encrypt, '', PASSWDS[0])
-    self.assertRaises(tuf.CryptoError, KEYSTORE._encrypt,
-                      json.dumps(RSAKEYS[0]), '')
-  
   
   
   def test_internal_decrypt(self):
     del RSAKEYS[0]['keyid']
     tuf.formats.KEY_SCHEMA.check_match(RSAKEYS[0])
-
+    
+    salt = Crypto.Random.new().read(16)
+    salt, derived_key = tuf.repo.keystore._generate_derived_key(PASSWDS[0], salt)
+    derived_key_information = {'salt': salt, 'derived_key': derived_key}
+    
     # Getting a valid encrypted key using '_encrypt()'.
-    encrypted_key = KEYSTORE._encrypt(json.dumps(RSAKEYS[0]), PASSWDS[0])
+    encrypted_key = KEYSTORE._encrypt(json.dumps(RSAKEYS[0]),
+                                      derived_key_information)
 
     # Decrypting and decoding (using json's loads()) an encrypted file.
-    tuf.util.load_json_string(KEYSTORE._decrypt(encrypted_key, PASSWDS[0]))
+    #tuf.util.load_json_string(KEYSTORE._decrypt(encrypted_key, PASSWDS[0]))
+    json.dumps(KEYSTORE._decrypt(encrypted_key, PASSWDS[0]))
 
     self.assertEqual(RSAKEYS[0], tuf.util.load_json_string(
                      KEYSTORE._decrypt(encrypted_key, PASSWDS[0])))
@@ -323,6 +328,19 @@ class TestKeystore(unittest.TestCase):
     self.assertRaises(tuf.CryptoError, KEYSTORE._decrypt,
                       encrypted_key, PASSWDS[1])
 
+
+
+def setUpModule():
+  # setUpModule() is called before any test cases run.
+  # Ensure the keystore has not been modified by a previous test, which may
+  # affect assumptions (i.e., empty keystore) made by the tests cases in this
+  # unit test.
+  tuf.repo.keystore.clear_keystore()
+
+def tearDownModule():
+  # tearDownModule() is called after all the tests have run.
+  # Ensure we clean up the keystore.  They say courtesy is contagious.
+  tuf.repo.keystore.clear_keystore()
 
 
 # Run the unit tests.
