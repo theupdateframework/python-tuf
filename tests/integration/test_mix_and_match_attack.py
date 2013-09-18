@@ -19,17 +19,17 @@
   combination of metadata that never existed together on the repository at
   the same time.
 
-NOTE: The interposition provided by 'tuf.interposition' is used to intercept
-all calls made by urllib/urillib2 to certain network locations specified in 
-the interposition configuration file.  Look up interposition.py for more
-information and illustration of a sample contents of the interposition 
-configuration file.  Interposition was meant to make TUF integration with an
-existing software updater an easy process.  This allows for more flexibility
-to the existing software updater.  However, if you are planning to solely use
-TUF there should be no need for interposition, all necessary calls will be
-generated from within TUF.
+  NOTE: The interposition provided by 'tuf.interposition' is used to intercept
+  all calls made by urllib/urillib2 to certain network locations specified in 
+  the interposition configuration file.  Look up interposition.py for more
+  information and illustration of a sample contents of the interposition 
+  configuration file.  Interposition was meant to make TUF integration with an
+  existing software updater an easy process.  This allows for more flexibility
+  to the existing software updater.  However, if you are planning to solely use
+  TUF there should be no need for interposition, all necessary calls will be
+  generated from within TUF.
 
-Note: There is no difference between 'updates' and 'target' files.
+  There is no difference between 'updates' and 'target' files.
 
 """
 
@@ -38,9 +38,10 @@ import os
 import shutil
 import urllib
 import tempfile
+import time
 
 import tuf
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -48,16 +49,16 @@ class MixAndMatchAttackAlert(Exception):
   pass
 
 
-def _download(url, filename, tuf=False):
-  if tuf:
-    urllib_tuf.urlretrieve(url, filename)
+def _download(url, filename, using_tuf=False):
+  if using_tuf:
+    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
     
   else:
     urllib.urlretrieve(url, filename)
 
 
 
-def test_mix_and_match_attack(TUF=False):
+def test_mix_and_match_attack(using_tuf=False):
   """
   Attack design:
     There are 3 stages:
@@ -81,7 +82,7 @@ def test_mix_and_match_attack(TUF=False):
   try:
     # Setup / Stage 1
     # ---------------
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     downloads = os.path.join(root_repo, 'downloads')
     evil_dir = tempfile.mkdtemp(dir=root_repo)
@@ -97,7 +98,7 @@ def test_mix_and_match_attack(TUF=False):
     unpatched_file = os.path.join(evil_dir, file_basename)
 
 
-    if TUF:
+    if using_tuf:
       print 'TUF ...'
       tuf_repo = os.path.join(root_repo, 'tuf_repo')
       tuf_targets = os.path.join(tuf_repo, 'targets')
@@ -125,8 +126,10 @@ def test_mix_and_match_attack(TUF=False):
       url_to_file = 'http://localhost:9999/'+file_basename
 
 
+    # Wait for some time to let program set up local http server
+    time.sleep(1)
     # Client's initial download.
-    _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
+    _download(url_to_file, downloaded_file, using_tuf)
 
     # Stage 2
     # -------
@@ -135,11 +138,11 @@ def test_mix_and_match_attack(TUF=False):
 
     # Updating tuf repository.  This will copy files from regular repository
     # into tuf repository and refresh the metadata
-    if TUF:
+    if using_tuf:
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
     # Client downloads the patched file.
-    _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
+    _download(url_to_file, downloaded_file, using_tuf)
 
     downloaded_content = util_test_tools.read_file_content(downloaded_file)
 
@@ -150,7 +153,7 @@ def test_mix_and_match_attack(TUF=False):
 
     # Updating tuf repository.  This will copy files from regular repository
     # into tuf repository and refresh the metadata
-    if TUF:
+    if using_tuf:
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
       # Attacker replaces the metadata and the target file.
@@ -163,9 +166,11 @@ def test_mix_and_match_attack(TUF=False):
 
     # Client tries to downloads the newly patched file.
     try:
-      _download(url=url_to_file, filename=downloaded_file, tuf=TUF)
-    except tuf.MetadataNotAvailableError:
-      pass
+      _download(url_to_file, downloaded_file, using_tuf)
+    except tuf.NoWorkingMirrorError as errors:
+      for mirror_url, mirror_error in errors.mirror_errors.iteritems():
+        if type(mirror_error) == tuf.BadHashError:
+          print 'Caught a Bad Hash Error!'
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.
@@ -182,12 +187,12 @@ def test_mix_and_match_attack(TUF=False):
 
 
 try:
-  test_mix_and_match_attack(TUF=False)
+  test_mix_and_match_attack(using_tuf=False)
 except MixAndMatchAttackAlert, error:
   print error
 
 
 try:
-  test_mix_and_match_attack(TUF=True)
+  test_mix_and_match_attack(using_tuf=True)
 except MixAndMatchAttackAlert, error:
   print error

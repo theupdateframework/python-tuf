@@ -49,6 +49,8 @@ class ReplayAttackAlert(Exception): pass
 
 
 
+
+
 def _download(url, filename, using_tuf=False):
   if using_tuf:
     tuf.interposition.urllib_tuf.urlretrieve(url, filename)
@@ -144,7 +146,9 @@ def test_replay_attack(using_tuf=False):
       # ...and replace it with a previous copy.
       shutil.move(tuf_repo_copy, tuf_repo)
     else:
+      # Delete the current file...
       util_test_tools.delete_file_at_repository(filepath)
+      # ...and replace it with a previous copy.
       shutil.copy(original_file, reg_repo)
 
     try:
