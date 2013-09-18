@@ -81,7 +81,7 @@
   previous metadata files.
 
 <Methods>
-  init_repo(tuf=True):
+  init_repo(using_tuf=True):
     Initializes the repositories (depicted in the diagram above) and
     starts the server process.  init_repo takes one boolean argument
     which when True sets-up tuf repository i.e. adds all of the
