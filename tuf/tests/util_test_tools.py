@@ -81,7 +81,7 @@
   previous metadata files.
 
 <Methods>
-  init_repo(tuf=True):
+  init_repo(using_tuf=True):
     Initializes the repositories (depicted in the diagram above) and
     starts the server process.  init_repo takes one boolean argument
     which when True sets-up tuf repository i.e. adds all of the
@@ -137,21 +137,24 @@ import tempfile
 import subprocess
 
 import tuf
+import tuf.client.updater
 import tuf.formats
 import tuf.interposition
-import tuf.util
-import tuf.client.updater
+import tuf.log
 import tuf.repo.signercli as signercli
 import tuf.repo.signerlib as signerlib
 import tuf.repo.keystore as keystore
+import tuf.util
 
 logger = logging.getLogger('tuf.tests.system_tests.util_test_tools')
 
 PASSWD = 'test'
 version = 1
+# Where we keep TUF configurations, if any, between every iteration.
+tuf_configurations = None
 
 
-def init_repo(tuf=False, port=None):
+def init_repo(using_tuf=False, port=None):
   # Temp root directory for regular and tuf repositories.
   # WARNING: tuf client stores files in '{root_repo}/downloads/' directory!
   # Make sure regular download are NOT stored in the that directory when
@@ -181,7 +184,9 @@ def init_repo(tuf=False, port=None):
   time.sleep(.2)
 
   keyids = None
-  if tuf:
+  if using_tuf:
+    # We remove the console handler so that tests are silent by default.
+    tuf.log.remove_console_handler()
     keyids = init_tuf(root_repo)
     create_interposition_config(root_repo, url)
 
@@ -192,6 +197,8 @@ def init_repo(tuf=False, port=None):
 
 
 def cleanup(root_repo, server_process=None):
+  global tuf_configurations
+
   if server_process is not None:
     if server_process.returncode is None:
       server_process.kill()
@@ -202,9 +209,9 @@ def cleanup(root_repo, server_process=None):
   keystore.clear_keystore()
 
   # Deconfigure interposition.
-  interpose_json = os.path.join(root_repo, 'tuf.interposition.json')
-  if os.path.exists(interpose_json):
-    tuf.interposition.deconfigure(filename=interpose_json)
+  if tuf_configurations is not None:
+    tuf.interposition.deconfigure(tuf_configurations)
+    tuf_configurations = None
 
   # Removing repository directory.
   try:
@@ -361,7 +368,9 @@ def create_interposition_config(root_repo, url):
        (urllib_tuf replaces urllib module)
        urllib_tuf.urlretrieve(url, filename)
 
-  """ 
+  """
+
+  global tuf_configurations
 
   tuf_repo = os.path.join(root_repo, 'tuf_repo')
   tuf_client = os.path.join(root_repo, 'tuf_client')
@@ -392,7 +401,8 @@ def create_interposition_config(root_repo, url):
   with open(interpose_json, 'wb') as fileobj:
     tuf.util.json.dump(interposition_dict, fileobj)
 
-  tuf.interposition.configure(filename=interpose_json)
+  assert tuf_configurations is None
+  tuf_configurations = tuf.interposition.configure(filename=interpose_json)
 
 
 

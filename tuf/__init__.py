@@ -21,9 +21,14 @@
 
 """
 
+import urlparse
+
 # Import 'tuf.formats' if a module tries to import the
 # entire tuf package (i.e., from tuf import *). 
 __all__ = ['formats']
+
+
+
 
 
 class Error(Exception):
@@ -45,6 +50,21 @@ class Warning(Warning):
 class FormatError(Error):
   """Indicate an error while validating an object's format."""
   pass
+
+
+
+
+
+class InvalidMetadataJSONError(FormatError):
+  """Indicate that a metadata file is not valid JSON."""
+
+  def __init__(self, exception):
+    # Store the original exception.
+    self.exception = exception
+
+  def __str__(self):
+    # Show the original exception.
+    return str(self.exception)
 
 
 
@@ -90,6 +110,14 @@ class RepositoryError(Error):
 
 
 
+class ForbiddenTargetError(RepositoryError):
+  """Indicate that a role signed for a target that it was not delegated to."""
+  pass
+
+
+
+
+
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
   pass
@@ -98,9 +126,19 @@ class ExpiredMetadataError(Error):
 
 
 
-class MetadataNotAvailableError(Error):
-  """Indicate an error locating a Metadata file for a specified target/role."""
-  pass
+class ReplayedMetadataError(RepositoryError):
+  """Indicate that some metadata has been replayed to the client."""
+
+  def __init__(self, metadata_role, previous_version, current_version):
+    self.metadata_role = metadata_role
+    self.previous_version = previous_version
+    self.current_version = current_version
+
+
+  def __str__(self):
+    return 'Downloaded '+str(self.metadata_role)+' is older ('+\
+           str(self.previous_version)+') than the version currently '+\
+           'installed ('+repr(self.current_version)+').'
 
 
 
@@ -114,8 +152,8 @@ class CryptoError(Error):
 
 
 
-class UnsupportedLibraryError(Error):
-  """Indicate that a supported library could not be located or imported."""
+class BadSignatureError(CryptoError):
+  """Indicate that some metadata file had a bad signature."""
   pass
 
 
@@ -130,9 +168,61 @@ class UnknownMethodError(CryptoError):
 
 
 
+class UnsupportedLibraryError(Error):
+  """Indicate that a supported library could not be located or imported."""
+  pass
+
+
+
+
+
+class DecompressionError(Error):
+  """Indicate that some error happened while decompressing a file."""
+
+  def __init__(self, exception):
+    # Store the original exception.
+    self.exception = exception
+
+  def __str__(self):
+    # Show the original exception.
+    return str(self.exception)
+
+
+
+
+
 class DownloadError(Error):
   """Indicate an error occurred while attempting to download a file."""
   pass
+
+
+
+
+
+class DownloadLengthMismatchError(DownloadError):
+  """Indicate that a mismatch of lengths was seen while downloading a file."""
+
+  def __init__(self, expected_length, observed_length):
+    self.expected_length = expected_length #bytes
+    self.observed_length = observed_length #bytes
+
+  def __str__(self):
+    return 'Observed length ('+str(self.observed_length)+\
+           ') <= expected length ('+str(self.expected_length)+')'
+
+
+
+
+
+class SlowRetrievalError(DownloadError):
+  """"Indicate that downloading a file took an unreasonably long time."""
+
+  def __init__(self, average_download_speed):
+    self.__average_download_speed = average_download_speed #bytes/second
+
+  def __str__(self):
+    return "Average download speed: "+str(self.__average_download_speed)+\
+           " bytes/second"
 
 
 
@@ -162,6 +252,51 @@ class UnknownRoleError(Error):
 
 
 
+class UnknownTargetError(Error):
+  """Indicate an error trying to locate or identify a specified target."""
+  pass
+
+
+
+
+
 class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object"""
   pass
+
+
+
+
+
+class NoWorkingMirrorError(Error):
+  """An updater will throw this exception in case it could not download a
+  metadata or target file.
+
+  A dictionary of Exception instances indexed by every mirror URL will also be
+  provided."""
+
+  def __init__(self, mirror_errors):
+    # Dictionary of URL strings to Exception instances
+    self.mirror_errors = mirror_errors
+
+  def __str__(self):
+    all_errors = 'No working mirror was found:'
+
+    for mirror_url, mirror_error in self.mirror_errors.iteritems():
+      try:
+        # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
+        mirror_url_tokens = urlparse.urlparse(mirror_url)
+      except:
+        logging.exception('Failed to parse mirror URL: '+str(mirror_url))
+        mirror_netloc = mirror_url
+      else:
+        mirror_netloc = mirror_url_tokens.netloc
+
+      all_errors += '\n  '+str(mirror_netloc)+': '+str(mirror_error)
+
+    return all_errors
+
+
+
+
+

@@ -58,17 +58,17 @@
 
 """
 
-from distutils.core import setup
+from setuptools import setup
 
 setup(
   name='tuf',
-  version='0.1',
+  version='0.7.5',
   description='A secure updater framework for Python',
   author='https://www.updateframework.com',
   author_email='info@updateframework.com',
   url='https://www.updateframework.com',
+  install_requires=['pycrypto>=2.6'],
   packages=[
-    'evpy',
     'tuf',
     'tuf.client',
     'tuf.compatibility',
@@ -76,8 +76,7 @@ setup(
     'tuf.pushtools',
     'tuf.pushtools.transfer',
     'tuf.repo',
-    'tuf.tests',
-    'tuf.tests.system_tests'
+    'tuf.tests'
   ],
   scripts=[
     'tuf/repo/quickstart.py',

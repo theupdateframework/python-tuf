@@ -45,18 +45,30 @@ import unittest
 
 
 import tuf
+import tuf.client.updater as updater
+import tuf.conf
 import tuf.log
-import tuf.util
 import tuf.formats
+import tuf.keydb
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
-import tuf.client.updater as updater
+import tuf.roledb
 import tuf.tests.repository_setup as setup
 import tuf.tests.unittest_toolbox as unittest_toolbox
+import tuf.util
 
 logger = logging.getLogger('tuf.test_updater')
 
 
+# This is the default metadata that we would create for the timestamp role,
+# because it has no signed metadata for itself.
+DEFAULT_TIMESTAMP_FILEINFO = {
+  'hashes': None,
+  'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+}
+
+original_safe_download = tuf.download.safe_download
+original_unsafe_download = tuf.download.unsafe_download
 
 class TestUpdater_init_(unittest_toolbox.Modified_TestCase):
 
@@ -203,7 +215,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     """
 
-    def _mock_download(url, hashes=None, length=None):
+    def _mock_download(url, length):
       if isinstance(output, (str, unicode)):
         file_path = output
       elif isinstance(output, list):
@@ -213,8 +225,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       temp_fileobj.write(file_obj.read())
       return temp_fileobj
 
-    # Patch tuf.download.download_url_to_tempfileobj().
-    tuf.download.download_url_to_tempfileobj = _mock_download
+    # Patch tuf.download functions.
+    tuf.download.unsafe_download = _mock_download
+    tuf.download.safe_download = _mock_download
 
 
 
@@ -327,7 +340,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def _update_top_level_roles(self):
     self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
-    self.Repository._update_metadata('timestamp')
+    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
 
     # Reference self.Repository._update_metadata_if_changed().
     update_if_changed = self.Repository._update_metadata_if_changed    
@@ -390,6 +403,27 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       keyids = self.top_level_role_info[role]['keyids']
       for keyid in keyids:
         self.assertTrue(keyid in tuf.keydb._keydb_dict)
+
+
+
+  def test_1__update_fileinfo(self):
+    # Tests
+    #  Verify that fileinfo dictionary is empty.
+    self.assertFalse(self.Repository.fileinfo)
+
+    #  Load file info for top level roles.  This populates the fileinfo 
+    #  dictionary.
+    for role in self.role_list:
+      self.Repository._update_fileinfo(role+'.txt')
+
+    #  Verify that fileinfo has been populated and contains appropriate data.
+    self.assertTrue(self.Repository.fileinfo)
+    for role in self.role_list:
+      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
+      role_info = tuf.util.get_file_details(role_filepath)
+      role_info_dict = {'length':role_info[0], 'hashes':role_info[1]}
+      self.assertTrue(role+'.txt' in self.Repository.fileinfo.keys())
+      self.assertEqual(self.Repository.fileinfo[role+'.txt'], role_info_dict)
 
 
 
@@ -474,100 +508,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_3__update_metadata(self):
-    """
-    This unit test verifies the method's proper behaviour on the expected input.
-    """
-
-    # Setup
-    original_download = tuf.download.download_url_to_tempfileobj
-    
-    #  Since client's '.../metadata/current' will need to have separate
-    #  gzipped metadata file in order to test compressed file handling,
-    #  we need to copy it there.  
-    targets_filepath_compressed = self._compress_file(self.targets_filepath)
-    shutil.copy(targets_filepath_compressed, self.client_current_dir) 
-
-    #  To test updater._update_metadata(), 'targets' metadata file is
-    #  going to be modified at the server's repository.
-    #  Keyid's are required to build the metadata.
-    targets_keyids = setup.role_keyids['targets']
-
-    #  Add a file to targets directory and rebuild targets metadata.
-    #  Returned target's filename will be used to verify targets metadata.
-    added_target_1 = self._add_target_to_targets_dir(targets_keyids)
-
-    #  Reference 'self.Repository._update_metadata'.
-    _update_metadata = self.Repository._update_metadata
-
-
-    # Test: Invalid file downloaded.
-    #  Patch 'download.download_url_to_tempfileobj' function.
-    self._mock_download_url_to_tempfileobj(self.release_filepath)
-    self.assertRaises(tuf.RepositoryError, _update_metadata, 'targets')
-
-
-    # Test: normal case.
-    #  Patch 'download.download_url_to_tempfileobj' function.
-    self._mock_download_url_to_tempfileobj(self.targets_filepath)
-    _update_metadata('targets')
-    list_of_targets = self.Repository.metadata['current']['targets']['targets']
-
-    #  Verify that the added target's path is listed in target's metadata.
-    if added_target_1 not in list_of_targets.keys():
-      self.fail('\nFailed to update targets metadata.')
-
-  
-    # Test: normal case, compressed metadata file.
-    #  Add a file to targets directory and rebuild targets metadata. 
-    added_target_2 = self._add_target_to_targets_dir(targets_keyids)
-
-    #  To test compressed file handling, compress targets metadata file.
-    targets_filepath_compressed = self._compress_file(self.targets_filepath) 
-
-    #  Re-patch 'download.download_url_to_tempfileobj' function.
-    self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
-    _update_metadata('targets', compression='gzip')
-    list_of_targets = self.Repository.metadata['current']['targets']['targets']
-
-    #  Verify that the added target's path is listed in target's metadata.
-    if added_target_2 not in list_of_targets.keys():
-      self.fail('\nFailed to update targets metadata.')
-
-
-    # Restoring server's repository to the initial state.
-    os.remove(targets_filepath_compressed)
-    os.remove(os.path.join(self.client_current_dir,'targets.txt.gz'))
-    self._remove_target_from_targets_dir(added_target_1)
-
-    # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
-
-
-
-  def test_1__update_fileinfo(self):
-    # Tests
-    #  Verify that fileinfo dictionary is empty.
-    self.assertFalse(self.Repository.fileinfo)
-
-    #  Load file info for top level roles.  This populates the fileinfo 
-    #  dictionary.
-    for role in self.role_list:
-      self.Repository._update_fileinfo(role+'.txt')
-
-    #  Verify that fileinfo has been populated and contains appropriate data.
-    self.assertTrue(self.Repository.fileinfo)
-    for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
-      role_info = tuf.util.get_file_details(role_filepath)
-      role_info_dict = {'length':role_info[0], 'hashes':role_info[1]}
-      self.assertTrue(role+'.txt' in self.Repository.fileinfo.keys())
-      self.assertEqual(self.Repository.fileinfo[role+'.txt'], role_info_dict)
-
-
-
-
-
   def test_2__fileinfo_has_changed(self):
     #  Verify that the method returns 'False' if file info was not changed.
     for role in self.role_list:
@@ -592,109 +532,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                         'hashes':{'sha256':self.random_string()}}
       self.assertTrue(self.Repository._fileinfo_has_changed(role+'.txt',
                                                              role_info_dict))
-
-
-
-
-
-  def test_3__update_metadata_if_changed(self):
-    """
-    This unit test verifies the method's proper behaviour on expected input.
-    """
-
-    # Setup
-    original_download = tuf.download.download_url_to_tempfileobj
-    
-    #  To test updater._update_metadata_if_changed, 'targets' metadata file is
-    #  going to be modified at the server's repository.
-    #  Keyid's are required to build the metadata.
-    targets_keyids = setup.role_keyids['targets']
-
-    #  Add a file to targets directory and rebuild targets metadata.
-    #  Returned target's filename will be used to verify targets metadata.
-    added_target_1 = self._add_target_to_targets_dir(targets_keyids)
-
-    #  Reference 'self.Repository._update_metadata_if_changed' function.
-    update_if_changed = self.Repository._update_metadata_if_changed
-
-
-    # Test: normal case.  Update 'release' metadata.
-    #  Patch download_file.
-    self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
-
-    #  Update timestamp metadata, it will indicate change in release metadata.
-    self.Repository._update_metadata('timestamp')
-
-    #  Save current release metadata before updating.  It will be used to
-    #  verify the update.
-    old_release_meta = self.Repository.metadata['current']['release']
-    self._mock_download_url_to_tempfileobj(self.release_filepath)
-
-    #  Update release metadata, it will indicate change in targets metadata.
-    update_if_changed(metadata_role='release', referenced_metadata='timestamp')
-    current_release_meta = self.Repository.metadata['current']['release']
-    previous_release_meta = self.Repository.metadata['previous']['release']
-    self.assertEqual(old_release_meta, previous_release_meta)
-    self.assertNotEqual(old_release_meta, current_release_meta)
-
-
-    # Test: normal case.  Update 'targets' metadata. 
-    #  Patch 'download.download_url_to_tempfileobj' and update targets.
-    self._mock_download_url_to_tempfileobj(self.targets_filepath)
-    update_if_changed('targets')
-    list_of_targets = self.Repository.metadata['current']['targets']['targets']
-
-    #  Verify that the added target's path is listed in target's metadata.
-    if added_target_1 not in list_of_targets.keys():
-      self.fail('\nFailed to update targets metadata.')
-
-
-    # Test: normal case.  Update compressed release file.
-    release_filepath_compressed = self._compress_file(self.release_filepath)
-
-    #  Since client's '.../metadata/current' will need to have separate
-    #  gzipped metadata file in order to test compressed file handling,
-    #  we need to copy it there.  
-    shutil.copy(release_filepath_compressed, self.client_current_dir) 
-  
-    #  Add a target file and rebuild metadata files at the server side.
-    added_target_2 = self._add_target_to_targets_dir(targets_keyids)
-    
-    #  Since release file was updated, update compressed release file.
-    release_filepath_compressed = self._compress_file(self.release_filepath)
- 
-    #  Patch download_file.
-    self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
-
-    #  Update timestamp metadata, it will indicate change in release metadata.
-    self.Repository._update_metadata('timestamp')
-
-    #  Save current release metadata before updating.  It will be used to
-    #  verify the update.
-    old_release_meta = self.Repository.metadata['current']['release']
-    self._mock_download_url_to_tempfileobj(self.release_filepath)
-
-    #  Update release metadata, and verify the change.
-    update_if_changed(metadata_role='release', referenced_metadata='timestamp')
-    current_release_meta = self.Repository.metadata['current']['release']
-    previous_release_meta = self.Repository.metadata['previous']['release']
-    self.assertEqual(old_release_meta, previous_release_meta)
-    self.assertNotEqual(old_release_meta, current_release_meta)
-  
-
-    # Test: Invalid targets metadata file downloaded.
-    #  Patch 'download.download_url_to_tempfileobj' and update targets.
-    self._mock_download_url_to_tempfileobj(self.root_filepath)
-    self.assertRaises(tuf.MetadataNotAvailableError, update_if_changed, 
-                      'targets')
-
-    # Restoring repositories to the initial state.
-    os.remove(release_filepath_compressed)
-    os.remove(os.path.join(self.client_current_dir, 'release.txt.gz'))
-    self._remove_target_from_targets_dir(added_target_1)
-
-    # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
 
 
 
@@ -751,9 +588,212 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_3__update_metadata(self):
+    """
+    This unit test verifies the method's proper behaviour on the expected input.
+    """
+    
+    #  Since client's '.../metadata/current' will need to have separate
+    #  gzipped metadata file in order to test compressed file handling,
+    #  we need to copy it there.  
+    targets_filepath_compressed = self._compress_file(self.targets_filepath)
+    shutil.copy(targets_filepath_compressed, self.client_current_dir) 
+
+    #  To test updater._update_metadata(), 'targets' metadata file is
+    #  going to be modified at the server's repository.
+    #  Keyid's are required to build the metadata.
+    targets_keyids = setup.role_keyids['targets']
+
+    #  Add a file to targets directory and rebuild targets metadata.
+    #  Returned target's filename will be used to verify targets metadata.
+    added_target_1 = self._add_target_to_targets_dir(targets_keyids)
+
+    #  Reference 'self.Repository._update_metadata'.
+    _update_metadata = self.Repository._update_metadata
+
+
+    # Test: Invalid file downloaded.
+    #  Patch 'download.download_url_to_tempfileobj' function.
+    self._mock_download_url_to_tempfileobj(self.release_filepath)
+
+    # TODO: Is this the original intent of this test?
+    self.assertRaises(TypeError, _update_metadata, 'targets', None)
+
+
+    # Test: normal case.
+    #  Patch 'download.download_url_to_tempfileobj' function.
+    self._mock_download_url_to_tempfileobj(self.targets_filepath)
+    uncompressed_fileinfo = \
+      signerlib.get_metadata_file_info(self.targets_filepath)
+    _update_metadata('targets', uncompressed_fileinfo)
+    list_of_targets = self.Repository.metadata['current']['targets']['targets']
+
+    #  Verify that the added target's path is listed in target's metadata.
+    if added_target_1 not in list_of_targets.keys():
+      self.fail('\nFailed to update targets metadata.')
+
+  
+    # Test: normal case, compressed metadata file.
+    #  Add a file to targets directory and rebuild targets metadata. 
+    added_target_2 = self._add_target_to_targets_dir(targets_keyids)
+    uncompressed_fileinfo = \
+      signerlib.get_metadata_file_info(self.targets_filepath)
+
+    #  To test compressed file handling, compress targets metadata file.
+    targets_filepath_compressed = self._compress_file(self.targets_filepath)
+    compressed_fileinfo = \
+      signerlib.get_metadata_file_info(targets_filepath_compressed)
+
+    #  Re-patch 'download.download_url_to_tempfileobj' function.
+    self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
+    # The length (but not the hash) passed to this function is incorrect. The
+    # length must be that of the compressed file, whereas the hash must be that
+    # of the uncompressed file.
+    mixed_fileinfo = {
+      'length': compressed_fileinfo['length'],
+      'hashes': uncompressed_fileinfo['hashes']
+    }
+    _update_metadata('targets', mixed_fileinfo, compression='gzip')
+    list_of_targets = self.Repository.metadata['current']['targets']['targets']
+
+    #  Verify that the added target's path is listed in target's metadata.
+    if added_target_2 not in list_of_targets.keys():
+      self.fail('\nFailed to update targets metadata.')
+
+
+    # Restoring server's repository to the initial state.
+    os.remove(targets_filepath_compressed)
+    os.remove(os.path.join(self.client_current_dir,'targets.txt'))
+    self._remove_target_from_targets_dir(added_target_1)
+
+
+
+
+
+  def test_3__update_metadata_if_changed(self):
+    """
+    This unit test verifies the method's proper behaviour on expected input.
+    """
+    
+    #  To test updater._update_metadata_if_changed, 'targets' metadata file is
+    #  going to be modified at the server's repository.
+    #  Keyid's are required to build the metadata.
+    targets_keyids = setup.role_keyids['targets']
+
+    #  Add a file to targets directory and rebuild targets metadata.
+    #  Returned target's filename will be used to verify targets metadata.
+    added_target_1 = self._add_target_to_targets_dir(targets_keyids)
+
+    #  Reference 'self.Repository._update_metadata_if_changed' function.
+    update_if_changed = self.Repository._update_metadata_if_changed
+
+
+    # Test: normal case.  Update 'release' metadata.
+    #  Patch download_file.
+    self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
+
+    #  Update timestamp metadata, it will indicate change in release metadata.
+    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+
+    #  Save current release metadata before updating.  It will be used to
+    #  verify the update.
+    old_release_meta = self.Repository.metadata['current']['release']
+    self._mock_download_url_to_tempfileobj(self.release_filepath)
+
+    #  Update release metadata, it will indicate change in targets metadata.
+    update_if_changed(metadata_role='release', referenced_metadata='timestamp')
+    current_release_meta = self.Repository.metadata['current']['release']
+    previous_release_meta = self.Repository.metadata['previous']['release']
+    self.assertEqual(old_release_meta, previous_release_meta)
+    self.assertNotEqual(old_release_meta, current_release_meta)
+
+
+    # Test: normal case.  Update 'targets' metadata. 
+    #  Patch 'download.download_url_to_tempfileobj' and update targets.
+    self._mock_download_url_to_tempfileobj(self.targets_filepath)
+    update_if_changed('targets')
+    list_of_targets = self.Repository.metadata['current']['targets']['targets']
+
+    #  Verify that the added target's path is listed in target's metadata.
+    if added_target_1 not in list_of_targets.keys():
+      self.fail('\nFailed to update targets metadata.')
+
+
+    # Test: normal case.  Update compressed release file.
+    release_filepath_compressed = self._compress_file(self.release_filepath)
+
+    #  Since client's '.../metadata/current' will need to have separate
+    #  gzipped metadata file in order to test compressed file handling,
+    #  we need to copy it there.  
+    shutil.copy(release_filepath_compressed, self.client_current_dir) 
+  
+    #  Add a target file and rebuild metadata files at the server side.
+    added_target_2 = self._add_target_to_targets_dir(targets_keyids)
+    
+    #  Since release file was updated, update compressed release file.
+    release_filepath_compressed = self._compress_file(self.release_filepath)
+ 
+    #  Patch download_file.
+    self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
+
+    #  Update timestamp metadata, it will indicate change in release metadata.
+    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+
+    #  Save current release metadata before updating.  It will be used to
+    #  verify the update.
+    old_release_meta = self.Repository.metadata['current']['release']
+    self._mock_download_url_to_tempfileobj(self.release_filepath)
+
+    #  Update release metadata, and verify the change.
+    update_if_changed(metadata_role='release', referenced_metadata='timestamp')
+    current_release_meta = self.Repository.metadata['current']['release']
+    previous_release_meta = self.Repository.metadata['previous']['release']
+    self.assertEqual(old_release_meta, previous_release_meta)
+    self.assertNotEqual(old_release_meta, current_release_meta)
+  
+
+    # Test: Invalid targets metadata file downloaded.
+    #  Patch 'download.download_url_to_tempfileobj' and update targets.
+    self._mock_download_url_to_tempfileobj(self.root_filepath)
+
+    # FIXME: What is the original intent of this test?
+    try:
+      update_if_changed('targets')
+    except tuf.NoWorkingMirrorError, exception:
+      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+        assert isinstance(mirror_error, tuf.DownloadLengthMismatchError)
+
+    # Restoring repositories to the initial state.
+    os.remove(release_filepath_compressed)
+    os.remove(os.path.join(self.client_current_dir, 'release.txt.gz'))
+    self._remove_target_from_targets_dir(added_target_1)
+
+
+
+
+  def test_3__targets_of_role(self):
+    # Setup
+    targets_dir_content = os.listdir(self.targets_dir)
+
+
+    # Test: normal case.
+    targets_list = self.Repository._targets_of_role('targets')
+    
+    #  Verify that list of targets was returned,
+    #  and that it contains valid target file.
+    self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
+    targets_filepaths = []
+    for target in range(len(targets_list)):
+      targets_filepaths.append(targets_list[target]['filepath'])
+    for dir_target in targets_dir_content:
+      if dir_target.endswith('.txt'):
+        self.assertTrue(dir_target in targets_filepaths)
+
+
+
+
+
   def test_4_refresh(self):
-    # Setup.
-    original_download = tuf.download.download_url_to_tempfileobj
     
     #  This unit test is based on adding an extra target file to the
     #  server and rebuilding all server-side metadata.  When 'refresh'
@@ -785,16 +825,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self._mock_download_url_to_tempfileobj(self.all_role_paths)
     setup.build_server_repository(self.server_repo_dir, self.targets_dir)
 
-    # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
-
 
 
 
   def test_4__refresh_targets_metadata(self):
-
-    # Setup
-    original_download = tuf.download.download_url_to_tempfileobj
     
     # To test this method a target file would be added to a delegated role,
     # and metadata on the server side would be rebuilt.
@@ -850,47 +884,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.server_repo_dir, 'keystore'))
     setup.build_server_repository(self.server_repo_dir, self.targets_dir)
 
-    # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
-
-
-
-
-  def test_3__targets_of_role(self):
-    # Setup
-    targets_dir_content = os.listdir(self.targets_dir)
-
-
-    # Test: normal case.
-    targets_list = self.Repository._targets_of_role('targets')
-    
-    #  Verify that list of targets was returned,
-    #  and that it contains valid target file.
-    self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
-    targets_filepaths = []
-    for target in range(len(targets_list)):
-      targets_filepaths.append(targets_list[target]['filepath'])
-    for dir_target in targets_dir_content:
-      if dir_target.endswith('.txt'):
-        self.assertTrue(dir_target in targets_filepaths)
-
 
 
 
 
   def test_5_all_targets(self):
-
-   # Setup
-   original_download = tuf.download.download_url_to_tempfileobj
    
    # As with '_refresh_targets_metadata()', tuf.roledb._roledb_dict
-   # has to be populated.  The 'tuf.download.download_url_to_tempfileobj' method
+   # has to be populated.  The 'tuf.download.safe_download' method
    # should be patched.  The 'self.all_role_paths' argument is passed so that
    # the top-level roles and delegations may be all "downloaded" when
    # Repository.refresh() is called below.  '_mock_download_url_to_tempfileobj'
    # returns each filepath listed in 'self.all_role_paths' in the listed
    # order.
    self._mock_download_url_to_tempfileobj(self.all_role_paths)
+   setup.build_server_repository(self.server_repo_dir, self.targets_dir)
 
    # Update top-level metadata.
    self.Repository.refresh()
@@ -910,9 +918,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    # total of 2 (the delegated targets are listed twice).  The total number of
    # targets in 'all_targets' should then be 6.
    self.assertTrue(len(all_targets) is 6)   
-
-   # RESTORE
-   tuf.download.download_url_to_tempfileobj = original_download
 
 
 
@@ -941,7 +946,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_6_target(self):
     # Requirements: make sure roledb_dict is populated and
-    # tuf.download.download_url_to_tempfileobj function is patched.
+    # tuf.download.safe_download function is patched.
 
     # Setup
     targets_dir_content = os.listdir(self.targets_dir)
@@ -962,7 +967,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
     # Test: invalid target path.    
-    self.assertRaises(tuf.RepositoryError, target, self.random_path())
+    self.assertRaises(tuf.UnknownTargetError, target, self.random_path())
 
 
 
@@ -970,11 +975,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_6_download_target(self):
-
-    # Setup:
-    original_download = tuf.download.download_url_to_tempfileobj
     
-    # 'tuf.download.download_url_to_tempfileobj' method should be patched.
+    # 'tuf.download.safe_download' method should be patched.
     target_rel_paths_src = self._get_list_of_target_paths(self.targets_dir)
 
     #  Create temporary directory that will be passed as an argument to the
@@ -1011,27 +1013,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  Patch 'download.download_url_to_tempfileobj' and verify that an
     #  exception is raised.
     self._mock_download_url_to_tempfileobj(os.path.join(self.targets_dir, file_path))
-    self.assertRaises(tuf.DownloadError, self.Repository.download_target,
-                      target_info,
-                      dest_dir)
+
+    try:
+      self.Repository.download_target(target_info, dest_dir)
+    except tuf.NoWorkingMirrorError, exception:
+      # Ensure that no mirrors were found due to mismatch in confined target
+      # directories.
+      assert len(exception.mirror_errors) == 0
       
     for mirror_name, mirror_info in mirrors.items():
       mirrors[mirror_name]['confined_target_dirs'] = ['']
-
-    # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
 
 
 
 
   def test_7_updated_targets(self):
     
-    # Setup:
-    original_download = tuf.download.download_url_to_tempfileobj
-    
     # In this test, client will have two target files.  Server will modify 
     # one of them.  As with 'all_targets' function, tuf.roledb._roledb_dict
-    # has to be populated.  'tuf.download.download_url_to_tempfileobj' method
+    # has to be populated.  'tuf.download.safe_download' method
     # should be patched.
     target_rel_paths_src = self._get_list_of_target_paths(self.targets_dir)
 
@@ -1089,16 +1089,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         msg = 'A file that need not to be updated is indicated as updated.'
         self.fail(msg)
 
-    # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
-
     
 
 
   def test_8_remove_obsolete_targets(self):
-    
-    # Setup:
-    original_download = tuf.download.download_url_to_tempfileobj
     
     # This unit test should be last, because it removes target files from the
     # server's targets directory. It is done to avoid adding files, rebuilding 
@@ -1148,15 +1142,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.Repository.remove_obsolete_targets(dest_dir)
     self.assertTrue(os.listdir(dest_dir), 2)    
 
-    # RESTORE
-    tuf.download.download_url_to_tempfileobj = original_download
-
 
 def tearDownModule():
   # tearDownModule() is called after all the tests have run.
   # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
   setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
   unittest_toolbox.Modified_TestCase.clear_toolbox()
+  tuf.download.safe_download = original_safe_download
+  tuf.download.unsafe_download = original_unsafe_download
 
 if __name__ == '__main__':
   unittest.main()

@@ -56,14 +56,14 @@ def _create_keystore(keystore_directory):
   """
   
   _rsa_keystore = unittest_toolbox.Modified_TestCase.rsa_keystore
-  _rsa_passwords = unittest_toolbox.Modified_TestCase.rsa_passwords
-  if not _rsa_keystore or not _rsa_passwords:
+  _rsa_derived_keys = unittest_toolbox.Modified_TestCase.rsa_derived_keys
+  if not _rsa_keystore or not _rsa_derived_keys:
     msg = 'Populate \'rsa_keystore\' and \'rsa_passwords\''+\
           ' before invoking this method.'
     sys.exit(msg)
 
   keystore._keystore = _rsa_keystore
-  keystore._key_passwords = _rsa_passwords
+  keystore._derived_keys = _rsa_derived_keys
   keystore.save_keystore_to_keyfiles(keystore_directory)
 
 
@@ -195,7 +195,7 @@ def build_server_repository(server_repository_dir, targets_dir):
   #  Clear kestore's dictionaries, by detaching them from unittest_toolbox's
   #  dictionaries.
   keystore._keystore = {}
-  keystore._key_passwords = {}
+  keystore._derived_keys = {}
 
   #  Make first level delegation.
   signercli.make_delegation(keystore_dir)
@@ -215,7 +215,7 @@ def build_server_repository(server_repository_dir, targets_dir):
 
 
   keystore._keystore = unittest_toolbox.Modified_TestCase.rsa_keystore
-  keystore._key_passwords = unittest_toolbox.Modified_TestCase.rsa_passwords
+  keystore._derived_keys = unittest_toolbox.Modified_TestCase.rsa_passwords
 
   #  Build release file.
   signerlib.build_release_file(role_keyids['release'], server_metadata_dir,
@@ -226,7 +226,7 @@ def build_server_repository(server_repository_dir, targets_dir):
                                  version, expiration_date+' UTC')
 
   keystore._keystore = {}
-  keystore._key_passwords = {}
+  keystore._derived_keys = {}
 
   # RESTORE
   signercli._get_metadata_directory = original_get_metadata

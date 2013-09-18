@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_util.py
@@ -37,7 +39,6 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
   def setUp(self):
     unittest_toolbox.Modified_TestCase.setUp(self)
-    util.tempfile.TemporaryFile = tempfile.TemporaryFile
     self.temp_fileobj = util.TempFile()
 
 		
@@ -71,10 +72,10 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     # Patching 'tempfile.TemporaryFile()' (by substituting 
     # temfile.TemporaryFile() with tempfile.mkstemp()) in order to get the 
     # directory of the stored tempfile object.
-    saved_tempfile_TemporaryFile = util.tempfile.TemporaryFile
-    util.tempfile.TemporaryFile = tempfile.mkstemp
+    saved_tempfile_TemporaryFile = util.tempfile.NamedTemporaryFile
+    util.tempfile.NamedTemporaryFile = tempfile.mkstemp
     _temp_fileobj = util.TempFile()
-    util.tempfile.TemporaryFile = saved_tempfile_TemporaryFile
+    util.tempfile.NamedTemporaryFile = saved_tempfile_TemporaryFile
     junk, _tempfilepath = _temp_fileobj.temporary_file
     _tempfile_dir = os.path.dirname(_tempfilepath)
 
@@ -293,7 +294,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     util.json.dump(data, fileobj)
     fileobj.close()
     self.assertEquals(data, util.load_json_file(filepath))
-    Errors = (tuf.FormatError, tuf.Error)
+    Errors = (tuf.FormatError, IOError)
     for bogus_arg in ['a', 1, ['a'], {'a':'b'}]:
       self.assertRaises(Errors, util.load_json_file, bogus_arg)
 

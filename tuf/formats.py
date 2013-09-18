@@ -138,6 +138,9 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 # The minimum number of bits for an RSA key.  Must be 2048 bits and greater.
 RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
 
+# An RSA key in PEM format.
+PEMRSA_SCHEMA = SCHEMA.AnyString()
+
 # A string representing a password.
 PASSWORD_SCHEMA = SCHEMA.AnyString()
 
@@ -270,6 +273,11 @@ RECEIVECONFIG_SCHEMA = SCHEMA.Object(
     targets_directory=PATH_SCHEMA,
     backup_directory=PATH_SCHEMA)) 
 
+# A path hash prefix is a hexadecimal string.
+PATH_HASH_PREFIX_SCHEMA = HEX_SCHEMA
+# A list of path hash prefixes.
+PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
+
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} # format.
 ROLE_SCHEMA = SCHEMA.Object(
@@ -277,7 +285,8 @@ ROLE_SCHEMA = SCHEMA.Object(
   keyids=SCHEMA.ListOf(KEYID_SCHEMA),
   name=SCHEMA.Optional(ROLENAME_SCHEMA),
   threshold=THRESHOLD_SCHEMA,
-  paths=SCHEMA.Optional(RELPATHS_SCHEMA))
+  paths=SCHEMA.Optional(RELPATHS_SCHEMA),
+  path_hash_prefixes=SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
 
 # A dict of roles where the dict keys are role names and the dict values holding 
 # the role data/information.
@@ -828,7 +837,8 @@ def make_fileinfo(length, hashes, custom=None):
 
 
 
-def make_role_metadata(keyids, threshold, name=None, paths=None):
+def make_role_metadata(keyids, threshold, name=None, paths=None,
+                       path_hash_prefixes=None):
   """
   <Purpose>
     Create a dictionary conforming to 'tuf.formats.ROLE_SCHEMA',
@@ -850,7 +860,12 @@ def make_role_metadata(keyids, threshold, name=None, paths=None):
       The 'Target' role stores the paths of target files
       in its metadata file.  'paths' is a list of
       file paths.
-  
+
+    path_hash_prefixes:
+      The 'Target' role stores the paths of target files in its metadata file.
+      'path_hash_prefixes' is a succint way to describe a set of paths to
+      target files.
+
   <Exceptions>
     tuf.FormatError, if the returned role meta is
     formatted incorrectly.
@@ -873,7 +888,18 @@ def make_role_metadata(keyids, threshold, name=None, paths=None):
   if name is not None:
     role_meta['name'] = name
 
-  if paths is not None:
+  # According to the specification, the 'paths' and 'path_hash_prefixes' must
+  # be mutually exclusive. However, at the time of writing we do not always
+  # ensure that this is the case with the schema checks (see #83). Therefore,
+  # we must do it for ourselves.
+
+  if paths is not None and path_hash_prefixes is not None:
+    raise \
+      tuf.FormatError('Both "paths" and "path_hash_prefixes" are specified!')
+
+  if path_hash_prefixes is not None:
+    role_meta['path_hash_prefixes'] = path_hash_prefixes
+  elif paths is not None:
     role_meta['paths'] = paths
 
   # Does 'role_meta' have the correct type?

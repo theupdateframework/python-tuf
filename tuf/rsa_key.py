@@ -12,35 +12,51 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  The goal of this module is to support public-key cryptography using
-  the RSA algorithm.  The RSA-related functions provided include
-  generate(), create_signature(), and verify_signature().  The 'evpy' package
-  used by 'rsa_key.py' generates the actual RSA keys and the functions listed
-  above can be viewed as an easy-to-use public interface.  Additional functions
-  contained here include create_in_metadata_format() and
-  create_from_metadata_format().  These last two functions produce or use RSA
-  keys compatible with the key structures listed in TUF Metadata files.
-  The generate() function returns a dictionary containing all the information
-  needed of RSA keys, such as public and private keys, keyIDs, and an iden-
-  fier.  create_signature() and verify_signature() are supplemental functions
-  used for generating RSA signatures and verifying them.
+  The goal of this module is to support public-key cryptography using the RSA
+  algorithm.  The RSA-related functions provided include generate(),
+  create_signature(), and verify_signature().  The create_encrypted_pem() and
+  create_from_encrypted_pem() functions are optional, and may be used save a
+  generated RSA key to a file.  The 'PyCrypto' package used by 'rsa_key.py'
+  generates the actual RSA keys and the functions listed above can be viewed
+  as an easy-to-use public interface.  Additional functions contained here
+  include create_in_metadata_format() and create_from_metadata_format().  These
+  last two functions produce or use RSA keys compatible with the key structures
+  listed in TUF Metadata files.  The generate() function returns a dictionary
+  containing all the information needed of RSA keys, such as public and private=
+  keys, keyIDs, and an idenfier.  create_signature() and verify_signature() are
+  supplemental functions used for generating RSA signatures and verifying them.
+  https://en.wikipedia.org/wiki/RSA_(algorithm)
 
   Key IDs are used as identifiers for keys (e.g., RSA key).  They are the
   hexadecimal representation of the hash of key object (specifically, the key
-  object containing only the public key).  See 'rsa_key.py' and the
+  object containing only the public key).  Review 'rsa_key.py' and the
   '_get_keyid()' function to see precisely how keyids are generated.  One may
   get the keyid of a key object by simply accessing the dictionary's 'keyid'
   key (i.e., rsakey['keyid']).
 
-"""
+ """
 
 
-# Required for hexadecimal conversions.
+# Required for hexadecimal conversions.  Signatures are hexlified.
 import binascii
 
-# Needed to generate, sign, and verify RSA keys. 
-import evpy.signature
-import evpy.envelope
+# Crypto.PublicKey (i.e., PyCrypto public-key cryptography) provides algorithms
+# such as Digital Signature Algorithm (DSA) and the ElGamal encryption system.
+# 'Crypto.PublicKey.RSA' is needed here to generate, sign, and verify RSA keys.
+import Crypto.PublicKey.RSA
+
+# PyCrypto requires 'Crypto.Hash' hash objects to generate PKCS#1 PSS
+# signatures (i.e., Crypto.Signature.PKCS1_PSS).
+import Crypto.Hash.SHA256
+
+# RSA's probabilistic signature scheme with appendix (RSASSA-PSS).
+# PKCS#1 v1.5 is provided for compatability with existing applications, but
+# RSASSA-PSS is encouraged for newer applications.  RSASSA-PSS generates
+# a random salt to ensure the signature generated is probabilistic rather than
+# deterministic, like PKCS#1 v1.5.
+# http://en.wikipedia.org/wiki/RSA-PSS#Schemes 
+# https://tools.ietf.org/html/rfc3447#section-8.1 
+import Crypto.Signature.PKCS1_PSS
 
 import tuf
 
@@ -53,7 +69,8 @@ import tuf.formats
 
 _KEY_ID_HASH_ALGORITHM = 'sha256'
 
-# Recommended RSA key sizes: http://www.rsa.com/rsalabs/node.asp?id=2004
+# Recommended RSA key sizes:
+# http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
 # According to the document above, revised May 6, 2003, RSA keys of
 # size 3072 provide security through 2031 and beyond.
 _DEFAULT_RSA_KEY_BITS = 3072
@@ -64,25 +81,34 @@ def generate(bits=_DEFAULT_RSA_KEY_BITS):
   <Purpose> 
     Generate public and private RSA keys, with modulus length 'bits'.
     In addition, a keyid used as an identifier for RSA keys is generated.
-    The object returned conforms to tuf.formats.RSAKEY_SCHEMA and as the form:
+    The object returned conforms to 'tuf.formats.RSAKEY_SCHEMA' and as the form:
     {'keytype': 'rsa',
      'keyid': keyid,
      'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
                 'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
     
     The public and private keys are in PEM format and stored as strings.
+
+    Although the crytography library called sets a 1024-bit minimum key size,
+    generate() enforces a minimum key size of 2048 bits.  If 'bits' is
+    unspecified, a 3072-bit RSA key is generated, which is the key size
+    recommended by TUF. 
   
   <Arguments>
     bits:
-      The key size, or key length, of the RSA key.
+      The key size, or key length, of the RSA key.  'bits' must be 2048, or
+      greater, and a multiple of 256.
 
   <Exceptions>
-    tuf.CryptoError, if an exception occurs after calling evpy.envelope.keygen().
+    ValueError, if an exception occurs after calling the RSA key generation
+    routine.  'bits' must be a multiple of 256.  The 'ValueError' exception is
+    raised by the key generation function of the cryptography library called.
 
     tuf.FormatError, if 'bits' does not contain the correct format.
 
   <Side Effects>
-    The RSA keys are generated by calling evpy.envelope.keygen().
+    The RSA keys are generated by calling PyCrypto's
+    Crypto.PublicKey.RSA.generate().
 
   <Returns>
     A dictionary containing the RSA keys and other identifying information.
@@ -100,27 +126,29 @@ def generate(bits=_DEFAULT_RSA_KEY_BITS):
   rsakey_dict = {}
   keytype = 'rsa'
   
-  # Generate the public and private keys.  'public_key' and 'private_key'
-  # will both be strings containing RSA keys in PEM format.
-  # The evpy.envelope module performs the actual key generation.  The 
-  # evpy.envelope.keygen() function returns a (public, private) tuple. 
+  # Generate the public and private RSA keys.  The PyCrypto module performs
+  # the actual key generation.  Raise 'ValueError' if 'bits' is less than 1024 
+  # or not a multiple of 256, although a 2048-bit minimum is enforced by
+  # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
+  rsa_key_object = Crypto.PublicKey.RSA.generate(bits)
   
-  try:
-    public_key, private_key = evpy.envelope.keygen(bits, pem=True)
-  except (evpy.envelope.EnvelopeError, evpy.envelope.KeygenError, MemoryError), e:
-    raise tuf.CryptoError(e)
+  # Extract the public & private halves of the RSA key and generate their
+  # PEM-formatted representations.  The dictionary returned contains the 
+  # private and public RSA keys in PEM format, as strings.
+  private_key_pem = rsa_key_object.exportKey(format='PEM') 
+  rsa_pubkey = rsa_key_object.publickey()
+  public_key_pem = rsa_pubkey.exportKey(format='PEM')
 
   # Generate the keyid for the RSA key.  'key_value' corresponds to the
-  # 'keyval' entry of the RSAKEY_SCHEMA dictionary.
-  key_value = {'public': public_key,
+  # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
+  # information is not included in the generation of the 'keyid' identifier.
+  key_value = {'public': public_key_pem,
                'private': ''}
-
   keyid = _get_keyid(key_value)
 
-  # Build the 'rsakey_dict' dictionary.
-  # Update 'key_value' with the RSA private key prior to adding
-  # 'key_value' to 'rsakey_dict'.
-  key_value['private'] = private_key
+  # Build the 'rsakey_dict' dictionary.  Update 'key_value' with the RSA
+  # private key prior to adding 'key_value' to 'rsakey_dict'.
+  key_value['private'] = private_key_pem
 
   rsakey_dict['keytype'] = keytype
   rsakey_dict['keyid'] = keyid
@@ -135,17 +163,18 @@ def generate(bits=_DEFAULT_RSA_KEY_BITS):
 def create_in_metadata_format(key_value, private=False):
   """
   <Purpose>
-    Return a dictionary conformant to tuf.formats.KEY_SCHEMA.
+    Return a dictionary conformant to 'tuf.formats.KEY_SCHEMA'.
     If 'private' is True, include the private key.  The dictionary
     returned has the form:
     {'keytype': 'rsa',
      'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
                 'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
-    or
+    
+    or if 'private' is False:
 
     {'keytype': 'rsa',
      'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
-                'private': ''}} if 'private' is False.
+                'private': ''}}
     
     The private and public keys are in PEM format.
     
@@ -159,7 +188,7 @@ def create_in_metadata_format(key_value, private=False):
 
       {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
        'private': '-----BEGIN RSA PRIVATE KEY----- ...'}},
-      conformat to tuf.formats.KEYVAL_SCHEMA.
+      conformat to 'tuf.formats.KEYVAL_SCHEMA'.
 
     private:
       Indicates if the private key should be included in the
@@ -167,13 +196,13 @@ def create_in_metadata_format(key_value, private=False):
 
   <Exceptions>
     tuf.FormatError, if 'key_value' does not conform to 
-    tuf.formats.KEYVAL_SCHEMA.
+    'tuf.formats.KEYVAL_SCHEMA'.
 
   <Side Effects>
     None.
 
   <Returns>
-    An KEY_SCHEMA dictionary.
+    An 'KEY_SCHEMA' dictionary.
 
   """
 	
@@ -184,7 +213,7 @@ def create_in_metadata_format(key_value, private=False):
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.KEYVAL_SCHEMA.check_match(key_value)
 
-  if private and key_value['private']:
+  if private is True and key_value['private']:
     return {'keytype': 'rsa', 'keyval': key_value}
   else:
     public_key_value = {'public': key_value['public'], 'private': ''}
@@ -213,16 +242,21 @@ def create_from_metadata_format(key_metadata):
     RSA keys as stored in metadata files use a different format, so this 
     function should be called if an RSA key is extracted from one of these 
     metadata files and needs converting.  Generate() creates an entirely
-    new key and returns it in the format appropriate for keydb and keystore.
+    new key and returns it in the format appropriate for 'keydb.py' and
+    'keystore.py'.
 
   <Arguments>
     key_metadata:
       The RSA key dictionary as stored in Metadata files, conforming to
-      tuf.formats.KEY_SCHEMA.
+      'tuf.formats.KEY_SCHEMA'.  It has the form:
+      
+      {'keytype': '...',
+       'keyval': {'public': '...',
+                  'private': '...'}}
 
   <Exceptions>
     tuf.FormatError, if 'key_metadata' does not conform to
-    tuf.formats.KEY_SCHEMA.
+    'tuf.formats.KEY_SCHEMA'.
 
   <Side Effects>
     None.
@@ -244,10 +278,11 @@ def create_from_metadata_format(key_metadata):
   keytype = 'rsa'
   key_value = key_metadata['keyval']
 
+  # Convert 'key_value' to 'tuf.formats.KEY_SCHEMA' and generate its hash
+  # The hash is in hexdigest form. 
   keyid = _get_keyid(key_value)
 
-  # We now have all the required key values.
-  # Build 'rsakey_dict'.
+  # We now have all the required key values.  Build 'rsakey_dict'.
   rsakey_dict['keytype'] = keytype
   rsakey_dict['keyid'] = keyid
   rsakey_dict['keyval'] = key_value
@@ -288,10 +323,15 @@ def create_signature(rsakey_dict, data):
   """
   <Purpose>
     Return a signature dictionary of the form:
-    {'keyid': keyid, 'method': 'evp', 'sig': sig}.
+    {'keyid': keyid,
+     'method': 'PyCrypto-PKCS#1 PPS',
+     'sig': sig}.
 
     The signing process will use the private key
     rsakey_dict['keyval']['private'] and 'data' to generate the signature.
+
+    RFC3447 - RSASSA-PSS 
+    http://www.ietf.org/rfc/rfc3447.txt
 
   <Arguments>
     rsakey_dict:
@@ -315,10 +355,11 @@ def create_signature(rsakey_dict, data):
     'rsakey_dict' object.
 
   <Side Effects>
-    evpy.signature.sign() called to perform the actual signing.
+    PyCrypto's 'Crypto.Signature.PKCS1_PSS' called to perform the actual
+    signing.
 
   <Returns>
-    A signature dictionary conformat to tuf.format.SIGNATURE_SCHEMA.
+    A signature dictionary conformat to 'tuf.format.SIGNATURE_SCHEMA'.
 
   """
 
@@ -330,17 +371,26 @@ def create_signature(rsakey_dict, data):
   tuf.formats.RSAKEY_SCHEMA.check_match(rsakey_dict)
 
   # Signing the 'data' object requires a private key.
-  # The 'evp' (i.e., evpy) signing method is the only method
-  # currently supported.
-  signature = {} 
+  # The 'PyCrypto-PKCS#1 PSS' (i.e., PyCrypto module) signing method is the
+  # only method currently supported.
+  signature = {}
   private_key = rsakey_dict['keyval']['private']
   keyid = rsakey_dict['keyid']
-  method = 'evp'
+  method = 'PyCrypto-PKCS#1 PSS'
+  sig = None
   
   if private_key:
-    sig = evpy.signature.sign(data, key=private_key)
+    # Take
+    try:
+      rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
+      sha256_object = Crypto.Hash.SHA256.new(data)
+      pkcs1_pss_signer = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)
+      sig = pkcs1_pss_signer.sign(sha256_object)
+    except (ValueError, IndexError, TypeError), e:
+      message = 'An RSA signature could not be generated.'
+      raise tuf.CryptoError(message)
   else:
-    raise TypeError('The required private key is not defined for rsakey_dict.')
+    raise TypeError('The required private key is not defined for "rsakey_dict".')
 
   # Build the signature dictionary to be returned.
   # The hexadecimal representation of 'sig' is stored in the signature.
@@ -379,7 +429,7 @@ def verify_signature(rsakey_dict, signature, data):
       The signature dictionary produced by tuf.rsa_key.create_signature().
       'signature' has the form:
       {'keyid': keyid, 'method': 'method', 'sig': sig}.  Conformant to
-      tuf.formats.SIGNATURE_SCHEMA.
+      'tuf.formats.SIGNATURE_SCHEMA'.
       
     data:
       Data object used by tuf.rsa_key.create_signature() to generate
@@ -391,14 +441,14 @@ def verify_signature(rsakey_dict, signature, data):
     
     tuf.FormatError. Raised if either 'rsakey_dict'
     or 'signature' do not match their respective tuf.formats schema.
-    'rsakey_dict' must conform to tuf.formats.RSAKEY_SCHEMA.
-    'signature' must conform to tuf.formats.SIGNATURE_SCHEMA.
+    'rsakey_dict' must conform to 'tuf.formats.RSAKEY_SCHEMA'.
+    'signature' must conform to 'tuf.formats.SIGNATURE_SCHEMA'.
 
   <Side Effects>
-    evpy.signature_verify() called to do the actual verification.
+    Crypto.Signature.PKCS1_PSS.verify() called to do the actual verification.
 
   <Returns>
-    Boolean.
+    Boolean.  True if the signature is valid, False otherwise.
 
   """
 
@@ -416,12 +466,194 @@ def verify_signature(rsakey_dict, signature, data):
   # (i.e., rsakey_dict['keyval']['public']), verify whether 'signature'
   # was produced by rsakey_dict's corresponding private key
   # rsakey_dict['keyval']['private'].  Before returning the Boolean result,
-  # ensure 'evp' was used as the signing method.
-
+  # ensure 'PyCrypto-PKCS#1 PSS' was used as the signing method.
   method = signature['method']
   sig = signature['sig']
   public_key = rsakey_dict['keyval']['public']
+  valid_signature = False
 
-  if method != 'evp':
+  if method == 'PyCrypto-PKCS#1 PSS':
+    try:
+      rsa_key_object = Crypto.PublicKey.RSA.importKey(public_key)
+      pkcs1_pss_verifier = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)
+      sha256_object = Crypto.Hash.SHA256.new(data)
+      
+      # The metadata stores signatures in hex.  Unhexlify and verify the
+      # signature.
+      signature = binascii.unhexlify(sig)
+      valid_signature = pkcs1_pss_verifier.verify(sha256_object, signature)
+    except (ValueError, IndexError, TypeError), e:
+      message = 'The RSA signature could not be verified.'
+      raise tuf.CryptoError(message)
+  else:
     raise tuf.UnknownMethodError(method)
-  return evpy.signature.verify(data, binascii.unhexlify(sig), key=public_key)
+
+  return valid_signature 
+
+
+
+
+
+def create_encrypted_pem(rsakey_dict, passphrase):
+  """
+  <Purpose>
+    Return a string in PEM format, where the private part of the RSA key is
+    encrypted.  The private part of the RSA key is encrypted by the Triple
+    Data Encryption Algorithm (3DES) and Cipher-block chaining (CBC) for the 
+    mode of operation.  Password-Based Key Derivation Function 1 (PBKF1) + MD5
+    is used to strengthen 'passphrase'.
+
+    https://en.wikipedia.org/wiki/Triple_DES
+    https://en.wikipedia.org/wiki/PBKDF2
+
+  <Arguments>
+    rsakey_dict:
+      A dictionary containing the RSA keys and other identifying information.
+      'rsakey_dict' has the form:
+    
+      {'keytype': 'rsa',
+       'keyid': keyid,
+       'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
+                  'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
+
+      The public and private keys are in PEM format and stored as strings.
+
+    passphrase:
+      The passphrase, or password, to encrypt the private part of the RSA
+      key.  'passphrase' is not used directly as the encryption key, a stronger
+      encryption key is derived from it. 
+
+  <Exceptions>
+    TypeError, if a private key is not defined for 'rsakey_dict'.
+
+    tuf.FormatError, if an incorrect format is found for 'rsakey_dict'.
+
+  <Side Effects>
+    PyCrypto's Crypto.PublicKey.RSA.exportKey() called to perform the actual
+    generation of the PEM-formatted output.
+
+  <Returns>
+    A string in PEM format, where the private RSA key is encrypted.
+
+  """
+  
+  # Does 'rsakey_dict' have the correct format?
+  # This check will ensure 'rsakey_dict' has the appropriate number
+  # of objects and object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.RSAKEY_SCHEMA.check_match(rsakey_dict)
+  
+  # Does 'signature' have the correct format?
+  tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
+
+  # Extract the private key from 'rsakey_dict', which is stored in PEM format
+  # and unencrypted.  The extracted key will be imported and converted to
+  # PyCrypto's RSA key object (i.e., Crypto.PublicKey.RSA).Use PyCrypto's
+  # exportKey method, with a passphrase specified, to create the string.
+  # PyCrypto uses PBKDF1+MD5 to strengthen 'passphrase', and 3DES with CBC mode
+  # for encryption.    
+  private_key = rsakey_dict['keyval']['private']
+  try:
+    rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
+    rsakey_pem_encrypted = rsa_key_object.exportKey(format='PEM',
+                                                    passphrase=passphrase) 
+  except (ValueError, IndexError, TypeError), e:
+    message = 'An encrypted RSA key in PEM format could not be generated.'
+    raise tuf.CryptoError(message)
+
+  return rsakey_pem_encrypted
+
+
+
+
+
+def create_from_encrypted_pem(encrypted_pem, passphrase):
+  """
+  <Purpose>
+    Return an RSA key in 'tuf.formats.RSAKEY_SCHEMA' format, which has the
+    form:
+      {'keytype': 'rsa',
+       'keyid': keyid,
+       'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
+                  'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
+    
+    The RSAKEY_SCHEMA object is generated from a byte string in PEM format,
+    where the private part of the RSA key is encrypted.  PyCrypto's importKey
+    method is used, where a passphrase is specified.  PyCrypto uses PBKDF1+MD5
+    to strengthen 'passphrase', and 3DES with CBC mode for encryption/decryption.    
+    Alternatively, key data may be encrypted with AES-CTR-Mode and the passphrase
+    strengthened with PBKDF2+SHA256.  See 'keystore.py'.
+
+  <Arguments>
+    encrypted_pem:
+      A byte string in PEM format, where the private key is encrypted.  It has
+      the form:
+      
+      '-----BEGIN RSA PRIVATE KEY-----\n
+      Proc-Type: 4,ENCRYPTED\nDEK-Info: DES-EDE3-CBC ...'
+
+    passphrase:
+      The passphrase, or password, to decrypt the private part of the RSA
+      key.  'passphrase' is not directly used as the encryption key, instead
+      it is used to derive a stronger symmetric key.
+
+  <Exceptions>
+    TypeError, if a private key is not defined for 'rsakey_dict'.
+
+    tuf.FormatError, if an incorrect format is found for the
+    'rsakey_dict' object.
+
+  <Side Effects>
+    PyCrypto's 'Crypto.PublicKey.RSA.importKey()' called to perform the actual
+    conversion from an encrypted RSA private key.
+
+  <Returns>
+    A dictionary in 'tuf.formats.RSAKEY_SCHEMA' format.
+
+  """
+  
+  # Does 'encryped_pem' have the correct format?
+  # This check will ensure 'encrypted_pem' has the appropriate number
+  # of objects and object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.PEMRSA_SCHEMA.check_match(encrypted_pem)
+
+  # Does 'passphrase' have the correct format?
+  tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
+  
+  keytype = 'rsa'
+  rsakey_dict = {}
+
+  try:
+    rsa_key_object = Crypto.PublicKey.RSA.importKey(encrypted_pem, passphrase)
+  except (ValueError, IndexError, TypeError), e:
+    message = 'An RSA key object could not be generated from the encrypted '+\
+      'PEM string.'
+    # Raise 'tuf.CryptoError' instead of PyCrypto's exception to avoid
+    # revealing sensitive error, such as a decryption error due to an
+    # invalid passphrase.
+    raise tuf.CryptoError(message)
+
+  # Extract the public & private halves of the RSA key and generate their
+  # PEM-formatted representations.  The dictionary returned contains the 
+  # private and public RSA keys in PEM format, as strings.
+  private_key_pem = rsa_key_object.exportKey(format='PEM') 
+  rsa_pubkey = rsa_key_object.publickey()
+  public_key_pem = rsa_pubkey.exportKey(format='PEM')
+
+  # Generate the keyid for the RSA key.  'key_value' corresponds to the
+  # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
+  # information is not included in the generation of the 'keyid' identifier.
+  key_value = {'public': public_key_pem,
+               'private': ''}
+  keyid = _get_keyid(key_value)
+
+  # Build the 'rsakey_dict' dictionary.  Update 'key_value' with the RSA
+  # private key prior to adding 'key_value' to 'rsakey_dict'.
+  key_value['private'] = private_key_pem
+
+  rsakey_dict['keytype'] = keytype
+  rsakey_dict['keyid'] = keyid
+  rsakey_dict['keyval'] = key_value
+
+  return rsakey_dict
