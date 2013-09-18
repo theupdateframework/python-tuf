@@ -19,17 +19,17 @@
   combination of metadata that never existed together on the repository at
   the same time.
 
-NOTE: The interposition provided by 'tuf.interposition' is used to intercept
-all calls made by urllib/urillib2 to certain network locations specified in 
-the interposition configuration file.  Look up interposition.py for more
-information and illustration of a sample contents of the interposition 
-configuration file.  Interposition was meant to make TUF integration with an
-existing software updater an easy process.  This allows for more flexibility
-to the existing software updater.  However, if you are planning to solely use
-TUF there should be no need for interposition, all necessary calls will be
-generated from within TUF.
+  NOTE: The interposition provided by 'tuf.interposition' is used to intercept
+  all calls made by urllib/urillib2 to certain network locations specified in 
+  the interposition configuration file.  Look up interposition.py for more
+  information and illustration of a sample contents of the interposition 
+  configuration file.  Interposition was meant to make TUF integration with an
+  existing software updater an easy process.  This allows for more flexibility
+  to the existing software updater.  However, if you are planning to solely use
+  TUF there should be no need for interposition, all necessary calls will be
+  generated from within TUF.
 
-Note: There is no difference between 'updates' and 'target' files.
+  There is no difference between 'updates' and 'target' files.
 
 """
 
@@ -38,6 +38,7 @@ import os
 import shutil
 import urllib
 import tempfile
+import time
 
 import tuf
 import tuf.interposition
@@ -125,6 +126,8 @@ def test_mix_and_match_attack(using_tuf=False):
       url_to_file = 'http://localhost:9999/'+file_basename
 
 
+    # Wait for some time to let program set up local http server
+    time.sleep(1)
     # Client's initial download.
     _download(url_to_file, downloaded_file, using_tuf)
 
@@ -164,8 +167,10 @@ def test_mix_and_match_attack(using_tuf=False):
     # Client tries to downloads the newly patched file.
     try:
       _download(url_to_file, downloaded_file, using_tuf)
-    except tuf.MetadataNotAvailableError:
-      pass
+    except tuf.NoWorkingMirrorError as errors:
+      for mirror_url, mirror_error in errors.mirror_errors.iteritems():
+        if type(mirror_error) == tuf.BadHashError:
+          print 'Caught a Bad Hash Error!'
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.

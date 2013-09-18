@@ -117,26 +117,25 @@ def test_indefinite_freeze_attack(using_tuf=False):
       _remake_timestamp(metadata_dir, keyids)
 
 
-    # Client performs initial download.
+    # Client performs initial download. If the computer is slow, it may
+    # take longer time than expiration time. In this case you will see
+    # an ExpiredMetadataError.
     try:
       _download(url_to_repo, downloaded_file, using_tuf)
-    except tuf.ExpiredMetadataError:
-      msg = ('Metadata has expired too soon, extend expiration period. '+
-             'Current expiration is set to: '+repr(EXPIRATION)+' second(s).')
-      sys.exit(msg)
-
-    # Expire timestamp.
-    time.sleep(EXPIRATION)
-
-    # Try downloading again, this should raise an error.
-    try:
-      _download(url_to_repo, downloaded_file, using_tuf)
-    except tuf.ExpiredMetadataError, error:
-      pass
+    except:
+      print 'Initial download failed! It may be because your machine is '+ \
+        'busy. Try again later.'
     else:
-      raise IndefiniteFreezeAttackAlert(ERROR_MSG)
+      # Expire timestamp.
+      time.sleep(EXPIRATION)
 
-
+      # Try downloading again, this should raise an error.
+      try:
+        _download(url_to_repo, downloaded_file, using_tuf)
+      except tuf.ExpiredMetadataError, error:
+        print 'Caught an expiration error!'
+      else:
+        raise IndefiniteFreezeAttackAlert(ERROR_MSG)
   finally:
     util_test_tools.cleanup(root_repo, server_proc)
 
