@@ -80,7 +80,14 @@ class UnsupportedAlgorithmError(Error):
 
 class BadHashError(Error):
   """Indicate an error while checking the value a hash object."""
-  pass
+
+  def __init__(self, expected_hash, observed_hash):
+    self.expected_hash = expected_hash
+    self.observed_hash = observed_hash
+
+  def __str__(self):
+    return 'Observed hash ('+str(self.observed_hash)+\
+           ') != expected hash ('+str(self.expected_hash)+')'
 
 
 
@@ -120,7 +127,12 @@ class ForbiddenTargetError(RepositoryError):
 
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
-  pass
+
+  def __init__(self, expiry_time):
+    self.expiry_time = expiry_time # UTC
+
+  def __str__(self):
+    return 'Metadata expired on '+str(self.expiry_time)+'.'
 
 
 
@@ -154,8 +166,12 @@ class CryptoError(Error):
 
 class BadSignatureError(CryptoError):
   """Indicate that some metadata file had a bad signature."""
-  pass
 
+  def __init__(self, metadata_role_name):
+    self.metadata_role_name = metadata_role_name
+
+  def __str__(self):
+    return str(self.metadata_role_name)+' metadata bad signature!'
 
 
 

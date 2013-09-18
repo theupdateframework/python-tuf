@@ -627,8 +627,7 @@ class Updater(object):
       digest_object.update(file_object.read())
       computed_hash = digest_object.hexdigest()
       if trusted_hash != computed_hash:
-        raise tuf.BadHashError('Hashes do not match! Expected '+
-                               trusted_hash+' got '+computed_hash)
+        raise tuf.BadHashError(trusted_hash, computed_hash)
       else:
         logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
 
@@ -835,7 +834,7 @@ class Updater(object):
     # Verify the signature on the downloaded metadata object.
     valid = tuf.sig.verify(metadata_signable, metadata_role)
     if not valid:
-      raise tuf.BadSignatureError()
+      raise tuf.BadSignatureError(metadata_role)
 
 
 
@@ -1742,10 +1741,11 @@ class Updater(object):
     # an exception.  'expires' is in YYYY-MM-DD HH:MM:SS format, so
     # convert it to seconds since the epoch, which is the time format
     # returned by time.time() (i.e., current time), before comparing.
-    if tuf.formats.parse_time(expires) < time.time():
-      message = 'Metadata '+repr(rolepath)+' expired on '+repr(expires)+'.'
-      logger.error(message)
-      raise tuf.ExpiredMetadataError(message)
+    current_time = time.time()
+    expiry_time = tuf.formats.parse_time(expires)
+    if expiry_time < current_time:
+      logger.error('Metadata '+repr(rolepath)+' expired on '+repr(expires)+'.')
+      raise tuf.ExpiredMetadataError(expires)
 
 
 
