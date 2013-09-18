@@ -28,7 +28,7 @@ import tempfile
 
 import tuf
 import tuf.formats
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.repo.signerlib as signerlib
 import tuf.tests.util_test_tools as util_test_tools
 
@@ -61,9 +61,9 @@ def _remake_timestamp(metadata_dir, keyids):
 
 
 
-def _download(url, filename, tuf=False):
-  if tuf:
-    urllib_tuf.urlretrieve(url, filename)
+def _download(url, filename, using_tuf=False):
+  if using_tuf:
+    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
     
   else:
     urllib.urlretrieve(url, filename)
@@ -72,10 +72,10 @@ def _download(url, filename, tuf=False):
 
 
 
-def test_indefinite_freeze_attack(TUF=False):
+def test_indefinite_freeze_attack(using_tuf=False):
   """
   <Arguments>
-    TUF:
+    using_tuf:
       If set to 'False' all directories that start with 'tuf_' are ignored, 
       indicating that tuf is not implemented.
 
@@ -88,7 +88,7 @@ def test_indefinite_freeze_attack(TUF=False):
 
   try:
     # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
     metadata_dir = os.path.join(tuf_repo, 'metadata')
@@ -100,7 +100,7 @@ def test_indefinite_freeze_attack(TUF=False):
     url_to_repo = url+'reg_repo/'+file_basename
     downloaded_file = os.path.join(downloads, file_basename)
 
-    if TUF:
+    if using_tuf:
       print 'TUF ...'
 
       # Update TUF metadata before attacker modifies anything.
@@ -119,7 +119,7 @@ def test_indefinite_freeze_attack(TUF=False):
 
     # Client performs initial download.
     try:
-      _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+      _download(url_to_repo, downloaded_file, using_tuf)
     except tuf.ExpiredMetadataError:
       msg = ('Metadata has expired too soon, extend expiration period. '+
              'Current expiration is set to: '+repr(EXPIRATION)+' second(s).')
@@ -130,7 +130,7 @@ def test_indefinite_freeze_attack(TUF=False):
 
     # Try downloading again, this should raise an error.
     try:
-      _download(url=url_to_repo, filename=downloaded_file, tuf=TUF)
+      _download(url_to_repo, downloaded_file, using_tuf)
     except tuf.ExpiredMetadataError, error:
       pass
     else:
@@ -145,12 +145,12 @@ def test_indefinite_freeze_attack(TUF=False):
 
 
 try:
-  test_indefinite_freeze_attack(TUF=False)
+  test_indefinite_freeze_attack(using_tuf=False)
 except IndefiniteFreezeAttackAlert, error:
   print error
 
 
 try:
-  test_indefinite_freeze_attack(TUF=True)
+  test_indefinite_freeze_attack(using_tuf=True)
 except IndefiniteFreezeAttackAlert, error:
   print error

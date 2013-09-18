@@ -107,7 +107,7 @@ class TestDelegationFunctions(unittest.TestCase):
     version = version+1
     expiration = tuf.formats.format_time(time.time()+86400)
 
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=True)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf=True)
 
     # Server side repository.
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
