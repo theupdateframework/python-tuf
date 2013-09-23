@@ -143,6 +143,7 @@ class ConsoleFilter(logging.Filter):
       # original exception traceback. The exc_info is explained here:
       # http://docs.python.org/2/library/sys.html#sys.exc_info
       exc_type, exc_value, exc_traceback = record.exc_info
+      
       # Simply set the class name as the exception text.
       record.exc_text = exc_type.__name__
 
@@ -241,6 +242,9 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.LENGTH_SCHEMA.check_match(log_level)
   
+  # Assign to the global console_handler object.
+  global console_handler
+  
   if console_handler is not None:
     console_handler.setLevel(log_level)
   else:
@@ -272,14 +276,14 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
     None.
 
   """
-  
-  # Assign to the global console_handler object.
-  global console_handler
 
   # Does 'log_level' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.LENGTH_SCHEMA.check_match(log_level)
 
+  # Assign to the global console_handler object.
+  global console_handler
+ 
   if not console_handler:
     # Set the console handler for the logger. The built-in console handler will
     # log messages to 'sys.stderr' and capture 'log_level' messages.
@@ -301,7 +305,26 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
 
 def remove_console_handler():
-  # Assign to the global console_handler object.
+  """
+  <Purpose>
+    Remove the console handler from the logger in 'log.py', if previously added.
+
+  <Arguments>
+     None.
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    A handler belonging to the console is removed from the 'log.py' logger
+    and the console handler is marked as unset.
+
+  <Returns>
+    None.
+
+  """
+  
+  # Assign to the global 'console_handler' object.
   global console_handler
 
   if console_handler:
