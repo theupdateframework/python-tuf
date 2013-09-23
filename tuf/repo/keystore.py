@@ -61,7 +61,7 @@ import Crypto.Cipher.AES
 import Crypto.Random
 
 # The mode of operation is presently set to CTR (CounTeR Mode) for symmetric
-# block encryption (AES-256, where the symmetric is 256 bits).  PyCrypto
+# block encryption (AES-256, where the symmetric key is 256 bits).  PyCrypto
 # provides a callable stateful block counter that can update successive blocks
 # when needed.  The initial random block, or initialization vector (IV), can
 # be set to begin the process of incrementing the 128-bit blocks and allowing
