@@ -464,8 +464,11 @@ def change_password(keyid, old_password, new_password):
   # key derivation function used by _generate_derived_key().
   salt = _derived_keys[keyid]['salt']
   iterations = _derived_keys[keyid]['iterations']
-  junk, junk, old_derived_key = _generate_derived_key(old_password,
-                                                salt, iterations)
+  
+  # Discard the old "salt" and "iterations" values, as we only need the old
+  # derived key.
+  junk_old_salt, junk_old_iterations, old_derived_key = \
+    _generate_derived_key(old_password, salt, iterations)
   if _derived_keys[keyid]['derived_key'] != old_derived_key:
     message = 'Old password invalid.'
     raise tuf.BadPasswordError(message)
@@ -665,8 +668,10 @@ def _decrypt(file_contents, password):
   ciphertext = binascii.unhexlify(ciphertext)
 
   # Generate derived key from 'password'.  The salt and iterations are specified
-  # so that the expected derived key is regenerated correctly.
-  junk, junk, derived_key = _generate_derived_key(password, salt, iterations)
+  # so that the expected derived key is regenerated correctly.  Discard the old
+  # "salt" and "iterations" values, as we only need the old derived key.
+  junk_old_salt, junk_old_iterations, derived_key = \
+    _generate_derived_key(password, salt, iterations)
 
   # Verify the hmac to ensure the ciphertext is valid and has not been altered.
   # See the encryption routine for why we use the encrypt-then-MAC approach.
