@@ -73,7 +73,7 @@ _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s]'+\
   '[%(funcName)s:%(lineno)s@%(filename)s] %(message)s'
 
 # Ask all Formatter instances to talk GMT.
-# http://docs.python.org/2/library/logging.html#logging.Formatter.formatException
+# http://docs.python.org/2/library/logging.html#logging.Formatter.formatTime
 logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter(_FORMAT_STRING)
 
