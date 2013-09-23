@@ -69,7 +69,8 @@ import tuf.formats
 
 _KEY_ID_HASH_ALGORITHM = 'sha256'
 
-# Recommended RSA key sizes: http://www.rsa.com/rsalabs/node.asp?id=2004
+# Recommended RSA key sizes:
+# http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
 # According to the document above, revised May 6, 2003, RSA keys of
 # size 3072 provide security through 2031 and beyond.
 _DEFAULT_RSA_KEY_BITS = 3072
@@ -87,16 +88,21 @@ def generate(bits=_DEFAULT_RSA_KEY_BITS):
                 'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
     
     The public and private keys are in PEM format and stored as strings.
+
+    Although the crytography library called sets a 1024-bit minimum key size,
+    generate() enforces a minimum key size of 2048 bits.  If 'bits' is
+    unspecified, a 3072-bit RSA key is generated, which is the key size
+    recommended by TUF. 
   
   <Arguments>
     bits:
-      The key size, or key length, of the RSA key.  'bits' must be 1024, or
+      The key size, or key length, of the RSA key.  'bits' must be 2048, or
       greater, and a multiple of 256.
 
   <Exceptions>
     ValueError, if an exception occurs after calling the RSA key generation
-    routine.  'bits' must be 1024, or greater, and a multiple of 256.
-    Raised by Cryptography library.  
+    routine.  'bits' must be a multiple of 256.  The 'ValueError' exception is
+    raised by the key generation function of the cryptography library called.
 
     tuf.FormatError, if 'bits' does not contain the correct format.
 
@@ -121,8 +127,9 @@ def generate(bits=_DEFAULT_RSA_KEY_BITS):
   keytype = 'rsa'
   
   # Generate the public and private RSA keys.  The PyCrypto module performs
-  # the actual key generation.  Raise 'ValueError' if 'bits' is less than 1024
-  # or not a multiple of 256.
+  # the actual key generation.  Raise 'ValueError' if 'bits' is less than 1024 
+  # or not a multiple of 256, although a 2048-bit minimum is enforced by
+  # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
   rsa_key_object = Crypto.PublicKey.RSA.generate(bits)
   
   # Extract the public & private halves of the RSA key and generate their

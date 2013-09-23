@@ -72,6 +72,7 @@ import tuf.rsa_key
 import tuf.util
 import tuf.conf
 
+
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.keystore')
 
@@ -116,7 +117,7 @@ _derived_keys = {}
 # {keyid: key,
 #  keyid2: key2,
 #  ...}
-_keystore = {}
+keystore = {}
 
 
 def add_rsakey(rsakey_dict, password, keyid=None):
@@ -534,6 +535,7 @@ def _generate_derived_key(password, salt=None, iterations=None):
 
   if iterations is None:
     iterations = _PBKDF2_ITERATIONS
+
 
   def pseudorandom_function(password, salt):
     """

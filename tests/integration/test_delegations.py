@@ -107,7 +107,7 @@ class TestDelegationFunctions(unittest.TestCase):
     version = version+1
     expiration = tuf.formats.format_time(time.time()+86400)
 
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=True)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf=True)
 
     # Server side repository.
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
@@ -331,14 +331,29 @@ class TestBreachOfTargetDelegation(TestDelegationFunctions):
     self.T2_metadata =\
       make_metadata(self.tuf_repo, self.signed_targets[self.T2],
                     version, expiration)
-    self.T3_metadata = \
+    self.T3_metadata =\
       make_metadata(self.tuf_repo, self.signed_targets[self.T3],
                     version, expiration)
 
 
   def test_that_initial_update_fails_with_undelegated_signing_of_targets(self):
-    # Expect to see a particular exception on initial update.
-    self.assertRaises(tuf.MetadataNotAvailableError, self.do_update)
+    """We expect to see ForbiddenTargetError on initial update because
+    delegated targets roles sign for targets that they were not delegated
+    to."""
+
+    # http://docs.python.org/2/library/unittest.html#unittest.TestCase.assertRaises
+    with self.assertRaises(tuf.NoWorkingMirrorError) as context_manager:
+      self.do_update()
+
+    mirror_errors = context_manager.exception.mirror_errors
+    forbidden_target_error = False
+
+    for mirror_url, mirror_error in mirror_errors.iteritems():
+      if isinstance(mirror_error, tuf.ForbiddenTargetError):
+        forbidden_target_error = True
+        break 
+
+    self.assertEqual(forbidden_target_error, True)
 
 
 
@@ -455,8 +470,22 @@ class TestOrderOfTargetDelegationWithFailure(TestDelegationFunctions):
 
 
   def test_that_initial_update_fails_with_many_roles_sharing_a_target(self):
-    # Expect to see a particular exception on initial update.
-    self.assertRaises(tuf.DownloadError, self.do_update)
+    """We expect to see BadHashError on initial update because the hash
+    metadata mismatches the target."""
+
+    # http://docs.python.org/2/library/unittest.html#unittest.TestCase.assertRaises
+    with self.assertRaises(tuf.NoWorkingMirrorError) as context_manager:
+      self.do_update()
+
+    mirror_errors = context_manager.exception.mirror_errors
+    bad_hash_error = False
+
+    for mirror_url, mirror_error in mirror_errors.iteritems():
+      if isinstance(mirror_error, tuf.BadHashError):
+        bad_hash_error = True
+        break 
+
+    self.assertEqual(bad_hash_error, True)
 
 
 

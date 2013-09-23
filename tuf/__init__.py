@@ -21,6 +21,8 @@
 
 """
 
+import urlparse
+
 # Import 'tuf.formats' if a module tries to import the
 # entire tuf package (i.e., from tuf import *). 
 __all__ = ['formats']
@@ -78,7 +80,14 @@ class UnsupportedAlgorithmError(Error):
 
 class BadHashError(Error):
   """Indicate an error while checking the value a hash object."""
-  pass
+
+  def __init__(self, expected_hash, observed_hash):
+    self.expected_hash = expected_hash
+    self.observed_hash = observed_hash
+
+  def __str__(self):
+    return 'Observed hash ('+str(self.observed_hash)+\
+           ') != expected hash ('+str(self.expected_hash)+')'
 
 
 
@@ -118,7 +127,12 @@ class ForbiddenTargetError(RepositoryError):
 
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
-  pass
+
+  def __init__(self, expiry_time):
+    self.expiry_time = expiry_time # UTC
+
+  def __str__(self):
+    return 'Metadata expired on '+str(self.expiry_time)+'.'
 
 
 
@@ -134,9 +148,9 @@ class ReplayedMetadataError(RepositoryError):
 
 
   def __str__(self):
-    return str(self.metadata_role)+' is older than the version currently'+\
-      'installed.\nDownloaded version: '+repr(self.previous_version)+'\n'+\
-      'Current version: '+repr(self.current_version)
+    return 'Downloaded '+str(self.metadata_role)+' is older ('+\
+           str(self.previous_version)+') than the version currently '+\
+           'installed ('+repr(self.current_version)+').'
 
 
 
@@ -152,7 +166,12 @@ class CryptoError(Error):
 
 class BadSignatureError(CryptoError):
   """Indicate that some metadata file had a bad signature."""
-  pass
+
+  def __init__(self, metadata_role_name):
+    self.metadata_role_name = metadata_role_name
+
+  def __str__(self):
+    return str(self.metadata_role_name)+' metadata has bad signature!'
 
 
 
@@ -278,9 +297,18 @@ class NoWorkingMirrorError(Error):
     self.mirror_errors = mirror_errors
 
   def __str__(self):
-    return str(self.mirror_errors)
+    all_errors = 'No working mirror was found:'
 
+    for mirror_url, mirror_error in self.mirror_errors.iteritems():
+      try:
+        # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
+        mirror_url_tokens = urlparse.urlparse(mirror_url)
+      except:
+        logging.exception('Failed to parse mirror URL: '+str(mirror_url))
+        mirror_netloc = mirror_url
+      else:
+        mirror_netloc = mirror_url_tokens.netloc
 
+      all_errors += '\n  '+str(mirror_netloc)+': '+str(mirror_error)
 
-
-
+    return all_errors

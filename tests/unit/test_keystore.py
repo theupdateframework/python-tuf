@@ -350,7 +350,6 @@ def tearDownModule():
   tuf.repo.keystore.clear_keystore()
 
 
-
 # Run the unit tests.
 if __name__ == '__main__':
   unittest.main()

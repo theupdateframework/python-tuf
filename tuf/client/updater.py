@@ -627,8 +627,7 @@ class Updater(object):
       digest_object.update(file_object.read())
       computed_hash = digest_object.hexdigest()
       if trusted_hash != computed_hash:
-        raise tuf.BadHashError('Hashes do not match! Expected '+
-                               trusted_hash+' got '+computed_hash)
+        raise tuf.BadHashError(trusted_hash, computed_hash)
       else:
         logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
 
@@ -835,7 +834,7 @@ class Updater(object):
     # Verify the signature on the downloaded metadata object.
     valid = tuf.sig.verify(metadata_signable, metadata_role)
     if not valid:
-      raise tuf.BadSignatureError()
+      raise tuf.BadSignatureError(metadata_role)
 
 
 
@@ -1021,7 +1020,7 @@ class Updater(object):
 
       except Exception, exception:
         # Remember the error from this mirror, and "reset" the target file.
-        logger.exception('Download failed from '+file_mirror+'.')
+        logger.exception('Update failed from '+file_mirror+'.')
         file_mirror_errors[file_mirror] = exception
         file_object = None
       else:
@@ -1030,8 +1029,8 @@ class Updater(object):
     if file_object:
       return file_object
     else:
-      logger.exception('Failed to download {0}: {1}'.format(filepath,
-                       file_mirror_errors))
+      logger.exception('Failed to update {0} from all mirrors: {1}'.format(
+                       filepath, file_mirror_errors))
       raise tuf.NoWorkingMirrorError(file_mirror_errors)
 
 
@@ -1742,9 +1741,11 @@ class Updater(object):
     # an exception.  'expires' is in YYYY-MM-DD HH:MM:SS format, so
     # convert it to seconds since the epoch, which is the time format
     # returned by time.time() (i.e., current time), before comparing.
-    if tuf.formats.parse_time(expires) < time.time():
-      message = 'Metadata '+repr(rolepath)+' expired on '+repr(expires)+'.'
-      raise tuf.ExpiredMetadataError(message)
+    current_time = time.time()
+    expiry_time = tuf.formats.parse_time(expires)
+    if expiry_time < current_time:
+      logger.error('Metadata '+repr(rolepath)+' expired on '+repr(expires)+'.')
+      raise tuf.ExpiredMetadataError(expires)
 
 
 

@@ -37,7 +37,7 @@ import os
 import urllib
 
 import tuf
-import tuf.interposition.urllib_tuf as urllib_tuf
+import tuf.interposition
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -47,32 +47,31 @@ class EndlessDataAttack(Exception):
 
 
 
-def _download(url, filename, TUF=False):
-  if TUF:
-    urllib_tuf.urlretrieve(url, filename)
+def _download(url, filename, using_tuf=False):
+  if using_tuf:
+    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
   else:
     urllib.urlretrieve(url, filename)
 
 
 
-def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
+def test_endless_data_attack(using_tuf=False, TIMESTAMP=False):
   """
-  <Arguments>
-    TUF:
-      If set to 'False' all directories that start with 'tuf_' are ignored, 
-      indicating that tuf is not implemented.
-
   <Purpose>
     Illustrate endless data attack vulnerability.
+
+  <Arguments>
+    using_tuf:
+      If set to 'False' all directories that start with 'tuf_' are ignored, 
+      indicating that tuf is not implemented.
 
   """
 
   ERROR_MSG = 'Endless Data Attack was Successful!\n'
 
-
   try:
     # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(tuf=TUF)
+    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf)
     reg_repo = os.path.join(root_repo, 'reg_repo')
     tuf_repo = os.path.join(root_repo, 'tuf_repo')
     downloads = os.path.join(root_repo, 'downloads')
@@ -91,7 +90,7 @@ def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
     noisy_data = 'X'*100000
 
 
-    if TUF:
+    if using_tuf:
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
       # Modify the url.  Remember that the interposition will intercept 
@@ -126,11 +125,11 @@ def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
 
     # Client downloads (tries to download) the file.
     try:
-      _download(url=url_to_repo, filename=downloaded_file, TUF=TUF)
+      _download(url_to_repo, downloaded_file, using_tuf)
     except Exception, exception:
       # Because we are extending the true timestamp TUF metadata with invalid
       # JSON, we except to catch an error about invalid metadata JSON.
-      if TUF and TIMESTAMP:
+      if using_tuf and TIMESTAMP:
         endless_data_attack = False
 
         for mirror_url, mirror_error in exception.mirror_errors.iteritems():
@@ -146,7 +145,7 @@ def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
 
     # When we test downloading "endless" timestamp with TUF, we want to skip
     # the following test because downloading the timestamp should have failed.
-    if not (TUF and TIMESTAMP):
+    if not (using_tuf and TIMESTAMP):
       # Check whether the attack succeeded by inspecting the content of the
       # update.  The update should contain 'Test A'.  Technically it suffices
       # to check whether the file was downloaded or not.
@@ -162,12 +161,12 @@ def test_arbitrary_package_attack(TUF=False, TIMESTAMP=False):
 
 
 try:
-  test_arbitrary_package_attack(TUF=False, TIMESTAMP=False)
+  test_endless_data_attack(using_tuf=False, TIMESTAMP=False)
 except EndlessDataAttack, error:
   print('Endless data attack worked on download without TUF!')
 
 try:
-  test_arbitrary_package_attack(TUF=True, TIMESTAMP=False)
+  test_endless_data_attack(using_tuf=True, TIMESTAMP=False)
 except EndlessDataAttack, error:
   print('Endless data attack worked on download without TUF!')
   print(str(error))
@@ -177,12 +176,9 @@ else:
 try:
   # This test fails because the timestamp metadata has been extended with
   # random data from its true length, thereby resulting in invalid JSON.
-  test_arbitrary_package_attack(TUF=True, TIMESTAMP=True)
+  test_endless_data_attack(using_tuf=True, TIMESTAMP=True)
 except EndlessDataAttack, error:
   print('Endless data attack worked on download without TUF!')
   print(str(error))
 else:
   print('Endless data attack did not work on download with TUF!')
-
-
-

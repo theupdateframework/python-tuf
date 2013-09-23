@@ -30,7 +30,6 @@ import ConfigParser
 import tuf.rsa_key as rsa_key
 import tuf.repo.keystore as keystore
 
-
 # Modify the number of iterations (from the higher default count) so the unit
 # tests run faster.
 keystore._PBKDF2_ITERATIONS = 1000
