@@ -17,10 +17,6 @@
   Ensure that TUF meets expectations about target delegations.
 """
 
-
-
-
-
 import os
 import time
 import tempfile
