@@ -36,6 +36,12 @@
 
 """
 
+# Help with Python 3 compatability, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import os
 import urllib
@@ -167,22 +173,22 @@ def test_extraneous_dependency_attack(using_tuf=False):
 
 
 
-print 'Attempting extraneous dependency attack without TUF:'
+print('Attempting extraneous dependency attack without TUF:')
 try:
   test_extraneous_dependency_attack(using_tuf=False)
   
 except ExtraneousDependencyAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
 
-print 'Attempting extraneous dependency attack with TUF:'
+print('Attempting extraneous dependency attack with TUF:')
 try:
   test_extraneous_dependency_attack(using_tuf=True)
 
 except ExtraneousDependencyAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
