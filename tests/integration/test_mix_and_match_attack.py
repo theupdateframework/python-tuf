@@ -33,6 +33,12 @@
 
 """
 
+# Help with Python 3 compatability, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import os
 import shutil
@@ -99,7 +105,7 @@ def test_mix_and_match_attack(using_tuf=False):
 
 
     if using_tuf:
-      print 'TUF ...'
+      print('TUF ...')
       tuf_repo = os.path.join(root_repo, 'tuf_repo')
       tuf_targets = os.path.join(tuf_repo, 'targets')
       metadata_dir = os.path.join(tuf_repo, 'metadata')
@@ -170,7 +176,7 @@ def test_mix_and_match_attack(using_tuf=False):
     except tuf.NoWorkingMirrorError as errors:
       for mirror_url, mirror_error in errors.mirror_errors.iteritems():
         if type(mirror_error) == tuf.BadHashError:
-          print 'Caught a Bad Hash Error!'
+          print('Caught a Bad Hash Error!')
 
     # Check whether the attack succeeded by inspecting the content of the
     # update.  The update should contain 'Test NOT A'.
@@ -189,10 +195,10 @@ def test_mix_and_match_attack(using_tuf=False):
 try:
   test_mix_and_match_attack(using_tuf=False)
 except MixAndMatchAttackAlert, error:
-  print error
+  print(error)
 
 
 try:
   test_mix_and_match_attack(using_tuf=True)
 except MixAndMatchAttackAlert, error:
-  print error
+  print(error)
