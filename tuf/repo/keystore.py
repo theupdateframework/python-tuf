@@ -117,7 +117,7 @@ _derived_keys = {}
 # {keyid: key,
 #  keyid2: key2,
 #  ...}
-keystore = {}
+_keystore = {}
 
 
 def add_rsakey(rsakey_dict, password, keyid=None):
