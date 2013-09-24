@@ -48,6 +48,13 @@
   logging.DEBUG           10
   logging.NOTSET           0
 
+  The logging module is thread-safe.  Logging to a single file from
+  multiple threads in a single process is also thread-safe.  The logging
+  module is NOT thread-safe when logging to a single file across multiple
+  processes:
+  http://docs.python.org/2/library/logging.html#thread-safety
+  http://docs.python.org/2/howto/logging-cookbook.html
+
 """
 
 
@@ -287,7 +294,6 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   if not console_handler:
     # Set the console handler for the logger. The built-in console handler will
     # log messages to 'sys.stderr' and capture 'log_level' messages.
-    # NOTE: This is not thread-safe.
     console_handler = logging.StreamHandler()
     # Get our filter for the console handler.
     console_filter = ConsoleFilter()
@@ -329,7 +335,6 @@ def remove_console_handler():
 
   if console_handler:
     logger.removeHandler(console_handler)
-    # NOTE: This is not thread-safe.
     console_handler = None
     logger.debug('Removed a console handler.')
   else:
