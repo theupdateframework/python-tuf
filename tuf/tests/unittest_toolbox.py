@@ -390,9 +390,10 @@ class Modified_TestCase(unittest.TestCase):
     Modified_TestCase.rsa_keyids.append(keyid)
     password = Modified_TestCase.random_string()
     Modified_TestCase.rsa_passwords[keyid] = password
-    salt, derived_key = keystore._generate_derived_key(password)
+    salt, iterations, derived_key = keystore._generate_derived_key(password)
     Modified_TestCase.rsa_derived_keys[keyid] = {'salt': salt,
-                                                 'derived_key': derived_key}
+                                                 'derived_key': derived_key,
+                                                 'iterations': iterations}
     Modified_TestCase.rsa_keystore[keyid] = rsakey
     
     return keyid

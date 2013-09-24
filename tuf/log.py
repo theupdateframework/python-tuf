@@ -72,7 +72,6 @@ _DEFAULT_FILE_LOG_LEVEL = logging.DEBUG
 _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s]'+\
   '[%(funcName)s:%(lineno)s@%(filename)s] %(message)s'
 
-
 # Ask all Formatter instances to talk GMT.
 # http://docs.python.org/2/library/logging.html#logging.Formatter.formatException
 logging.Formatter.converter = time.gmtime
@@ -250,6 +249,8 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
 
 
+
+
 def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   """
   <Purpose>
@@ -271,6 +272,7 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
     None.
 
   """
+  
   # Assign to the global console_handler object.
   global console_handler
 
@@ -309,8 +311,3 @@ def remove_console_handler():
     logger.debug('Removed a console handler.')
   else:
     logger.warn('We do not have a console handler.')
-
-
-
-
-

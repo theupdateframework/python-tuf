@@ -107,7 +107,6 @@ def test_slow_retrieval_attack(using_tuf=False, mode=None):
     url_to_file = url+'reg_repo/'+file_basename
     downloaded_file = os.path.join(downloads, file_basename)
 
-
     if using_tuf:
       tuf_repo = os.path.join(root_repo, 'tuf_repo')
       

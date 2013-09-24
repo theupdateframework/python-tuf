@@ -182,6 +182,3 @@ except EndlessDataAttack, error:
   print(str(error))
 else:
   print('Endless data attack did not work on download with TUF!')
-
-
-
