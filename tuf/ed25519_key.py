@@ -42,6 +42,8 @@
  """
 
 from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 # Required for hexadecimal conversions.  Signatures are hexlified.
 import binascii
@@ -333,7 +335,7 @@ def create_signature(ed25519_key_dict, data):
     and 'data' to generate the signature.
     
     >>> ed25519_key_dict = generate()
-    >>> data = 'The quick brown fox jumped over the lazy dog'
+    >>> data = 'The quick brown fox jumps over the lazy dog.'
     >>> signature = create_signature(ed25519_key_dict, data)
     >>> tuf.formats.SIGNATURE_SCHEMA.matches(signature)
     True
@@ -425,11 +427,11 @@ def verify_signature(ed25519_key_dict, signature, data):
     'ed25519_key_dict' and 'signature'.
 
     >>> ed25519_key_dict = generate()
-    >>> data = 'The quick brown fox jumped over the lazy dog'
+    >>> data = 'The quick brown fox jumps over the lazy dog'
     >>> signature = create_signature(ed25519_key_dict, data)
     >>> verify_signature(ed25519_key_dict, signature, data)
     True
-    >>> bad_data = 'The sly brown fox jumped over the lazy dog'
+    >>> bad_data = 'The sly brown fox jumps over the lazy dog'
     >>> bad_signature = create_signature(ed25519_key_dict, bad_data) 
     >>> verify_signature(ed25519_key_dict, bad_signature, data)
     False

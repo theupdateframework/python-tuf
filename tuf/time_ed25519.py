@@ -1,4 +1,4 @@
-from __future__ import absolute_import, division, print_function 
+from __future__ import print_function, absolute_import, division
 import timeit
 
 import tuf
@@ -13,13 +13,13 @@ print('\nTiming ed25519.create_signature()')
 print(timeit.timeit('create_signature(ed25519_key, data)',
                     setup='from __main__ import generate, create_signature;\
                           ed25519_key = generate();\
-                          data = "The quick brown fox jumped over the dog"',
+                          data = "The quick brown fox jumps over the lazy dog"',
                     number=1))
 
 print('\nTiming ed25519.verify_signature()')
 print(timeit.timeit('verify_signature(ed25519_key, signature, data)',
                     setup='from __main__ import generate, create_signature, verify_signature;\
                           ed25519_key = generate();\
-                          data = "The quick brown fox jumped over the dog";\
+                          data = "The quick brown fox jumps over the lazy dog";\
                           signature = create_signature(ed25519_key, data)',
                     number=1))
