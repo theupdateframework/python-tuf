@@ -13,24 +13,32 @@
 
 <Purpose>
   The goal of this module is to support ed25519 signatures.  ed25519 is an
-  elliptic-curve public key signature scheme, where signatures are 64 bytes and
-  public keys only 32 bytes:  http://ed25519.cr.yp.to/
+  elliptic-curve public key signature scheme, its main strength being small
+  signatures (64 bytes) and small public keys (32 bytes).
+  http://ed25519.cr.yp.to/
   
-  'tuf/ed25519_key.py' calls 'ed25519/ed25519.py', which is the Python
+  'tuf/ed25519_key.py' calls 'ed25519/ed25519.py', which is the pure Python
   implementation of ed25519 provided by the author:
   http://ed25519.cr.yp.to/software.html
+  Optionally, ed25519 cryptographic operations may be executed by PyNaCl, which
+  provides Python bindings to the NaCl library and is much faster than the pure
+  python implementation.  PyNaCl relies on the C library, libsodium.
+  
+  https://github.com/dstufft/pynacl
+  https://github.com/jedisct1/libsodium
+  http://nacl.cr.yp.to/
   
   The ed25519-related functions included here are generate(), create_signature()
-  and verify_signature().  The 'ed25519' package used by this module
-  generates the actual ed25519 keys and the functions listed above can be viewed
-  as an easy-to-use public interface.  Additional functions contained here
-  include create_in_metadata_format() and create_from_metadata_format().  These
-  last two functions produce or use ed25519 keys compatible with the key
-  structures listed in TUF Metadata files.  The generate() function returns a
-  dictionary containing all the information needed of ed25519 keys, such as
-  public and private keys, keyIDs, and an idenfier.  create_signature() and
-  verify_signature() are supplemental functions used for generating ed25519
-  signatures and verifying them.
+  and verify_signature().  The 'ed25519' and PyNaCl (i.e., 'nacl') modules used 
+  by ed25519_key.py generate the actual ed25519 keys and the functions listed
+  above can be viewed as an easy-to-use public interface.  Additional functions
+  contained here include create_in_metadata_format() and
+  create_from_metadata_format().  These last two functions produce or use
+  ed25519 keys compatible with the key structures listed in TUF Metadata files.
+  The generate() function returns a dictionary containing all the information
+  needed of ed25519 keys, such as public and private keys, keyID idenfiers.
+  create_signature() and verify_signature() are supplemental functions used for
+  generating ed25519 signatures and verifying them.
   
   Key IDs are used as identifiers for keys (e.g., RSA key).  They are the
   hexadecimal representation of the hash of key object (specifically, the key
@@ -40,29 +48,35 @@
   key (i.e., ed25519_key_dict['keyid']).
  """
 
+# Help with Python 3 compatability, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 
-# Required for hexadecimal conversions.  Signatures are hexlified.
+# Required for hexadecimal conversions.  Signatures and public/private keys are
+# hexlified.
 import binascii
 
-# Generate OS-specific randomness suitable for cryptographic use with
-# os.urandom.
+# Generate OS-specific randomness (os.urandom) suitable for cryptographic use.
 # http://docs.python.org/2/library/os.html#miscellaneous-functions
 import os
 
 # Import the python implementation of the ed25519 algorithm that is provided by
 # the author.  Note: This implementation is very slow and does not include
 # protection against side-channel attacks according to the author.  Verifying
-# signatures can take approximately 5 seconds on a intel core 2 duo @
-# 2.2 ghz x 2).  http://ed25519.cr.yp.to/software.html   
+# signatures can take approximately 9 seconds on a intel core 2 duo @
+# 2.2 ghz x 2).  Optionally, the PyNaCl module may be used to speed up ed25519
+# cryptographic operations.
+# http://ed25519.cr.yp.to/software.html   
 try:
   import nacl.signing
   import nacl.encoding
 except ImportError:
   pass
 
+# The pure Python implementation of ed25519.
 import ed25519.ed25519
 
 
@@ -74,7 +88,13 @@ import tuf.hash
 # Perform object format-checking.
 import tuf.formats
 
+# The default hash algorithm to use when generating KeyIDs.
 _KEY_ID_HASH_ALGORITHM = 'sha256'
+
+# Supported ed25519 signing methods.  'ed25519-python' is the pure Python
+# implementation signing method.  'ed25519-pynacl' (i.e., 'nacl' module) is the
+# (libsodium+Python bindings) implementation signing method. 
+_SUPPORTED_ED25519_SIGNING_METHODS = ['ed25519-python', 'ed25519-pynacl']
 
 
 def generate(use_pynacl=False):
@@ -86,11 +106,11 @@ def generate(use_pynacl=False):
     form:
     {'keytype': 'ed25519',
      'keyid': keyid,
-     'keyval': {'public': '\xb3\x17c\xda\x80\xed`F\xcc\xe4 ...',
-                'private': '\xd7D\xb9b\xdf\xf6*\xa1\xbb\x19 ...'}}
+     'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
+                'private': 'bf7336055c7638276efe9afe039...'}}
     
     The public and private keys are strings.  An ed25519 seed key is a random
-    32-byte value.  Public keys are also 32 bytes.
+    32-byte value and public key 32 bytes, although both are hexlified.
 
     >>> ed25519_key = generate()
     >>> tuf.formats.ED25519KEY_SCHEMA.matches(ed25519_key)
@@ -108,14 +128,18 @@ def generate(use_pynacl=False):
     64
 
   <Arguments>
-    None.
+    use_pynacl:
+      True, if the ed25519 keys should be generated with PyNaCl.  False, if the
+      keys should be generated with the pure Python implementation of ed25519
+      (much slower).
 
   <Exceptions>
     NotImplementedError, if a randomness source is not found.
 
   <Side Effects>
     The ed25519 keys are generated by first creating a random 32-byte value
-    'sk' with os.urandom() and then calling ed25519's ed25519.25519.publickey(sk).
+    'sk' with os.urandom() and then calling ed25519's ed25519.25519.publickey(sk)
+    or PyNaCl's nacl.signing.SigningKey().
 
   <Returns>
     A dictionary containing the ed25519 keys and other identifying information.
@@ -131,25 +155,23 @@ def generate(use_pynacl=False):
   # Raise 'NotImplementedError' if a randomness source is not found.
   # ed25519 seed keys are fixed at 32 bytes (256-bit keys).
   # http://blog.mozilla.org/warner/2011/11/29/ed25519-keys/ 
-  seed = os.urandom(32)
+  seed = binascii.hexlify(os.urandom(32))
   public = None
 
   if use_pynacl:
     # Generate the public key.  PyNaCl (i.e., 'nacl' module) performs
     # the actual key generation.
-      seed = binascii.hexlify(seed)
       nacl_key = nacl.signing.SigningKey(seed, encoder=nacl.encoding.HexEncoder)
       public = binascii.hexlify(str(nacl_key.verify_key))
   
-  # Use the pure python implementation of ed25519. 
+  # Use the pure Python implementation of ed25519. 
   else: 
     public = ed25519.ed25519.publickey(seed)
     public = binascii.hexlify(public)
-    seed = binascii.hexlify(seed)
   
   # Generate the keyid for the ed25519 key dict.  'key_value' corresponds to the
-  # 'keyval' entry of the 'ED25519KEY_SCHEMA' dictionary.  The seed key
-  # information is not included in the generation of the 'keyid' identifier.
+  # 'keyval' entry of the 'ED25519KEY_SCHEMA' dictionary.  The seed (private)
+  # key information is not included in the generation of the 'keyid' identifier.
   key_value = {'public': public,
                'private': ''}
   keyid = _get_keyid(key_value)
@@ -175,16 +197,16 @@ def create_in_metadata_format(key_value, private=False):
     If 'private' is True, include the private key.  The dictionary
     returned has the form:
     {'keytype': 'ed25519',
-     'keyval': {'public': '\xb3\x17c\xda\x80\xed`F\xcc\xe4 ...',
-                'private': '\xd7D\xb9b\xdf\xf6*\xa1\xbb\x19 ...'}}
+     'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
+                'private': 'bf7336055c7638276efe9afe039...'}}
     
     or if 'private' is False:
 
     {'keytype': 'ed25519',
-     'keyval': {'public': '\xb3\x17c\xda\x80\xed`F\xcc\xe4 ...',
+     'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
                 'private': ''}}
     
-    The private and public keys are 32 bytes.
+    The private and public keys are 32 bytes, although hexlified.
     
     ed25519 keys are stored in Metadata files (e.g., root.txt) in the format
     returned by this function.
@@ -200,8 +222,8 @@ def create_in_metadata_format(key_value, private=False):
       A dictionary containing a seed and public ed25519 key.
       'key_value' is of the form:
 
-      {'public': '\xb3\x17c\xda\x80\xed`F\xcc\xe4 ...',
-       'private': '\xd7D\xb9b\xdf\xf6*\xa1\xbb\x19 ...'}
+      {'public': '876f5584a9db99b8546c0d8608d6...',
+       'private': 'bf7336055c7638276efe9afe039...'}
       
       conformat to 'tuf.formats.KEYVAL_SCHEMA'.
 
@@ -226,7 +248,7 @@ def create_in_metadata_format(key_value, private=False):
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.KEYVAL_SCHEMA.check_match(key_value)
 
-  if private is True and key_value['private']:
+  if private is True and len(key_value['private']):
     return {'keytype': 'ed25519', 'keyval': key_value}
   else:
     public_key_value = {'public': key_value['public'], 'private': ''}
@@ -245,13 +267,13 @@ def create_from_metadata_format(key_metadata):
    
     {'keytype': 'ed25519',
      'keyid': keyid,
-     'keyval': {'public': '\xb3\x17c\xda\x80\xed`F\xcc\xe4 ...',
-                'private': '\xd7D\xb9b\xdf\xf6*\xa1\xbb\x19 ...'}}
+     'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
+                'private': 'bf7336055c7638276efe9afe039...'}}
 
-    The public and private keys are 32-byte strings.
+    The public and private keys are 32-byte strings, although hexlified.
 
     ed25519 key dictionaries in 'ED25519KEY_SCHEMA' format should be used by
-    modules storing a collection of keys, such as a keydb and keystore.
+    modules storing a collection of keys, such as a keydb keystore.
     ed25519 keys as stored in metadata files use a different format, so this 
     function should be called if an ed25519 key is extracted from one of these 
     metadata files and needs converting.  Generate() creates an entirely
@@ -273,8 +295,8 @@ def create_from_metadata_format(key_metadata):
       'tuf.formats.KEY_SCHEMA'.  It has the form:
       
       {'keytype': 'ed25519',
-       'keyval': {'public': '\xb3\x17c\xda\x80\xed`F\xcc\xe4 ...',
-                  'private': '\xd7D\xb9b\xdf\xf6*\xa1\xbb\x19 ...'}}
+       'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
+                  'private': 'bf7336055c7638276efe9afe039...'}}
 
   <Exceptions>
     tuf.FormatError, if 'key_metadata' does not conform to
@@ -299,7 +321,8 @@ def create_from_metadata_format(key_metadata):
   key_value = key_metadata['keyval']
 
   # Convert 'key_value' to 'tuf.formats.KEY_SCHEMA' and generate its hash
-  # The hash is in hexdigest form. 
+  # The hash is in hexdigest form.  _get_keyid() ensures the private key
+  # information is not included.
   keyid = _get_keyid(key_value)
 
   # We now have all the required key values.  Build 'ed25519_key_dict'.
@@ -343,9 +366,12 @@ def create_signature(ed25519_key_dict, data, use_pynacl=False):
   """
   <Purpose>
     Return a signature dictionary of the form:
-    {'keyid': keyid,
+    {'keyid': 'a0469d9491e3c0b42dd41fe3455359dbacb3306b6e8fb59...',
      'method': 'ed25519-python',
-     'sig': sig}.
+     'sig': '4b3829671b2c6b90034518a918d2447c722474c878c2431dd...'}
+
+     Note: 'method' may also be 'ed25519-pynacl', if the signature was created
+     by the 'nacl' module.
 
     The signing process will use the public and seed key
     ed25519_key_dict['keyval']['private'],
@@ -373,24 +399,29 @@ def create_signature(ed25519_key_dict, data, use_pynacl=False):
     
       {'keytype': 'ed25519',
        'keyid': keyid,
-       'keyval': {'public': '\xb3\x17c\xda\x80\xed`F\xcc\xe4 ...',
-                  'private': '\xd7D\xb9b\xdf\xf6*\xa1\xbb\x19 ...'}}
+       'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
+                  'private': 'bf7336055c7638276efe9afe039...'}}
 
-      The public and private keys are 32-byte strings.
+      The public and private keys are 32-byte strings, although hexlified.
 
     data:
       Data object used by create_signature() to generate the signature.
+    
+    use_pynacl:
+      True, if the ed25519 signature should be generated with PyNaCl.  False,
+      if the signature should be generated with the pure Python implementation
+      of ed25519 (much slower).
 
   <Exceptions>
     TypeError, if a private key is not defined for 'ed25519_key_dict'.
 
-    tuf.FormatError, if an incorrect format is found for the
-    'ed25519_key_dict' object.
+    tuf.FormatError, if an incorrect format is found for 'ed25519_key_dict'.
 
     tuf.CryptoError, if a signature cannot be created.
 
   <Side Effects>
-    'ed25519.ed25519.signature() called to generate the actual signature.
+    ed25519.ed25519.signature() or nacl.signing.SigningKey.sign() called to
+    generate the actual signature.
 
   <Returns>
     A signature dictionary conformat to 'tuf.format.SIGNATURE_SCHEMA'.
@@ -405,7 +436,9 @@ def create_signature(ed25519_key_dict, data, use_pynacl=False):
   tuf.formats.ED25519KEY_SCHEMA.check_match(ed25519_key_dict)
 
   # Signing the 'data' object requires a seed and public key.
-  # 'ed25519.ed25519.py' generates the actual 64-byte signature in pure Python. 
+  # 'ed25519.ed25519.py' generates the actual 64-byte signature in pure Python.
+  # nacl.signing.SigningKey.sign() generates the signature if 'use_pynacl'
+  # is True.
   signature = {}
   private_key = ed25519_key_dict['keyval']['private']
   public_key = ed25519_key_dict['keyval']['public']
@@ -470,38 +503,47 @@ def verify_signature(ed25519_key_dict, signature, data, use_pynacl=False):
     'ed25519_key_dict' and 'signature'.
 
     >>> ed25519_key_dict = generate()
-    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> data = 'The quick brown fox jumps over the lazy dog.'
     >>> signature = create_signature(ed25519_key_dict, data)
     >>> verify_signature(ed25519_key_dict, signature, data)
     True
     >>> verify_signature(ed25519_key_dict, signature, data, True)
     True
-    >>> bad_data = 'The sly brown fox jumps over the lazy dog'
-    >>> bad_signature = create_signature(ed25519_key_dict, bad_data) 
+    >>> bad_data = 'The sly brown fox jumps over the lazy dog.'
+    >>> bad_signature = create_signature(ed25519_key_dict, bad_data)
     >>> verify_signature(ed25519_key_dict, bad_signature, data, True)
     False
   
   <Arguments>
     ed25519_key_dict:
-      A dictionary containing the ed25519 keys and other identifying information.
-      'ed25519_key_dict' has the form:
+      A dictionary containing the ed25519 keys and other identifying
+      information.  'ed25519_key_dict' has the form:
      
       {'keytype': 'ed25519',
-       'keyid': keyid,
-       'keyval': {'public': '\xb3\x17c\xda\x80\xed`F\xcc\xe4 ...',
-                  'private': '\xd7D\xb9b\xdf\xf6*\xa1\xbb\x19 ...'}}
+       'keyid': 'a0469d9491e3c0b42dd41fe3455359dbacb3306b6e8fb59...',
+       'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
+                  'private': 'bf7336055c7638276efe9afe039...'}}
 
-      The public and private keys are 32-byte strings.
+      The public and private keys are 32-byte strings, although hexlified.
       
     signature:
       The signature dictionary produced by tuf.ed25519_key.create_signature().
       'signature' has the form:
-      {'keyid': keyid, 'method': 'method', 'sig': sig}.  Conformant to
-      'tuf.formats.SIGNATURE_SCHEMA'.
+      
+      {'keyid': 'a0469d9491e3c0b42dd41fe3455359dbacb3306b6e8fb59...',
+       'method': 'ed25519-python',
+       'sig': '4b3829671b2c6b90034518a918d2447c722474c878c2431dd...'}
+      
+      Conformant to 'tuf.formats.SIGNATURE_SCHEMA'.
       
     data:
       Data object used by tuf.ed25519_key.create_signature() to generate
       'signature'.  'data' is needed here to verify the signature.
+    
+    use_pynacl:
+      True, if the ed25519 signature should be verified with PyNaCl.  False,
+      if the signature should be verified with the pure Python implementation
+      of ed25519 (much slower).
 
   <Exceptions>
     tuf.UnknownMethodError.  Raised if the signing method used by
@@ -514,10 +556,10 @@ def verify_signature(ed25519_key_dict, signature, data, use_pynacl=False):
 
   <Side Effects>
     ed25519.ed25519.checkvalid() called to do the actual verification.
+    nacl.signing.VerifyKey.verify() called if 'use_pynacl' is True.
 
   <Returns>
     Boolean.  True if the signature is valid, False otherwise.
-
   """
 
   # Does 'ed25519_key_dict' have the correct format?
@@ -533,15 +575,15 @@ def verify_signature(ed25519_key_dict, signature, data, use_pynacl=False):
   # (i.e., ed25519_key_dict['keyval']['public']), verify whether 'signature'
   # was produced by ed25519_key_dict's corresponding seed key
   # ed25519_key_dict['keyval']['private'].  Before returning the Boolean result,
-  # ensure 'ed25519-python' was used as the signing method.
+  # ensure 'ed25519-python' or 'ed25519-pynacl' was used as the signing method.
   method = signature['method']
   sig = signature['sig']
+  signature = binascii.unhexlify(sig)
   public = ed25519_key_dict['keyval']['public']
   public = binascii.unhexlify(public)
-  signature = binascii.unhexlify(sig)
   valid_signature = False
 
-  if method == 'ed25519-python' or method == 'ed25519-pynacl':
+  if method in _SUPPORTED_ED25519_SIGNING_METHODS:
     if use_pynacl: 
       try:
         nacl_verify_key = nacl.signing.VerifyKey(public)
@@ -551,17 +593,20 @@ def verify_signature(ed25519_key_dict, signature, data, use_pynacl=False):
       except nacl.signing.BadSignatureError:
         pass 
     
-    # Verify signature with 'ed25519-python' (i.e., pure python implementation). 
+    # Verify signature with 'ed25519-python' (i.e., pure Python implementation). 
     else:
-      try: 
-        # The metadata stores signatures in hex.  Unhexlify and verify the
-        # signature.
+      try:
         ed25519.ed25519.checkvalid(signature, data, public)
         valid_signature = True
+      
+      # The pure Python implementation raises 'Exception' if 'signature' is
+      # invalid.
       except Exception, e:
         pass
   else:
-    raise tuf.UnknownMethodError(method)
+    message = 'Unsupported ed25519 signing method: '+repr(method)+'.\n'+ \
+      'Supported methods: '+repr(_SUPPORTED_ED25519_SIGNING_METHODS)+'.'
+    raise tuf.UnknownMethodError(message)
 
   return valid_signature 
 
