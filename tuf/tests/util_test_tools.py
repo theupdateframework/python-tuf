@@ -135,6 +135,7 @@ import random
 import logging
 import tempfile
 import subprocess
+import json
 
 import tuf
 import tuf.client.updater
@@ -613,3 +614,41 @@ def create_delegation(tuf_repo, delegated_targets_path, keyid, keyid_password,
   signercli._get_password = original_get_password
   signercli._prompt = original_prompt
   signercli._get_metadata_directory = original_get_metadata_directory
+
+
+def update_signed_file_in_metadata(signee_filepath, signer_filepath,
+                                    lookup_keys):
+  """
+  <Purpose>
+    Update metadata to reflect a modified file's new hash and length, WITHOUT
+    signing it. This is meant to simulate something a clever attacker might do.
+
+  <Arguments>
+    signee_filepath:
+      filepath of the file that has been modified since the metadata was
+      generated
+    signer_filepath:
+      filepath of the metadata that signs the modified file
+    lookup_keys:
+      a list of the keys used to look up signee's file info in signer
+  """
+
+  signer_file = open(signer_filepath, 'r+')
+  metadata = json.load(signer_file)
+
+  modified_file_length, modified_file_hash =\
+                                tuf.util.get_file_details(signee_filepath)
+
+  # use lookup_keys to look up signee's file data in the metadata
+  metadata_dict = metadata
+  for key in lookup_keys:
+    metadata_dict = metadata_dict[key]
+
+  # Modify the metadata to reflect signee's new hash and length.
+  metadata_dict['hashes'] = modified_file_hash
+  metadata_dict['length'] = modified_file_length
+
+  # Rewrite signer using the modified metadata.
+  signer_file.seek(0)
+  json.dump(metadata, signer_file, indent=1, sort_keys=True)
+  signer_file.close()

@@ -42,6 +42,7 @@ import urllib
 
 import tuf
 import tuf.interposition
+import tuf.repo.signerlib
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -70,7 +71,8 @@ def _download(url, filename, directory, using_tuf=False):
 
 
 
-def test_extraneous_dependency_attack(using_tuf=False):
+
+def test_extraneous_dependency_attack(using_tuf=False, modify_metadata=False):
   """
   <Purpose>
     Illustrate extraneous dependency attack vulnerability.
@@ -133,6 +135,44 @@ def test_extraneous_dependency_attack(using_tuf=False):
       util_test_tools.modify_file_at_repository(dependent_target_filepath,
                                         'requires:'+modified_dependency_list)
 
+      if modify_metadata:
+
+        # Modify targets metadata to reflect the change to the dependent file.
+        targets_metadata_filepath = os.path.join(tuf_repo, 'metadata',
+                                                                'targets.txt')
+
+        targets_metadata_key_list = ['signed', 'targets', dependent_basename]
+
+        util_test_tools.update_signed_file_in_metadata(
+                                                  dependent_target_filepath,
+                                                  targets_metadata_filepath,
+                                                  targets_metadata_key_list)
+
+        # Modify release metadata to reflect the change to targets metadata.
+        release_metadata_filepath = os.path.join(tuf_repo, 'metadata',
+                                                                'release.txt')
+
+        release_metadata_key_list = ['signed', 'meta', 'targets.txt']
+
+        util_test_tools.update_signed_file_in_metadata(
+                                                  targets_metadata_filepath,
+                                                  release_metadata_filepath,
+                                                  release_metadata_key_list)
+
+        # Modify timestamp metadata to reflect he change to release metadata.
+        timestamp_metadata_filepath = os.path.join(tuf_repo, 'metadata',
+                                                                'timestamp.txt')
+
+        timestamp_metadata_key_list = ['signed', 'meta', 'release.txt']
+        
+        util_test_tools.update_signed_file_in_metadata(
+                                                  release_metadata_filepath,
+                                                  timestamp_metadata_filepath,
+                                                  timestamp_metadata_key_list)
+              
+
+        
+
     # Attacker modifies the depenent file in the regular repository, adding
     # the bad dependency to its list.
     util_test_tools.modify_file_at_repository(dependent_filepath,
@@ -148,11 +188,19 @@ def test_extraneous_dependency_attack(using_tuf=False):
     except tuf.NoWorkingMirrorError, error:
       # We only set up one mirror, so if it fails, we expect a
       # NoWorkingMirrorError. If TUF has worked as intended, the mirror error
-      # contained within should be a BadHashError.
-      mirror_error = \
-              error.mirror_errors[url+'tuf_repo/targets/'+dependent_basename]
+      # contained within should be a BadHashError or a BadSignatureError,
+      # depending on whether the metadata was modified.
+      if modify_metadata:
+        mirror_error = \
+                error.mirror_errors[url+'tuf_repo/metadata/timestamp.txt']
 
-      assert isinstance(mirror_error, tuf.BadHashError)
+        assert isinstance(mirror_error, tuf.BadSignatureError)
+
+      else:
+        mirror_error = \
+                error.mirror_errors[url+'tuf_repo/targets/'+dependent_basename]
+
+        assert isinstance(mirror_error, tuf.BadHashError)
 
     else:
       # Check if the legitimate dependency was downloaded.
@@ -171,17 +219,26 @@ def test_extraneous_dependency_attack(using_tuf=False):
 print 'Attempting extraneous dependency attack without TUF:'
 try:
   test_extraneous_dependency_attack(using_tuf=False)
-  
 except ExtraneousDependencyAlert, error:
   print error
 else:
   print 'Extraneous dependency attack failed.'
 print
 
+
 print 'Attempting extraneous dependency attack with TUF:'
 try:
-  test_extraneous_dependency_attack(using_tuf=True)
+  test_extraneous_dependency_attack(using_tuf=True, modify_metadata=False)
+except ExtraneousDependencyAlert, error:
+  print error
+else:
+  print 'Extraneous dependency attack failed.'
+print
 
+
+print 'Attempting extraneous dependency attack with TUF (and tampering with metadata):'
+try:
+  test_extraneous_dependency_attack(using_tuf=True, modify_metadata=True)
 except ExtraneousDependencyAlert, error:
   print error
 else:
