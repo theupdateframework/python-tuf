@@ -42,7 +42,6 @@ import urllib
 
 import tuf
 import tuf.interposition
-import tuf.repo.signerlib
 import tuf.tests.util_test_tools as util_test_tools
 
 
@@ -164,7 +163,7 @@ def test_extraneous_dependency_attack(using_tuf=False, modify_metadata=False):
                                                                 'timestamp.txt')
 
         timestamp_metadata_key_list = ['signed', 'meta', 'release.txt']
-        
+
         util_test_tools.update_signed_file_in_metadata(
                                                   release_metadata_filepath,
                                                   timestamp_metadata_filepath,
