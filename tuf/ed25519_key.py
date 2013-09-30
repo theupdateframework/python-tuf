@@ -99,6 +99,13 @@ def generate(use_pynacl=False):
     64
     >>> len(ed25519_key['keyval']['private'])
     64
+    >>> ed25519_key_pynacl = generate(use_pynacl=True)
+    >>> tuf.formats.ED25519KEY_SCHEMA.matches(ed25519_key_pynacl)
+    True
+    >>> len(ed25519_key_pynacl['keyval']['public'])
+    64
+    >>> len(ed25519_key_pynacl['keyval']['private'])
+    64
 
   <Arguments>
     None.
@@ -353,6 +360,11 @@ def create_signature(ed25519_key_dict, data, use_pynacl=False):
     True
     >>> len(signature['sig'])
     128
+    >>> signature_pynacl = create_signature(ed25519_key_dict, data, True)
+    >>> tuf.formats.SIGNATURE_SCHEMA.matches(signature_pynacl)
+    True
+    >>> len(signature_pynacl['sig'])
+    128
 
   <Arguments>
     ed25519_key_dict:
@@ -462,9 +474,11 @@ def verify_signature(ed25519_key_dict, signature, data, use_pynacl=False):
     >>> signature = create_signature(ed25519_key_dict, data)
     >>> verify_signature(ed25519_key_dict, signature, data)
     True
+    >>> verify_signature(ed25519_key_dict, signature, data, True)
+    True
     >>> bad_data = 'The sly brown fox jumps over the lazy dog'
     >>> bad_signature = create_signature(ed25519_key_dict, bad_data) 
-    >>> verify_signature(ed25519_key_dict, bad_signature, data)
+    >>> verify_signature(ed25519_key_dict, bad_signature, data, True)
     False
   
   <Arguments>
@@ -532,12 +546,10 @@ def verify_signature(ed25519_key_dict, signature, data, use_pynacl=False):
       try:
         nacl_verify_key = nacl.signing.VerifyKey(public)
         nacl_message = nacl_verify_key.verify(data, signature) 
-      except BadSignatureError:
-        message = 'Could not verify "ed25519-pynacl" signature.'
-        raise tuf.CryptoError(message)
-    
-      if nacl_message == data:
-        valid_signature = True
+        if nacl_message == data:
+          valid_signature = True
+      except nacl.signing.BadSignatureError:
+        pass 
     
     # Verify signature with 'ed25519-python' (i.e., pure python implementation). 
     else:
