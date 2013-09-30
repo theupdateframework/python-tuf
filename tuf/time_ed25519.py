@@ -9,12 +9,12 @@ use_pynacl = False
 if '--pynacl' in sys.argv:
   use_pynacl = True
   
-print('Timing generate()')
+print('Time generate()')
 print(timeit.timeit('generate(use_pynacl)',
                     setup='from __main__ import generate, use_pynacl',
                     number=1))
 
-print('\nTiming create_signature()')
+print('\nTime create_signature()')
 print(timeit.timeit('create_signature(ed25519_key, data, use_pynacl)',
                     setup='from __main__ import generate, create_signature, \
                                                 use_pynacl; \
@@ -22,7 +22,7 @@ print(timeit.timeit('create_signature(ed25519_key, data, use_pynacl)',
                           data = "The quick brown fox jumps over the lazy dog"',
                     number=1))
 
-print('\nTiming verify_signature()')
+print('\nTime verify_signature()')
 print(timeit.timeit('verify_signature(ed25519_key, signature, data, use_pynacl)',
                     setup='from __main__ import generate, create_signature, \
                                                 verify_signature, use_pynacl;\
