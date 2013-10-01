@@ -155,30 +155,29 @@ def generate(use_pynacl=False):
   # Raise 'NotImplementedError' if a randomness source is not found.
   # ed25519 seed keys are fixed at 32 bytes (256-bit keys).
   # http://blog.mozilla.org/warner/2011/11/29/ed25519-keys/ 
-  seed = binascii.hexlify(os.urandom(32))
+  seed = os.urandom(32)
   public = None
 
   if use_pynacl:
     # Generate the public key.  PyNaCl (i.e., 'nacl' module) performs
     # the actual key generation.
-      nacl_key = nacl.signing.SigningKey(seed, encoder=nacl.encoding.HexEncoder)
-      public = binascii.hexlify(str(nacl_key.verify_key))
+      nacl_key = nacl.signing.SigningKey(seed)
+      public = str(nacl_key.verify_key)
   
   # Use the pure Python implementation of ed25519. 
   else: 
     public = ed25519.ed25519.publickey(seed)
-    public = binascii.hexlify(public)
   
   # Generate the keyid for the ed25519 key dict.  'key_value' corresponds to the
   # 'keyval' entry of the 'ED25519KEY_SCHEMA' dictionary.  The seed (private)
   # key information is not included in the generation of the 'keyid' identifier.
-  key_value = {'public': public,
+  key_value = {'public': binascii.hexlify(public),
                'private': ''}
   keyid = _get_keyid(key_value)
 
   # Build the 'ed25519_key_dict' dictionary.  Update 'key_value' with the
   # ed25519 seed key prior to adding 'key_value' to 'ed25519_key_dict'.
-  key_value['private'] = seed 
+  key_value['private'] = binascii.hexlify(seed)
 
   ed25519_key_dict['keytype'] = keytype
   ed25519_key_dict['keyid'] = keyid
@@ -442,7 +441,7 @@ def create_signature(ed25519_key_dict, data, use_pynacl=False):
   signature = {}
   private_key = ed25519_key_dict['keyval']['private']
   public_key = ed25519_key_dict['keyval']['public']
-  seed = binascii.unhexlify(private_key)
+  private_key = binascii.unhexlify(private_key)
   public_key = binascii.unhexlify(public_key)
 
   keyid = ed25519_key_dict['keyid']
@@ -457,7 +456,7 @@ def create_signature(ed25519_key_dict, data, use_pynacl=False):
     if use_pynacl:
       method = 'ed25519-pynacl'
       try:
-        nacl_key = nacl.signing.SigningKey(seed)
+        nacl_key = nacl.signing.SigningKey(private_key)
         nacl_sig = nacl_key.sign(data)
         sig = nacl_sig.signature
       except (ValueError, nacl.signing.CryptoError):
@@ -469,7 +468,6 @@ def create_signature(ed25519_key_dict, data, use_pynacl=False):
       # ed25519.ed25519.signature() requires both the seed and public keys.
       # It calculates the SHA512 of the seed key, which is 32 bytes.
       method = 'ed25519-python'
-      private_key = binascii.unhexlify(private_key)
       try:
         sig = ed25519.ed25519.signature(data, private_key, public_key)
       except Exception, e:
@@ -578,7 +576,7 @@ def verify_signature(ed25519_key_dict, signature, data, use_pynacl=False):
   # ensure 'ed25519-python' or 'ed25519-pynacl' was used as the signing method.
   method = signature['method']
   sig = signature['sig']
-  signature = binascii.unhexlify(sig)
+  sig = binascii.unhexlify(sig)
   public = ed25519_key_dict['keyval']['public']
   public = binascii.unhexlify(public)
   valid_signature = False
@@ -587,7 +585,7 @@ def verify_signature(ed25519_key_dict, signature, data, use_pynacl=False):
     if use_pynacl: 
       try:
         nacl_verify_key = nacl.signing.VerifyKey(public)
-        nacl_message = nacl_verify_key.verify(data, signature) 
+        nacl_message = nacl_verify_key.verify(data, sig) 
         if nacl_message == data:
           valid_signature = True
       except nacl.signing.BadSignatureError:
@@ -596,7 +594,7 @@ def verify_signature(ed25519_key_dict, signature, data, use_pynacl=False):
     # Verify signature with 'ed25519-python' (i.e., pure Python implementation). 
     else:
       try:
-        ed25519.ed25519.checkvalid(signature, data, public)
+        ed25519.ed25519.checkvalid(sig, data, public)
         valid_signature = True
       
       # The pure Python implementation raises 'Exception' if 'signature' is
