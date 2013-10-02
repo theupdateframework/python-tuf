@@ -51,7 +51,8 @@ class ExtraneousDependencyAlert(Exception):
 
 
 # Interpret anything following 'requires:' in the contents of the file it
-# downloads as a comma-separated list of dependent files from the same repository.
+# downloads as a comma-separated list of dependent files from the same
+# repository.
 def _download(url, filename, directory, using_tuf=False):
   destination = os.path.join(directory, filename)
   if using_tuf:
@@ -63,7 +64,8 @@ def _download(url, filename, directory, using_tuf=False):
 
   # Parse the list of required files (if it exists) and download them.
   if file_contents.find('requires:') != -1:
-    required_files = file_contents[file_contents.find('requires:') + 9:].split(',')
+    required_files =\
+              file_contents[file_contents.find('requires:') + 9:].split(',')
     for required_filename in required_files:
       required_file_url = os.path.dirname(url)+os.sep+required_filename
       _download(required_file_url, required_filename, directory, using_tuf)
@@ -138,7 +140,7 @@ def test_extraneous_dependency_attack(using_tuf=False, modify_metadata=False):
 
         # Modify targets metadata to reflect the change to the dependent file.
         targets_metadata_filepath = os.path.join(tuf_repo, 'metadata',
-                                                                'targets.txt')
+                                                              'targets.txt')
 
         targets_metadata_key_list = ['signed', 'targets', dependent_basename]
 
@@ -149,7 +151,7 @@ def test_extraneous_dependency_attack(using_tuf=False, modify_metadata=False):
 
         # Modify release metadata to reflect the change to targets metadata.
         release_metadata_filepath = os.path.join(tuf_repo, 'metadata',
-                                                                'release.txt')
+                                                              'release.txt')
 
         release_metadata_key_list = ['signed', 'meta', 'targets.txt']
 
@@ -160,7 +162,7 @@ def test_extraneous_dependency_attack(using_tuf=False, modify_metadata=False):
 
         # Modify timestamp metadata to reflect he change to release metadata.
         timestamp_metadata_filepath = os.path.join(tuf_repo, 'metadata',
-                                                                'timestamp.txt')
+                                                              'timestamp.txt')
 
         timestamp_metadata_key_list = ['signed', 'meta', 'release.txt']
 
@@ -215,31 +217,32 @@ def test_extraneous_dependency_attack(using_tuf=False, modify_metadata=False):
 
 
 
-print 'Attempting extraneous dependency attack without TUF:'
+print('Attempting extraneous dependency attack without TUF:')
 try:
   test_extraneous_dependency_attack(using_tuf=False)
 except ExtraneousDependencyAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
 
 
-print 'Attempting extraneous dependency attack with TUF:'
+print('Attempting extraneous dependency attack with TUF:')
 try:
   test_extraneous_dependency_attack(using_tuf=True, modify_metadata=False)
 except ExtraneousDependencyAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
 
 
-print 'Attempting extraneous dependency attack with TUF (and tampering with metadata):'
+print('Attempting extraneous dependency attack with TUF\
+                          (and tampering with metadata):')
 try:
   test_extraneous_dependency_attack(using_tuf=True, modify_metadata=True)
 except ExtraneousDependencyAlert, error:
-  print error
+  print(error
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()

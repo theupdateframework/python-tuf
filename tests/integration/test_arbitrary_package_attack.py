@@ -101,7 +101,7 @@ def test_arbitrary_package_attack(using_tuf=False, modify_metadata=False):
 
         # Modify targets metadata to reflect the change to the target file.
         targets_metadata_filepath = os.path.join(tuf_repo, 'metadata',
-                                                                'targets.txt')
+                                                              'targets.txt')
 
         targets_metadata_key_list = ['signed', 'targets', file_basename]
 
@@ -112,7 +112,7 @@ def test_arbitrary_package_attack(using_tuf=False, modify_metadata=False):
 
         # Modify release metadata to reflect the change to targets metadata.
         release_metadata_filepath = os.path.join(tuf_repo, 'metadata',
-                                                                'release.txt')
+                                                              'release.txt')
 
         release_metadata_key_list = ['signed', 'meta', 'targets.txt']
 
@@ -123,7 +123,7 @@ def test_arbitrary_package_attack(using_tuf=False, modify_metadata=False):
 
         # Modify timestamp metadata to reflect he change to release metadata.
         timestamp_metadata_filepath = os.path.join(tuf_repo, 'metadata',
-                                                                'timestamp.txt')
+                                                              'timestamp.txt')
 
         timestamp_metadata_key_list = ['signed', 'meta', 'release.txt']
         
@@ -172,31 +172,31 @@ def test_arbitrary_package_attack(using_tuf=False, modify_metadata=False):
 
 
 
-print 'Attempting arbitrary package attack without TUF:'
+print('Attempting arbitrary package attack without TUF:')
 try:
   test_arbitrary_package_attack(using_tuf=False)
 except ArbitraryPackageAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
 
 
-print 'Attempting arbitrary package attack with TUF:'
+print('Attempting arbitrary package attack with TUF:')
 try:
   test_arbitrary_package_attack(using_tuf=True, modify_metadata=False)
 except ArbitraryPackageAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
 
 
-print 'Attempting arbitrary package attack with TUF (and tampering with metadata):'
+print('Attempting arbitrary package attack with TUF (and tampering with metadata):')
 try:
   test_arbitrary_package_attack(using_tuf=True, modify_metadata=True)
 except ArbitraryPackageAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
