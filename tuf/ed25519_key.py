@@ -36,7 +36,7 @@
   create_from_metadata_format().  These last two functions produce or use
   ed25519 keys compatible with the key structures listed in TUF Metadata files.
   The generate() function returns a dictionary containing all the information
-  needed of ed25519 keys, such as public and private keys, keyID idenfiers.
+  needed of ed25519 keys, such as public/private keys and a keyID identifier.
   create_signature() and verify_signature() are supplemental functions used for
   generating ed25519 signatures and verifying them.
   
