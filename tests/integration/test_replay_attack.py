@@ -21,19 +21,26 @@
   software that is older than that which the client previously knew to be
   available.
 
-NOTE: The interposition provided by 'tuf.interposition' is used to intercept
-all calls made by urllib/urillib2 to certain hostname specified in 
-the interposition configuration file.  Look up interposition.py for more
-information and illustration of a sample contents of the interposition 
-configuration file.  Interposition was meant to make TUF integration with an
-existing software updater an easy process.  This allows for more flexibility
-to the existing software updater.  However, if you are planning to solely use
-TUF there should be no need for interposition, all necessary calls will be
-generated from within TUF.
+  NOTE: The interposition provided by 'tuf.interposition' is used to intercept
+  all calls made by urllib/urillib2 to certain hostname specified in 
+  the interposition configuration file.  Look up interposition.py for more
+  information and illustration of a sample contents of the interposition 
+  configuration file.  Interposition was meant to make TUF integration with an
+  existing software updater an easy process.  This allows for more flexibility
+  to the existing software updater.  However, if you are planning to solely use
+  TUF there should be no need for interposition, all necessary calls will be
+  generated from within TUF.
 
-Note: There is no difference between 'updates' and 'target' files.
+  There is no difference between 'updates' and 'target' files.
 
 """
+
+# Help with Python 3 compatability, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import os
 import shutil
@@ -46,9 +53,6 @@ import tuf.tests.util_test_tools as util_test_tools
 
 class TestSetupError(Exception): pass
 class ReplayAttackAlert(Exception): pass
-
-
-
 
 
 def _download(url, filename, using_tuf=False):
@@ -198,8 +202,3 @@ except Exception, exception:
   print('Download without TUF failed due to: '+str(exception))
 else:
   print('Download without TUF did NOT fail due to replayed metadata attack!')
-
-
-
-
-
