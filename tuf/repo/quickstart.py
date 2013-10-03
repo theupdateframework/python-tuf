@@ -211,15 +211,20 @@ def collect_date():
 
 def build_keystore():
   """
-  Return a dictionary containing passwords and thresholds for every role
-  the keystore directory should be removed ASAP to delegate that function to
-  the build_repository function
+  ST:
+  Return a dictionary containing passwords and a list thresholds for every role
+
+  WARNING: passwords are kept in plaintext during this function. 
   """
-  
+
+  #redefined this constant locally, for debugging purposes
+  MAX_INPUT_ATTEMPTS = 3
+
   role_passwords = {}
   role_threshold = {}
   for role in ['root', 'targets', 'release', 'timestamp']:
-    # Ensure the user inputs a valid threshold value.
+
+    # for: Ensure the user inputs a valid threshold value.
     for attempt in range(MAX_INPUT_ATTEMPTS):
       prompt_message = \
         '\nEnter the desired threshold for the role '+repr(role)+': '
@@ -242,8 +247,8 @@ def build_keystore():
     if role_threshold[role] is None:
       raise tuf.RepositoryError('Could not build the keystore\n')
 
-      # Retrieve the password(s) for 'role', generate the key(s),
-      # and save them to the keystore.
+    # Retrieve the password(s) for 'role', store the passwords,
+    # and save them to the keystore.
     role_passwords[role] = []
     for threshold in range(role_threshold[role]):
       message = 'Enter a password for '+repr(role)+' ('+str(threshold+1)+'): '
@@ -376,13 +381,14 @@ def build_repository(project_directory, timeout, role_config):
   # Build the keystore and save the generated keys.
   role_info = {}
   for role in ['root', 'targets', 'release', 'timestamp']:
-    #parse the role_passwords dictionary and its acompanying list to produce the keystore
+    # ST: parse the role_passwords dictionary and its acompanying list to produce
+    # the keystore 
     keyBuildingMessage = "building keys for: " + repr(role) + "..."
     print keyBuildingMessage
     logger.info(keyBuildingMessage)
     for threshold in range(role_threshold[role]):
-      key = tuf.repo.signerlib.generate_and_save_rsa_key(keystore_directory,
-                                                         role_passwords[role].pop())
+      key = tuf.repo.signerlib.generate_and_save_rsa_key(keystore_directory, \
+                                                   role_passwords[role].pop())
       try:
         role_info[role]['keyids'].append(key['keyid'])
       except KeyError:
@@ -516,7 +522,7 @@ if __name__ == '__main__':
   try:
     date = collect_date()
     role_config = build_keystore()
-    build_repository(project_directory,date, role_config)
+    build_repository(project_directory, date, role_config)
   except tuf.RepositoryError, e:
     sys.stderr.write(str(e)+'\n')
     sys.exit(1)
