@@ -167,8 +167,94 @@ def _get_password(prompt='Password: ', confirm=False):
 
 
 
+def collect_date():
+  """
+  Return the date entered by the user. Sanity checks 
+  and other validations should be kept in this function.
+  
+  expect a mm/dd/yyyy string from this
 
-def build_repository(project_directory):
+  """
+
+
+  #this const holds the maximum number of attempts for the date input
+  MAX_INPUT_ATTEMPTS=3
+
+  # Handle the expiration time.  The expiration date determines when
+  # the top-level roles expire.
+  prompt_message = \
+    '\nWhen would you like your "root.txt" metadata to expire? (mm/dd/yyyy): '
+  timeout = None
+  for attempt in range(MAX_INPUT_ATTEMPTS):
+    # Get the difference between the user's entered expiration date and today's
+    # date.  Convert and store the difference to total days till expiration.
+    try:
+      input_date = _prompt(prompt_message)
+      expiration_date = datetime.datetime.strptime(input_date, '%m/%d/%Y')
+      time_difference = expiration_date - datetime.datetime.now()
+      timeout = time_difference.days
+      if timeout < 1:
+        raise ValueError
+      break
+    except ValueError, e:
+      message = 'Invalid expiration date entered'
+      logger.error(message)
+      timeout = None
+      continue
+
+  # Was a valid value for 'timeout' set?
+  if timeout is None:
+    raise tuf.RepositoryError('Could not get a valid expiration date\n')
+
+  return timeout
+
+
+def build_keystore():
+  """
+  Return a dictionary containing passwords and thresholds for every role
+  the keystore directory should be removed ASAP to delegate that function to
+  the build_repository function
+  """
+  
+  role_passwords = {}
+  role_threshold = {}
+  for role in ['root', 'targets', 'release', 'timestamp']:
+    # Ensure the user inputs a valid threshold value.
+    for attempt in range(MAX_INPUT_ATTEMPTS):
+      prompt_message = \
+        '\nEnter the desired threshold for the role '+repr(role)+': '
+
+      # Check for non-integers and values less than one.
+      try:
+        role_threshold[role] = _prompt(prompt_message, int)
+        if not tuf.formats.THRESHOLD_SCHEMA.matches(role_threshold[role]):
+	  raise ValueError
+        break
+      except ValueError, e:
+	message = 'Invalid role threshold entered'
+	print message
+	logger.warning(message)
+	role_threshold[role] = None
+	continue
+
+
+    # Did the user input a valid threshold value?
+    if role_threshold[role] is None:
+      raise tuf.RepositoryError('Could not build the keystore\n')
+
+      # Retrieve the password(s) for 'role', generate the key(s),
+      # and save them to the keystore.
+    for threshold in range(role_threshold[role]):
+      role_passwords[role] = []
+      message = 'Enter a password for '+repr(role)+' ('+str(threshold+1)+'): '
+      password = _get_password(message, confirm=True)
+
+      #The role_passwords dictionary now holds a value for each role threshold. 
+      role_passwords[role].append(password)
+
+  return role_passwords, role_threshold
+
+def build_repository(project_directory, timeout, role_config):
   """
   <Purpose>
     Build a basic TUF repository.  All of the required files needed by a
@@ -209,32 +295,12 @@ def build_repository(project_directory):
     message = str(e)
     raise tuf.RepositoryError(message)
   
-  # Handle the expiration time.  The expiration date determines when
-  # the top-level roles expire.
-  prompt_message = \
-    '\nWhen would you like your "root.txt" metadata to expire? (mm/dd/yyyy): '
-  timeout = None
-  for attempt in range(MAX_INPUT_ATTEMPTS):
-    # Get the difference between the user's entered expiration date and today's
-    # date.  Convert and store the difference to total days till expiration.
-    try:
-      input_date = _prompt(prompt_message)
-      expiration_date = datetime.datetime.strptime(input_date, '%m/%d/%Y')
-      time_difference = expiration_date - datetime.datetime.now()
-      timeout = time_difference.days
-      if timeout < 1:
-        raise ValueError
-      break
-    except ValueError, e:
-      message = 'Invalid expiration date entered'
-      logger.error(message)
-      timeout = None
-      continue
 
-  # Was a valid value for 'timeout' set?
-  if timeout is None:
-    raise tuf.RepositoryError('Could not get a valid expiration date\n')
+  #populate the role configuration dictionaries
+  role_passwords = role_config[0]
+  role_threshold = role_config[1]
 
+	
   # Build the repository directories.
   metadata_directory = None
   targets_directory = None
@@ -309,39 +375,17 @@ def build_repository(project_directory):
   # Build the keystore and save the generated keys.
   role_info = {}
   for role in ['root', 'targets', 'release', 'timestamp']:
-    # Ensure the user inputs a valid threshold value.
-    role_threshold = None
-    for attempt in range(MAX_INPUT_ATTEMPTS):
-      prompt_message = \
-        '\nEnter the desired threshold for the role '+repr(role)+': '
-
-      # Check for non-integers and values less than one.
-      try:
-        role_threshold = _prompt(prompt_message, int)
-        if not tuf.formats.THRESHOLD_SCHEMA.matches(role_threshold):
-          raise ValueError
-        break
-      except ValueError, e:
-        message = 'Invalid role threshold entered'
-        logger.warning(message)
-        role_threshold = None
-        continue
-
-    # Did the user input a valid threshold value?
-    if role_threshold is None:
-      raise tuf.RepositoryError('Could not build the keystore\n')
-
-    # Retrieve the password(s) for 'role', generate the key(s),
-    # and save them to the keystore.
-    for threshold in range(role_threshold):
-      message = 'Enter a password for '+repr(role)+' ('+str(threshold+1)+'): '
-      password = _get_password(message, confirm=True)
+    #parse the role_passwords dictionary and its acompanying list to produce the keystore
+    keyBuildingMessage = "building keys for: " + repr(role) + "..."
+    print keyBuildingMessage
+    logger.info(keyBuildingMessage)
+    for threshold in range(role_threshold[role]):
       key = tuf.repo.signerlib.generate_and_save_rsa_key(keystore_directory,
-                                                         password)
+                                                         role_passwords[role].pop())
       try:
         role_info[role]['keyids'].append(key['keyid'])
       except KeyError:
-        info = {'keyids': [key['keyid']], 'threshold': role_threshold}
+        info = {'keyids': [key['keyid']], 'threshold': role_threshold[role]}
         role_info[role] = info
 
   # At this point the keystore is built and the 'role_info' dictionary
@@ -469,7 +513,9 @@ if __name__ == '__main__':
   # Build the repository.  The top-level metadata files, cryptographic keys,
   # target files, and the configuration file are created.
   try:
-    build_repository(project_directory)
+    date = collect_date()
+    role_config = build_keystore()
+    build_repository(project_directory,date, role_config)
   except tuf.RepositoryError, e:
     sys.stderr.write(str(e)+'\n')
     sys.exit(1)
