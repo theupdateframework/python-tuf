@@ -244,14 +244,15 @@ def build_keystore():
 
       # Retrieve the password(s) for 'role', generate the key(s),
       # and save them to the keystore.
+    role_passwords[role] = []
     for threshold in range(role_threshold[role]):
-      role_passwords[role] = []
       message = 'Enter a password for '+repr(role)+' ('+str(threshold+1)+'): '
       password = _get_password(message, confirm=True)
 
       #The role_passwords dictionary now holds a value for each role threshold. 
       role_passwords[role].append(password)
 
+  #return the resulting tuple
   return role_passwords, role_threshold
 
 def build_repository(project_directory, timeout, role_config):
