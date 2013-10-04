@@ -145,10 +145,18 @@ def _prompt(message, result_type=str):
 
 def _get_password(prompt='Password: ', confirm=False):
   """
-    Return the password entered by the user.  If 'confirm'
-    is True, the user is asked to enter the previously
-    entered password once again.  If they match, the
-    password is returned to the caller.
+		<Purpose>
+			Prompt the user for a password
+	
+		<Parameters>
+			Prompt is the message sent to the user. 
+
+			If confirm is True, the user is asked to enter the previously
+    	entered password once again.  If they match, the
+    	password is returned to the caller.
+		<Return>
+		
+		the password entered by the user.
 
   """
 
@@ -169,10 +177,17 @@ def _get_password(prompt='Password: ', confirm=False):
 
 def collect_date():
   """
-  Return the date entered by the user. Sanity checks 
-  and other validations should be kept in this function.
+	<Purpose>
+		Ask the user for a valid date, not prior to the current date.
+
+  	Return the date entered by the user. Sanity checks 
+  	and other validations should be kept in this function.
   
-  expect a mm/dd/yyyy string from this
+	<Arguments>
+		None
+
+  <Returns>
+		a mm/dd/yyyy string
 
   """
 
@@ -211,10 +226,15 @@ def collect_date():
 
 def build_keystore():
   """
-  ST:
-  Return a dictionary containing passwords and a list thresholds for every role
+	<Purpose>
+		Build a keystore of passwords/threshold for a plain repo
 
-  WARNING: passwords are kept in plaintext during this function. 
+	<Arguments>
+		None
+	
+	<Returns>
+		Return a dictionary containing passwords and a list thresholds for every role
+		WARNING: passwords are kept in plaintext during this function. 
   """
 
   #redefined this constant locally, for debugging purposes
@@ -233,14 +253,14 @@ def build_keystore():
       try:
         role_threshold[role] = _prompt(prompt_message, int)
         if not tuf.formats.THRESHOLD_SCHEMA.matches(role_threshold[role]):
-	  raise ValueError
+	  			raise ValueError
         break
       except ValueError, e:
-	message = 'Invalid role threshold entered'
-	print message
-	logger.warning(message)
-	role_threshold[role] = None
-	continue
+				message = 'Invalid role threshold entered'
+				print message
+				logger.warning(message)
+				role_threshold[role] = None
+				continue
 
 
     # Did the user input a valid threshold value?
