@@ -29,6 +29,13 @@
 
 """
 
+# Help with Python 3 compatability, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 import os
 import urllib
 
@@ -121,7 +128,7 @@ def test_arbitrary_package_attack(using_tuf=False, modify_metadata=False):
                                                   release_metadata_filepath,
                                                   release_metadata_key_list)
 
-        # Modify timestamp metadata to reflect he change to release metadata.
+        # Modify timestamp metadata to reflect the change to release metadata.
         timestamp_metadata_filepath = os.path.join(tuf_repo, 'metadata',
                                                               'timestamp.txt')
 
@@ -192,7 +199,8 @@ else:
 print()
 
 
-print('Attempting arbitrary package attack with TUF (and tampering with metadata):')
+print('Attempting arbitrary package attack with TUF'+\
+                                      '(and tampering with metadata):')
 try:
   test_arbitrary_package_attack(using_tuf=True, modify_metadata=True)
 except ArbitraryPackageAlert, error:

@@ -630,7 +630,7 @@ def update_signed_file_in_metadata(signee_filepath, signer_filepath,
     signer_filepath:
       filepath of the metadata that signs the modified file
     lookup_keys:
-      a list of the keys used to look up signee's file info in signer
+      a list of the DICTIONARY keys used to look up signee's file info in signer
   """
 
   signer_file = open(signer_filepath, 'r+')
