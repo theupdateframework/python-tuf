@@ -25,9 +25,7 @@
   and the '_get_keyid()' function to learn precisely how keyids are generated.
   One may get the keyid of a key object by simply accessing the dictionary's
   'keyid' key (i.e., rsakey['keyid']).
-
 """
-
 
 import logging
 
@@ -68,7 +66,6 @@ def create_keydb_from_root_metadata(root_metadata):
 
   <Returns>
     None.
-
   """
 
   # Does 'root_metadata' have the correct format?
@@ -105,7 +102,7 @@ def create_keydb_from_root_metadata(root_metadata):
 
 
 
-def add_rsakey(rsakey_dict, keyid=None):
+def add_key(key_dict, keyid=None):
   """
   <Purpose>
     Add 'rsakey_dict' to the key database while avoiding duplicates.
@@ -113,7 +110,7 @@ def add_rsakey(rsakey_dict, keyid=None):
     and raise an exception if it is not.
   
   <Arguments>
-    rsakey_dict:
+    key_dict:
       A dictionary conformant to 'tuf.formats.RSAKEY_SCHEMA'.
       It has the form:
       {'keytype': 'rsa',
@@ -144,7 +141,7 @@ def add_rsakey(rsakey_dict, keyid=None):
   # This check will ensure 'rsakey_dict' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError if the check fails.
-  tuf.formats.RSAKEY_SCHEMA.check_match(rsakey_dict)
+  tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
 
   # Does 'keyid' have the correct format?
   if keyid is not None:
@@ -152,16 +149,16 @@ def add_rsakey(rsakey_dict, keyid=None):
     tuf.formats.KEYID_SCHEMA.check_match(keyid)
 
     # Check if the keyid found in 'rsakey_dict' matches 'keyid'.
-    if keyid != rsakey_dict['keyid']:
-      raise tuf.Error('Incorrect keyid '+rsakey_dict['keyid']+' expected '+keyid)
+    if keyid != key_dict['keyid']:
+      raise tuf.Error('Incorrect keyid '+key_dict['keyid']+' expected '+keyid)
  
   # Check if the keyid belonging to 'rsakey_dict' is not already
   # available in the key database before returning.
-  keyid = rsakey_dict['keyid']
+  keyid = key_dict['keyid']
   if keyid in _keydb_dict:
     raise tuf.KeyAlreadyExistsError('Key: '+keyid)
  
-  _keydb_dict[keyid] = rsakey_dict
+  _keydb_dict[keyid] = key_dict
 
 
 
@@ -188,7 +185,6 @@ def get_key(keyid):
   <Returns>
     The key matching 'keyid'.  In the case of RSA keys, a dictionary conformant
     to 'tuf.formats.RSAKEY_SCHEMA' is returned.
-
   """
 
   # Does 'keyid' have the correct format?
@@ -227,7 +223,6 @@ def remove_key(keyid):
 
   <Returns>
     None.
-
   """
 
   # Does 'keyid' have the correct format?
@@ -262,7 +257,6 @@ def clear_keydb():
 
   <Returns>
     None.
-
   """
   
   _keydb_dict.clear()
