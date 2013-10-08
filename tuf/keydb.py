@@ -33,7 +33,7 @@ import logging
 
 import tuf
 import tuf.formats
-import tuf.rsa_key
+import tuf.keys
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.keydb')
@@ -88,7 +88,7 @@ def create_keydb_from_root_metadata(root_metadata):
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA'
       # format, which is the format expected by 'add_rsakey()'.
-      rsakey_dict = tuf.rsa_key.create_from_metadata_format(key_metadata)
+      rsakey_dict = tuf.keys.rsa_keys.create_from_metadata_format(key_metadata)
       try:
         add_rsakey(rsakey_dict, keyid)
       # 'tuf.Error' raised if keyid does not match the keyid for 'rsakey_dict'.
@@ -138,9 +138,7 @@ def add_rsakey(rsakey_dict, keyid=None):
 
   <Returns>
     None.
-
   """
- 
 
   # Does 'rsakey_dict' have the correct format?
   # This check will ensure 'rsakey_dict' has the appropriate number of objects

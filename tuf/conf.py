@@ -65,3 +65,8 @@ SLOW_START_GRACE_PERIOD = 30 #seconds
 # iteration setting used by the old '<keyid>.key'.
 # https://en.wikipedia.org/wiki/PBKDF2
 PBKDF2_ITERATIONS = 100000
+
+# 
+# Supported Cryptography libraries:
+# 'pycrypto', 'ed25519'.
+CRYPTO_LIBRARY = 'ed25519'
