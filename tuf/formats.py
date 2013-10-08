@@ -161,7 +161,9 @@ KEY_SCHEMA = SCHEMA.Object(
   keytype=SCHEMA.AnyString(),
   keyval=KEYVAL_SCHEMA)
 
-# An RSA key.
+# A TUF key object.  This schema simplifies validation of keys that may be
+# one of the supported key types.
+# Supported key types: 'rsa', 'ed25519'.
 ANYKEY_SCHEMA = SCHEMA.Object(
   object_name='anykey',
   keytype=SCHEMA.OneOf([SCHEMA.String('rsa'), SCHEMA.String('ed25519')]),
