@@ -40,7 +40,7 @@ import binascii
 
 #
 _SUPPORTED_CRYPTO_LIBRARIES = \
-  ['pycrypto', 'ed25519', 'evp']
+  ['pycrypto', 'ed25519']
 
 # 
 _available_crypto_libraries = ['ed25519-python']
@@ -428,7 +428,7 @@ def _check_crypto_library():
 
 
 
-def create_signature(key_type, key_dict, data):
+def create_signature(key_dict, data):
   """
   <Purpose>
     Return a signature dictionary of the form:
@@ -443,10 +443,7 @@ def create_signature(key_type, key_dict, data):
     http://www.ietf.org/rfc/rfc3447.txt
 
   <Arguments>
-    key_type:
-      'rsa' or 'ed25519'.
-
-    rsakey_dict:
+    key_dict:
       A dictionary containing the RSA keys and other identifying information.
       'rsakey_dict' has the form:
     
@@ -478,13 +475,7 @@ def create_signature(key_type, key_dict, data):
   # This check will ensure 'rsakey_dict' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.NAME_SCHEMA.check_match(key_type)
-  if key_type == 'rsa':
-    tuf.formats.RSAKEY_SCHEMA.check_match(key_dict)
-  elif key_type == 'ed25519':
-    tuf.formats.ED25519KEY_SCHEMA.check_match(key_dict)
-  else:
-    raise TypeError('Invalid key type.') 
+  tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
 
   # Signing the 'data' object requires a private key.
   # The 'PyCrypto-PKCS#1 PSS' (i.e., PyCrypto module) signing method is the
@@ -519,7 +510,7 @@ def create_signature(key_type, key_dict, data):
 
 
 
-def verify_signature(key_type, key_dict, signature, data):
+def verify_signature(key_dict, signature, data):
   """
   <Purpose>
     Determine whether the private key belonging to 'rsakey_dict' produced
@@ -529,10 +520,7 @@ def verify_signature(key_type, key_dict, signature, data):
     'rsakey_dict' and 'signature'.
 
   <Arguments>
-    key_type:
-      'rsa' or 'ed25519'       
-
-    rsakey_dict:
+    key_dict:
       A dictionary containing the RSA keys and other identifying information.
       'rsakey_dict' has the form:
      
@@ -573,16 +561,10 @@ def verify_signature(key_type, key_dict, signature, data):
   # This check will ensure 'rsakey_dict' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.NAME_SCHEMA.check_match(key_type)
-  if key_type == 'rsa':
-    tuf.formats.RSAKEY_SCHEMA.check_match(rsakey_dict)
-  elif key_type == 'ed25519':
-    tuf.formats.ED25519KEY_SCHEMA.check_match(rsakey_dict)
-    raise TypeError('Invalid key type.')
+  tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
 
   # Does 'signature' have the correct format?
   tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
-
   
   # Using the public key belonging to 'rsakey_dict'
   # (i.e., rsakey_dict['keyval']['public']), verify whether 'signature'

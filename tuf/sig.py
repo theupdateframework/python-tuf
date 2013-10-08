@@ -123,7 +123,7 @@ def get_signature_status(signable, role=None):
 
     # Identify key using an unknown key signing method.
     try:
-      valid_sig = tuf.keys.verify_signature(key['keytype'], key, signature, data)
+      valid_sig = tuf.keys.verify_signature(key, signature, data)
     except tuf.UnknownMethodError:
       unknown_method_sigs.append(keyid)
       continue
@@ -303,6 +303,6 @@ def generate_rsa_signature(signed, rsakey_dict):
 
   # Generate the RSA signature.
   # Raises tuf.FormatError and TypeError.
-  signature = tuf.keys.create_signature('rsa', rsakey_dict, signed)
+  signature = tuf.keys.create_signature(rsakey_dict, signed)
 
   return signature

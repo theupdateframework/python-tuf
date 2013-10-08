@@ -110,6 +110,7 @@ import tuf.conf
 import tuf.download
 import tuf.formats
 import tuf.hash
+import tuf.keys
 import tuf.keydb
 import tuf.log
 import tuf.mirrors

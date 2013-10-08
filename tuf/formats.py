@@ -162,6 +162,13 @@ KEY_SCHEMA = SCHEMA.Object(
   keyval=KEYVAL_SCHEMA)
 
 # An RSA key.
+ANYKEY_SCHEMA = SCHEMA.Object(
+  object_name='anykey',
+  keytype=SCHEMA.OneOf([SCHEMA.String('rsa'), SCHEMA.String('ed25519')]),
+  keyid=KEYID_SCHEMA,
+  keyval=KEYVAL_SCHEMA)
+
+# An RSA key.
 RSAKEY_SCHEMA = SCHEMA.Object(
   object_name='rsakey',
   keytype=SCHEMA.String('rsa'),
