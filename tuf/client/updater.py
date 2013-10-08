@@ -486,13 +486,13 @@ class Updater(object):
     # Iterate through the keys of the delegated roles of 'parent_role'
     # and load them.
     for keyid, keyinfo in keys_info.items():
-      if keyinfo['keytype'] == 'rsa': 
-        rsa_key = tuf.keys.create_from_metadata_format(keyinfo)
+      if keyinfo['keytype'] in ['rsa', 'ed25519']:
+        key = tuf.keys.create_from_metadata_format(keyinfo)
       
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          tuf.keydb.add_rsakey(rsa_key, keyid)
+          tuf.keydb.add_key(key, keyid)
         except tuf.KeyAlreadyExistsError:
           pass
         except (tuf.FormatError, tuf.Error), e:
