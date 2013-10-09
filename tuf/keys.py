@@ -104,10 +104,12 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
     >>> rsa_key = generate_rsa_key(bits=2048)
     >>> tuf.formats.RSAKEY_SCHEMA.matches(rsa_key)
     True
-    >>> len(rsa_key['keyval']['public'])
-    64
-    >>> len(rsa_key['keyval']['private'])
-    64
+    >>> public = rsa_key['keyval']['public']
+    >>> private = rsa_key['keyval']['private']
+    >>> tuf.formats.PEMRSA_SCHEMA.matches(public)
+    True
+    >>> tuf.formats.PEMRSA_SCHEMA.matches(private)
+    True
   
   <Arguments>
     bits:
@@ -237,9 +239,11 @@ def generate_ed25519_key():
   # or not a multiple of 256, although a 2048-bit minimum is enforced by
   # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
   if 'ed25519-pynacl' in _available_crypto_libraries:
-    public, private = tuf.ed25519_keys.generate_public_and_private(use_pynacl=True)
+    public, private = \
+      tuf.ed25519_keys.generate_public_and_private(use_pynacl=True)
   elif 'ed25519-python' in _available_crypto_libraries:
-    public, private = tuf.ed25519_keys.generate_public_and_private(use_pynacl=False)
+    public, private = \
+      tuf.ed25519_keys.generate_public_and_private(use_pynacl=False)
   else: 
     message = 'A supported method of generating ed25519 keys not available\n'+\
       'Available crypto libraries: '+repr(_available_crypto_libraries)+'.'
@@ -290,7 +294,8 @@ def create_in_metadata_format(keytype, key_value, private=False):
     >>> ed25519_key = generate_ed25519_key()
     >>> key_val = ed25519_key['keyval']
     >>> keytype = ed25519_key['keytype']
-    >>> ed25519_metadata = create_in_metadata_format(keytype, key_val, private=True)
+    >>> ed25519_metadata = \
+    create_in_metadata_format(keytype, key_val, private=True)
     >>> tuf.formats.KEY_SCHEMA.matches(ed25519_metadata)
     True
   
@@ -362,7 +367,8 @@ def create_from_metadata_format(key_metadata):
     >>> ed25519_key = generate_ed25519_key()
     >>> key_val = ed25519_key['keyval']
     >>> keytype = ed25519_key['keytype']
-    >>> ed25519_metadata = create_in_metadata_format(keytype, key_val, private=True)
+    >>> ed25519_metadata = \
+    create_in_metadata_format(keytype, key_val, private=True)
     >>> ed25519_key_2 = create_from_metadata_format(ed25519_metadata)
     >>> tuf.formats.ED25519KEY_SCHEMA.matches(ed25519_key_2)
     True
@@ -473,16 +479,16 @@ def create_signature(key_dict, data):
     RFC3447 - RSASSA-PSS 
     http://www.ietf.org/rfc/rfc3447.
     
-    >>> ed25519_key_dict = generate_ed25519_key()
-    >>> data = 'The quick brown fox jumps over the lazy dog.'
-    >>> signature = create_signature(ed25519_key_dict, data)
+    >>> ed25519_key = generate_ed25519_key()
+    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> signature = create_signature(ed25519_key, data)
     >>> tuf.formats.SIGNATURE_SCHEMA.matches(signature)
     True
     >>> len(signature['sig'])
     128
-    >>> rsa_key_dict = generate_rsa_key()
-    >>> data = 'The quick brown fox jumps over the lazy dog.'
-    >>> signature = create_signature(rsa_key_dict, data)
+    >>> rsa_key = generate_rsa_key()
+    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> signature = create_signature(rsa_key, data)
     >>> tuf.formats.SIGNATURE_SCHEMA.matches(signature)
     True
 
@@ -537,9 +543,13 @@ def create_signature(key_dict, data):
       sig, method = tuf.pycrypto_keys.create_signature(private, data)
   elif keytype == 'ed25519':
     if 'ed25519-pynacl' in _available_crypto_libraries:
-      sig, method = tuf.ed25519_keys.create_signature(public, private, data, use_pynacl=True)
+      public = binascii.unhexlify(public)
+      private = binascii.unhexlify(private)
+      sig, method = tuf.ed25519_keys.create_signature(public, private,
+                                                      data, use_pynacl=True)
     else:
-      sig, method = tuf.ed25519_keys.create_signature(public, private, data, use_pynacl=False)
+      sig, method = tuf.ed25519_keys.create_signature(public, private,
+                                                      data, use_pynacl=False)
   else:
     raise TypeError('Invalid key type.') 
     
@@ -623,12 +633,17 @@ def verify_signature(key_dict, signature, data):
   
   if key_type == 'rsa':
     if _CRYPTO_LIBRARY == 'pycrypto':
-      valid_signature = tuf.pycrypto_keys.verify_signature(sig, method, public, data) 
+      valid_signature = tuf.pycrypto_keys.verify_signature(sig, method,
+                                                           public, data) 
   elif key_type == 'ed25519':
     if 'ed25519-pynacl' in _available_crypto_libraries:
-      valid_signature = tuf.ed25519_keys.verify_signature(public, method, sig, data, use_pynacl=True)
+      valid_signature = tuf.ed25519_keys.verify_signature(public,
+                                                          method, sig, data,
+                                                          use_pynacl=True)
     else:
-      valid_signature = tuf.ed25519_keys.verify_signature(public, method, sig, data, use_pynacl=False)
+      valid_signature = tuf.ed25519_keys.verify_signature(public,
+                                                          method, sig, data,
+                                                          use_pynacl=False)
   else:
     raise TypeError('Unsupported key type.')
 

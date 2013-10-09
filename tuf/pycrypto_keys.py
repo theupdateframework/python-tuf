@@ -78,7 +78,13 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
     generate() enforces a minimum key size of 2048 bits.  If 'bits' is
     unspecified, a 3072-bit RSA key is generated, which is the key size
     recommended by TUF. 
-  
+    
+    >>> public, private = generate_rsa_public_and_private(2048)
+    >>> tuf.formats.PEMRSA_SCHEMA.matches(public)
+    True
+    >>> tuf.formats.PEMRSA_SCHEMA.matches(private)
+    True
+
   <Arguments>
     bits:
       The key size, or key length, of the RSA key.  'bits' must be 2048, or
@@ -137,6 +143,16 @@ def create_signature(private_key, data):
 
     RFC3447 - RSASSA-PSS 
     http://www.ietf.org/rfc/rfc3447.txt
+    
+    >>> public, private = generate_rsa_public_and_private(2048)
+    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> signature, method = create_signature(private, data)
+    >>> tuf.formats.NAME_SCHEMA.matches(method)
+    True
+    >>> method == 'PyCrypto-PKCS#1 PSS'
+    True
+    >>> signature is not None
+    True
 
   <Arguments>
     private_key: 
@@ -162,7 +178,6 @@ def create_signature(private_key, data):
   # Signing the 'data' object requires a private key.
   # The 'PyCrypto-PKCS#1 PSS' (i.e., PyCrypto module) signing method is the
   # only method currently supported.
-  private = private_key
   method = 'PyCrypto-PKCS#1 PSS'
   signature = None
  
@@ -177,7 +192,7 @@ def create_signature(private_key, data):
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
       sha256_object = Crypto.Hash.SHA256.new(data)
       pkcs1_pss_signer = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)
-      sig = pkcs1_pss_signer.sign(sha256_object)
+      signature = pkcs1_pss_signer.sign(sha256_object)
     except (ValueError, IndexError, TypeError), e:
       message = 'An RSA signature could not be generated.'
       raise tuf.CryptoError(message)
@@ -198,6 +213,14 @@ def verify_signature(signature, signature_method, public_key, data):
     'rsakey_dict', the 'method' and 'sig' objects contained in 'signature',
     and 'data' to complete the verification.  Type-checking performed on both
     'rsakey_dict' and 'signature'.
+    
+    >>> public, private = generate_rsa_public_and_private(2048)
+    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> signature, method = create_signature(private, data)
+    >>> verify_signature(signature, method, public, data)
+    True
+    >>> verify_signature(signature, method, public, 'bad_data')
+    False
 
   <Arguments>
     signature:
@@ -271,6 +294,12 @@ def create_rsa_encrypted_pem(private_key, passphrase):
     https://en.wikipedia.org/wiki/Triple_DES
     https://en.wikipedia.org/wiki/PBKDF2
 
+    >>> public, private = generate_rsa_public_and_private(2048)
+    >>> passphrase = 'secret'
+    >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase)
+    >>> tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem)
+    True
+
   <Arguments>
     private_key:
       The public and private keys are in PEM format and stored as strings.
@@ -297,7 +326,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   # This check will ensure 'rsakey_dict' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.RSAKEY_SCHEMA.check_match(rsakey_dict)
+  tuf.formats.PEMRSA_SCHEMA.check_match(private_key)
   
   # Does 'signature' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
@@ -321,7 +350,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
 
 
 
-def create_rsa_from_encrypted_pem(encrypted_pem, passphrase):
+def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   """
   <Purpose>
     Return an RSA key in 'tuf.formats.RSAKEY_SCHEMA' format, which has the
@@ -338,6 +367,20 @@ def create_rsa_from_encrypted_pem(encrypted_pem, passphrase):
     Alternatively, key data may be encrypted with AES-CTR-Mode and the passphrase
     strengthened with PBKDF2+SHA256.  See 'keystore.py'.
 
+    >>> public, private = generate_rsa_public_and_private(2048)
+    >>> passphrase = 'secret'
+    >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase)
+    >>> returned_public, returned_private = \
+    create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase)
+    >>> tuf.formats.PEMRSA_SCHEMA.matches(returned_public)
+    True
+    >>> tuf.formats.PEMRSA_SCHEMA.matches(returned_private)
+    True
+    >>> public == returned_public
+    True
+    >>> private == returned_private
+    True
+  
   <Arguments>
     encrypted_pem:
       A byte string in PEM format, where the private key is encrypted.  It has
