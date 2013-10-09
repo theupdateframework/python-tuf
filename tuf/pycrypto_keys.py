@@ -61,7 +61,7 @@ import tuf.formats
 _DEFAULT_RSA_KEY_BITS = 3072 
 
 
-def generate_rsa_public_and_private_keys(bits=_DEFAULT_RSA_KEY_BITS):
+def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   """
   <Purpose> 
     Generate public and private RSA keys, with modulus length 'bits'.
