@@ -57,9 +57,7 @@
   Example: 
   
   signable_object = make_signable(unsigned_object)
-
 """
-
 
 import binascii
 import calendar
@@ -388,7 +386,6 @@ class MetaFile(object):
     and ReleaseFile all inherit from MetaFile.  The
     __eq__, __ne__, perform 'equal' and 'not equal' comparisons
     between Metadata File objects.
-
   """
 
   info = None
@@ -406,7 +403,6 @@ class MetaFile(object):
       Allow all metafile objects to have their interesting attributes
       referred to directly without the info dict. The info dict is just
       to be able to do the __eq__ comparison generically.
-    
     """
     
     if name in self.info:
@@ -650,7 +646,6 @@ def format_time(timestamp):
 
   <Returns>
     A string in 'YYYY-MM-DD HH:MM:SS UTC' format.
-
   """
    
   try:
@@ -682,7 +677,6 @@ def parse_time(string):
 
   <Returns>
     A timestamp (e.g., 499137660).
-
   """
   
   # Is 'string' properly formatted?
@@ -720,7 +714,6 @@ def format_base64(data):
 
   <Returns>
     A base64-encoded string.
-
   """
   
   try:
@@ -751,7 +744,6 @@ def parse_base64(base64_string):
   <Returns>
     A byte string representing the parsed based64 encoding of
     'base64_string'.
-
   """
 
   if not isinstance(base64_string, basestring):
@@ -796,7 +788,6 @@ def make_signable(object):
 
   <Returns>
     A dict in 'SIGNABLE_SCHEMA' format.
-
   """
 
   if not isinstance(object, dict) or 'signed' not in object:
@@ -837,7 +828,6 @@ def make_fileinfo(length, hashes, custom=None):
   <Returns>
     A dictionary conformant to 'FILEINFO_SCHEMA', representing the file
     information of a metadata or target file.
-
   """
 
   fileinfo = {'length' : length, 'hashes' : hashes}
@@ -894,7 +884,6 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
   <Returns>
     A properly formatted role meta dict, conforming to
     'ROLE_SCHEMA'.
-    
   """
 
   role_meta = {}
@@ -955,7 +944,6 @@ def get_role_class(expected_rolename):
     The class corresponding to 'expected_rolename'.
     E.g., 'Release' as an argument to this function causes
     'ReleaseFile' to be returned. 
-
   """
  
   # Does 'expected_rolename' have the correct type?
@@ -998,7 +986,6 @@ def expected_meta_rolename(meta_rolename):
 
   <Returns>
     A string (e.g., 'Root', 'Targets').
-    
   """
    
   # Does 'meta_rolename' have the correct type?
@@ -1038,7 +1025,6 @@ def check_signable_object_format(object):
   <Returns>
     A string representing the signing role (e.g., 'root', 'targets').
     The role string is returned with characters all lower case.
-
   """
   
   # Does 'object' have the correct type?
@@ -1082,7 +1068,6 @@ def _canonical_string_encoder(string):
 
   <Returns>
     A string with the canonical-encoded 'string' embedded.
-
   """
 
   string = '"%s"' % re.sub(r'(["\\])', r'\\\1', string)
@@ -1187,7 +1172,6 @@ def encode_canonical(object, output_function=None):
 
   <Returns>
     A string representing the 'object' encoded in canonical JSON form.
-
   """
 
   result = None
