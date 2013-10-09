@@ -68,5 +68,5 @@ PBKDF2_ITERATIONS = 100000
 
 # 
 # Supported Cryptography libraries:
-# 'pycrypto', 'ed25519'.
-CRYPTO_LIBRARY = 'ed25519'
+# 'pycrypto', 'ed25519-python', 'ed25519-pynacl'.
+CRYPTO_LIBRARY = 'pycrypto'

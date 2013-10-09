@@ -35,21 +35,22 @@
   key (i.e., rsakey['keyid']).
  """
 
-# Required for hexadecimal conversions.  Signatures are hexlified.
+# Required for hexadecimal conversions.  Signatures and public/private keys are
+# hexlified.
 import binascii
 
 #
-_SUPPORTED_CRYPTO_LIBRARIES = \
-  ['pycrypto', 'ed25519']
+_SUPPORTED_CRYPTO_LIBRARIES = ['pycrypto', 'ed25519-python', 'ed25519-pynacl']
 
 # 
 _available_crypto_libraries = ['ed25519-python']
 
 try:
-  import Crypto
+  #import Crypto
   import tuf.pycrypto_keys.py
   _available_crypto_libraries.append('pycrypto')
 except ImportError:
+  print('Could not import pycrypto') 
   pass
 
 try:
@@ -100,6 +101,14 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
     generate() enforces a minimum key size of 2048 bits.  If 'bits' is
     unspecified, a 3072-bit RSA key is generated, which is the key size
     recommended by TUF. 
+    
+    >>> rsa_key = generate_rsa_key(bits=2048)
+    >>> tuf.formats.RSAKEY_SCHEMA.matches(rsa_key)
+    True
+    >>> len(ed25519_key['keyval']['public'])
+    64
+    >>> len(ed25519_key['keyval']['private'])
+    64
   
   <Arguments>
     bits:
@@ -151,13 +160,13 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   # Generate the keyid for the RSA key.  'key_value' corresponds to the
   # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
   # information is not included in the generation of the 'keyid' identifier.
-  key_value = {'public': public,
+  key_value = {'public': binascii.hexlify(public),
                'private': ''}
   keyid = _get_keyid(key_value)
 
   # Build the 'rsakey_dict' dictionary.  Update 'key_value' with the RSA
   # private key prior to adding 'key_value' to 'rsakey_dict'.
-  key_value['private'] = private
+  key_value['private'] = binascii.hexlify(private)
 
   rsakey_dict['keytype'] = keytype
   rsakey_dict['keyid'] = keyid
@@ -187,11 +196,17 @@ def generate_ed25519_key():
     unspecified, a 3072-bit RSA key is generated, which is the key size
     recommended by TUF. 
   
-  <Arguments>
-    bits:
-      The key size, or key length, of the RSA key.  'bits' must be 2048, or
-      greater, and a multiple of 256.
+    >>> ed25519_key = generate_ed25519_key()
+    >>> tuf.formats.ED25519KEY_SCHEMA.matches(ed25519_key)
+    True
+    >>> len(ed25519_key['keyval']['public'])
+    64
+    >>> len(ed25519_key['keyval']['private'])
+    64
 
+  <Arguments>
+    None.
+  
   <Exceptions>
     ValueError, if an exception occurs after calling the RSA key generation
     routine.  'bits' must be a multiple of 256.  The 'ValueError' exception is
@@ -234,13 +249,13 @@ def generate_ed25519_key():
   # Generate the keyid for the RSA key.  'key_value' corresponds to the
   # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
   # information is not included in the generation of the 'keyid' identifier.
-  key_value = {'public': public,
+  key_value = {'public': binascii.hexlify(public),
                'private': ''}
   keyid = _get_keyid(key_value)
 
   # Build the 'rsakey_dict' dictionary.  Update 'key_value' with the RSA
   # private key prior to adding 'key_value' to 'rsakey_dict'.
-  key_value['private'] = private
+  key_value['private'] = binascii.hexlify(private)
 
   ed25519_key['keytype'] = keytype
   ed25519_key['keyid'] = keyid
@@ -272,6 +287,12 @@ def create_in_metadata_format(key_type, key_value, private=False):
     
     RSA keys are stored in Metadata files (e.g., root.txt) in the format
     returned by this function.
+    
+    >>> ed25519_key = generate_ed25519_key()
+    >>> key_val = ed25519_key['keyval']
+    >>> ed25519_metadata = create_in_metadata_format(key_val, private=True)
+    >>> tuf.formats.KEY_SCHEMA.matches(ed25519_metadata)
+    True
   
   <Arguments>
     key_type:
@@ -337,6 +358,15 @@ def create_from_metadata_format(key_metadata):
     metadata files and needs converting.  Generate() creates an entirely
     new key and returns it in the format appropriate for 'keydb.py' and
     'keystore.py'.
+    
+    >>> ed25519_key = generate_ed25519_key()
+    >>> key_val = ed25519_key['keyval']
+    >>> ed25519_metadata = create_in_metadata_format(key_val, private=True)
+    >>> ed25519_key_2 = create_from_metadata_format(ed25519_metadata)
+    >>> tuf.formats.ED25519KEY_SCHEMA.matches(ed25519_key_2)
+    True
+    >>> ed25519_key == ed25519_key_2
+    True
 
   <Arguments>
     key_metadata:
@@ -419,9 +449,9 @@ def _check_crypto_library():
       'Supported crypto libraries: '+repr(_SUPPORTED_CRYPTO_LIBRARIES)+'.'
     raise tuf.CryptoError(message)
   
-  if _CRYPTO_LIBRARY not in _AVAILABLE_CRYPTO_LIBRARIES:
+  if _CRYPTO_LIBRARY not in _available_crypto_libraries:
     message = 'The '+repr(_CRYPTO_LIBRARY)+' crypto library specified'+ \
-      'in "tuf.conf.CRYPTO_LIBRARY" could not be imported.'
+      ' in "tuf.conf.CRYPTO_LIBRARY" could not be imported.'
     raise tuf.CryptoError(message)
 
 
@@ -440,7 +470,20 @@ def create_signature(key_dict, data):
     rsakey_dict['keyval']['private'] and 'data' to generate the signature.
 
     RFC3447 - RSASSA-PSS 
-    http://www.ietf.org/rfc/rfc3447.txt
+    http://www.ietf.org/rfc/rfc3447.
+    
+    >>> ed25519_key_dict = generate_ed25519_key()
+    >>> data = 'The quick brown fox jumps over the lazy dog.'
+    >>> signature = create_signature(ed25519_key_dict, data)
+    >>> tuf.formats.SIGNATURE_SCHEMA.matches(signature)
+    True
+    >>> len(signature['sig'])
+    128
+    >>> rsa_key_dict = generate_rsaed25519_key()
+    >>> data = 'The quick brown fox jumps over the lazy dog.'
+    >>> signature = create_signature(ed25519_key_dict, data)
+    >>> tuf.formats.SIGNATURE_SCHEMA.matches(signature)
+    True
 
   <Arguments>
     key_dict:
