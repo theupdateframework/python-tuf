@@ -1,4 +1,5 @@
 Geremy Condra
+John Ward
 Justin Cappos
 Justin Samuel
 Konstantin Andrianov
@@ -6,6 +7,10 @@ Martin Peck
 Monzur Muhammad
 Nick Mathewson
 Roger Dingledine
+Santiago Torres
 Sebastian Hahn
+Tian Tian
 Trishank Karthik Kuppusamy
 Vladimir Diaz
+Yuyu Zheng
+Zane Fisher
