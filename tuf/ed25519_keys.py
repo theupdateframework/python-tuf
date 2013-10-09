@@ -368,7 +368,7 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
 
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
-  # be tested by running 'ed25519.py' as a standalone module.
-  # python -B ed25519.py
+  # be tested by running 'ed25519_keys.py' as a standalone module.
+  # python -B ed25519_keys.py
   import doctest
   doctest.testmod()

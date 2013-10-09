@@ -40,10 +40,10 @@
 import binascii
 
 #
-_SUPPORTED_CRYPTO_LIBRARIES = ['pycrypto', 'ed25519-python', 'ed25519-pynacl']
+_SUPPORTED_CRYPTO_LIBRARIES = ['pycrypto', 'ed25519', 'pynacl']
 
 # 
-_available_crypto_libraries = ['ed25519-python']
+_available_crypto_libraries = ['ed25519']
 
 try:
   import Crypto
@@ -54,7 +54,7 @@ except ImportError:
 
 try:
   import nacl
-  _available_crypto_libraries.append('ed25519-pynacl')
+  _available_crypto_libraries.append('pynacl')
 except ImportError:
   pass
 
@@ -238,16 +238,12 @@ def generate_ed25519_key():
   # the actual key generation.  Raise 'ValueError' if 'bits' is less than 1024 
   # or not a multiple of 256, although a 2048-bit minimum is enforced by
   # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
-  if 'ed25519-pynacl' in _available_crypto_libraries:
+  if 'pynacl' in _available_crypto_libraries:
     public, private = \
       tuf.ed25519_keys.generate_public_and_private(use_pynacl=True)
-  elif 'ed25519-python' in _available_crypto_libraries:
+  else:
     public, private = \
       tuf.ed25519_keys.generate_public_and_private(use_pynacl=False)
-  else: 
-    message = 'A supported method of generating ed25519 keys not available\n'+\
-      'Available crypto libraries: '+repr(_available_crypto_libraries)+'.'
-    raise ValueError(message)
     
   # Generate the keyid for the RSA key.  'key_value' corresponds to the
   # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
@@ -486,7 +482,7 @@ def create_signature(key_dict, data):
     True
     >>> len(signature['sig'])
     128
-    >>> rsa_key = generate_rsa_key()
+    >>> rsa_key = generate_rsa_key(2048)
     >>> data = 'The quick brown fox jumps over the lazy dog'
     >>> signature = create_signature(rsa_key, data)
     >>> tuf.formats.SIGNATURE_SCHEMA.matches(signature)
@@ -526,6 +522,10 @@ def create_signature(key_dict, data):
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
+  
+  # Raise 'tuf.Error' if 'tuf.conf.CRYPTO_LIBRARY' is not supported or could
+  # not be imported.
+  _check_crypto_library()
 
   # Signing the 'data' object requires a private key.
   # The 'PyCrypto-PKCS#1 PSS' (i.e., PyCrypto module) signing method is the
@@ -541,10 +541,14 @@ def create_signature(key_dict, data):
   if keytype == 'rsa':
     if _CRYPTO_LIBRARY == 'pycrypto':
       sig, method = tuf.pycrypto_keys.create_signature(private, data)
+    else:
+      message = 'Unsupported "tuf.conf.CRYPTO_LIBRARY": '+\
+        repr(_CRYPTO_LIBRARY)+'.'
+      raise tuf.Error(message) 
   elif keytype == 'ed25519':
-    if 'ed25519-pynacl' in _available_crypto_libraries:
-      public = binascii.unhexlify(public)
-      private = binascii.unhexlify(private)
+    public = binascii.unhexlify(public)
+    private = binascii.unhexlify(private)
+    if _CRYPTO_LIBRARY == 'pynacl' and 'pynacl' in _available_crypto_libraries:
       sig, method = tuf.ed25519_keys.create_signature(public, private,
                                                       data, use_pynacl=True)
     else:
@@ -573,6 +577,21 @@ def verify_signature(key_dict, signature, data):
     'rsakey_dict', the 'method' and 'sig' objects contained in 'signature',
     and 'data' to complete the verification.  Type-checking performed on both
     'rsakey_dict' and 'signature'.
+
+    >>> ed25519_key = generate_ed25519_key()
+    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> signature = create_signature(ed25519_key, data)
+    >>> verify_signature(ed25519_key, signature, data)
+    True
+    >>> verify_signature(ed25519_key, signature, 'bad_data')
+    False
+    >>> rsa_key = generate_rsa_key()
+    >>> signature = create_signature(rsa_key, data)
+    >>> verify_signature(rsa_key, signature, data)
+    True
+    >>> verify_signature(rsa_key, signature, 'bad_data')
+    False
+
 
   <Arguments>
     key_dict:
@@ -628,15 +647,22 @@ def verify_signature(key_dict, signature, data):
   # ensure 'PyCrypto-PKCS#1 PSS' was used as the signing method.
   method = signature['method']
   sig = signature['sig']
-  public = rsakey_dict['keyval']['public']
+  sig = binascii.unhexlify(sig)
+  public = key_dict['keyval']['public']
+  keytype = key_dict['keytype']
   valid_signature = False
   
-  if key_type == 'rsa':
+  if keytype == 'rsa':
     if _CRYPTO_LIBRARY == 'pycrypto':
       valid_signature = tuf.pycrypto_keys.verify_signature(sig, method,
                                                            public, data) 
-  elif key_type == 'ed25519':
-    if 'ed25519-pynacl' in _available_crypto_libraries:
+    else:
+      message = 'Unsupported "tuf.conf.CRYPTO_LIBRARY": '+\
+        repr(_CRYPTO_LIBRARY)+'.'
+      raise tuf.Error(message) 
+  elif keytype == 'ed25519':
+    public = binascii.unhexlify(public)
+    if _CRYPTO_LIBRARY == 'pynacl' and 'pynacl' in _available_crypto_libraries:
       valid_signature = tuf.ed25519_keys.verify_signature(public,
                                                           method, sig, data,
                                                           use_pynacl=True)

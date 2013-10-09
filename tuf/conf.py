@@ -13,9 +13,7 @@
 
 <Purpose>
   A central location for TUF configuration settings.
-
 """
-
 
 # Set a directory that should be used for all temporary files. If this
 # is None, then the system default will be used. The system default
@@ -66,7 +64,9 @@ SLOW_START_GRACE_PERIOD = 30 #seconds
 # https://en.wikipedia.org/wiki/PBKDF2
 PBKDF2_ITERATIONS = 100000
 
-# 
-# Supported Cryptography libraries:
-# 'pycrypto', 'ed25519-python', 'ed25519-pynacl'.
-CRYPTO_LIBRARY = 'pycrypto'
+# The user client may set the cryptography library used by The Update Framework
+# updater, or the software updater integrating TUF.  The repository tools may
+# also choose which crypto library to use when generating keys and performing
+# other cryptographic operations.
+# Supported cryptography libraries:  ['pycrypto', 'ed25519', 'pynacl']
+CRYPTO_LIBRARY = 'pynacl'
