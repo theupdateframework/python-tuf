@@ -6,25 +6,32 @@
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
 <Started>
-  March 7, 2013.
+  October 7, 2013.
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
-  The goal of this module is to support public-key cryptography using the RSA
-  algorithm.  The RSA-related functions provided include generate(),
-  create_signature(), and verify_signature().  The create_encrypted_pem() and
-  create_from_encrypted_pem() functions are optional, and may be used save a
-  generated RSA key to a file.  The 'PyCrypto' package used by 'rsa_key.py'
+  The goal of this module is to support public-key cryptography, RSA
+  algorithm, and the PyCrypto library.  The RSA-related functions provided
+  include:
+  generate_rsa_public_and_private()
+  create_signature()
+  verify_signature()
+  
+  The optional functions include:
+  create_rsa_encrypted_pem()
+  create_rsa_public_and_private_from_encrypted_pem()
+  
+  These last two functions may be used save a
+  generated RSA key to a file.  'PyCrypto' (i.e., Crypto module) package used by 'rsa_key.py'
   generates the actual RSA keys and the functions listed above can be viewed
-  as an easy-to-use public interface.  Additional functions contained here
-  include create_in_metadata_format() and create_from_metadata_format().  These
-  last two functions produce or use RSA keys compatible with the key structures
-  listed in TUF Metadata files.  The generate() function returns a dictionary
+  as an easy-to-use public interface. 
+  The generate() function returns a dictionary
   containing all the information needed of RSA keys, such as public and private=
   keys, keyIDs, and an idenfier.  create_signature() and verify_signature() are
   supplemental functions used for generating RSA signatures and verifying them.
+  
   https://en.wikipedia.org/wiki/RSA_(algorithm)
  """
 
@@ -64,20 +71,21 @@ _DEFAULT_RSA_KEY_BITS = 3072
 def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   """
   <Purpose> 
-    Generate public and private RSA keys, with modulus length 'bits'.
-    In addition, a keyid used as an identifier for RSA keys is generated.
-    The object returned conforms to 'tuf.formats.RSAKEY_SCHEMA' and as the form:
-    {'keytype': 'rsa',
-     'keyid': keyid,
-     'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
-                'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
-    
-    The public and private keys are in PEM format and stored as strings.
+    Generate public and private RSA keys with modulus length 'bits'.
+    The public and private keys returned conform to 'tuf.formats.PEMRSA_SCHEMA'
+    and have the form:
+    '-----BEGIN RSA PUBLIC KEY----- ...'
 
-    Although the crytography library called sets a 1024-bit minimum key size,
-    generate() enforces a minimum key size of 2048 bits.  If 'bits' is
-    unspecified, a 3072-bit RSA key is generated, which is the key size
-    recommended by TUF. 
+    or
+
+    '-----BEGIN RSA PRIVATE KEY----- ...'
+    
+    The public and private keys are returned as strings in PEM format.
+
+    Although PyCrypto sets a 1024-bit minimum key size,
+    generate_rsa_public_and_private() enforces a minimum key size of 2048 bits.
+    If 'bits' is unspecified, a 3072-bit RSA key is generated, which is the key
+    size recommended by TUF.
     
     >>> public, private = generate_rsa_public_and_private(2048)
     >>> tuf.formats.PEMRSA_SCHEMA.matches(public)
@@ -93,7 +101,7 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   <Exceptions>
     ValueError, if an exception occurs after calling the RSA key generation
     routine.  'bits' must be a multiple of 256.  The 'ValueError' exception is
-    raised by the key generation function of the cryptography library called.
+    raised by the PyCrypto key generation function.
 
     tuf.FormatError, if 'bits' does not contain the correct format.
 
@@ -120,11 +128,11 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   # Extract the public & private halves of the RSA key and generate their
   # PEM-formatted representations.  The dictionary returned contains the 
   # private and public RSA keys in PEM format, as strings.
-  private_key = rsa_key_object.exportKey(format='PEM') 
+  private = rsa_key_object.exportKey(format='PEM')
   rsa_pubkey = rsa_key_object.publickey()
-  public_key = rsa_pubkey.exportKey(format='PEM')
+  public = rsa_pubkey.exportKey(format='PEM')
 
-  return public_key, private_key
+  return public, private
 
 
 

@@ -60,7 +60,7 @@ def create_keydb_from_root_metadata(root_metadata):
 
   <Side Effects>
     A function to add the key to the database is called.  In the case of RSA
-    keys, this function is add_rsakey().
+    keys, this function is add_key().
     
     The old keydb key database is replaced.
 
@@ -84,10 +84,10 @@ def create_keydb_from_root_metadata(root_metadata):
     if key_metadata['keytype'] == 'rsa':
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA'
-      # format, which is the format expected by 'add_rsakey()'.
-      rsakey_dict = tuf.keys.rsa_keys.create_from_metadata_format(key_metadata)
+      # format, which is the format expected by 'add_key()'.
+      rsakey_dict = tuf.keys.create_from_metadata_format(key_metadata)
       try:
-        add_rsakey(rsakey_dict, keyid)
+        add_key(rsakey_dict, keyid)
       # 'tuf.Error' raised if keyid does not match the keyid for 'rsakey_dict'.
       except tuf.Error, e:
         logger.error(e)

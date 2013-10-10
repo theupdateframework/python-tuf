@@ -286,7 +286,9 @@ def generate_root_metadata(config_filepath, version):
       # This appears to be a new keyid.  Let's generate the key for it.
       if keyid not in keydict:
         if key['keytype'] in ['rsa', 'ed25519']:
-          keydict[keyid] = tuf.keys.create_in_metadata_format(key['keyval'])
+          keytype = key['keytype']
+          keyval = key['keyval']
+          keydict[keyid] = tuf.keys.create_in_metadata_format(keytype, keyval)
         # This is not a recognized key.  Raise an exception.
         else:
           raise tuf.Error('Unsupported keytype: '+keyid)

@@ -46,7 +46,6 @@
 
 <Options>
   See the parse_options() function for the full list of supported options.
-
 """
 
 import os
@@ -92,7 +91,6 @@ def _get_password(prompt='Password: ', confirm=False):
     is True, the user is asked to enter the previously
     entered password once again.  If they match, the
     password is returned to the caller.
-
   """
 
   while True:
@@ -131,7 +129,6 @@ def _get_metadata_directory():
     returned to the caller.  'tuf.FormatError' is raised
     if the directory is not properly formatted, and 'tuf.Error'
     if it does not exist.
-
   """
 
   metadata_directory = _prompt('\nEnter the metadata directory: ', str)
@@ -151,7 +148,6 @@ def _list_keyids(keystore_directory, metadata_directory):
     It is assumed the directory arguments exist and have been validated by
     the caller.  The keyids are listed without the '.key' extension,
     along with their associated roles.
-
   """
 
   # Determine the 'root.txt' filename.  This metadata file is needed
@@ -233,7 +229,6 @@ def _get_keyids(keystore_directory):
     key files are stored in encrypted form, the user is asked
     to enter the password that was used to encrypt the key
     file.
-
   """
 
   # The keyids list containing the keys loaded.
@@ -288,7 +283,6 @@ def _get_all_config_keyids(config_filepath, keystore_directory):
       loaded_keyids = {'root': [1233d3d, 598djdks, ..],
                        'release': [sdfsd323, sdsd9090s, ..]
                        ...}
-
   """
 
   # Save the 'load_keystore_from_keyfiles' function call.
@@ -338,7 +332,6 @@ def _get_role_config_keyids(config_filepath, keystore_directory, role):
 
   <Exceptions>
     tuf.Error, if the required keys could not be loaded.
-
   """
 
   # Save the 'load_keystore_from_keyfiles' function call.
@@ -409,7 +402,6 @@ def _get_metadata_version(metadata_filename):
     'metadata_filename' does not exist, return a version value of 1.
     Raise 'tuf.RepositoryError' if 'metadata_filename' cannot be read or
     validated.
-  
   """
   
   # If 'metadata_filename' does not exist on the repository, this means
@@ -442,7 +434,6 @@ def _get_metadata_expiration():
 
     <Exceptions>
       tuf.RepositoryError, if the entered expiration date is invalid.
-  
   """
 
   message = '\nCurrent time: '+tuf.formats.format_time(time.time())+'.\n'+\
@@ -487,7 +478,6 @@ def change_password(keystore_directory):
 
   <Returns>
     None.
-
   """
 
   # Save the 'load_keystore_from_keyfiles' function call.
@@ -563,7 +553,6 @@ def generate_rsa_key(keystore_directory):
 
   <Returns>
     None.
-
   """
 
   # Save a reference to the generate_and_save_rsa_key() function.
@@ -612,7 +601,6 @@ def list_signing_keys(keystore_directory):
 
   <Returns>
     None.
-
   """
 
   # Verify the 'keystore_directory' argument.
@@ -654,7 +642,6 @@ def dump_key(keystore_directory):
 
   <Returns>
     None.
-
   """
 
   # Save the 'load_keystore_from_keyfiles' function call.
@@ -704,8 +691,10 @@ def dump_key(keystore_directory):
 
   # Retrieve the key metadata according to the keytype.
   if key['keytype'] == 'rsa':
-    key_metadata = tuf.rsa_key.create_in_metadata_format(key['keyval'],
-                                                         private=show_private)
+    keytype = key['keytype']
+    keyval = key['keyval']
+    key_metadata = tuf.keys.create_in_metadata_format(keytype, keyval,
+                                                      private=show_private)
   else:
     message = 'The keystore contains an invalid key type.'
     raise tuf.RepositoryError(message)
@@ -737,7 +726,6 @@ def make_root_metadata(keystore_directory):
 
   <Returns>
     None.
-
   """
 
   # Verify the 'keystore_directory' argument.
@@ -804,7 +792,6 @@ def make_targets_metadata(keystore_directory):
 
   <Returns>
     None.
-
   """
 
   # Verify the 'keystore_directory' argument.
@@ -886,7 +873,6 @@ def make_release_metadata(keystore_directory):
 
   <Returns>
     None.
-
   """
 
   # Verify the 'keystore_directory' argument.
@@ -951,7 +937,6 @@ def make_timestamp_metadata(keystore_directory):
 
   <Returns>
     None.
-
   """
 
   # Verify the 'keystore_directory' argument.
@@ -1017,7 +1002,6 @@ def sign_metadata_file(keystore_directory):
 
   <Returns>
     None.
-
   """
 
   # Verify the 'keystore_directory' argument.
@@ -1084,7 +1068,6 @@ def make_delegation(keystore_directory):
 
   <Returns>
     None.
-
   """
 
   # Verify the 'keystore_directory' argument.
@@ -1154,7 +1137,6 @@ def _load_parent_role(metadata_directory, keystore_directory, targets_roles):
     list of known targets roles and asked to enter the parent role to load.
     Ensure the parent role is loaded properly and return a string containing
     the parent role's full rolename and a list of keyids belonging to the parent.
-
   """
 
   # 'load_key' is a reference to the 'load_keystore_from_keyfiles function'.
@@ -1210,7 +1192,6 @@ def _get_delegated_role(keystore_directory, metadata_directory):
     a list of keyids available in the keystore and asked to enter the keyid
     belonging to the delegated role.  Return a string containing
     the delegated role's full rolename and its keyids.
-
   """
   
   # Retrieve the delegated rolename from the user (e.g., 'role1').
@@ -1240,7 +1221,6 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
     role.  Determine the target files from the paths in 'delegated_targets'
     and the other information needed to generate the targets metadata file for 
     delegated_role'.  Return the delegated paths to the caller.
-
   """
 
   repository_directory, junk = os.path.split(metadata_directory)
@@ -1336,7 +1316,6 @@ def _update_parent_metadata(metadata_directory, delegated_role,
     metadata file is updated with the key and role information belonging
     to the newly added delegated role.  Finally, the metadata file
     is signed and written to the metadata directory.
-
   """
 
   # According to the specification, the 'paths' and 'path_hash_prefixes'
@@ -1376,8 +1355,9 @@ def _update_parent_metadata(metadata_directory, delegated_role,
     # Retrieve the key belonging to 'delegated_keyid' from the keystore.
     role_key = tuf.repo.keystore.get_key(delegated_keyid)
     if role_key['keytype'] == 'rsa':
+      keytype = role_key['keytype']
       keyval = role_key['keyval']
-      keys[delegated_keyid] = tuf.rsa_key.create_in_metadata_format(keyval)
+      keys[delegated_keyid] = tuf.keys.create_in_metadata_format(keytype, keyval)
     else:
       message = 'Invalid keytype encountered: '+delegated_keyid+'\n'
       raise tuf.RepositoryError(message)
@@ -1450,7 +1430,6 @@ def process_option(options):
 
   <Returns>
     None.
-
   """
 
   # Determine which option was chosen and call its corresponding
@@ -1506,7 +1485,6 @@ def parse_options():
 
   <Returns>
     The options object returned by the parser's parse_args() method.
-
   """
 
   usage = 'usage: %prog [option] <keystore_directory>'

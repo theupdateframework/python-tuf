@@ -66,7 +66,9 @@ PBKDF2_ITERATIONS = 100000
 
 # The user client may set the cryptography library used by The Update Framework
 # updater, or the software updater integrating TUF.  The repository tools may
-# also choose which crypto library to use when generating keys and performing
-# other cryptographic operations.
-# Supported cryptography libraries:  ['pycrypto', 'ed25519', 'pynacl']
-CRYPTO_LIBRARY = 'pynacl'
+# Supported RSA cryptography libraries:  ['pycrypto']
+RSA_CRYPTO_LIBRARY = 'pycrypto'
+
+# Supported ed25519 cryptography libraries: ['pynacl', 'ed25519']
+ED25519_CRYPTO_LIBRARY = 'pynacl'
+
