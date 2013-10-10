@@ -71,4 +71,3 @@ RSA_CRYPTO_LIBRARY = 'pycrypto'
 
 # Supported ed25519 cryptography libraries: ['pynacl', 'ed25519']
 ED25519_CRYPTO_LIBRARY = 'pynacl'
-
