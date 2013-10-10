@@ -153,6 +153,10 @@ KEYVAL_SCHEMA = SCHEMA.Object(
   public=SCHEMA.AnyString(),
   private=SCHEMA.AnyString())
 
+# Supported TUF key types. 
+KEYTYPE_SCHEMA = SCHEMA.OneOf(
+  [SCHEMA.String('rsa'), SCHEMA.String('ed25519')])
+
 # A generic key.  All TUF keys should be saved to metadata files in this format.
 KEY_SCHEMA = SCHEMA.Object(
   object_name='key',
@@ -164,7 +168,7 @@ KEY_SCHEMA = SCHEMA.Object(
 # Supported key types: 'rsa', 'ed25519'.
 ANYKEY_SCHEMA = SCHEMA.Object(
   object_name='anykey',
-  keytype=SCHEMA.OneOf([SCHEMA.String('rsa'), SCHEMA.String('ed25519')]),
+  keytype=KEYTYPE_SCHEMA,
   keyid=KEYID_SCHEMA,
   keyval=KEYVAL_SCHEMA)
 
