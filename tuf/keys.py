@@ -326,10 +326,13 @@ def create_in_metadata_format(keytype, key_value, private=False):
     An 'KEY_SCHEMA' dictionary.
   """
 
-  # Does 'key_value' have the correct format?
-  # This check will ensure 'key_value' has the appropriate number
+  # Does 'keytype' have the correct format?
+  # This check will ensure 'keytype' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.KEYTYPE_SCHEMA.check_match(keytype)
+  
+  # Does 'key_value' have the correct format?
   tuf.formats.KEYVAL_SCHEMA.check_match(key_value)
 
   if private is True and key_value['private']:
