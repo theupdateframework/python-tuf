@@ -182,6 +182,11 @@ def create_signature(private_key, data):
   <Returns>
     A (signature, method) tuple, where
   """
+  
+  # Does 'private_key' have the correct format?
+  # This check will ensure 'private_key' conforms to 'tuf.formats.PEMRSA_SCHEMA'.
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.PEMRSA_SCHEMA.check_match(private_key)
 
   # Signing the 'data' object requires a private key.
   # The 'PyCrypto-PKCS#1 PSS' (i.e., PyCrypto module) signing method is the
@@ -260,6 +265,14 @@ def verify_signature(signature, signature_method, public_key, data):
   <Returns>
     Boolean.  True if the signature is valid, False otherwise.
   """
+  
+  # Does 'public_key' have the correct format?
+  # This check will ensure 'public_key' conforms to 'tuf.formats.PEMRSA_SCHEMA'.
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.PEMRSA_SCHEMA.check_match(public_key)
+
+  # Does 'signature_method' have the correct format?
+  tuf.formats.NAME_SCHEMA.check_match(signature_method)
 
   # Using the public key belonging to 'rsakey_dict'
   # (i.e., rsakey_dict['keyval']['public']), verify whether 'signature'
@@ -276,7 +289,6 @@ def verify_signature(signature, signature_method, public_key, data):
       rsa_key_object = Crypto.PublicKey.RSA.importKey(public_key)
       pkcs1_pss_verifier = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)
       sha256_object = Crypto.Hash.SHA256.new(data)
-      
       valid_signature = pkcs1_pss_verifier.verify(sha256_object, signature)
     except (ValueError, IndexError, TypeError), e:
       message = 'The RSA signature could not be verified.'

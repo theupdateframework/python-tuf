@@ -25,8 +25,8 @@ import tuf.pycrypto_keys as pycrypto
 
 logger = logging.getLogger('tuf.test_pycrypto_keys')
 
-FORMAT_ERROR_MSG = 'tuf.FormatError raised.  Check object\'s format.'
 public_rsa, private_rsa = pycrypto.generate_rsa_public_and_private()
+FORMAT_ERROR_MSG = 'tuf.FormatError raised.  Check object\'s format.'
 
 
 class TestPycrypto_keys(unittest.TestCase):
@@ -35,18 +35,83 @@ class TestPycrypto_keys(unittest.TestCase):
 
 
   def test_generate_rsa_public_and_private(self):
-    pass
+    pub, priv = pycrypto.generate_rsa_public_and_private()
+    
+    # Check format of 'pub' and 'priv'.
+    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(pub),
+                     FORMAT_ERROR_MSG)
+    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(priv),
+                     FORMAT_ERROR_MSG)
 
+    # Check for invalid bits argument.  bit >= 2048 and a multiple of 256.
+    self.assertRaises(tuf.FormatError,
+                      pycrypto.generate_rsa_public_and_private, 1024)
+    
+    self.assertRaises(ValueError,
+                      pycrypto.generate_rsa_public_and_private, 2049)
+
+    self.assertRaises(tuf.FormatError,
+                      pycrypto.generate_rsa_public_and_private, '2048')
+    
 
   def test_create_signature(self):
-    pass
+    global private_rsa
+    data = 'The quick brown fox jumps over the lazy dog'
+    signature, method = pycrypto.create_signature(private_rsa, data)
+
+    # Verify format of returned values.
+    self.assertNotEqual(None, signature)
+    self.assertEqual(None, tuf.formats.NAME_SCHEMA.check_match(method),
+                     FORMAT_ERROR_MSG)
+    self.assertEqual('PyCrypto-PKCS#1 PSS', method)
+
+    # Check for improperly formatted argument.
+    self.assertRaises(tuf.FormatError,
+                      pycrypto.create_signature, 123, data)
+   
+    # Check for invalid 'data'.
+    self.assertRaises(tuf.CryptoError,
+                      pycrypto.create_signature, private_rsa, 123)
 
 
   def test_verify_signature(self):
-    pass
+    global public_rsa
+    global private_rsa
+    data = 'The quick brown fox jumps over the lazy dog'
+    signature, method = pycrypto.create_signature(private_rsa, data)
+
+    valid_signature = pycrypto.verify_signature(signature, method, public_rsa,
+                                                data)
+    self.assertEqual(True, valid_signature)
+
+    # Check for improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, pycrypto.verify_signature, signature,
+                                       123, public_rsa, data)
+    
+    self.assertRaises(tuf.FormatError, pycrypto.verify_signature, signature,
+                                       method, 123, data)
+    
+    # Check for invalid signature and data.
+    self.assertRaises(tuf.CryptoError, pycrypto.verify_signature, 123, method,
+                                       public_rsa, data)
+    
+    self.assertRaises(tuf.CryptoError, pycrypto.verify_signature, signature,
+                                       method, public_rsa, 123)
+    
+    self.assertEqual(False, pycrypto.verify_signature(signature, method,
+                            public_rsa, 'mismatched data'))
+
+    mismatched_signature, method = pycrypto.create_signature(private_rsa,
+                                                             'mismatched data')
+    
+    self.assertEqual(False, pycrypto.verify_signature(mismatched_signature,
+                            method, public_rsa, data))
+
 
 
   def test_create_rsa_encrypted_pem(self):
+    global public_rsa
+    global private_rsa
     passphrase = 'pw'
 
     # Check format of 'public_rsa'.
@@ -72,6 +137,7 @@ class TestPycrypto_keys(unittest.TestCase):
   
   
   def test_create_rsa_public_and_private_from_encrypted_pem(self):
+    global private_rsa
     passphrase = 'pw'
 
     # Generate the encrypted PEM string of 'private_rsa'.
