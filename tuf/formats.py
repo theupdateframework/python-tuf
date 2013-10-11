@@ -157,7 +157,8 @@ KEYVAL_SCHEMA = SCHEMA.Object(
 KEYTYPE_SCHEMA = SCHEMA.OneOf(
   [SCHEMA.String('rsa'), SCHEMA.String('ed25519')])
 
-# A generic key.  All TUF keys should be saved to metadata files in this format.
+# A generic TUF key.  All TUF keys should be saved to metadata files in this
+# format.
 KEY_SCHEMA = SCHEMA.Object(
   object_name='KEY_SCHEMA',
   keytype=SCHEMA.AnyString(),
@@ -172,14 +173,23 @@ ANYKEY_SCHEMA = SCHEMA.Object(
   keyid=KEYID_SCHEMA,
   keyval=KEYVAL_SCHEMA)
 
-# An RSA key.
+# An RSA TUF key.
 RSAKEY_SCHEMA = SCHEMA.Object(
   object_name='RSAKEY_SCHEMA',
   keytype=SCHEMA.String('rsa'),
   keyid=KEYID_SCHEMA,
   keyval=KEYVAL_SCHEMA)
 
-# An ed25519 key.
+# An ED25519 raw public key, which must be 32 bytes.
+ED25519PUBLIC_SCHEMA = SCHEMA.LengthString(32)
+
+# An ED25519 raw seed key, which must be 32 bytes.  
+ED25519SEED_SCHEMA = SCHEMA.LengthString(32)
+
+# An ED25519 raw signature, which must be 64 bytes.  
+ED25519SIGNATURE_SCHEMA = SCHEMA.LengthString(64)
+
+# An ed25519 TUF key.
 ED25519KEY_SCHEMA = SCHEMA.Object(
   object_name='ED25519KEY_SCHEMA',
   keytype=SCHEMA.String('ed25519'),
