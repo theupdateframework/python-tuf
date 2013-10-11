@@ -21,12 +21,12 @@ import logging
 import tuf
 import tuf.log
 import tuf.formats
-import tuf.pycrypto_keys
+import tuf.pycrypto_keys as pycrypto
 
 logger = logging.getLogger('tuf.test_pycrypto_keys')
 
 FORMAT_ERROR_MSG = 'tuf.FormatError raised.  Check object\'s format.'
-public_rsa, private_rsa = tuf.pycrypto_keys.generate_rsa_public_and_private()
+public_rsa, private_rsa = pycrypto.generate_rsa_public_and_private()
 
 
 class TestPycrypto_keys(unittest.TestCase):
@@ -58,7 +58,7 @@ class TestPycrypto_keys(unittest.TestCase):
                      FORMAT_ERROR_MSG)
 
     # Generate the encrypted PEM string of 'public_rsa'.
-    pem_rsakey = tuf.pycrypto_keys.create_rsa_encrypted_pem(private_rsa, passphrase)
+    pem_rsakey = pycrypto.create_rsa_encrypted_pem(private_rsa, passphrase)
 
     # Check format of 'pem_rsakey'.
     self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(pem_rsakey),
@@ -66,17 +66,16 @@ class TestPycrypto_keys(unittest.TestCase):
 
     # Check for invalid arguments.
     self.assertRaises(tuf.FormatError,
-                      tuf.pycrypto_keys.create_rsa_encrypted_pem, 1, passphrase)
+                      pycrypto.create_rsa_encrypted_pem, 1, passphrase)
     self.assertRaises(tuf.FormatError,
-                      tuf.pycrypto_keys.create_rsa_encrypted_pem, private_rsa, ['pw'])
-  
+                      pycrypto.create_rsa_encrypted_pem, private_rsa, ['pw'])
   
   
   def test_create_rsa_public_and_private_from_encrypted_pem(self):
     passphrase = 'pw'
 
-    # Generate the encrypted PEM string of 'public_rsa'.
-    pem_rsakey = tuf.pycrypto_keys.create_rsa_encrypted_pem(private_rsa, passphrase)
+    # Generate the encrypted PEM string of 'private_rsa'.
+    pem_rsakey = pycrypto.create_rsa_encrypted_pem(private_rsa, passphrase)
    
     # Check format of 'passphrase'.
     self.assertEqual(None, tuf.formats.PASSWORD_SCHEMA.check_match(passphrase),
@@ -84,35 +83,47 @@ class TestPycrypto_keys(unittest.TestCase):
 
     # Decrypt 'pem_rsakey' and verify the decrypted object is properly
     # formatted.
-    decrypted_rsakey = tuf.pycrypto_keys.create_rsa_public_and_private_from_encrypted_pem(pem_rsakey,
+    public_decrypted, private_decrypted = \
+    pycrypto.create_rsa_public_and_private_from_encrypted_pem(pem_rsakey,
                                                              passphrase)
-    self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(decrypted_rsakey),
+    self.assertEqual(None,
+                     tuf.formats.PEMRSA_SCHEMA.check_match(public_decrypted),
+                     FORMAT_ERROR_MSG)
+    
+    self.assertEqual(None,
+                     tuf.formats.PEMRSA_SCHEMA.check_match(private_decrypted),
                      FORMAT_ERROR_MSG)
 
-    # Does 'decrypted_rsakey' match the original 'rsakey_dict'.
-    self.assertEqual(rsakey_dict, decrypted_rsakey)
+    # Does 'public_decrypted' and 'private_decrypted' match the originals?
+    self.assertEqual(public_rsa, public_decrypted)
+    self.assertEqual(private_rsa, private_decrypted)
 
     # Attempt decryption of 'pem_rsakey' using an incorrect passphrase.
     self.assertRaises(tuf.CryptoError,
-                      tuf.pycrypto_keys.create_rsa_public_and_private_from_encrypted_pem, pem_rsakey,
-                                                             'bad_pw')
-    # Check for non-encrypted PEM string.  create_rsa_public_and_private_from_encrypted_pem()/PyCrypto
-    # returns a tuf.formats.RSAKEY_SCHEMA object if PEM formatted string is
-    # not actually encrypted but still a valid PEM string.
-    non_encrypted_private_key = rsakey_dict['keyval']['private']
-    decrypted_non_encrypted = tuf.pycrypto_keys.create_rsa_public_and_private_from_encrypted_pem(
-                              non_encrypted_private_key, passphrase)
-    self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(
-                           decrypted_non_encrypted), FORMAT_ERROR_MSG)
+                      pycrypto.create_rsa_public_and_private_from_encrypted_pem,
+                      pem_rsakey, 'bad_pw')
+
+    # Check for non-encrypted PEM strings.
+    # create_rsa_public_and_private_from_encrypted_pem()
+    # returns a tuple of tuf.formats.PEMRSA_SCHEMA objects if the PEM formatted
+    # string is not actually encrypted but still a valid PEM string.
+    pub, priv = pycrypto.create_rsa_public_and_private_from_encrypted_pem(
+                              private_rsa, passphrase)
+    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(pub),
+                     FORMAT_ERROR_MSG)
+    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(priv),
+                     FORMAT_ERROR_MSG)
 
     # Check for invalid arguments.
     self.assertRaises(tuf.FormatError,
-                      tuf.pycrypto_keys.create_rsa_public_and_private_from_encrypted_pem, 123, passphrase)
+                      pycrypto.create_rsa_public_and_private_from_encrypted_pem,
+                      123, passphrase)
     self.assertRaises(tuf.FormatError,
-                      tuf.pycrypto_keys.create_rsa_public_and_private_from_encrypted_pem, pem_rsakey, ['pw'])
+                      pycrypto.create_rsa_public_and_private_from_encrypted_pem,
+                      pem_rsakey, ['pw'])
     self.assertRaises(tuf.CryptoError,
-                      tuf.pycrypto_keys.create_rsa_public_and_private_from_encrypted_pem, 'invalid_pem',
-                                                              passphrase)
+                      pycrypto.create_rsa_public_and_private_from_encrypted_pem,
+                      'invalid_pem', passphrase)
  
 
 
