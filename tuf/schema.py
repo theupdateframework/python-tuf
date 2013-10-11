@@ -38,7 +38,6 @@
   criteria.  See 'tuf.formats.py' and the rest of this module for extensive
   examples.  Anything related to the checking of TUF objects and their formats
   can be found in 'formats.py'.
-
 """
 
 
@@ -55,7 +54,6 @@ class Schema:
     that are encodable in JSON.  'Schema' is the base class for
     the other classes defined in this module.  All derived classes
     should implement check_match().
-  
   """
 
   def matches(self, object):
@@ -64,7 +62,6 @@ class Schema:
       Return True if 'object' matches this schema, False if it doesn't.
       If the caller wishes to signal an error on a failed match, check_match()
       should be called, which will raise a 'tuf.FormatError' exception.
-      
     """
     
     try:
@@ -82,7 +79,6 @@ class Schema:
       implement check_match().  If 'object' matches the schema, check_match()
       should simply return.  If 'object' does not match the schema,
       'tuf.FormatError' should be raised.
-    
     """
     
     raise NotImplementedError()
@@ -110,7 +106,6 @@ class Any(Schema):
     True
     >>> schema.matches([1, 'list'])
     True
-
   """
 
   def __init__(self):
@@ -143,7 +138,6 @@ class String(Schema):
     True
     >>> schema.matches('Not hi')
     False
-  
   """
 
   def __init__(self, string):
@@ -187,7 +181,6 @@ class AnyString(Schema):
     True
     >>> schema.matches({})
     False
-    
   """
 
   def __init__(self):
@@ -197,6 +190,48 @@ class AnyString(Schema):
   def check_match(self, object):
     if not isinstance(object, basestring):
       raise tuf.FormatError('Expected a string but got '+repr(object))
+
+
+
+
+
+class LengthString(Schema):
+  """
+  <Purpose>
+    Matches any string of a specified length.  The argument object
+    must be a string.  At instantiation, the string length is set
+    and any future comparisons are checked against this internal
+    string value length.
+
+    Supported methods include
+      matches(): returns a Boolean result.
+      check_match(): raises 'tuf.FormatError' on a mismatch.
+
+  <Example Use>
+    
+    >>> schema = LengthString(5)
+    >>> schema.matches('Hello')
+    True
+    >>> schema.matches('Hi')
+    False
+  """
+
+  def __init__(self, length):
+    if isinstance(length, bool) or not isinstance(length, (int, long)):
+      # We need to check for bool as a special case, since bool
+      # is for historical reasons a subtype of int.
+      raise tuf.FormatError('Got '+repr(length)+' instead of an integer.')
+    
+    self._string_length = length 
+
+
+  def check_match(self, object):
+    if not isinstance(object, basestring):
+      raise tuf.FormatError('Expected a string but got '+repr(object))
+
+    if len(object) != self._string_length:
+      raise tuf.FormatError('Expected a string of length '+
+                            repr(self._string_length))
 
 
 
@@ -229,7 +264,6 @@ class OneOf(Schema):
     True
     >>> schema.matches(['Hi'])
     False
-
   """
 
   def __init__(self, alternatives):
@@ -275,7 +309,6 @@ class AllOf(Schema):
     False
     >>> schema.matches('a')
     True
-  
   """
 
   def __init__(self, required_schemas):
@@ -314,7 +347,6 @@ class Boolean(Schema):
     True
     >>> schema.matches(11)
     False
- 
  """
 
   def __init__(self):
@@ -367,7 +399,6 @@ class ListOf(Schema):
     True
     >>> schema.matches([3]*11)
     False
-
   """
 
   def __init__(self, schema, min_count=0, max_count=sys.maxint, list_name='list'):
@@ -380,7 +411,6 @@ class ListOf(Schema):
       min_count: The minimum number of sub-schema in 'schema'.
       max_count: The maximum number of sub-schema in 'schema'.
       list_name: A string identifier for the ListOf object.
-        
     """
     
     if not isinstance(schema, Schema):
@@ -443,7 +473,6 @@ class Integer(Schema):
     True
     >>> Integer(lo=10, hi=30).matches(5)
     False
-
   """
 
   def __init__(self, lo= -sys.maxint, hi=sys.maxint):
@@ -454,7 +483,6 @@ class Integer(Schema):
     <Arguments>
       lo: The minimum value the int object argument can be.
       hi: The maximum value the int object argument can be.
-        
     """
     
     self._lo = lo
@@ -502,7 +530,6 @@ class DictOf(Schema):
     False
     >>> schema.matches({'a': ['x', 'y'], 'e' : ['', ''], 'd' : ['a', 'b']})
     False
-
   """
 
   def __init__(self, key_schema, value_schema):
@@ -513,7 +540,6 @@ class DictOf(Schema):
     <Arguments>
       key_schema:  The dictionary's key.
       value_schema: The dictionary's value.
-        
     """
     
     if not isinstance(key_schema, Schema):
@@ -564,7 +590,6 @@ class Optional(Schema):
     False
     >>> schema.matches({'k1': 'X'})
     True
-    
   """
 
   def __init__(self, schema):
@@ -604,7 +629,6 @@ class Object(Schema):
     False
     >>> schema.matches({'a':'ZYYY'})
     False
-    
   """
 
   def __init__(self, object_name='object', **required):
@@ -616,7 +640,6 @@ class Object(Schema):
       object_name: A string identifier for the object argument.
       
       A variable number of keyword arguments is accepted.
-        
     """
   
     # Ensure valid arguments. 
@@ -713,7 +736,6 @@ class Struct(Schema):
     False
     >>> schema.matches(['X', 3, 'A'])
     False
-
   """
 
   def __init__(self, sub_schemas, optional_schemas=[], allow_more=False,
@@ -727,7 +749,6 @@ class Struct(Schema):
       optional_schemas: The optional list of schemas.
       allow_more: Specifies that an optional list of types is allowed.
       struct_name: A string identifier for the Struct object.
-        
     """
     
     # Ensure each item of the list contains the expected object type.
@@ -792,7 +813,6 @@ class RegularExpression(Schema):
     False
     >>> schema.matches([33, 'Hello'])
     False
-    
   """
 
   def __init__(self, pattern=None, modifiers=0, re_object=None, re_name=None):
@@ -805,7 +825,6 @@ class RegularExpression(Schema):
       modifiers:  Flags to use when compiling the pattern.
       re_object:  A compiled regular expression object.
       re_name: Identifier for the regular expression object.
-        
     """
 
     if not isinstance(pattern, basestring):
