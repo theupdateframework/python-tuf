@@ -15,15 +15,15 @@ completely new software.
 
 Three major classes of software update systems are:
 
-* Application Updaters - which are used by applications use to update
+* **Application updaters** which are used by applications use to update
 themselves. For example, Firefox updates itself through its own application
 updater.
 
-* Library Package Managers - such as those offered by many programming
+* **Library package managers** such as those offered by many programming
 languages for installing additional libraries. These are systems such as
 Python's pip/easy_install + PyPI, Perl's CPAN, Ruby's Gems, and PHP's PEAR.
 
-* System Package Managers - used by operating systems to update and install all
+* **System package managers** used by operating systems to update and install all
 of the software on a client system. Debian's APT, Red Hat's YUM, and openSUSE's
 YaST are examples of these.
 

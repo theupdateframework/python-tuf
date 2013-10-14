@@ -72,7 +72,7 @@ class TestQuickstart(unit_tbox):
     proj_files = self.make_temp_directory_with_data_files()
     proj_dir = os.path.join(proj_files[0], 'targets')
 
-    input_dict = {'expiration':'12/12/2013',
+    input_dict = {'expiration':'12/12/2020',
                   'root':{'threshold':1, 'password':'pass'},
                   'targets':{'threshold':1, 'password':'pass'},
                   'release':{'threshold':1, 'password':'pass'},
@@ -128,7 +128,7 @@ class TestQuickstart(unit_tbox):
     _remove_repository_directories(repo_dir, keystore_dir, client_dir) 
     
     #  Restore expiration.
-    input_dict['expiration'] = '10/10/2013'
+    input_dict['expiration'] = '10/10/2020'
 
     #  Supplying bogus 'root' threshold.  Doing this for all roles slows
     #  the test significantly.
