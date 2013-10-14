@@ -121,6 +121,10 @@ METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=1)
 # An integer representing length.  Must be 0, or greater.
 LENGTH_SCHEMA = SCHEMA.Integer(lo=0)
 
+# An integer representing logger levels, such as logging.CRITICAL (=50).
+# Must be between 0 and 50.
+LOGLEVEL_SCHEMA = SCHEMA.Integer(lo=0, hi=50)
+
 # A string representing a named object.
 NAME_SCHEMA = SCHEMA.AnyString()
 

@@ -198,8 +198,3 @@ except Exception, exception:
   print('Download without TUF failed due to: '+str(exception))
 else:
   print('Download without TUF did NOT fail due to replayed metadata attack!')
-
-
-
-
-
