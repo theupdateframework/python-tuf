@@ -29,6 +29,13 @@
 
 """
 
+# Help with Python 3 compatability, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 import os
 import urllib
 
@@ -54,7 +61,7 @@ def _download(url, filename, using_tuf=False):
 
 
 
-def test_arbitrary_package_attack(using_tuf=False):
+def test_arbitrary_package_attack(using_tuf=False, modify_metadata=False):
   """
   <Purpose>
     Illustrate arbitrary package attack vulnerability.
@@ -94,8 +101,43 @@ def test_arbitrary_package_attack(using_tuf=False):
       url_to_repo = 'http://localhost:9999/'+file_basename
 
       # Attacker modifies the file at the targets repository.
-      target = os.path.join(targets_dir, file_basename)
-      util_test_tools.modify_file_at_repository(target, 'Evil A')
+      target_filepath = os.path.join(targets_dir, file_basename)
+      util_test_tools.modify_file_at_repository(target_filepath, 'Evil A')
+
+      if modify_metadata:
+
+        # Modify targets metadata to reflect the change to the target file.
+        targets_metadata_filepath = os.path.join(tuf_repo, 'metadata',
+                                                              'targets.txt')
+
+        targets_metadata_key_list = ['signed', 'targets', file_basename]
+
+        util_test_tools.update_signed_file_in_metadata(
+                                                  target_filepath,
+                                                  targets_metadata_filepath,
+                                                  targets_metadata_key_list)
+
+        # Modify release metadata to reflect the change to targets metadata.
+        release_metadata_filepath = os.path.join(tuf_repo, 'metadata',
+                                                              'release.txt')
+
+        release_metadata_key_list = ['signed', 'meta', 'targets.txt']
+
+        util_test_tools.update_signed_file_in_metadata(
+                                                  targets_metadata_filepath,
+                                                  release_metadata_filepath,
+                                                  release_metadata_key_list)
+
+        # Modify timestamp metadata to reflect the change to release metadata.
+        timestamp_metadata_filepath = os.path.join(tuf_repo, 'metadata',
+                                                              'timestamp.txt')
+
+        timestamp_metadata_key_list = ['signed', 'meta', 'release.txt']
+        
+        util_test_tools.update_signed_file_in_metadata(
+                                                  release_metadata_filepath,
+                                                  timestamp_metadata_filepath,
+                                                  timestamp_metadata_key_list)
 
     # Attacker modifies the file at the regular repository.
     util_test_tools.modify_file_at_repository(filepath, 'Evil A')
@@ -110,10 +152,17 @@ def test_arbitrary_package_attack(using_tuf=False):
     except tuf.NoWorkingMirrorError, error:
       # We only set up one mirror, so if it fails, we expect a
       # NoWorkingMirrorError. If TUF has worked as intended, the mirror error
-      # contained within should be a BadHashError.
-      mirror_error = error.mirror_errors[url+'tuf_repo/targets/'+file_basename]
+      # contained within should be a BadHashError or a BadSignatureError,
+      # depending on whether the metadata was modified.
+      if modify_metadata:
+        mirror_error = error.mirror_errors[url+'tuf_repo/metadata/timestamp.txt']
 
-      assert isinstance(mirror_error, tuf.BadHashError)
+        assert isinstance(mirror_error, tuf.BadSignatureError)
+
+      else:
+        mirror_error = error.mirror_errors[url+'tuf_repo/targets/'+file_basename]
+
+        assert isinstance(mirror_error, tuf.BadHashError)
 
     else:
       # Check whether the attack succeeded by inspecting the content of the
@@ -130,24 +179,32 @@ def test_arbitrary_package_attack(using_tuf=False):
 
 
 
-print 'Attempting arbitrary package attack without TUF:'
+print('Attempting arbitrary package attack without TUF:')
 try:
   test_arbitrary_package_attack(using_tuf=False)
-
 except ArbitraryPackageAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
 
 
-
-print 'Attempting arbitrary package attack with TUF:'
+print('Attempting arbitrary package attack with TUF:')
 try:
-  test_arbitrary_package_attack(using_tuf=True)
-
+  test_arbitrary_package_attack(using_tuf=True, modify_metadata=False)
 except ArbitraryPackageAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
+
+
+print('Attempting arbitrary package attack with TUF'+\
+                                      '(and tampering with metadata):')
+try:
+  test_arbitrary_package_attack(using_tuf=True, modify_metadata=True)
+except ArbitraryPackageAlert, error:
+  print(error)
+else:
+  print('Extraneous dependency attack failed.')
+print()
