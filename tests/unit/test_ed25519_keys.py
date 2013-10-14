@@ -87,28 +87,34 @@ class TestEd25519_keys(unittest.TestCase):
     self.assertRaises(tuf.FormatError, ed25519.verify_signature, 123, method,
                                        signature, data)
     
+    # Signature method improperly formatted.
     self.assertRaises(tuf.FormatError, ed25519.verify_signature, public, 123,
                                        signature, data)
-    
-    self.assertRaises(tuf.FormatError, ed25519.verify_signature, method,
-                                       '123', data)
-    
+   
+    # Signature not a string.
+    self.assertRaises(tuf.FormatError, ed25519.verify_signature, public, method,
+                                       123, data)
+   
+    # Invalid signature length, which must be exactly 64 bytes..
+    self.assertRaises(tuf.FormatError, ed25519.verify_signature, public, method,
+                                       'bad_signature', data)
     
     # Check for invalid signature and data.
-    self.assertRaises(tuf.CryptoError, ed25519.verify_signature, public, method,
-                                       public_rsa, data)
+    # Mismatched data.
+    self.assertEqual(False, ed25519.verify_signature(public, method,
+                                                     signature, '123'))
+   
+    # Mismatched signature.
+    bad_signature = 'a'*64 
+    self.assertEqual(False, ed25519.verify_signature(public, method,
+                                                     bad_signature, data))
     
-    self.assertRaises(tuf.CryptoError, ed25519.verify_signature, signature,
-                                       method, public_rsa, 123)
+    # Generated signature created with different data.
+    new_signature, method = ed25519.create_signature(public, private, 
+                                                     'mismatched data')
     
-    self.assertEqual(False, ed25519.verify_signature(public, method, signature,
-                                                     'mismatched data'))
-
-    mismatched_signature, method = ed25519.create_signature(private_rsa,
-                                                             'mismatched data')
-    
-    self.assertEqual(False, ed25519.verify_signature(mismatched_signature,
-                            method, public_rsa, data))
+    self.assertEqual(False, ed25519.verify_signature(public, method,
+                                                     new_signature, data))
 
 
 
