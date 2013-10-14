@@ -1,4 +1,5 @@
 """
+      
 <Program Name>
   test_arbitrary_package_attack.py
 
@@ -28,6 +29,13 @@
   There is no difference between 'updates' and 'target' files.
 
 """
+
+# Help with Python 3 compatability, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
 
 import os
 import urllib
@@ -130,24 +138,24 @@ def test_arbitrary_package_attack(using_tuf=False):
 
 
 
-print 'Attempting arbitrary package attack without TUF:'
+print('Attempting arbitrary package attack without TUF:')
 try:
   test_arbitrary_package_attack(using_tuf=False)
 
 except ArbitraryPackageAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
 
 
 
-print 'Attempting arbitrary package attack with TUF:'
+print('Attempting arbitrary package attack with TUF:')
 try:
   test_arbitrary_package_attack(using_tuf=True)
 
 except ArbitraryPackageAlert, error:
-  print error
+  print(error)
 else:
-  print 'Extraneous dependency attack failed.'
-print
+  print('Extraneous dependency attack failed.')
+print()
