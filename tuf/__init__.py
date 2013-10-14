@@ -176,6 +176,7 @@ class BadSignatureError(CryptoError):
 
 
 
+
 class UnknownMethodError(CryptoError):
   """Indicate that a user-specified cryptograpthic method is unknown."""
   pass
@@ -311,8 +312,3 @@ class NoWorkingMirrorError(Error):
       all_errors += '\n  '+str(mirror_netloc)+': '+str(mirror_error)
 
     return all_errors
-
-
-
-
-

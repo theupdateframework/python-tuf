@@ -84,7 +84,6 @@ def test_extraneous_dependency_attack(using_tuf=False):
 
   ERROR_MSG = 'Extraneous Dependency Attack was Successful!'
 
-
   try:
     # Setup.
     root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf)
