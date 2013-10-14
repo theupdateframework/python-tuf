@@ -19,6 +19,13 @@
 
 """
 
+# Help with Python 3 compatability, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 import os
 import sys
 import time
@@ -101,7 +108,7 @@ def test_indefinite_freeze_attack(using_tuf=False):
     downloaded_file = os.path.join(downloads, file_basename)
 
     if using_tuf:
-      print 'TUF ...'
+      print('TUF ...')
 
       # Update TUF metadata before attacker modifies anything.
       util_test_tools.tuf_refresh_repo(root_repo, keyids)
@@ -123,8 +130,8 @@ def test_indefinite_freeze_attack(using_tuf=False):
     try:
       _download(url_to_repo, downloaded_file, using_tuf)
     except:
-      print 'Initial download failed! It may be because your machine is '+ \
-        'busy. Try again later.'
+      print('Initial download failed! It may be because your machine is '+ \
+        'busy. Try again later.')
     else:
       # Expire timestamp.
       time.sleep(EXPIRATION)
@@ -133,7 +140,7 @@ def test_indefinite_freeze_attack(using_tuf=False):
       try:
         _download(url_to_repo, downloaded_file, using_tuf)
       except tuf.ExpiredMetadataError, error:
-        print 'Caught an expiration error!'
+        print('Caught an expiration error!')
       else:
         raise IndefiniteFreezeAttackAlert(ERROR_MSG)
   finally:
@@ -146,10 +153,10 @@ def test_indefinite_freeze_attack(using_tuf=False):
 try:
   test_indefinite_freeze_attack(using_tuf=False)
 except IndefiniteFreezeAttackAlert, error:
-  print error
+  print(error)
 
 
 try:
   test_indefinite_freeze_attack(using_tuf=True)
 except IndefiniteFreezeAttackAlert, error:
-  print error
+  print(error)
