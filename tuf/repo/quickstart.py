@@ -175,6 +175,7 @@ def _get_password(prompt='Password: ', confirm=False):
 
 
 
+
 def collect_date():
   """
 	<Purpose>
@@ -187,7 +188,7 @@ def collect_date():
 		None
 
   <Returns>
-		a mm/dd/yyyy string
+		a time difference (int)
 
   """
 
@@ -222,6 +223,8 @@ def collect_date():
     raise tuf.RepositoryError('Could not get a valid expiration date\n')
 
   return timeout
+
+
 
 
 def build_keystore():
@@ -326,7 +329,7 @@ def build_repository(project_directory, timeout, role_config):
   role_passwords = role_config[0]
   role_threshold = role_config[1]
 
-	
+
   # Build the repository directories.
   metadata_directory = None
   targets_directory = None
