@@ -172,6 +172,13 @@ RSAKEY_SCHEMA = SCHEMA.Object(
   keyid=KEYID_SCHEMA,
   keyval=KEYVAL_SCHEMA)
 
+# An ed25519 key.
+ED25519KEY_SCHEMA = SCHEMA.Object(
+  object_name='ed25519key',
+  keytype=SCHEMA.String('ed25519'),
+  keyid=KEYID_SCHEMA,
+  keyval=KEYVAL_SCHEMA)
+
 # Info that describes both metadata and target files.
 # This schema allows the storage of multiple hashes for the same file
 # (e.g., sha256 and sha512 may be computed for the same file and stored).
