@@ -32,8 +32,8 @@
   and verify_signature().  The 'ed25519' and PyNaCl (i.e., 'nacl') modules used 
   by ed25519_key.py generate the actual ed25519 keys and the functions listed
   above can be viewed as an easy-to-use public interface.  Additional functions
-  contained here include create_in_metadata_format() and
-  create_from_metadata_format().  These last two functions produce or use
+  contained here include format_keyval_to_metadata() and
+  format_metadata_to_key().  These last two functions produce or use
   ed25519 keys compatible with the key structures listed in TUF Metadata files.
   The generate() function returns a dictionary containing all the information
   needed of ed25519 keys, such as public/private keys and a keyID identifier.
@@ -63,24 +63,26 @@ import binascii
 # http://docs.python.org/2/library/os.html#miscellaneous-functions
 import os
 
+import tuf
+
 # Import the python implementation of the ed25519 algorithm that is provided by
 # the author.  Note: This implementation is very slow and does not include
 # protection against side-channel attacks according to the author.  Verifying
-# signatures can take approximately 9 seconds on a intel core 2 duo @
+# signatures can take approximately 9 seconds on an intel core 2 duo @
 # 2.2 ghz x 2).  Optionally, the PyNaCl module may be used to speed up ed25519
 # cryptographic operations.
-# http://ed25519.cr.yp.to/software.html   
+# http://ed25519.cr.yp.to/software.html
+# Try to import PyNaCl.  The functions found in this module provide the option
+# of using PyNaCl over the slower implementation of ed25519.
 try:
   import nacl.signing
   import nacl.encoding
-except ImportError:
-  pass
+except (ImportError, IOError):
+  message = 'The PyNacl library and/or its dependencies cannot be imported.'
+  raise tuf.UnsupportedLibraryError(message)
 
 # The pure Python implementation of ed25519.
 import ed25519.ed25519
-
-
-import tuf
 
 # Digest objects needed to generate hashes.
 import tuf.hash
@@ -110,7 +112,8 @@ def generate(use_pynacl=False):
                 'private': 'bf7336055c7638276efe9afe039...'}}
     
     The public and private keys are strings.  An ed25519 seed key is a random
-    32-byte value and public key 32 bytes, although both are hexlified.
+    32-byte value and public key 32 bytes, although both are hexlified to 64
+    bytes.
 
     >>> ed25519_key = generate()
     >>> tuf.formats.ED25519KEY_SCHEMA.matches(ed25519_key)
@@ -161,8 +164,8 @@ def generate(use_pynacl=False):
   if use_pynacl:
     # Generate the public key.  PyNaCl (i.e., 'nacl' module) performs
     # the actual key generation.
-      nacl_key = nacl.signing.SigningKey(seed)
-      public = str(nacl_key.verify_key)
+    nacl_key = nacl.signing.SigningKey(seed)
+    public = str(nacl_key.verify_key)
   
   # Use the pure Python implementation of ed25519. 
   else: 
@@ -189,7 +192,7 @@ def generate(use_pynacl=False):
 
 
 
-def create_in_metadata_format(key_value, private=False):
+def format_keyval_to_metadata(key_value, private=False):
   """
   <Purpose>
     Return a dictionary conformant to 'tuf.formats.KEY_SCHEMA'.
@@ -205,14 +208,14 @@ def create_in_metadata_format(key_value, private=False):
      'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
                 'private': ''}}
     
-    The private and public keys are 32 bytes, although hexlified.
+    The private and public keys are 32 bytes, although hexlified to 64 bytes.
     
     ed25519 keys are stored in Metadata files (e.g., root.txt) in the format
     returned by this function.
 
     >>> ed25519_key = generate()
     >>> key_val = ed25519_key['keyval']
-    >>> ed25519_metadata = create_in_metadata_format(key_val, private=True)
+    >>> ed25519_metadata = format_keyval_to_metadata(key_val, private=True)
     >>> tuf.formats.KEY_SCHEMA.matches(ed25519_metadata)
     True
   
@@ -257,7 +260,7 @@ def create_in_metadata_format(key_value, private=False):
 
 
 
-def create_from_metadata_format(key_metadata):
+def format_metadata_to_key(key_metadata):
   """
   <Purpose>
     Construct an ed25519 key dictionary (i.e., tuf.formats.ED25519KEY_SCHEMA)
@@ -269,7 +272,8 @@ def create_from_metadata_format(key_metadata):
      'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
                 'private': 'bf7336055c7638276efe9afe039...'}}
 
-    The public and private keys are 32-byte strings, although hexlified.
+    The public and private keys are 32-byte strings, although hexlified to 64
+    bytes.
 
     ed25519 key dictionaries in 'ED25519KEY_SCHEMA' format should be used by
     modules storing a collection of keys, such as a keydb keystore.
@@ -281,8 +285,8 @@ def create_from_metadata_format(key_metadata):
 
     >>> ed25519_key = generate()
     >>> key_val = ed25519_key['keyval']
-    >>> ed25519_metadata = create_in_metadata_format(key_val, private=True)
-    >>> ed25519_key_2 = create_from_metadata_format(ed25519_metadata)
+    >>> ed25519_metadata = format_keyval_to_metadata(key_val, private=True)
+    >>> ed25519_key_2 = format_metadata_to_key(ed25519_metadata)
     >>> tuf.formats.ED25519KEY_SCHEMA.matches(ed25519_key_2)
     True
     >>> ed25519_key == ed25519_key_2
@@ -340,8 +344,8 @@ def _get_keyid(key_value):
 
   # 'keyid' will be generated from an object conformant to 'KEY_SCHEMA',
   # which is the format Metadata files (e.g., root.txt) store keys.
-  # 'create_in_metadata_format()' returns the object needed by _get_keyid().
-  ed25519_key_meta = create_in_metadata_format(key_value, private=False)
+  # 'format_keyval_to_metadata()' returns the object needed by _get_keyid().
+  ed25519_key_meta = format_keyval_to_metadata(key_value, private=False)
 
   # Convert the ed25519 key to JSON Canonical format suitable for adding
   # to digest objects.
@@ -401,7 +405,8 @@ def create_signature(ed25519_key_dict, data, use_pynacl=False):
        'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
                   'private': 'bf7336055c7638276efe9afe039...'}}
 
-      The public and private keys are 32-byte strings, although hexlified.
+      The public and private keys are 32-byte strings, although hexlified to 64
+      bytes.
 
     data:
       Data object used by create_signature() to generate the signature.
@@ -424,8 +429,8 @@ def create_signature(ed25519_key_dict, data, use_pynacl=False):
 
   <Returns>
     A signature dictionary conformat to 'tuf.format.SIGNATURE_SCHEMA'.
-    ed25519 signatures are 64 bytes, however, the hexlified signature is
-    stored in the dictionary returned.
+    ed25519 signatures are 64 bytes, however, the hexlified signature
+    (128 bytes) is stored in the dictionary returned.
   """
 
   # Does 'ed25519_key_dict' have the correct format?
@@ -522,7 +527,8 @@ def verify_signature(ed25519_key_dict, signature, data, use_pynacl=False):
        'keyval': {'public': '876f5584a9db99b8546c0d8608d6...',
                   'private': 'bf7336055c7638276efe9afe039...'}}
 
-      The public and private keys are 32-byte strings, although hexlified.
+      The public and private keys are 32-byte strings, although hexlified to
+      64 bytes.
       
     signature:
       The signature dictionary produced by tuf.ed25519_key.create_signature().
