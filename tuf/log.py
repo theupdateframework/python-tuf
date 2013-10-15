@@ -48,6 +48,13 @@
   logging.DEBUG           10
   logging.NOTSET           0
 
+  The logging module is thread-safe.  Logging to a single file from
+  multiple threads in a single process is also thread-safe.  The logging
+  module is NOT thread-safe when logging to a single file across multiple
+  processes:
+  http://docs.python.org/2/library/logging.html#thread-safety
+  http://docs.python.org/2/howto/logging-cookbook.html
+
 """
 
 
@@ -72,8 +79,14 @@ _DEFAULT_FILE_LOG_LEVEL = logging.DEBUG
 _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s]'+\
   '[%(funcName)s:%(lineno)s@%(filename)s] %(message)s'
 
-# Ask all Formatter instances to talk GMT.
+# Ask all Formatter instances to talk GMT.  Set the 'converter' attribute of
+# 'logging.Formatter' so that all formatters use Greenwich Mean Time. 
 # http://docs.python.org/2/library/logging.html#logging.Formatter.formatTime
+# The 2nd paragraph in the link above contains the relevant information.
+# GMT = UTC (Coordinated Universal Time). TUF metadata stores timestamps in UTC.
+# We previously displayed the local time but this lead to confusion when
+# visually comparing logger events and metadata information. Unix time stamps
+# are fine but they may be less human-readable than UTC.
 logging.Formatter.converter = time.gmtime
 formatter = logging.Formatter(_FORMAT_STRING)
 
@@ -177,7 +190,7 @@ def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
   
   # Does 'log_level' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.LENGTH_SCHEMA.check_match(log_level)
+  tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)
   
   logger.setLevel(log_level)
 
@@ -208,7 +221,7 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
   
   # Does 'log_level' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.LENGTH_SCHEMA.check_match(log_level)
+  tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)
   
   file_handler.setLevel(log_level)
 
@@ -240,7 +253,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   
   # Does 'log_level' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.LENGTH_SCHEMA.check_match(log_level)
+  tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)
   
   # Assign to the global console_handler object.
   global console_handler
@@ -279,7 +292,7 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   # Does 'log_level' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.LENGTH_SCHEMA.check_match(log_level)
+  tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   # Assign to the global console_handler object.
   global console_handler
@@ -287,7 +300,6 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   if not console_handler:
     # Set the console handler for the logger. The built-in console handler will
     # log messages to 'sys.stderr' and capture 'log_level' messages.
-    # NOTE: This is not thread-safe.
     console_handler = logging.StreamHandler()
     # Get our filter for the console handler.
     console_filter = ConsoleFilter()
@@ -329,7 +341,6 @@ def remove_console_handler():
 
   if console_handler:
     logger.removeHandler(console_handler)
-    # NOTE: This is not thread-safe.
     console_handler = None
     logger.debug('Removed a console handler.')
   else:
