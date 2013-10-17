@@ -19,7 +19,7 @@
   generated RSA key to a file.  The 'PyCrypto' package used by 'rsa_key.py'
   generates the actual RSA keys and the functions listed above can be viewed
   as an easy-to-use public interface.  Additional functions contained here
-  include create_in_metadata_format() and create_from_metadata_format().  These
+  include format_keyval_to_metadata() and format_metadata_to_key().  These
   last two functions produce or use RSA keys compatible with the key structures
   listed in TUF Metadata files.  The generate() function returns a dictionary
   containing all the information needed of RSA keys, such as public and private=
@@ -270,7 +270,7 @@ def generate_ed25519_key():
 
 
 
-def create_in_metadata_format(keytype, key_value, private=False):
+def format_keyval_to_metadata(keytype, key_value, private=False):
   """
   <Purpose>
     Return a dictionary conformant to 'tuf.formats.KEY_SCHEMA'.
@@ -295,7 +295,7 @@ def create_in_metadata_format(keytype, key_value, private=False):
     >>> key_val = ed25519_key['keyval']
     >>> keytype = ed25519_key['keytype']
     >>> ed25519_metadata = \
-    create_in_metadata_format(keytype, key_val, private=True)
+    format_keyval_to_metadata(keytype, key_val, private=True)
     >>> tuf.formats.KEY_SCHEMA.matches(ed25519_metadata)
     True
   
@@ -345,7 +345,7 @@ def create_in_metadata_format(keytype, key_value, private=False):
 
 
 
-def create_from_metadata_format(key_metadata):
+def format_metadata_to_key(key_metadata):
   """
   <Purpose>
     Construct an RSA key dictionary (i.e., tuf.formats.RSAKEY_SCHEMA)
@@ -371,8 +371,8 @@ def create_from_metadata_format(key_metadata):
     >>> key_val = ed25519_key['keyval']
     >>> keytype = ed25519_key['keytype']
     >>> ed25519_metadata = \
-    create_in_metadata_format(keytype, key_val, private=True)
-    >>> ed25519_key_2 = create_from_metadata_format(ed25519_metadata)
+    format_keyval_to_metadata(keytype, key_val, private=True)
+    >>> ed25519_key_2 = format_metadata_to_key(ed25519_metadata)
     >>> tuf.formats.ED25519KEY_SCHEMA.matches(ed25519_key_2)
     True
     >>> ed25519_key == ed25519_key_2
@@ -429,8 +429,8 @@ def _get_keyid(keytype, key_value):
 
   # 'keyid' will be generated from an object conformant to KEY_SCHEMA,
   # which is the format Metadata files (e.g., root.txt) store keys.
-  # 'create_in_metadata_format()' returns the object needed by _get_keyid().
-  rsakey_meta = create_in_metadata_format(keytype, key_value, private=False)
+  # 'format_keyval_to_metadata()' returns the object needed by _get_keyid().
+  rsakey_meta = format_keyval_to_metadata(keytype, key_value, private=False)
 
   # Convert the RSA key to JSON Canonical format suitable for adding
   # to digest objects.

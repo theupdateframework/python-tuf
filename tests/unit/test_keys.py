@@ -70,17 +70,17 @@ class TestKeys(unittest.TestCase):
     self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(2048)))
     self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(4096)))
     
-  def test_create_in_metadata_format(self):
+  def test_format_keyval_to_metadata(self):
     keyvalue = rsakey_dict['keyval']
     keytype = rsakey_dict['keytype']
-    key_meta = KEYS.create_in_metadata_format(keytype, keyvalue)
+    key_meta = KEYS.format_keyval_to_metadata(keytype, keyvalue)
     
     # Check if the format of the object returned by this function corresponds
     # to KEY_SCHEMA format.
     self.assertEqual(None, 
                      tuf.formats.KEY_SCHEMA.check_match(key_meta), 
                      FORMAT_ERROR_MSG)    
-    key_meta = KEYS.create_in_metadata_format(keytype, keyvalue, private=True)
+    key_meta = KEYS.format_keyval_to_metadata(keytype, keyvalue, private=True)
 
     # Check if the format of the object returned by this function corresponds
     # to KEY_SCHEMA format.
@@ -88,22 +88,22 @@ class TestKeys(unittest.TestCase):
                      FORMAT_ERROR_MSG) 
     
     # Supplying a 'bad' keyvalue.
-    self.assertRaises(tuf.FormatError, KEYS.create_in_metadata_format,
+    self.assertRaises(tuf.FormatError, KEYS.format_keyval_to_metadata,
                       'bad_keytype', keyvalue)
 
     del keyvalue['public']
-    self.assertRaises(tuf.FormatError, KEYS.create_in_metadata_format,
+    self.assertRaises(tuf.FormatError, KEYS.format_keyval_to_metadata,
                       keytype, keyvalue)
 
 
 
-  def test_create_from_metadata_format(self):
+  def test_format_metadata_to_key(self):
     # Reconfiguring rsakey_dict to conform to KEY_SCHEMA
     # i.e. {keytype: 'rsa', keyval: {public: pub_key, private: priv_key}}
     #keyid = rsakey_dict['keyid']
     del rsakey_dict['keyid']
 
-    rsakey_dict_from_meta = KEYS.create_from_metadata_format(rsakey_dict) 
+    rsakey_dict_from_meta = KEYS.format_metadata_to_key(rsakey_dict) 
 
     # Check if the format of the object returned by this function corresponds
     # to RSAKEY_SCHEMA format.
@@ -112,13 +112,13 @@ class TestKeys(unittest.TestCase):
            FORMAT_ERROR_MSG)
 
     # Supplying a wrong number of arguments.
-    self.assertRaises(TypeError, KEYS.create_from_metadata_format)
+    self.assertRaises(TypeError, KEYS.format_metadata_to_key)
     args = (rsakey_dict, rsakey_dict)
-    self.assertRaises(TypeError, KEYS.create_from_metadata_format, *args)
+    self.assertRaises(TypeError, KEYS.format_metadata_to_key, *args)
 
     # Supplying a malformed argument to the function - should get FormatError
     del rsakey_dict['keyval']
-    self.assertRaises(tuf.FormatError, KEYS.create_from_metadata_format,
+    self.assertRaises(tuf.FormatError, KEYS.format_metadata_to_key,
                       rsakey_dict)   
 
 
