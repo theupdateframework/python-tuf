@@ -54,10 +54,10 @@ class TestPycrypto_keys(unittest.TestCase):
                       pycrypto.generate_rsa_public_and_private, '2048')
     
 
-  def test_create_signature(self):
+  def test_create_rsa_signature(self):
     global private_rsa
     data = 'The quick brown fox jumps over the lazy dog'
-    signature, method = pycrypto.create_signature(private_rsa, data)
+    signature, method = pycrypto.create_rsa_signature(private_rsa, data)
 
     # Verify format of returned values.
     self.assertNotEqual(None, signature)
@@ -67,44 +67,44 @@ class TestPycrypto_keys(unittest.TestCase):
 
     # Check for improperly formatted argument.
     self.assertRaises(tuf.FormatError,
-                      pycrypto.create_signature, 123, data)
+                      pycrypto.create_rsa_signature, 123, data)
    
     # Check for invalid 'data'.
     self.assertRaises(tuf.CryptoError,
-                      pycrypto.create_signature, private_rsa, 123)
+                      pycrypto.create_rsa_signature, private_rsa, 123)
 
 
-  def test_verify_signature(self):
+  def test_verify_rsa_signature(self):
     global public_rsa
     global private_rsa
     data = 'The quick brown fox jumps over the lazy dog'
-    signature, method = pycrypto.create_signature(private_rsa, data)
+    signature, method = pycrypto.create_rsa_signature(private_rsa, data)
 
-    valid_signature = pycrypto.verify_signature(signature, method, public_rsa,
+    valid_signature = pycrypto.verify_rsa_signature(signature, method, public_rsa,
                                                 data)
     self.assertEqual(True, valid_signature)
 
     # Check for improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, pycrypto.verify_signature, signature,
+    self.assertRaises(tuf.FormatError, pycrypto.verify_rsa_signature, signature,
                                        123, public_rsa, data)
     
-    self.assertRaises(tuf.FormatError, pycrypto.verify_signature, signature,
+    self.assertRaises(tuf.FormatError, pycrypto.verify_rsa_signature, signature,
                                        method, 123, data)
     
-    # Check for invalid signature and data.
-    self.assertRaises(tuf.CryptoError, pycrypto.verify_signature, 123, method,
+    self.assertRaises(tuf.FormatError, pycrypto.verify_rsa_signature, 123, method,
                                        public_rsa, data)
     
-    self.assertRaises(tuf.CryptoError, pycrypto.verify_signature, signature,
+    # Check for invalid signature and data.
+    self.assertRaises(tuf.CryptoError, pycrypto.verify_rsa_signature, signature,
                                        method, public_rsa, 123)
     
-    self.assertEqual(False, pycrypto.verify_signature(signature, method,
+    self.assertEqual(False, pycrypto.verify_rsa_signature(signature, method,
                             public_rsa, 'mismatched data'))
 
-    mismatched_signature, method = pycrypto.create_signature(private_rsa,
+    mismatched_signature, method = pycrypto.create_rsa_signature(private_rsa,
                                                              'mismatched data')
     
-    self.assertEqual(False, pycrypto.verify_signature(mismatched_signature,
+    self.assertEqual(False, pycrypto.verify_rsa_signature(mismatched_signature,
                             method, public_rsa, data))
 
 
