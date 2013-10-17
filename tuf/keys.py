@@ -558,7 +558,7 @@ def create_signature(key_dict, data):
  
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
-      sig, method = tuf.pycrypto_keys.create_signature(private, data)
+      sig, method = tuf.pycrypto_keys.create_rsa_signature(private, data)
     else:
       message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": '+\
         repr(_RSA_CRYPTO_LIBRARY)+'.'
@@ -672,8 +672,8 @@ def verify_signature(key_dict, signature, data):
   
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
-      valid_signature = tuf.pycrypto_keys.verify_signature(sig, method,
-                                                           public, data) 
+      valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
+                                                               public, data) 
     else:
       message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": '+\
         repr(_RSA_CRYPTO_LIBRARY)+'.'
