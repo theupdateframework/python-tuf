@@ -136,6 +136,9 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 # The minimum number of bits for an RSA key.  Must be 2048 bits and greater.
 RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
 
+# A PyCrypto signature.
+PYCRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyString()
+
 # An RSA key in PEM format.
 PEMRSA_SCHEMA = SCHEMA.AnyString()
 

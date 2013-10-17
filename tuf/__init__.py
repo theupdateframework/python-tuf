@@ -18,7 +18,6 @@
   The names chosen for TUF Exception classes should end in
   'Error' except where there is a good reason not to, and
   provide that reason in those cases.
-
 """
 
 import urlparse
