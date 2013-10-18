@@ -3,22 +3,17 @@
   test_keys.py
 
 <Author> 
-  Konstantin Andrianov
+  Vladimir Diaz
 
 <Started>
-  April 24, 2012. 
+  October 10, 2013. 
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
   Test cases for test_keys.py.
-
-<Notes> 
-  I'm using 'global rsakey_dict' - there is no harm in doing so since 
-  in order to modify the global variable in any method, python requires
-  explicit indication to modify i.e. declaring 'global' in each method 
-  that modifies the global variable 'rsakey_dict'. 
+  TODO: test case for ed25519 key generation and refactor.
 """
 
 import unittest
@@ -49,7 +44,7 @@ class TestKeys(unittest.TestCase):
     rsakey_dict['keyval']['public']=temp_key_vals[0]
     rsakey_dict['keyval']['private']=temp_key_vals[1]
 
- 
+
   def test_generate_rsa_key(self):
     _rsakey_dict = KEYS.generate_rsa_key()
 
@@ -69,7 +64,8 @@ class TestKeys(unittest.TestCase):
     # does not raise any errors and returns a valid key.
     self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(2048)))
     self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(4096)))
-    
+
+
   def test_format_keyval_to_metadata(self):
     keyvalue = rsakey_dict['keyval']
     keytype = rsakey_dict['keytype']
@@ -94,7 +90,6 @@ class TestKeys(unittest.TestCase):
     del keyvalue['public']
     self.assertRaises(tuf.FormatError, KEYS.format_keyval_to_metadata,
                       keytype, keyvalue)
-
 
 
   def test_format_metadata_to_key(self):
