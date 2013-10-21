@@ -171,7 +171,7 @@ def _get_password(prompt='Password: ', confirm=False):
     if password == password2:
       return password
     else:
-      print 'Mismatch; try again.'
+      print('Mismatch; try again.')
 
 
 
@@ -276,7 +276,7 @@ def build_keystore():
         break
       except ValueError, e:
 				message = 'Invalid role threshold entered'
-				print message
+				print(message)
 				logger.warning(message)
 				role_threshold[role] = None
 				continue
@@ -433,7 +433,7 @@ def build_repository(project_directory, timeout, role_config):
     # parse the role_passwords dictionary and its acompanying list to produce
     # the keystore 
     keyBuildingMessage = "building keys for: " + repr(role) + "..."
-    print keyBuildingMessage
+    print(keyBuildingMessage)
     logger.info(keyBuildingMessage)
     for threshold in range(role_threshold[role]):
       key = tuf.repo.signerlib.generate_and_save_rsa_key(keystore_directory, \
@@ -576,5 +576,5 @@ if __name__ == '__main__':
     sys.stderr.write(str(e)+'\n')
     sys.exit(1)
 
-  print '\nSuccessfully created the repository.'
+  print('\nSuccessfully created the repository.')
 	sys.exit(0)
