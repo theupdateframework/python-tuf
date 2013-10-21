@@ -190,6 +190,13 @@ def collect_date():
   <Returns>
 		a time difference (int)
 
+	<Exceptions>
+		Repository Error is raised when the maximum number of attempts has been 
+		reached
+
+	<Side Effects>
+		None.
+	
   """
 
 
@@ -236,8 +243,16 @@ def build_keystore():
 		None
 	
 	<Returns>
-		Return a dictionary containing passwords and a list thresholds for every role
+		Return a dictionary containing passwords and a list thresholds for every
+		role
 		WARNING: passwords are kept in plaintext during this function. 
+
+	<Exceptions>
+		Repository Exeption can be raised if the user failed to input correct 
+		values
+
+	<Side Effects>
+		None
   """
 
   #redefined this constant locally, for debugging purposes
@@ -551,4 +566,4 @@ if __name__ == '__main__':
     sys.exit(1)
 
   print '\nSuccessfully created the repository.'
-  sys.exit(0)
+	sys.exit(0)
