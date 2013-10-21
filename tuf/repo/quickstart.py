@@ -333,6 +333,10 @@ def build_repository(project_directory, timeout, role_config):
     None.
 
   """
+  # This predefined list contains the available roles for tuf, upon modificaton
+  #	of the standard, this list should be updated
+  roles = ['root', 'targets', 'release', 'timestamp']
+
 
   # Do the arguments have the correct format?
   # Raise 'tuf.RepositoryError' if there is a mismatch.
@@ -351,9 +355,34 @@ def build_repository(project_directory, timeout, role_config):
     raise tuf.RepositoryError(message)
   
 
-  #populate the role configuration dictionaries
+
+
+  # Doing some sanity checks on the role_config tuple, in order to avoid
+  # unexpected input:
+  #		role_config[0] should contain a list of length role_config[1][x] with
+  #			passwords
+  #		role_config[1] will contain a threshold for each role.
+
+  # We are expecting a 2-element tuple 
+  if len(role_config) != 2: 
+    raise tuf.RepositoryError("Role_configuration must be initialized as " + \
+                              "a tuple with passwords and thresholds")
+
   role_passwords = role_config[0]
   role_threshold = role_config[1]
+	
+  # Check if there is enough elements per role configuration
+  if len(role_passwords) != len(roles):
+    raise tuf.RepositoryError("Role_passwords should contain at least" + \
+                              " one password per role")
+
+  # Type checking and length consistency checks for passwords vs thresholds
+  for role in roles: 
+    if type(role_threshold[role]) is not int:
+      raise tuf.RepositoryError("A threshold value is not an int")
+    if len(role_passwords[role]) != role_threshold[role]:
+      raise tuf.RepositoryError("thresholds and passwords mismatch for: " + \
+                                role)
 
 
   # Build the repository directories.
@@ -577,4 +606,4 @@ if __name__ == '__main__':
     sys.exit(1)
 
   print('\nSuccessfully created the repository.')
-	sys.exit(0)
+  sys.exit(0)
