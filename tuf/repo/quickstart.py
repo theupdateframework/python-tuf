@@ -149,15 +149,15 @@ def _get_password(prompt='Password: ', confirm=False):
 		<Purpose>
 			Prompt the user for a password
 	
-		<Parameters>
+		<Arguments>
 			Prompt is the message sent to the user. 
 
 			If confirm is True, the user is asked to enter the previously
     	entered password once again.  If they match, the
     	password is returned to the caller.
+
 		<Return>
-		
-		the password entered by the user.
+			the password entered by the user.
 
   """
 
@@ -200,8 +200,8 @@ def collect_date():
 	
   """
 
-
-  #this const holds the maximum number of attempts for the date input
+	# Declaring a locally-scoped constant to hold the maximum number of
+	# inputs by the user
   MAX_INPUT_ATTEMPTS=3
 
   # Handle the expiration time.  The expiration date determines when
