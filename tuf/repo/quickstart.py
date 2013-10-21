@@ -129,6 +129,8 @@ TIMESTAMP_EXPIRATION = 86400
 MAX_INPUT_ATTEMPTS = 3
 
 
+
+
 def _prompt(message, result_type=str):
   """
     Prompt the user for input by printing 'message', converting
@@ -138,7 +140,6 @@ def _prompt(message, result_type=str):
   """
 
   return result_type(raw_input(message))
-
 
 
 
@@ -297,6 +298,10 @@ def build_keystore():
 
   #return the resulting tuple
   return role_passwords, role_threshold
+
+
+
+
 
 def build_repository(project_directory, timeout, role_config):
   """
@@ -498,7 +503,6 @@ def build_repository(project_directory, timeout, role_config):
 
 
 
-
 def parse_options():
   """
   <Purpose>
@@ -553,6 +557,7 @@ def parse_options():
   # Return the directory containing the project files.  These files
   # are copied over to the targets directory of the repository.
   return options.PROJECT_DIRECTORY 
+
 
 
 
