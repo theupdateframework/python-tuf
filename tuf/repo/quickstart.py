@@ -311,6 +311,12 @@ def build_repository(project_directory, timeout, role_config):
       The directory containing the target files to be copied over to the
       targets directory of the repository.
 
+		timeout:
+			A time difference for the metadata to expire
+
+		role_config:
+			A tuple containing key paswords and thresholds for each role
+
   <Exceptions>
     tuf.RepositoryError, if there was an error building the repository.
 
@@ -419,7 +425,7 @@ def build_repository(project_directory, timeout, role_config):
   # Build the keystore and save the generated keys.
   role_info = {}
   for role in ['root', 'targets', 'release', 'timestamp']:
-    # ST: parse the role_passwords dictionary and its acompanying list to produce
+    # parse the role_passwords dictionary and its acompanying list to produce
     # the keystore 
     keyBuildingMessage = "building keys for: " + repr(role) + "..."
     print keyBuildingMessage
