@@ -1,6 +1,6 @@
 """
 <Program Name>
-  libtuftools.py
+  libtuf.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
@@ -14,13 +14,23 @@
 <Purpose>
 """
 
-import getpass
+import os
+import errno
 import sys
+import time
+import getpass
+import logging
 
 import tuf
 import tuf.formats
+import tuf.keydb
+import tuf.roledb
 import tuf.keys
+import tuf.log
 
+
+# See 'log.py' to learn how logging is handled in TUF.
+logger = logging.getLogger('tuf.libtuf')
 
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1 
@@ -29,16 +39,23 @@ import tuf.keys
 # are the recommended minimum and are good from the present through 2030.
 DEFAULT_RSA_KEY_BITS = 3072
 
-# The metadata filenames for the top-level roles.
-ROOT_FILENAME = 'root.json'
-TARGETS_FILENAME = 'targets.json'
-RELEASE_FILENAME = 'release.json'
-TIMESTAMP_FILENAME = 'timestamp.json'
+# The metadata filenames of the top-level roles.
+ROOT_FILENAME = 'root.txt'
+TARGETS_FILENAME = 'targets.txt'
+RELEASE_FILENAME = 'release.txt'
+TIMESTAMP_FILENAME = 'timestamp.txt'
 
-# Expiration date, in seconds, of the top-level roles (excluding 'Root').
-# The expiration time of the 'Root' role is set by the user.  A metadata
+# The targets and metadata directory names.
+METADATA_DIRECTORY_NAME = 'metadata'
+TARGETS_DIRECTORY_NAME = 'targets' 
+
+# Expiration date delta, in seconds, of the top-level roles.  A metadata
 # expiration date is set by taking the current time and adding the expiration
 # seconds listed below.
+
+# Initial 'root.txt' expiration time of 1 year. 
+ROOT_EXPIRATION = 31556900
+
 # Initial 'targets.txt' expiration time of 3 months. 
 TARGETS_EXPIRATION = 7889230 
 
@@ -63,18 +80,24 @@ class Repository:
     Repository object.
   """
  
-  def __init__(self):
-    self.root
-    self.release
-    self.timestamp
-    self.targets
+  def __init__(self, repository_directory, metadata_directory, targets_directory):
+    
+    self.repository_directory = repository_directory
+    self.metadata_directory = metadata_directory
+    self.targets_directory = targets_directory
+   
+    # Set the top-level role objects.
+    self.root = Root() 
+    self.release = Release()
+    self.timestamp = Timestamp()
+    self.targets = Targets()
   
   
   
   def write(self):
     """
     <Purpose>
-      Write all the Metadata objects' JSON contents to the corresponding files. 
+      Write all the JSON Metadata objects to their corresponding files.  
     
     <Arguments>
 
@@ -84,12 +107,119 @@ class Repository:
 
     <Returns>
     """
+    
+    # At this point the keystore is built and the 'role_info' dictionary
+    # looks something like this:
+    # {'keyids : [keyid1, keyid2] , 'threshold' : 2}
+    filenames = get_metadata_filenames(self.metadata_directory)
+
+    # Generate the 'root.txt' metadata file. 
+    # Newly created metadata start at version 1.  The expiration date for the
+    # 'Root' role is extracted from the configuration file that was set, above,
+    # by the user.
+    root_keyids = tuf.roledb.get_role_keyids(self.root.rolename)
+    root_version = self.root.version
+    root_expiration = self.root.expiration 
+    if root_expiration is None: 
+      root_expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION) 
+    root_metadata = generate_root_metadata(root_version, root_expiration)
+    root_filename = filenames[ROOT_FILENAME] 
+    write_metadata_file(root_metadata, root_filename, compression=None)
+
+    # Generate the 'targets.txt' metadata file.
+    targets_keyids = tuf.roledb.get_role_keyids(self.targets.rolename)
+    targets_version = self.targets.version
+    targets_expiration = self.targets.expiration
+    targets_files = self.targets.target_files
+    if targets_expiration is None: 
+      targets_expiration = \
+        tuf.formats.format_time(time.time()+TARGETS_EXPIRATION) 
+    targets_metadata = generate_targets_metadata(self.repository_directory,
+                                                 targets_files, targets.version,
+                                                 targets_expiration)
+    targets_filename = filenames[TARGETS_FILENAME] 
+    write_metadata_file(targets_metadata, targets_filename, compression=None)
+
+    # Generate the 'release.txt' metadata file.
+    release_keyids = tuf.roledb.get_role_keyids(self.release.rolename)
+    release_version = self.release.version
+    release_expiration = self.release.expiration
+    release_files = self.release.target_files
+    if release_expiration is None: 
+      release_expiration = \
+        tuf.formats.format_time(time.time()+RELEASE_EXPIRATION) 
+    release_metadata = generate_release_metadata(self.metadata_directory,
+                                                release_version,
+                                                release_expiration)
+    release_filename = filenames[RELEASE_FILENAME] 
+    write_metadata_file(release_metadata, release_filename, compression=None)
+    
+    # Generate the 'timestamp.txt' metadata file.
+    timestamp_keyids = tuf.roledb.get_role_keyids(self.timestamp.rolename)
+    timestamp_version = self.timestamp.version
+    timestamp_expiration = self.timestamp.expiration
+    timestamp_files = self.timestamp.target_files
+    if timestamp_expiration is None: 
+      timestamp_expiration = \
+        tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION) 
+    timestamp_metadata = generate_timestamp_metadata(release_filename,
+                                                     timestamp_version,
+                                                     timestamp_expiration,
+                                                     compressions=())
+    release_filename = filenames[RELEASE_FILENAME] 
+    write_metadata_file(release_metadata, release_filename, compression=None)
+    
+    
+    
+  def get_filepaths_in_directory(files_directory, recursive_walk=False,
+                                 followlinks=True):
+    """
+    <Purpose>
+      Walk the given files_directory to build a list of target files in it.
+
+    <Arguments>
+      files_directory:
+        The path to a directory of target files.
+
+      recursive_walk:
+        To recursively walk the directory, set recursive_walk=True.
+
+      followlinks:
+        To follow symbolic links, set followlinks=True.
+
+    <Exceptions>
+      Python IO exceptions.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      A list of absolute paths to target files in the given files_directory.
+    """
+
+    targets = []
+
+    # FIXME: We need a way to tell Python 2, but not Python 3, to return
+    # filenames in Unicode; see #61 and:
+    # http://docs.python.org/2/howto/unicode.html#unicode-filenames
+    for dirpath, dirnames, filenames in os.walk(files_directory,
+                                                followlinks=followlinks):
+      for filename in filenames:
+        full_target_path = os.path.join(dirpath, filename)
+        targets.append(full_target_path)
+
+      # Prune the subdirectories to walk right now if we do not wish to
+      # recursively walk files_directory.
+      if recursive_walk is False:
+        del dirnames[:]
+
+    return targets
 
 
 
 
 
-class Metadata:
+class Metadata(object):
   """
   <Purpose>
     Write all the Metadata objects' JSON contents to the corresponding files. 
@@ -104,19 +234,82 @@ class Metadata:
   """
 
   def __init__(self):
+    self.rolename = None    
+    self.version = 1
+    self.threshold = 1
+    self.keys = [] 
+    self.signing_keys = [] 
+    self.expiration = None 
+  
+  
+  
+  def add_key(self, key):
+    """
+    <Purpose>
+
+      >>> 
+      >>> 
+      >>> 
+
+    <Arguments>
+      key:
+        tuf.formats.ANYKEY_SCHEMA
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+      None.
+    """
     
-    # This gets modified when methods are called and attributes changed.
-    self._JSON_contents
+    tuf.formats.ANYKEY_SCHEMA.check_match(key)
 
-    # Reference to Repository object.
-    self._repository
+    try:
+      tuf.keydb.add_key(key)
+    except tuf.KeyAlreadyExistsError, e:
+      pass
+   
+    keyid = key['keyid']
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    roleinfo['keyids'].append(keyid)
 
-    self.expiration
-
+    tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+    self.keys.append(keyid) 
   
   
   
-  def refresh(self, object):
+  def set_threshold(self, threshold):
+    """
+    <Purpose>
+
+      >>> 
+      >>> 
+      >>> 
+
+    <Arguments>
+      threshold:
+        tuf.formats.THRESHOLD_SCHEMA
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+      None.
+    """
+    
+    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
+    
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    roleinfo['threshold'] = threshold
+    
+    tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+    self.threshold = threshold
+ 
+
+  
+  def write_partial(self, object):
     """
     <Purpose>
 
@@ -158,16 +351,15 @@ class Root(Metadata):
 
   def __init__(self):
     
-    self.root_keys
-    self.root_threshold
-    self.timestamp_keys
-    self.release_keys
-    self.targets_keys
-    self.default_expiration
- 
+    super(Root, self).__init__() 
+    
+    self.rolename = 'root'
+    
+    roleinfo = {'keyids': self.keys, 'threshold': self.threshold}
+    tuf.roledb.add_role(self.rolename, roleinfo)
 
 
-  def write(self):
+  def write_partial(self):
     pass
 
 
@@ -192,10 +384,17 @@ class Timestamp(Metadata):
   """
 
   def __init__(self):
-    pass
+    
+    super(Timestamp, self).__init__() 
+    
+    self.rolename = 'timestamp' 
+    
+    roleinfo = {'keyids': self.keys, 'threshold': self.threshold}
+    tuf.roledb.add_role(self.rolename, roleinfo)
 
 
-  def refresh(self):
+
+  def write_partial(self):
     pass
 
 
@@ -220,10 +419,17 @@ class Release(Metadata):
   """
 
   def __init__(self):
-    pass
+    
+    super(Release, self).__init__() 
+    
+    self.rolename = 'release' 
+    
+    roleinfo = {'keyids': self.keys, 'threshold': self.threshold}
+    tuf.roledb.add_role(self.rolename, roleinfo)
 
 
-  def refresh(self):
+
+  def write_partial(self):
     pass
 
 
@@ -249,12 +455,18 @@ class Targets(Metadata):
   
   def __init__(self):
     
-    self.target_list
-    self.delegation_list
+    super(Targets, self).__init__() 
+    self.rolename = 'targets' 
+    self.target_files = []
+    self.delegations = {}
+
+    roleinfo = {'keyids': self.keys, 'threshold': self.threshold}
+    tuf.roledb.add_role(self.rolename, roleinfo)
 
 
 
-  def refresh(self):
+
+  def write_partial(self):
     pass
 
 
@@ -389,7 +601,47 @@ def _get_password(prompt='Password: ', confirm=False):
       return password
     else:
       print 'Mismatch; try again.'
+
+
+
+
+
+def _check_directory(directory):
+  """
+  <Purpose>
+    Ensure 'directory' is valid and it exists.  This is not a security check,
+    but a way for the caller to determine the cause of an invalid directory
+    provided by the user.  If the directory argument is valid, it is returned
+    normalized and as an absolute path.
+
+  <Arguments>
+    directory:
+      The directory to check.
+
+  <Exceptions>
+    tuf.Error, if 'directory' could not be validated.
+
+    tuf.FormatError, if 'directory' is not properly formatted.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    The normalized absolutized path of 'directory'.
+  """
+
+  # Does 'directory' have the correct format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.PATH_SCHEMA.check_match(directory)
+
+  # Check if the directory exists.
+  if not os.path.isdir(directory):
+    raise tuf.Error(repr(directory)+' directory does not exist')
+
+  directory = os.path.abspath(directory)
   
+  return directory
+
 
 
 
@@ -398,7 +650,7 @@ def create_new_repository(repository_directory):
   """
   <Purpose>
     Create a new repository with barebones metadata and return a Repository
-    object representing it.
+    object.
 
   <Arguments>
     repository_directory:
@@ -408,58 +660,33 @@ def create_new_repository(repository_directory):
   <Side Effects>
 
   <Returns>
-    libtuftools.Repository object.
+    libtuf.Repository object.
   """
-  
-  # Build the repository directories.
+ 
+  tuf.formats
+  # Create the repository, metadata, and target directories.
+  repository_directory = os.path.abspath(repository_directory)
   metadata_directory = None
   targets_directory = None
-
-  # Save the repository directory to the current directory, with
-  # an initial name of 'repository'.  The repository maintainer
-  # may opt to rename this directory and should transfer it elsewhere,
-  # such as the webserver that will respond to TUF requests.
-  repository_directory = os.path.join(os.getcwd(), 'repository')
   
-  # Copy the files from the project directory to the repository's targets
-  # directory.  The targets directory will hold all the individual
-  # target files.
-  targets_directory = os.path.join(repository_directory, 'targets')
-  temporary_directory = tempfile.mkdtemp()
-  temporary_targets = os.path.join(temporary_directory, 'targets')
-  shutil.copytree(project_directory, temporary_targets)
-  
-  # Remove the log file created by the tuf logger, if it exists.
-  # It might exist if the current directory was specified as the
-  # project directory on the command-line.
-  log_filename = tuf.log._DEFAULT_LOG_FILENAME
-  if log_filename in os.listdir(temporary_targets):
-    log_file = os.path.join(temporary_targets, log_filename)
-    os.remove(log_file)
-
-  # Try to create the repository directory.
+  # Try to create 'repository_directory' if it does not exist.
   try:
-    os.mkdir(repository_directory)
-  # 'OSError' raised if the directory cannot be created.
+    os.makedirs(repository_directory)
+  # 'OSError' raised if the leaf directory already exists or cannot be created.
   except OSError, e:
-    message = 'Trying to create a new repository over an old repository '+\
-      'installation.  Remove '+repr(repository_directory)+' before '+\
-      'trying again.'
     if e.errno == errno.EEXIST:
-      raise tuf.RepositoryError(message)
+      pass 
     else:
       raise
-
-  # Move the temporary targets directory into place now that repository
-  # directory has been created and remove previously created temporary
-  # directory.
-  shutil.move(temporary_targets, targets_directory)
-  os.rmdir(temporary_directory)
+  #  
+  metadata_directory = \
+    os.path.join(repository_directory, METADATA_DIRECTORY_NAME)
+  targets_directory = \
+    os.path.join(repository_directory, TARGETS_DIRECTORY_NAME) 
   
-  # Try to create the metadata directory that will hold all of the
-  # metadata files, such as 'root.txt' and 'release.txt'.
+  # Try to create the metadata directory that will hold all of the metadata
+  # files, such as 'root.txt' and 'release.txt'.
   try:
-    metadata_directory = os.path.join(repository_directory, 'metadata')
     message = 'Creating '+repr(metadata_directory)
     logger.info(message)
     os.mkdir(metadata_directory)
@@ -468,43 +695,26 @@ def create_new_repository(repository_directory):
       pass
     else:
       raise
-
-  # At this point the keystore is built and the 'role_info' dictionary
-  # looks something like this:
-  # {'keyids : [keyid1, keyid2] , 'threshold' : 2}
-
-  # Generate the 'root.txt' metadata file. 
-  # Newly created metadata start at version 1.  The expiration date for the
-  # 'Root' role is extracted from the configuration file that was set, above,
-  # by the user.
-  root_keyids = role_info['root']['keyids']
-  tuf.repo.signerlib.build_root_file(config_filepath, root_keyids,
-                                     metadata_directory, 1)
-
-  # Generate the 'targets.txt' metadata file.
-  targets_keyids = role_info['targets']['keyids']
-  expiration_date = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
-  tuf.repo.signerlib.build_targets_file([targets_directory], targets_keyids,
-                                        metadata_directory, 1,
-                                        expiration_date)
-
-  # Generate the 'release.txt' metadata file.
-  release_keyids = role_info['release']['keyids']
-  expiration_date = tuf.formats.format_time(time.time()+RELEASE_EXPIRATION)
-  tuf.repo.signerlib.build_release_file(release_keyids, metadata_directory,
-                                        1, expiration_date)
-
-  # Generate the 'timestamp.txt' metadata file.
-  timestamp_keyids = role_info['timestamp']['keyids']
-  expiration_date = tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION)
-  tuf.repo.signerlib.build_timestamp_file(timestamp_keyids, metadata_directory,
-                                          1, expiration_date)
+  
+  # Try to create the targets directory that will hold all of the target files.
+  try:
+    message = 'Creating '+repr(targets_directory)
+    logger.info(message)
+    os.mkdir(targets_directory)
+  except OSError, e:
+    if e.errno == errno.EEXIST:
+      pass
+    else:
+      raise
+  
+  repository = Repository(repository_directory, metadata_directory,
+                          targets_directory)
+  
+  return repository
 
 
 
-
-
-def open_repository(filepath):
+def load_repository(filepath):
   """
   <Purpose>
     Return a repository object that represents an existing repository.
@@ -644,11 +854,42 @@ def import_rsa_publickey_from_file(filepath):
   with open(filepath, 'rb') as file_object:
     rsa_pubkey_pem = file_object.read()
 
-  tuf.formats.PEMRSA_SCHEMA.check_match(rsa_pubkey_pem)
+  rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
 
-  rsa_key = tuf.keys.import_rsakey_from_encrypted_pem(encrypted_pem, password)
+  return rsakey_dict
+
+
+
+
+
+def expiration_date_utc(input_date_utc):
+  """
+  <Purpose>
+
+  <Arguments>
+    input_date_utc:
+
+  <Exceptions>
+    tuf.FormatError, if 'input_date_utc' is invalid. 
+
+  <Side Effects>
+    None.
+
+  <Returns>
+  """
   
-  return rsa_key
+  tuf.formats.TIME_SCHEMA.check_match(input_date_utc)
+ 
+  try:
+    unix_timestamp = tuf.formats.parse_time(input_date_utc+' UTC')
+  except (tuf.FormatError, ValueError), e:
+    raise tuf.FormatError('Invalid date entered.')
+  
+  if unix_timestamp < time.time():
+    message = 'The expiration date must occur after the current date.'
+    raise tuf.FormatError(message)
+  
+  return input_date_utc
 
 
 
@@ -660,10 +901,10 @@ def get_metadata_filenames(metadata_directory=None):
     If 'metadata_directory' is set to 'metadata', the dictionary
     returned would contain:
 
-    filenames = {'root': 'metadata/root.json',
-                 'targets': 'metadata/targets.json',
-                 'release': 'metadata/release.json',
-                 'timestamp': 'metadata/timestamp.json'}
+    filenames = {'root': 'metadata/root.txt',
+                 'targets': 'metadata/targets.txt',
+                 'release': 'metadata/release.txt',
+                 'timestamp': 'metadata/timestamp.txt'}
 
     If the metadata directory is not set by the caller, the current
     directory is used.
@@ -680,7 +921,7 @@ def get_metadata_filenames(metadata_directory=None):
 
   <Returns>
     A dictionary containing the expected filenames of the top-level
-    metadata files, such as 'root.json' and 'release.json'.
+    metadata files, such as 'root.txt' and 'release.txt'.
   """
 
   if metadata_directory is None:
@@ -691,10 +932,10 @@ def get_metadata_filenames(metadata_directory=None):
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
 
   filenames = {}
-  filenames['root'] = os.path.join(metadata_directory, ROOT_FILENAME)
-  filenames['targets'] = os.path.join(metadata_directory, TARGETS_FILENAME)
-  filenames['release'] = os.path.join(metadata_directory, RELEASE_FILENAME)
-  filenames['timestamp'] = os.path.join(metadata_directory, TIMESTAMP_FILENAME)
+  filenames[ROOT_FILENAME] = os.path.join(metadata_directory, ROOT_FILENAME)
+  filenames[TARGETS_FILENAME] = os.path.join(metadata_directory, TARGETS_FILENAME)
+  filenames[RELEASE_FILENAME] = os.path.join(metadata_directory, RELEASE_FILENAME)
+  filenames[TIMESTAMP_FILENAME] = os.path.join(metadata_directory, TIMESTAMP_FILENAME)
 
   return filenames
 
@@ -754,22 +995,20 @@ def get_metadata_file_info(filename):
 
 
 
-def generate_root_metadata(config_filepath, version):
+def generate_root_metadata(version, expiration_date):
   """
   <Purpose>
-    Create the root metadata.  'config_filepath' is read
-    and the information contained in this file will be
-    used to generate the root metadata object.
+    Create the root metadata.  'tuf.roledb' and 'tuf.roledb' are read and the
+    information returned by these modules are used to generate the root metadata
+    object.
 
   <Arguments>
-    config_filepath:
-      The file containing metadata information such as the keyids
-      of the top-level roles and expiration data.  'config_filepath'
-      is an absolute path.
-    
     version:
       The metadata version number.  Clients use the version number to
-      determine if the downloaded version is newer than the one currently trusted.
+      determine if the downloaded version is newer than the one currently
+      trusted.
+    
+    expiration_date:
 
   <Exceptions>
     tuf.FormatError, if the generated root metadata object could not
@@ -779,19 +1018,16 @@ def generate_root_metadata(config_filepath, version):
     metadata object.
   
   <Side Effects>
-    'config_filepath' is read and its contents stored.
+    The contents of 'tuf.keydb' and 'tuf.roledb' are read.
 
   <Returns>
     A root 'signable' object conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
   """
 
-  # Does 'config_filepath' have the correct format?
-  # Raise 'tuf.FormatError' if the match fails.
-  tuf.formats.PATH_SCHEMA.check_match(config_filepath)
+  # Do the arguments have the correct format?
+  # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-
-  # 'tuf.Error' raised if 'config_filepath' cannot be read. 
-  config = read_config_file(config_filepath)
+  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
   # The role and key dictionaries to be saved in the root metadata object.
   roledict = {}
@@ -800,13 +1036,15 @@ def generate_root_metadata(config_filepath, version):
   # Extract the role, threshold, and keyid information from the config.
   # The necessary role metadata is generated from this information.
   for rolename in ['root', 'targets', 'release', 'timestamp']:
-    # If a top-level role is missing from the config, raise an exception.
-    if rolename not in config:
-      raise tuf.Error('No '+rolename+' section found in config file.')
+    
+    # If a top-level role is missing from 'tuf.roledb', raise an exception.
+    if not tuf.roledb.role_exists(rolename):
+      raise tuf.Error(repr(rolename)+' not in "tuf.roledb".')
+    
     keyids = []
     # Generate keys for the keyids listed by the role being processed.
-    for config_keyid in config[rolename]['keyids']:
-      key = tuf.repo.keystore.get_key(config_keyid)
+    for keyid in tuf.roledb.get_role_keyids(rolename):
+      key = tuf.keydb.get_key(keyid)
 
       # If 'key' is an RSA key, it would conform to 'tuf.formats.RSAKEY_SCHEMA',
       # and have the form:
@@ -815,33 +1053,33 @@ def generate_root_metadata(config_filepath, version):
       #  'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
       #             'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
       keyid = key['keyid']
-      # This appears to be a new keyid.  Let's generate the key for it.
       if keyid not in keydict:
+        
+        # This appears to be a new keyid.  Let's generate the key for it.
         if key['keytype'] in ['rsa', 'ed25519']:
           keytype = key['keytype']
           keyval = key['keyval']
-          keydict[keyid] = tuf.keys.create_in_metadata_format(keytype, keyval)
+          keydict[keyid] = \
+            tuf.keys.format_keyval_to_metadata(keytype, keyval)
+        
         # This is not a recognized key.  Raise an exception.
         else:
           raise tuf.Error('Unsupported keytype: '+keyid)
-      # Do we have a duplicate?  Raise an exception if so.
+      
+      # Do we have a duplicate?
       if keyid in keyids:
         raise tuf.Error('Same keyid listed twice: '+keyid)
+      
       # Add the loaded keyid for the role being processed.
       keyids.append(keyid)
+    
     # Generate and store the role data belonging to the processed role.
-    role_metadata = tuf.formats.make_role_metadata(keyids, config[rolename]['threshold'])
+    role_threshold = tuf.roledb.get_role_threshold(rolename)
+    role_metadata = tuf.formats.make_role_metadata(keyids, role_threshold)
     roledict[rolename] = role_metadata
 
-  # Extract the expiration information from the config.  The root metadata
-  # object stores this expiration information in total seconds.
-  expiration = config['expiration']
-  expiration_seconds = (expiration['seconds'] + 60 * expiration['minutes'] +
-                        3600 * expiration['hours'] +
-                        3600 * 24 * expiration['days'])
-
   # Generate the root metadata object.
-  root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_seconds,
+  root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_date,
                                                      keydict, roledict)
 
   # Note: make_signable() returns the following dictionary:
@@ -876,7 +1114,8 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
     version:
       The metadata version number.  Clients use the version number to
-      determine if the downloaded version is newer than the one currently trusted.
+      determine if the downloaded version is newer than the one currently
+      trusted.
 
     expiration_date:
       The expiration date, in UTC, of the metadata file.
@@ -904,7 +1143,7 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
   filedict = {}
 
-  repository_directory = check_directory(repository_directory)
+  repository_directory = _check_directory(repository_directory)
 
   # Generate the file info for all the target files listed in 'target_files'.
   for target in target_files:
@@ -944,7 +1183,8 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
     
     version:
       The metadata version number.  Clients use the version number to
-      determine if the downloaded version is newer than the one currently trusted.
+      determine if the downloaded version is newer than the one currently
+      trusted.
 
     expiration_date:
       The expiration date, in UTC, of the metadata file.
@@ -969,17 +1209,17 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
-  metadata_directory = check_directory(metadata_directory)
+  metadata_directory = _check_directory(metadata_directory)
 
   # Retrieve the full filepath of the root and targets metadata file.
-  root_filename = os.path.join(metadata_directory, 'root.txt')
-  targets_filename = os.path.join(metadata_directory, 'targets.txt')
+  root_filename = os.path.join(metadata_directory, ROOT_FILENAME)
+  targets_filename = os.path.join(metadata_directory, TARGETS_FILENAME)
 
   # Retrieve the file info of 'root.txt' and 'targets.txt'.  This file
   # information includes data such as file length, hashes of the file, etc.
   filedict = {}
-  filedict['root.txt'] = get_metadata_file_info(root_filename)
-  filedict['targets.txt'] = get_metadata_file_info(targets_filename)
+  filedict[ROOT_FILENAME] = get_metadata_file_info(root_filename)
+  filedict[TARGETS_FILENAME] = get_metadata_file_info(targets_filename)
 
   # Walk the 'targets/' directory and generate the file info for all
   # the files listed there.  This information is stored in the 'meta'
@@ -1016,7 +1256,8 @@ def generate_timestamp_metadata(release_filename, version,
     
     version:
       The metadata version number.  Clients use the version number to
-      determine if the downloaded version is newer than the one currently trusted.
+      determine if the downloaded version is newer than the one currently
+      trusted.
 
     expiration_date:
       The expiration date, in UTC, of the metadata file.
@@ -1048,7 +1289,7 @@ def generate_timestamp_metadata(release_filename, version,
   # Retrieve the file info for the release metadata file.
   # This file information contains hashes, file length, custom data, etc.
   fileinfo = {}
-  fileinfo['release.txt'] = get_metadata_file_info(release_filename)
+  fileinfo[RELEASE_FILENAME] = get_metadata_file_info(release_filename)
 
   # Save the file info of the compressed versions of 'timestamp.txt'.
   for file_extension in compressions:
@@ -1059,7 +1300,7 @@ def generate_timestamp_metadata(release_filename, version,
       logger.warn('Could not get fileinfo about '+str(compressed_filename))
     else:
       logger.info('Including fileinfo about '+str(compressed_filename))
-      fileinfo['release.txt.' + file_extension] = compressed_fileinfo
+      fileinfo[RELEASE_FILENAME+'.' + file_extension] = compressed_fileinfo
 
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
@@ -1067,6 +1308,81 @@ def generate_timestamp_metadata(release_filename, version,
                                                                fileinfo)
 
   return tuf.formats.make_signable(timestamp_metadata)
+
+
+
+
+
+def sign_metadata(metadata, keyids, filename):
+  """
+  <Purpose>
+    Sign a metadata object. If any of the keyids have already signed the file,
+    the old signature will be replaced.  The keys in 'keyids' must already be
+    loaded in the keystore.
+
+  <Arguments>
+    metadata:
+      The metadata object to sign.  For example, 'metadata' might correspond to
+      'tuf.formats.ROOT_SCHEMA' or 'tuf.formats.TARGETS_SCHEMA'.
+
+    keyids:
+      The keyids list of the signing keys.
+
+    filename:
+      The intended filename of the signed metadata object.
+      For example, 'root.txt' or 'targets.txt'.  This function
+      does NOT save the signed metadata to this filename.
+
+  <Exceptions>
+    tuf.FormatError, if a valid 'signable' object could not be generated.
+
+    tuf.Error, if an invalid keytype was found in the keystore. 
+  
+  <Side Effects>
+    None.
+
+  <Returns>
+    A signable object conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
+  """
+
+  # Does 'keyids' and 'filename' have the correct format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.KEYIDS_SCHEMA.check_match(keyids)
+  tuf.formats.PATH_SCHEMA.check_match(filename)
+
+  # Make sure the metadata is in 'signable' format.  That is,
+  # it contains a 'signatures' field containing the result
+  # of signing the 'signed' field of 'metadata' with each
+  # keyid of 'keyids'.
+  signable = tuf.formats.make_signable(metadata)
+
+  # Sign the metadata with each keyid in 'keyids'.
+  for keyid in keyids:
+    # Load the signing key.
+    key = tuf.repo.keystore.get_key(keyid)
+    logger.info('Signing '+repr(filename)+' with '+key['keyid'])
+
+    # Create a new signature list.  If 'keyid' is encountered,
+    # do not add it to new list.
+    signatures = []
+    for signature in signable['signatures']:
+      if not keyid == signature['keyid']:
+        signatures.append(signature)
+    signable['signatures'] = signatures
+
+    # Generate the signature using the appropriate signing method.
+    if key['keytype'] == 'rsa':
+      signed = signable['signed']
+      signature = tuf.sig.generate_rsa_signature(signed, key)
+      signable['signatures'].append(signature)
+    else:
+      raise tuf.Error('The keystore contains a key with an invalid key type')
+
+  # Raise 'tuf.FormatError' if the resulting 'signable' is not formatted
+  # correctly.
+  tuf.formats.check_signable_object_format(signable)
+
+  return signable
 
 
 
@@ -1109,7 +1425,7 @@ def write_metadata_file(metadata, filename, compression=None):
   tuf.formats.PATH_SCHEMA.check_match(filename)
 
   # Verify 'filename' directory.
-  check_directory(os.path.dirname(filename))
+  _check_directory(os.path.dirname(filename))
 
   # We choose a file-like object that depends on the compression algorithm.
   file_object = None
@@ -1146,113 +1462,6 @@ def write_metadata_file(metadata, filename, compression=None):
   finally:
     # Always close the file.
     file_object.close()
-
-
-
-
-
-def generate_and_save_rsa_key(keystore_directory, password,
-                              bits=DEFAULT_RSA_KEY_BITS):
-  """
-  <Purpose>
-    Generate a new RSA key and save it as an encrypted key file
-    to 'keystore_directory'.  The encrypted key file is named:
-    <keyid>.key.  'password' is used as the encryption key.
-
-  <Arguments>
-    keystore_directory:
-      The directory to save the generated encrypted key file.
-
-    password:
-      The password used to encrypt the RSA key file.
-
-    bits:
-      The key size, or key length, of the RSA key.
-      If 'bits' is unspecified, a 3072-bit RSA key is generated, which is the
-      key size recommended by TUF, although 2048-bit keys are accepted
-      (minimum key size).
-
-  <Exceptions>
-    tuf.FormatError, if 'bits' or 'password' does not have the
-    correct format.
-
-    tuf.CryptoError, if there was an error while generating the key.
-
-  <Side Effects>
-    An encrypted key file is created in 'keystore_directory'.
-
-  <Returns>
-    The generated RSA key.
-    The object returned conforms to 'tuf.formats.RSAKEY_SCHEMA' of the form:
-    {'keytype': 'rsa',
-     'keyid': keyid,
-     'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
-                'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
-  """
-
-  # Are the arguments correctly formatted?
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(keystore_directory)
-  tuf.formats.PASSWORD_SCHEMA.check_match(password)
-
-  keystore_directory = check_directory(keystore_directory)
-
-  # tuf.FormatError or tuf.CryptoError raised.
-  rsakey = tuf.keys.generate_rsa_key(bits)
-
-  logger.info('Generated a new key: '+rsakey['keyid'])
-
-  # Store the generated RSA key in the keystore and save the
-  # key file '<keyid>.key' in 'keystore_directory'.
-  try:
-    tuf.repo.keystore.add_rsakey(rsakey, password)
-    tuf.repo.keystore.save_keystore_to_keyfiles(keystore_directory)
-  except tuf.FormatError:
-    raise
-  except tuf.KeyAlreadyExistsError:
-    logger.warn('The generated RSA key already exists.')
-
-  return rsakey
-
-
-
-
-
-def check_directory(directory):
-  """
-  <Purpose>
-    Ensure 'directory' is valid and it exists.  This is not a security check,
-    but a way for the caller to determine the cause of an invalid directory
-    provided by the user.  If the directory argument is valid, it is returned
-    normalized and as an absolute path.
-
-  <Arguments>
-    directory:
-      The directory to check.
-
-  <Exceptions>
-    tuf.Error, if 'directory' could not be validated.
-
-    tuf.FormatError, if 'directory' is not properly formatted.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    The normalized absolutized path of 'directory'.
-  """
-
-  # Does 'directory' have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(directory)
-
-  # Check if the directory exists.
-  if not os.path.isdir(directory):
-    raise tuf.Error(repr(directory)+' directory does not exist')
-
-  directory = os.path.abspath(directory)
-  
-  return directory
 
 
 
@@ -1316,8 +1525,8 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
   tuf.formats.NAME_SCHEMA.check_match(delegation_role_name)
 
   # Check if 'targets_directory' and 'metadata_directory' are valid.
-  targets_directory = check_directory(delegated_targets_directory)
-  metadata_directory = check_directory(metadata_directory)
+  targets_directory = _check_directory(delegated_targets_directory)
+  metadata_directory = _check_directory(metadata_directory)
 
   repository_directory, junk = os.path.split(metadata_directory)
   repository_directory_length = len(repository_directory)
@@ -1343,90 +1552,9 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
 
 
 
-
-
-
-def accept_any_file(full_target_path):
-  """
-  <Purpose>
-    Simply accept any given file.
-
-  <Arguments>
-    full_target_path:
-      The absolute path to a target file.
-
-  <Exceptions>
-    None.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    True.
-  """
-
-  return True
-
-
-
-
-
-def get_targets(files_directory, recursive_walk=False, followlinks=True,
-                file_predicate=accept_any_file):
-  """
-  <Purpose>
-    Walk the given files_directory to build a list of target files in it.
-
-  <Arguments>
-    files_directory:
-      The path to a directory of target files.
-
-    recursive_walk:
-      To recursively walk the directory, set recursive_walk=True.
-
-    followlinks:
-      To follow symbolic links, set followlinks=True.
-
-    file_predicate:
-      To filter a file based on a predicate, set file_predicate to a function
-      which accepts a full path to a file and returns a Boolean.
-
-  <Exceptions>
-    Python IO exceptions.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    A list of absolute paths to target files in the given files_directory.
-  """
-
-  targets = []
-
-  # FIXME: We need a way to tell Python 2, but not Python 3, to return
-  # filenames in Unicode; see #61 and:
-  # http://docs.python.org/2/howto/unicode.html#unicode-filenames
-
-  for dirpath, dirnames, filenames in os.walk(files_directory,
-                                              followlinks=followlinks):
-    for filename in filenames:
-      full_target_path = os.path.join(dirpath, filename)
-      if file_predicate(full_target_path):
-        targets.append(full_target_path)
-
-    # Prune the subdirectories to walk right now if we do not wish to
-    # recursively walk files_directory.
-    if recursive_walk is False:
-      del dirnames[:]
-
-  return targets
-
-
-
-
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
-  # be tested by running libtuftools.py as a standalone module.
-  # python libtuftools.py.
+  # be tested by running libtuf.py as a standalone module.
+  # python libtuf.py.
   import doctest
   doctest.testmod()

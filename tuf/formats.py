@@ -491,14 +491,10 @@ class RootFile(MetaFile):
 
 
   @staticmethod
-  def make_metadata(version, expiration_seconds, keydict, roledict):
-    # Is 'expiration_seconds' properly formatted?
-    # Raise 'tuf.FormatError' if not.
-    LENGTH_SCHEMA.check_match(expiration_seconds)
-    
+  def make_metadata(version, expiration_date, keydict, roledict):
     result = {'_type' : 'Root'}
     result['version'] = version
-    result['expires'] = format_time(time.time() + expiration_seconds)
+    result['expires'] = expiration_date
     result['keys'] = keydict
     result['roles'] = roledict
     
