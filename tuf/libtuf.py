@@ -20,9 +20,11 @@ import sys
 import time
 import getpass
 import logging
+import json
 
 import tuf
 import tuf.formats
+import tuf.util
 import tuf.keydb
 import tuf.roledb
 import tuf.keys
@@ -112,6 +114,10 @@ class Repository:
     # looks something like this:
     # {'keyids : [keyid1, keyid2] , 'threshold' : 2}
     filenames = get_metadata_filenames(self.metadata_directory)
+    root_filename = filenames[ROOT_FILENAME] 
+    targets_filename = filenames[TARGETS_FILENAME] 
+    release_filename = filenames[RELEASE_FILENAME] 
+    timestamp_filename = filenames[TIMESTAMP_FILENAME] 
 
     # Generate the 'root.txt' metadata file. 
     # Newly created metadata start at version 1.  The expiration date for the
@@ -123,7 +129,6 @@ class Repository:
     if root_expiration is None: 
       root_expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION) 
     root_metadata = generate_root_metadata(root_version, root_expiration)
-    root_filename = filenames[ROOT_FILENAME] 
     write_metadata_file(root_metadata, root_filename, compression=None)
 
     # Generate the 'targets.txt' metadata file.
@@ -135,30 +140,26 @@ class Repository:
       targets_expiration = \
         tuf.formats.format_time(time.time()+TARGETS_EXPIRATION) 
     targets_metadata = generate_targets_metadata(self.repository_directory,
-                                                 targets_files, targets.version,
+                                                 targets_files, targets_version,
                                                  targets_expiration)
-    targets_filename = filenames[TARGETS_FILENAME] 
     write_metadata_file(targets_metadata, targets_filename, compression=None)
 
     # Generate the 'release.txt' metadata file.
     release_keyids = tuf.roledb.get_role_keyids(self.release.rolename)
     release_version = self.release.version
     release_expiration = self.release.expiration
-    release_files = self.release.target_files
     if release_expiration is None: 
       release_expiration = \
         tuf.formats.format_time(time.time()+RELEASE_EXPIRATION) 
     release_metadata = generate_release_metadata(self.metadata_directory,
                                                 release_version,
                                                 release_expiration)
-    release_filename = filenames[RELEASE_FILENAME] 
     write_metadata_file(release_metadata, release_filename, compression=None)
     
     # Generate the 'timestamp.txt' metadata file.
     timestamp_keyids = tuf.roledb.get_role_keyids(self.timestamp.rolename)
     timestamp_version = self.timestamp.version
     timestamp_expiration = self.timestamp.expiration
-    timestamp_files = self.timestamp.target_files
     if timestamp_expiration is None: 
       timestamp_expiration = \
         tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION) 
@@ -166,8 +167,7 @@ class Repository:
                                                      timestamp_version,
                                                      timestamp_expiration,
                                                      compressions=())
-    release_filename = filenames[RELEASE_FILENAME] 
-    write_metadata_file(release_metadata, release_filename, compression=None)
+    write_metadata_file(timestamp_metadata, timestamp_filename, compression=None)
     
     
     
@@ -237,8 +237,9 @@ class Metadata(object):
     self.rolename = None    
     self.version = 1
     self.threshold = 1
-    self.keys = [] 
-    self.signing_keys = [] 
+    self.role_keys = [] 
+    self.signing_keys = []
+    self.signatures = []
     self.expiration = None 
   
   
@@ -273,10 +274,9 @@ class Metadata(object):
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     roleinfo['keyids'].append(keyid)
-
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
-    self.keys.append(keyid) 
-  
+    
+    self.role_keys.append(keyid) 
   
   
   def set_threshold(self, threshold):
@@ -355,7 +355,7 @@ class Root(Metadata):
     
     self.rolename = 'root'
     
-    roleinfo = {'keyids': self.keys, 'threshold': self.threshold}
+    roleinfo = {'keyids': [], 'threshold': 1}
     tuf.roledb.add_role(self.rolename, roleinfo)
 
 
@@ -389,7 +389,7 @@ class Timestamp(Metadata):
     
     self.rolename = 'timestamp' 
     
-    roleinfo = {'keyids': self.keys, 'threshold': self.threshold}
+    roleinfo = {'keyids': [], 'threshold': 1}
     tuf.roledb.add_role(self.rolename, roleinfo)
 
 
@@ -424,7 +424,7 @@ class Release(Metadata):
     
     self.rolename = 'release' 
     
-    roleinfo = {'keyids': self.keys, 'threshold': self.threshold}
+    roleinfo = {'keyids': [], 'threshold': 1}
     tuf.roledb.add_role(self.rolename, roleinfo)
 
 
@@ -460,7 +460,7 @@ class Targets(Metadata):
     self.target_files = []
     self.delegations = {}
 
-    roleinfo = {'keyids': self.keys, 'threshold': self.threshold}
+    roleinfo = {'keyids': [], 'threshold': 1}
     tuf.roledb.add_role(self.rolename, roleinfo)
 
 
