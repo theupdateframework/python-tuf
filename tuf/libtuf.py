@@ -28,6 +28,7 @@ import tuf.util
 import tuf.keydb
 import tuf.roledb
 import tuf.keys
+import tuf.sig
 import tuf.log
 
 
@@ -67,14 +68,25 @@ RELEASE_EXPIRATION = 604800
 # Initial 'timestamp.txt' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
 
+# The suffix added to metadata filenames of partially written metadata.
+# Partial metadata may contain insufficient number of signatures and require
+# multiple repository maintainers to independently sign them.
+PARTIAL_METADATA_SUFFIX = '.partial'
 
-class Repository:
+
+class Repository(object):
   """
   <Purpose>
   
   <Arguments>
+    repository_directory:
+
+    metadata_directory:
+
+    targets_directory:
 
   <Exceptions>
+    tuf.FormatError, if the arguments are improperly formatted.
 
   <Side Effects>
 
@@ -83,17 +95,40 @@ class Repository:
   """
  
   def __init__(self, repository_directory, metadata_directory, targets_directory):
+  
+    # Do the arguments have the correct format?
+    # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
+    tuf.formats.PATH_SCHEMA.check_match(repository_directory)
+    tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
+    tuf.formats.PATH_SCHEMA.check_match(targets_directory)
     
-    self.repository_directory = repository_directory
-    self.metadata_directory = metadata_directory
-    self.targets_directory = targets_directory
+    self._repository_directory = repository_directory
+    self._metadata_directory = metadata_directory
+    self._targets_directory = targets_directory
    
     # Set the top-level role objects.
     self.root = Root() 
     self.release = Release()
     self.timestamp = Timestamp()
-    self.targets = Targets()
+    self.targets = Targets('targets', self._targets_directory)
   
+  
+  
+  def status(self):
+    """
+    <Purpose>
+    
+    <Arguments>
+      None.
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+    """
+    
+    # tuf.sig
   
   
   def write(self):
@@ -113,7 +148,7 @@ class Repository:
     # At this point the keystore is built and the 'role_info' dictionary
     # looks something like this:
     # {'keyids : [keyid1, keyid2] , 'threshold' : 2}
-    filenames = get_metadata_filenames(self.metadata_directory)
+    filenames = get_metadata_filenames(self._metadata_directory)
     root_filename = filenames[ROOT_FILENAME] 
     targets_filename = filenames[TARGETS_FILENAME] 
     release_filename = filenames[RELEASE_FILENAME] 
@@ -139,7 +174,7 @@ class Repository:
     if targets_expiration is None: 
       targets_expiration = \
         tuf.formats.format_time(time.time()+TARGETS_EXPIRATION) 
-    targets_metadata = generate_targets_metadata(self.repository_directory,
+    targets_metadata = generate_targets_metadata(self._repository_directory,
                                                  targets_files, targets_version,
                                                  targets_expiration)
     write_metadata_file(targets_metadata, targets_filename, compression=None)
@@ -151,7 +186,7 @@ class Repository:
     if release_expiration is None: 
       release_expiration = \
         tuf.formats.format_time(time.time()+RELEASE_EXPIRATION) 
-    release_metadata = generate_release_metadata(self.metadata_directory,
+    release_metadata = generate_release_metadata(self._metadata_directory,
                                                 release_version,
                                                 release_expiration)
     write_metadata_file(release_metadata, release_filename, compression=None)
@@ -168,9 +203,27 @@ class Repository:
                                                      timestamp_expiration,
                                                      compressions=())
     write_metadata_file(timestamp_metadata, timestamp_filename, compression=None)
+  
+
+
+  def partial_write():
+    """
+    <Purpose>
+
+    <Arguments>
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+      None.
+    """
     
-    
-    
+    #PARTIAL_METADATA_SUFFIX 
+
+
+
   def get_filepaths_in_directory(files_directory, recursive_walk=False,
                                  followlinks=True):
     """
@@ -234,13 +287,14 @@ class Metadata(object):
   """
 
   def __init__(self):
-    self.rolename = None    
-    self.version = 1
-    self.threshold = 1
-    self.role_keys = [] 
-    self.signing_keys = []
-    self.signatures = []
-    self.expiration = None 
+    self._rolename = None    
+    self._signing_keys = []
+    
+    self._version = 1
+    self._threshold = 1
+    self._role_keys = [] 
+    self._signatures = []
+    self._expiration = None 
   
   
   
@@ -272,14 +326,26 @@ class Metadata(object):
       pass
    
     keyid = key['keyid']
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    roleinfo = tuf.roledb.get_roleinfo(self._rolename)
     roleinfo['keyids'].append(keyid)
-    tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+    tuf.roledb.update_roleinfo(self._rolename, roleinfo)
     
-    self.role_keys.append(keyid) 
-  
-  
-  def set_threshold(self, threshold):
+    self._role_keys.append(keyid) 
+ 
+
+ 
+  @property
+  def threshold(self):
+    """
+
+    """
+
+    return self._threshold
+
+
+
+  @threshold.setter 
+  def threshold(self, threshold):
     """
     <Purpose>
 
@@ -292,8 +358,10 @@ class Metadata(object):
         tuf.formats.THRESHOLD_SCHEMA
 
     <Exceptions>
+      tuf.FormatError, if the argument is improperly formatted.
 
     <Side Effects>
+      Modifies the threshold attribute of the Repository object.
 
     <Returns>
       None.
@@ -301,14 +369,81 @@ class Metadata(object):
     
     tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
     
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    roleinfo = tuf.roledb.get_roleinfo(self._rolename)
     roleinfo['threshold'] = threshold
     
-    tuf.roledb.update_roleinfo(self.rolename, roleinfo)
-    self.threshold = threshold
+    tuf.roledb.update_roleinfo(self._rolename, roleinfo)
+    self._threshold = threshold
  
 
-  
+  @property
+  def expiration(self):
+    """
+    <Purpose>
+
+      >>> 
+      >>> 
+      >>> 
+
+    <Arguments>
+      None.
+    
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      The role's expiration datetime, conformant to tuf.formats.DATETIME_SCHEMA.
+    """
+
+    return self._expiration
+
+
+
+  @expiration.setter
+  def expiration(self, expiration_datetime_utc):
+    """
+    <Purpose>
+
+      >>>  
+      >>> 
+      >>> 
+
+    <Arguments>
+      expiration_datetime_utc:
+        tuf.formats.DATETIME_SCHEMA
+
+    <Exceptions>
+      tuf.FormatError, if the argument is improperly formatted.
+    
+    <Side Effects>
+      Modifies the expiration attribute of the Repository object.
+
+    <Returns>
+      None.
+    """
+    
+    # Does 'expiration_datetime_utc' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.DATETIME_SCHEMA.check_match(expiration_datetime_utc)
+   
+    expiration_datetime_utc = expiration_datetime_utc+' UTC'
+    try:
+      unix_timestamp = tuf.formats.parse_time(expiration_datetime_utc)
+    except (tuf.FormatError, ValueError), e:
+      message = 'Invalid datetime argument: '+repr(expiration_datetime_utc)
+      raise tuf.FormatError(message)
+    
+    if unix_timestamp < time.time():
+      message = 'The expiration date must occur after the current date.'
+      raise tuf.FormatError(message)
+    
+    self._expiration = expiration_datetime_utc
+
+
+
   def write_partial(self, object):
     """
     <Purpose>
@@ -353,10 +488,10 @@ class Root(Metadata):
     
     super(Root, self).__init__() 
     
-    self.rolename = 'root'
+    self._rolename = 'root'
     
     roleinfo = {'keyids': [], 'threshold': 1}
-    tuf.roledb.add_role(self.rolename, roleinfo)
+    tuf.roledb.add_role(self._rolename, roleinfo)
 
 
   def write_partial(self):
@@ -387,10 +522,10 @@ class Timestamp(Metadata):
     
     super(Timestamp, self).__init__() 
     
-    self.rolename = 'timestamp' 
+    self._rolename = 'timestamp' 
     
     roleinfo = {'keyids': [], 'threshold': 1}
-    tuf.roledb.add_role(self.rolename, roleinfo)
+    tuf.roledb.add_role(self._rolename, roleinfo)
 
 
 
@@ -422,10 +557,10 @@ class Release(Metadata):
     
     super(Release, self).__init__() 
     
-    self.rolename = 'release' 
+    self._rolename = 'release' 
     
     roleinfo = {'keyids': [], 'threshold': 1}
-    tuf.roledb.add_role(self.rolename, roleinfo)
+    tuf.roledb.add_role(self._rolename, roleinfo)
 
 
 
@@ -445,24 +580,65 @@ class Targets(Metadata):
     >>>
 
   <Arguments>
+    targets_directory:
+      The targets directory of the Repository object.
 
   <Exceptions>
+    tuf.FormatError, if the targets directory argument is improerly formatted.
 
   <Side Effects>
-
+    Mofifies the roleinfo of the targets role in 'tuf.roledb'.
+  
   <Returns>
+    None.
   """
   
-  def __init__(self):
+  def __init__(self, rolename, targets_directory):
+   
+    # Do the arguments have the correct format?
+    # Raise 'tuf.FormatError' if any are improperly formatted.
+    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    tuf.formats.PATH_SCHEMA.check_match(targets_directory)
     
-    super(Targets, self).__init__() 
-    self.rolename = 'targets' 
-    self.target_files = []
-    self.delegations = {}
+    super(Targets, self).__init__()
+    self._targets_directory = targets_directory
+    self._rolename = rolename 
+    self._target_files = []
+    self._delegations = {}
 
-    roleinfo = {'keyids': [], 'threshold': 1}
-    tuf.roledb.add_role(self.rolename, roleinfo)
+    roleinfo = {'keyids': [], 'threshold': 1, 'paths': [],
+                'path_hash_prefixes': [],
+                'delegations': {'keys': {},
+                                'roles': []}}
 
+    tuf.roledb.add_role(self._rolename, roleinfo)
+
+
+
+  @property
+  def target_files(self):
+    """
+    <Purpose>
+
+      >>> 
+      >>>
+      >>>
+
+    <Arguments>
+      targets_directory:
+        The targets directory of the Repository object.
+
+    <Exceptions>
+      tuf.FormatError, if the targets directory argument is improerly formatted.
+
+    <Side Effects>
+      Mofifies the roleinfo of the targets role in 'tuf.roledb'.
+    
+    <Returns>
+      None.
+    """
+
+    return self._target_files
 
 
 
@@ -475,8 +651,11 @@ class Targets(Metadata):
   def add_target(self, filepath):
     """
     <Purpose>
-      Takes a filepath relative to the targets directory.  Regular expresssion
-      would be useful here.
+      Add a filepath (relative to 'self.targets_directory') to the Targets
+      object.  This function does not actually create 'filepath' on the file
+      system.  'filepath' must already exist on the file system.
+      
+      Support regular expresssions?
 
       >>> 
       >>>
@@ -486,20 +665,116 @@ class Targets(Metadata):
       filepath:
 
     <Exceptions>
+      tuf.FormatError, if 'filepath' is improperly formatted.
 
     <Side Effects>
+      Adds 'filepath' to this role's list of targets.  This role's
+      'tuf.roledb.py' is also updated.
 
     <Returns>
+      None.
     """
+    
+    # Does 'filepath' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.PATH_SCHEMA.check_match(filepath)
+
+    filepath = os.path.abspath(filepath)
+    
+    if not os.path.commonprefix([self._targets_directory, filepath]) == \
+                                self._targets_directory:
+      message = repr(filepath)+' is not under the Repository\'s targets '+\
+        'directory: '+repr(self._targets_directory)
+      raise tuf.Error(message)
+
+    # TODO: Ensure is an allowed target path according to the parent's
+    # delegation.
+    """
+        for child_target in actual_child_targets:
+          for allowed_child_path in allowed_child_paths:
+            prefix = os.path.commonprefix([child_target, allowed_child_path])
+            if prefix == allowed_child_path:
+              break
+    """
+
+    # Add 'filepath' (i.e., relative to the targets directory) to the role's
+    # list of targets. 
+    if os.path.isfile(filepath):
+      
+      # Update the role's 'tuf.roledb.py' entry and 'self._target_files'.
+      targets_directory_length = len(self._targets_directory) 
+      roleinfo = tuf.roledb.get_roleinfo(self._rolename)
+      roleinfo['paths'].append(filepath[targets_directory_length+1:])
+      tuf.roledb.update_roleinfo(self._rolename, roleinfo)
+      self._target_files.append(filepath)
+    
+    else:
+      message = repr(filepath)+' is not a valid file.'
+      raise tuf.Error(message)
+ 
+
   
-  
+  def add_targets(self, list_of_targets):
+    """
+    <Purpose>
+      Add a list of target filepaths (all relative to 'self.targets_directory').
+      This function does not actually create files on the file system.  The
+      list of target must already exist.
+      
+      >>> 
+      >>>
+      >>>
+
+    <Arguments>
+      list_of_targets:
+
+    <Exceptions>
+
+    <Side Effects>
+      
+    <Returns>
+      None.
+    """
+
+    # Does 'list_of_targets' have the correct format?
+    # Raise 'tuf.FormatError' if it is improperly formatted.
+    tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+
+    # TODO: Ensure list of targets allowed paths according to the parent's
+    # delegation.
+
+    # TODO: Update the tuf.roledb entry.
+    targets_directory_length = len(self._targets_directory) 
+    absolute_paths_list_of_targets = []
+    relative_list_of_targets = []
+    
+    for target in list_of_targets:
+      filepath = os.path.abspath(filepath)
+      
+      if not os.path.commonprefix([self._targets_directory, filepath]) == \
+                                  self._targets_directory:
+        message = repr(filepath)+' is not under the Repository\'s targets '+\
+          'directory: '+repr(self._targets_directory)
+        raise tuf.Error(message)
+      if os.path.isfile(filepath):
+        absolute_paths_list_of_targets.append(filepath)
+        relative_list_of_targets.append(filepath[targets_directory_length+1:])
+      else:
+        message = repr(filepath)+' is not a valid file.'
+        raise tuf.Error(message)
+
+    # Update the role's target_files and its 'tuf.roledb.py' entry.
+    self._target_files.extend(absolute_list_of_targets)
+    roleinfo = tuf.roledb.get_roleinfo(self._rolename)
+    roleinfo['paths'].extend(relative_list_of_targets)
+    tuf.roledb.update_roleinfo(self._rolename, roleinfo)
   
   
   
   def remove_target(self, filepath):
     """
     <Purpose>
-      Takes a filepath relative to the targets directory.  Regular expresssion
+      Takes a filepath relative to the targets directory.  Regular expresssions
       would be useful here.
 
       >>> 
@@ -510,17 +785,19 @@ class Targets(Metadata):
       filepath:
 
     <Exceptions>
+      tuf.FormatError, if 'filepath' is improperly formatted.
 
     <Side Effects>
-
+      Modifies the target role's 'tuf.roledb.py' entry.
     <Returns>
+      None.
     """
   
   
   
   
   
-  def delegate(self, rolename, public_keys, targets):
+  def delegate(self, rolename, public_keys, list_of_targets, restricted_paths=None):
     """
     <Purpose>
       'targets' is a list of target filepaths, and can be empty.
@@ -534,16 +811,64 @@ class Targets(Metadata):
 
       public_keys:
 
-      targets:
+      list_of_targets:
+
+      restricted_paths:
 
     <Exceptions>
+      tuf.FormatError, if any of the arguments are improperly formatted.
 
     <Side Effects>
+      A new Target object is created for 'rolename' that is accessible to the
+      caller (i.e., targets.unclaimed.<rolename>).  The 'tuf.keydb.py' and
+      'tuf.roledb.py' stores are updated with 'public_keys'.
 
     <Returns>
+      None.
     """
-  
-  
+
+    # Do the arguments have the correct format?
+    # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
+    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    tuf.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
+    tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+
+    # Validate 'list_of_targets'
+    # Ensure 'restricted_paths' is allowed by current role according to the
+    # parent. 
+    
+    # Update the 'delegations' field of the current role.
+   
+    full_rolename = self._rolename+'/'+rolename 
+    keyids = [] 
+      
+    # Add public keys to tuf.keydb
+    for key in public_keys:
+      
+      try:
+        tuf.keydb.add_key(key)
+      except tuf.KeyAlreadyExistsError, e:
+        pass
+
+      keyid = key['keyid']
+      keyids.append(keyid)
+
+    # Add role to 'tuf.roledb.py'
+    roleinfo = {'keyids': keyids,
+                'threshold': 1,
+                'signatures': [],
+                'paths': list_of_targets,
+                'delegations': {'keys': {},
+                                'roles': []}}
+    tuf.roledb.add_role(full_rolename, roleinfo)
+    
+    new_targets_object = Targets(rolename, self._targets_directory)
+    
+    # Update 'new_targets_object' attributes.
+    for key in public_keys:
+      new_targets_object.add_key(key)
+
+    self.__setattr__(rolename, new_targets_object)
   
   
   
@@ -557,16 +882,27 @@ class Targets(Metadata):
 
     <Arguments>
       rolename:
+        Not the full rolename ('Django' in 'targets/unclaimed/Django') of the role the
+        parent role (this role) wants to revoke.
 
     <Exceptions>
+      tuf.FormatError, if 'rolename' is improperly formatted.
 
     <Side Effects>
 
     <Returns>
+      None.
     """
+
+    tuf.formats.ROLENAME_SCHEMA.check_match(rolename) 
     
+    self.__delattr__(rolename)
 
+    # Remove from this Target's delegations dict.
 
+    # Remove from 'tuf.roledb.py'
+
+    # Remove
 
 
 def _prompt(message, result_type=str):
@@ -662,8 +998,9 @@ def create_new_repository(repository_directory):
   <Returns>
     libtuf.Repository object.
   """
- 
-  tuf.formats
+
+  tuf.formats.PATH_SCHEMA.check_match(repository_directory)
+
   # Create the repository, metadata, and target directories.
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = None
@@ -678,6 +1015,7 @@ def create_new_repository(repository_directory):
       pass 
     else:
       raise
+  
   #  
   metadata_directory = \
     os.path.join(repository_directory, METADATA_DIRECTORY_NAME)
@@ -714,20 +1052,22 @@ def create_new_repository(repository_directory):
 
 
 
-def load_repository(filepath):
+def load_repository(repository_directory, partial_metadata_suffix=None):
   """
   <Purpose>
     Return a repository object that represents an existing repository.
 
   <Arguments>
-    filepath:
+    repository_directory:
+
+    partial_metadata_suffix:
 
   <Exceptions>
 
   <Side Effects>
 
   <Returns>
-    Repository object.
+    libtuf.Repository object.
   """
 
 
@@ -862,26 +1202,27 @@ def import_rsa_publickey_from_file(filepath):
 
 
 
-def expiration_date_utc(input_date_utc):
+def expiration_datetime_utc(input_datetime_utc):
   """
   <Purpose>
+    TODO: return 'input_datetime_utc' in ISO 8601 format.
 
   <Arguments>
-    input_date_utc:
+    input_datetime_utc:
 
   <Exceptions>
-    tuf.FormatError, if 'input_date_utc' is invalid. 
+    tuf.FormatError, if 'input_datetime_utc' is invalid. 
 
   <Side Effects>
     None.
 
   <Returns>
   """
-  
-  tuf.formats.TIME_SCHEMA.check_match(input_date_utc)
- 
+  if not tuf.formats.DATETIME_SCHEMA.matches(input_datetime_utc):
+    message = 'The datetime argument must be in "YYYY-MM-DD HH:MM:SS" format.'
+    raise tuf.FormatError(message)
   try:
-    unix_timestamp = tuf.formats.parse_time(input_date_utc+' UTC')
+    unix_timestamp = tuf.formats.parse_time(input_datetime_utc+' UTC')
   except (tuf.FormatError, ValueError), e:
     raise tuf.FormatError('Invalid date entered.')
   
@@ -889,7 +1230,7 @@ def expiration_date_utc(input_date_utc):
     message = 'The expiration date must occur after the current date.'
     raise tuf.FormatError(message)
   
-  return input_date_utc
+  return input_datetime_utc+' UTC'
 
 
 
@@ -998,7 +1339,7 @@ def get_metadata_file_info(filename):
 def generate_root_metadata(version, expiration_date):
   """
   <Purpose>
-    Create the root metadata.  'tuf.roledb' and 'tuf.roledb' are read and the
+    Create the root metadata.  'tuf.roledb.py' and 'tuf.keydb.py' are read and the
     information returned by these modules are used to generate the root metadata
     object.
 
@@ -1018,7 +1359,7 @@ def generate_root_metadata(version, expiration_date):
     metadata object.
   
   <Side Effects>
-    The contents of 'tuf.keydb' and 'tuf.roledb' are read.
+    The contents of 'tuf.keydb.py' and 'tuf.roledb.py' are read.
 
   <Returns>
     A root 'signable' object conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
@@ -1037,7 +1378,7 @@ def generate_root_metadata(version, expiration_date):
   # The necessary role metadata is generated from this information.
   for rolename in ['root', 'targets', 'release', 'timestamp']:
     
-    # If a top-level role is missing from 'tuf.roledb', raise an exception.
+    # If a top-level role is missing from 'tuf.roledb.py', raise an exception.
     if not tuf.roledb.role_exists(rolename):
       raise tuf.Error(repr(rolename)+' not in "tuf.roledb".')
     

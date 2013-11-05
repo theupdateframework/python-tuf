@@ -23,9 +23,16 @@
 
   The role database is a dictionary conformant to 'tuf.formats.ROLEDICT_SCHEMA'
   and has the form:
+  
   {'rolename': {'keyids': ['34345df32093bd12...'],
                 'threshold': 1
-                'paths': ['path/to/role.txt']}}
+                'signatures': ['abcd3452...'],
+                'paths': ['path/to/role.txt'],
+                'path_hash_prefixes': ['ab34df13'],
+                'delegations': {'keys': {}, 'roles': {}}}
+  
+  The 'name', 'paths', 'path_hash_prefixes', and 'delegations' dict keys are
+  optional.
 """
 
 import logging
@@ -102,10 +109,17 @@ def add_role(rolename, roleinfo, require_parent=True):
 
     roleinfo:
       An object representing the role associated with 'rolename', conformant to
-      ROLE_SCHEMA.  'roleinfo' has the form: 
+      ROLEDB_SCHEMA.  'roleinfo' has the form: 
       {'keyids': ['34345df32093bd12...'],
-       'threshold': 1}
+       'threshold': 1,
+       'signatures': ['ab23dfc32']
+       'paths': ['path/to/target1', 'path/to/target2', ...],
+       'path_hash_prefixes': ['a324fcd...', ...],
+       'delegations': {'keys': }
 
+      The 'paths', 'path_hash_prefixes', and 'delegations' dict keys are
+      optional.
+      
       The 'target' role has an additional 'paths' key.  Its value is a list of
       strings representing the path of the target file(s).
 
@@ -134,7 +148,7 @@ def add_role(rolename, roleinfo, require_parent=True):
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Does 'roleinfo' have the correct object format?
-  tuf.formats.ROLE_SCHEMA.check_match(roleinfo)
+  tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
   # Does 'require_parent' have the correct format?
   tuf.formats.TOGGLE_SCHEMA.check_match(require_parent)
@@ -171,9 +185,14 @@ def update_roleinfo(rolename, roleinfo):
 
     roleinfo:
       An object representing the role associated with 'rolename', conformant to
-      ROLE_SCHEMA.  'roleinfo' has the form: 
-      {'keyids': ['34345df32093bd12...'],
-       'threshold': 1}
+      ROLEDB_SCHEMA.  'roleinfo' has the form: 
+      {'name': 'role_name',
+       'keyids': ['34345df32093bd12...'],
+       'threshold': 1,
+       'paths': ['path/to/target1', 'path/to/target2', ...],
+       'path_hash_prefixes': ['a324fcd...', ...]}
+
+      The 'name', 'paths', and 'path_hash_prefixes' dict keys are optional.
 
       The 'target' role has an additional 'paths' key.  Its value is a list of
       strings representing the path of the target file(s).
@@ -199,7 +218,7 @@ def update_roleinfo(rolename, roleinfo):
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Does 'roleinfo' have the correct object format?
-  tuf.formats.ROLE_SCHEMA.check_match(roleinfo)
+  tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
   # Raises tuf.InvalidNameError.
   _validate_rolename(rolename)
@@ -448,11 +467,18 @@ def get_roleinfo(rolename):
   """
   <Purpose>
     Return the roleinfo of 'rolename'.
-    {'keyids': ['34345df32093bd12...'],
-     'threshold': 1
+    {'name': 'role_name',
+     'keyids': ['34345df32093bd12...'],
+     'threshold': 1,
+     'paths': ['path/to/target1', 'path/to/target2', ...],
+     'path_hash_prefixes': ['a324fcd...', ...]}
+
+    The 'name', 'paths', and 'path_hash_prefixes' dict keys are optional.
 
   <Arguments>
     rolename:
+      An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
+      (e.g., 'root', 'release', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' is improperly formatted.

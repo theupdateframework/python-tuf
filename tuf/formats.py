@@ -74,7 +74,11 @@ import tuf.schema as SCHEMA
 # easily backwards compatible with clients that are already deployed.
 
 # A date in 'YYYY-MM-DD HH:MM:SS UTC' format.
+# TODO: Support timestamps according to the ISO 8601 standard.
 TIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC')
+
+# A date in 'YYYY-MM-DD HH:MM:SS UTC' format.
+DATETIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
 
 # A hexadecimal value in '23432df87ab..' format.
 HASH_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
@@ -175,6 +179,9 @@ ANYKEY_SCHEMA = SCHEMA.Object(
   keytype=KEYTYPE_SCHEMA,
   keyid=KEYID_SCHEMA,
   keyval=KEYVAL_SCHEMA)
+
+# A list of TUF key objects.
+ANYKEYLIST_SCHEMA = SCHEMA.ListOf(ANYKEY_SCHEMA)
 
 # An RSA TUF key.
 RSAKEY_SCHEMA = SCHEMA.Object(
@@ -306,15 +313,16 @@ RECEIVECONFIG_SCHEMA = SCHEMA.Object(
 
 # A path hash prefix is a hexadecimal string.
 PATH_HASH_PREFIX_SCHEMA = HEX_SCHEMA
+
 # A list of path hash prefixes.
 PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
-# 'paths':[filepaths..]} # format.
+# 'paths':[filepaths..]} format.
 ROLE_SCHEMA = SCHEMA.Object(
   object_name='ROLE_SCHEMA',
-  keyids=SCHEMA.ListOf(KEYID_SCHEMA),
   name=SCHEMA.Optional(ROLENAME_SCHEMA),
+  keyids=SCHEMA.ListOf(KEYID_SCHEMA),
   threshold=THRESHOLD_SCHEMA,
   paths=SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes=SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
@@ -328,7 +336,24 @@ ROLEDICT_SCHEMA = SCHEMA.DictOf(
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 
-# The root: indicates root keys and top-level roles.
+# The delegated roles of a Targets role (a parent).
+DELEGATIONS_SCHEMA = SCHEMA.Object(
+  keys=KEYDICT_SCHEMA,
+  roles=ROLELIST_SCHEMA)
+
+# tuf.roledb
+ROLEDB_SCHEMA = SCHEMA.Object(
+  object_name='ROLEDB_SCHEMA',
+  keyids=SCHEMA.ListOf(KEYID_SCHEMA),
+  threshold=THRESHOLD_SCHEMA,
+  signatures=SCHEMA.Optional(SCHEMA.ListOf(SIGNATURE_SCHEMA)),
+  paths=SCHEMA.Optional(RELPATHS_SCHEMA),
+  path_hash_prefixes=SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
+  delegations=SCHEMA.Optional(SCHEMA.Object(
+    keys=KEYDICT_SCHEMA,
+    roles=SCHEMA.ListOf(ROLENAME_SCHEMA))))
+
+# Root role: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(
   object_name='ROOT_SCHEMA',
   _type=SCHEMA.String('Root'),
@@ -337,18 +362,16 @@ ROOT_SCHEMA = SCHEMA.Object(
   keys=KEYDICT_SCHEMA,
   roles=ROLEDICT_SCHEMA)
 
-# Targets. Indicates targets and delegates target paths to other roles.
+# Targets role: Indicates targets and delegates target paths to other roles.
 TARGETS_SCHEMA = SCHEMA.Object(
   object_name='TARGETS_SCHEMA',
   _type=SCHEMA.String('Targets'),
   version=METADATAVERSION_SCHEMA,
   expires=TIME_SCHEMA,
   targets=FILEDICT_SCHEMA,
-  delegations=SCHEMA.Optional(SCHEMA.Object(
-    keys=KEYDICT_SCHEMA,
-    roles=ROLELIST_SCHEMA)))
+  delegations=SCHEMA.Optional(DELEGATIONS_SCHEMA))
 
-# A Release: indicates the latest versions of all metadata (except timestamp).
+# Release role: indicates the latest versions of all metadata (except timestamp).
 RELEASE_SCHEMA = SCHEMA.Object(
   object_name='RELEASE_SCHEMA',
   _type=SCHEMA.String('Release'),
@@ -356,7 +379,7 @@ RELEASE_SCHEMA = SCHEMA.Object(
   expires=TIME_SCHEMA,
   meta=FILEDICT_SCHEMA)
 
-# A Timestamp: indicates the latest version of the release file.
+# Timestamp role: indicates the latest version of the release file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name='TIMESTAMP_SCHEMA',
   _type=SCHEMA.String('Timestamp'),
