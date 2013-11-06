@@ -54,14 +54,14 @@ tuf.interposition.configure(filename="/path/to/json")
   "configurations": {
     // Which network location should we intercept?
     // Network locations may be specified as "hostname" or "hostname:port".
-    "seattle.cs.washington.edu": {
+    "seattle.poly.edu": {
       // Where do we find the client copy of the TUF server metadata?
       "repository_directory": "client/",
-      // Where do we forward the requests to seattle.cs.washington.edu?
+      // Where do we forward the requests to seattle.poly.edu?
       "repository_mirrors" : {
         "mirror1": {
-          // In this case, we forward them to http://tuf.seattle.cs.washington.edu
-          "url_prefix": "http://tuf.seattle.cs.washington.edu",
+          // In this case, we forward them to http://tuf.seattle.poly.edu
+          "url_prefix": "http://tuf.seattle.poly.edu",
           // You do not have to worry about these default parameters.
           "metadata_path": "metadata",
           "targets_path": "targets",
@@ -214,7 +214,7 @@ tuf.interposition.configure(parent_ssl_certificates_directory="/path/to/parent/t
 
 ### Seattle + TUF
 
-We have a demonstration of the [Seattle](https://seattle.cs.washington.edu/)
+We have a demonstration of the [Seattle](https://seattle.poly.edu/)
 software updater over TUF, which we expect to publish soon.
 
 ### PyPI + TUF + pip
