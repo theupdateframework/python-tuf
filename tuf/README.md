@@ -178,3 +178,14 @@ repository.timestamp.load_signing_key(private_timestamp_key)
 repository.write()
 ```
 
+#### Remove Target Files
+```python
+# Continuing from the previous section . . .
+
+# Remove a target file listed in the “targets” metadata.  The target file is not actually deleted
+# from the file system.
+repository.targets.remove_target("path/to/repository/targets/file.txt")
+
+# repository.write() creates any new metadata files, updates those that have changed, and any that need updating to make a new “release” (new release.txt and timestamp.txt).
+repository.write()
+```
