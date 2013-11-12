@@ -1,5 +1,6 @@
 ## Create TUF Repository
 
+![Repo Tools Diagram 1](https://raw.github.com/SantiagoTorres/tuf/master/TUF%20repository%20tools.png)
 ### Keys
 
 #### Create RSA Keys
@@ -201,18 +202,18 @@ public_unclaimed_key = import_rsa_publickey_from_file("path/to/unclaimed_key.pub
 # Make a delegation from “targets” to “targets/unclaimed”, for all targets in “list_of_targets”.
 # The delegated role’s full name is not required.
 # delegated(rolename, list_of_public_keys, list_of_file_paths, threshold, restricted_paths)
-repository.targets.delegate(“unclaimed”, [public_unclaimed_key], list_of_targets)
+repository.targets.delegate("unclaimed", [public_unclaimed_key], list_of_targets)
 
 # Load the private key of “targets/unclaimed” so that signatures are added and valid metadata
 # is created.
-private_unclaimed_key = import_rsa_privatekey_from_file(“path/to/unclaimed_key”)
+private_unclaimed_key = import_rsa_privatekey_from_file("path/to/unclaimed_key")
 Enter a password for the RSA key:
 Confirm:
 repository.targets.unclaimed.load_signing_key(private_unclaimed_key)
 
 # Update attributes of the unclaimed role and add a target file.
-repository.targets.unclaimed.expiration = “2014-10-28 12:08:00”
-repository.targets.unclaimed.add_target(“path/to/file.txt”)
+repository.targets.unclaimed.expiration = "2014-10-28 12:08:00"
+repository.targets.unclaimed.add_target("path/to/file.txt")
 
 #  Write the metadata of “targets/unclaimed”, targets, release, and timestamp.
 repository.write()
@@ -223,11 +224,11 @@ repository.write()
 # Continuing from the previous section . . .
 
 # Revoke “targets/unclaimed” and write the metadata of all remaining roles.
-repository.targets.revoke(“targets/unclaimed”)
+repository.targets.revoke("targets/unclaimed")
 
 repository.write()
 ```
 
 ```bash
-$ mv “path/to/repository/metadata.staged” “path/to/repository/metadata”
+$ mv "path/to/repository/metadata.staged" "path/to/repository/metadata"
 ```
