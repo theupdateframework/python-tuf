@@ -1514,8 +1514,11 @@ class Targets(Metadata):
     # Remove from this Target's delegations dict.
     full_rolename = self.rolename+'/'+rolename
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
-    del roleinfo['delegations']['roles'][full_rolename]
-
+    
+    for role in roleinfo['delegations']['roles']:
+      if role['name'] == full_rolename:
+        roleinfo['delegations']['roles'].remove(role)
+    
     # Remove from 'tuf.roledb.py'.  The delegated roles of 'rolename' are also
     # removed.
     tuf.roledb.remove_role(full_rolename)
@@ -2798,14 +2801,14 @@ def create_tuf_client_directory(repository_directory, client_directory):
  
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,
-                                    METADATA_DIRECTORY_NAME)
+                                    'metadata')
 
   # Generate the 'client' directory containing the metadata of the created
   # repository.  'tuf.client.updater.py' expects the 'current' and 'previous'
   # directories to exist under 'metadata'.
   client_directory = os.path.abspath(client_directory)
   client_metadata_directory = os.path.join(client_directory,
-                                           METADATA_DIRECTORY_NAME)
+                                           'metadata')
   
   try:
     os.makedirs(client_metadata_directory)
