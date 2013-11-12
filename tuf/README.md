@@ -20,6 +20,7 @@ generate_and_write_rsa_keypair("path/to/root_key2")
 >>> Confirm:
 ```
 The following four files should now exist:
+
 1. root_key
 2. root_key.pub
 3. root_key2
