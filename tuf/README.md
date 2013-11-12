@@ -39,7 +39,7 @@ Enter a password for the RSA key:
 Confirm:
 ```
 At the time of importing the private RSA, a tuf.CryptoError can be thrown if
-the key is invalid
+the key/password is invalid
 
 ### Create a new Repository
 
@@ -133,5 +133,48 @@ repository.write()
 
 #### Add Target Files
 ```python
+# Load the repository created in the previous section.  This repository contains metadata for
+# the top-level roles, but no targets.
+repository = load_repository("path/to/repository/")
 
+# Get a list of file paths in a directory, even those in sub-directories.
+# This must be relative to an existing directory in the repository, otherwise throw an
+# error.
+list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targets/", recursive_walk=True, followlinks=True) 
+
+# Add the list of target paths to the metadata of the Targets role.
+repository.targets.add_targets(list_of_targets)
+
+# Individual target files may also be added.
+repository.targets.add_target("path/to/repository/targets/file.txt")
+
+# The private key of the updated targets metadata must be loaded before it can be signed and # written (Note the load_repository() call above).
+private_targets_key =  import_rsa_privatekey_from_file("path/to/targets_key")
+Enter a password for the RSA key:
+Confirm:
+repository.targets.load_signing_key(private_targets_key)
+
+# Due to the load_repository(), we must also load the private keys of the other top-level roles
+# to generate a valid set of metadata.
+private_root_key =  import_rsa_privatekey_from_file("path/to/root_key")
+Enter a password for the RSA key:
+Confirm:
+private_root_key2 =  import_rsa_privatekey_from_file("path/to/root_key2")
+Enter a password for the RSA key:
+Confirm:
+private_release_key =  import_rsa_privatekey_from_file("path/to/release_key")
+Enter a password for the RSA key:
+Confirm:
+private_timestamp_key =  import_rsa_privatekey_from_file("path/to/timestamp_key")
+Enter a password for the RSA key:
+Confirm:
+
+repository.root.load_signing_key(private_root_key)
+repository.root.load_signing_key(private_root_key2)
+repository.release.load_signing_key(private_release_key)
+repository.timestamp.load_signing_key(private_timestamp_key)
+
+# Generate new versions of all the top-level metadata and increment version numbers.
+repository.write()
 ```
+
