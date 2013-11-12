@@ -36,6 +36,7 @@
 """
 
 import logging
+import copy
 
 import tuf
 import tuf.formats
@@ -86,6 +87,16 @@ def create_roledb_from_root_metadata(root_metadata):
   # Iterate through the roles found in 'root_metadata'
   # and add them to '_roledb_dict'.  Duplicates are avoided.
   for rolename, roleinfo in root_metadata['roles'].items():
+    if rolename == 'root':
+      roleinfo['version'] = root_metadata['version']
+      roleinfo['expires'] = root_metadata['expires']
+    
+    roleinfo['signatures'] = []
+    roleinfo['signing_keyids'] = []
+    
+    if rolename.startswith('targets'):
+      roleinfo['delegations'] = {'keys': {}, 'roles': []}
+    
     try:
       add_role(rolename, roleinfo)
     # tuf.Error raised if the parent role of 'rolename' does not exist.  
@@ -168,7 +179,7 @@ def add_role(rolename, roleinfo, require_parent=True):
     if parent_role not in _roledb_dict:
       raise tuf.Error('Parent role does not exist: '+parent_role)
 
-  _roledb_dict[rolename] = roleinfo
+  _roledb_dict[rolename] = copy.deepcopy(roleinfo)
 
 
 
@@ -226,7 +237,7 @@ def update_roleinfo(rolename, roleinfo):
   if rolename not in _roledb_dict:
     raise tuf.UnknownRoleError('Role does not exist: '+rolename)
 
-  _roledb_dict[rolename] = roleinfo
+  _roledb_dict[rolename] = copy.deepcopy(roleinfo)
 
   
 
@@ -467,13 +478,16 @@ def get_roleinfo(rolename):
   """
   <Purpose>
     Return the roleinfo of 'rolename'.
-    {'name': 'role_name',
-     'keyids': ['34345df32093bd12...'],
-     'threshold': 1,
-     'paths': ['path/to/target1', 'path/to/target2', ...],
-     'path_hash_prefixes': ['a324fcd...', ...]}
 
-    The 'name', 'paths', and 'path_hash_prefixes' dict keys are optional.
+    {'keyids': ['34345df32093bd12...'],
+     'threshold': 1,
+     'signatures': ['ab453bdf...', ...],
+     'paths': ['path/to/target1', 'path/to/target2', ...],
+     'path_hash_prefixes': ['a324fcd...', ...],
+     'delegations': {'keys': {}, 'roles': []}}
+
+    The 'signatures', 'paths', 'path_hash_prefixes', and 'delegations' dict keys
+    are optional.
 
   <Arguments>
     rolename:
@@ -495,7 +509,7 @@ def get_roleinfo(rolename):
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename)
   
-  return _roledb_dict[rolename]
+  return copy.deepcopy(_roledb_dict[rolename])
 
 
 
@@ -639,7 +653,7 @@ def get_delegated_rolenames(rolename):
 
   <Returns>
     A list of rolenames. Note that the rolenames are *NOT* sorted by order of
-    delegation!
+    delegation.
   """
 
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.

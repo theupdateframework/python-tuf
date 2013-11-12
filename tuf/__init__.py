@@ -116,6 +116,14 @@ class RepositoryError(Error):
 
 
 
+class InsufficientKeysError(Error):
+  """Indicate that metadata role lacks a threshold of pubic or private keys."""
+  pass
+
+
+
+
+
 class ForbiddenTargetError(RepositoryError):
   """Indicate that a role signed for a target that it was not delegated to."""
   pass

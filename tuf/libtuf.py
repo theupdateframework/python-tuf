@@ -14,12 +14,21 @@
 <Purpose>
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+
 import os
 import errno
 import sys
 import time
 import getpass
 import logging
+import tempfile
+import shutil
 import json
 
 import tuf
@@ -49,8 +58,11 @@ RELEASE_FILENAME = 'release.txt'
 TIMESTAMP_FILENAME = 'timestamp.txt'
 
 # The targets and metadata directory names.
-METADATA_DIRECTORY_NAME = 'metadata'
+METADATA_DIRECTORY_NAME = 'metadata.staged'
 TARGETS_DIRECTORY_NAME = 'targets' 
+
+# The file extension of TUF metadata files.
+METADATA_EXTENSION = '.txt'
 
 # Expiration date delta, in seconds, of the top-level roles.  A metadata
 # expiration date is set by taking the current time and adding the expiration
@@ -71,7 +83,7 @@ TIMESTAMP_EXPIRATION = 86400
 # The suffix added to metadata filenames of partially written metadata.
 # Partial metadata may contain insufficient number of signatures and require
 # multiple repository maintainers to independently sign them.
-PARTIAL_METADATA_SUFFIX = '.partial'
+#PARTIAL_METADATA_SUFFIX = '.partial'
 
 
 class Repository(object):
@@ -110,7 +122,7 @@ class Repository(object):
     self.root = Root() 
     self.release = Release()
     self.timestamp = Timestamp()
-    self.targets = Targets('targets', self._targets_directory)
+    self.targets = Targets(self._targets_directory, 'targets')
   
   
   
@@ -126,105 +138,292 @@ class Repository(object):
     <Side Effects>
 
     <Returns>
+      None.
     """
+   
+    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets')
+    release_roleinfo = tuf.roledb.get_roleinfo('release')
+    timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp')
+    temp_repository_directory = None
+
+    try:
+      temp_repository_directory = tempfile.mkdtemp()
+      metadata_directory = os.path.join(temp_repository_directory,
+                                        METADATA_DIRECTORY_NAME)
+      os.mkdir(metadata_directory)
+
+      filenames = get_metadata_filenames(metadata_directory)
+      root_filename = filenames[ROOT_FILENAME] 
+      targets_filename = filenames[TARGETS_FILENAME] 
+      release_filename = filenames[RELEASE_FILENAME] 
+      timestamp_filename = filenames[TIMESTAMP_FILENAME] 
     
-    # tuf.sig
-  
-  
-  def write(self):
+      # Delegated roles.
+      delegated_roles = tuf.roledb.get_delegated_rolenames('targets')
+      insufficient_keys = []
+      insufficient_signatures = []
+      for delegated_role in delegated_roles:
+        try: 
+          _check_role_keys(delegated_role)
+        except tuf.InsufficientKeysError, e:
+          insufficient_keys.append(delegated_role)
+          continue
+        
+        roleinfo = tuf.roledb.get_roleinfo(delegated_role)
+        try: 
+          write_delegated_metadata_file(temp_repository_directory,
+                                        self._targets_directory,
+                                        delegated_role,
+                                        roleinfo['version'],
+                                        roleinfo['expires'],
+                                        roleinfo['signing_keyids'],
+                                        roleinfo['paths'],
+                                        roleinfo['delegations'],
+                                        roleinfo['signatures'],
+                                        write_partial=False)
+        except tuf.Error, e:
+          insufficient_signatures.append(delegated_role)
+      if len(insufficient_keys):
+        message = 'Delegated roles with insufficient keys: '+ \
+          repr(insufficient_keys)
+        print(message)
+        return
+
+      if len(insufficient_signatures):
+        message = 'Delegated roles with insufficient signatures: '+ \
+          repr(insufficient_signatures)
+        print(message) 
+        return
+
+      # Root role.
+      try: 
+        _check_role_keys(self.root.rolename)
+      except tuf.InsufficientKeysError, e:
+        print(str(e))
+        return
+      
+      root_metadata = generate_root_metadata(root_roleinfo['version'],
+                                             root_roleinfo['expires'])
+      signed_root = sign_metadata(root_metadata, root_roleinfo['signing_keyids'],
+                                  root_filename)
+      signed_root['signatures'].extend(root_roleinfo['signatures'])
+      root_status = tuf.sig.get_signature_status(signed_root, 'root')
+      message = repr(self.root.rolename)+' role contains '+ \
+        repr(len(root_status['good_sigs']))+' / '+ \
+        repr(root_status['threshold'])+' signatures.'
+      print(message)
+      
+      if tuf.sig.verify(signed_root, 'root'): 
+        write_metadata_file(signed_root, root_filename, compression=None)
+      else:
+        return
+
+
+      # Targets role.
+      try: 
+        _check_role_keys(self.targets.rolename)
+      except tuf.InsufficientKeysError, e:
+        print(str(e))
+        return
+      
+      targets_metadata = generate_targets_metadata(self._targets_directory,
+                                                   targets_roleinfo['paths'],
+                                                   targets_roleinfo['version'],
+                                                   targets_roleinfo['expires'],
+                                                   targets_roleinfo['delegations'])
+      signed_targets = sign_metadata(targets_metadata,
+                                     targets_roleinfo['signing_keyids'],
+                                     targets_filename)
+      signed_targets['signatures'].extend(targets_roleinfo['signatures'])
+      targets_status = tuf.sig.get_signature_status(signed_targets, 'targets')
+      message = repr(self.targets.rolename)+' role contains '+ \
+        repr(len(targets_status['good_sigs']))+' / '+ \
+        repr(targets_status['threshold'])+' signatures.'
+      print(message)
+      
+      if tuf.sig.verify(signed_targets, 'targets'): 
+        write_metadata_file(signed_targets, targets_filename, compression=None)
+      else: 
+        return
+     
+
+      # Release role.
+      try:
+        _check_role_keys(self.release.rolename)
+      except tuf.InsufficientKeysError, e:
+        print(str(e))
+        return
+      
+      release_metadata = generate_release_metadata(metadata_directory,
+                                                   release_roleinfo['version'],
+                                                   release_roleinfo['expires'])
+      signed_release = sign_metadata(release_metadata,
+                                     release_roleinfo['signing_keyids'],
+                                     release_filename)
+      signed_release['signatures'].extend(release_roleinfo['signatures'])
+      release_status = tuf.sig.get_signature_status(signed_release, 'release')
+      
+      message = repr(self.release.rolename)+' role contains '+ \
+        repr(len(release_status['good_sigs']))+' / '+ \
+        repr(release_status['threshold'])+' signatures.'
+      print(message)
+      if tuf.sig.verify(signed_release, 'release'): 
+        write_metadata_file(signed_release, release_filename, compression=None)
+      else:
+        return 
+      
+      # Timestamp role.
+      try:
+        _check_role_keys(self.timestamp.rolename)
+      except tuf.InsufficientKeysError, e:
+        print(str(e))
+        return
+
+      timestamp_metadata = generate_timestamp_metadata(release_filename,
+                                              timestamp_roleinfo['version'],
+                                              timestamp_roleinfo['expires'],
+                                              compressions=())
+      
+      signed_timestamp= sign_metadata(timestamp_metadata,
+                                      timestamp_roleinfo['signing_keyids'],
+                                      release_filename)
+      signed_timestamp['signatures'].extend(timestamp_roleinfo['signatures'])
+      timestamp_status = tuf.sig.get_signature_status(signed_timestamp,
+                                                      'timestamp')
+      
+      message = repr(self.timestamp.rolename)+' role contains '+ \
+        repr(len(timestamp_status['good_sigs']))+' / '+ \
+        repr(timestamp_status['threshold'])+' signatures.'
+      print(message)
+      if tuf.sig.verify(signed_timestamp, 'timestamp'): 
+        write_metadata_file(signed_timestamp, timestamp_filename,
+                            compression=None)
+      else:
+        return
+
+    finally:
+      shutil.rmtree(temp_repository_directory, ignore_errors=True)
+ 
+
+
+  def write(self, write_partial=False):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files.  
     
     <Arguments>
+      None.
 
     <Exceptions>
+      tuf.RepositoryError, if any of the top-level roles do not have a minimum
+      threshold of signatures.
 
     <Side Effects>
+      Creates metadata files in the repository's metadata directory.
 
     <Returns>
+      None.
     """
     
-    # At this point the keystore is built and the 'role_info' dictionary
-    # looks something like this:
-    # {'keyids : [keyid1, keyid2] , 'threshold' : 2}
+    # Does 'partial' have the correct format?
+    # Raise 'tuf.FormatError' if 'partial' is improperly formatted.
+    tuf.formats.TOGGLE_SCHEMA.check_match(write_partial)
+    
+    # At this point the tuf.keydb and tuf.roledb stores must be fully
+    # populated, otherwise write() throwns a 'tuf.Repository' exception if 
+    # any of the top-level roles are missing signatures, keys, etc.
     filenames = get_metadata_filenames(self._metadata_directory)
     root_filename = filenames[ROOT_FILENAME] 
     targets_filename = filenames[TARGETS_FILENAME] 
     release_filename = filenames[RELEASE_FILENAME] 
     timestamp_filename = filenames[TIMESTAMP_FILENAME] 
 
+    # Write the metadata files of all the delegated roles.
+    delegated_roles = tuf.roledb.get_delegated_rolenames('targets')
+    for delegated_role in delegated_roles:
+      roleinfo = tuf.roledb.get_roleinfo(delegated_role)
+      
+      write_delegated_metadata_file(self._repository_directory,
+                                    self._targets_directory, 
+                                    delegated_role,
+                                    roleinfo['version'], roleinfo['expires'],
+                                    roleinfo['signing_keyids'],
+                                    roleinfo['paths'],
+                                    roleinfo['delegations'],
+                                    roleinfo['signatures'],
+                                    write_partial)
+
+
     # Generate the 'root.txt' metadata file. 
-    # Newly created metadata start at version 1.  The expiration date for the
-    # 'Root' role is extracted from the configuration file that was set, above,
-    # by the user.
-    root_keyids = tuf.roledb.get_role_keyids(self.root.rolename)
-    root_version = self.root.version
-    root_expiration = self.root.expiration 
-    if root_expiration is None: 
-      root_expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION) 
-    root_metadata = generate_root_metadata(root_version, root_expiration)
-    write_metadata_file(root_metadata, root_filename, compression=None)
+    roleinfo = tuf.roledb.get_roleinfo('root') 
+    
+    root_metadata = generate_root_metadata(roleinfo['version'],
+                                           roleinfo['expires'])
+    signed_root = sign_metadata(root_metadata, roleinfo['signing_keyids'],
+                                root_filename)
+    signed_root['signatures'].extend(roleinfo['signatures']) 
+    if tuf.sig.verify(signed_root, 'root') or write_partial:
+      write_metadata_file(signed_root, root_filename, compression=None)
+    else: 
+      message = 'Not enough signatures for '+repr(root_filename)
+      raise tuf.Error(message)
+
 
     # Generate the 'targets.txt' metadata file.
-    targets_keyids = tuf.roledb.get_role_keyids(self.targets.rolename)
-    targets_version = self.targets.version
-    targets_expiration = self.targets.expiration
-    targets_files = self.targets.target_files
-    if targets_expiration is None: 
-      targets_expiration = \
-        tuf.formats.format_time(time.time()+TARGETS_EXPIRATION) 
-    targets_metadata = generate_targets_metadata(self._repository_directory,
-                                                 targets_files, targets_version,
-                                                 targets_expiration)
-    write_metadata_file(targets_metadata, targets_filename, compression=None)
+    roleinfo = tuf.roledb.get_roleinfo('targets')
+    targets_metadata = generate_targets_metadata(self._targets_directory,
+                                                 roleinfo['paths'],
+                                                 roleinfo['version'],
+                                                 roleinfo['expires'],
+                                                 roleinfo['delegations'])
+    signed_targets = sign_metadata(targets_metadata, roleinfo['signing_keyids'], 
+                                   targets_filename)
+    signed_targets['signatures'].extend(roleinfo['signatures']) 
+    
+    if tuf.sig.verify(signed_targets, 'targets') or write_partial:
+      write_metadata_file(signed_targets, targets_filename, compression=None)
+    else:
+      message = 'Not enough signatures for '+repr(targets_filename)
+      raise tuf.Error(message)
+
 
     # Generate the 'release.txt' metadata file.
-    release_keyids = tuf.roledb.get_role_keyids(self.release.rolename)
-    release_version = self.release.version
-    release_expiration = self.release.expiration
-    if release_expiration is None: 
-      release_expiration = \
-        tuf.formats.format_time(time.time()+RELEASE_EXPIRATION) 
+    roleinfo = tuf.roledb.get_roleinfo('release')
     release_metadata = generate_release_metadata(self._metadata_directory,
-                                                release_version,
-                                                release_expiration)
-    write_metadata_file(release_metadata, release_filename, compression=None)
+                                                roleinfo['version'],
+                                                roleinfo['expires'])
+    signed_release = sign_metadata(release_metadata, roleinfo['signing_keyids'],
+                                   release_filename)
+    signed_release['signatures'].extend(roleinfo['signatures']) 
+
+    if tuf.sig.verify(signed_release, 'release') or write_partial:
+      write_metadata_file(signed_release, release_filename, compression=None)
+    else:
+      message = 'Not enough signatures for '+repr(release_filename)
+      raise tuf.Error(message)
     
+
     # Generate the 'timestamp.txt' metadata file.
-    timestamp_keyids = tuf.roledb.get_role_keyids(self.timestamp.rolename)
-    timestamp_version = self.timestamp.version
-    timestamp_expiration = self.timestamp.expiration
-    if timestamp_expiration is None: 
-      timestamp_expiration = \
-        tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION) 
+    roleinfo = tuf.roledb.get_roleinfo('timestamp')
     timestamp_metadata = generate_timestamp_metadata(release_filename,
-                                                     timestamp_version,
-                                                     timestamp_expiration,
+                                                     roleinfo['version'],
+                                                     roleinfo['expires'],
                                                      compressions=())
-    write_metadata_file(timestamp_metadata, timestamp_filename, compression=None)
-  
-
-
-  def partial_write():
-    """
-    <Purpose>
-
-    <Arguments>
-
-    <Exceptions>
-
-    <Side Effects>
-
-    <Returns>
-      None.
-    """
+    signed_timestamp = sign_metadata(timestamp_metadata,
+                                     roleinfo['signing_keyids'],
+                                     timestamp_filename)
+    signed_timestamp['signatures'].extend(roleinfo['signatures']) 
     
-    #PARTIAL_METADATA_SUFFIX 
+    if tuf.sig.verify(signed_timestamp, 'timestamp') or write_partial:
+      write_metadata_file(signed_timestamp, timestamp_filename, compression=None)
+    else: 
+      message = 'Not enough signatures for '+repr(timestamp_filename)
+      raise tuf.Error(message)
 
 
 
-  def get_filepaths_in_directory(files_directory, recursive_walk=False,
+  def get_filepaths_in_directory(self, files_directory, recursive_walk=False,
                                  followlinks=True):
     """
     <Purpose>
@@ -241,6 +440,9 @@ class Repository(object):
         To follow symbolic links, set followlinks=True.
 
     <Exceptions>
+      tuf.FormatError, if the arguments are improperly formatted.
+
+      tuf.Error, if 
       Python IO exceptions.
 
     <Side Effects>
@@ -250,6 +452,16 @@ class Repository(object):
       A list of absolute paths to target files in the given files_directory.
     """
 
+    # Do the arguments have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.PATH_SCHEMA.check_match(files_directory)
+    tuf.formats.TOGGLE_SCHEMA.check_match(recursive_walk)
+    tuf.formats.TOGGLE_SCHEMA.check_match(followlinks)
+
+    if not os.path.isdir(files_directory):
+      message = repr(files_directory)+' is not a directory.'
+      raise tuf.Error(message)
+    
     targets = []
 
     # FIXME: We need a way to tell Python 2, but not Python 3, to return
@@ -293,11 +505,9 @@ class Metadata(object):
     self._version = 1
     self._threshold = 1
     self._role_keys = [] 
-    self._signatures = []
-    self._expiration = None 
-  
-  
-  
+
+
+
   def add_key(self, key):
     """
     <Purpose>
@@ -317,7 +527,9 @@ class Metadata(object):
     <Returns>
       None.
     """
-    
+   
+    # Does 'key' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
 
     try:
@@ -326,18 +538,289 @@ class Metadata(object):
       pass
    
     keyid = key['keyid']
-    roleinfo = tuf.roledb.get_roleinfo(self._rolename)
-    roleinfo['keyids'].append(keyid)
-    tuf.roledb.update_roleinfo(self._rolename, roleinfo)
-    
-    self._role_keys.append(keyid) 
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    if keyid not in roleinfo['keyids']: 
+      roleinfo['keyids'].append(keyid)
+      tuf.roledb.update_roleinfo(self._rolename, roleinfo)
+   
+    if keyid not in self._role_keys:
+      self._role_keys.append(keyid)
  
 
- 
+
+  def remove_key(self, key):
+    """
+    <Purpose>
+
+      >>> 
+      >>> 
+      >>> 
+
+    <Arguments>
+      key:
+        tuf.formats.ANYKEY_SCHEMA
+
+    <Exceptions>
+      tuf.FormatError, if 'key' is improperly formatted.
+
+    <Side Effects>
+      Updates 'tuf.keydb.py'.
+
+    <Returns>
+      None.
+    """
+    
+    # Does 'key' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.ANYKEY_SCHEMA.check_match(key)
+    
+    keyid = key['keyid']
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    if keyid in roleinfo['keyids']: 
+      roleinfo['keyids'].remove(keyid)
+      tuf.roledb.update_roleinfo(self._rolename, roleinfo)
+   
+    if keyid in self._role_keys:
+      self._role_keys.remove(keyid)
+
+
+
+  def load_signing_key(self, key):
+    """
+    <Purpose>
+
+      >>> 
+      >>> 
+      >>> 
+
+    <Arguments>
+      key:
+        tuf.formats.ANYKEY_SCHEMA
+
+    <Exceptions>
+      tuf.FormatError, if 'key' is improperly formatted.
+
+      tuf.Error, if the private key is unavailable in 'key'.
+
+    <Side Effects>
+      Updates 'tuf.keydb.py'.
+
+    <Returns>
+      None.
+    """
+    
+    # Does 'key' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.ANYKEY_SCHEMA.check_match(key)
+   
+    if not len(key['keyval']['private']):
+      message = 'The private key is unavailable.'
+      raise tuf.Error(message)
+
+    try:
+      tuf.keydb.add_key(key)
+    except tuf.KeyAlreadyExistsError, e:
+      tuf.keydb.remove_key(key['keyid'])
+      tuf.keydb.add_key(key)
+
+    # Update 'signing_keys' in roledb.
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    if key['keyid'] not in roleinfo['signing_keyids']:
+      roleinfo['signing_keyids'].append(key['keyid'])
+      tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+  
+  
+  
+  def unload_signing_key(self, key):
+    """
+    <Purpose>
+
+      >>> 
+      >>> 
+      >>> 
+
+    <Arguments>
+      key:
+        tuf.formats.ANYKEY_SCHEMA
+
+    <Exceptions>
+      tuf.FormatError, if 'key' is improperly formatted.
+
+      tuf.Error, if the private key is unavailable in 'key'.
+
+    <Side Effects>
+      Updates 'tuf.keydb.py'.
+
+    <Returns>
+      None.
+    """
+    
+    # Does 'key' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.ANYKEY_SCHEMA.check_match(key)
+    
+    # Update 'signing_keys' in roledb.
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    if key['keyid'] in roleinfo['signing_keyids']:
+      roleinfo['signing_keyids'].remove(key['keyid'])
+      tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+
+
+
+  def add_signature(self, signature):
+    """
+    <Purpose>
+
+      >>> 
+      >>> 
+      >>> 
+
+    <Arguments>
+      key:
+        tuf.formats.ANYKEY_SCHEMA
+
+    <Exceptions>
+      tuf.FormatError, if 'key' is improperly formatted.
+
+      tuf.Error, if the private key is unavailable in 'key'.
+
+    <Side Effects>
+      Updates 'tuf.keydb.py'.
+
+    <Returns>
+      None.
+    """
+    
+    # Does 'key' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
+  
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    if 'signatures' not in roleinfo:
+      roleinfo['signatures'] = []
+    
+    if signature not in roleinfo['signatures']:
+      roleinfo['signatures'].append(signature)
+      tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+
+
+
+  def remove_signature(self, signature):
+    """
+    <Purpose>
+
+      >>> 
+      >>> 
+      >>> 
+
+    <Arguments>
+      key:
+        tuf.formats.ANYKEY_SCHEMA
+
+    <Exceptions>
+      tuf.FormatError, if 'key' is improperly formatted.
+
+      tuf.Error, if the private key is unavailable in 'key'.
+
+    <Side Effects>
+      Updates 'tuf.keydb.py'.
+
+    <Returns>
+      None.
+    """
+    
+    # Does 'key' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
+  
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    if signature in roleinfo['signatures']:
+      roleinfo['signatures'].remove(signature)
+      tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+
+
+
+  @property
+  def signatures(self):
+    """
+    """
+
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    
+    return roleinfo['signatures']
+
+
+
+  @property
+  def role_keys(self):
+    """
+    """
+
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    
+    return roleinfo['keyids']
+
+
+
+  @property
+  def rolename(self):
+    """
+    """
+
+    return self._rolename
+  
+  
+  
+  @property
+  def version(self):
+    """
+    """
+    
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    version = roleinfo['version'] 
+
+    return version
+  
+  
+  
+  @version.setter
+  def version(self, version):
+    """
+    <Purpose>
+
+      >>> 
+      >>> 
+      >>> 
+
+    <Arguments>
+      threshold:
+        tuf.formats.THRESHOLD_SCHEMA
+
+    <Exceptions>
+      tuf.FormatError, if the argument is improperly formatted.
+
+    <Side Effects>
+      Modifies the threshold attribute of the Repository object.
+
+    <Returns>
+      None.
+    """
+    
+    # Does 'version' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
+    
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    roleinfo['version'] = version 
+    
+    tuf.roledb.update_roleinfo(self._rolename, roleinfo)
+    self._version = version
+
+
+
   @property
   def threshold(self):
     """
-
     """
 
     return self._threshold
@@ -366,7 +849,9 @@ class Metadata(object):
     <Returns>
       None.
     """
-    
+   
+    # Does 'threshold' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
     
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
@@ -397,8 +882,10 @@ class Metadata(object):
     <Returns>
       The role's expiration datetime, conformant to tuf.formats.DATETIME_SCHEMA.
     """
+    
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
 
-    return self._expiration
+    return roleinfo['expires']
 
 
 
@@ -440,13 +927,27 @@ class Metadata(object):
       message = 'The expiration date must occur after the current date.'
       raise tuf.FormatError(message)
     
-    self._expiration = expiration_datetime_utc
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    roleinfo['expires'] = expiration_datetime_utc
+    tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+  
+  
+  
+  @property
+  def signing_keys(self):
+    """
+    """
+
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    
+    return roleinfo['signing_keyids']
 
 
 
   def write_partial(self, object):
     """
     <Purpose>
+      #PARTIAL_METADATA_SUFFIX 
 
       >>> 
       >>> 
@@ -489,9 +990,16 @@ class Root(Metadata):
     super(Root, self).__init__() 
     
     self._rolename = 'root'
-    
-    roleinfo = {'keyids': [], 'threshold': 1}
-    tuf.roledb.add_role(self._rolename, roleinfo)
+   
+   
+    expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION)
+
+    roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
+                'signatures': [], 'version': 1, 'expires': expiration} 
+    try: 
+      tuf.roledb.add_role(self._rolename, roleinfo)
+    except tuf.RoleAlreadyExistsError, e:
+      pass
 
 
   def write_partial(self):
@@ -522,11 +1030,17 @@ class Timestamp(Metadata):
     
     super(Timestamp, self).__init__() 
     
-    self._rolename = 'timestamp' 
-    
-    roleinfo = {'keyids': [], 'threshold': 1}
-    tuf.roledb.add_role(self._rolename, roleinfo)
+    self._rolename = 'timestamp'
 
+    expiration = tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION)
+
+    roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
+                'signatures': [], 'version': 1, 'expires': expiration}
+    
+    try: 
+      tuf.roledb.add_role(self._rolename, roleinfo)
+    except tuf.RoleAlreadyExistsError, e:
+      pass
 
 
   def write_partial(self):
@@ -559,9 +1073,15 @@ class Release(Metadata):
     
     self._rolename = 'release' 
     
-    roleinfo = {'keyids': [], 'threshold': 1}
-    tuf.roledb.add_role(self._rolename, roleinfo)
-
+    expiration = tuf.formats.format_time(time.time()+RELEASE_EXPIRATION)
+    
+    roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
+                'signatures': [], 'version': 1, 'expires': expiration}
+    
+    try:
+      tuf.roledb.add_role(self._rolename, roleinfo)
+    except tuf.RoleAlreadyExistsError, e:
+      pass
 
 
   def write_partial(self):
@@ -593,25 +1113,40 @@ class Targets(Metadata):
     None.
   """
   
-  def __init__(self, rolename, targets_directory):
+  def __init__(self, targets_directory, rolename, roleinfo=None):
    
     # Do the arguments have the correct format?
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
     tuf.formats.PATH_SCHEMA.check_match(targets_directory)
+    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
     
+    if roleinfo is not None:
+      tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+
     super(Targets, self).__init__()
     self._targets_directory = targets_directory
     self._rolename = rolename 
     self._target_files = []
     self._delegations = {}
+   
+    expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
 
-    roleinfo = {'keyids': [], 'threshold': 1, 'paths': [],
-                'path_hash_prefixes': [],
-                'delegations': {'keys': {},
-                                'roles': []}}
-
-    tuf.roledb.add_role(self._rolename, roleinfo)
+    if roleinfo is None:
+      roleinfo = {'keyids': [],
+                  'signing_keyids': [],
+                  'threshold': 1,
+                  'version': 1,
+                  'expires': expiration,
+                  'signatures': [],
+                  'paths': [],
+                  'path_hash_prefixes': [],
+                  'delegations': {'keys': {},
+                                  'roles': []}}
+    
+    try:
+      tuf.roledb.add_role(self._rolename, roleinfo)
+    except tuf.RoleAlreadyExistsError, e:
+      pass  
 
 
 
@@ -638,7 +1173,9 @@ class Targets(Metadata):
       None.
     """
 
-    return self._target_files
+    target_files = tuf.roledb.get_roleinfo(self._rolename)['paths']
+
+    return target_files
 
 
 
@@ -687,14 +1224,14 @@ class Targets(Metadata):
         'directory: '+repr(self._targets_directory)
       raise tuf.Error(message)
 
-    # TODO: Ensure is an allowed target path according to the parent's
+    # TODO: Ensure 'filepath' is an allowed target path according to the parent's
     # delegation.
     """
-        for child_target in actual_child_targets:
-          for allowed_child_path in allowed_child_paths:
-            prefix = os.path.commonprefix([child_target, allowed_child_path])
-            if prefix == allowed_child_path:
-              break
+    for child_target in actual_child_targets:
+      for allowed_child_path in allowed_child_paths:
+        prefix = os.path.commonprefix([child_target, allowed_child_path])
+        if prefix == allowed_child_path:
+          break
     """
 
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
@@ -743,13 +1280,13 @@ class Targets(Metadata):
     # TODO: Ensure list of targets allowed paths according to the parent's
     # delegation.
 
-    # TODO: Update the tuf.roledb entry.
+    # Update the tuf.roledb entry.
     targets_directory_length = len(self._targets_directory) 
-    absolute_paths_list_of_targets = []
+    absolute_list_of_targets = []
     relative_list_of_targets = []
     
     for target in list_of_targets:
-      filepath = os.path.abspath(filepath)
+      filepath = os.path.abspath(target)
       
       if not os.path.commonprefix([self._targets_directory, filepath]) == \
                                   self._targets_directory:
@@ -757,7 +1294,7 @@ class Targets(Metadata):
           'directory: '+repr(self._targets_directory)
         raise tuf.Error(message)
       if os.path.isfile(filepath):
-        absolute_paths_list_of_targets.append(filepath)
+        absolute_list_of_targets.append(filepath)
         relative_list_of_targets.append(filepath[targets_directory_length+1:])
       else:
         message = repr(filepath)+' is not a valid file.'
@@ -783,21 +1320,46 @@ class Targets(Metadata):
 
     <Arguments>
       filepath:
+        Relative to the targets directory.
 
     <Exceptions>
       tuf.FormatError, if 'filepath' is improperly formatted.
 
+      tuf.Error, if 'filepath' is not under the targets directory.
+
     <Side Effects>
       Modifies the target role's 'tuf.roledb.py' entry.
+    
     <Returns>
       None.
     """
+
+    # Does 'filepath' have the correct format?
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.RELPATH_SCHEMA.check_match(filepath)
+   
+    filepath = os.path.abspath(filepath)
+    targets_directory_length = len(self._targets_directory)
+    
+    # Ensure 'filepath' is under the targets directory.
+    if not os.path.commonprefix([self._targets_directory, filepath]) == \
+                                self._targets_directory:
+      message = repr(filepath)+' is not under the Repository\'s targets '+\
+        'directory: '+repr(self._targets_directory)
+      raise tuf.Error(message)
+
+    relative_filepath = filepath[targets_directory_length+1:]
+    
+    fileinfo = tuf.roledb.get_roleinfo(self.rolename)
+    if relative_filepath in fileinfo['paths']:
+      fileinfo['paths'].remove(relative_filepath)
+
+    tuf.roledb.update_roleinfo(self.rolename, fileinfo)
   
   
   
-  
-  
-  def delegate(self, rolename, public_keys, list_of_targets, restricted_paths=None):
+  def delegate(self, rolename, public_keys, list_of_targets,
+               threshold=1, restricted_paths=None):
     """
     <Purpose>
       'targets' is a list of target filepaths, and can be empty.
@@ -812,6 +1374,8 @@ class Targets(Metadata):
       public_keys:
 
       list_of_targets:
+
+      expiration:
 
       restricted_paths:
 
@@ -832,16 +1396,15 @@ class Targets(Metadata):
     tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
     tuf.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
     tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
 
-    # Validate 'list_of_targets'
-    # Ensure 'restricted_paths' is allowed by current role according to the
-    # parent. 
-    
-    # Update the 'delegations' field of the current role.
-   
+    if restricted_paths is not None:
+      tuf.formats.RELPATHS_SCHEMA.check_match(restricted_paths)
+      
     full_rolename = self._rolename+'/'+rolename 
     keyids = [] 
-      
+    keydict = {}
+
     # Add public keys to tuf.keydb
     for key in public_keys:
       
@@ -849,25 +1412,77 @@ class Targets(Metadata):
         tuf.keydb.add_key(key)
       except tuf.KeyAlreadyExistsError, e:
         pass
-
+      
       keyid = key['keyid']
+      key_metadata_format = tuf.keys.format_keyval_to_metadata(key['keytype'],
+                                                               key['keyval'])
+      keydict.update({keyid: key_metadata_format})
       keyids.append(keyid)
 
-    # Add role to 'tuf.roledb.py'
-    roleinfo = {'keyids': keyids,
-                'threshold': 1,
+    # Validate 'list_of_targets'.
+    relative_targetpaths = []
+    targets_directory_length = len(self._targets_directory)
+    
+    for target in list_of_targets:
+      target = os.path.abspath(target)
+      if not os.path.commonprefix([self._targets_directory, target]) == \
+                                self._targets_directory:
+        message = repr(target)+' is not under the Repository\'s targets '+\
+        'directory: '+repr(self._targets_directory)
+        raise tuf.Error(message)
+
+      relative_targetpaths.append(target[targets_directory_length+1:])
+    
+    # Validate 'restricted_paths'.
+    relative_restricted_paths = []
+   
+    if restricted_paths is not None: 
+      for target in restricted_paths:
+        target = os.path.abspath(target)
+        if not os.path.commonprefix([self._targets_directory, target]) == \
+                                  self._targets_directory:
+          message = repr(target)+' is not under the Repository\'s targets '+\
+          'directory: '+repr(self._targets_directory)
+          raise tuf.Error(message)
+
+        relative_restricted_paths.append(target[targets_directory_length+1:])
+   
+    # Add role to 'tuf.roledb.py'.
+    expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
+    roleinfo = {'name': full_rolename,
+                'keyids': keyids,
+                'signing_keyids': [],
+                'threshold': threshold,
+                'version': 1,
+                'expires': expiration,
                 'signatures': [],
-                'paths': list_of_targets,
+                'paths': relative_targetpaths,
                 'delegations': {'keys': {},
                                 'roles': []}}
-    tuf.roledb.add_role(full_rolename, roleinfo)
+    #tuf.roledb.add_role(full_rolename, roleinfo)
+    new_targets_object = Targets(self._targets_directory, full_rolename,
+                                 roleinfo )
     
-    new_targets_object = Targets(rolename, self._targets_directory)
+    # Update the 'delegations' field of the current role.
+    current_roleinfo = tuf.roledb.get_roleinfo(self.rolename) 
+    current_roleinfo['delegations']['keys'].update(keydict)
+
+    # A ROLE_SCHEMA object requires only 'keyids', 'threshold', and 'paths'.
+    roleinfo = {'name': full_rolename,
+                'keyids': roleinfo['keyids'],
+                'threshold': roleinfo['threshold'],
+                'paths': roleinfo['paths']}
+    if restricted_paths is not None:
+      roleinfo['paths'] = relative_restricted_paths
+    
+    current_roleinfo['delegations']['roles'].append(roleinfo)
+    tuf.roledb.update_roleinfo(self.rolename, current_roleinfo)  
     
     # Update 'new_targets_object' attributes.
     for key in public_keys:
       new_targets_object.add_key(key)
 
+    #self._delegations = 
     self.__setattr__(rolename, new_targets_object)
   
   
@@ -882,8 +1497,8 @@ class Targets(Metadata):
 
     <Arguments>
       rolename:
-        Not the full rolename ('Django' in 'targets/unclaimed/Django') of the role the
-        parent role (this role) wants to revoke.
+        Not the full rolename ('Django' in 'targets/unclaimed/Django') of the
+        role the parent role (this role) wants to revoke.
 
     <Exceptions>
       tuf.FormatError, if 'rolename' is improperly formatted.
@@ -895,14 +1510,19 @@ class Targets(Metadata):
     """
 
     tuf.formats.ROLENAME_SCHEMA.check_match(rolename) 
-    
-    self.__delattr__(rolename)
 
     # Remove from this Target's delegations dict.
+    full_rolename = self.rolename+'/'+rolename
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    del roleinfo['delegations']['roles'][full_rolename]
 
-    # Remove from 'tuf.roledb.py'
+    # Remove from 'tuf.roledb.py'.  The delegated roles of 'rolename' are also
+    # removed.
+    tuf.roledb.remove_role(full_rolename)
+    
+    # Remove the rolename attribute from the current role.
+    self.__delattr__(rolename)
 
-    # Remove
 
 
 def _prompt(message, result_type=str):
@@ -936,7 +1556,7 @@ def _get_password(prompt='Password: ', confirm=False):
     if password == password2:
       return password
     else:
-      print 'Mismatch; try again.'
+      print('Mismatch; try again.')
 
 
 
@@ -977,6 +1597,33 @@ def _check_directory(directory):
   directory = os.path.abspath(directory)
   
   return directory
+
+
+
+
+
+def _check_role_keys(rolename):
+  """
+  rolename:
+    full rolename.
+  """
+
+  roleinfo = tuf.roledb.get_roleinfo(rolename)
+  total_keyids = len(roleinfo['keyids'])
+  threshold = roleinfo['threshold']
+  total_signatures = len(roleinfo['signatures'])
+  total_signing_keys = len(roleinfo['signing_keyids'])
+  
+  if total_keyids < threshold: 
+    message = repr(rolename)+' role contains '+repr(total_keyids)+' / '+ \
+      repr(threshold)+' public keys.'
+    raise tuf.InsufficientKeysError(message)
+
+  if total_signatures == 0 and total_signing_keys < threshold: 
+    message = repr(rolename)+' role contains '+repr(total_signing_keys)+' / '+ \
+      repr(threshold)+' signing keys.'
+    raise tuf.InsufficientKeysError(message)
+
 
 
 
@@ -1052,23 +1699,205 @@ def create_new_repository(repository_directory):
 
 
 
-def load_repository(repository_directory, partial_metadata_suffix=None):
+def load_repository(repository_directory):
   """
   <Purpose>
-    Return a repository object that represents an existing repository.
+    Return a repository object containing the contents of metadata files loaded
+    from the repository.
 
   <Arguments>
     repository_directory:
 
-    partial_metadata_suffix:
-
   <Exceptions>
+    tuf.FormatError, if 'repository_directory' or any of the metadata files
+    are improperly formatted.  Also raised if, at a minimum, the Root role
+    cannot be found.
 
   <Side Effects>
+   All the metadata files found in the repository are loaded and their contents
+   stored in a libtuf.Repository object.
 
   <Returns>
     libtuf.Repository object.
   """
+ 
+  # Does 'repository_directory' have the correct format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.PATH_SCHEMA.check_match(repository_directory)
+
+  # Load top-level metadata.
+  repository_directory = os.path.abspath(repository_directory)
+  metadata_directory = os.path.join(repository_directory,
+                                    METADATA_DIRECTORY_NAME)
+  targets_directory = os.path.join(repository_directory,
+                                    TARGETS_DIRECTORY_NAME)
+  
+  repository = None
+
+  filenames = get_metadata_filenames(metadata_directory)
+  root_filename = filenames[ROOT_FILENAME] 
+  targets_filename = filenames[TARGETS_FILENAME] 
+  release_filename = filenames[RELEASE_FILENAME] 
+  timestamp_filename = filenames[TIMESTAMP_FILENAME]
+
+  root_metadata = None
+  targets_metadata = None
+  release_metadata = None
+  timestamp_metadata = None
+  
+  # ROOT.txt 
+  if os.path.exists(root_filename):
+
+    # Initialize the key and role metadata of the top-level roles.
+    signable = tuf.util.load_json_file(root_filename)
+    tuf.formats.check_signable_object_format(signable)
+    root_metadata = signable['signed']  
+    tuf.keydb.create_keydb_from_root_metadata(root_metadata)
+    tuf.roledb.create_roledb_from_root_metadata(root_metadata)
+
+    roleinfo = tuf.roledb.get_roleinfo('root')
+    roleinfo['signatures'] = []
+    for signature in signable['signatures']:
+      roleinfo['signatures'].append(signature)
+    tuf.roledb.update_roleinfo('root', roleinfo)
+  else:
+    message = 'Cannot load the required root file: '+repr(root_filename)
+    raise tuf.RepositoryError(message)
+  
+  repository = Repository(repository_directory, metadata_directory,
+                          targets_directory)
+   
+  # TARGETS.txt
+  if os.path.exists(targets_filename):
+    signable = tuf.util.load_json_file(targets_filename)
+    tuf.formats.check_signable_object_format(signable)
+    targets_metadata = signable['signed']
+
+    for signature in signable['signatures']:
+      repository.targets.add_signature(signature)
+   
+    # Update 'targets.txt' in 'tuf.roledb.py' 
+    roleinfo = tuf.roledb.get_roleinfo('targets')
+    roleinfo['paths'] = targets_metadata['targets'].keys()
+    roleinfo['version'] = targets_metadata['version']
+    roleinfo['expires'] = targets_metadata['expires']
+    roleinfo['delegations'] = targets_metadata['delegations']
+    tuf.roledb.update_roleinfo('targets', roleinfo)
+
+    # Add the keys specified in the delegations field of the Targets role.
+    # TODO: Delegated role's are only missing the threshold value, which the
+    # parent role sets.  Remember to request threshold value from parent role.
+    for key_metadata in targets_metadata['delegations']['keys'].values():
+      key_object = tuf.keys.format_metadata_to_key(key_metadata)
+      tuf.keydb.add_key(key_object)
+
+    for role in targets_metadata['delegations']['roles']:
+      rolename = role['name'] 
+      roleinfo = {'name': role['name'],
+                  'keyids': role['keyids'],
+                  'threshold': role['threshold'],
+                  'signing_keyids': [],
+                  'signatures': [],
+                  'delegations': {'keys': {},
+                                  'roles': []}}
+      tuf.roledb.add_role(rolename, roleinfo)
+  
+  else:
+    pass 
+ 
+  
+  # RELEASE.txt
+  if os.path.exists(release_filename):
+    signable = tuf.util.load_json_file(release_filename)
+    tuf.formats.check_signable_object_format(signable)
+    release_metadata = signable['signed']  
+    for signature in signable['signatures']:
+      repository.release.add_signature(signature)
+
+    roleinfo = tuf.roledb.get_roleinfo('release')
+    roleinfo['expires'] = release_metadata['expires']
+    roleinfo['version'] = release_metadata['version']
+    tuf.roledb.update_roleinfo('release', roleinfo)
+  
+  else:
+    pass 
+ 
+
+  # TIMESTAMP.txt 
+  if os.path.exists(timestamp_filename):
+    signable = tuf.util.load_json_file(timestamp_filename)
+    timestamp_metadata = signable['signed']  
+    for signature in signable['signatures']:
+      repository.timestamp.add_signature(signature)
+
+    roleinfo = tuf.roledb.get_roleinfo('timestamp')
+    roleinfo['expires'] = timestamp_metadata['expires']
+    roleinfo['version'] = timestamp_metadata['version']
+    tuf.roledb.update_roleinfo('timestamp', roleinfo)
+  
+  else:
+    pass 
+ 
+  # Load delegated targets metadata.
+  # Walk the 'targets/' directory and generate the file info for all
+  # the files listed there.  This information is stored in the 'meta'
+  # field of the release metadata object.
+  targets_objects = {}
+  targets_objects['targets'] = repository.targets
+  targets_metadata_directory = os.path.join(metadata_directory,
+                                            TARGETS_DIRECTORY_NAME)
+  if os.path.exists(targets_metadata_directory) and \
+                    os.path.isdir(targets_metadata_directory):
+    for root, directories, files in os.walk(targets_metadata_directory):
+      # 'files' here is a list of target file names.
+      for basename in files:
+        metadata_path = os.path.join(root, basename)
+        metadata_name = metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+        extension_length = len(METADATA_EXTENSION)
+        metadata_name = metadata_name[:-extension_length] 
+       
+        signable = None
+        try:
+          signable = tuf.util.load_json_file(metadata_path)
+        except (ValueError, IOError), e:
+          continue
+        
+        metadata_object = signable['signed']
+      
+        roleinfo = tuf.roledb.get_roleinfo(metadata_name)
+        roleinfo['signatures'].extend(signable['signatures'])
+        roleinfo['version'] = metadata_object['version']
+        roleinfo['expires'] = metadata_object['expires']
+        roleinfo['paths'] = metadata_object['targets'].keys()
+        
+        tuf.roledb.update_roleinfo(metadata_name, roleinfo)
+
+        new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
+        targets_object = targets_objects[tuf.roledb.get_parent_rolename(metadata_name)]
+        targets_object.__setattr__(os.path.basename(metadata_name),
+                                   new_targets_object)
+
+        # Add the keys specified in the delegations field of the Targets role.
+        for key_metadata in metadata_object['delegations']['keys'].values():
+          key_object = tuf.keys.format_metadata_to_key(key_metadata)
+          try: 
+            tuf.keydb.add_key(key_object)
+          except tuf.KeyAlreadyExistsError, e:
+            pass
+        
+        for role in metadata_object['delegations']['roles']:
+          rolename = role['name'] 
+          roleinfo = {'name': role['name'],
+                      'keyids': role['keyids'],
+                      'threshold': role['threshold'],
+                      'signing_keyids': [],
+                      'signatures': [],
+                      'delegations': {'keys': {},
+                                      'roles': []}}
+          tuf.roledb.update_roleinfo(rolename, roleinfo)
+ 
+  return repository
+
 
 
 
@@ -1077,7 +1906,6 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
                                    password=None):
   """
   <Purpose>
-    Return a repository object that represents an existing repository.
 
   <Arguments>
     filepath:
@@ -1090,10 +1918,13 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
     password:
 
   <Exceptions>
+    tuf.FormatError, if the arguments are improperly formatted.
 
   <Side Effects>
+    Writes key files to '<filepath>' and '<filepath>.pub'.
 
   <Returns>
+    None.
   """
 
   # Does 'filepath' have the correct format?
@@ -1117,7 +1948,9 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
   encrypted_pem = tuf.keys.create_rsa_encrypted_pem(private, password) 
  
   # Write public key (i.e., 'public', which is in PEM format) to
-  # '<filepath>.pub'
+  # '<filepath>.pub'.
+  tuf.util.ensure_parent_dir(filepath)
+
   with open(filepath+'.pub', 'w') as file_object:
     file_object.write(public)
 
@@ -1175,16 +2008,19 @@ def import_rsa_privatekey_from_file(filepath, password=None):
 def import_rsa_publickey_from_file(filepath):
   """
   <Purpose>
+    If the RSA PEM in 'filepath' contains a private key, it is discarded.
 
   <Arguments>
     filepath:
       <filepath>.pub file, an RSA PEM file.
     
   <Exceptions>
+    tuf.FormatError, if 'filepath' is improperly formatted.
 
   <Side Effects>
 
   <Returns>
+    An RSA key object conformant to 'tuf.formats.RSAKEY_SCHEMA'.
   """
 
   # Does 'filepath' have the correct format?
@@ -1431,8 +2267,8 @@ def generate_root_metadata(version, expiration_date):
 
 
 
-def generate_targets_metadata(repository_directory, target_files, version,
-                              expiration_date):
+def generate_targets_metadata(targets_directory, target_files, version,
+                              expiration_date, delegations=None):
   """
   <Purpose>
     Generate the targets metadata object. The targets must exist at the same
@@ -1441,17 +2277,17 @@ def generate_targets_metadata(repository_directory, target_files, version,
     provide keys.
 
   <Arguments>
+    targets_directory:
+      The directory (absolute path) containing the target files and directories.
+
     target_files:
       The target files tracked by 'targets.txt'.  'target_files' is a list of
-      paths/directories of target files that are relative to the repository
-      (e.g., ['targets/file1.txt', ...]).  If the target files are saved in
+      paths/directories of target files that are relative to the targets
+      directory (e.g., ['file1.txt', 'Django/module.py']).  If the target files
+      are saved in
       the root folder 'targets' on the repository, then 'targets' must be
       included in the target paths.  The repository does not have to name
       this folder 'targets'.
-
-    repository_directory:
-      The directory (absolute path) containing the metadata and target
-      directories.
 
     version:
       The metadata version number.  Clients use the version number to
@@ -1461,6 +2297,9 @@ def generate_targets_metadata(repository_directory, target_files, version,
     expiration_date:
       The expiration date, in UTC, of the metadata file.
       Conformant to 'tuf.formats.TIME_SCHEMA'.
+
+    delegations:
+      
   
   <Exceptions>
     tuf.FormatError, if an error occurred trying to generate the targets
@@ -1477,31 +2316,38 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
   # Do the arguments have the correct format.
   # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.PATH_SCHEMA.check_match(targets_directory)
   tuf.formats.PATHS_SCHEMA.check_match(target_files)
-  tuf.formats.PATH_SCHEMA.check_match(repository_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
+  if delegations is not None:
+    tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations)
+    
   filedict = {}
-
-  repository_directory = _check_directory(repository_directory)
+  targets_directory = _check_directory(targets_directory)
 
   # Generate the file info for all the target files listed in 'target_files'.
   for target in target_files:
+    
     # Strip 'targets/' from from 'target' and keep the rest (e.g.,
     # 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt'
-    relative_targetpath = os.path.sep.join(target.split(os.path.sep)[1:])
-    target_path = os.path.join(repository_directory, target)
+    #relative_targetpath = os.path.sep.join(target.split(os.path.sep)[1:])
+    relative_targetpath = target
+    target_path = os.path.join(targets_directory, target)
+    
     if not os.path.exists(target_path):
       message = repr(target_path)+' could not be read.  Unable to generate '+\
         'targets metadata.'
       raise tuf.Error(message)
+    
     filedict[relative_targetpath] = get_metadata_file_info(target_path)
 
   # Generate the targets metadata object.
   targets_metadata = tuf.formats.TargetsFile.make_metadata(version,
                                                            expiration_date,
-                                                           filedict)
+                                                           filedict,
+                                                           delegations)
 
   return tuf.formats.make_signable(targets_metadata)
 
@@ -1568,6 +2414,7 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
   targets_metadata = os.path.join(metadata_directory, 'targets')
   if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
     for directory_path, junk, files in os.walk(targets_metadata):
+      
       # 'files' here is a list of target file names.
       for basename in files:
         metadata_path = os.path.join(directory_path, basename)
@@ -1634,11 +2481,14 @@ def generate_timestamp_metadata(release_filename, version,
 
   # Save the file info of the compressed versions of 'timestamp.txt'.
   for file_extension in compressions:
+    
     compressed_filename = release_filename + '.' + file_extension
     try:
       compressed_fileinfo = get_metadata_file_info(compressed_filename)
+    
     except:
       logger.warn('Could not get fileinfo about '+str(compressed_filename))
+    
     else:
       logger.info('Including fileinfo about '+str(compressed_filename))
       fileinfo[RELEASE_FILENAME+'.' + file_extension] = compressed_fileinfo
@@ -1699,8 +2549,9 @@ def sign_metadata(metadata, keyids, filename):
 
   # Sign the metadata with each keyid in 'keyids'.
   for keyid in keyids:
+    
     # Load the signing key.
-    key = tuf.repo.keystore.get_key(keyid)
+    key = tuf.keydb.get_key(keyid)
     logger.info('Signing '+repr(filename)+' with '+key['keyid'])
 
     # Create a new signature list.  If 'keyid' is encountered,
@@ -1713,11 +2564,15 @@ def sign_metadata(metadata, keyids, filename):
 
     # Generate the signature using the appropriate signing method.
     if key['keytype'] == 'rsa':
-      signed = signable['signed']
-      signature = tuf.sig.generate_rsa_signature(signed, key)
-      signable['signatures'].append(signature)
+      if len(key['keyval']['private']):
+        signed = signable['signed']
+        signature = tuf.sig.generate_rsa_signature(signed, key)
+        signable['signatures'].append(signature)
+      else:
+        logger.warn('Private key unset.  Skipping: '+repr(keyid))
+    
     else:
-      raise tuf.Error('The keystore contains a key with an invalid key type')
+      raise tuf.Error('The keydb contains a key with an invalid key type.')
 
   # Raise 'tuf.FormatError' if the resulting 'signable' is not formatted
   # correctly.
@@ -1770,6 +2625,7 @@ def write_metadata_file(metadata, filename, compression=None):
 
   # We choose a file-like object that depends on the compression algorithm.
   file_object = None
+  
   # We may modify the filename, depending on the compression algorithm, so we
   # store it separately.
   filename_with_compression = filename
@@ -1778,10 +2634,12 @@ def write_metadata_file(metadata, filename, compression=None):
   if compression is None:
     logger.info('No compression for '+str(filename))
     file_object = open(filename_with_compression, 'w')
+  
   elif compression == 'gz':
     logger.info('gzip compression for '+str(filename))
     filename_with_compression += '.gz'
     file_object = gzip.open(filename_with_compression, 'w')
+  
   else:
     raise tuf.FormatError('Unknown compression algorithm: '+str(compression))
 
@@ -1797,9 +2655,11 @@ def write_metadata_file(metadata, filename, compression=None):
   except:
     # Raise any runtime exception.
     raise
+  
   else:
     # Otherwise, return the written filename.
     return filename_with_compression
+  
   finally:
     # Always close the file.
     file_object.close()
@@ -1808,42 +2668,49 @@ def write_metadata_file(metadata, filename, compression=None):
 
 
 
-def build_delegated_role_file(delegated_targets_directory, delegated_keyids, 
-                              metadata_directory, delegation_metadata_directory,
-                              delegation_role_name, version, expiration_date):
+def write_delegated_metadata_file(repository_directory, targets_directory,
+                                  rolename, version, expiration, keyids,
+                                  list_of_targets, delegations, signatures,
+                                  write_partial=False):
   """
   <Purpose>
     Build the targets metadata file using the signing keys in
     'delegated_keyids'.  The generated metadata file is saved to
     'metadata_directory'.  The target files located in 'targets_directory' will
-    be tracked by the built targets metadata.
+    be tracked by the built targets metadata.  
 
   <Arguments>
-    delegated_targets_directory:
-      The directory (absolute path) containing all the delegated target
-      files.
-
-    delegated_keyids:
-      The list of keyids to be used as the signing keys for the delegated
-      role file.
-
-    metadata_directory:
-      The metadata directory (absolute path) containing all the metadata files.
-
-    delegation_metadata_directory:
-      The location of the delegated role's metadata.
-
-    delegation_role_name:
-      The delegated role's file name ending in '.txt'.  Ex: 'role1.txt'.
+    repository_directory:
+      The repository directory (absolute path) containing all the metadata
+      and target files.
+    
+    rolename:
+      The delegated role's full rolename (e.g., 'targets/unclaimed/django').
 
     version:
       The metadata version number.  Clients use the version number to
       determine if the downloaded version is newer than the one currently
       trusted.
 
-    expiration_date:
+    expiration:
       The expiration date, in UTC, of the metadata file.
       Conformant to 'tuf.formats.TIME_SCHEMA'.
+    
+    keyids:
+      The list of keyids to be used as the signing keys for the delegated
+      metadata file.
+    
+    list_of_targets:
+      The directory (absolute path) containing all the delegated target
+      files.  The filepaths are not required to live under the targets
+      directory.  The caller is reponsible for ensuring the correct location
+      of target files.
+
+    delegations:
+      'tuf.formats.DELEGATIONS_SCHEMA'.
+
+    signatures:
+      'tuf.formats.SIGNATURES_SCHEMA'.
 
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
@@ -1859,37 +2726,102 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
 
   # Do the arguments have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(delegated_targets_directory)
-  tuf.formats.KEYIDS_SCHEMA.check_match(delegated_keyids)
-  tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
-  tuf.formats.PATH_SCHEMA.check_match(delegation_metadata_directory)
-  tuf.formats.NAME_SCHEMA.check_match(delegation_role_name)
+  tuf.formats.PATH_SCHEMA.check_match(repository_directory)
+  tuf.formats.PATH_SCHEMA.check_match(targets_directory)
 
-  # Check if 'targets_directory' and 'metadata_directory' are valid.
-  targets_directory = _check_directory(delegated_targets_directory)
-  metadata_directory = _check_directory(metadata_directory)
+  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
+  tuf.formats.TIME_SCHEMA.check_match(expiration)
+  tuf.formats.KEYIDS_SCHEMA.check_match(keyids)
+  tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+  tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations)
+  tuf.formats.SIGNATURES_SCHEMA.check_match(signatures)
+  tuf.formats.TOGGLE_SCHEMA.check_match(write_partial)
+  
+  # Check if 'repository_directory' is valid.
+  repository_directory = _check_directory(repository_directory)
+  metadata_directory = os.path.join(repository_directory,
+                                    METADATA_DIRECTORY_NAME)
 
-  repository_directory, junk = os.path.split(metadata_directory)
-  repository_directory_length = len(repository_directory)
+  # Create the metadata object.  Delegated roles are of type
+  # 'tuf.formats.TARGETS_SCHEMA', same as the Targets role.
 
-  # Get the list of targets.
-  targets = []
-  for root, directories, files in os.walk(targets_directory):
-    for target_file in files:
-      # Note: '+1' in the line below is there to remove '/'.
-      filename = os.path.join(root, target_file)[repository_directory_length+1:]
-      targets.append(filename)
+  metadata_object = generate_targets_metadata(targets_directory,
+                                              list_of_targets, version,
+                                              expiration, delegations)
 
-  # Create the targets metadata object.
-  targets_metadata = generate_targets_metadata(repository_directory, targets,
-                                               version, expiration_date)
+  # Delegated metadata are written to their respective directories on the
+  # repository.  For example, the role 'targets/unclaimed/django' is written
+  # to '{repository_directory}/metadata/targets/unlaimed/django.txt'.
+  metadata_filepath = os.path.join(metadata_directory, rolename+'.txt')
+  
+  # Ensure the parent directories of metadata_filepath exist, otherwise an IO
+  # exception is raised.
+  tuf.util.ensure_parent_dir(metadata_filepath)
 
   # Sign it.
-  targets_filepath = os.path.join(delegation_metadata_directory,
-                                  delegation_role_name)
-  signable = sign_metadata(targets_metadata, delegated_keyids, targets_filepath)
+  signable = sign_metadata(metadata_object, keyids, metadata_filepath)
+  for signature in signatures:
+    signable['signatures'].append(signature)
+  if tuf.sig.verify(signable, rolename) or write_partial:
+    write_metadata_file(signable, metadata_filepath)
+  else:
+    raise tuf.Error('Not enough signatures for: '+repr(metadata_filepath))
 
-  return write_metadata_file(signable, targets_filepath)
+
+
+
+
+def create_tuf_client_directory(repository_directory, client_directory):
+  """
+  <Purpose>
+    Create the file containing the metadata.
+
+  <Arguments>
+    repository_directory:
+
+    client_directory:
+
+  <Exceptions>
+    tuf.FormatError, if the arguments are improperly formatted.
+
+  <Side Effects>
+
+  <Returns>
+    None.
+  """
+  
+  # Do the arguments have the correct format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.PATH_SCHEMA.check_match(repository_directory)
+  tuf.formats.PATH_SCHEMA.check_match(client_directory)
+ 
+  repository_directory = os.path.abspath(repository_directory)
+  metadata_directory = os.path.join(repository_directory,
+                                    METADATA_DIRECTORY_NAME)
+
+  # Generate the 'client' directory containing the metadata of the created
+  # repository.  'tuf.client.updater.py' expects the 'current' and 'previous'
+  # directories to exist under 'metadata'.
+  client_directory = os.path.abspath(client_directory)
+  client_metadata_directory = os.path.join(client_directory,
+                                           METADATA_DIRECTORY_NAME)
+  
+  try:
+    os.makedirs(client_metadata_directory)
+  except OSError, e:
+    if e.errno == errno.EEXIST:
+      message = 'Cannot create a fresh client metadata directory: '+ \
+        repr(client_metadata_directory)+'.  Already exists.'
+      raise tuf.RepositoryError(message)
+    else:
+      raise
+
+  # Move the metadata to the client's 'current' and 'previous' directories.
+  client_current = os.path.join(client_metadata_directory, 'current')
+  client_previous = os.path.join(client_metadata_directory, 'previous')
+  shutil.copytree(metadata_directory, client_current)
+  shutil.copytree(metadata_directory, client_previous)
 
 
 

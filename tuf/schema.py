@@ -496,7 +496,7 @@ class Integer(Schema):
       raise tuf.FormatError('Got '+repr(object)+' instead of an integer.')
     
     elif not (self._lo <= object <= self._hi):
-      int_range = '['+repr(self._lo)+','+repr(self._hi)+'].'
+      int_range = '['+repr(self._lo)+', '+repr(self._hi)+'].'
       raise tuf.FormatError(repr(object)+' not in range '+int_range)
 
 

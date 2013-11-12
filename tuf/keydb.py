@@ -28,6 +28,7 @@
 """
 
 import logging
+import copy
 
 import tuf
 import tuf.formats
@@ -85,7 +86,7 @@ def create_keydb_from_root_metadata(root_metadata):
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA'
       # format, which is the format expected by 'add_key()'.
-      rsakey_dict = tuf.keys.create_from_metadata_format(key_metadata)
+      rsakey_dict = tuf.keys.format_metadata_to_key(key_metadata)
       try:
         add_key(rsakey_dict, keyid)
       # 'tuf.Error' raised if keyid does not match the keyid for 'rsakey_dict'.
@@ -111,7 +112,7 @@ def add_key(key_dict, keyid=None):
   
   <Arguments>
     key_dict:
-      A dictionary conformant to 'tuf.formats.RSAKEY_SCHEMA'.
+      A dictionary conformant to 'tuf.formats.ANYKEY_SCHEMA'.
       It has the form:
       {'keytype': 'rsa',
        'keyid': keyid,
@@ -158,7 +159,7 @@ def add_key(key_dict, keyid=None):
   if keyid in _keydb_dict:
     raise tuf.KeyAlreadyExistsError('Key: '+keyid)
  
-  _keydb_dict[keyid] = key_dict
+  _keydb_dict[keyid] = copy.deepcopy(key_dict)
 
 
 
@@ -195,7 +196,7 @@ def get_key(keyid):
 
   # Return the key belonging to 'keyid', if found in the key database.
   try:
-    return _keydb_dict[keyid]
+    return copy.deepcopy(_keydb_dict[keyid])
   except KeyError:
     raise tuf.UnknownKeyError('Key: '+keyid)
 

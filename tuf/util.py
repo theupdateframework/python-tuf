@@ -547,7 +547,7 @@ def load_json_file(filepath):
     Deserialize a JSON object from a file containing the object.
 
   <Arguments>
-    data:
+    filepath:
       Absolute path of JSON file.
 
   <Exceptions>

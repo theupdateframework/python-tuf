@@ -487,7 +487,7 @@ class Updater(object):
     # and load them.
     for keyid, keyinfo in keys_info.items():
       if keyinfo['keytype'] in ['rsa', 'ed25519']:
-        key = tuf.keys.create_from_metadata_format(keyinfo)
+        key = tuf.keys.format_metadata_to_key(keyinfo)
       
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.

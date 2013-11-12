@@ -242,6 +242,9 @@ SIGNATURE_SCHEMA = SCHEMA.Object(
   method=SIG_METHOD_SCHEMA,
   sig=HEX_SCHEMA)
 
+# List of SIGNATURE_SCHEMA.
+SIGNATURES_SCHEMA = SCHEMA.ListOf(SIGNATURE_SCHEMA)
+
 # A schema holding the result of checking the signatures of a particular
 # 'SIGNABLE_SCHEMA' role.
 # For example, how many of the signatures for the 'Target' role are
@@ -302,8 +305,7 @@ SCPCONFIG_SCHEMA = SCHEMA.Object(
 # 'backup_directory' entries.
 # see 'tuf/pushtools/pushtoolslib.py' and 'tuf/pushtools/receive/receive.py'
 RECEIVECONFIG_SCHEMA = SCHEMA.Object(
-  object_name='RECEIVECONFIG_SCHEMA',
-  general=SCHEMA.Object(
+  object_name='RECEIVECONFIG_SCHEMA', general=SCHEMA.Object(
     object_name='[general]',
     pushroots=SCHEMA.ListOf(PATH_SCHEMA),
     repository_directory=PATH_SCHEMA,
@@ -341,17 +343,23 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
   keys=KEYDICT_SCHEMA,
   roles=ROLELIST_SCHEMA)
 
+# The number of seconds before metadata expires.  The minimum is 86400 seconds
+# (= 1 day).  This schema is used for the initial expiration date.  Repository
+# maintainers may later modify this value (TIME_SCHEMA).
+EXPIRATION_SCHEMA = SCHEMA.Integer(lo=86400)
+
 # tuf.roledb
 ROLEDB_SCHEMA = SCHEMA.Object(
   object_name='ROLEDB_SCHEMA',
   keyids=SCHEMA.ListOf(KEYID_SCHEMA),
+  signing_keyids=SCHEMA.Optional(SCHEMA.ListOf(KEYID_SCHEMA)),
   threshold=THRESHOLD_SCHEMA,
+  version=SCHEMA.Optional(METADATAVERSION_SCHEMA),
+  expires=SCHEMA.Optional(SCHEMA.OneOf([EXPIRATION_SCHEMA, TIME_SCHEMA])),
   signatures=SCHEMA.Optional(SCHEMA.ListOf(SIGNATURE_SCHEMA)),
   paths=SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes=SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
-  delegations=SCHEMA.Optional(SCHEMA.Object(
-    keys=KEYDICT_SCHEMA,
-    roles=SCHEMA.ListOf(ROLENAME_SCHEMA))))
+  delegations=SCHEMA.Optional(DELEGATIONS_SCHEMA))
 
 # Root role: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(
