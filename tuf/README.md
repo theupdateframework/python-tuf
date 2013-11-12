@@ -67,7 +67,7 @@ repository.root.add_key(public_root_key2)
 # which means the root metadata file is considered valid if it contains at least 2 valid 
 # signatures.
 repository.root.threshold = 2
-private_root_key2=import_rsa_privatekey_from_file("path/to/root_key2,password="pw")
+private_root_key2=import_rsa_privatekey_from_file("path/to/root_key2",password="pw")
 
 # Load the root signing keys to the repository, which write() uses to sign the root metadata.
 # The load_signing_key() method SHOULD warn when the key is NOT explicitly allowed to
@@ -86,3 +86,52 @@ Not enough signatures for '/home/santiago/Documents/o2013/NYU/TUF/repo-tools/rep
 # In the next section, update the other top-level roles and create a repository with valid metadata
 ```
 
+#### Create Timestamp, Release, Targets
+
+```python
+# Continuing from the previous section . . .
+
+# Generate keys for the remaining top-level roles.  The root keys have been set above.
+# The password argument may be omitted if a password prompt is needed. 
+generate_and_write_rsa_keypair("path/to/targets_key", password="pw")
+generate_and_write_rsa_keypair("path/to/release_key", password="pw")
+generate_and_write_rsa_keypair("path/to/timestamp_key", password="pw")
+
+# Add the public keys of the remaining top-level roles.
+repository.targets.add_key(import_rsa_publickey_from_file("path/to/targets_key.pub"))
+repository.release.add_key(import_rsa_publickey_from_file("path/to/release_key.pub"))
+repository.timestamp.add_key(import_rsa_publickey_from_file("path/to/timestamp_key.pub"))
+
+# Import the signing keys of the remaining top-level roles.  Prompt for passwords.
+private_targets_key = import_rsa_privatekey_from_file("path/to/targets_key")
+Enter a password for the RSA key:
+Confirm:
+private_release_key = import_rsa_privatekey_from_file("path/to/release_key")
+Enter a password for the RSA key:
+Confirm:
+private_timestamp_key = import_rsa_privatekey_from_file("path/to/timestamp_key")
+Enter a password for the RSA key:
+Confirm:
+
+# Load the signing keys of the remaining roles so that valid signatures are generated when
+# repository.write() is called.
+repository.targets.load_signing_key(private_targets_key)
+repository.release.load_signing_key(private_release_key)
+repository.timestamp.load_signing_key(private_timestamp_key)
+
+# Optionally set the expiration date of the timestamp role.  By default, roles are set to expire
+# as follows:  root(1 year), targets(3 months), release(1 week), timestamp(1 day).
+repository.timestamp.expiration = "2014-10-28 12:08:00"
+
+# Write all metadata to “path/to/repository/metadata/”
+# The common case is to crawl the filesystem for all roles in
+# “path/to/repository/metadata/targets/”.
+repository.write()
+```
+
+### Targets
+
+#### Add Target Files
+```python
+
+```
