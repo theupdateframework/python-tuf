@@ -189,3 +189,20 @@ repository.targets.remove_target("path/to/repository/targets/file.txt")
 # repository.write() creates any new metadata files, updates those that have changed, and any that need updating to make a new “release” (new release.txt and timestamp.txt).
 repository.write()
 ```
+
+### Delegations
+```python
+# Continuing from the previous section . . .
+
+# Generate a key for a new delegated role named “unclaimed”.
+generate_and_write_rsa_keypair("path/to/unclaimed_key", bits=2048, password="pw")
+public_unclaimed_key = import_rsa_publickey_from_file("path/to/unclaimed_key.pub")
+
+# Make a delegation from “targets” to “targets/unclaimed”, for all targets in “list_of_targets”.
+# The delegated role’s full name is not required.
+# delegated(rolename, list_of_public_keys, list_of_file_paths, threshold, restricted_paths)
+repository.targets.delegate(“unclaimed”, [public_unclaimed_key], list_of_targets)
+
+# Load the private key of “targets/unclaimed” so that signatures are added and valid metadata
+# is created.
+```
