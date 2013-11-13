@@ -88,7 +88,8 @@ try:
 # and timestamp) have not been configured with keys.
 except tuf.Error, e:
   print e 
-Not enough signatures for '/home/santiago/Documents/o2013/NYU/TUF/repo-tools/repo-real/metadata.staged/root.txt'
+Not enough signatures for
+'/home/santiago/Documents/o2013/NYU/TUF/repo-tools/repo-real/metadata.staged/root.txt'
 
 # In the next section, update the other top-level roles and create a repository with valid metadata.
 ```
@@ -147,16 +148,18 @@ repository = load_repository("path/to/repository/")
 # Get a list of file paths in a directory, even those in sub-directories.
 # This must be relative to an existing directory in the repository, otherwise throw an
 # error.
-list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targets/", recursive_walk=True, followlinks=True) 
+list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targets/",
+                                                        recursive_walk=True, followlinks=True) 
 
-# Add the list of target paths to the metadata of the Targets role.  Any target file paths that may already exist
-# are NOT replaced.  add_targets() does not create or move target files.
+# Add the list of target paths to the metadata of the Targets role.  Any target file paths
+# that may already exist are NOT replaced.  add_targets() does not create or move target files.
 repository.targets.add_targets(list_of_targets)
 
 # Individual target files may also be added.
 repository.targets.add_target("path/to/repository/targets/file.txt")
 
-# The private key of the updated targets metadata must be loaded before it can be signed and # written (Note the load_repository() call above).
+# The private key of the updated targets metadata must be loaded before it can be signed and
+# written (Note the load_repository() call above).
 private_targets_key =  import_rsa_privatekey_from_file("path/to/targets_key")
 Enter a password for the RSA key:
 Confirm:
@@ -194,7 +197,8 @@ repository.write()
 # from the file system.
 repository.targets.remove_target("path/to/repository/targets/file.txt")
 
-# repository.write() creates any new metadata files, updates those that have changed, and any that need updating to make a new “release” (new release.txt and timestamp.txt).
+# repository.write() creates any new metadata files, updates those that have changed, and any that
+# need updating to make a new “release” (new release.txt and timestamp.txt).
 repository.write()
 ```
 
