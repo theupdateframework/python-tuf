@@ -88,8 +88,7 @@ try:
 # and timestamp) have not been configured with keys.
 except tuf.Error, e:
   print e 
-Not enough signatures for
-'/home/santiago/Documents/o2013/NYU/TUF/repo-tools/repo-real/metadata.staged/root.txt'
+Not enough signatures for 'path/to/repository/metadata.staged/root.txt'
 
 # In the next section, update the other top-level roles and create a repository with valid metadata.
 ```
@@ -140,6 +139,13 @@ repository.write()
 ### Targets
 
 #### Add Target Files
+```Bash
+# Create and save target files to the repository.
+$ cd path/to/repository/targets/
+$ echo 'file1' > file1.txt
+$ echo 'file2' > file2.txt
+```
+
 ```python
 # Load the repository created in the previous section.  This repository contains metadata for
 # the top-level roles, but no targets.
@@ -156,7 +162,7 @@ list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targ
 repository.targets.add_targets(list_of_targets)
 
 # Individual target files may also be added.
-repository.targets.add_target("path/to/repository/targets/file.txt")
+repository.targets.add_target("path/to/repository/targets/file1.txt")
 
 # The private key of the updated targets metadata must be loaded before it can be signed and
 # written (Note the load_repository() call above).
@@ -195,7 +201,7 @@ repository.write()
 
 # Remove a target file listed in the “targets” metadata.  The target file is not actually deleted
 # from the file system.
-repository.targets.remove_target("path/to/repository/targets/file.txt")
+repository.targets.remove_target("path/to/repository/targets/file1.txt")
 
 # repository.write() creates any new metadata files, updates those that have changed, and any that
 # need updating to make a new “release” (new release.txt and timestamp.txt).
@@ -224,7 +230,7 @@ repository.targets.unclaimed.load_signing_key(private_unclaimed_key)
 
 # Update attributes of the unclaimed role and add a target file.
 repository.targets.unclaimed.expiration = "2014-10-28 12:08:00"
-repository.targets.unclaimed.add_target("path/to/file.txt")
+repository.targets.unclaimed.add_target("path/to/repository/targets/file1.txt")
 
 #  Write the metadata of “targets/unclaimed”, targets, release, and timestamp.
 repository.write()
@@ -245,7 +251,7 @@ repository.write()
 $ cp -r "path/to/repository/metadata.staged" "path/to/repository/metadata"
 ```
 
-## Client Setup and Repository TRIAL
+## Client Setup and Repository Trial
 
 ### Using TUF Within an Example Client Updater
 ```python
@@ -271,6 +277,10 @@ $ cd "path/to/client/"
 $ ls
 metadata/
 $ python basic_client.py --repo http://localhost:8001
-$ ls
-metadata/ targets/
+$ ls . targets/
+.:
+metadata  targets  tuf.log
+
+targets/:
+file1.txt  file2.txt
 ```
