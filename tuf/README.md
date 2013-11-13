@@ -5,7 +5,7 @@
 
 #### Create RSA Keys
 ```python
-from libtuf import *
+from tuf.libtuf import *
 
 
 # Generate and write the first of two root keys for the repository.
@@ -29,7 +29,7 @@ The following four files should now exist:
 
 ### Import RSA Keys
 ```python
-from libtuf import *
+from tuf.libtuf import *
 
 #import an existing public key
 public_root_key = import_rsa_publickey_from_file("path/to/root_key.pub")
