@@ -263,8 +263,10 @@ $ cd “path/to/repository/”; python -m SimpleHTTPServer 8001
 # Retrieve targets from the TUF repository and save them to "path/to/client/".  The
 # basic_client.py module is available in "tuf/client/".
 # In a different command-line prompt . . .
-$ cd "path/to/client/"; python basic_client.py --repo http://localhost:8001
+$ cd "path/to/client/"
+$ ls
+metadata/
+$ python basic_client.py --repo http://localhost:8001
+$ ls
+metadata/ targets/
 ```
-
-
-
