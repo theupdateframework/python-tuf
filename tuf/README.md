@@ -11,11 +11,11 @@ from tuf.libtuf import *
 # Generate and write the first of two root keys for the repository.
 # The following function creates an RSA key pair, where the private key is saved to
 # “path/to/root_key” and the public key to “path/to/root_key.pub”.
-generate_and_write_rsa_keypair("path/to/root_key",bits=2048,password="password")
+generate_and_write_rsa_keypair("path/to/root_key", bits=2048, password="password")
 
-#if thhe key length is unspecified, it defaults to 3072 bits. A length of then 
-#than 2048 bits prints an error mesage. A password may be supplied as an 
-#argument, otherwise a user prompt is presented
+# If the key length is unspecified, it defaults to 3072 bits. A length of less 
+# than 2048 bits prints an error mesage. A password may be supplied as an 
+# argument, otherwise a user prompt is presented.
 generate_and_write_rsa_keypair("path/to/root_key2")
 Enter a password for the RSA key:
 Confirm:
@@ -31,11 +31,12 @@ The following four files should now exist:
 ```python
 from tuf.libtuf import *
 
-#import an existing public key
+# Import an existing public key.
 public_root_key = import_rsa_publickey_from_file("path/to/root_key.pub")
 
-#import an existing private key
-private_root_key = import_rsa_privatekey_from_file("path/to/root_key)
+# Import an existing private key.  Importing a private key requires a password, whereas
+# importing a public key does not.
+private_root_key = import_rsa_privatekey_from_file("path/to/root_key")
 Enter a password for the RSA key:
 Confirm:
 ```
@@ -68,13 +69,18 @@ repository.root.add_key(public_root_key2)
 # which means the root metadata file is considered valid if it contains at least 2 valid 
 # signatures.
 repository.root.threshold = 2
-private_root_key2=import_rsa_privatekey_from_file("path/to/root_key2",password="pw")
+private_root_key2=import_rsa_privatekey_from_file("path/to/root_key2", password="pw")
 
 # Load the root signing keys to the repository, which write() uses to sign the root metadata.
 # The load_signing_key() method SHOULD warn when the key is NOT explicitly allowed to
-#  sign for it.
+# sign for it.
 repository.root.load_signing_key(private_root_key)
 repository.root_load_signing_key(private_root_key2)
+
+# Print the number of valid signatures and public & private keys of the repository's metadata.
+repository.status()
+'root' role contains 2 / 2 signatures.
+'targets' role contains 0 / 1 public keys.
 
 try:
   repository.write()
@@ -82,9 +88,10 @@ try:
 # and timestamp) have not been configured with keys.
 except tuf.Error, e:
   print e 
-Not enough signatures for '/home/santiago/Documents/o2013/NYU/TUF/repo-tools/repo-real/metadata.staged/root.txt'
+Not enough signatures for
+'/home/santiago/Documents/o2013/NYU/TUF/repo-tools/repo-real/metadata.staged/root.txt'
 
-# In the next section, update the other top-level roles and create a repository with valid metadata
+# In the next section, update the other top-level roles and create a repository with valid metadata.
 ```
 
 #### Create Timestamp, Release, Targets
@@ -141,15 +148,18 @@ repository = load_repository("path/to/repository/")
 # Get a list of file paths in a directory, even those in sub-directories.
 # This must be relative to an existing directory in the repository, otherwise throw an
 # error.
-list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targets/", recursive_walk=True, followlinks=True) 
+list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targets/",
+                                                        recursive_walk=True, followlinks=True) 
 
-# Add the list of target paths to the metadata of the Targets role.
+# Add the list of target paths to the metadata of the Targets role.  Any target file paths
+# that may already exist are NOT replaced.  add_targets() does not create or move target files.
 repository.targets.add_targets(list_of_targets)
 
 # Individual target files may also be added.
 repository.targets.add_target("path/to/repository/targets/file.txt")
 
-# The private key of the updated targets metadata must be loaded before it can be signed and # written (Note the load_repository() call above).
+# The private key of the updated targets metadata must be loaded before it can be signed and
+# written (Note the load_repository() call above).
 private_targets_key =  import_rsa_privatekey_from_file("path/to/targets_key")
 Enter a password for the RSA key:
 Confirm:
@@ -187,7 +197,8 @@ repository.write()
 # from the file system.
 repository.targets.remove_target("path/to/repository/targets/file.txt")
 
-# repository.write() creates any new metadata files, updates those that have changed, and any that need updating to make a new “release” (new release.txt and timestamp.txt).
+# repository.write() creates any new metadata files, updates those that have changed, and any that
+# need updating to make a new “release” (new release.txt and timestamp.txt).
 repository.write()
 ```
 
@@ -224,18 +235,19 @@ repository.write()
 # Continuing from the previous section . . .
 
 # Revoke “targets/unclaimed” and write the metadata of all remaining roles.
-repository.targets.revoke("targets/unclaimed")
+repository.targets.revoke("unclaimed")
 
 repository.write()
 ```
 
 ```bash
-$ mv "path/to/repository/metadata.staged" "path/to/repository/metadata"
+# Copy the staged metadata directory changes to the live repository.
+$ cp -r "path/to/repository/metadata.staged" "path/to/repository/metadata"
 ```
 
 ## Client Setup and Repository TRIAL
 
-### Using TUF WIthin an Example Client Updater
+### Using TUF Within an Example Client Updater
 ```python
 # The following function creates a directory structure that a client 
 # downloading new software using tuf (via tuf/client/updater.py) will expect.
@@ -244,7 +256,7 @@ $ mv "path/to/repository/metadata.staged" "path/to/repository/metadata"
 # directory to store TUF updates saved on the client side.  create_tuf_client_directory()
 # moves metadata files “path/to/repository/” to “path/to/client/”.  The repository in
 # “path/to/repository/” is the repository created in the “Create TUF Repository” section.
-create_tuf_client_directory(“path/to/repository/”, “path/to/client/”)
+create_tuf_client_directory("path/to/repository/", "path/to/client/")
 ```
 
 #### Test TUF Locally
@@ -252,11 +264,13 @@ create_tuf_client_directory(“path/to/repository/”, “path/to/client/”)
 # Run the local TUF repository server.
 $ cd “path/to/repository/”; python -m SimpleHTTPServer 8001
 
-# Retrieve targets from the TUF repository and save them to “path/to/client/”.  The
-# basic_client.py module is available in “tuf/client/”.
+# Retrieve targets from the TUF repository and save them to "path/to/client/".  The
+# basic_client.py module is available in "tuf/client/".
 # In a different command-line prompt . . .
-$ cd “path/to/client/”; python basic_client.py --repo http://localhost:8001
+$ cd "path/to/client/"
+$ ls
+metadata/
+$ python basic_client.py --repo http://localhost:8001
+$ ls
+metadata/ targets/
 ```
-
-
-
