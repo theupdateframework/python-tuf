@@ -76,6 +76,11 @@ private_root_key2=import_rsa_privatekey_from_file("path/to/root_key2", password=
 repository.root.load_signing_key(private_root_key)
 repository.root_load_signing_key(private_root_key2)
 
+# Print the number of valid signatures and public & private keys of the repository's metadata.
+repository.status()
+'root' role contains 2 / 2 signatures.
+'targets' role contains 0 / 1 public keys.
+
 try:
   repository.write()
 # An exception is raised here by write() because the other top-level roles (targets, release,
