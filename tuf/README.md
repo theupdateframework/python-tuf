@@ -232,3 +232,31 @@ repository.write()
 ```bash
 $ mv "path/to/repository/metadata.staged" "path/to/repository/metadata"
 ```
+
+## Client Setup and Repository TRIAL
+
+### Using TUF WIthin an Example Client Updater
+```python
+# The following function creates a directory structure that a client 
+# downloading new software using tuf (via tuf/client/updater.py) will expect.
+# The root.txt metadata file must exist, and also the directories that hold the metadata files
+# downloaded from a repository.  Software updaters integrating with TUF may use this
+# directory to store TUF updates saved on the client side.  create_tuf_client_directory()
+# moves metadata files “path/to/repository/” to “path/to/client/”.  The repository in
+# “path/to/repository/” is the repository created in the “Create TUF Repository” section.
+create_tuf_client_directory(“path/to/repository/”, “path/to/client/”)
+```
+
+#### Test TUF Locally
+```Bash
+# Run the local TUF repository server.
+$ cd “path/to/repository/”; python -m SimpleHTTPServer 8001
+
+# Retrieve targets from the TUF repository and save them to “path/to/client/”.  The
+# basic_client.py module is available in “tuf/client/”.
+# In a different command-line prompt . . .
+$ cd “path/to/client/”; python basic_client.py --repo http://localhost:8001
+```
+
+
+
