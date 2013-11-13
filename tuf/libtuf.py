@@ -364,7 +364,10 @@ class Repository(object):
                                 root_filename)
     signed_root['signatures'].extend(roleinfo['signatures']) 
     if tuf.sig.verify(signed_root, 'root') or write_partial:
+      if not write_partial:
+        _remove_invalid_signatures(signed_root)
       write_metadata_file(signed_root, root_filename, compression=None)
+    
     else: 
       message = 'Not enough signatures for '+repr(root_filename)
       raise tuf.Error(message)
@@ -382,7 +385,10 @@ class Repository(object):
     signed_targets['signatures'].extend(roleinfo['signatures']) 
     
     if tuf.sig.verify(signed_targets, 'targets') or write_partial:
+      if not write_partial:
+        _remove_invalid_signatures(signed_targets)
       write_metadata_file(signed_targets, targets_filename, compression=None)
+    
     else:
       message = 'Not enough signatures for '+repr(targets_filename)
       raise tuf.Error(message)
@@ -398,7 +404,10 @@ class Repository(object):
     signed_release['signatures'].extend(roleinfo['signatures']) 
 
     if tuf.sig.verify(signed_release, 'release') or write_partial:
+      if not write_partial:
+        _remove_invalid_signatures(signed_release)
       write_metadata_file(signed_release, release_filename, compression=None)
+    
     else:
       message = 'Not enough signatures for '+repr(release_filename)
       raise tuf.Error(message)
@@ -416,7 +425,10 @@ class Repository(object):
     signed_timestamp['signatures'].extend(roleinfo['signatures']) 
     
     if tuf.sig.verify(signed_timestamp, 'timestamp') or write_partial:
+      if not write_partial:
+        _remove_invalid_signatures(signed_timestamp)
       write_metadata_file(signed_timestamp, timestamp_filename, compression=None)
+    
     else: 
       message = 'Not enough signatures for '+repr(timestamp_filename)
       raise tuf.Error(message)
@@ -1631,6 +1643,31 @@ def _check_role_keys(rolename):
 
 
 
+def _remove_invalid_signatures(signable):
+  """
+    Remove invalid signatures from 'signable'.
+    'signable' may contain signatures (invalid) from previous versions
+    of the metadata and loaded with load_repository().  'signable' is modified. 
+  """
+  
+  for signature in signable['signatures']:
+    data = tuf.formats.encode_canonical(signable['signed'])
+    keyid = signature['keyid']
+    key = None
+
+    # Remove 'signature' from 'signable' if the listed keyid does not exist.
+    try:
+      key = tuf.keydb.get_key(keyid)  
+    except tuf.UnknownKeyError, e:
+      signable['signatures'].remove(signature)
+    
+    # Remove signature from 'signable' if it is invalid. 
+    if not tuf.keys.verify_signature(key, signature, data):
+      signable['signatures'].remove(signature)
+
+
+
+
 
 def create_new_repository(repository_directory):
   """
@@ -2767,7 +2804,10 @@ def write_delegated_metadata_file(repository_directory, targets_directory,
   for signature in signatures:
     signable['signatures'].append(signature)
   if tuf.sig.verify(signable, rolename) or write_partial:
+    if not write_partial:
+      _remove_invalid_signatures(signable)
     write_metadata_file(signable, metadata_filepath)
+  
   else:
     raise tuf.Error('Not enough signatures for: '+repr(metadata_filepath))
 
