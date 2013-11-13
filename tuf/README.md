@@ -31,10 +31,11 @@ The following four files should now exist:
 ```python
 from tuf.libtuf import *
 
-#import an existing public key
+# Import an existing public key.
 public_root_key = import_rsa_publickey_from_file("path/to/root_key.pub")
 
-#import an existing private key
+# Import an existing private key.  Importing a private key requires a password, whereas
+# importing a public key does not.
 private_root_key = import_rsa_privatekey_from_file("path/to/root_key")
 Enter a password for the RSA key:
 Confirm:
@@ -89,7 +90,7 @@ except tuf.Error, e:
   print e 
 Not enough signatures for '/home/santiago/Documents/o2013/NYU/TUF/repo-tools/repo-real/metadata.staged/root.txt'
 
-# In the next section, update the other top-level roles and create a repository with valid metadata
+# In the next section, update the other top-level roles and create a repository with valid metadata.
 ```
 
 #### Create Timestamp, Release, Targets
@@ -148,7 +149,8 @@ repository = load_repository("path/to/repository/")
 # error.
 list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targets/", recursive_walk=True, followlinks=True) 
 
-# Add the list of target paths to the metadata of the Targets role.
+# Add the list of target paths to the metadata of the Targets role.  Any target file paths that may already exist
+# are NOT replaced.  add_targets() does not create or move target files.
 repository.targets.add_targets(list_of_targets)
 
 # Individual target files may also be added.
@@ -241,7 +243,7 @@ $ cp -r "path/to/repository/metadata.staged" "path/to/repository/metadata"
 
 ## Client Setup and Repository TRIAL
 
-### Using TUF WIthin an Example Client Updater
+### Using TUF Within an Example Client Updater
 ```python
 # The following function creates a directory structure that a client 
 # downloading new software using tuf (via tuf/client/updater.py) will expect.
