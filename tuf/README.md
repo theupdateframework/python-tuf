@@ -235,7 +235,7 @@ repository.write()
 # Continuing from the previous section . . .
 
 # Revoke “targets/unclaimed” and write the metadata of all remaining roles.
-repository.targets.revoke("targets/unclaimed")
+repository.targets.revoke("unclaimed")
 
 repository.write()
 ```
