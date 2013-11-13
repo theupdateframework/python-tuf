@@ -69,6 +69,8 @@ setup(
   url='https://www.updateframework.com',
   install_requires=['pycrypto>=2.6'],
   packages=[
+    'ed25519',
+    'evpy',
     'tuf',
     'tuf.client',
     'tuf.compatibility',
