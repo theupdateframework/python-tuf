@@ -1822,7 +1822,10 @@ class Updater(object):
       if metadata_path == rolename + '.txt':
         roles_to_update.append(metadata_path[:-len('.txt')])
       elif include_delegations and metadata_path.startswith(role_prefix):
-        roles_to_update.append(metadata_path[:-len('.txt')])
+        # Add delegated roles.  Skip roles names containing compression
+        # extensions.
+        if metadata_path.endswith('.txt'): 
+          roles_to_update.append(metadata_path[:-len('.txt')])
 
     # Remove the 'targets' role because it gets updated when the targets.txt
     # file is updated in _update_metadata_if_changed('targets').

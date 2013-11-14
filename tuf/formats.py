@@ -348,6 +348,13 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
 # maintainers may later modify this value (TIME_SCHEMA).
 EXPIRATION_SCHEMA = SCHEMA.Integer(lo=86400)
 
+# Supported compression extension (e.g., 'gz').
+COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
+
+# List of supported compression extensions.
+COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
+  SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
+
 # tuf.roledb
 ROLEDB_SCHEMA = SCHEMA.Object(
   object_name='ROLEDB_SCHEMA',
@@ -357,6 +364,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   version=SCHEMA.Optional(METADATAVERSION_SCHEMA),
   expires=SCHEMA.Optional(SCHEMA.OneOf([EXPIRATION_SCHEMA, TIME_SCHEMA])),
   signatures=SCHEMA.Optional(SCHEMA.ListOf(SIGNATURE_SCHEMA)),
+  compressions=SCHEMA.Optional(COMPRESSIONS_SCHEMA),
   paths=SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes=SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
   delegations=SCHEMA.Optional(DELEGATIONS_SCHEMA))
