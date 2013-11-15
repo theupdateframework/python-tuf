@@ -62,8 +62,11 @@ TIMESTAMP_FILENAME = 'timestamp.txt'
 METADATA_DIRECTORY_NAME = 'metadata.staged'
 TARGETS_DIRECTORY_NAME = 'targets' 
 
-# The file extension of TUF metadata files.
+# The supported file extensions of TUF metadata files.
 METADATA_EXTENSIONS = ['.txt', '.txt.gz']
+
+# The recognized compression extensions. 
+SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
 
 # Expiration date delta, in seconds, of the top-level roles.  A metadata
 # expiration date is set by taking the current time and adding the expiration
@@ -273,7 +276,7 @@ class Repository(object):
         repr(release_status['threshold'])+' signatures.'
       print(message)
       if tuf.sig.verify(signed_release, 'release'):
-        for compression in release_info['compressions']:
+        for compression in release_roleinfo['compressions']:
           write_metadata_file(signed_release, release_filename, compression)
       else:
         return 
@@ -759,7 +762,7 @@ class Metadata(object):
     """
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
-    signature = roleinfo['signatures']
+    signatures = roleinfo['signatures']
   
     return signatures
 
@@ -1144,7 +1147,6 @@ class Targets(Metadata):
     self._targets_directory = targets_directory
     self._rolename = rolename 
     self._target_files = []
-    self._delegations = {}
    
     expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
 
@@ -1253,9 +1255,10 @@ class Targets(Metadata):
       # Update the role's 'tuf.roledb.py' entry and 'self._target_files'.
       targets_directory_length = len(self._targets_directory) 
       roleinfo = tuf.roledb.get_roleinfo(self._rolename)
-      roleinfo['paths'].append(filepath[targets_directory_length+1:])
+      relative_path = filepath[targets_directory_length+1:]
+      if relative_path not in roleinfo['paths']:
+        roleinfo['paths'].append(relative_path)
       tuf.roledb.update_roleinfo(self._rolename, roleinfo)
-      self._target_files.append(filepath)
     
     else:
       message = repr(filepath)+' is not a valid file.'
@@ -1313,10 +1316,9 @@ class Targets(Metadata):
         raise tuf.Error(message)
 
     # Update the role's target_files and its 'tuf.roledb.py' entry.
-    self._target_files.extend(absolute_list_of_targets)
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
     roleinfo['paths'].extend(relative_list_of_targets)
-    tuf.roledb.update_roleinfo(self._rolename, roleinfo)
+    tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
   
   
@@ -1498,11 +1500,10 @@ class Targets(Metadata):
     for key in public_keys:
       new_targets_object.add_key(key)
 
-    #self._delegations = 
     self.__setattr__(rolename, new_targets_object)
-  
-  
-  
+
+
+
   def revoke(self, rolename):
     """
     <Purpose>
@@ -1543,6 +1544,17 @@ class Targets(Metadata):
    
     # Remove the rolename attribute from the current role.
     self.__delattr__(rolename)
+
+
+  @property
+  def delegations(self):
+    """
+    """
+
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    delegations = roleinfo['delegations']
+
+    return delegations
 
 
 
@@ -1827,7 +1839,8 @@ def load_repository(repository_directory):
     roleinfo = tuf.roledb.get_roleinfo('root')
     roleinfo['signatures'] = []
     for signature in signable['signatures']:
-      roleinfo['signatures'].append(signature)
+      if signature not in roleinfo['signatures']: 
+        roleinfo['signatures'].append(signature)
 
     if os.path.exists(root_filename+'.gz'):
       roleinfo['compressions'].append('gz')
@@ -2488,7 +2501,17 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
   filedict = {}
   filedict[ROOT_FILENAME] = get_metadata_file_info(root_filename)
   filedict[TARGETS_FILENAME] = get_metadata_file_info(targets_filename)
-   
+
+  # Add compressed versions of the 'targets.txt' and 'root.txt' metadata.
+  for extension in SUPPORTED_COMPRESSION_EXTENSIONS:
+    compressed_root_filename = root_filename+extension
+    compressed_targets_filename = targets_filename+extension
+    if os.path.exists(compressed_root_filename):
+      filedict[ROOT_FILENAME+extension] = \
+        get_metadata_file_info(compressed_root_filename)
+    if os.path.exists(compressed_targets_filename): 
+      filedict[TARGETS_FILENAME+extension] = \
+        get_metadata_file_info(compressed_targets_filename)
 
   # Walk the 'targets/' directory and generate the file info for all
   # the files listed there.  This information is stored in the 'meta'
