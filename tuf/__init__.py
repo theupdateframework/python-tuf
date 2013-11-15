@@ -18,7 +18,6 @@
   The names chosen for TUF Exception classes should end in
   'Error' except where there is a good reason not to, and
   provide that reason in those cases.
-
 """
 
 import urlparse
@@ -111,6 +110,14 @@ class UnknownKeyError(Error):
 
 class RepositoryError(Error):
   """Indicate an error with a repository's state, such as a missing file."""
+  pass
+
+
+
+
+
+class InsufficientKeysError(Error):
+  """Indicate that metadata role lacks a threshold of pubic or private keys."""
   pass
 
 

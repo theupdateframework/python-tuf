@@ -97,7 +97,6 @@
   # The updated target files are saved locally to 'destination_directory'.
   for target in updated_targets:
     updater.download_target(target, destination_directory)
-
 """
 
 import errno
@@ -111,6 +110,7 @@ import tuf.conf
 import tuf.download
 import tuf.formats
 import tuf.hash
+import tuf.keys
 import tuf.keydb
 import tuf.log
 import tuf.mirrors
@@ -194,7 +194,6 @@ class Updater(object):
       Any files located in 'destination_directory' that were previously
       served by the repository but have since been removed, can be deleted
       from disk by the client by calling this method.
-
   """
 
   def __init__(self, updater_name, repository_mirrors):
@@ -251,7 +250,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
   
     # Do the arguments have the correct format?
@@ -327,7 +325,6 @@ class Updater(object):
   def __str__(self):
     """
       The string representation of an Updater object.
-    
     """
     
     return self.name
@@ -370,7 +367,6 @@ class Updater(object):
 
     <Returns>
       None.
-      
     """
 
     # Ensure we have a valid metadata set.
@@ -435,7 +431,6 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
     
     # Clobbering this means all delegated metadata files are rendered outdated
@@ -475,7 +470,6 @@ class Updater(object):
 
     <Returns>
       None.
-          
     """
         
     current_parent_metadata = self.metadata['current'][parent_role]
@@ -492,13 +486,13 @@ class Updater(object):
     # Iterate through the keys of the delegated roles of 'parent_role'
     # and load them.
     for keyid, keyinfo in keys_info.items():
-      if keyinfo['keytype'] == 'rsa': 
-        rsa_key = tuf.rsa_key.create_from_metadata_format(keyinfo)
+      if keyinfo['keytype'] in ['rsa', 'ed25519']:
+        key = tuf.keys.format_metadata_to_key(keyinfo)
       
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          tuf.keydb.add_rsakey(rsa_key, keyid)
+          tuf.keydb.add_key(key, keyid)
         except tuf.KeyAlreadyExistsError:
           pass
         except (tuf.FormatError, tuf.Error), e:
@@ -556,7 +550,6 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
 
     # The timestamp role does not have signed metadata about it; otherwise we
@@ -617,7 +610,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
 
     # Verify each trusted hash of 'trusted_hashes'.  Raise exception if
@@ -700,7 +692,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
 
     observed_length = file_object.get_compressed_length()
@@ -745,7 +736,6 @@ class Updater(object):
 
     <Returns>
       A tuf.util.TempFile file-like object containing the target.
-
     """
 
     def verify_uncompressed_target_file(target_file_object):
@@ -801,7 +791,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
 
     metadata = metadata_file_object.read()
@@ -871,7 +860,6 @@ class Updater(object):
 
     <Returns>
       A tuf.util.TempFile file-like object containing the metadata.
-
     """
 
     def unsafely_verify_uncompressed_metadata_file(metadata_file_object):
@@ -926,7 +914,6 @@ class Updater(object):
 
     <Returns>
       A tuf.util.TempFile file-like object containing the metadata.
-
     """
 
     def safely_verify_uncompressed_metadata_file(metadata_file_object):
@@ -992,7 +979,6 @@ class Updater(object):
 
     <Returns>
       A tuf.util.TempFile file-like object containing the metadata or target.
-
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
@@ -1085,7 +1071,6 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
 
     # Construct the metadata filename as expected by the download/mirror modules.
@@ -1234,7 +1219,6 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
         
     uncompressed_metadata_filename = metadata_role + '.txt'
@@ -1373,7 +1357,6 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
     
     # Return if 'metadata_role' is 'targets'.  'targets' is not
@@ -1536,7 +1519,6 @@ class Updater(object):
 
     <Returns>
       Boolean.  True if the fileinfo has changed, false otherwise.
-    
     """
        
     # If there is no fileinfo currently stored for 'metadata_filename',
@@ -1595,7 +1577,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
         
     # In case we delayed loading the metadata and didn't do it in
@@ -1640,7 +1621,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
 
     # Get the 'current' and 'previous' full file paths for 'metadata_role'
@@ -1685,7 +1665,6 @@ class Updater(object):
     
     <Returns>
       None.
-    
     """
       
     # The root metadata role is never deleted without a replacement.
@@ -1723,7 +1702,6 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
   
     # Construct the full metadata filename and the location of its
@@ -1779,7 +1757,6 @@ class Updater(object):
 
     <Returns>
      A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
-
     """
     
     # Load the most up-to-date targets of the 'targets' role and all
@@ -1834,7 +1811,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
 
     roles_to_update = []
@@ -1846,7 +1822,10 @@ class Updater(object):
       if metadata_path == rolename + '.txt':
         roles_to_update.append(metadata_path[:-len('.txt')])
       elif include_delegations and metadata_path.startswith(role_prefix):
-        roles_to_update.append(metadata_path[:-len('.txt')])
+        # Add delegated roles.  Skip roles names containing compression
+        # extensions.
+        if metadata_path.endswith('.txt'): 
+          roles_to_update.append(metadata_path[:-len('.txt')])
 
     # Remove the 'targets' role because it gets updated when the targets.txt
     # file is updated in _update_metadata_if_changed('targets').
@@ -1886,7 +1865,6 @@ class Updater(object):
   def refresh_targets_metadata_chain(self, rolename):
     """
     Proof-of-concept.
-
     """
     
     # List of parent roles to update.
@@ -1993,7 +1971,6 @@ class Updater(object):
     <Returns>
       A list of dict objects containing the target information of all the
       targets of 'rolename'.  Conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
-
     """
 
     if targets is None:
@@ -2063,7 +2040,6 @@ class Updater(object):
       
     <Returns>
       A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'. 
-
     """
       
     # Does 'rolename' have the correct format?
@@ -2104,7 +2080,6 @@ class Updater(object):
     <Returns>
       The target information for 'target_filepath', conformant to
       'tuf.formats.TARGETFILE_SCHEMA'.
-
     """
 
     # Does 'target_filepath' have the correct format?
@@ -2152,7 +2127,6 @@ class Updater(object):
     <Returns>
       The target information for 'target_filepath', conformant to
       'tuf.formats.TARGETFILE_SCHEMA'.
-    
     """
 
     target = None
@@ -2234,7 +2208,6 @@ class Updater(object):
     <Returns>
       The target information for 'target_filepath', conformant to
       'tuf.formats.TARGETFILE_SCHEMA'.
-    
     """
 
     target = None
@@ -2295,7 +2268,6 @@ class Updater(object):
       'target_filepath', then we return the role name of 'child_role'.
 
       Otherwise, we return None.
-    
     """
 
     child_role_name = child_role['name']
@@ -2367,7 +2339,6 @@ class Updater(object):
     
     <Returns>
       The hash of 'target_filepath'.
-    
     """
 
     # Calculate the hash of the filepath to determine which bin to find the 
@@ -2417,7 +2388,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
   
     # Does 'destination_directory' have the correct format?
@@ -2480,7 +2450,6 @@ class Updater(object):
 
     <Returns>
       A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
-
     """
 
     # Do the arguments have the correct format?
@@ -2545,7 +2514,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
 
     # Do the arguments have the correct format? 

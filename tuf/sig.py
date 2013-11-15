@@ -33,7 +33,6 @@
   that will determine if a role still has a sufficient number of valid keys.
   If a caller needs to update the signatures of a 'signable' object, there
   is also a function for that.
-
 """
 
 import tuf
@@ -76,7 +75,6 @@ def get_signature_status(signable, role=None):
   <Returns>
     A dictionary representing the status of the signatures in 'signable'.
     Conformant to tuf.formats.SIGNATURESTATUS_SCHEMA.
-
   """
 
   # Does 'signable' have the correct format?
@@ -125,7 +123,7 @@ def get_signature_status(signable, role=None):
 
     # Identify key using an unknown key signing method.
     try:
-      valid_sig = tuf.rsa_key.verify_signature(key, signature, data)
+      valid_sig = tuf.keys.verify_signature(key, signature, data)
     except tuf.UnknownMethodError:
       unknown_method_sigs.append(keyid)
       continue
@@ -201,7 +199,6 @@ def verify(signable, role):
   <Returns>
     Boolean.  True if the number of good signatures >= the role's threshold,
     False otherwise.
-
   """
 
   # Retrieve the signature status.  tuf.sig.get_signature_status() raises
@@ -243,9 +240,7 @@ def may_need_new_keys(signature_status):
 
   <Returns>
     Boolean.
-
   """
-
 
   # Does 'signature_status' have the correct format?
   # This check will ensure 'signature_status' has the appropriate number
@@ -281,11 +276,11 @@ def generate_rsa_signature(signed, rsakey_dict):
 
   <Arguments>
     signed:
-      The data used by 'tuf.rsa_key.create_signature()' to generate signatures.
+      The data used by 'tuf.keys.create_signature()' to generate signatures.
       It is stored in the 'signed' field of 'signable'.
 
     rsakey_dict:
-      The RSA key, a tuf.formats.RSAKEY_SCHEMA dictionary.
+      The RSA key, a 'tuf.formats.RSAKEY_SCHEMA' dictionary.
       Used here to produce 'keyid', 'method', and 'sig'.
 
   <Exceptions>
@@ -300,7 +295,6 @@ def generate_rsa_signature(signed, rsakey_dict):
     Signature dictionary conformant to tuf.formats.SIGNATURE_SCHEMA.
     Has the form:
     {'keyid': keyid, 'method': 'evp', 'sig': sig}
-
   """
 
   # We need 'signed' in canonical JSON format to generate
@@ -309,6 +303,6 @@ def generate_rsa_signature(signed, rsakey_dict):
 
   # Generate the RSA signature.
   # Raises tuf.FormatError and TypeError.
-  signature = tuf.rsa_key.create_signature(rsakey_dict, signed)
+  signature = tuf.keys.create_signature(rsakey_dict, signed)
 
   return signature

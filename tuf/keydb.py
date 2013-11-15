@@ -25,15 +25,14 @@
   and the '_get_keyid()' function to learn precisely how keyids are generated.
   One may get the keyid of a key object by simply accessing the dictionary's
   'keyid' key (i.e., rsakey['keyid']).
-
 """
 
-
 import logging
+import copy
 
 import tuf
 import tuf.formats
-import tuf.rsa_key
+import tuf.keys
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.keydb')
@@ -62,13 +61,12 @@ def create_keydb_from_root_metadata(root_metadata):
 
   <Side Effects>
     A function to add the key to the database is called.  In the case of RSA
-    keys, this function is add_rsakey().
+    keys, this function is add_key().
     
     The old keydb key database is replaced.
 
   <Returns>
     None.
-
   """
 
   # Does 'root_metadata' have the correct format?
@@ -87,10 +85,10 @@ def create_keydb_from_root_metadata(root_metadata):
     if key_metadata['keytype'] == 'rsa':
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA'
-      # format, which is the format expected by 'add_rsakey()'.
-      rsakey_dict = tuf.rsa_key.create_from_metadata_format(key_metadata)
+      # format, which is the format expected by 'add_key()'.
+      rsakey_dict = tuf.keys.format_metadata_to_key(key_metadata)
       try:
-        add_rsakey(rsakey_dict, keyid)
+        add_key(rsakey_dict, keyid)
       # 'tuf.Error' raised if keyid does not match the keyid for 'rsakey_dict'.
       except tuf.Error, e:
         logger.error(e)
@@ -105,7 +103,7 @@ def create_keydb_from_root_metadata(root_metadata):
 
 
 
-def add_rsakey(rsakey_dict, keyid=None):
+def add_key(key_dict, keyid=None):
   """
   <Purpose>
     Add 'rsakey_dict' to the key database while avoiding duplicates.
@@ -113,8 +111,8 @@ def add_rsakey(rsakey_dict, keyid=None):
     and raise an exception if it is not.
   
   <Arguments>
-    rsakey_dict:
-      A dictionary conformant to 'tuf.formats.RSAKEY_SCHEMA'.
+    key_dict:
+      A dictionary conformant to 'tuf.formats.ANYKEY_SCHEMA'.
       It has the form:
       {'keytype': 'rsa',
        'keyid': keyid,
@@ -138,15 +136,13 @@ def add_rsakey(rsakey_dict, keyid=None):
 
   <Returns>
     None.
-
   """
- 
 
   # Does 'rsakey_dict' have the correct format?
   # This check will ensure 'rsakey_dict' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError if the check fails.
-  tuf.formats.RSAKEY_SCHEMA.check_match(rsakey_dict)
+  tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
 
   # Does 'keyid' have the correct format?
   if keyid is not None:
@@ -154,16 +150,16 @@ def add_rsakey(rsakey_dict, keyid=None):
     tuf.formats.KEYID_SCHEMA.check_match(keyid)
 
     # Check if the keyid found in 'rsakey_dict' matches 'keyid'.
-    if keyid != rsakey_dict['keyid']:
-      raise tuf.Error('Incorrect keyid '+rsakey_dict['keyid']+' expected '+keyid)
+    if keyid != key_dict['keyid']:
+      raise tuf.Error('Incorrect keyid '+key_dict['keyid']+' expected '+keyid)
  
   # Check if the keyid belonging to 'rsakey_dict' is not already
   # available in the key database before returning.
-  keyid = rsakey_dict['keyid']
+  keyid = key_dict['keyid']
   if keyid in _keydb_dict:
     raise tuf.KeyAlreadyExistsError('Key: '+keyid)
  
-  _keydb_dict[keyid] = rsakey_dict
+  _keydb_dict[keyid] = copy.deepcopy(key_dict)
 
 
 
@@ -190,7 +186,6 @@ def get_key(keyid):
   <Returns>
     The key matching 'keyid'.  In the case of RSA keys, a dictionary conformant
     to 'tuf.formats.RSAKEY_SCHEMA' is returned.
-
   """
 
   # Does 'keyid' have the correct format?
@@ -201,7 +196,7 @@ def get_key(keyid):
 
   # Return the key belonging to 'keyid', if found in the key database.
   try:
-    return _keydb_dict[keyid]
+    return copy.deepcopy(_keydb_dict[keyid])
   except KeyError:
     raise tuf.UnknownKeyError('Key: '+keyid)
 
@@ -229,7 +224,6 @@ def remove_key(keyid):
 
   <Returns>
     None.
-
   """
 
   # Does 'keyid' have the correct format?
@@ -264,7 +258,6 @@ def clear_keydb():
 
   <Returns>
     None.
-
   """
   
   _keydb_dict.clear()

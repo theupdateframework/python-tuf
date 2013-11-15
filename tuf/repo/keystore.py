@@ -34,7 +34,6 @@
   algorithm.  User passwords are strengthened with PBKDF2, currently set to
   100,000 passphrase iterations.  The previous evpy implementation used 1,000
   iterations.
-
 """
 
 import os
@@ -68,7 +67,7 @@ import Crypto.Random
 # the AES algorithm to perform cipher block operations on them. 
 import Crypto.Util.Counter
 
-import tuf.rsa_key
+import tuf.keys
 import tuf.util
 import tuf.conf
 
@@ -103,6 +102,9 @@ _SALT_SIZE = 16
 # any previous iteration setting used by the old '<keyid>.key'.
 # https://en.wikipedia.org/wiki/PBKDF2
 _PBKDF2_ITERATIONS = tuf.conf.PBKDF2_ITERATIONS
+
+# 
+_SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 
 # A user password is read and a derived key generated.  The derived key returned
 # by the key derivation function (PBKDF2) is saved in '_derived_keys', along
@@ -159,7 +161,6 @@ def add_rsakey(rsakey_dict, password, keyid=None):
 
   <Returns>
     None.
-
   """
   
   # Does 'rsakey_dict' have the correct format?
@@ -235,7 +236,6 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
 
   <Returns>
     A list containing the keyids of the loaded keys.
-
   """
 
   # Does 'directory_name' have the correct format?
@@ -286,11 +286,11 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
 
           # Create the key based on its key type.  RSA keys currently
           # supported.
-          if keydata['keytype'] == 'rsa':
+          if keydata['keytype'] in _SUPPORTED_KEY_TYPES:
             # 'keydata' is stored in KEY_SCHEMA format.  Call
             # create_from_metadata_format() to get the key in RSAKEY_SCHEMA
             # format, which is the format expected by 'add_rsakey()'.
-            rsa_key = tuf.rsa_key.create_from_metadata_format(keydata)
+            rsa_key = tuf.keys.create_from_metadata_format(keydata)
 
             # Ensure the keyid for 'rsa_key' is one of the keys specified in
             # 'keyids'.  If not, do not load the key.
@@ -343,7 +343,6 @@ def save_keystore_to_keyfiles(directory_name):
 
   <Returns>
     None.
-
   """
 
   # Does 'directory_name' have the correct format?
@@ -365,9 +364,11 @@ def save_keystore_to_keyfiles(directory_name):
     file_object = open(basefilename, 'w')
     
     # Determine the appropriate format to save the key based on its key type.
-    if key['keytype'] == 'rsa':
+    if key['keytype'] in _SUPPORTED_KEY_TYPES:
+      keytype = key['keytype']
+      keyval = key['keyval']
       key_metadata_format = \
-            tuf.rsa_key.create_in_metadata_format(key['keyval'], private=True)
+            tuf.keys.create_in_metadata_format(keytype, keyval, private=True)
     else:
       logger.warn('The keystore has a key with an unrecognized key type.')
       continue
@@ -402,7 +403,6 @@ def clear_keystore():
 
   <Returns>
     None.
-
   """
 
   _keystore.clear()
@@ -442,7 +442,6 @@ def change_password(keyid, old_password, new_password):
 
   <Returns>
     None.
-
   """
   
   # Does 'keyid' have the correct format?
@@ -506,7 +505,6 @@ def get_key(keyid):
 
   <Returns>
     The key belonging to 'keyid' (e.g., RSA key).
-
   """
 
   # Does 'keyid' have the correct format?
@@ -530,7 +528,6 @@ def _generate_derived_key(password, salt=None, iterations=None):
   Derivation Function (PBKDF2).  PyCrypto's PBKDF2 implementation is
   currently used.  'salt' may be specified so that a previous derived key
   may be regenerated.
-  
   """
   
   if salt is None:
@@ -584,7 +581,6 @@ def _encrypt(key_data, derived_key_information):
      'iterations': '...'}
 
   'tuf.CryptoError' raised if the encryption fails.
-  
   """
   
   # Generate a random initialization vector (IV).  The 'iv' is treated as the
@@ -650,7 +646,6 @@ def _decrypt(file_contents, password):
   The corresponding decryption routine for _encrypt().
 
   'tuf.CryptoError' raised if the decryption fails.
-  
   """
  
   # Extract the salt, iterations, hmac, initialization vector, and ciphertext

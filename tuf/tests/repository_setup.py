@@ -14,7 +14,6 @@
 <Purpose>
   To provide a quick repository structure to be used in conjunction with
   test modules like test_updater.py for instance.
-
 """
 
 import os
@@ -24,7 +23,6 @@ import shutil
 import tempfile
 
 import tuf.formats
-import tuf.rsa_key as rsa_key
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
 import tuf.repo.signercli as signercli
@@ -276,7 +274,6 @@ def create_repositories():
   <Return>
     A dictionary of all repositories, with the following keys:
     (main_repository, client_repository, server_repository)
-
   """
 
   # Ensure the keyids for the required roles are loaded.  Role keyids are

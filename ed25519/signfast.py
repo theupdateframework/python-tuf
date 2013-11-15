@@ -15,7 +15,13 @@ import ed25519
 # sk includes pk at end
 # sm includes m at end
 
+MAX = 10
+
+i = 0
 while 1:
+  if i >= MAX:
+      break
+  i += 1
   line = sys.stdin.readline()
   if not line: break
   print(".", end="")
