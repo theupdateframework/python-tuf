@@ -7,7 +7,6 @@
 ```python
 from tuf.libtuf import *
 
-
 # Generate and write the first of two root keys for the repository.
 # The following function creates an RSA key pair, where the private key is saved to
 # “path/to/root_key” and the public key to “path/to/root_key.pub”.
@@ -56,8 +55,13 @@ repository = create_new_repository("path/to/repository/")
 
 # The Repository instance, ‘repository’, initially contains top-level Metadata objects.
 # Add one of the public keys, created in the previous section, to the root role.  Metadata is
-# considered valid if it is signed by the public key’s corresponding private key
+# considered valid if it is signed by the public key’s corresponding private key.
 repository.root.add_key(public_root_key)
+
+# Role keys (i.e., keyid) may be queried.  Other attributes include: signing_keys, version,
+# signatures, expiration, threshold, and compressions.
+repository.root.keys
+[u'b23514431a53676595922e955c2d547293da4a7917e3ca243a175e72bbf718df']
 
 # Add a second public key to the root role.  Although previously generated and saved to a file,
 # the second public key must be imported before it can added to a role.
@@ -130,6 +134,10 @@ repository.timestamp.load_signing_key(private_timestamp_key)
 # as follows:  root(1 year), targets(3 months), release(1 week), timestamp(1 day).
 repository.timestamp.expiration = "2014-10-28 12:08:00"
 
+# Metadata files may also be compressed.  Only "gz" is currently supported.
+repository.targets.compressions = ["gz"]
+repository.release.compressions = ["gz"]
+
 # Write all metadata to “path/to/repository/metadata/”
 # The common case is to crawl the filesystem for all roles in
 # “path/to/repository/metadata/targets/”.
@@ -140,10 +148,12 @@ repository.write()
 
 #### Add Target Files
 ```Bash
-# Create and save target files to the repository.
+# Create and save target files to the targets directory of the repository.
 $ cd path/to/repository/targets/
 $ echo 'file1' > file1.txt
 $ echo 'file2' > file2.txt
+$ echo 'file3' > file3.txt
+$ mkdir django; echo 'file4' > django/file4.txt
 ```
 
 ```python
@@ -155,14 +165,14 @@ repository = load_repository("path/to/repository/")
 # This must be relative to an existing directory in the repository, otherwise throw an
 # error.
 list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targets/",
-                                                        recursive_walk=True, followlinks=True) 
+                                                        recursive_walk=False, followlinks=True) 
 
 # Add the list of target paths to the metadata of the Targets role.  Any target file paths
 # that may already exist are NOT replaced.  add_targets() does not create or move target files.
 repository.targets.add_targets(list_of_targets)
 
 # Individual target files may also be added.
-repository.targets.add_target("path/to/repository/targets/file1.txt")
+repository.targets.add_target("path/to/repository/targets/file3.txt")
 
 # The private key of the updated targets metadata must be loaded before it can be signed and
 # written (Note the load_repository() call above).
@@ -201,7 +211,7 @@ repository.write()
 
 # Remove a target file listed in the “targets” metadata.  The target file is not actually deleted
 # from the file system.
-repository.targets.remove_target("path/to/repository/targets/file1.txt")
+repository.targets.remove_target("path/to/repository/targets/file3.txt")
 
 # repository.write() creates any new metadata files, updates those that have changed, and any that
 # need updating to make a new “release” (new release.txt and timestamp.txt).
@@ -219,7 +229,7 @@ public_unclaimed_key = import_rsa_publickey_from_file("path/to/unclaimed_key.pub
 # Make a delegation from “targets” to “targets/unclaimed”, for all targets in “list_of_targets”.
 # The delegated role’s full name is not required.
 # delegated(rolename, list_of_public_keys, list_of_file_paths, threshold, restricted_paths)
-repository.targets.delegate("unclaimed", [public_unclaimed_key], list_of_targets)
+repository.targets.delegate("unclaimed", [public_unclaimed_key], [])
 
 # Load the private key of “targets/unclaimed” so that signatures are added and valid metadata
 # is created.
@@ -228,11 +238,20 @@ Enter a password for the RSA key:
 Confirm:
 repository.targets.unclaimed.load_signing_key(private_unclaimed_key)
 
-# Update attributes of the unclaimed role and add a target file.
-repository.targets.unclaimed.expiration = "2014-10-28 12:08:00"
-repository.targets.unclaimed.add_target("path/to/repository/targets/file1.txt")
+# Update an attribute of the unclaimed role and add a target file.
+repository.targets.unclaimed.version = 2
 
-#  Write the metadata of “targets/unclaimed”, targets, release, and timestamp.
+# Delegations may also be nested.  Create the delegated role "targets/unclaimed/django",
+# where it initially contains zero targets and future targets are restricted to a
+# particular directory.
+repository.targets.unclaimed.delegate("django", [public_unclaimed_key], [],
+                                      restricted_paths=["path/to/repository/targets/django/"])
+repository.targets.unclaimed.django.load_signing_key(private_unclaimed_key)
+repository.targets.unclaimed.django.add_target("path/to/repository/targets/django/file4.txt")
+repository.targets.unclaimed.django.compressions = ["gz"]
+
+#  Write the metadata of "targets/unclaimed", targets/unclaimed/django", targets, release,
+# and timestamp.
 repository.write()
 ```
 
@@ -240,9 +259,11 @@ repository.write()
 ```python
 # Continuing from the previous section . . .
 
-# Revoke “targets/unclaimed” and write the metadata of all remaining roles.
-repository.targets.revoke("unclaimed")
+# Create a delegated role that will be revoked in the next step.
+repository.targets.unclaimed.delegate("flask", [public_unclaimed_key], [])
 
+# Revoke “targets/unclaimed/flask” and write the metadata of all remaining roles.
+repository.targets.unclaimed.revoke("flask")
 repository.write()
 ```
 
@@ -276,11 +297,16 @@ $ cd “path/to/repository/”; python -m SimpleHTTPServer 8001
 $ cd "path/to/client/"
 $ ls
 metadata/
+
 $ python basic_client.py --repo http://localhost:8001
-$ ls . targets/
+
+$ ls . targets/ targets/django/
 .:
 metadata  targets  tuf.log
 
 targets/:
-file1.txt  file2.txt
+django  file1.txt  file2.txt
+
+targets/django/:
+file4.txt
 ```
