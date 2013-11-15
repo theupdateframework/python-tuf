@@ -1,6 +1,6 @@
 ## Create TUF Repository
 
-![Repo Tools Diagram 1](https://raw.github.com/SantiagoTorres/tuf/repository-tools/resources/images/TUF%20repository%20tools.png)
+![Repo Tools Diagram 1](https://raw.github.com/theupdateframework/tuf/repository-tools/docs/images/libtuf-diagram.png)
 ### Keys
 
 #### Create RSA Keys
