@@ -22,6 +22,7 @@ import gzip
 import os
 import ConfigParser
 import logging
+import time
 
 import tuf
 import tuf.formats
@@ -288,7 +289,7 @@ def generate_root_metadata(config_filepath, version):
         if key['keytype'] in ['rsa', 'ed25519']:
           keytype = key['keytype']
           keyval = key['keyval']
-          keydict[keyid] = tuf.keys.create_in_metadata_format(keytype, keyval)
+          keydict[keyid] = tuf.keys.format_keyval_to_metadata(keytype, keyval)
         # This is not a recognized key.  Raise an exception.
         else:
           raise tuf.Error('Unsupported keytype: '+keyid)
@@ -309,7 +310,8 @@ def generate_root_metadata(config_filepath, version):
                         3600 * 24 * expiration['days'])
 
   # Generate the root metadata object.
-  root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_seconds,
+  expiration_date = tuf.formats.format_time(time.time()+expiration_seconds)
+  root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_date,
                                                      keydict, roledict)
 
   # Note: make_signable() returns the following dictionary:

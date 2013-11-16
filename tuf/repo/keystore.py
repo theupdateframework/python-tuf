@@ -288,9 +288,9 @@ def load_keystore_from_keyfiles(directory_name, keyids, passwords):
           # supported.
           if keydata['keytype'] in _SUPPORTED_KEY_TYPES:
             # 'keydata' is stored in KEY_SCHEMA format.  Call
-            # create_from_metadata_format() to get the key in RSAKEY_SCHEMA
+            # format_metadata_to_key() to get the key in RSAKEY_SCHEMA
             # format, which is the format expected by 'add_rsakey()'.
-            rsa_key = tuf.keys.create_from_metadata_format(keydata)
+            rsa_key = tuf.keys.format_metadata_to_key(keydata)
 
             # Ensure the keyid for 'rsa_key' is one of the keys specified in
             # 'keyids'.  If not, do not load the key.
@@ -368,7 +368,7 @@ def save_keystore_to_keyfiles(directory_name):
       keytype = key['keytype']
       keyval = key['keyval']
       key_metadata_format = \
-            tuf.keys.create_in_metadata_format(keytype, keyval, private=True)
+            tuf.keys.format_keyval_to_metadata(keytype, keyval, private=True)
     else:
       logger.warn('The keystore has a key with an unrecognized key type.')
       continue
