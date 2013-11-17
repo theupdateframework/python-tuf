@@ -2,6 +2,20 @@
 ![Repo Tools Diagram 1](https://raw.github.com/theupdateframework/tuf/repository-tools/docs/images/libtuf-diagram.png)
 ## Create TUF Repository
 
+The **tuf.libtuf** module can be used to create a TUF repository.  It may either be imported into a Python module
+or used interactively in a Python interpreter.
+
+```Bash
+$ python
+Python 2.7.3 (default, Sep 26 2013, 20:08:41) 
+[GCC 4.6.3] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from tuf.libtuf import *
+>>> repository = load_repository("path/to/repository")
+```
+The **tuf.interposition** package and **tuf.client.updater** module assist in integrating TUF with a software updater.
+
+
 ### Keys
 
 #### Create RSA Keys
@@ -80,7 +94,7 @@ private_root_key2 = import_rsa_privatekey_from_file("path/to/root_key2", passwor
 # The load_signing_key() method SHOULD warn when the key is NOT explicitly allowed to
 # sign for it.
 repository.root.load_signing_key(private_root_key)
-repository.root_load_signing_key(private_root_key2)
+repository.root.load_signing_key(private_root_key2)
 
 # Print the number of valid signatures and public/private keys of the repository's metadata.
 repository.status()
@@ -140,9 +154,8 @@ repository.timestamp.expiration = "2014-10-28 12:08:00"
 repository.targets.compressions = ["gz"]
 repository.release.compressions = ["gz"]
 
-# Write all metadata to "path/to/repository/metadata/".
-# The common case is to crawl the filesystem for all roles in
-# "path/to/repository/metadata/targets/".
+# Write all metadata to "path/to/repository/metadata/".  The common case is to crawl the filesystem
+# for all delegated roles in "path/to/repository/metadata/targets/".
 repository.write()
 ```
 
@@ -205,7 +218,7 @@ repository.root.load_signing_key(private_root_key2)
 repository.release.load_signing_key(private_release_key)
 repository.timestamp.load_signing_key(private_timestamp_key)
 
-# Generate new versions of all the top-level metadata and increment version numbers.
+# Generate new versions of all the top-level metadata.
 repository.write()
 ```
 
@@ -274,7 +287,7 @@ repository.write()
 
 ```bash
 # Copy the staged metadata directory changes to the live repository.
-$ cp -r "path/to/repository/metadata.staged" "path/to/repository/metadata"
+$ cp -r "path/to/repository/metadata.staged/" "path/to/repository/metadata/"
 ```
 
 ## Client Setup and Repository Trial
