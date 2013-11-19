@@ -154,8 +154,8 @@ repository.timestamp.expiration = "2014-10-28 12:08:00"
 repository.targets.compressions = ["gz"]
 repository.release.compressions = ["gz"]
 
-# Write all metadata to "path/to/repository/metadata/".  The common case is to crawl the filesystem
-# for all delegated roles in "path/to/repository/metadata/targets/".
+# Write all metadata to "path/to/repository/metadata.staged/".  The common case is to crawl the
+# filesystem for all delegated roles in "path/to/repository/metadata.staged/targets/".
 repository.write()
 ```
 
@@ -179,8 +179,7 @@ from tuf.libtuf import *
 repository = load_repository("path/to/repository/")
 
 # Get a list of file paths in a directory, even those in sub-directories.
-# This must be relative to an existing directory in the repository, otherwise throw an
-# error.
+# This must be relative to an existing directory in the repository, raise an exception.
 list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targets/",
                                                         recursive_walk=False, followlinks=True) 
 
@@ -245,8 +244,8 @@ public_unclaimed_key = import_rsa_publickey_from_file("path/to/unclaimed_key.pub
 
 # Make a delegation from "targets" to "targets/unclaimed", initially containing zero targets.
 # The delegated role’s full name is not expected.
-# delegated(rolename, list_of_public_keys, list_of_file_paths, threshold,
-#           restricted_paths, path_hash_prefixes)
+# delegate(rolename, list_of_public_keys, list_of_file_paths, threshold,
+#          restricted_paths, path_hash_prefixes)
 repository.targets.delegate("unclaimed", [public_unclaimed_key], [])
 
 # Load the private key of "targets/unclaimed" so that signatures are later added and valid
@@ -268,7 +267,7 @@ repository.targets.unclaimed.django.load_signing_key(private_unclaimed_key)
 repository.targets.unclaimed.django.add_target("path/to/repository/targets/django/file4.txt")
 repository.targets.unclaimed.django.compressions = ["gz"]
 
-#  Write the metadata of "targets/unclaimed", "targets/unclaimed/django", targets, release,
+#  Write the metadata of "targets/unclaimed", "targets/unclaimed/django", root, targets, release,
 # and timestamp.
 repository.write()
 ```
@@ -297,12 +296,12 @@ $ cp -r "path/to/repository/metadata.staged/" "path/to/repository/metadata/"
 from tuf.libtuf import *
 
 # The following function creates a directory structure that a client 
-# downloading new software using tuf (via tuf/client/updater.py) will expect.
+# downloading new software using TUF (via tuf/client/updater.py) will expect.
 # The root.txt metadata file must exist, and also the directories that hold the metadata files
 # downloaded from a repository.  Software updaters integrating with TUF may use this
 # directory to store TUF updates saved on the client side.  create_tuf_client_directory()
-# moves metadata files "path/to/repository/" to "path/to/client/".  The repository in
-# "path/to/repository/" is the repository created in the "Create TUF Repository" section.
+# moves metadata from "path/to/repository/metadata" to "path/to/client/".  The repository
+# in "path/to/repository/" is the repository created in the "Create TUF Repository" section.
 create_tuf_client_directory("path/to/repository/", "path/to/client/")
 ```
 
