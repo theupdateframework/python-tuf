@@ -1,4 +1,3 @@
-
                       TUF: The Update Framework
 
 1. Introduction
@@ -423,8 +422,7 @@
    where: ROLE is a dictionary whose "_type" field describes the role type.
           KEYID is the identifier of the key signing the ROLE dictionary.
           METHOD is the key signing method used to generate the signature.
-          SIGNATURE is a signature of the canonical encoding of ROLE using the
-          signing key belonging to KEYID.
+          SIGNATURE is a signature of the canonical JSON form of ROLE.
 
    We define one signing method at present:
        "evp" : An interface to OpenSSL's EVP functions.
@@ -439,8 +437,8 @@
    used to sign documents.  The type determines the interpretation of
    KEYVAL.
 
-   The KEYID of a key is the hex representation of the SHA-256 hash of the
-   canonical encoding of the key.
+   The KEYID of a key is the hexdigest of the SHA-256 hash of the
+   canonical JSON form of the key.
 
    We define one keytype at present: 'rsa'.  Its format is:
       { "keytype" : "rsa",
