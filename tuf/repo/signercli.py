@@ -693,7 +693,8 @@ def dump_key(keystore_directory):
   if key['keytype'] == 'rsa':
     keytype = key['keytype']
     keyval = key['keyval']
-    key_metadata = tuf.keys.create_in_metadata_format(keytype, keyval,
+    key_metadata = tuf.keys.format_keyval_to_metadata(keytype, keyval,
+    #key_metadata = tuf.keys.create_in_metadata_format(keytype, keyval,
                                                       private=show_private)
   else:
     message = 'The keystore contains an invalid key type.'
@@ -1357,7 +1358,8 @@ def _update_parent_metadata(metadata_directory, delegated_role,
     if role_key['keytype'] == 'rsa':
       keytype = role_key['keytype']
       keyval = role_key['keyval']
-      keys[delegated_keyid] = tuf.keys.create_in_metadata_format(keytype, keyval)
+      keys[delegated_keyid] = tuf.keys.format_keyval_to_metadata(keytype, keyval)
+      #keys[delegated_keyid] = tuf.keys.create_in_metadata_format(keytype, keyval)
     else:
       message = 'Invalid keytype encountered: '+delegated_keyid+'\n'
       raise tuf.RepositoryError(message)
