@@ -105,7 +105,11 @@ try:
   repository.write()
 
 # An exception is raised here by write() because the other top-level roles (targets, release,
-# and timestamp) have not been configured with keys.
+# and timestamp) have not been configured with keys.  Another option is to call
+# repository.write_partial() and generate metadata that may contain an invalid threshold of
+# signatures, required public keys, etc.  write_partial() allows multiple repository maintainers to
+# independently sign metadata and generate them separately.  load_repository() can load partially
+# written metadata.q
 except tuf.Error, e:
   print e 
 Not enough signatures for 'path/to/repository/metadata.staged/targets.txt'
