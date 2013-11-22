@@ -12,6 +12,7 @@
   See LICENSE for licensing information.
 
 <Purpose>
+  See 'tuf.README' for a complete guide on using 'tuf.libtuf.py'.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -59,10 +60,12 @@ RELEASE_FILENAME = 'release.txt'
 TIMESTAMP_FILENAME = 'timestamp.txt'
 
 # The targets and metadata directory names.
-METADATA_DIRECTORY_NAME = 'metadata.staged'
+METADATA_STAGED_DIRECTORY_NAME = 'metadata.staged'
+METADATA_DIRECTORY_NAME = 'metadata'
 TARGETS_DIRECTORY_NAME = 'targets' 
 
 # The supported file extensions of TUF metadata files.
+METADATA_EXTENSION = '.txt'
 METADATA_EXTENSIONS = ['.txt', '.txt.gz']
 
 # The recognized compression extensions. 
@@ -154,7 +157,7 @@ class Repository(object):
     try:
       temp_repository_directory = tempfile.mkdtemp()
       metadata_directory = os.path.join(temp_repository_directory,
-                                        METADATA_DIRECTORY_NAME)
+                                        METADATA_STAGED_DIRECTORY_NAME)
       os.mkdir(metadata_directory)
 
       filenames = get_metadata_filenames(metadata_directory)
@@ -321,8 +324,8 @@ class Repository(object):
       Write all the JSON Metadata objects to their corresponding files.  
     
     <Arguments>
-      None.
-
+      write_partial:
+        
     <Exceptions>
       tuf.RepositoryError, if any of the top-level roles do not have a minimum
       threshold of signatures.
@@ -373,7 +376,7 @@ class Repository(object):
     signed_root['signatures'].extend(roleinfo['signatures']) 
     if tuf.sig.verify(signed_root, 'root') or write_partial:
       if not write_partial:
-        _remove_invalid_signatures(signed_root)
+        _remove_invalid_and_duplicate_signatures(signed_root)
       for compression in roleinfo['compressions']:
         write_metadata_file(signed_root, root_filename, compression)
     
@@ -395,7 +398,7 @@ class Repository(object):
     
     if tuf.sig.verify(signed_targets, 'targets') or write_partial:
       if not write_partial:
-        _remove_invalid_signatures(signed_targets)
+        _remove_invalid_and_duplicate_signatures(signed_targets)
       for compression in roleinfo['compressions']:
         write_metadata_file(signed_targets, targets_filename, compression)
     
@@ -416,7 +419,7 @@ class Repository(object):
 
     if tuf.sig.verify(signed_release, 'release') or write_partial:
       if not write_partial:
-        _remove_invalid_signatures(signed_release)
+        _remove_invalid_and_duplicate_signatures(signed_release)
       for compression in roleinfo['compressions']:
         write_metadata_file(signed_release, release_filename, compression)
     
@@ -438,7 +441,7 @@ class Repository(object):
     
     if tuf.sig.verify(signed_timestamp, 'timestamp') or write_partial:
       if not write_partial:
-        _remove_invalid_signatures(signed_timestamp)
+        _remove_invalid_and_duplicate_signatures(signed_timestamp)
       for compression in roleinfo['compressions']:
         write_metadata_file(signed_timestamp, timestamp_filename, compression)
     
@@ -447,7 +450,30 @@ class Repository(object):
       raise tuf.Error(message)
     
     _delete_obsolete_metadata(self._metadata_directory)
+  
+  
+  
+  def write_partial(self):
+    """
+    <Purpose>
+      Write all the JSON Metadata objects to their corresponding files, but
+      allow metadata files to contain an invalid threshold of signatures.  
+    
+    <Arguments>
+      None.
 
+    <Exceptions>
+      tuf.RepositoryError, if any of the top-level roles do not have a minimum
+      threshold of signatures.
+
+    <Side Effects>
+      Creates metadata files in the repository's metadata directory.
+
+    <Returns>
+      None.
+    """
+
+    self.write(write_partial=True)
 
 
   def get_filepaths_in_directory(self, files_directory, recursive_walk=False,
@@ -1164,7 +1190,7 @@ class Targets(Metadata):
                                   'roles': []}}
     
     try:
-      tuf.roledb.add_role(self._rolename, roleinfo)
+      tuf.roledb.add_role(self.rolename, roleinfo)
     except tuf.RoleAlreadyExistsError, e:
       pass  
 
@@ -1477,7 +1503,7 @@ class Targets(Metadata):
                                 'roles': []}}
     #tuf.roledb.add_role(full_rolename, roleinfo)
     new_targets_object = Targets(self._targets_directory, full_rolename,
-                                 roleinfo )
+                                 roleinfo)
     
     # Update the 'delegations' field of the current role.
     current_roleinfo = tuf.roledb.get_roleinfo(self.rolename) 
@@ -1625,7 +1651,7 @@ def _check_directory(directory):
 
   # Check if the directory exists.
   if not os.path.isdir(directory):
-    raise tuf.Error(repr(directory)+' directory does not exist')
+    raise tuf.Error(repr(directory)+' directory does not exist.')
 
   directory = os.path.abspath(directory)
   
@@ -1661,13 +1687,20 @@ def _check_role_keys(rolename):
 
 
 
-def _remove_invalid_signatures(signable):
+def _remove_invalid_and_duplicate_signatures(signable):
   """
     Remove invalid signatures from 'signable'.
     'signable' may contain signatures (invalid) from previous versions
-    of the metadata and loaded with load_repository().  'signable' is modified. 
+    of the metadata that were loaded with load_repository().  'signable' may be
+    modified.
   """
   
+  # Store the keyids of valid signatures.  'signature_keyids' is checked
+  # for duplicates rather than comparing signature objects because PSS may
+  # generate duplicate valid signatures of the same data, yet contain different
+  # signatures.
+  signature_keyids = []
+
   for signature in signable['signatures']:
     data = tuf.formats.encode_canonical(signable['signed'])
     keyid = signature['keyid']
@@ -1675,13 +1708,24 @@ def _remove_invalid_signatures(signable):
 
     # Remove 'signature' from 'signable' if the listed keyid does not exist.
     try:
-      key = tuf.keydb.get_key(keyid)  
+      key = tuf.keydb.get_key(keyid)
     except tuf.UnknownKeyError, e:
       signable['signatures'].remove(signature)
     
-    # Remove signature from 'signable' if it is invalid. 
+    # Remove signature from 'signable' if it is invalid.
     if not tuf.keys.verify_signature(key, signature, data):
+      print('removing invalid: '+repr(signature))
       signable['signatures'].remove(signature)
+    
+    # Although valid, it may still need removal if it is a duplicate.
+    else:
+      if keyid in signature_keyids:
+        print('removing duplicate: '+repr(signature))
+        signable['signatures'].remove(signature)
+      
+      # 'keyid' is valid and not a duplicate, so add it to 'signature_keyids'.
+      else:
+        signature_keyids.append(keyid)
 
 
 
@@ -1746,7 +1790,7 @@ def create_new_repository(repository_directory):
   
   #  
   metadata_directory = \
-    os.path.join(repository_directory, METADATA_DIRECTORY_NAME)
+    os.path.join(repository_directory, METADATA_STAGED_DIRECTORY_NAME)
   targets_directory = \
     os.path.join(repository_directory, TARGETS_DIRECTORY_NAME) 
   
@@ -1809,7 +1853,7 @@ def load_repository(repository_directory):
   # Load top-level metadata.
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,
-                                    METADATA_DIRECTORY_NAME)
+                                    METADATA_STAGED_DIRECTORY_NAME)
   targets_directory = os.path.join(repository_directory,
                                     TARGETS_DIRECTORY_NAME)
   
@@ -1884,6 +1928,7 @@ def load_repository(repository_directory):
       roleinfo = {'name': role['name'],
                   'keyids': role['keyids'],
                   'threshold': role['threshold'],
+                  'compressions': [''],
                   'signing_keyids': [],
                   'signatures': [],
                   'delegations': {'keys': {},
@@ -1928,10 +1973,10 @@ def load_repository(repository_directory):
     tuf.roledb.update_roleinfo('timestamp', roleinfo)
   
   else:
-    pass 
+    pass
  
   # Load delegated targets metadata.
-  # Walk the 'targets/' directory and generate the file info for all
+  # Walk the 'targets/' directory and generate the fileinfo for all
   # the files listed there.  This information is stored in the 'meta'
   # field of the release metadata object.
   targets_objects = {}
@@ -1941,12 +1986,16 @@ def load_repository(repository_directory):
   if os.path.exists(targets_metadata_directory) and \
                     os.path.isdir(targets_metadata_directory):
     for root, directories, files in os.walk(targets_metadata_directory):
+      
       # 'files' here is a list of target file names.
       for basename in files:
         metadata_path = os.path.join(root, basename)
         metadata_name = metadata_path[len(metadata_directory):].lstrip(os.path.sep)
-        extension_length = len(METADATA_EXTENSION)
-        metadata_name = metadata_name[:-extension_length] 
+        if metadata_name.endswith(METADATA_EXTENSION): 
+          extension_length = len(METADATA_EXTENSION)
+          metadata_name = metadata_name[:-extension_length]
+        else:
+          continue
        
         signable = None
         try:
@@ -1962,7 +2011,7 @@ def load_repository(repository_directory):
         roleinfo['expires'] = metadata_object['expires']
         roleinfo['paths'] = metadata_object['targets'].keys()
         
-        if os.path.exists(timestamp_filename+'.gz'):
+        if os.path.exists(metadata_path+'.gz'):
           roleinfo['compressions'].append('gz')
         tuf.roledb.update_roleinfo(metadata_name, roleinfo)
 
@@ -1984,6 +2033,7 @@ def load_repository(repository_directory):
           roleinfo = {'name': role['name'],
                       'keyids': role['keyids'],
                       'threshold': role['threshold'],
+                      'compressions': [''],
                       'signing_keyids': [],
                       'signatures': [],
                       'delegations': {'keys': {},
@@ -2292,7 +2342,7 @@ def generate_root_metadata(version, expiration_date):
     The contents of 'tuf.keydb.py' and 'tuf.roledb.py' are read.
 
   <Returns>
-    A root 'signable' object conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
+    A root metadata object, conformant to 'tuf.formats.ROOT_SCHEMA'.
   """
 
   # Do the arguments have the correct format?
@@ -2353,9 +2403,7 @@ def generate_root_metadata(version, expiration_date):
   root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_date,
                                                      keydict, roledict)
 
-  # Note: make_signable() returns the following dictionary:
-  # {'signed' : role_metadata, 'signatures' : []}
-  return tuf.formats.make_signable(root_metadata)
+  return root_metadata 
 
 
 
@@ -2405,7 +2453,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     The target files are read and file information generated about them.
 
   <Returns>
-    A targets 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
+    A targets metadata object, conformant to 'tuf.formats.TARGETS_SCHEMA'.
   """
 
   # Do the arguments have the correct format.
@@ -2443,7 +2491,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
                                                            filedict,
                                                            delegations)
 
-  return tuf.formats.make_signable(targets_metadata)
+  return targets_metadata
 
 
 
@@ -2481,11 +2529,13 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
     The 'root.txt' and 'targets.txt' files are read.
 
   <Returns>
-    The release 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
+    The release metadata object, conformant to 'tuf.formats.RELEASE_SCHEMA'.
   """
 
-  # Does 'metadata_directory' have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Do the arguments have the correct format?
+  # This check ensures arguments have the appropriate number of objects and 
+  # object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
@@ -2496,7 +2546,7 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
   root_filename = os.path.join(metadata_directory, ROOT_FILENAME)
   targets_filename = os.path.join(metadata_directory, TARGETS_FILENAME)
 
-  # Retrieve the file info of 'root.txt' and 'targets.txt'.  This file
+  # Retrieve the fileinfo of 'root.txt' and 'targets.txt'.  This file
   # information includes data such as file length, hashes of the file, etc.
   filedict = {}
   filedict[ROOT_FILENAME] = get_metadata_file_info(root_filename)
@@ -2535,7 +2585,7 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
                                                            expiration_date,
                                                            filedict)
 
-  return tuf.formats.make_signable(release_metadata)
+  return release_metadata
 
 
 
@@ -2552,13 +2602,13 @@ def generate_timestamp_metadata(release_filename, version,
       The required filename of the release metadata file.
     
     version:
-      The metadata version number.  Clients use the version number to
+      The timestamp's version number.  Clients use the version number to
       determine if the downloaded version is newer than the one currently
       trusted.
 
     expiration_date:
-      The expiration date, in UTC, of the metadata file.
-      Conformant to 'tuf.formats.TIME_SCHEMA'.
+      The expiration date, in UTC, of the metadata file, conformant to
+      'tuf.formats.TIME_SCHEMA'.
 
     compressions:
       Compression extensions (e.g., 'gz').  If 'release.txt' is also saved in
@@ -2567,28 +2617,32 @@ def generate_timestamp_metadata(release_filename, version,
       timestamp metadata object.
 
   <Exceptions>
-    tuf.FormatError, if the generated timestamp metadata object could
-    not be formatted correctly.
+    tuf.FormatError, if the generated timestamp metadata object cannot be
+    formatted correctly, or one of the arguments is improperly formatted.
 
   <Side Effects>
     None.
 
   <Returns>
-    A timestamp 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
+    A timestamp metadata object, conformant to 'tuf.formats.TIMESTAMP_SCHEMA'.
   """
-
+  
   # Do the arguments have the correct format?
-  # Raise 'tuf.FormatError' if there is  mismatch.
+  # This check ensures arguments have the appropriate number of objects and 
+  # object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PATH_SCHEMA.check_match(release_filename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
 
-  # Retrieve the file info for the release metadata file.
+  # Retrieve the fileinfo of the release metadata file.
   # This file information contains hashes, file length, custom data, etc.
   fileinfo = {}
   fileinfo[RELEASE_FILENAME] = get_metadata_file_info(release_filename)
 
-  # Save the file info of the compressed versions of 'timestamp.txt'.
+  # Save the fileinfo of the compressed versions of 'timestamp.txt'
+  # in 'fileinfo'.  Log the files included in 'fileinfo'.
   for file_extension in compressions:
     
     compressed_filename = release_filename + '.' + file_extension
@@ -2596,7 +2650,7 @@ def generate_timestamp_metadata(release_filename, version,
       compressed_fileinfo = get_metadata_file_info(compressed_filename)
     
     except:
-      logger.warn('Could not get fileinfo about '+str(compressed_filename))
+      logger.warn('Cannot get fileinfo about '+str(compressed_filename))
     
     else:
       logger.info('Including fileinfo about '+str(compressed_filename))
@@ -2607,21 +2661,21 @@ def generate_timestamp_metadata(release_filename, version,
                                                                expiration_date,
                                                                fileinfo)
 
-  return tuf.formats.make_signable(timestamp_metadata)
+  return timestamp_metadata
 
 
 
 
 
-def sign_metadata(metadata, keyids, filename):
+def sign_metadata(metadata_object, keyids, filename):
   """
   <Purpose>
     Sign a metadata object. If any of the keyids have already signed the file,
-    the old signature will be replaced.  The keys in 'keyids' must already be
-    loaded in the keystore.
+    the old signature is replaced.  The keys in 'keyids' must already be
+    loaded in 'tuf.keydb'.
 
   <Arguments>
-    metadata:
+    metadata_object:
       The metadata object to sign.  For example, 'metadata' might correspond to
       'tuf.formats.ROOT_SCHEMA' or 'tuf.formats.TARGETS_SCHEMA'.
 
@@ -2634,7 +2688,8 @@ def sign_metadata(metadata, keyids, filename):
       does NOT save the signed metadata to this filename.
 
   <Exceptions>
-    tuf.FormatError, if a valid 'signable' object could not be generated.
+    tuf.FormatError, if a valid 'signable' object could not be generated or
+    the arguments are improperly formatted.
 
     tuf.Error, if an invalid keytype was found in the keystore. 
   
@@ -2645,8 +2700,11 @@ def sign_metadata(metadata, keyids, filename):
     A signable object conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
   """
 
-  # Does 'keyids' and 'filename' have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Do the arguments have the correct format?
+  # This check ensures arguments have the appropriate number of objects and 
+  # object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.ANYROLE_SCHEMA.check_match(metadata_object)  
   tuf.formats.KEYIDS_SCHEMA.check_match(keyids)
   tuf.formats.PATH_SCHEMA.check_match(filename)
 
@@ -2654,7 +2712,7 @@ def sign_metadata(metadata, keyids, filename):
   # it contains a 'signatures' field containing the result
   # of signing the 'signed' field of 'metadata' with each
   # keyid of 'keyids'.
-  signable = tuf.formats.make_signable(metadata)
+  signable = tuf.formats.make_signable(metadata_object)
 
   # Sign the metadata with each keyid in 'keyids'.
   for keyid in keyids:
@@ -2696,51 +2754,59 @@ def sign_metadata(metadata, keyids, filename):
 def write_metadata_file(metadata, filename, compression=''):
   """
   <Purpose>
-    Create the file containing the metadata.
+    Write the 'metadata' signable object to 'filename', and the compressed
+    version of the metadata file if 'compression' is set.
 
   <Arguments>
     metadata:
-      The object that will be saved to 'filename'.
+      The object that will be saved to 'filename', conformant to
+      'tuf.formats.SIGNABLE_SCHEMA'.
 
     filename:
-      The filename (absolute path) of the metadata to be
-      written (e.g., 'root.txt').
+      The filename of the metadata to be written (e.g., 'root.txt').
+      If 'compression' is set, the compressions extention is appended to
+      'filename'.
 
     compression:
-      Specify an algorithm as a string to compress the file; otherwise, the
+      Specify the algorithm, as a string, to compress the file; otherwise, the
       file will be left uncompressed. Available options are 'gz' (gzip).
 
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
-    tuf.Error, if 'filename' doesn't exist.
+    tuf.Error, if the directory of 'filename' does not exist.
 
-    Any other runtime (e.g. IO) exception.
+    Any other runtime (e.g., IO) exception.
 
   <Side Effects>
-    The 'filename' file is created or overwritten if it exists.
+    The 'filename' (or the compressed filename) file is created or overwritten
+    if it exists.
 
   <Returns>
-    The path to the written metadata file.
+    The file path of the written metadata.
   """
 
-  # Are the arguments properly formatted?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Do the arguments have the correct format?
+  # This check ensures arguments have the appropriate number of objects and 
+  # object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.SIGNABLE_SCHEMA.check_match(metadata)
   tuf.formats.PATH_SCHEMA.check_match(filename)
   tuf.formats.COMPRESSION_SCHEMA.check_match(compression)
 
-  # Verify 'filename' directory.
+  # Verify the directory of 'filename' and convert 'filename' to its absolute
+  # path.
   _check_directory(os.path.dirname(filename))
+  filename = os.path.abspath(filename)
 
-  # We choose a file-like object that depends on the compression algorithm.
   file_object = None
   
   # We may modify the filename, depending on the compression algorithm, so we
   # store it separately.
   filename_with_compression = filename
 
-  # Take care of compression.
+  # Take care of compression by opening the appropriate file object and updating
+  # 'filename_with_compression', if necessary.
   if not len(compression):
     logger.info('No compression for '+str(filename))
     file_object = open(filename_with_compression, 'w')
@@ -2757,7 +2823,7 @@ def write_metadata_file(metadata, filename, compression=''):
     tuf.formats.PATH_SCHEMA.check_match(filename_with_compression)
     logger.info('Writing to '+str(filename_with_compression))
 
-    # The metadata object is saved to 'file_object'.  The keys
+    # The metadata object is saved to 'filename_with_compression'.  The keys
     # of the objects are sorted and indentation is used.
     json.dump(metadata, file_object, indent=1, sort_keys=True)
 
@@ -2767,7 +2833,7 @@ def write_metadata_file(metadata, filename, compression=''):
     raise
   
   else:
-    # Otherwise, return the written filename.
+    # Otherwise, return the written filename if there are no exceptions.
     return filename_with_compression
   
   finally:
@@ -2784,15 +2850,18 @@ def write_delegated_metadata_file(repository_directory, targets_directory,
                                   compressions, write_partial=False):
   """
   <Purpose>
-    Build the targets metadata file using the signing keys in
-    'delegated_keyids'.  The generated metadata file is saved to
-    'metadata_directory'.  The target files located in 'targets_directory' will
-    be tracked by the built targets metadata.  
+    Write the delegated targets metadata, signed by the corresponding keys
+    of 'keyids'.  The generated metadata file is saved to the metadata
+    sub-directory of 'repository_directory'.  The generated target metadata
+    will reference the paths in 'list_of_targets'.
 
   <Arguments>
     repository_directory:
-      The repository directory (absolute path) containing all the metadata
-      and target files.
+      The path of the repository directory containing all the metadata and
+      target files.
+
+    targets_directory:
+      The path of the directory containing the target files of the repository.
     
     rolename:
       The delegated role's full rolename (e.g., 'targets/unclaimed/django').
@@ -2803,42 +2872,56 @@ def write_delegated_metadata_file(repository_directory, targets_directory,
       trusted.
 
     expiration:
-      The expiration date, in UTC, of the metadata file.
-      Conformant to 'tuf.formats.TIME_SCHEMA'.
+      The expiration date, in UTC, of the metadata file, conformant to
+      'tuf.formats.TIME_SCHEMA'.
     
     keyids:
-      The list of keyids to be used as the signing keys for the delegated
-      metadata file.
+      The corresponding keyids of the signing keys that generate the signatures
+      of the delegated metadata file.
     
     list_of_targets:
-      The directory (absolute path) containing all the delegated target
-      files.  The filepaths are not required to live under the targets
-      directory.  The caller is reponsible for ensuring the correct location
-      of target files.
+      The target filepaths of the delegated role.  The paths are not verified to
+      live under the targets directory of the repository, so the caller is
+      responsible for ensuring valid target file locations.
 
     delegations:
+      The delegations of 'rolename', conformant to
       'tuf.formats.DELEGATIONS_SCHEMA'.
 
     signatures:
-      'tuf.formats.SIGNATURES_SCHEMA'.
+      A list of signature objects to append to the generated metadata object.
+      These signatures may have been previously generated and loaded with
+      load_repository().  Conformant to 'tuf.formats.SIGNATURES_SCHEMA'.
+
+    compressions:
+      A list of strings (e.g., 'gz') designating compression algorithms
+      to use when writing the metadata file, in addition to the uncompressed
+      version.  Conformant to 'tuf.formats.COMPRESSIONS_SCHEMA'.
+
+    write_partial:
+      A boolean indicating if the written metadata is allowed to contain an
+      invalid threshold of signatures.
 
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
 
-    tuf.Error, if there was an error while building the targets file.
+    tuf.UnsignedMetadataError, if a targets metadata file cannot be generated
+    with a valid threshold of signatures.
 
   <Side Effects>
-    The targets metadata file is written to a file.
+    The targets metadata object is written to a file.
 
   <Returns>
-    The path for the written targets metadata file.
+    None. 
   """
 
   # Do the arguments have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # This check ensures arguments have the appropriate number of objects and 
+  # object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PATH_SCHEMA.check_match(repository_directory)
   tuf.formats.PATH_SCHEMA.check_match(targets_directory)
-
+  
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration)
@@ -2846,41 +2929,59 @@ def write_delegated_metadata_file(repository_directory, targets_directory,
   tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
   tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations)
   tuf.formats.SIGNATURES_SCHEMA.check_match(signatures)
+  tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
   tuf.formats.TOGGLE_SCHEMA.check_match(write_partial)
   
-  # Check if 'repository_directory' is valid.
+  # Check if 'repository_directory' exists and convert it to its normalized
+  # absolutized path.  Delegated metadata is written to the metadata 
+  # sub-directory of 'repository_directory.
   repository_directory = _check_directory(repository_directory)
   metadata_directory = os.path.join(repository_directory,
-                                    METADATA_DIRECTORY_NAME)
+                                    METADATA_STAGED_DIRECTORY_NAME)
 
-  # Create the metadata object.  Delegated roles are of type
-  # 'tuf.formats.TARGETS_SCHEMA', same as the Targets role.
-
+  # Create the delegated metadata object.  Delegated roles are of type
+  # 'tuf.formats.TARGETS_SCHEMA', same as the top-level Targets role.
   metadata_object = generate_targets_metadata(targets_directory,
                                               list_of_targets, version,
                                               expiration, delegations)
 
-  # Delegated metadata are written to their respective directories on the
+  # Delegated metadata is written to its respective directory on the
   # repository.  For example, the role 'targets/unclaimed/django' is written
   # to '{repository_directory}/metadata/targets/unlaimed/django.txt'.
+  # The 'targets' directory above refers to the top-level 'targets' role,
+  # which is the root parent of all targets roles.
   metadata_filepath = os.path.join(metadata_directory, rolename+'.txt')
   
-  # Ensure the parent directories of metadata_filepath exist, otherwise an IO
-  # exception is raised.
+  # Ensure the parent directories of 'metadata_filepath' exist, otherwise an IO
+  # exception is raised if 'metadata_filepath' is written to a sub-directory.
   tuf.util.ensure_parent_dir(metadata_filepath)
 
-  # Sign it.
+  # Sign 'metadata_object' by generating signatures and storing them in the
+  # 'signatures' dict key of the signable object.  The keys of 'keyids' are
+  # used.
   signable = sign_metadata(metadata_object, keyids, metadata_filepath)
+ 
+  # Add signatures that may have been loaded with load_repository(). 
   for signature in signatures:
     signable['signatures'].append(signature)
+  
+  # Write the metadata file, including any compressed versions, only if a
+  # threshold of signatures is present.  If write_partial is True, write the
+  # metadata if an insufficient threshold of signatures is present.  Writing
+  # partial metadata is necessary for metadata that must be independently
+  # signed.
   if tuf.sig.verify(signable, rolename) or write_partial:
     if not write_partial:
-      _remove_invalid_signatures(signable)
+      
+      # If a non-partial version is written, ensure any signatures that may
+      # have been added with load_repository(), and now invalid, are discarded.
+      _remove_invalid_and_duplicate_signatures(signable)
     for compression in compressions:
       write_metadata_file(signable, metadata_filepath, compression)
   
   else:
-    raise tuf.Error('Not enough signatures for: '+repr(metadata_filepath))
+    message = 'Not enough signatures for: '+repr(metadata_filepath)
+    raise tuf.UnsignedMetadataError(message)
 
 
 
@@ -2889,38 +2990,65 @@ def write_delegated_metadata_file(repository_directory, targets_directory,
 def create_tuf_client_directory(repository_directory, client_directory):
   """
   <Purpose>
-    Create the file containing the metadata.
+    Create a client directory structure that the 'tuf.interposition' package
+    and 'tuf.client.updater' module expect of clients.  Metadata files
+    downloaded from a remote TUF repository are saved to 'client_directory'.
+    The Root file must initially exist before an update request can be
+    satisfied.  create_tuf_client_directory() ensures the minimum metadata
+    is copied and that required directories ('previous' and 'current') are
+    created in 'client_directory'.  Software updaters integrating TUF may
+    use the client directory created as an initial copy of the repository's
+    metadadata.
 
   <Arguments>
     repository_directory:
+      The path of the root repository directory.  The 'metadata' and 'targets'
+      sub-directories should be available in 'repository_directory'.  The
+      metadata files of 'repository_directory' are copied to 'client_directory'.
 
     client_directory:
-
+      The path of the root client directory.  The 'current' and 'previous'
+      sub-directies are created and will store the metadata files copied
+      from 'repository_directory'.  'client_directory' will store metadata
+      and target files downloaded from a TUF repository.
+  
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
+    tuf.RepositoryError, if the metadata directory in 'client_directory'
+    already exists.
+
   <Side Effects>
+    Copies metadata files and directories from 'repository_directory' to
+    'client_directory'.  Parent directories are created if they do not exist.
 
   <Returns>
     None.
   """
   
   # Do the arguments have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # This check ensures arguments have the appropriate number of objects and 
+  # object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PATH_SCHEMA.check_match(repository_directory)
   tuf.formats.PATH_SCHEMA.check_match(client_directory)
- 
+
+  # Set the absolute path of the Repository's metadata directory.  The metadata
+  # directory should be the one served by the Live repository.  At a minimum,
+  # the repository's root file must be copied.
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,
-                                    'metadata')
+                                    METADATA_DIRECTORY_NAME)
 
-  # Generate the 'client' directory containing the metadata of the created
-  # repository.  'tuf.client.updater.py' expects the 'current' and 'previous'
-  # directories to exist under 'metadata'.
+  # Set the client's metadata directory, which will store the metadata copied
+  # from the repository directory set above.
   client_directory = os.path.abspath(client_directory)
   client_metadata_directory = os.path.join(client_directory,
-                                           'metadata')
-  
+                                           METADATA_DIRECTORY_NAME)
+ 
+  # If the client's metadata directory does not already exist, create it and
+  # any of its parent directories, otherwise raise an exception.  An exception
+  # is raised to avoid accidently overwritting previous metadata.
   try:
     os.makedirs(client_metadata_directory)
   except OSError, e:
@@ -2931,7 +3059,10 @@ def create_tuf_client_directory(repository_directory, client_directory):
     else:
       raise
 
-  # Move the metadata to the client's 'current' and 'previous' directories.
+  # Move all  metadata to the client's 'current' and 'previous' directories.
+  # The root metadata file MUST exist in '{client_metadata_directory}/current'.
+  # 'tuf.interposition' and 'tuf.client.updater.py' expect the 'current' and
+  # 'previous' directories to exist under 'metadata'.
   client_current = os.path.join(client_metadata_directory, 'current')
   client_previous = os.path.join(client_metadata_directory, 'previous')
   shutil.copytree(metadata_directory, client_current)

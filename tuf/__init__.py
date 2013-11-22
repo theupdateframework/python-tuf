@@ -172,7 +172,7 @@ class CryptoError(Error):
 
 
 class BadSignatureError(CryptoError):
-  """Indicate that some metadata file had a bad signature."""
+  """Indicate that some metadata file has a bad signature."""
 
   def __init__(self, metadata_role_name):
     self.metadata_role_name = metadata_role_name
@@ -287,6 +287,13 @@ class UnknownTargetError(Error):
 class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object"""
   pass
+
+
+
+
+
+class UnsignedMetadataError(Error):
+  """Indicate metadata object with insufficient threshold of signatures."""
 
 
 
