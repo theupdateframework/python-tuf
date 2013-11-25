@@ -1263,7 +1263,9 @@ class Targets(Metadata):
 
     # Update the role's target_files and its 'tuf.roledb.py' entry.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
-    roleinfo['paths'].extend(relative_list_of_targets)
+    for relative_target in relative_list_of_targets:
+      if relative_target not in roleinfo['paths']:
+        roleinfo['paths'].append(relative_target)
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
   
@@ -1315,9 +1317,38 @@ class Targets(Metadata):
       fileinfo['paths'].remove(relative_filepath)
 
     tuf.roledb.update_roleinfo(self.rolename, fileinfo)
-  
-  
-  
+
+
+
+  def clear_targets(self):
+    """
+    <Purpose>
+      Remove all the target filepaths in the "paths" field of self.rolename.      
+
+      >>> 
+      >>>
+      >>>
+
+    <Arguments>
+      None
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      Modifies the target role's 'tuf.roledb.py' entry.
+    
+    <Returns>
+      None.
+    """
+    
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    roleinfo['paths'] = []
+    
+    tuf.roledb.update_roleinfo(self.rolename, roleinfo) 
+
+
+
   def delegate(self, rolename, public_keys, list_of_targets,
                threshold=1, restricted_paths=None, path_hash_prefixes=None):
     """
@@ -1342,6 +1373,8 @@ class Targets(Metadata):
     <Exceptions>
       tuf.FormatError, if any of the arguments are improperly formatted.
 
+      tuf.Error, if the delegated role already exists.
+
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
       caller (i.e., targets.unclaimed.<rolename>).  The 'tuf.keydb.py' and
@@ -1362,7 +1395,11 @@ class Targets(Metadata):
     if path_hash_prefixes is not None:
       tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
       
-    full_rolename = self._rolename+'/'+rolename 
+    full_rolename = self._rolename+'/'+rolename
+
+    if tuf.roledb.role_exists(full_rolename):
+      raise tuf.Error(repr(full_rolename)+' already delegated.')
+
     keyids = [] 
     keydict = {}
 
@@ -1377,7 +1414,8 @@ class Targets(Metadata):
       keyid = key['keyid']
       key_metadata_format = tuf.keys.format_keyval_to_metadata(key['keytype'],
                                                                key['keyval'])
-      keydict.update({keyid: key_metadata_format})
+      new_keydict = {keyid: key_metadata_format}
+      keydict.update(new_keydict)
       keyids.append(keyid)
 
     # Validate 'list_of_targets'.
@@ -1421,7 +1459,6 @@ class Targets(Metadata):
                 'paths': relative_targetpaths,
                 'delegations': {'keys': {},
                                 'roles': []}}
-    #tuf.roledb.add_role(full_rolename, roleinfo)
     new_targets_object = Targets(self._targets_directory, full_rolename,
                                  roleinfo)
     
@@ -1692,13 +1729,11 @@ def _remove_invalid_and_duplicate_signatures(signable):
     
     # Remove signature from 'signable' if it is invalid.
     if not tuf.keys.verify_signature(key, signature, data):
-      print('removing invalid: '+repr(signature))
       signable['signatures'].remove(signature)
     
     # Although valid, it may still need removal if it is a duplicate.
     else:
       if keyid in signature_keyids:
-        print('removing duplicate: '+repr(signature))
         signable['signatures'].remove(signature)
       
       # 'keyid' is valid and not a duplicate, so add it to 'signature_keyids'.
@@ -1989,7 +2024,8 @@ def load_repository(repository_directory):
         roleinfo['version'] = metadata_object['version']
         roleinfo['expires'] = metadata_object['expires']
         roleinfo['paths'] = metadata_object['targets'].keys()
-        
+        roleinfo['delegations'] = metadata_object['delegations']
+
         if os.path.exists(metadata_path+'.gz'):
           roleinfo['compressions'].append('gz')
         tuf.roledb.update_roleinfo(metadata_name, roleinfo)
@@ -1997,6 +2033,7 @@ def load_repository(repository_directory):
         new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
         targets_object = \
           targets_objects[tuf.roledb.get_parent_rolename(metadata_name)]
+        targets_objects[metadata_name] = new_targets_object
         targets_object.__setattr__(os.path.basename(metadata_name),
                                    new_targets_object)
 
@@ -2018,8 +2055,8 @@ def load_repository(repository_directory):
                       'signatures': [],
                       'delegations': {'keys': {},
                                       'roles': []}}
-          tuf.roledb.update_roleinfo(rolename, roleinfo)
- 
+          tuf.roledb.add_role(rolename, roleinfo)
+
   return repository
 
 
@@ -2953,7 +2990,7 @@ def write_delegated_metadata_file(repository_directory, targets_directory,
   # Add signatures that may have been loaded with load_repository(). 
   for signature in signatures:
     signable['signatures'].append(signature)
-  
+ 
   # Write the metadata file, including any compressed versions, only if a
   # threshold of signatures is present.  If write_partial is True, write the
   # metadata if an insufficient threshold of signatures is present.  Writing
