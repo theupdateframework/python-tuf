@@ -131,7 +131,7 @@ LOGLEVEL_SCHEMA = SCHEMA.Integer(lo=0, hi=50)
 NAME_SCHEMA = SCHEMA.AnyString()
 
 # A value that is either True or False, on or off, etc.
-TOGGLE_SCHEMA = SCHEMA.Boolean()
+BOOLEAN_SCHEMA = SCHEMA.Boolean()
 
 # A role's threshold value (i.e., the minimum number
 # of signatures required to sign a metadata file).
