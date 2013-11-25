@@ -1398,9 +1398,38 @@ class Targets(Metadata):
       fileinfo['paths'].remove(relative_filepath)
 
     tuf.roledb.update_roleinfo(self.rolename, fileinfo)
-  
-  
-  
+
+
+
+  def clear_targets(self):
+    """
+    <Purpose>
+      Remove all the target filepaths in the "paths" field of self.rolename.      
+
+      >>> 
+      >>>
+      >>>
+
+    <Arguments>
+      None
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      Modifies the target role's 'tuf.roledb.py' entry.
+    
+    <Returns>
+      None.
+    """
+    
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    roleinfo['paths'] = []
+    
+    tuf.roledb.update_roleinfo(self.rolename, roleinfo) 
+
+
+
   def delegate(self, rolename, public_keys, list_of_targets,
                threshold=1, restricted_paths=None, path_hash_prefixes=None):
     """
