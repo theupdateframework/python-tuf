@@ -130,185 +130,7 @@ class Repository(object):
     self.release = Release()
     self.timestamp = Timestamp()
     self.targets = Targets(self._targets_directory, 'targets')
-  
-  
-  
-  def status(self):
-    """
-    <Purpose>
-    
-    <Arguments>
-      None.
 
-    <Exceptions>
-
-    <Side Effects>
-
-    <Returns>
-      None.
-    """
-   
-    root_roleinfo = tuf.roledb.get_roleinfo('root')
-    targets_roleinfo = tuf.roledb.get_roleinfo('targets')
-    release_roleinfo = tuf.roledb.get_roleinfo('release')
-    timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp')
-    temp_repository_directory = None
-
-    try:
-      temp_repository_directory = tempfile.mkdtemp()
-      metadata_directory = os.path.join(temp_repository_directory,
-                                        METADATA_STAGED_DIRECTORY_NAME)
-      os.mkdir(metadata_directory)
-
-      filenames = get_metadata_filenames(metadata_directory)
-      root_filename = filenames[ROOT_FILENAME] 
-      targets_filename = filenames[TARGETS_FILENAME] 
-      release_filename = filenames[RELEASE_FILENAME] 
-      timestamp_filename = filenames[TIMESTAMP_FILENAME] 
-    
-      # Delegated roles.
-      delegated_roles = tuf.roledb.get_delegated_rolenames('targets')
-      insufficient_keys = []
-      insufficient_signatures = []
-      for delegated_role in delegated_roles:
-        try: 
-          _check_role_keys(delegated_role)
-        except tuf.InsufficientKeysError, e:
-          insufficient_keys.append(delegated_role)
-          continue
-        
-        roleinfo = tuf.roledb.get_roleinfo(delegated_role)
-        try: 
-          write_delegated_metadata_file(temp_repository_directory,
-                                        self._targets_directory,
-                                        delegated_role, roleinfo,
-                                        write_partial=False)
-        except tuf.Error, e:
-          insufficient_signatures.append(delegated_role)
-      if len(insufficient_keys):
-        message = 'Delegated roles with insufficient keys: '+ \
-          repr(insufficient_keys)
-        print(message)
-        return
-
-      if len(insufficient_signatures):
-        message = 'Delegated roles with insufficient signatures: '+ \
-          repr(insufficient_signatures)
-        print(message) 
-        return
-
-      # Root role.
-      try: 
-        _check_role_keys(self.root.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-      
-      root_metadata = generate_root_metadata(root_roleinfo['version'],
-                                             root_roleinfo['expires'])
-      signed_root = sign_metadata(root_metadata, root_roleinfo['signing_keyids'],
-                                  root_filename)
-      signed_root['signatures'].extend(root_roleinfo['signatures'])
-      root_status = tuf.sig.get_signature_status(signed_root, 'root')
-      message = repr(self.root.rolename)+' role contains '+ \
-        repr(len(root_status['good_sigs']))+' / '+ \
-        repr(root_status['threshold'])+' signatures.'
-      print(message)
-      
-      if tuf.sig.verify(signed_root, 'root'): 
-        for compression in root_roleinfo['compressions']:
-          write_metadata_file(signed_root, root_filename, compression)
-      else:
-        return
-
-
-      # Targets role.
-      try: 
-        _check_role_keys(self.targets.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-      
-      targets_metadata = generate_targets_metadata(self._targets_directory,
-                                                   targets_roleinfo['paths'],
-                                                   targets_roleinfo['version'],
-                                                   targets_roleinfo['expires'],
-                                                   targets_roleinfo['delegations'])
-      signed_targets = sign_metadata(targets_metadata,
-                                     targets_roleinfo['signing_keyids'],
-                                     targets_filename)
-      signed_targets['signatures'].extend(targets_roleinfo['signatures'])
-      targets_status = tuf.sig.get_signature_status(signed_targets, 'targets')
-      message = repr(self.targets.rolename)+' role contains '+ \
-        repr(len(targets_status['good_sigs']))+' / '+ \
-        repr(targets_status['threshold'])+' signatures.'
-      print(message)
-      
-      if tuf.sig.verify(signed_targets, 'targets'):
-        for compression in targets_roleinfo['compressions']:
-          write_metadata_file(signed_targets, targets_filename, compression)
-      else: 
-        return
-     
-
-      # Release role.
-      try:
-        _check_role_keys(self.release.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-      
-      release_metadata = generate_release_metadata(metadata_directory,
-                                                   release_roleinfo['version'],
-                                                   release_roleinfo['expires'])
-      signed_release = sign_metadata(release_metadata,
-                                     release_roleinfo['signing_keyids'],
-                                     release_filename)
-      signed_release['signatures'].extend(release_roleinfo['signatures'])
-      release_status = tuf.sig.get_signature_status(signed_release, 'release')
-      
-      message = repr(self.release.rolename)+' role contains '+ \
-        repr(len(release_status['good_sigs']))+' / '+ \
-        repr(release_status['threshold'])+' signatures.'
-      print(message)
-      if tuf.sig.verify(signed_release, 'release'):
-        for compression in release_roleinfo['compressions']:
-          write_metadata_file(signed_release, release_filename, compression)
-      else:
-        return 
-      
-      # Timestamp role.
-      try:
-        _check_role_keys(self.timestamp.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-
-      timestamp_metadata = generate_timestamp_metadata(release_filename,
-                                              timestamp_roleinfo['version'],
-                                              timestamp_roleinfo['expires'],
-                                              release_roleinfo['compressions'])
-      
-      signed_timestamp= sign_metadata(timestamp_metadata,
-                                      timestamp_roleinfo['signing_keyids'],
-                                      release_filename)
-      signed_timestamp['signatures'].extend(timestamp_roleinfo['signatures'])
-      timestamp_status = tuf.sig.get_signature_status(signed_timestamp,
-                                                      'timestamp')
-      
-      message = repr(self.timestamp.rolename)+' role contains '+ \
-        repr(len(timestamp_status['good_sigs']))+' / '+ \
-        repr(timestamp_status['threshold'])+' signatures.'
-      print(message)
-      if tuf.sig.verify(signed_timestamp, 'timestamp'):
-        for compressions in timestamp_roleinfo['compressions']:
-          write_metadata_file(signed_timestamp, timestamp_filename, compression)
-      else:
-        return
-
-    finally:
-      shutil.rmtree(temp_repository_directory, ignore_errors=True)
- 
 
 
   def write(self, write_partial=False):
@@ -355,16 +177,24 @@ class Repository(object):
     # Generate the 'root.txt' metadata file.
     # _generate_and_write_metadata() raises a 'tuf.Error' exception if the
     # metadata cannot be written.
-    _generate_and_write_metadata('root', filenames)
+    _generate_and_write_metadata('root', filenames, write_partial,
+                                 self._targets_directory,
+                                 self._metadata_directory)
     
     # Generate the 'targets.txt' metadata file.
-    _generate_and_write_metadata('targets', filenames)
+    _generate_and_write_metadata('targets', filenames, write_partial,
+                                 self._targets_directory,
+                                 self._metadata_directory)
     
     # Generate the 'release.txt' metadata file.
-    _generate_and_write_metadata('release', filenames)
+    _generate_and_write_metadata('release', filenames, write_partial,
+                                 self._targets_directory,
+                                 self._metadata_directory)
     
     # Generate the 'timestamp.txt' metadata file.
-    _generate_and_write_metadata('timestamp', filenames)
+    _generate_and_write_metadata('timestamp', filenames, write_partial,
+                                 self._targets_directory,
+                                 self._metadata_directory)
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked.
@@ -393,6 +223,141 @@ class Repository(object):
     """
 
     self.write(write_partial=True)
+  
+  
+  
+  def status(self):
+    """
+    <Purpose>
+    
+    <Arguments>
+      None.
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+      None.
+    """
+   
+    temp_repository_directory = None
+
+    try:
+      temp_repository_directory = tempfile.mkdtemp()
+      metadata_directory = os.path.join(temp_repository_directory,
+                                        METADATA_STAGED_DIRECTORY_NAME)
+      os.mkdir(metadata_directory)
+
+      filenames = get_metadata_filenames(metadata_directory)
+    
+      # Delegated roles.
+      delegated_roles = tuf.roledb.get_delegated_rolenames('targets')
+      insufficient_keys = []
+      insufficient_signatures = []
+      
+      for delegated_role in delegated_roles:
+        try: 
+          _check_role_keys(delegated_role)
+        except tuf.InsufficientKeysError, e:
+          insufficient_keys.append(delegated_role)
+          continue
+        
+        roleinfo = tuf.roledb.get_roleinfo(delegated_role)
+        try: 
+          write_delegated_metadata_file(temp_repository_directory,
+                                        self._targets_directory,
+                                        delegated_role, roleinfo,
+                                        write_partial=False)
+        except tuf.Error, e:
+          insufficient_signatures.append(delegated_role)
+      
+      if len(insufficient_keys):
+        message = 'Delegated roles with insufficient keys: '+ \
+          repr(insufficient_keys)
+        print(message)
+        return
+
+      if len(insufficient_signatures):
+        message = 'Delegated roles with insufficient signatures: '+ \
+          repr(insufficient_signatures)
+        print(message) 
+        return
+
+      # Root role.
+      try: 
+        _check_role_keys(self.root.rolename)
+      except tuf.InsufficientKeysError, e:
+        print(str(e))
+        return
+
+      try:
+       signable =  _generate_and_write_metadata(self.root.rolename,
+                                                filenames, False,
+                                                self._targets_directory,
+                                                metadata_directory)
+       _print_status(self.root.rolename, signable)
+      except tuf.Error, e:
+        signable = e[1]
+        _print_status(self.root.rolename, signable)
+        return
+
+      # Targets role.
+      try: 
+        _check_role_keys(self.targets.rolename)
+      except tuf.InsufficientKeysError, e:
+        print(str(e))
+        return
+      
+      try:
+       signable =  _generate_and_write_metadata(self.targets.rolename,
+                                                filenames, False,
+                                                self._targets_directory,
+                                                metadata_directory)
+       _print_status(self.targets.rolename, signable)
+      except tuf.Error, e:
+        signable = e[1]
+        _print_status(self.targets.rolename, signable)
+        return
+
+      # Release role.
+      try:
+        _check_role_keys(self.release.rolename)
+      except tuf.InsufficientKeysError, e:
+        print(str(e))
+        return
+      
+      try:
+       signable =  _generate_and_write_metadata(self.release.rolename,
+                                                filenames, False,
+                                                self._targets_directory,
+                                                metadata_directory)
+       _print_status(self.release.rolename, signable)
+      except tuf.Error, e:
+        signable = e[1]
+        _print_status(self.release.rolename, signable)
+        return
+      
+      # Timestamp role.
+      try:
+        _check_role_keys(self.timestamp.rolename)
+      except tuf.InsufficientKeysError, e:
+        print(str(e))
+        return
+      
+      try:
+       signable =  _generate_and_write_metadata(self.timestamp.rolename,
+                                                filenames, False,
+                                                self._targets_directory,
+                                                metadata_directory)
+       _print_status(self.timestamp.rolename, signable)
+      except tuf.Error, e:
+        signable = e[1]
+        _print_status(self.timestamp.rolename, signable)
+        return
+    
+    finally:
+      shutil.rmtree(temp_repository_directory, ignore_errors=True)
 
 
 
@@ -1184,8 +1149,8 @@ class Targets(Metadata):
         'directory: '+repr(self._targets_directory)
       raise tuf.Error(message)
 
-    # TODO: Ensure 'filepath' is an allowed target path according to the parent's
-    # delegation.
+    # TODO: Ensure 'filepath' is an allowed target path according to the
+    # parent's delegation.
     """
     for child_target in actual_child_targets:
       for allowed_child_path in allowed_child_paths:
@@ -1448,17 +1413,12 @@ class Targets(Metadata):
    
     # Add role to 'tuf.roledb.py'.
     expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
-    roleinfo = {'name': full_rolename,
-                'keyids': keyids,
-                'signing_keyids': [],
-                'threshold': threshold,
-                'version': 1,
-                'compressions': [''],
-                'expires': expiration,
-                'signatures': [],
-                'paths': relative_targetpaths,
-                'delegations': {'keys': {},
-                                'roles': []}}
+    roleinfo = {'name': full_rolename, 'keyids': keyids, 'signing_keyids': [],
+                'threshold': threshold, 'version': 1, 'compressions': [''],
+                'expires': expiration, 'signatures': [],
+                'paths': relative_targetpaths, 'delegations': {'keys': {},
+                'roles': []}}
+
     new_targets_object = Targets(self._targets_directory, full_rolename,
                                  roleinfo)
     
@@ -1543,7 +1503,8 @@ class Targets(Metadata):
 
 
 
-def _generate_and_write_metadata(rolename, filenames):
+def _generate_and_write_metadata(rolename, filenames, write_partial,
+                                 targets_directory, metadata_directory):
   """
   Helper function to generate and write the metadata of top-level roles.
   """
@@ -1564,14 +1525,14 @@ def _generate_and_write_metadata(rolename, filenames):
                                       roleinfo['expires'])
   elif rolename == 'targets':
     metadata_filename = targets_filename
-    metadata = generate_targets_metadata(self._targets_directory,
+    metadata = generate_targets_metadata(targets_directory,
                                          roleinfo['paths'],
                                          roleinfo['version'],
                                          roleinfo['expires'],
                                          roleinfo['delegations'])
   elif rolename == 'release':
     metadata_filename = release_filename
-    metadata = generate_release_metadata(self._metadata_directory,
+    metadata = generate_release_metadata(metadata_directory,
                                          roleinfo['version'],
                                          roleinfo['expires'])
   elif rolename == 'timestamp':
@@ -1590,10 +1551,23 @@ def _generate_and_write_metadata(rolename, filenames):
       _remove_invalid_and_duplicate_signatures(signable)
     for compression in roleinfo['compressions']:
       write_metadata_file(signable, metadata_filename, compression)
+  
+    return signable
 
   else:
     message = 'Not enough signatures for '+repr(metadata_filename)
-    raise tuf.Error(message)
+    raise tuf.Error(message, signable)
+
+
+
+
+
+def _print_status(rolename, signable):
+  status = tuf.sig.get_signature_status(signable, rolename)
+  message = repr(rolename)+' role contains '+ \
+    repr(len(status['good_sigs']))+' / '+ \
+    repr(status['threshold'])+' signatures.'
+  print(message)
 
 
 
@@ -1756,7 +1730,8 @@ def _delete_obsolete_metadata(metadata_directory):
       # 'files' here is a list of target file names.
       for basename in files:
         metadata_path = os.path.join(directory_path, basename)
-        metadata_name = metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+        metadata_name = \
+          metadata_path[len(metadata_directory):].lstrip(os.path.sep)
         for metadata_extension in METADATA_EXTENSIONS: 
           if metadata_name.endswith(metadata_extension):
             metadata_name = metadata_name[:-len(metadata_extension)]
@@ -2880,7 +2855,7 @@ def write_metadata_file(metadata, filename, compression=''):
 
 
 def write_delegated_metadata_file(repository_directory, targets_directory,
-                                  rolename, roleinfo, write_partial=False)
+                                  rolename, roleinfo, write_partial=False):
   """
   <Purpose>
     Write the delegated targets metadata, signed by the corresponding keys

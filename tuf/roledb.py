@@ -162,7 +162,7 @@ def add_role(rolename, roleinfo, require_parent=True):
   tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
   # Does 'require_parent' have the correct format?
-  tuf.formats.TOGGLE_SCHEMA.check_match(require_parent)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(require_parent)
 
   # Raises tuf.InvalidNameError.
   _validate_rolename(rolename)

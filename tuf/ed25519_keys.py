@@ -143,9 +143,9 @@ def generate_public_and_private(use_pynacl=False):
   """
   
   # Does 'use_pynacl' have the correct format?
-  # This check will ensure 'use_pynacl' conforms to 'tuf.formats.TOGGLE_SCHEMA'.
+  # This check will ensure 'use_pynacl' conforms to 'tuf.formats.BOOLEAN_SCHEMA'.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.TOGGLE_SCHEMA.check_match(use_pynacl)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(use_pynacl)
 
   # Generate ed25519's seed key by calling os.urandom().  The random bytes
   # returned should be suitable for cryptographic use and is OS-specific.
@@ -243,7 +243,7 @@ def create_signature(public_key, private_key, data, use_pynacl=False):
   tuf.formats.ED25519SEED_SCHEMA.check_match(private_key)
   
   # Is 'use_pynacl' properly formatted?
-  tuf.formats.TOGGLE_SCHEMA.check_match(use_pynacl)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(use_pynacl)
   
   # Signing the 'data' object requires a seed and public key.
   # 'ed25519.ed25519.py' generates the actual 64-byte signature in pure Python.
@@ -359,7 +359,7 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
   tuf.formats.ED25519SIGNATURE_SCHEMA.check_match(signature)
   
   # Is 'use_pynacl' properly formatted?
-  tuf.formats.TOGGLE_SCHEMA.check_match(use_pynacl)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(use_pynacl)
 
   # Verify 'signature'.  Before returning the Boolean result,
   # ensure 'ed25519-python' or 'ed25519-pynacl' was used as the signing method.
