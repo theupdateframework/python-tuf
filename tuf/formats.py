@@ -118,7 +118,7 @@ VERSION_SCHEMA = SCHEMA.Object(
 
 # An integer representing the numbered version of a metadata file.
 # Must be 1, or greater.
-METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=1)
+METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=0)
 
 # An integer representing length.  Must be 0, or greater.
 LENGTH_SCHEMA = SCHEMA.Integer(lo=0)
@@ -371,7 +371,8 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   compressions=SCHEMA.Optional(COMPRESSIONS_SCHEMA),
   paths=SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes=SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
-  delegations=SCHEMA.Optional(DELEGATIONS_SCHEMA))
+  delegations=SCHEMA.Optional(DELEGATIONS_SCHEMA),
+  partial_loaded=SCHEMA.Optional(BOOLEAN_SCHEMA))
 
 # Root role: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(

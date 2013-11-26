@@ -931,8 +931,8 @@ class Root(Metadata):
     expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION)
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
-                'signatures': [], 'version': 1, 'compressions': [''],
-                'expires': expiration}
+                'signatures': [], 'version': 0, 'compressions': [''],
+                'expires': expiration, 'partial_loaded': False}
     try: 
       tuf.roledb.add_role(self._rolename, roleinfo)
     except tuf.RoleAlreadyExistsError, e:
@@ -968,8 +968,8 @@ class Timestamp(Metadata):
     expiration = tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION)
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                'signatures': [], 'version': 1, 'compressions': [''],
-                'expires': expiration}
+                'signatures': [], 'version': 0, 'compressions': [''],
+                'expires': expiration, 'partial_loaded': False}
     
     try: 
       tuf.roledb.add_role(self.rolename, roleinfo)
@@ -1006,17 +1006,13 @@ class Release(Metadata):
     expiration = tuf.formats.format_time(time.time()+RELEASE_EXPIRATION)
     
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                'signatures': [], 'version': 1, 'compressions': [''],
-                'expires': expiration}
+                'signatures': [], 'version': 0, 'compressions': [''],
+                'expires': expiration, 'partial_loaded': False}
     
     try:
       tuf.roledb.add_role(self._rolename, roleinfo)
     except tuf.RoleAlreadyExistsError, e:
       pass
-
-
-  def write_partial(self):
-    pass
 
 
 
@@ -1062,15 +1058,10 @@ class Targets(Metadata):
     expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
 
     if roleinfo is None:
-      roleinfo = {'keyids': [],
-                  'signing_keyids': [],
-                  'threshold': 1,
-                  'version': 1,
-                  'compressions': [''],
-                  'expires': expiration,
-                  'signatures': [],
-                  'paths': [],
-                  'path_hash_prefixes': [],
+      roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
+                  'version': 0, 'compressions': [''], 'expires': expiration,
+                  'signatures': [], 'paths': [], 'path_hash_prefixes': [],
+                  'partial_loaded': False,
                   'delegations': {'keys': {},
                                   'roles': []}}
     
@@ -1414,7 +1405,7 @@ class Targets(Metadata):
     # Add role to 'tuf.roledb.py'.
     expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
     roleinfo = {'name': full_rolename, 'keyids': keyids, 'signing_keyids': [],
-                'threshold': threshold, 'version': 1, 'compressions': [''],
+                'threshold': threshold, 'version': 0, 'compressions': [''],
                 'expires': expiration, 'signatures': [],
                 'paths': relative_targetpaths, 'delegations': {'keys': {},
                 'roles': []}}
@@ -1544,20 +1535,39 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
 
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
-  signable['signatures'].extend(roleinfo['signatures']) 
 
+  # Increment version number if this is a new/first partial write.
+  if write_partial:
+    temp_signable = sign_metadata(metadata, [],
+                             metadata_filename)
+    temp_signable['signatures'].extend(roleinfo['signatures'])
+    status = tuf.sig.get_signature_status(temp_signable, rolename)
+    if len(status['good_sigs']) == 0:
+      metadata['version'] = metadata['version'] + 1
+      signable = sign_metadata(metadata, roleinfo['signing_keyids'],
+                               metadata_filename)
+  # non-partial write()
+  else:
+    if tuf.sig.verify(signable, rolename) and not roleinfo['partial_loaded']:
+      metadata['version'] = metadata['version'] + 1
+      signable = sign_metadata(metadata, roleinfo['signing_keyids'],
+                               metadata_filename)
+  
+  # Write the metadata to file if contains a threshold of signatures. 
+  signable['signatures'].extend(roleinfo['signatures']) 
+  
   if tuf.sig.verify(signable, rolename) or write_partial:
-    if not write_partial:
-      _remove_invalid_and_duplicate_signatures(signable)
+    _remove_invalid_and_duplicate_signatures(signable)
     for compression in roleinfo['compressions']:
       write_metadata_file(signable, metadata_filename, compression)
+    
+    return signable  
   
-    return signable
-
+  # 'signable' contains an invalid threshold of signatures. 
   else:
     message = 'Not enough signatures for '+repr(metadata_filename)
     raise tuf.Error(message, signable)
-
+  
 
 
 
@@ -1605,6 +1615,19 @@ def _get_password(prompt='Password: ', confirm=False):
       return password
     else:
       print('Mismatch; try again.')
+
+
+
+
+
+def _check_if_partial_loaded(rolename, signable, roleinfo):
+  """
+  """
+
+  status = tuf.sig.get_signature_status(signable, rolename)
+  if len(status['good_sigs']) < status['threshold'] and \
+                              len(status['good_sigs']) >= 1:
+    roleinfo['partial_loaded'] = True
 
 
 
@@ -1874,6 +1897,8 @@ def load_repository(repository_directory):
       if signature not in roleinfo['signatures']: 
         roleinfo['signatures'].append(signature)
 
+    _check_if_partial_loaded('root', signable, roleinfo)
+
     if os.path.exists(root_filename+'.gz'):
       roleinfo['compressions'].append('gz')
     tuf.roledb.update_roleinfo('root', roleinfo)
@@ -1902,6 +1927,8 @@ def load_repository(repository_directory):
     roleinfo['delegations'] = targets_metadata['delegations']
     if os.path.exists(targets_filename+'.gz'):
       roleinfo['compressions'].append('gz')
+    
+    _check_if_partial_loaded('targets', signable, roleinfo)
     tuf.roledb.update_roleinfo('targets', roleinfo)
 
     # Add the keys specified in the delegations field of the Targets role.
@@ -1940,6 +1967,8 @@ def load_repository(repository_directory):
     roleinfo['version'] = release_metadata['version']
     if os.path.exists(release_filename+'.gz'):
       roleinfo['compressions'].append('gz')
+     
+    _check_if_partial_loaded('release', signable, roleinfo)
     tuf.roledb.update_roleinfo('release', roleinfo)
   
   else:
@@ -1958,6 +1987,8 @@ def load_repository(repository_directory):
     roleinfo['version'] = timestamp_metadata['version']
     if os.path.exists(timestamp_filename+'.gz'):
       roleinfo['compressions'].append('gz')
+    
+    _check_if_partial_loaded('timestamp', signable, roleinfo)
     tuf.roledb.update_roleinfo('timestamp', roleinfo)
   
   else:
@@ -2003,6 +2034,8 @@ def load_repository(repository_directory):
 
         if os.path.exists(metadata_path+'.gz'):
           roleinfo['compressions'].append('gz')
+       
+        _check_if_partial_loaded(metadata_name, signable, roleinfo)
         tuf.roledb.update_roleinfo(metadata_name, roleinfo)
 
         new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
@@ -2022,12 +2055,10 @@ def load_repository(repository_directory):
         
         for role in metadata_object['delegations']['roles']:
           rolename = role['name'] 
-          roleinfo = {'name': role['name'],
-                      'keyids': role['keyids'],
-                      'threshold': role['threshold'],
-                      'compressions': [''],
-                      'signing_keyids': [],
-                      'signatures': [],
+          roleinfo = {'name': role['name'], 'keyids': role['keyids'],
+                      'threshold': role['threshold'], 'compressions': [''],
+                      'signing_keyids': [], 'signatures': [],
+                      'partial_loaded': False,
                       'delegations': {'keys': {},
                                       'roles': []}}
           tuf.roledb.add_role(rolename, roleinfo)

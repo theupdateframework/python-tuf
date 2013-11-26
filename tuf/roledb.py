@@ -93,7 +93,8 @@ def create_roledb_from_root_metadata(root_metadata):
     
     roleinfo['signatures'] = []
     roleinfo['signing_keyids'] = []
-    roleinfo['compressions'] = [''] 
+    roleinfo['compressions'] = ['']
+    roleinfo['partial_loaded'] = False
     if rolename.startswith('targets'):
       roleinfo['delegations'] = {'keys': {}, 'roles': []}
     
