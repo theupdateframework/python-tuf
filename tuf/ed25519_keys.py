@@ -69,15 +69,11 @@ import os
 #
 # PyNaCl's 'cffi' dependency may thrown an 'IOError' exception when
 # importing 'nacl.signing'.
-"""
 try:
   import nacl.signing
   import nacl.encoding
 except (ImportError, IOError):
   pass
-"""
-import nacl.signing
-import nacl.encoding
 
 # The optimized pure Python implementation of ed25519 provided by TUF.  If
 # PyNaCl cannot be imported and an attempt to use is made in this module, a
