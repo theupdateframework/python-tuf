@@ -63,7 +63,7 @@ class TestPycrypto_keys(unittest.TestCase):
     self.assertNotEqual(None, signature)
     self.assertEqual(None, tuf.formats.NAME_SCHEMA.check_match(method),
                      FORMAT_ERROR_MSG)
-    self.assertEqual('PyCrypto-PKCS#1 PSS', method)
+    self.assertEqual('RSASSA-PSS', method)
 
     # Check for improperly formatted argument.
     self.assertRaises(tuf.FormatError,

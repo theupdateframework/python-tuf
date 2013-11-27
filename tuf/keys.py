@@ -221,7 +221,7 @@ def generate_ed25519_key():
     Generate public and private ED25519 keys, both of length 32-bytes, although
     they are hexlified to 64 bytes.
     In addition, a keyid identifier generated for the returned ED25519 object.
-    The object returned conforms to 'tuf.formats.ED25519KEY_SCHEMA' and as the
+    The object returned conforms to 'tuf.formats.ED25519KEY_SCHEMA' and has the
     form:
     {'keytype': 'ed25519',
      'keyid': 'f30a0870d026980100c0573bd557394f8c1bbd6...',
@@ -526,11 +526,11 @@ def create_signature(key_dict, data):
 
     The following signature methods are supported:
 
-    'PyCrypto-PKCS#1 PSS' 
+    'RSASSA-PSS' 
     RFC3447 - RSASSA-PSS 
     http://www.ietf.org/rfc/rfc3447.
 
-    'ed25519-python or 'ed25519-pynacl'
+    'ed25519'
     ed25519 - high-speed high security signatures 
     http://ed25519.cr.yp.to/
 
@@ -594,10 +594,9 @@ def create_signature(key_dict, data):
   _check_crypto_libraries()
 
   # Signing the 'data' object requires a private key.
-  # The 'PyCrypto-PKCS#1 PSS' (i.e., PyCrypto module),
-  # 'ed25519-pynacl' (i.e., 'nacl'), and 'ed25519-python (i.e., optimized pure
-  # python implementation of ed25519) are the only signing methods  currently
-  # supported.
+  # The 'RSASSA-PSS' (i.e., PyCrypto module) and 'ed25519' (i.e., PyNaCl and the
+  # optimized pure Python implementation of ed25519) are the only signing
+  # methods  currently supported.
   signature = {}
   keytype = key_dict['keytype']
   public = key_dict['keyval']['public']
@@ -784,7 +783,7 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
     >>> private = rsa_key['keyval']['private']
     >>> passphrase = 'secret'
     >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase) 
-    >>> rsa_key2 = import_key_from_encrypted_pem(encrypted_pem, passphrase)
+    >>> rsa_key2 = import_rsakey_from_encrypted_pem(encrypted_pem, passphrase)
     >>> rsa_key == rsa_key2
     True
   

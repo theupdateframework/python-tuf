@@ -42,7 +42,7 @@ import Crypto.Hash.SHA256
 # PKCS#1 v1.5 is available for compatibility with existing applications, but
 # RSASSA-PSS is encouraged for newer applications.  RSASSA-PSS generates
 # a random salt to ensure the signature generated is probabilistic rather than
-# deterministic, like PKCS#1 v1.5.
+# deterministic (e.g., PKCS#1 v1.5).
 # http://en.wikipedia.org/wiki/RSA-PSS#Schemes 
 # https://tools.ietf.org/html/rfc3447#section-8.1 
 import Crypto.Signature.PKCS1_PSS
@@ -149,7 +149,7 @@ def create_rsa_signature(private_key, data):
     >>> signature, method = create_rsa_signature(private, data)
     >>> tuf.formats.NAME_SCHEMA.matches(method)
     True
-    >>> method == 'PyCrypto-PKCS#1 PSS'
+    >>> method == 'RSASSA-PSS'
     True
     >>> tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.matches(method)
     True
@@ -173,7 +173,7 @@ def create_rsa_signature(private_key, data):
 
   <Returns>
     A (signature, method) tuple, where the signature is a string and the method
-    is 'PyCrypto-PKCS#1 PSS'.
+    is 'RSASSA-PSS'.
   """
   
   # Does 'private_key' have the correct format?
@@ -182,9 +182,9 @@ def create_rsa_signature(private_key, data):
   tuf.formats.PEMRSA_SCHEMA.check_match(private_key)
 
   # Signing the 'data' object requires a private key.
-  # The 'PyCrypto-PKCS#1 PSS' (i.e., PyCrypto module) signing method is the
+  # The 'RSASSA-PSS' (i.e., PyCrypto module) signing method is the
   # only method currently supported.
-  method = 'PyCrypto-PKCS#1 PSS'
+  method = 'RSASSA-PSS'
   signature = None
  
   # Verify the signature, but only if the private key has been set.  The private
@@ -233,7 +233,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 
     signature_method:
       A string that indicates the signature algorithm used to generate
-      'signature'.  'PyCrypto-PKCS#1 PSS' is currently supported.
+      'signature'.  'RSASSA-PSS' is currently supported.
 
     public_key:
       The RSA public key, a string in PEM format.
@@ -268,7 +268,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.check_match(signature)
 
   # Verify whether the private key of 'public_key' produced the signature.
-  # Before returning the Boolean result, ensure 'PyCrypto-PKCS#1 PSS' was used
+  # Before returning the Boolean result, ensure 'RSASSA-PSS' was used
   # as the signing method.
   signature = signature
   method = signature_method
@@ -277,7 +277,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 
   # Verify the signature with PyCrypto if the signature method is valid, else
   # raise 'tuf.UnknownMethodError'.
-  if method == 'PyCrypto-PKCS#1 PSS':
+  if method == 'RSASSA-PSS':
     try:
       rsa_key_object = Crypto.PublicKey.RSA.importKey(public_key)
       pkcs1_pss_verifier = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)

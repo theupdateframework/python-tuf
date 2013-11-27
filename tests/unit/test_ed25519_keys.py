@@ -60,7 +60,7 @@ class TestEd25519_keys(unittest.TestCase):
                      tuf.formats.ED25519SIGNATURE_SCHEMA.matches(signature))
     
     self.assertEqual(True, tuf.formats.NAME_SCHEMA.matches(method))
-    self.assertEqual('ed25519-python', method)
+    self.assertEqual('ed25519', method)
 
     # Check for improperly formatted argument.
     self.assertRaises(tuf.FormatError,
