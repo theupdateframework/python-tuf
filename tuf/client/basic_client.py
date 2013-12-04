@@ -211,7 +211,7 @@ if __name__ == '__main__':
   # the current directory.
   try:
     update_client(repository_mirror)
-  except (tuf.RepositoryError, tuf.ExpiredMetadataError), e:
+  except (tuf.NoWorkingMirrorError, tuf.RepositoryError), e:
     sys.stderr.write('Error: '+str(e)+'\n')
     sys.exit(1)
 

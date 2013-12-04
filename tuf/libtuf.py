@@ -824,7 +824,6 @@ class Metadata(object):
   def expiration(self, expiration_datetime_utc):
     """
     <Purpose>
-      TODO: return 'input_datetime_utc' in ISO 8601 format.
 
       >>>  
       >>> 
@@ -932,8 +931,8 @@ class Root(Metadata):
     expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION)
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
-                'signatures': [], 'version': 0, 'compressions': [''],
-                'expires': expiration, 'partial_loaded': False}
+                'signatures': [], 'version': 1, 'compressions': [''],
+                'expires': expiration}
     try: 
       tuf.roledb.add_role(self._rolename, roleinfo)
     except tuf.RoleAlreadyExistsError, e:
@@ -969,8 +968,8 @@ class Timestamp(Metadata):
     expiration = tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION)
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                'signatures': [], 'version': 0, 'compressions': [''],
-                'expires': expiration, 'partial_loaded': False}
+                'signatures': [], 'version': 1, 'compressions': [''],
+                'expires': expiration}
     
     try: 
       tuf.roledb.add_role(self.rolename, roleinfo)
@@ -1007,13 +1006,17 @@ class Release(Metadata):
     expiration = tuf.formats.format_time(time.time()+RELEASE_EXPIRATION)
     
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                'signatures': [], 'version': 0, 'compressions': [''],
-                'expires': expiration, 'partial_loaded': False}
+                'signatures': [], 'version': 1, 'compressions': [''],
+                'expires': expiration}
     
     try:
       tuf.roledb.add_role(self._rolename, roleinfo)
     except tuf.RoleAlreadyExistsError, e:
       pass
+
+
+  def write_partial(self):
+    pass
 
 
 
@@ -1044,11 +1047,10 @@ class Targets(Metadata):
   def __init__(self, targets_directory, rolename, roleinfo=None):
    
     # Do the arguments have the correct format?
-    # This check ensures arguments have the appropriate number of objects and 
-    # object types, and that all dict keys are properly named.
-    # Raise 'tuf.FormatError' if the check fails.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.PATH_SCHEMA.check_match(targets_directory)
     tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    
     if roleinfo is not None:
       tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
@@ -1060,10 +1062,15 @@ class Targets(Metadata):
     expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
 
     if roleinfo is None:
-      roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                  'version': 0, 'compressions': [''], 'expires': expiration,
-                  'signatures': [], 'paths': [], 'path_hash_prefixes': [],
-                  'partial_loaded': False,
+      roleinfo = {'keyids': [],
+                  'signing_keyids': [],
+                  'threshold': 1,
+                  'version': 1,
+                  'compressions': [''],
+                  'expires': expiration,
+                  'signatures': [],
+                  'paths': [],
+                  'path_hash_prefixes': [],
                   'delegations': {'keys': {},
                                   'roles': []}}
     
@@ -1407,7 +1414,7 @@ class Targets(Metadata):
     # Add role to 'tuf.roledb.py'.
     expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
     roleinfo = {'name': full_rolename, 'keyids': keyids, 'signing_keyids': [],
-                'threshold': threshold, 'version': 0, 'compressions': [''],
+                'threshold': threshold, 'version': 1, 'compressions': [''],
                 'expires': expiration, 'signatures': [],
                 'paths': relative_targetpaths, 'delegations': {'keys': {},
                 'roles': []}}
@@ -1537,39 +1544,20 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
 
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
-
-  # Increment version number if this is a new/first partial write.
-  if write_partial:
-    temp_signable = sign_metadata(metadata, [],
-                             metadata_filename)
-    temp_signable['signatures'].extend(roleinfo['signatures'])
-    status = tuf.sig.get_signature_status(temp_signable, rolename)
-    if len(status['good_sigs']) == 0:
-      metadata['version'] = metadata['version'] + 1
-      signable = sign_metadata(metadata, roleinfo['signing_keyids'],
-                               metadata_filename)
-  # non-partial write()
-  else:
-    if tuf.sig.verify(signable, rolename) and not roleinfo['partial_loaded']:
-      metadata['version'] = metadata['version'] + 1
-      signable = sign_metadata(metadata, roleinfo['signing_keyids'],
-                               metadata_filename)
-  
-  # Write the metadata to file if contains a threshold of signatures. 
   signable['signatures'].extend(roleinfo['signatures']) 
-  
+
   if tuf.sig.verify(signable, rolename) or write_partial:
-    _remove_invalid_and_duplicate_signatures(signable)
+    if not write_partial:
+      _remove_invalid_and_duplicate_signatures(signable)
     for compression in roleinfo['compressions']:
       write_metadata_file(signable, metadata_filename, compression)
-    
-    return signable  
   
-  # 'signable' contains an invalid threshold of signatures. 
+    return signable
+
   else:
     message = 'Not enough signatures for '+repr(metadata_filename)
     raise tuf.Error(message, signable)
-  
+
 
 
 
@@ -1617,19 +1605,6 @@ def _get_password(prompt='Password: ', confirm=False):
       return password
     else:
       print('Mismatch; try again.')
-
-
-
-
-
-def _check_if_partial_loaded(rolename, signable, roleinfo):
-  """
-  """
-
-  status = tuf.sig.get_signature_status(signable, rolename)
-  if len(status['good_sigs']) < status['threshold'] and \
-                              len(status['good_sigs']) >= 1:
-    roleinfo['partial_loaded'] = True
 
 
 
@@ -1899,8 +1874,6 @@ def load_repository(repository_directory):
       if signature not in roleinfo['signatures']: 
         roleinfo['signatures'].append(signature)
 
-    _check_if_partial_loaded('root', signable, roleinfo)
-
     if os.path.exists(root_filename+'.gz'):
       roleinfo['compressions'].append('gz')
     tuf.roledb.update_roleinfo('root', roleinfo)
@@ -1929,8 +1902,6 @@ def load_repository(repository_directory):
     roleinfo['delegations'] = targets_metadata['delegations']
     if os.path.exists(targets_filename+'.gz'):
       roleinfo['compressions'].append('gz')
-    
-    _check_if_partial_loaded('targets', signable, roleinfo)
     tuf.roledb.update_roleinfo('targets', roleinfo)
 
     # Add the keys specified in the delegations field of the Targets role.
@@ -1942,12 +1913,9 @@ def load_repository(repository_directory):
 
     for role in targets_metadata['delegations']['roles']:
       rolename = role['name'] 
-      roleinfo = {'name': role['name'],
-                  'keyids': role['keyids'],
-                  'threshold': role['threshold'],
-                  'compressions': [''],
-                  'signing_keyids': [],
-                  'signatures': [],
+      roleinfo = {'name': role['name'], 'keyids': role['keyids'],
+                  'threshold': role['threshold'], 'compressions': [''],
+                  'signing_keyids': [], 'signatures': [],
                   'delegations': {'keys': {},
                                   'roles': []}}
       tuf.roledb.add_role(rolename, roleinfo)
@@ -1969,8 +1937,6 @@ def load_repository(repository_directory):
     roleinfo['version'] = release_metadata['version']
     if os.path.exists(release_filename+'.gz'):
       roleinfo['compressions'].append('gz')
-     
-    _check_if_partial_loaded('release', signable, roleinfo)
     tuf.roledb.update_roleinfo('release', roleinfo)
   
   else:
@@ -1989,8 +1955,6 @@ def load_repository(repository_directory):
     roleinfo['version'] = timestamp_metadata['version']
     if os.path.exists(timestamp_filename+'.gz'):
       roleinfo['compressions'].append('gz')
-    
-    _check_if_partial_loaded('timestamp', signable, roleinfo)
     tuf.roledb.update_roleinfo('timestamp', roleinfo)
   
   else:
@@ -2036,8 +2000,6 @@ def load_repository(repository_directory):
 
         if os.path.exists(metadata_path+'.gz'):
           roleinfo['compressions'].append('gz')
-       
-        _check_if_partial_loaded(metadata_name, signable, roleinfo)
         tuf.roledb.update_roleinfo(metadata_name, roleinfo)
 
         new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
@@ -2057,10 +2019,12 @@ def load_repository(repository_directory):
         
         for role in metadata_object['delegations']['roles']:
           rolename = role['name'] 
-          roleinfo = {'name': role['name'], 'keyids': role['keyids'],
-                      'threshold': role['threshold'], 'compressions': [''],
-                      'signing_keyids': [], 'signatures': [],
-                      'partial_loaded': False,
+          roleinfo = {'name': role['name'],
+                      'keyids': role['keyids'],
+                      'threshold': role['threshold'],
+                      'compressions': [''],
+                      'signing_keyids': [],
+                      'signatures': [],
                       'delegations': {'keys': {},
                                       'roles': []}}
           tuf.roledb.add_role(rolename, roleinfo)
@@ -2075,16 +2039,6 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
                                    password=None):
   """
   <Purpose>
-    Generate an RSA key file, create an encrypted PEM string (using 'password'
-    as the pass phrase), and store it in 'filepath'.  The public key portion
-    of the generated RSA key is stored in <'filepath'>.pub.
-
-    Which cryptography library performs the cryptographic decryption is
-    determined by the string set in 'tuf.conf.RSA_CRYPTO_LIBRARY'.  PyCrypto
-    currently supported.
-    
-    The PEM private key is encrypted with 3DES and CBC the mode of operation.
-    The pass phrase is strengthened with PBKDF1-MD5.
 
   <Arguments>
     filepath:
@@ -2095,8 +2049,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
       The number of bits of the generated RSA key. 
 
     password:
-      The passphrase to encrypt 'filepath'.
-  
+
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
@@ -2107,11 +2060,11 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
     None.
   """
 
-  # Do the arguments have the correct format?
-  # This check ensures arguments have the appropriate number of objects and 
-  # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Does 'filepath' have the correct format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
+
+  # Does 'bits' have the correct format?
   tuf.formats.RSAKEYBITS_SCHEMA.check_match(bits)
 
   # If the caller does not provide a password argument, prompt for one.
@@ -2121,24 +2074,20 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
- 
-  # Generate public and private RSA keys, encrypt the private portion, and
-  # store them in PEM format.
+  
   rsa_key = tuf.keys.generate_rsa_key(bits)
   public = rsa_key['keyval']['public']
   private = rsa_key['keyval']['private']
   encrypted_pem = tuf.keys.create_rsa_encrypted_pem(private, password) 
  
   # Write public key (i.e., 'public', which is in PEM format) to
-  # '<filepath>.pub'.  If the parent directory of filepath does not exist,
-  # create it, and all parent directories if necessary.
+  # '<filepath>.pub'.
   tuf.util.ensure_parent_dir(filepath)
 
   with open(filepath+'.pub', 'w') as file_object:
     file_object.write(public)
 
   # Write the private key in encrypted PEM format to '<filepath>'.
-  # Unlike the public key file, the private key does not have a file extension.
   with open(filepath, 'w') as file_object:
     file_object.write(encrypted_pem)
 
@@ -2149,38 +2098,23 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
 def import_rsa_privatekey_from_file(filepath, password=None):
   """
   <Purpose>
-    Import the encrypted PEM file in 'filepath', decrypt it, and return the key
-    object in 'tuf.formats.RSAKEY_SCHEMA' format.
-    
-    Which cryptography library performs the cryptographic decryption is
-    determined by the string set in 'tuf.conf.RSA_CRYPTO_LIBRARY'.  PyCrypto
-    currently supported.
-    
-    The PEM private key is encrypted with 3DES and CBC the mode of operation.
-    The pass phrase is strengthened with PBKDF1-MD5.
 
   <Arguments>
     filepath:
-      <filepath> file, an RSA encrypted PEM file.  Unlike the public RSA PEM
-      key file, 'filepath' does not have an extension.
+      <filepath> file, an RSA encrypted PEM file.
     
     password:
       The passphrase to decrypt 'filepath'.
 
   <Exceptions>
-    tuf.FormatError, if 'filepath' is improperly formatted.
 
   <Side Effects>
-    The contents of 'filepath' is read, decrypted, and the key stored.
 
   <Returns>
-    An RSA key object, conformant to 'tuf.formats.RSAKEY_SCHEMA'.
   """
 
   # Does 'filepath' have the correct format?
-  # This check ensures arguments have the appropriate number of objects and 
-  # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
@@ -2193,11 +2127,9 @@ def import_rsa_privatekey_from_file(filepath, password=None):
 
   encrypted_pem = None
 
-  # Read the contents of 'filepath' that should be an encrypted PEM.
   with open(filepath, 'rb') as file_object:
     encrypted_pem = file_object.read()
 
-  # Convert 'rsa_pubkey_pem' in 'tuf.formats.RSAKEY_SCHEMA' format.
   rsa_key = tuf.keys.import_rsakey_from_encrypted_pem(encrypted_pem, password)
   
   return rsa_key
@@ -2209,14 +2141,8 @@ def import_rsa_privatekey_from_file(filepath, password=None):
 def import_rsa_publickey_from_file(filepath):
   """
   <Purpose>
-    Import the RSA key stored in 'filepath'.  The key object returned is a TUF
-    key, specifically 'tuf.formats.RSAKEY_SCHEMA'.  If the RSA PEM in 'filepath'
-    contains a private key, it is discarded.
-    
-    Which cryptography library performs the cryptographic decryption is
-    determined by the string set in 'tuf.conf.RSA_CRYPTO_LIBRARY'.  PyCrypto
-    currently supported.
-  
+    If the RSA PEM in 'filepath' contains a private key, it is discarded.
+
   <Arguments>
     filepath:
       <filepath>.pub file, an RSA PEM file.
@@ -2225,24 +2151,18 @@ def import_rsa_publickey_from_file(filepath):
     tuf.FormatError, if 'filepath' is improperly formatted.
 
   <Side Effects>
-    'filepath' is read and its contents extracted.
-  
+
   <Returns>
     An RSA key object conformant to 'tuf.formats.RSAKEY_SCHEMA'.
   """
 
   # Does 'filepath' have the correct format?
-  # This check ensures arguments have the appropriate number of objects and 
-  # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
-  # Read the contents of the key file that should be in PEM format and contains
-  # the public portion of the RSA key.
   with open(filepath, 'r+b') as file_object:
     rsa_pubkey_pem = file_object.read()
 
-  # Convert 'rsa_pubkey_pem' in 'tuf.formats.RSAKEY_SCHEMA' format.  
   rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
 
   return rsakey_dict
@@ -2251,11 +2171,44 @@ def import_rsa_publickey_from_file(filepath):
 
 
 
+def expiration_datetime_utc(input_datetime_utc):
+  """
+  <Purpose>
+    TODO: return 'input_datetime_utc' in ISO 8601 format.
+
+  <Arguments>
+    input_datetime_utc:
+
+  <Exceptions>
+    tuf.FormatError, if 'input_datetime_utc' is invalid. 
+
+  <Side Effects>
+    None.
+
+  <Returns>
+  """
+  if not tuf.formats.DATETIME_SCHEMA.matches(input_datetime_utc):
+    message = 'The datetime argument must be in "YYYY-MM-DD HH:MM:SS" format.'
+    raise tuf.FormatError(message)
+  try:
+    unix_timestamp = tuf.formats.parse_time(input_datetime_utc+' UTC')
+  except (tuf.FormatError, ValueError), e:
+    raise tuf.FormatError('Invalid date entered.')
+  
+  if unix_timestamp < time.time():
+    message = 'The expiration date must occur after the current date.'
+    raise tuf.FormatError(message)
+  
+  return input_datetime_utc+' UTC'
+
+
+
+
 def get_metadata_filenames(metadata_directory=None):
   """
   <Purpose>
     Return a dictionary containing the filenames of the top-level roles.
-    If 'metadata_directory' were set to 'metadata', the dictionary
+    If 'metadata_directory' is set to 'metadata', the dictionary
     returned would contain:
 
     filenames = {'root': 'metadata/root.txt',
@@ -2285,15 +2238,10 @@ def get_metadata_filenames(metadata_directory=None):
     metadata_directory = '.'
 
   # Does 'metadata_directory' have the correct format?
-  # This check ensures arguments have the appropriate number of objects and 
-  # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.FormatError' if there is a mismatch. 
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
 
-  # Store the filepaths of the top-level roles, including the
-  # 'metadata_directory' for each one. 
   filenames = {}
-  
   filenames[ROOT_FILENAME] = \
     os.path.join(metadata_directory, ROOT_FILENAME)
   
@@ -2315,7 +2263,7 @@ def get_metadata_filenames(metadata_directory=None):
 def get_metadata_file_info(filename):
   """
   <Purpose>
-    Retrieve the file information of 'filename'.  The object returned
+    Retrieve the file information for 'filename'.  The object returned
     conforms to 'tuf.formats.FILEINFO_SCHEMA'.  The information
     generated for 'filename' is stored in metadata files like 'targets.txt'.
     The fileinfo object returned has the form:
@@ -2325,7 +2273,7 @@ def get_metadata_file_info(filename):
 
   <Arguments>
     filename:
-      The metadata file whose file information is needed.  It must exist.
+      The metadata file whose file information is needed.
 
   <Exceptions>
     tuf.FormatError, if 'filename' is improperly formatted.
@@ -2338,14 +2286,12 @@ def get_metadata_file_info(filename):
 
   <Returns>
     A dictionary conformant to 'tuf.formats.FILEINFO_SCHEMA'.  This
-    dictionary contains the length, hashes, and custom data about the
-    'filename' metadata file.
+    dictionary contains the length, hashes, and custom data about
+    the 'filename' metadata file.
   """
 
   # Does 'filename' have the correct format?
-  # This check ensures arguments have the appropriate number of objects and 
-  # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filename)
 
   if not os.path.isfile(filename):
@@ -2370,7 +2316,7 @@ def generate_root_metadata(version, expiration_date):
   """
   <Purpose>
     Create the root metadata.  'tuf.roledb.py' and 'tuf.keydb.py' are read and
-    the information returned by these modules is used to generate the root
+    the information returned by these modules are used to generate the root
     metadata object.
 
   <Arguments>
@@ -2380,8 +2326,6 @@ def generate_root_metadata(version, expiration_date):
       trusted.
     
     expiration_date:
-      The expiration date, in UTC, of the metadata file.  Conformant to
-      'tuf.formats.TIME_SCHEMA'.
 
   <Exceptions>
     tuf.FormatError, if the generated root metadata object could not
@@ -2398,29 +2342,23 @@ def generate_root_metadata(version, expiration_date):
   """
 
   # Do the arguments have the correct format?
-  # This check ensures arguments have the appropriate number of objects and 
-  # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
   # The role and key dictionaries to be saved in the root metadata object.
-  # Conformant to 'ROLEDICT_SCHEMA' and 'KEYDICT_SCHEMA', respectively.
   roledict = {}
   keydict = {}
 
-  # Extract the role, threshold, and keyid information of the top-level roles,
-  # which Root stores in its metadata.  The necessary role metadata is generated
-  # from this information.
+  # Extract the role, threshold, and keyid information from the config.
+  # The necessary role metadata is generated from this information.
   for rolename in ['root', 'targets', 'release', 'timestamp']:
     
     # If a top-level role is missing from 'tuf.roledb.py', raise an exception.
     if not tuf.roledb.role_exists(rolename):
       raise tuf.Error(repr(rolename)+' not in "tuf.roledb".')
-   
-    # Keep track of the keys loaded so that duplicates is avoided.
-    keyids = []
     
+    keyids = []
     # Generate keys for the keyids listed by the role being processed.
     for keyid in tuf.roledb.get_role_keyids(rolename):
       key = tuf.keydb.get_key(keyid)
@@ -2471,39 +2409,41 @@ def generate_targets_metadata(targets_directory, target_files, version,
                               expiration_date, delegations=None):
   """
   <Purpose>
-    Generate the targets metadata object. The targets in 'target_files' must
-    exist at the corresponding path on the repository targets directory. 
-    'target_files' is a list of targets.  The 'custom' field of the targets
-    metadata is not currently supported.
+    Generate the targets metadata object. The targets must exist at the same
+    path they should on the repo.  'target_files' is a list of targets. We're
+    not worrying about custom metadata at the moment. It is allowed to not
+    provide keys.
 
   <Arguments>
     targets_directory:
-      The directory containing the target files and directories of the
-      repository.
+      The directory (absolute path) containing the target files and directories.
 
     target_files:
-      The target files listed in 'targets.txt'.  'target_files' is a list of
-      target paths that are relative to the targets directory
-      (e.g., ['file1.txt', 'Django/module.py']).
-    
+      The target files tracked by 'targets.txt'.  'target_files' is a list of
+      paths/directories of target files that are relative to the targets
+      directory (e.g., ['file1.txt', 'Django/module.py']).  If the target files
+      are saved in
+      the root folder 'targets' on the repository, then 'targets' must be
+      included in the target paths.  The repository does not have to name
+      this folder 'targets'.
+
     version:
       The metadata version number.  Clients use the version number to
       determine if the downloaded version is newer than the one currently
       trusted.
 
     expiration_date:
-      The expiration date, in UTC, of the metadata file.  Conformant to
-      'tuf.formats.TIME_SCHEMA'.
+      The expiration date, in UTC, of the metadata file.
+      Conformant to 'tuf.formats.TIME_SCHEMA'.
 
     delegations:
-      The delegations made by the targets role to be generated.  'delegations'
-      must match 'tuf.formats.DELEGATIONS_SCHEMA'.
+      
   
   <Exceptions>
     tuf.FormatError, if an error occurred trying to generate the targets
     metadata object.
 
-    tuf.Error, if any of the target files cannot be read. 
+    tuf.Error, if any of the target files could not be read. 
 
   <Side Effects>
     The target files are read and file information generated about them.
@@ -2512,42 +2452,33 @@ def generate_targets_metadata(targets_directory, target_files, version,
     A targets metadata object, conformant to 'tuf.formats.TARGETS_SCHEMA'.
   """
 
-  # Do the arguments have the correct format?
-  # This check ensures arguments have the appropriate number of objects and 
-  # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Do the arguments have the correct format.
+  # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(targets_directory)
   tuf.formats.PATHS_SCHEMA.check_match(target_files)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+
   if delegations is not None:
     tuf.formats.DELEGATIONS_SCHEMA.check_match(delegations)
-   
-  # Store the file attributes of the targets in 'target_files'.  'filedict',
-  # conformant to 'tuf.formats.FILEDICT_SCHEMA', is added the targes metadata
-  # object returned.
+    
   filedict = {}
-  
-  # Ensure the user is aware of a non-existent 'targets_directory', and convert
-  # it to its absolute path if it exists.
   targets_directory = _check_directory(targets_directory)
 
-  # Generate the fileinfo for all the target files listed in 'target_files'.
+  # Generate the file info for all the target files listed in 'target_files'.
   for target in target_files:
     
-    # The root folder of the targets directory should not be included
-    # (e.g., 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt')
+    # Strip 'targets/' from from 'target' and keep the rest (e.g.,
+    # 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt'
+    #relative_targetpath = os.path.sep.join(target.split(os.path.sep)[1:])
     relative_targetpath = target
     target_path = os.path.join(targets_directory, target)
-   
-    # Ensure all target files listed in 'target_files' exist.  If just one of
-    # these files does not exist, raise an exception.
+    
     if not os.path.exists(target_path):
       message = repr(target_path)+' cannot be read.  Unable to generate '+ \
         'targets metadata.'
       raise tuf.Error(message)
-   
-    # Update 'filedict' with the file attributes of 'target_path'.
+    
     filedict[relative_targetpath] = get_metadata_file_info(target_path)
 
   # Generate the targets metadata object.

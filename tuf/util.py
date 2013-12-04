@@ -579,5 +579,3 @@ def load_json_file(filepath):
     return json.load(fileobject)
   finally:
     fileobject.close()
-
-
