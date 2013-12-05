@@ -194,6 +194,13 @@ class Updater(object):
       Any files located in 'destination_directory' that were previously
       served by the repository but have since been removed, can be deleted
       from disk by the client by calling this method.
+
+    Note: The methods listed above are public and intended for the software
+    updater integrating TUF with this module.  All other methods that may begin
+    with a single leading underscore are non-public and only used internally.
+    updater.py is not subclassed in TUF, nor is it designed to be subclassed,
+    so double leading underscores is not used.
+    http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
   def __init__(self, updater_name, repository_mirrors):
@@ -585,22 +592,24 @@ class Updater(object):
 
 
 
-  def __check_hashes(self, file_object, trusted_hashes):
+  def _check_hashes(self, file_object, trusted_hashes):
     """
     <Purpose>
-      A helper function that verifies multiple secure hashes of the downloaded
-      file.  If any of these fail it raises an exception.  This is to conform
-      with the TUF specs, which support clients with different hashing
-      algorithms. The 'hash.py' module is used to compute the hashes of the
-      'file_object'.
+      A private helper function that verifies multiple secure hashes of the
+      downloaded file 'file_object'.  If any of these fail it raises an
+      exception.  This is to conform with the TUF spec, which support clients
+      with different hashing algorithms. The 'hash.py' module is used to compute
+      the hashes of 'file_object'.
 
     <Arguments>
       file_object:
-        A file-like object.
+        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        read() without a size argument properly reads the entire file.
 
       trusted_hashes:
         A dictionary with hash-algorithm names as keys and hashes as dict values.
-        The hashes should be in the hexdigest format.
+        The hashes should be in the hexdigest format.  Should be Conformant to
+        'tuf.formats.HASHDICT_SCHEMA'.
 
     <Exceptions>
       tuf.BadHashError, if the hashes don't match.
@@ -612,12 +621,14 @@ class Updater(object):
       None.
     """
 
-    # Verify each trusted hash of 'trusted_hashes'.  Raise exception if
-    # any of the hashes are incorrect and return if all are correct.
+    # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
+    # return.
     for algorithm, trusted_hash in trusted_hashes.items():
       digest_object = tuf.hash.digest(algorithm)
       digest_object.update(file_object.read())
       computed_hash = digest_object.hexdigest()
+      
+      # Raise an exception if any of the hashes are incorrect.
       if trusted_hash != computed_hash:
         raise tuf.BadHashError(trusted_hash, computed_hash)
       else:
@@ -627,98 +638,115 @@ class Updater(object):
 
 
 
-  def __hard_check_file_length(self, file_object, trusted_file_length):
+  def _hard_check_file_length(self, file_object, trusted_file_length):
     """
     <Purpose>
-      A helper function that checks the expected compressed length of a
-      file-like object. The length of the file must be strictly equal to the
-      expected length. This is a deliberately redundant implementation designed
-      to complement tuf.download._check_downloaded_length().
+      A private helper function that ensures the length of 'file_object' is
+      strictly equal to 'trusted_file_length'.  This is a deliberately
+      redundant implementation designed to complement
+      tuf.download._check_downloaded_length().
 
     <Arguments>
       file_object:
-        A file-like object.
+        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        read() without a size argument properly reads the entire file.
 
-      compressed_file_length:
-        A nonnegative integer that is the expected compressed length of the
-        file.
+      trusted_file_length:
+        A non-negative integer that is the trusted length of the file.
 
     <Exceptions>
-      tuf.DownloadLengthMismatchError, if the lengths don't match.
+      tuf.DownloadLengthMismatchError, if the lengths do not match.
 
     <Side Effects>
-      None.
+      Reads the contents of 'file_object' and logs a message if 'file_object'
+      matches the trusted length.
 
     <Returns>
       None.
-
     """
 
+    # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
+    # object that ensures the entire file is read.
     observed_length = len(file_object.read())
+   
+    # Return and log a message if the length 'file_object' is equal to
+    # 'trusted_file_length', otherwise raise an exception.  A hard check
+    # ensures that a downloaded file strictly matches a known, or trusted,
+    # file length.
     if observed_length != trusted_file_length:
       raise tuf.DownloadLengthMismatchError(trusted_file_length,
                                             observed_length)
     else:
-      logger.debug('download length ('+str(observed_length)+\
+      logger.debug('Observed length ('+str(observed_length)+\
                    ') == trusted length ('+str(trusted_file_length)+')')
 
 
 
 
 
-  def __soft_check_file_length(self, file_object, trusted_file_length):
+  def _soft_check_file_length(self, file_object, trusted_file_length):
     """
     <Purpose>
-      A helper function that checks the expected compressed length of a
-      file-like object. The length of the file must be less than or equal to
-      the expected length. This is a deliberately redundant implementation
-      designed to complement tuf.download._check_downloaded_length().
+      A private helper function that checks the trusted file length of a
+      'tuf.util.TempFile' file-like object. The length of the file must be less
+      than or equal to the expected length. This is a deliberately redundant
+      implementation designed to complement
+      tuf.download._check_downloaded_length().
 
     <Arguments>
       file_object:
-        A file-like object.
+        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        read() without a size argument properly reads the entire file.
 
-      compressed_file_length:
-        A nonnegative integer that is the expected compressed length of the
-        file.
+      trusted_file_length:
+        A non-negative integer that is the trusted length of the file.
 
     <Exceptions>
-      tuf.DownloadLengthMismatchError, if the lengths don't match.
+      tuf.DownloadLengthMismatchError, if the lengths do not match.
 
     <Side Effects>
-      None.
+      Reads the contents of 'file_object' and logs a message if 'file_object'
+      is less than or equal to the trusted length.
 
     <Returns>
       None.
     """
 
+    # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
+    # object that ensures the entire file is read.
     observed_length = len(file_object.read()) 
+   
+    # Return and log a message if 'file_object' is less than or equal to
+    # 'trusted_file_length', otherwise raise an exception.  A soft check
+    # ensures that an upper bound restricts how large a file is downloaded.
     if observed_length > trusted_file_length:
       raise tuf.DownloadLengthMismatchError(trusted_file_length,
                                             observed_length)
     else:
-      logger.debug('download length ('+str(observed_length)+\
+      logger.debug('Observed length ('+str(observed_length)+\
                    ') <= trusted length ('+str(trusted_file_length)+')')
 
 
 
 
 
-  def get_target_file(self, target_filepath, file_length, file_hashes):
+  def _get_target_file(self, target_filepath, file_length, file_hashes):
     """
     <Purpose>
-      Safely download a target file up to a certain length, and check its
+      Safely (i.e., the file length and hash are strictly equal to the
+      trusted) download a target file up to a certain length, and check its
       hashes thereafter.
 
     <Arguments>
       target_filepath:
-        The relative target filepath obtained from TUF targets metadata.
+        The target filepath (relative to the repository targets directory)
+        obtained from TUF targets metadata.
 
-      compressed_file_length:
+      file_length:
         The expected compressed length of the target file. If the file is not
         compressed, then it will simply be its uncompressed length.
 
-      uncompressed_file_hashes:
+      file_hashes:
         The expected hashes of the target file.
 
     <Exceptions>
@@ -732,36 +760,45 @@ class Updater(object):
       a temporary file and returned.
 
     <Returns>
-      A tuf.util.TempFile file-like object containing the target.
+      A 'tuf.util.TempFile' file-like object containing the target.
     """
 
+    # Define a callable function that is passed as an argument to _get_file()
+    # and called.  The 'verify_target_file' function ensures the file length
+    # and hashes of 'target_filepath' are strictly equal to the trusted values.
     def verify_target_file(target_file_object):
+      
       # Every target file must have its length and hashes inspected.
-      self.__hard_check_file_length(target_file_object, file_length)
-      self.__check_hashes(target_file_object, file_hashes)
+      self._hard_check_file_length(target_file_object, file_length)
+      self._check_hashes(target_file_object, file_hashes)
 
-    return self.__get_file(target_filepath, verify_target_file,
-                           'target', file_length, compression=None,
-                           verify_compressed_file_function=None,
-                           download_safely=True)
+    # Target files, unlike metadata files, are not decompressed; the
+    # 'compression' argument to _get_file() is needed only for decompression of
+    # metadata.  Target files may be compressed or uncompressed.
+    return self._get_file(target_filepath, verify_target_file,
+                          'target', file_length, compression=None,
+                          verify_compressed_file_function=None,
+                          download_safely=True)
 
 
 
 
 
-  def __verify_uncompressed_metadata_file(self, metadata_file_object,
-                                          metadata_role):
+  def _verify_uncompressed_metadata_file(self, metadata_file_object,
+                                         metadata_role):
     """
     <Purpose>
-      A private helper function to verify an uncompressed downloaded metadata
+      A private helper function to verify an uncompressed metadata
       file.
 
     <Arguments>
       metadata_file_object:
-        A tuf.util.TempFile instance containing the metadata file.
+        A 'tuf.util.TempFile' instance containing the metadata file.
+        'metadata_file_object' ensures the entire is returned with read().
 
       metadata_role:
-        The role name of the metadata.
+        The role name of the metadata (e.g., 'root', 'targets',
+        'targets/linux/x86').
 
     <Exceptions>
       tuf.ForbiddenTargetError:
@@ -784,7 +821,7 @@ class Updater(object):
         In case the metadata file does not have a valid signature.
 
     <Side Effects>
-      None.
+      The contents of 'metadata_file_object' is read and loaded.
 
     <Returns>
       None.
@@ -796,7 +833,8 @@ class Updater(object):
     except Exception, exception:
       raise tuf.InvalidMetadataJSONError(exception)
     else:
-      # Ensure the loaded 'metadata_signable' is properly formatted.
+      # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
+      # 'tuf.FormatError' if not.
       tuf.formats.check_signable_object_format(metadata_signable)
 
     # Is 'metadata_signable' newer than the currently installed
@@ -826,9 +864,9 @@ class Updater(object):
 
 
 
-  def unsafely_get_metadata_file(self, metadata_role, metadata_filepath,
-                                 uncompressed_fileinfo,
-                                 compression=None, compressed_fileinfo=None):
+  def _unsafely_get_metadata_file(self, metadata_role, metadata_filepath,
+                                  uncompressed_fileinfo,
+                                  compression=None, compressed_fileinfo=None):
 
     """
     <Purpose>
@@ -838,14 +876,24 @@ class Updater(object):
 
     <Arguments>
       metadata_role:
-        The role name of the metadata.
+        The role name of the metadata (e.g., 'root', 'targets',
+        'targets/linux/x86').
 
       metadata_filepath:
-        The relative metadata filepath.
+        The metadata filepath (i.e., relative to the repository metadata
+        directory).
 
-      compressed_file_length:
-        The expected compressed length of the metadata file. If the file is not
-        compressed, then it will simply be its uncompressed length.
+      uncompressed_fileinfo:
+        The trusted file length and hashes of the uncompressed version of the 
+        metadata file.  Should be 'tuf.formats.FILEINFO_SCHEMA'.
+
+      compression:
+        The name of the compression algorithm (e.g., 'gzip'), if the metadata
+        file is compressed. 
+        
+      compressed_fileinfo:
+        The fileinfo of the metadata file, if it is compressed.  Should be
+        'tuf.formats.FILEINFO_SCHEMA'.
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -858,41 +906,50 @@ class Updater(object):
       in a temporary file and returned.
 
     <Returns>
-      A tuf.util.TempFile file-like object containing the metadata.
+      A 'tuf.util.TempFile' file-like object containing the metadata.
     """
-    
+   
+    # Store file length and hashes of the uncompressed version metadata.
+    # The uncompressed version is always verified.
     uncompressed_file_length = uncompressed_fileinfo['length']
     uncompressed_file_hashes = uncompressed_fileinfo['hashes']
+    download_file_length = uncompressed_file_length
 
-    if compression and compressed_fileinfo:
+    # Store the file length and hashes of the compressed version of the
+    # metadata, if compressions is set.
+    if compression is not None and compressed_fileinfo is not None:
       compressed_file_length = compressed_fileinfo['length']
       compressed_file_hashes = compressed_fileinfo['hashes']
+      download_file_length = compressed_file_length
 
     def unsafely_verify_uncompressed_metadata_file(metadata_file_object):
-      self.__soft_check_file_length(metadata_file_object,
-                                    uncompressed_file_length)
-      self.__check_hashes(metadata_file_object, uncompressed_file_hashes)
-      self.__verify_uncompressed_metadata_file(metadata_file_object,
-                                               metadata_role)
+      self._soft_check_file_length(metadata_file_object,
+                                   uncompressed_file_length)
+      self._check_hashes(metadata_file_object, uncompressed_file_hashes)
+      self._verify_uncompressed_metadata_file(metadata_file_object,
+                                              metadata_role)
     
     def unsafely_verify_compressed_metadata_file(metadata_file_object):
-      self.__hard_check_file_length(metadata_file_object,
-                                    compressed_file_length) 
-      self.__check_hashes(metadata_file_object, compressed_file_hashes)
+      self._hard_check_file_length(metadata_file_object,
+                                   compressed_file_length) 
+      self._check_hashes(metadata_file_object, compressed_file_hashes)
 
-    return self.__get_file(metadata_filepath,
-                           unsafely_verify_uncompressed_metadata_file, 'meta',
-                           uncompressed_file_length, compression,
-                           unsafely_verify_compressed_metadata_file,
-                           download_safely=False)
+    if compression is None:
+      unsafely_verify_compressed_metadata_file = None
+
+    return self._get_file(metadata_filepath,
+                          unsafely_verify_uncompressed_metadata_file, 'meta',
+                          download_file_length, compression,
+                          unsafely_verify_compressed_metadata_file,
+                          download_safely=False)
 
 
 
 
 
-  def safely_get_metadata_file(self, metadata_role, metadata_filepath,
-                               uncompressed_fileinfo,
-                               compression=None, compressed_fileinfo=None):
+  def _safely_get_metadata_file(self, metadata_role, metadata_filepath,
+                                uncompressed_fileinfo,
+                                compression=None, compressed_fileinfo=None):
     """
     <Purpose>
       Safely download a metadata file up to a certain length, and check its
@@ -900,20 +957,24 @@ class Updater(object):
 
     <Arguments>
       metadata_role:
-        The role name of the metadata.
+        The role name of the metadata (e.g., 'root', 'targets',
+        'targets/linux/x86').
 
       metadata_filepath:
-        The relative metadata filepath.
-
-      compressed_file_length:
-        The expected compressed length of the metadata file. If the file is not
-        compressed, then it will simply be its uncompressed length.
-
-      uncompressed_file_hashes:
-        The expected hashes of the metadata file.
+        The metadata filepath (i.e., relative to the repository metadata
+        directory).
+      
+      uncompressed_fileinfo:
+        The trusted file length and hashes of the uncompressed version of the 
+        metadata file.  Should be 'tuf.formats.FILEINFO_SCHEMA'.
 
       compression:
-        The name of the compression algorithm used to compress the metadata.
+        The name of the compression algorithm (e.g., 'gzip'), if the metadata
+        file is compressed. 
+        
+      compressed_fileinfo:
+        The fileinfo of the metadata file, if it is compressed.  Should be
+        'tuf.formats.FILEINFO_SCHEMA'.
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -926,35 +987,42 @@ class Updater(object):
       in a temporary file and returned.
 
     <Returns>
-      A tuf.util.TempFile file-like object containing the metadata.
+      A 'tuf.util.TempFile' file-like object containing the metadata.
     """
     
+    # Store file length and hashes of the uncompressed version metadata.
+    # The uncompressed version is always verified.
     uncompressed_file_length = uncompressed_fileinfo['length']
-    download_file_length = uncompressed_file_length
     uncompressed_file_hashes = uncompressed_fileinfo['hashes']
-
+    download_file_length = uncompressed_file_length
+    
+    # Store the file length and hashes of the compressed version of the
+    # metadata, if compressions is set.
     if compression and compressed_fileinfo:
       compressed_file_length = compressed_fileinfo['length']
-      download_file_length = compressed_file_length
       compressed_file_hashes = compressed_fileinfo['hashes']
-
+      download_file_length = compressed_file_length
+    
     def safely_verify_uncompressed_metadata_file(metadata_file_object):
-      self.__hard_check_file_length(metadata_file_object,
+      self._hard_check_file_length(metadata_file_object,
                                     uncompressed_file_length)
-      self.__check_hashes(metadata_file_object, uncompressed_file_hashes)
-      self.__verify_uncompressed_metadata_file(metadata_file_object,
+      self._check_hashes(metadata_file_object, uncompressed_file_hashes)
+      self._verify_uncompressed_metadata_file(metadata_file_object,
                                                metadata_role)
 
     def safely_verify_compressed_metadata_file(metadata_file_object):
-      self.__hard_check_file_length(metadata_file_object,
+      self._hard_check_file_length(metadata_file_object,
                                     compressed_file_length) 
-      self.__check_hashes(metadata_file_object, compressed_file_hashes)
+      self._check_hashes(metadata_file_object, compressed_file_hashes)
 
-    return self.__get_file(metadata_filepath,
-                           safely_verify_uncompressed_metadata_file, 'meta',
-                           download_file_length, compression,
-                           safely_verify_compressed_metadata_file,
-                           download_safely=True)
+    if compression is None:
+      safely_verify_compressed_metadata_file = None
+    
+    return self._get_file(metadata_filepath,
+                          safely_verify_uncompressed_metadata_file, 'meta',
+                          download_file_length, compression,
+                          safely_verify_compressed_metadata_file,
+                          download_safely=True)
 
 
 
@@ -963,7 +1031,7 @@ class Updater(object):
   # TODO: Instead of the more fragile 'download_safely' switch, unroll the
   # function into two separate ones: one for "safe" download, and the other one
   # for "unsafe" download? This should induce safer and more readable code.
-  def __get_file(self, filepath, verify_file_function, file_type,
+  def _get_file(self, filepath, verify_file_function, file_type,
                  file_length, compression=None,
                  verify_compressed_file_function=None, download_safely=True):
     """
@@ -976,25 +1044,33 @@ class Updater(object):
       filepath:
         The relative metadata or target filepath.
 
-      verify_uncompressed_file:
-        A callable function that expects an uncompressed file-like object and
-        raises an exception if the file is invalid.
+      verify_file_function:
+        A callable function that expects a 'tuf.util.TempFile' file-like object
+        and raises an exception if the file is invalid.  Target files and
+        uncompressed versions of metadata may be verified with
+        'verify_file_function'.
 
       file_type:
         Type of data needed for download, must correspond to one of the strings
         in the list ['meta', 'target'].  'meta' for metadata file type or
-        'target' for target file type.  It should correspond to NAME_SCHEMA
-        format.
+        'target' for target file type.  It should correspond to the
+        'tuf.formats.NAME_SCHEMA' format.
 
-      compressed_file_length:
-        The expected compressed length of the target or metadata file. If the
-        file is not compressed, then it will simply be its uncompressed length.
+      file_length:
+        The expected length, or upper bound, of the target or metadata file to
+        be downloaded.
+
+      compression:
+        The name of the compression algorithm (e.g., 'gzip'), if the metadata
+        file is compressed. 
+     
+      verify_compressed_file_function:
+        If compression is specified, in the case of metadata files, this
+        callable function may be set to perform verification of the compressed
+        version of the metadata file.  Decompressed metadata is also verified. 
 
       download_safely:
         A boolean switch to toggle safe or unsafe download of the file.
-
-      compression:
-        The name of the compression algorithm used to compress the file.
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -1007,7 +1083,7 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A tuf.util.TempFile file-like object containing the metadata or target.
+      A 'tuf.util.TempFile' file-like object containing the metadata or target.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
@@ -1026,12 +1102,16 @@ class Updater(object):
                                                      file_length)
 
         if compression is not None:
-          verify_compressed_file_function(file_object)  
+          if verify_compressed_file_function is not None: 
+            verify_compressed_file_function(file_object)  
           logger.debug('Decompressing '+str(file_mirror))
           file_object.decompress_temp_file_object(compression)
         else:
           logger.debug('Not decompressing '+str(file_mirror))
-
+        
+        # Verify 'file_object' according to the callable function.
+        # 'file_object' is also verified if decompressed above (i.e., the
+        # uncompressed version).
         verify_file_function(file_object)
 
       except Exception, exception:
@@ -1134,14 +1214,14 @@ class Updater(object):
     
     if metadata_role == 'timestamp':
       metadata_file_object = \
-        self.unsafely_get_metadata_file(metadata_role, metadata_filename,
-                                        uncompressed_fileinfo,
-                                        compression, compressed_fileinfo)
+        self._unsafely_get_metadata_file(metadata_role, metadata_filename,
+                                         uncompressed_fileinfo,
+                                         compression, compressed_fileinfo)
     else:
       metadata_file_object = \
-        self.safely_get_metadata_file(metadata_role, metadata_filename,
-                                      uncompressed_fileinfo,
-                                      compression, compressed_fileinfo)
+        self._safely_get_metadata_file(metadata_role, metadata_filename,
+                                       uncompressed_fileinfo,
+                                       compression, compressed_fileinfo)
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -1335,6 +1415,7 @@ class Updater(object):
       # may not be trusted anymore.
       if metadata_role == 'targets' or metadata_role.startswith('targets/'):
         logger.debug('Removing delegated roles of '+repr(metadata_role)+'.')
+        
         # TODO: Should we also remove the keys of the delegated roles?
         tuf.roledb.remove_delegated_roles(metadata_role)
         self._import_delegations(metadata_role)
@@ -2268,7 +2349,7 @@ class Updater(object):
       Ensure that we explore only delegated roles trusted with the target. We
       assume conservation of delegated paths in the complete tree of
       delegations. Note that the call to _ensure_all_targets_allowed in
-      __verify_uncompressed_metadata_file should already ensure that all
+      _verify_uncompressed_metadata_file should already ensure that all
       targets metadata is valid; i.e. that the targets signed by a delegatee is
       a proper subset of the targets delegated to it by the delegator.
       Nevertheless, we check it again here for performance and safety reasons.
@@ -2560,7 +2641,7 @@ class Updater(object):
 
     # get_target_file checks every mirror and returns the first target
     # that passes verification.
-    target_file_object = self.get_target_file(target_filepath, trusted_length,
+    target_file_object = self._get_target_file(target_filepath, trusted_length,
                                               trusted_hashes)
    
     # We acquired a target file object from a mirror.  Move the file into
