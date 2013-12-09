@@ -70,7 +70,7 @@ PBKDF2_ITERATIONS = 100000
 RSA_CRYPTO_LIBRARY = 'pycrypto'
 
 # Supported ed25519 cryptography libraries: ['pynacl', 'ed25519']
-ED25519_CRYPTO_LIBRARY = 'pynacl'
+ED25519_CRYPTO_LIBRARY = 'ed25519'
 
 # General purpose cryptography. Algorithms and functions that fall under general
 # purpose include AES, PBKDF2, cryptographically strong random number

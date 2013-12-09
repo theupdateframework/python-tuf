@@ -20,9 +20,9 @@
   'tuf.conf.py'
   
   The (RSA and ED25519)-related functions provided include generate_rsa_key(),
-  generate_ed5519_key(), create_signature(), and verify_signature().
+  generate_ed25519_key(), create_signature(), and verify_signature().
   The cryptography libraries called by 'tuf.keys.py' generate the actual TUF
-  keys and the functions listed above can be viewed as an easy-to-use public
+  keys and the functions listed above can be viewed as the easy-to-use public
   interface.
   
   Additional functions contained here include format_keyval_to_metadata() and
@@ -606,7 +606,9 @@ def create_signature(key_dict, data):
   sig = None
 
   # Convert 'data' to canonical JSON format so that repeatable signatures are
-  # generated across different platforms and key dictionaries. 
+  # generated across different platforms and Python key dictionaries.  The
+  # resulting 'data' is a string encoded in UTF-8 and compatible with the input
+  # expected by the cryptography functions called below.
   data = tuf.formats.encode_canonical(data)
 
   # Call the appropriate cryptography libraries for the supported key types,
@@ -945,31 +947,41 @@ def format_rsakey_from_pem(pem):
 
 
 
-def encrypt_key(key_object, passphrase):
+def encrypt_key(key_object, password):
   """
   <Purpose>
-    Return a string in PEM format, where the private part of the RSA key is
-    encrypted.  The private part of the RSA key is encrypted by the Triple
-    Data Encryption Algorithm (3DES) and Cipher-block chaining (CBC) for the 
-    mode of operation.  Password-Based Key Derivation Function 1 (PBKF1) + MD5
-    is used to strengthen 'passphrase'.
+    Return a string containing 'key_object' in encrypted form. Encrypted strings
+    may be safely saved to a file.  The corresponding decrypt_key() function can
+    be applied to the encrypted string to restore the original key object.
+    'key_object' is a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).
+    
+    The currently supported general-purpose crypto module, 'pycrypto_keys.py', 
+    performs the actual cryptographic operation on 'key_object'.  Whereas
+    an encrypted PEM file uses the Triple Data Encryption Algorithm (3DES), the
+    Cipher-block chaining (CBC) mode of operation, and the Password-Based Key
+    Derivation Function 1 (PBKF1) + MD5 to strengthen 'password', encrypted
+    TUF keys use AES-256-CTR-Mode and passwords strengthened with
+    PBKDF2-HMAC-SHA256 (100K iterations be default, but may be overriden in
+    'tuf.conf.py' by the user).
 
-    https://en.wikipedia.org/wiki/Triple_DES
+    http://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+    http://en.wikipedia.org/wiki/CTR_mode#Counter_.28CTR.29
     https://en.wikipedia.org/wiki/PBKDF2
 
-    >>> rsa_key = generate_rsa_key()
-    >>> private = rsa_key['keyval']['private']
+    >>> ed25519_key = generate_ed25519_key()
     >>> passphrase = 'secret'
-    >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase)
-    >>> tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem)
+    >>> encrypted_key = encrypt_key(ed25519_key, passphrase)
+    >>> tuf.formats.ENCRYPTEDKEY_SCHEMA.matches(encrypted_key)
     True
 
   <Arguments>
-    ed25519_key:
+    key_object:
+      A TUF key (containing also the private key portion) of the form
+      'tuf.formats.ANYKEY_SCHEMA'
 
-    passphrase:
-      The passphrase, or password, to encrypt the private part of the RSA
-      key.  'passphrase' is not used directly as the encryption key, a stronger
+    password:
+      The password, or passphrase, to encrypt 'the private part of the RSA
+      key.  'password' is not used directly as the encryption key, a stronger
       encryption key is derived from it. 
 
   <Exceptions>
@@ -984,14 +996,14 @@ def encrypt_key(key_object, passphrase):
   <Returns>
   """
   
-  # Does 'ed25519_key' have the correct format?
-  # This check will ensure 'private_key' has the appropriate number
+  # Does 'key_object' have the correct format?
+  # This check will ensure 'key_object' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.ANYKEY_SCHEMA.check_match(key_object)
   
-  # Does 'passphrase' have the correct format?
-  tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
+  # Does 'password' have the correct format?
+  tuf.formats.PASSWORD_SCHEMA.check_match(password)
 
   encrypted_key = None
 
