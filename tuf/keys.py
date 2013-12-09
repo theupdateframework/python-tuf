@@ -1015,7 +1015,7 @@ def encrypt_key(key_object, password):
   # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     encrypted_key = \
-      tuf.pycrypto_keys.encrypt_key(key_object, passphrase)
+      tuf.pycrypto_keys.encrypt_key(key_object, password)
   else:
     message = 'Invalid crypto library: '+repr(_GENERAL_CRYPTO_LIBRARY)+'.'
     raise tuf.UnsupportedLibraryError(message) 
@@ -1088,6 +1088,78 @@ def decrypt_key(encrypted_key, passphrase):
   key_object = format_metadata_to_key(key_metadata)
 
   return key_object
+   
+
+
+
+
+def create_rsa_encrypted_pem(private_key, passphrase):
+  """
+  <Purpose>
+  Return a string in PEM format, where the private part of the RSA key is
+  encrypted. The private part of the RSA key is encrypted by the Triple
+  Data Encryption Algorithm (3DES) and Cipher-block chaining (CBC) for the
+  mode of operation. Password-Based Key Derivation Function 1 (PBKF1) + MD5
+  is used to strengthen 'passphrase'.
+
+  https://en.wikipedia.org/wiki/Triple_DES
+  https://en.wikipedia.org/wiki/PBKDF2
+
+  >>> rsa_key = generate_rsa_key()
+  >>> private = rsa_key['keyval']['private']
+  >>> passphrase = 'secret'
+  >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase)
+  >>> tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem)
+  True
+
+  <Arguments>
+  private_key:
+  The private key string in PEM format.
+
+  passphrase:
+  The passphrase, or password, to encrypt the private part of the RSA
+  key. 'passphrase' is not used directly as the encryption key, a stronger
+  encryption key is derived from it.
+
+  <Exceptions>
+  tuf.FormatError, if the arguments are improperly formatted.
+
+  tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
+
+  TypeError, 'private_key' is unset.
+
+  <Side Effects>
+  PyCrypto's Crypto.PublicKey.RSA.exportKey() called to perform the actual
+  generation of the PEM-formatted output.
+
+  <Returns>
+  A string in PEM format, where the private RSA key is encrypted.
+  Conforms to 'tuf.formats.PEMRSA_SCHEMA'.
+  """
+    
+  # Does 'private_key' have the correct format?
+  # This check will ensure 'private_key' has the appropriate number
+  # of objects and object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.PEMRSA_SCHEMA.check_match(private_key)
+
+  # Does 'passphrase' have the correct format?
+  tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
+
+  encrypted_pem = None
+
+  # Generate the public and private RSA keys. The PyCrypto module performs
+  # the actual key generation. Raise 'ValueError' if 'bits' is less than 1024
+  # or not a multiple of 256, although a 2048-bit minimum is enforced by
+  # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
+  if _RSA_CRYPTO_LIBRARY == 'pycrypto':
+    encrypted_pem = \
+      tuf.pycrypto_keys.create_rsa_encrypted_pem(private_key, passphrase)
+  else:
+    message = 'Invalid crypto library: '+repr(_RSA_CRYPTO_LIBRARY)+'.'
+    raise tuf.UnsupportedLibraryError(message)
+
+  return encrypted_pem
 
 
 
