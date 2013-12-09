@@ -49,7 +49,7 @@
 import binascii
 
 # 'pycrypto' is the only currently supported library for the creation of RSA
-# keys.  https://github.com/dlitz/pycrypto
+# keys and general-purpose cryptography.  https://github.com/dlitz/pycrypto
 _SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto']
 
 # The currently supported libraries for the creation of ed25519 keys and
@@ -111,7 +111,7 @@ _DEFAULT_RSA_KEY_BITS = 3072
 # ['pycrypto', 'pynacl', 'ed25519']
 _RSA_CRYPTO_LIBRARY = tuf.conf.RSA_CRYPTO_LIBRARY
 _ED25519_CRYPTO_LIBRARY = tuf.conf.ED25519_CRYPTO_LIBRARY
-
+_GENERAL_CRYPTO_LIBRARY = tuf.conf.GENERAL_CRYPTO_LIBRARY
 
 def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   """
@@ -605,6 +605,10 @@ def create_signature(key_dict, data):
   method = None
   sig = None
 
+  # Convert 'data' to canonical JSON format so that repeatable signatures are
+  # generated across different platforms and key dictionaries. 
+  data = tuf.formats.encode_canonical(data)
+
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
   if keytype == 'rsa':
@@ -741,7 +745,7 @@ def verify_signature(key_dict, signature, data):
   
   elif keytype == 'ed25519':
     public = binascii.unhexlify(public)
-    if _RSA_CRYPTO_LIBRARY == 'pynacl' and \
+    if _ED25519_CRYPTO_LIBRARY == 'pynacl' and \
                               'pynacl' in _available_crypto_libraries:
       valid_signature = tuf.ed25519_keys.verify_signature(public,
                                                           method, sig, data,
@@ -941,7 +945,7 @@ def format_rsakey_from_pem(pem):
 
 
 
-def create_rsa_encrypted_pem(private_key, passphrase):
+def encrypt_key(key_object, passphrase):
   """
   <Purpose>
     Return a string in PEM format, where the private part of the RSA key is
@@ -961,8 +965,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
     True
 
   <Arguments>
-    private_key:
-      The private key string in PEM format.
+    ed25519_key:
 
     passphrase:
       The passphrase, or password, to encrypt the private part of the RSA
@@ -977,38 +980,102 @@ def create_rsa_encrypted_pem(private_key, passphrase):
     TypeError, 'private_key' is unset. 
 
   <Side Effects>
-    PyCrypto's Crypto.PublicKey.RSA.exportKey() called to perform the actual
-    generation of the PEM-formatted output.
 
   <Returns>
-    A string in PEM format, where the private RSA key is encrypted.
-    Conforms to 'tuf.formats.PEMRSA_SCHEMA'.
   """
   
-  # Does 'private_key' have the correct format?
+  # Does 'ed25519_key' have the correct format?
   # This check will ensure 'private_key' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.PEMRSA_SCHEMA.check_match(private_key)
+  tuf.formats.ANYKEY_SCHEMA.check_match(key_object)
   
   # Does 'passphrase' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
 
-  encrypted_pem = None
+  encrypted_key = None
+
+  # Format 'key_object' to metadata.
   
   # Generate the public and private RSA keys.  The PyCrypto module performs
   # the actual key generation.  Raise 'ValueError' if 'bits' is less than 1024 
   # or not a multiple of 256, although a 2048-bit minimum is enforced by
   # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
-  if _RSA_CRYPTO_LIBRARY == 'pycrypto':
-    encrypted_pem = \
-      tuf.pycrypto_keys.create_rsa_encrypted_pem(private_key, passphrase)
+  if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
+    encrypted_key = \
+      tuf.pycrypto_keys.encrypt_key(key_object, passphrase)
   else:
-    message = 'Invalid crypto library: '+repr(_RSA_CRYPTO_LIBRARY)+'.'
+    message = 'Invalid crypto library: '+repr(_GENERAL_CRYPTO_LIBRARY)+'.'
     raise tuf.UnsupportedLibraryError(message) 
 
-  return encrypted_pem
+  return encrypted_key
 
+
+
+
+
+def decrypt_key(encrypted_key, passphrase):
+  """
+  <Purpose>
+    Return a string in PEM format, where the private part of the RSA key is
+    encrypted.  The private part of the RSA key is encrypted by the Triple
+    Data Encryption Algorithm (3DES) and Cipher-block chaining (CBC) for the 
+    mode of operation.  Password-Based Key Derivation Function 1 (PBKF1) + MD5
+    is used to strengthen 'passphrase'.
+
+    https://en.wikipedia.org/wiki/Triple_DES
+    https://en.wikipedia.org/wiki/PBKDF2
+
+    >>> rsa_key = generate_rsa_key()
+    >>> private = rsa_key['keyval']['private']
+    >>> passphrase = 'secret'
+    >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase)
+    >>> tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem)
+    True
+
+  <Arguments>
+    ed25519_key:
+
+    passphrase:
+      The passphrase, or password, to encrypt the private part of the RSA
+      key.  'passphrase' is not used directly as the encryption key, a stronger
+      encryption key is derived from it. 
+
+  <Exceptions>
+    tuf.FormatError, if the arguments are improperly formatted.
+
+    tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
+
+    TypeError, 'private_key' is unset. 
+
+  <Side Effects>
+
+  <Returns>
+  """
+  
+  # Does 'ed25519_key' have the correct format?
+  # This check will ensure 'private_key' has the appropriate number
+  # of objects and object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.ENCRYPTEDKEY_SCHEMA.check_match(encrypted_key)
+  
+  # Does 'passphrase' have the correct format?
+  tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
+
+  # Generate the public and private RSA keys.  The PyCrypto module performs
+  # the actual key generation.  Raise 'ValueError' if 'bits' is less than 1024 
+  # or not a multiple of 256, although a 2048-bit minimum is enforced by
+  # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
+  if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
+    key_metadata = \
+      tuf.pycrypto_keys.decrypt_key(encrypted_key, passphrase)
+  else:
+    message = 'Invalid crypto library: '+repr(_GENERAL_CRYPTO_LIBRARY)+'.'
+    raise tuf.UnsupportedLibraryError(message) 
+
+  key_object = format_metadata_to_key(key_metadata)
+
+  return key_object
 
 
 

@@ -64,10 +64,18 @@ SLOW_START_GRACE_PERIOD = 30 #seconds
 # https://en.wikipedia.org/wiki/PBKDF2
 PBKDF2_ITERATIONS = 100000
 
-# The user client may set the cryptography library used by The Update Framework
-# updater, or the software updater integrating TUF.  The repository tools may
+# The user client may set the specific cryptography library used by The Update
+# Framework updater, or the software updater integrating TUF.  
 # Supported RSA cryptography libraries:  ['pycrypto']
 RSA_CRYPTO_LIBRARY = 'pycrypto'
 
 # Supported ed25519 cryptography libraries: ['pynacl', 'ed25519']
-ED25519_CRYPTO_LIBRARY = 'ed25519'
+ED25519_CRYPTO_LIBRARY = 'pynacl'
+
+# General purpose cryptography. Algorithms and functions that fall under general
+# purpose include AES, PBKDF2, cryptographically strong random number
+# generators, and cryptographic hash functions.  The majority of the general
+# cryptography is needed by the repository and developer tools.
+# RSA_CRYPTO_LIBRARY and ED25519_CRYPTO_LIBRARY are needed on the client side
+# of the software updater.
+GENERAL_CRYPTO_LIBRARY = 'pycrypto'

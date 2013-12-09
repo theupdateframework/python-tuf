@@ -34,6 +34,9 @@ import tuf
 import tuf.formats
 import tuf.keys
 
+# List of strings representing the key types supported by TUF.
+_SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
+
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.keydb')
 
@@ -82,13 +85,13 @@ def create_keydb_from_root_metadata(root_metadata):
   # them to 'RSAKEY_SCHEMA' if their type is 'rsa', and then
   # adding them the database.  Duplicates are avoided.
   for keyid, key_metadata in root_metadata['keys'].items():
-    if key_metadata['keytype'] == 'rsa':
+    if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA'
       # format, which is the format expected by 'add_key()'.
-      rsakey_dict = tuf.keys.format_metadata_to_key(key_metadata)
+      key_dict = tuf.keys.format_metadata_to_key(key_metadata)
       try:
-        add_key(rsakey_dict, keyid)
+        add_key(key_dict, keyid)
       # 'tuf.Error' raised if keyid does not match the keyid for 'rsakey_dict'.
       except tuf.Error, e:
         logger.error(e)

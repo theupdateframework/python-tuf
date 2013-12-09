@@ -104,6 +104,7 @@ import logging
 import os
 import shutil
 import time
+import urllib
 
 import tuf
 import tuf.conf
@@ -2195,6 +2196,10 @@ class Updater(object):
     # Does 'target_filepath' have the correct format?
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
+  
+    # 'target_filepath' might contain URL encoding escapes.
+    # http://docs.python.org/2/library/urllib.html#urllib.unquote
+    target_filepath = urllib.unquote(target_filepath)
 
     # Get target by looking at roles in order of priority tags.
     target = self._preorder_depth_first_walk(target_filepath)
@@ -2642,7 +2647,7 @@ class Updater(object):
     # get_target_file checks every mirror and returns the first target
     # that passes verification.
     target_file_object = self._get_target_file(target_filepath, trusted_length,
-                                              trusted_hashes)
+                                               trusted_hashes)
    
     # We acquired a target file object from a mirror.  Move the file into
     # place (i.e., locally to 'destination_directory').

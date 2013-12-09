@@ -26,7 +26,16 @@
   
   https://en.wikipedia.org/wiki/RSA_(algorithm)
   https://github.com/dlitz/pycrypto 
+  
+  The <keyid>.key files are encrypted with the AES-256-CTR-Mode symmetric key
+  algorithm.  User passwords are strengthened with PBKDF2, currently set to
+  100,000 passphrase iterations.  The previous evpy implementation used 1,000
+  iterations.
  """
+
+import os
+import binascii
+import json
 
 # Crypto.PublicKey (i.e., PyCrypto's public-key cryptography modules) supports 
 # algorithms like the Digital Signature Algorithm (DSA) and the ElGamal
@@ -47,6 +56,33 @@ import Crypto.Hash.SHA256
 # https://tools.ietf.org/html/rfc3447#section-8.1 
 import Crypto.Signature.PKCS1_PSS
 
+# Import PyCrypto's Key Derivation Function (KDF) module.  'keystore.py'
+# needs this module to derive a secret key according to the Password-Based
+# Key Derivation Function 2 specification.  The derived key is used as the
+# symmetric key to encrypt TUF key information.  PyCrypto's implementation:
+# Crypto.Protocol.KDF.PBKDF2().  PKCS#5 v2.0 PBKDF2 specification:
+# http://tools.ietf.org/html/rfc2898#section-5.2 
+import Crypto.Protocol.KDF
+
+# PyCrypto's AES implementation.  AES is a symmetric key algorithm that
+# operates on fixed block sizes of 128-bits.
+# https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+import Crypto.Cipher.AES
+
+# 'Crypto.Random' is a cryptographically strong version of Python's standard
+# "random" module.  Random bits of data is needed for salts and 
+# initialization vectors suitable for the encryption algorithms used in 
+# 'pycrypto_keys.py'.
+import Crypto.Random
+
+# The mode of operation is presently set to CTR (CounTeR Mode) for symmetric
+# block encryption (AES-256, where the symmetric key is 256 bits).  PyCrypto
+# provides a callable stateful block counter that can update successive blocks
+# when needed.  The initial random block, or initialization vector (IV), can
+# be set to begin the process of incrementing the 128-bit blocks and allowing
+# the AES algorithm to perform cipher block operations on them. 
+import Crypto.Util.Counter
+
 # Import the TUF package and TUF-defined exceptions in __init__.py.
 import tuf
 
@@ -56,11 +92,39 @@ import tuf.hash
 # Perform object format-checking.
 import tuf.formats
 
+import tuf.conf
+
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
 # According to the document above, revised May 6, 2003, RSA keys of
 # size 3072 provide security through 2031 and beyond.
 _DEFAULT_RSA_KEY_BITS = 3072 
+
+# The delimiter symbol used to separate the different sections
+# of encrypted files (i.e., salt, iterations, hmac, IV, ciphertext).
+# This delimiter is arbitrarily chosen and should not occur in
+# the hexadecimal representations of the fields it is separating.
+_ENCRYPTION_DELIMITER = '@@@@'
+
+# AES key size.  Default key size = 32 bytes = AES-256.
+_AES_KEY_SIZE = 32
+
+# Default salt size, in bytes.  A 128-bit salt (i.e., a random sequence of data
+# to protect against attacks that use precomputed rainbow tables to crack
+# password hashes) is generated for PBKDF2.  
+_SALT_SIZE = 16 
+
+# Default PBKDF2 passphrase iterations.  The current "good enough" number
+# of passphrase iterations.  We recommend that important keys, such as root,
+# be kept offline.  'tuf.conf.PBKDF2_ITERATIONS' should increase as CPU
+# speeds increase, set here at 100,000 iterations by default (in 2013).
+# Repository maintainers may opt to modify the default setting according to
+# their security needs and computational restrictions.  A strong user password
+# is still important.  Modifying the number of iterations will result in a new
+# derived key+PBDKF2 combination if the key is loaded and re-saved, overriding
+# any previous iteration setting used by the old '<keyid>.key'.
+# https://en.wikipedia.org/wiki/PBKDF2
+_PBKDF2_ITERATIONS = tuf.conf.PBKDF2_ITERATIONS
 
 
 def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
@@ -356,7 +420,8 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   if len(private_key):
     try:
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
-      encrypted_pem = rsa_key_object.exportKey(format='PEM', passphrase=passphrase) 
+      encrypted_pem = rsa_key_object.exportKey(format='PEM',
+                                               passphrase=passphrase) 
     except (ValueError, IndexError, TypeError), e:
       message = 'An encrypted RSA key in PEM format could not be generated.'
       raise tuf.CryptoError(message)
@@ -455,6 +520,309 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   public = rsa_pubkey.exportKey(format='PEM')
 
   return public, private
+
+
+
+
+
+def encrypt_key(key_object, password):
+  """
+  <Purpose>
+    Return a string in PEM format, where the private part of the RSA key is
+    encrypted.  The private part of the RSA key is encrypted by the Triple
+    Data Encryption Algorithm (3DES) and Cipher-block chaining (CBC) for the 
+    mode of operation.  Password-Based Key Derivation Function 1 (PBKF1) + MD5
+    is used to strengthen 'passphrase'.
+
+    https://en.wikipedia.org/wiki/Triple_DES
+    https://en.wikipedia.org/wiki/PBKDF2
+
+    >>> public, private = generate_rsa_public_and_private(2048)
+    >>> passphrase = 'secret'
+    >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase)
+    >>> tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem)
+    True
+
+  <Arguments>
+    private_key:
+      The private key string in PEM format.
+
+    password:
+      The password, or passphrase, to encrypt the private part of the RSA
+      key.  'password' is not used directly as the encryption key, a stronger
+      encryption key is derived from it. 
+
+  <Exceptions>
+    tuf.FormatError, if the arguments are improperly formatted.
+
+    tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
+
+    TypeError, 'private_key' is unset. 
+
+  <Side Effects>
+    PyCrypto's Crypto.PublicKey.RSA.exportKey() called to perform the actual
+    generation of the PEM-formatted output.
+
+  <Returns>
+    A string in PEM format, where the private RSA key is encrypted.
+    Conforms to 'tuf.formats.PEMRSA_SCHEMA'.
+  """
+  
+  # Does the arguments have the correct format?
+  # This check ensures arguments have the appropriate number
+  # of objects and object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.KEY_SCHEMA.check_match(key_object)
+  
+  # Does 'password' have the correct format?
+  tuf.formats.PASSWORD_SCHEMA.check_match(password)
+
+  salt, iterations, derived_key = _generate_derived_key(password)
+  derived_key_information = {'salt': salt, 'iterations': iterations,
+                             'derived_key': derived_key}
+
+  encrypted_key = _encrypt(json.dumps(key_object), derived_key_information)  
+
+  return encrypted_key
+
+
+
+
+
+def decrypt_key(encrypted_key, password):
+  """
+  <Purpose>
+    Return a string in PEM format, where the private part of the RSA key is
+    encrypted.  The private part of the RSA key is encrypted by the Triple
+    Data Encryption Algorithm (3DES) and Cipher-block chaining (CBC) for the 
+    mode of operation.  Password-Based Key Derivation Function 1 (PBKF1) + MD5
+    is used to strengthen 'passphrase'.
+
+    https://en.wikipedia.org/wiki/Triple_DES
+    https://en.wikipedia.org/wiki/PBKDF2
+
+    >>> public, private = generate_rsa_public_and_private(2048)
+    >>> passphrase = 'secret'
+    >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase)
+    >>> tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem)
+    True
+
+  <Arguments>
+    private_key:
+      The private key string in PEM format.
+
+    password:
+      The password, or passphrase, to encrypt the private part of the RSA
+      key.  'password' is not used directly as the encryption key, a stronger
+      encryption key is derived from it. 
+
+  <Exceptions>
+    tuf.FormatError, if the arguments are improperly formatted.
+
+    tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
+
+    TypeError, 'private_key' is unset. 
+
+  <Side Effects>
+    PyCrypto's Crypto.PublicKey.RSA.exportKey() called to perform the actual
+    generation of the PEM-formatted output.
+
+  <Returns>
+    A string in PEM format, where the private RSA key is encrypted.
+    Conforms to 'tuf.formats.PEMRSA_SCHEMA'.
+  """
+  
+  # Does the arguments have the correct format?
+  # This check ensures arguments have the appropriate number
+  # of objects and object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.ENCRYPTEDKEY_SCHEMA.check_match(encrypted_key)
+  
+  # Does 'password' have the correct format?
+  tuf.formats.PASSWORD_SCHEMA.check_match(password)
+
+    
+  json_data = _decrypt(encrypted_key, password)
+  key_object_metadata = tuf.util.load_json_string(json_data) 
+  
+  return key_object_metadata
+
+
+
+
+
+def _generate_derived_key(password, salt=None, iterations=None):
+  """
+  Generate a derived key by feeding 'password' to the Password-Based Key
+  Derivation Function (PBKDF2).  PyCrypto's PBKDF2 implementation is
+  currently used.  'salt' may be specified so that a previous derived key
+  may be regenerated.
+  """
+  
+  if salt is None:
+    salt = Crypto.Random.new().read(_SALT_SIZE) 
+
+  if iterations is None:
+    iterations = _PBKDF2_ITERATIONS
+
+
+  def pseudorandom_function(password, salt):
+    """
+    PyCrypto's PBKDF2() expects a callable function for its optional
+    'prf' argument.  'prf' is set to HMAC-SHA1 (in PyCrypto's PBKDF2 function)
+    by default.  'pseudorandom_function' instead sets 'prf' to HMAC-SHA256. 
+    """
+    
+    return Crypto.Hash.HMAC.new(password, salt, Crypto.Hash.SHA256).digest()  
+
+
+  # 'dkLen' is the desired key length.  'count' is the number of password
+  # iterations performed by PBKDF2.  'prf' is a pseudorandom function, which
+  # must be callable. 
+  derived_key = Crypto.Protocol.KDF.PBKDF2(password, salt,
+                                           dkLen=_AES_KEY_SIZE,
+                                           count=iterations,
+                                           prf=pseudorandom_function)
+
+  return salt, iterations, derived_key
+
+
+
+
+
+def _encrypt(key_data, derived_key_information):
+  """
+  Encrypt 'key_data' using the Advanced Encryption Standard (AES-256) algorithm.
+  'derived_key_information' should contain a key strengthened by PBKDF2.  The
+  key size is 256 bits and AES's mode of operation is set to CTR (CounTeR Mode).
+  The HMAC of the ciphertext is generated to ensure the ciphertext has not been
+  modified.
+
+  'key_data' is the JSON string representation of the key.  In the case
+  of RSA keys, this format would be 'tuf.formats.RSAKEY_SCHEMA':
+  {'keytype': 'rsa',
+   'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
+              'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
+
+  'derived_key_information' is a dictionary of the form:
+    {'salt': '...',
+     'derived_key': '...',
+     'iterations': '...'}
+
+  'tuf.CryptoError' raised if the encryption fails.
+  """
+  
+  # Generate a random initialization vector (IV).  The 'iv' is treated as the
+  # initial counter block to a stateful counter block function (i.e.,
+  # PyCrypto's 'Crypto.Util.Counter').  The AES block cipher operates on 128-bit
+  # blocks, so generate a random 16-byte initialization block.  PyCrypto expects
+  # the initial value of the stateful counter to be an integer.
+  # Follow the provably secure encrypt-then-MAC approach, which affords the
+  # ability to verify ciphertext without needing to decrypt it and preventing
+  # an attacker from feeding the block cipher malicious data.  Modes like GCM
+  # provide both encryption and authentication, whereas CTR only provides
+  # encryption.  
+  iv = Crypto.Random.new().read(16)
+  stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
+                                      initial_value=long(iv.encode('hex'), 16)) 
+  symmetric_key = derived_key_information['derived_key'] 
+  aes_cipher = Crypto.Cipher.AES.new(symmetric_key,
+                                     Crypto.Cipher.AES.MODE_CTR,
+                                     counter=stateful_counter_128bit_blocks)
+ 
+  # Use AES-256 to encrypt 'key_data'.  The key size determines how many cycle
+  # repetitions are performed by AES, 14 cycles for 256-bit keys.
+  try:
+    ciphertext = aes_cipher.encrypt(key_data)
+  
+  # Raise generic exception message to avoid revealing sensitive information,
+  # such as invalid passwords, encryption keys, etc., that an attacker can use
+  # to his advantage.
+  except Exception, e:
+    message = 'The key data cannot be encrypted.' 
+    raise tuf.CryptoError(message)
+
+  # Generate the hmac of the ciphertext to ensure it has not been modified.
+  # The decryption routine may verify a ciphertext without having to perform
+  # a decryption operation.
+  salt = derived_key_information['salt'] 
+  hmac_object = Crypto.Hash.HMAC.new(symmetric_key, ciphertext,
+                                     Crypto.Hash.SHA256)
+  hmac = hmac_object.hexdigest()
+
+  # Store the number of PBKDF2 iterations used to derive the symmetric key so
+  # that the decryption routine can regenerate the symmetric key successfully.
+  # The pbkdf2 iterations are allowed to vary for the keys loaded and saved.
+  iterations = derived_key_information['iterations']
+
+  # Return the salt, iterations, hmac, initialization vector, and ciphertext
+  # as a single string.  These five values are delimited by
+  # '_ENCRYPTION_DELIMITER' to make extraction easier.  This delimiter is
+  # arbitrarily chosen and should not occur in the hexadecimal representations
+  # of the fields it is separating.
+  return binascii.hexlify(salt) + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(str(iterations)) + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(hmac) + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(iv) + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(ciphertext)
+
+
+
+
+
+def _decrypt(file_contents, password):
+  """
+  The corresponding decryption routine for _encrypt().
+
+  'tuf.CryptoError' raised if the decryption fails.
+  """
+ 
+  # Extract the salt, iterations, hmac, initialization vector, and ciphertext
+  # from 'file_contents'.  These five values are delimited by
+  # '_ENCRYPTION_DELIMITER'.  This delimiter is arbitrarily chosen and should
+  # not occur in the hexadecimal representations of the fields it is separating.
+  salt, iterations, hmac, iv, ciphertext = \
+    file_contents.split(_ENCRYPTION_DELIMITER)
+  
+  # Ensure we have the expected raw data for the delimited cryptographic data. 
+  salt = binascii.unhexlify(salt)
+  iterations = int(binascii.unhexlify(iterations))
+  hmac = binascii.unhexlify(hmac)
+  iv = binascii.unhexlify(iv)
+  ciphertext = binascii.unhexlify(ciphertext)
+
+  # Generate derived key from 'password'.  The salt and iterations are specified
+  # so that the expected derived key is regenerated correctly.  Discard the old
+  # "salt" and "iterations" values, as we only need the old derived key.
+  junk_old_salt, junk_old_iterations, derived_key = \
+    _generate_derived_key(password, salt, iterations)
+
+  # Verify the hmac to ensure the ciphertext is valid and has not been altered.
+  # See the encryption routine for why we use the encrypt-then-MAC approach.
+  generated_hmac_object = Crypto.Hash.HMAC.new(derived_key, ciphertext,
+                                               Crypto.Hash.SHA256)
+  generated_hmac = generated_hmac_object.hexdigest()
+
+  if generated_hmac != hmac:
+    raise tuf.CryptoError('Decryption failed.')
+
+  # The following decryption routine assumes 'ciphertext' was encrypted with
+  # AES-256.
+  stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
+                                      initial_value=long(iv.encode('hex'), 16)) 
+  aes_cipher = Crypto.Cipher.AES.new(derived_key,
+                                     Crypto.Cipher.AES.MODE_CTR,
+                                     counter=stateful_counter_128bit_blocks)
+  try:
+    key_plaintext = aes_cipher.decrypt(ciphertext)
+  
+  # Raise generic exception message to avoid revealing sensitive information,
+  # such as invalid passwords, encryption keys, etc., that an attacker can
+  # use to his advantage.
+  except Exception, e: 
+    raise tuf.CryptoError('Decryption failed.')
+
+  return key_plaintext
 
 
 

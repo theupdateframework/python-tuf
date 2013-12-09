@@ -130,6 +130,10 @@ LOGLEVEL_SCHEMA = SCHEMA.Integer(lo=0, hi=50)
 # A string representing a named object.
 NAME_SCHEMA = SCHEMA.AnyString()
 
+# The contents of an encrypted TUF key.  Encrypted TUF keys are saved to files
+# in this format.
+ENCRYPTEDKEY_SCHEMA = SCHEMA.AnyString()
+
 # A value that is either True or False, on or off, etc.
 BOOLEAN_SCHEMA = SCHEMA.Boolean()
 

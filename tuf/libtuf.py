@@ -71,6 +71,9 @@ METADATA_EXTENSIONS = ['.txt', '.txt.gz']
 # The recognized compression extensions. 
 SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
 
+# Supported key types.
+SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
+
 # Expiration date delta, in seconds, of the top-level roles.  A metadata
 # expiration date is set by taking the current time and adding the expiration
 # seconds listed below.
@@ -2160,7 +2163,7 @@ def import_rsa_publickey_from_file(filepath):
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
-  with open(filepath, 'r+b') as file_object:
+  with open(filepath, 'rb') as file_object:
     rsa_pubkey_pem = file_object.read()
 
   rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
@@ -2171,35 +2174,143 @@ def import_rsa_publickey_from_file(filepath):
 
 
 
-def expiration_datetime_utc(input_datetime_utc):
+def generate_and_write_ed25519_keypair(filepath, password=None):
   """
   <Purpose>
-    TODO: return 'input_datetime_utc' in ISO 8601 format.
 
   <Arguments>
-    input_datetime_utc:
+    filepath:
+      The public and private key files are saved to <filepath>.pub, <filepath>,
+      respectively.
+    
+    password:
 
   <Exceptions>
-    tuf.FormatError, if 'input_datetime_utc' is invalid. 
+    tuf.FormatError, if the arguments are improperly formatted.
 
   <Side Effects>
+    Writes key files to '<filepath>' and '<filepath>.pub'.
+
+  <Returns>
     None.
+  """
+  
+  # Does 'filepath' have the correct format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.PATH_SCHEMA.check_match(filepath)
+
+  # If the caller does not provide a password argument, prompt for one.
+  if password is None:
+    message = 'Enter a password for the ED25519 key: '
+    password = _get_password(message, confirm=True)
+
+  # Does 'password' have the correct format?
+  tuf.formats.PASSWORD_SCHEMA.check_match(password)
+  
+  ed25519_key = tuf.keys.generate_ed25519_key()
+  encrypted_key = tuf.keys.encrypt_key(ed25519_key, password) 
+
+  # ed25519 public key file contents.
+  keytype = ed25519_key['keytype']
+  keyval = ed25519_key['keyval']
+  ed25519key_metadata_format = \
+    tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
+  
+  # Write public key (i.e., 'public', which is in PEM format) to
+  # '<filepath>.pub'.
+  tuf.util.ensure_parent_dir(filepath)
+
+  with open(filepath+'.pub', 'w') as file_object:
+    file_object.write(json.dumps(ed25519key_metadata_format))
+
+  # Write the encrypted key string to '<filepath>'.
+  with open(filepath, 'w') as file_object:
+    file_object.write(encrypted_key)
+
+
+
+
+
+def import_ed25519_publickey_from_file(filepath):
+  """
+  <Purpose>
+    If the RSA PEM in 'filepath' contains a private key, it is discarded.
+
+  <Arguments>
+    filepath:
+      <filepath>.pub file, an RSA PEM file.
+    
+  <Exceptions>
+    tuf.FormatError, if 'filepath' is improperly formatted.
+
+  <Side Effects>
+
+  <Returns>
+    An RSA key object conformant to 'tuf.formats.RSAKEY_SCHEMA'.
+  """
+
+  # Does 'filepath' have the correct format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.PATH_SCHEMA.check_match(filepath)
+
+  """
+  with open(filepath, 'rb') as file_object:
+    ed25519_key_metadata = file_object.read()
+  """
+
+  ed25519_key_metadata = tuf.util.load_json_file(filepath)
+  ed25519_key = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
+
+  return ed25519_key
+
+
+
+
+
+def import_ed25519_privatekey_from_file(filepath, password=None):
+  """
+  <Purpose>
+
+  <Arguments>
+    filepath:
+      <filepath> file, an RSA encrypted PEM file.
+    
+    password:
+      The passphrase to decrypt 'filepath'.
+
+  <Exceptions>
+    tuf.FormatError, 
+
+  <Side Effects>
 
   <Returns>
   """
-  if not tuf.formats.DATETIME_SCHEMA.matches(input_datetime_utc):
-    message = 'The datetime argument must be in "YYYY-MM-DD HH:MM:SS" format.'
+
+  # Does 'filepath' have the correct format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.PATH_SCHEMA.check_match(filepath)
+
+  # If the caller does not provide a password argument, prompt for one.
+  if password is None:
+    message = 'Enter a password for the ED25519 key: '
+    password = _get_password(message, confirm=True)
+
+  # Does 'password' have the correct format?
+  tuf.formats.PASSWORD_SCHEMA.check_match(password)
+
+  encrypted_key = None
+
+  with open(filepath, 'rb') as file_object:
+    encrypted_key = file_object.read()
+
+  key_object = tuf.keys.decrypt_key(encrypted_key, password)
+ 
+  if key_object['keytype'] != 'ed25519':
+    message = 'Invalid key type loaded: '+repr(key_object['keytype'])
     raise tuf.FormatError(message)
-  try:
-    unix_timestamp = tuf.formats.parse_time(input_datetime_utc+' UTC')
-  except (tuf.FormatError, ValueError), e:
-    raise tuf.FormatError('Invalid date entered.')
-  
-  if unix_timestamp < time.time():
-    message = 'The expiration date must occur after the current date.'
-    raise tuf.FormatError(message)
-  
-  return input_datetime_utc+' UTC'
+
+  return key_object
+
 
 
 
@@ -2737,10 +2848,10 @@ def sign_metadata(metadata_object, keyids, filename):
     signable['signatures'] = signatures
 
     # Generate the signature using the appropriate signing method.
-    if key['keytype'] == 'rsa':
+    if key['keytype'] in SUPPORTED_KEY_TYPES:
       if len(key['keyval']['private']):
         signed = signable['signed']
-        signature = tuf.sig.generate_rsa_signature(signed, key)
+        signature = tuf.keys.create_signature(key, signed)
         signable['signatures'].append(signature)
       else:
         logger.warn('Private key unset.  Skipping: '+repr(keyid))
