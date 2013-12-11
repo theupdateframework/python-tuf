@@ -36,6 +36,7 @@
 import os
 import binascii
 import json
+import util
 
 # Crypto.PublicKey (i.e., PyCrypto's public-key cryptography modules) supports 
 # algorithms like the Digital Signature Algorithm (DSA) and the ElGamal

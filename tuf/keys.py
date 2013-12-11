@@ -969,8 +969,8 @@ def encrypt_key(key_object, password):
     https://en.wikipedia.org/wiki/PBKDF2
 
     >>> ed25519_key = generate_ed25519_key()
-    >>> passphrase = 'secret'
-    >>> encrypted_key = encrypt_key(ed25519_key, passphrase)
+    >>> password = 'secret'
+    >>> encrypted_key = encrypt_key(ed25519_key, password)
     >>> tuf.formats.ENCRYPTEDKEY_SCHEMA.matches(encrypted_key)
     True
 
@@ -987,13 +987,17 @@ def encrypt_key(key_object, password):
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
+    tuf.CryptoError, if 'key_object' cannot be encrypted.
 
-    TypeError, 'private_key' is unset. 
+    tuf.UnsupportedLibraryError, if the general-purpose cryptography library
+    specified in 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is unsupported.
 
   <Side Effects>
+    Perform crytographic operations using the library specified in
+    'tuf.formats.GENERAL_CRYPTO_LIBRARY' and 'password'.
 
   <Returns>
+    An encrypted string of the form: 'tuf.formats.ENCRYPTEDKEY_SCHEMA'.
   """
   
   # Does 'key_object' have the correct format?
@@ -1005,14 +1009,18 @@ def encrypt_key(key_object, password):
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
 
+  # Encrypted string of 'key_object'.  The encrypted string may be safely saved
+  # to a file.
   encrypted_key = None
 
-  # Format 'key_object' to metadata.
-  
   # Generate the public and private RSA keys.  The PyCrypto module performs
   # the actual key generation.  Raise 'ValueError' if 'bits' is less than 1024 
   # or not a multiple of 256, although a 2048-bit minimum is enforced by
   # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
+
+  # Generate an encrypted string of 'key_object' using AES-256-CTR-Mode, where
+  # 'password' is strengthened with PBKDF2-HMAC-SHA256.  Ensure the general-
+  # purpose library specified in 'tuf.conf' is supported.
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     encrypted_key = \
       tuf.pycrypto_keys.encrypt_key(key_object, password)
@@ -1029,40 +1037,57 @@ def encrypt_key(key_object, password):
 def decrypt_key(encrypted_key, passphrase):
   """
   <Purpose>
-    Return a string in PEM format, where the private part of the RSA key is
-    encrypted.  The private part of the RSA key is encrypted by the Triple
-    Data Encryption Algorithm (3DES) and Cipher-block chaining (CBC) for the 
-    mode of operation.  Password-Based Key Derivation Function 1 (PBKF1) + MD5
-    is used to strengthen 'passphrase'.
+    Return a string containing 'key_object' in encrypted form. Encrypted strings
+    may be safely saved to a file.  The corresponding decrypt_key() function can
+    be applied to the encrypted string to restore the original key object.
+    'key_object' is a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).
+    
+    The currently supported general-purpose crypto module, 'pycrypto_keys.py', 
+    performs the actual cryptographic operation on 'key_object'.  Whereas
+    an encrypted PEM file uses the Triple Data Encryption Algorithm (3DES), the
+    Cipher-block chaining (CBC) mode of operation, and the Password-Based Key
+    Derivation Function 1 (PBKF1) + MD5 to strengthen 'password', encrypted
+    TUF keys use AES-256-CTR-Mode and passwords strengthened with
+    PBKDF2-HMAC-SHA256 (100K iterations be default, but may be overriden in
+    'tuf.conf.py' by the user).
 
-    https://en.wikipedia.org/wiki/Triple_DES
+    http://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+    http://en.wikipedia.org/wiki/CTR_mode#Counter_.28CTR.29
     https://en.wikipedia.org/wiki/PBKDF2
 
-    >>> rsa_key = generate_rsa_key()
-    >>> private = rsa_key['keyval']['private']
-    >>> passphrase = 'secret'
-    >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase)
-    >>> tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem)
+    >>> ed25519_key = generate_ed25519_key()
+    >>> password = 'secret'
+    >>> encrypted_key = encrypt_key(ed25519_key, password)
+    >>> decrypted_key = decrypt_key(encrypted_key, password)
+    >>> tuf.formats.ANYKEY_SCHEMA.matches(decrypted_key)
+    True
+    >>> decrypted_key == encrypted_key
     True
 
   <Arguments>
-    ed25519_key:
+    key_object:
+      A TUF key (containing also the private key portion) of the form
+      'tuf.formats.ANYKEY_SCHEMA'
 
-    passphrase:
-      The passphrase, or password, to encrypt the private part of the RSA
-      key.  'passphrase' is not used directly as the encryption key, a stronger
+    password:
+      The password, or passphrase, to encrypt 'the private part of the RSA
+      key.  'password' is not used directly as the encryption key, a stronger
       encryption key is derived from it. 
 
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
+    tuf.CryptoError, if 'key_object' cannot be encrypted.
 
-    TypeError, 'private_key' is unset. 
+    tuf.UnsupportedLibraryError, if the general-purpose cryptography library
+    specified in 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is unsupported.
 
   <Side Effects>
+    Perform crytographic operations using the library specified in
+    'tuf.formats.GENERAL_CRYPTO_LIBRARY' and 'password'.
 
   <Returns>
+    An encrypted string of the form: 'tuf.formats.ENCRYPTEDKEY_SCHEMA'.
   """
   
   # Does 'ed25519_key' have the correct format?
