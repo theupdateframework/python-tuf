@@ -133,7 +133,7 @@ class Updater(object):
     filename, headers = self.retrieve(url, data=data)
 
     # TODO: like tempfile, ensure file is deleted when closed?
-    temporary_file = open(filename)
+    temporary_file = open(filename, 'rb')
 
     # extend temporary_file with info(), getcode(), geturl()
     # http://docs.python.org/2/library/urllib.html#urllib.urlopen
