@@ -129,6 +129,8 @@ TIMESTAMP_EXPIRATION = 86400
 MAX_INPUT_ATTEMPTS = 3
 
 
+
+
 def _prompt(message, result_type=str):
   """
     Prompt the user for input by printing 'message', converting
@@ -142,13 +144,20 @@ def _prompt(message, result_type=str):
 
 
 
-
 def _get_password(prompt='Password: ', confirm=False):
   """
-    Return the password entered by the user.  If 'confirm'
-    is True, the user is asked to enter the previously
-    entered password once again.  If they match, the
-    password is returned to the caller.
+		<Purpose>
+			Prompt the user for a password
+	
+		<Arguments>
+			Prompt is the message sent to the user. 
+
+			If confirm is True, the user is asked to enter the previously
+    	entered password once again.  If they match, the
+    	password is returned to the caller.
+
+		<Return>
+			the password entered by the user.
 
   """
 
@@ -162,53 +171,39 @@ def _get_password(prompt='Password: ', confirm=False):
     if password == password2:
       return password
     else:
-      print 'Mismatch; try again.'
+      print('Mismatch; try again.')
 
 
 
 
 
-def build_repository(project_directory):
+def collect_date():
   """
-  <Purpose>
-    Build a basic TUF repository.  All of the required files needed by a
-    repository mirror are created, such as the metadata files of the top-level
-    roles, cryptographic keys, and the directories containing all of the target
-    files.
+	<Purpose>
+		Ask the user for a valid date, not prior to the current date.
 
-  <Arguments>
-    project_directory:
-      The directory containing the target files to be copied over to the
-      targets directory of the repository.
-
-  <Exceptions>
-    tuf.RepositoryError, if there was an error building the repository.
-
-  <Side Effects>
-    The repository files created are written to disk to the current
-    working directory.
+  	Return the date entered by the user. Sanity checks 
+  	and other validations should be kept in this function.
+  
+	<Arguments>
+		None
 
   <Returns>
-    None.
+		a time difference (int)
 
+	<Exceptions>
+		Repository Error is raised when the maximum number of attempts has been 
+		reached
+
+	<Side Effects>
+		None.
+	
   """
 
-  # Do the arguments have the correct format?
-  # Raise 'tuf.RepositoryError' if there is a mismatch.
-  try:
-    tuf.formats.PATH_SCHEMA.check_match(project_directory)
-  except tuf.FormatError, e:
-    message = str(e)
-    raise tuf.RepositoryError(message)
-  
-  # Verify the 'project_directory' argument.
-  project_directory = os.path.abspath(project_directory)
-  try:
-    tuf.repo.signerlib.check_directory(project_directory)
-  except (tuf.FormatError, tuf.Error), e:
-    message = str(e)
-    raise tuf.RepositoryError(message)
-  
+	# Declaring a locally-scoped constant to hold the maximum number of
+	# inputs by the user
+  MAX_INPUT_ATTEMPTS=3
+
   # Handle the expiration time.  The expiration date determines when
   # the top-level roles expire.
   prompt_message = \
@@ -234,6 +229,161 @@ def build_repository(project_directory):
   # Was a valid value for 'timeout' set?
   if timeout is None:
     raise tuf.RepositoryError('Could not get a valid expiration date\n')
+
+  return timeout
+
+
+
+
+def build_keystore():
+  """
+	<Purpose>
+		Build a keystore of passwords/threshold for a plain repo
+
+	<Arguments>
+		None
+	
+	<Returns>
+		Return a dictionary containing passwords and a list thresholds for every
+		role
+		WARNING: passwords are kept in plaintext during this function. 
+
+	<Exceptions>
+		Repository Exeption can be raised if the user failed to input correct 
+		values
+
+	<Side Effects>
+		None
+  """
+
+  #redefined this constant locally, for debugging purposes
+  MAX_INPUT_ATTEMPTS = 3
+
+  role_passwords = {}
+  role_threshold = {}
+  for role in ['root', 'targets', 'release', 'timestamp']:
+
+    # for: Ensure the user inputs a valid threshold value.
+    for attempt in range(MAX_INPUT_ATTEMPTS):
+      prompt_message = \
+        '\nEnter the desired threshold for the role '+repr(role)+': '
+
+      # Check for non-integers and values less than one.
+      try:
+        role_threshold[role] = _prompt(prompt_message, int)
+        if not tuf.formats.THRESHOLD_SCHEMA.matches(role_threshold[role]):
+	  			raise ValueError
+        break
+      except ValueError, e:
+				message = 'Invalid role threshold entered'
+				print(message)
+				logger.warning(message)
+				role_threshold[role] = None
+				continue
+
+
+    # Did the user input a valid threshold value?
+    if role_threshold[role] is None:
+      raise tuf.RepositoryError('Could not build the keystore\n')
+
+    # Retrieve the password(s) for 'role', store the passwords,
+    # and save them to the keystore.
+    role_passwords[role] = []
+    for threshold in range(role_threshold[role]):
+      message = 'Enter a password for '+repr(role)+' ('+str(threshold+1)+'): '
+      password = _get_password(message, confirm=True)
+
+      #The role_passwords dictionary now holds a value for each role threshold. 
+      role_passwords[role].append(password)
+
+  #return the resulting tuple
+  return role_passwords, role_threshold
+
+
+
+
+
+def build_repository(project_directory, timeout, role_config):
+  """
+  <Purpose>
+    Build a basic TUF repository.  All of the required files needed by a
+    repository mirror are created, such as the metadata files of the top-level
+    roles, cryptographic keys, and the directories containing all of the target
+    files.
+
+  <Arguments>
+    project_directory:
+      The directory containing the target files to be copied over to the
+      targets directory of the repository.
+
+		timeout:
+			A time difference for the metadata to expire
+
+		role_config:
+			A tuple containing key paswords and thresholds for each role
+
+  <Exceptions>
+    tuf.RepositoryError, if there was an error building the repository.
+
+  <Side Effects>
+    The repository files created are written to disk to the current
+    working directory.
+
+  <Returns>
+    None.
+
+  """
+  # This predefined list contains the available roles for tuf, upon modificaton
+  #	of the standard, this list should be updated
+  roles = ['root', 'targets', 'release', 'timestamp']
+
+
+  # Do the arguments have the correct format?
+  # Raise 'tuf.RepositoryError' if there is a mismatch.
+  try:
+    tuf.formats.PATH_SCHEMA.check_match(project_directory)
+  except tuf.FormatError, e:
+    message = str(e)
+    raise tuf.RepositoryError(message)
+  
+  # Verify the 'project_directory' argument.
+  project_directory = os.path.abspath(project_directory)
+  try:
+    tuf.repo.signerlib.check_directory(project_directory)
+  except (tuf.FormatError, tuf.Error), e:
+    message = str(e)
+    raise tuf.RepositoryError(message)
+  
+
+
+
+  # Doing some sanity checks on the role_config tuple, in order to avoid
+  # unexpected input:
+  #		role_config[0] should contain a list of length role_config[1][x] with
+  #			passwords
+  #		role_config[1] will contain a threshold for each role.
+
+  # We are expecting a 2-element tuple 
+  if len(role_config) != 2: 
+    raise tuf.RepositoryError("Role_configuration must be initialized as " + \
+                              "a tuple with passwords and thresholds")
+
+  role_passwords = role_config[0]
+  role_threshold = role_config[1]
+	
+  # Check if there is enough elements per role configuration
+  if len(role_passwords) != len(roles):
+    raise tuf.RepositoryError("Role_passwords should contain at least" + \
+                              " one password per role")
+
+  # Type checking and length consistency checks for passwords vs thresholds
+  for role in roles: 
+    if type(role_threshold[role]) is not int:
+      raise tuf.RepositoryError("A threshold value is not an int")
+    if len(role_passwords[role]) != role_threshold[role]:
+      raise tuf.RepositoryError("thresholds and passwords mismatch for: " + \
+                                role)
+
 
   # Build the repository directories.
   metadata_directory = None
@@ -309,39 +459,18 @@ def build_repository(project_directory):
   # Build the keystore and save the generated keys.
   role_info = {}
   for role in ['root', 'targets', 'release', 'timestamp']:
-    # Ensure the user inputs a valid threshold value.
-    role_threshold = None
-    for attempt in range(MAX_INPUT_ATTEMPTS):
-      prompt_message = \
-        '\nEnter the desired threshold for the role '+repr(role)+': '
-
-      # Check for non-integers and values less than one.
-      try:
-        role_threshold = _prompt(prompt_message, int)
-        if not tuf.formats.THRESHOLD_SCHEMA.matches(role_threshold):
-          raise ValueError
-        break
-      except ValueError, e:
-        message = 'Invalid role threshold entered'
-        logger.warning(message)
-        role_threshold = None
-        continue
-
-    # Did the user input a valid threshold value?
-    if role_threshold is None:
-      raise tuf.RepositoryError('Could not build the keystore\n')
-
-    # Retrieve the password(s) for 'role', generate the key(s),
-    # and save them to the keystore.
-    for threshold in range(role_threshold):
-      message = 'Enter a password for '+repr(role)+' ('+str(threshold+1)+'): '
-      password = _get_password(message, confirm=True)
-      key = tuf.repo.signerlib.generate_and_save_rsa_key(keystore_directory,
-                                                         password)
+    # parse the role_passwords dictionary and its acompanying list to produce
+    # the keystore 
+    keyBuildingMessage = "building keys for: " + repr(role) + "..."
+    print(keyBuildingMessage)
+    logger.info(keyBuildingMessage)
+    for threshold in range(role_threshold[role]):
+      key = tuf.repo.signerlib.generate_and_save_rsa_key(keystore_directory, \
+                                                   role_passwords[role].pop())
       try:
         role_info[role]['keyids'].append(key['keyid'])
       except KeyError:
-        info = {'keyids': [key['keyid']], 'threshold': role_threshold}
+        info = {'keyids': [key['keyid']], 'threshold': role_threshold[role]}
         role_info[role] = info
 
   # At this point the keystore is built and the 'role_info' dictionary
@@ -403,7 +532,6 @@ def build_repository(project_directory):
 
 
 
-
 def parse_options():
   """
   <Purpose>
@@ -461,6 +589,7 @@ def parse_options():
 
 
 
+
 if __name__ == '__main__':
 
   # Parse the options and set the logging level.
@@ -469,10 +598,12 @@ if __name__ == '__main__':
   # Build the repository.  The top-level metadata files, cryptographic keys,
   # target files, and the configuration file are created.
   try:
-    build_repository(project_directory)
+    date = collect_date()
+    role_config = build_keystore()
+    build_repository(project_directory, date, role_config)
   except tuf.RepositoryError, e:
     sys.stderr.write(str(e)+'\n')
     sys.exit(1)
 
-  print '\nSuccessfully created the repository.'
+  print('\nSuccessfully created the repository.')
   sys.exit(0)
