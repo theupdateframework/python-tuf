@@ -29,8 +29,8 @@
   format_metadata_to_key().  These last two functions produce or use TUF keys
   compatible with the key structures listed in TUF Metadata files.  The key
   generation functions return a dictionary containing all the information needed
-  of TUF keys, such as public and private keys and a keyID.  create_signature()
-  and verify_signature() are supplemental functions used for generating
+  of TUF keys, such as public & private keys, and a keyID.  create_signature()
+  and verify_signature() are supplemental functions needed for generating
   signatures and verifying them.
   
   https://en.wikipedia.org/wiki/RSA_(algorithm)
@@ -38,7 +38,7 @@
 
   Key IDs are used as identifiers for keys (e.g., RSA key).  They are the
   hexadecimal representation of the hash of key object (specifically, the key
-  object containing only the public key).  Review 'rsa_key.py' and the
+  object containing only the public key).  Review 'keys.py' and the
   '_get_keyid()' function to see precisely how keyids are generated.  One may
   get the keyid of a key object by simply accessing the dictionary's 'keyid'
   key (i.e., rsakey['keyid']).
@@ -84,7 +84,6 @@ except ImportError:
 # regardless of the availability of PyNaCl.
 import tuf.ed25519_keys
 
-
 # Import the TUF package and TUF-defined exceptions in __init__.py.
 import tuf
 
@@ -112,6 +111,7 @@ _DEFAULT_RSA_KEY_BITS = 3072
 _RSA_CRYPTO_LIBRARY = tuf.conf.RSA_CRYPTO_LIBRARY
 _ED25519_CRYPTO_LIBRARY = tuf.conf.ED25519_CRYPTO_LIBRARY
 _GENERAL_CRYPTO_LIBRARY = tuf.conf.GENERAL_CRYPTO_LIBRARY
+
 
 def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   """
@@ -734,6 +734,12 @@ def verify_signature(key_dict, signature, data):
   keytype = key_dict['keytype']
   valid_signature = False
   
+  # Convert 'data' to canonical JSON format so that repeatable signatures are
+  # generated across different platforms and Python key dictionaries.  The
+  # resulting 'data' is a string encoded in UTF-8 and compatible with the input
+  # expected by the cryptography functions called below.
+  data = tuf.formats.encode_canonical(data)
+  
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
   if keytype == 'rsa':
@@ -961,8 +967,8 @@ def encrypt_key(key_object, password):
     Cipher-block chaining (CBC) mode of operation, and the Password-Based Key
     Derivation Function 1 (PBKF1) + MD5 to strengthen 'password', encrypted
     TUF keys use AES-256-CTR-Mode and passwords strengthened with
-    PBKDF2-HMAC-SHA256 (100K iterations be default, but may be overriden in
-    'tuf.conf.py' by the user).
+    PBKDF2-HMAC-SHA256 (100K iterations by default, but may be overriden in
+    'tuf.conf.PBKDF2_ITERATIONS' by the user).
 
     http://en.wikipedia.org/wiki/Advanced_Encryption_Standard
     http://en.wikipedia.org/wiki/CTR_mode#Counter_.28CTR.29
@@ -1010,17 +1016,12 @@ def encrypt_key(key_object, password):
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
 
   # Encrypted string of 'key_object'.  The encrypted string may be safely saved
-  # to a file.
+  # to a file and stored offline.
   encrypted_key = None
-
-  # Generate the public and private RSA keys.  The PyCrypto module performs
-  # the actual key generation.  Raise 'ValueError' if 'bits' is less than 1024 
-  # or not a multiple of 256, although a 2048-bit minimum is enforced by
-  # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
 
   # Generate an encrypted string of 'key_object' using AES-256-CTR-Mode, where
   # 'password' is strengthened with PBKDF2-HMAC-SHA256.  Ensure the general-
-  # purpose library specified in 'tuf.conf' is supported.
+  # purpose library specified in 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is supported.
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     encrypted_key = \
       tuf.pycrypto_keys.encrypt_key(key_object, password)
@@ -1061,23 +1062,26 @@ def decrypt_key(encrypted_key, passphrase):
     >>> decrypted_key = decrypt_key(encrypted_key, password)
     >>> tuf.formats.ANYKEY_SCHEMA.matches(decrypted_key)
     True
-    >>> decrypted_key == encrypted_key
+    >>> decrypted_key == ed25519_key
     True
 
   <Arguments>
-    key_object:
-      A TUF key (containing also the private key portion) of the form
-      'tuf.formats.ANYKEY_SCHEMA'
+    encrypted_key:
+      An encrypted TUF key (additional data is also included, such as salt,
+      number of password iterations used for the derived encryption key, etc)
+      of the form 'tuf.formats.ENCRYPTEDKEY_SCHEMA'.  'encrypted_key' should
+      have been generated with encrypted_key().
 
     password:
-      The password, or passphrase, to encrypt 'the private part of the RSA
-      key.  'password' is not used directly as the encryption key, a stronger
-      encryption key is derived from it. 
+      The password, or passphrase, to decrypt 'encrypted_key'.  'password' is
+      not used directly as the encryption key, a stronger encryption key is
+      derived from it.  The supported general-purpose module takes care of
+      re-deriving the encryption key.
 
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if 'key_object' cannot be encrypted.
+    tuf.CryptoError, if 'encrypted_key' cannot be decrypted.
 
     tuf.UnsupportedLibraryError, if the general-purpose cryptography library
     specified in 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is unsupported.
@@ -1087,11 +1091,12 @@ def decrypt_key(encrypted_key, passphrase):
     'tuf.formats.GENERAL_CRYPTO_LIBRARY' and 'password'.
 
   <Returns>
-    An encrypted string of the form: 'tuf.formats.ENCRYPTEDKEY_SCHEMA'.
+    A TUF key object of the form: 'tuf.formats.ANYKEY_SCHEMA' (e.g.,
+    RSAKEY_SCHEMA, ED25519KEY_SCHEMA).
   """
   
-  # Does 'ed25519_key' have the correct format?
-  # This check will ensure 'private_key' has the appropriate number
+  # Does 'encrypted_key' have the correct format?
+  # This check ensures 'encrypted_key' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.ENCRYPTEDKEY_SCHEMA.check_match(encrypted_key)
@@ -1099,10 +1104,11 @@ def decrypt_key(encrypted_key, passphrase):
   # Does 'passphrase' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
 
-  # Generate the public and private RSA keys.  The PyCrypto module performs
-  # the actual key generation.  Raise 'ValueError' if 'bits' is less than 1024 
-  # or not a multiple of 256, although a 2048-bit minimum is enforced by
-  # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
+  # Decrypt 'encrypted_key' so that the original key object is restored.
+  # encrypt_key() generates an encrypted string of the TUF key object using
+  # AES-256-CTR-Mode, where 'password' is strengthened with PBKDF2-HMAC-SHA256.
+  # Ensure the general-purpose library specified in
+  # 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is supported.
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     key_metadata = \
       tuf.pycrypto_keys.decrypt_key(encrypted_key, passphrase)
@@ -1110,10 +1116,13 @@ def decrypt_key(encrypted_key, passphrase):
     message = 'Invalid crypto library: '+repr(_GENERAL_CRYPTO_LIBRARY)+'.'
     raise tuf.UnsupportedLibraryError(message) 
 
+  # The corresponding encrypt_key() encrypts and stores key objects in metadata
+  # format, so format 'key_metadata' to a TUF key object (i.e., original format
+  # of key object argument to encrypt_key()) prior to returning.
   key_object = format_metadata_to_key(key_metadata)
 
   return key_object
-   
+
 
 
 
@@ -1190,7 +1199,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
 
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
-  # be tested by running 'keys.py' as a standalone module.
-  # python keys.py
+  # be tested by running 'keys.py' as a standalone module:
+  # $ python keys.py
   import doctest
   doctest.testmod()

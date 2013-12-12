@@ -156,6 +156,8 @@ class Repository(object):
     """
     
     # Does 'partial' have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if 'partial' is improperly formatted.
     tuf.formats.BOOLEAN_SCHEMA.check_match(write_partial)
     
@@ -3287,7 +3289,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
 
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
-  # be tested by running libtuf.py as a standalone module.
-  # python libtuf.py.
+  # be tested by running libtuf.py as a standalone module:
+  # $ python libtuf.py.
   import doctest
   doctest.testmod()
