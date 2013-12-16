@@ -37,7 +37,7 @@ ssl_certificates = None
 
 # Since the timestamp role does not have signed metadata about itself, we set a
 # default but sane upper bound for the number of bytes required to download it.
-DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 2048 #bytes
+DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 16384 #bytes
 
 # Set a timeout value in seconds (float) for non-blocking socket operations.
 SOCKET_TIMEOUT = 1 #seconds

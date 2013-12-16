@@ -132,10 +132,15 @@ class Updater(object):
   def open(self, url, data=None):
     filename, headers = self.retrieve(url, data=data)
 
+    # TUF should always open files in binary mode and remain transparent to the
+    # software updater.  Opening files in text mode slightly alters the
+    # end-of-line characters and prevents binary files from properly loading on
+    # Windows.
+    # http://docs.python.org/2/tutorial/inputoutput.html#reading-and-writing-files
     # TODO: like tempfile, ensure file is deleted when closed?
-    temporary_file = open(filename)
+    temporary_file = open(filename, 'rb')
 
-    # extend temporary_file with info(), getcode(), geturl()
+    # Extend temporary_file with info(), getcode(), geturl()
     # http://docs.python.org/2/library/urllib.html#urllib.urlopen
     response = urllib.addinfourl(temporary_file, headers, url, code=200)
 
