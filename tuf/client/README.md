@@ -2,7 +2,7 @@
 **updater.py** is intended to be the only TUF module that software update
 systems need to utilize for a low-level integration.  It provides a single
 class representing an updater that includes methods to download, install, and
-verify metadata/target files in a secure manner.  Importing
+verify metadata or target files in a secure manner.  Importing
 **tuf.client.updater.py** and instantiating its main class is all that is
 required by the client prior to a TUF update request.  The importation and
 instantiation steps allow TUF to load all of the required metadata files
@@ -48,7 +48,7 @@ import tuf.client.updater
 # The only other module the client interacts with is 'tuf.conf'.  The
 # client accesses this module solely to set the repository directory.
 # This directory will hold the files downloaded from a remote repository.
-tuf.conf.repository_directory = 'local-repository'
+tuf.conf.repository_directory = 'path/to/local_repository'
 
 # Next, the client creates a dictionary object containing the repository
 # mirrors.  The client may download content from any one of these mirrors.
@@ -73,12 +73,12 @@ repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
 # above.
 updater = tuf.client.updater.Updater('updater', repository_mirrors)
 
-# The client next calls the refresh() method to ensure it has the latest
+# The client calls the refresh() method to ensure it has the latest
 # copies of the top-level metadata files (i.e., Root, Targets, Release,
 # Timestamp).
 updater.refresh()
 
-# The target file information of all the repository targets is determined.
+# The target file information of all the repository targets is determined next.
 # Since all_targets() downloads the target files of every role, all role
 # metadata is updated.
 targets = updater.all_targets()
@@ -96,7 +96,8 @@ for target in updated_targets:
   updater.download_target(target, destination_directory)
 
 # Remove any files from the destination directory that are no longer being
-# tracked.
+# tracked. For example, a target file from a previous release that has since
+# been removed on the remote repository.
 updater.remove_obsolete_targets(destination_directory)
 ```
 
@@ -128,9 +129,46 @@ for target in updated_targets:
 # Refresh the metadata of the top-level roles (i.e., Root, Targets, Release, Timestamp).           
 updater.refresh()
 
+# target() updates role metadata when required.
 target = updater.target('LICENSE.txt')                                          
 updated_target = updater.updated_targets([target], destination_directory)       
                                                                                  
 for target in updated_target:                                                   
   updater.download_target(target, destination_directory)
 ```
+
+###A Simple Integration Example with basic_client.py.
+```Bash
+# Assume a simple TUF repository has been setup with 'tuf.libtuf.py'.
+$ basic_client.py --repo http://localhost:8001
+
+# Metadata and target files are silently updated.  An exception is only raised if an error, or attack,
+# is detected.  Inspect 'tuf.log' for the outcome of the update process.
+
+$ cat tuf.log
+[2013-12-16 16:17:05,267 UTC] [tuf.download] [INFO][_download_file:726@download.py]
+Downloading: http://localhost:8001/metadata/timestamp.txt
+
+[2013-12-16 16:17:05,269 UTC] [tuf.download] [WARNING][_check_content_length:589@download.py]
+reported_length (545) < required_length (2048)
+
+[2013-12-16 16:17:05,269 UTC] [tuf.download] [WARNING][_check_downloaded_length:656@download.py]
+Downloaded 545 bytes, but expected 2048 bytes. There is a difference of 1503 bytes!
+
+[2013-12-16 16:17:05,611 UTC] [tuf.download] [INFO][_download_file:726@download.py]
+Downloading: http://localhost:8001/metadata/release.txt
+
+[2013-12-16 16:17:05,612 UTC] [tuf.client.updater] [INFO][_check_hashes:636@updater.py]
+The file\'s sha256 hash is correct: 782675fadd650eeb2926d33c401b5896caacf4fd6766498baf2bce2f3b739db4
+
+[2013-12-16 16:17:05,951 UTC] [tuf.download] [INFO][_download_file:726@download.py]
+Downloading: http://localhost:8001/metadata/targets.txt
+
+[2013-12-16 16:17:05,952 UTC] [tuf.client.updater] [INFO][_check_hashes:636@updater.py]
+The file\'s sha256 hash is correct: a5019c28a1595c43a14cad2b6252c4d1db472dd6412a9204181ad6d61b1dd69a
+
+[2013-12-16 16:17:06,299 UTC] [tuf.download] [INFO][_download_file:726@download.py]
+Downloading: http://localhost:8001/targets/file1.txt
+
+[2013-12-16 16:17:06,303 UTC] [tuf.client.updater] [INFO][_check_hashes:636@updater.py]
+The file's sha256 hash is correct: ecdc5536f73bdae8816f0ea40726ef5e9b810d914493075903bb90623d97b1d8
