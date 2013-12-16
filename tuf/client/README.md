@@ -15,7 +15,7 @@ software updater.  See **tuf.interposition.README** for more information on
 interposing Python urllib calls with TUF.
 
 
-## Overview of the update process:
+## Overview of the Update Process
 1. The software update system instructs TUF to check for updates.
 
 2. TUF downloads and verifies timestamp.txt.
@@ -74,10 +74,13 @@ repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
 updater = tuf.client.updater.Updater('updater', repository_mirrors)
 
 # The client next calls the refresh() method to ensure it has the latest
-# copies of the metadata files.
+# copies of the top-level metadata files (i.e., Root, Targets, Release,
+# Timestamp).
 updater.refresh()
 
-# The target file information for all the repository targets is determined.
+# The target file information of all the repository targets is determined.
+# Since all_targets() downloads the target files of every role, all role
+# metadata is updated.
 targets = updater.all_targets()
 
 # Among these targets, determine the ones that have changed since the client's
@@ -97,12 +100,20 @@ for target in updated_targets:
 updater.remove_obsolete_targets(destination_directory)
 ```
 
-### Download Targets of a Role
+### Download Target Files of a Role
 ```Python
 # Example demonstrating an update that only downloads the targets of            
 # a specific role (i.e., 'targets/django').                                     
-                                               
+
+# Refresh the metadata of the top-level roles (i.e., Root, Targets, Release, Timestamp).
 updater.refresh()                                                               
+
+# Refresh the minimum metadata needed to download the target files of a specified
+# role (e.g., R1->R4->Django, where R2 and R3 are excluded).
+updater.refresh_targets_metadata_chain('targets/django')
+
+# Update the file information of all the target files of the 'targets/django' role,
+# and determine which target files have changed.
 targets_of_django = updater.targets_of_role('targets/django')                     
 updated_targets = updater.updated_targets(targets_of_django, destination_directory)
                                                                                  
@@ -113,8 +124,10 @@ for target in updated_targets:
 ### Download Specific Target File
 ```Python
 # Example demonstrating an update that downloads a specific target.             
-                                                                                
-updater.refresh()                                                               
+
+# Refresh the metadata of the top-level roles (i.e., Root, Targets, Release, Timestamp).           
+updater.refresh()
+
 target = updater.target('LICENSE.txt')                                          
 updated_target = updater.updated_targets([target], destination_directory)       
                                                                                  
