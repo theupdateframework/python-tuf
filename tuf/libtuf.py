@@ -1721,7 +1721,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
   signature_keyids = []
 
   for signature in signable['signatures']:
-    data = tuf.formats.encode_canonical(signable['signed'])
+    signed = signable['signed']
     keyid = signature['keyid']
     key = None
 
@@ -1732,7 +1732,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
       signable['signatures'].remove(signature)
     
     # Remove signature from 'signable' if it is invalid.
-    if not tuf.keys.verify_signature(key, signature, data):
+    if not tuf.keys.verify_signature(key, signature, signed):
       signable['signatures'].remove(signature)
     
     # Although valid, it may still need removal if it is a duplicate.
@@ -1904,8 +1904,6 @@ def load_repository(repository_directory):
       if signature not in roleinfo['signatures']: 
         roleinfo['signatures'].append(signature)
 
-    _check_if_partial_loaded('root', signable, roleinfo)
-    
     if os.path.exists(root_filename+'.gz'):
       roleinfo['compressions'].append('gz')
     
@@ -2064,8 +2062,10 @@ def load_repository(repository_directory):
           roleinfo = {'name': role['name'], 'keyids': role['keyids'],
                       'threshold': role['threshold'],
                       'compressions': [''], 'signing_keyids': [],
-                      'signatures': [], 'delegations': {'keys': {},
-                                                        'roles': []}}
+                      'signatures': [],
+                      'partial_loaded': False,
+                      'delegations': {'keys': {},
+                                      'roles': []}}
           tuf.roledb.add_role(rolename, roleinfo)
 
   return repository
@@ -2118,7 +2118,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None:
-    message = 'Enter a password for the RSA key: '
+    message = 'Enter a password for the RSA key file: '
     password = _get_password(message, confirm=True)
 
   # Does 'password' have the correct format?
@@ -2152,7 +2152,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
 def import_rsa_privatekey_from_file(filepath, password=None):
   """
   <Purpose>
-    Import the encrypted PEM fiel in 'filepath', decrypt it, and return the key
+    Import the encrypted PEM file in 'filepath', decrypt it, and return the key
     object in 'tuf.formats.RSAKEY_SCHEMA' format.
 
     Which cryptography library performs the cryptographic decryption is
@@ -2182,13 +2182,13 @@ def import_rsa_privatekey_from_file(filepath, password=None):
 
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
-  # types, adn that all dict keys are properly named.
+  # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None:
-    message = 'Enter a password for the RSA key: '
+    message = 'Enter a password for the encrypted RSA key file: '
     password = _get_password(message, confirm=True)
 
   # Does 'password' have the correct format?
@@ -2237,7 +2237,7 @@ def import_rsa_publickey_from_file(filepath):
 
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
-  # types, adn that all dict keys are properly named.
+  # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
@@ -2258,16 +2258,33 @@ def import_rsa_publickey_from_file(filepath):
 def generate_and_write_ed25519_keypair(filepath, password=None):
   """
   <Purpose>
+    Generate an ED25519 key file, create an encrypted TUF key (using 'password'
+    as the pass phrase), and store it in 'filepath'.  The public key portion of
+    the generated ED25519 key is stored in <'filepath'>.pub.  Which cryptography
+    library performs the cryptographic decryption is determined by the string
+    set in 'tuf.conf.ED25519_CRYPTO_LIBRARY'.
+    
+    PyCrypto currently supported.  The ED25519 private key is encrypted with
+    AES-256 and CTR the mode of operation.  The password is strengthened with
+    PBKDF2-HMAC-SHA256.
 
   <Arguments>
     filepath:
-      The public and private key files are saved to <filepath>.pub, <filepath>,
-      respectively.
+      The public and private key files are saved to <filepath>.pub and
+      <filepath>, respectively.
     
     password:
+      The password, or passphrase, to encrypt the private portion of the
+      generated ed25519 key.  A symmetric encryption key is derived from
+      'password', so it is not directly used.
 
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
+    
+    tuf.CryptoError, if 'filepath' cannot be encrypted.
+
+    tuf.UnsupportedLibraryError, if 'filepath' cannot be encrypted due to an
+    invalid configuration setting (i.e., invalid 'tuf.conf.py' setting).
 
   <Side Effects>
     Writes key files to '<filepath>' and '<filepath>.pub'.
@@ -2278,7 +2295,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
-  # types, adn that all dict keys are properly named.
+  # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
@@ -2289,24 +2306,30 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
-  
+
+  # Generate a new ED25519 key object and encrypt it.  The cryptography library
+  # used is determined by the user, or by default (set in
+  # 'tuf.conf.ED25519_CRYPTO_LIBRARY').  Raise 'tuf.CryptoError' or
+  # 'tuf.UnsupportedLibraryError', if 'ed25519_key' cannot be encrypted.
   ed25519_key = tuf.keys.generate_ed25519_key()
   encrypted_key = tuf.keys.encrypt_key(ed25519_key, password) 
 
-  # ed25519 public key file contents.
+  # ed25519 public key file contents in metadata format (i.e., does not include
+  # the keyid portion).
   keytype = ed25519_key['keytype']
   keyval = ed25519_key['keyval']
   ed25519key_metadata_format = \
     tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
   
-  # Write public key (i.e., 'public', which is in PEM format) to
+  # Write the public key, conformant to 'tuf.formats.KEY_SCHEMA', to
   # '<filepath>.pub'.
   tuf.util.ensure_parent_dir(filepath)
 
   with open(filepath+'.pub', 'w') as file_object:
     file_object.write(json.dumps(ed25519key_metadata_format))
 
-  # Write the encrypted key string to '<filepath>'.
+  # Write the encrypted key string, conformant to
+  # 'tuf.formats.ENCRYPTEDKEY_SCHEMA', to '<filepath>'.
   with open(filepath, 'w') as file_object:
     file_object.write(encrypted_key)
 
@@ -2317,29 +2340,43 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
 def import_ed25519_publickey_from_file(filepath):
   """
   <Purpose>
-    If the RSA PEM in 'filepath' contains a private key, it is discarded.
+    Load the ED25519 public key object (conformant to 'tuf.formats.KEY_SCHEMA')
+    stored in 'filepath'.  Return 'filepath' in tuf.formats.ED25519KEY_SCHEMA
+    format.
+    
+    If the TUF key object in 'filepath' contains a private key, it is discarded.
 
   <Arguments>
     filepath:
-      <filepath>.pub file, an RSA PEM file.
+      <filepath>.pub file, a TUF public key file.
     
   <Exceptions>
-    tuf.FormatError, if 'filepath' is improperly formatted.
+    tuf.FormatError, if 'filepath' is improperly formatted or is an unexpected
+    key type.
 
   <Side Effects>
+    The contents of 'filepath' is read and saved.
 
   <Returns>
-    An RSA key object conformant to 'tuf.formats.RSAKEY_SCHEMA'.
+    An ED25519 key object conformant to 'tuf.formats.ED25519KEY_SCHEMA'.
   """
 
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
-  # types, adn that all dict keys are properly named.
+  # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
+  # ED25519 key objects are saved in json and metadata format.  Return the
+  # loaded key object in tuf.formats.ED25519KEY_SCHEMA' format that also
+  # includes the keyid.
   ed25519_key_metadata = tuf.util.load_json_file(filepath)
   ed25519_key = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
+  
+  # Raise an exception if an unexpected key type is imported. 
+  if ed25519_key['keytype'] != 'ed25519':
+    message = 'Invalid key type loaded: '+repr(ed25519_key['keytype'])
+    raise tuf.FormatError(message)
 
   return ed25519_key
 
@@ -2350,43 +2387,70 @@ def import_ed25519_publickey_from_file(filepath):
 def import_ed25519_privatekey_from_file(filepath, password=None):
   """
   <Purpose>
+    Import the encrypted ed25519 TUF key file in 'filepath', decrypt it, and
+    return the key object in 'tuf.formats.ED25519KEY_SCHEMA' format.
+
+    Which cryptography library performs the cryptographic decryption is
+    determined by the string set in 'tuf.conf.ED25519_CRYPTO_LIBRARY'.  PyCrypto
+    currently supported.
+
+    The TUF private key (may also contain the public part) is encrypted with AES
+    256 and CTR the mode of operation.  The password is strengthened with
+    PBKDF2-HMAC-SHA256.
 
   <Arguments>
     filepath:
-      <filepath> file, an RSA encrypted PEM file.
+      <filepath> file, an RSA encrypted TUF key file.
     
     password:
-      The passphrase to decrypt 'filepath'.
+      The password, or passphrase, to import the private key (i.e., the
+      encrypted key file 'filepath' must be decrypted before the ed25519 key
+      object can be returned.
 
   <Exceptions>
-    tuf.FormatError, 
+    tuf.FormatError, if the arguments are improperly formatted or the imported
+    key object contains an invalid key type (i.e., not 'ed25519').
+
+    tuf.CryptoError, if 'filepath' cannot be decrypted.
+
+    tuf.UnsupportedLibraryError, if 'filepath' cannot be decrypted due to an
+    invalid configuration setting (i.e., invalid 'tuf.conf.py' setting).
 
   <Side Effects>
+    'password' is used to decrypt the 'filepath' key file.
 
   <Returns>
+    An ed25519 key object of the form: 'tuf.formats.ED25519KEY_SCHEMA'.
   """
 
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
-  # types, adn that all dict keys are properly named.
+  # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None:
-    message = 'Enter a password for the ED25519 key: '
+    message = 'Enter a password for the encrypted ED25519 key file: '
     password = _get_password(message, confirm=True)
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
 
+  # Store the encrypted contents of 'filepath' prior to calling the decryption
+  # routine.
   encrypted_key = None
 
   with open(filepath, 'rb') as file_object:
     encrypted_key = file_object.read()
 
+  # Decrypt the loaded key file, calling the appropriate cryptography library
+  # (i.e., set by the user) and generating the derived encryption key from
+  # 'password'.  Raise 'tuf.CryptoError' or 'tuf.UnsupportedLibraryError' if the
+  # decryption fails.
   key_object = tuf.keys.decrypt_key(encrypted_key, password)
- 
+
+  # Raise an exception if an unexpected key type is imported. 
   if key_object['keytype'] != 'ed25519':
     message = 'Invalid key type loaded: '+repr(key_object['keytype'])
     raise tuf.FormatError(message)
@@ -2429,7 +2493,7 @@ def get_metadata_filenames(metadata_directory=None):
   
   # Does 'metadata_directory' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
-  # types, adn that all dict keys are properly named.
+  # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
 
@@ -2494,7 +2558,7 @@ def get_metadata_file_info(filename):
 
   # Does 'filename' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
-  # types, adn that all dict keys are properly named.
+  # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(filename)
 
@@ -2549,7 +2613,7 @@ def generate_root_metadata(version, expiration_date):
 
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
-  # types, adn that all dict keys are properly named.
+  # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
@@ -2664,7 +2728,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
-  # types, adn that all dict keys are properly named.
+  # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(targets_directory)
   tuf.formats.PATHS_SCHEMA.check_match(target_files)

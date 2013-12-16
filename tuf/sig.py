@@ -104,9 +104,6 @@ def get_signature_status(signable, role=None):
   signed = signable['signed']
   signatures = signable['signatures']
 
-  # 'signed' needed in canonical JSON format.
-  data = tuf.formats.encode_canonical(signed)
-
   # Iterate through the signatures and enumerate the signature_status fields.
   # (i.e., good_sigs, bad_sigs, etc.).
   for signature in signatures:
@@ -123,7 +120,7 @@ def get_signature_status(signable, role=None):
 
     # Identify key using an unknown key signing method.
     try:
-      valid_sig = tuf.keys.verify_signature(key, signature, data)
+      valid_sig = tuf.keys.verify_signature(key, signature, signed)
     except tuf.UnknownMethodError:
       unknown_method_sigs.append(keyid)
       continue

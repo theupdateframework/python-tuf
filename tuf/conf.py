@@ -60,7 +60,7 @@ SLOW_START_GRACE_PERIOD = 30 #seconds
 # computational restrictions.  A strong user password is still important.
 # Modifying the number of iterations will result in a new derived key+PBDKF2
 # combination if the key is loaded and re-saved, overriding any previous
-# iteration setting used by the old '<keyid>.key'.
+# iteration setting used in the old '<keyid>' key file.
 # https://en.wikipedia.org/wiki/PBKDF2
 PBKDF2_ITERATIONS = 100000
 

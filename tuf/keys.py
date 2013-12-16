@@ -49,7 +49,8 @@
 import binascii
 
 # 'pycrypto' is the only currently supported library for the creation of RSA
-# keys and general-purpose cryptography.  https://github.com/dlitz/pycrypto
+# keys.
+# https://github.com/dlitz/pycrypto
 _SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto']
 
 # The currently supported libraries for the creation of ed25519 keys and
@@ -58,7 +59,13 @@ _SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto']
 # if 'pynacl' is unavailable.
 _SUPPORTED_ED25519_CRYPTO_LIBRARIES = ['ed25519', 'pynacl']
 
-# Track which libraries are imported and thus available.  A optimized version
+# 'pycrypto' is the only currently supported library for general-purpose
+# cryptography, with plans to support pyca/cryptography.
+# https://github.com/dlitz/pycrypto
+# https://github.com/pyca/cryptography
+_SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto']
+
+# Track which libraries are imported and thus available.  An optimized version
 # of the ed25519 python implementation is provided by TUF and avaialable by
 # default.  https://github.com/pyca/ed25519
 _available_crypto_libraries = ['ed25519']
@@ -479,8 +486,8 @@ def _get_keyid(keytype, key_value):
 def _check_crypto_libraries():
   """ Ensure all the crypto libraries specified in tuf.conf are available. """
  
-  # The checks below all raise 'tuf.CryptoError' if the RSA and ED25519
-  # crypto libraries specified in 'tuf.conf.py' are not supported or
+  # The checks below all raise 'tuf.UnsupportedLibraryError' if the RSA and
+  # ED25519 crypto libraries specified in 'tuf.conf.py' are not supported or
   # unavailable.  The appropriate error message is added to the exception.
   # The funcions of this module that depend on user-installed crypto libraries 
   # should call this private function to ensure the called routine does not fail
@@ -491,23 +498,34 @@ def _check_crypto_libraries():
     message = 'The '+repr(_RSA_CRYPTO_LIBRARY)+' crypto library specified'+ \
       ' in "tuf.conf.RSA_CRYPTO_LIBRARY" is not supported.\n'+ \
       'Supported crypto libraries: '+repr(_SUPPORTED_RSA_CRYPTO_LIBRARIES)+'.'
-    raise tuf.CryptoError(message)
+    raise tuf.UnsupportedLibraryError(message)
   
   if _ED25519_CRYPTO_LIBRARY not in _SUPPORTED_ED25519_CRYPTO_LIBRARIES:
     message = 'The '+repr(_ED25519_CRYPTO_LIBRARY)+' crypto library specified'+\
       ' in "tuf.conf.ED25519_CRYPTO_LIBRARY" is not supported.\n'+ \
       'Supported crypto libraries: '+repr(_SUPPORTED_ED25519_CRYPTO_LIBRARIES)+'.'
-    raise tuf.CryptoError(message)
+    raise tuf.UnsupportedLibraryError(message)
+  
+  if _GENERAL_CRYPTO_LIBRARY not in _SUPPORTED_GENERAL_CRYPTO_LIBRARIES:
+    message = 'The '+repr(_GENERAL_CRYPTO_LIBRARY)+' crypto library specified'+\
+      ' in "tuf.conf.GENERAL_CRYPTO_LIBRARY" is not supported.\n'+ \
+      'Supported crypto libraries: '+repr(_SUPPORTED_GENERAL_CRYPTO_LIBRARIES)+'.'
+    raise tuf.UnsupportedLibraryError(message)
 
   if _RSA_CRYPTO_LIBRARY not in _available_crypto_libraries:
     message = 'The '+repr(_RSA_CRYPTO_LIBRARY)+' crypto library specified'+ \
       ' in "tuf.conf.RSA_CRYPTO_LIBRARY" could not be imported.'
-    raise tuf.CryptoError(message)
+    raise tuf.UnsupportedLibraryError(message)
   
   if _ED25519_CRYPTO_LIBRARY not in _available_crypto_libraries:
     message = 'The '+repr(_ED25519_CRYPTO_LIBRARY)+' crypto library specified'+\
       ' in "tuf.conf.ED25519_CRYPTO_LIBRARY" could not be imported.'
-    raise tuf.CryptoError(message)
+    raise tuf.UnsupportedLibraryError(message)
+  
+  if _GENERAL_CRYPTO_LIBRARY not in _available_crypto_libraries:
+    message = 'The '+repr(_GENERAL_CRYPTO_LIBRARY)+' crypto library specified'+\
+      ' in "tuf.conf.GENERAL_CRYPTO_LIBRARY" could not be imported.'
+    raise tuf.UnsupportedLibraryError(message)
 
 
 
@@ -959,7 +977,9 @@ def encrypt_key(key_object, password):
     Return a string containing 'key_object' in encrypted form. Encrypted strings
     may be safely saved to a file.  The corresponding decrypt_key() function can
     be applied to the encrypted string to restore the original key object.
-    'key_object' is a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).
+    'key_object' is a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).  This
+    function calls the appropriate cryptography module (e.g., pycrypto_keys.py)
+    to perform the encryption.
     
     The currently supported general-purpose crypto module, 'pycrypto_keys.py', 
     performs the actual cryptographic operation on 'key_object'.  Whereas
@@ -1014,6 +1034,11 @@ def encrypt_key(key_object, password):
   
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
+  
+  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified in
+  # 'tuf.conf', are unsupported or unavailable:
+  # 'tuf.conf.GENERAL_CRYPTO_LIBRARY'. 
+  _check_crypto_libraries()
 
   # Encrypted string of 'key_object'.  The encrypted string may be safely saved
   # to a file and stored offline.
@@ -1038,11 +1063,12 @@ def encrypt_key(key_object, password):
 def decrypt_key(encrypted_key, passphrase):
   """
   <Purpose>
-    Return a string containing 'key_object' in encrypted form. Encrypted strings
-    may be safely saved to a file.  The corresponding decrypt_key() function can
-    be applied to the encrypted string to restore the original key object.
-    'key_object' is a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).
-    
+    Return a string containing 'encrypted_key' in non-encrypted form.
+    The decrypt_key() function can be applied to the encrypted string to restore
+    the original key object, a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).
+    This function calls the appropriate cryptography module (e.g.,
+    pycrypto_keys.py) to perform the decryption.
+
     The currently supported general-purpose crypto module, 'pycrypto_keys.py', 
     performs the actual cryptographic operation on 'key_object'.  Whereas
     an encrypted PEM file uses the Triple Data Encryption Algorithm (3DES), the
@@ -1103,6 +1129,14 @@ def decrypt_key(encrypted_key, passphrase):
   
   # Does 'passphrase' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
+  
+  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified in
+  # 'tuf.conf', are unsupported or unavailable:
+  # 'tuf.conf.GENERAL_CRYPTO_LIBRARY'. 
+  _check_crypto_libraries()
+
+  # Store and return the decrypted key object.
+  key_object = None
 
   # Decrypt 'encrypted_key' so that the original key object is restored.
   # encrypt_key() generates an encrypted string of the TUF key object using
@@ -1110,17 +1144,16 @@ def decrypt_key(encrypted_key, passphrase):
   # Ensure the general-purpose library specified in
   # 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is supported.
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
-    key_metadata = \
+    key_object = \
       tuf.pycrypto_keys.decrypt_key(encrypted_key, passphrase)
   else:
     message = 'Invalid crypto library: '+repr(_GENERAL_CRYPTO_LIBRARY)+'.'
     raise tuf.UnsupportedLibraryError(message) 
 
-  # The corresponding encrypt_key() encrypts and stores key objects in metadata
-  # format, so format 'key_metadata' to a TUF key object (i.e., original format
-  # of key object argument to encrypt_key()) prior to returning.
-  key_object = format_metadata_to_key(key_metadata)
-
+  # The corresponding encrypt_key() encrypts and stores key objects in
+  # non-metadata format (i.e., original format of key object argument to
+  # encrypt_key()) prior to returning.
+  
   return key_object
 
 
@@ -1179,6 +1212,11 @@ def create_rsa_encrypted_pem(private_key, passphrase):
 
   # Does 'passphrase' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
+  
+  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified in
+  # 'tuf.conf', are unsupported or unavailable:
+  # 'tuf.conf.RSA_CRYPTO_LIBRARY'. 
+  _check_crypto_libraries()
 
   encrypted_pem = None
 
