@@ -2,11 +2,11 @@
 **updater.py** is intended to be the only TUF module that software update
 systems need to utilize for a low-level integration.  It provides a single
 class representing an updater that includes methods to download, install, and
-verify metadata/target files in a secure manner.  Importing **updater.py** and
-instantiating its main class is all that is required by the client prior
-to a TUF update request.  The importation and instantiation steps allow
-TUF to load all of the required metadata files and set the repository mirror
-information.
+verify metadata/target files in a secure manner.  Importing
+**tuf.client.updater.py** and instantiating its main class is all that is
+required by the client prior to a TUF update request.  The importation and
+instantiation steps allow TUF to load all of the required metadata files
+and set the repository mirror information.
 
 The **tuf.libtuf** module can be used to create a TUF repository.
 
@@ -37,7 +37,8 @@ file.
 the software update system.
 
 
-## Example Client 
+## Example Client
+### Refresh TUF Metadata and Download Target Files
 ```Python
 # The client first imports the 'updater.py' module, the only module the
 # client is required to import.  The client will utilize a single class
@@ -94,4 +95,29 @@ for target in updated_targets:
 # Remove any files from the destination directory that are no longer being
 # tracked.
 updater.remove_obsolete_targets(destination_directory)
+```
+
+### Download Targets of a Role
+```Python
+# Example demonstrating an update that only downloads the targets of            
+# a specific role (i.e., 'targets/django').                                     
+                                               
+updater.refresh()                                                               
+targets_of_django = updater.targets_of_role('targets/django')                     
+updated_targets = updater.updated_targets(targets_of_django, destination_directory)
+                                                                                 
+for target in updated_targets:                                                  
+  updater.download_target(target, destination_directory)                        
+```
+
+### Download Specific Target File
+```Python
+# Example demonstrating an update that downloads a specific target.             
+                                                                                
+updater.refresh()                                                               
+target = updater.target('LICENSE.txt')                                          
+updated_target = updater.updated_targets([target], destination_directory)       
+                                                                                 
+for target in updated_target:                                                   
+  updater.download_target(target, destination_directory)
 ```
