@@ -1775,38 +1775,59 @@ def _delete_obsolete_metadata(metadata_directory):
 def create_new_repository(repository_directory):
   """
   <Purpose>
-    Create a new repository with barebones metadata and return a Repository
-    object.
+    Create a new repository, instantiate barebones metadata for the top-level
+    roles, and return a Repository object.  On disk, create_new_repository()
+    only creates the directories needed to hold the metadata and targets files.
+    The repository object returned may be modified to update the newly created
+    repository.  The methods of the returned object may be called to create
+    actual repository files (e.g., repository.write()).
 
   <Arguments>
     repository_directory:
+      The directory that will eventually hold the metadata and target files of
+      the TUF repository.
 
   <Exceptions>
+    tuf.FormatError, if the arguments are improperly formatted.
 
   <Side Effects>
+    The 'repository_directory' is created if it does not exist, including its
+    metadata and targets sub-directories.
 
   <Returns>
-    libtuf.Repository object.
+    A 'tuf.libtuf.Repository' object.
   """
 
+  # Does 'repository_directory' have the correct format?
+  # Ensure the arguments have the appropriate number of objects and object
+  # types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(repository_directory)
 
-  # Create the repository, metadata, and target directories.
+  # Set the repository, metadata, and targets directories.  These directories
+  # are created if they do not exist.
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = None
   targets_directory = None
   
   # Try to create 'repository_directory' if it does not exist.
   try:
+    message = 'Creating '+repr(repository_directory)
+    logger.info(message)
     os.makedirs(repository_directory)
+  
   # 'OSError' raised if the leaf directory already exists or cannot be created.
+  # Check for case where 'repository_directory' has already been created. 
   except OSError, e:
     if e.errno == errno.EEXIST:
       pass 
     else:
       raise
   
-  #  
+  # Set the metadata and targets directories.  The metadata directory is a
+  # staged one so that the "live" repository is not affected.  The
+  # staged metadata changes may be moved over to "live" after all updated
+  # have been completed.
   metadata_directory = \
     os.path.join(repository_directory, METADATA_STAGED_DIRECTORY_NAME)
   targets_directory = \
@@ -1818,6 +1839,8 @@ def create_new_repository(repository_directory):
     message = 'Creating '+repr(metadata_directory)
     logger.info(message)
     os.mkdir(metadata_directory)
+  
+  # 'OSError' raised if the leaf directory already exists or cannot be created.
   except OSError, e:
     if e.errno == errno.EEXIST:
       pass
@@ -1834,7 +1857,10 @@ def create_new_repository(repository_directory):
       pass
     else:
       raise
-  
+ 
+  # Create the bare bones repository object, where only the top-level roles
+  # have been set and contain default values (e.g., Root roles has a threshold
+  # of 1, expires 1 year into the future, etc.)
   repository = Repository(repository_directory, metadata_directory,
                           targets_directory)
   
