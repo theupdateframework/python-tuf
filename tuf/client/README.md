@@ -10,8 +10,8 @@ information.
 
 The **tuf.libtuf** module can be used to create a TUF repository.
 
-The **tuf.interposition** package can can assist in integrating TUF with a
-software updater.  See 'tuf.interposition.README.md' for more information on
+The **tuf.interposition** package can also assist in integrating TUF with a
+software updater.  See **tuf.interposition.README** for more information on
 interposing Python urllib calls with TUF.
 
 
@@ -90,4 +90,8 @@ updated_targets = updater.updated_targets(targets, destination_directory)
 # The updated target files are saved locally to 'destination_directory'.
 for target in updated_targets:
   updater.download_target(target, destination_directory)
+
+# Remove any files from the destination directory that are no longer being
+# tracked.
+updater.remove_obsolete_targets(destination_directory)
 ```
