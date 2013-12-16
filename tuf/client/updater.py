@@ -419,8 +419,8 @@ class Updater(object):
     <Purpose>
       Rebuild the key and role databases from the currently trusted
       'root' metadata object extracted from 'root.txt'.  This private
-      function is called when a new/updated 'root' metadata file is loaded.
-      This function will only store the role information for the top-level
+      method is called when a new/updated 'root' metadata file is loaded.
+      This method will only store the role information for the top-level
       roles (i.e., 'root', 'targets', 'release', 'timestamp').
 
     <Arguments>
@@ -596,7 +596,7 @@ class Updater(object):
   def _check_hashes(self, file_object, trusted_hashes):
     """
     <Purpose>
-      A private helper function that verifies multiple secure hashes of the
+      A private helper method that verifies multiple secure hashes of the
       downloaded file 'file_object'.  If any of these fail it raises an
       exception.  This is to conform with the TUF spec, which support clients
       with different hashing algorithms. The 'hash.py' module is used to compute
@@ -642,7 +642,7 @@ class Updater(object):
   def _hard_check_file_length(self, file_object, trusted_file_length):
     """
     <Purpose>
-      A private helper function that ensures the length of 'file_object' is
+      A private helper method that ensures the length of 'file_object' is
       strictly equal to 'trusted_file_length'.  This is a deliberately
       redundant implementation designed to complement
       tuf.download._check_downloaded_length().
@@ -688,7 +688,7 @@ class Updater(object):
   def _soft_check_file_length(self, file_object, trusted_file_length):
     """
     <Purpose>
-      A private helper function that checks the trusted file length of a
+      A private helper method that checks the trusted file length of a
       'tuf.util.TempFile' file-like object. The length of the file must be less
       than or equal to the expected length. This is a deliberately redundant
       implementation designed to complement
@@ -1139,7 +1139,7 @@ class Updater(object):
     """
     <Purpose>
       Download, verify, and 'install' the metadata belonging to 'metadata_role'.
-      Calling this function implies the metadata has been updated by the
+      Calling this method implies the metadata has been updated by the
       repository and thus needs to be re-downloaded.  The current and previous
       metadata stores are updated if the newly downloaded metadata is
       successfully downloaded and verified.
@@ -1277,13 +1277,13 @@ class Updater(object):
     <Purpose>
       Update the metadata for 'metadata_role' if it has changed.  With the
       exception of the 'timestamp' role, all the top-level roles are updated
-      by this function.  The 'timestamp' role is always downloaded from a mirror
+      by this method.  The 'timestamp' role is always downloaded from a mirror
       without first checking if it has been updated; it is updated in refresh()
-      by calling _update_metadata('timestamp').  This function is also called for
+      by calling _update_metadata('timestamp').  This method is also called for
       delegated role metadata, which are referenced by 'release'.
         
       If the metadata needs to be updated but an update cannot be obtained,
-      this function will delete the file (with the exception of the root
+      this method will delete the file (with the exception of the root
       metadata, which never gets removed without a replacement).
 
       Due to the way in which metadata files are updated, it is expected that
@@ -1292,7 +1292,7 @@ class Updater(object):
       root -> targets' order.  For delegated metadata, the parent role is
       updated before the delegated role.  Taking into account that
       'referenced_metadata' is updated and verified before 'metadata_role',
-      this function determines if 'metadata_role' has changed by checking
+      this method determines if 'metadata_role' has changed by checking
       the 'meta' field of the newly updated 'referenced_metadata'.
 
     <Arguments>
@@ -1306,7 +1306,7 @@ class Updater(object):
         is the referenced metadata for the 'root', and 'targets' roles.
         The 'timestamp' metadata is always downloaded regardless.  In
         other words, it is updated by calling _update_metadata('timestamp')
-        and not by this function.  The referenced metadata for 'release'
+        and not by this method.  The referenced metadata for 'release'
         is 'timestamp'.  See refresh().
         
     <Exceptions>
@@ -1898,7 +1898,7 @@ class Updater(object):
       _update_metadata_if_changed('targets') call, not here.  Delegated roles
       are not loaded when the repository is first initialized.  They are loaded
       from disk, updated if they have changed, and stored to the 'self.metadata'
-      store by this function.  This function is called by the target methods,
+      store by this method.  This method is called by the target methods,
       like all_targets() and targets_of_role().
 
     <Arguments>
@@ -1975,34 +1975,83 @@ class Updater(object):
 
   def refresh_targets_metadata_chain(self, rolename):
     """
-    Proof-of-concept.
+    <Purpose>
+      Refresh the minimum targets metadata of 'rolename'.  If 'rolename' is
+      'targets/claimed/3.3/django', refresh the metadata of the following roles:
+      
+      targets.txt
+      targets/claimed.txt
+      targets/claimed/3.3.txt
+
+      Note that 'targets/claimed/3.3/django.txt' is not refreshed here.
+      
+      The metadata of the 'targets' role is updated in refresh() by the 
+      _update_metadata_if_changed('targets') call, not here.  Delegated roles
+      are not loaded when the repository is first initialized; they can be
+      loaded from disk, updated if they have changed, and stored to the
+      'self.metadata' store by this method.  This method may be called
+      before targets_of_role('rolename') so that the most up-to-date metadata is
+      available to verify the target files of 'rolename', including the metadata 
+      of 'rolename'.
+
+    <Arguments>
+      rolename:
+        This is a full delegated rolename and should not end in '.txt'.
+        Example: 'targets/linux/x86'.
+      
+    <Exceptions>
+      tuf.FormatError:
+        If any of the arguments are improperly formatted.
+
+      tuf.RepositoryError:
+        If the metadata of any of the parent roles of 'rolename' is missing
+        from the 'release.txt' metadata file.
+
+    <Side Effects>
+      The metadata of the parent roles of 'rolename' are loaded from disk and
+      updated if they have changed.  Metadata is removed from the role database
+      if it has expired.
+
+    <Returns>
+      None.
     """
+    
+    # Do the arguments have the correct format? 
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if the check fail.
+    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
     
     # List of parent roles to update.
     parent_roles = []
 
+    # Separate each rolename (i.e., each rolename should exclude parent and
+    # child rolenames).  'rolename' should be the full rolename, as in
+    # 'targets/linux/x86'.
     parts = rolename.split('/')
 
     # Append the first role to the list.
     parent_roles.append(parts[0])
 
-    # The 'roles_added' string contains the roles already added.  If 'a' and 'a/b'
-    # have been added to 'parent_roles', 'roles_added' would contain 'a/b'
+    # The 'roles_added' string contains the roles (full rolename) already added.
+    # If 'a' and 'a/b' have been added to 'parent_roles', 'roles_added' would
+    # contain 'a/b'.
     roles_added = parts[0]
 
     # Add each subsequent role to the previous string (with a '/' separator).
-    # This only goes to -1 because we only want to return the parents (so we
+    # This only goes to -1 because we only want to store the parents (so we
     # ignore the last element).
     for next_role in parts[1:-1]:
       parent_roles.append(roles_added+'/'+next_role)
       roles_added = roles_added+'/'+next_role
 
-    message = 'Minimum metadata to download to set chain of trust: '+\
+    message = 'Minimum metadata to download to set the chain of trust: '+\
       repr(parent_roles)+'.'
     logger.info(message)
 
-    # See if this role provides metadata.  All the available roles
-    # on the repository are specified in the 'release.txt' metadata.
+    # Check if 'release.txt' provides metadata for each of the roles in
+    # 'parent_roles'.  All the available roles on the repository are specified
+    # in the 'release.txt' metadata.
     targets_metadata_allowed = self.metadata['current']['release']['meta'].keys()
     for parent_role in parent_roles:
       parent_role = parent_role + '.txt'
@@ -2010,7 +2059,7 @@ class Updater(object):
       if parent_role not in targets_metadata_allowed:
         message = '"release.txt" does not provide all the parent roles'+\
           'of '+repr(rolename)+'.'
-        raise tuf.Repository(message)
+        raise tuf.RepositoryError(message)
 
     # Remove the 'targets' role because it gets updated when the targets.txt
     # file is updated in _update_metadata_if_changed('targets').
@@ -2029,8 +2078,8 @@ class Updater(object):
     parent_roles.sort()
     logger.debug('Roles to update: '+repr(parent_roles)+'.')
 
-    # Iterate over 'roles_to_update', load its metadata
-    # file, and update it if it has changed.
+    # Iterate 'parent_roles', load each role's metadata file from disk, and
+    # update it if it has changed.
     for rolename in parent_roles:
       self._load_metadata_from_file('previous', rolename)
       self._load_metadata_from_file('current', rolename)
@@ -2042,7 +2091,6 @@ class Updater(object):
         self._ensure_not_expired(rolename)
       except tuf.ExpiredMetadataError:
         tuf.roledb.remove_role(rolename)
-
 
 
 
