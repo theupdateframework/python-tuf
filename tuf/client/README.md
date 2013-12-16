@@ -8,10 +8,11 @@ required by the client prior to a TUF update request.  The importation and
 instantiation steps allow TUF to load all of the required metadata files
 and set the repository mirror information.
 
-The **tuf.libtuf** module can be used to create a TUF repository.
+The **tuf.libtuf** module can be used to create a TUF repository.  See
+**tuf/README** for more information on creating TUF repositories.
 
 The **tuf.interposition** package can also assist in integrating TUF with a
-software updater.  See **tuf.interposition.README** for more information on
+software updater.  See **tuf/interposition/README** for more information on
 interposing Python urllib calls with TUF.
 
 
@@ -110,7 +111,8 @@ updater.remove_obsolete_targets(destination_directory)
 updater.refresh()                                                               
 
 # Refresh the minimum metadata needed to download the target files of a specified
-# role (e.g., R1->R4->Django, where R2 and R3 are excluded).
+# role (e.g., R1->R4->django, where R2 and R3 are excluded).  The metadata for 'django'
+# is also excluded, and expected to be updated by targets_of_role().
 updater.refresh_targets_metadata_chain('targets/django')
 
 # Update the file information of all the target files of the 'targets/django' role,
@@ -137,13 +139,13 @@ for target in updated_target:
   updater.download_target(target, destination_directory)
 ```
 
-###A Simple Integration Example with basic_client.py.
+###A Simple Integration Example with basic_client.py
 ```Bash
 # Assume a simple TUF repository has been setup with 'tuf.libtuf.py'.
 $ basic_client.py --repo http://localhost:8001
 
-# Metadata and target files are silently updated.  An exception is only raised if an error, or attack,
-# is detected.  Inspect 'tuf.log' for the outcome of the update process.
+# Metadata and target files are silently updated.  An exception is only raised if an error,
+# or attack, is detected.  Inspect 'tuf.log' for the outcome of the update process.
 
 $ cat tuf.log
 [2013-12-16 16:17:05,267 UTC] [tuf.download] [INFO][_download_file:726@download.py]
