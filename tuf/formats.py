@@ -276,7 +276,7 @@ SIGNABLE_SCHEMA = SCHEMA.Object(
 # A dict where the dict keys hold a keyid and the dict values a key object.
 KEYDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = KEYID_SCHEMA,
-  value_schekma = KEY_SCHEMA)
+  value_schema = KEY_SCHEMA)
 
 # The format used by the key database to store keys.  The dict keys hold a key
 # identifier and the dict values any object.  The key database should store
