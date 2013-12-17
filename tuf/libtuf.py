@@ -1580,6 +1580,9 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
 
 
 def _print_status(rolename, signable):
+  """
+  """
+
   status = tuf.sig.get_signature_status(signable, rolename)
   message = repr(rolename)+' role contains '+ \
     repr(len(status['good_sigs']))+' / '+ \
@@ -1682,21 +1685,26 @@ def _check_directory(directory):
 
 def _check_role_keys(rolename):
   """
-  rolename:
-    full rolename.
+  Non-public function that verifies the public and signing keys of 'rolename'.
+  If either contain an invalid threshold number of keys, raise an exception.
+  'rolename' is the full rolename (e.g., 'targets/unclaimed/django'). 
   """
 
+  # Extract the total number of public and private keys of 'rolename' from its
+  # roleinfo in 'tuf.roledb'.
   roleinfo = tuf.roledb.get_roleinfo(rolename)
   total_keyids = len(roleinfo['keyids'])
   threshold = roleinfo['threshold']
   total_signatures = len(roleinfo['signatures'])
   total_signing_keys = len(roleinfo['signing_keyids'])
-  
+ 
+  # Raise an exception for an invalid threshold of public keys.
   if total_keyids < threshold: 
     message = repr(rolename)+' role contains '+repr(total_keyids)+' / '+ \
       repr(threshold)+' public keys.'
     raise tuf.InsufficientKeysError(message)
 
+  # Raise an exception for an invalid threshold of signing keys.
   if total_signatures == 0 and total_signing_keys < threshold: 
     message = repr(rolename)+' role contains '+repr(total_signing_keys)+' / '+ \
       repr(threshold)+' signing keys.'
@@ -1708,10 +1716,10 @@ def _check_role_keys(rolename):
 
 def _remove_invalid_and_duplicate_signatures(signable):
   """
-    Remove invalid signatures from 'signable'.
+    Non-public function that removes invalid signatures from 'signable'.
     'signable' may contain signatures (invalid) from previous versions
-    of the metadata that were loaded with load_repository().  'signable' may be
-    modified.
+    of the metadata that were loaded with load_repository().  Invalid, or
+    duplicate signatures are removed from 'signable'.
   """
   
   # Store the keyids of valid signatures.  'signature_keyids' is checked
@@ -1725,17 +1733,20 @@ def _remove_invalid_and_duplicate_signatures(signable):
     keyid = signature['keyid']
     key = None
 
-    # Remove 'signature' from 'signable' if the listed keyid does not exist.
+    # Remove 'signature' from 'signable' if the listed keyid does not exist
+    # in 'tuf.keydb'.
     try:
       key = tuf.keydb.get_key(keyid)
     except tuf.UnknownKeyError, e:
       signable['signatures'].remove(signature)
     
-    # Remove signature from 'signable' if it is invalid.
+    # Remove 'signature' from 'signable' if it is an invalid signature.
     if not tuf.keys.verify_signature(key, signature, signed):
       signable['signatures'].remove(signature)
     
-    # Although valid, it may still need removal if it is a duplicate.
+    # Although valid, it may still need removal if it is a duplicate.  Check
+    # the keyid, rather than the signature, to remove duplicate PSS signatures.
+    #  PSS may generate multiple different signatures for the same keyid.
     else:
       if keyid in signature_keyids:
         signable['signatures'].remove(signature)
@@ -1750,21 +1761,39 @@ def _remove_invalid_and_duplicate_signatures(signable):
 
 def _delete_obsolete_metadata(metadata_directory):
   """
+  Non-public function that deletes metadata files marked as removed by
+  libtuf.py.  Metadata files marked as removed are not actually deleted
+  until this function is called.
   """
-  
+ 
+  # Walk the repository's metadata 'targets' sub-directory, where all the
+  # metadata for delegated roles is stored.
   targets_metadata = os.path.join(metadata_directory, 'targets')
 
+  # The 'targets.txt' metadata is not visited, only its child delegations.
+  # The 'targets/unclaimed/django.txt' role would be located in the
+  # '{repository_directory}/metadata/targets/unclaimed/' directory.
   if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
     for directory_path, junk_directories, files in os.walk(targets_metadata):
       
       # 'files' here is a list of target file names.
       for basename in files:
         metadata_path = os.path.join(directory_path, basename)
+        # Strip the metadata basename and the leading path separator.
+        # '{repository_directory}/metadata/targets/unclaimed/django.txt' -->
+        # 'targets/unclaimed/django.txt'
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+        
+        # Strip filename extensions.  The role database does not include the
+        # metadata extension.
         for metadata_extension in METADATA_EXTENSIONS: 
           if metadata_name.endswith(metadata_extension):
             metadata_name = metadata_name[:-len(metadata_extension)]
+        
+        # Delete the metadata file if it does not exist in 'tuf.roledb'.
+        # libtuf.py might have marked 'metadata_name' as removed, but its
+        # metadata file is not actually deleted yet.  Do it now.
         if not tuf.roledb.role_exists(metadata_name):
           os.remove(metadata_path) 
   
