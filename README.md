@@ -30,7 +30,7 @@ YaST are examples of these.
 ## Our Approach
 
 There are literally thousands of different software update systems in common
-use today. (In fact the average Windows user has about  two dozen different
+use today. (In fact the average Windows user has about [two dozen](http://secunia.com/gfx/pdf/Secunia_RSA_Software_Portfolio_Security_Exposure.pdf) different
 software updaters on their machine!)
 
 We are building a library that can be universally (and in most cases
