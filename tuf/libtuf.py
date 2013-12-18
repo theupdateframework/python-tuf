@@ -1036,11 +1036,18 @@ class Targets(Metadata):
     targets_directory:
       The targets directory of the Repository object.
 
+    rolename:
+      The rolename of this Targets object.
+
+    roleinfo:
+      An already populated roleinfo object of 'rolename'.  Conformant to
+      'tuf.formats.ROLEDB_SCHEMA'.
+
   <Exceptions>
-    tuf.FormatError, if the targets directory argument is improerly formatted.
+    tuf.FormatError, if the arguments are improperly formatted.
 
   <Side Effects>
-    Mofifies the roleinfo of the targets role in 'tuf.roledb'.
+    Modifies the roleinfo of the targets role in 'tuf.roledb'.
   
   <Returns>
     None.
@@ -1062,16 +1069,20 @@ class Targets(Metadata):
     self._targets_directory = targets_directory
     self._rolename = rolename 
     self._target_files = []
-   
+  
+    # By default, Targets objects are set to expire 3 months from the current
+    # time.  May be later modified.
     expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
 
+    # If 'roleinfo' is not provided, set an initial default.
     if roleinfo is None:
       roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                   'version': 0, 'compressions': [''], 'expires': expiration,
                   'signatures': [], 'paths': [], 'path_hash_prefixes': [],
                   'partial_loaded': False, 'delegations': {'keys': {},
                                                            'roles': []}}
-    
+   
+    # Add the new role to the 'tuf.roledb'.
     try:
       tuf.roledb.add_role(self.rolename, roleinfo)
     except tuf.RoleAlreadyExistsError, e:
@@ -1083,20 +1094,21 @@ class Targets(Metadata):
   def target_files(self):
     """
     <Purpose>
+      A getter method that returns the target files added thus far to this
+      Targets object.
 
       >>> 
       >>>
       >>>
 
     <Arguments>
-      targets_directory:
-        The targets directory of the Repository object.
+      None.
 
     <Exceptions>
-      tuf.FormatError, if the targets directory argument is improerly formatted.
+      None.
 
     <Side Effects>
-      Mofifies the roleinfo of the targets role in 'tuf.roledb'.
+      None. 
     
     <Returns>
       None.
@@ -1111,11 +1123,11 @@ class Targets(Metadata):
   def add_target(self, filepath):
     """
     <Purpose>
-      Add a filepath (relative to 'self.targets_directory') to the Targets
-      object.  This function does not actually create 'filepath' on the file
-      system.  'filepath' must already exist on the file system.
+      Add a filepath (must be under the repository's targets directory) to the
+      Targets object.
       
-      Support regular expresssions?
+      This function does not actually create 'filepath' on the file
+      system.  'filepath' must already exist on the file system.
 
       >>> 
       >>>
@@ -1123,9 +1135,14 @@ class Targets(Metadata):
 
     <Arguments>
       filepath:
+        The path of the target file.  It must be located in the repository's
+        targets directory.
 
     <Exceptions>
       tuf.FormatError, if 'filepath' is improperly formatted.
+
+      tuf.Error, if 'filepath' is not found under the repository's targets
+      directory.
 
     <Side Effects>
       Adds 'filepath' to this role's list of targets.  This role's
@@ -1136,11 +1153,14 @@ class Targets(Metadata):
     """
     
     # Does 'filepath' have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.PATH_SCHEMA.check_match(filepath)
 
     filepath = os.path.abspath(filepath)
-    
+   
+    # Ensure 'filepath' is found under the repository's targets directory.
     if not os.path.commonprefix([self._targets_directory, filepath]) == \
                                 self._targets_directory:
       message = repr(filepath)+' is not under the Repository\'s targets '+\
@@ -1149,19 +1169,12 @@ class Targets(Metadata):
 
     # TODO: Ensure 'filepath' is an allowed target path according to the
     # parent's delegation.
-    """
-    for child_target in actual_child_targets:
-      for allowed_child_path in allowed_child_paths:
-        prefix = os.path.commonprefix([child_target, allowed_child_path])
-        if prefix == allowed_child_path:
-          break
-    """
 
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
     # list of targets. 
     if os.path.isfile(filepath):
       
-      # Update the role's 'tuf.roledb.py' entry and 'self._target_files'.
+      # Update the role's 'tuf.roledb.py' entry and avoid duplicates.
       targets_directory_length = len(self._targets_directory) 
       roleinfo = tuf.roledb.get_roleinfo(self._rolename)
       relative_path = filepath[targets_directory_length+1:]
@@ -1188,17 +1201,26 @@ class Targets(Metadata):
 
     <Arguments>
       list_of_targets:
+        A list of target filepaths that are added to the paths of this Targets
+        object.
 
     <Exceptions>
+      tuf.FormatError, if the arguments are improperly formatted.
+      
+      tuf.Error, if any of the paths listed in 'list_of_targets' is not found
+      under the repository's targets directory or is invalid.
 
     <Side Effects>
-      
+      This Targets' roleinfo is updated with the paths in 'list_of_targets'.
+
     <Returns>
       None.
     """
 
     # Does 'list_of_targets' have the correct format?
-    # Raise 'tuf.FormatError' if it is improperly formatted.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
     # TODO: Ensure list of targets allowed paths according to the parent's
@@ -1208,7 +1230,9 @@ class Targets(Metadata):
     targets_directory_length = len(self._targets_directory) 
     absolute_list_of_targets = []
     relative_list_of_targets = []
-    
+   
+    # Ensure the paths in 'list_of_targets' are valid and fall under the
+    # repository's targets directory.
     for target in list_of_targets:
       filepath = os.path.abspath(target)
       
@@ -1217,6 +1241,7 @@ class Targets(Metadata):
         message = repr(filepath)+' is not under the Repository\'s targets '+\
           'directory: '+repr(self._targets_directory)
         raise tuf.Error(message)
+      
       if os.path.isfile(filepath):
         absolute_list_of_targets.append(filepath)
         relative_list_of_targets.append(filepath[targets_directory_length+1:])
@@ -1224,11 +1249,12 @@ class Targets(Metadata):
         message = repr(filepath)+' is not a valid file.'
         raise tuf.Error(message)
 
-    # Update the role's target_files and its 'tuf.roledb.py' entry.
+    # Update this Targets 'tuf.roledb.py' entry.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
     for relative_target in relative_list_of_targets:
       if relative_target not in roleinfo['paths']:
         roleinfo['paths'].append(relative_target)
+    
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
   
@@ -1236,8 +1262,8 @@ class Targets(Metadata):
   def remove_target(self, filepath):
     """
     <Purpose>
-      Takes a filepath relative to the targets directory.  Regular expresssions
-      would be useful here.
+      Remove the target 'filepath' from this Targets' 'paths' field.  'filepath'
+      is relative to the targets directory.
 
       >>> 
       >>>
@@ -1245,36 +1271,41 @@ class Targets(Metadata):
 
     <Arguments>
       filepath:
-        Relative to the targets directory.
+        The target to remove from this Targets object, relative to the
+        repository's targets directory.
 
     <Exceptions>
       tuf.FormatError, if 'filepath' is improperly formatted.
 
-      tuf.Error, if 'filepath' is not under the targets directory.
+      tuf.Error, if 'filepath' is not under the repository's targets directory.
 
     <Side Effects>
-      Modifies the target role's 'tuf.roledb.py' entry.
+      Modifies this Targets 'tuf.roledb.py' entry.
     
     <Returns>
       None.
     """
 
     # Does 'filepath' have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(filepath)
    
     filepath = os.path.abspath(filepath)
     targets_directory_length = len(self._targets_directory)
     
-    # Ensure 'filepath' is under the targets directory.
+    # Ensure 'filepath' is under the repository targets directory.
     if not os.path.commonprefix([self._targets_directory, filepath]) == \
                                 self._targets_directory:
       message = repr(filepath)+' is not under the Repository\'s targets '+\
         'directory: '+repr(self._targets_directory)
       raise tuf.Error(message)
 
+    # The relative filepath is listed in 'paths'.
     relative_filepath = filepath[targets_directory_length+1:]
-    
+   
+    # Remove 'relative_filepath', if found, and update this Targets roleinfo.  
     fileinfo = tuf.roledb.get_roleinfo(self.rolename)
     if relative_filepath in fileinfo['paths']:
       fileinfo['paths'].remove(relative_filepath)
@@ -1286,7 +1317,7 @@ class Targets(Metadata):
   def clear_targets(self):
     """
     <Purpose>
-      Remove all the target filepaths in the "paths" field of self.rolename.      
+      Remove all the target filepaths in the "paths" field of this Targets.      
 
       >>> 
       >>>
@@ -1299,7 +1330,7 @@ class Targets(Metadata):
       None.
 
     <Side Effects>
-      Modifies the target role's 'tuf.roledb.py' entry.
+      Modifies this Targets' 'tuf.roledb.py' entry.
     
     <Returns>
       None.
@@ -1316,7 +1347,13 @@ class Targets(Metadata):
                threshold=1, restricted_paths=None, path_hash_prefixes=None):
     """
     <Purpose>
-      'targets' is a list of target filepaths, and can be empty.
+      Create a new delegation, where 'rolename' is a child delegation of this
+      Targets object.  The keys and roles database is updated, including the
+      delegations field of this Targets.  The delegation of 'rolename' is added
+      as an attribute (e.g., 'repository.targets.<rolename>').
+      
+      Actual metadata files are not updated, only when repository.write() or
+      repository.write_partial() is called.
 
       >>> 
       >>>
@@ -1324,19 +1361,35 @@ class Targets(Metadata):
 
     <Arguments>
       rolename:
+        The name of the delegated role, as in 'django' (i.e., not the full
+        rolename).
 
       public_keys:
+        A list of TUF keys objects in 'ANYKEYLIST_SCHEMA' format.  The list
+        may contain any of the supported key types: RSAKEY_SCHEMA,
+        ED25519KEY_SCHEMA, etc.
 
       list_of_targets:
+        A list of target filepaths that are added to the paths of 'rolename'.
+        'targets' is a list of target filepaths, and can be empty.
 
-      expiration:
+      threshold:
+        The threshold number of keys of 'rolename'. 
 
       restricted_paths:
+        A list of restricted directory or file paths of 'rolename'.  Any target
+        files added to 'rolename' must fall under one of the restricted paths.
+      
+      path_hash_prefixes:
+        A list of hash prefixes in PATH_HASH_PREFIXES_SCHEMA format, used in
+        hashed bin delegations.  Targets may be located and stored in hashed
+        bins by calculating the target path's hash prefix.
 
     <Exceptions>
       tuf.FormatError, if any of the arguments are improperly formatted.
 
-      tuf.Error, if the delegated role already exists.
+      tuf.Error, if the delegated role already exists or if any of the arguments
+      is an invalid path (i.e., not under the repository's targets directory).
 
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
@@ -1348,7 +1401,9 @@ class Targets(Metadata):
     """
 
     # Do the arguments have the correct format?
-    # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
     tuf.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
     tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
@@ -1357,16 +1412,20 @@ class Targets(Metadata):
       tuf.formats.RELPATHS_SCHEMA.check_match(restricted_paths)
     if path_hash_prefixes is not None:
       tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
-      
+    
+    # Check if 'rolename' is not already a delegation.  'tuf.roledb' expects the
+    # full rolename. 
     full_rolename = self._rolename+'/'+rolename
 
     if tuf.roledb.role_exists(full_rolename):
       raise tuf.Error(repr(full_rolename)+' already delegated.')
 
+    # Keep track of the valid keyids (added to the new Targets object) and their
+    # keydicts (added to this Targets delegations). 
     keyids = [] 
     keydict = {}
 
-    # Add public keys to tuf.keydb
+    # Add all the keys of 'public_keys' to tuf.keydb.
     for key in public_keys:
       
       try:
@@ -1377,11 +1436,13 @@ class Targets(Metadata):
       keyid = key['keyid']
       key_metadata_format = tuf.keys.format_keyval_to_metadata(key['keytype'],
                                                                key['keyval'])
+      # Update 'keyids' and 'keydict'.
       new_keydict = {keyid: key_metadata_format}
       keydict.update(new_keydict)
       keyids.append(keyid)
 
-    # Validate 'list_of_targets'.
+    # Ensure the paths of 'list_of_targets' all fall under the repository's
+    # targets.
     relative_targetpaths = []
     targets_directory_length = len(self._targets_directory)
     
@@ -1395,7 +1456,8 @@ class Targets(Metadata):
 
       relative_targetpaths.append(target[targets_directory_length+1:])
     
-    # Validate 'restricted_paths'.
+    # Ensure the paths of 'restricted_paths' all fall under the repository's
+    # targets.
     relative_restricted_paths = []
    
     if restricted_paths is not None: 
@@ -1409,7 +1471,8 @@ class Targets(Metadata):
 
         relative_restricted_paths.append(target[targets_directory_length+1:])
    
-    # Add role to 'tuf.roledb.py'.
+    # Create a new Targets object for the 'rolename' delegation.  An initial
+    # expiration is set (3 months from the current time).
     expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
     roleinfo = {'name': full_rolename, 'keyids': keyids, 'signing_keyids': [],
                 'threshold': threshold, 'version': 0, 'compressions': [''],
@@ -1417,6 +1480,7 @@ class Targets(Metadata):
                 'paths': relative_targetpaths, 'delegations': {'keys': {},
                 'roles': []}}
 
+    # The new targets object is added as an attribute to this Targets object. 
     new_targets_object = Targets(self._targets_directory, full_rolename,
                                  roleinfo)
     
@@ -1424,7 +1488,8 @@ class Targets(Metadata):
     current_roleinfo = tuf.roledb.get_roleinfo(self.rolename) 
     current_roleinfo['delegations']['keys'].update(keydict)
 
-    # A ROLE_SCHEMA object requires only 'keyids', 'threshold', and 'paths'.
+    # Update the roleinfo of this role.  A ROLE_SCHEMA object requires only
+    # 'keyids', 'threshold', and 'paths'.
     roleinfo = {'name': full_rolename,
                 'keyids': roleinfo['keyids'],
                 'threshold': roleinfo['threshold'],
@@ -1437,10 +1502,13 @@ class Targets(Metadata):
     current_roleinfo['delegations']['roles'].append(roleinfo)
     tuf.roledb.update_roleinfo(self.rolename, current_roleinfo)  
     
-    # Update 'new_targets_object' attributes.
+    # Update the public keys of 'new_targets_object'.
     for key in public_keys:
       new_targets_object.add_key(key)
 
+    # Add the new delegation attribute to this Targets object.  For example,
+    # 'django' is added to 'repository.targets'
+    # (i.e., repository.targets.django').
     self.__setattr__(rolename, new_targets_object)
 
 
@@ -1448,30 +1516,45 @@ class Targets(Metadata):
   def revoke(self, rolename):
     """
     <Purpose>
-
+      Revoke this Targets' 'rolename' delegation.  Its 'rolename' attribute is
+      deleted, including the entries in its 'delegations' field and in
+      'tuf.roledb'.
+      
+      Actual metadata files are not updated, only when repository.write() or
+      repository.write_partial() is called.
+      
       >>>
       >>>
       >>>
 
     <Arguments>
       rolename:
-        Not the full rolename ('Django' in 'targets/unclaimed/Django') of the
-        role the parent role (this role) wants to revoke.
+        The rolename (e.g., 'Django' in 'targets/unclaimed/Django') of
+        the child delegation the parent role (this role) wants to revoke.
 
     <Exceptions>
       tuf.FormatError, if 'rolename' is improperly formatted.
 
     <Side Effects>
+      The delegations dictionary of 'rolename' is modified, and its 'tuf.roledb'
+      entry is updated.  This Targets' 'rolename' delegation attribute is also
+      deleted.
 
     <Returns>
       None.
     """
 
+    # Does 'rolename' have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.ROLENAME_SCHEMA.check_match(rolename) 
 
-    # Remove from this Target's delegations dict.
-    full_rolename = self.rolename+'/'+rolename
+    # Remove 'rolename' from this Target's delegations dict.  
+    # The child delegation's full rolename is required to locate in the parent's
+    # delegations list.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    full_rolename = self.rolename+'/'+rolename
     
     for role in roleinfo['delegations']['roles']:
       if role['name'] == full_rolename:
@@ -1479,20 +1562,43 @@ class Targets(Metadata):
 
     tuf.roledb.update_roleinfo(self.rolename, roleinfo) 
     
-    # Remove from 'tuf.roledb.py'.  The delegated roles of 'rolename' are also
-    # removed.
+    # Remove 'rolename' from 'tuf.roledb.py'.  The delegations of 'rolename' are
+    # also removed.
     tuf.roledb.remove_role(full_rolename)
    
-    # Remove the rolename attribute from the current role.
+    # Remove the rolename attribute from the current role.  For example, the
+    # 'django' attribute is removed in 'repository.targets.unclaimed.django'.
     self.__delattr__(rolename)
+
 
 
   @property
   def delegations(self):
     """
-    """
+    <Purpose>
+      A getter method that returns the delegations made by this Targets role.
 
+      >>>
+      >>>
+      >>>
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      tuf.UnknownRoleError, if this Targets' rolename does not exist in
+      'tuf.roledb'. 
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      A dictionary, conformant to 'tuf.formats.DELEGATIONS_SCHEMA', containing
+      the keys and roles of this Targets' delegations.
+    """
+    
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    
     delegations = roleinfo['delegations']
 
     return delegations
@@ -1504,7 +1610,13 @@ class Targets(Metadata):
 def _generate_and_write_metadata(rolename, filenames, write_partial,
                                  targets_directory, metadata_directory):
   """
-  Helper function to generate and write the metadata of top-level roles.
+  Non-public function that can generate and write the metadata of the specified
+  top-level role.  It also increments version numbers if:
+  
+  1.  write_partial==True and the metadata is the first to be written.
+  
+  2.  write_partial=False (i.e., write()), the metadata was not loaded as
+      partially written, and a write_partial is not needed.
   """
 
   root_filename = filenames[ROOT_FILENAME] 
@@ -1581,9 +1693,12 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
 
 def _print_status(rolename, signable):
   """
+  Non-public function prints the number of (good/threshold) signatures of
+  'rolename'
   """
 
   status = tuf.sig.get_signature_status(signable, rolename)
+  
   message = repr(rolename)+' role contains '+ \
     repr(len(status['good_sigs']))+' / '+ \
     repr(status['threshold'])+' signatures.'
@@ -1595,8 +1710,8 @@ def _print_status(rolename, signable):
 
 def _prompt(message, result_type=str):
   """
-    Prompt the user for input by printing 'message', converting
-    the input to 'result_type', and returning the value to the
+    Non-public function that prompts the user for input by printing 'message',
+    converting the input to 'result_type', and returning the value to the
     caller.
   """
 
@@ -1608,10 +1723,9 @@ def _prompt(message, result_type=str):
 
 def _get_password(prompt='Password: ', confirm=False):
   """
-    Return the password entered by the user.  If 'confirm'
-    is True, the user is asked to enter the previously
-    entered password once again.  If they match, the
-    password is returned to the caller.
+    Non-public function that returns the password entered by the user.  If
+    'confirm' is True, the user is asked to enter the previously entered
+    password once again.  If they match, the password is returned to the caller.
   """
 
   while True:
@@ -1632,9 +1746,19 @@ def _get_password(prompt='Password: ', confirm=False):
 
 def _check_if_partial_loaded(rolename, signable, roleinfo):
   """
+  Non-public function that determines whether 'rolename' is loaded with
+  at least 1 good signatures, but an insufficient threshold (which means
+  'rolename' was written to disk with repository.write_partial().  If 'rolename'
+  is found to be partially loaded, mark it as partially loaded in its
+  'tuf.roledb' roleinfo.  This function exists to assist in deciding whether
+  a role's version number should be incremented when write() or write_parital()
+  is called.
   """
 
+  # The signature status lists the number of good signatures, including
+  # bad, untrusted, unknown, etc.
   status = tuf.sig.get_signature_status(signable, rolename)
+  
   if len(status['good_sigs']) < status['threshold'] and \
                               len(status['good_sigs']) >= 1:
     roleinfo['partial_loaded'] = True
@@ -1646,10 +1770,10 @@ def _check_if_partial_loaded(rolename, signable, roleinfo):
 def _check_directory(directory):
   """
   <Purpose>
-    Ensure 'directory' is valid and it exists.  This is not a security check,
-    but a way for the caller to determine the cause of an invalid directory
-    provided by the user.  If the directory argument is valid, it is returned
-    normalized and as an absolute path.
+    Non-public function that ensures 'directory' is valid and it exists.  This
+    is not a security check, but a way for the caller to determine the cause of
+    an invalid directory provided by the user.  If the directory argument is
+    valid, it is returned normalized and as an absolute path.
 
   <Arguments>
     directory:
