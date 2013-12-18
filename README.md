@@ -35,3 +35,45 @@ software updaters on their machine!)
 
 We are building a library that can be universally (and in most cases
 transparently) used to secure software update systems.
+
+## Overview
+
+At the highest level, TUF simply provides applications with a secure method of obtaining files and knowing when new versions of files are available. We call these files, the ones that are supposed to be downloaded, "target files". The most common need for these abilities is in software update systems and obviously that's what we had in mind when creating TUF.
+
+On the surface, this all sounds simple. Securely obtaining updates just means:
+
+* Knowing when an update exists.
+* Downloading the updated file. 
+
+The problem is that this is only simple when there are no malicious parties involved. If an attacker is trying to interfere with these seemingly simple steps, there is plenty they can do.
+
+## Background
+
+Let's assume you take the approach that most systems do (at least, the ones that even try to be secure). You download both the file you want and a cryptographic signature of the file. You already know which key you trust to make the signature. You check that the signature is correct and was made by this trusted key. All seems well, right? Wrong. You are still at risk in many ways, including:
+
+* An attacker keeps giving you the same file, so you never realize there is an update.
+* An attacker gives you an older, insecure version of a file that you already have, so you download that one and blindly use it thinking it's newer.
+* An attacker gives you a newer version of a file you have but it's not the newest one. It's newer to you, but it may be insecure and exploitable by the attacker.
+* An attacker compromises the key used to sign these files and now you download a malicious file that is properly signed. 
+
+There are other attacks, as well. This is just to quickly show some problems and make clear that using signed files doesn't by itself solve all security problems.
+
+### [security](SECURITY.md)
+
+### [metadata](METADATA.md)
+
+##What TUF Does
+
+In order to securely download and verify target files, TUF requires a few extra files to exist on a repository. These are called metadata files. Metadata files contain additional information, including information about which keys are trusted, the cryptographic hashes of files, signatures on the metadata, and timestamps that indicate how old the metadata is and the date after which the metadata should be considered expired.
+
+When a software update system using TUF wants to check for updates, it asks TUF to do the work. That is, your software update system never has to deal with this additional metadata or understand what's going on underneath. If TUF reports back that there are updates available, your software update system can then ask TUF to download these files. TUF downloads them and checks them against the security metadata that it also downloads from the repository. If the downloaded target files are trustworthy, TUF hands them over to your software update system.
+
+##Using TUF
+
+TUF has four major classes of users: clients, for whom TUF is largely transparent; mirrors, who will (in most cases) have nothing at all to do with TUF; upstream servers, who will largely be responsible for care and feeding of repositories; and integrators, who do the work of putting TUF into existing projects.
+
+###[creating a repository](tuf/README.md)
+
+###[low-level integration](tuf/client/README.md)
+
+###[high-level integration](tuf/interposition/README.md)
