@@ -1390,6 +1390,8 @@ class Updater(object):
     # about the uncompressed file provided by the referenced metadata.
     if not self._fileinfo_has_changed(uncompressed_metadata_filename,
                                       uncompressed_fileinfo):
+      logger.info(repr(uncompressed_metadata_filename)+' up-to-date.')
+      
       return
 
     logger.debug('Metadata '+repr(uncompressed_metadata_filename)+\
