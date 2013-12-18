@@ -1,7 +1,8 @@
 #Security
 
 Generally, a software update system is secure if it can be sure that it knows about the latest available updates in a timely manner, any files it downloads are the correct files, and no harm results from checking or downloading files. The details of making this happen are complicated by various attacks that can be carried out against software update systems.
-Attacks and Weaknesses
+
+## Attacks and Weaknesses
 
 The following are some of the known attacks on software update systems, including weaknesses that make attacks possible. In order to design a secure software update framework, these need to be understood and protected against. Some of these issues are or can be related depending on the design and implementation of a software update system.
 
@@ -29,7 +30,7 @@ The following are some of the known attacks on software update systems, includin
 
 The design and implementation of TUF aims to be secure against all of the above attacks. A few general ideas drive much of the security of TUF.
 
-For the details of how TUF conveys the information discussed below, see the Metadata documentation.
+For the details of how TUF conveys the information discussed below, see the [Metadata documentation](METADATA.md).
 
 ## Trust
 
