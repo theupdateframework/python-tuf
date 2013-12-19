@@ -58,9 +58,9 @@ Let's assume you take the approach that most systems do (at least, the ones that
 
 There are other attacks, as well. This is just to quickly show some problems and make clear that using signed files doesn't by itself solve all security problems.
 
-### [security](SECURITY.md)
+### [Security](SECURITY.md)
 
-### [metadata](METADATA.md)
+### [Metadata](METADATA.md)
 
 ##What TUF Does
 
@@ -72,8 +72,8 @@ When a software update system using TUF wants to check for updates, it asks TUF 
 
 TUF has four major classes of users: clients, for whom TUF is largely transparent; mirrors, who will (in most cases) have nothing at all to do with TUF; upstream servers, who will largely be responsible for care and feeding of repositories; and integrators, who do the work of putting TUF into existing projects.
 
-###[creating a repository](tuf/README.md)
+###[Creating a repository](tuf/README.md)
 
-###[low-level integration](tuf/client/README.md)
+###[Low-level integration](tuf/client/README.md)
 
-###[high-level integration](tuf/interposition/README.md)
+###[High-level integration](tuf/interposition/README.md)
