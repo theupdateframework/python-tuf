@@ -119,7 +119,9 @@ class Repository(object):
   def __init__(self, repository_directory, metadata_directory, targets_directory):
   
     # Do the arguments have the correct format?
-    # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.PATH_SCHEMA.check_match(repository_directory)
     tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
     tuf.formats.PATH_SCHEMA.check_match(targets_directory)
@@ -155,10 +157,10 @@ class Repository(object):
       None.
     """
     
-    # Does 'partial' have the correct format?
+    # Does 'write_partial' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
-    # Raise 'tuf.FormatError' if 'partial' is improperly formatted.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.BOOLEAN_SCHEMA.check_match(write_partial)
     
     # At this point the tuf.keydb and tuf.roledb stores must be fully
@@ -396,7 +398,9 @@ class Repository(object):
     """
 
     # Do the arguments have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.PATH_SCHEMA.check_match(files_directory)
     tuf.formats.BOOLEAN_SCHEMA.check_match(recursive_walk)
     tuf.formats.BOOLEAN_SCHEMA.check_match(followlinks)
@@ -467,7 +471,9 @@ class Metadata(object):
     """
    
     # Does 'key' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
 
     try:
@@ -506,7 +512,9 @@ class Metadata(object):
     """
     
     # Does 'key' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
     
     keyid = key['keyid']
@@ -542,7 +550,9 @@ class Metadata(object):
     """
     
     # Does 'key' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
    
     if not len(key['keyval']['private']):
@@ -588,7 +598,9 @@ class Metadata(object):
     """
     
     # Does 'key' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
     
     # Update 'signing_keys' in roledb.
@@ -623,8 +635,10 @@ class Metadata(object):
       None.
     """
     
-    # Does 'key' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Does 'signature' have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
   
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -661,8 +675,10 @@ class Metadata(object):
       None.
     """
     
-    # Does 'key' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Does 'signature' have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
   
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -741,7 +757,9 @@ class Metadata(object):
     """
     
     # Does 'version' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
     
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -787,7 +805,9 @@ class Metadata(object):
     """
    
     # Does 'threshold' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
     
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
@@ -829,6 +849,10 @@ class Metadata(object):
   def expiration(self, expiration_datetime_utc):
     """
     <Purpose>
+      A setter function for the role's expiration datetime.  The top-level
+      roles have a default expiration (e.g., ROOT_EXPIRATION), but may later
+      be modified by this setter function.
+      
       TODO: expiration_datetime_utc in ISO 8601 format.
       
       >>>  
@@ -837,10 +861,11 @@ class Metadata(object):
 
     <Arguments>
       expiration_datetime_utc:
-        tuf.formats.DATETIME_SCHEMA
+        The datetime expiration of the role, conformant to  
+        'tuf.formats.DATETIME_SCHEMA'.
 
     <Exceptions>
-      tuf.FormatError, if the argument is improperly formatted.
+      tuf.FormatError, if 'expiration_datetime_utc' is improperly formatted.
     
     <Side Effects>
       Modifies the expiration attribute of the Repository object.
@@ -850,20 +875,27 @@ class Metadata(object):
     """
     
     # Does 'expiration_datetime_utc' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.DATETIME_SCHEMA.check_match(expiration_datetime_utc)
-   
+  
+    # Further validate the datetime, such as a correct date, time, expiration.
+    # Convert 'expiration_datetime_utc' to a unix timestamp so that it can be
+    # compared with time.time().
     expiration_datetime_utc = expiration_datetime_utc+' UTC'
     try:
       unix_timestamp = tuf.formats.parse_time(expiration_datetime_utc)
     except (tuf.FormatError, ValueError), e:
       message = 'Invalid datetime argument: '+repr(expiration_datetime_utc)
       raise tuf.FormatError(message)
-    
+   
+    # Ensure the expiration has not already passed. 
     if unix_timestamp < time.time():
       message = 'The expiration date must occur after the current date.'
       raise tuf.FormatError(message)
-    
+   
+    # Update the role's 'expires' entry in 'tuf.roledb.py'. 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     roleinfo['expires'] = expiration_datetime_utc
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
@@ -873,6 +905,25 @@ class Metadata(object):
   @property
   def signing_keys(self):
     """
+    <Purpose>
+      A getter function that returns a list of the role's signing keys.
+
+      >>>  
+      >>> 
+      >>> 
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      A list of keyids of the role's signing keys, conformant to
+      'tuf.formats.KEYIDS_SCHEMA'.
     """
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -885,6 +936,28 @@ class Metadata(object):
   @property
   def compressions(self):
     """
+    <Purpose>
+      A getter function that returns a list of the file compression algorithms
+      used when the metadata is written to disk.  If ['gz'] is set for the
+      'targets.txt' role, the metadata files 'targets.txt' and 'targets.txt.gz'
+      are written.
+
+      >>>  
+      >>> 
+      >>> 
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      A list of compression algorithms, conformant to
+      'tuf.formats.COMPRESSIONS_SCHEMA'.
     """
 
     tuf.roledb.get_roleinfo(self.rolename)
@@ -897,14 +970,44 @@ class Metadata(object):
   @compressions.setter
   def compressions(self, compression_list):
     """
+    <Purpose>
+      A setter function for the file compression algorithms used when the
+      metadata is written to disk.  If ['gz'] is set for the 'targets.txt' role
+      the metadata files 'targets.txt' and 'targets.txt.gz' are written.
+
+      >>>  
+      >>> 
+      >>> 
+
+    <Arguments>
+      compression_list:
+        A list of file compression algorithms, conformant to
+        'tuf.formats.COMPRESSIONS_SCHEMA'.
+
+    <Exceptions>
+      tuf.FormatError, if 'compression_list' is improperly formatted.
+
+    <Side Effects>
+      Updates the role's compression algorithms listed in 'tuf.roledb.py'.
+
+    <Returns>
+      None. 
     """
    
     # Does 'compression_name' have the correct format?
-    # Raise 'tuf.FormatError' if it is improperly formatted.
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_list)
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
-    roleinfo['compressions'].extend(compression_list)
+   
+    # Add the compression algorithms of 'compression_list' to the role's
+    # entry in 'tuf.roledb.py'.
+    for compression in compression_list:
+      if compression not in roleinfo['compressions']:
+        roleinfo['compression'].append(compression)
+    
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
 
 
@@ -914,18 +1017,32 @@ class Metadata(object):
 class Root(Metadata):
   """
   <Purpose>
+    Represent a Root role object.  The root role is responsible for
+    listing the public keys and threshold of all the top-level roles, including
+    itself.  Top-level metadata is rejected if it does not comply with what is
+    specified by the Root role.
+    
+    This Root object sub-classes Metadata, so the expected Metadata
+    operations like adding/removing public keys, signatures, private keys, and
+    updating metadata attributes (e.g., version and expiration) is supported.
+    Since Root is a top-level role and must exist, a default Root object
+    is instantiated when a new Repository object is created.
 
     >>> 
     >>> 
     >>> 
 
   <Arguments>
-
+    None.
+  
   <Exceptions>
+    None.
 
   <Side Effects>
+    A 'root' role is added to 'tuf.roledb.py'.
 
   <Returns>
+    None.
   """
 
   def __init__(self):
@@ -934,6 +1051,8 @@ class Root(Metadata):
     
     self._rolename = 'root'
    
+    # By default, 'release' metadata is set to expire 1 week from the current
+    # time.  The expiration may be modified.
     expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION)
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
@@ -951,18 +1070,37 @@ class Root(Metadata):
 class Timestamp(Metadata):
   """
   <Purpose>
+    Represent a Timestamp role object.  The timestamp role is responsible for
+    referencing the latest version of the Release role.  Under normal
+    conditions, it is the only role to be downloaded from a remote repository
+    without a known file length and hash.  An upper length limit is set, though.
+    Also, its signatures are also verified to be valid according to the Root
+    role.  If invalid metadata can only be downloaded by the client, Root
+    is the only other role that is downloaded without a known length and hash.
+    This case may occur if a role's signing keys have been revoked and a newer
+    Root file is needed to list the updated keys. 
+    
+    This Timestamp object sub-classes Metadata, so the expected Metadata
+    operations like adding/removing public keys, signatures, private keys, and
+    updating metadata attributes (e.g., version and expiration) is supported.
+    Since Release is a top-level role and must exist, a default Timestamp object
+    is instantiated when a new Repository object is created.
 
     >>>
     >>>
     >>>
 
   <Arguments>
+    None.
 
   <Exceptions>
+    None.
 
   <Side Effects>
+    A 'timestamp' role is added to 'tuf.roledb.py'.
 
   <Returns>
+    None.
   """
 
   def __init__(self):
@@ -971,6 +1109,8 @@ class Timestamp(Metadata):
     
     self._rolename = 'timestamp'
 
+    # By default, 'release' metadata is set to expire 1 week from the current
+    # time.  The expiration may be modified.
     expiration = tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION)
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
@@ -989,18 +1129,31 @@ class Timestamp(Metadata):
 class Release(Metadata):
   """
   <Purpose>
+    Represent a Release role object.  The release role is responsible for
+    referencing the other top-level roles (excluding Timestamp) and all
+    delegated roles.
+    
+    This Release object sub-classes Metadata, so the expected
+    Metadata operations like adding/removing public keys, signatures, private
+    keys, and updating metadata attributes (e.g., version and expiration) is
+    supported.  Since Release is a top-level role and must exist, a default
+    Release object is instantiated when a new Repository object is created.
 
     >>> 
     >>>
     >>>
 
   <Arguments>
+    None.
 
   <Exceptions>
+    None.
 
   <Side Effects>
+    A 'release' role is added to 'tuf.roledb.py'.
 
   <Returns>
+    None.
   """
 
   def __init__(self):
@@ -1008,7 +1161,9 @@ class Release(Metadata):
     super(Release, self).__init__() 
     
     self._rolename = 'release' 
-    
+   
+    # By default, 'release' metadata is set to expire 1 week from the current
+    # time.  The expiration may be modified.
     expiration = tuf.formats.format_time(time.time()+RELEASE_EXPIRATION)
     
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
@@ -1027,6 +1182,26 @@ class Release(Metadata):
 class Targets(Metadata):
   """
   <Purpose>
+    Represent a Targets role object.  Targets roles include the top-level role 
+    'targets.txt' and all delegated roles (e.g., 'targets/unclaimed/django').
+    The expected operations of Targets metadata is included, such as adding
+    and removing repository target files, making and revoking delegations, and
+    listing the target files provided by it.
+    
+    Adding or removing a delegation causes the attributes of the Targets object
+    to be updated.  That is, if the 'django' Targets object is delegated by
+    'targets/unclaimed', a new attribute is added so that the following
+    code statement is supported:
+    repository.targets.unclaimed.django.version = 2
+
+    Likewise, revoking a delegation causes removal of the delegation attribute.
+    
+    This Targets object sub-classes Metadata, so the expected
+    Metadata operations like adding/removing public keys, signatures, private
+    keys, and updating metadata attributes (e.g., version and expiration) is
+    supported.  Since Targets is a top-level role and must exist, a default
+    Targets object (for 'targets.txt', not delegated roles) is instantiated when
+    a new Repository object is created.
 
     >>> 
     >>>

@@ -77,7 +77,7 @@ _DEFAULT_FILE_LOG_LEVEL = logging.DEBUG
 # Example format for '_FORMAT_STRING': 
 # [2013-08-13 15:21:18,068 UTC] [tuf] [INFO][_update_metadata:851@updater.py]
 _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s]'+\
-  '[%(funcName)s:%(lineno)s@%(filename)s] %(message)s'
+  '[%(funcName)s:%(lineno)s@%(filename)s]\n%(message)s\n'
 
 # Ask all Formatter instances to talk GMT.  Set the 'converter' attribute of
 # 'logging.Formatter' so that all formatters use Greenwich Mean Time. 
