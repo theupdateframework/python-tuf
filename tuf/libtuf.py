@@ -2690,14 +2690,20 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
   # create it (and all its parent directories, if necessary).
   tuf.util.ensure_parent_dir(filepath)
 
-  with open(filepath+'.pub', 'w') as file_object:
-    file_object.write(public)
+  # Create a tempororary file, write the contents of the public key, and move
+  # to final destination.
+  file_object = tuf.util.TempFile()
+  file_object.write(public)
+  
+  # The temporary file is closed after the final move.
+  file_object.move(filepath+'.pub')
 
   # Write the private key in encrypted PEM format to '<filepath>'.
   # Unlike the public key file, the private key does not have a file
   # extension.
-  with open(filepath, 'w') as file_object:
-    file_object.write(encrypted_pem)
+  file_object = tuf.util.TempFile()
+  file_object.write(encrypted_pem)
+  file_object.move(filepath)
 
 
 
@@ -2879,14 +2885,20 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   # '<filepath>.pub'.
   tuf.util.ensure_parent_dir(filepath)
 
-  with open(filepath+'.pub', 'w') as file_object:
-    file_object.write(json.dumps(ed25519key_metadata_format))
+  # Create a tempororary file, write the contents of the public key, and move
+  # to final destination.
+  file_object = tuf.util.TempFile()
+  file_object.write(json.dumps(ed25519key_metadata_format))
+  
+  # The temporary file is closed after the final move.
+  file_object.move(filepath+'.pub')
 
   # Write the encrypted key string, conformant to
   # 'tuf.formats.ENCRYPTEDKEY_SCHEMA', to '<filepath>'.
-  with open(filepath, 'w') as file_object:
-    file_object.write(encrypted_key)
-
+  file_object = tuf.util.TempFile()
+  file_object.write(encrypted_key)
+  file_object.move(filepath)
+  
 
 
 
