@@ -771,7 +771,7 @@ def verify_signature(key_dict, signature, data):
   
   elif keytype == 'ed25519':
     public = binascii.unhexlify(public)
-    if _ED25519_CRYPTO_LIBRARY == 'pynacl' and \
+    if _ED25519_CRYPTO_LIBRARY == 'pynacl' or \
                               'pynacl' in _available_crypto_libraries:
       valid_signature = tuf.ed25519_keys.verify_signature(public,
                                                           method, sig, data,

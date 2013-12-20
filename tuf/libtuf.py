@@ -95,7 +95,24 @@ TIMESTAMP_EXPIRATION = 86400
 class Repository(object):
   """
   <Purpose>
-  
+    Represent a TUF repository that contains the metadata of the top-level
+    roles, including all those delegated from the 'targets.txt' role.  The
+    repository object returned provides access to the top-level roles, and any
+    delegated targets that are added as the repository is modified.  For
+    example, a Repository object named 'repository' provides the following
+    access by default:
+
+    repository.root.version = 2
+    repository.timestamp.expiration = "2015-08-08 12:00:00"
+    repository.release.add_key(...)
+    repository.targets.delegate('unclaimed', ...)
+
+    Delegating a role from 'targets' updates the attributes of the parent
+    delegation, which then provides:
+
+    repository.targets.unclaimed.add_key(...)
+
+      
   <Arguments>
     repository_directory:
       The root folder of the repository that contains the metadata and targets
@@ -250,7 +267,13 @@ class Repository(object):
   def status(self):
     """
     <Purpose>
-      Determine 
+      Determine the status of the top-level roles, including those delegated.
+      status() checks if each role provides sufficient public keys, signatures,
+      and that a valid metadata file is generated if write() were to be called.
+      Metadata files are temporary written to check that proper metadata files
+      are written, where file hashes and lengths are calculated and referenced
+      by the top-level roles.  status() does not do a simple check for number
+      of threshold keys and signatures.
 
     <Arguments>
       None.
@@ -1957,7 +1980,7 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
                                  targets_directory, metadata_directory):
   """
   Non-public function that can generate and write the metadata of the specified
-  top-level role.  It also increments version numbers if:
+  top-level 'rolename'.  It also increments version numbers if:
   
   1.  write_partial==True and the metadata is the first to be written.
   
@@ -1972,9 +1995,12 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
   metadata_filename = None
   metadata = None 
 
+  # Retrieve the roleinfo of 'rolename' to extract the needed metadata
+  # attributes, such as version number, expiration, etc.
   roleinfo = tuf.roledb.get_roleinfo(rolename) 
   release_compressions = tuf.roledb.get_roleinfo('release')['compressions']
 
+  # Generate the appropriate role metadata for 'rolename'. 
   if rolename == 'root':
     metadata_filename = root_filename
     metadata = generate_root_metadata(roleinfo['version'],
@@ -2000,8 +2026,11 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
 
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
-  
-  # Increment version number if this is a new/first partial write.
+ 
+  # Check if the version number of 'rolename' may be automatically incremented,
+  # depending on whether if partial metadata is loaded or if the metadata is
+  # written with write() / write_partial(). 
+  # Increment the version number if this is the first partial write.
   if write_partial:
     temp_signable = sign_metadata(metadata, [],
                              metadata_filename)
@@ -3100,6 +3129,59 @@ def get_metadata_file_info(filename):
   custom = None
 
   return tuf.formats.make_fileinfo(filesize, filehashes, custom)
+
+
+
+
+
+
+def get_target_hash(self, target_filepath, hash_function='sha256'):
+  """
+  <Purpose>
+    Compute the hash of 'target_filepath'. This is useful in conjunction with
+    the "path_hash_prefixes" attribute in a delegated targets role, which
+    tells us which paths it is implicitly responsible for.
+
+  <Arguments>
+    target_filepath:
+      The path to the target file on the repository. This will be relative to
+      the 'targets' (or equivalent) directory on a given mirror.
+
+    hash_function:
+      The algorithm used by the repository to generate the hashes of the
+      target filepaths.  The repository may optionally organize targets into
+      hashed bins to ease target delegations and role metadata management.
+      The use of consistent hashing allows for a uniform distribution of
+      targets into bins. 
+
+  <Exceptions>
+    None.
+ 
+  <Side Effects>
+    None.
+  
+  <Returns>
+    The hash of 'target_filepath'.
+  """
+
+  # Calculate the hash of the filepath to determine which bin to find the 
+  # target.  The client currently assumes the repository uses
+  # 'hash_function' to generate hashes.
+
+  digest_object = tuf.hash.digest(hash_function)
+
+  try:
+    digest_object.update(target_filepath)
+  except UnicodeEncodeError:
+    # Sometimes, there are Unicode characters in target paths. We assume a
+    # UTF-8 encoding and try to hash that.
+    digest_object = tuf.hash.digest(hash_function)
+    encoded_target_filepath = target_filepath.encode('utf-8')
+    digest_object.update(encoded_target_filepath)
+
+  target_filepath_hash = digest_object.hexdigest() 
+
+  return target_filepath_hash
 
 
 
