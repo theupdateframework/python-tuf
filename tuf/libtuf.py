@@ -12,7 +12,7 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  See 'tuf.README' for a complete guide on using 'tuf.libtuf.py'.
+  See 'tuf/README' for a complete guide on using 'tuf.libtuf.py'.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -59,7 +59,8 @@ TARGETS_FILENAME = 'targets.txt'
 RELEASE_FILENAME = 'release.txt'
 TIMESTAMP_FILENAME = 'timestamp.txt'
 
-# The targets and metadata directory names.
+# The targets and metadata directory names.  Metadata files are written
+# to the staged metadata directory instead of the "live" one.
 METADATA_STAGED_DIRECTORY_NAME = 'metadata.staged'
 METADATA_DIRECTORY_NAME = 'metadata'
 TARGETS_DIRECTORY_NAME = 'targets' 
@@ -90,11 +91,6 @@ RELEASE_EXPIRATION = 604800
 # Initial 'timestamp.txt' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
 
-# The suffix added to metadata filenames of partially written metadata.
-# Partial metadata may contain insufficient number of signatures and require
-# multiple repository maintainers to independently sign them.
-#PARTIAL_METADATA_SUFFIX = '.partial'
-
 
 class Repository(object):
   """
@@ -102,18 +98,29 @@ class Repository(object):
   
   <Arguments>
     repository_directory:
+      The root folder of the repository that contains the metadata and targets
+      sub-directories.
 
     metadata_directory:
+      The metadata sub-directory contains the files of the top-level
+      roles, including all roles delegated from 'targets.txt'. 
 
     targets_directory:
+      The targets sub-directory contains all the target files that are
+      downloaded by clients and are referenced in TUF Metadata.  The hashes and
+      file lengths are listed in Metadata files so that they are securely
+      downloaded.  Metadata files are similarly referenced in the top-level
+      metadata.
 
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
   <Side Effects>
+    Creates top-level role objects and assigns them as attributes.
 
   <Returns>
-    Repository object.
+    A Repository object that contains default Metadata objects for the top-level
+    roles.
   """
  
   def __init__(self, repository_directory, metadata_directory, targets_directory):
@@ -141,13 +148,21 @@ class Repository(object):
   def write(self, write_partial=False):
     """
     <Purpose>
-      Write all the JSON Metadata objects to their corresponding files.  
+      Write all the JSON Metadata objects to their corresponding files.
+      write() raises an exception if any of the role metadata to be written to
+      disk is invalid, such as an insufficient threshold of signatures, missing
+      private keys, etc.
     
     <Arguments>
       write_partial:
+        A boolean indicating whether partial metadata should be written to
+        disk.  Partial metadata may be written to allow multiple maintainters
+        to independently sign and update role metadata.  write() raises an
+        exception if a metadata role cannot be written due to not having enough
+        signatures.
         
     <Exceptions>
-      tuf.RepositoryError, if any of the top-level roles do not have a minimum
+      tuf.Error, if any of the top-level roles do not have a minimum
       threshold of signatures.
 
     <Side Effects>
@@ -219,8 +234,7 @@ class Repository(object):
       None.
 
     <Exceptions>
-      tuf.RepositoryError, if any of the top-level roles do not have a minimum
-      threshold of signatures.
+      None.
 
     <Side Effects>
       Creates metadata files in the repository's metadata directory.
@@ -236,13 +250,16 @@ class Repository(object):
   def status(self):
     """
     <Purpose>
-    
+      Determine 
+
     <Arguments>
       None.
 
     <Exceptions>
+      None.
 
     <Side Effects>
+      Generates and writes temporary metadata files.
 
     <Returns>
       None.
@@ -372,7 +389,7 @@ class Repository(object):
                                  followlinks=True):
     """
     <Purpose>
-      Walk the given files_directory to build a list of target files in it.
+      Walk the given 'files_directory' and build a list of target files found.
 
     <Arguments>
       files_directory:
@@ -387,7 +404,8 @@ class Repository(object):
     <Exceptions>
       tuf.FormatError, if the arguments are improperly formatted.
 
-      tuf.Error, if 
+      tuf.Error, if 'file_directory' is not a valid directory.
+
       Python IO exceptions.
 
     <Side Effects>
@@ -405,10 +423,12 @@ class Repository(object):
     tuf.formats.BOOLEAN_SCHEMA.check_match(recursive_walk)
     tuf.formats.BOOLEAN_SCHEMA.check_match(followlinks)
 
+    # Ensure a valid directory is given.
     if not os.path.isdir(files_directory):
       message = repr(files_directory)+' is not a directory.'
       raise tuf.Error(message)
-    
+   
+    # A list of the target filepaths found in 'file_directory'.
     targets = []
 
     # FIXME: We need a way to tell Python 2, but not Python 3, to return
@@ -434,15 +454,24 @@ class Repository(object):
 class Metadata(object):
   """
   <Purpose>
-    Write all the Metadata objects' JSON contents to the corresponding files. 
-  
+    Provide a base class to represent a TUF Metadata role.  There are four
+    top-level roles: Root, Targets, Release, and Timestamp.  The Metadata class
+    provides methods that are needed by all top-level roles, such as adding
+    and removing public keys, private keys, and signatures.  Metadata
+    attributes, such as rolename, version, threshold, expiration, key list, and
+    compressions, is also provided by the Metadata base class.
+
   <Arguments>
+    None.
 
   <Exceptions>
+    None.
 
   <Side Effects>
+    None.
 
   <Returns>
+    None.
   """
 
   def __init__(self):
@@ -453,6 +482,11 @@ class Metadata(object):
   def add_key(self, key):
     """
     <Purpose>
+      Add 'key' to the role.  Adding a key, which should contain only the public
+      portion, signifies the corresponding private key and signatures the role
+      is expected to provide.  A threshold of signatures is required for a role
+      to be considered properly signed.  If a metadata file contains an
+      insufficient threshold of signatures, it must not be accepted.
 
       >>> 
       >>> 
@@ -460,11 +494,16 @@ class Metadata(object):
 
     <Arguments>
       key:
-        tuf.formats.ANYKEY_SCHEMA
+        The role key to be added, conformant to 'tuf.formats.ANYKEY_SCHEMA'.
+        Adding a public key to a role means that its corresponding private key
+        must generate and add its signature to the role.  A threshold number of
+        signatures is required for a role to be fully signed.
 
     <Exceptions>
+      tuf.FormatError, if the 'key' argument is improperly formatted.    
 
     <Side Effects>
+      The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated.
 
     <Returns>
       None.
@@ -476,6 +515,8 @@ class Metadata(object):
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
 
+    # Ensure 'key', which should contain the public portion, is added to
+    # 'tuf.keydb.py'.
     try:
       tuf.keydb.add_key(key)
     except tuf.KeyAlreadyExistsError, e:
@@ -483,8 +524,11 @@ class Metadata(object):
    
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+   
+    # Add 'key' to the role's entry in 'tuf.roledb.py' and avoid duplicates.
     if keyid not in roleinfo['keyids']: 
       roleinfo['keyids'].append(keyid)
+      
       tuf.roledb.update_roleinfo(self._rolename, roleinfo)
    
 
@@ -492,6 +536,8 @@ class Metadata(object):
   def remove_key(self, key):
     """
     <Purpose>
+      Remove 'key' from the role's currently recognized list of role keys.
+      The role expects a threshold number of signatures 
 
       >>> 
       >>> 
@@ -499,13 +545,15 @@ class Metadata(object):
 
     <Arguments>
       key:
-        tuf.formats.ANYKEY_SCHEMA
+        The role's key, conformant to 'tuf.formats.ANYKEY_SCHEMA'.  'key'
+        should contain the only the public portion, as only the public key
+        is needed.  The 'add_key()' method should have previously added 'key'. 
 
     <Exceptions>
-      tuf.FormatError, if 'key' is improperly formatted.
+      tuf.FormatError, if the 'key' argument is improperly formatted.
 
     <Side Effects>
-      Updates 'tuf.keydb.py'.
+      Updates the role's 'tuf.roledb.py' entry.
 
     <Returns>
       None.
@@ -519,8 +567,10 @@ class Metadata(object):
     
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    
     if keyid in roleinfo['keyids']: 
       roleinfo['keyids'].remove(keyid)
+      
       tuf.roledb.update_roleinfo(self._rolename, roleinfo)
    
 
@@ -528,6 +578,9 @@ class Metadata(object):
   def load_signing_key(self, key):
     """
     <Purpose>
+      Load the role key, which must contain the private portion, so that role
+      signatures may be generated when the role's metadata file is eventually
+      written to disk.
 
       >>> 
       >>> 
@@ -535,15 +588,18 @@ class Metadata(object):
 
     <Arguments>
       key:
-        tuf.formats.ANYKEY_SCHEMA
+        The role's key, conformant to 'tuf.formats.ANYKEY_SCHEMA'.  It must
+        contain the private key, so that role signatures may be generated when
+        write() or write_partial() is eventually called to generate valid
+        metadata files.
 
     <Exceptions>
       tuf.FormatError, if 'key' is improperly formatted.
 
-      tuf.Error, if the private key is unavailable in 'key'.
+      tuf.Error, if the private key is not found in 'key'.
 
     <Side Effects>
-      Updates 'tuf.keydb.py'.
+      Updates the role's 'tuf.keydb.py' and 'tuf.roledb.py' entries.
 
     <Returns>
       None.
@@ -554,21 +610,26 @@ class Metadata(object):
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
-   
+  
+    # Ensure the private portion of the key is available, otherwise signatures
+    # cannot be generated when the metadata file is written to disk.
     if not len(key['keyval']['private']):
       message = 'The private key is unavailable.'
       raise tuf.Error(message)
 
+    # Has the key, with the private portion included, been added to the keydb?
+    # The public version of the key may have been previously added.
     try:
       tuf.keydb.add_key(key)
     except tuf.KeyAlreadyExistsError, e:
       tuf.keydb.remove_key(key['keyid'])
       tuf.keydb.add_key(key)
 
-    # Update 'signing_keys' in roledb.
+    # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     if key['keyid'] not in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].append(key['keyid'])
+      
       tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
   
@@ -576,6 +637,8 @@ class Metadata(object):
   def unload_signing_key(self, key):
     """
     <Purpose>
+      Remove a previously loaded role private key (i.e., load_signing_key()).
+      The keyid of the 'key' is removed the list of signing keys recognized.
 
       >>> 
       >>> 
@@ -583,15 +646,13 @@ class Metadata(object):
 
     <Arguments>
       key:
-        tuf.formats.ANYKEY_SCHEMA
+        The role key to be unloaded, conformant to 'tuf.formats.ANYKEY_SCHEMA'.
 
     <Exceptions>
-      tuf.FormatError, if 'key' is improperly formatted.
-
-      tuf.Error, if the private key is unavailable in 'key'.
+      tuf.FormatError, if the 'key' argument is improperly formatted.
 
     <Side Effects>
-      Updates 'tuf.keydb.py'.
+      Updates the signing keys of the role in 'tuf.roledb.py'.
 
     <Returns>
       None.
@@ -603,10 +664,12 @@ class Metadata(object):
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
     
-    # Update 'signing_keys' in roledb.
+    # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    
     if key['keyid'] in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].remove(key['keyid'])
+      
       tuf.roledb.update_roleinfo(self.rolename, roleinfo)
 
 
@@ -614,22 +677,26 @@ class Metadata(object):
   def add_signature(self, signature):
     """
     <Purpose>
+      Add a signature to the role.  A role is considered fully signed if it
+      contains a threshold of signatures.  The 'signature' should have been
+      generated by the private key corresponding to one of the role's expected
+      keys.
 
       >>> 
       >>> 
       >>> 
 
     <Arguments>
-      key:
-        tuf.formats.ANYKEY_SCHEMA
+      signature:
+        The signature to be added to the role, conformant to
+        'tuf.formats.SIGNATURE_SCHEMA'.
 
     <Exceptions>
-      tuf.FormatError, if 'key' is improperly formatted.
-
-      tuf.Error, if the private key is unavailable in 'key'.
+      tuf.FormatError, if the 'signature' argument is improperly formatted.
 
     <Side Effects>
-      Updates 'tuf.keydb.py'.
+      Adds 'signature', if not already added, to the role's 'signatures' field
+      in 'tuf.roledb.py'.
 
     <Returns>
       None.
@@ -642,9 +709,13 @@ class Metadata(object):
     tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
   
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    
+    # Ensure the roleinf contains a 'signatures' field.
     if 'signatures' not in roleinfo:
       roleinfo['signatures'] = []
-    
+   
+    # Update the role's roleinfo by adding 'signature', if it has not been
+    # added.
     if signature not in roleinfo['signatures']:
       roleinfo['signatures'].append(signature)
       tuf.roledb.update_roleinfo(self.rolename, roleinfo)
@@ -654,22 +725,23 @@ class Metadata(object):
   def remove_signature(self, signature):
     """
     <Purpose>
+      Remove a previously loaded, or added, role 'signature'.  A role must
+      contain a threshold number of signatures to be considered fully signed.
 
       >>> 
       >>> 
       >>> 
 
     <Arguments>
-      key:
-        tuf.formats.ANYKEY_SCHEMA
+      signature:
+        The role signature to remove, conformant to
+        'tuf.formats.SIGNATURE_SCHEMA'.
 
     <Exceptions>
-      tuf.FormatError, if 'key' is improperly formatted.
-
-      tuf.Error, if the private key is unavailable in 'key'.
+      tuf.FormatError, if the 'signature' argument is improperly formatted.
 
     <Side Effects>
-      Updates 'tuf.keydb.py'.
+      Updates the 'signatures' field of the role in 'tuf.roledb.py'.
 
     <Returns>
       None.
@@ -682,8 +754,10 @@ class Metadata(object):
     tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
   
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    
     if signature in roleinfo['signatures']:
       roleinfo['signatures'].remove(signature)
+      
       tuf.roledb.update_roleinfo(self.rolename, roleinfo)
 
 
@@ -691,6 +765,23 @@ class Metadata(object):
   @property
   def signatures(self):
     """
+    <Purpose>
+      A getter method that returns the role's signatures.  A role is considered
+      fully signed if it contains a threshold number of signatures, where each
+      signature must be provided by the generated by the private key.  Keys
+      are added to a role with the add_key() method.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      A list of signatures, conformant to 'tuf.formats.SIGNATURES_SCHEMA'.
     """
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -703,6 +794,22 @@ class Metadata(object):
   @property
   def keys(self):
     """
+    <Purpose>
+      A getter method that returns the role's keyids of the keys.  The role
+      is expected to eventually contain a threshold of signatures generated
+      by the private keys of each of the role's keys (returned here as a keyid).
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      A list of the role's keyids (i.e., keyids of the keys). 
     """
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -715,6 +822,22 @@ class Metadata(object):
   @property
   def rolename(self):
     """
+    <Purpose>
+      Return the role's name.
+      Examples: 'root', 'timestamp', 'targets/unclaimed/django'.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      The role's name, conformant to 'tuf.formats.ROLENAME_SCHEMA'.
+      Examples: 'root', 'timestamp', 'targets/unclaimed/django'.
     """
 
     return self._rolename
@@ -724,6 +847,21 @@ class Metadata(object):
   @property
   def version(self):
     """
+    <Purpose>
+      A getter method that returns the role's version number, conformant to
+      'tuf.formats.VERSION_SCHEMA'.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      The role's version number, conformant to 'tuf.formats.VERSION_SCHEMA'.
     """
     
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -737,20 +875,31 @@ class Metadata(object):
   def version(self, version):
     """
     <Purpose>
+      A setter method that updates the role's version number.  TUF clients
+      download new metadata with version number greater than the version
+      currently trusted.  New metadata start at version 1 when either write()
+      or write_partial() is called.  Version numbers are automatically
+      incremented, when the write methods are called, as follows: 
+      
+      1.  write_partial==True and the metadata is the first to be written.
+      
+      2.  write_partial=False (i.e., write()), the metadata was not loaded as
+          partially written, and a write_partial is not needed.
 
       >>> 
       >>> 
       >>> 
 
     <Arguments>
-      threshold:
-        tuf.formats.THRESHOLD_SCHEMA
+      version:
+        The role's version number, conformant to 'tuf.formats.VERSION_SCHEMA'.
 
     <Exceptions>
-      tuf.FormatError, if the argument is improperly formatted.
+      tuf.FormatError, if the 'version' argument is improperly formatted.
 
     <Side Effects>
-      Modifies the threshold attribute of the Repository object.
+      Modifies the 'version' attribute of the Repository object and updates
+      the role's version in 'tuf.roledb.py'.
 
     <Returns>
       None.
@@ -772,6 +921,21 @@ class Metadata(object):
   @property
   def threshold(self):
     """
+    <Purpose>
+      Return the role's threshold value.  A role is considered fully signed if
+      a threshold number of signatures is available.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      The role's threshold value, conformant to 'tuf.formats.THRESHOLD_SCHEMA'.
     """
     
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
@@ -785,6 +949,9 @@ class Metadata(object):
   def threshold(self, threshold):
     """
     <Purpose>
+      A setter method that modified the threshold value of the role.  Metadata
+      is considered fully signed if a 'threshold' number of signatures is
+      available.
 
       >>> 
       >>> 
@@ -792,13 +959,16 @@ class Metadata(object):
 
     <Arguments>
       threshold:
-        tuf.formats.THRESHOLD_SCHEMA
+        An integer value that sets the role's threshold value, or the miminum
+        number of signatures needed for metadata to be considered fully
+        signed.  Conformant to 'tuf.formats.THRESHOLD_SCHEMA'.
 
     <Exceptions>
-      tuf.FormatError, if the argument is improperly formatted.
+      tuf.FormatError, if the 'threshold' argument is improperly formatted.
 
     <Side Effects>
-      Modifies the threshold attribute of the Repository object.
+      Modifies the threshold attribute of the Repository object and updates
+      the roles threshold in 'tuf.roledb.py'.
 
     <Returns>
       None.
@@ -814,13 +984,13 @@ class Metadata(object):
     roleinfo['threshold'] = threshold
     
     tuf.roledb.update_roleinfo(self._rolename, roleinfo)
-    self._threshold = threshold
  
 
   @property
   def expiration(self):
     """
     <Purpose>
+      A getter method that returns the role's expiration datetime.
 
       >>> 
       >>> 
@@ -836,7 +1006,8 @@ class Metadata(object):
       None.
 
     <Returns>
-      The role's expiration datetime, conformant to tuf.formats.DATETIME_SCHEMA.
+      The role's expiration datetime, conformant to
+      'tuf.formats.DATETIME_SCHEMA'.
     """
     
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -849,9 +1020,9 @@ class Metadata(object):
   def expiration(self, expiration_datetime_utc):
     """
     <Purpose>
-      A setter function for the role's expiration datetime.  The top-level
+      A setter method for the role's expiration datetime.  The top-level
       roles have a default expiration (e.g., ROOT_EXPIRATION), but may later
-      be modified by this setter function.
+      be modified by this setter method.
       
       TODO: expiration_datetime_utc in ISO 8601 format.
       
@@ -906,7 +1077,7 @@ class Metadata(object):
   def signing_keys(self):
     """
     <Purpose>
-      A getter function that returns a list of the role's signing keys.
+      A getter method that returns a list of the role's signing keys.
 
       >>>  
       >>> 
@@ -937,7 +1108,7 @@ class Metadata(object):
   def compressions(self):
     """
     <Purpose>
-      A getter function that returns a list of the file compression algorithms
+      A getter method that returns a list of the file compression algorithms
       used when the metadata is written to disk.  If ['gz'] is set for the
       'targets.txt' role, the metadata files 'targets.txt' and 'targets.txt.gz'
       are written.
@@ -971,7 +1142,7 @@ class Metadata(object):
   def compressions(self, compression_list):
     """
     <Purpose>
-      A setter function for the file compression algorithms used when the
+      A setter method for the file compression algorithms used when the
       metadata is written to disk.  If ['gz'] is set for the 'targets.txt' role
       the metadata files 'targets.txt' and 'targets.txt.gz' are written.
 
@@ -1301,7 +1472,7 @@ class Targets(Metadata):
       Add a filepath (must be under the repository's targets directory) to the
       Targets object.
       
-      This function does not actually create 'filepath' on the file
+      This method does not actually create 'filepath' on the file
       system.  'filepath' must already exist on the file system.
 
       >>> 
@@ -1367,7 +1538,7 @@ class Targets(Metadata):
     """
     <Purpose>
       Add a list of target filepaths (all relative to 'self.targets_directory').
-      This function does not actually create files on the file system.  The
+      This method does not actually create files on the file system.  The
       list of target must already exist.
       
       >>> 

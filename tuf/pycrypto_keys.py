@@ -1,4 +1,6 @@
-""" <Program Name> pycrypto_keys.py
+"""
+<Program Name>
+  pycrypto_keys.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
