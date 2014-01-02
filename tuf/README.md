@@ -260,16 +260,16 @@ Confirm:
 repository.targets.unclaimed.load_signing_key(private_unclaimed_key)
 
 # Update an attribute of the unclaimed role.
-repository.targets.unclaimed.version = 2
+repository.targets('unclaimed').version = 2
 
 # Delegations may also be nested.  Create the delegated role "targets/unclaimed/django",
 # where it initially contains zero targets and future targets are restricted to a
 # particular directory.
-repository.targets.unclaimed.delegate("django", [public_unclaimed_key], [],
-                                      restricted_paths=["path/to/repository/targets/django/"])
-repository.targets.unclaimed.django.load_signing_key(private_unclaimed_key)
-repository.targets.unclaimed.django.add_target("path/to/repository/targets/django/file4.txt")
-repository.targets.unclaimed.django.compressions = ["gz"]
+repository.targets('unclaimed').delegate("django", [public_unclaimed_key], [],
+                                         restricted_paths=["path/to/repository/targets/django/"])
+repository.targets('unclaimed')('django').load_signing_key(private_unclaimed_key)
+repository.targets('unclaimed')('django').add_target("path/to/repository/targets/django/file4.txt")
+repository.targets('unclaimed')('django').compressions = ["gz"]
 
 #  Write the metadata of "targets/unclaimed", "targets/unclaimed/django", root, targets, release,
 # and timestamp.
@@ -281,10 +281,10 @@ repository.write()
 # Continuing from the previous section . . .
 
 # Create a delegated role that will be revoked in the next step.
-repository.targets.unclaimed.delegate("flask", [public_unclaimed_key], [])
+repository.targets('unclaimed').delegate("flask", [public_unclaimed_key], [])
 
 # Revoke "targets/unclaimed/flask" and write the metadata of all remaining roles.
-repository.targets.unclaimed.revoke("flask")
+repository.targets('unclaimed').revoke("flask")
 repository.write()
 ```
 
