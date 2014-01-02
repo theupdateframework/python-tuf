@@ -529,7 +529,7 @@ class Updater(object):
 
 
 
-  def refresh(self):
+  def refresh(self, unsafely_update_root_if_necessary=True):
     """
     <Purpose>
       Update the latest copies of the metadata for the top-level roles.
@@ -568,6 +568,15 @@ class Updater(object):
       'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
     }
 
+    # The Root role may be updated without knowing its hash if top-level
+    # metadata cannot be safely downloaded (e.g., keys may have been revoked,
+    # thus requiring a new Root file that includes the updated keys) and
+    # 'unsafely_update_root_if_necessary' is True.
+    DEFAULT_ROOT_FILEINFO = {
+      'hashes': {},
+      'length': tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH
+    }
+
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
@@ -575,19 +584,31 @@ class Updater(object):
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
-    self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+    try: 
+      self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+      self._update_metadata_if_changed('release',
+                                       referenced_metadata='timestamp')
+      self._update_metadata_if_changed('root')
+      self._update_metadata_if_changed('targets')
+    
+    except tuf.NoWorkingMirrorError, e:
+      if unsafely_update_root_if_necessary:
+        message = 'Valid top-level metadata cannot be downloaded.  Unsafely '+\
+          'update the root metadata.'
+        logger.info(message)
+        
+        self._update_metadata('root', DEFAULT_ROOT_FILEINFO)
+        self.refresh(unsafely_update_root_if_necessary=False)
+      
+      else:
+        raise
 
-    self._update_metadata_if_changed('release', referenced_metadata='timestamp')
-
-    self._update_metadata_if_changed('root')
-
-    self._update_metadata_if_changed('targets')
-
-    # Updated the top-level metadata (which all had valid signatures), however,
-    # have they expired?  Raise 'tuf.ExpiredMetadataError' if any of the metadata
-    # has expired.
-    for metadata_role in ['timestamp', 'root', 'release', 'targets']:
-      self._ensure_not_expired(metadata_role)
+    else:
+      # Updated the top-level metadata (which all had valid signatures),
+      # however, have they expired?  Raise 'tuf.ExpiredMetadataError' if any of
+      # the metadata has expired.
+      for metadata_role in ['timestamp', 'root', 'release', 'targets']:
+        self._ensure_not_expired(metadata_role)
 
 
 
@@ -1218,6 +1239,13 @@ class Updater(object):
         self._unsafely_get_metadata_file(metadata_role, metadata_filename,
                                          uncompressed_fileinfo,
                                          compression, compressed_fileinfo)
+    
+    elif metadata_role == 'root' and not len(uncompressed_fileinfo['hashes']):
+      metadata_file_object = \
+        self._unsafely_get_metadata_file(metadata_role, metadata_filename,
+                                         uncompressed_fileinfo,
+                                         compression, compressed_fileinfo)
+    
     else:
       metadata_file_object = \
         self._safely_get_metadata_file(metadata_role, metadata_filename,
@@ -1262,11 +1290,19 @@ class Updater(object):
     updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
 
-    # Finally, update the metadata and fileinfo stores.
+    # Finally, update the metadata and fileinfo stores, and rebuild the
+    # key and role info for the top-level roles if 'metadata_role' is root.
+    # Rebuilding the the key and role info is required if the newly-installed
+    # root metadata has revoked keys or updated any top-level role information.
     logger.debug('Updated '+repr(current_filepath)+'.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    self._update_fileinfo(metadata_filename) 
+    self._update_fileinfo(metadata_filename)
+
+    # Ensure the role and key information for the top-level roles is also
+    # updated according to the newly-installed Root metadata.
+    if metadata_role == 'root':
+      self._rebuild_key_and_role_db()
 
 
 
@@ -1311,8 +1347,8 @@ class Updater(object):
         
     <Exceptions>
       tuf.NoWorkingMirrorError:
-        If 'metadata_role' could not be downloaded after determining
-        that it had changed.
+        If 'metadata_role' could not be downloaded after determining that it had
+        changed.
         
       tuf.RepositoryError:
         If the referenced metadata is missing.

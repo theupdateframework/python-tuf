@@ -110,7 +110,7 @@ class Repository(object):
     Delegating a role from 'targets' updates the attributes of the parent
     delegation, which then provides:
 
-    repository.targets.unclaimed.add_key(...)
+    repository.targets('unclaimed').add_key(...)
 
       
   <Arguments>
@@ -1200,7 +1200,7 @@ class Metadata(object):
     # entry in 'tuf.roledb.py'.
     for compression in compression_list:
       if compression not in roleinfo['compressions']:
-        roleinfo['compression'].append(compression)
+        roleinfo['compressions'].append(compression)
     
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
 
@@ -1386,7 +1386,7 @@ class Targets(Metadata):
     to be updated.  That is, if the 'django' Targets object is delegated by
     'targets/unclaimed', a new attribute is added so that the following
     code statement is supported:
-    repository.targets.unclaimed.django.version = 2
+    repository.targets('unclaimed')('django').version = 2
 
     Likewise, revoking a delegation causes removal of the delegation attribute.
     
@@ -1438,6 +1438,7 @@ class Targets(Metadata):
     self._targets_directory = targets_directory
     self._rolename = rolename 
     self._target_files = []
+    self._delegated_roles = {}
   
     # By default, Targets objects are set to expire 3 months from the current
     # time.  May be later modified.
@@ -1456,6 +1457,42 @@ class Targets(Metadata):
       tuf.roledb.add_role(self.rolename, roleinfo)
     except tuf.RoleAlreadyExistsError, e:
       pass  
+
+
+
+  def __call__(self, rolename):
+    """
+    <Purpose>
+      Allow callable Targets object so that delegated roles may be referenced
+      by their string rolenames.  Rolenames may include characters like '-' and
+      are not restricted to Python identifiers.
+
+    <Arguments>
+      rolename:
+        The rolename of the delegated role.  'rolename' must be a role
+        previously delegated by this Targets role.
+
+    <Exceptions>
+      tuf.FormatError, if the arguments are improperly formatted.
+
+    <Side Effects>
+      Modifies the roleinfo of the targets role in 'tuf.roledb'.
+    
+    <Returns>
+      None.
+    """
+    
+    # Do the arguments have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
+    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+   
+    if rolename in self._delegated_roles:
+      return self._delegated_roles[rolename]
+    else:
+      message = repr(rolename)+' has not been delegated by '+repr(self.rolename) 
+      raise tuf.UnknownRoleError(message)
 
 
 
@@ -1712,6 +1749,31 @@ class Targets(Metadata):
 
 
 
+  def get_delegated_rolenames(self):
+    """
+    <Purpose>
+      Return all delegations of a role, including any made by child delegations.
+      If ['a/b/', 'a/b/c/', 'a/b/c/d'] have been delegated,
+      repository.a.get_delegated_rolenames() returns:
+      ['a/b', 'a/b/c', 'a/b/c/d'].
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+      None.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+     A list of rolenames.
+    """
+  
+    return tuf.roledb.get_delegated_rolenames(self.rolename)
+
+
+
   def delegate(self, rolename, public_keys, list_of_targets,
                threshold=1, restricted_paths=None, path_hash_prefixes=None):
     """
@@ -1719,7 +1781,7 @@ class Targets(Metadata):
       Create a new delegation, where 'rolename' is a child delegation of this
       Targets object.  The keys and roles database is updated, including the
       delegations field of this Targets.  The delegation of 'rolename' is added
-      as an attribute (e.g., 'repository.targets.<rolename>').
+      and accessible (e.g., 'repository.targets(rolename).
       
       Actual metadata files are not updated, only when repository.write() or
       repository.write_partial() is called.
@@ -1875,11 +1937,9 @@ class Targets(Metadata):
     for key in public_keys:
       new_targets_object.add_key(key)
 
-    # Add the new delegation attribute to this Targets object.  For example,
-    # 'django' is added to 'repository.targets'
-    # (i.e., repository.targets.django').
-    self.__setattr__(rolename, new_targets_object)
-
+    # Add the new delegation to this Targets object.  For example, 'django' is
+    # added to 'repository.targets' (i.e., repository.targets('django').
+    self._delegated_roles[rolename] = new_targets_object
 
 
   def revoke(self, rolename):
@@ -1935,9 +1995,9 @@ class Targets(Metadata):
     # also removed.
     tuf.roledb.remove_role(full_rolename)
    
-    # Remove the rolename attribute from the current role.  For example, the
-    # 'django' attribute is removed in 'repository.targets.unclaimed.django'.
-    self.__delattr__(rolename)
+    # Remove the rolename delegation from the current role.  For example, the
+    # 'django' role is removed from 'repository.targets('unclaimed')('django').
+    del self._delegated_roles[rolename]
 
 
 
@@ -1962,15 +2022,12 @@ class Targets(Metadata):
       None.
 
     <Returns>
-      A dictionary, conformant to 'tuf.formats.DELEGATIONS_SCHEMA', containing
-      the keys and roles of this Targets' delegations.
+      A dictionary containing the rolenames (as dict keys) and role Targets
+      objects of this Targets' delegations.
+      Example: {'targets/unclaimed-role/django': Targets(), ...}
     """
-    
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
-    
-    delegations = roleinfo['delegations']
 
-    return delegations
+    return self._delegated_roles
 
 
 
@@ -2600,8 +2657,9 @@ def load_repository(repository_directory):
         targets_object = \
           targets_objects[tuf.roledb.get_parent_rolename(metadata_name)]
         targets_objects[metadata_name] = new_targets_object
-        targets_object.__setattr__(os.path.basename(metadata_name),
-                                   new_targets_object)
+        
+        self._delegated_roles[(os.path.basename(metadata_name))] = \
+                              new_targets_object
 
         # Add the keys specified in the delegations field of the Targets role.
         for key_metadata in metadata_object['delegations']['keys'].values():
@@ -3703,52 +3761,50 @@ def write_metadata_file(metadata, filename, compression=''):
   tuf.formats.PATH_SCHEMA.check_match(filename)
   tuf.formats.COMPRESSION_SCHEMA.check_match(compression)
 
-  # Verify the directory of 'filename' and convert 'filename' to its absolute
-  # path.
+  # Verify the directory of 'filename', and convert 'filename' to its absolute
+  # path so that temporary files are moved to their expected destination.
   _check_directory(os.path.dirname(filename))
   filename = os.path.abspath(filename)
 
-  file_object = None
+  # The 'metadata' object is written to 'file_object', including compressed
+  # versions.  To avoid partial metadata from being written, 'metadata' is first
+  # written to a temporary location (i.e., 'file_object') and then moved to
+  # 'filename'.
+  file_object = tuf.util.TempFile()
   
-  # We may modify the filename, depending on the compression algorithm, so we
-  # store it separately.
-  filename_with_compression = filename
-
-  # Take care of compression by opening the appropriate file object and updating
-  # 'filename_with_compression', if necessary.
+  # Generate the appropriate file content of 'file_object' (i.e., compressed or
+  # uncompressed metadata) and update the file extension of 'filename' if
+  # compression is used.
   if not len(compression):
-    logger.info('No compression for '+str(filename))
-    file_object = open(filename_with_compression, 'w')
+    logger.info('No compression for '+repr(filename))
+    
+    # Serialize 'metadata' to the file-like object and then write 'file_object'
+    # to disk.  The dictionary keys of 'metadata' are sorted and indentation is
+    # used.
+    json.dump(metadata, file_object, indent=1, sort_keys=True)
+    file_object.write('\n')
   
   elif compression == 'gz':
     logger.info('gzip compression for '+str(filename))
-    filename_with_compression += '.gz'
-    file_object = gzip.open(filename_with_compression, 'w')
-  
+    filename = filename + '.gz'
+   
+    # Instantiate a gzip object, but save compressed content to 'file_object'
+    # (i.e., GzipFile instance is based on its 'fileobj' argument).
+    with gzip.GzipFile(fileobj=file_object, mode='wb') as gzip_object:
+      json.dump(metadata, gzip_object, indent=1, sort_keys=True)
+      gzip_object.write('\n')
+
   else:
     raise tuf.FormatError('Unknown compression algorithm: '+str(compression))
 
-  try:
-    tuf.formats.PATH_SCHEMA.check_match(filename_with_compression)
-    logger.info('Writing to '+str(filename_with_compression))
+  # The 'tuf.util.TempFile' file-like object is automically closed after the
+  # final move.
+  logger.info('Saving metadata to '+repr(filename))
+  file_object.move(filename)
 
-    # The metadata object is saved to 'filename_with_compression'.  The keys
-    # of the objects are sorted and indentation is used.
-    json.dump(metadata, file_object, indent=1, sort_keys=True)
-
-    file_object.write('\n')
-  except:
-    # Raise any runtime exception.
-    raise
+  # Return the written 'filename' if there are no exceptions.
+  return filename
   
-  else:
-    # Otherwise, return the written filename if there are no exceptions.
-    return filename_with_compression
-  
-  finally:
-    # Always close the file.
-    file_object.close()
-
 
 
 

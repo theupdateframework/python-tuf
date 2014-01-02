@@ -39,6 +39,12 @@ ssl_certificates = None
 # default but sane upper bound for the number of bytes required to download it.
 DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 16384 #bytes
 
+# The Root role may be updated without knowing its hash if top-level metadata
+# cannot be safely downloaded (e.g., keys may have been revoked, thus requiring
+# a new Root file that includes the updated keys).  Set a default upper bound
+# for the maximum total bytes that may be downloaded for Root metadata.
+DEFAULT_ROOT_REQUIRED_LENGTH = 512000 #bytes
+
 # Set a timeout value in seconds (float) for non-blocking socket operations.
 SOCKET_TIMEOUT = 1 #seconds
 
@@ -70,7 +76,7 @@ PBKDF2_ITERATIONS = 100000
 RSA_CRYPTO_LIBRARY = 'pycrypto'
 
 # Supported ed25519 cryptography libraries: ['pynacl', 'ed25519']
-ED25519_CRYPTO_LIBRARY = 'ed25519'
+ED25519_CRYPTO_LIBRARY = 'pynacl'
 
 # General purpose cryptography. Algorithms and functions that fall under general
 # purpose include AES, PBKDF2, cryptographically strong random number
