@@ -12,7 +12,10 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  A central location for TUF configuration settings.
+  A central location for TUF configuration settings.  Example options include
+  setting the destination of temporary files and downloaded content, the maximum
+  length of downloaded metadata (unknown file attributes), download behavior,
+  and cryptography libraries clients wish to use.
 """
 
 # Set a directory that should be used for all temporary files. If this
@@ -76,7 +79,7 @@ PBKDF2_ITERATIONS = 100000
 RSA_CRYPTO_LIBRARY = 'pycrypto'
 
 # Supported ed25519 cryptography libraries: ['pynacl', 'ed25519']
-ED25519_CRYPTO_LIBRARY = 'pynacl'
+ED25519_CRYPTO_LIBRARY = 'ed25519'
 
 # General purpose cryptography. Algorithms and functions that fall under general
 # purpose include AES, PBKDF2, cryptographically strong random number

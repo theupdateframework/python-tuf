@@ -1063,8 +1063,8 @@ class Updater(object):
   # function into two separate ones: one for "safe" download, and the other one
   # for "unsafe" download? This should induce safer and more readable code.
   def _get_file(self, filepath, verify_file_function, file_type,
-                 file_length, compression=None,
-                 verify_compressed_file_function=None, download_safely=True):
+                file_length, compression=None,
+                verify_compressed_file_function=None, download_safely=True):
     """
     <Purpose>
       Try downloading, up to a certain length, a metadata or target file from a
