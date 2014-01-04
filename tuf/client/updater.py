@@ -539,11 +539,13 @@ class Updater(object):
       The client would call refresh() prior to requesting target file
       information.  Calling refresh() ensures target methods, like
       all_targets() and target(), refer to the latest available content.
-      The latest copies for delegated metadata are downloaded and updated
-      by the target methods.
+      The latest copies, according to the currently trusted top-level metadata,
+      of delegated metadata are downloaded and updated by the target methods.
 
     <Arguments>
-      None.
+      unsafely_update_root_if_necessary:
+        Boolean that indicates whether to unsafely update the Root metadata
+        if any of the top-level metadata cannot be downloaded successfully.
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -559,6 +561,13 @@ class Updater(object):
     <Returns>
       None.
     """
+    
+    # Do the arguments have the correct format? 
+    # This check ensures the arguments have the appropriate 
+    # number of objects and object types, and that all dict
+    # keys are properly named.
+    # Raise 'tuf.FormatError' if the check fail.
+    tuf.formats.BOOLEAN_SCHEMA.check_match(unsafely_update_root_if_necessary)
 
     # The timestamp role does not have signed metadata about it; otherwise we
     # would need an infinite regress of metadata. Therefore, we use some
@@ -594,7 +603,7 @@ class Updater(object):
     except tuf.NoWorkingMirrorError, e:
       if unsafely_update_root_if_necessary:
         message = 'Valid top-level metadata cannot be downloaded.  Unsafely '+\
-          'update the root metadata.'
+          'update the Root metadata.'
         logger.info(message)
         
         self._update_metadata('root', DEFAULT_ROOT_FILEINFO)
@@ -1299,8 +1308,8 @@ class Updater(object):
     self.metadata['current'][metadata_role] = updated_metadata_object
     self._update_fileinfo(metadata_filename)
 
-    # Ensure the role and key information for the top-level roles is also
-    # updated according to the newly-installed Root metadata.
+    # Ensure the role and key information of the top-level roles is also updated
+    # according to the newly-installed Root metadata.
     if metadata_role == 'root':
       self._rebuild_key_and_role_db()
 
@@ -1885,6 +1894,7 @@ class Updater(object):
       on the repository.  This list also includes all the targets of
       delegated roles.  The list conforms to 'tuf.formats.TARGETFILES_SCHEMA'
       and has the form:
+      
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
                      'hashes': {'sha256': dbfac345..}}
@@ -1916,7 +1926,7 @@ class Updater(object):
     # Fetch the targets for the 'targets' role.
     all_targets = self._targets_of_role('targets', skip_refresh=True)
 
-    # Fetch the targets for the delegated roles.
+    # Fetch the targets for the delegated roles. 
     for delegated_role in tuf.roledb.get_delegated_rolenames('targets'):
       all_targets = self._targets_of_role(delegated_role, all_targets,
                                           skip_refresh=True)
@@ -2254,7 +2264,8 @@ class Updater(object):
   def target(self, target_filepath):
     """
     <Purpose>
-      Return the target file information for 'target_filepath'.
+      Return the target file information of 'target_filepath' and update
+      its corresponding metadata, if necessary.
 
     <Arguments>    
       target_filepath:
@@ -2335,10 +2346,10 @@ class Updater(object):
     role_names = ['targets']
 
     # Ensure the client has the most up-to-date version of 'targets.txt'.
-    # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be successfully
-    # downloaded and 'tuf.RepositoryError' if the referenced metadata is
-    # missing.  Target methods such as this one are called after the top-level
-    # metadata have been refreshed (i.e., updater.refresh()).
+    # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be
+    # successfully downloaded and 'tuf.RepositoryError' if the referenced
+    # metadata is missing.  Target methods such as this one are called after the
+    # top-level metadata have been refreshed (i.e., updater.refresh()).
     self._update_metadata_if_changed('targets')
 
     # Preorder depth-first traversal of the tree of target delegations.
