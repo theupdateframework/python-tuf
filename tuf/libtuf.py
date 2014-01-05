@@ -2658,7 +2658,7 @@ def load_repository(repository_directory):
           targets_objects[tuf.roledb.get_parent_rolename(metadata_name)]
         targets_objects[metadata_name] = new_targets_object
         
-        self._delegated_roles[(os.path.basename(metadata_name))] = \
+        targets_object._delegated_roles[(os.path.basename(metadata_name))] = \
                               new_targets_object
 
         # Add the keys specified in the delegations field of the Targets role.

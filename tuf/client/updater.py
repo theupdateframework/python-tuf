@@ -1892,7 +1892,9 @@ class Updater(object):
     <Purpose> 
       Get a list of the target information for all the trusted targets
       on the repository.  This list also includes all the targets of
-      delegated roles.  The list conforms to 'tuf.formats.TARGETFILES_SCHEMA'
+      delegated roles.  Targets of the list returned are ordered according
+      the trusted order of the delegated roles, where parent roles come before
+      children.  The list conforms to 'tuf.formats.TARGETFILES_SCHEMA'
       and has the form:
       
       [{'filepath': 'a/b/c.txt',
@@ -1923,11 +1925,12 @@ class Updater(object):
     self._refresh_targets_metadata(include_delegations=True)
  
     all_targets = []
+    
     # Fetch the targets for the 'targets' role.
     all_targets = self._targets_of_role('targets', skip_refresh=True)
 
-    # Fetch the targets for the delegated roles. 
-    for delegated_role in tuf.roledb.get_delegated_rolenames('targets'):
+    # Fetch the targets of the delegated roles. 
+    for delegated_role in sorted(tuf.roledb.get_delegated_rolenames('targets')):
       all_targets = self._targets_of_role(delegated_role, all_targets,
                                           skip_refresh=True)
     
@@ -2061,7 +2064,7 @@ class Updater(object):
       if it has expired.
 
     <Returns>
-      None.
+      A list of the roles that have been updated, loaded, and are valid.
     """
     
     # Do the arguments have the correct format? 
@@ -2093,7 +2096,7 @@ class Updater(object):
       parent_roles.append(roles_added+'/'+next_role)
       roles_added = roles_added+'/'+next_role
 
-    message = 'Minimum metadata to download to set the chain of trust: '+\
+    message = 'Minimum metadata to download and set the chain of trust: '+\
       repr(parent_roles)+'.'
     logger.info(message)
 
@@ -2127,7 +2130,8 @@ class Updater(object):
     logger.debug('Roles to update: '+repr(parent_roles)+'.')
 
     # Iterate 'parent_roles', load each role's metadata file from disk, and
-    # update it if it has changed.
+    # update it if it has changed.  
+    refreshed_chain = []
     for rolename in parent_roles:
       self._load_metadata_from_file('previous', rolename)
       self._load_metadata_from_file('current', rolename)
@@ -2137,8 +2141,11 @@ class Updater(object):
       # Remove the role if it has expired.
       try:
         self._ensure_not_expired(rolename)
+        refreshed_chain.append(rolename)
       except tuf.ExpiredMetadataError:
         tuf.roledb.remove_role(rolename)
+
+    return refreshed_chain
 
 
 
@@ -2150,6 +2157,7 @@ class Updater(object):
       Return the target information for all the targets of 'rolename'.
       The returned information is a list conformant to
       'tuf.formats.TARGETFILES_SCHEMA' and has the form:
+      
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
                      'hashes': {'sha256': dbfac345..}}
@@ -2195,7 +2203,7 @@ class Updater(object):
   
     # Do we have metadata for 'rolename'?
     if rolename not in self.metadata['current']:
-      message = 'No metadata for '+rolename+'. Unable to determine targets.'
+      message = 'No metadata for '+repr(rolename)+'. Unable to determine targets.'
       logger.debug(message)
       return targets
 
@@ -2219,13 +2227,11 @@ class Updater(object):
       Return a list of trusted targets directly specified by 'rolename'.
       The returned information is a list conformant to
       tuf.formats.TARGETFILES_SCHEMA and has the form:
+      
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
                      'hashes': {'sha256': dbfac345..}}
        ...]
-      
-      This may be a very slow operation if there is a large number of
-      delegations and many metadata files aren't already downloaded.
 
     <Arguments>
       rolename:
@@ -2253,8 +2259,9 @@ class Updater(object):
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(rolename)
 
+    self.refresh_targets_metadata_chain(rolename) 
     self._refresh_targets_metadata(rolename)
-    
+
     return self._targets_of_role(rolename, skip_refresh=True)
 
 
@@ -2641,6 +2648,7 @@ class Updater(object):
 
       The returned information is a list conformant to
       'tuf.formats.TARGETFILES_SCHEMA' and has the form:
+      
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
                      'hashes': {'sha256': dbfac345..}}
@@ -2648,7 +2656,8 @@ class Updater(object):
 
     <Arguments>
       targets:
-        A list of target files.
+        A list of target files.  Targets that come earlier in the list are
+        chosen over duplicates that may occur later.
 
       destination_directory:
         The directory containing the target files.
@@ -2669,12 +2678,19 @@ class Updater(object):
     tuf.formats.TARGETFILES_SCHEMA.check_match(targets)
     tuf.formats.PATH_SCHEMA.check_match(destination_directory)
 
+    # Keep track of the target objects and filepaths of updated targets.
+    # Return 'updated_targets' and use 'updated_targetpaths' to avoid
+    # duplicates.
     updated_targets = []
+    updated_targetpaths = []
 
     for target in targets:
       # Get the target's filepath located in 'destination_directory'.
       # We will compare targets against this file.
       target_filepath = os.path.join(destination_directory, target['filepath'])
+      
+      if target_filepath in updated_targetpaths:
+        continue
       
       # Try one of the algorithm/digest combos for a mismatch.  We break
       # as soon as we find a mismatch.
@@ -2683,13 +2699,17 @@ class Updater(object):
         try:
           digest_object = tuf.hash.digest_filename(target_filepath,
                                                    algorithm=algorithm)
+        
         # This exception would occur if the target does not exist locally. 
         except IOError:
           updated_targets.append(target)
+          updated_targetpaths.append(target_filepath)
           break
+        
         # The file does exist locally, check if its hash differs. 
         if digest_object.hexdigest() != digest:
           updated_targets.append(target)
+          updated_targetpaths.append(target_filepath)
           break
     
     return updated_targets
