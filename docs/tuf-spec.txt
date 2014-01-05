@@ -742,7 +742,9 @@
 
     Thus far, we have considered a TUF repository that is relatively small (in
     number of metadata and target files) and static (in the frequency of how
-    often metadata and target files are updated). We now consider
+    often metadata and target files are updated). We now consider how TUF
+    metadata and its targets must be stored on the server to allow for
+    consistent snapshots of TUF metadata and its targets for any given release.
 
 F. Future directions and open questions
 
