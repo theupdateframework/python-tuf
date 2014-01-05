@@ -738,6 +738,12 @@
    just replaces that key with another in the signed metadata where the
    delegation is done.
 
+7. Consistent Snapshots
+
+    Thus far, we have considered a TUF repository that is relatively small (in
+    number of metadata and target files) and static (in the frequency of how
+    often metadata and target files are updated). We now consider
+
 F. Future directions and open questions
 
 F.1. Support for bogus clocks.
