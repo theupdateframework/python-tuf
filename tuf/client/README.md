@@ -1,5 +1,5 @@
 #updater.py
-**updater.py** is intended to be the only TUF module that software update
+**updater.py** is intended as the only TUF module that software update
 systems need to utilize for a low-level integration.  It provides a single
 class representing an updater that includes methods to download, install, and
 verify metadata or target files in a secure manner.  Importing
@@ -9,11 +9,11 @@ instantiation steps allow TUF to load all of the required metadata files
 and set the repository mirror information.
 
 The **tuf.libtuf** module can be used to create a TUF repository.  See
-**tuf/README** for more information on creating TUF repositories.
+[tuf/README](../README.md) for more information on creating TUF repositories.
 
 The **tuf.interposition** package can also assist in integrating TUF with a
-software updater.  See **tuf/interposition/README** for more information on
-interposing Python urllib calls with TUF.
+software updater.  See [tuf/interposition/README](../interposition/README.md)
+for more information on interposing Python urllib calls with TUF.
 
 
 ## Overview of the Update Process
@@ -108,15 +108,11 @@ updater.remove_obsolete_targets(destination_directory)
 # a specific role (i.e., 'targets/django').                                     
 
 # Refresh the metadata of the top-level roles (i.e., Root, Targets, Release, Timestamp).
-updater.refresh()                                                               
+updater.refresh()
 
-# Refresh the minimum metadata needed to download the target files of a specified
-# role (e.g., R1->R4->django, where R2 and R3 are excluded).  The metadata for 'django'
-# is also excluded, and expected to be updated by targets_of_role().
-updater.refresh_targets_metadata_chain('targets/django')
-
-# Update the file information of all the target files of the 'targets/django' role,
-# and determine which target files have changed.
+# Update the 'targets/django' role, and determine the target files that have changed.
+# targets_of_role() refreshes the minimum metadata needed to download the target files
+# of the specified role (e.g., R1->R4->R5, where R2 and R3 are excluded).
 targets_of_django = updater.targets_of_role('targets/django')                     
 updated_targets = updater.updated_targets(targets_of_django, destination_directory)
                                                                                  
