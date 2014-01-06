@@ -56,24 +56,40 @@ Let's assume you take the approach that most systems do (at least, the ones that
 * An attacker gives you a newer version of a file you have but it's not the newest one. It's newer to you, but it may be insecure and exploitable by the attacker.
 * An attacker compromises the key used to sign these files and now you download a malicious file that is properly signed. 
 
-There are other attacks, as well. This is just to quickly show some problems and make clear that using signed files doesn't by itself solve all security problems.
+These are just some of the attacks software update systems are vulnerable to when only using signed files.
+See [Security](SECURITY.md) for a full listing of attacks and updater weaknesses TUF is designed to prevent.
 
-### [Security](SECURITY.md)
+The following papers provide detailed information on securing software updater systems, TUF's design and implementation details, attacks on package managers, and package management security:
 
-### [Metadata](METADATA.md)
+* [Survivable Key Compromise in Software Update Systems](docs/papers/survivable-key-compromise-ccs2010.pdf?raw=true)
+                                                                              
+* [A Look In the Mirror: Attacks on Package Managers](docs/papers/package-management-security-tr08-02.pdf?raw=true)
+                                                                              
+* [Package Management Security](docs/papers/attacks-on-package-managers-ccs2008.pdf?raw=true)
+
 
 ##What TUF Does
 
-In order to securely download and verify target files, TUF requires a few extra files to exist on a repository. These are called metadata files. Metadata files contain additional information, including information about which keys are trusted, the cryptographic hashes of files, signatures on the metadata, and timestamps that indicate how old the metadata is and the date after which the metadata should be considered expired.
+In order to securely download and verify target files, TUF requires a few extra files to exist on a repository. These are called metadata files. TUF metadata files contain additional information, including information about which keys are trusted, the cryptographic hashes of files, signatures on the metadata, metadata version numbers, and the date after which the metadata should be considered expired.
 
-When a software update system using TUF wants to check for updates, it asks TUF to do the work. That is, your software update system never has to deal with this additional metadata or understand what's going on underneath. If TUF reports back that there are updates available, your software update system can then ask TUF to download these files. TUF downloads them and checks them against the security metadata that it also downloads from the repository. If the downloaded target files are trustworthy, TUF hands them over to your software update system.
+When a software update system using TUF wants to check for updates, it asks TUF to do the work. That is, your software update system never has to deal with this additional metadata or understand what's going on underneath. If TUF reports back that there are updates available, your software update system can then ask TUF to download these files. TUF downloads them and checks them against the TUF metadata that it also downloads from the repository. If the downloaded target files are trustworthy, TUF hands them over to your software update system.
+See [Metadata](METADATA.md) for more information and examples.
+
+TUF specification documents are also available:
+                                                                      
+* [The Update Framework Specification](docs/tuf-spec.txt)                                           
+
+* [Repository Specification](docs/tuf-server-spec.pdf?raw=true)
+
+* [Client Specification](docs/tuf-client-spec.pdf?raw=true)
+
 
 ##Using TUF
 
 TUF has four major classes of users: clients, for whom TUF is largely transparent; mirrors, who will (in most cases) have nothing at all to do with TUF; upstream servers, who will largely be responsible for care and feeding of repositories; and integrators, who do the work of putting TUF into existing projects.
 
-###[Creating a repository](tuf/README.md)
+* [Creating a Repository](tuf/README.md)
 
-###[Low-level integration](tuf/client/README.md)
+* [Low-level Integration](tuf/client/README.md)
 
-###[High-level integration](tuf/interposition/README.md)
+* [High-level Integration](tuf/interposition/README.md)
