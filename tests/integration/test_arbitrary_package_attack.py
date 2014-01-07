@@ -109,35 +109,20 @@ def test_arbitrary_package_attack(using_tuf=False, modify_metadata=False):
         # Modify targets metadata to reflect the change to the target file.
         targets_metadata_filepath = os.path.join(tuf_repo, 'metadata',
                                                               'targets.txt')
-
-        targets_metadata_key_list = ['signed', 'targets', file_basename]
-
-        util_test_tools.update_signed_file_in_metadata(
-                                                  target_filepath,
-                                                  targets_metadata_filepath,
-                                                  targets_metadata_key_list)
+        util_test_tools.update_target_in_metadata(target_filepath,
+                                                  targets_metadata_filepath)
 
         # Modify release metadata to reflect the change to targets metadata.
         release_metadata_filepath = os.path.join(tuf_repo, 'metadata',
                                                               'release.txt')
-
-        release_metadata_key_list = ['signed', 'meta', 'targets.txt']
-
-        util_test_tools.update_signed_file_in_metadata(
-                                                  targets_metadata_filepath,
-                                                  release_metadata_filepath,
-                                                  release_metadata_key_list)
+        util_test_tools.update_role_in_metadata(targets_metadata_filepath,
+                                                release_metadata_filepath)
 
         # Modify timestamp metadata to reflect the change to release metadata.
         timestamp_metadata_filepath = os.path.join(tuf_repo, 'metadata',
                                                               'timestamp.txt')
-
-        timestamp_metadata_key_list = ['signed', 'meta', 'release.txt']
-        
-        util_test_tools.update_signed_file_in_metadata(
-                                                  release_metadata_filepath,
-                                                  timestamp_metadata_filepath,
-                                                  timestamp_metadata_key_list)
+        util_test_tools.update_role_in_metadata(release_metadata_filepath,
+                                                timestamp_metadata_filepath)
 
     # Attacker modifies the file at the regular repository.
     util_test_tools.modify_file_at_repository(filepath, 'Evil A')
