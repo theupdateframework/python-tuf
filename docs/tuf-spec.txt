@@ -611,7 +611,7 @@
    Another priority tag scheme would have the clients prefer the delegated role
    with the latest metadata for a conflicting target path. Similar ideas were
    explored in the Stork package manager (University of Arizona Tech Report
-       08-04)[https://isis.poly.edu/~jcappos/papers/cappos_stork_dissertation_08.pdf].
+   08-04)[https://isis.poly.edu/~jcappos/papers/cappos_stork_dissertation_08.pdf].
 
    The metadata files for delegated target roles has the same format as the
    top-level targets.txt metadata file.
@@ -692,15 +692,15 @@
    updates are available and the update checking process stops.
 
    If the release.txt file has changed, the framework downloads the file and
-   verifies that it is properly
-   signed by the release role, is not expired, has a newer timestamp than the
-   last release.txt file seen, and matches the description (hashes and size)
-   in the timestamp.txt file.  The framework then checks which metadata files
-   listed in release.txt differ from those described in the last release.txt
-   file the framework had seen.  If the root.txt file has changed, the
-   framework updates this (following the same security measures as with the
-   other files) and starts the process over.  If any other metadata files have 
-   changed, the framework downloads and checks those.
+   verifies that it is properly signed by the release role, is not expired, has
+   a newer timestamp than the last release.txt file seen, and matches the
+   description (hashes and size) in the timestamp.txt file.  The framework then
+   checks which metadata files listed in release.txt differ from those
+   described in the last release.txt file the framework had seen.  If the
+   root.txt file has changed, the framework updates this (following the same
+   security measures as with the other files) and starts the process over.  If
+   any other metadata files have changed, the framework downloads and checks
+   those.
 
    By comparing the trusted targets from the old trusted metadata with the new
    metadata, the framework is able to determine which target files have
@@ -740,11 +740,75 @@
 
 7. Consistent Snapshots
 
-    Thus far, we have considered a TUF repository that is relatively small (in
-    number of metadata and target files) and static (in the frequency of how
-    often metadata and target files are updated). We now consider how TUF
-    metadata and its targets must be stored on the server to allow for
-    consistent snapshots of TUF metadata and its targets for any given release.
+    So far, we have considered a TUF repository that is relatively static (in
+    terms of how often metadata and target files are updated). The problem is
+    that if the repository (which may be a community repository such as PyPI,
+    RubyGems, CPAN, or SourceForge) is volatile, in the sense that the
+    repository is continually producing new TUF metadata as well as its
+    targets, then should clients read metadata while the same metadata is being
+    written to, they would effectively see denial-of-service attacks.
+    Therefore, the repository needs to be careful about how it writes metadata
+    and targets. The high-level idea of the solution is that each release will
+    be contained in a so-called consistent snapshot. If a client is reading
+    from one consistent snapshot, then the repository is free to write another
+    consistent snapshot without interrupting that client. For more reasons on
+    why we need consistent snapshots, please see
+    https://github.com/theupdateframework/pep-on-pypi-with-tuf#why-do-we-need-consistent-snapshots
+
+7.1. Writing consistent snapshots
+
+    We now explain how a repository should write metadata and targets to
+    produce self-contained consistent snapshots.
+
+    Simply put, TUF should write every metadata and target file as such: if the
+    file had the original name of filename.ext, then it should be written to
+    disk as filename.digest.ext, where digest is the hex digest of the SHA-256
+    hash of the file.
+
+    Additionally, the timestamp metadata (timestamp.txt) should also be written
+    to disk whenever it is updated, along with an identical copy at
+    timestamp.digest.txt. The same step applies to the root metadata
+    (root.txt). These steps are required because these are the only metadata
+    files that will be requested without known hashes.
+
+    Most importantly, no metadata file format must be updated to refer to the
+    names of metadata or target files with their hashes included. In other
+    words, if a metadata file A refers to another metadata or target file B as
+    filename.ext, then the filename must remain as filename.ext and not
+    filename.digest.ext. This rule is in place so that metadata signed by roles
+    with offline keys will not be forced to sign for the metadata file whenever
+    it is updated. In the next subsection, we will see how clients will
+    reproduce the name of the intended file.
+
+    Finally, the root metadata should write the Boolean "consistent_snapshots"
+    attribute at the root level of its keys of attributes. If consistent
+    snapshots are not written by the repository, then the attribute may either
+    be left unspecified or be set to the False value.  Otherwise, it must be
+    set to the True value.
+
+    For more details on how this would apply on a community repository, please
+    see https://github.com/theupdateframework/pep-on-pypi-with-tuf#producing-consistent-snapshots
+
+7.2. Reading consistent snapshots
+
+    We now explain how a client should read a self-contained consistent
+    snapshot.
+
+    If the root metadata (root.txt) is either missing the Boolean
+    "consistent_snapshots" attribute or the attribute is set to False, then the
+    client should do nothing different from the workflow in Section 5.1.
+
+    Otherwise, the client must perform as follows:
+      1. It must first retrieve the timestamp metadata (timestamp.txt) from the
+      repository.
+      2. If a threshold number of signatures of the timestamp or release
+      metadata are not valid, then the client must download the root metadata
+      (root.txt) from the repository and return to step 1.
+      3. Otherwise, the client must download every subsequent metadata or
+      target file as follows: if the metadata or target file has the name
+      filename.ext, then the client must actually retrieve the file with the
+      name filename.digest.ext, where digest is the hex digest of the SHA-256
+      hash of the file.
 
 F. Future directions and open questions
 
