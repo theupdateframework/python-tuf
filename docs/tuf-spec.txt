@@ -809,6 +809,9 @@
       filename.ext, then the client must actually retrieve the file with the
       name filename.digest.ext, where digest is the hex digest of the SHA-256
       hash of the file.
+      4. Finally, the client must be careful to rename every metadata or target
+      file retrieved with the name filename.digest.ext to the name
+      filename.ext.
 
 F. Future directions and open questions
 
