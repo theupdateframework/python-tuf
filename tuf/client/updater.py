@@ -2233,6 +2233,10 @@ class Updater(object):
                      'hashes': {'sha256': dbfac345..}}
        ...]
 
+      The metadata of 'rolename' is updated if out of date, including the
+      metadata of its parent roles (i.e., the minimum roles needed to set the
+      chain of trust).
+
     <Arguments>
       rolename:
         The name of the role whose list of targets are wanted.

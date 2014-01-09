@@ -50,6 +50,18 @@ class Updater(object):
     self.switch_context()
     self.updater = tuf.client.updater.Updater(self.configuration.hostname,
                                               self.configuration.repository_mirrors)
+    
+    # Update the client's top-level metadata.  The download_target() method does
+    # not automatically refresh top-level prior to retrieving target files and
+    # their associated Targets metadata, so update the top-level
+    # metadata here.
+    Logger.info('Refreshing top-level metadata for '+repr(configuration))
+    self.updater.refresh()
+  
+ 
+  def refresh(self):
+    """Refresh top-level metadata"""
+    self.updater.refresh()
 
 
   def cleanup(self):
@@ -66,11 +78,14 @@ class Updater(object):
     # download file into a temporary directory shared over runtime
     destination_directory = self.tempdir
     filename = os.path.join(destination_directory, target_filepath)
-
-    self.switch_context()   # switch TUF context
-    self.updater.refresh()  # update TUF client repository metadata
-
-    # then, update target at filepath
+    
+    # Switch TUF context.
+    self.switch_context()
+    
+    # Locate the fileinfo of 'target_filepath'.  updater.target() searches
+    # Targets metadata in order of trust, according to the currently trusted
+    # release.  To prevent consecutive target file requests from referring to
+    # different releases, top-level metadata is not automatically refreshed.
     targets = [self.updater.target(target_filepath)]
 
     # TODO: targets are always updated if destination directory is new, right?
@@ -254,15 +269,37 @@ class UpdaterController(object):
   def add(self, configuration):
     """Add an Updater based on the given Configuration."""
 
-    UPDATER_ADDED_MESSAGE = "Updater added for {configuration}."
-
     repository_mirror_hostnames = self.__check_configuration_on_add(configuration)
-
+    
     # If all is well, build and store an Updater, and remember hostnames.
+    Logger.info('Adding updater for '+repr(configuration))
     self.__updaters[configuration.hostname] = Updater(configuration)
     self.__repository_mirror_hostnames.update(repository_mirror_hostnames)
+  
+  
+  
+  def refresh(self, configuration):
+    """Refresh the top-level metadata of the given Configuration."""
 
-    Logger.info(UPDATER_ADDED_MESSAGE.format(configuration=configuration))
+    assert isinstance(configuration, Configuration)
+
+    repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
+
+    assert configuration.hostname in self.__updaters
+    assert repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames)
+
+    # Get the updater and refresh its top-level metadata.  In the majority
+    # integrations, a software updater integrating TUF with interposition will
+    # usually only require an initial refresh() (i.e., when configure() is
+    # called).  A series of target file requests may then occur, which are all
+    # referenced by the latest top-level metadata updated by configure().
+    # Although interposition was designed to remain transparent, for software
+    # updaters that require an explicit refresh of top-level metadata, this
+    # method is provided.
+    Logger.info('Refreshing top-level metadata for '+ repr(configuration))
+    updater = self.__updaters.get(configuration.hostname)
+    updater.refresh()
+
 
 
   def get(self, url):
