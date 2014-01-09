@@ -75,13 +75,10 @@ In order to securely download and verify target files, TUF requires a few extra 
 When a software update system using TUF wants to check for updates, it asks TUF to do the work. That is, your software update system never has to deal with this additional metadata or understand what's going on underneath. If TUF reports back that there are updates available, your software update system can then ask TUF to download these files. TUF downloads them and checks them against the TUF metadata that it also downloads from the repository. If the downloaded target files are trustworthy, TUF hands them over to your software update system.
 See [Metadata](METADATA.md) for more information and examples.
 
-TUF specification documents are also available:
+TUF specification document is also available:
                                                                       
-* [The Update Framework Specification](docs/tuf-spec.txt)                                           
+* [The Update Framework Specification](docs/tuf-spec.txt?raw=true)                                           
 
-* [Repository Specification](docs/tuf-server-spec.pdf?raw=true)
-
-* [Client Specification](docs/tuf-client-spec.pdf?raw=true)
 
 
 ##Using TUF
