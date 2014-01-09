@@ -15,9 +15,8 @@ completely new software.
 
 Three major classes of software update systems are:
 
-* **Application updaters** which are used by applications use to update
-themselves. For example, Firefox updates itself through its own application
-updater.
+* **Application updaters** which are used by applications to update themselves.
+For example, Firefox updates itself through its own application updater.
 
 * **Library package managers** such as those offered by many programming
 languages for installing additional libraries. These are systems such as
@@ -38,7 +37,7 @@ transparently) used to secure software update systems.
 
 ## Overview
 
-At the highest level, TUF simply provides applications with a secure method of obtaining files and knowing when new versions of files are available. We call these files, the ones that are supposed to be downloaded, "target files". The most common need for these abilities is in software update systems and obviously that's what we had in mind when creating TUF.
+At the highest level, TUF simply provides applications with a secure method of obtaining files and knowing when new versions of files are available. We call these files, the ones that are supposed to be downloaded, "target files". The most common need for these abilities is in software update systems and that's what we had in mind when creating TUF.
 
 On the surface, this all sounds simple. Securely obtaining updates just means:
 
@@ -57,7 +56,7 @@ Let's assume you take the approach that most systems do (at least, the ones that
 * An attacker compromises the key used to sign these files and now you download a malicious file that is properly signed. 
 
 These are just some of the attacks software update systems are vulnerable to when only using signed files.
-See [Security](SECURITY.md) for a full listing of attacks and updater weaknesses TUF is designed to prevent.
+See [Security](SECURITY.md) for a full list of attacks and updater weaknesses TUF is designed to prevent.
 
 The following papers provide detailed information on securing software updater systems, TUF's design and implementation details, attacks on package managers, and package management security:
 
