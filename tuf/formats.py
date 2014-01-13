@@ -383,6 +383,7 @@ ROOT_SCHEMA = SCHEMA.Object(
   object_name = 'ROOT_SCHEMA',
   _type = SCHEMA.String('Root'),
   version = METADATAVERSION_SCHEMA,
+  #consistent_snapshots = BOOLEAN_SCHEMA,
   expires = TIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)

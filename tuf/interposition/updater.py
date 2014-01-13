@@ -288,7 +288,7 @@ class UpdaterController(object):
     assert configuration.hostname in self.__updaters
     assert repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames)
 
-    # Get the updater and refresh its top-level metadata.  In the majority
+    # Get the updater and refresh its top-level metadata.  In the majority of
     # integrations, a software updater integrating TUF with interposition will
     # usually only require an initial refresh() (i.e., when configure() is
     # called).  A series of target file requests may then occur, which are all

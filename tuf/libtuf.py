@@ -53,6 +53,8 @@ logger = logging.getLogger('tuf.libtuf')
 # are the recommended minimum and are good from the present through 2030.
 DEFAULT_RSA_KEY_BITS = 3072
 
+DEFAULT_HASH_ALGORITHM = 'sha256'
+
 # The metadata filenames of the top-level roles.
 ROOT_FILENAME = 'root.txt'
 TARGETS_FILENAME = 'targets.txt'
@@ -162,7 +164,7 @@ class Repository(object):
 
 
 
-  def write(self, write_partial=False):
+  def write(self, write_partial=False, consistent_snapshots=False):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files.
@@ -177,6 +179,13 @@ class Repository(object):
         to independently sign and update role metadata.  write() raises an
         exception if a metadata role cannot be written due to not having enough
         signatures.
+
+      consistent_snapshots:
+        A boolean indicating whether written metadata and target files should
+        include a digest in the filename (i.e., root.<digest>.txt,
+        targets.<digest>.txt.gz, README.<digest>.txt, where <digest> is the
+        file's SHA256 digest.  Example:
+        'root.1f4e35a60c8f96d439e27e858ce2869c770c1cdd54e1ef76657ceaaf01da18a3.txt'
         
     <Exceptions>
       tuf.Error, if any of the top-level roles do not have a minimum
@@ -194,6 +203,7 @@ class Repository(object):
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.BOOLEAN_SCHEMA.check_match(write_partial)
+    tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshots) 
     
     # At this point the tuf.keydb and tuf.roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.Repository' exception if 
@@ -1250,8 +1260,9 @@ class Root(Metadata):
     expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION)
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
-                'signatures': [], 'version': 0, 'compressions': [''],
-                'expires': expiration, 'partial_loaded': False}
+                'signatures': [], 'version': 0, 'consistent_snapshots': False,
+                'compressions': [''], 'expires': expiration,
+                'partial_loaded': False}
     try: 
       tuf.roledb.add_role(self._rolename, roleinfo)
     except tuf.RoleAlreadyExistsError, e:
@@ -2109,8 +2120,8 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
   
   if tuf.sig.verify(signable, rolename) or write_partial:
     _remove_invalid_and_duplicate_signatures(signable)
-    for compression in roleinfo['compressions']:
-      write_metadata_file(signable, metadata_filename, compression)
+    compressions = roleinfo['compressions']
+    write_metadata_file(signable, metadata_filename, compressions)
     
     return signable  
   
@@ -2352,8 +2363,25 @@ def _delete_obsolete_metadata(metadata_directory):
         # metadata file is not actually deleted yet.  Do it now.
         if not tuf.roledb.role_exists(metadata_name):
           os.remove(metadata_path) 
-  
 
+
+
+
+
+def _get_written_metadata_and_digest(metadata_signable, hash_algorithm):
+  """
+  Non-public function that returns the actual content of written metadata and
+  its digest.
+  """
+
+  written_metadata_content = unicode(json.dumps(metadata_signable, indent=1,
+                                     sort_keys=True))
+
+  digest_object = tuf.hash.digest(hash_algorithm)
+  digest_object.update(written_metadata_content)
+  written_metadata_digest = digest_object.hexdigest()
+  
+  return written_metadata_content, written_metadata_digest
 
 
 
@@ -3718,11 +3746,14 @@ def sign_metadata(metadata_object, keyids, filename):
 
 
 
-def write_metadata_file(metadata, filename, compression=''):
+def write_metadata_file(metadata, filename, compressions):
   """
   <Purpose>
-    Write the 'metadata' signable object to 'filename', and the compressed
-    version of the metadata file if 'compression' is set.
+    If necessary, write the 'metadata' signable object to 'filename', and the
+    compressed version of the metadata file if 'compression' is set.
+    Note:  Compression algorithms like gzip attach a timestamp to compressed
+    files, so a metadata file compressed multiple times may generate different
+    digests even though the uncompressed content has not changed.
 
   <Arguments>
     metadata:
@@ -3731,12 +3762,12 @@ def write_metadata_file(metadata, filename, compression=''):
 
     filename:
       The filename of the metadata to be written (e.g., 'root.txt').
-      If 'compression' is set, the compressions extention is appended to
-      'filename'.
+      If a compression algorithm is specified in 'compressions', the
+      compression extention is appended to 'filename'.
 
-    compression:
-      Specify the algorithm, as a string, to compress the file; otherwise, the
-      file will be left uncompressed. Available options are 'gz' (gzip).
+    compressions:
+      Specify the algorithms, as a list of strings, used to compress the file;
+      The only currently available compression option is 'gz' (gzip).
 
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
@@ -3746,11 +3777,11 @@ def write_metadata_file(metadata, filename, compression=''):
     Any other runtime (e.g., IO) exception.
 
   <Side Effects>
-    The 'filename' (or the compressed filename) file is created or overwritten
+    The 'filename' (or the compressed filename) file is created, or overwritten
     if it exists.
 
   <Returns>
-    The file path of the written metadata.
+    None. 
   """
 
   # Do the arguments have the correct format?
@@ -3759,52 +3790,85 @@ def write_metadata_file(metadata, filename, compression=''):
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.SIGNABLE_SCHEMA.check_match(metadata)
   tuf.formats.PATH_SCHEMA.check_match(filename)
-  tuf.formats.COMPRESSION_SCHEMA.check_match(compression)
+  tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
 
   # Verify the directory of 'filename', and convert 'filename' to its absolute
   # path so that temporary files are moved to their expected destination.
   _check_directory(os.path.dirname(filename))
   filename = os.path.abspath(filename)
+ 
+  # Generate the actual metadata file content of 'metadata'.  Metadata is
+  # saved as json and includes formatting, such as indentation and sorted
+  # objects.  The new digest of 'metadata' is also calculated to help determine
+  # if re-saving is required.
+  file_content, new_digest = \
+    _get_written_metadata_and_digest(metadata, DEFAULT_HASH_ALGORITHM)
 
-  # The 'metadata' object is written to 'file_object', including compressed
-  # versions.  To avoid partial metadata from being written, 'metadata' is first
-  # written to a temporary location (i.e., 'file_object') and then moved to
-  # 'filename'.
-  file_object = tuf.util.TempFile()
+  # Verify whether the uncompressed metadata needs to be written (i.e., has
+  # not been previously written or has changed.
+  write_uncompressed_metadata = False
+
+  # Has the uncompressed metadata changed?  Does it exist?  If so, set
+  # 'write_uncompressed_metadata' to True so that it is written.
+  # 'write_uncompressed_metadata' is also checked when writting compressed
+  # versions (compressed metadata should only be written if it does not exist
+  # or the uncompressed version has changed).
+  try:
+    file_length_junk, old_digest = tuf.util.get_file_details(filename)
+    old_digest = old_digest[DEFAULT_HASH_ALGORITHM]
+    if old_digest != new_digest:
+      write_uncompressed_metadata = True
   
-  # Generate the appropriate file content of 'file_object' (i.e., compressed or
-  # uncompressed metadata) and update the file extension of 'filename' if
-  # compression is used.
-  if not len(compression):
-    logger.info('No compression for '+repr(filename))
+  # 'tuf.Error' raised if 'filename' does not exist.
+  except tuf.Error, e:
+    write_uncompressed_metadata = True
+
+  # Generate the metadata files of 'metadata'.  Sort 'compressions' so that
+  # the uncompressed version is written before the compressed.
+  for compression in sorted(compressions):
+    # The 'metadata' object is written to 'file_object', including compressed
+    # versions.  To avoid partial metadata from being written, 'metadata' is
+    # first written to a temporary location (i.e., 'file_object') and then moved
+    # to 'filename'.
+    file_object = tuf.util.TempFile()
     
-    # Serialize 'metadata' to the file-like object and then write 'file_object'
-    # to disk.  The dictionary keys of 'metadata' are sorted and indentation is
-    # used.
-    json.dump(metadata, file_object, indent=1, sort_keys=True)
-    file_object.write('\n')
-  
-  elif compression == 'gz':
-    logger.info('gzip compression for '+str(filename))
-    filename = filename + '.gz'
-   
-    # Instantiate a gzip object, but save compressed content to 'file_object'
-    # (i.e., GzipFile instance is based on its 'fileobj' argument).
-    with gzip.GzipFile(fileobj=file_object, mode='wb') as gzip_object:
-      json.dump(metadata, gzip_object, indent=1, sort_keys=True)
-      gzip_object.write('\n')
+    # Generate the appropriate file content of 'file_object' (i.e., compressed
+    # or uncompressed metadata) and update the file extension of 'filename' if
+    # compression is used.
+    if not len(compression):
+      if write_uncompressed_metadata: 
+        logger.info('No compression for '+repr(filename))
+      
+        # Serialize 'metadata' to the file-like object and then write
+        # 'file_object' to disk.  The dictionary keys of 'metadata' are sorted
+        # and indentation is used.
+        file_object.write(file_content)
+      else:
+        continue
 
-  else:
-    raise tuf.FormatError('Unknown compression algorithm: '+str(compression))
+    elif compression == 'gz':
+      filename = filename + '.gz'
 
-  # The 'tuf.util.TempFile' file-like object is automically closed after the
-  # final move.
-  logger.info('Saving metadata to '+repr(filename))
-  file_object.move(filename)
+      # Save the compressed version if it does not exist or a new version
+      # of the uncompressed metadata has been written.
+      if not os.path.exists(filename) or write_uncompressed_metadata:
+        logger.info('gzip compression for '+str(filename))
+        
+        # Instantiate a gzip object, but save compressed content to
+        # 'file_object' (i.e., GzipFile instance is based on its 'fileobj'
+        # argument).
+        with gzip.GzipFile(fileobj=file_object, mode='wb') as gzip_object:
+          gzip_object.write(file_content)
+      else:
+        continue
+    else:
+      raise tuf.FormatError('Unknown compression algorithm: '+repr(compression))
 
-  # Return the written 'filename' if there are no exceptions.
-  return filename
-  
+    # The 'tuf.util.TempFile' file-like object is automically closed after the
+    # final move.
+    logger.info('Saving metadata to '+repr(filename))
+    file_object.move(filename)
+
 
 
 
@@ -3932,8 +3996,7 @@ def write_delegated_metadata_file(repository_directory, targets_directory,
       # If a non-partial version is written, ensure any signatures that may
       # have been added with load_repository(), and now invalid, are discarded.
       _remove_invalid_and_duplicate_signatures(signable)
-    for compression in compressions:
-      write_metadata_file(signable, metadata_filepath, compression)
+    write_metadata_file(signable, metadata_filepath, compressions)
   
   else:
     message = 'Not enough signatures for: '+repr(metadata_filepath)
