@@ -521,12 +521,13 @@ class TimestampFile(MetaFile):
 
 
 class RootFile(MetaFile):
-  def __init__(self, version, expires, keys, roles):
+  def __init__(self, version, expires, keys, roles, consistent_snapshots):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
     self.info['keys'] = keys
     self.info['roles'] = roles
+    self.info['consistent_snapshots'] = consistent_snapshots
 
 
   @staticmethod
@@ -539,17 +540,20 @@ class RootFile(MetaFile):
     expires = parse_time(object['expires'])
     keys = object['keys']
     roles = object['roles']
+    consistent_snapshots = object['consistent_snapshots']
     
-    return RootFile(version, expires, keys, roles)
+    return RootFile(version, expires, keys, roles, consistent_snapshots)
 
 
   @staticmethod
-  def make_metadata(version, expiration_date, keydict, roledict):
+  def make_metadata(version, expiration_date, keydict, roledict,
+                    consistent_snapshots):
     result = {'_type' : 'Root'}
     result['version'] = version
     result['expires'] = expiration_date
     result['keys'] = keydict
     result['roles'] = roledict
+    result['consistent_snapshots'] = consistent_snapshots
     
     # Is 'result' a Root metadata file?
     # Raise 'tuf.FormatError' if not.

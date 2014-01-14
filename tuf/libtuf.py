@@ -208,46 +208,67 @@ class Repository(object):
     # At this point the tuf.keydb and tuf.roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.Repository' exception if 
     # any of the top-level roles are missing signatures, keys, etc.
-    filenames = get_metadata_filenames(self._metadata_directory)
-    root_filename = filenames[ROOT_FILENAME] 
-    targets_filename = filenames[TARGETS_FILENAME] 
-    release_filename = filenames[RELEASE_FILENAME] 
-    timestamp_filename = filenames[TIMESTAMP_FILENAME] 
 
     # Write the metadata files of all the delegated roles.
-    delegated_roles = tuf.roledb.get_delegated_rolenames('targets')
-    for delegated_role in delegated_roles:
-      roleinfo = tuf.roledb.get_roleinfo(delegated_role)
-      
-      write_delegated_metadata_file(self._repository_directory,
-                                    self._targets_directory, 
-                                    delegated_role, roleinfo, write_partial)
+    delegated_rolenames = tuf.roledb.get_delegated_rolenames('targets')
+    for delegated_rolename in delegated_rolenames:
+      roleinfo = tuf.roledb.get_roleinfo(delegated_rolename)
+      delegated_filename = os.path.join(self._metadata_directory,
+                                        delegated_rolename + METADATA_EXTENSION)
 
+      # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
+      # IO exception is raised if 'metadata_filepath' is written to a
+      # sub-directory.
+      tuf.util.ensure_parent_dir(delegated_filename)
+      
+      _generate_and_write_metadata(delegated_rolename, delegated_filename,
+                                   write_partial, self._targets_directory,
+                                   self._metadata_directory,
+                                   consistent_snapshots)
+      
     # Generate the 'root.txt' metadata file.
     # _generate_and_write_metadata() raises a 'tuf.Error' exception if the
     # metadata cannot be written.
-    _generate_and_write_metadata('root', filenames, write_partial,
-                                 self._targets_directory,
-                                 self._metadata_directory)
+    root_filename = 'root' + METADATA_EXTENSION 
+    root_filename = os.path.join(self._metadata_directory, root_filename)
+    signable_junk, root_filename = \
+      _generate_and_write_metadata('root', root_filename, write_partial,
+                                   self._targets_directory,
+                                   self._metadata_directory,
+                                   consistent_snapshots)
     
     # Generate the 'targets.txt' metadata file.
-    _generate_and_write_metadata('targets', filenames, write_partial,
-                                 self._targets_directory,
-                                 self._metadata_directory)
+    targets_filename = 'targets' + METADATA_EXTENSION 
+    targets_filename = os.path.join(self._metadata_directory, targets_filename)
+    signable_junk, targets_filename = \
+      _generate_and_write_metadata('targets', targets_filename, write_partial,
+                                   self._targets_directory,
+                                   self._metadata_directory,
+                                   consistent_snapshots)
     
     # Generate the 'release.txt' metadata file.
-    _generate_and_write_metadata('release', filenames, write_partial,
-                                 self._targets_directory,
-                                 self._metadata_directory)
+    release_filename = os.path.join(self._metadata_directory, 'release')
+    release_filename = 'release' + METADATA_EXTENSION 
+    release_filename = os.path.join(self._metadata_directory, release_filename)
+    filenames = {'root': root_filename, 'targets': targets_filename} 
+    signable_junk, release_filename = \
+      _generate_and_write_metadata('release', release_filename, write_partial,
+                                   self._targets_directory,
+                                   self._metadata_directory,
+                                   consistent_snapshots, filenames)
     
     # Generate the 'timestamp.txt' metadata file.
-    _generate_and_write_metadata('timestamp', filenames, write_partial,
+    timestamp_filename = 'timestamp' + METADATA_EXTENSION 
+    timestamp_filename = os.path.join(self._metadata_directory, timestamp_filename)
+    filenames = {'release': release_filename}
+    _generate_and_write_metadata('timestamp', timestamp_filename, write_partial,
                                  self._targets_directory,
-                                 self._metadata_directory)
+                                 self._metadata_directory, consistent_snapshots,
+                                 filenames)
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked.
-    _delete_obsolete_metadata(self._metadata_directory)
+    _delete_obsolete_metadata(self._metadata_directory, consistent_snapshots)
 
 
   
@@ -1918,7 +1939,7 @@ class Targets(Metadata):
     expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
     roleinfo = {'name': full_rolename, 'keyids': keyids, 'signing_keyids': [],
                 'threshold': threshold, 'version': 0, 'compressions': [''],
-                'expires': expiration, 'signatures': [],
+                'expires': expiration, 'signatures': [], 'partial_loaded': False,
                 'paths': relative_targetpaths, 'delegations': {'keys': {},
                 'roles': []}}
 
@@ -2044,8 +2065,9 @@ class Targets(Metadata):
 
 
 
-def _generate_and_write_metadata(rolename, filenames, write_partial,
-                                 targets_directory, metadata_directory):
+def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
+                                 targets_directory, metadata_directory,
+                                 consistent_snapshots, filenames=None):
   """
   Non-public function that can generate and write the metadata of the specified
   top-level 'rolename'.  It also increments version numbers if:
@@ -2056,11 +2078,6 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
       partially written, and a write_partial is not needed.
   """
 
-  root_filename = filenames[ROOT_FILENAME] 
-  targets_filename = filenames[TARGETS_FILENAME] 
-  release_filename = filenames[RELEASE_FILENAME] 
-  timestamp_filename = filenames[TIMESTAMP_FILENAME] 
-  metadata_filename = None
   metadata = None 
 
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
@@ -2070,23 +2087,24 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
 
   # Generate the appropriate role metadata for 'rolename'. 
   if rolename == 'root':
-    metadata_filename = root_filename
     metadata = generate_root_metadata(roleinfo['version'],
-                                      roleinfo['expires'])
-  elif rolename == 'targets':
-    metadata_filename = targets_filename
+                                      roleinfo['expires'], consistent_snapshots)
+  elif rolename.startswith('targets'):
     metadata = generate_targets_metadata(targets_directory,
                                          roleinfo['paths'],
                                          roleinfo['version'],
                                          roleinfo['expires'],
                                          roleinfo['delegations'])
   elif rolename == 'release':
-    metadata_filename = release_filename
+    root_filename = filenames['root']
+    targets_filename = filenames['targets']
     metadata = generate_release_metadata(metadata_directory,
                                          roleinfo['version'],
-                                         roleinfo['expires'])
+                                         roleinfo['expires'], root_filename,
+                                         targets_filename,
+                                         consistent_snapshots )
   elif rolename == 'timestamp':
-    metadata_filename = timestamp_filename
+    release_filename = filenames['release'] 
     metadata = generate_timestamp_metadata(release_filename,
                                            roleinfo['version'],
                                            roleinfo['expires'],
@@ -2100,8 +2118,7 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
   # written with write() / write_partial(). 
   # Increment the version number if this is the first partial write.
   if write_partial:
-    temp_signable = sign_metadata(metadata, [],
-                             metadata_filename)
+    temp_signable = sign_metadata(metadata, [], metadata_filename)
     temp_signable['signatures'].extend(roleinfo['signatures'])
     status = tuf.sig.get_signature_status(temp_signable, rolename)
     if len(status['good_sigs']) == 0:
@@ -2121,9 +2138,17 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
   if tuf.sig.verify(signable, rolename) or write_partial:
     _remove_invalid_and_duplicate_signatures(signable)
     compressions = roleinfo['compressions']
-    write_metadata_file(signable, metadata_filename, compressions)
+    filename = write_metadata_file(signable, metadata_filename, compressions,
+                                   consistent_snapshots)
     
-    return signable  
+    # The root and timestamp files should also be written without a digest if
+    # 'consistent_snaptshots' is True.  Client may request a timestamp and root
+    # file without knowing its digest and file size.
+    if rolename == 'root' or rolename == 'timestamp':
+      write_metadata_file(signable, metadata_filename, compressions,
+                          consistent_snapshots=False)
+    
+    return signable, filename 
   
   # 'signable' contains an invalid threshold of signatures. 
   else:
@@ -2137,7 +2162,7 @@ def _generate_and_write_metadata(rolename, filenames, write_partial,
 def _print_status(rolename, signable):
   """
   Non-public function prints the number of (good/threshold) signatures of
-  'rolename'
+  'rolename'.
   """
 
   status = tuf.sig.get_signature_status(signable, rolename)
@@ -2326,7 +2351,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
 
 
 
-def _delete_obsolete_metadata(metadata_directory):
+def _delete_obsolete_metadata(metadata_directory, consistent_snapshots):
   """
   Non-public function that deletes metadata files marked as removed by
   libtuf.py.  Metadata files marked as removed are not actually deleted
@@ -2346,12 +2371,20 @@ def _delete_obsolete_metadata(metadata_directory):
       # 'files' here is a list of target file names.
       for basename in files:
         metadata_path = os.path.join(directory_path, basename)
-        # Strip the metadata basename and the leading path separator.
+        # Strip the metadata dirname and the leading path separator.
         # '{repository_directory}/metadata/targets/unclaimed/django.txt' -->
         # 'targets/unclaimed/django.txt'
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
-        
+      
+        # Strip the digest if 'consistent_snapshots' is True.
+        # Example:  'targets/unclaimed/13df98ab0.django.txt'  -->
+        # 'targets/unclaimed/django.txt'
+        if consistent_snapshots:
+          dirname, basename = os.path.split(metadata_name)
+          basename = basename[basename.find('.')+1:]
+          metadata_name = os.path.join(dirname, basename)
+
         # Strip filename extensions.  The role database does not include the
         # metadata extension.
         for metadata_extension in METADATA_EXTENSIONS: 
@@ -3285,7 +3318,7 @@ def get_target_hash(self, target_filepath, hash_function='sha256'):
 
 
 
-def generate_root_metadata(version, expiration_date):
+def generate_root_metadata(version, expiration_date, consistent_snapshots):
   """
   <Purpose>
     Create the root metadata.  'tuf.roledb.py' and 'tuf.keydb.py' are read and
@@ -3301,6 +3334,8 @@ def generate_root_metadata(version, expiration_date):
     expiration_date:
       The expiration date, in UTC, of the metadata file.  Conformant to
       'tuf.formats.TIME_SCHEMA'.
+
+    consistent_snapshots:
 
   <Exceptions>
     tuf.FormatError, if the generated root metadata object could not
@@ -3322,6 +3357,7 @@ def generate_root_metadata(version, expiration_date):
   # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshots)
 
   # The role and key dictionaries to be saved in the root metadata object.
   # Conformant to 'ROLEDICT_SCHEMA' and 'KEYDICT_SCHEMA', respectively. 
@@ -3378,7 +3414,8 @@ def generate_root_metadata(version, expiration_date):
 
   # Generate the root metadata object.
   root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_date,
-                                                     keydict, roledict)
+                                                     keydict, roledict,
+                                                     consistent_snapshots)
 
   return root_metadata 
 
@@ -3481,7 +3518,9 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
 
 
-def generate_release_metadata(metadata_directory, version, expiration_date):
+def generate_release_metadata(metadata_directory, version, expiration_date,
+                              root_filename, targets_filename,
+                              consistent_snapshots):
   """
   <Purpose>
     Create the release metadata.  The minimum metadata must exist
@@ -3503,6 +3542,12 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
       The expiration date, in UTC, of the metadata file.
       Conformant to 'tuf.formats.TIME_SCHEMA'.
 
+    root_filename:
+
+    targets_filename:
+
+    consistent_snapshots:
+
   <Exceptions>
     tuf.FormatError, if 'metadata_directory' is improperly formatted.
 
@@ -3523,12 +3568,10 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.PATH_SCHEMA.check_match(root_filename)
+  tuf.formats.PATH_SCHEMA.check_match(targets_filename)
 
   metadata_directory = _check_directory(metadata_directory)
-
-  # Retrieve the full filepath of the root and targets metadata file.
-  root_filename = os.path.join(metadata_directory, ROOT_FILENAME)
-  targets_filename = os.path.join(metadata_directory, TARGETS_FILENAME)
 
   # Retrieve the fileinfo of 'root.txt' and 'targets.txt'.  This file
   # information includes data such as file length, hashes of the file, etc.
@@ -3563,6 +3606,14 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
         metadata_path = os.path.join(directory_path, basename)
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+        
+        # Strip the digest if 'consistent_snapshots' is True.
+        # Example:  'targets/unclaimed/13df98ab0.django.txt'  -->
+        # 'targets/unclaimed/django.txt'
+        if consistent_snapshots:
+          dirname, basename = os.path.split(metadata_name)
+          basename = basename[basename.find('.')+1:]
+          metadata_name = os.path.join(dirname, basename)
         
         # All delegated roles are added to the release file, including
         # compressed versions.
@@ -3604,6 +3655,8 @@ def generate_timestamp_metadata(release_filename, version,
     expiration_date:
       The expiration date, in UTC, of the metadata file, conformant to
       'tuf.formats.TIME_SCHEMA'.
+
+    release_filename:
 
     compressions:
       Compression extensions (e.g., 'gz').  If 'release.txt' is also saved in
@@ -3746,7 +3799,7 @@ def sign_metadata(metadata_object, keyids, filename):
 
 
 
-def write_metadata_file(metadata, filename, compressions):
+def write_metadata_file(metadata, filename, compressions, consistent_snapshots):
   """
   <Purpose>
     If necessary, write the 'metadata' signable object to 'filename', and the
@@ -3791,18 +3844,24 @@ def write_metadata_file(metadata, filename, compressions):
   tuf.formats.SIGNABLE_SCHEMA.check_match(metadata)
   tuf.formats.PATH_SCHEMA.check_match(filename)
   tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshots)
 
   # Verify the directory of 'filename', and convert 'filename' to its absolute
   # path so that temporary files are moved to their expected destination.
-  _check_directory(os.path.dirname(filename))
   filename = os.path.abspath(filename)
- 
+  _check_directory(os.path.dirname(filename))
+
   # Generate the actual metadata file content of 'metadata'.  Metadata is
   # saved as json and includes formatting, such as indentation and sorted
   # objects.  The new digest of 'metadata' is also calculated to help determine
   # if re-saving is required.
   file_content, new_digest = \
     _get_written_metadata_and_digest(metadata, DEFAULT_HASH_ALGORITHM)
+  
+  if consistent_snapshots:
+    dirname, basename = os.path.split(filename)
+    digest_and_filename = new_digest + '.' + basename
+    filename = os.path.join(dirname, digest_and_filename)
 
   # Verify whether the uncompressed metadata needs to be written (i.e., has
   # not been previously written or has changed.
@@ -3868,6 +3927,8 @@ def write_metadata_file(metadata, filename, compressions):
     # final move.
     logger.info('Saving metadata to '+repr(filename))
     file_object.move(filename)
+
+    return filename
 
 
 
