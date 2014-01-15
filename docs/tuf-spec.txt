@@ -762,14 +762,25 @@
 
     Simply put, TUF should write every metadata and target file as such: if the
     file had the original name of filename.ext, then it should be written to
-    disk as filename.digest.ext, where digest is the hex digest of the SHA-256
-    hash of the file.
+    disk as filename.digest.ext, where digest is the hex digest of a
+    cryptographic hash of the file. This means that if the referrer metadata
+    lists N cryptographic hashes of the referred file, then there must be N
+    identical copies of the referred file, where each file will be
+    distinguished only by the value of the digest in its filename. The modified
+    filename need not include the name of the cryptographic hash function used
+    to produce the digest because, on a read, the choice of function follows
+    from the selection of a digest (which includes the name of the
+    cryptographic function) from all digests in the referred file.
 
     Additionally, the timestamp metadata (timestamp.txt) should also be written
-    to disk whenever it is updated, along with an identical copy at
-    timestamp.digest.txt. The same step applies to the root metadata
-    (root.txt). These steps are required because these are the only metadata
-    files that will be requested without known hashes.
+    to disk whenever it is updated. It is optional for an implementation to
+    write identical copies at timestamp.digest.txt for record-keeping purposes,
+    because a cryptographic hash of the timestamp metadata is usually not
+    known in advance. The same step applies to the root metadata (root.txt),
+    although an implementation must write both root.txt and root.digest.txt
+    because it is possible to download root metadata both with and without
+    known hashes. These steps are required because these are the only metadata
+    files that may be requested without known hashes.
 
     Most importantly, no metadata file format must be updated to refer to the
     names of metadata or target files with their hashes included. In other
@@ -807,8 +818,13 @@
       3. Otherwise, the client must download every subsequent metadata or
       target file as follows: if the metadata or target file has the name
       filename.ext, then the client must actually retrieve the file with the
-      name filename.digest.ext, where digest is the hex digest of the SHA-256
-      hash of the file.
+      name filename.digest.ext, where digest is the hex digest of a
+      cryptographic hash of the referred file as listed by its referrer file.
+      Even though the modified filename does not include the name of the
+      cryptographic hash function used to produce the chosen digest value, the
+      choice of function follows from the selection of the digest (which
+      includes the name of the cryptographic function) from all digests in the
+      referred file.
       4. Finally, the client must be careful to rename every metadata or target
       file retrieved with the name filename.digest.ext to the name
       filename.ext.
