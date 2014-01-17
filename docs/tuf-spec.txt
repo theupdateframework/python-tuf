@@ -762,7 +762,7 @@
 
     Simply put, TUF should write every metadata and target file as such: if the
     file had the original name of filename.ext, then it should be written to
-    disk as filename.digest.ext, where digest is the hex digest of a
+    disk as digest.filename.ext, where digest is the hex digest of a
     cryptographic hash of the file. This means that if the referrer metadata
     lists N cryptographic hashes of the referred file, then there must be N
     identical copies of the referred file, where each file will be
@@ -786,7 +786,7 @@
     names of metadata or target files with their hashes included. In other
     words, if a metadata file A refers to another metadata or target file B as
     filename.ext, then the filename must remain as filename.ext and not
-    filename.digest.ext. This rule is in place so that metadata signed by roles
+    digest.filename.ext. This rule is in place so that metadata signed by roles
     with offline keys will not be forced to sign for the metadata file whenever
     it is updated. In the next subsection, we will see how clients will
     reproduce the name of the intended file.
@@ -818,7 +818,7 @@
       3. Otherwise, the client must download every subsequent metadata or
       target file as follows: if the metadata or target file has the name
       filename.ext, then the client must actually retrieve the file with the
-      name filename.digest.ext, where digest is the hex digest of a
+      name digest.filename.ext, where digest is the hex digest of a
       cryptographic hash of the referred file as listed by its referrer file.
       Even though the modified filename does not include the name of the
       cryptographic hash function used to produce the chosen digest value, the
@@ -826,7 +826,7 @@
       includes the name of the cryptographic function) from all digests in the
       referred file.
       4. Finally, the client must be careful to rename every metadata or target
-      file retrieved with the name filename.digest.ext to the name
+      file retrieved with the name digest.filename.ext to the name
       filename.ext.
 
 F. Future directions and open questions
