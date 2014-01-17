@@ -129,6 +129,13 @@ LOGLEVEL_SCHEMA = SCHEMA.Integer(lo=0, hi=50)
 
 # A string representing a named object.
 NAME_SCHEMA = SCHEMA.AnyString()
+NAMES_SCHEMA = SCHEMA.ListOf(NAME_SCHEMA)
+
+# Supported hash algorithms.
+HASHALGORITHMS_SCHEMA = SCHEMA.ListOf(SCHEMA.OneOf(
+  [SCHEMA.String('md5'), SCHEMA.String('sha1'),
+   SCHEMA.String('sha224'), SCHEMA.String('sha256'),
+   SCHEMA.String('sha384'), SCHEMA.String('sha512')]))
 
 # The contents of an encrypted TUF key.  Encrypted TUF keys are saved to files
 # in this format.
@@ -383,7 +390,7 @@ ROOT_SCHEMA = SCHEMA.Object(
   object_name = 'ROOT_SCHEMA',
   _type = SCHEMA.String('Root'),
   version = METADATAVERSION_SCHEMA,
-  #consistent_snapshots = BOOLEAN_SCHEMA,
+  consistent_snapshots = BOOLEAN_SCHEMA,
   expires = TIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)

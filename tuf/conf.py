@@ -88,3 +88,7 @@ ED25519_CRYPTO_LIBRARY = 'ed25519'
 # RSA_CRYPTO_LIBRARY and ED25519_CRYPTO_LIBRARY are needed on the client side
 # of the software updater.
 GENERAL_CRYPTO_LIBRARY = 'pycrypto'
+
+# The algorithm in HASH_ALGORITHMS are chosen by the repository tool to generate
+# the digests listed in metadata.
+HASH_ALGORITHMS = ['sha256']

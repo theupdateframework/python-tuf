@@ -340,7 +340,7 @@ class TempFile(object):
 
 
 
-def get_file_details(filepath):
+def get_file_details(filepath, hash_algorithms=['sha256']):
   """
   <Purpose>
     To get file's length and hash information.  The hash is computed using the
@@ -350,6 +350,8 @@ def get_file_details(filepath):
   <Arguments>
     filepath:
       Absolute file path of a file.
+
+    hash_algorithms:
 
   <Exceptions>
     tuf.FormatError: If hash of the file does not match HASHDICT_SCHEMA.
@@ -363,6 +365,10 @@ def get_file_details(filepath):
   # Making sure that the format of 'filepath' is a path string.
   # 'tuf.FormatError' is raised on incorrect format.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
+  tuf.formats.HASHALGORITHMS_SCHEMA.check_match(hash_algorithms)
+
+  # The returned file hashes of 'filepath'.
+  file_hashes = {}
 
   # Does the path exists?
   if not os.path.exists(filepath):
@@ -373,14 +379,15 @@ def get_file_details(filepath):
   file_length = os.path.getsize(filepath)
 
   # Obtaining hash of the file.
-  digest_object = tuf.hash.digest_filename(filepath, algorithm='sha256')
-  file_hash = {'sha256' : digest_object.hexdigest()}
+  for algorithm in hash_algorithms:
+    digest_object = tuf.hash.digest_filename(filepath, algorithm)
+    file_hashes.update({algorithm: digest_object.hexdigest()})
 
   # Performing a format check to ensure 'file_hash' corresponds HASHDICT_SCHEMA.
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.HASHDICT_SCHEMA.check_match(file_hash)
+  tuf.formats.HASHDICT_SCHEMA.check_match(file_hashes)
 
-  return file_length, file_hash
+  return file_length, file_hashes
 
 
 

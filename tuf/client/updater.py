@@ -105,6 +105,7 @@ import os
 import shutil
 import time
 import urllib
+import random
 
 import tuf
 import tuf.conf
@@ -288,6 +289,11 @@ class Updater(object):
     
     # Store the location of the client's metadata directory.
     self.metadata_directory = {}
+
+    # Store the 'consistent_snapshots' of the Root role.  This setting
+    # determines if versions of metadata and target files downloaded from
+    # remote repository include the digest.
+    self.consistent_snapshots = False
     
     # Ensure the repository metadata directory has been set.
     if tuf.conf.repository_directory is None:
@@ -400,11 +406,14 @@ class Updater(object):
       # Save the metadata object to the metadata store.
       self.metadata[metadata_set][metadata_role] = metadata_object
    
-      # We need to rebuild the key and role databases if 
-      # metadata object is 'root' or target metadata.
+      # We need to rebuild the key and role databases if metadata object is
+      # 'root' or target metadata.  If 'root', ensure the
+      # 'self.consistent_snaptshots' is updated.
       if metadata_set == 'current':
         if metadata_role == 'root':
           self._rebuild_key_and_role_db()
+          self.consistent_snapshots = metadata_object['consistent_snapshots']
+        
         elif metadata_object['_type'] == 'Targets':
           # TODO: Should we also remove the keys of the delegated roles?
           tuf.roledb.remove_delegated_roles(metadata_role)
@@ -806,6 +815,11 @@ class Updater(object):
     # Target files, unlike metadata files, are not decompressed; the
     # 'compression' argument to _get_file() is needed only for decompression of
     # metadata.  Target files may be compressed or uncompressed.
+    if self.consistent_snapshots:
+      target_digest = random.choice(file_hashes.values())
+      dirname, basename = os.path.split(target_filepath)
+      target_filepath = os.path.join(dirname, target_digest+'.'+basename)
+
     return self._get_file(target_filepath, verify_target_file,
                           'target', file_length, compression=None,
                           verify_compressed_file_function=None,
@@ -1256,8 +1270,20 @@ class Updater(object):
                                          compression, compressed_fileinfo)
     
     else:
+      remote_filename = metadata_filename
+      if self.consistent_snapshots:
+        if compression:
+          filename_digest = \
+            random.choice(compressed_fileinfo['hashes'].values())
+        
+        else:
+          filename_digest = \
+            random.choice(uncompressed_fileinfo['hashes'].values())
+        dirname, basename = os.path.split(remote_filename)
+        remote_filename = os.path.join(dirname, filename_digest+'.'+basename)
+
       metadata_file_object = \
-        self._safely_get_metadata_file(metadata_role, metadata_filename,
+        self._safely_get_metadata_file(metadata_role, remote_filename,
                                        uncompressed_fileinfo,
                                        compression, compressed_fileinfo)
 
@@ -1312,6 +1338,7 @@ class Updater(object):
     # according to the newly-installed Root metadata.
     if metadata_role == 'root':
       self._rebuild_key_and_role_db()
+      self.consistent_snapshots = updated_metadata_object['consistent_snapshots']
 
 
 
@@ -1704,8 +1731,9 @@ class Updater(object):
     for algorithm, hash_value in new_fileinfo['hashes'].items():
       # We're only looking for a single match. This isn't a security
       # check, we just want to prevent unnecessary downloads.
-      if hash_value == current_fileinfo['hashes'][algorithm]:
-        return False
+      if algorithm in current_fileinfo['hashes']: 
+        if hash_value == current_fileinfo['hashes'][algorithm]:
+          return False
 
     return True
 
