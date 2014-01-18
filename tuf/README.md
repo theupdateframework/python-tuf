@@ -51,11 +51,28 @@ public_root_key = import_rsa_publickey_from_file("path/to/root_key.pub")
 # Import an existing private key.  Importing a private key requires a password, whereas
 # importing a public key does not.
 private_root_key = import_rsa_privatekey_from_file("path/to/root_key")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the encrypted RSA key:
 ```
 import_rsa_privatekey_from_file() raises a "tuf.CryptoError" exception if the key/password
 is invalid.
+
+### Create and Import ED25519 Keys
+```Python
+from tuf.libtuf import *
+
+# Generate and write an ed25519 key pair.  The private key is saved encrypted.
+# A 'password' argument may be supplied, otherwise a prompt is presented.
+generate_and_write_ed25519_keypair('path/to/ed25519_key')
+Enter a password for the ED25519 key: 
+Confirm:
+
+# Import the ed25519 public key just created . . .
+public_ed25519_key = import_ed25519_publickey_from_file('path/to/ed25519_key.pub')
+
+# and its corresponding private key.
+private_ed25519_key = import_ed25519_privatekey_from_file('path/to/ed25519_key')
+Enter a password for the encrypted ED25519 key: 
+```
 
 ### Create a new Repository
 
@@ -135,14 +152,13 @@ repository.timestamp.add_key(import_rsa_publickey_from_file("path/to/timestamp_k
 
 # Import the signing keys of the remaining top-level roles.  Prompt for passwords.
 private_targets_key = import_rsa_privatekey_from_file("path/to/targets_key")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the encrypted RSA key:
+
 private_release_key = import_rsa_privatekey_from_file("path/to/release_key")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the encrypted RSA key:
+
 private_timestamp_key = import_rsa_privatekey_from_file("path/to/timestamp_key")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the encrypted RSA key:
 
 # Load the signing keys of the remaining roles so that valid signatures are generated when
 # repository.write() is called.
@@ -197,24 +213,23 @@ repository.targets.add_target("path/to/repository/targets/file3.txt")
 # The private key of the updated targets metadata must be loaded before it can be signed and
 # written (Note the load_repository() call above).
 private_targets_key =  import_rsa_privatekey_from_file("path/to/targets_key")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the encrypted RSA key:
+
 repository.targets.load_signing_key(private_targets_key)
 
 # Due to the load_repository(), we must also load the private keys of the other top-level roles
 # to generate a valid set of metadata.
 private_root_key = import_rsa_privatekey_from_file("path/to/root_key")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the encrypted RSA key:
+
 private_root_key2 = import_rsa_privatekey_from_file("path/to/root_key2")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the encrypted RSA key:
+
 private_release_key = import_rsa_privatekey_from_file("path/to/release_key")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the encrypted RSA key:
+
 private_timestamp_key = import_rsa_privatekey_from_file("path/to/timestamp_key")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the encrypted RSA key:
 
 repository.root.load_signing_key(private_root_key)
 repository.root.load_signing_key(private_root_key2)
@@ -255,8 +270,8 @@ repository.targets.delegate("unclaimed", [public_unclaimed_key], [])
 # Load the private key of "targets/unclaimed" so that signatures are later added and valid
 # metadata is created.
 private_unclaimed_key = import_rsa_privatekey_from_file("path/to/unclaimed_key")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the encrypted RSA key:
+
 repository.targets.unclaimed.load_signing_key(private_unclaimed_key)
 
 # Update an attribute of the unclaimed role.
