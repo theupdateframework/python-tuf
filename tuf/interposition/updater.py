@@ -55,7 +55,7 @@ class Updater(object):
     # not automatically refresh top-level prior to retrieving target files and
     # their associated Targets metadata, so update the top-level
     # metadata here.
-    Logger.info('Refreshing top-level metadata for '+repr(configuration))
+    Logger.info('Refreshing top-level metadata for interposed '+repr(configuration))
     self.updater.refresh()
   
  
@@ -272,7 +272,7 @@ class UpdaterController(object):
     repository_mirror_hostnames = self.__check_configuration_on_add(configuration)
     
     # If all is well, build and store an Updater, and remember hostnames.
-    Logger.info('Adding updater for '+repr(configuration))
+    Logger.info('Adding updater for interposed '+repr(configuration))
     self.__updaters[configuration.hostname] = Updater(configuration)
     self.__repository_mirror_hostnames.update(repository_mirror_hostnames)
   
@@ -310,7 +310,7 @@ class UpdaterController(object):
 
     GENERIC_WARNING_MESSAGE = "No updater or interposition for url={url}"
     DIFFERENT_NETLOC_MESSAGE = "We have an updater for netloc={netloc1} but not for netlocs={netloc2}"
-    HOSTNAME_FOUND_MESSAGE = "Found updater for hostname={hostname}"
+    HOSTNAME_FOUND_MESSAGE = "Found updater for interposed network location: {netloc}"
     HOSTNAME_NOT_FOUND_MESSAGE = "No updater for hostname={hostname}"
 
     updater = None
@@ -335,7 +335,7 @@ class UpdaterController(object):
 
         # Ensure that the updater is meant for this (hostname, port).
         if updater.configuration.network_location in network_locations:
-          Logger.info(HOSTNAME_FOUND_MESSAGE.format(hostname=hostname))
+          Logger.info(HOSTNAME_FOUND_MESSAGE.format(netloc=network_location))
           # Raises an exception in case we do not recognize how to
           # transform this URL for TUF. In that case, there will be no
           # updater for this URL.
@@ -361,7 +361,7 @@ class UpdaterController(object):
   def remove(self, configuration):
     """Remove an Updater matching the given Configuration."""
 
-    UPDATER_REMOVED_MESSAGE = "Updater removed for {configuration}."
+    UPDATER_REMOVED_MESSAGE = "Updater removed for interposed {configuration}."
 
     assert isinstance(configuration, Configuration)
 

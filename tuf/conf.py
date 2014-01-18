@@ -91,4 +91,4 @@ GENERAL_CRYPTO_LIBRARY = 'pycrypto'
 
 # The algorithm in HASH_ALGORITHMS are chosen by the repository tool to generate
 # the digests listed in metadata.
-HASH_ALGORITHMS = ['sha256']
+REPOSITORY_HASH_ALGORITHMS = ['sha224', 'sha256']

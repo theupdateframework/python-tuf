@@ -291,8 +291,8 @@ class Updater(object):
     self.metadata_directory = {}
 
     # Store the 'consistent_snapshots' of the Root role.  This setting
-    # determines if versions of metadata and target files downloaded from
-    # remote repository include the digest.
+    # determines if metadata and target files downloaded from remote
+    # repositories include the digest.
     self.consistent_snapshots = False
     
     # Ensure the repository metadata directory has been set.
@@ -405,10 +405,10 @@ class Updater(object):
    
       # Save the metadata object to the metadata store.
       self.metadata[metadata_set][metadata_role] = metadata_object
-   
-      # We need to rebuild the key and role databases if metadata object is
-      # 'root' or target metadata.  If 'root', ensure the
-      # 'self.consistent_snaptshots' is updated.
+  
+      # If 'metadata_role' is 'root' or targets metadata, the key and role
+      # databases must be rebuilt.  If 'root', ensure self.consistent_snaptshots
+      # is updated.
       if metadata_set == 'current':
         if metadata_role == 'root':
           self._rebuild_key_and_role_db()

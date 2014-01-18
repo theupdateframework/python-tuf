@@ -42,6 +42,7 @@ import tuf.roledb
 import tuf.keys
 import tuf.sig
 import tuf.log
+import tuf.conf
 
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -53,9 +54,6 @@ logger = logging.getLogger('tuf.libtuf')
 # size 3072 provide security through 2031 and beyond.  2048-bit keys
 # are the recommended minimum and are good from the present through 2030.
 DEFAULT_RSA_KEY_BITS = 3072
-
-# The hash algorithms that generate the digests included in metadata files.
-HASH_ALGORITHMS = tuf.conf.HASH_ALGORITHMS
 
 # The extension of TUF metadata.
 METADATA_EXTENSION = '.txt'
@@ -2428,7 +2426,7 @@ def _get_written_metadata_and_digests(metadata_signable):
                                      sort_keys=True))
   written_metadata_digests = {}
 
-  for hash_algorithm in HASH_ALGORITHMS:
+  for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
     digest_object = tuf.hash.digest(hash_algorithm)
     digest_object.update(written_metadata_content)
     written_metadata_digests.update({hash_algorithm: digest_object.hexdigest()})
@@ -2886,7 +2884,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None:
-    message = 'Enter a password for the RSA key: '
+    message = 'Enter a password for the RSA key file: '
     password = _get_password(message, confirm=True)
 
   # Does 'password' have the correct format?
@@ -2962,8 +2960,8 @@ def import_rsa_privatekey_from_file(filepath, password=None):
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None:
-    message = 'Enter a password for the encrypted RSA key: '
-    password = _get_password(message, confirm=False)
+    message = 'Enter a password for the encrypted RSA key file: '
+    password = _get_password(message, confirm=True)
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
@@ -3211,8 +3209,8 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None:
-    message = 'Enter a password for the encrypted ED25519 key: '
-    password = _get_password(message, confirm=False)
+    message = 'Enter a password for the encrypted ED25519 key file: '
+    password = _get_password(message, confirm=True)
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
@@ -3351,7 +3349,8 @@ def get_metadata_file_info(filename):
   # dictionary that a client might define to include additional
   # file information, such as the file's author, version/revision
   # numbers, etc.
-  filesize, filehashes = tuf.util.get_file_details(filename, HASH_ALGORITHMS)
+  filesize, filehashes = \
+    tuf.util.get_file_details(filename, tuf.conf.REPOSITORY_HASH_ALGORITHMS)
   custom = None
 
   return tuf.formats.make_fileinfo(filesize, filehashes, custom)
@@ -4056,7 +4055,7 @@ def _write_compressed_metadata(file_object, compressed_filename,
     new_digests = []
     consistent_filenames = []
     
-    for hash_algorithm in HASH_ALGORITHMS:
+    for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
       digest_object = tuf.hash.digest(hash_algorithm)
       digest_object.update(compressed_content)
       new_digests.append(digest_object.hexdigest())
