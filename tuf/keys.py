@@ -83,8 +83,9 @@ except ImportError:
 # routines and side-channel protections available in the libsodium library.
 try:
   import nacl
+  import nacl.signing
   _available_crypto_libraries.append('pynacl')
-except ImportError:
+except (ImportError, IOError):
   pass
 
 # The optimized version of the ed25519 library provided by default is imported

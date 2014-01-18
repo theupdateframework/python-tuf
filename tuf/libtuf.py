@@ -2886,7 +2886,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None:
-    message = 'Enter a password for the RSA key file: '
+    message = 'Enter a password for the RSA key: '
     password = _get_password(message, confirm=True)
 
   # Does 'password' have the correct format?
@@ -2962,8 +2962,8 @@ def import_rsa_privatekey_from_file(filepath, password=None):
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None:
-    message = 'Enter a password for the encrypted RSA key file: '
-    password = _get_password(message, confirm=True)
+    message = 'Enter a password for the encrypted RSA key: '
+    password = _get_password(message, confirm=False)
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
@@ -3211,8 +3211,8 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None:
-    message = 'Enter a password for the encrypted ED25519 key file: '
-    password = _get_password(message, confirm=True)
+    message = 'Enter a password for the encrypted ED25519 key: '
+    password = _get_password(message, confirm=False)
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
