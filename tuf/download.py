@@ -645,8 +645,8 @@ def _check_downloaded_length(total_downloaded, required_length,
   """
 
   if total_downloaded == required_length:
-    logger.warn('Downloaded '+str(total_downloaded)+' bytes of the expected '+\
-                 str(required_length)+ ' bytes.')
+    logger.warn('Downloaded '+str(total_downloaded)+' bytes out of the '+\
+                'expected '+str(required_length)+ ' bytes.')
   else:
     difference_in_bytes = abs(total_downloaded-required_length)
 

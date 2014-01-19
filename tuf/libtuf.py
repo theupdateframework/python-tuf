@@ -3799,7 +3799,9 @@ def generate_timestamp_metadata(release_filename, version,
   # Save the fileinfo of the compressed versions of 'timestamp.txt'
   # in 'fileinfo'.  Log the files included in 'fileinfo'.
   for file_extension in compressions:
-    
+    if not len(file_extension):
+      continue
+
     compressed_filename = release_filename + '.' + file_extension
     try:
       compressed_fileinfo = get_metadata_file_info(compressed_filename)

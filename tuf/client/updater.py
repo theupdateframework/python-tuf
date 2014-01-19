@@ -1149,10 +1149,10 @@ class Updater(object):
         if compression is not None:
           if verify_compressed_file_function is not None: 
             verify_compressed_file_function(file_object)  
-          logger.debug('Decompressing '+str(file_mirror))
+          logger.info('Decompressing '+str(file_mirror))
           file_object.decompress_temp_file_object(compression)
         else:
-          logger.debug('Not decompressing '+str(file_mirror))
+          logger.info('Not decompressing '+str(file_mirror))
         
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
