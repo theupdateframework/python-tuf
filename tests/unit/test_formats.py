@@ -76,7 +76,7 @@ class TestFormats(unittest.TestCase):
       
       'NAME_SCHEMA': (tuf.formats.NAME_SCHEMA, 'Marty McFly'),
       
-      'TOGGLE_SCHEMA': (tuf.formats.TOGGLE_SCHEMA, True),
+      'BOOLEAN_SCHEMA': (tuf.formats.BOOLEAN_SCHEMA, True),
       
       'THRESHOLD_SCHEMA': (tuf.formats.THRESHOLD_SCHEMA, 1),
       

@@ -18,7 +18,6 @@
   Given that all message prompts don't change - this will work pretty well
   for running quickstart without having to manually enter input to prompts
   every time you want to run quickstart.
-
 """
 
 import os

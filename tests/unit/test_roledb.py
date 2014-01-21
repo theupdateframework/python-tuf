@@ -13,7 +13,6 @@
 
 <Purpose>
   Unit test for 'roledb.py'.
-
 """
 
 
@@ -22,7 +21,7 @@ import logging
 
 import tuf
 import tuf.formats
-import tuf.rsa_key
+import tuf.keys
 import tuf.roledb
 import tuf.log
 
@@ -32,7 +31,7 @@ logger = logging.getLogger('tuf.test_roledb')
 # Generate the three keys to use in our test cases.
 KEYS = []
 for junk in range(3):
-  KEYS.append(tuf.rsa_key.generate(2048))
+  KEYS.append(tuf.keys.generate_rsa_key(2048))
 
 
 

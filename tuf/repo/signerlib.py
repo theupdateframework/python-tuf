@@ -16,18 +16,18 @@
   These functions contain code that can extract or create needed repository
   data, such as the extraction of role and keyid information from a config file,
   and the generation of actual metadata content.
-
 """
 
 import gzip
 import os
 import ConfigParser
 import logging
+import time
 
 import tuf
 import tuf.formats
 import tuf.hash
-import tuf.rsa_key
+import tuf.keys
 import tuf.repo.keystore
 import tuf.sig
 import tuf.util
@@ -81,7 +81,6 @@ def read_config_file(filename):
 
   <Returns>
     A dictionary containing the data loaded from the configuration file.
-
   """
 
   # Does 'filename' have the correct format?
@@ -151,7 +150,6 @@ def get_metadata_file_info(filename):
     A dictionary conformant to 'tuf.formats.FILEINFO_SCHEMA'.  This
     dictionary contains the length, hashes, and custom data about
     the 'filename' metadata file.
-
   """
 
   # Does 'filename' have the correct format?
@@ -204,7 +202,6 @@ def get_metadata_filenames(metadata_directory=None):
   <Returns>
     A dictionary containing the expected filenames of the top-level
     metadata files, such as 'root.txt' and 'release.txt'.
-
   """
 
   if metadata_directory is None:
@@ -255,7 +252,6 @@ def generate_root_metadata(config_filepath, version):
 
   <Returns>
     A root 'signable' object conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
-
   """
 
   # Does 'config_filepath' have the correct format?
@@ -290,8 +286,10 @@ def generate_root_metadata(config_filepath, version):
       keyid = key['keyid']
       # This appears to be a new keyid.  Let's generate the key for it.
       if keyid not in keydict:
-        if key['keytype'] == 'rsa':
-          keydict[keyid] = tuf.rsa_key.create_in_metadata_format(key['keyval'])
+        if key['keytype'] in ['rsa', 'ed25519']:
+          keytype = key['keytype']
+          keyval = key['keyval']
+          keydict[keyid] = tuf.keys.format_keyval_to_metadata(keytype, keyval)
         # This is not a recognized key.  Raise an exception.
         else:
           raise tuf.Error('Unsupported keytype: '+keyid)
@@ -312,7 +310,8 @@ def generate_root_metadata(config_filepath, version):
                         3600 * 24 * expiration['days'])
 
   # Generate the root metadata object.
-  root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_seconds,
+  expiration_date = tuf.formats.format_time(time.time()+expiration_seconds)
+  root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_date,
                                                      keydict, roledict)
 
   # Note: make_signable() returns the following dictionary:
@@ -364,7 +363,6 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
   <Returns>
     A targets 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
-
   """
 
   # Do the arguments have the correct format.
@@ -433,7 +431,6 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
 
   <Returns>
     The release 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
-
   """
 
   # Does 'metadata_directory' have the correct format?
@@ -510,7 +507,6 @@ def generate_timestamp_metadata(release_filename, version,
 
   <Returns>
     A timestamp 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
-
   """
 
   # Do the arguments have the correct format?
@@ -575,7 +571,6 @@ def write_metadata_file(metadata, filename, compression=None):
 
   <Returns>
     The path to the written metadata file.
-
   """
 
   # Are the arguments properly formatted?
@@ -645,7 +640,6 @@ def read_metadata_file(filename):
 
   <Returns>
    The metadata object.
-
   """
 
   return tuf.util.load_json_file(filename)
@@ -684,7 +678,6 @@ def sign_metadata(metadata, keyids, filename):
 
   <Returns>
     A signable object conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
-
   """
 
   # Does 'keyids' and 'filename' have the correct format?
@@ -767,7 +760,6 @@ def generate_and_save_rsa_key(keystore_directory, password,
      'keyid': keyid,
      'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
                 'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
-
   """
 
   # Are the arguments correctly formatted?
@@ -778,7 +770,7 @@ def generate_and_save_rsa_key(keystore_directory, password,
   keystore_directory = check_directory(keystore_directory)
 
   # tuf.FormatError or tuf.CryptoError raised.
-  rsakey = tuf.rsa_key.generate(bits)
+  rsakey = tuf.keys.generate_rsa_key(bits)
 
   logger.info('Generated a new key: '+rsakey['keyid'])
 
@@ -820,7 +812,6 @@ def check_directory(directory):
 
   <Returns>
     The normalized absolutized path of 'directory'.
-
   """
 
   # Does 'directory' have the correct format?
@@ -868,7 +859,6 @@ def get_target_keyids(metadata_directory):
     A dictionary containing the role information extracted from the
     metadata.
     Ex: {'targets':[keyid1, ...], 'targets/role1':[keyid], ...}
-
   """
 
   # Does 'metadata_directory' have the correct format?
@@ -964,7 +954,6 @@ def build_config_file(config_file_directory, timeout, role_info):
 
   <Returns>
     The normalized absolutized path of the saved configuration file.
-
   """
 
   # Do the arguments have the correct format?
@@ -1054,7 +1043,6 @@ def build_root_file(config_filepath, root_keyids, metadata_directory, version):
 
   <Returns>
     The path for the written root metadata file.
-
   """
 
   # Do the arguments have the correct format?
@@ -1116,7 +1104,6 @@ def build_targets_file(target_paths, targets_keyids, metadata_directory,
 
   <Returns>
     The path for the written targets metadata file.
-
   """
 
   # Do the arguments have the correct format?
@@ -1207,7 +1194,6 @@ def build_release_file(release_keyids, metadata_directory,
 
   <Returns>
     The path for the written release metadata file.
-
   """
 
   # Do the arguments have the correct format?
@@ -1282,7 +1268,6 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
 
   <Returns>
     The path for the written timestamp metadata file.
-
   """
 
   # Do the arguments have the correct format?
@@ -1370,7 +1355,6 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
 
   <Returns>
     The path for the written targets metadata file.
-
   """
 
   # Do the arguments have the correct format?
@@ -1432,7 +1416,6 @@ def find_delegated_role(roles, delegated_role):
   <Returns>
     None, if the role with the given name does not exist, or its unique index
     in the list of roles.
-
   """
 
   # Check argument types.
@@ -1487,7 +1470,6 @@ def accept_any_file(full_target_path):
 
   <Returns>
     True.
-  
   """
 
   return True
@@ -1524,7 +1506,6 @@ def get_targets(files_directory, recursive_walk=False, followlinks=True,
 
   <Returns>
     A list of absolute paths to target files in the given files_directory.
-  
   """
 
   targets = []
@@ -1546,8 +1527,3 @@ def get_targets(files_directory, recursive_walk=False, followlinks=True,
       del dirnames[:]
 
   return targets
-
-
-
-
-

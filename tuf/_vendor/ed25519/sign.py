@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import sys
 import binascii
 import ed25519
@@ -16,6 +18,7 @@ import ed25519
 while 1:
   line = sys.stdin.readline()
   if not line: break
+  print(".", end="")
   x = line.split(':')
   sk = binascii.unhexlify(x[0][0:64])
   pk = ed25519.publickey(sk)

@@ -1,4 +1,4 @@
-                      TUF: The Update Framework
+                      The Update Framework Specification
 
 1. Introduction
 
@@ -680,9 +680,10 @@
 
 5.1. The client application
 
-   Note: At any point in the following process there is a problem (e.g. only
-   expired metadata can be retrieved), the software update system using the
-   framework must decide how to proceed.
+   Note: If at any point in the following process there is a problem (e.g., only
+   expired metadata can be retrieved), the Root file is downloaded and the process
+   starts over.  Optionally, the software update system using the framework can
+   decide how to proceed rather than automatically downloading a new Root file.
 
    The client code instructs the framework to check for updates.  The framework
    downloads the timestamp.txt file from a mirror and checks that the file is

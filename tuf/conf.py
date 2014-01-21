@@ -12,10 +12,11 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  A central location for TUF configuration settings.
-
+  A central location for TUF configuration settings.  Example options include
+  setting the destination of temporary files and downloaded content, the maximum
+  length of downloaded metadata (unknown file attributes), download behavior,
+  and cryptography libraries clients wish to use.
 """
-
 
 # Set a directory that should be used for all temporary files. If this
 # is None, then the system default will be used. The system default
@@ -41,6 +42,12 @@ ssl_certificates = None
 # default but sane upper bound for the number of bytes required to download it.
 DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 16384 #bytes
 
+# The Root role may be updated without knowing its hash if top-level metadata
+# cannot be safely downloaded (e.g., keys may have been revoked, thus requiring
+# a new Root file that includes the updated keys).  Set a default upper bound
+# for the maximum total bytes that may be downloaded for Root metadata.
+DEFAULT_ROOT_REQUIRED_LENGTH = 512000 #bytes
+
 # Set a timeout value in seconds (float) for non-blocking socket operations.
 SOCKET_TIMEOUT = 1 #seconds
 
@@ -62,6 +69,26 @@ SLOW_START_GRACE_PERIOD = 30 #seconds
 # computational restrictions.  A strong user password is still important.
 # Modifying the number of iterations will result in a new derived key+PBDKF2
 # combination if the key is loaded and re-saved, overriding any previous
-# iteration setting used by the old '<keyid>.key'.
+# iteration setting used in the old '<keyid>' key file.
 # https://en.wikipedia.org/wiki/PBKDF2
 PBKDF2_ITERATIONS = 100000
+
+# The user client may set the specific cryptography library used by The Update
+# Framework updater, or the software updater integrating TUF.  
+# Supported RSA cryptography libraries:  ['pycrypto']
+RSA_CRYPTO_LIBRARY = 'pycrypto'
+
+# Supported ed25519 cryptography libraries: ['pynacl', 'ed25519']
+ED25519_CRYPTO_LIBRARY = 'ed25519'
+
+# General purpose cryptography. Algorithms and functions that fall under general
+# purpose include AES, PBKDF2, cryptographically strong random number
+# generators, and cryptographic hash functions.  The majority of the general
+# cryptography is needed by the repository and developer tools.
+# RSA_CRYPTO_LIBRARY and ED25519_CRYPTO_LIBRARY are needed on the client side
+# of the software updater.
+GENERAL_CRYPTO_LIBRARY = 'pycrypto'
+
+# The algorithm in HASH_ALGORITHMS are chosen by the repository tool to generate
+# the digests listed in metadata.
+REPOSITORY_HASH_ALGORITHMS = ['sha224', 'sha256']

@@ -23,13 +23,20 @@
 
   The role database is a dictionary conformant to 'tuf.formats.ROLEDICT_SCHEMA'
   and has the form:
+  
   {'rolename': {'keyids': ['34345df32093bd12...'],
                 'threshold': 1
-                'paths': ['path/to/role.txt']}}
-
+                'signatures': ['abcd3452...'],
+                'paths': ['path/to/role.txt'],
+                'path_hash_prefixes': ['ab34df13'],
+                'delegations': {'keys': {}, 'roles': {}}}
+  
+  The 'name', 'paths', 'path_hash_prefixes', and 'delegations' dict keys are
+  optional.
 """
 
 import logging
+import copy
 
 import tuf
 import tuf.formats
@@ -66,7 +73,6 @@ def create_roledb_from_root_metadata(root_metadata):
 
   <Returns>
     None.
-
   """
 
   # Does 'root_metadata' have the correct object format?
@@ -81,6 +87,17 @@ def create_roledb_from_root_metadata(root_metadata):
   # Iterate through the roles found in 'root_metadata'
   # and add them to '_roledb_dict'.  Duplicates are avoided.
   for rolename, roleinfo in root_metadata['roles'].items():
+    if rolename == 'root':
+      roleinfo['version'] = root_metadata['version']
+      roleinfo['expires'] = root_metadata['expires']
+    
+    roleinfo['signatures'] = []
+    roleinfo['signing_keyids'] = []
+    roleinfo['compressions'] = ['']
+    roleinfo['partial_loaded'] = False
+    if rolename.startswith('targets'):
+      roleinfo['delegations'] = {'keys': {}, 'roles': []}
+    
     try:
       add_role(rolename, roleinfo)
     # tuf.Error raised if the parent role of 'rolename' does not exist.  
@@ -104,10 +121,17 @@ def add_role(rolename, roleinfo, require_parent=True):
 
     roleinfo:
       An object representing the role associated with 'rolename', conformant to
-      ROLE_SCHEMA.  'roleinfo' has the form: 
+      ROLEDB_SCHEMA.  'roleinfo' has the form: 
       {'keyids': ['34345df32093bd12...'],
-       'threshold': 1}
+       'threshold': 1,
+       'signatures': ['ab23dfc32']
+       'paths': ['path/to/target1', 'path/to/target2', ...],
+       'path_hash_prefixes': ['a324fcd...', ...],
+       'delegations': {'keys': }
 
+      The 'paths', 'path_hash_prefixes', and 'delegations' dict keys are
+      optional.
+      
       The 'target' role has an additional 'paths' key.  Its value is a list of
       strings representing the path of the target file(s).
 
@@ -128,7 +152,6 @@ def add_role(rolename, roleinfo, require_parent=True):
 
   <Returns>
     None.
-
   """
 
   # Does 'rolename' have the correct object format?
@@ -137,10 +160,10 @@ def add_role(rolename, roleinfo, require_parent=True):
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Does 'roleinfo' have the correct object format?
-  tuf.formats.ROLE_SCHEMA.check_match(roleinfo)
+  tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
   # Does 'require_parent' have the correct format?
-  tuf.formats.TOGGLE_SCHEMA.check_match(require_parent)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(require_parent)
 
   # Raises tuf.InvalidNameError.
   _validate_rolename(rolename)
@@ -157,8 +180,67 @@ def add_role(rolename, roleinfo, require_parent=True):
     if parent_role not in _roledb_dict:
       raise tuf.Error('Parent role does not exist: '+parent_role)
 
-  _roledb_dict[rolename] = roleinfo
+  _roledb_dict[rolename] = copy.deepcopy(roleinfo)
 
+
+
+
+
+def update_roleinfo(rolename, roleinfo):
+  """
+  <Purpose>
+
+  <Arguments>
+    rolename:
+      An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
+      (e.g., 'root', 'release', 'timestamp').
+
+    roleinfo:
+      An object representing the role associated with 'rolename', conformant to
+      ROLEDB_SCHEMA.  'roleinfo' has the form: 
+      {'name': 'role_name',
+       'keyids': ['34345df32093bd12...'],
+       'threshold': 1,
+       'paths': ['path/to/target1', 'path/to/target2', ...],
+       'path_hash_prefixes': ['a324fcd...', ...]}
+
+      The 'name', 'paths', and 'path_hash_prefixes' dict keys are optional.
+
+      The 'target' role has an additional 'paths' key.  Its value is a list of
+      strings representing the path of the target file(s).
+
+  <Exceptions>
+    tuf.FormatError, if 'rolename' or 'roleinfo' does not have the correct
+    object format.
+
+    tuf.UnknownRoleError, if 'rolename' cannot be found in the role database.
+    
+    tuf.InvalidNameError, if 'rolename' is improperly formatted.
+
+  <Side Effects>
+    The role database is modified.
+
+  <Returns>
+    None.
+  """
+
+  # Does 'rolename' have the correct object format?
+  # This check will ensure 'rolename' has the appropriate number of objects 
+  # and object types, and that all dict keys are properly named.
+  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+
+  # Does 'roleinfo' have the correct object format?
+  tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+
+  # Raises tuf.InvalidNameError.
+  _validate_rolename(rolename)
+
+  if rolename not in _roledb_dict:
+    raise tuf.UnknownRoleError('Role does not exist: '+rolename)
+
+  _roledb_dict[rolename] = copy.deepcopy(roleinfo)
+
+  
 
 
 
@@ -187,7 +269,6 @@ def get_parent_rolename(rolename):
 
   <Returns>
     A string representing the name of the parent role.
-
   """
 
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
@@ -228,7 +309,6 @@ def get_all_parent_roles(rolename):
 
   <Returns>
     A list containing all the parent roles.
-
   """
     
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
@@ -279,7 +359,6 @@ def role_exists(rolename):
 
   <Returns>
     Boolean.  True if 'rolename' is found in the role database, False otherwise.
-
   """
 
   # Raise tuf.FormatError, tuf.InvalidNameError.
@@ -318,7 +397,6 @@ def remove_role(rolename):
 
   <Returns>
     None.
-  
   """
  
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
@@ -358,7 +436,6 @@ def remove_delegated_roles(rolename):
 
   <Returns>
     None.
-
   """
   
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
@@ -390,10 +467,50 @@ def get_rolenames():
   
   <Returns>
     A list of rolenames.
-
   """
   
   return _roledb_dict.keys()
+
+
+
+
+
+def get_roleinfo(rolename):
+  """
+  <Purpose>
+    Return the roleinfo of 'rolename'.
+
+    {'keyids': ['34345df32093bd12...'],
+     'threshold': 1,
+     'signatures': ['ab453bdf...', ...],
+     'paths': ['path/to/target1', 'path/to/target2', ...],
+     'path_hash_prefixes': ['a324fcd...', ...],
+     'delegations': {'keys': {}, 'roles': []}}
+
+    The 'signatures', 'paths', 'path_hash_prefixes', and 'delegations' dict keys
+    are optional.
+
+  <Arguments>
+    rolename:
+      An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
+      (e.g., 'root', 'release', 'timestamp').
+
+  <Exceptions>
+    tuf.FormatError, if 'rolename' is improperly formatted.
+    
+    tuf.UnknownRoleError, if 'rolename' does not exist.
+
+  <Side Effects>
+    None.
+  
+  <Returns>
+    The roleinfo of 'rolename'.
+  """
+  
+  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
+  _check_rolename(rolename)
+  
+  return copy.deepcopy(_roledb_dict[rolename])
 
 
 
@@ -426,7 +543,6 @@ def get_role_keyids(rolename):
 
   <Returns>
     A list of keyids.
-
   """
   
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
@@ -462,7 +578,6 @@ def get_role_threshold(rolename):
 
   <Returns>
     A threshold integer value.
-
   """
 
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
@@ -498,7 +613,6 @@ def get_role_paths(rolename):
 
   <Returns>
     A list of paths. 
-
   """
 
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
@@ -540,8 +654,7 @@ def get_delegated_rolenames(rolename):
 
   <Returns>
     A list of rolenames. Note that the rolenames are *NOT* sorted by order of
-    delegation!
-
+    delegation.
   """
 
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
@@ -578,7 +691,6 @@ def clear_roledb():
 
   <Returns>
     None.
-
   """
 
   _roledb_dict.clear()
@@ -593,7 +705,6 @@ def _check_rolename(rolename):
   'tuf.formats.ROLENAME_SCHEMA', tuf.UnknownRoleError if 'rolename' is not
   found in the role database, or tuf.InvalidNameError if 'rolename' is
   not formatted correctly.
-
   """
   
   # Does 'rolename' have the correct object format?
@@ -616,7 +727,6 @@ def _validate_rolename(rolename):
   Raise tuf.InvalidNameError if 'rolename' is not formatted correctly.
   It is assumed 'rolename' has been checked against 'ROLENAME_SCHEMA'
   prior to calling this function.
-
   """
 
   if rolename == '':

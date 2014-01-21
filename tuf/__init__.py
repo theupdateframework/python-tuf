@@ -18,7 +18,6 @@
   The names chosen for TUF Exception classes should end in
   'Error' except where there is a good reason not to, and
   provide that reason in those cases.
-
 """
 
 import urlparse
@@ -117,6 +116,14 @@ class RepositoryError(Error):
 
 
 
+class InsufficientKeysError(Error):
+  """Indicate that metadata role lacks a threshold of pubic or private keys."""
+  pass
+
+
+
+
+
 class ForbiddenTargetError(RepositoryError):
   """Indicate that a role signed for a target that it was not delegated to."""
   pass
@@ -165,7 +172,7 @@ class CryptoError(Error):
 
 
 class BadSignatureError(CryptoError):
-  """Indicate that some metadata file had a bad signature."""
+  """Indicate that some metadata file has a bad signature."""
 
   def __init__(self, metadata_role_name):
     self.metadata_role_name = metadata_role_name
@@ -280,6 +287,13 @@ class UnknownTargetError(Error):
 class InvalidNameError(Error):
   """Indicate an error while trying to validate any type of named object"""
   pass
+
+
+
+
+
+class UnsignedMetadataError(Error):
+  """Indicate metadata object with insufficient threshold of signatures."""
 
 
 

@@ -19,7 +19,6 @@
   file-like object that will automatically destroys itself once closed.  Note
   that the file-like object, 'tuf.util.TempFile', is returned by the
   '_download_file()' function.
-  
 """
 
 # Induce "true division" (http://www.python.org/dev/peps/pep-0238/).
@@ -106,7 +105,6 @@ class SaferSocketFileObject(socket._fileobject):
 
     <Returns>
       None.
-
     """
 
     # We must have reset the clock before this.
@@ -139,7 +137,6 @@ class SaferSocketFileObject(socket._fileobject):
 
     <Returns>
       None.
-
     """
 
     # We use (platform-specific) wall time, so it will be imprecise sometimes.
@@ -201,7 +198,6 @@ class SaferSocketFileObject(socket._fileobject):
 
     <Returns>
       Received data up to 'size' bytes.
-
     """
 
     # We should never try to specify a negative size.
@@ -426,7 +422,6 @@ def _open_connection(url):
     
   <Returns>
     File-like object.
-    
   """
 
   # urllib2.Request produces a Request object that allows for a finer control 
@@ -478,7 +473,6 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
     total_downloaded:
       The total number of bytes we have downloaded for the desired file and
       which should be equal to 'required_length'.
-
   """
 
   # Keep track of total bytes downloaded.
@@ -538,7 +532,6 @@ def _get_content_length(connection):
     reported_length:
       The total number of bytes reported by server. If the process fails, we
       return None; otherwise we would return a nonnegative integer.
-
   """
 
   try:
@@ -559,7 +552,7 @@ def _get_content_length(connection):
 
 
 
-def _check_content_length(reported_length, required_length):
+def _check_content_length(reported_length, required_length, strict_length=True):
   """
   <Purpose>
     A helper function that checks whether the length reported by server is
@@ -572,6 +565,10 @@ def _check_content_length(reported_length, required_length):
     required_length:
       The total number of bytes obtained from (possibly default) metadata.
 
+    strict_length:
+      Boolean that indicates whether the required length of the file is an
+      exact match, or an upper limit (e.g., downloading a Timestamp file).
+
   <Side Effects>
     No known side effects.
  
@@ -580,21 +577,33 @@ def _check_content_length(reported_length, required_length):
  
   <Returns>
     None.
-
   """
 
+  logger.debug('The server reported a length of '+repr(reported_length)+' bytes.')
+  comparison_result = None
+  
   try:
     if reported_length < required_length:
-      logger.warn('reported_length ('+str(reported_length)+
-                  ') < required_length ('+str(required_length)+')')
+      comparison_result = 'less than' 
+    
     elif reported_length > required_length:
-      logger.warn('reported_length ('+str(reported_length)+
-                  ') > required_length ('+str(required_length)+')')
+      comparison_result = 'greater than' 
+    
     else:
-      logger.debug('reported_length ('+str(reported_length)+
-                   ') == required_length ('+str(required_length)+')')
+      comparison_result = 'equal to' 
+  
   except:
-    logger.exception('Could not check reported and required lengths!')
+    logger.exception('Could not check reported and required lengths.')
+  
+  if strict_length:
+    message = 'The reported length is '+comparison_result+' the required '+\
+      'length of '+repr(required_length)+' bytes.'
+    logger.debug(message)
+  
+  else:
+    message = 'The reported length is '+comparison_result+' the upper limit '+\
+      'of '+repr(required_length)+' bytes.'
+    logger.debug(message)
 
 
 
@@ -612,8 +621,11 @@ def _check_downloaded_length(total_downloaded, required_length,
       The total number of bytes supposedly downloaded for the file in question.
 
     required_length:
-      The total number of bytes expected of the file as seen from its (possibly
-      default) metadata.
+      The total number of bytes expected of the file as seen from its metadata.
+      The Timestamp role is always downloaded without a known file length, and
+      the Root role when the client cannot download any of the required
+      top-level roles.  In both cases, 'required_length' is actually an upper
+      limit on the length of the downloaded file.
 
     STRICT_REQUIRED_LENGTH:
       A Boolean indicator used to signal whether we should perform strict
@@ -630,30 +642,33 @@ def _check_downloaded_length(total_downloaded, required_length,
  
   <Returns>
     None.
-
   """
 
   if total_downloaded == required_length:
-    logger.debug('total_downloaded == required_length == '+
-                 str(required_length))
+    logger.info('Downloaded '+str(total_downloaded)+' bytes out of the '+\
+                'expected '+str(required_length)+ ' bytes.')
   else:
     difference_in_bytes = abs(total_downloaded-required_length)
-    message = 'Downloaded '+str(total_downloaded)+' bytes, but expected '+\
-              str(required_length)+' bytes. There is a difference of '+\
-              str(difference_in_bytes)+' bytes!'
 
     # What we downloaded is not equal to the required length, but did we ask
     # for strict checking of required length?
-    if STRICT_REQUIRED_LENGTH:  
+    if STRICT_REQUIRED_LENGTH:
+      message = 'Downloaded '+str(total_downloaded)+' bytes, but expected '+\
+        str(required_length)+' bytes. There is a difference of '+\
+        str(difference_in_bytes)+' bytes.'
+      
       # This must be due to a programming error, and must never happen!
       logger.error(message)          
       raise tuf.DownloadLengthMismatchError(required_length, total_downloaded)
+    
     else:
+      message = 'Downloaded '+str(total_downloaded)+' bytes out of an upper '+\
+        'limit of '+str(required_length)+' bytes.'
       # We specifically disabled strict checking of required length, but we
       # will log a warning anyway. This is useful when we wish to download the
-      # timestamp metadata, for which we have no signed metadata; so, we must
-      # guess a reasonable required_length for it.
-      logger.warn(message)
+      # Timestamp or Root metadata, for which we have no signed metadata; so,
+      # we must guess a reasonable required_length for it.
+      logger.info(message)
 
 
 
@@ -711,7 +726,6 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   <Returns>
     A 'tuf.util.TempFile' file-like object which points to the contents of
     'url'.
-
   """
 
   # Do all of the arguments have the appropriate format?
@@ -748,7 +762,8 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     reported_length = _get_content_length(connection)
 
     # Then, we check whether the required length matches the reported length.
-    _check_content_length(reported_length, required_length)
+    _check_content_length(reported_length, required_length,
+                          STRICT_REQUIRED_LENGTH)
 
     # Download the contents of the URL, up to the required length, to a
     # temporary file, and get the total number of downloaded bytes.
@@ -773,8 +788,3 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     # Restore previously saved values or functions.
     httplib.HTTPConnection.response_class = previous_http_response_class
     socket.setdefaulttimeout(previous_socket_timeout)
-
-
-
-
-

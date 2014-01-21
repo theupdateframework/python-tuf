@@ -13,7 +13,6 @@
 
 <Purpose>
   Unit test for keystore.py.
-
 """
 
 import unittest
@@ -25,7 +24,7 @@ import Crypto.Protocol.KDF
 
 import tuf
 import tuf.repo.keystore
-import tuf.rsa_key
+import tuf.keys
 import tuf.formats
 import tuf.util
 import tuf.log
@@ -56,7 +55,7 @@ temp_keys_vals = []
 
 for i in range(3):
   # Populating the original 'RSAKEYS' and 'PASSWDS' lists.
-  RSAKEYS.append(tuf.rsa_key.generate())
+  RSAKEYS.append(tuf.keys.generate_rsa_key())
   PASSWDS.append('passwd_'+str(i))
 
   # Saving original copies of 'RSAKEYS' and 'PASSWDS' to temp variables
@@ -348,6 +347,7 @@ def tearDownModule():
   # tearDownModule() is called after all the tests have run.
   # Ensure we clean up the keystore.  They say courtesy is contagious.
   tuf.repo.keystore.clear_keystore()
+
 
 
 # Run the unit tests.

@@ -57,9 +57,7 @@
   Example: 
   
   signable_object = make_signable(unsigned_object)
-
 """
-
 
 import binascii
 import calendar
@@ -76,15 +74,19 @@ import tuf.schema as SCHEMA
 # easily backwards compatible with clients that are already deployed.
 
 # A date in 'YYYY-MM-DD HH:MM:SS UTC' format.
+# TODO: Support timestamps according to the ISO 8601 standard.
 TIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC')
+
+# A date in 'YYYY-MM-DD HH:MM:SS UTC' format.
+DATETIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
 
 # A hexadecimal value in '23432df87ab..' format.
 HASH_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
 
 # A dict in {'sha256': '23432df87ab..', 'sha512': '34324abc34df..', ...} format.
 HASHDICT_SCHEMA = SCHEMA.DictOf(
-  key_schema=SCHEMA.AnyString(),
-  value_schema=HASH_SCHEMA)
+  key_schema = SCHEMA.AnyString(),
+  value_schema = HASH_SCHEMA)
 
 # A hexadecimal value in '23432df87ab..' format.
 HEX_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
@@ -93,7 +95,7 @@ HEX_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
 KEYID_SCHEMA = HASH_SCHEMA
 KEYIDS_SCHEMA = SCHEMA.ListOf(KEYID_SCHEMA)
 
-# The method used for a generated signature (e.g., 'evp').
+# The method used for a generated signature (e.g., 'RSASSA-PSS').
 SIG_METHOD_SCHEMA = SCHEMA.AnyString()
 
 # A relative file path (e.g., 'metadata/root/').
@@ -109,14 +111,14 @@ URL_SCHEMA = SCHEMA.AnyString()
 
 # A dictionary holding version information.
 VERSION_SCHEMA = SCHEMA.Object(
-  object_name='version',
-  major=SCHEMA.Integer(lo=0),
-  minor=SCHEMA.Integer(lo=0),
-  fix=SCHEMA.Integer(lo=0))
+  object_name = 'VERSION_SCHEMA',
+  major = SCHEMA.Integer(lo=0),
+  minor = SCHEMA.Integer(lo=0),
+  fix = SCHEMA.Integer(lo=0))
 
 # An integer representing the numbered version of a metadata file.
 # Must be 1, or greater.
-METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=1)
+METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=0)
 
 # An integer representing length.  Must be 0, or greater.
 LENGTH_SCHEMA = SCHEMA.Integer(lo=0)
@@ -127,9 +129,20 @@ LOGLEVEL_SCHEMA = SCHEMA.Integer(lo=0, hi=50)
 
 # A string representing a named object.
 NAME_SCHEMA = SCHEMA.AnyString()
+NAMES_SCHEMA = SCHEMA.ListOf(NAME_SCHEMA)
+
+# Supported hash algorithms.
+HASHALGORITHMS_SCHEMA = SCHEMA.ListOf(SCHEMA.OneOf(
+  [SCHEMA.String('md5'), SCHEMA.String('sha1'),
+   SCHEMA.String('sha224'), SCHEMA.String('sha256'),
+   SCHEMA.String('sha384'), SCHEMA.String('sha512')]))
+
+# The contents of an encrypted TUF key.  Encrypted TUF keys are saved to files
+# in this format.
+ENCRYPTEDKEY_SCHEMA = SCHEMA.AnyString()
 
 # A value that is either True or False, on or off, etc.
-TOGGLE_SCHEMA = SCHEMA.Boolean()
+BOOLEAN_SCHEMA = SCHEMA.Boolean()
 
 # A role's threshold value (i.e., the minimum number
 # of signatures required to sign a metadata file).
@@ -141,6 +154,12 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 
 # The minimum number of bits for an RSA key.  Must be 2048 bits and greater.
 RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
+
+# The number of bins used to delegate to hashed roles.
+NUMBINS_SCHEMA = SCHEMA.Integer(lo=16)
+
+# A PyCrypto signature.
+PYCRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyString()
 
 # An RSA key in PEM format.
 PEMRSA_SCHEMA = SCHEMA.AnyString()
@@ -155,50 +174,76 @@ PASSWORDS_SCHEMA = SCHEMA.ListOf(PASSWORD_SCHEMA)
 # key identifier ('rsa', 233df889cb).  For RSA keys, the key value is a pair of
 # public and private keys in PEM Format stored as strings.
 KEYVAL_SCHEMA = SCHEMA.Object(
-  object_name='keyval',
-  public=SCHEMA.AnyString(),
-  private=SCHEMA.AnyString())
+  object_name = 'KEYVAL_SCHEMA',
+  public = SCHEMA.AnyString(),
+  private = SCHEMA.AnyString())
 
-# A generic key.  All TUF keys should be saved to metadata files in this format.
+# Supported TUF key types. 
+KEYTYPE_SCHEMA = SCHEMA.OneOf(
+  [SCHEMA.String('rsa'), SCHEMA.String('ed25519')])
+
+# A generic TUF key.  All TUF keys should be saved to metadata files in this
+# format.
 KEY_SCHEMA = SCHEMA.Object(
-  object_name='key',
-  keytype=SCHEMA.AnyString(),
-  keyval=KEYVAL_SCHEMA)
+  object_name = 'KEY_SCHEMA',
+  keytype = SCHEMA.AnyString(),
+  keyval = KEYVAL_SCHEMA)
 
-# An RSA key.
+# A TUF key object.  This schema simplifies validation of keys that may be
+# one of the supported key types.
+# Supported key types: 'rsa', 'ed25519'.
+ANYKEY_SCHEMA = SCHEMA.Object(
+  object_name = 'ANYKEY_SCHEMA',
+  keytype = KEYTYPE_SCHEMA,
+  keyid = KEYID_SCHEMA,
+  keyval = KEYVAL_SCHEMA)
+
+# A list of TUF key objects.
+ANYKEYLIST_SCHEMA = SCHEMA.ListOf(ANYKEY_SCHEMA)
+
+# An RSA TUF key.
 RSAKEY_SCHEMA = SCHEMA.Object(
-  object_name='rsakey',
-  keytype=SCHEMA.String('rsa'),
-  keyid=KEYID_SCHEMA,
-  keyval=KEYVAL_SCHEMA)
+  object_name = 'RSAKEY_SCHEMA',
+  keytype = SCHEMA.String('rsa'),
+  keyid = KEYID_SCHEMA,
+  keyval = KEYVAL_SCHEMA)
 
-# An ed25519 key.
+# An ED25519 raw public key, which must be 32 bytes.
+ED25519PUBLIC_SCHEMA = SCHEMA.LengthString(32)
+
+# An ED25519 raw seed key, which must be 32 bytes.  
+ED25519SEED_SCHEMA = SCHEMA.LengthString(32)
+
+# An ED25519 raw signature, which must be 64 bytes.  
+ED25519SIGNATURE_SCHEMA = SCHEMA.LengthString(64)
+
+# An ed25519 TUF key.
 ED25519KEY_SCHEMA = SCHEMA.Object(
-  object_name='ed25519key',
-  keytype=SCHEMA.String('ed25519'),
-  keyid=KEYID_SCHEMA,
-  keyval=KEYVAL_SCHEMA)
+  object_name = 'ED25519KEY_SCHEMA',
+  keytype = SCHEMA.String('ed25519'),
+  keyid = KEYID_SCHEMA,
+  keyval = KEYVAL_SCHEMA)
 
 # Info that describes both metadata and target files.
 # This schema allows the storage of multiple hashes for the same file
 # (e.g., sha256 and sha512 may be computed for the same file and stored).
 FILEINFO_SCHEMA = SCHEMA.Object(
-  object_name='fileinfo',
-  length=LENGTH_SCHEMA,
-  hashes=HASHDICT_SCHEMA,
-  custom=SCHEMA.Optional(SCHEMA.Object()))
+  object_name = 'FILEINFO_SCHEMA',
+  length = LENGTH_SCHEMA,
+  hashes = HASHDICT_SCHEMA,
+  custom = SCHEMA.Optional(SCHEMA.Object()))
 
 # A dict holding the information for a particular file.  The keys hold the
 # relative file path and the values the relevant file information.
 FILEDICT_SCHEMA = SCHEMA.DictOf(
-  key_schema=RELPATH_SCHEMA,
-  value_schema=FILEINFO_SCHEMA)
+  key_schema = RELPATH_SCHEMA,
+  value_schema = FILEINFO_SCHEMA)
 
 # A dict holding a target file.
 TARGETFILE_SCHEMA = SCHEMA.Object(
-  object_name='targetfile',
-  filepath=RELPATH_SCHEMA,
-  fileinfo=FILEINFO_SCHEMA)
+  object_name = 'TARGETFILE_SCHEMA',
+  filepath = RELPATH_SCHEMA,
+  fileinfo = FILEINFO_SCHEMA)
 TARGETFILES_SCHEMA = SCHEMA.ListOf(TARGETFILE_SCHEMA)
 
 # A single signature of an object.  Indicates the signature, the id of the
@@ -210,10 +255,13 @@ TARGETFILES_SCHEMA = SCHEMA.ListOf(TARGETFILE_SCHEMA)
 # one can imagine that maybe a key wants to sign multiple times with different
 # signature methods.
 SIGNATURE_SCHEMA = SCHEMA.Object(
-  object_name='signature',
-  keyid=KEYID_SCHEMA,
-  method=SIG_METHOD_SCHEMA,
-  sig=HEX_SCHEMA)
+  object_name = 'SIGNATURE_SCHEMA',
+  keyid = KEYID_SCHEMA,
+  method = SIG_METHOD_SCHEMA,
+  sig = HEX_SCHEMA)
+
+# List of SIGNATURE_SCHEMA.
+SIGNATURES_SCHEMA = SCHEMA.ListOf(SIGNATURE_SCHEMA)
 
 # A schema holding the result of checking the signatures of a particular
 # 'SIGNABLE_SCHEMA' role.
@@ -221,31 +269,31 @@ SIGNATURE_SCHEMA = SCHEMA.Object(
 # valid?  This SCHEMA holds this information.  See 'sig.py' for
 # more information.
 SIGNATURESTATUS_SCHEMA = SCHEMA.Object(
-  object_name='signaturestatus',
-  threshold=SCHEMA.Integer(),
-  good_sigs=SCHEMA.ListOf(KEYID_SCHEMA),
-  bad_sigs=SCHEMA.ListOf(KEYID_SCHEMA),
-  unknown_sigs=SCHEMA.ListOf(KEYID_SCHEMA),
-  untrusted_sigs=SCHEMA.ListOf(KEYID_SCHEMA),
-  unknown_method_sigs=SCHEMA.ListOf(KEYID_SCHEMA))
+  object_name = 'SIGNATURESTATUS_SCHEMA',
+  threshold = SCHEMA.Integer(),
+  good_sigs = KEYIDS_SCHEMA,
+  bad_sigs = KEYIDS_SCHEMA,
+  unknown_sigs = KEYIDS_SCHEMA,
+  untrusted_sigs = KEYIDS_SCHEMA,
+  unknown_method_sigs = KEYIDS_SCHEMA)
 
 # A signable object.  Holds the signing role and its associated signatures.
 SIGNABLE_SCHEMA = SCHEMA.Object(
-  object_name='signable',
-  signed=SCHEMA.Any(),
-  signatures=SCHEMA.ListOf(SIGNATURE_SCHEMA))
+  object_name = 'SIGNABLE_SCHEMA',
+  signed = SCHEMA.Any(),
+  signatures = SCHEMA.ListOf(SIGNATURE_SCHEMA))
 
 # A dict where the dict keys hold a keyid and the dict values a key object.
 KEYDICT_SCHEMA = SCHEMA.DictOf(
-  key_schema=KEYID_SCHEMA,
-  value_schema=KEY_SCHEMA)
+  key_schema = KEYID_SCHEMA,
+  value_schema = KEY_SCHEMA)
 
 # The format used by the key database to store keys.  The dict keys hold a key
 # identifier and the dict values any object.  The key database should store
 # key objects in the values (e.g., 'RSAKEY_SCHEMA', 'DSAKEY_SCHEMA').
 KEYDB_SCHEMA = SCHEMA.DictOf(
-  key_schema=KEYID_SCHEMA,
-  value_schema=SCHEMA.Any())
+  key_schema = KEYID_SCHEMA,
+  value_schema = SCHEMA.Any())
 
 # The format of the resulting "scp config dict" after extraction from the
 # push configuration file (i.e., push.cfg).  In the case of a config file
@@ -255,18 +303,18 @@ KEYDB_SCHEMA = SCHEMA.DictOf(
 # 'remote_directory' entries.  See 'tuf/pushtools/pushtoolslib.py' and
 # 'tuf/pushtools/push.py'.
 SCPCONFIG_SCHEMA = SCHEMA.Object(
-  object_name='scp_config',
-  general=SCHEMA.Object(
-    object_name='[general]',
-    transfer_module=SCHEMA.String('scp'),
-    metadata_path=PATH_SCHEMA,
-    targets_directory=PATH_SCHEMA),
+  object_name = 'SCPCONFIG_SCHEMA',
+  general = SCHEMA.Object(
+    object_name = '[general]',
+    transfer_module = SCHEMA.String('scp'),
+    metadata_path = PATH_SCHEMA,
+    targets_directory = PATH_SCHEMA),
   scp=SCHEMA.Object(
-    object_name='[scp]',
-    host=URL_SCHEMA,
-    user=NAME_SCHEMA,
-    identity_file=PATH_SCHEMA,
-    remote_directory=PATH_SCHEMA))
+    object_name = '[scp]',
+    host = URL_SCHEMA,
+    user = NAME_SCHEMA,
+    identity_file = PATH_SCHEMA,
+    remote_directory = PATH_SCHEMA))
 
 # The format of the resulting "receive config dict" after extraction from the
 # receive configuration file (i.e., receive.cfg).  The receive config file
@@ -275,101 +323,136 @@ SCPCONFIG_SCHEMA = SCHEMA.Object(
 # 'backup_directory' entries.
 # see 'tuf/pushtools/pushtoolslib.py' and 'tuf/pushtools/receive/receive.py'
 RECEIVECONFIG_SCHEMA = SCHEMA.Object(
-  object_name='receive_config',
-  general=SCHEMA.Object(
-    object_name='[general]',
-    pushroots=SCHEMA.ListOf(PATH_SCHEMA),
-    repository_directory=PATH_SCHEMA,
-    metadata_directory=PATH_SCHEMA,
-    targets_directory=PATH_SCHEMA,
-    backup_directory=PATH_SCHEMA)) 
+  object_name = 'RECEIVECONFIG_SCHEMA', general=SCHEMA.Object(
+    object_name = '[general]',
+    pushroots = SCHEMA.ListOf(PATH_SCHEMA),
+    repository_directory = PATH_SCHEMA,
+    metadata_directory = PATH_SCHEMA,
+    targets_directory = PATH_SCHEMA,
+    backup_directory = PATH_SCHEMA)) 
 
 # A path hash prefix is a hexadecimal string.
 PATH_HASH_PREFIX_SCHEMA = HEX_SCHEMA
+
 # A list of path hash prefixes.
 PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
-# 'paths':[filepaths..]} # format.
+# 'paths':[filepaths..]} format.
 ROLE_SCHEMA = SCHEMA.Object(
-  object_name='role',
-  keyids=SCHEMA.ListOf(KEYID_SCHEMA),
-  name=SCHEMA.Optional(ROLENAME_SCHEMA),
-  threshold=THRESHOLD_SCHEMA,
-  paths=SCHEMA.Optional(RELPATHS_SCHEMA),
-  path_hash_prefixes=SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
+  object_name = 'ROLE_SCHEMA',
+  name = SCHEMA.Optional(ROLENAME_SCHEMA),
+  keyids = KEYIDS_SCHEMA,
+  threshold = THRESHOLD_SCHEMA,
+  paths = SCHEMA.Optional(RELPATHS_SCHEMA),
+  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
 
 # A dict of roles where the dict keys are role names and the dict values holding 
 # the role data/information.
 ROLEDICT_SCHEMA = SCHEMA.DictOf(
-  key_schema=ROLENAME_SCHEMA,
-  value_schema=ROLE_SCHEMA)
+  key_schema = ROLENAME_SCHEMA,
+  value_schema = ROLE_SCHEMA)
 
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 
-# The root: indicates root keys and top-level roles.
+# The delegated roles of a Targets role (a parent).
+DELEGATIONS_SCHEMA = SCHEMA.Object(
+  keys = KEYDICT_SCHEMA,
+  roles = ROLELIST_SCHEMA)
+
+# The number of seconds before metadata expires.  The minimum is 86400 seconds
+# (= 1 day).  This schema is used for the initial expiration date.  Repository
+# maintainers may later modify this value (TIME_SCHEMA).
+EXPIRATION_SCHEMA = SCHEMA.Integer(lo=86400)
+
+# Supported compression extension (e.g., 'gz').
+COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
+
+# List of supported compression extensions.
+COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
+  SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
+
+# tuf.roledb
+ROLEDB_SCHEMA = SCHEMA.Object(
+  object_name = 'ROLEDB_SCHEMA',
+  keyids = KEYIDS_SCHEMA,
+  signing_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
+  threshold = THRESHOLD_SCHEMA,
+  version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
+  expires = SCHEMA.Optional(SCHEMA.OneOf([EXPIRATION_SCHEMA, TIME_SCHEMA])),
+  signatures = SCHEMA.Optional(SIGNATURES_SCHEMA),
+  compressions = SCHEMA.Optional(COMPRESSIONS_SCHEMA),
+  paths = SCHEMA.Optional(RELPATHS_SCHEMA),
+  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
+  delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
+  partial_loaded = SCHEMA.Optional(BOOLEAN_SCHEMA))
+
+# Root role: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(
-  object_name='root',
-  _type=SCHEMA.String('Root'),
-  version=METADATAVERSION_SCHEMA,
-  expires=TIME_SCHEMA,
-  keys=KEYDICT_SCHEMA,
-  roles=ROLEDICT_SCHEMA)
+  object_name = 'ROOT_SCHEMA',
+  _type = SCHEMA.String('Root'),
+  version = METADATAVERSION_SCHEMA,
+  consistent_snapshots = BOOLEAN_SCHEMA,
+  expires = TIME_SCHEMA,
+  keys = KEYDICT_SCHEMA,
+  roles = ROLEDICT_SCHEMA)
 
-# Targets. Indicates targets and delegates target paths to other roles.
+# Targets role: Indicates targets and delegates target paths to other roles.
 TARGETS_SCHEMA = SCHEMA.Object(
-  object_name='targets',
-  _type=SCHEMA.String('Targets'),
-  version=METADATAVERSION_SCHEMA,
-  expires=TIME_SCHEMA,
-  targets=FILEDICT_SCHEMA,
-  delegations=SCHEMA.Optional(SCHEMA.Object(
-    keys=KEYDICT_SCHEMA,
-    roles=ROLELIST_SCHEMA)))
+  object_name = 'TARGETS_SCHEMA',
+  _type = SCHEMA.String('Targets'),
+  version = METADATAVERSION_SCHEMA,
+  expires = TIME_SCHEMA,
+  targets = FILEDICT_SCHEMA,
+  delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA))
 
-# A Release: indicates the latest versions of all metadata (except timestamp).
+# Release role: indicates the latest versions of all metadata (except timestamp).
 RELEASE_SCHEMA = SCHEMA.Object(
-  object_name='release',
-  _type=SCHEMA.String('Release'),
-  version=METADATAVERSION_SCHEMA,
-  expires=TIME_SCHEMA,
-  meta=FILEDICT_SCHEMA)
+  object_name = 'RELEASE_SCHEMA',
+  _type = SCHEMA.String('Release'),
+  version = METADATAVERSION_SCHEMA,
+  expires = TIME_SCHEMA,
+  meta = FILEDICT_SCHEMA)
 
-# A Timestamp: indicates the latest version of the release file.
+# Timestamp role: indicates the latest version of the release file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
-  object_name='timestamp',
-  _type=SCHEMA.String('Timestamp'),
-  version=METADATAVERSION_SCHEMA,
-  expires=TIME_SCHEMA,
-  meta=FILEDICT_SCHEMA)
+  object_name = 'TIMESTAMP_SCHEMA',
+  _type = SCHEMA.String('Timestamp'),
+  version = METADATAVERSION_SCHEMA,
+  expires = TIME_SCHEMA,
+  meta = FILEDICT_SCHEMA)
 
 # A schema containing information a repository mirror may require,
 # such as a url, the path of the directory metadata files, etc.
 MIRROR_SCHEMA = SCHEMA.Object(
-  object_name='mirror',
-  url_prefix=URL_SCHEMA,
-  metadata_path=RELPATH_SCHEMA,
-  targets_path=RELPATH_SCHEMA,
-  confined_target_dirs=RELPATHS_SCHEMA,
-  custom=SCHEMA.Optional(SCHEMA.Object()))
+  object_name = 'MIRROR_SCHEMA',
+  url_prefix = URL_SCHEMA,
+  metadata_path = RELPATH_SCHEMA,
+  targets_path = RELPATH_SCHEMA,
+  confined_target_dirs = RELPATHS_SCHEMA,
+  custom = SCHEMA.Optional(SCHEMA.Object()))
 
 # A dictionary of mirrors where the dict keys hold the mirror's name and
 # and the dict values the mirror's data (i.e., 'MIRROR_SCHEMA').
 # The repository class of 'updater.py' accepts dictionaries
 # of this type provided by the TUF client.
 MIRRORDICT_SCHEMA = SCHEMA.DictOf(
-  key_schema=SCHEMA.AnyString(),
-  value_schema=MIRROR_SCHEMA)
+  key_schema = SCHEMA.AnyString(),
+  value_schema = MIRROR_SCHEMA)
 
 # A Mirrorlist: indicates all the live mirrors, and what documents they
 # serve.
 MIRRORLIST_SCHEMA = SCHEMA.Object(
-  object_name='mirrorlist',
-  _type=SCHEMA.String('Mirrors'),
-  version=METADATAVERSION_SCHEMA,
-  expires=TIME_SCHEMA,
-  mirrors=SCHEMA.ListOf(MIRROR_SCHEMA))
+  object_name = 'MIRRORLIST_SCHEMA',
+  _type = SCHEMA.String('Mirrors'),
+  version = METADATAVERSION_SCHEMA,
+  expires = TIME_SCHEMA,
+  mirrors = SCHEMA.ListOf(MIRROR_SCHEMA))
+
+# Any of the role schemas (e.g., TIMESTAMP_SCHEMA, RELEASE_SCHEMA, etc.)
+ANYROLE_SCHEMA = SCHEMA.OneOf([ROOT_SCHEMA, TARGETS_SCHEMA, RELEASE_SCHEMA,
+                               TIMESTAMP_SCHEMA, MIRROR_SCHEMA])
 
 
 
@@ -383,7 +466,6 @@ class MetaFile(object):
     and ReleaseFile all inherit from MetaFile.  The
     __eq__, __ne__, perform 'equal' and 'not equal' comparisons
     between Metadata File objects.
-
   """
 
   info = None
@@ -401,7 +483,6 @@ class MetaFile(object):
       Allow all metafile objects to have their interesting attributes
       referred to directly without the info dict. The info dict is just
       to be able to do the __eq__ comparison generically.
-    
     """
     
     if name in self.info:
@@ -450,12 +531,13 @@ class TimestampFile(MetaFile):
 
 
 class RootFile(MetaFile):
-  def __init__(self, version, expires, keys, roles):
+  def __init__(self, version, expires, keys, roles, consistent_snapshots):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
     self.info['keys'] = keys
     self.info['roles'] = roles
+    self.info['consistent_snapshots'] = consistent_snapshots
 
 
   @staticmethod
@@ -468,21 +550,20 @@ class RootFile(MetaFile):
     expires = parse_time(object['expires'])
     keys = object['keys']
     roles = object['roles']
+    consistent_snapshots = object['consistent_snapshots']
     
-    return RootFile(version, expires, keys, roles)
+    return RootFile(version, expires, keys, roles, consistent_snapshots)
 
 
   @staticmethod
-  def make_metadata(version, expiration_seconds, keydict, roledict):
-    # Is 'expiration_seconds' properly formatted?
-    # Raise 'tuf.FormatError' if not.
-    LENGTH_SCHEMA.check_match(expiration_seconds)
-    
+  def make_metadata(version, expiration_date, keydict, roledict,
+                    consistent_snapshots):
     result = {'_type' : 'Root'}
     result['version'] = version
-    result['expires'] = format_time(time.time() + expiration_seconds)
+    result['expires'] = expiration_date
     result['keys'] = keydict
     result['roles'] = roledict
+    result['consistent_snapshots'] = consistent_snapshots
     
     # Is 'result' a Root metadata file?
     # Raise 'tuf.FormatError' if not.
@@ -645,7 +726,6 @@ def format_time(timestamp):
 
   <Returns>
     A string in 'YYYY-MM-DD HH:MM:SS UTC' format.
-
   """
    
   try:
@@ -677,7 +757,6 @@ def parse_time(string):
 
   <Returns>
     A timestamp (e.g., 499137660).
-
   """
   
   # Is 'string' properly formatted?
@@ -715,7 +794,6 @@ def format_base64(data):
 
   <Returns>
     A base64-encoded string.
-
   """
   
   try:
@@ -746,7 +824,6 @@ def parse_base64(base64_string):
   <Returns>
     A byte string representing the parsed based64 encoding of
     'base64_string'.
-
   """
 
   if not isinstance(base64_string, basestring):
@@ -791,7 +868,6 @@ def make_signable(object):
 
   <Returns>
     A dict in 'SIGNABLE_SCHEMA' format.
-
   """
 
   if not isinstance(object, dict) or 'signed' not in object:
@@ -832,7 +908,6 @@ def make_fileinfo(length, hashes, custom=None):
   <Returns>
     A dictionary conformant to 'FILEINFO_SCHEMA', representing the file
     information of a metadata or target file.
-
   """
 
   fileinfo = {'length' : length, 'hashes' : hashes}
@@ -889,7 +964,6 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
   <Returns>
     A properly formatted role meta dict, conforming to
     'ROLE_SCHEMA'.
-    
   """
 
   role_meta = {}
@@ -950,7 +1024,6 @@ def get_role_class(expected_rolename):
     The class corresponding to 'expected_rolename'.
     E.g., 'Release' as an argument to this function causes
     'ReleaseFile' to be returned. 
-
   """
  
   # Does 'expected_rolename' have the correct type?
@@ -993,7 +1066,6 @@ def expected_meta_rolename(meta_rolename):
 
   <Returns>
     A string (e.g., 'Root', 'Targets').
-    
   """
    
   # Does 'meta_rolename' have the correct type?
@@ -1033,7 +1105,6 @@ def check_signable_object_format(object):
   <Returns>
     A string representing the signing role (e.g., 'root', 'targets').
     The role string is returned with characters all lower case.
-
   """
   
   # Does 'object' have the correct type?
@@ -1077,7 +1148,6 @@ def _canonical_string_encoder(string):
 
   <Returns>
     A string with the canonical-encoded 'string' embedded.
-
   """
 
   string = '"%s"' % re.sub(r'(["\\])', r'\\\1', string)
@@ -1182,7 +1252,6 @@ def encode_canonical(object, output_function=None):
 
   <Returns>
     A string representing the 'object' encoded in canonical JSON form.
-
   """
 
   result = None

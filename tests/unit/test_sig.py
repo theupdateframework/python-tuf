@@ -14,9 +14,7 @@
 
 <Purpose>
   Test cases for for sig.py.
-
 """
-
 
 import unittest
 import logging
@@ -26,7 +24,7 @@ import tuf.log
 import tuf.formats
 import tuf.keydb
 import tuf.roledb
-import tuf.rsa_key
+import tuf.keys
 import tuf.sig
 
 logger = logging.getLogger('tuf.test_sig')
@@ -34,7 +32,7 @@ logger = logging.getLogger('tuf.test_sig')
 # Setup the keys to use in our test cases.
 KEYS = []
 for _ in range(3):
-  KEYS.append(tuf.rsa_key.generate(2048))
+  KEYS.append(tuf.keys.generate_rsa_key(2048))
 
 
 
@@ -55,7 +53,7 @@ class TestSig(unittest.TestCase):
     signable['signatures'].append(tuf.sig.generate_rsa_signature(
                                   signable['signed'], KEYS[0]))
 
-    tuf.keydb.add_rsakey(KEYS[0]) 
+    tuf.keydb.add_key(KEYS[0]) 
 
     # No specific role we're considering.
     sig_status = tuf.sig.get_signature_status(signable, None)
@@ -82,7 +80,7 @@ class TestSig(unittest.TestCase):
                                   signable['signed'], KEYS[0]))
     signable['signed'] += 'signature no longer matches signed data'
 
-    tuf.keydb.add_rsakey(KEYS[0])
+    tuf.keydb.add_key(KEYS[0])
     threshold = 1
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
@@ -112,7 +110,7 @@ class TestSig(unittest.TestCase):
                                   signable['signed'], KEYS[0]))
     signable['signatures'][0]['method'] = 'fake-sig-method'
 
-    tuf.keydb.add_rsakey(KEYS[0])
+    tuf.keydb.add_key(KEYS[0])
     threshold = 1
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
@@ -142,7 +140,7 @@ class TestSig(unittest.TestCase):
     signable['signatures'].append(tuf.sig.generate_rsa_signature(
                                   signable['signed'], KEYS[0]))
 
-    tuf.keydb.add_rsakey(KEYS[0])
+    tuf.keydb.add_key(KEYS[0])
     threshold = 1
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
@@ -171,7 +169,7 @@ class TestSig(unittest.TestCase):
     signable['signatures'].append(tuf.sig.generate_rsa_signature(
                                   signable['signed'], KEYS[0]))
 
-    tuf.keydb.add_rsakey(KEYS[0])
+    tuf.keydb.add_key(KEYS[0])
     threshold = 2
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid'],
@@ -205,8 +203,8 @@ class TestSig(unittest.TestCase):
     signable['signatures'].append(tuf.sig.generate_rsa_signature(
                                   signable['signed'], KEYS[2]))
 
-    tuf.keydb.add_rsakey(KEYS[0])
-    tuf.keydb.add_rsakey(KEYS[1])
+    tuf.keydb.add_key(KEYS[0])
+    tuf.keydb.add_key(KEYS[1])
     threshold = 2
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid'],
@@ -242,8 +240,8 @@ class TestSig(unittest.TestCase):
     signable['signatures'].append(tuf.sig.generate_rsa_signature(
                                   signable['signed'], KEYS[1]))
 
-    tuf.keydb.add_rsakey(KEYS[0])
-    tuf.keydb.add_rsakey(KEYS[1])
+    tuf.keydb.add_key(KEYS[0])
+    tuf.keydb.add_key(KEYS[1])
     threshold = 2
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid'], KEYS[2]['keyid']], threshold)
@@ -278,7 +276,7 @@ class TestSig(unittest.TestCase):
     signable['signatures'].append(tuf.sig.generate_rsa_signature(
                                   signable['signed'], KEYS[0]))
 
-    tuf.keydb.add_rsakey(KEYS[0])
+    tuf.keydb.add_key(KEYS[0])
 
     # No specific role we're considering. It's invalid to use the
     # function tuf.sig.verify() without a role specified because
@@ -295,7 +293,7 @@ class TestSig(unittest.TestCase):
     signable['signatures'].append(tuf.sig.generate_rsa_signature(
                                   signable['signed'], KEYS[0]))
 
-    tuf.keydb.add_rsakey(KEYS[0])
+    tuf.keydb.add_key(KEYS[0])
     threshold = 1
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
@@ -321,8 +319,8 @@ class TestSig(unittest.TestCase):
     signable['signatures'].append(tuf.sig.generate_rsa_signature(
                                   signable['signed'], KEYS[2]))
 
-    tuf.keydb.add_rsakey(KEYS[0])
-    tuf.keydb.add_rsakey(KEYS[1])
+    tuf.keydb.add_key(KEYS[0])
+    tuf.keydb.add_key(KEYS[1])
     threshold = 2
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid'], KEYS[1]['keyid']], threshold)
@@ -363,7 +361,7 @@ class TestSig(unittest.TestCase):
     signable['signatures'].append(tuf.sig.generate_rsa_signature(
                                   signable['signed'], KEYS[0]))
 
-    tuf.keydb.add_rsakey(KEYS[1])
+    tuf.keydb.add_key(KEYS[1])
     threshold = 1
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[1]['keyid']], threshold)

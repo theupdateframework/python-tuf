@@ -69,6 +69,7 @@ setup(
   url='https://www.updateframework.com',
   install_requires=['pycrypto>=2.6'],
   packages=[
+    'ed25519',
     'tuf',
     'tuf.client',
     'tuf.compatibility',
@@ -82,6 +83,7 @@ setup(
     'tuf/repo/quickstart.py',
     'tuf/pushtools/push.py',
     'tuf/pushtools/receivetools/receive.py',
-    'tuf/repo/signercli.py'
+    'tuf/repo/signercli.py',
+    'tuf/client/basic_client.py'
   ]
 )

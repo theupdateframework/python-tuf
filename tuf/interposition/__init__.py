@@ -285,6 +285,24 @@ def configure(filename="tuf.interposition.json",
 
 
 
+def refresh(configurations):
+  """Refresh the top-level metadata for previously read configurations."""
+
+  # Get the updater and refresh its top-level metadata.  In the majority of
+  # integrations, a software updater integrating TUF with interposition will
+  # usually only require an initial refresh() (i.e., when configure() is
+  # called).  A series of target file requests may then occur, which are all
+  # referenced by the latest top-level metadata updated by configure().
+  # Although interposition was designed to remain transparent, for software
+  # updaters that require an explicit refresh of top-level metadata, this
+  # method is provided.
+  for configuration in configurations.itervalues():
+    __updater_controller.refresh(configuration)
+
+
+
+
+
 def deconfigure(configurations):
   """Remove TUF interposition for previously read configurations."""
 

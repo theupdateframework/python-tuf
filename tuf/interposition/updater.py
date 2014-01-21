@@ -50,6 +50,18 @@ class Updater(object):
     self.switch_context()
     self.updater = tuf.client.updater.Updater(self.configuration.hostname,
                                               self.configuration.repository_mirrors)
+    
+    # Update the client's top-level metadata.  The download_target() method does
+    # not automatically refresh top-level prior to retrieving target files and
+    # their associated Targets metadata, so update the top-level
+    # metadata here.
+    Logger.info('Refreshing top-level metadata for interposed '+repr(configuration))
+    self.updater.refresh()
+  
+ 
+  def refresh(self):
+    """Refresh top-level metadata"""
+    self.updater.refresh()
 
 
   def cleanup(self):
@@ -66,11 +78,14 @@ class Updater(object):
     # download file into a temporary directory shared over runtime
     destination_directory = self.tempdir
     filename = os.path.join(destination_directory, target_filepath)
-
-    self.switch_context()   # switch TUF context
-    self.updater.refresh()  # update TUF client repository metadata
-
-    # then, update target at filepath
+    
+    # Switch TUF context.
+    self.switch_context()
+    
+    # Locate the fileinfo of 'target_filepath'.  updater.target() searches
+    # Targets metadata in order of trust, according to the currently trusted
+    # release.  To prevent consecutive target file requests from referring to
+    # different releases, top-level metadata is not automatically refreshed.
     targets = [self.updater.target(target_filepath)]
 
     # TODO: targets are always updated if destination directory is new, right?
@@ -254,15 +269,37 @@ class UpdaterController(object):
   def add(self, configuration):
     """Add an Updater based on the given Configuration."""
 
-    UPDATER_ADDED_MESSAGE = "Updater added for {configuration}."
-
     repository_mirror_hostnames = self.__check_configuration_on_add(configuration)
-
+    
     # If all is well, build and store an Updater, and remember hostnames.
+    Logger.info('Adding updater for interposed '+repr(configuration))
     self.__updaters[configuration.hostname] = Updater(configuration)
     self.__repository_mirror_hostnames.update(repository_mirror_hostnames)
+  
+  
+  
+  def refresh(self, configuration):
+    """Refresh the top-level metadata of the given Configuration."""
 
-    Logger.info(UPDATER_ADDED_MESSAGE.format(configuration=configuration))
+    assert isinstance(configuration, Configuration)
+
+    repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
+
+    assert configuration.hostname in self.__updaters
+    assert repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames)
+
+    # Get the updater and refresh its top-level metadata.  In the majority of
+    # integrations, a software updater integrating TUF with interposition will
+    # usually only require an initial refresh() (i.e., when configure() is
+    # called).  A series of target file requests may then occur, which are all
+    # referenced by the latest top-level metadata updated by configure().
+    # Although interposition was designed to remain transparent, for software
+    # updaters that require an explicit refresh of top-level metadata, this
+    # method is provided.
+    Logger.info('Refreshing top-level metadata for '+ repr(configuration))
+    updater = self.__updaters.get(configuration.hostname)
+    updater.refresh()
+
 
 
   def get(self, url):
@@ -273,7 +310,7 @@ class UpdaterController(object):
 
     GENERIC_WARNING_MESSAGE = "No updater or interposition for url={url}"
     DIFFERENT_NETLOC_MESSAGE = "We have an updater for netloc={netloc1} but not for netlocs={netloc2}"
-    HOSTNAME_FOUND_MESSAGE = "Found updater for hostname={hostname}"
+    HOSTNAME_FOUND_MESSAGE = "Found updater for interposed network location: {netloc}"
     HOSTNAME_NOT_FOUND_MESSAGE = "No updater for hostname={hostname}"
 
     updater = None
@@ -298,7 +335,7 @@ class UpdaterController(object):
 
         # Ensure that the updater is meant for this (hostname, port).
         if updater.configuration.network_location in network_locations:
-          Logger.info(HOSTNAME_FOUND_MESSAGE.format(hostname=hostname))
+          Logger.info(HOSTNAME_FOUND_MESSAGE.format(netloc=network_location))
           # Raises an exception in case we do not recognize how to
           # transform this URL for TUF. In that case, there will be no
           # updater for this URL.
@@ -324,7 +361,7 @@ class UpdaterController(object):
   def remove(self, configuration):
     """Remove an Updater matching the given Configuration."""
 
-    UPDATER_REMOVED_MESSAGE = "Updater removed for {configuration}."
+    UPDATER_REMOVED_MESSAGE = "Updater removed for interposed {configuration}."
 
     assert isinstance(configuration, Configuration)
 
