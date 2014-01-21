@@ -155,6 +155,9 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 # The minimum number of bits for an RSA key.  Must be 2048 bits and greater.
 RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
 
+# The number of bins used to delegate to hashed roles.
+NUMBINS_SCHEMA = SCHEMA.Integer(lo=16)
+
 # A PyCrypto signature.
 PYCRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyString()
 

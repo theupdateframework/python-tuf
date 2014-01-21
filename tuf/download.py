@@ -645,7 +645,7 @@ def _check_downloaded_length(total_downloaded, required_length,
   """
 
   if total_downloaded == required_length:
-    logger.warn('Downloaded '+str(total_downloaded)+' bytes out of the '+\
+    logger.info('Downloaded '+str(total_downloaded)+' bytes out of the '+\
                 'expected '+str(required_length)+ ' bytes.')
   else:
     difference_in_bytes = abs(total_downloaded-required_length)
@@ -668,7 +668,7 @@ def _check_downloaded_length(total_downloaded, required_length,
       # will log a warning anyway. This is useful when we wish to download the
       # Timestamp or Root metadata, for which we have no signed metadata; so,
       # we must guess a reasonable required_length for it.
-      logger.warn(message)
+      logger.info(message)
 
 
 

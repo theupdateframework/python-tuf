@@ -55,6 +55,10 @@ logger = logging.getLogger('tuf.libtuf')
 # are the recommended minimum and are good from the present through 2030.
 DEFAULT_RSA_KEY_BITS = 3072
 
+# The algorithm used by the repository to generate the hashes of the
+# target filepaths.  The repository may optionally organize targets into
+HASH_FUNCTION = 'sha256'
+
 # The extension of TUF metadata.
 METADATA_EXTENSION = '.txt'
 
@@ -469,7 +473,7 @@ class Repository(object):
       None.
 
     <Returns>
-      A list of absolute paths to target files in the given files_directory.
+      A list of absolute paths to target files in the given 'files_directory'.
     """
 
     # Do the arguments have the correct format?
@@ -1977,6 +1981,7 @@ class Targets(Metadata):
     self._delegated_roles[rolename] = new_targets_object
 
 
+
   def revoke(self, rolename):
     """
     <Purpose>
@@ -2033,6 +2038,135 @@ class Targets(Metadata):
     # Remove the rolename delegation from the current role.  For example, the
     # 'django' role is removed from 'repository.targets('unclaimed')('django').
     del self._delegated_roles[rolename]
+
+
+
+  def delegate_hashed_bins(self, list_of_targets, keys_of_hashed_bins,
+                           number_of_bins=1024):
+    """
+    <Purpose>
+      Split the large number of target files of 'list_of_targets' into  
+      multiple delegated roles (hashed bins).  The size of all the delegated
+      roles will be nearly equal.  The updater client will use "lazy bin walk"
+      to find a target file's hashed bin destination.  The parent role lists
+      the hashed bins as either a direct delegation, or as a path hash prefix
+      of another hashed bin. See the following link for more information:
+      http://www.python.org/dev/peps/pep-0458/#metadata-scalability
+      
+      >>>
+      >>>
+      >>>
+
+    <Arguments>
+      list_of_targets:
+        The target filepaths of the targets that should be stored in the hashed
+        bins (i.e., delegated roles).
+
+      keys_of_hashed_bins:
+        The public keys of the delegated roles.
+      
+      number_of_bins:
+        The number of delegated roles listed in the parent role's
+        'delegations' field.  Must be a multiple of 16.  Each bin may contain
+        multiple roles.
+
+    <Exceptions>
+      tuf.FormatError, if the arguments are improperly formatted,
+        'number_of_bins' is not a multiple of 16, or one of the targets
+        in 'list_of_targets' is not located under the repository's targets
+        directory.
+
+    <Side Effects>
+      Delegates multiple target roles from the current parent role.  Others
+      may be generated/added as a role and only linked with the parent. 
+
+    <Returns>
+      None.
+    """      
+    
+    # Does 'rolename' have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.PATHS_SCHEMA.check_match(list_of_targets)
+    tuf.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
+    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
+    
+    # Strip the '0x' from the Python hex representation.
+    prefix_length =  len(hex(number_of_bins - 1)[2:])
+    max_number_of_bins = 16 ** prefix_length
+
+    # For simplicity, ensure that we can evenly distribute 'max_number_of_bins'
+    # over 'number_of_bins'.
+    if max_number_of_bins % number_of_bins != 0:
+      message = 'The number of bins argument must be a multiple of 16.'
+      raise tuf.FormatError(message)
+
+    logger.info('There are '+len(list_of_targets)+' total targets.')
+
+    # Store the target paths that fall into each bin.
+    target_paths_in_bin = {}
+    for bin_index in xrange(max_number_of_bins):
+      target_paths_in_bin[bin_index] = []
+
+    # Assign every path to its bin.  Ensure every target is located under the
+    # repository's targets directory.
+    for target_path in list_of_targets:
+      if not target_path.startswith(self._targets_directory+'/'):
+        message = 'A path in the list of targets arguments is not '+\
+          'under the repository\'s targets directory: '+repr(target_path) 
+        raise tuf.FormatError(message)
+      
+      # Determine the hash prefix of 'target_path' by computing the digest of
+      # its path relative to the targets directory.  Example:
+      # '{repository_root}/targets/file1.txt' -> 'file1.txt'.
+      relative_path = target_path[len(self._targets_directory)+1:]
+      digest_object = tuf.hash.digest(algorithm=HASH_FUNCTION)
+      digest_object.update(relative_path)
+      relative_path_hash = digest.hexdigest()
+      relative_path_hash_prefix = relative_path_hash[:prefix_length]
+
+      # 'target_paths_in_bin' store bin indices in base-10, so convert the
+      # 'relative_path_hash_prefix' base-16 (hex) number to a base-10 (dec)
+      # number.
+      bin_index = int(relative_path_hash_prefix, 16)
+
+      # Add the 'target_path' (absolute) to the bin.
+      target_paths_in_bin[bin_index] = \
+        target_paths_in_bin[bin_index].append(target_path)
+
+    # Calculate the path hash prefixes of each bin_offset stored in the parent
+    # role.  For example: 'targets/unclaimed/004' may list the path hash
+    # prefixes "000", "001", "002", "003" in the delegations dict of
+    # 'targets/unclaimed'. 
+    bin_offset = max_number_of_bins // number_of_bins
+   
+    # The parent roles will list bin roles starting from "0" to
+    # 'max_number_of_bins' in 'bin_offset' increments.  The skipped bin roles
+    # are listed in 'path_hash_prefixes' of 'outer_bin_index.
+    for outer_bin_index in xrange(0, max_number_of_bins, bin_offset):
+      # The bin index in hex padded from the left with zeroes for up to the
+      # 'prefix_lengthn'.
+      bin_rolename = hex(outer_bin_index)[2:].zfill(prefix_length)
+
+      # The hash prefixes of the skipped bin roles, or the roles not directly
+      # delegated from the parent role.
+      path_hash_prefixes = []
+
+      for inner_bin_index in xrange(outer_bin_index, outer_bin_index+bin_offset):
+        # 'inner_bin_rolename' in padded hex.  For example, "00b". 
+        inner_bin_rolename = hex(inner_bin_index)[2:].zfill(prefix_length)
+        path_hash_prefixes.append(inner_bin_rolename)
+        
+      # Delegate from the "unclaimed" targets role to each 'bin_rolename'
+      # (i.e., outer_bin_index).
+      bin_rolename_targets = target_paths_in_bin[outer_bin_index]
+      self.delegate(bin_rolename, keys_of_hashed_bins,
+                    list_of_targets=bin_rolename_targets,
+                    path_hash_prefixes=path_hash_prefixes)   
+
+      message = 'Delegated from '+repr(self.rolename)+' to '+repr(binned_rolename)
+      logger.debug(message)
 
 
 
@@ -2704,6 +2838,8 @@ def load_repository(repository_directory):
 
 def _load_top_level_metadata(repository, top_level_filenames):
   """
+  Load the metadata of the Root, Timestamp, Targets, and Release roles.
+  At a minimum, the Root role must exist and successfully loaded.
   """
 
   root_filename = top_level_filenames[ROOT_FILENAME] 
@@ -2716,7 +2852,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   release_metadata = None
   timestamp_metadata = None
   
-  # ROOT.txt 
+  # Load ROOT.txt.  A Root role file without a digest is always written. 
   if os.path.exists(root_filename):
     # Initialize the key and role metadata of the top-level roles.
     signable = tuf.util.load_json_file(root_filename)
@@ -2725,6 +2861,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     tuf.keydb.create_keydb_from_root_metadata(root_metadata)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata)
 
+    # Load Root's roleinfo and update 'tuf.roledb'.
     roleinfo = tuf.roledb.get_roleinfo('root')
     roleinfo['signatures'] = []
     for signature in signable['signatures']:
@@ -2737,19 +2874,22 @@ def _load_top_level_metadata(repository, top_level_filenames):
     _check_if_partial_loaded('root', signable, roleinfo)
     tuf.roledb.update_roleinfo('root', roleinfo)
 
+    # Ensure the 'consistent_snapshots' field is extracted.
     consistent_snapshots = root_metadata['consistent_snapshots']
   
   else:
     message = 'Cannot load the required root file: '+repr(root_filename)
     raise tuf.RepositoryError(message)
   
-  # TIMESTAMP.txt
+  # Load TIMESTAMP.txt.  A Timestamp role file without a digest is always
+  # written. 
   if os.path.exists(timestamp_filename):
     signable = tuf.util.load_json_file(timestamp_filename)
     timestamp_metadata = signable['signed']  
     for signature in signable['signatures']:
       repository.timestamp.add_signature(signature)
 
+    # Load Timestamp's roleinfo and update 'tuf.roledb'.
     roleinfo = tuf.roledb.get_roleinfo('timestamp')
     roleinfo['expires'] = timestamp_metadata['expires']
     roleinfo['version'] = timestamp_metadata['version']
@@ -2762,7 +2902,8 @@ def _load_top_level_metadata(repository, top_level_filenames):
   else:
     pass
   
-  # RELEASE.txt
+  # Load RELEASE.txt.  A consistent snapshot of Release must be calculated
+  # if 'consistent_snapshots' is True.
   if consistent_snapshots:
     release_hashes = timestamp_metadata['meta'][RELEASE_FILENAME]['hashes']
     release_digest = random.choice(release_hashes.values())
@@ -2776,6 +2917,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     for signature in signable['signatures']:
       repository.release.add_signature(signature)
 
+    # Load Release's roleinfo and update 'tuf.roledb'.
     roleinfo = tuf.roledb.get_roleinfo('release')
     roleinfo['expires'] = release_metadata['expires']
     roleinfo['version'] = release_metadata['version']
@@ -2788,7 +2930,8 @@ def _load_top_level_metadata(repository, top_level_filenames):
   else:
     pass 
 
-  # TARGETS.txt
+  # Load TARGETS.txt.  A consistent snapshot of Targets must be calculated if
+  # 'consistent_snapshots' is True.
   if consistent_snapshots:
     targets_hashes = release_metadata['meta'][TARGETS_FILENAME]['hashes']
     targets_digest = random.choice(targets_hashes.values())
@@ -3360,24 +3503,21 @@ def get_metadata_file_info(filename):
 
 
 
-def get_target_hash(self, target_filepath, hash_function='sha256'):
+def get_target_hash(self, target_filepath):
   """
   <Purpose>
     Compute the hash of 'target_filepath'. This is useful in conjunction with
     the "path_hash_prefixes" attribute in a delegated targets role, which
     tells us which paths it is implicitly responsible for.
+    
+    The repository may optionally organize targets into hashed bins to ease
+    target delegations and role metadata management.  The use of consistent
+    hashing allows for a uniform distribution of targets into bins. 
 
   <Arguments>
     target_filepath:
       The path to the target file on the repository. This will be relative to
       the 'targets' (or equivalent) directory on a given mirror.
-
-    hash_function:
-      The algorithm used by the repository to generate the hashes of the
-      target filepaths.  The repository may optionally organize targets into
-      hashed bins to ease target delegations and role metadata management.
-      The use of consistent hashing allows for a uniform distribution of
-      targets into bins. 
 
   <Exceptions>
     None.
@@ -3391,16 +3531,16 @@ def get_target_hash(self, target_filepath, hash_function='sha256'):
 
   # Calculate the hash of the filepath to determine which bin to find the 
   # target.  The client currently assumes the repository uses
-  # 'hash_function' to generate hashes.
+  # 'HASH_FUNCTION' to generate hashes.
 
-  digest_object = tuf.hash.digest(hash_function)
+  digest_object = tuf.hash.digest(HASH_FUNCTION)
 
   try:
     digest_object.update(target_filepath)
   except UnicodeEncodeError:
     # Sometimes, there are Unicode characters in target paths. We assume a
     # UTF-8 encoding and try to hash that.
-    digest_object = tuf.hash.digest(hash_function)
+    digest_object = tuf.hash.digest(HASH_FUNCTION)
     encoded_target_filepath = target_filepath.encode('utf-8')
     digest_object.update(encoded_target_filepath)
 
@@ -4012,10 +4152,15 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshots):
       shutil.copy(written_filename, consistent_filename)
    
    
-  # Generate the compressed versions of 'metadata', if necessary.
+  # Generate the compressed versions of 'metadata', if necessary.  A compressed
+  # file may be written (without needed to write the uncompressed version) if
+  # the repository maintainer adds compression after writting the the
+  # uncompressed version.
   for compression in compressions:
     file_object = None 
-    
+   
+    # Ignore the empty string that signifies non-compression.  The uncompressed
+    # file was previously written above, if necessary.
     if not len(compression):
       continue
 
@@ -4031,7 +4176,10 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshots):
     
     else:
       raise tuf.FormatError('Unknown compression algorithm: '+repr(compression))
-    
+   
+    # Save the compressed version, ensuring an unchanged file is not re-saved.
+    # Re-savign the same compressed version may cause its digest to unexpectedly
+    # change (gzip includes a timestamp) even though content has not changed.
     _write_compressed_metadata(file_object, compressed_filename,
                                consistent_snapshots)
   return written_filename
@@ -4043,35 +4191,54 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshots):
 def _write_compressed_metadata(file_object, compressed_filename,
                                consistent_snapshots):
   """
+  Write compressed versions of metadata, ensuring compressed file that have
+  not changed are not re-written, the digest of the compressed file is properly
+  added to the compressed filename, and consistent snapshots are also saved.
+  Ensure compressed files are written to a temporary location, and then
+  moved to their destinations.
   """
-  
+ 
+  # If a consistent snapshot is unneeded, 'file_object' may be simply moved
+  # 'compressed_filename' if not already written. 
   if not consistent_snapshots:
     if not os.path.exists(compressed_filename):
       file_object.move(compressed_filename)
     
+    # The temporary file must be closed if 'file_object.move()' is not used.
+    # tuf.util.TempFile() automatically closes the temp file when move() is
+    # called
     else:
       file_object.close_temp_file()
-  
+ 
+  # Consistent snapshots = True.  Ensure the file's digest is included in the
+  # compressed filename written, provided it does not already exist.
   else:
     compressed_content = file_object.read()
     new_digests = []
     consistent_filenames = []
-    
+   
+    # Multiple snapshots may be written if the repository uses multiple
+    # hash algorithms.  Generate the digest of the compressed content.
     for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
       digest_object = tuf.hash.digest(hash_algorithm)
       digest_object.update(compressed_content)
       new_digests.append(digest_object.hexdigest())
-    
+   
+    # Attach each digest to the compressed consistent snapshot filename.
     for new_digest in new_digests:
       dirname, basename = os.path.split(compressed_filename)
       digest_and_filename = new_digest + '.' + basename
       consistent_filenames.append(os.path.join(dirname, digest_and_filename))
-    
+   
+    # Move the 'tuf.util.TempFile' object to one of the filenames so that it is
+    # saved and the temporary file closed.  Any remaining consistent snapshots
+    # may still need to be copied or linked. 
     compressed_filename = consistent_filenames.pop()
     if not os.path.exists(compressed_filename):
       logger.info('Saving ' + repr(compressed_filename))
       file_object.move(compressed_filename)
 
+    # Save any remaining compressed consistent snapshots.
     for consistent_filename in consistent_filenames:
       if not os.path.exists(consistent_filename):
         logger.info('Saving ' + repr(consistent_filename))
