@@ -1,5 +1,5 @@
 #Repository Management
-![Repo Tools Diagram 1](https://raw.github.com/theupdateframework/tuf/repository-tools/docs/images/libtuf-diagram.png)
+![Repo Tools Diagram 1](https://raw.github.com/theupdateframework/tuf/repository-tools/docs/images/repository_tool-diagram.png)
 ## Create TUF Repository
 
 The **tuf.repository_tool** module can be used to create a TUF repository.  It may either be imported into a Python module
