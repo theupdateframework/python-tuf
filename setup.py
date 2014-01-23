@@ -55,7 +55,6 @@
 
   $ quickstart.py --project ./project-files
   $ signercli.py --genrsakey ./keystore
-
 """
 
 from setuptools import setup
@@ -80,10 +79,8 @@ setup(
     'tuf.tests'
   ],
   scripts=[
-    'tuf/repo/quickstart.py',
     'tuf/pushtools/push.py',
     'tuf/pushtools/receivetools/receive.py',
-    'tuf/repo/signercli.py',
     'tuf/client/basic_client.py'
   ]
 )
