@@ -302,8 +302,38 @@ repository.targets('unclaimed').delegate("flask", [public_unclaimed_key], [])
 repository.targets('unclaimed').revoke("flask")
 repository.write()
 ```
+#### Delegate to Hashed Bins
+```Python
+# Distribute a large number of target files to multiple delegated roles (hashed bins).
+# The metadata files of delegated roles will be nearly equal in size (i.e., target file
+# paths are uniformly distributed by calculating the target filepath's digest and
+# determining which bin it should reside in.  The updater client will use "lazy bin walk"
+# to find a target file's hashed bin destination.  This method is intended for repositories
+# with a large number of target files, a way of easily distributing and managing the
+# metadata that lists the targets, and minimizing the number of metadata files (and size)
+# downloaded by the client.
+# delegate_hashed_bins(list_of_targets, keys_of_hashed_bins, number_of_bins)
+targets = \
+  repository.get_filepaths_in_directory('path/to/repository/targets/django',
+                                        recursive_walk=True)
+repository.targets('unclaimed')('django').delegate_hashed_bins(targets,
+                                                               [public_unclaimed_key], 32)
 
-```bash
+for delegation in repository.targets('unclaimed')('django').delegations:
+  delegation.load_signing_key(private_unclaimed_key)
+
+# Delegated roles may also be restricted to particular paths.
+repository.targets('unclaimed').add_restricted_paths(targets, 'django')
+```
+
+#### Consistent Snapshots
+```Python
+#
+#
+repository.write(consistent_snapshots=True)
+```
+
+```Bash
 # Copy the staged metadata directory changes to the live repository.
 $ cp -r "path/to/repository/metadata.staged/" "path/to/repository/metadata/"
 ```
