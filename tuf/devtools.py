@@ -43,20 +43,21 @@ import tuf.keys
 import tuf.sig
 import tuf.log
 import tuf.conf
-import tuf.libtuf
+import tuf.repository_tool
 
-from tuf.libtuf import Targets
-from tuf.libtuf import get_metadata_file_info
-from tuf.libtuf import get_metadata_filenames
-from tuf.libtuf import generate_and_write_rsa_keypair
-from tuf.libtuf import import_rsa_publickey_from_file
-from tuf.libtuf import import_rsa_privatekey_from_file
-from tuf.libtuf import generate_and_write_ed25519_keypair
-from tuf.libtuf import import_ed25519_publickey_from_file
-from tuf.libtuf import import_ed25519_privatekey_from_file
-#from tuf.libtuf import _generate_and_write_metadata
-from tuf.libtuf import generate_targets_metadata
-from tuf.libtuf import sign_metadata
+from tuf.repository_tool import Targets
+from tuf.repository_tool import get_metadata_file_info
+from tuf.repository_tool import get_metadata_filenames
+from tuf.repository_tool import generate_and_write_rsa_keypair
+from tuf.repository_tool import import_rsa_publickey_from_file
+from tuf.repository_tool import import_rsa_privatekey_from_file
+from tuf.repository_tool import generate_and_write_ed25519_keypair
+from tuf.repository_tool import import_ed25519_publickey_from_file
+from tuf.repository_tool import import_ed25519_privatekey_from_file
+#from tuf.import _generate_and_write_metadata
+from tuf.repository_tool import generate_targets_metadata
+from tuf.repository_tool import sign_metadata
+#from tuf.repository-tool import write_delegated_metadata_file
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.devtools')
@@ -471,7 +472,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                        roleinfo['expires'],
                                        roleinfo['delegations'],
                                        consistent_snapshots)
-
+  print(metadata)
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
    
