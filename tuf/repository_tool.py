@@ -204,6 +204,7 @@ class Repository(object):
     <Returns>
       None.
     """
+   
     
     # Does 'write_partial' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -306,13 +307,13 @@ class Repository(object):
   def status(self):
     """
     <Purpose>
-      Determine the status of the top-level roles, including those delegated.
-      status() checks if each role provides sufficient public keys, signatures,
-      and that a valid metadata file is generated if write() were to be called.
-      Metadata files are temporary written to check that proper metadata files
-      are written, where file hashes and lengths are calculated and referenced
-      by the top-level roles.  status() does not do a simple check for number
-      of threshold keys and signatures.
+      Determine the status of the top-level roles, including those delegated by
+      the targets role.  status() checks if each role provides sufficient public
+      keys, signatures, and that a valid metadata file is generated if write()
+      were to be called.  Metadata files are temporary written to check that
+      proper metadata files are written, where file hashes and lengths are
+      calculated and referenced by the top-level roles.  status() does not do a
+      simple check for number of threshold keys and signatures.
 
     <Arguments>
       None.
@@ -329,118 +330,67 @@ class Repository(object):
    
     temp_repository_directory = None
 
+    # Generate and write temporary metadata so that full verification of
+    # metadata is possible, such as verifying signatures, digests, and file
+    # content.  Ensure temporary files generated are removed after verification
+    # results are completed.
     try:
       temp_repository_directory = tempfile.mkdtemp()
+      targets_directory = self._targets_directory
       metadata_directory = os.path.join(temp_repository_directory,
                                         METADATA_STAGED_DIRECTORY_NAME)
       os.mkdir(metadata_directory)
 
-      filenames = get_metadata_filenames(metadata_directory)
     
-      # Delegated roles.
+      # Retrieve the roleinfo of the delegated roles, exluding the top-level
+      # targets role.
       delegated_roles = tuf.roledb.get_delegated_rolenames('targets')
       insufficient_keys = []
       insufficient_signatures = []
-      
+     
+      # Iterate the list of delegated roles and determine the list of invalid
+      # roles.  First verify the public and private keys, and then the generated
+      # metadata file.
       for delegated_role in delegated_roles:
+        filename = delegated_role + METADATA_EXTENSION
+        filename = os.path.join(metadata_directory, filename)
+        
+        # Ensure the parent directories of 'filename' exist, otherwise an
+        # IO exception is raised if 'filename' is written to a sub-directory.
+        tuf.util.ensure_parent_dir(filename)
+       
+        # Append any invalid roles to the 'insufficient_keys' and
+        # 'insufficient_signatures' lists
         try: 
           _check_role_keys(delegated_role)
+        
         except tuf.InsufficientKeysError, e:
           insufficient_keys.append(delegated_role)
           continue
         
-        roleinfo = tuf.roledb.get_roleinfo(delegated_role)
         try: 
-          write_delegated_metadata_file(temp_repository_directory,
-                                        self._targets_directory,
-                                        delegated_role, roleinfo,
-                                        write_partial=False)
-        except tuf.Error, e:
+          _generate_and_write_metadata(delegated_role, filename, False,
+                                       targets_directory, metadata_directory)
+        except tuf.UnsignedMetadataError, e:
           insufficient_signatures.append(delegated_role)
-      
+     
+      # Print the verification results of the delegated roles and return
+      # immediately after each invalid case.
       if len(insufficient_keys):
-        message = 'Delegated roles with insufficient keys: '+ \
-          repr(insufficient_keys)
+        message = \
+          'Delegated roles with insufficient keys:\n'+repr(insufficient_keys)
         print(message)
         return
-
+      
       if len(insufficient_signatures):
-        message = 'Delegated roles with insufficient signatures: '+ \
+        message = \
+          'Delegated roles with insufficient signatures:\n'+\
           repr(insufficient_signatures)
         print(message) 
         return
 
-      # Root role.
-      try: 
-        _check_role_keys(self.root.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-
-      try:
-       signable =  _generate_and_write_metadata(self.root.rolename,
-                                                filenames, False,
-                                                self._targets_directory,
-                                                metadata_directory)
-       _print_status(self.root.rolename, signable)
-      except tuf.Error, e:
-        signable = e[1]
-        _print_status(self.root.rolename, signable)
-        return
-
-      # Targets role.
-      try: 
-        _check_role_keys(self.targets.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-      
-      try:
-       signable =  _generate_and_write_metadata(self.targets.rolename,
-                                                filenames, False,
-                                                self._targets_directory,
-                                                metadata_directory)
-       _print_status(self.targets.rolename, signable)
-      except tuf.Error, e:
-        signable = e[1]
-        _print_status(self.targets.rolename, signable)
-        return
-
-      # Release role.
-      try:
-        _check_role_keys(self.release.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-      
-      try:
-       signable =  _generate_and_write_metadata(self.release.rolename,
-                                                filenames, False,
-                                                self._targets_directory,
-                                                metadata_directory)
-       _print_status(self.release.rolename, signable)
-      except tuf.Error, e:
-        signable = e[1]
-        _print_status(self.release.rolename, signable)
-        return
-      
-      # Timestamp role.
-      try:
-        _check_role_keys(self.timestamp.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-      
-      try:
-       signable =  _generate_and_write_metadata(self.timestamp.rolename,
-                                                filenames, False,
-                                                self._targets_directory,
-                                                metadata_directory)
-       _print_status(self.timestamp.rolename, signable)
-      except tuf.Error, e:
-        signable = e[1]
-        _print_status(self.timestamp.rolename, signable)
-        return
+      # Verify the top-level roles and print the results.
+      _print_status_of_top_level_roles(targets_directory, metadata_directory)
     
     finally:
       shutil.rmtree(temp_repository_directory, ignore_errors=True)
@@ -2319,7 +2269,7 @@ class Targets(Metadata):
 
 def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                  targets_directory, metadata_directory,
-                                 consistent_snapshots, filenames=None):
+                                 consistent_snapshots=False, filenames=None):
   """
   Non-public function that can generate and write the metadata of the specified
   top-level 'rolename'.  It also increments version numbers if:
@@ -2405,13 +2355,107 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
       write_metadata_file(signable, metadata_filename, compressions,
                           consistent_snapshots=False)
     
-    return signable, filename 
   
   # 'signable' contains an invalid threshold of signatures. 
   else:
     message = 'Not enough signatures for '+repr(metadata_filename)
-    raise tuf.Error(message, signable)
+    raise tuf.UnsignedMetadataError(message, signable)
+  
+  return signable, filename 
 
+
+
+
+
+def _print_status_of_top_level_roles(targets_directory, metadata_directory):
+  """
+  Non-public function that prints whether any of the top-level roles contain an
+  invalid number of public and private keys, or an insufficient threshold of
+  signatures.  Considering that the top-level metadata have to be verified in
+  the expected root -> targets -> release -> timestamp order, this function
+  prints the error message and returns as soon as a required metadata file is
+  found to be invalid.  It is assumed here that the delegated roles have been
+  written and verified.  Example output:
+  
+  'root' role contains 1 / 1 signatures.
+  'targets' role contains 1 / 1 signatures.
+  'release' role contains 1 / 1 signatures.
+  'timestamp' role contains 1 / 1 signatures.
+  """
+
+  # The expected full filenames of the top-level roles needed to write them to
+  # disk.
+  filenames = get_metadata_filenames(metadata_directory)
+  root_filename = filenames[ROOT_FILENAME]
+  targets_filename = filenames[TARGETS_FILENAME]
+  release_filename = filenames[RELEASE_FILENAME]
+  timestamp_filename = filenames[TIMESTAMP_FILENAME]
+
+  # Verify that the top-level roles contain a valid number of public keys and
+  # that their corresponding private keys have been loaded.
+  for rolename in ['root', 'targets', 'release', 'timestamp']:
+    try:
+      _check_role_keys(rolename)
+    
+    except tuf.InsufficientKeysError, e:
+      print(str(e))
+      return
+
+  # Do the top-level roles contain a valid threshold of signatures?  Top-level
+  # metadata is verified in Root -> Targets -> Release -> Timestamp order.
+  # Verify the metadata of the Root role.
+  try:
+    signable, root_filename = \
+      _generate_and_write_metadata('root', root_filename, False,
+                                   targets_directory, metadata_directory)
+    _print_status('root', signable)
+ 
+  # 'tuf.UnsignedMetadataError' raised if metadata contains an invalid threshold
+  # of signatures.  Print the valid/threshold message, where valid < threshold.
+  except tuf.UnsignedMetadataError, e:
+    signable = e[1]
+    _print_status('root', signable)
+    return
+
+  # Verify the metadata of the Targets role.
+  try:
+    signable, targets_filename = \
+      _generate_and_write_metadata('targets', targets_filename, False,
+                                   targets_directory, metadata_directory)
+    _print_status('targets', signable)
+  
+  except tuf.UnsignedMetadataError, e:
+    signable = e[1]
+    _print_status('targets', signable)
+    return
+
+  # Verify the metadata of the Release role.
+  filenames = {'root': root_filename, 'targets': targets_filename} 
+  try:
+    signable, release_filename = \
+      _generate_and_write_metadata('release', release_filename, False,
+                                   targets_directory, metadata_directory,
+                                   False, filenames)
+    _print_status('release', signable)
+  
+  except tuf.UnsignedMetadataError, e:
+    signable = e[1]
+    _print_status('release', signable)
+    return
+  
+  # Verify the metadata of the Timestamp role.
+  filenames = {'release': release_filename}
+  try:
+    signable, release_filename = \
+      _generate_and_write_metadata('timestamp', release_filename, False,
+                                   targets_directory, metadata_directory,
+                                   False, filenames)
+    _print_status('timestamp', signable)
+  
+  except tuf.UnsignedMetadataError, e:
+    signable = e[1]
+    _print_status('timestamp', signable)
+    return
 
 
 
@@ -2421,12 +2465,11 @@ def _print_status(rolename, signable):
   Non-public function prints the number of (good/threshold) signatures of
   'rolename'.
   """
-
-  status = tuf.sig.get_signature_status(signable, rolename)
   
-  message = repr(rolename)+' role contains '+ \
-    repr(len(status['good_sigs']))+' / '+ \
-    repr(status['threshold'])+' signatures.'
+  status = tuf.sig.get_signature_status(signable, rolename)
+
+  message = repr(rolename)+' role contains '+ repr(len(status['good_sigs']))+\
+    ' / '+repr(status['threshold'])+' signatures.'
   print(message)
 
 
@@ -2535,7 +2578,7 @@ def _check_directory(directory):
 def _check_role_keys(rolename):
   """
   Non-public function that verifies the public and signing keys of 'rolename'.
-  If either contain an invalid threshold number of keys, raise an exception.
+  If either contain an invalid threshold of keys, raise an exception.
   'rolename' is the full rolename (e.g., 'targets/unclaimed/django'). 
   """
 

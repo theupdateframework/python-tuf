@@ -89,7 +89,7 @@ ED25519_CRYPTO_LIBRARY = 'ed25519'
 # of the software updater.
 GENERAL_CRYPTO_LIBRARY = 'pycrypto'
 
-# The algorithm in REPOSITORY_HASH_ALGORITHMS are chosen by the repository tool
+# The algorithm(s) in REPOSITORY_HASH_ALGORITHMS are chosen by the repository tool
 # to generate the digests listed in metadata and prepended to the filenames of
 # consistent snapshots.
 REPOSITORY_HASH_ALGORITHMS = ['sha256']
