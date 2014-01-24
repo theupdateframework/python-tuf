@@ -1,6 +1,6 @@
 """
 <Program Name>
-  libtuf.py
+  repository_tool.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
@@ -12,7 +12,7 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  See 'tuf/README' for a complete guide on using 'tuf.libtuf.py'.
+  See 'tuf/README' for a complete guide on using 'tuf.repository_tool.py'.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -46,7 +46,7 @@ import tuf.conf
 
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.libtuf')
+logger = logging.getLogger('tuf.repository_tool')
 
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1 
@@ -55,8 +55,9 @@ logger = logging.getLogger('tuf.libtuf')
 # are the recommended minimum and are good from the present through 2030.
 DEFAULT_RSA_KEY_BITS = 3072
 
-# The algorithm used by the repository to generate the hashes of the
-# target filepaths.  The repository may optionally organize targets into
+# The algorithm used by the repository to generate the digests of the
+# target filepaths, which are included in metadata files and may be prepended
+# to the filenames of consistent snapshots.
 HASH_FUNCTION = 'sha256'
 
 # The extension of TUF metadata.
@@ -188,10 +189,10 @@ class Repository(object):
 
       consistent_snapshots:
         A boolean indicating whether written metadata and target files should
-        include a digest in the filename (i.e., root.<digest>.txt,
-        targets.<digest>.txt.gz, README.<digest>.txt, where <digest> is the
+        include a digest in the filename (i.e., <digest>.root.txt,
+        <digest>.targets.txt.gz, <digest>.README.txt, where <digest> is the
         file's SHA256 digest.  Example:
-        'root.1f4e35a60c8f96d439e27e858ce2869c770c1cdd54e1ef76657ceaaf01da18a3.txt'
+        1f4e35a60c8f96d439e27e858ce2869c770c1cdd54e1ef76657ceaaf01da18a3.root.txt'
         
     <Exceptions>
       tuf.Error, if any of the top-level roles do not have a minimum
@@ -203,6 +204,7 @@ class Repository(object):
     <Returns>
       None.
     """
+   
     
     # Does 'write_partial' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -305,13 +307,13 @@ class Repository(object):
   def status(self):
     """
     <Purpose>
-      Determine the status of the top-level roles, including those delegated.
-      status() checks if each role provides sufficient public keys, signatures,
-      and that a valid metadata file is generated if write() were to be called.
-      Metadata files are temporary written to check that proper metadata files
-      are written, where file hashes and lengths are calculated and referenced
-      by the top-level roles.  status() does not do a simple check for number
-      of threshold keys and signatures.
+      Determine the status of the top-level roles, including those delegated by
+      the targets role.  status() checks if each role provides sufficient public
+      keys, signatures, and that a valid metadata file is generated if write()
+      were to be called.  Metadata files are temporary written to check that
+      proper metadata files are written, where file hashes and lengths are
+      calculated and referenced by the top-level roles.  status() does not do a
+      simple check for number of threshold keys and signatures.
 
     <Arguments>
       None.
@@ -328,118 +330,67 @@ class Repository(object):
    
     temp_repository_directory = None
 
+    # Generate and write temporary metadata so that full verification of
+    # metadata is possible, such as verifying signatures, digests, and file
+    # content.  Ensure temporary files generated are removed after verification
+    # results are completed.
     try:
       temp_repository_directory = tempfile.mkdtemp()
+      targets_directory = self._targets_directory
       metadata_directory = os.path.join(temp_repository_directory,
                                         METADATA_STAGED_DIRECTORY_NAME)
       os.mkdir(metadata_directory)
 
-      filenames = get_metadata_filenames(metadata_directory)
     
-      # Delegated roles.
+      # Retrieve the roleinfo of the delegated roles, exluding the top-level
+      # targets role.
       delegated_roles = tuf.roledb.get_delegated_rolenames('targets')
       insufficient_keys = []
       insufficient_signatures = []
-      
+     
+      # Iterate the list of delegated roles and determine the list of invalid
+      # roles.  First verify the public and private keys, and then the generated
+      # metadata file.
       for delegated_role in delegated_roles:
+        filename = delegated_role + METADATA_EXTENSION
+        filename = os.path.join(metadata_directory, filename)
+        
+        # Ensure the parent directories of 'filename' exist, otherwise an
+        # IO exception is raised if 'filename' is written to a sub-directory.
+        tuf.util.ensure_parent_dir(filename)
+       
+        # Append any invalid roles to the 'insufficient_keys' and
+        # 'insufficient_signatures' lists
         try: 
           _check_role_keys(delegated_role)
+        
         except tuf.InsufficientKeysError, e:
           insufficient_keys.append(delegated_role)
           continue
         
-        roleinfo = tuf.roledb.get_roleinfo(delegated_role)
         try: 
-          write_delegated_metadata_file(temp_repository_directory,
-                                        self._targets_directory,
-                                        delegated_role, roleinfo,
-                                        write_partial=False)
-        except tuf.Error, e:
+          _generate_and_write_metadata(delegated_role, filename, False,
+                                       targets_directory, metadata_directory)
+        except tuf.UnsignedMetadataError, e:
           insufficient_signatures.append(delegated_role)
-      
+     
+      # Print the verification results of the delegated roles and return
+      # immediately after each invalid case.
       if len(insufficient_keys):
-        message = 'Delegated roles with insufficient keys: '+ \
-          repr(insufficient_keys)
+        message = \
+          'Delegated roles with insufficient keys:\n'+repr(insufficient_keys)
         print(message)
         return
-
+      
       if len(insufficient_signatures):
-        message = 'Delegated roles with insufficient signatures: '+ \
+        message = \
+          'Delegated roles with insufficient signatures:\n'+\
           repr(insufficient_signatures)
         print(message) 
         return
 
-      # Root role.
-      try: 
-        _check_role_keys(self.root.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-
-      try:
-       signable =  _generate_and_write_metadata(self.root.rolename,
-                                                filenames, False,
-                                                self._targets_directory,
-                                                metadata_directory)
-       _print_status(self.root.rolename, signable)
-      except tuf.Error, e:
-        signable = e[1]
-        _print_status(self.root.rolename, signable)
-        return
-
-      # Targets role.
-      try: 
-        _check_role_keys(self.targets.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-      
-      try:
-       signable =  _generate_and_write_metadata(self.targets.rolename,
-                                                filenames, False,
-                                                self._targets_directory,
-                                                metadata_directory)
-       _print_status(self.targets.rolename, signable)
-      except tuf.Error, e:
-        signable = e[1]
-        _print_status(self.targets.rolename, signable)
-        return
-
-      # Release role.
-      try:
-        _check_role_keys(self.release.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-      
-      try:
-       signable =  _generate_and_write_metadata(self.release.rolename,
-                                                filenames, False,
-                                                self._targets_directory,
-                                                metadata_directory)
-       _print_status(self.release.rolename, signable)
-      except tuf.Error, e:
-        signable = e[1]
-        _print_status(self.release.rolename, signable)
-        return
-      
-      # Timestamp role.
-      try:
-        _check_role_keys(self.timestamp.rolename)
-      except tuf.InsufficientKeysError, e:
-        print(str(e))
-        return
-      
-      try:
-       signable =  _generate_and_write_metadata(self.timestamp.rolename,
-                                                filenames, False,
-                                                self._targets_directory,
-                                                metadata_directory)
-       _print_status(self.timestamp.rolename, signable)
-      except tuf.Error, e:
-        signable = e[1]
-        _print_status(self.timestamp.rolename, signable)
-        return
+      # Verify the top-level roles and print the results.
+      _print_status_of_top_level_roles(targets_directory, metadata_directory)
     
     finally:
       shutil.rmtree(temp_repository_directory, ignore_errors=True)
@@ -1565,9 +1516,14 @@ class Targets(Metadata):
 
 
 
-  def add_directory_paths(self, list_of_directory_paths):
+  def add_restricted_paths(self, list_of_directory_paths, child_rolename):
     """
     <Purpose>
+      Add 'list_of_directory_paths' to the restricted paths of 'child_rolename'.
+      The updater client verifies the target paths specified by child roles, and
+      searches for targets by visiting these restricted paths.  A child role may
+      only provide targets specifically listed in the delegations field of the
+      parent, or a target that falls under a restricted path.
 
       >>> 
       >>>
@@ -1575,13 +1531,19 @@ class Targets(Metadata):
 
     <Arguments>
       list_of_directory_paths:
+        A list of directory paths 'child_rolename' should also be restricted to.
+
+      child_rolename:
+        The child delegation that requires an update to its restricted paths,
+        as listed in the parent role's delegations.
 
     <Exceptions>
       tuf.Error, if a directory path in 'list_of_directory_paths' is not a
-      directory, or not under the repository's targets directory.
+      directory, or not under the repository's targets directory.  If
+      'child_rolename' has not been delegated yet. 
 
     <Side Effects>
-      None. 
+      Modifies this Targets' delegations field.
     
     <Returns>
       None.
@@ -1592,15 +1554,27 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.PATHS_SCHEMA.check_match(list_of_directory_paths)
+    tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
+    # A list of verified paths to be added to the child role's entry in the
+    # parent's delegations.
     directory_paths = []
+   
+    # Ensure the 'child_rolename' has been delegated, otherwise it will not
+    # have an entry in the parent role's delegations field.
+    full_child_rolename = self._rolename + '/' + child_rolename 
+    if not tuf.roledb.role_exists(full_child_rolename):
+      raise tuf.Error(repr(full_child_rolename)+' has not been delegated.')
 
+    # Are the paths in 'list_of_directory_paths' valid?
     for directory_path in list_of_directory_paths:
       directory_path = os.path.abspath(directory_path)
       if not os.path.isdir(directory_path):
         message = repr(directory_path)+ ' is not a directory.'
         raise tuf.Error(message)
 
+      # Are the paths in the repository's targets directory?  Append a trailing
+      # path separator with os.path.join(path, '').
       targets_directory = os.path.join(self._targets_directory, '')
       directory_path = os.path.join(directory_path, '')
       if not directory_path.startswith(targets_directory):
@@ -1608,12 +1582,21 @@ class Targets(Metadata):
           'targets directory: '+repr(self._targets_directory)
         raise tuf.Error(message)
 
-      directory_paths.append(directory_path[len(self._targets_directory):])
+      directory_paths.append(directory_path[len(self._targets_directory)+1:])
 
+    # Get the current role's roleinfo, so that its delegations field can be
+    # updated.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
-    for directory_path in directory_paths: 
-      if directory_path not in roleinfo['paths']:
-        roleinfo['paths'].append(directory_path)
+   
+    # Update the restricted paths of 'child_rolename'. 
+    for role in roleinfo['delegations']['roles']:
+      if role['name'] == full_child_rolename:
+        restricted_paths = role['paths'] 
+    
+    for directory_path in directory_paths:
+      if directory_path not in restricted_paths:
+        restricted_paths.append(directory_path)
+   
     tuf.roledb.update_roleinfo(self._rolename, roleinfo)
 
 
@@ -2102,12 +2085,17 @@ class Targets(Metadata):
                            number_of_bins=1024):
     """
     <Purpose>
-      Split the large number of target files of 'list_of_targets' into  
-      multiple delegated roles (hashed bins).  The size of all the delegated
-      roles will be nearly equal.  The updater client will use "lazy bin walk"
-      to find a target file's hashed bin destination.  The parent role lists
-      the hashed bins as either a direct delegation, or as a path hash prefix
-      of another hashed bin. See the following link for more information:
+      Distribute a large number of target files into multiple delegated roles
+      (hashed bins).  The metadata files of delegated roles will be nearly equal
+      in size (i.e., 'list_of_targets' is uniformly distributed by calculating
+      the target filepath's hash and determing which bin it should reside in.
+      The updater client will use "lazy bin walk" to find a target file's hashed
+      bin destination.  The parent role lists a range of path hash prefixes each
+      hashed bin contains.  This method is intended for repositories with a
+      large number of target files, a way of easily distributing and managing
+      the metadata that lists the targets, and minimizing the number of metadata
+      files (and their size) downloaded by the client.  See tuf-spec.txt and the
+      following link for more information:
       http://www.python.org/dev/peps/pep-0458/#metadata-scalability
       
       >>>
@@ -2116,16 +2104,24 @@ class Targets(Metadata):
 
     <Arguments>
       list_of_targets:
-        The target filepaths of the targets that should be stored in the hashed
-        bins (i.e., delegated roles).
+        The target filepaths of the targets that should be stored in hashed
+        bins created (i.e., delegated roles).  A repository object's
+        get_filepaths_in_directory() can generate a list of valid target
+        paths.
 
       keys_of_hashed_bins:
-        The public keys of the delegated roles.
+        The initial public keys of the delegated roles.  Public keys may be
+        later added or removed by calling the usual methods of the delegated
+        Targets object.  For example:
+        repository.targets('unclaimed')('000-003').add_key()
       
       number_of_bins:
-        The number of delegated roles listed in the parent role's
-        'delegations' field.  Must be a multiple of 16.  Each bin may contain
-        multiple roles.
+        The number of delegated roles, or hashed bins, that should be generated
+        and contain the target file attributes listed in 'list_of_targets'.
+        'number_of_bins' must be a multiple of 16.  Each bin may contain a
+        range of path hash prefixes (e.g., target filepath digests that range
+        from [000]... - [003]..., where the series of digits in brackets is
+        considered the hash prefix).
 
     <Exceptions>
       tuf.FormatError, if the arguments are improperly formatted,
@@ -2134,8 +2130,7 @@ class Targets(Metadata):
         directory.
 
     <Side Effects>
-      Delegates multiple target roles from the current parent role.  Others
-      may be generated/added as a role and only linked with the parent. 
+      Delegates multiple target roles from the current parent role.
 
     <Returns>
       None.
@@ -2149,19 +2144,26 @@ class Targets(Metadata):
     tuf.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
     tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
     
-    # Strip the '0x' from the Python hex representation.
+    # Determine the hex number of hashed bins from 'number_of_bins' and the
+    # maximum number of bins provided by the total number of hex digits needed.
+    # Strip the '0x' from the Python hex representation.  'prefix_length'
+    # and 'max_number_of_bins' affect hashed bin rolenames and the range of
+    # prefixes of each bin.
     prefix_length =  len(hex(number_of_bins - 1)[2:])
     max_number_of_bins = 16 ** prefix_length
 
     # For simplicity, ensure that we can evenly distribute 'max_number_of_bins'
-    # over 'number_of_bins'.
+    # over 'number_of_bins'.  Each bin will contain
+    # max_number_of_bin/number_of_bins hash prefixes.
     if max_number_of_bins % number_of_bins != 0:
       message = 'The number of bins argument must be a multiple of 16.'
       raise tuf.FormatError(message)
 
     logger.info('There are '+str(len(list_of_targets))+' total targets.')
 
-    # Store the target paths that fall into each bin.
+    # Store the target paths that fall into each bin.  The digest of the
+    # target path, reduced to the first 'prefix_length' hex digits, is
+    # calculated to determine which 'bin_index' is should go. 
     target_paths_in_bin = {}
     for bin_index in xrange(max_number_of_bins):
       target_paths_in_bin[bin_index] = []
@@ -2189,11 +2191,12 @@ class Targets(Metadata):
       # number.
       bin_index = int(relative_path_hash_prefix, 16)
 
-      # Add the 'target_path' (absolute) to the bin.
+      # Add the 'target_path' (absolute) to the bin.  These target paths are
+      # later added to the targets of the 'bin_index' role.
       target_paths_in_bin[bin_index].append(target_path)
 
     # Calculate the path hash prefixes of each bin_offset stored in the parent
-    # role.  For example: 'targets/unclaimed/004' may list the path hash
+    # role.  For example: 'targets/unclaimed/000-003' may list the path hash
     # prefixes "000", "001", "002", "003" in the delegations dict of
     # 'targets/unclaimed'. 
     bin_offset = max_number_of_bins // number_of_bins
@@ -2202,9 +2205,9 @@ class Targets(Metadata):
     # 'max_number_of_bins' in 'bin_offset' increments.  The skipped bin roles
     # are listed in 'path_hash_prefixes' of 'outer_bin_index.
     for outer_bin_index in xrange(0, max_number_of_bins, bin_offset):
-      # The bin index in hex padded from the left with zeroes for up to the
-      # 'prefix_length'.
-      # 'targets/unclaimed/000-003'
+      # The bin index is hex padded from the left with zeroes for up to the
+      # 'prefix_length' (e.g., 'targets/unclaimed/000-003').  Ensure the correct
+      # hash bin name is generated if a prefix range is unneeded.
       start_bin = hex(outer_bin_index)[2:].zfill(prefix_length)
       end_bin = hex(outer_bin_index+bin_offset-1)[2:].zfill(prefix_length)
       if start_bin == end_bin:
@@ -2212,13 +2215,13 @@ class Targets(Metadata):
       else:
         bin_rolename = start_bin + '-' + end_bin 
       
-      # The hash prefixes of the skipped bin roles, or the roles not directly
-      # delegated from the parent role.
+      # 'bin_rolename' may contain a range of target paths, from 'start_bin' to
+      # 'end_bin'.  Determine the total target paths that should be included. 
       path_hash_prefixes = []
       bin_rolename_targets = []
 
       for inner_bin_index in xrange(outer_bin_index, outer_bin_index+bin_offset):
-        # 'inner_bin_rolename' in padded hex.  For example, "00b". 
+        # 'inner_bin_rolename' needed in padded hex.  For example, "00b".
         inner_bin_rolename = hex(inner_bin_index)[2:].zfill(prefix_length)
         path_hash_prefixes.append(inner_bin_rolename)
         bin_rolename_targets.extend(target_paths_in_bin[inner_bin_index])
@@ -2266,7 +2269,7 @@ class Targets(Metadata):
 
 def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                  targets_directory, metadata_directory,
-                                 consistent_snapshots, filenames=None):
+                                 consistent_snapshots=False, filenames=None):
   """
   Non-public function that can generate and write the metadata of the specified
   top-level 'rolename'.  It also increments version numbers if:
@@ -2288,6 +2291,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   if rolename == 'root':
     metadata = generate_root_metadata(roleinfo['version'],
                                       roleinfo['expires'], consistent_snapshots)
+ 
+  # Check for the Targets role, including delegated roles.
   elif rolename.startswith('targets'):
     metadata = generate_targets_metadata(targets_directory,
                                          roleinfo['paths'],
@@ -2295,6 +2300,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['expires'],
                                          roleinfo['delegations'],
                                          consistent_snapshots)
+  
   elif rolename == 'release':
     root_filename = filenames['root']
     targets_filename = filenames['targets']
@@ -2303,6 +2309,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['expires'], root_filename,
                                          targets_filename,
                                          consistent_snapshots )
+  
   elif rolename == 'timestamp':
     release_filename = filenames['release'] 
     metadata = generate_timestamp_metadata(release_filename,
@@ -2348,13 +2355,107 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
       write_metadata_file(signable, metadata_filename, compressions,
                           consistent_snapshots=False)
     
-    return signable, filename 
   
   # 'signable' contains an invalid threshold of signatures. 
   else:
     message = 'Not enough signatures for '+repr(metadata_filename)
-    raise tuf.Error(message, signable)
+    raise tuf.UnsignedMetadataError(message, signable)
+  
+  return signable, filename 
 
+
+
+
+
+def _print_status_of_top_level_roles(targets_directory, metadata_directory):
+  """
+  Non-public function that prints whether any of the top-level roles contain an
+  invalid number of public and private keys, or an insufficient threshold of
+  signatures.  Considering that the top-level metadata have to be verified in
+  the expected root -> targets -> release -> timestamp order, this function
+  prints the error message and returns as soon as a required metadata file is
+  found to be invalid.  It is assumed here that the delegated roles have been
+  written and verified.  Example output:
+  
+  'root' role contains 1 / 1 signatures.
+  'targets' role contains 1 / 1 signatures.
+  'release' role contains 1 / 1 signatures.
+  'timestamp' role contains 1 / 1 signatures.
+  """
+
+  # The expected full filenames of the top-level roles needed to write them to
+  # disk.
+  filenames = get_metadata_filenames(metadata_directory)
+  root_filename = filenames[ROOT_FILENAME]
+  targets_filename = filenames[TARGETS_FILENAME]
+  release_filename = filenames[RELEASE_FILENAME]
+  timestamp_filename = filenames[TIMESTAMP_FILENAME]
+
+  # Verify that the top-level roles contain a valid number of public keys and
+  # that their corresponding private keys have been loaded.
+  for rolename in ['root', 'targets', 'release', 'timestamp']:
+    try:
+      _check_role_keys(rolename)
+    
+    except tuf.InsufficientKeysError, e:
+      print(str(e))
+      return
+
+  # Do the top-level roles contain a valid threshold of signatures?  Top-level
+  # metadata is verified in Root -> Targets -> Release -> Timestamp order.
+  # Verify the metadata of the Root role.
+  try:
+    signable, root_filename = \
+      _generate_and_write_metadata('root', root_filename, False,
+                                   targets_directory, metadata_directory)
+    _print_status('root', signable)
+ 
+  # 'tuf.UnsignedMetadataError' raised if metadata contains an invalid threshold
+  # of signatures.  Print the valid/threshold message, where valid < threshold.
+  except tuf.UnsignedMetadataError, e:
+    signable = e[1]
+    _print_status('root', signable)
+    return
+
+  # Verify the metadata of the Targets role.
+  try:
+    signable, targets_filename = \
+      _generate_and_write_metadata('targets', targets_filename, False,
+                                   targets_directory, metadata_directory)
+    _print_status('targets', signable)
+  
+  except tuf.UnsignedMetadataError, e:
+    signable = e[1]
+    _print_status('targets', signable)
+    return
+
+  # Verify the metadata of the Release role.
+  filenames = {'root': root_filename, 'targets': targets_filename} 
+  try:
+    signable, release_filename = \
+      _generate_and_write_metadata('release', release_filename, False,
+                                   targets_directory, metadata_directory,
+                                   False, filenames)
+    _print_status('release', signable)
+  
+  except tuf.UnsignedMetadataError, e:
+    signable = e[1]
+    _print_status('release', signable)
+    return
+  
+  # Verify the metadata of the Timestamp role.
+  filenames = {'release': release_filename}
+  try:
+    signable, release_filename = \
+      _generate_and_write_metadata('timestamp', release_filename, False,
+                                   targets_directory, metadata_directory,
+                                   False, filenames)
+    _print_status('timestamp', signable)
+  
+  except tuf.UnsignedMetadataError, e:
+    signable = e[1]
+    _print_status('timestamp', signable)
+    return
 
 
 
@@ -2364,12 +2465,11 @@ def _print_status(rolename, signable):
   Non-public function prints the number of (good/threshold) signatures of
   'rolename'.
   """
-
-  status = tuf.sig.get_signature_status(signable, rolename)
   
-  message = repr(rolename)+' role contains '+ \
-    repr(len(status['good_sigs']))+' / '+ \
-    repr(status['threshold'])+' signatures.'
+  status = tuf.sig.get_signature_status(signable, rolename)
+
+  message = repr(rolename)+' role contains '+ repr(len(status['good_sigs']))+\
+    ' / '+repr(status['threshold'])+' signatures.'
   print(message)
 
 
@@ -2478,7 +2578,7 @@ def _check_directory(directory):
 def _check_role_keys(rolename):
   """
   Non-public function that verifies the public and signing keys of 'rolename'.
-  If either contain an invalid threshold number of keys, raise an exception.
+  If either contain an invalid threshold of keys, raise an exception.
   'rolename' is the full rolename (e.g., 'targets/unclaimed/django'). 
   """
 
@@ -2555,7 +2655,7 @@ def _delete_obsolete_metadata(metadata_directory, release_metadata,
                               consistent_snapshots):
   """
   Non-public function that deletes metadata files marked as removed by
-  libtuf.py.  Metadata files marked as removed are not actually deleted
+  repository_tool.py.  Metadata files marked as removed are not actually deleted
   until this function is called.
   """
  
@@ -2592,7 +2692,7 @@ def _delete_obsolete_metadata(metadata_directory, release_metadata,
               metadata_name[:-len(metadata_extension)]
         
         # Delete the metadata file if it does not exist in 'tuf.roledb'.
-        # libtuf.py might have marked 'metadata_name' as removed, but its
+        # repository_tool.py might have marked 'metadata_name' as removed, but its
         # metadata file is not actually deleted yet.  Do it now.
         if not tuf.roledb.role_exists(metadata_name_without_extension):
           logger.info('Removing outdated metadata: ' + repr(metadata_path))
@@ -2681,7 +2781,7 @@ def create_new_repository(repository_directory):
     metadata and targets sub-directories.
 
   <Returns>
-    A 'tuf.libtuf.Repository' object.
+    A 'tuf.repository_tool.Repository' object.
   """
 
   # Does 'repository_directory' have the correct format?
@@ -2770,10 +2870,10 @@ def load_repository(repository_directory):
 
   <Side Effects>
    All the metadata files found in the repository are loaded and their contents
-   stored in a libtuf.Repository object.
+   stored in a repository_tool.Repository object.
 
   <Returns>
-    libtuf.Repository object.
+    repository_tool.Repository object.
   """
  
   # Does 'repository_directory' have the correct format?
@@ -2850,7 +2950,9 @@ def load_repository(repository_directory):
           continue
         
         metadata_object = signable['signed']
-      
+     
+        # Extract the metadata attributes 'metadata_name' and update its
+        # corresponding roleinfo.
         roleinfo = tuf.roledb.get_roleinfo(metadata_name)
         roleinfo['signatures'].extend(signable['signatures'])
         roleinfo['version'] = metadata_object['version']
@@ -2865,6 +2967,8 @@ def load_repository(repository_directory):
         tuf.roledb.update_roleinfo(metadata_name, roleinfo)
         loaded_metadata.append(metadata_name)
 
+        # Generate the Targets objects of the delegated roles of
+        # 'metadata_name' and update the parent role Targets object.
         new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
         targets_object = \
           targets_objects[tuf.roledb.get_parent_rolename(metadata_name)]
@@ -2880,7 +2984,9 @@ def load_repository(repository_directory):
             tuf.keydb.add_key(key_object)
           except tuf.KeyAlreadyExistsError, e:
             pass
-        
+       
+        # Add the delegated role's initial roleinfo, to be fully populated
+        # when its metadata file is next loaded in the os.walk() iteration.
         for role in metadata_object['delegations']['roles']:
           rolename = role['name'] 
           roleinfo = {'name': role['name'], 'keyids': role['keyids'],
@@ -2901,7 +3007,7 @@ def load_repository(repository_directory):
 def _load_top_level_metadata(repository, top_level_filenames):
   """
   Load the metadata of the Root, Timestamp, Targets, and Release roles.
-  At a minimum, the Root role must exist and successfully loaded.
+  At a minimum, the Root role must exist and successfully load.
   """
 
   root_filename = top_level_filenames[ROOT_FILENAME] 
@@ -3021,8 +3127,6 @@ def _load_top_level_metadata(repository, top_level_filenames):
     tuf.roledb.update_roleinfo('targets', roleinfo)
 
     # Add the keys specified in the delegations field of the Targets role.
-    # TODO: Delegated role's are only missing the threshold value, which the
-    # parent role sets.  Remember to request threshold value from parent role.
     for key_metadata in targets_metadata['delegations']['keys'].values():
       key_object = tuf.keys.format_metadata_to_key(key_metadata)
       tuf.keydb.add_key(key_object)
@@ -4395,7 +4499,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
 
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
-  # be tested by running libtuf.py as a standalone module:
-  # $ python libtuf.py.
+  # be tested by running repository_tool.py as a standalone module:
+  # $ python repository_tool.py.
   import doctest
   doctest.testmod()

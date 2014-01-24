@@ -8,7 +8,7 @@ required by the client prior to a TUF update request.  The importation and
 instantiation steps allow TUF to load all of the required metadata files
 and set the repository mirror information.
 
-The **tuf.libtuf** module can be used to create a TUF repository.  See
+The **tuf.repository_tool** module can be used to create a TUF repository.  See
 [tuf/README](../README.md) for more information on creating TUF repositories.
 
 The **tuf.interposition** package can also assist in integrating TUF with a
@@ -137,7 +137,7 @@ for target in updated_target:
 
 ###A Simple Integration Example with basic_client.py
 ```Bash
-# Assume a simple TUF repository has been setup with 'tuf.libtuf.py'.
+# Assume a simple TUF repository has been setup with 'tuf.repository_tool.py'.
 $ basic_client.py --repo http://localhost:8001
 
 # Metadata and target files are silently updated.  An exception is only raised if an error,

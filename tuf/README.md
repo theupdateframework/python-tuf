@@ -1,8 +1,8 @@
 #Repository Management
-![Repo Tools Diagram 1](https://raw.github.com/theupdateframework/tuf/repository-tools/docs/images/libtuf-diagram.png)
+![Repo Tools Diagram 1](https://raw.github.com/theupdateframework/tuf/repository-tools/docs/images/repository_tool-diagram.png)
 ## Create TUF Repository
 
-The **tuf.libtuf** module can be used to create a TUF repository.  It may either be imported into a Python module
+The **tuf.repository_tool** module can be used to create a TUF repository.  It may either be imported into a Python module
 or used interactively in a Python interpreter.
 
 ```Bash
@@ -10,7 +10,7 @@ $ python
 Python 2.7.3 (default, Sep 26 2013, 20:08:41) 
 [GCC 4.6.3] on linux2
 Type "help", "copyright", "credits" or "license" for more information.
->>> from tuf.libtuf import *
+>>> from tuf.repository_tool import *
 >>> repository = load_repository("path/to/repository")
 ```
 The **tuf.interposition** package and **tuf.client.updater** module assist in integrating TUF with a software updater.
@@ -20,7 +20,7 @@ The **tuf.interposition** package and **tuf.client.updater** module assist in in
 
 #### Create RSA Keys
 ```python
-from tuf.libtuf import *
+from tuf.repository_tool import *
 
 # Generate and write the first of two root keys for the TUF repository.
 # The following function creates an RSA key pair, where the private key is saved to
@@ -43,7 +43,7 @@ The following four key files should now exist:
 
 ### Import RSA Keys
 ```python
-from tuf.libtuf import *
+from tuf.repository_tool import *
 
 # Import an existing public key.
 public_root_key = import_rsa_publickey_from_file("path/to/root_key.pub")
@@ -58,7 +58,7 @@ is invalid.
 
 ### Create and Import ED25519 Keys
 ```Python
-from tuf.libtuf import *
+from tuf.repository_tool import *
 
 # Generate and write an ed25519 key pair.  The private key is saved encrypted.
 # A 'password' argument may be supplied, otherwise a prompt is presented.
@@ -100,7 +100,7 @@ repository.root.keys
 public_root_key2 = import_rsa_publickey_from_file("path/to/root_key2.pub")
 repository.root.add_key(public_root_key2)
 
-# Threshold of each role defaults to 1.   Users may change the threshold value, but libtuf.py
+# Threshold of each role defaults to 1.   Users may change the threshold value, but repository_tool.py
 # validates thresholds and warns users.  Set the threshold of the root role to 2,
 # which means the root metadata file is considered valid if it contains at least two valid 
 # signatures.
@@ -192,7 +192,7 @@ $ mkdir django; echo 'file4' > django/file4.txt
 ```
 
 ```python
-from tuf.libtuf import *
+from tuf.repository_tool import *
 
 # Load the repository created in the previous section.  This repository so far contains metadata for
 # the top-level roles, but no targets.
@@ -302,8 +302,38 @@ repository.targets('unclaimed').delegate("flask", [public_unclaimed_key], [])
 repository.targets('unclaimed').revoke("flask")
 repository.write()
 ```
+#### Delegate to Hashed Bins
+```Python
+# Distribute a large number of target files to multiple delegated roles (hashed bins).
+# The metadata files of delegated roles will be nearly equal in size (i.e., target file
+# paths are uniformly distributed by calculating the target filepath's digest and
+# determining which bin it should reside in.  The updater client will use "lazy bin walk"
+# to find a target file's hashed bin destination.  This method is intended for repositories
+# with a large number of target files, a way of easily distributing and managing the
+# metadata that lists the targets, and minimizing the number of metadata files (and size)
+# downloaded by the client.
+# delegate_hashed_bins(list_of_targets, keys_of_hashed_bins, number_of_bins)
+targets = \
+  repository.get_filepaths_in_directory('path/to/repository/targets/django',
+                                        recursive_walk=True)
+repository.targets('unclaimed')('django').delegate_hashed_bins(targets,
+                                                               [public_unclaimed_key], 32)
 
-```bash
+for delegation in repository.targets('unclaimed')('django').delegations:
+  delegation.load_signing_key(private_unclaimed_key)
+
+# Delegated roles may also be restricted to particular paths.
+repository.targets('unclaimed').add_restricted_paths(targets, 'django')
+```
+
+#### Consistent Snapshots
+```Python
+#
+#
+repository.write(consistent_snapshots=True)
+```
+
+```Bash
 # Copy the staged metadata directory changes to the live repository.
 $ cp -r "path/to/repository/metadata.staged/" "path/to/repository/metadata/"
 ```
@@ -312,7 +342,7 @@ $ cp -r "path/to/repository/metadata.staged/" "path/to/repository/metadata/"
 
 ### Using TUF Within an Example Client Updater
 ```python
-from tuf.libtuf import *
+from tuf.repository_tool import *
 
 # The following function creates a directory structure that a client 
 # downloading new software using TUF (via tuf/client/updater.py) will expect.
