@@ -55,9 +55,12 @@ from tuf.repository_tool import generate_and_write_ed25519_keypair
 from tuf.repository_tool import import_ed25519_publickey_from_file
 from tuf.repository_tool import import_ed25519_privatekey_from_file
 #from tuf.import _generate_and_write_metadata
+from tuf.repository_tool import _remove_invalid_and_duplicate_signatures
+from tuf.repository_tool import _check_role_keys
+from tuf.repository_tool import _delete_obsolete_metadata
 from tuf.repository_tool import generate_targets_metadata
 from tuf.repository_tool import sign_metadata
-#from tuf.repository-tool import write_delegated_metadata_file
+from tuf.repository_tool import write_metadata_file
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.devtools')
@@ -233,7 +236,7 @@ class Project(object):
     # Generate the 'targets.txt' metadata file.
     targets_filename = 'targets' + METADATA_EXTENSION 
     targets_filename = os.path.join(self._metadata_directory, targets_filename)
-    signable_junk, targets_filename = \
+    release_signable, targets_filename = \
       _generate_and_write_metadata('targets', targets_filename, write_partial,
                                    self._targets_directory,
                                    self._metadata_directory,
@@ -293,7 +296,6 @@ class Project(object):
     <Returns>
       None.
     """
-   
     temp_project_directory = None
 
     try:
@@ -302,8 +304,11 @@ class Project(object):
                                         METADATA_STAGED_DIRECTORY_NAME)
       os.mkdir(metadata_directory)
 
-      filenames = get_metadata_filenames(metadata_directory)
-    
+      #filenames = get_metadata_filenames(metadata_directory)A
+      # we should do the schema check
+      filenames = {}
+      filenames['targets'] = os.path.join(metadata_directory,TARGETS_FILENAME)
+      
       # Delegated roles.
       delegated_roles = tuf.roledb.get_delegated_rolenames('targets')
       insufficient_keys = []
@@ -345,14 +350,13 @@ class Project(object):
         return
       
       try:
-       signable =  _generate_and_write_metadata(self.targets.rolename,
-                                                filenames, False,
+        signable =  _generate_and_write_metadata(self.targets.rolename,
+                                                filenames['targets'], False,
                                                 self._targets_directory,
                                                 self._metadata_directory,
                                                 False)
-       #_print_status(self.targets.rolename, signable)
+        #_print_status(self.targets.rolename, signable)
       except tuf.Error, e:
-        print(str(e))
         signable = e[1]
         #_print_status(self.targets.rolename, signable)
         return
@@ -424,13 +428,8 @@ class Project(object):
 
     return targets
 
-def _delete_obsolete_metadata(metadata_directory, release_metadata,
-                              consistent_snapshots):
-  print("missing implementation")
 
 
-def _check_role_keys(rolename):
-  print("missing implementation")
 
 
 def _print_status(rolename, signable):
@@ -460,7 +459,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   """
 
   metadata = None 
-
+  print("we do get here")
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
   roleinfo = tuf.roledb.get_roleinfo(rolename) 
@@ -472,10 +471,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                        roleinfo['expires'],
                                        roleinfo['delegations'],
                                        consistent_snapshots)
-  print(metadata)
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
-   
   # Check if the version number of 'rolename' may be automatically incremented,
   # depending on whether if partial metadata is loaded or if the metadata is
   # written with write() / write_partial(). 
@@ -499,20 +496,13 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # Write the metadata to file if contains a threshold of signatures. 
   signable['signatures'].extend(roleinfo['signatures']) 
   
+  #import pdb; pdb.set_trace()
   if tuf.sig.verify(signable, rolename) or write_partial:
     _remove_invalid_and_duplicate_signatures(signable)
     compressions = roleinfo['compressions']
     filename = write_metadata_file(signable, metadata_filename, compressions,
                                    consistent_snapshots)
     
-    # The root and timestamp files should also be written without a digest if
-    # 'consistent_snaptshots' is True.  Client may request a timestamp and root
-    # file without knowing its digest and file size.
-    if rolename == 'root' or rolename == 'timestamp':
-      write_metadata_file(signable, metadata_filename, compressions,
-                          consistent_snapshots=False)
-    
-    return signable, filename 
     
   # 'signable' contains an invalid threshold of signatures. 
   else:
@@ -520,6 +510,10 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     raise tuf.Error(message, signable)
 
 
+  # The root and timestamp files should also be written without a digest if
+  # 'consistent_snaptshots' is True.  Client may request a timestamp and root
+  # file without knowing its digest and file size.
+  return signable, filename 
 
 
 def _prompt(message, result_type=str):
