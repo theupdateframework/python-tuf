@@ -110,7 +110,8 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # the URL as UTF-8. We need a long-term solution with #61.
     # http://bugs.python.org/issue1712522
     file_path = urllib.quote(file_path)
-    url = base+'/'+file_path
+    url = base + '/' + file_path.lstrip(os.sep) 
+    #url = os.path.join(base, file_path.lstrip(os.sep)) 
     list_of_mirrors.append(url)
 
   return list_of_mirrors

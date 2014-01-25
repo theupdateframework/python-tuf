@@ -1571,14 +1571,14 @@ class Updater(object):
 
       if allowed_child_path_hash_prefixes is not None:
         consistent = self._paths_are_consistent_with_hash_prefixes
-        if not consistent(actual_child_targets,
-                          allowed_child_path_hash_prefixes):
-          raise tuf.ForbiddenTargetError('Role '+repr(metadata_role)+\
-                                         ' specifies target which does not'+\
-                                         ' have a path hash prefix matching'+\
-                                         ' the prefix listed by the parent'+\
-                                         ' role '+repr(parent_role)+'.')
-
+        if len(actual_child_targets) > 0:
+          if not consistent(actual_child_targets,
+                            allowed_child_path_hash_prefixes):
+            message =  repr(metadata_role)+' specifies a target that does not'+\
+              ' have a path hash prefix listed in its parent role '+\
+              repr(parent_role)+'.'
+            raise tuf.ForbiddenTargetError(message)
+      
       elif allowed_child_paths is not None: 
 
         # Check that each delegated target is either explicitly listed or a parent
@@ -1661,7 +1661,8 @@ class Updater(object):
             break
 
         # This path has no matching path_hash_prefix. Stop looking further.
-        if not consistent: break
+        if not consistent:
+          break
 
     return consistent
 
@@ -2136,7 +2137,7 @@ class Updater(object):
       parent_role = parent_role + '.txt'
 
       if parent_role not in targets_metadata_allowed:
-        message = '"release.txt" does not provide all the parent roles'+\
+        message = '"release.txt" does not provide all the parent roles '+\
           'of '+repr(rolename)+'.'
         raise tuf.RepositoryError(message)
 
@@ -2336,6 +2337,9 @@ class Updater(object):
     # 'target_filepath' might contain URL encoding escapes.
     # http://docs.python.org/2/library/urllib.html#urllib.unquote
     target_filepath = urllib.unquote(target_filepath)
+
+    if not target_filepath.startswith('/'):
+      target_filepath = '/' + target_filepath
 
     # Get target by looking at roles in order of priority tags.
     target = self._preorder_depth_first_walk(target_filepath)
@@ -2799,8 +2803,10 @@ class Updater(object):
                                                trusted_hashes)
    
     # We acquired a target file object from a mirror.  Move the file into
-    # place (i.e., locally to 'destination_directory').
-    destination = os.path.join(destination_directory, target_filepath)
+    # place (i.e., locally to 'destination_directory').  Note: join() discards
+    # 'destination_directory' if 'target_path' contains a leading path separator
+    # (i.e., is treated as an absolute path).
+    destination = os.path.join(destination_directory, target_filepath.lstrip(os.sep))
     destination = os.path.abspath(destination)
     target_dirpath = os.path.dirname(destination)
     if target_dirpath:

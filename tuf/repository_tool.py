@@ -1582,7 +1582,7 @@ class Targets(Metadata):
           'targets directory: '+repr(self._targets_directory)
         raise tuf.Error(message)
 
-      directory_paths.append(directory_path[len(self._targets_directory)+1:])
+      directory_paths.append(directory_path[len(self._targets_directory):])
 
     # Get the current role's roleinfo, so that its delegations field can be
     # updated.
@@ -1642,8 +1642,7 @@ class Targets(Metadata):
     filepath = os.path.abspath(filepath)
    
     # Ensure 'filepath' is found under the repository's targets directory.
-    if not os.path.commonprefix([self._targets_directory, filepath]) == \
-                                self._targets_directory:
+    if not filepath.startwith(self._targets_directory): 
       message = repr(filepath)+' is not under the Repository\'s targets '+\
         'directory: '+repr(self._targets_directory)
       raise tuf.Error(message)
@@ -1658,7 +1657,7 @@ class Targets(Metadata):
       # Update the role's 'tuf.roledb.py' entry and avoid duplicates.
       targets_directory_length = len(self._targets_directory) 
       roleinfo = tuf.roledb.get_roleinfo(self._rolename)
-      relative_path = filepath[targets_directory_length+1:]
+      relative_path = filepath[targets_directory_length:]
       if relative_path not in roleinfo['paths']:
         roleinfo['paths'].append(relative_path)
       tuf.roledb.update_roleinfo(self._rolename, roleinfo)
@@ -1716,16 +1715,15 @@ class Targets(Metadata):
     # repository's targets directory.
     for target in list_of_targets:
       filepath = os.path.abspath(target)
-      
-      if not os.path.commonprefix([self._targets_directory, filepath]) == \
-                                  self._targets_directory:
+     
+      if not filepath.startswith(self._targets_directory+os.sep):
         message = repr(filepath)+' is not under the Repository\'s targets '+\
           'directory: '+repr(self._targets_directory)
         raise tuf.Error(message)
       
       if os.path.isfile(filepath):
         absolute_list_of_targets.append(filepath)
-        relative_list_of_targets.append(filepath[targets_directory_length+1:])
+        relative_list_of_targets.append(filepath[targets_directory_length:])
       else:
         message = repr(filepath)+' is not a valid file.'
         raise tuf.Error(message)
@@ -1777,14 +1775,13 @@ class Targets(Metadata):
     targets_directory_length = len(self._targets_directory)
     
     # Ensure 'filepath' is under the repository targets directory.
-    if not os.path.commonprefix([self._targets_directory, filepath]) == \
-                                self._targets_directory:
+    if not filepath.startswith(self._targets_directory+os.sep):
       message = repr(filepath)+' is not under the Repository\'s targets '+\
         'directory: '+repr(self._targets_directory)
       raise tuf.Error(message)
 
     # The relative filepath is listed in 'paths'.
-    relative_filepath = filepath[targets_directory_length+1:]
+    relative_filepath = filepath[targets_directory_length:]
    
     # Remove 'relative_filepath', if found, and update this Targets roleinfo.  
     fileinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1954,13 +1951,12 @@ class Targets(Metadata):
     
     for target in list_of_targets:
       target = os.path.abspath(target)
-      if not os.path.commonprefix([self._targets_directory, target]) == \
-                                self._targets_directory:
+      if not target.startswith(self._targets_directory+os.sep):
         message = repr(target)+' is not under the Repository\'s targets '+\
         'directory: '+repr(self._targets_directory)
         raise tuf.Error(message)
 
-      relative_targetpaths.append(target[targets_directory_length+1:])
+      relative_targetpaths.append(target[targets_directory_length:])
     
     # Ensure the paths of 'restricted_paths' all fall under the repository's
     # targets.
@@ -1968,15 +1964,15 @@ class Targets(Metadata):
    
     if restricted_paths is not None: 
       for path in restricted_paths:
-        path = os.path.abspath(path)
-        if not os.path.commonprefix([self._targets_directory, path]) == \
-                                  self._targets_directory:
+        path = os.path.abspath(path)+os.sep
+        if not path.startswith(self._targets_directory+os.sep):
           message = repr(path)+' is not under the Repository\'s targets '+\
           'directory: '+repr(self._targets_directory)
           raise tuf.Error(message)
         
+        # Append a trailing path separator with os.path.join(path, '').
         path = os.path.join(path, '')
-        relative_restricted_paths.append(path[targets_directory_length+1:])
+        relative_restricted_paths.append(path[targets_directory_length:])
    
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
@@ -2172,7 +2168,7 @@ class Targets(Metadata):
     # repository's targets directory.
     for target_path in list_of_targets:
       target_path = os.path.abspath(target_path)
-      if not target_path.startswith(self._targets_directory+'/'):
+      if not target_path.startswith(self._targets_directory+os.sep):
         message = 'A path in the list of targets argument is not '+\
           'under the repository\'s targets directory: '+repr(target_path) 
         raise tuf.FormatError(message)
@@ -2180,7 +2176,7 @@ class Targets(Metadata):
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.  Example:
       # '{repository_root}/targets/file1.txt' -> 'file1.txt'.
-      relative_path = target_path[len(self._targets_directory)+1:]
+      relative_path = target_path[len(self._targets_directory):]
       digest_object = tuf.hash.digest(algorithm=HASH_FUNCTION)
       digest_object.update(relative_path)
       relative_path_hash = digest_object.hexdigest()
@@ -2747,7 +2743,7 @@ def _strip_consistent_snapshots_digest(metadata_filename, consistent_snapshots):
   if consistent_snapshots:
     dirname, basename = os.path.split(metadata_filename)
     embeded_digest = basename[:basename.find('.')]
-    basename = basename[basename.find('.')+1:]
+    basename = basename[basename.find('.'):]
     metadata_filename = os.path.join(dirname, basename)
   
 
@@ -3897,10 +3893,14 @@ def generate_targets_metadata(targets_directory, target_files, version,
   # Generate the fileinfo of all the target files listed in 'target_files'.
   for target in target_files:
    
-    # The root-most folder of the targets directory should not be included.
+    # The root-most folder of the targets directory should not be included in
+    # target paths listed in targets metadata.
     # (e.g., 'targets/more_targets/somefile.txt' -> 'more_targets/somefile.txt')
     relative_targetpath = target
-    target_path = os.path.join(targets_directory, target)
+
+    # Note: join() discards 'targets_directory' if 'target' contains a leading
+    # path separator (i.e., is treated as an absolute path).
+    target_path = os.path.join(targets_directory, target.lstrip(os.sep))
    
     # Ensure all target files listed in 'target_files' exist.  If just one of
     # these files does not exist, raise an exception.
