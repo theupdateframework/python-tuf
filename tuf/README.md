@@ -129,7 +129,7 @@ try:
 # written metadata.q
 except tuf.Error, e:
   print e 
-Not enough signatures for 'path/to/repository/metadata.staged/targets.txt'
+Not enough signatures for 'path/to/repository/metadata.staged/targets.json'
 
 # In the next section, update the other top-level roles and create a repository with valid metadata.
 ```
@@ -249,7 +249,7 @@ repository.write()
 repository.targets.remove_target("path/to/repository/targets/file3.txt")
 
 # repository.write() creates any new metadata files, updates those that have changed, and any that
-# need updating to make a new "release" (new release.txt and timestamp.txt).
+# need updating to make a new "release" (new release.json and timestamp.json).
 repository.write()
 ```
 
@@ -346,7 +346,7 @@ from tuf.repository_tool import *
 
 # The following function creates a directory structure that a client 
 # downloading new software using TUF (via tuf/client/updater.py) will expect.
-# The root.txt metadata file must exist, and also the directories that hold the metadata files
+# The root.json metadata file must exist, and also the directories that hold the metadata files
 # downloaded from a repository.  Software updaters integrating with TUF may use this
 # directory to store TUF updates saved on the client side.  create_tuf_client_directory()
 # moves metadata from "path/to/repository/metadata" to "path/to/client/".  The repository

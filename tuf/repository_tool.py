@@ -61,7 +61,7 @@ DEFAULT_RSA_KEY_BITS = 3072
 HASH_FUNCTION = 'sha256'
 
 # The extension of TUF metadata.
-METADATA_EXTENSION = '.txt'
+METADATA_EXTENSION = '.json'
 
 # The metadata filenames of the top-level roles.
 ROOT_FILENAME = 'root' + METADATA_EXTENSION
@@ -76,7 +76,7 @@ METADATA_DIRECTORY_NAME = 'metadata'
 TARGETS_DIRECTORY_NAME = 'targets' 
 
 # The full list of supported TUF metadata extensions.
-METADATA_EXTENSIONS = ['.txt', '.txt.gz']
+METADATA_EXTENSIONS = ['.json', '.json.gz']
 
 # The recognized compression extensions. 
 SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
@@ -88,16 +88,16 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 # expiration date is set by taking the current time and adding the expiration
 # seconds listed below.
 
-# Initial 'root.txt' expiration time of 1 year. 
+# Initial 'root.json' expiration time of 1 year. 
 ROOT_EXPIRATION = 31556900
 
-# Initial 'targets.txt' expiration time of 3 months. 
+# Initial 'targets.json' expiration time of 3 months. 
 TARGETS_EXPIRATION = 7889230 
 
-# Initial 'release.txt' expiration time of 1 week. 
+# Initial 'release.json' expiration time of 1 week. 
 RELEASE_EXPIRATION = 604800 
 
-# Initial 'timestamp.txt' expiration time of 1 day.
+# Initial 'timestamp.json' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
 
 
@@ -105,7 +105,7 @@ class Repository(object):
   """
   <Purpose>
     Represent a TUF repository that contains the metadata of the top-level
-    roles, including all those delegated from the 'targets.txt' role.  The
+    roles, including all those delegated from the 'targets.json' role.  The
     repository object returned provides access to the top-level roles, and any
     delegated targets that are added as the repository is modified.  For
     example, a Repository object named 'repository' provides the following
@@ -129,7 +129,7 @@ class Repository(object):
 
     metadata_directory:
       The metadata sub-directory contains the files of the top-level
-      roles, including all roles delegated from 'targets.txt'. 
+      roles, including all roles delegated from 'targets.json'. 
 
     targets_directory:
       The targets sub-directory contains all the target files that are
@@ -189,10 +189,10 @@ class Repository(object):
 
       consistent_snapshots:
         A boolean indicating whether written metadata and target files should
-        include a digest in the filename (i.e., <digest>.root.txt,
-        <digest>.targets.txt.gz, <digest>.README.txt, where <digest> is the
+        include a digest in the filename (i.e., <digest>.root.json,
+        <digest>.targets.json.gz, <digest>.README.json, where <digest> is the
         file's SHA256 digest.  Example:
-        1f4e35a60c8f96d439e27e858ce2869c770c1cdd54e1ef76657ceaaf01da18a3.root.txt'
+        1f4e35a60c8f96d439e27e858ce2869c770c1cdd54e1ef76657ceaaf01da18a3.root.json'
         
     <Exceptions>
       tuf.UnsignedMetadataError, if any of the top-level and delegated roles do
@@ -245,7 +245,7 @@ class Repository(object):
                                    self._metadata_directory,
                                    consistent_snapshots)
       
-    # Generate the 'root.txt' metadata file.
+    # Generate the 'root.json' metadata file.
     # _generate_and_write_metadata() raises a 'tuf.Error' exception if the
     # metadata cannot be written.
     root_filename = 'root' + METADATA_EXTENSION 
@@ -256,7 +256,7 @@ class Repository(object):
                                    self._metadata_directory,
                                    consistent_snapshots)
     
-    # Generate the 'targets.txt' metadata file.
+    # Generate the 'targets.json' metadata file.
     targets_filename = 'targets' + METADATA_EXTENSION 
     targets_filename = os.path.join(self._metadata_directory, targets_filename)
     signable_junk, targets_filename = \
@@ -265,7 +265,7 @@ class Repository(object):
                                    self._metadata_directory,
                                    consistent_snapshots)
     
-    # Generate the 'release.txt' metadata file.
+    # Generate the 'release.json' metadata file.
     release_filename = os.path.join(self._metadata_directory, 'release')
     release_filename = 'release' + METADATA_EXTENSION 
     release_filename = os.path.join(self._metadata_directory, release_filename)
@@ -276,7 +276,7 @@ class Repository(object):
                                    self._metadata_directory,
                                    consistent_snapshots, filenames)
     
-    # Generate the 'timestamp.txt' metadata file.
+    # Generate the 'timestamp.json' metadata file.
     timestamp_filename = 'timestamp' + METADATA_EXTENSION 
     timestamp_filename = os.path.join(self._metadata_directory, timestamp_filename)
     filenames = {'release': release_filename}
@@ -1133,7 +1133,7 @@ class Metadata(object):
     <Purpose>
       A getter method that returns a list of the file compression algorithms
       used when the metadata is written to disk.  If ['gz'] is set for the
-      'targets.txt' role, the metadata files 'targets.txt' and 'targets.txt.gz'
+      'targets.json' role, the metadata files 'targets.json' and 'targets.json.gz'
       are written.
 
       >>>  
@@ -1166,8 +1166,8 @@ class Metadata(object):
     """
     <Purpose>
       A setter method for the file compression algorithms used when the
-      metadata is written to disk.  If ['gz'] is set for the 'targets.txt' role
-      the metadata files 'targets.txt' and 'targets.txt.gz' are written.
+      metadata is written to disk.  If ['gz'] is set for the 'targets.json' role
+      the metadata files 'targets.json' and 'targets.json.gz' are written.
 
       >>>  
       >>> 
@@ -1378,7 +1378,7 @@ class Targets(Metadata):
   """
   <Purpose>
     Represent a Targets role object.  Targets roles include the top-level role 
-    'targets.txt' and all delegated roles (e.g., 'targets/unclaimed/django').
+    'targets.json' and all delegated roles (e.g., 'targets/unclaimed/django').
     The expected operations of Targets metadata is included, such as adding
     and removing repository target files, making and revoking delegations, and
     listing the target files provided by it.
@@ -1395,7 +1395,7 @@ class Targets(Metadata):
     Metadata operations like adding/removing public keys, signatures, private
     keys, and updating metadata attributes (e.g., version and expiration) is
     supported.  Since Targets is a top-level role and must exist, a default
-    Targets object (for 'targets.txt', not delegated roles) is instantiated when
+    Targets object (for 'targets.json', not delegated roles) is instantiated when
     a new Repository object is created.
 
     >>> 
@@ -2671,8 +2671,8 @@ def _delete_obsolete_metadata(metadata_directory, release_metadata,
   # metadata of delegated roles is stored.
   targets_metadata = os.path.join(metadata_directory, 'targets')
 
-  # The 'targets.txt' metadata is not visited, only its child delegations.
-  # The 'targets/unclaimed/django.txt' role would be located in the
+  # The 'targets.json' metadata is not visited, only its child delegations.
+  # The 'targets/unclaimed/django.json' role would be located in the
   # '{repository_directory}/metadata/targets/unclaimed/' directory.
   if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
     for directory_path, junk_directories, files in os.walk(targets_metadata):
@@ -2681,14 +2681,14 @@ def _delete_obsolete_metadata(metadata_directory, release_metadata,
       for basename in files:
         metadata_path = os.path.join(directory_path, basename)
         # Strip the metadata dirname and the leading path separator.
-        # '{repository_directory}/metadata/targets/unclaimed/django.txt' -->
-        # 'targets/unclaimed/django.txt'
+        # '{repository_directory}/metadata/targets/unclaimed/django.json' -->
+        # 'targets/unclaimed/django.json'
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
       
         # Strip the digest if 'consistent_snapshots' is True.
-        # Example:  'targets/unclaimed/13df98ab0.django.txt'  -->
-        # 'targets/unclaimed/django.txt'
+        # Example:  'targets/unclaimed/13df98ab0.django.json'  -->
+        # 'targets/unclaimed/django.json'
         metadata_name, embeded_digest = \
           _strip_consistent_snapshots_digest(metadata_name, consistent_snapshots)
 
@@ -2750,8 +2750,8 @@ def _strip_consistent_snapshots_digest(metadata_filename, consistent_snapshots):
   embeded_digest = ''
 
   # Strip the digest if 'consistent_snapshots' is True.
-  # Example:  'targets/unclaimed/13df98ab0.django.txt'  -->
-  # 'targets/unclaimed/django.txt'
+  # Example:  'targets/unclaimed/13df98ab0.django.json'  -->
+  # 'targets/unclaimed/django.json'
   if consistent_snapshots:
     dirname, basename = os.path.split(metadata_filename)
     embeded_digest = basename[:basename.find('.')]
@@ -2828,7 +2828,7 @@ def create_new_repository(repository_directory):
     os.path.join(repository_directory, TARGETS_DIRECTORY_NAME) 
   
   # Try to create the metadata directory that will hold all of the metadata
-  # files, such as 'root.txt' and 'release.txt'.
+  # files, such as 'root.json' and 'release.json'.
   try:
     message = 'Creating '+repr(metadata_directory)
     logger.info(message)
@@ -2933,8 +2933,8 @@ def load_repository(repository_directory):
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
 
         # Strip the digest if 'consistent_snapshots' is True.
-        # Example:  'targets/unclaimed/13df98ab0.django.txt' -->
-        # 'targets/unclaimed/django.txt'
+        # Example:  'targets/unclaimed/13df98ab0.django.json' -->
+        # 'targets/unclaimed/django.json'
         metadata_name, digest_junk = \
           _strip_consistent_snapshots_digest(metadata_name, consistent_snapshots)
 
@@ -3028,7 +3028,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   release_metadata = None
   timestamp_metadata = None
   
-  # Load ROOT.txt.  A Root role file without a digest is always written. 
+  # Load ROOT.json.  A Root role file without a digest is always written. 
   if os.path.exists(root_filename):
     # Initialize the key and role metadata of the top-level roles.
     signable = tuf.util.load_json_file(root_filename)
@@ -3057,7 +3057,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     message = 'Cannot load the required root file: '+repr(root_filename)
     raise tuf.RepositoryError(message)
   
-  # Load TIMESTAMP.txt.  A Timestamp role file without a digest is always
+  # Load TIMESTAMP.json.  A Timestamp role file without a digest is always
   # written. 
   if os.path.exists(timestamp_filename):
     signable = tuf.util.load_json_file(timestamp_filename)
@@ -3078,7 +3078,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   else:
     pass
   
-  # Load RELEASE.txt.  A consistent snapshot of Release must be calculated
+  # Load RELEASE.json.  A consistent snapshot of Release must be calculated
   # if 'consistent_snapshots' is True.
   if consistent_snapshots:
     release_hashes = timestamp_metadata['meta'][RELEASE_FILENAME]['hashes']
@@ -3106,7 +3106,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   else:
     pass 
 
-  # Load TARGETS.txt.  A consistent snapshot of Targets must be calculated if
+  # Load TARGETS.json.  A consistent snapshot of Targets must be calculated if
   # 'consistent_snapshots' is True.
   if consistent_snapshots:
     targets_hashes = release_metadata['meta'][TARGETS_FILENAME]['hashes']
@@ -3122,7 +3122,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     for signature in signable['signatures']:
       repository.targets.add_signature(signature)
    
-    # Update 'targets.txt' in 'tuf.roledb.py' 
+    # Update 'targets.json' in 'tuf.roledb.py' 
     roleinfo = tuf.roledb.get_roleinfo('targets')
     roleinfo['paths'] = targets_metadata['targets'].keys()
     roleinfo['version'] = targets_metadata['version']
@@ -3563,10 +3563,10 @@ def get_metadata_filenames(metadata_directory=None):
     If 'metadata_directory' is set to 'metadata', the dictionary
     returned would contain:
 
-    filenames = {'root': 'metadata/root.txt',
-                 'targets': 'metadata/targets.txt',
-                 'release': 'metadata/release.txt',
-                 'timestamp': 'metadata/timestamp.txt'}
+    filenames = {'root': 'metadata/root.json',
+                 'targets': 'metadata/targets.json',
+                 'release': 'metadata/release.json',
+                 'timestamp': 'metadata/timestamp.json'}
 
     If the metadata directory is not set by the caller, the current
     directory is used.
@@ -3583,7 +3583,7 @@ def get_metadata_filenames(metadata_directory=None):
 
   <Returns>
     A dictionary containing the expected filenames of the top-level
-    metadata files, such as 'root.txt' and 'release.txt'.
+    metadata files, such as 'root.json' and 'release.json'.
   """
   
   # Does 'metadata_directory' have the correct format?
@@ -3626,7 +3626,7 @@ def get_metadata_file_info(filename):
   <Purpose>
     Retrieve the file information of 'filename'.  The object returned
     conforms to 'tuf.formats.FILEINFO_SCHEMA'.  The information
-    generated for 'filename' is stored in metadata files like 'targets.txt'.
+    generated for 'filename' is stored in metadata files like 'targets.json'.
     The fileinfo object returned has the form:
     fileinfo = {'length': 1024,
                 'hashes': {'sha256': 1233dfba312, ...},
@@ -3853,7 +3853,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
       repository.
 
     target_files:
-      The target files tracked by 'targets.txt'.  'target_files' is a list of
+      The target files tracked by 'targets.json'.  'target_files' is a list of
       target paths that are relative to the targets directory (e.g.,
       ['file1.txt', 'Django/module.py']).
 
@@ -3957,13 +3957,13 @@ def generate_release_metadata(metadata_directory, version, expiration_date,
   """
   <Purpose>
     Create the release metadata.  The minimum metadata must exist
-    (i.e., 'root.txt' and 'targets.txt'). This will also look through
+    (i.e., 'root.json' and 'targets.json'). This will also look through
     the 'targets/' directory in 'metadata_directory' and the resulting
     release file will list all the delegated roles.
 
   <Arguments>
     metadata_directory:
-      The directory containing the 'root.txt' and 'targets.txt' metadata
+      The directory containing the 'root.json' and 'targets.json' metadata
       files.
     
     version:
@@ -3988,7 +3988,7 @@ def generate_release_metadata(metadata_directory, version, expiration_date,
     object.
 
   <Side Effects>
-    The 'root.txt' and 'targets.txt' files are read.
+    The 'root.json' and 'targets.json' files are read.
 
   <Returns>
     The release metadata object, conformant to 'tuf.formats.RELEASE_SCHEMA'.
@@ -4006,13 +4006,13 @@ def generate_release_metadata(metadata_directory, version, expiration_date,
 
   metadata_directory = _check_directory(metadata_directory)
 
-  # Retrieve the fileinfo of 'root.txt' and 'targets.txt'.  This file
+  # Retrieve the fileinfo of 'root.json' and 'targets.json'.  This file
   # information includes data such as file length, hashes of the file, etc.
   filedict = {}
   filedict[ROOT_FILENAME] = get_metadata_file_info(root_filename)
   filedict[TARGETS_FILENAME] = get_metadata_file_info(targets_filename)
 
-  # Add compressed versions of the 'targets.txt' and 'root.txt' metadata,
+  # Add compressed versions of the 'targets.json' and 'root.json' metadata,
   # if they exist.
   for extension in SUPPORTED_COMPRESSION_EXTENSIONS:
     compressed_root_filename = root_filename+extension
@@ -4041,8 +4041,8 @@ def generate_release_metadata(metadata_directory, version, expiration_date,
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
         
         # Strip the digest if 'consistent_snapshots' is True.
-        # Example:  'targets/unclaimed/13df98ab0.django.txt'  -->
-        # 'targets/unclaimed/django.txt'
+        # Example:  'targets/unclaimed/13df98ab0.django.json'  -->
+        # 'targets/unclaimed/django.json'
         metadata_name, digest_junk = \
           _strip_consistent_snapshots_digest(metadata_name, consistent_snapshots)
         
@@ -4072,7 +4072,7 @@ def generate_timestamp_metadata(release_filename, version,
                                 expiration_date, compressions=()):
   """
   <Purpose>
-    Generate the timestamp metadata object.  The 'release.txt' file must exist.
+    Generate the timestamp metadata object.  The 'release.json' file must exist.
 
   <Arguments>
     release_filename:
@@ -4090,7 +4090,7 @@ def generate_timestamp_metadata(release_filename, version,
     release_filename:
 
     compressions:
-      Compression extensions (e.g., 'gz').  If 'release.txt' is also saved in
+      Compression extensions (e.g., 'gz').  If 'release.json' is also saved in
       compressed form, these compression extensions should be stored in
       'compressions' so the compressed timestamp files can be added to the
       timestamp metadata object.
@@ -4120,7 +4120,7 @@ def generate_timestamp_metadata(release_filename, version,
   fileinfo = {}
   fileinfo[RELEASE_FILENAME] = get_metadata_file_info(release_filename)
 
-  # Save the fileinfo of the compressed versions of 'timestamp.txt'
+  # Save the fileinfo of the compressed versions of 'timestamp.json'
   # in 'fileinfo'.  Log the files included in 'fileinfo'.
   for file_extension in compressions:
     if not len(file_extension):
@@ -4165,7 +4165,7 @@ def sign_metadata(metadata_object, keyids, filename):
 
     filename:
       The intended filename of the signed metadata object.
-      For example, 'root.txt' or 'targets.txt'.  This function
+      For example, 'root.json' or 'targets.json'.  This function
       does NOT save the signed metadata to this filename.
 
   <Exceptions>
@@ -4247,7 +4247,7 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshots):
       'tuf.formats.SIGNABLE_SCHEMA'.
 
     filename:
-      The filename of the metadata to be written (e.g., 'root.txt').
+      The filename of the metadata to be written (e.g., 'root.json').
       If a compression algorithm is specified in 'compressions', the
       compression extention is appended to 'filename'.
 

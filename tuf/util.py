@@ -250,12 +250,12 @@ class TempFile(object):
       compressed meta file will be decompressed using this function.
       Note that after calling this method, write() can no longer be called.
 
-                            meta.txt.gz
+                            meta.json.gz
                                |...[download]
-                        temporary_file (containing meta.txt.gz)
+                        temporary_file (containing meta.json.gz)
                         /             \
                temporary_file          _orig_file
-          containing meta.txt          containing meta.txt.gz
+          containing meta.json          containing meta.json.gz
           (decompressed data)
 
     <Arguments>
@@ -567,7 +567,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
   <Arguments>
     rolename:
       The name of the role whose targets must be verified. This is a
-      role name and should not end in '.txt'.  Examples: 'root', 'targets',
+      role name and should not end in '.json'.  Examples: 'root', 'targets',
       'targets/linux/x86'.
 
     list_of_targets:

@@ -13,7 +13,7 @@
 
 <Purpose>
   Represent a collection of roles and their organization.  The caller may create
-  a collection of roles from those found in the 'root.txt' metadata file by
+  a collection of roles from those found in the 'root.json' metadata file by
   calling 'create_roledb_from_rootmeta()', or individually by adding roles with
   'add_role()'.  There are many supplemental functions included here that yield
   useful information about the roles contained in the database, such as
@@ -27,7 +27,7 @@
   {'rolename': {'keyids': ['34345df32093bd12...'],
                 'threshold': 1
                 'signatures': ['abcd3452...'],
-                'paths': ['path/to/role.txt'],
+                'paths': ['path/to/role.json'],
                 'path_hash_prefixes': ['ab34df13'],
                 'delegations': {'keys': {}, 'roles': {}}}
   
@@ -522,7 +522,7 @@ def get_role_keyids(rolename):
     Return a list of the keyids associated with 'rolename'.
     Keyids are used as identifiers for keys (e.g., rsa key).
     A list of keyids are associated with each rolename.
-    Signing a metadata file, such as 'root.txt' (Root role),
+    Signing a metadata file, such as 'root.json' (Root role),
     involves signing or verifying the file with a list of
     keys identified by keyid.
 

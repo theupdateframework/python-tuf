@@ -72,7 +72,7 @@ def update_client(repository_mirror):
     in the current working directory.  The current directory must already
     include a 'metadata' directory, which in turn must contain the 'current'
     and 'previous' directories.  At a minimum, these two directories require
-    the 'root.txt' metadata file.
+    the 'root.json' metadata file.
 
   <Arguments>
     repository_mirror:

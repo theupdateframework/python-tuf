@@ -19,17 +19,17 @@ for more information on interposing Python urllib calls with TUF.
 ## Overview of the Update Process
 1. The software update system instructs TUF to check for updates.
 
-2. TUF downloads and verifies timestamp.txt.
+2. TUF downloads and verifies timestamp.json.
 
-3. If timestamp.txt indicates that release.txt has changed, TUF downloads and
-verifies release.txt.
+3. If timestamp.json indicates that release.json has changed, TUF downloads and
+verifies release.json.
 
-4. TUF determines which metadata files listed in release.txt differ from those
-described in the last release.txt that TUF has seen.  If root.txt has changed,
-the update process starts over using the new root.txt.
+4. TUF determines which metadata files listed in release.json differ from those
+described in the last release.json that TUF has seen.  If root.json has changed,
+the update process starts over using the new root.json.
 
 5. TUF provides the software update system with a list of available files
-according to targets.txt.
+according to targets.json.
 
 6. The software update system instructs TUF to download a specific target
 file.
@@ -145,7 +145,7 @@ $ basic_client.py --repo http://localhost:8001
 
 $ cat tuf.log
 [2013-12-16 16:17:05,267 UTC] [tuf.download] [INFO][_download_file:726@download.py]
-Downloading: http://localhost:8001/metadata/timestamp.txt
+Downloading: http://localhost:8001/metadata/timestamp.json
 
 [2013-12-16 16:17:05,269 UTC] [tuf.download] [WARNING][_check_content_length:589@download.py]
 reported_length (545) < required_length (2048)
@@ -154,13 +154,13 @@ reported_length (545) < required_length (2048)
 Downloaded 545 bytes, but expected 2048 bytes. There is a difference of 1503 bytes!
 
 [2013-12-16 16:17:05,611 UTC] [tuf.download] [INFO][_download_file:726@download.py]
-Downloading: http://localhost:8001/metadata/release.txt
+Downloading: http://localhost:8001/metadata/release.json
 
 [2013-12-16 16:17:05,612 UTC] [tuf.client.updater] [INFO][_check_hashes:636@updater.py]
 The file\'s sha256 hash is correct: 782675fadd650eeb2926d33c401b5896caacf4fd6766498baf2bce2f3b739db4
 
 [2013-12-16 16:17:05,951 UTC] [tuf.download] [INFO][_download_file:726@download.py]
-Downloading: http://localhost:8001/metadata/targets.txt
+Downloading: http://localhost:8001/metadata/targets.json
 
 [2013-12-16 16:17:05,952 UTC] [tuf.client.updater] [INFO][_check_hashes:636@updater.py]
 The file\'s sha256 hash is correct: a5019c28a1595c43a14cad2b6252c4d1db472dd6412a9204181ad6d61b1dd69a
