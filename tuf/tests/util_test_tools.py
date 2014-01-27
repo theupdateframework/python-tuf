@@ -135,6 +135,7 @@ import random
 import logging
 import tempfile
 import subprocess
+import json
 
 import tuf
 import tuf.client.updater
@@ -613,3 +614,68 @@ def create_delegation(tuf_repo, delegated_targets_path, keyid, keyid_password,
   signercli._get_password = original_get_password
   signercli._prompt = original_prompt
   signercli._get_metadata_directory = original_get_metadata_directory
+
+
+def update_target_in_metadata(signee_filepath, signer_filepath):
+  """
+  <Purpose>
+    Update targets metadata to reflect a modified target's new hash and length,
+    WITHOUT signing it. This is meant to simulate something a clever attacker
+    might do.
+
+  <Arguments>
+    signee_filepath:
+      filepath of the target file that has been modified since the metadata was
+      generated
+    signer_filepath:
+      filepath of the targets role that signs the modified file
+  """
+
+  signer_file = open(signer_filepath, 'r+')
+  metadata = json.load(signer_file)
+
+  modified_file_length, modified_file_hash =\
+                                tuf.util.get_file_details(signee_filepath)
+
+  # Modify the metadata to reflect signee's new hash and length.
+  signee_basename = os.path.basename(signee_filepath)
+  metadata['signed']['targets'][signee_basename]['hashes'] = modified_file_hash
+  metadata['signed']['targets'][signee_basename]['length'] =\
+                                                          modified_file_length
+
+  # Rewrite signer using the modified metadata.
+  signer_file.seek(0)
+  json.dump(metadata, signer_file, indent=1, sort_keys=True)
+  signer_file.close()
+
+
+def update_role_in_metadata(signee_filepath, signer_filepath):
+  """
+  <Purpose>
+    Update metadata to reflect another metadata file's new hash and length,
+    WITHOUT signing it. This is meant to simulate something a clever attacker
+    might do.
+
+  <Arguments>
+    signee_filepath:
+      filepath of the role metadata that has been modified since the metadata
+      was generated
+    signer_filepath:
+      filepath of the role that signs the modified file
+  """
+
+  signer_file = open(signer_filepath, 'r+')
+  metadata = json.load(signer_file)
+
+  modified_file_length, modified_file_hash =\
+                                tuf.util.get_file_details(signee_filepath)
+
+  # Modify the metadata to reflect signee's new hash and length.
+  signee_basename = os.path.basename(signee_filepath)
+  metadata['signed']['meta'][signee_basename]['hashes'] = modified_file_hash
+  metadata['signed']['meta'][signee_basename]['length'] = modified_file_length
+
+  # Rewrite signer using the modified metadata.
+  signer_file.seek(0)
+  json.dump(metadata, signer_file, indent=1, sort_keys=True)
+  signer_file.close()

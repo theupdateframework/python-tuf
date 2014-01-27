@@ -289,14 +289,14 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
     None.
 
   """
+  
+  # Assign to the global console_handler object.
+  global console_handler
 
   # Does 'log_level' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
-  # Assign to the global console_handler object.
-  global console_handler
- 
   if not console_handler:
     # Set the console handler for the logger. The built-in console handler will
     # log messages to 'sys.stderr' and capture 'log_level' messages.
