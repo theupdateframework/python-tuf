@@ -16,7 +16,6 @@
   get_file_details() that computes the length and hash of a file, import_json
   that tries to import a working json module, load_json_* functions, and a
   TempFile class that generates a file-like object for temporary storage, etc.
-
 """
 
 
@@ -32,6 +31,10 @@ import tuf.hash
 import tuf.conf
 import tuf.formats
 
+# The algorithm used by the repository to generate the digests of the
+# target filepaths, which are included in metadata files and may be prepended
+# to the filenames of consistent snapshots.
+HASH_FUNCTION = 'sha256'
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.util')
@@ -46,7 +49,6 @@ class TempFile(object):
     are additional functions that aren't part of file-like objects.  TempFile
     is used in the download.py module to temporarily store downloaded data while
     all security checks (file hashes/length) are performed.
-
   """
 
   def _default_temporary_directory(self, prefix):
@@ -73,7 +75,6 @@ class TempFile(object):
 
     <Return>
       None.
-
     """
 
     self._compression = None
@@ -107,7 +108,6 @@ class TempFile(object):
 
     <Return>
       Nonnegative integer representing compressed file size.
-
     """
 
     # Even if we read a compressed file with the gzip standard library module,
@@ -129,7 +129,6 @@ class TempFile(object):
 
     <Return>
       None.
-
     """
 
     self.temporary_file.flush()
@@ -151,7 +150,6 @@ class TempFile(object):
 
     <Return>
       String of data.
-
     """
 
     if size is None:
@@ -184,7 +182,6 @@ class TempFile(object):
 
     <Return>
       None.
-
     """
 
     self.temporary_file.write(data)
@@ -208,7 +205,6 @@ class TempFile(object):
 
     <Return>
       None.
-
     """
 
     self.flush()
@@ -238,7 +234,6 @@ class TempFile(object):
 
     <Return>
       None.
-
     """
 
     self.temporary_file.seek(*args)
@@ -280,7 +275,6 @@ class TempFile(object):
 
     <Return>
       None.
-
     """
 
     # Does 'compression' have the correct format?
@@ -327,7 +321,6 @@ class TempFile(object):
 
     <Return>
       None.
-
     """
 
     self.temporary_file.close()
@@ -360,8 +353,8 @@ def get_file_details(filepath, hash_algorithms=['sha256']):
 
   <Returns>
     A tuple (length, hashes) describing 'filepath'.
-
   """
+  
   # Making sure that the format of 'filepath' is a path string.
   # 'tuf.FormatError' is raised on incorrect format.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
@@ -399,7 +392,7 @@ def ensure_parent_dir(filename):
     To ensure existence of the parent directory of 'filename'.  If the parent
     directory of 'name' does not exist, create it.
 
-    Ex: If 'filename' is '/a/b/c/d.txt', and only the directory '/a/b/'
+    Example: If 'filename' is '/a/b/c/d.txt', and only the directory '/a/b/'
     exists, then directory '/a/b/c/d/' will be created.
 
   <Arguments>
@@ -415,7 +408,6 @@ def ensure_parent_dir(filename):
 
   <Return>
     None.
-
   """
 
   # Ensure 'filename' corresponds to 'PATH_SCHEMA'.
@@ -451,7 +443,6 @@ def file_in_confined_directories(filepath, confined_directories):
   <Return>
     Boolean.  True, if path is either the empty string
     or in 'confined_paths'; False, otherwise.
-
   """
 
   # Do the arguments have the correct format?
@@ -484,6 +475,321 @@ def file_in_confined_directories(filepath, confined_directories):
 
 
 
+
+def find_delegated_role(roles, delegated_role):
+  """
+  <Purpose>
+    Find the index, if any, of a role with a given name in a list of roles.
+
+  <Arguments>
+    roles:
+      The list of roles, each of which must have a 'name' attribute.
+
+    delegated_role:
+      The name of the role to be found in the list of roles.
+
+  <Exceptions>
+    tuf.RepositoryError, if the list of roles has invalid data.
+
+  <Side Effects>
+    No known side effects.
+
+  <Returns>
+    The unique index, an interger, in the list of roles.  if 'delegated_role'
+    does not exist, 'None' is returned.
+  """
+
+  # Do the arguments have the correct format?
+  # Ensure the arguments have the appropriate number of objects and object
+  # types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if any are improperly formatted.
+  tuf.formats.ROLELIST_SCHEMA.check_match(roles)
+  tuf.formats.ROLENAME_SCHEMA.check_match(delegated_role)
+
+  # The index of a role, if any, with the same name.
+  role_index = None
+
+  for index in xrange(len(roles)):
+    role = roles[index]
+    name = role.get('name')
+    
+    # This role has no name.
+    if name is None:
+      no_name_message = 'Role with no name.'
+      raise tuf.RepositoryError(no_name_message)
+    
+    # Does this role have the same name?
+    else:
+      # This role has the same name, and...
+      if name == delegated_role:
+        # ...it is the only known role with the same name.
+        if role_index is None:
+          role_index = index
+        
+        # ...there are at least two roles with the same name.
+        else:
+          duplicate_role_message = 'Duplicate role ('+str(delegated_role)+').'
+          raise tuf.RepositoryError(duplicate_role_message)
+      
+      # This role has a different name.
+      else:
+        continue
+
+  return role_index
+
+
+
+
+
+
+def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
+  """
+  <Purpose>
+    Ensure the delegated targets of 'rolename' are allowed; this is
+    determined by inspecting the 'delegations' field of the parent role
+    of 'rolename'.  If a target specified by 'rolename' is not found in the 
+    delegations field of 'metadata_object_of_parent', raise an exception.
+ 
+    Targets allowed are either exlicitly listed under the 'paths' field, or
+    implicitly exist under a subdirectory of a parent directory listed
+    under 'paths'.  A parent role may delegate trust to all files under a 
+    particular directory, including files in subdirectories, by simply
+    listing the directory (e.g., '/packages/source/Django/', the equivalent
+    of '/packages/source/Django/*').  Targets listed in hashed bins are
+    also validated (i.e., its calculated path hash prefix must be delegated
+    by the parent role).
+
+    TODO: Should the TUF spec restrict the repository to one particular
+    algorithm when calcutating path hash prefixes?  Should we allow the
+    repository to specify in the role dictionary the algorithm used for these
+    generated hashed paths?
+
+  <Arguments>
+    rolename:
+      The name of the role whose targets must be verified. This is a
+      role name and should not end in '.txt'.  Examples: 'root', 'targets',
+      'targets/linux/x86'.
+
+    list_of_targets:
+      The targets of 'rolename', as listed in targets field of the 'rolename'
+      metadata.  'list_of_targets' are target paths relative to the targets
+      directory of the repository.  The delegations of the parent role are
+      checked to verify that the targets of 'list_of_targets' are valid.
+    
+    parent_delegations:
+      The parent delegations of 'rolename'.  The metadata object stores
+      the allowed paths and path hash prefixes of child delegations in its 
+      'delegations' attribute.
+
+  <Exceptions>
+    tuf.FormatError:
+      If any of the arguments are improperly formatted.
+
+    tuf.ForbiddenTargetError:
+      If the targets of 'metadata_role' are not allowed according to
+      the parent's metadata file.  The 'paths' and 'path_hash_prefixes'
+      attributes are verified.
+
+    tuf.RepositoryError:
+      If the parent of 'rolename' has not made a delegation to 'rolename'.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
+  
+  # Do the arguments have the correct format?
+  # Ensure the arguments have the appropriate number of objects and object
+  # types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if any are improperly formatted.
+  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+  tuf.formats.DELEGATIONS_SCHEMA.check_match(parent_delegations)
+  
+  # Return if 'rolename' is 'targets'.  'targets' is not a delegated role.
+  if rolename == 'targets':
+    return
+  
+  # The allowed targets of delegated roles are stored in the parent's metadata
+  # file.  Iterate 'list_of_targets' and confirm they are trusted, or their root
+  # parent directory exists in the role delegated paths, or path hash prefixes,
+  # of the parent role.  First, locate 'rolename' in the 'roles' attribute of
+  # 'parent_delegations'.
+  roles = parent_delegations['roles']
+  role_index = find_delegated_role(roles, rolename)
+
+  # Ensure the delegated role exists prior to extracting trusted paths from
+  # the parent's 'paths', or trusted path hash prefixes from the parent's
+  # 'path_hash_prefixes'.
+  if role_index is not None:
+    role = roles[role_index] 
+    allowed_child_paths = role.get('paths')
+    allowed_child_path_hash_prefixes = role.get('path_hash_prefixes')
+    actual_child_targets = list_of_targets 
+
+    if allowed_child_path_hash_prefixes is not None:
+      consistent = paths_are_consistent_with_hash_prefixes
+      if len(actual_child_targets) > 0:
+        if not consistent(actual_child_targets,
+                          allowed_child_path_hash_prefixes):
+          message =  repr(rolename)+' specifies a target that does not'+\
+            ' have a path hash prefix listed in its parent role '+\
+            repr(parent_role)+'.'
+          raise tuf.ForbiddenTargetError(message)
+    
+    elif allowed_child_paths is not None: 
+      # Check that each delegated target is either explicitly listed or a parent
+      # directory is found under role['paths'], otherwise raise an exception.
+      # If the parent role explicitly lists target file paths in 'paths',
+      # this loop will run in O(n^2), the worst-case.  The repository
+      # maintainer will likely delegate entire directories, and opt for
+      # explicit file paths if the targets in a directory are delegated to 
+      # different roles/developers.
+      for child_target in actual_child_targets:
+        for allowed_child_path in allowed_child_paths:
+          prefix = os.path.commonprefix([child_target, allowed_child_path])
+          if prefix == allowed_child_path:
+            break
+        
+        else: 
+          raise tuf.ForbiddenTargetError('Role '+repr(rolename)+' specifies'+\
+                                         ' target '+repr(child_target)+','+\
+                                         ' which is not an allowed path'+\
+                                         ' according to the delegations set'+\
+                                         ' by its parent role.')
+
+    else:
+      # 'role' should have been validated when it was downloaded.
+      # The 'paths' or 'path_hash_prefixes' attributes should not be missing,
+      # so raise an error in case this clause is reached.
+      raise tuf.FormatError(repr(role)+' did not contain one of '+\
+                            'the required fields ("paths" or '+\
+                            '"path_hash_prefixes").')
+
+  # Raise an exception if the parent has not delegated to the specified
+  # 'rolename' child role.
+  else:
+    raise tuf.RepositoryError('The parent role has not delegated to '+\
+                              repr(metadata_role)+'.')
+
+
+
+
+
+def paths_are_consistent_with_hash_prefixes(paths, path_hash_prefixes):
+  """
+  <Purpose>
+    Determine whether a list of paths are consistent with theirs alleged
+    path hash prefixes. By default, the SHA256 hash function will be used.
+
+  <Arguments>
+    paths:
+      A list of paths for which their hashes will be checked.
+
+    path_hash_prefixes:
+      The list of path hash prefixes with which to check the list of paths.
+
+  <Exceptions>
+    tuf.FormatError:
+      If the arguments are improperly formatted.
+
+  <Side Effects>
+    No known side effects.
+
+  <Returns>
+    A Boolean indicating whether or not the paths are consistent with the
+    hash prefix.
+  """
+  
+  # Do the arguments have the correct format?
+  # Ensure the arguments have the appropriate number of objects and object
+  # types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if any are improperly formatted.
+  tuf.formats.RELPATHS_SCHEMA.check_match(paths)
+  tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
+
+  # Assume that 'paths' and 'path_hash_prefixes' are inconsistent until
+  # proven otherwise.
+  consistent = False
+
+  if len(paths) > 0 and len(path_hash_prefixes) > 0:
+    for path in paths:
+      path_hash = get_target_hash(path)
+      # Assume that every path is inconsistent until proven otherwise.
+      consistent = False
+
+      for path_hash_prefix in path_hash_prefixes:
+        if path_hash.startswith(path_hash_prefix):
+          consistent = True
+          break
+
+      # This path has no matching path_hash_prefix. Stop looking further.
+      if not consistent:
+        break
+
+  return consistent
+
+
+
+
+
+def get_target_hash(target_filepath):
+  """
+  <Purpose>
+    Compute the hash of 'target_filepath'. This is useful in conjunction with
+    the "path_hash_prefixes" attribute in a delegated targets role, which
+    tells us which paths it is implicitly responsible for.
+    
+    The repository may optionally organize targets into hashed bins to ease
+    target delegations and role metadata management.  The use of consistent
+    hashing allows for a uniform distribution of targets into bins. 
+
+  <Arguments>
+    target_filepath:
+      The path to the target file on the repository. This will be relative to
+      the 'targets' (or equivalent) directory on a given mirror.
+
+  <Exceptions>
+    None.
+ 
+  <Side Effects>
+    None.
+  
+  <Returns>
+    The hash of 'target_filepath'.
+  """
+  
+  # Does 'target_filepath' have the correct format?
+  # Ensure the arguments have the appropriate number of objects and object
+  # types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
+
+  # Calculate the hash of the filepath to determine which bin to find the 
+  # target.  The client currently assumes the repository uses
+  # 'HASH_FUNCTION' to generate hashes.
+  digest_object = tuf.hash.digest(HASH_FUNCTION)
+
+  try:
+    digest_object.update(target_filepath)
+  
+  except UnicodeEncodeError:
+    # Sometimes, there are Unicode characters in target paths. We assume a
+    # UTF-8 encoding and try to hash that.
+    digest_object = tuf.hash.digest(HASH_FUNCTION)
+    encoded_target_filepath = target_filepath.encode('utf-8')
+    digest_object.update(encoded_target_filepath)
+
+  target_filepath_hash = digest_object.hexdigest() 
+
+  return target_filepath_hash
+
+
+
+
+
 _json_module = None
 
 def import_json():
@@ -504,7 +810,6 @@ def import_json():
 
   <Return>
     json module
-
   """
 
   global _json_module
@@ -541,7 +846,6 @@ def load_json_string(data):
 
   <Returns>
     Deserialized object.  For example a dictionary.
-
   """
 
   return json.loads(data)
@@ -567,7 +871,6 @@ def load_json_file(filepath):
 
   <Return>
     Deserialized object.  For example, a dictionary.
-
   """
 
   # Making sure that the format of 'filepath' is a path string.

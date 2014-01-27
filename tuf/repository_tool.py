@@ -195,8 +195,8 @@ class Repository(object):
         1f4e35a60c8f96d439e27e858ce2869c770c1cdd54e1ef76657ceaaf01da18a3.root.txt'
         
     <Exceptions>
-      tuf.Error, if any of the top-level roles do not have a minimum
-      threshold of signatures.
+      tuf.UnsignedMetadataError, if any of the top-level and delegated roles do
+      not have the minimum threshold of signatures.
 
     <Side Effects>
       Creates metadata files in the repository's metadata directory.
@@ -217,12 +217,23 @@ class Repository(object):
     # populated, otherwise write() throwns a 'tuf.Repository' exception if 
     # any of the top-level roles are missing signatures, keys, etc.
 
-    # Write the metadata files of all the delegated roles.
+    # Write the metadata files of all the delegated roles.  Ensure target paths
+    # are allowed, metadata is valid and properly signed, and required files and
+    # directories are created. 
     delegated_rolenames = tuf.roledb.get_delegated_rolenames('targets')
     for delegated_rolename in delegated_rolenames:
-      roleinfo = tuf.roledb.get_roleinfo(delegated_rolename)
       delegated_filename = os.path.join(self._metadata_directory,
                                         delegated_rolename + METADATA_EXTENSION)
+      roleinfo = tuf.roledb.get_roleinfo(delegated_rolename)
+      delegated_targets = roleinfo['paths']
+      parent_rolename = tuf.roledb.get_parent_rolename(delegated_rolename)
+      parent_roleinfo = tuf.roledb.get_roleinfo(parent_rolename) 
+      parent_delegations = parent_roleinfo['delegations']
+      
+      # Raise exception if any of the targets of 'delegated_rolename' are not
+      # allowed.
+      tuf.util.ensure_all_targets_allowed(delegated_rolename, delegated_targets,
+                                          parent_delegations)
 
       # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
       # IO exception is raised if 'metadata_filepath' is written to a
@@ -1607,8 +1618,8 @@ class Targets(Metadata):
       Add a filepath (must be under the repository's targets directory) to the
       Targets object.
       
-      This method does not actually create 'filepath' on the file
-      system.  'filepath' must already exist on the file system.
+      This method does not actually create 'filepath' on the file system.
+      'filepath' must already exist on the file system.
 
       >>> 
       >>>
@@ -1642,16 +1653,16 @@ class Targets(Metadata):
     filepath = os.path.abspath(filepath)
    
     # Ensure 'filepath' is found under the repository's targets directory.
-    if not filepath.startwith(self._targets_directory): 
+    if not filepath.startswith(self._targets_directory): 
       message = repr(filepath)+' is not under the Repository\'s targets '+\
         'directory: '+repr(self._targets_directory)
       raise tuf.Error(message)
 
-    # TODO: Ensure 'filepath' is an allowed target path according to the
-    # parent's delegation.
-
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
-    # list of targets. 
+    # list of targets.  'filepath' will be verified as an allowed path according
+    # to this Targets parent role when write() is called.  Not verifying
+    # 'filepath' here allows freedom to add targets and parent restrictions
+    # in any order, and minimize the number of times these checks are performed.
     if os.path.isfile(filepath):
       
       # Update the role's 'tuf.roledb.py' entry and avoid duplicates.
@@ -1703,16 +1714,17 @@ class Targets(Metadata):
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
-    # TODO: Ensure list of targets allowed paths according to the parent's
-    # delegation.
-
     # Update the tuf.roledb entry.
     targets_directory_length = len(self._targets_directory) 
     absolute_list_of_targets = []
     relative_list_of_targets = []
    
     # Ensure the paths in 'list_of_targets' are valid and fall under the
-    # repository's targets directory.
+    # repository's targets directory.  The paths of 'list_of_targets' will be
+    # verified as allowed paths according to this Targets parent role when
+    # write() is called.  Not verifying filepaths here allows the freedom to add
+    # targets and parent restrictions in any order, and minimize the number of
+    # times these checks are performed.
     for target in list_of_targets:
       filepath = os.path.abspath(target)
      
@@ -3665,7 +3677,7 @@ def get_metadata_file_info(filename):
 
 
 
-def get_target_hash(self, target_filepath):
+def get_target_hash(target_filepath):
   """
   <Purpose>
     Compute the hash of 'target_filepath'. This is useful in conjunction with
@@ -3690,15 +3702,21 @@ def get_target_hash(self, target_filepath):
   <Returns>
     The hash of 'target_filepath'.
   """
+  
+  # Does 'target_filepath' have the correct format?
+  # Ensure the arguments have the appropriate number of objects and object
+  # types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
   # Calculate the hash of the filepath to determine which bin to find the 
   # target.  The client currently assumes the repository uses
   # 'HASH_FUNCTION' to generate hashes.
-
   digest_object = tuf.hash.digest(HASH_FUNCTION)
 
   try:
     digest_object.update(target_filepath)
+  
   except UnicodeEncodeError:
     # Sometimes, there are Unicode characters in target paths. We assume a
     # UTF-8 encoding and try to hash that.

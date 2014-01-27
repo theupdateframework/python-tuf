@@ -873,6 +873,7 @@ class Updater(object):
     """
 
     metadata = metadata_file_object.read()
+    
     try:
       metadata_signable = tuf.util.load_json_string(metadata)
     except Exception, exception:
@@ -896,9 +897,16 @@ class Updater(object):
                                         current_version)
 
     # Reject the metadata if any specified targets are not allowed.
+    # 'tuf.ForbiddenTargetError' raised if any of the targets of 'metadata_role'
+    # are not allowed.
     if metadata_signable['signed']['_type'] == 'Targets':
-      self._ensure_all_targets_allowed(metadata_role,
-                                       metadata_signable['signed'])
+      if metadata_role != 'targets':
+        metadata_targets = metadata_signable['signed']['targets'].keys()
+        parent_rolename = tuf.roledb.get_parent_rolename(metadata_role)
+        parent_role_metadata = self.metadata['current'][parent_rolename]
+        parent_delegations = parent_role_metadata['delegations']
+        tuf.util.ensure_all_targets_allowed(metadata_role, metadata_targets,
+                                            parent_delegations)
 
     # Verify the signature on the downloaded metadata object.
     valid = tuf.sig.verify(metadata_signable, metadata_role)
@@ -1494,177 +1502,6 @@ class Updater(object):
         # TODO: Should we also remove the keys of the delegated roles?
         tuf.roledb.remove_delegated_roles(metadata_role)
         self._import_delegations(metadata_role)
-
-
-
-
-
-  def _ensure_all_targets_allowed(self, metadata_role, metadata_object):
-    """
-    <Purpose>
-      Ensure the delegated targets of 'metadata_role' are allowed; this is
-      determined by inspecting the 'delegations' field of the parent role
-      of 'metadata_role'.  If a target specified by 'metadata_object'
-      is not found in the parent role's delegations field, raise an exception.
-   
-      Targets allowed are either exlicitly listed under the 'paths' field, or
-      implicitly exist under a subdirectory of a parent directory listed
-      under 'paths'.  A parent role may delegate trust to all files under a 
-      particular directory, including files in subdirectories, by simply
-      listing the directory (e.g., 'packages/source/Django/', the equivalent
-      of 'packages/source/Django/*').  Targets listed in hashed bins are
-      also validated (i.e., its calculated path hash prefix must be delegated
-      by the parent role.
-
-      TODO: Should the TUF spec restrict the repository to one particular
-      algorithm?  Should we allow the repository to specify in the role
-      dictionary the algorithm used for these generated hashed paths?
-
-    <Arguments>
-      metadata_role:
-        The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
-      
-      metadata_object:
-        The metadata role object for 'metadata_role'.  This is the object
-        saved to the metadata store and stored in the 'signed' field of a
-        'signable' object (metadata roles are saved to metadata files as a
-        'signable' object).
-
-    <Exceptions>
-      tuf.ForbiddenTargetError:
-        If the targets of 'metadata_role' are not allowed according to
-        the parent's metadata file.  The 'paths' and 'path_hash_prefixes'
-        attributes are verified.
-
-    <Side Effects>
-      None.
-
-    <Returns>
-      None.
-    """
-    
-    # Return if 'metadata_role' is 'targets'.  'targets' is not
-    # a delegated role.
-    if metadata_role == 'targets':
-      return
-    
-    # The targets of delegated roles are stored in the parent's
-    # metadata file.  Retrieve the parent role of 'metadata_role'
-    # to confirm 'metadata_role' contains valid targets.
-    parent_role = tuf.roledb.get_parent_rolename(metadata_role)
-
-    # Iterate over the targets of 'metadata_role' and confirm they are trusted,
-    # or their root parent directory exists in the role delegated paths of the
-    # parent role.
-    roles = self.metadata['current'][parent_role]['delegations']['roles']
-    role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
-
-    # Ensure the delegated role exists prior to extracting trusted paths from
-    # the parent's 'paths', or trusted path hash prefixes from the parent's
-    # 'path_hash_prefixes'.
-    if role_index is not None:
-      role = roles[role_index] 
-      allowed_child_paths = role.get('paths')
-      allowed_child_path_hash_prefixes = role.get('path_hash_prefixes')
-      actual_child_targets = metadata_object['targets'].keys()
-
-      if allowed_child_path_hash_prefixes is not None:
-        consistent = self._paths_are_consistent_with_hash_prefixes
-        if len(actual_child_targets) > 0:
-          if not consistent(actual_child_targets,
-                            allowed_child_path_hash_prefixes):
-            message =  repr(metadata_role)+' specifies a target that does not'+\
-              ' have a path hash prefix listed in its parent role '+\
-              repr(parent_role)+'.'
-            raise tuf.ForbiddenTargetError(message)
-      
-      elif allowed_child_paths is not None: 
-
-        # Check that each delegated target is either explicitly listed or a parent
-        # directory is found under role['paths'], otherwise raise an exception.
-        # If the parent role explicitly lists target file paths in 'paths',
-        # this loop will run in O(n^2), the worst-case.  The repository
-        # maintainer will likely delegate entire directories, and opt for
-        # explicit file paths if the targets in a directory are delegated to 
-        # different roles/developers.
-        for child_target in actual_child_targets:
-          for allowed_child_path in allowed_child_paths:
-            prefix = os.path.commonprefix([child_target, allowed_child_path])
-            if prefix == allowed_child_path:
-              break
-          else: 
-            raise tuf.ForbiddenTargetError('Role '+repr(metadata_role)+\
-                                           ' specifies target '+\
-                                           repr(child_target)+' which is not'+\
-                                           ' an allowed path according to'+\
-                                           ' the delegations set by '+\
-                                           repr(parent_role)+'.')
-
-      else:
-
-        # 'role' should have been validated when it was downloaded.
-        # The 'paths' or 'path_hash_prefixes' attributes should not be missing,
-        # so raise an error in case this clause is reached.
-        raise tuf.FormatError(repr(role)+' did not contain one of '+\
-                              'the required fields ("paths" or '+\
-                              '"path_hash_prefixes").')
-
-    # Raise an exception if the parent has not delegated to the specified
-    # 'metadata_role' child role.
-    else:
-      raise tuf.RepositoryError(repr(parent_role)+' has not delegated to '+\
-                                repr(metadata_role)+'.')
-
-
-
-
-
-  def _paths_are_consistent_with_hash_prefixes(self, paths,
-                                               path_hash_prefixes):
-    """
-    <Purpose>
-      Determine whether a list of paths are consistent with theirs alleged
-      path hash prefixes. By default, the SHA256 hash function will be used.
-
-    <Arguments>
-      paths:
-        A list of paths for which their hashes will be checked.
-
-      path_hash_prefixes:
-        The list of path hash prefixes with which to check the list of paths.
-
-    <Exceptions>
-      No known exceptions.
-
-    <Side Effects>
-      No known side effects.
-
-    <Returns>
-      A Boolean indicating whether or not the paths are consistent with the
-      hash prefix.
-    """
-
-    # Assume that 'paths' and 'path_hash_prefixes' are inconsistent until
-    # proven otherwise.
-    consistent = False
-
-    if len(paths) > 0 and len(path_hash_prefixes) > 0:
-      for path in paths:
-        path_hash = self._get_target_hash(path)
-        # Assume that every path is inconsistent until proven otherwise.
-        consistent = False
-
-        for path_hash_prefix in path_hash_prefixes:
-          if path_hash.startswith(path_hash_prefix):
-            consistent = True
-            break
-
-        # This path has no matching path_hash_prefix. Stop looking further.
-        if not consistent:
-          break
-
-    return consistent
 
 
 
@@ -2493,8 +2330,8 @@ class Updater(object):
 
       Ensure that we explore only delegated roles trusted with the target. We
       assume conservation of delegated paths in the complete tree of
-      delegations. Note that the call to _ensure_all_targets_allowed in
-      _verify_uncompressed_metadata_file should already ensure that all
+      delegations. Note that the call to tuf.util.ensure_all_targets_allowed in
+      _verify_uncompressed_metadata_file should already verify that all
       targets metadata is valid; i.e. that the targets signed by a delegatee is
       a proper subset of the targets delegated to it by the delegator.
       Nevertheless, we check it again here for performance and safety reasons.
