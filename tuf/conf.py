@@ -26,11 +26,11 @@ temporary_directory = None
 
 # The directory under which metadata for all repositories will be
 # stored. This is not a simple cache because each repository's root of
-# trust (root.txt) will need to already be stored below here and should
+# trust (root.json) will need to already be stored below here and should
 # not be deleted. At a minimum, each key in the mirrors dictionary
 # below should have a directory under 'repository_directory'
 # which already exists and within that directory should have the file
-# 'metadata/current/root.txt'. This MUST be set.
+# 'metadata/current/root.json'. This MUST be set.
 repository_directory = None
 
 # A PEM (RFC 1422) file where you may find SSL certificate authorities

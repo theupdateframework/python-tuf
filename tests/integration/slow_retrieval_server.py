@@ -48,9 +48,10 @@ class Handler(BaseHTTPRequestHandler):
     current_dir = os.getcwd()
     try:
       filepath = os.path.join(current_dir, self.path.lstrip('/'))
-      fileobj = open(filepath, 'rb')
-      data = fileobj.read()
-      fileobj.close()
+      data = None
+      with open(filepath, 'rb') as fileobj:
+        data = fileobj.read()
+      
       self.send_response(200)
       self.send_header('Content-length', str(len(data)))
       self.end_headers()

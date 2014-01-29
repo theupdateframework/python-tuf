@@ -321,7 +321,7 @@ def format_keyval_to_metadata(keytype, key_value, private=False):
      'keyval': {'public': '...',
                 'private': ''}}
     
-    TUF keys are stored in Metadata files (e.g., root.txt) in the format
+    TUF keys are stored in Metadata files (e.g., root.json) in the format
     returned by this function.
     
     >>> ed25519_key = generate_ed25519_key()
@@ -462,7 +462,7 @@ def _get_keyid(keytype, key_value):
   """Return the keyid for 'key_value'."""
 
   # 'keyid' will be generated from an object conformant to KEY_SCHEMA,
-  # which is the format Metadata files (e.g., root.txt) store keys.
+  # which is the format Metadata files (e.g., root.json) store keys.
   # 'format_keyval_to_metadata()' returns the object needed by _get_keyid().
   key_meta = format_keyval_to_metadata(keytype, key_value, private=False)
 

@@ -283,7 +283,7 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   <Returns>
     None.
   """
-
+  
   # Does 'log_level' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)

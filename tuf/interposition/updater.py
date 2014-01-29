@@ -77,7 +77,10 @@ class Updater(object):
 
     # download file into a temporary directory shared over runtime
     destination_directory = self.tempdir
-    filename = os.path.join(destination_directory, target_filepath)
+    
+    # Note: join() discards 'destination_directory' if 'target_filepath'
+    # contains a leading path separator (i.e., is treated as an absolute path).
+    filename = os.path.join(destination_directory, target_filepath.lstrip(os.sep))
     
     # Switch TUF context.
     self.switch_context()
@@ -138,8 +141,6 @@ class Updater(object):
       raise
 
     else:
-      # TUF assumes that target_filepath does not begin with a '/'.
-      target_filepath = target_filepath.lstrip('/')
       return target_filepath
 
 

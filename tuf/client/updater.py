@@ -26,23 +26,23 @@
 
   1. The software update system instructs TUF to check for updates.
 
-  2. TUF downloads and verifies timestamp.txt.
+  2. TUF downloads and verifies timestamp.json.
 
-  3. If timestamp.txt indicates that release.txt has changed, TUF downloads and
-  verifies release.txt.
+  3. If timestamp.json indicates that release.json has changed, TUF downloads
+     and verifies release.json.
 
-  4. TUF determines which metadata files listed in release.txt differ from those
-  described in the last release.txt that TUF has seen.  If root.txt has changed,
-  the update process starts over using the new root.txt.
+  4. TUF determines which metadata files listed in release.json differ from
+     those described in the last release.json that TUF has seen.  If root.json
+     has changed, the update process starts over using the new root.json.
 
   5. TUF provides the software update system with a list of available files
-  according to targets.txt.
+     according to targets.json.
 
   6. The software update system instructs TUF to download a specific target
-  file.
+     file.
 
   7. TUF downloads and verifies the file and then makes the file available to
-  the software update system.
+     the software update system.
 
 <Example Client>
 
@@ -146,7 +146,7 @@ class Updater(object):
       
     self.fileinfo:
       A cache of lengths and hashes of stored metadata files.
-      Example: {'root.txt': {'length': 13323,
+      Example: {'root.json': {'length': 13323,
                              'hashes': {'sha256': dbfac345..}},
                 ...}
 
@@ -227,7 +227,7 @@ class Updater(object):
       
       and, at a minimum, the root metadata file must exist:
 
-            {tuf.conf.repository_directory}/metadata/current/root.txt
+            {tuf.conf.repository_directory}/metadata/current/root.json
     
     <Arguments>
       updater_name:
@@ -251,10 +251,10 @@ class Updater(object):
       
       tuf.RepositoryError:
         If there is an error with the updater's repository files, such
-        as a missing 'root.txt' file.
+        as a missing 'root.json' file.
 
     <Side Effects>
-      Th metadata files (e.g., 'root.txt', 'targets.txt') for the top-
+      Th metadata files (e.g., 'root.json', 'targets.json') for the top-
       level roles are read from disk and stored in dictionaries.
 
     <Returns>
@@ -330,7 +330,7 @@ class Updater(object):
     # Raise an exception if the repository is missing the required 'root'
     # metadata.
     if 'root' not in self.metadata['current']:
-      message = 'No root of trust! Could not find the "root.txt" file.'
+      message = 'No root of trust! Could not find the "root.json" file.'
       raise tuf.RepositoryError(message)
 
 
@@ -351,7 +351,7 @@ class Updater(object):
     """
     <Purpose>
       Load current or previous metadata if there is a local file.  If the 
-      expected file belonging to 'metadata_role' (e.g., 'root.txt') cannot
+      expected file belonging to 'metadata_role' (e.g., 'root.json') cannot
       be loaded, raise an exception.  The extracted metadata object loaded
       from file is saved to the metadata store (i.e., self.metadata).
         
@@ -362,7 +362,7 @@ class Updater(object):
             
       metadata_role:
         The name of the metadata. This is a role name and should
-        not end in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        not end in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
 
     <Exceptions>
       tuf.FormatError:
@@ -389,7 +389,7 @@ class Updater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
-    metadata_filename = metadata_role + '.txt'
+    metadata_filename = metadata_role + '.json'
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
     
     # Ensure the metadata path is valid/exists, else ignore the call. 
@@ -427,7 +427,7 @@ class Updater(object):
     """
     <Purpose>
       Rebuild the key and role databases from the currently trusted
-      'root' metadata object extracted from 'root.txt'.  This private
+      'root' metadata object extracted from 'root.json'.  This private
       method is called when a new/updated 'root' metadata file is loaded.
       This method will only store the role information for the top-level
       roles (i.e., 'root', 'targets', 'release', 'timestamp').
@@ -873,6 +873,7 @@ class Updater(object):
     """
 
     metadata = metadata_file_object.read()
+    
     try:
       metadata_signable = tuf.util.load_json_string(metadata)
     except Exception, exception:
@@ -896,9 +897,16 @@ class Updater(object):
                                         current_version)
 
     # Reject the metadata if any specified targets are not allowed.
+    # 'tuf.ForbiddenTargetError' raised if any of the targets of 'metadata_role'
+    # are not allowed.
     if metadata_signable['signed']['_type'] == 'Targets':
-      self._ensure_all_targets_allowed(metadata_role,
-                                       metadata_signable['signed'])
+      if metadata_role != 'targets':
+        metadata_targets = metadata_signable['signed']['targets'].keys()
+        parent_rolename = tuf.roledb.get_parent_rolename(metadata_role)
+        parent_role_metadata = self.metadata['current'][parent_rolename]
+        parent_delegations = parent_role_metadata['delegations']
+        tuf.util.ensure_all_targets_allowed(metadata_role, metadata_targets,
+                                            parent_delegations)
 
     # Verify the signature on the downloaded metadata object.
     valid = tuf.sig.verify(metadata_signable, metadata_role)
@@ -1191,7 +1199,7 @@ class Updater(object):
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
       
       uncompressed_fileinfo:
         A dictionary containing length and hashes of the uncompressed metadata
@@ -1229,7 +1237,7 @@ class Updater(object):
     """
 
     # Construct the metadata filename as expected by the download/mirror modules.
-    metadata_filename = metadata_role + '.txt'
+    metadata_filename = metadata_role + '.json'
     uncompressed_metadata_filename = metadata_filename
    
     # The 'release' or Targets metadata may be compressed.  Add the appropriate
@@ -1370,7 +1378,7 @@ class Updater(object):
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
 
       referenced_metadata:
         This is the metadata that provides the role information for
@@ -1401,7 +1409,7 @@ class Updater(object):
       None.
     """
         
-    uncompressed_metadata_filename = metadata_role + '.txt'
+    uncompressed_metadata_filename = metadata_role + '.json'
 
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'release' available.  
@@ -1417,7 +1425,7 @@ class Updater(object):
         repr(referenced_metadata)+'.  '+repr(metadata_role)+' may be updated.'
       logger.debug(message)
     
-    # There might be a compressed version of 'release.txt' or Targets
+    # There might be a compressed version of 'release.json' or Targets
     # metadata available for download.  Check the 'meta' field of
     # 'referenced_metadata' to see if it is listed when 'metadata_role'
     # is 'release'.  The full rolename for delegated Targets metadata
@@ -1438,10 +1446,10 @@ class Updater(object):
                                          ['meta'] \
                                          [uncompressed_metadata_filename]
 
-    # Check for the availability of compressed versions of 'release.txt',
-    # 'targets.txt', and delegated Targets (that also start with 'targets').
-    # For 'targets.txt' and delegated metadata, 'referenced_metata'
-    # should always be 'release'.  'release.txt' specifies all roles
+    # Check for the availability of compressed versions of 'release.json',
+    # 'targets.json', and delegated Targets (that also start with 'targets').
+    # For 'targets.json' and delegated metadata, 'referenced_metata'
+    # should always be 'release'.  'release.json' specifies all roles
     # provided by a repository, including their file lengths and hashes.
     if metadata_role == 'release' or metadata_role.startswith('targets'):
       gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
@@ -1499,192 +1507,22 @@ class Updater(object):
 
 
 
-  def _ensure_all_targets_allowed(self, metadata_role, metadata_object):
-    """
-    <Purpose>
-      Ensure the delegated targets of 'metadata_role' are allowed; this is
-      determined by inspecting the 'delegations' field of the parent role
-      of 'metadata_role'.  If a target specified by 'metadata_object'
-      is not found in the parent role's delegations field, raise an exception.
-   
-      Targets allowed are either exlicitly listed under the 'paths' field, or
-      implicitly exist under a subdirectory of a parent directory listed
-      under 'paths'.  A parent role may delegate trust to all files under a 
-      particular directory, including files in subdirectories, by simply
-      listing the directory (e.g., 'packages/source/Django/', the equivalent
-      of 'packages/source/Django/*').  Targets listed in hashed bins are
-      also validated (i.e., its calculated path hash prefix must be delegated
-      by the parent role.
-
-      TODO: Should the TUF spec restrict the repository to one particular
-      algorithm?  Should we allow the repository to specify in the role
-      dictionary the algorithm used for these generated hashed paths?
-
-    <Arguments>
-      metadata_role:
-        The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
-      
-      metadata_object:
-        The metadata role object for 'metadata_role'.  This is the object
-        saved to the metadata store and stored in the 'signed' field of a
-        'signable' object (metadata roles are saved to metadata files as a
-        'signable' object).
-
-    <Exceptions>
-      tuf.ForbiddenTargetError:
-        If the targets of 'metadata_role' are not allowed according to
-        the parent's metadata file.  The 'paths' and 'path_hash_prefixes'
-        attributes are verified.
-
-    <Side Effects>
-      None.
-
-    <Returns>
-      None.
-    """
-    
-    # Return if 'metadata_role' is 'targets'.  'targets' is not
-    # a delegated role.
-    if metadata_role == 'targets':
-      return
-    
-    # The targets of delegated roles are stored in the parent's
-    # metadata file.  Retrieve the parent role of 'metadata_role'
-    # to confirm 'metadata_role' contains valid targets.
-    parent_role = tuf.roledb.get_parent_rolename(metadata_role)
-
-    # Iterate over the targets of 'metadata_role' and confirm they are trusted,
-    # or their root parent directory exists in the role delegated paths of the
-    # parent role.
-    roles = self.metadata['current'][parent_role]['delegations']['roles']
-    role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
-
-    # Ensure the delegated role exists prior to extracting trusted paths from
-    # the parent's 'paths', or trusted path hash prefixes from the parent's
-    # 'path_hash_prefixes'.
-    if role_index is not None:
-      role = roles[role_index] 
-      allowed_child_paths = role.get('paths')
-      allowed_child_path_hash_prefixes = role.get('path_hash_prefixes')
-      actual_child_targets = metadata_object['targets'].keys()
-
-      if allowed_child_path_hash_prefixes is not None:
-        consistent = self._paths_are_consistent_with_hash_prefixes
-        if not consistent(actual_child_targets,
-                          allowed_child_path_hash_prefixes):
-          raise tuf.ForbiddenTargetError('Role '+repr(metadata_role)+\
-                                         ' specifies target which does not'+\
-                                         ' have a path hash prefix matching'+\
-                                         ' the prefix listed by the parent'+\
-                                         ' role '+repr(parent_role)+'.')
-
-      elif allowed_child_paths is not None: 
-
-        # Check that each delegated target is either explicitly listed or a parent
-        # directory is found under role['paths'], otherwise raise an exception.
-        # If the parent role explicitly lists target file paths in 'paths',
-        # this loop will run in O(n^2), the worst-case.  The repository
-        # maintainer will likely delegate entire directories, and opt for
-        # explicit file paths if the targets in a directory are delegated to 
-        # different roles/developers.
-        for child_target in actual_child_targets:
-          for allowed_child_path in allowed_child_paths:
-            prefix = os.path.commonprefix([child_target, allowed_child_path])
-            if prefix == allowed_child_path:
-              break
-          else: 
-            raise tuf.ForbiddenTargetError('Role '+repr(metadata_role)+\
-                                           ' specifies target '+\
-                                           repr(child_target)+' which is not'+\
-                                           ' an allowed path according to'+\
-                                           ' the delegations set by '+\
-                                           repr(parent_role)+'.')
-
-      else:
-
-        # 'role' should have been validated when it was downloaded.
-        # The 'paths' or 'path_hash_prefixes' attributes should not be missing,
-        # so raise an error in case this clause is reached.
-        raise tuf.FormatError(repr(role)+' did not contain one of '+\
-                              'the required fields ("paths" or '+\
-                              '"path_hash_prefixes").')
-
-    # Raise an exception if the parent has not delegated to the specified
-    # 'metadata_role' child role.
-    else:
-      raise tuf.RepositoryError(repr(parent_role)+' has not delegated to '+\
-                                repr(metadata_role)+'.')
-
-
-
-
-
-  def _paths_are_consistent_with_hash_prefixes(self, paths,
-                                               path_hash_prefixes):
-    """
-    <Purpose>
-      Determine whether a list of paths are consistent with theirs alleged
-      path hash prefixes. By default, the SHA256 hash function will be used.
-
-    <Arguments>
-      paths:
-        A list of paths for which their hashes will be checked.
-
-      path_hash_prefixes:
-        The list of path hash prefixes with which to check the list of paths.
-
-    <Exceptions>
-      No known exceptions.
-
-    <Side Effects>
-      No known side effects.
-
-    <Returns>
-      A Boolean indicating whether or not the paths are consistent with the
-      hash prefix.
-    """
-
-    # Assume that 'paths' and 'path_hash_prefixes' are inconsistent until
-    # proven otherwise.
-    consistent = False
-
-    if len(paths) > 0 and len(path_hash_prefixes) > 0:
-      for path in paths:
-        path_hash = self._get_target_hash(path)
-        # Assume that every path is inconsistent until proven otherwise.
-        consistent = False
-
-        for path_hash_prefix in path_hash_prefixes:
-          if path_hash.startswith(path_hash_prefix):
-            consistent = True
-            break
-
-        # This path has no matching path_hash_prefix. Stop looking further.
-        if not consistent: break
-
-    return consistent
-
-
-
-
-
   def _fileinfo_has_changed(self, metadata_filename, new_fileinfo):
     """
     <Purpose>
       Determine whether the current fileinfo of 'metadata_filename'
       differs from 'new_fileinfo'.  The 'new_fileinfo' argument
       should be extracted from the latest copy of the metadata
-      that references 'metadata_filename'.  Example: 'root.txt'
-      would be referenced by 'release.txt'.
+      that references 'metadata_filename'.  Example: 'root.json'
+      would be referenced by 'release.json'.
         
       'new_fileinfo' should only be 'None' if this is for updating
-      'root.txt' without having 'release.txt' available.
+      'root.json' without having 'release.json' available.
 
     <Arguments>
       metadadata_filename:
         The metadata filename for the role.  For the 'root' role,
-        'metadata_filename' would be 'root.txt'.
+        'metadata_filename' would be 'root.json'.
 
       new_fileinfo:
         A dict object representing the new file information for
@@ -1752,7 +1590,7 @@ class Updater(object):
     <Arguments>
       metadata_filename:
         The metadata filename for the role.  For the 'root' role,
-        'metadata_filename' would be 'root.txt'.
+        'metadata_filename' would be 'root.json'.
 
     <Exceptions>
       None.
@@ -1796,7 +1634,7 @@ class Updater(object):
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
     
     <Exceptions>
       None.
@@ -1810,7 +1648,7 @@ class Updater(object):
     """
 
     # Get the 'current' and 'previous' full file paths for 'metadata_role'
-    metadata_filepath = metadata_role + '.txt'
+    metadata_filepath = metadata_role + '.json'
     previous_filepath = os.path.join(self.metadata_directory['previous'],
                                      metadata_filepath)
     current_filepath = os.path.join(self.metadata_directory['current'],
@@ -1834,13 +1672,13 @@ class Updater(object):
     <Purpose>
       Remove all (current) knowledge of 'metadata_role'.  The metadata
       belonging to 'metadata_role' is removed from the current
-      'self.metadata' store and from the role database. The 'root.txt' role
+      'self.metadata' store and from the role database. The 'root.json' role
       file is never removed.
 
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
 
     <Exceptions>
       None.
@@ -1877,7 +1715,7 @@ class Updater(object):
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
     
     <Exceptions>
       tuf.ExpiredMetadataError:
@@ -1893,7 +1731,7 @@ class Updater(object):
     # Construct the full metadata filename and the location of its
     # current path.  The current path of 'metadata_role' is needed
     # to log the exact filename of the expired metadata.
-    metadata_filename = metadata_role + '.txt'
+    metadata_filename = metadata_role + '.json'
     rolepath =  os.path.join(self.metadata_directory['current'],
                              metadata_filename)
     rolepath = os.path.abspath(rolepath)
@@ -1983,7 +1821,7 @@ class Updater(object):
     <Arguments>
       rolename:
         This is a delegated role name and should not end
-        in '.txt'.  Example: 'targets/linux/x86'.
+        in '.json'.  Example: 'targets/linux/x86'.
       
       include_delegations:
          Boolean indicating if the delegated roles set by 'rolename' should
@@ -2009,21 +1847,21 @@ class Updater(object):
     # delegations, look for metadata from delegated roles.
     role_prefix = rolename + '/'
     for metadata_path in self.metadata['current']['release']['meta'].keys():
-      if metadata_path == rolename + '.txt':
-        roles_to_update.append(metadata_path[:-len('.txt')])
+      if metadata_path == rolename + '.json':
+        roles_to_update.append(metadata_path[:-len('.json')])
       elif include_delegations and metadata_path.startswith(role_prefix):
         # Add delegated roles.  Skip roles names containing compression
         # extensions.
-        if metadata_path.endswith('.txt'): 
-          roles_to_update.append(metadata_path[:-len('.txt')])
+        if metadata_path.endswith('.json'): 
+          roles_to_update.append(metadata_path[:-len('.json')])
 
-    # Remove the 'targets' role because it gets updated when the targets.txt
+    # Remove the 'targets' role because it gets updated when the targets.json
     # file is updated in _update_metadata_if_changed('targets').
     if rolename == 'targets':
       try:
         roles_to_update.remove('targets')
       except ValueError:
-        message = 'The Release metadata file is missing the targets.txt entry.'
+        message = 'The Release metadata file is missing the targets.json entry.'
         raise tuf.RepositoryError(message)
   
     # If there is nothing to refresh, we are done.
@@ -2058,11 +1896,11 @@ class Updater(object):
       Refresh the minimum targets metadata of 'rolename'.  If 'rolename' is
       'targets/claimed/3.3/django', refresh the metadata of the following roles:
       
-      targets.txt
-      targets/claimed.txt
-      targets/claimed/3.3.txt
+      targets.json
+      targets/claimed.json
+      targets/claimed/3.3.json
 
-      Note that 'targets/claimed/3.3/django.txt' is not refreshed here.
+      Note that 'targets/claimed/3.3/django.json' is not refreshed here.
       
       The metadata of the 'targets' role is updated in refresh() by the 
       _update_metadata_if_changed('targets') call, not here.  Delegated roles
@@ -2075,7 +1913,7 @@ class Updater(object):
 
     <Arguments>
       rolename:
-        This is a full delegated rolename and should not end in '.txt'.
+        This is a full delegated rolename and should not end in '.json'.
         Example: 'targets/linux/x86'.
       
     <Exceptions>
@@ -2084,7 +1922,7 @@ class Updater(object):
 
       tuf.RepositoryError:
         If the metadata of any of the parent roles of 'rolename' is missing
-        from the 'release.txt' metadata file.
+        from the 'release.json' metadata file.
 
     <Side Effects>
       The metadata of the parent roles of 'rolename' are loaded from disk and
@@ -2128,25 +1966,25 @@ class Updater(object):
       repr(parent_roles)+'.'
     logger.info(message)
 
-    # Check if 'release.txt' provides metadata for each of the roles in
+    # Check if 'release.json' provides metadata for each of the roles in
     # 'parent_roles'.  All the available roles on the repository are specified
-    # in the 'release.txt' metadata.
+    # in the 'release.json' metadata.
     targets_metadata_allowed = self.metadata['current']['release']['meta'].keys()
     for parent_role in parent_roles:
-      parent_role = parent_role + '.txt'
+      parent_role = parent_role + '.json'
 
       if parent_role not in targets_metadata_allowed:
-        message = '"release.txt" does not provide all the parent roles'+\
+        message = '"release.json" does not provide all the parent roles '+\
           'of '+repr(rolename)+'.'
         raise tuf.RepositoryError(message)
 
-    # Remove the 'targets' role because it gets updated when the targets.txt
+    # Remove the 'targets' role because it gets updated when the targets.json
     # file is updated in _update_metadata_if_changed('targets').
     if rolename == 'targets':
       try:
         parent_roles.remove('targets')
       except ValueError:
-        message = 'The Release metadata file is missing the "targets.txt" entry.'
+        message = 'The Release metadata file is missing the "targets.json" entry.'
         raise tuf.RepositoryError(message)
   
     # If there is nothing to refresh, we are done.
@@ -2194,7 +2032,7 @@ class Updater(object):
     <Arguments>
       rolename:
         This is a role name and should not end
-        in '.txt'.  Examples: 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'targets', 'targets/linux/x86'.
       
       targets:
         A list of targets containing target information, conformant to
@@ -2337,6 +2175,9 @@ class Updater(object):
     # http://docs.python.org/2/library/urllib.html#urllib.unquote
     target_filepath = urllib.unquote(target_filepath)
 
+    if not target_filepath.startswith('/'):
+      target_filepath = '/' + target_filepath
+
     # Get target by looking at roles in order of priority tags.
     target = self._preorder_depth_first_walk(target_filepath)
 
@@ -2384,7 +2225,7 @@ class Updater(object):
     current_metadata = self.metadata['current']
     role_names = ['targets']
 
-    # Ensure the client has the most up-to-date version of 'targets.txt'.
+    # Ensure the client has the most up-to-date version of 'targets.json'.
     # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be
     # successfully downloaded and 'tuf.RepositoryError' if the referenced
     # metadata is missing.  Target methods such as this one are called after the
@@ -2400,7 +2241,7 @@ class Updater(object):
       # The metadata for 'role_name' must be downloaded/updated before
       # its targets, delegations, and child roles can be inspected.
       # self.metadata['current'][role_name] is currently missing.
-      # _refresh_targets_metadata() does not refresh 'targets.txt', it
+      # _refresh_targets_metadata() does not refresh 'targets.json', it
       # expects _update_metadata_if_changed() to have already refreshed it,
       # which this function has checked above.
       self._refresh_targets_metadata(role_name, include_delegations=False)
@@ -2489,8 +2330,8 @@ class Updater(object):
 
       Ensure that we explore only delegated roles trusted with the target. We
       assume conservation of delegated paths in the complete tree of
-      delegations. Note that the call to _ensure_all_targets_allowed in
-      _verify_uncompressed_metadata_file should already ensure that all
+      delegations. Note that the call to tuf.util.ensure_all_targets_allowed in
+      _verify_uncompressed_metadata_file should already verify that all
       targets metadata is valid; i.e. that the targets signed by a delegatee is
       a proper subset of the targets delegated to it by the delegator.
       Nevertheless, we check it again here for performance and safety reasons.
@@ -2799,8 +2640,11 @@ class Updater(object):
                                                trusted_hashes)
    
     # We acquired a target file object from a mirror.  Move the file into
-    # place (i.e., locally to 'destination_directory').
-    destination = os.path.join(destination_directory, target_filepath)
+    # place (i.e., locally to 'destination_directory').  Note: join() discards
+    # 'destination_directory' if 'target_path' contains a leading path separator
+    # (i.e., is treated as an absolute path).
+    destination = os.path.join(destination_directory,
+                               target_filepath.lstrip(os.sep))
     destination = os.path.abspath(destination)
     target_dirpath = os.path.dirname(destination)
     if target_dirpath:
