@@ -159,7 +159,8 @@ class Project(object):
     tuf.formats.PATH_SCHEMA.check_match(repository_directory)
     tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
     tuf.formats.PATH_SCHEMA.check_match(targets_directory)
-    
+    tuf.formats.PATH_SCHEMA.check_match(file_prefix)
+
     self._repository_directory = repository_directory
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
@@ -167,7 +168,7 @@ class Project(object):
     # Set the top-level role objects.
     self.targets = Targets(self._targets_directory, 'targets')
 
-
+    self.prefix = file_prefix
 
   #TODO: continue where we left off.
   def write(self, write_partial=False, consistent_snapshots=False):
@@ -230,7 +231,7 @@ class Project(object):
       _generate_and_write_metadata(delegated_rolename, delegated_filename,
                                    write_partial, self._targets_directory,
                                    self._metadata_directory,
-                                   consistent_snapshots)
+                                   consistent_snapshots,prefix=self.prefix)
       
     
     # Generate the 'targets.txt' metadata file.
@@ -240,7 +241,7 @@ class Project(object):
       _generate_and_write_metadata('targets', targets_filename, write_partial,
                                    self._targets_directory,
                                    self._metadata_directory,
-                                   consistent_snapshots)
+                                   consistent_snapshots,prefix=self.prefix)
     
     
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
@@ -447,7 +448,8 @@ def _print_status(rolename, signable):
 
 def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                  targets_directory, metadata_directory,
-                                 consistent_snapshots, filenames=None):
+                                 consistent_snapshots, filenames=None,
+                                 prefix=''):
   """
     Non-public function that can generate and write the metadata of the specified
     top-level 'rolename'.  It also increments version numbers if:
@@ -459,20 +461,27 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   """
 
   metadata = None 
-  print("we do get here")
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
   roleinfo = tuf.roledb.get_roleinfo(rolename) 
   #release_compressions = tuf.roledb.get_roleinfo('release')['compressions']
-
   metadata = generate_targets_metadata(targets_directory,
                                        roleinfo['paths'],
                                        roleinfo['version'],
                                        roleinfo['expires'],
                                        roleinfo['delegations'],
-                                       consistent_snapshots)
+                                       consistent_snapshots) 
+
+  # preprend the prefix to the project's filepath to avoid signature errors
+  # in upstream
+  for element in metadata['targets'].keys():
+    metadata['targets'][prefix+element] = metadata['targets'][element]
+    if prefix != '':
+      del(metadata['targets'][element])
+
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
+
   # Check if the version number of 'rolename' may be automatically incremented,
   # depending on whether if partial metadata is loaded or if the metadata is
   # written with write() / write_partial(). 
