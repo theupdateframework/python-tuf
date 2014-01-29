@@ -66,7 +66,7 @@ METADATA_EXTENSION = '.json'
 # The metadata filenames of the top-level roles.
 ROOT_FILENAME = 'root' + METADATA_EXTENSION
 TARGETS_FILENAME = 'targets' + METADATA_EXTENSION
-RELEASE_FILENAME = 'release' + METADATA_EXTENSION
+SNAPSHOT_FILENAME = 'snapshot' + METADATA_EXTENSION
 TIMESTAMP_FILENAME = 'timestamp' + METADATA_EXTENSION
 
 # The targets and metadata directory names.  Metadata files are written
@@ -94,8 +94,8 @@ ROOT_EXPIRATION = 31556900
 # Initial 'targets.json' expiration time of 3 months. 
 TARGETS_EXPIRATION = 7889230 
 
-# Initial 'release.json' expiration time of 1 week. 
-RELEASE_EXPIRATION = 604800 
+# Initial 'snapshot.json' expiration time of 1 week. 
+SNAPSHOT_EXPIRATION = 604800 
 
 # Initial 'timestamp.json' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
@@ -113,13 +113,13 @@ class Repository(object):
 
     repository.root.version = 2
     repository.timestamp.expiration = "2015-08-08 12:00:00"
-    repository.release.add_key(...)
+    repository.snapshot.add_verification_key(...)
     repository.targets.delegate('unclaimed', ...)
 
     Delegating a role from 'targets' updates the attributes of the parent
     delegation, which then provides:
 
-    repository.targets('unclaimed').add_key(...)
+    repository.targets('unclaimed').add_verification_key(...)
 
       
   <Arguments>
@@ -165,7 +165,7 @@ class Repository(object):
    
     # Set the top-level role objects.
     self.root = Root() 
-    self.release = Release()
+    self.snapshot = Snapshot()
     self.timestamp = Timestamp()
     self.targets = Targets(self._targets_directory, 'targets')
 
@@ -265,13 +265,13 @@ class Repository(object):
                                    self._metadata_directory,
                                    consistent_snapshots)
     
-    # Generate the 'release.json' metadata file.
-    release_filename = os.path.join(self._metadata_directory, 'release')
-    release_filename = 'release' + METADATA_EXTENSION 
-    release_filename = os.path.join(self._metadata_directory, release_filename)
+    # Generate the 'snapshot.json' metadata file.
+    snapshot_filename = os.path.join(self._metadata_directory, 'snapshot')
+    snapshot_filename = 'snapshot' + METADATA_EXTENSION 
+    snapshot_filename = os.path.join(self._metadata_directory, snapshot_filename)
     filenames = {'root': root_filename, 'targets': targets_filename} 
-    release_signable, release_filename = \
-      _generate_and_write_metadata('release', release_filename, write_partial,
+    snapshot_signable, snapshot_filename = \
+      _generate_and_write_metadata('snapshot', snapshot_filename, write_partial,
                                    self._targets_directory,
                                    self._metadata_directory,
                                    consistent_snapshots, filenames)
@@ -279,7 +279,7 @@ class Repository(object):
     # Generate the 'timestamp.json' metadata file.
     timestamp_filename = 'timestamp' + METADATA_EXTENSION 
     timestamp_filename = os.path.join(self._metadata_directory, timestamp_filename)
-    filenames = {'release': release_filename}
+    filenames = {'snapshot': snapshot_filename}
     _generate_and_write_metadata('timestamp', timestamp_filename, write_partial,
                                  self._targets_directory,
                                  self._metadata_directory, consistent_snapshots,
@@ -288,7 +288,7 @@ class Repository(object):
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked.
     _delete_obsolete_metadata(self._metadata_directory,
-                              release_signable['signed'], consistent_snapshots)
+                              snapshot_signable['signed'], consistent_snapshots)
 
 
   
@@ -319,12 +319,13 @@ class Repository(object):
     """
     <Purpose>
       Determine the status of the top-level roles, including those delegated by
-      the targets role.  status() checks if each role provides sufficient public
-      keys, signatures, and that a valid metadata file is generated if write()
-      were to be called.  Metadata files are temporary written to check that
-      proper metadata files are written, where file hashes and lengths are
-      calculated and referenced by the top-level roles.  status() does not do a
-      simple check for number of threshold keys and signatures.
+      the Targets role.  status() checks if each role provides sufficient public
+      and private keys, signatures, and that a valid metadata file is generated
+      if write() were to be called.  Metadata files are temporarily written so
+      that file hashes and lengths may be verified, determine if delegated role
+      trust is fully obeyed, and target paths valid according to parent roles.
+      status() does not do a simple check for number of threshold keys and
+      signatures.
 
     <Arguments>
       None.
@@ -478,7 +479,7 @@ class Metadata(object):
   """
   <Purpose>
     Provide a base class to represent a TUF Metadata role.  There are four
-    top-level roles: Root, Targets, Release, and Timestamp.  The Metadata class
+    top-level roles: Root, Targets, Snapshot, and Timestamp.  The Metadata class
     provides methods that are needed by all top-level roles, such as adding
     and removing public keys, private keys, and signatures.  Metadata
     attributes, such as rolename, version, threshold, expiration, key list, and
@@ -502,7 +503,7 @@ class Metadata(object):
     
 
 
-  def add_key(self, key):
+  def add_verification_key(self, key):
     """
     <Purpose>
       Add 'key' to the role.  Adding a key, which should contain only the public
@@ -556,7 +557,7 @@ class Metadata(object):
    
 
 
-  def remove_key(self, key):
+  def remove_verification_key(self, key):
     """
     <Purpose>
       Remove 'key' from the role's currently recognized list of role keys.
@@ -570,7 +571,7 @@ class Metadata(object):
       key:
         The role's key, conformant to 'tuf.formats.ANYKEY_SCHEMA'.  'key'
         should contain the only the public portion, as only the public key
-        is needed.  The 'add_key()' method should have previously added 'key'. 
+        is needed.  The 'add_verification_key()' method should have previously added 'key'. 
 
     <Exceptions>
       tuf.FormatError, if the 'key' argument is improperly formatted.
@@ -792,7 +793,7 @@ class Metadata(object):
       A getter method that returns the role's signatures.  A role is considered
       fully signed if it contains a threshold number of signatures, where each
       signature must be provided by the generated by the private key.  Keys
-      are added to a role with the add_key() method.
+      are added to a role with the add_verification_key() method.
 
     <Arguments>
       None.
@@ -1245,7 +1246,7 @@ class Root(Metadata):
     
     self._rolename = 'root'
    
-    # By default, 'release' metadata is set to expire 1 week from the current
+    # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
     expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION)
 
@@ -1266,7 +1267,7 @@ class Timestamp(Metadata):
   """
   <Purpose>
     Represent a Timestamp role object.  The timestamp role is responsible for
-    referencing the latest version of the Release role.  Under normal
+    referencing the latest version of the Snapshot role.  Under normal
     conditions, it is the only role to be downloaded from a remote repository
     without a known file length and hash.  An upper length limit is set, though.
     Also, its signatures are also verified to be valid according to the Root
@@ -1278,7 +1279,7 @@ class Timestamp(Metadata):
     This Timestamp object sub-classes Metadata, so the expected Metadata
     operations like adding/removing public keys, signatures, private keys, and
     updating metadata attributes (e.g., version and expiration) is supported.
-    Since Release is a top-level role and must exist, a default Timestamp object
+    Since Snapshot is a top-level role and must exist, a default Timestamp object
     is instantiated when a new Repository object is created.
 
     >>>
@@ -1304,7 +1305,7 @@ class Timestamp(Metadata):
     
     self._rolename = 'timestamp'
 
-    # By default, 'release' metadata is set to expire 1 week from the current
+    # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
     expiration = tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION)
 
@@ -1321,18 +1322,18 @@ class Timestamp(Metadata):
 
 
 
-class Release(Metadata):
+class Snapshot(Metadata):
   """
   <Purpose>
-    Represent a Release role object.  The release role is responsible for
+    Represent a Snapshot role object.  The snapshot role is responsible for
     referencing the other top-level roles (excluding Timestamp) and all
     delegated roles.
     
-    This Release object sub-classes Metadata, so the expected
+    This Snapshot object sub-classes Metadata, so the expected
     Metadata operations like adding/removing public keys, signatures, private
     keys, and updating metadata attributes (e.g., version and expiration) is
-    supported.  Since Release is a top-level role and must exist, a default
-    Release object is instantiated when a new Repository object is created.
+    supported.  Since Snapshot is a top-level role and must exist, a default
+    Snapshot object is instantiated when a new Repository object is created.
 
     >>> 
     >>>
@@ -1345,7 +1346,7 @@ class Release(Metadata):
     None.
 
   <Side Effects>
-    A 'release' role is added to 'tuf.roledb.py'.
+    A 'snapshot' role is added to 'tuf.roledb.py'.
 
   <Returns>
     None.
@@ -1353,13 +1354,13 @@ class Release(Metadata):
 
   def __init__(self):
     
-    super(Release, self).__init__() 
+    super(Snapshot, self).__init__() 
     
-    self._rolename = 'release' 
+    self._rolename = 'snapshot' 
    
-    # By default, 'release' metadata is set to expire 1 week from the current
+    # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.format_time(time.time()+RELEASE_EXPIRATION)
+    expiration = tuf.formats.format_time(time.time()+SNAPSHOT_EXPIRATION)
     
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0, 'compressions': [''],
@@ -2022,7 +2023,7 @@ class Targets(Metadata):
     
     # Update the public keys of 'new_targets_object'.
     for key in public_keys:
-      new_targets_object.add_key(key)
+      new_targets_object.add_verification_key(key)
 
     # Add the new delegation to this Targets object.  For example, 'django' is
     # added to 'repository.targets' (i.e., repository.targets('django')).
@@ -2121,7 +2122,7 @@ class Targets(Metadata):
         The initial public keys of the delegated roles.  Public keys may be
         later added or removed by calling the usual methods of the delegated
         Targets object.  For example:
-        repository.targets('unclaimed')('000-003').add_key()
+        repository.targets('unclaimed')('000-003').add_verification_key()
       
       number_of_bins:
         The number of delegated roles, or hashed bins, that should be generated
@@ -2293,7 +2294,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
   roleinfo = tuf.roledb.get_roleinfo(rolename) 
-  release_compressions = tuf.roledb.get_roleinfo('release')['compressions']
+  snapshot_compressions = tuf.roledb.get_roleinfo('snapshot')['compressions']
 
   # Generate the appropriate role metadata for 'rolename'. 
   if rolename == 'root':
@@ -2309,21 +2310,21 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['delegations'],
                                          consistent_snapshots)
   
-  elif rolename == 'release':
+  elif rolename == 'snapshot':
     root_filename = filenames['root']
     targets_filename = filenames['targets']
-    metadata = generate_release_metadata(metadata_directory,
+    metadata = generate_snapshot_metadata(metadata_directory,
                                          roleinfo['version'],
                                          roleinfo['expires'], root_filename,
                                          targets_filename,
                                          consistent_snapshots )
   
   elif rolename == 'timestamp':
-    release_filename = filenames['release'] 
-    metadata = generate_timestamp_metadata(release_filename,
+    snapshot_filename = filenames['snapshot'] 
+    metadata = generate_timestamp_metadata(snapshot_filename,
                                            roleinfo['version'],
                                            roleinfo['expires'],
-                                           release_compressions)
+                                           snapshot_compressions)
 
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
@@ -2380,14 +2381,14 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
   Non-public function that prints whether any of the top-level roles contain an
   invalid number of public and private keys, or an insufficient threshold of
   signatures.  Considering that the top-level metadata have to be verified in
-  the expected root -> targets -> release -> timestamp order, this function
+  the expected root -> targets -> snapshot -> timestamp order, this function
   prints the error message and returns as soon as a required metadata file is
   found to be invalid.  It is assumed here that the delegated roles have been
   written and verified.  Example output:
   
   'root' role contains 1 / 1 signatures.
   'targets' role contains 1 / 1 signatures.
-  'release' role contains 1 / 1 signatures.
+  'snapshot' role contains 1 / 1 signatures.
   'timestamp' role contains 1 / 1 signatures.
   """
 
@@ -2396,12 +2397,12 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
   filenames = get_metadata_filenames(metadata_directory)
   root_filename = filenames[ROOT_FILENAME]
   targets_filename = filenames[TARGETS_FILENAME]
-  release_filename = filenames[RELEASE_FILENAME]
+  snapshot_filename = filenames[SNAPSHOT_FILENAME]
   timestamp_filename = filenames[TIMESTAMP_FILENAME]
 
   # Verify that the top-level roles contain a valid number of public keys and
   # that their corresponding private keys have been loaded.
-  for rolename in ['root', 'targets', 'release', 'timestamp']:
+  for rolename in ['root', 'targets', 'snapshot', 'timestamp']:
     try:
       _check_role_keys(rolename)
     
@@ -2410,7 +2411,7 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
       return
 
   # Do the top-level roles contain a valid threshold of signatures?  Top-level
-  # metadata is verified in Root -> Targets -> Release -> Timestamp order.
+  # metadata is verified in Root -> Targets -> Snapshot -> Timestamp order.
   # Verify the metadata of the Root role.
   try:
     signable, root_filename = \
@@ -2437,25 +2438,25 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
     _print_status('targets', signable)
     return
 
-  # Verify the metadata of the Release role.
+  # Verify the metadata of the snapshot role.
   filenames = {'root': root_filename, 'targets': targets_filename} 
   try:
-    signable, release_filename = \
-      _generate_and_write_metadata('release', release_filename, False,
+    signable, snapshot_filename = \
+      _generate_and_write_metadata('snapshot', snapshot_filename, False,
                                    targets_directory, metadata_directory,
                                    False, filenames)
-    _print_status('release', signable)
+    _print_status('snapshot', signable)
   
   except tuf.UnsignedMetadataError, e:
     signable = e[1]
-    _print_status('release', signable)
+    _print_status('snapshot', signable)
     return
   
   # Verify the metadata of the Timestamp role.
-  filenames = {'release': release_filename}
+  filenames = {'snapshot': snapshot_filename}
   try:
-    signable, release_filename = \
-      _generate_and_write_metadata('timestamp', release_filename, False,
+    signable, snapshot_filename = \
+      _generate_and_write_metadata('timestamp', snapshot_filename, False,
                                    targets_directory, metadata_directory,
                                    False, filenames)
     _print_status('timestamp', signable)
@@ -2659,7 +2660,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
 
 
 
-def _delete_obsolete_metadata(metadata_directory, release_metadata,
+def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
                               consistent_snapshots):
   """
   Non-public function that deletes metadata files marked as removed by
@@ -2706,11 +2707,11 @@ def _delete_obsolete_metadata(metadata_directory, release_metadata,
           logger.info('Removing outdated metadata: ' + repr(metadata_path))
           os.remove(metadata_path)
 
-        # Delete outdated consistent snapshots.  release metadata includes
+        # Delete outdated consistent snapshots.  snapshot metadata includes
         # the file extension of roles.
         if consistent_snapshots:
           #metadata_name_extension = metadata_name + METADATA_EXTENSION 
-          file_hashes = release_metadata['meta'][metadata_name] \
+          file_hashes = snapshot_metadata['meta'][metadata_name] \
                                         ['hashes'].values()
           if embeded_digest not in file_hashes:
             logger.info('Removing outdated metadata: ' + repr(metadata_path))
@@ -2828,7 +2829,7 @@ def create_new_repository(repository_directory):
     os.path.join(repository_directory, TARGETS_DIRECTORY_NAME) 
   
   # Try to create the metadata directory that will hold all of the metadata
-  # files, such as 'root.json' and 'release.json'.
+  # files, such as 'root.json' and 'snapshot.json'.
   try:
     message = 'Creating '+repr(metadata_directory)
     logger.info(message)
@@ -2909,13 +2910,13 @@ def load_repository(repository_directory):
   consistent_snapshots = False
 
   # Load the metadata of the top-level roles (i.e., Root, Timestamp, Targets,
-  # and Release).
+  # and Snapshot).
   repository, consistent_snapshots = _load_top_level_metadata(repository,
                                                               filenames)
  
   # Load delegated targets metadata.
   # Walk the 'targets/' directory and generate the fileinfo of all the files
-  # listed.  This information is stored in the 'meta' field of the release
+  # listed.  This information is stored in the 'meta' field of the snapshot
   # metadata object.
   targets_objects = {}
   loaded_metadata = []
@@ -3014,18 +3015,18 @@ def load_repository(repository_directory):
 
 def _load_top_level_metadata(repository, top_level_filenames):
   """
-  Load the metadata of the Root, Timestamp, Targets, and Release roles.
+  Load the metadata of the Root, Timestamp, Targets, and Snapshot roles.
   At a minimum, the Root role must exist and successfully load.
   """
 
   root_filename = top_level_filenames[ROOT_FILENAME] 
   targets_filename = top_level_filenames[TARGETS_FILENAME] 
-  release_filename = top_level_filenames[RELEASE_FILENAME] 
+  snapshot_filename = top_level_filenames[SNAPSHOT_FILENAME] 
   timestamp_filename = top_level_filenames[TIMESTAMP_FILENAME]
 
   root_metadata = None
   targets_metadata = None
-  release_metadata = None
+  snapshot_metadata = None
   timestamp_metadata = None
   
   # Load ROOT.json.  A Root role file without a digest is always written. 
@@ -3078,30 +3079,30 @@ def _load_top_level_metadata(repository, top_level_filenames):
   else:
     pass
   
-  # Load RELEASE.json.  A consistent snapshot of Release must be calculated
+  # Load SNAPSHOT.json.  A consistent snapshot of Snapshot must be calculated
   # if 'consistent_snapshots' is True.
   if consistent_snapshots:
-    release_hashes = timestamp_metadata['meta'][RELEASE_FILENAME]['hashes']
-    release_digest = random.choice(release_hashes.values())
-    dirname, basename = os.path.split(release_filename)
-    release_filename = os.path.join(dirname, release_digest + '.' + basename)
+    snapshot_hashes = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['hashes']
+    snapshot_digest = random.choice(snapshot_hashes.values())
+    dirname, basename = os.path.split(snapshot_filename)
+    snapshot_filename = os.path.join(dirname, snapshot_digest + '.' + basename)
   
-  if os.path.exists(release_filename):
-    signable = tuf.util.load_json_file(release_filename)
+  if os.path.exists(snapshot_filename):
+    signable = tuf.util.load_json_file(snapshot_filename)
     tuf.formats.check_signable_object_format(signable)
-    release_metadata = signable['signed']  
+    snapshot_metadata = signable['signed']  
     for signature in signable['signatures']:
-      repository.release.add_signature(signature)
+      repository.snapshot.add_signature(signature)
 
-    # Load Release's roleinfo and update 'tuf.roledb'.
-    roleinfo = tuf.roledb.get_roleinfo('release')
-    roleinfo['expires'] = release_metadata['expires']
-    roleinfo['version'] = release_metadata['version']
-    if os.path.exists(release_filename+'.gz'):
+    # Load Snapshot's roleinfo and update 'tuf.roledb'.
+    roleinfo = tuf.roledb.get_roleinfo('snapshot')
+    roleinfo['expires'] = snapshot_metadata['expires']
+    roleinfo['version'] = snapshot_metadata['version']
+    if os.path.exists(snapshot_filename+'.gz'):
       roleinfo['compressions'].append('gz')
     
-    _check_if_partial_loaded('release', signable, roleinfo)
-    tuf.roledb.update_roleinfo('release', roleinfo)
+    _check_if_partial_loaded('snapshot', signable, roleinfo)
+    tuf.roledb.update_roleinfo('snapshot', roleinfo)
   
   else:
     pass 
@@ -3109,7 +3110,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   # Load TARGETS.json.  A consistent snapshot of Targets must be calculated if
   # 'consistent_snapshots' is True.
   if consistent_snapshots:
-    targets_hashes = release_metadata['meta'][TARGETS_FILENAME]['hashes']
+    targets_hashes = snapshot_metadata['meta'][TARGETS_FILENAME]['hashes']
     targets_digest = random.choice(targets_hashes.values())
     dirname, basename = os.path.split(targets_filename)
     targets_filename = os.path.join(dirname, targets_digest + '.' + basename)
@@ -3565,7 +3566,7 @@ def get_metadata_filenames(metadata_directory=None):
 
     filenames = {'root': 'metadata/root.json',
                  'targets': 'metadata/targets.json',
-                 'release': 'metadata/release.json',
+                 'snapshot': 'metadata/snapshot.json',
                  'timestamp': 'metadata/timestamp.json'}
 
     If the metadata directory is not set by the caller, the current
@@ -3583,7 +3584,7 @@ def get_metadata_filenames(metadata_directory=None):
 
   <Returns>
     A dictionary containing the expected filenames of the top-level
-    metadata files, such as 'root.json' and 'release.json'.
+    metadata files, such as 'root.json' and 'snapshot.json'.
   """
   
   # Does 'metadata_directory' have the correct format?
@@ -3609,8 +3610,8 @@ def get_metadata_filenames(metadata_directory=None):
   filenames[TARGETS_FILENAME] = \
     os.path.join(metadata_directory, TARGETS_FILENAME)
   
-  filenames[RELEASE_FILENAME] = \
-    os.path.join(metadata_directory, RELEASE_FILENAME)
+  filenames[SNAPSHOT_FILENAME] = \
+    os.path.join(metadata_directory, SNAPSHOT_FILENAME)
   
   filenames[TIMESTAMP_FILENAME] = \
     os.path.join(metadata_directory, TIMESTAMP_FILENAME)
@@ -3781,7 +3782,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshots):
   # Extract the role, threshold, and keyid information of the top-level roles,
   # which Root stores in its metadata.  The necessary role metadata is generated
   # from this information.
-  for rolename in ['root', 'targets', 'release', 'timestamp']:
+  for rolename in ['root', 'targets', 'snapshot', 'timestamp']:
     
     # If a top-level role is missing from 'tuf.roledb.py', raise an exception.
     if not tuf.roledb.role_exists(rolename):
@@ -3951,15 +3952,15 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
 
 
-def generate_release_metadata(metadata_directory, version, expiration_date,
+def generate_snapshot_metadata(metadata_directory, version, expiration_date,
                               root_filename, targets_filename,
                               consistent_snapshots):
   """
   <Purpose>
-    Create the release metadata.  The minimum metadata must exist
+    Create the snapshot metadata.  The minimum metadata must exist
     (i.e., 'root.json' and 'targets.json'). This will also look through
     the 'targets/' directory in 'metadata_directory' and the resulting
-    release file will list all the delegated roles.
+    snapshot file will list all the delegated roles.
 
   <Arguments>
     metadata_directory:
@@ -3984,14 +3985,14 @@ def generate_release_metadata(metadata_directory, version, expiration_date,
   <Exceptions>
     tuf.FormatError, if 'metadata_directory' is improperly formatted.
 
-    tuf.Error, if an error occurred trying to generate the release metadata
+    tuf.Error, if an error occurred trying to generate the snapshot metadata
     object.
 
   <Side Effects>
     The 'root.json' and 'targets.json' files are read.
 
   <Returns>
-    The release metadata object, conformant to 'tuf.formats.RELEASE_SCHEMA'.
+    The snapshot metadata object, conformant to 'tuf.formats.SNAPSHOT_SCHEMA'.
   """
 
   # Do the arguments have the correct format?
@@ -4028,7 +4029,7 @@ def generate_release_metadata(metadata_directory, version, expiration_date,
         get_metadata_file_info(compressed_targets_filename)
 
   # Walk the 'targets/' directory and generate the fileinfo of all the role
-  # files found.  This information is stored in the 'meta' field of the release
+  # files found.  This information is stored in the 'meta' field of the snapshot
   # metadata object.
   targets_metadata = os.path.join(metadata_directory, 'targets')
   if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
@@ -4046,37 +4047,37 @@ def generate_release_metadata(metadata_directory, version, expiration_date,
         metadata_name, digest_junk = \
           _strip_consistent_snapshots_digest(metadata_name, consistent_snapshots)
         
-        # All delegated roles are added to the release file, including
+        # All delegated roles are added to the snapshot file, including
         # compressed versions.
         for metadata_extension in METADATA_EXTENSIONS: 
           if metadata_name.endswith(metadata_extension):
             rolename = metadata_name[:-len(metadata_extension)]
             
             # Obsolete role files may still be found.  Ensure only roles loaded
-            # in the roledb are included in the release metadata.
+            # in the roledb are included in the snapshot metadata.
             if tuf.roledb.role_exists(rolename):
               filedict[metadata_name] = get_metadata_file_info(metadata_path)
 
-  # Generate the release metadata object.
-  release_metadata = tuf.formats.ReleaseFile.make_metadata(version,
+  # Generate the snapshot metadata object.
+  snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,
                                                            expiration_date,
                                                            filedict)
 
-  return release_metadata
+  return snapshot_metadata
 
 
 
 
 
-def generate_timestamp_metadata(release_filename, version,
+def generate_timestamp_metadata(snapshot_filename, version,
                                 expiration_date, compressions=()):
   """
   <Purpose>
-    Generate the timestamp metadata object.  The 'release.json' file must exist.
+    Generate the timestamp metadata object.  The 'snapshot.json' file must exist.
 
   <Arguments>
-    release_filename:
-      The required filename of the release metadata file.
+    snapshot_filename:
+      The required filename of the snapshot metadata file.
     
     version:
       The timestamp's version number.  Clients use the version number to
@@ -4087,10 +4088,10 @@ def generate_timestamp_metadata(release_filename, version,
       The expiration date, in UTC, of the metadata file, conformant to
       'tuf.formats.TIME_SCHEMA'.
 
-    release_filename:
+    snapshot_filename:
 
     compressions:
-      Compression extensions (e.g., 'gz').  If 'release.json' is also saved in
+      Compression extensions (e.g., 'gz').  If 'snapshot.json' is also saved in
       compressed form, these compression extensions should be stored in
       'compressions' so the compressed timestamp files can be added to the
       timestamp metadata object.
@@ -4110,15 +4111,15 @@ def generate_timestamp_metadata(release_filename, version,
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.PATH_SCHEMA.check_match(release_filename)
+  tuf.formats.PATH_SCHEMA.check_match(snapshot_filename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
   tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
 
-  # Retrieve the fileinfo of the release metadata file.
+  # Retrieve the fileinfo of the snapshot metadata file.
   # This file information contains hashes, file length, custom data, etc.
   fileinfo = {}
-  fileinfo[RELEASE_FILENAME] = get_metadata_file_info(release_filename)
+  fileinfo[SNAPSHOT_FILENAME] = get_metadata_file_info(snapshot_filename)
 
   # Save the fileinfo of the compressed versions of 'timestamp.json'
   # in 'fileinfo'.  Log the files included in 'fileinfo'.
@@ -4126,7 +4127,7 @@ def generate_timestamp_metadata(release_filename, version,
     if not len(file_extension):
       continue
 
-    compressed_filename = release_filename + '.' + file_extension
+    compressed_filename = snapshot_filename + '.' + file_extension
     try:
       compressed_fileinfo = get_metadata_file_info(compressed_filename)
     
@@ -4135,7 +4136,7 @@ def generate_timestamp_metadata(release_filename, version,
     
     else:
       logger.info('Including fileinfo about '+str(compressed_filename))
-      fileinfo[RELEASE_FILENAME+'.'+file_extension] = compressed_fileinfo
+      fileinfo[SNAPSHOT_FILENAME+'.'+file_extension] = compressed_fileinfo
 
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,

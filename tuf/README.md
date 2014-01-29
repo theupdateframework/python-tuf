@@ -81,14 +81,14 @@ Enter a password for the encrypted ED25519 key:
 # Continuing from the previous section . . .
 
 # Create a new Repository object that holds the file path to the repository and the four
-# top-level role objects (Root, Targets, Release, Timestamp). Metadata files are created when
+# top-level role objects (Root, Targets, Snapshot, Timestamp). Metadata files are created when
 # repository.write() is called.  The repository directory is created if it does not exist.
 repository = create_new_repository("path/to/repository/")
 
 # The Repository instance, 'repository', initially contains top-level Metadata objects.
 # Add one of the public keys, created in the previous section, to the root role.  Metadata is
 # considered valid if it is signed by the public key's corresponding private key.
-repository.root.add_key(public_root_key)
+repository.root.add_verification_key(public_root_key)
 
 # Role keys (i.e., the key's keyid) may be queried.  Other attributes include: signing_keys, version,
 # signatures, expiration, threshold, delegations (Targets role), and compressions.
@@ -98,7 +98,7 @@ repository.root.keys
 # Add a second public key to the root role.  Although previously generated and saved to a file,
 # the second public key must be imported before it can added to a role.
 public_root_key2 = import_rsa_publickey_from_file("path/to/root_key2.pub")
-repository.root.add_key(public_root_key2)
+repository.root.add_verification_key(public_root_key2)
 
 # Threshold of each role defaults to 1.   Users may change the threshold value, but repository_tool.py
 # validates thresholds and warns users.  Set the threshold of the root role to 2,
@@ -121,12 +121,12 @@ repository.status()
 try:
   repository.write()
 
-# An exception is raised here by write() because the other top-level roles (targets, release,
+# An exception is raised here by write() because the other top-level roles (targets, snapshot,
 # and timestamp) have not been configured with keys.  Another option is to call
 # repository.write_partial() and generate metadata that may contain an invalid threshold of
 # signatures, required public keys, etc.  write_partial() allows multiple repository maintainers to
 # independently sign metadata and generate them separately.  load_repository() can load partially
-# written metadata.q
+# written metadata.
 except tuf.Error, e:
   print e 
 Not enough signatures for 'path/to/repository/metadata.staged/targets.json'
@@ -134,7 +134,7 @@ Not enough signatures for 'path/to/repository/metadata.staged/targets.json'
 # In the next section, update the other top-level roles and create a repository with valid metadata.
 ```
 
-#### Create Timestamp, Release, Targets
+#### Create Timestamp, Snapshot, Targets
 
 ```python
 # Continuing from the previous section . . .
@@ -142,19 +142,19 @@ Not enough signatures for 'path/to/repository/metadata.staged/targets.json'
 # Generate keys for the remaining top-level roles.  The root keys have been set above.
 # The password argument may be omitted if a password prompt is needed. 
 generate_and_write_rsa_keypair("path/to/targets_key", password="password")
-generate_and_write_rsa_keypair("path/to/release_key", password="password")
+generate_and_write_rsa_keypair("path/to/snapshot_key", password="password")
 generate_and_write_rsa_keypair("path/to/timestamp_key", password="password")
 
 # Add the public keys of the remaining top-level roles.
-repository.targets.add_key(import_rsa_publickey_from_file("path/to/targets_key.pub"))
-repository.release.add_key(import_rsa_publickey_from_file("path/to/release_key.pub"))
-repository.timestamp.add_key(import_rsa_publickey_from_file("path/to/timestamp_key.pub"))
+repository.targets.add_verification_key(import_rsa_publickey_from_file("path/to/targets_key.pub"))
+repository.snapshot.add_verification_key(import_rsa_publickey_from_file("path/to/snapshot_key.pub"))
+repository.timestamp.add_verification_key(import_rsa_publickey_from_file("path/to/timestamp_key.pub"))
 
 # Import the signing keys of the remaining top-level roles.  Prompt for passwords.
 private_targets_key = import_rsa_privatekey_from_file("path/to/targets_key")
 Enter a password for the encrypted RSA key:
 
-private_release_key = import_rsa_privatekey_from_file("path/to/release_key")
+private_snapshot_key = import_rsa_privatekey_from_file("path/to/snapshot_key")
 Enter a password for the encrypted RSA key:
 
 private_timestamp_key = import_rsa_privatekey_from_file("path/to/timestamp_key")
@@ -163,16 +163,16 @@ Enter a password for the encrypted RSA key:
 # Load the signing keys of the remaining roles so that valid signatures are generated when
 # repository.write() is called.
 repository.targets.load_signing_key(private_targets_key)
-repository.release.load_signing_key(private_release_key)
+repository.snapshot.load_signing_key(private_snapshot_key)
 repository.timestamp.load_signing_key(private_timestamp_key)
 
 # Optionally set the expiration date of the timestamp role.  By default, roles are set to expire
-# as follows:  root(1 year), targets(3 months), release(1 week), timestamp(1 day).
+# as follows:  root(1 year), targets(3 months), snapshot(1 week), timestamp(1 day).
 repository.timestamp.expiration = "2014-10-28 12:08:00"
 
 # Metadata files may also be compressed.  Only "gz" is currently supported.
 repository.targets.compressions = ["gz"]
-repository.release.compressions = ["gz"]
+repository.snapshot.compressions = ["gz"]
 
 # Write all metadata to "path/to/repository/metadata.staged/".  The common case is to crawl the
 # filesystem for all delegated roles in "path/to/repository/metadata.staged/targets/".
@@ -225,7 +225,7 @@ Enter a password for the encrypted RSA key:
 private_root_key2 = import_rsa_privatekey_from_file("path/to/root_key2")
 Enter a password for the encrypted RSA key:
 
-private_release_key = import_rsa_privatekey_from_file("path/to/release_key")
+private_snapshot_key = import_rsa_privatekey_from_file("path/to/snapshot_key")
 Enter a password for the encrypted RSA key:
 
 private_timestamp_key = import_rsa_privatekey_from_file("path/to/timestamp_key")
@@ -233,7 +233,7 @@ Enter a password for the encrypted RSA key:
 
 repository.root.load_signing_key(private_root_key)
 repository.root.load_signing_key(private_root_key2)
-repository.release.load_signing_key(private_release_key)
+repository.snapshot.load_signing_key(private_snapshot_key)
 repository.timestamp.load_signing_key(private_timestamp_key)
 
 # Generate new versions of all the top-level metadata.
@@ -249,7 +249,7 @@ repository.write()
 repository.targets.remove_target("path/to/repository/targets/file3.txt")
 
 # repository.write() creates any new metadata files, updates those that have changed, and any that
-# need updating to make a new "release" (new release.json and timestamp.json).
+# need updating to make a new "snapshot" (new snapshot.json and timestamp.json).
 repository.write()
 ```
 
@@ -286,7 +286,7 @@ repository.targets('unclaimed')('django').load_signing_key(private_unclaimed_key
 repository.targets('unclaimed')('django').add_target("path/to/repository/targets/django/file4.txt")
 repository.targets('unclaimed')('django').compressions = ["gz"]
 
-#  Write the metadata of "targets/unclaimed", "targets/unclaimed/django", root, targets, release,
+#  Write the metadata of "targets/unclaimed", "targets/unclaimed/django", root, targets, snapshot,
 # and timestamp.
 repository.write()
 ```

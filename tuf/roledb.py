@@ -117,7 +117,7 @@ def add_role(rolename, roleinfo, require_parent=True):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
     roleinfo:
       An object representing the role associated with 'rolename', conformant to
@@ -193,7 +193,7 @@ def update_roleinfo(rolename, roleinfo):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
     roleinfo:
       An object representing the role associated with 'rolename', conformant to
@@ -255,7 +255,7 @@ def get_parent_rolename(rolename):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' does not have the correct object format.
@@ -295,7 +295,7 @@ def get_all_parent_roles(rolename):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' does not have the correct object format. 
@@ -347,7 +347,7 @@ def role_exists(rolename):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' does not have the correct object format.
@@ -383,7 +383,7 @@ def remove_role(rolename):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' does not have the correct object format.
@@ -422,7 +422,7 @@ def remove_delegated_roles(rolename):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' does not have the correct object format. 
@@ -493,7 +493,7 @@ def get_roleinfo(rolename):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' is improperly formatted.
@@ -529,7 +529,7 @@ def get_role_keyids(rolename):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' does not have the correct object format. 
@@ -564,7 +564,7 @@ def get_role_threshold(rolename):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' does not have the correct object format. 
@@ -599,7 +599,7 @@ def get_role_paths(rolename):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' does not have the correct object format.
@@ -640,7 +640,7 @@ def get_delegated_rolenames(rolename):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'release', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp').
 
   <Exceptions>
     tuf.FormatError, if 'rolename' does not have the correct object format.
