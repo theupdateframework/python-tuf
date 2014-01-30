@@ -108,7 +108,7 @@ class TestFormats(unittest.TestCase):
                            'custom': {'type': 'paintjob'}}),
       
       'FILEDICT_SCHEMA': (tuf.formats.FILEDICT_SCHEMA,
-                          {'metadata/root.txt': {'length': 1024,
+                          {'metadata/root.json': {'length': 1024,
                                                  'hashes': {'sha256': 'ABCD123'},
                                                  'custom': {'type': 'metadata'}}}),
       
@@ -156,7 +156,7 @@ class TestFormats(unittest.TestCase):
       
       'SCPCONFIG_SCHEMA': (tuf.formats.SCPCONFIG_SCHEMA,
                            {'general': {'transfer_module': 'scp',
-                                        'metadata_path': '/path/meta.txt',
+                                        'metadata_path': '/path/meta.json',
                                         'targets_directory': '/targets'},
                             'scp': {'host': 'http://localhost:8001',
                                     'user': 'McFly',
@@ -184,6 +184,7 @@ class TestFormats(unittest.TestCase):
       'ROOT_SCHEMA': (tuf.formats.ROOT_SCHEMA,
                       {'_type': 'Root',
                        'version': 8,
+                       'consistent_snapshot': False,
                        'expires': '2012-10-16 06:42:12 UTC',
                        'keys': {'123abc': {'keytype': 'rsa',
                                            'keyval': {'public': 'pubkey',
@@ -196,7 +197,7 @@ class TestFormats(unittest.TestCase):
         {'_type': 'Targets',
          'version': 8,
          'expires': '2012-10-16 06:42:12 UTC',
-         'targets': {'metadata/targets.txt': {'length': 1024,
+         'targets': {'metadata/targets.json': {'length': 1024,
                                               'hashes': {'sha256': 'ABCD123'},
                                               'custom': {'type': 'metadata'}}},
          'delegations': {'keys': {'123abc': {'keytype':'rsa',
@@ -206,11 +207,11 @@ class TestFormats(unittest.TestCase):
                                     'threshold': 1,
                                     'paths': ['path1/', 'path2']}]}}),
 
-      'RELEASE_SCHEMA': (tuf.formats.RELEASE_SCHEMA,
-        {'_type': 'Release',
+      'SNAPSHOT_SCHEMA': (tuf.formats.SNAPSHOT_SCHEMA,
+        {'_type': 'Snapshot',
          'version': 8,
          'expires': '2012-10-16 06:42:12 UTC',
-         'meta': {'metadata/release.txt': {'length': 1024,
+         'meta': {'metadata/snapshot.json': {'length': 1024,
                                            'hashes': {'sha256': 'ABCD123'},
                                            'custom': {'type': 'metadata'}}}}),
 
@@ -218,7 +219,7 @@ class TestFormats(unittest.TestCase):
         {'_type': 'Timestamp',
          'version': 8,
          'expires': '2012-10-16 06:42:12 UTC',
-         'meta': {'metadata/timestamp.txt': {'length': 1024,
+         'meta': {'metadata/timestamp.json': {'length': 1024,
                                   'hashes': {'sha256': 'ABCD123'},
                                   'custom': {'type': 'metadata'}}}}),
 
@@ -246,8 +247,8 @@ class TestFormats(unittest.TestCase):
          'confined_target_dirs': ['path1/', 'path2/'],
          'custom': {'type': 'mirror'}}]})}
    
-    # Iterate through 'valid_schemas', ensuring each 'valid_schema' correctly
-    # matches its respective 'schema_type'.
+    # Iterate 'valid_schemas', ensuring each 'valid_schema' correctly matches
+    # its respective 'schema_type'.
     for schema_name, (schema_type, valid_schema) in valid_schemas.items():
       self.assertEqual(True, schema_type.matches(valid_schema))
    
@@ -290,7 +291,7 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid instances of 'tuf.formats.TimestampFile'.
     version = 8
     expires = '2012-10-16 06:42:12 UTC'
-    filedict = {'metadata/timestamp.txt': {'length': 1024,
+    filedict = {'metadata/timestamp.json': {'length': 1024,
                                            'hashes': {'sha256': 'ABCD123'},
                                            'custom': {'type': 'metadata'}}}
 
@@ -322,7 +323,8 @@ class TestFormats(unittest.TestCase):
   def test_RootFile(self):
     # Test conditions for valid instances of 'tuf.formats.RootFile'.
     version = 8
-    expiration_seconds = 691200
+    consistent_snapshot = False
+    expires = '2018-10-16 06:42:12 UTC'
     keydict = {'123abc': {'keytype': 'rsa',
                           'keyval': {'public': 'pubkey',
                                      'private': 'privkey'}}}
@@ -335,50 +337,56 @@ class TestFormats(unittest.TestCase):
     from_metadata = tuf.formats.RootFile.from_metadata
     ROOT_SCHEMA = tuf.formats.ROOT_SCHEMA
 
-    self.assertTrue(ROOT_SCHEMA.matches(make_metadata(version, expiration_seconds,
-                                                      keydict, roledict)))
-    metadata = make_metadata(version, expiration_seconds, keydict, roledict,)
+    self.assertTrue(ROOT_SCHEMA.matches(make_metadata(version, expires,
+                                                      keydict, roledict,
+                                                      consistent_snapshot)))
+    metadata = make_metadata(version, expires, keydict, roledict,
+                             consistent_snapshot)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.RootFile))
 
     # Test conditions for invalid arguments.
     bad_version = '8'
-    bad_expiration_seconds = 'eight'
+    bad_expires = 'eight'
     bad_keydict = 123
     bad_roledict = 123
 
     self.assertRaises(tuf.FormatError, make_metadata, bad_version,
-                                                      expiration_seconds,
-                                                      keydict, roledict)
+                                                      expires,
+                                                      keydict, roledict,
+                                                      consistent_snapshot)
     self.assertRaises(tuf.FormatError, make_metadata, version,
-                                                      bad_expiration_seconds,
-                                                      keydict, roledict)
+                                                      bad_expires,
+                                                      keydict, roledict,
+                                                      consistent_snapshot)
     self.assertRaises(tuf.FormatError, make_metadata, version,
-                                                      expiration_seconds,
-                                                      bad_keydict, roledict)
+                                                      expires,
+                                                      bad_keydict, roledict,
+                                                      consistent_snapshot)
     self.assertRaises(tuf.FormatError, make_metadata, version,
-                                                      expiration_seconds,
-                                                      keydict, bad_roledict)
+                                                      expires,
+                                                      keydict, bad_roledict,
+                                                      consistent_snapshot)
 
     self.assertRaises(tuf.FormatError, from_metadata, 'bad')
 
 
 
-  def test_ReleaseFile(self):
-    # Test conditions for valid instances of 'tuf.formats.ReleaseFile'.
+  def test_SnapshotFile(self):
+    # Test conditions for valid instances of 'tuf.formats.SnapshotFile'.
     version = 8
     expires = '2012-10-16 06:42:12 UTC'
-    filedict = {'metadata/release.txt': {'length': 1024,
+    filedict = {'metadata/snapshot.json': {'length': 1024,
                                          'hashes': {'sha256': 'ABCD123'},
                                          'custom': {'type': 'metadata'}}}
 
-    make_metadata = tuf.formats.ReleaseFile.make_metadata
-    from_metadata = tuf.formats.ReleaseFile.from_metadata
-    RELEASE_SCHEMA = tuf.formats.RELEASE_SCHEMA
+    make_metadata = tuf.formats.SnapshotFile.make_metadata
+    from_metadata = tuf.formats.SnapshotFile.from_metadata
+    SNAPSHOT_SCHEMA = tuf.formats.SNAPSHOT_SCHEMA
 
-    self.assertTrue(RELEASE_SCHEMA.matches(make_metadata(version, expires,
+    self.assertTrue(SNAPSHOT_SCHEMA.matches(make_metadata(version, expires,
                                                          filedict)))
     metadata = make_metadata(version, expires, filedict)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.ReleaseFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.SnapshotFile))
 
     # Test conditions for invalid arguments.
     bad_version = '8'
@@ -399,7 +407,7 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid instances of 'tuf.formats.TargetsFile'.
     version = 8
     expires = '2012-10-16 06:42:12 UTC'
-    filedict = {'metadata/targets.txt': {'length': 1024,
+    filedict = {'metadata/targets.json': {'length': 1024,
                                          'hashes': {'sha256': 'ABCD123'},
                                          'custom': {'type': 'metadata'}}}
 
@@ -490,6 +498,7 @@ class TestFormats(unittest.TestCase):
     # Test conditions for expected make_signable() behavior.
     root = {'_type': 'Root',
             'version': 8,
+            'consistent_snapshot': False,
             'expires': '2012-10-16 06:42:12 UTC',
             'keys': {'123abc': {'keytype': 'rsa',
                                 'keyval': {'public': 'pubkey',
@@ -580,7 +589,7 @@ class TestFormats(unittest.TestCase):
     
     self.assertEqual(tuf.formats.RootFile, get_role_class('Root'))
     self.assertEqual(tuf.formats.TargetsFile, get_role_class('Targets'))
-    self.assertEqual(tuf.formats.ReleaseFile, get_role_class('Release'))
+    self.assertEqual(tuf.formats.SnapshotFile, get_role_class('Snapshot'))
     self.assertEqual(tuf.formats.TimestampFile, get_role_class('Timestamp'))
     self.assertEqual(tuf.formats.MirrorsFile, get_role_class('Mirrors'))
 
@@ -599,7 +608,7 @@ class TestFormats(unittest.TestCase):
 
     self.assertEqual('Root', expected_rolename('root'))
     self.assertEqual('Targets', expected_rolename('targets'))
-    self.assertEqual('Release', expected_rolename('release'))
+    self.assertEqual('Snapshot', expected_rolename('snapshot'))
     self.assertEqual('Timestamp', expected_rolename('timestamp'))
     self.assertEqual('Mirrors', expected_rolename('mirrors'))
     self.assertEqual('Targets Role', expected_rolename('targets role'))
@@ -616,6 +625,7 @@ class TestFormats(unittest.TestCase):
     # Test condition for a valid argument.
     root = {'_type': 'Root',
             'version': 8,
+            'consistent_snapshot': False,
             'expires': '2012-10-16 06:42:12 UTC',
             'keys': {'123abc': {'keytype': 'rsa',
                                 'keyval': {'public': 'pubkey',
