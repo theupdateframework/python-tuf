@@ -15,7 +15,6 @@
 
 <Purpose>
   Unit test for 'formats.py'
-
 """
 
 import unittest

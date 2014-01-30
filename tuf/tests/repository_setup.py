@@ -25,9 +25,9 @@ import tempfile
 import tuf.formats
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
+import tuf.repository_tool as repo_tool
 import tuf.repo.signercli as signercli
 import tuf.tests.unittest_toolbox as unittest_toolbox
-
 
 
 #  Role:keyids dictionary.
@@ -215,8 +215,8 @@ def build_server_repository(server_repository_dir, targets_dir):
   keystore._keystore = unittest_toolbox.Modified_TestCase.rsa_keystore
   keystore._derived_keys = unittest_toolbox.Modified_TestCase.rsa_passwords
 
-  #  Build release file.
-  signerlib.build_release_file(role_keyids['release'], server_metadata_dir,
+  #  Build snapshot file.
+  signerlib.build_snapshot_file(role_keyids['snapshot'], server_metadata_dir,
                                version, expiration_date+' UTC')
 
   #  Build timestamp file.

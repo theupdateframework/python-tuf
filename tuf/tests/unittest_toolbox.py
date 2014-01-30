@@ -102,7 +102,7 @@ class Modified_TestCase(unittest.TestCase):
   """
 
   # List of all top level roles.
-  role_list = ['root', 'targets', 'release', 'timestamp']
+  role_list = ['root', 'targets', 'snapshot', 'timestamp']
 
   # List of delegated roles.
   delegated_role_list = ['targets/delegated_role1',

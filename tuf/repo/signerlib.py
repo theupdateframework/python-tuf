@@ -47,7 +47,7 @@ DEFAULT_RSA_KEY_BITS = 3072
 # The metadata filenames for the top-level roles.
 ROOT_FILENAME = 'root.txt'
 TARGETS_FILENAME = 'targets.txt'
-RELEASE_FILENAME = 'release.txt'
+SNAPSHOT_FILENAME = 'snapshot.txt'
 TIMESTAMP_FILENAME = 'timestamp.txt'
 
 # The filename for the repository configuration file.
@@ -183,7 +183,7 @@ def get_metadata_filenames(metadata_directory=None):
 
     filenames = {'root': 'metadata/root.txt',
                  'targets': 'metadata/targets.txt',
-                 'release': 'metadata/release.txt',
+                 'snapshot': 'metadata/snapshot.txt',
                  'timestamp': 'metadata/timestamp.txt'}
 
     If the metadata directory is not set by the caller, the current
@@ -201,7 +201,7 @@ def get_metadata_filenames(metadata_directory=None):
 
   <Returns>
     A dictionary containing the expected filenames of the top-level
-    metadata files, such as 'root.txt' and 'release.txt'.
+    metadata files, such as 'root.txt' and 'snapshot.txt'.
   """
 
   if metadata_directory is None:
@@ -214,7 +214,7 @@ def get_metadata_filenames(metadata_directory=None):
   filenames = {}
   filenames['root'] = os.path.join(metadata_directory, ROOT_FILENAME)
   filenames['targets'] = os.path.join(metadata_directory, TARGETS_FILENAME)
-  filenames['release'] = os.path.join(metadata_directory, RELEASE_FILENAME)
+  filenames['snapshot'] = os.path.join(metadata_directory, SNAPSHOT_FILENAME)
   filenames['timestamp'] = os.path.join(metadata_directory, TIMESTAMP_FILENAME)
 
   return filenames
@@ -268,7 +268,7 @@ def generate_root_metadata(config_filepath, version):
 
   # Extract the role, threshold, and keyid information from the config.
   # The necessary role metadata is generated from this information.
-  for rolename in ['root', 'targets', 'release', 'timestamp']:
+  for rolename in ['root', 'targets', 'snapshot', 'timestamp']:
     # If a top-level role is missing from the config, raise an exception.
     if rolename not in config:
       raise tuf.Error('No '+rolename+' section found in config file.')
@@ -312,7 +312,7 @@ def generate_root_metadata(config_filepath, version):
   # Generate the root metadata object.
   expiration_date = tuf.formats.format_time(time.time()+expiration_seconds)
   root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_date,
-                                                     keydict, roledict)
+                                                     keydict, roledict, False)
 
   # Note: make_signable() returns the following dictionary:
   # {'signed' : role_metadata, 'signatures' : []}
@@ -399,13 +399,13 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
 
 
-def generate_release_metadata(metadata_directory, version, expiration_date):
+def generate_snapshot_metadata(metadata_directory, version, expiration_date):
   """
   <Purpose>
-    Create the release metadata.  The minimum metadata must exist
+    Create the snapshot metadata.  The minimum metadata must exist
     (i.e., 'root.txt' and 'targets.txt'). This will also look through
     the 'targets/' directory in 'metadata_directory' and the resulting
-    release file will list all the delegated roles.
+    snapshot file will list all the delegated roles.
 
   <Arguments>
     metadata_directory:
@@ -423,14 +423,14 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
   <Exceptions>
     tuf.FormatError, if 'metadata_directory' is improperly formatted.
 
-    tuf.Error, if an error occurred trying to generate the release metadata
+    tuf.Error, if an error occurred trying to generate the snapshot metadata
     object.
 
   <Side Effects>
     The 'root.txt' and 'targets.txt' files are read.
 
   <Returns>
-    The release 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
+    The snapshot 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
   """
 
   # Does 'metadata_directory' have the correct format?
@@ -453,7 +453,7 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
 
   # Walk the 'targets/' directory and generate the file info for all
   # the files listed there.  This information is stored in the 'meta'
-  # field of the release metadata object.
+  # field of the snapshot metadata object.
   targets_metadata = os.path.join(metadata_directory, 'targets')
   if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
     for directory_path, junk, files in os.walk(targets_metadata):
@@ -463,26 +463,26 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
         metadata_name = metadata_path[len(metadata_directory):].lstrip(os.path.sep)
         filedict[metadata_name] = get_metadata_file_info(metadata_path)
 
-  # Generate the release metadata object.
-  release_metadata = tuf.formats.ReleaseFile.make_metadata(version,
-                                                           expiration_date,
-                                                           filedict)
+  # Generate the snapshot metadata object.
+  snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,
+                                                             expiration_date,
+                                                             filedict)
 
-  return tuf.formats.make_signable(release_metadata)
-
-
+  return tuf.formats.make_signable(snapshot_metadata)
 
 
 
-def generate_timestamp_metadata(release_filename, version,
+
+
+def generate_timestamp_metadata(snapshot_filename, version,
                                 expiration_date, compressions=()):
   """
   <Purpose>
-    Generate the timestamp metadata object.  The 'release.txt' file must exist.
+    Generate the timestamp metadata object.  The 'snapshot.txt' file must exist.
 
   <Arguments>
-    release_filename:
-      The required filename of the release metadata file.
+    snapshot_filename:
+      The required filename of the snapshot metadata file.
     
     version:
       The metadata version number.  Clients use the version number to
@@ -493,7 +493,7 @@ def generate_timestamp_metadata(release_filename, version,
       Conformant to 'tuf.formats.TIME_SCHEMA'.
 
     compressions:
-      Compression extensions (e.g., 'gz').  If 'release.txt' is also saved in
+      Compression extensions (e.g., 'gz').  If 'snapshot.txt' is also saved in
       compressed form, these compression extensions should be stored in
       'compressions' so the compressed timestamp files can be added to the
       timestamp metadata object.
@@ -511,25 +511,25 @@ def generate_timestamp_metadata(release_filename, version,
 
   # Do the arguments have the correct format?
   # Raise 'tuf.FormatError' if there is  mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(release_filename)
+  tuf.formats.PATH_SCHEMA.check_match(snapshot_filename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
-  # Retrieve the file info for the release metadata file.
+  # Retrieve the file info for the snapshot metadata file.
   # This file information contains hashes, file length, custom data, etc.
   fileinfo = {}
-  fileinfo['release.txt'] = get_metadata_file_info(release_filename)
+  fileinfo['snapshot.txt'] = get_metadata_file_info(snapshot_filename)
 
   # Save the file info of the compressed versions of 'timestamp.txt'.
   for file_extension in compressions:
-    compressed_filename = release_filename + '.' + file_extension
+    compressed_filename = snapshot_filename + '.' + file_extension
     try:
       compressed_fileinfo = get_metadata_file_info(compressed_filename)
     except:
       logger.warn('Could not get fileinfo about '+str(compressed_filename))
     else:
       logger.info('Including fileinfo about '+str(compressed_filename))
-      fileinfo['release.txt.' + file_extension] = compressed_fileinfo
+      fileinfo['snapshot.txt.' + file_extension] = compressed_fileinfo
 
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
@@ -893,7 +893,7 @@ def get_target_keyids(metadata_directory):
 
   # Walk the 'targets/' directory and generate the file info for all
   # the targets.  This information is stored in the 'meta' field of
-  # the release metadata object.  The keyids for the optional
+  # the snapshot metadata object.  The keyids for the optional
   # delegated roles will now be extracted.
   targets_metadata = os.path.join(metadata_directory, 'targets')
   if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
@@ -969,7 +969,7 @@ def build_config_file(config_file_directory, timeout, role_info):
 
   # Verify that only the top-level roles are presented.
   for role in role_info.keys():
-    if role not in ['root', 'targets', 'release', 'timestamp']:
+    if role not in ['root', 'targets', 'snapshot', 'timestamp']:
       msg = ('\nCannot build configuration file: role '+repr(role)+
              ' is not a top-level role.')
       raise tuf.Error(msg)
@@ -1158,19 +1158,19 @@ def build_targets_file(target_paths, targets_keyids, metadata_directory,
 
 
 
-def build_release_file(release_keyids, metadata_directory,
+def build_snapshot_file(snapshot_keyids, metadata_directory,
                        version, expiration_date, compress=False):
   """
   <Purpose>
-    Build the release metadata file using the signing keys in 'release_keyids'.
+    Build the snapshot metadata file using the signing keys in 'snapshot_keyids'.
     The generated metadata file is saved in 'metadata_directory'.
 
   <Arguments>
-    release_keyids:
-      The list of keyids to be used as the signing keys for the release file.
+    snapshot_keyids:
+      The list of keyids to be used as the signing keys for the snapshot file.
 
     metadata_directory:
-      The directory (absolute path) to save the release metadata file.
+      The directory (absolute path) to save the snapshot metadata file.
     
     version:
       The metadata version number.  Clients use the version number to
@@ -1181,48 +1181,48 @@ def build_release_file(release_keyids, metadata_directory,
       Conformant to 'tuf.formats.TIME_SCHEMA'.
 
     compress:
-      Should we *include* a compressed version of the release file? By default,
+      Should we *include* a compressed version of the snapshot file? By default,
       the answer is no.
 
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
 
-    tuf.Error, if there was an error while building the release file.
+    tuf.Error, if there was an error while building the snapshot file.
 
   <Side Effects>
-    The release metadata file is written to a file.
+    The snapshot metadata file is written to a file.
 
   <Returns>
-    The path for the written release metadata file.
+    The path for the written snapshot metadata file.
   """
 
   # Do the arguments have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.KEYIDS_SCHEMA.check_match(release_keyids)
+  tuf.formats.KEYIDS_SCHEMA.check_match(snapshot_keyids)
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
   metadata_directory = check_directory(metadata_directory)
 
-  # Generate the file path of the release metadata.
-  release_filepath = os.path.join(metadata_directory, RELEASE_FILENAME)
+  # Generate the file path of the snapshot metadata.
+  snapshot_filepath = os.path.join(metadata_directory, SNAPSHOT_FILENAME)
 
-  # Generate and sign the release metadata.
-  release_metadata = generate_release_metadata(metadata_directory,
+  # Generate and sign the snapshot metadata.
+  snapshot_metadata = generate_snapshot_metadata(metadata_directory,
                                                version, expiration_date)
-  signable = sign_metadata(release_metadata, release_keyids, release_filepath)
+  signable = sign_metadata(snapshot_metadata, snapshot_keyids, snapshot_filepath)
 
-  # Should we also include a compressed version of release.txt?
+  # Should we also include a compressed version of snapshot.txt?
   if compress:
-    # If so, write a gzip version of release.txt.
+    # If so, write a gzip version of snapshot.txt.
     compressed_written_filepath = \
-        write_metadata_file(signable, release_filepath, compression='gz')
+        write_metadata_file(signable, snapshot_filepath, compression='gz')
     logger.info('Wrote '+str(compressed_written_filepath))
   else:
-    logger.debug('No compressed version of release metadata will be included.')
+    logger.debug('No compressed version of snapshot metadata will be included.')
 
-  written_filepath = write_metadata_file(signable, release_filepath)
+  written_filepath = write_metadata_file(signable, snapshot_filepath)
   logger.info('Wrote '+str(written_filepath))
 
   return written_filepath
@@ -1233,7 +1233,7 @@ def build_release_file(release_keyids, metadata_directory,
 
 def build_timestamp_file(timestamp_keyids, metadata_directory,
                          version, expiration_date,
-                         include_compressed_release=True):
+                         include_compressed_snapshot=True):
   """
   <Purpose>
     Build the timestamp metadata file using the signing keys in 'timestamp_keyids'.
@@ -1254,8 +1254,8 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
       The expiration date, in UTC, of the metadata file.
       Conformant to 'tuf.formats.TIME_SCHEMA'.
 
-    include_compressed_release:
-      Should the timestamp role *include* compression versions of the release
+    include_compressed_snapshot:
+      Should the timestamp role *include* compression versions of the snapshot
       metadata, if any? We do this by default.
   
   <Exceptions>
@@ -1279,23 +1279,23 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
 
   metadata_directory = check_directory(metadata_directory)
 
-  # Generate the file path of the release and timestamp metadata.
-  release_filepath = os.path.join(metadata_directory, RELEASE_FILENAME)
+  # Generate the file path of the snapshot and timestamp metadata.
+  snapshot_filepath = os.path.join(metadata_directory, SNAPSHOT_FILENAME)
   timestamp_filepath = os.path.join(metadata_directory, TIMESTAMP_FILENAME)
 
-  # Should we include compressed versions of release in timestamp?
+  # Should we include compressed versions of snapshot in timestamp?
   compressions = ()
-  if include_compressed_release:
+  if include_compressed_snapshot:
     # Presently, we include only gzip versions by default.
     compressions = ('gz',)
-    logger.info('Including '+str(compressions)+' versions of release in '\
+    logger.info('Including '+str(compressions)+' versions of snapshot in '\
                 'timestamp.')
   else:
-    logger.warn('No compressed versions of release will be included in '\
+    logger.warn('No compressed versions of snapshot will be included in '\
                 'timestamp.')
 
   # Generate and sign the timestamp metadata.
-  timestamp_metadata = generate_timestamp_metadata(release_filepath,
+  timestamp_metadata = generate_timestamp_metadata(snapshot_filepath,
                                                    version,
                                                    expiration_date,
                                                    compressions=compressions)
