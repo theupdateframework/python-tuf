@@ -21,11 +21,11 @@ for more information on interposing Python urllib calls with TUF.
 
 2. TUF downloads and verifies timestamp.json.
 
-3. If timestamp.json indicates that release.json has changed, TUF downloads and
-verifies release.json.
+3. If timestamp.json indicates that snapshot.json has changed, TUF downloads and
+verifies snapshot.json.
 
-4. TUF determines which metadata files listed in release.json differ from those
-described in the last release.json that TUF has seen.  If root.json has changed,
+4. TUF determines which metadata files listed in snapshot.json differ from those
+described in the last snapshot.json that TUF has seen.  If root.json has changed,
 the update process starts over using the new root.json.
 
 5. TUF provides the software update system with a list of available files
@@ -75,7 +75,7 @@ repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
 updater = tuf.client.updater.Updater('updater', repository_mirrors)
 
 # The client calls the refresh() method to ensure it has the latest
-# copies of the top-level metadata files (i.e., Root, Targets, Release,
+# copies of the top-level metadata files (i.e., Root, Targets, Snapshot,
 # Timestamp).
 updater.refresh()
 
@@ -97,7 +97,7 @@ for target in updated_targets:
   updater.download_target(target, destination_directory)
 
 # Remove any files from the destination directory that are no longer being
-# tracked. For example, a target file from a previous release that has since
+# tracked. For example, a target file from a previous snapshot that has since
 # been removed on the remote repository.
 updater.remove_obsolete_targets(destination_directory)
 ```
@@ -107,7 +107,7 @@ updater.remove_obsolete_targets(destination_directory)
 # Example demonstrating an update that only downloads the targets of            
 # a specific role (i.e., 'targets/django').                                     
 
-# Refresh the metadata of the top-level roles (i.e., Root, Targets, Release, Timestamp).
+# Refresh the metadata of the top-level roles (i.e., Root, Targets, Snapshot, Timestamp).
 updater.refresh()
 
 # Update the 'targets/django' role, and determine the target files that have changed.
@@ -124,7 +124,7 @@ for target in updated_targets:
 ```Python
 # Example demonstrating an update that downloads a specific target.             
 
-# Refresh the metadata of the top-level roles (i.e., Root, Targets, Release, Timestamp).           
+# Refresh the metadata of the top-level roles (i.e., Root, Targets, Snapshot, Timestamp).           
 updater.refresh()
 
 # target() updates role metadata when required.
@@ -154,7 +154,7 @@ reported_length (545) < required_length (2048)
 Downloaded 545 bytes, but expected 2048 bytes. There is a difference of 1503 bytes!
 
 [2013-12-16 16:17:05,611 UTC] [tuf.download] [INFO][_download_file:726@download.py]
-Downloading: http://localhost:8001/metadata/release.json
+Downloading: http://localhost:8001/metadata/snapshot.json
 
 [2013-12-16 16:17:05,612 UTC] [tuf.client.updater] [INFO][_check_hashes:636@updater.py]
 The file\'s sha256 hash is correct: 782675fadd650eeb2926d33c401b5896caacf4fd6766498baf2bce2f3b739db4

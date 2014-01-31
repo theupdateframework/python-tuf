@@ -87,8 +87,8 @@ class Updater(object):
     
     # Locate the fileinfo of 'target_filepath'.  updater.target() searches
     # Targets metadata in order of trust, according to the currently trusted
-    # release.  To prevent consecutive target file requests from referring to
-    # different releases, top-level metadata is not automatically refreshed.
+    # snapshot.  To prevent consecutive target file requests from referring to
+    # different snapshots, top-level metadata is not automatically refreshed.
     targets = [self.updater.target(target_filepath)]
 
     # TODO: targets are always updated if destination directory is new, right?

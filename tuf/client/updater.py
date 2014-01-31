@@ -28,11 +28,11 @@
 
   2. TUF downloads and verifies timestamp.json.
 
-  3. If timestamp.json indicates that release.json has changed, TUF downloads
-     and verifies release.json.
+  3. If timestamp.json indicates that snapshot.json has changed, TUF downloads
+     and verifies snapshot.json.
 
-  4. TUF determines which metadata files listed in release.json differ from
-     those described in the last release.json that TUF has seen.  If root.json
+  4. TUF determines which metadata files listed in snapshot.json differ from
+     those described in the last snapshot.json that TUF has seen.  If root.json
      has changed, the update process starts over using the new root.json.
 
   5. TUF provides the software update system with a list of available files
@@ -160,7 +160,7 @@ class Updater(object):
   <Updater Methods>
     refresh():
       This method downloads, verifies, and loads metadata for the top-level
-      roles in a specific order (i.e., timestamp -> release -> root -> targets)
+      roles in a specific order (i.e., timestamp -> snapshot -> root -> targets)
       The expiration time for downloaded metadata is also verified.
       
       The metadata for delegated roles are not refreshed by this method, but by
@@ -324,7 +324,7 @@ class Updater(object):
     
     # Load current and previous metadata.
     for metadata_set in ['current', 'previous']:
-      for metadata_role in ['root', 'targets', 'release', 'timestamp']:
+      for metadata_role in ['root', 'targets', 'snapshot', 'timestamp']:
         self._load_metadata_from_file(metadata_set, metadata_role)
       
     # Raise an exception if the repository is missing the required 'root'
@@ -430,7 +430,7 @@ class Updater(object):
       'root' metadata object extracted from 'root.json'.  This private
       method is called when a new/updated 'root' metadata file is loaded.
       This method will only store the role information for the top-level
-      roles (i.e., 'root', 'targets', 'release', 'timestamp').
+      roles (i.e., 'root', 'targets', 'snapshot', 'timestamp').
 
     <Arguments>
       None.
@@ -604,7 +604,7 @@ class Updater(object):
     # require strict checks on its required length.
     try: 
       self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
-      self._update_metadata_if_changed('release',
+      self._update_metadata_if_changed('snapshot',
                                        referenced_metadata='timestamp')
       self._update_metadata_if_changed('root')
       self._update_metadata_if_changed('targets')
@@ -625,7 +625,7 @@ class Updater(object):
       # Updated the top-level metadata (which all had valid signatures),
       # however, have they expired?  Raise 'tuf.ExpiredMetadataError' if any of
       # the metadata has expired.
-      for metadata_role in ['timestamp', 'root', 'release', 'targets']:
+      for metadata_role in ['timestamp', 'root', 'snapshot', 'targets']:
         self._ensure_not_expired(metadata_role)
 
 
@@ -1210,7 +1210,7 @@ class Updater(object):
         
       compression:
         A string designating the compression type of 'metadata_role'.
-        The 'release' metadata file may be optionally downloaded and stored in
+        The 'snapshot' metadata file may be optionally downloaded and stored in
         compressed form.  Currently, only metadata files compressed with 'gzip'
         are considered.  Any other string is ignored.
 
@@ -1240,7 +1240,7 @@ class Updater(object):
     metadata_filename = metadata_role + '.json'
     uncompressed_metadata_filename = metadata_filename
    
-    # The 'release' or Targets metadata may be compressed.  Add the appropriate
+    # The 'snapshot' or Targets metadata may be compressed.  Add the appropriate
     # extension to 'metadata_filename'. 
     if compression == 'gzip':
       metadata_filename = metadata_filename + '.gz'
@@ -1352,7 +1352,7 @@ class Updater(object):
 
 
 
-  def _update_metadata_if_changed(self, metadata_role, referenced_metadata='release'):
+  def _update_metadata_if_changed(self, metadata_role, referenced_metadata='snapshot'):
     """
     <Purpose>
       Update the metadata for 'metadata_role' if it has changed.  With the
@@ -1360,7 +1360,7 @@ class Updater(object):
       by this method.  The 'timestamp' role is always downloaded from a mirror
       without first checking if it has been updated; it is updated in refresh()
       by calling _update_metadata('timestamp').  This method is also called for
-      delegated role metadata, which are referenced by 'release'.
+      delegated role metadata, which are referenced by 'snapshot'.
         
       If the metadata needs to be updated but an update cannot be obtained,
       this method will delete the file (with the exception of the root
@@ -1368,7 +1368,7 @@ class Updater(object):
 
       Due to the way in which metadata files are updated, it is expected that
       'referenced_metadata' is not out of date and trusted.  The refresh()
-      method updates the top-level roles in 'timestamp -> release ->
+      method updates the top-level roles in 'timestamp -> snapshot ->
       root -> targets' order.  For delegated metadata, the parent role is
       updated before the delegated role.  Taking into account that
       'referenced_metadata' is updated and verified before 'metadata_role',
@@ -1382,11 +1382,11 @@ class Updater(object):
 
       referenced_metadata:
         This is the metadata that provides the role information for
-        'metadata_role'.  For the top-level roles, the 'release' role
+        'metadata_role'.  For the top-level roles, the 'snapshot' role
         is the referenced metadata for the 'root', and 'targets' roles.
         The 'timestamp' metadata is always downloaded regardless.  In
         other words, it is updated by calling _update_metadata('timestamp')
-        and not by this method.  The referenced metadata for 'release'
+        and not by this method.  The referenced metadata for 'snapshot'
         is 'timestamp'.  See refresh().
         
     <Exceptions>
@@ -1412,7 +1412,7 @@ class Updater(object):
     uncompressed_metadata_filename = metadata_role + '.json'
 
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
-    # updated without having 'release' available.  
+    # updated without having 'snapshot' available.  
     if referenced_metadata not in self.metadata['current']:
       message = 'Cannot update '+repr(metadata_role)+' because ' \
                 +referenced_metadata+' is missing.'
@@ -1425,11 +1425,11 @@ class Updater(object):
         repr(referenced_metadata)+'.  '+repr(metadata_role)+' may be updated.'
       logger.debug(message)
     
-    # There might be a compressed version of 'release.json' or Targets
+    # There might be a compressed version of 'snapshot.json' or Targets
     # metadata available for download.  Check the 'meta' field of
     # 'referenced_metadata' to see if it is listed when 'metadata_role'
-    # is 'release'.  The full rolename for delegated Targets metadata
-    # must begin with 'targets/'.  The Release role lists all the Targets
+    # is 'snapshot'.  The full rolename for delegated Targets metadata
+    # must begin with 'targets/'.  The snapshot role lists all the Targets
     # metadata available on the repository, including any that may be in
     # compressed form.
     #
@@ -1446,12 +1446,12 @@ class Updater(object):
                                          ['meta'] \
                                          [uncompressed_metadata_filename]
 
-    # Check for the availability of compressed versions of 'release.json',
+    # Check for the availability of compressed versions of 'snapshot.json',
     # 'targets.json', and delegated Targets (that also start with 'targets').
     # For 'targets.json' and delegated metadata, 'referenced_metata'
-    # should always be 'release'.  'release.json' specifies all roles
+    # should always be 'snapshot'.  'snapshot.json' specifies all roles
     # provided by a repository, including their file lengths and hashes.
-    if metadata_role == 'release' or metadata_role.startswith('targets'):
+    if metadata_role == 'snapshot' or metadata_role.startswith('targets'):
       gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
       if gzip_metadata_filename in self.metadata['current'] \
                                                 [referenced_metadata]['meta']:
@@ -1514,10 +1514,10 @@ class Updater(object):
       differs from 'new_fileinfo'.  The 'new_fileinfo' argument
       should be extracted from the latest copy of the metadata
       that references 'metadata_filename'.  Example: 'root.json'
-      would be referenced by 'release.json'.
+      would be referenced by 'snapshot.json'.
         
       'new_fileinfo' should only be 'None' if this is for updating
-      'root.json' without having 'release.json' available.
+      'root.json' without having 'snapshot.json' available.
 
     <Arguments>
       metadadata_filename:
@@ -1527,7 +1527,7 @@ class Updater(object):
       new_fileinfo:
         A dict object representing the new file information for
         'metadata_filename'.  'new_fileinfo' may be 'None' when
-        updating 'root' without having 'release' available.  This
+        updating 'root' without having 'snapshot' available.  This
         dict conforms to 'tuf.formats.FILEINFO_SCHEMA' and has
         the form:
         {'length': 23423
@@ -1774,7 +1774,7 @@ class Updater(object):
     <Exceptions>
       tuf.RepositoryError:
         If the metadata for the 'targets' role is missing from
-        the 'release' metadata.
+        the 'snapshot' metadata.
 
       tuf.UnknownRoleError:
         If one of the roles could not be found in the role database.
@@ -1830,7 +1830,7 @@ class Updater(object):
     <Exceptions>
       tuf.RepositoryError:
         If the metadata file for the 'targets' role is missing
-        from the 'release' metadata.
+        from the 'snapshot' metadata.
 
     <Side Effects>
       The metadata for the delegated roles are loaded and updated if they
@@ -1846,7 +1846,7 @@ class Updater(object):
     # See if this role provides metadata and, if we're including
     # delegations, look for metadata from delegated roles.
     role_prefix = rolename + '/'
-    for metadata_path in self.metadata['current']['release']['meta'].keys():
+    for metadata_path in self.metadata['current']['snapshot']['meta'].keys():
       if metadata_path == rolename + '.json':
         roles_to_update.append(metadata_path[:-len('.json')])
       elif include_delegations and metadata_path.startswith(role_prefix):
@@ -1861,7 +1861,7 @@ class Updater(object):
       try:
         roles_to_update.remove('targets')
       except ValueError:
-        message = 'The Release metadata file is missing the targets.json entry.'
+        message = 'The snapshot metadata file is missing the targets.json entry.'
         raise tuf.RepositoryError(message)
   
     # If there is nothing to refresh, we are done.
@@ -1922,7 +1922,7 @@ class Updater(object):
 
       tuf.RepositoryError:
         If the metadata of any of the parent roles of 'rolename' is missing
-        from the 'release.json' metadata file.
+        from the 'snapshot.json' metadata file.
 
     <Side Effects>
       The metadata of the parent roles of 'rolename' are loaded from disk and
@@ -1966,15 +1966,15 @@ class Updater(object):
       repr(parent_roles)+'.'
     logger.info(message)
 
-    # Check if 'release.json' provides metadata for each of the roles in
+    # Check if 'snapshot.json' provides metadata for each of the roles in
     # 'parent_roles'.  All the available roles on the repository are specified
-    # in the 'release.json' metadata.
-    targets_metadata_allowed = self.metadata['current']['release']['meta'].keys()
+    # in the 'snapshot.json' metadata.
+    targets_metadata_allowed = self.metadata['current']['snapshot']['meta'].keys()
     for parent_role in parent_roles:
       parent_role = parent_role + '.json'
 
       if parent_role not in targets_metadata_allowed:
-        message = '"release.json" does not provide all the parent roles '+\
+        message = '"snapshot.json" does not provide all the parent roles '+\
           'of '+repr(rolename)+'.'
         raise tuf.RepositoryError(message)
 
@@ -1984,7 +1984,7 @@ class Updater(object):
       try:
         parent_roles.remove('targets')
       except ValueError:
-        message = 'The Release metadata file is missing the "targets.json" entry.'
+        message = 'The snapshot metadata file is missing the "targets.json" entry.'
         raise tuf.RepositoryError(message)
   
     # If there is nothing to refresh, we are done.

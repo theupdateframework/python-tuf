@@ -21,9 +21,7 @@
 <Purpose>
   Run all the unit tests from every .py file beginning with "test_" in
   'tuf/tests'.  Use --random to run the tests in random order.
-
 """
-
 
 import sys
 import unittest

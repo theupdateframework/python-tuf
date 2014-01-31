@@ -181,8 +181,8 @@ print('Attempting arbitrary package attack with TUF:')
 try:
   test_arbitrary_package_attack(using_tuf=True, modify_metadata=False)
 except ArbitraryPackageAlert, error:
->>>>>>> develop
   print(error)
+
 else:
   print('Extraneous dependency attack failed.')
 print()

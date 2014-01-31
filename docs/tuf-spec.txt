@@ -792,7 +792,7 @@
     it is updated. In the next subsection, we will see how clients will
     reproduce the name of the intended file.
 
-    Finally, the root metadata should write the Boolean "consistent_snapshots"
+    Finally, the root metadata should write the Boolean "consistent_snapshot"
     attribute at the root level of its keys of attributes. If consistent
     snapshots are not written by the repository, then the attribute may either
     be left unspecified or be set to the False value.  Otherwise, it must be
@@ -807,7 +807,7 @@
     snapshot.
 
     If the root metadata (root.txt) is either missing the Boolean
-    "consistent_snapshots" attribute or the attribute is set to False, then the
+    "consistent_snapshot" attribute or the attribute is set to False, then the
     client should do nothing different from the workflow in Section 5.1.
 
     Otherwise, the client must perform as follows:

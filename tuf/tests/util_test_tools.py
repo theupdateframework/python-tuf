@@ -53,7 +53,7 @@
         |                     |                    |
     keystore              metadata              targets
         |                     |                    |
-  key1.key ...          role.txt ...           file(1) ...
+  key1.key ...          role.json ...           file(1) ...
 
   '{root_repo}/tuf_repo/': developer's tuf-repository directory containing
   following subdirectories:
@@ -72,7 +72,7 @@
                   |                         |  
                current                   previous
                   |                         | 
-             role.txt ...              role.txt ...
+             role.json ...              role.json ...
 
   '{root_repo}/tuf_client/': client directory containing tuf metadata.
   '{root_repo}/tuf_client/metadata/current': directory where client stores 
@@ -113,14 +113,14 @@
     and keys.
 
   tuf_refresh_repo():
-    Refreshes metadata files at the 'tuf_repo' directory i.e. role.txt's at
+    Refreshes metadata files at the 'tuf_repo' directory i.e. role.json's at
     '{root_repo}/tuf_repo/metadata/'.  Following roles are refreshed:
-    targets, release and timestamp.  Also, the whole 'reg_repo' directory is
+    targets, snapshot and timestamp.  Also, the whole 'reg_repo' directory is
     copied to targets directory i.e. '{root_repo}/tuf_repo/targets/'.
 
-Note: metadata files are root.txt, targets.txt, release.txt and
-timestamp.txt (denoted as 'role.txt in the diagrams').  There could be
-more metadata files such us mirrors.txt.  The metadata files are signed
+Note: metadata files are root.json, targets.json, snapshot.json and
+timestamp.json (denoted as 'role.json in the diagrams').  There could be
+more metadata files such us mirrors.json.  The metadata files are signed
 by their corresponding roles i.e. root, targets etc.
 
 More documentation is provided in the comment and doc blocks.
@@ -174,8 +174,8 @@ def init_repo(using_tuf=False, port=None):
     server_proc = subprocess.Popen(command, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
 
-  # Tailor url for the repository.  In order to download a 'file.txt' 
-  # from 'reg_repo' do: url+'reg_repo/file.txt'
+  # Tailor url for the repository.  In order to download a 'file.json' 
+  # from 'reg_repo' do: url+'reg_repo/file.json'
   relpath = os.path.basename(root_repo)
   url = 'http://localhost:'+str(port)+'/'+relpath+'/'
 
@@ -326,7 +326,7 @@ def init_tuf(root_repo):
   # In our case 'role_info[keyids]' will only have on entry since only one
   # is being used.
   role_info = {}
-  role_list = ['root', 'targets', 'release', 'timestamp']
+  role_list = ['root', 'targets', 'snapshot', 'timestamp']
   for role in role_list:
     role_info[role] = info
 
@@ -336,17 +336,17 @@ def init_tuf(root_repo):
   # Build the configuration file.
   conf_path = signerlib.build_config_file(metadata_dir, 365, role_info)
 
-  # Generate the 'root.txt' metadata file.
+  # Generate the 'root.json' metadata file.
   signerlib.build_root_file(conf_path, keyids, metadata_dir, version)
 
-  # Generate the 'targets.txt' metadata file. 
+  # Generate the 'targets.json' metadata file. 
   signerlib.build_targets_file([targets_dir], keyids, metadata_dir, version,
                                expiration)
 
-  # Generate the 'release.txt' metadata file.
-  signerlib.build_release_file(keyids, metadata_dir, version, expiration)
+  # Generate the 'snapshot.json' metadata file.
+  signerlib.build_snapshot_file(keyids, metadata_dir, version, expiration)
 
-  # Generate the 'timestamp.txt' metadata file.
+  # Generate the 'timestamp.json' metadata file.
   signerlib.build_timestamp_file(keyids, metadata_dir, version, expiration)
 
   # Move the metadata to the client's 'current' and 'previous' directories.
@@ -435,14 +435,14 @@ def tuf_refresh_repo(root_repo, keyids):
   shutil.copytree(reg_repo, targets_dir)
 
   version = version+1
-  # Regenerate the 'targets.txt' metadata file.
+  # Regenerate the 'targets.json' metadata file.
   signerlib.build_targets_file([targets_dir], keyids, metadata_dir,
                                version, expiration)
 
-  # Regenerate the 'release.txt' metadata file.
-  signerlib.build_release_file(keyids, metadata_dir, version, expiration)
+  # Regenerate the 'snapshot.json' metadata file.
+  signerlib.build_snapshot_file(keyids, metadata_dir, version, expiration)
 
-  # Regenerate the 'timestamp.txt' metadata file.
+  # Regenerate the 'timestamp.json' metadata file.
   signerlib.build_timestamp_file(keyids, metadata_dir, version, expiration)
 
 
@@ -450,9 +450,9 @@ def tuf_refresh_repo(root_repo, keyids):
 
 
 
-def tuf_refresh_release_timestamp(metadata_dir, keyids):
-  # Regenerate the 'release.txt' metadata file.
-  signerlib.build_release_file(keyids, metadata_dir)
+def tuf_refresh_snapshot_timestamp(metadata_dir, keyids):
+  # Regenerate the 'snapshot.json' metadata file.
+  signerlib.build_snapshot_file(keyids, metadata_dir)
 
 def tuf_refresh_and_download():
   """
@@ -543,8 +543,8 @@ def make_targets_meta(root_repo):
   _make_role_metadata_wrapper(root_repo, signercli.make_targets_metadata)
 
 
-def make_release_meta(root_repo):
-  _make_role_metadata_wrapper(root_repo, signercli.make_release_metadata)
+def make_snapshot_meta(root_repo):
+  _make_role_metadata_wrapper(root_repo, signercli.make_snapshot_metadata)
 
 
 def make_timestamp_meta(root_repo):

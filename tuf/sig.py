@@ -27,7 +27,7 @@
   keys into different categories.  As keys are added and removed, the
   system must securely and efficiently verify the status of these signatures.
   For instance, a bunch of keys have recently expired. How many valid keys
-  are now available to the Release role?  This question can be answered by
+  are now available to the Snapshot role?  This question can be answered by
   get_signature_status(), which will return a full 'status report' of these 
   'signable' dicts.  This module also provides a convenient verify() function
   that will determine if a role still has a sufficient number of valid keys.
@@ -62,7 +62,7 @@ def get_signature_status(signable, role=None):
       Conformant to tuf.formats.SIGNABLE_SCHEMA.
 
     role:
-      TUF role (e.g., 'root', 'targets', 'release').
+      TUF role (e.g., 'root', 'targets', 'snapshot').
 
   <Exceptions>
     tuf.FormatError, if 'signable' does not have the correct format.
@@ -180,7 +180,7 @@ def verify(signable, role):
       signable = {'signed':, 'signatures': [{'keyid':, 'method':, 'sig':}]}
 
     role:
-      TUF role (e.g., 'root', 'targets', 'release').
+      TUF role (e.g., 'root', 'targets', 'snapshot').
 
   <Exceptions>
     tuf.UnknownRoleError, if 'role' is not recognized.

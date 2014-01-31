@@ -393,7 +393,7 @@ ROOT_SCHEMA = SCHEMA.Object(
   object_name = 'ROOT_SCHEMA',
   _type = SCHEMA.String('Root'),
   version = METADATAVERSION_SCHEMA,
-  consistent_snapshots = BOOLEAN_SCHEMA,
+  consistent_snapshot = BOOLEAN_SCHEMA,
   expires = TIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)
@@ -407,15 +407,15 @@ TARGETS_SCHEMA = SCHEMA.Object(
   targets = FILEDICT_SCHEMA,
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA))
 
-# Release role: indicates the latest versions of all metadata (except timestamp).
-RELEASE_SCHEMA = SCHEMA.Object(
-  object_name = 'RELEASE_SCHEMA',
-  _type = SCHEMA.String('Release'),
+# Snapshot role: indicates the latest versions of all metadata (except timestamp).
+SNAPSHOT_SCHEMA = SCHEMA.Object(
+  object_name = 'SNAPSHOT_SCHEMA',
+  _type = SCHEMA.String('Snapshot'),
   version = METADATAVERSION_SCHEMA,
   expires = TIME_SCHEMA,
   meta = FILEDICT_SCHEMA)
 
-# Timestamp role: indicates the latest version of the release file.
+# Timestamp role: indicates the latest version of the snapshot file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
   _type = SCHEMA.String('Timestamp'),
@@ -450,8 +450,8 @@ MIRRORLIST_SCHEMA = SCHEMA.Object(
   expires = TIME_SCHEMA,
   mirrors = SCHEMA.ListOf(MIRROR_SCHEMA))
 
-# Any of the role schemas (e.g., TIMESTAMP_SCHEMA, RELEASE_SCHEMA, etc.)
-ANYROLE_SCHEMA = SCHEMA.OneOf([ROOT_SCHEMA, TARGETS_SCHEMA, RELEASE_SCHEMA,
+# Any of the role schemas (e.g., TIMESTAMP_SCHEMA, SNAPSHOT_SCHEMA, etc.)
+ANYROLE_SCHEMA = SCHEMA.OneOf([ROOT_SCHEMA, TARGETS_SCHEMA, SNAPSHOT_SCHEMA,
                                TIMESTAMP_SCHEMA, MIRROR_SCHEMA])
 
 
@@ -463,7 +463,7 @@ class MetaFile(object):
   <Purpose>
     Base class for all metadata file classes.
     Classes representing metadata files such as RootFile
-    and ReleaseFile all inherit from MetaFile.  The
+    and SnapshotFile all inherit from MetaFile.  The
     __eq__, __ne__, perform 'equal' and 'not equal' comparisons
     between Metadata File objects.
   """
@@ -531,13 +531,13 @@ class TimestampFile(MetaFile):
 
 
 class RootFile(MetaFile):
-  def __init__(self, version, expires, keys, roles, consistent_snapshots):
+  def __init__(self, version, expires, keys, roles, consistent_snapshot):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
     self.info['keys'] = keys
     self.info['roles'] = roles
-    self.info['consistent_snapshots'] = consistent_snapshots
+    self.info['consistent_snapshot'] = consistent_snapshot
 
 
   @staticmethod
@@ -550,20 +550,20 @@ class RootFile(MetaFile):
     expires = parse_time(object['expires'])
     keys = object['keys']
     roles = object['roles']
-    consistent_snapshots = object['consistent_snapshots']
+    consistent_snapshot = object['consistent_snapshot']
     
-    return RootFile(version, expires, keys, roles, consistent_snapshots)
+    return RootFile(version, expires, keys, roles, consistent_snapshot)
 
 
   @staticmethod
   def make_metadata(version, expiration_date, keydict, roledict,
-                    consistent_snapshots):
+                    consistent_snapshot):
     result = {'_type' : 'Root'}
     result['version'] = version
     result['expires'] = expiration_date
     result['keys'] = keydict
     result['roles'] = roledict
-    result['consistent_snapshots'] = consistent_snapshots
+    result['consistent_snapshot'] = consistent_snapshot
     
     # Is 'result' a Root metadata file?
     # Raise 'tuf.FormatError' if not.
@@ -575,7 +575,7 @@ class RootFile(MetaFile):
 
 
 
-class ReleaseFile(MetaFile):
+class SnapshotFile(MetaFile):
   def __init__(self, version, expires, filedict):
     self.info = {}
     self.info['version'] = version
@@ -585,27 +585,27 @@ class ReleaseFile(MetaFile):
 
   @staticmethod
   def from_metadata(object):
-    # Is 'object' a Release metadata file?
+    # Is 'object' a Snapshot metadata file?
     # Raise 'tuf.FormatError' if not.
-    RELEASE_SCHEMA.check_match(object)
+    SNAPSHOT_SCHEMA.check_match(object)
     
     version = object['version']
     expires = parse_time(object['expires'])
     filedict = object['meta']
     
-    return ReleaseFile(version, expires, filedict)
+    return SnapshotFile(version, expires, filedict)
 
 
   @staticmethod
   def make_metadata(version, expiration_date, filedict):
-    result = {'_type' : 'Release'}
+    result = {'_type' : 'Snapshot'}
     result['version'] = version 
     result['expires'] = expiration_date
     result['meta'] = filedict
 
-    # Is 'result' a Release metadata file?
+    # Is 'result' a Snapshot metadata file?
     # Raise 'tuf.FormatError' if not.
-    RELEASE_SCHEMA.check_match(result)
+    SNAPSHOT_SCHEMA.check_match(result)
     
     return result
 
@@ -687,7 +687,7 @@ class MirrorsFile(MetaFile):
 SCHEMAS_BY_TYPE = {
   'Root' : ROOT_SCHEMA,
   'Targets' : TARGETS_SCHEMA,
-  'Release' : RELEASE_SCHEMA,
+  'Snapshot' : SNAPSHOT_SCHEMA,
   'Timestamp' : TIMESTAMP_SCHEMA,
   'Mirrors' : MIRRORLIST_SCHEMA}
 
@@ -696,7 +696,7 @@ SCHEMAS_BY_TYPE = {
 ROLE_CLASSES_BY_TYPE = {
   'Root' : RootFile,
   'Targets' : TargetsFile,
-  'Release' : ReleaseFile,
+  'Snapshot' : SnapshotFile,
   'Timestamp' : TimestampFile,
   'Mirrors' : MirrorsFile}
 
@@ -858,7 +858,7 @@ def make_signable(object):
 
   <Arguments>
     object:
-      A role schema dict (e.g., 'ROOT_SCHEMA', 'RELEASE_SCHEMA'). 
+      A role schema dict (e.g., 'ROOT_SCHEMA', 'SNAPSHOT_SCHEMA'). 
 
   <Exceptions>
     None.
@@ -1022,8 +1022,8 @@ def get_role_class(expected_rolename):
 
   <Returns>
     The class corresponding to 'expected_rolename'.
-    E.g., 'Release' as an argument to this function causes
-    'ReleaseFile' to be returned. 
+    E.g., 'Snapshot' as an argument to this function causes
+    SnapshotFile' to be returned. 
   """
  
   # Does 'expected_rolename' have the correct type?
