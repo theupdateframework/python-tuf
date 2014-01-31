@@ -16,8 +16,8 @@
 <Purpose>
   Provide an interactive command-line interface to create and sign metadata.
   This script can be used to create all of the top-level role files required
-  by TUF, which include 'root.txt', 'targets.txt', 'release.txt', and
-  'timestamp.txt'. It also provides options to generate RSA keys, change the
+  by TUF, which include 'root.json', 'targets.json', 'release.json', and
+  'timestamp.json'. It also provides options to generate RSA keys, change the
   encryption/decryption keys of encrypted key files, list the keyids of
   the signing keys stored in a keystore directory, create delegated roles,
   and dump the contents of signing keys (i.e., public and private keys, key
@@ -33,7 +33,7 @@
   Initially, the 'quickstart.py' script is utilized when the repository is
   first created.  'signercli.py' would then be executed to update the state
   of the repository.  For example, the repository owner wants to change the
-  'targets.txt' signing key.  The owner would run 'signercli.py' to
+  'targets.json' signing key.  The owner would run 'signercli.py' to
   generate a new RSA key, add the new key to the configuration file created
   by 'quickstart.py', and then run 'signercli.py' to update the metadata files.
 
@@ -150,7 +150,7 @@ def _list_keyids(keystore_directory, metadata_directory):
     along with their associated roles.
   """
 
-  # Determine the 'root.txt' filename.  This metadata file is needed
+  # Determine the 'root.json' filename.  This metadata file is needed
   # to extract the keyids belonging to the top-level roles.
   filenames = tuf.repo.signerlib.get_metadata_filenames(metadata_directory)
   root_filename = filenames['root']
@@ -199,7 +199,7 @@ def _list_keyids(keystore_directory, metadata_directory):
     # Is 'keyid' listed in any of the top-level roles?
     for top_level_role in top_level_keyids:
       if keyid in top_level_keyids[top_level_role]['keyids']:
-        # To avoid a duplicate, ignore the 'targets.txt' role for now.
+        # To avoid a duplicate, ignore the 'targets.json' role for now.
         # 'targets_keyids' will also contain the keyids for this top-level role.
         if top_level_role != 'targets':
           keyids_dict[keyid].append(top_level_role)
@@ -388,7 +388,7 @@ def _sign_and_write_metadata(metadata, keyids, filename):
   signable = tuf.repo.signerlib.sign_metadata(metadata, keyids, filename)
 
   # Write the 'signable' object to 'filename'.  The 'filename' file is
-  # the final metadata file, such as 'root.txt' and 'targets.txt'.
+  # the final metadata file, such as 'root.json' and 'targets.json'.
   tuf.repo.signerlib.write_metadata_file(signable, filename)
 
 
@@ -486,7 +486,7 @@ def change_password(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
-  # Retrieve the metadata directory.  The 'root.txt' and all the targets
+  # Retrieve the metadata directory.  The 'root.json' and all the targets
   # metadata are needed to extract rolenames and their corresponding
   # keyids.
   try:
@@ -606,7 +606,7 @@ def list_signing_keys(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
-  # Retrieve the metadata directory.  The 'root.txt' file and all the metadata
+  # Retrieve the metadata directory.  The 'root.json' file and all the metadata
   # for the targets roles are needed to extract rolenames and their associated
   # keyids.
   try:
@@ -650,7 +650,7 @@ def dump_key(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
-  # Retrieve the metadata directory.  The 'root.txt' and all the targets
+  # Retrieve the metadata directory.  The 'root.json' and all the targets
   # role metadata files are needed to extract rolenames and their corresponding
   # keyids.
   try:
@@ -710,7 +710,7 @@ def dump_key(keystore_directory):
 def make_root_metadata(keystore_directory):
   """
   <Purpose>
-    Create the 'root.txt' file.
+    Create the 'root.json' file.
 
   <Arguments>
     keystore_directory:
@@ -759,7 +759,7 @@ def make_root_metadata(keystore_directory):
     raise tuf.RepositoryError(message)
   root_keyids = loaded_keyids['root']
 
-  # Generate the root metadata and write it to 'root.txt'.
+  # Generate the root metadata and write it to 'root.json'.
   try:
     tuf.repo.signerlib.build_root_file(config_filepath, root_keyids,
                                        metadata_directory, version)
@@ -773,7 +773,7 @@ def make_root_metadata(keystore_directory):
 def make_targets_metadata(keystore_directory):
   """ 
   <Purpose>
-    Create the 'targets.txt' metadata file.  The targets must exist at the
+    Create the 'targets.json' metadata file.  The targets must exist at the
     same path they should on the repository.  This takes a list of targets.
     We're not worrying about custom metadata at the moment. It's allowed to
     not provide keys.
@@ -840,7 +840,7 @@ def make_targets_metadata(keystore_directory):
     raise tuf.RepositoryError(message)
 
   try:
-    # Create, sign, and write the "targets.txt" file.
+    # Create, sign, and write the "targets.json" file.
     tuf.repo.signerlib.build_targets_file(targets, targets_keyids,
                                        metadata_directory, version,
                                        expiration_date)
@@ -857,7 +857,7 @@ def make_release_metadata(keystore_directory):
   """
   <Purpose>
     Create the release metadata file.
-    The minimum metadata must exist. This is root.txt and targets.txt.
+    The minimum metadata must exist. This is root.json and targets.json.
 
   <Arguments>
     keystore_directory:
@@ -907,7 +907,7 @@ def make_release_metadata(keystore_directory):
   try:
     release_keyids = _get_role_config_keyids(config_filepath,
                                               keystore_directory, 'release')
-    # Generate the release metadata and write it to 'release.txt'
+    # Generate the release metadata and write it to 'release.json'
     tuf.repo.signerlib.build_release_file(release_keyids, metadata_directory,
                                           version, expiration_date)
   except (tuf.FormatError, tuf.Error), e:
@@ -921,7 +921,7 @@ def make_release_metadata(keystore_directory):
 def make_timestamp_metadata(keystore_directory):
   """
   <Purpose>
-    Create the timestamp metadata file.  The 'release.txt' file must exist.
+    Create the timestamp metadata file.  The 'release.json' file must exist.
 
   <Arguments>
     keystore_directory:
@@ -972,7 +972,7 @@ def make_timestamp_metadata(keystore_directory):
   try:
     timestamp_keyids = _get_role_config_keyids(config_filepath,
                                                keystore_directory, 'timestamp')
-    # Generate the timestamp metadata and write it to 'timestamp.txt'
+    # Generate the timestamp metadata and write it to 'timestamp.json'
     tuf.repo.signerlib.build_timestamp_file(timestamp_keyids, metadata_directory,
                                             version, expiration_date)
   except (tuf.FormatError, tuf.Error), e:
@@ -1008,7 +1008,7 @@ def sign_metadata_file(keystore_directory):
   # Verify the 'keystore_directory' argument.
   keystore_directory = _check_directory(keystore_directory)
 
-  # Retrieve the metadata directory.  The 'root.txt' and all the targets
+  # Retrieve the metadata directory.  The 'root.json' and all the targets
   # role metadata files are needed to extract rolenames and their corresponding
   # keyids.
   try:
@@ -1272,11 +1272,11 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
   # containing the parent role's name is created in the metadata
   # directory.  For example, if the targets roles creates a delegated
   # role 'role1', the metadata directory would then contain:
-  # '{metadata_directory}/targets/role1.txt', where 'role1.txt' is the
+  # '{metadata_directory}/targets/role1.json', where 'role1.json' is the
   # delegated role's metadata file.
   # If delegated role 'role1' creates its own delegated role 'role2', the
   # metadata directory would then contain:
-  # '{metadata_directory}/targets/role1/role2.txt'.
+  # '{metadata_directory}/targets/role1/role2.json'.
   # When creating a delegated role, if the parent directory already
   # exists, this means a prior delegation has been perform by the parent. 
   parent_directory = os.path.join(metadata_directory, parent_role)
@@ -1295,7 +1295,7 @@ def _make_delegated_metadata(metadata_directory, delegated_targets,
   expiration_date = _get_metadata_expiration()
  
   # Sign and write the delegated metadata file.
-  delegated_role_filename = delegated_role+'.txt'
+  delegated_role_filename = delegated_role+'.json'
   metadata_filename = os.path.join(parent_directory, delegated_role_filename)
   repository_directory, junk = os.path.split(metadata_directory)
   generate_metadata = tuf.repo.signerlib.generate_targets_metadata
@@ -1343,7 +1343,7 @@ def _update_parent_metadata(metadata_directory, delegated_role,
 
   # Extract the metadata from the parent role's file.
   parent_filename = os.path.join(metadata_directory, parent_role)
-  parent_filename = parent_filename+'.txt'
+  parent_filename = parent_filename+'.json'
   parent_signable = tuf.repo.signerlib.read_metadata_file(parent_filename)
   parent_metadata = parent_signable['signed']
 
@@ -1511,19 +1511,19 @@ def parse_options():
 
   option_parser.add_option('--makeroot', action='store', type='string',
                            help='Create the Root metadata file '\
-                           '(root.txt).')
+                           '(root.json).')
 
   option_parser.add_option('--maketargets', action='store', type='string',
                            help='Create the Targets metadata file '\
-                           '(targets.txt).')
+                           '(targets.json).')
 
   option_parser.add_option('--makerelease', action='store', type='string',
                            help='Create the Release metadata file '\
-                           '(release.txt).')
+                           '(release.json).')
 
   option_parser.add_option('--maketimestamp', action='store', type='string',
                            help='Create the Timestamp metadata file '\
-                           '(timestamp.txt).')
+                           '(timestamp.json).')
 
   option_parser.add_option('--sign', action='store', type='string',
                            help='Sign a metadata file.')

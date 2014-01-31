@@ -454,6 +454,8 @@ def tuf_refresh_snapshot_timestamp(metadata_dir, keyids):
   # Regenerate the 'snapshot.json' metadata file.
   signerlib.build_snapshot_file(keyids, metadata_dir)
 
+
+
 def tuf_refresh_and_download():
   """
   Combines tuf_refresh_repo(), tuf_refresh_client_metadata(), and
@@ -464,9 +466,6 @@ def tuf_refresh_and_download():
   tuf_refresh_client_metadata()
   tuf_download_updates()
   return setup_info['downloads']
-
-
-
 
 
 
@@ -627,6 +626,7 @@ def update_target_in_metadata(signee_filepath, signer_filepath):
     signee_filepath:
       filepath of the target file that has been modified since the metadata was
       generated
+    
     signer_filepath:
       filepath of the targets role that signs the modified file
   """

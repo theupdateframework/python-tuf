@@ -366,14 +366,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     root_filepath = os.path.join(self.client_current_dir, 'root.json')
     root_meta = tuf.util.load_json_file(root_filepath)
 
-
     # Test: normal case.
-    for role in self.role_list:
-      self.Repository._load_metadata_from_file('current', role)
+    #for role in self.role_list:
+    #  self.Repository._load_metadata_from_file('current', role)
+    self.Repository.refresh()
 
-    #  Verify that the correct number of metadata objects has been loaded. 
+    root_filepath = os.path.join(self.client_current_dir, 'root.json')
+    root_meta = tuf.util.load_json_file(root_filepath)
+   
+   #  Verify that the correct number of metadata objects has been loaded. 
     self.assertEqual(len(self.Repository.metadata['current']), 4)
 
+    print('root_metadata: '+repr(root_meta)+'\n\n')
+    print('self.Repository: '+repr(self.Repository.metadata['current']['root']))
+    
     #  Verify that the content of root metadata is valid.
     self.assertEqual(self.Repository.metadata['current']['root'],
                      root_meta['signed'])
@@ -463,7 +469,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-
+  """
   def test_2__ensure_all_targets_allowed(self):
     # Setup
     #  Reference to self.Repository._ensure_all_targets_allowed()    
@@ -499,9 +505,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: targets not included in the parent's metadata.
     self.assertRaises(tuf.RepositoryError, ensure_all_targets_allowed,
-                      'targets/delegated_role1',
-                      role1_metadata)
-
+                      'targets/delegated_role1', role1_metadata)
+  """
 
 
 
@@ -644,14 +649,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Re-patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
+    
     # The length (but not the hash) passed to this function is incorrect. The
     # length must be that of the compressed file, whereas the hash must be that
     # of the uncompressed file.
     mixed_fileinfo = {
       'length': compressed_fileinfo['length'],
-      'hashes': uncompressed_fileinfo['hashes']
-    }
-    _update_metadata('targets', mixed_fileinfo, compression='gzip')
+      'hashes': uncompressed_fileinfo['hashes']}
+
+    _update_metadata('targets', mixed_fileinfo, compression='gzip',
+                     compressed_fileinfo=compressed_fileinfo)
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
     #  Verify that the added target's path is listed in target's metadata.
