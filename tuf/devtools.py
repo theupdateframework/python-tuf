@@ -33,6 +33,7 @@ import sys
 import logging
 import shutil
 import tempfile
+import json
 
 import tuf
 import tuf.formats
@@ -77,10 +78,13 @@ DEFAULT_RSA_KEY_BITS = 3072
 HASH_FUNCTION = 'sha256'
 
 # The extension of TUF metadata.
-METADATA_EXTENSION = '.txt'
+METADATA_EXTENSION = '.json'
 
 # The metadata filename for the targets metadata information.
 TARGETS_FILENAME = 'targets' + METADATA_EXTENSION
+
+# Project configuration filename
+PROJECT_FILENAME = 'project.cfg'
 
 # The targets and metadata directory names.  Metadata files are written
 # to the staged metadata directory instead of the "live" one.
@@ -171,7 +175,7 @@ class Project(object):
     self.prefix = file_prefix
 
   #TODO: continue where we left off.
-  def write(self, write_partial=False, consistent_snapshots=False):
+  def write(self, write_partial=False):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files.
@@ -210,7 +214,6 @@ class Project(object):
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.BOOLEAN_SCHEMA.check_match(write_partial)
-    tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshots) 
     
     # At this point the tuf.keydb and tuf.roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.Repository' exception if 
@@ -231,7 +234,7 @@ class Project(object):
       _generate_and_write_metadata(delegated_rolename, delegated_filename,
                                    write_partial, self._targets_directory,
                                    self._metadata_directory,
-                                   consistent_snapshots,prefix=self.prefix)
+                                   prefix=self.prefix)
       
     
     # Generate the 'targets.txt' metadata file.
@@ -241,13 +244,14 @@ class Project(object):
       _generate_and_write_metadata('targets', targets_filename, write_partial,
                                    self._targets_directory,
                                    self._metadata_directory,
-                                   consistent_snapshots,prefix=self.prefix)
-    
+                                   prefix=self.prefix)
+    save_project_configuration(self._metadata_directory, self.targets.keys,
+                                self.prefix, self.targets.threshold)
     
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked.
     _delete_obsolete_metadata(self._metadata_directory,
-                              release_signable['signed'], consistent_snapshots)
+                              release_signable['signed'], False)
 
 
   
@@ -448,7 +452,7 @@ def _print_status(rolename, signable):
 
 def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                  targets_directory, metadata_directory,
-                                 consistent_snapshots, filenames=None,
+                                 filenames=None,
                                  prefix=''):
   """
     Non-public function that can generate and write the metadata of the specified
@@ -470,12 +474,14 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                        roleinfo['version'],
                                        roleinfo['expires'],
                                        roleinfo['delegations'],
-                                       consistent_snapshots) 
+                                       False) 
 
   # preprend the prefix to the project's filepath to avoid signature errors
   # in upstream
   for element in metadata['targets'].keys():
-    metadata['targets'][prefix+element] = metadata['targets'][element]
+    junk_path, relative_target = os.path.split(element)
+    prefixed_path = os.path.join(prefix,relative_target)
+    metadata['targets'][prefixed_path] = metadata['targets'][element]
     if prefix != '':
       del(metadata['targets'][element])
 
@@ -510,7 +516,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     _remove_invalid_and_duplicate_signatures(signable)
     compressions = roleinfo['compressions']
     filename = write_metadata_file(signable, metadata_filename, compressions,
-                                   consistent_snapshots)
+                                   False)
     
     
   # 'signable' contains an invalid threshold of signatures. 
@@ -661,66 +667,183 @@ def create_new_project(project_directory,prefix):
   
   return project
 
-
-
-def load_repository(repository_directory):
+def save_project_configuration(metadata_directory, public_keys, prefix, 
+                                threshold):
   """
   <Purpose>
-    Return a repository object containing the contents of metadata files loaded
-    from the repository.
+    Persist the project's information in a file to provide the information
+    for the load routine
 
   <Arguments>
-    repository_directory:
+    metadata_directory: where the project's metadata is located
+    public_keys: a list containing the public keys for the toplevel targets 
+      role
+    prefix: the project's prefix (if any)
+    threshold: the threshold value for the toplevel targets role
 
   <Exceptions>
-    tuf.FormatError, if 'repository_directory' or any of the metadata files
-    are improperly formatted.  Also raised if, at a minimum, the Root role
-    cannot be found.
+    Exceptions may rise if the metadata_directory/project.cfg file exists and
+    is non-writeable
+
+    Exceptions are also expected if either the prefix or the metadata directory
+    are malformed
 
   <Side Effects>
-   All the metadata files found in the repository are loaded and their contents
+    A project.cfg file is created or overwritten
+
+  <Returns>
+    nothing
+  """
+  # schema check for metadata_directory and prefix
+  tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
+  tuf.formats.PATH_SCHEMA.check_match(prefix)
+
+  # get the absolute filepath to our metadata_directory for consistency
+  metadata_directory = os.path.abspath(metadata_directory)
+
+  # is the file open-able? open for overwriting
+  project_filename = os.path.join(metadata_directory,PROJECT_FILENAME)
+  try:
+    fp = open(project_filename,"wt")
+  except OSError, e:
+    raise
+  
+  # build the data structure
+  project_config = {}
+  project_config['prefix'] = prefix
+  project_config['public_keys'] = {}
+
+  project_config['threshold'] = threshold
+  # build a dictionary containing the actual keys
+  for key in public_keys:
+    key_info = tuf.keydb.get_key(key)
+    project_config['public_keys'][key] = {}
+    project_config['public_keys'][key]['keytype'] = key_info['keytype']
+    project_config['public_keys'][key]['public'] = key_info['keyval']['public']
+
+  # save the actual data
+  json.dump(project_config,fp)
+
+  # clean our mess
+  fp.close()
+
+
+def load_project(project_directory, prefix=''):
+  """
+  <Purpose>
+    Return a project object initialized with the contents of the metadata 
+    files loaded from the project_directory path
+
+  <Arguments>
+    project_directory: The path to the project folder
+    prefix: the prefix for the metadata
+
+  <Exceptions>
+    tuf.FormatError, if 'project_directory' or any of the metadata files
+    are improperly formatted. 
+
+  <Side Effects>
+   All the metadata files found in the project are loaded and their contents
    stored in a libtuf.Repository object.
 
   <Returns>
     libtuf.Repository object.
   
   BEGIN ORIGINAL
+  return repository
+  """ 
   # Does 'repository_directory' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(repository_directory)
+  tuf.formats.PATH_SCHEMA.check_match(project_directory)
+  # do the same for the prefix
+  tuf.formats.PATH_SCHEMA.check_match(prefix)
 
-  # Load top-level metadata.
-  repository_directory = os.path.abspath(repository_directory)
-  metadata_directory = os.path.join(repository_directory,
+
+  # Locate metadata filepaths and targets filepath.
+  project_directory = os.path.abspath(project_directory)
+  metadata_directory = os.path.join(project_directory,
                                     METADATA_STAGED_DIRECTORY_NAME)
-  targets_directory = os.path.join(repository_directory,
+  targets_directory = os.path.join(project_directory,
                                     TARGETS_DIRECTORY_NAME)
 
-  # The Repository() object loaded (i.e., containing all the metadata roles
-  # found) and returned.
-  repository = Repository(repository_directory, metadata_directory,
-                          targets_directory)
+  # create a blank project on the target directory
+  project = Project(project_directory, metadata_directory, targets_directory,
+                    prefix)
+
+  # load the cfg file and update the project.
+  config_filename = os.path.join(metadata_directory,PROJECT_FILENAME)
+  try:
+    fp = open(config_filename,"rt")
+  except OSError, e:
+    raise
   
-  filenames = get_metadata_filenames(metadata_directory)
+  project_configuration = json.load(fp)
+  project.targets.threshold = project_configuration['threshold']
+  project.prefix = project_configuration['prefix']
+  
+  # traverse the public keys and add them to the project
+  keydict = project_configuration['public_keys']
+  for keyid in keydict:
+    if keydict[keyid]['keytype'] == 'rsa':
+      temp_pubkey = tuf.keys.format_rsakey_from_pem(keydict[keyid]['public'])
+    elif keydict[keyid]['keytype'] == 'ed25519':
+      temp_pubkey = {}
+      temp_pubkey['keytype'] = keydict[keyid]['keytype']
+      temp_pubkey['keyval'] = {}
+      temp_pubkey['keyval']['public'] = keydict[keyid]['public']
+      temp_pubkey['keyval']['private'] = ''
+    else:
+      temp_pubkey = keydict
+    project.targets.add_verification_key(temp_pubkey)
+  
 
-  # The Root file is always available without a consistent snapshots digest
-  # attached to the filename.  Store the 'consistent_snapshots' value read the
-  # loaded Root file so that other metadata files may be located.
-  # 'consistent_snapshots' value. 
-  consistent_snapshots = False
+  # load the toplevel metadata
+  targets_metadata_path = os.path.join(metadata_directory, TARGETS_FILENAME)
+  signable = tuf.util.load_json_file(targets_metadata_path)
+  tuf.formats.check_signable_object_format(signable)
+  targets_metadata = signable['signed']
+  
+  # remove the prefix from the metadata
+  if project_configuration['prefix'] != '':
+    unprefixed_targets_metadata = {}
+    for targets in targets_metadata['targets'].keys():
+      unprefixed_target = os.path.relpath(targets,
+                                      project_configuration['prefix'])
+      unprefixed_target = '/' + unprefixed_target
+      unprefixed_targets_metadata[unprefixed_target] = \
+          targets_metadata['targets'][targets] 
+    targets_metadata['targets'] = unprefixed_targets_metadata
+  for signature in signable['signatures']:
+    project.targets.add_signature(signature)
 
-  # Load the metadata of the top-level roles (i.e., Root, Timestamp, Targets,
-  # and Release).
-  repository, consistent_snapshots = _load_top_level_metadata(repository,
-                                                              filenames)
- 
+  # update roledb
+  roleinfo = tuf.roledb.get_roleinfo('targets')
+  roleinfo['signatures'].extend(signable['signatures'])
+  roleinfo['version'] = targets_metadata['version']
+  roleinfo['paths'] = targets_metadata['targets'].keys()
+  roleinfo['delegations'] = targets_metadata['delegations']
+  tuf.roledb.update_roleinfo('targets',roleinfo)
+
+  for key_metadata in targets_metadata['delegations']['keys'].values():
+    key_object = tuf.keys.format_metadata_to_key(key_metadata)
+    tuf.keydb.add_key(key_object)
+
+  for role in targets_metadata['delegations']['roles']:
+    rolename = role['name']
+    roleinfo = {'name': role['name'], 'keyids': role['keyids'],
+                'threshold': role['threshold'], 'compressions': [''],
+                'signing_keyids': [], 'signatures': [], 
+                'delegations': {'keys':{}, roles:[]}
+                }
+    tuf.roledb.add_role(rolename, roleinfo)
+                                                        
   # Load delegated targets metadata.
   # Walk the 'targets/' directory and generate the fileinfo of all the files
   # listed.  This information is stored in the 'meta' field of the release
   # metadata object.
   targets_objects = {}
   loaded_metadata = []
-  targets_objects['targets'] = repository.targets
+  targets_objects['targets'] = project.targets
   targets_metadata_directory = os.path.join(metadata_directory,
                                             TARGETS_DIRECTORY_NAME)
   if os.path.exists(targets_metadata_directory) and \
@@ -733,12 +856,7 @@ def load_repository(repository_directory):
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
 
-        # Strip the digest if 'consistent_snapshots' is True.
-        # Example:  'targets/unclaimed/13df98ab0.django.txt' -->
-        # 'targets/unclaimed/django.txt'
-        metadata_name, digest_junk = \
-          _strip_consistent_snapshots_digest(metadata_name, consistent_snapshots)
-
+        # strip the extension
         if metadata_name.endswith(METADATA_EXTENSION): 
           extension_length = len(METADATA_EXTENSION)
           metadata_name = metadata_name[:-extension_length]
@@ -769,11 +887,16 @@ def load_repository(repository_directory):
 
         if os.path.exists(metadata_path+'.gz'):
           roleinfo['compressions'].append('gz')
-        
+
+
         _check_if_partial_loaded(metadata_name, signable, roleinfo)
+
         tuf.roledb.update_roleinfo(metadata_name, roleinfo)
+
+        # append to list of elements to avoid reloading repeated metadata
         loaded_metadata.append(metadata_name)
 
+        # add the delegation
         new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
         targets_object = \
           targets_objects[tuf.roledb.get_parent_rolename(metadata_name)]
@@ -800,10 +923,8 @@ def load_repository(repository_directory):
                       'delegations': {'keys': {},
                                       'roles': []}}
           tuf.roledb.add_role(rolename, roleinfo)
-  
-  return repository
-  """ 
-  raise Exception("To be implemented")
+ 
+  return project
 
 
 if __name__ == '__main__':
