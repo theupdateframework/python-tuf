@@ -839,7 +839,7 @@ class Updater(object):
     <Arguments>
       metadata_file_object:
         A 'tuf.util.TempFile' instance containing the metadata file.
-        'metadata_file_object' ensures the entire is returned with read().
+        'metadata_file_object' ensures the entire file is returned with read().
 
       metadata_role:
         The role name of the metadata (e.g., 'root', 'targets',
