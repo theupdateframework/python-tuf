@@ -6,7 +6,7 @@
   Santiago Torres <torresariass@gmail.com>
   Zane Fisher <zanefisher@gmail.com>
 
-  Based on the work done by Vladimir Diaz
+  Based on the work done for the repository tools by Vladimir Diaz
 
 <Started>
   January 22, 2014 
@@ -93,7 +93,7 @@ METADATA_DIRECTORY_NAME = 'metadata'
 TARGETS_DIRECTORY_NAME = 'targets' 
 
 # The full list of supported TUF metadata extensions.
-METADATA_EXTENSIONS = ['.txt', '.txt.gz']
+METADATA_EXTENSIONS = ['.json', '.json.gz']
 
 # The recognized compression extensions. 
 SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
@@ -191,13 +191,6 @@ class Project(object):
         exception if a metadata role cannot be written due to not having enough
         signatures.
 
-      consistent_snapshots:
-        A boolean indicating whether written metadata and target files should
-        include a digest in the filename (i.e., root.<digest>.txt,
-        targets.<digest>.txt.gz, README.<digest>.txt, where <digest> is the
-        file's SHA256 digest.  Example:
-        'root.1f4e35a60c8f96d439e27e858ce2869c770c1cdd54e1ef76657ceaaf01da18a3.txt'
-        
     <Exceptions>
       tuf.Error, if any of the top-level roles do not have a minimum
       threshold of signatures.
@@ -245,6 +238,8 @@ class Project(object):
                                    self._targets_directory,
                                    self._metadata_directory,
                                    prefix=self.prefix)
+
+    #save some other information that is not stored in the project's metadata 
     save_project_configuration(self._metadata_directory, self.targets.keys,
                                 self.prefix, self.targets.threshold)
     
@@ -264,8 +259,9 @@ class Project(object):
     <Arguments>
       None.
 
-    <Exceptions>
-      None.
+    <Exceptions> 
+      tuf.Error, if any of the top-level roles do not have a minimum
+      threshold of signatures.
 
     <Side Effects>
       Creates metadata files in the repository's metadata directory.
@@ -293,7 +289,8 @@ class Project(object):
       None.
 
     <Exceptions>
-      None.
+      tuf.Error, if any of the top-level roles do not have a minimum
+      threshold of signatures.
 
     <Side Effects>
       Generates and writes temporary metadata files.
@@ -455,7 +452,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                  filenames=None,
                                  prefix=''):
   """
-    Non-public function that can generate and write the metadata of the specified
+    Non-public function that can generate and write the metadata of the
+    specified
     top-level 'rolename'.  It also increments version numbers if:
     
     1.  write_partial==True and the metadata is the first to be written.
@@ -675,11 +673,17 @@ def save_project_configuration(metadata_directory, public_keys, prefix,
     for the load routine
 
   <Arguments>
-    metadata_directory: where the project's metadata is located
-    public_keys: a list containing the public keys for the toplevel targets 
-      role
-    prefix: the project's prefix (if any)
-    threshold: the threshold value for the toplevel targets role
+    metadata_directory:
+      where the project's metadata is located
+    
+    public_keys:
+      a list containing the public keys for the toplevel targets role
+    
+    prefix: 
+      the project's prefix (if any)
+    
+    threshold: 
+      the threshold value for the toplevel targets role
 
   <Exceptions>
     Exceptions may rise if the metadata_directory/project.cfg file exists and
@@ -735,8 +739,10 @@ def load_project(project_directory, prefix=''):
     files loaded from the project_directory path
 
   <Arguments>
-    project_directory: The path to the project folder
-    prefix: the prefix for the metadata
+    project_directory: 
+      The path to the project's folder
+    prefix:
+      the prefix for the metadata
 
   <Exceptions>
     tuf.FormatError, if 'project_directory' or any of the metadata files
@@ -749,8 +755,6 @@ def load_project(project_directory, prefix=''):
   <Returns>
     libtuf.Repository object.
   
-  BEGIN ORIGINAL
-  return repository
   """ 
   # Does 'repository_directory' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
@@ -884,7 +888,7 @@ def load_project(project_directory, prefix=''):
         roleinfo['expires'] = metadata_object['expires']
         roleinfo['paths'] = metadata_object['targets'].keys()
         roleinfo['delegations'] = metadata_object['delegations']
-
+      
         if os.path.exists(metadata_path+'.gz'):
           roleinfo['compressions'].append('gz')
 
@@ -931,6 +935,5 @@ if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
   # be tested by running libtuf.py as a standalone module:
   # $ python libtuf.py.
-  # import doctest
-  # doctest.testmod()
-  print("main")
+  import doctest
+  doctest.testmod()
