@@ -170,11 +170,12 @@ class Project(object):
     self._targets_directory = targets_directory
    
     # Set the top-level role objects.
-    self.targets = Targets(self._targets_directory, 'targets')
+    self._targets = Targets(self._targets_directory, 'targets')
 
     self.prefix = file_prefix
 
-  #TODO: continue where we left off.
+
+
   def write(self, write_partial=False):
     """
     <Purpose>
@@ -249,7 +250,37 @@ class Project(object):
                               release_signable['signed'], False)
 
 
-  
+
+  def add_target(self,filepath):
+    """
+    <Purpose>
+      Provide an alternative to project.targets.add_target. using
+      project.add_target yields a more intuitive and straightforward way of
+      adding targets to the project.
+
+    <Arguments>
+      filepath:
+        The path to the target file. The file must be located under the 
+        projects target's directory
+
+    <Exceptions>
+      tuf.FormatError, if 'filepath' is improperly formatted. 
+
+      tuf.Error, if 'filepath' is not under the repository's targets 
+      directory
+
+    <Side Effects> 
+      Adds 'filepath' to this role's list of targets. This role's 
+      'tuf.roledb' is also updated.
+
+    <Returns>
+      None
+    """
+    try:
+      self.targets.add_target(filepath)
+    except tuf.FormatError, tuf.Error:
+      raise
+
   def write_partial(self):
     """
     <Purpose>
@@ -430,7 +461,25 @@ class Project(object):
 
     return targets
 
+  @property
+  def targets(self):
+    """
+      <Purpose>
+        A getter method for the target's role inside the project object.
 
+      <Arguments>
+        None
+
+      <Exceptions>
+        None
+
+      <Side Effects>
+        None
+
+      <Returns>
+        The targets contained in this project's instance.
+    """
+    return self._targets
 
 
 
