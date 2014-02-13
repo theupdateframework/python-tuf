@@ -662,7 +662,8 @@ class Metadata(object):
     """
     <Purpose>
       Remove a previously loaded role private key (i.e., load_signing_key()).
-      The keyid of the 'key' is removed the list of signing keys recognized.
+      The keyid of the 'key' is removed from the list of recognized signing
+      keys.
 
       >>> 
       >>> 
@@ -734,7 +735,7 @@ class Metadata(object):
   
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     
-    # Ensure the roleinf contains a 'signatures' field.
+    # Ensure the roleinfo contains a 'signatures' field.
     if 'signatures' not in roleinfo:
       roleinfo['signatures'] = []
    
@@ -764,6 +765,8 @@ class Metadata(object):
     <Exceptions>
       tuf.FormatError, if the 'signature' argument is improperly formatted.
 
+      tuf.Error, if 'signature' has not been previously added to this role.
+
     <Side Effects>
       Updates the 'signatures' field of the role in 'tuf.roledb.py'.
 
@@ -783,6 +786,9 @@ class Metadata(object):
       roleinfo['signatures'].remove(signature)
       
       tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+
+    else:
+      raise tuf.Error('Signature not found.')
 
 
 
@@ -1081,6 +1087,7 @@ class Metadata(object):
     expiration_datetime_utc = expiration_datetime_utc+' UTC'
     try:
       unix_timestamp = tuf.formats.parse_time(expiration_datetime_utc)
+    
     except (tuf.FormatError, ValueError), e:
       message = 'Invalid datetime argument: '+repr(expiration_datetime_utc)
       raise tuf.FormatError(message)
@@ -1256,6 +1263,7 @@ class Root(Metadata):
                 'partial_loaded': False}
     try: 
       tuf.roledb.add_role(self._rolename, roleinfo)
+    
     except tuf.RoleAlreadyExistsError, e:
       pass
 
@@ -1315,6 +1323,7 @@ class Timestamp(Metadata):
     
     try: 
       tuf.roledb.add_role(self.rolename, roleinfo)
+    
     except tuf.RoleAlreadyExistsError, e:
       pass
 
@@ -1368,6 +1377,7 @@ class Snapshot(Metadata):
     
     try:
       tuf.roledb.add_role(self._rolename, roleinfo)
+    
     except tuf.RoleAlreadyExistsError, e:
       pass
 
@@ -1457,6 +1467,7 @@ class Targets(Metadata):
     # Add the new role to the 'tuf.roledb'.
     try:
       tuf.roledb.add_role(self.rolename, roleinfo)
+    
     except tuf.RoleAlreadyExistsError, e:
       pass  
 
@@ -1946,6 +1957,7 @@ class Targets(Metadata):
       
       try:
         tuf.keydb.add_key(key)
+      
       except tuf.KeyAlreadyExistsError, e:
         pass
       
@@ -2642,6 +2654,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
     # in 'tuf.keydb'.
     try:
       key = tuf.keydb.get_key(keyid)
+    
     except tuf.UnknownKeyError, e:
       signable['signatures'].remove(signature)
     
@@ -2851,6 +2864,7 @@ def create_new_repository(repository_directory):
     message = 'Creating '+repr(targets_directory)
     logger.info(message)
     os.mkdir(targets_directory)
+  
   except OSError, e:
     if e.errno == errno.EEXIST:
       pass
@@ -2959,6 +2973,7 @@ def load_repository(repository_directory):
         signable = None
         try:
           signable = tuf.util.load_json_file(metadata_path)
+        
         except (ValueError, IOError), e:
           continue
         
@@ -2995,6 +3010,7 @@ def load_repository(repository_directory):
           key_object = tuf.keys.format_metadata_to_key(key_metadata)
           try: 
             tuf.keydb.add_key(key_object)
+          
           except tuf.KeyAlreadyExistsError, e:
             pass
        
@@ -4509,6 +4525,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
   # is raised to avoid accidently overwritting previous metadata.
   try:
     os.makedirs(client_metadata_directory)
+  
   except OSError, e:
     if e.errno == errno.EEXIST:
       message = 'Cannot create a fresh client metadata directory: '+ \
