@@ -3824,12 +3824,12 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
       keyid = key['keyid']
       if keyid not in keydict:
         
-        # This appears to be a new keyid.  Let's generate the key for it.
+        # This appears to be a new keyid.  Generate the key for it.
         if key['keytype'] in ['rsa', 'ed25519']:
           keytype = key['keytype']
           keyval = key['keyval']
           keydict[keyid] = \
-            tuf.keys.format_keyval_to_metadata(keytype, keyval)
+            tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
         
         # This is not a recognized key.  Raise an exception.
         else:
@@ -4245,6 +4245,7 @@ def sign_metadata(metadata_object, keyids, filename):
         signed = signable['signed']
         signature = tuf.keys.create_signature(key, signed)
         signable['signatures'].append(signature)
+      
       else:
         logger.warn('Private key unset.  Skipping: '+repr(keyid))
     
