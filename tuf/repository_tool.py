@@ -2390,6 +2390,10 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
   'targets' role contains 1 / 1 signatures.
   'snapshot' role contains 1 / 1 signatures.
   'timestamp' role contains 1 / 1 signatures.
+
+  Note:  Temporary metadata is generated so that file hashes & sizes may be
+  computed and verified against the attached signatures.  'metadata_directory'
+  should be a directory in a temporary repository directory.
   """
 
   # The expected full filenames of the top-level roles needed to write them to
@@ -3871,8 +3875,9 @@ def generate_targets_metadata(targets_directory, target_files, version,
       The delegations made by the targets role to be generated.  'delegations'
       must match 'tuf.formats.DELEGATIONS_SCHEMA'.
 
-    write_consitent_targets:
-      Boolean.
+    write_consistent_targets:
+      Boolean that indicates whether file digests should be prepended to the
+      target files.
   
   <Exceptions>
     tuf.FormatError, if an error occurred trying to generate the targets
@@ -3953,8 +3958,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
 
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
-                              root_filename, targets_filename,
-                              consistent_snapshot):
+                               root_filename, targets_filename,
+                               consistent_snapshot):
   """
   <Purpose>
     Create the snapshot metadata.  The minimum metadata must exist
@@ -3977,10 +3982,17 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       Conformant to 'tuf.formats.TIME_SCHEMA'.
 
     root_filename:
+      The filename of the top-level root role.  The hash and file size of this
+      file is listed in the snapshot role.
 
     targets_filename:
+      The filename of the top-level targets role.  The hash and file size of
+      this file is listed in the snapshot role.
 
     consistent_snapshot:
+      Boolean.  If True, a file digest is expected to be prepended to the
+      filename of any target file located in the targets directory.  Each digest
+      is stripped from the target filename and listed in the snapshot metadata. 
 
   <Exceptions>
     tuf.FormatError, if 'metadata_directory' is improperly formatted.
@@ -4073,11 +4085,13 @@ def generate_timestamp_metadata(snapshot_filename, version,
                                 expiration_date, compressions=()):
   """
   <Purpose>
-    Generate the timestamp metadata object.  The 'snapshot.json' file must exist.
+    Generate the timestamp metadata object.  The 'snapshot.json' file must
+    exist.
 
   <Arguments>
     snapshot_filename:
-      The required filename of the snapshot metadata file.
+      The required filename of the snapshot metadata file.  The timestamp role
+      needs to the calculate the file size and hash of this file.
     
     version:
       The timestamp's version number.  Clients use the version number to
@@ -4087,8 +4101,6 @@ def generate_timestamp_metadata(snapshot_filename, version,
     expiration_date:
       The expiration date, in UTC, of the metadata file, conformant to
       'tuf.formats.TIME_SCHEMA'.
-
-    snapshot_filename:
 
     compressions:
       Compression extensions (e.g., 'gz').  If 'snapshot.json' is also saved in
