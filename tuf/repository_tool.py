@@ -12,7 +12,10 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  See 'tuf/README' for a complete guide on using 'tuf.repository_tool.py'.
+  Provide a tool that can create a TUF repository.  It can be used with the
+  Python interpreter in interactive mode, or imported directly into a Python
+  module.  See 'tuf/README' for the complete guide to using
+  'tuf.repository_tool.py'.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -204,7 +207,6 @@ class Repository(object):
     <Returns>
       None.
     """
-   
     
     # Does 'write_partial' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -239,51 +241,78 @@ class Repository(object):
       # IO exception is raised if 'metadata_filepath' is written to a
       # sub-directory.
       tuf.util.ensure_parent_dir(delegated_filename)
+   
+      try:
+        _generate_and_write_metadata(delegated_rolename, delegated_filename,
+                                     write_partial, self._targets_directory,
+                                     self._metadata_directory,
+                                     consistent_snapshot)
       
-      _generate_and_write_metadata(delegated_rolename, delegated_filename,
-                                   write_partial, self._targets_directory,
-                                   self._metadata_directory,
-                                   consistent_snapshot)
+      # Include only the exception message.
+      except tuf.UnsignedMetadataError, e:
+        raise tuf.UnsignedMetadataError(e[0])
       
     # Generate the 'root.json' metadata file.
     # _generate_and_write_metadata() raises a 'tuf.Error' exception if the
     # metadata cannot be written.
     root_filename = 'root' + METADATA_EXTENSION 
     root_filename = os.path.join(self._metadata_directory, root_filename)
-    signable_junk, root_filename = \
-      _generate_and_write_metadata('root', root_filename, write_partial,
-                                   self._targets_directory,
-                                   self._metadata_directory,
-                                   consistent_snapshot)
+    try: 
+      signable_junk, root_filename = \
+        _generate_and_write_metadata('root', root_filename, write_partial,
+                                     self._targets_directory,
+                                     self._metadata_directory,
+                                     consistent_snapshot)
+    
+    # Include only the exception message.
+    except tuf.UnsignedMetadataError, e:
+      raise tuf.UnsignedMetadataError(e[0])
     
     # Generate the 'targets.json' metadata file.
     targets_filename = 'targets' + METADATA_EXTENSION 
     targets_filename = os.path.join(self._metadata_directory, targets_filename)
-    signable_junk, targets_filename = \
-      _generate_and_write_metadata('targets', targets_filename, write_partial,
-                                   self._targets_directory,
-                                   self._metadata_directory,
-                                   consistent_snapshot)
+    try: 
+      signable_junk, targets_filename = \
+        _generate_and_write_metadata('targets', targets_filename, write_partial,
+                                     self._targets_directory,
+                                     self._metadata_directory,
+                                     consistent_snapshot)
+    
+    # Include only the exception message.
+    except tuf.UnsignedMetadataError, e:
+      raise tuf.UnsignedMetadataError(e[0])
     
     # Generate the 'snapshot.json' metadata file.
     snapshot_filename = os.path.join(self._metadata_directory, 'snapshot')
     snapshot_filename = 'snapshot' + METADATA_EXTENSION 
     snapshot_filename = os.path.join(self._metadata_directory, snapshot_filename)
-    filenames = {'root': root_filename, 'targets': targets_filename} 
-    snapshot_signable, snapshot_filename = \
-      _generate_and_write_metadata('snapshot', snapshot_filename, write_partial,
-                                   self._targets_directory,
-                                   self._metadata_directory,
-                                   consistent_snapshot, filenames)
+    filenames = {'root': root_filename, 'targets': targets_filename}
+    snapshot_signable = None
+    try: 
+      snapshot_signable, snapshot_filename = \
+        _generate_and_write_metadata('snapshot', snapshot_filename, write_partial,
+                                     self._targets_directory,
+                                     self._metadata_directory,
+                                     consistent_snapshot, filenames)
+    
+    # Include only the exception message.
+    except tuf.UnsignedMetadataError, e:
+      raise tuf.UnsignedMetadataError(e[0])
     
     # Generate the 'timestamp.json' metadata file.
     timestamp_filename = 'timestamp' + METADATA_EXTENSION 
     timestamp_filename = os.path.join(self._metadata_directory, timestamp_filename)
     filenames = {'snapshot': snapshot_filename}
-    _generate_and_write_metadata('timestamp', timestamp_filename, write_partial,
-                                 self._targets_directory,
-                                 self._metadata_directory, consistent_snapshot,
-                                 filenames)
+    try: 
+      _generate_and_write_metadata('timestamp', timestamp_filename, write_partial,
+                                   self._targets_directory,
+                                   self._metadata_directory, consistent_snapshot,
+                                   filenames)
+    
+    # Include only the exception message.
+    except tuf.UnsignedMetadataError, e:
+      raise tuf.UnsignedMetadataError(e[0])
+
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked.
@@ -3808,7 +3837,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
     if not tuf.roledb.role_exists(rolename):
       raise tuf.Error(repr(rolename)+' not in "tuf.roledb".')
    
-    # Keep track of the keys loaded so that duplicates is avoided.
+    # Keep track of the keys loaded to avoid duplicates.
     keyids = []
 
     # Generate keys for the keyids listed by the role being processed.
