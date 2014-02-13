@@ -460,8 +460,13 @@
 
    where PUBLIC and PRIVATE are both 32-byte strings.
 
+   Metadata does not include the private portion of the key object:
+      { "keytype" : "rsa",
+        "keyval" : { "public" : PUBLIC}
+      }
+   
    The KEYID of a key is the hexdigest of the SHA-256 hash of the
-   canonical JSON form of the key, where PRIVATE is unset.
+   canonical JSON form of the key, where the "private" object key is excluded.
    
    All times are given as strings of the format "YYYY-MM-DD HH:MM:SS UTC".
 
