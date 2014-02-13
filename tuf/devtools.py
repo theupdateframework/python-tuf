@@ -281,6 +281,174 @@ class Project(object):
     except tuf.FormatError, tuf.Error:
       raise
 
+  def add_verification_key(self,key):
+    """
+      <Purpose>
+        Function as a thin wrapper call for the project._targets call
+        with the same name. This wrapper is only for usability purposes
+
+      <Arguments>
+        Key:
+          The role key to be added, conformant to tuf.formats.anykey_schema
+          Adding a public key to a role means that its corresponding private
+          key must generate and add its signture to the role. 
+
+      <Exceptions>
+        Tuf.FormatError, if the 'key' argument is improperly formatted.
+
+        Tuf.Error, if the project already contains a key
+
+      <Side Effects>
+        The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated
+
+      <Returns>
+        None
+    """
+    ### should check the number of keys for this role.
+    if len(self._targets.keys()>0):
+      raise tuf.Error("This project already contains a key")
+
+    try:
+      self._targets.add_verification_key(key)
+    except tuf.FormatError:
+      raise
+
+
+  def remove_verification_key(self,key):
+    """
+      <Purpose>
+        Function as a thin wrapper call for the project._targets call
+        with the same name. This wrapper is only for usability purposes
+
+      <Arguments>
+        Key:
+          The role key to be removed, conformant to tuf.formats.anykey_schema
+
+      <Exceptions>
+        Tuf.FormatError, if the 'key' argument is improperly formatted.
+
+      <Side Effects>
+        The role's entries in 'tuf.roledb.py' are updated
+
+      <Returns>
+        None
+    """
+    try:
+      self._targets.remove_verification_key(key)
+    except tuf.FormatError:
+      raise
+
+  def load_signing_key(self,key):
+    """
+      <Purpose>
+        To function as a thin wrapper call for the project._targets call
+        with the same name. This wrapper is only for usability purposes.
+
+      <Arguments>
+        Key:
+          The key to be used to sign the metadata with. This key is the private
+          key for the whole project. A project supports only one key.
+
+      <Exceptions>
+        tuf.FormatError, if the 'key' argument is improperly formatted.
+
+
+      <Side Effects>
+        The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated
+
+      <Returns>
+        none
+    """
+    try:
+      self._targets.load_signing_key(key)
+    except tuf.FormatError:
+      raise
+
+  
+  def unload_signing_key(self,key):
+    """
+      <Purpose>
+        To function as a thin wrapper call for the project._targets call
+        with the same name. This wrapper is only for usability purposes.
+
+      <Arguments>
+        Key:
+          The key to be used to sign the metadata with. This key is the private
+          key for the whole project. A project supports only one key.
+
+      <Exceptions>
+        tuf.FormatError, if the 'key' argument is improperly formatted.
+
+      <Side Effects>
+        The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated
+
+      <Returns>
+        none
+    """
+    try:
+      self._targets.unload_signing_key(key)
+    except tuf.FormatError:
+      raise
+
+
+
+  def delegate(self,rolename, public_keys, list_of_targets, threshold=1,
+                restricted_paths=None, path_hash_prefixes=None):
+    """
+      <Purpose>
+        To function as a thin wrapper call for the project._targets call
+        with the same name. This wrapper is only for usability purposes.
+
+      <Arguments>
+        rolename:
+          The name of the delegated role (e.g. django, qiime), not the full
+          rolename
+  
+        public_keys:
+          A list of TUF keys objects in 'ANYKEYLIST_SCHEMA' format. The list
+          may contain any of the supported key types: RSAKEY_SCHEMA, 
+          ED25519KEY_SCHEMA, etc.
+
+        list_of_targets:
+          A list of target filepaths that are added to the paths of 'rolename'
+          'list_of_targets' is a list of target filepaths, and can be empty.
+
+        threshold:
+          The threshold number of keys of 'rolename'.
+
+        restricted_paths:
+          A list of restricted directory or file paths of 'rolename'. Any 
+          targets files added to 'rolenae' must all under one of the 
+          'restructed' paths.
+
+        path_hash_prefixes:
+          A list of hash prefixes in 'tuf.formats.PATH_HASH_PREFIXES_SCHEMA'
+          format, used in hashed bin delegations. Targets may be located and
+          stored in hashed bins by calculating the target path's hash prefix.
+
+      <Exceptions>
+        tuf.FormatError, if any of the arguments are improperly formatted
+
+        tuf.Error, if the delegated role already exists or if any of the 
+        argument is an invalid path (i.e., not under the repository's targets
+        directory).
+
+      <Side Effects>
+        A new Target object is created for 'rolename' that is accessible to the
+        caller (i.e., targets.unclaimed.<rolename>). The 'tuf.keydb.py' and
+        'tuf.roledb.py' stores are updated with 'public_keys'
+
+      <Returns>
+        None.
+    """
+
+    try:
+      self._targets.delegate(rolename, public_keys, list_f_targets, 
+          threshold, restricted_paths, path_hash_prefixes)
+    except tuf.FormatError, tuf.Error:
+      raise
+  
+
   def write_partial(self):
     """
     <Purpose>
@@ -303,7 +471,39 @@ class Project(object):
 
     self.write(write_partial=True)
   
-  
+
+  def delegations(self, delegation_name):
+    """
+      <Purpose>
+        To provide a method to access the delegations under this project. This
+        function is completely analogous to the targets(delegation_name). This
+        method is also recommended because sanity checks, input format and any
+        bridge-functions needed to guarantee the correct operation with the
+        target's object.
+
+      <Arguments>
+        delegation_name:
+          The name of the delegation to be accessed, this argument has to match
+          the one used in the "delegate" method.
+
+      <Exceptions>
+        tuf.FormatError, if any of the arguments are improperly formatted.
+
+        tuf.Error, if the delegated role doesn't exist inside the targets
+        object.
+
+      <Side Effects>
+        None
+
+      <Returns>
+        A targets object with the information for the desired delegation.
+    """
+    try:
+      delegation = self._targets(delegation_name)
+    except tuf.FormatError, tuf.Error:
+      raise
+
+    return delegation
   
   def status(self):
     """
