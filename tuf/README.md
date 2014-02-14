@@ -2,8 +2,9 @@
 ![Repo Tools Diagram 1](https://raw.github.com/theupdateframework/tuf/repository-tools/docs/images/repository_tool-diagram.png)
 ## Create TUF Repository
 
-The **tuf.repository_tool** module can be used to create a TUF repository.  It may either be imported into a Python module
-or used interactively in a Python interpreter.
+The **tuf.repository_tool** module can be used to create a TUF repository.
+It may either be imported into a Python module or used with the Python
+interpreter in interactive mode.
 
 ```Bash
 $ python
@@ -13,7 +14,9 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> from tuf.repository_tool import *
 >>> repository = load_repository("path/to/repository")
 ```
-The **tuf.interposition** package and **tuf.client.updater** module assist in integrating TUF with a software updater.
+Note that *tuf.repository_tool.py* is not used in TUF integrations.  The
+**tuf.interposition** package and **tuf.client.updater** module assist in
+integrating TUF with a software updater.
 
 
 ### Keys
@@ -127,7 +130,7 @@ try:
 # signatures, required public keys, etc.  write_partial() allows multiple repository maintainers to
 # independently sign metadata and generate them separately.  load_repository() can load partially
 # written metadata.
-except tuf.Error, e:
+except tuf.UnsignedMetadataError, e:
   print e 
 Not enough signatures for 'path/to/repository/metadata.staged/targets.json'
 

@@ -235,7 +235,6 @@ try:
   test_extraneous_dependency_attack(using_tuf=True, modify_metadata=True)
 
 except ExtraneousDependencyAlert, error:
->>>>>>> develop
   print(error)
 
 else:

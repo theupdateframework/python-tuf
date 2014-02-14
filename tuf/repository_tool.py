@@ -12,7 +12,10 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  See 'tuf/README' for a complete guide on using 'tuf.repository_tool.py'.
+  Provide a tool that can create a TUF repository.  It can be used with the
+  Python interpreter in interactive mode, or imported directly into a Python
+  module.  See 'tuf/README' for the complete guide to using
+  'tuf.repository_tool.py'.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -204,7 +207,6 @@ class Repository(object):
     <Returns>
       None.
     """
-   
     
     # Does 'write_partial' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -239,51 +241,78 @@ class Repository(object):
       # IO exception is raised if 'metadata_filepath' is written to a
       # sub-directory.
       tuf.util.ensure_parent_dir(delegated_filename)
+   
+      try:
+        _generate_and_write_metadata(delegated_rolename, delegated_filename,
+                                     write_partial, self._targets_directory,
+                                     self._metadata_directory,
+                                     consistent_snapshot)
       
-      _generate_and_write_metadata(delegated_rolename, delegated_filename,
-                                   write_partial, self._targets_directory,
-                                   self._metadata_directory,
-                                   consistent_snapshot)
+      # Include only the exception message.
+      except tuf.UnsignedMetadataError, e:
+        raise tuf.UnsignedMetadataError(e[0])
       
     # Generate the 'root.json' metadata file.
     # _generate_and_write_metadata() raises a 'tuf.Error' exception if the
     # metadata cannot be written.
     root_filename = 'root' + METADATA_EXTENSION 
     root_filename = os.path.join(self._metadata_directory, root_filename)
-    signable_junk, root_filename = \
-      _generate_and_write_metadata('root', root_filename, write_partial,
-                                   self._targets_directory,
-                                   self._metadata_directory,
-                                   consistent_snapshot)
+    try: 
+      signable_junk, root_filename = \
+        _generate_and_write_metadata('root', root_filename, write_partial,
+                                     self._targets_directory,
+                                     self._metadata_directory,
+                                     consistent_snapshot)
+    
+    # Include only the exception message.
+    except tuf.UnsignedMetadataError, e:
+      raise tuf.UnsignedMetadataError(e[0])
     
     # Generate the 'targets.json' metadata file.
     targets_filename = 'targets' + METADATA_EXTENSION 
     targets_filename = os.path.join(self._metadata_directory, targets_filename)
-    signable_junk, targets_filename = \
-      _generate_and_write_metadata('targets', targets_filename, write_partial,
-                                   self._targets_directory,
-                                   self._metadata_directory,
-                                   consistent_snapshot)
+    try: 
+      signable_junk, targets_filename = \
+        _generate_and_write_metadata('targets', targets_filename, write_partial,
+                                     self._targets_directory,
+                                     self._metadata_directory,
+                                     consistent_snapshot)
+    
+    # Include only the exception message.
+    except tuf.UnsignedMetadataError, e:
+      raise tuf.UnsignedMetadataError(e[0])
     
     # Generate the 'snapshot.json' metadata file.
     snapshot_filename = os.path.join(self._metadata_directory, 'snapshot')
     snapshot_filename = 'snapshot' + METADATA_EXTENSION 
     snapshot_filename = os.path.join(self._metadata_directory, snapshot_filename)
-    filenames = {'root': root_filename, 'targets': targets_filename} 
-    snapshot_signable, snapshot_filename = \
-      _generate_and_write_metadata('snapshot', snapshot_filename, write_partial,
-                                   self._targets_directory,
-                                   self._metadata_directory,
-                                   consistent_snapshot, filenames)
+    filenames = {'root': root_filename, 'targets': targets_filename}
+    snapshot_signable = None
+    try: 
+      snapshot_signable, snapshot_filename = \
+        _generate_and_write_metadata('snapshot', snapshot_filename, write_partial,
+                                     self._targets_directory,
+                                     self._metadata_directory,
+                                     consistent_snapshot, filenames)
+    
+    # Include only the exception message.
+    except tuf.UnsignedMetadataError, e:
+      raise tuf.UnsignedMetadataError(e[0])
     
     # Generate the 'timestamp.json' metadata file.
     timestamp_filename = 'timestamp' + METADATA_EXTENSION 
     timestamp_filename = os.path.join(self._metadata_directory, timestamp_filename)
     filenames = {'snapshot': snapshot_filename}
-    _generate_and_write_metadata('timestamp', timestamp_filename, write_partial,
-                                 self._targets_directory,
-                                 self._metadata_directory, consistent_snapshot,
-                                 filenames)
+    try: 
+      _generate_and_write_metadata('timestamp', timestamp_filename, write_partial,
+                                   self._targets_directory,
+                                   self._metadata_directory, consistent_snapshot,
+                                   filenames)
+    
+    # Include only the exception message.
+    except tuf.UnsignedMetadataError, e:
+      raise tuf.UnsignedMetadataError(e[0])
+
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked.
@@ -662,7 +691,8 @@ class Metadata(object):
     """
     <Purpose>
       Remove a previously loaded role private key (i.e., load_signing_key()).
-      The keyid of the 'key' is removed the list of signing keys recognized.
+      The keyid of the 'key' is removed from the list of recognized signing
+      keys.
 
       >>> 
       >>> 
@@ -734,7 +764,7 @@ class Metadata(object):
   
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     
-    # Ensure the roleinf contains a 'signatures' field.
+    # Ensure the roleinfo contains a 'signatures' field.
     if 'signatures' not in roleinfo:
       roleinfo['signatures'] = []
    
@@ -764,6 +794,8 @@ class Metadata(object):
     <Exceptions>
       tuf.FormatError, if the 'signature' argument is improperly formatted.
 
+      tuf.Error, if 'signature' has not been previously added to this role.
+
     <Side Effects>
       Updates the 'signatures' field of the role in 'tuf.roledb.py'.
 
@@ -783,6 +815,9 @@ class Metadata(object):
       roleinfo['signatures'].remove(signature)
       
       tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+
+    else:
+      raise tuf.Error('Signature not found.')
 
 
 
@@ -1081,6 +1116,7 @@ class Metadata(object):
     expiration_datetime_utc = expiration_datetime_utc+' UTC'
     try:
       unix_timestamp = tuf.formats.parse_time(expiration_datetime_utc)
+    
     except (tuf.FormatError, ValueError), e:
       message = 'Invalid datetime argument: '+repr(expiration_datetime_utc)
       raise tuf.FormatError(message)
@@ -1256,6 +1292,7 @@ class Root(Metadata):
                 'partial_loaded': False}
     try: 
       tuf.roledb.add_role(self._rolename, roleinfo)
+    
     except tuf.RoleAlreadyExistsError, e:
       pass
 
@@ -1315,6 +1352,7 @@ class Timestamp(Metadata):
     
     try: 
       tuf.roledb.add_role(self.rolename, roleinfo)
+    
     except tuf.RoleAlreadyExistsError, e:
       pass
 
@@ -1368,6 +1406,7 @@ class Snapshot(Metadata):
     
     try:
       tuf.roledb.add_role(self._rolename, roleinfo)
+    
     except tuf.RoleAlreadyExistsError, e:
       pass
 
@@ -1457,6 +1496,7 @@ class Targets(Metadata):
     # Add the new role to the 'tuf.roledb'.
     try:
       tuf.roledb.add_role(self.rolename, roleinfo)
+    
     except tuf.RoleAlreadyExistsError, e:
       pass  
 
@@ -1946,6 +1986,7 @@ class Targets(Metadata):
       
       try:
         tuf.keydb.add_key(key)
+      
       except tuf.KeyAlreadyExistsError, e:
         pass
       
@@ -2390,6 +2431,10 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
   'targets' role contains 1 / 1 signatures.
   'snapshot' role contains 1 / 1 signatures.
   'timestamp' role contains 1 / 1 signatures.
+
+  Note:  Temporary metadata is generated so that file hashes & sizes may be
+  computed and verified against the attached signatures.  'metadata_directory'
+  should be a directory in a temporary repository directory.
   """
 
   # The expected full filenames of the top-level roles needed to write them to
@@ -2638,6 +2683,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
     # in 'tuf.keydb'.
     try:
       key = tuf.keydb.get_key(keyid)
+    
     except tuf.UnknownKeyError, e:
       signable['signatures'].remove(signature)
     
@@ -2847,6 +2893,7 @@ def create_new_repository(repository_directory):
     message = 'Creating '+repr(targets_directory)
     logger.info(message)
     os.mkdir(targets_directory)
+  
   except OSError, e:
     if e.errno == errno.EEXIST:
       pass
@@ -2955,6 +3002,7 @@ def load_repository(repository_directory):
         signable = None
         try:
           signable = tuf.util.load_json_file(metadata_path)
+        
         except (ValueError, IOError), e:
           continue
         
@@ -2991,6 +3039,7 @@ def load_repository(repository_directory):
           key_object = tuf.keys.format_metadata_to_key(key_metadata)
           try: 
             tuf.keydb.add_key(key_object)
+          
           except tuf.KeyAlreadyExistsError, e:
             pass
        
@@ -3788,7 +3837,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
     if not tuf.roledb.role_exists(rolename):
       raise tuf.Error(repr(rolename)+' not in "tuf.roledb".')
    
-    # Keep track of the keys loaded so that duplicates is avoided.
+    # Keep track of the keys loaded to avoid duplicates.
     keyids = []
 
     # Generate keys for the keyids listed by the role being processed.
@@ -3804,12 +3853,12 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
       keyid = key['keyid']
       if keyid not in keydict:
         
-        # This appears to be a new keyid.  Let's generate the key for it.
+        # This appears to be a new keyid.  Generate the key for it.
         if key['keytype'] in ['rsa', 'ed25519']:
           keytype = key['keytype']
           keyval = key['keyval']
           keydict[keyid] = \
-            tuf.keys.format_keyval_to_metadata(keytype, keyval)
+            tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
         
         # This is not a recognized key.  Raise an exception.
         else:
@@ -3871,8 +3920,9 @@ def generate_targets_metadata(targets_directory, target_files, version,
       The delegations made by the targets role to be generated.  'delegations'
       must match 'tuf.formats.DELEGATIONS_SCHEMA'.
 
-    write_consitent_targets:
-      Boolean.
+    write_consistent_targets:
+      Boolean that indicates whether file digests should be prepended to the
+      target files.
   
   <Exceptions>
     tuf.FormatError, if an error occurred trying to generate the targets
@@ -3953,8 +4003,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
 
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
-                              root_filename, targets_filename,
-                              consistent_snapshot):
+                               root_filename, targets_filename,
+                               consistent_snapshot):
   """
   <Purpose>
     Create the snapshot metadata.  The minimum metadata must exist
@@ -3977,10 +4027,17 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       Conformant to 'tuf.formats.TIME_SCHEMA'.
 
     root_filename:
+      The filename of the top-level root role.  The hash and file size of this
+      file is listed in the snapshot role.
 
     targets_filename:
+      The filename of the top-level targets role.  The hash and file size of
+      this file is listed in the snapshot role.
 
     consistent_snapshot:
+      Boolean.  If True, a file digest is expected to be prepended to the
+      filename of any target file located in the targets directory.  Each digest
+      is stripped from the target filename and listed in the snapshot metadata. 
 
   <Exceptions>
     tuf.FormatError, if 'metadata_directory' is improperly formatted.
@@ -4073,11 +4130,13 @@ def generate_timestamp_metadata(snapshot_filename, version,
                                 expiration_date, compressions=()):
   """
   <Purpose>
-    Generate the timestamp metadata object.  The 'snapshot.json' file must exist.
+    Generate the timestamp metadata object.  The 'snapshot.json' file must
+    exist.
 
   <Arguments>
     snapshot_filename:
-      The required filename of the snapshot metadata file.
+      The required filename of the snapshot metadata file.  The timestamp role
+      needs to the calculate the file size and hash of this file.
     
     version:
       The timestamp's version number.  Clients use the version number to
@@ -4087,8 +4146,6 @@ def generate_timestamp_metadata(snapshot_filename, version,
     expiration_date:
       The expiration date, in UTC, of the metadata file, conformant to
       'tuf.formats.TIME_SCHEMA'.
-
-    snapshot_filename:
 
     compressions:
       Compression extensions (e.g., 'gz').  If 'snapshot.json' is also saved in
@@ -4217,6 +4274,7 @@ def sign_metadata(metadata_object, keyids, filename):
         signed = signable['signed']
         signature = tuf.keys.create_signature(key, signed)
         signable['signatures'].append(signature)
+      
       else:
         logger.warn('Private key unset.  Skipping: '+repr(keyid))
     
@@ -4497,6 +4555,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
   # is raised to avoid accidently overwritting previous metadata.
   try:
     os.makedirs(client_metadata_directory)
+  
   except OSError, e:
     if e.errno == errno.EEXIST:
       message = 'Cannot create a fresh client metadata directory: '+ \

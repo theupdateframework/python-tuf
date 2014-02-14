@@ -220,7 +220,7 @@
    There are four fundamental top-level roles in the framework:
      - Root role
      - Targets role
-     - Release role
+     - Snapshot role
      - Timestamp role
 
    There is also one optional top-level role:
@@ -262,9 +262,9 @@
    Delegated trust can be revoked at any time by the delegating role signing
    new metadata that indicates the delegated role is no longer trusted.
 
-2.1.3 Release role
+2.1.3 Snapshot role
 
-   The release role signs a metadata file that provides information about the
+   The snapshot role signs a metadata file that provides information about the
    latest version of all of the other metadata on the repository (excluding the
    timestamp file, discussed below).  This information allows clients to know
    which metadata files have been updated and also prevents mix-and-match
@@ -274,7 +274,7 @@
 
    To prevent an adversary from replaying an out-of-date signed metadata file
    whose signature has not yet expired, an automated process periodically signs
-   a timestamped statement containing the the hash of the release file.  Even
+   a timestamped statement containing the the hash of the snapshot file.  Even
    though this timestamp key must be kept online, the risk posed to clients by
    compromise of this key is minimal.
 
@@ -348,28 +348,28 @@
    defined.  The following are the metadata files of top-level roles relative
    to the base URL of metadata available from a given repository mirror.
 
-    /root.txt
+    /root.json
 
          Signed by the root keys; specifies trusted keys for the other
          top-level roles.
 
-    /release.txt
+    /snapshot.json
 
-         Signed by the release role's keys.  Lists hashes and sizes of all
-         metadata files other than timestamp.txt.
+         Signed by the snapshot role's keys.  Lists hashes and sizes of all
+         metadata files other than timestamp.json.
 
-    /targets.txt
+    /targets.json
 
          Signed by the target role's keys.  Lists hashes and sizes of target
          files.
 
-    /timestamp.txt
+    /timestamp.json
 
          Signed by the timestamp role's keys.  Lists hashes and size of the
-         release file.  This is the first and potentially only file that needs
+         snapshot file.  This is the first and potentially only file that needs
          to be downloaded when clients poll for the existence of updates.
 
-    /mirrors.txt (optional)
+    /mirrors.json (optional)
 
          Signed by the mirrors role's keys.  Lists information about available
          mirrors and the content available from each mirror.
@@ -378,7 +378,7 @@
    any metadata files in compressed (e.g. gzip'd) format.  In doing so, the
    filename of the compressed file should be the same as the original with the
    addition of the file name extension for the compression type (e.g.
-   release.txt.gz).  The original (uncompressed) file should always be made
+   snapshot.json.gz).  The original (uncompressed) file should always be made
    available, as well.
 
 3.1.2.1 Metadata files for targets delegation
@@ -386,13 +386,13 @@
    When the targets role delegates trust to other roles, each delegated role
    provides one signed metadata file.  This file is located at:
 
-    /targets/DELEGATED_ROLE.txt
+    /targets/DELEGATED_ROLE.json
 
    where DELEGATED_ROLE is the name of the delegated role that has been
-   specified in targets.txt.  If this role further delegates trust to a role
+   specified in targets.json.  If this role further delegates trust to a role
    named ANOTHER_ROLE, that role's signed metadata file is made available at:
 
-    /targets/DELEGATED_ROLE/ANOTHER_ROLE.txt
+    /targets/DELEGATED_ROLE/ANOTHER_ROLE.json
 
 4. Document formats
 
@@ -424,11 +424,15 @@
           METHOD is the key signing method used to generate the signature.
           SIGNATURE is a signature of the canonical JSON form of ROLE.
 
-   We define one signing method at present:
-       "evp" : An interface to OpenSSL's EVP functions.
-
-   All times are given as strings of the format "YYYY-MM-DD HH:MM:SS UTC".
-
+   We define two signing methods at present:
+       "RSASSA-PSS" : RSA Probabilistic signature scheme with appendix.
+       
+       "ed25519": Elliptic curve digital signature algorithm based on Twisted
+                  Edwards curves.
+       
+       RSASSA-PSS: http://tools.ietf.org/html/rfc3447#page-29 
+       ed25519: http://ed25519.cr.yp.to/
+   
    All keys are of the format:
       { "keytype" : KEYTYPE,
         "keyval" : KEYVAL }
@@ -437,10 +441,9 @@
    used to sign documents.  The type determines the interpretation of
    KEYVAL.
 
-   The KEYID of a key is the hexdigest of the SHA-256 hash of the
-   canonical JSON form of the key.
-
-   We define one keytype at present: 'rsa'.  Its format is:
+   We define two keytypes at present: 'rsa' and 'ed25519'.
+   
+   The 'rsa' format is:
       { "keytype" : "rsa",
         "keyval" : { "public" : PUBLIC,
                      "private" : PRIVATE }
@@ -449,15 +452,34 @@
    where PUBLIC and PRIVATE are in PEM format and are strings.  All RSA keys
    must be at least 2048 bits long.
 
-4.3. File formats: root.txt
+   The 'ed25519' format is:
+      { "keytype" : "ed25519",
+        "keyval" : { "public" : PUBLIC,
+                     "private" : PRIVATE }
+      }
 
-   The root.txt file is signed by the root role's keys.  It indicates
+   where PUBLIC and PRIVATE are both 32-byte strings.
+
+   Metadata does not include the private portion of the key object:
+      { "keytype" : "rsa",
+        "keyval" : { "public" : PUBLIC}
+      }
+   
+   The KEYID of a key is the hexdigest of the SHA-256 hash of the
+   canonical JSON form of the key, where the "private" object key is excluded.
+   
+   All times are given as strings of the format "YYYY-MM-DD HH:MM:SS UTC".
+
+
+4.3. File formats: root.json
+
+   The root.json file is signed by the root role's keys.  It indicates
    which keys are authorized for all top-level roles, including the root
    role itself.  Revocation and replacement of top-level role keys, including
    for the root role, is done by changing the keys listed for the roles in
    this file.
 
-   The format of root.txt is as follows:
+   The format of root.json is as follows:
 
      { "_type" : "Root",
        "version" : VERSION,
@@ -478,8 +500,8 @@
    EXPIRES determines when metadata should be considered expired and no longer
    trusted by clients.  Clients MUST NOT trust an expired file.
 
-   A ROLE is one of "root", "release", "targets", "timestamp", or "mirrors".
-   A role for each of "root", "release", "timestamp", and "targets" MUST be
+   A ROLE is one of "root", "snapshot", "targets", "timestamp", or "mirrors".
+   A role for each of "root", "snapshot", "timestamp", and "targets" MUST be
    specified in the key list. The role of "mirror" is optional.  If not
    specified, the mirror list will not need to be signed if mirror lists are
    being used.
@@ -493,15 +515,15 @@
    whose signatures are required in order to consider a file as being properly
    signed by that role.
 
-4.4. File formats: release.txt
+4.4. File formats: snapshot.json
 
-   The release.txt file is signed by the release role.  It lists hashes and
-   sizes of all metadata on the repository, excluding timestamp.txt and
-   mirrors.txt.
+   The snapshot.json file is signed by the snapshot role.  It lists hashes and
+   sizes of all metadata on the repository, excluding timestamp.json and
+   mirrors.json.
 
-   The format of release.txt is as follows:
+   The format of snapshot.json is as follows:
 
-     { "_type" : "Release",
+     { "_type" : "Snapshot",
        "version" : VERSION,
        "expires" : EXPIRES,
        "meta" : METAFILES
@@ -519,9 +541,9 @@
    METAPATH is the the metadata file's path on the repository relative to the
    metadata base URL.
 
-4.5. File formats: targets.txt and delegated target roles
+4.5. File formats: targets.json and delegated target roles
 
-   The format of targets.txt is as follows:
+   The format of targets.json is as follows:
 
      { "_type" : "Targets",
        "version" : VERSION,
@@ -593,8 +615,8 @@
 
    A path to a directory is used to indicate all possible targets sharing that
    directory as a prefix; e.g. if the directory is "targets/A", then targets
-   which match that directory include "targets/A/B.txt" and
-   "targets/A/B/C.txt".
+   which match that directory include "targets/A/B.json" and
+   "targets/A/B/C.json".
 
    We are currently investigating a few "priority tag" schemes to resolve
    conflicts between delegated roles that share responsibility for overlapping
@@ -614,9 +636,9 @@
    08-04)[https://isis.poly.edu/~jcappos/papers/cappos_stork_dissertation_08.pdf].
 
    The metadata files for delegated target roles has the same format as the
-   top-level targets.txt metadata file.
+   top-level targets.json metadata file.
 
-4.6. File formats: timestamp.txt
+4.6. File formats: timestamp.json
 
    The timestamp file is signed by a timestamp key.  It indicates the
    latest versions of other files and is frequently resigned to limit the
@@ -634,17 +656,17 @@
        "meta" : METAFILES
      }
 
-   METAFILES is the same is described for the release.txt file.  In the case of
-   the timestamp.txt file, this will commonly only include a description of the
-   release.txt file.
+   METAFILES is the same is described for the snapshot.json file.  In the case of
+   the timestamp.json file, this will commonly only include a description of the
+   snapshot.json file.
 
-4.7. File formats: mirrors.txt
+4.7. File formats: mirrors.json
 
-   The mirrors.txt file is signed by the mirrors role.  It indicates which
+   The mirrors.json file is signed by the mirrors role.  It indicates which
    mirrors are active and believed to be mirroring specific parts of the
    repository.
 
-   The format of mirrors.txt is as follows:
+   The format of mirrors.json is as follows:
 
      { "_type" : "Mirrorlist",
        "version" : VERSION,
@@ -686,19 +708,19 @@
    decide how to proceed rather than automatically downloading a new Root file.
 
    The client code instructs the framework to check for updates.  The framework
-   downloads the timestamp.txt file from a mirror and checks that the file is
+   downloads the timestamp.json file from a mirror and checks that the file is
    properly signed by the timestamp role, is not expired, and is not older than
-   the last timestamp.txt file retrieved.  If the timestamp file lists the same
-   release.txt file as was previously seen, the client code is informed that no
+   the last timestamp.json file retrieved.  If the timestamp file lists the same
+   snapshot.json file as was previously seen, the client code is informed that no
    updates are available and the update checking process stops.
 
-   If the release.txt file has changed, the framework downloads the file and
-   verifies that it is properly signed by the release role, is not expired, has
-   a newer timestamp than the last release.txt file seen, and matches the
-   description (hashes and size) in the timestamp.txt file.  The framework then
-   checks which metadata files listed in release.txt differ from those
-   described in the last release.txt file the framework had seen.  If the
-   root.txt file has changed, the framework updates this (following the same
+   If the snapshot.json file has changed, the framework downloads the file and
+   verifies that it is properly signed by the snapshot role, is not expired, has
+   a newer timestamp than the last snapshot.json file seen, and matches the
+   description (hashes and size) in the timestamp.json file.  The framework then
+   checks which metadata files listed in snapshot.json differ from those
+   described in the last snapshot.json file the framework had seen.  If the
+   root.json file has changed, the framework updates this (following the same
    security measures as with the other files) and starts the process over.  If
    any other metadata files have changed, the framework downloads and checks
    those.
@@ -716,8 +738,8 @@
 
 6. Usage
 
-   See https://www.updateframework.com/ for discussion of recommended usage in
-   various situations.
+   See http://www.theupdateframework.com/ for discussion of recommended usage
+   in various situations.
 
 6.1. Key management and migration
 
@@ -726,12 +748,12 @@
    machine, in special-purpose hardware, etc.).
 
    To replace a compromised root key or any other top-level role key, the root
-   role signs a new root.txt file that lists the updated trusted keys for the
-   role.  When replacing root keys, an application will sign the new root.txt
+   role signs a new root.json file that lists the updated trusted keys for the
+   role.  When replacing root keys, an application will sign the new root.json
    file with both the new and old root keys until all clients are known to have
-   obtained the new root.txt file (a safe assumption is that this will be a
+   obtained the new root.json file (a safe assumption is that this will be a
    very long time or never).  There is no risk posed by continuing to sign the
-   root.txt file with revoked keys as once clients have updated they no longer
+   root.json file with revoked keys as once clients have updated they no longer
    trust the revoked key.  This is only to ensure outdated clients remain able
    to update.
 
@@ -749,7 +771,7 @@
     targets, then should clients read metadata while the same metadata is being
     written to, they would effectively see denial-of-service attacks.
     Therefore, the repository needs to be careful about how it writes metadata
-    and targets. The high-level idea of the solution is that each release will
+    and targets. The high-level idea of the solution is that each snapshot will
     be contained in a so-called consistent snapshot. If a client is reading
     from one consistent snapshot, then the repository is free to write another
     consistent snapshot without interrupting that client. For more reasons on
@@ -773,12 +795,12 @@
     from the selection of a digest (which includes the name of the
     cryptographic function) from all digests in the referred file.
 
-    Additionally, the timestamp metadata (timestamp.txt) should also be written
+    Additionally, the timestamp metadata (timestamp.json) should also be written
     to disk whenever it is updated. It is optional for an implementation to
-    write identical copies at timestamp.digest.txt for record-keeping purposes,
+    write identical copies at timestamp.digest.json for record-keeping purposes,
     because a cryptographic hash of the timestamp metadata is usually not
-    known in advance. The same step applies to the root metadata (root.txt),
-    although an implementation must write both root.txt and root.digest.txt
+    known in advance. The same step applies to the root metadata (root.json),
+    although an implementation must write both root.json and root.digest.json
     because it is possible to download root metadata both with and without
     known hashes. These steps are required because these are the only metadata
     files that may be requested without known hashes.
@@ -806,16 +828,16 @@
     We now explain how a client should read a self-contained consistent
     snapshot.
 
-    If the root metadata (root.txt) is either missing the Boolean
+    If the root metadata (root.json) is either missing the Boolean
     "consistent_snapshot" attribute or the attribute is set to False, then the
     client should do nothing different from the workflow in Section 5.1.
 
     Otherwise, the client must perform as follows:
-      1. It must first retrieve the timestamp metadata (timestamp.txt) from the
+      1. It must first retrieve the timestamp metadata (timestamp.json) from the
       repository.
-      2. If a threshold number of signatures of the timestamp or release
+      2. If a threshold number of signatures of the timestamp or snapshot
       metadata are not valid, then the client must download the root metadata
-      (root.txt) from the repository and return to step 1.
+      (root.json) from the repository and return to step 1.
       3. Otherwise, the client must download every subsequent metadata or
       target file as follows: if the metadata or target file has the name
       filename.ext, then the client must actually retrieve the file with the

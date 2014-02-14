@@ -176,7 +176,7 @@ PASSWORDS_SCHEMA = SCHEMA.ListOf(PASSWORD_SCHEMA)
 KEYVAL_SCHEMA = SCHEMA.Object(
   object_name = 'KEYVAL_SCHEMA',
   public = SCHEMA.AnyString(),
-  private = SCHEMA.AnyString())
+  private = SCHEMA.Optional(SCHEMA.AnyString()))
 
 # Supported TUF key types. 
 KEYTYPE_SCHEMA = SCHEMA.OneOf(
@@ -734,6 +734,7 @@ def format_time(timestamp):
     
     # Attach 'UTC' to the formatted time string prior to returning.  
     return formatted_time+' UTC' 
+  
   except (ValueError, TypeError):
     raise tuf.FormatError('Invalid argument value')
 
@@ -768,6 +769,7 @@ def parse_time(string):
   string = string[0:string.rfind(' UTC')]
   try:
     return calendar.timegm(time.strptime(string, '%Y-%m-%d %H:%M:%S'))
+  
   except ValueError:
     raise tuf.FormatError('Malformed time: '+repr(string))
 
@@ -798,6 +800,7 @@ def format_base64(data):
   
   try:
     return binascii.b2a_base64(data).rstrip('=\n ')
+  
   except (TypeError, binascii.Error), e:
     raise tuf.FormatError('Invalid base64 encoding: '+str(e))
 
@@ -837,6 +840,7 @@ def parse_base64(base64_string):
 
   try:
     return binascii.a2b_base64(base64_string)
+  
   except (TypeError, binascii.Error), e:
     raise tuf.FormatError('Invalid base64 encoding: '+str(e))
 
@@ -1034,6 +1038,7 @@ def get_role_class(expected_rolename):
   
   try:
     role_class = ROLE_CLASSES_BY_TYPE[expected_rolename]
+  
   except KeyError:
     raise tuf.FormatError(repr(expected_rolename)+' not supported.')
   else:
@@ -1114,10 +1119,13 @@ def check_signable_object_format(object):
 
   try:
     role_type = object['signed']['_type']
+  
   except (KeyError, TypeError):
     raise tuf.FormatError('Untyped object')
+  
   try:
     schema = SCHEMAS_BY_TYPE[role_type]
+  
   except KeyError:
     raise tuf.FormatError('Unrecognized type '+repr(role_type))
   
@@ -1263,6 +1271,7 @@ def encode_canonical(object, output_function=None):
 
   try:
     _encode_canonical(object, output_function)
+  
   except TypeError, e:
     message = 'Could not encode '+repr(object)+': '+str(e)
     raise tuf.FormatError(message)

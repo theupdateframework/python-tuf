@@ -290,10 +290,10 @@ class Updater(object):
     # Store the location of the client's metadata directory.
     self.metadata_directory = {}
 
-    # Store the 'consistent_snapshots' of the Root role.  This setting
+    # Store the 'consistent_snapshot' of the Root role.  This setting
     # determines if metadata and target files downloaded from remote
     # repositories include the digest.
-    self.consistent_snapshots = False
+    self.consistent_snapshot = False
     
     # Ensure the repository metadata directory has been set.
     if tuf.conf.repository_directory is None:
@@ -412,7 +412,7 @@ class Updater(object):
       if metadata_set == 'current':
         if metadata_role == 'root':
           self._rebuild_key_and_role_db()
-          self.consistent_snapshots = metadata_object['consistent_snapshots']
+          self.consistent_snapshot = metadata_object['consistent_snapshot']
         
         elif metadata_object['_type'] == 'Targets':
           # TODO: Should we also remove the keys of the delegated roles?
@@ -815,7 +815,7 @@ class Updater(object):
     # Target files, unlike metadata files, are not decompressed; the
     # 'compression' argument to _get_file() is needed only for decompression of
     # metadata.  Target files may be compressed or uncompressed.
-    if self.consistent_snapshots:
+    if self.consistent_snapshot:
       target_digest = random.choice(file_hashes.values())
       dirname, basename = os.path.split(target_filepath)
       target_filepath = os.path.join(dirname, target_digest+'.'+basename)
@@ -839,7 +839,7 @@ class Updater(object):
     <Arguments>
       metadata_file_object:
         A 'tuf.util.TempFile' instance containing the metadata file.
-        'metadata_file_object' ensures the entire is returned with read().
+        'metadata_file_object' ensures the entire file is returned with read().
 
       metadata_role:
         The role name of the metadata (e.g., 'root', 'targets',
@@ -967,6 +967,8 @@ class Updater(object):
     uncompressed_file_length = uncompressed_fileinfo['length']
     uncompressed_file_hashes = uncompressed_fileinfo['hashes']
     download_file_length = uncompressed_file_length
+    compressed_file_length = None
+    compressed_file_hashes = None
 
     # Store the file length and hashes of the compressed version of the
     # metadata, if compressions is set.
@@ -983,8 +985,7 @@ class Updater(object):
                                               metadata_role)
     
     def unsafely_verify_compressed_metadata_file(metadata_file_object):
-      self._hard_check_file_length(metadata_file_object,
-                                   compressed_file_length) 
+      self._hard_check_file_length(metadata_file_object, compressed_file_length) 
       self._check_hashes(metadata_file_object, compressed_file_hashes)
 
     if compression is None:
@@ -1058,14 +1059,13 @@ class Updater(object):
     
     def safely_verify_uncompressed_metadata_file(metadata_file_object):
       self._hard_check_file_length(metadata_file_object,
-                                    uncompressed_file_length)
+                                   uncompressed_file_length)
       self._check_hashes(metadata_file_object, uncompressed_file_hashes)
       self._verify_uncompressed_metadata_file(metadata_file_object,
                                                metadata_role)
 
     def safely_verify_compressed_metadata_file(metadata_file_object):
-      self._hard_check_file_length(metadata_file_object,
-                                    compressed_file_length) 
+      self._hard_check_file_length(metadata_file_object, compressed_file_length) 
       self._check_hashes(metadata_file_object, compressed_file_hashes)
 
     if compression is None:
@@ -1279,7 +1279,7 @@ class Updater(object):
     
     else:
       remote_filename = metadata_filename
-      if self.consistent_snapshots:
+      if self.consistent_snapshot:
         if compression:
           filename_digest = \
             random.choice(compressed_fileinfo['hashes'].values())
@@ -1346,7 +1346,7 @@ class Updater(object):
     # according to the newly-installed Root metadata.
     if metadata_role == 'root':
       self._rebuild_key_and_role_db()
-      self.consistent_snapshots = updated_metadata_object['consistent_snapshots']
+      self.consistent_snapshot = updated_metadata_object['consistent_snapshot']
 
 
 

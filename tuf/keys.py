@@ -311,6 +311,7 @@ def format_keyval_to_metadata(keytype, key_value, private=False):
     Return a dictionary conformant to 'tuf.formats.KEY_SCHEMA'.
     If 'private' is True, include the private key.  The dictionary
     returned has the form:
+    
     {'keytype': keytype,
      'keyval': {'public': '...',
                 'private': '...'}}
@@ -369,10 +370,11 @@ def format_keyval_to_metadata(keytype, key_value, private=False):
   # Does 'key_value' have the correct format?
   tuf.formats.KEYVAL_SCHEMA.check_match(key_value)
 
-  if private is True and key_value['private']:
+  if private is True and 'private' in key_value:
     return {'keytype': keytype, 'keyval': key_value}
+  
   else:
-    public_key_value = {'public': key_value['public'], 'private': ''}
+    public_key_value = {'public': key_value['public']}
     return {'keytype': keytype, 'keyval': public_key_value}
 
 
@@ -459,7 +461,7 @@ def format_metadata_to_key(key_metadata):
 
 
 def _get_keyid(keytype, key_value):
-  """Return the keyid for 'key_value'."""
+  """Return the keyid of 'key_value'."""
 
   # 'keyid' will be generated from an object conformant to KEY_SCHEMA,
   # which is the format Metadata files (e.g., root.json) store keys.
