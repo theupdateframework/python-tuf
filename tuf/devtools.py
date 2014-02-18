@@ -245,7 +245,6 @@ class Project(object):
     
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked.
-    # import pdb; pdb.set_trace()
     _delete_obsolete_metadata(self._metadata_directory,
                               release_signable['signed'], False)
 
@@ -734,7 +733,6 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
 
-  # import pdb; pdb.set_trace()
   # Check if the version number of 'rolename' may be automatically incremented,
   # depending on whether if partial metadata is loaded or if the metadata is
   # written with write() / write_partial(). 
@@ -967,7 +965,6 @@ def save_project_configuration(metadata_directory,targets_directory,
   <Returns>
     nothing
   """
-  # import pdb; pdb.set_trace()
   # schema check for metadata_directory and prefix
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.PATH_SCHEMA.check_match(prefix)
@@ -1037,7 +1034,6 @@ def load_project(project_directory, prefix=''):
     libtuf.Repository object.
   
   """
-  # import pdb;pdb.set_trace()
   # Does 'repository_directory' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(project_directory)
