@@ -130,7 +130,7 @@ try:
 # signatures, required public keys, etc.  write_partial() allows multiple repository maintainers to
 # independently sign metadata and generate them separately.  load_repository() can load partially
 # written metadata.
-except tuf.Error, e:
+except tuf.UnsignedMetadataError, e:
   print e 
 Not enough signatures for 'path/to/repository/metadata.staged/targets.json'
 
