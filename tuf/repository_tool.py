@@ -3367,6 +3367,9 @@ def import_rsa_publickey_from_file(filepath):
   <Exceptions>
     tuf.FormatError, if 'filepath' is improperly formatted.
 
+    tuf.Error, if a valid RSA key object cannot be generated.  This may be
+    caused by an improperly formatted PEM file.
+
   <Side Effects>
     'filepath' is read and its contents extracted.
 
@@ -3385,9 +3388,13 @@ def import_rsa_publickey_from_file(filepath):
   with open(filepath, 'rb') as file_object:
     rsa_pubkey_pem = file_object.read()
 
-  # Convert 'rsa_pubkey_pem' in 'tuf.formats.RSAKEY_SCHEMA' format.
-  rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
-
+  # Convert 'rsa_pubkey_pem' to 'tuf.formats.RSAKEY_SCHEMA' format.
+  try: 
+    rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
+  
+  except tuf.FormatError, e:
+    raise tuf.Error('Cannot import improperly formatted PEM file.')
+  
   return rsakey_dict
 
 
