@@ -590,7 +590,7 @@ class Metadata(object):
     """
     <Purpose>
       Remove 'key' from the role's currently recognized list of role keys.
-      The role expects a threshold number of signatures 
+      The role expects a threshold number of signatures. 
 
       >>> 
       >>> 
@@ -599,12 +599,15 @@ class Metadata(object):
     <Arguments>
       key:
         The role's key, conformant to 'tuf.formats.ANYKEY_SCHEMA'.  'key'
-        should contain the only the public portion, as only the public key
-        is needed.  The 'add_verification_key()' method should have previously added 'key'. 
+        should contain only the public portion, as only the public key is
+        needed.  The 'add_verification_key()' method should have previously
+        added 'key'. 
 
     <Exceptions>
       tuf.FormatError, if the 'key' argument is improperly formatted.
-
+      
+      tuf.Error, if the 'key' argument has not been previously added.
+    
     <Side Effects>
       Updates the role's 'tuf.roledb.py' entry.
 
@@ -625,6 +628,9 @@ class Metadata(object):
       roleinfo['keyids'].remove(keyid)
       
       tuf.roledb.update_roleinfo(self._rolename, roleinfo)
+    
+    else:
+      raise tuf.Error('Verification key not found.')
    
 
 
@@ -705,6 +711,8 @@ class Metadata(object):
     <Exceptions>
       tuf.FormatError, if the 'key' argument is improperly formatted.
 
+      tuf.Error, if the 'key' argument has not been previously loaded.
+
     <Side Effects>
       Updates the signing keys of the role in 'tuf.roledb.py'.
 
@@ -725,7 +733,10 @@ class Metadata(object):
       roleinfo['signing_keyids'].remove(key['keyid'])
       
       tuf.roledb.update_roleinfo(self.rolename, roleinfo)
-
+    
+    else:
+      raise tuf.Error('Signing key not found.')
+      
 
 
   def add_signature(self, signature):
@@ -1809,7 +1820,8 @@ class Targets(Metadata):
     <Exceptions>
       tuf.FormatError, if 'filepath' is improperly formatted.
 
-      tuf.Error, if 'filepath' is not under the repository's targets directory.
+      tuf.Error, if 'filepath' is not under the repository's targets directory,
+      or not found.
 
     <Side Effects>
       Modifies this Targets 'tuf.roledb.py' entry.
@@ -1840,8 +1852,10 @@ class Targets(Metadata):
     fileinfo = tuf.roledb.get_roleinfo(self.rolename)
     if relative_filepath in fileinfo['paths']:
       fileinfo['paths'].remove(relative_filepath)
-
-    tuf.roledb.update_roleinfo(self.rolename, fileinfo)
+      tuf.roledb.update_roleinfo(self.rolename, fileinfo)
+    
+    else:
+      raise tuf.Error('Target file path not found.')
 
 
 
