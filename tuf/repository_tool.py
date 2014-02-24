@@ -673,13 +673,14 @@ class Metadata(object):
     # Ensure the private portion of the key is available, otherwise signatures
     # cannot be generated when the metadata file is written to disk.
     if not len(key['keyval']['private']):
-      message = 'The private key is unavailable.'
+      message = 'This is not a private key.'
       raise tuf.Error(message)
 
     # Has the key, with the private portion included, been added to the keydb?
     # The public version of the key may have been previously added.
     try:
       tuf.keydb.add_key(key)
+    
     except tuf.KeyAlreadyExistsError, e:
       tuf.keydb.remove_key(key['keyid'])
       tuf.keydb.add_key(key)
@@ -690,9 +691,9 @@ class Metadata(object):
       roleinfo['signing_keyids'].append(key['keyid'])
       
       tuf.roledb.update_roleinfo(self.rolename, roleinfo)
-  
-  
-  
+
+
+
   def unload_signing_key(self, key):
     """
     <Purpose>
