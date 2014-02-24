@@ -344,7 +344,7 @@ repository.targets('unclaimed').add_restricted_paths('path/to/repository/targets
 
 #### Consistent Snapshots
 ```Python
-repository.write(consistent_snapshots=True)
+repository.write(consistent_snapshot=True)
 ```
 
 
