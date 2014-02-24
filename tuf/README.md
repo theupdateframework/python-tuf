@@ -201,13 +201,15 @@ from tuf.repository_tool import *
 # the top-level roles, but no targets.
 repository = load_repository("path/to/repository/")
 
-# Get a list of file paths in a directory, even those in sub-directories.
-# This must be relative to an existing directory in the repository, raise an exception.
+# get_filepaths_in_directory() returns a list of file paths in a directory.  It can also return
+# files in sub-directories if 'recursive_walk' is True.
 list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targets/",
                                                         recursive_walk=False, followlinks=True) 
 
 # Add the list of target paths to the metadata of the Targets role.  Any target file paths
 # that may already exist are NOT replaced.  add_targets() does not create or move target files.
+# Any target paths added to a role must be relative to the targets directory, otherwise an
+# exception is raised.
 repository.targets.add_targets(list_of_targets)
 
 # Individual target files may also be added.
@@ -275,7 +277,7 @@ repository.targets.delegate("unclaimed", [public_unclaimed_key], [])
 private_unclaimed_key = import_rsa_privatekey_from_file("path/to/unclaimed_key")
 Enter a password for the encrypted RSA key:
 
-repository.targets.unclaimed.load_signing_key(private_unclaimed_key)
+repository.targets(unclaimed).load_signing_key(private_unclaimed_key)
 
 # Update an attribute of the unclaimed role.
 repository.targets('unclaimed').version = 2
@@ -344,7 +346,7 @@ repository.targets('unclaimed').add_restricted_paths('path/to/repository/targets
 
 #### Consistent Snapshots
 ```Python
-repository.write(consistent_snapshots=True)
+repository.write(consistent_snapshot=True)
 ```
 
 
