@@ -2817,7 +2817,10 @@ def _strip_consistent_snapshot_digest(metadata_filename, consistent_snapshot):
   if consistent_snapshot:
     dirname, basename = os.path.split(metadata_filename)
     embeded_digest = basename[:basename.find('.')]
-    basename = basename[basename.find('.'):]
+    
+    # Ensure the digest, including the period, is stripped.
+    basename = basename[basename.find('.')+1:]
+    
     metadata_filename = os.path.join(dirname, basename)
   
 
@@ -4335,6 +4338,10 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
     compressions:
       Specify the algorithms, as a list of strings, used to compress the file;
       The only currently available compression option is 'gz' (gzip).
+
+    consistent_snapshot:
+      Boolean that determines whether the metadata file's digest should be
+      prepended to the filename.
 
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
