@@ -1,6 +1,32 @@
-#Repository Management
+# Repository Management #
+
+## Table of Contents ##
+- [Repository Tool Diagram](#repository-tool-diagram)
+- [Create TUF Repository](#create-tuf-repository)
+  - [Keys](#keys)
+    - [Create RSA Keys](#create-rsa-keys)
+    - [Import RSA Keys](#import-rsa-keys)
+    - [Create and Import ED25519 Keys](#create-and-import-ed25519-keys)
+  - [Create a New Repository](#create-a-new-repository)
+    - [Create Root](#create-root)
+    - [Create Timestamp, Snapshot, Targets](#create-timestamp-snapshot-targets)
+  - [Targets](#targets)
+    - [Add Target Files](#add-target-files)
+    - [Remove Target Files](#remove-target-files)
+  - [Delegations](#delegations)
+    - [Revoke Delegated Role](#revoke-delegated-role)
+    - [Delegate to Hashed Bins](#delegate-to-hashed-bins)
+  - [Consistent Snapshots](#consistent-snapshots)
+- [Client Setup and Repository Trial](#client-setup-and-repository-trial)
+  - [Using TUF Within an Example Client Updater](#using-tuf-within-an-example-client-updater)
+  - [Test TUF Locally](#test-tuf-locally)
+
+
+## Repository Tool Diagram ##
 ![Repo Tools Diagram 1](https://raw.github.com/theupdateframework/tuf/repository-tools/docs/images/repository_tool-diagram.png)
-## Create TUF Repository
+
+
+## Create TUF Repository ##
 
 The **tuf.repository_tool** module can be used to create a TUF repository.
 It may either be imported into a Python module or used with the Python
@@ -19,9 +45,9 @@ Note that *tuf.repository_tool.py* is not used in TUF integrations.  The
 integrating TUF with a software updater.
 
 
-### Keys
+### Keys ###
 
-#### Create RSA Keys
+#### Create RSA Keys ####
 ```python
 from tuf.repository_tool import *
 
@@ -44,7 +70,7 @@ The following four key files should now exist:
 3. root_key2
 4. root_key2.pub
 
-### Import RSA Keys
+### Import RSA Keys ###
 ```python
 from tuf.repository_tool import *
 
@@ -59,7 +85,7 @@ Enter a password for the encrypted RSA key:
 import_rsa_privatekey_from_file() raises a "tuf.CryptoError" exception if the key/password
 is invalid.
 
-### Create and Import ED25519 Keys
+### Create and Import ED25519 Keys ###
 ```Python
 from tuf.repository_tool import *
 
@@ -77,9 +103,9 @@ private_ed25519_key = import_ed25519_privatekey_from_file('path/to/ed25519_key')
 Enter a password for the encrypted ED25519 key: 
 ```
 
-### Create a new Repository
+### Create a New Repository ###
 
-#### Create Root
+#### Create Root ####
 ```python
 # Continuing from the previous section . . .
 
@@ -182,9 +208,9 @@ repository.snapshot.compressions = ["gz"]
 repository.write()
 ```
 
-### Targets
+### Targets ###
 
-#### Add Target Files
+#### Add Target Files ####
 ```Bash
 # Create and save target files to the targets directory of the repository.
 $ cd path/to/repository/targets/
@@ -245,7 +271,7 @@ repository.timestamp.load_signing_key(private_timestamp_key)
 repository.write()
 ```
 
-#### Remove Target Files
+#### Remove Target Files ####
 ```python
 # Continuing from the previous section . . .
 
@@ -258,7 +284,7 @@ repository.targets.remove_target("path/to/repository/targets/file3.txt")
 repository.write()
 ```
 
-### Delegations
+### Delegations ###
 ```python
 # Continuing from the previous section . . .
 
@@ -296,7 +322,7 @@ repository.targets('unclaimed')('django').compressions = ["gz"]
 repository.write()
 ```
 
-#### Revoke Delegated Role
+#### Revoke Delegated Role ####
 ```python
 # Continuing from the previous section . . .
 
@@ -313,7 +339,7 @@ repository.write()
 $ cp -r "path/to/repository/metadata.staged/" "path/to/repository/metadata/"
 ```
 
-#### Delegate to Hashed Bins
+#### Delegate to Hashed Bins ####
 
 A large number of target files may also be distributed to multiple hashed bins
 (delegated roles).  The metadata files of delegated roles will be nearly equal in size
@@ -344,15 +370,23 @@ for delegation in repository.targets('unclaimed')('django').delegations:
 repository.targets('unclaimed').add_restricted_paths('path/to/repository/targets/django', 'django')
 ```
 
-#### Consistent Snapshots
+#### Consistent Snapshots ####
+A repository may optionally support multiple versions of `snapshot.json` simultaneously, where
+a client with version 1 of `snapshot.json` downloads `target_file.zip` and another client with
+version 2 of `snapshot.json` can successfully download a different `target_file.zip` (same file
+name, but different file attributes).  If the `consistent_snapshot` parameter of write() is True,
+metadata and target file names on the file system have their digests prepended (note: target file
+names specified in metadata do not have digests included in their names).  The repository
+maintainer is responsible for the duration of multiple versions of metadata and target files
+available on a repository.
 ```Python
 repository.write(consistent_snapshot=True)
 ```
 
 
-## Client Setup and Repository Trial
+## Client Setup and Repository Trial ##
 
-### Using TUF Within an Example Client Updater
+### Using TUF Within an Example Client Updater ###
 ```python
 from tuf.repository_tool import *
 
@@ -366,7 +400,7 @@ from tuf.repository_tool import *
 create_tuf_client_directory("path/to/repository/", "path/to/client/")
 ```
 
-#### Test TUF Locally
+### Test TUF Locally ###
 ```Bash
 # Run the local TUF repository server.
 $ cd "path/to/repository/"; python -m SimpleHTTPServer 8001
