@@ -152,7 +152,9 @@ THRESHOLD_SCHEMA = SCHEMA.Integer(lo=1)
 # A string representing a role's name. 
 ROLENAME_SCHEMA = SCHEMA.AnyString()
 
-# The minimum number of bits for an RSA key.  Must be 2048 bits and greater.
+# The minimum number of bits for an RSA key recommended by TUF.  Must be 2048
+# bits, or greater.  Recommended RSA key sizes:
+# http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
 RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
 
 # The number of bins used to delegate to hashed roles.

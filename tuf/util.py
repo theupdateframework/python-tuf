@@ -832,23 +832,37 @@ json = import_json()
 def load_json_string(data):
   """
   <Purpose>
-    Deserialize a JSON object from a string 'data'.
+    Deserialize 'data' (JSON string) to a Python object.
 
   <Arguments>
     data:
       A JSON string.
   
   <Exceptions>
-    None.
+    tuf.Error, if 'data' cannot be deserialized to a Python object.
 
   <Side Effects>
     None.
 
   <Returns>
-    Deserialized object.  For example a dictionary.
+    Deserialized object.  For example, a dictionary.
   """
 
-  return json.loads(data)
+  json_object = None
+  
+  try:
+    deserialized_object = json.loads(data)
+ 
+  except TypeError:
+    message = 'Invalid JSON string: '+repr(data)
+    raise tuf.Error(message)
+  
+  except ValueError:
+    message = 'Cannot deserialize to a Python object: '+repr(data)
+    raise tuf.Error(message)
+  
+  else:
+    return deserialized_object    
 
 
 
