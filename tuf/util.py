@@ -848,7 +848,7 @@ def load_json_string(data):
     Deserialized object.  For example, a dictionary.
   """
 
-  json_object = None
+  deserialized_object = None
   
   try:
     deserialized_object = json.loads(data)

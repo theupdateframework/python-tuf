@@ -569,9 +569,11 @@ class Metadata(object):
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
 
     # Ensure 'key', which should contain the public portion, is added to
-    # 'tuf.keydb.py'.
+    # 'tuf.keydb.py'.  Add 'key' to the list of recognized keys.  Keys may be
+    # shared, so do not raise an exception if 'key' has already been loaded.
     try:
       tuf.keydb.add_key(key)
+    
     except tuf.KeyAlreadyExistsError, e:
       pass
    
@@ -1999,6 +2001,8 @@ class Targets(Metadata):
     # Add all the keys of 'public_keys' to tuf.keydb.
     for key in public_keys:
       
+      # Add 'key' to the list of recognized keys.  Keys may be shared,
+      # so do not raise an exception if 'key' has already been loaded.
       try:
         tuf.keydb.add_key(key)
       
@@ -3053,6 +3057,8 @@ def load_repository(repository_directory):
                               new_targets_object
 
         # Add the keys specified in the delegations field of the Targets role.
+        # Add 'key_object' to the list of recognized keys.  Keys may be shared,
+        # so do not raise an exception if 'key_object' has already been loaded.
         for key_metadata in metadata_object['delegations']['keys'].values():
           key_object = tuf.keys.format_metadata_to_key(key_metadata)
           try: 
@@ -3096,7 +3102,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   snapshot_metadata = None
   timestamp_metadata = None
   
-  # Load ROOT.json.  A Root role file without a digest is always written. 
+  # Load 'root.json'.  A Root role file without a digest is always written. 
   if os.path.exists(root_filename):
     # Initialize the key and role metadata of the top-level roles.
     signable = tuf.util.load_json_file(root_filename)
@@ -3125,7 +3131,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     message = 'Cannot load the required root file: '+repr(root_filename)
     raise tuf.RepositoryError(message)
   
-  # Load TIMESTAMP.json.  A Timestamp role file without a digest is always
+  # Load 'timestamp.json'.  A Timestamp role file without a digest is always
   # written. 
   if os.path.exists(timestamp_filename):
     signable = tuf.util.load_json_file(timestamp_filename)
@@ -3146,7 +3152,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   else:
     pass
   
-  # Load SNAPSHOT.json.  A consistent snapshot of Snapshot must be calculated
+  # Load 'snapshot.json'.  A consistent snapshot of Snapshot must be calculated
   # if 'consistent_snapshot' is True.
   if consistent_snapshot:
     snapshot_hashes = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['hashes']
@@ -3174,7 +3180,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   else:
     pass 
 
-  # Load TARGETS.json.  A consistent snapshot of Targets must be calculated if
+  # Load 'targets.json'.  A consistent snapshot of Targets must be calculated if
   # 'consistent_snapshot' is True.
   if consistent_snapshot:
     targets_hashes = snapshot_metadata['meta'][TARGETS_FILENAME]['hashes']
@@ -3205,7 +3211,14 @@ def _load_top_level_metadata(repository, top_level_filenames):
     # Add the keys specified in the delegations field of the Targets role.
     for key_metadata in targets_metadata['delegations']['keys'].values():
       key_object = tuf.keys.format_metadata_to_key(key_metadata)
-      tuf.keydb.add_key(key_object)
+     
+      # Add 'key_object' to the list of recognized keys.  Keys may be shared,
+      # so do not raise an exception if 'key_object' has already been loaded.
+      try: 
+        tuf.keydb.add_key(key_object)
+      
+      except tuf.KeyAlreadyExistsError, e:
+        pass
 
     for role in targets_metadata['delegations']['roles']:
       rolename = role['name'] 
