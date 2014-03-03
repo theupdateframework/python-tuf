@@ -3,6 +3,7 @@
 ## Table of Contents ##
 - [Repository Tool Diagram](#repository-tool-diagram)
 - [Create TUF Repository](#create-tuf-repository)
+  - [Purpose](#purpose)
   - [Keys](#keys)
     - [Create RSA Keys](#create-rsa-keys)
     - [Import RSA Keys](#import-rsa-keys)
@@ -27,6 +28,8 @@
 
 
 ## Create TUF Repository ##
+
+### Purpose ###
 
 The **tuf.repository_tool** module can be used to create a TUF repository.
 It may either be imported into a Python module or used with the Python
@@ -372,9 +375,9 @@ repository.targets('unclaimed').add_restricted_paths('path/to/repository/targets
 
 #### Consistent Snapshots ####
 A repository may optionally support multiple versions of `snapshot.json` simultaneously, where
-a client with version 1 of `snapshot.json` downloads `target_file.zip` and another client with
-version 2 of `snapshot.json` can successfully download a different `target_file.zip` (same file
-name, but different file attributes).  If the `consistent_snapshot` parameter of write() is True,
+a client with version 1 of `snapshot.json` can download `target_file.zip` and another client with
+version 2 of `snapshot.json` can also download a different `target_file.zip` (same file
+name, but different file digest).  If the `consistent_snapshot` parameter of write() is True,
 metadata and target file names on the file system have their digests prepended (note: target file
 names specified in metadata do not have digests included in their names).  The repository
 maintainer is responsible for the duration of multiple versions of metadata and target files
