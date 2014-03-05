@@ -51,6 +51,11 @@ import tuf.conf
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.repository_tool')
 
+# Add a console handler so that users are aware of potentially unintended
+# states, such as multiple roles that share keys.
+tuf.log.add_console_handler()
+tuf.log.set_console_log_level(logging.WARNING)
+
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1 
 # According to the document above, revised May 6, 2003, RSA keys of
@@ -315,7 +320,9 @@ class Repository(object):
 
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
-    # may have been revoked.
+    # may have been revoked and should no longer have their metadata files
+    # available on disk, otherwise loading a repository may unintentionally load
+    # them.
     _delete_obsolete_metadata(self._metadata_directory,
                               snapshot_signable['signed'], consistent_snapshot)
 
@@ -575,8 +582,9 @@ class Metadata(object):
       tuf.keydb.add_key(key)
     
     except tuf.KeyAlreadyExistsError, e:
-      pass
-   
+      message = 'Adding a verification key that has already been used.'
+      logger.warn(message)
+
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
    
@@ -1938,7 +1946,7 @@ class Targets(Metadata):
         rolename).
 
       public_keys:
-        A list of TUF keys objects in 'ANYKEYLIST_SCHEMA' format.  The list
+        A list of TUF key objects in 'ANYKEYLIST_SCHEMA' format.  The list
         may contain any of the supported key types: RSAKEY_SCHEMA,
         ED25519KEY_SCHEMA, etc.
 
@@ -2007,7 +2015,9 @@ class Targets(Metadata):
         tuf.keydb.add_key(key)
       
       except tuf.KeyAlreadyExistsError, e:
-        pass
+        message = \
+          'Adding a public key that has already been used: '+key['keyid']
+        logger.warn(message)
       
       keyid = key['keyid']
       key_metadata_format = tuf.keys.format_keyval_to_metadata(key['keytype'],
@@ -2729,8 +2739,11 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
                               consistent_snapshot):
   """
   Non-public function that deletes metadata files marked as removed by
-  repository_tool.py.  Metadata files marked as removed are not actually deleted
-  until this function is called.
+  'repository_tool.py'.  Metadata files marked as removed are not actually
+  deleted until this function is called.  Obsolete metadata should not be
+  kept in "metadata.staged", otherwise they may be incorrectly loaded as valid.
+  Note: Obsolete metadata may not always be detected due to partial metadata and
+  non-existent parent roles.
   """
  
   # Walk the repository's metadata 'targets' sub-directory, where all the
@@ -3059,6 +3072,10 @@ def load_repository(repository_directory):
         # Add the keys specified in the delegations field of the Targets role.
         # Add 'key_object' to the list of recognized keys.  Keys may be shared,
         # so do not raise an exception if 'key_object' has already been loaded.
+        # In contrast to the methods that may add duplicate keys, do not log
+        # a warning as there may be many such duplicate key warnings.  The
+        # repository maintainer should have also been made aware of the
+        # duplicate key when it was added.
         for key_metadata in metadata_object['delegations']['keys'].values():
           key_object = tuf.keys.format_metadata_to_key(key_metadata)
           try: 
@@ -3214,6 +3231,10 @@ def _load_top_level_metadata(repository, top_level_filenames):
      
       # Add 'key_object' to the list of recognized keys.  Keys may be shared,
       # so do not raise an exception if 'key_object' has already been loaded.
+      # In contrast to the methods that may add duplicate keys, do not log
+      # a warning as there may be many such duplicate key warnings.  The
+      # repository maintainer should have also been made aware of the duplicate
+      # key when it was added.
       try: 
         tuf.keydb.add_key(key_object)
       
@@ -4615,6 +4636,31 @@ def create_tuf_client_directory(repository_directory, client_directory):
   shutil.copytree(metadata_directory, client_current)
   shutil.copytree(metadata_directory, client_previous)
 
+
+
+def disable_console_messages():
+  """
+  <Purpose>
+    Disable logger messages printed to the console.  For example, repository
+    maintainers may want to call this function if many roles will be sharing
+    keys, otherwise detected duplicate keys will continually log a warning
+    message.
+
+  <Arguments>
+    None.
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    Removes the 'tuf.log' console handler, added by default when
+    'tuf.repository_tool.py' is imported.
+  
+  <Returns>
+    None.
+  """
+  
+  tuf.log.remove_console_handler()
 
 
 if __name__ == '__main__':
