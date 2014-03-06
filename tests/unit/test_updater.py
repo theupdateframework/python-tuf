@@ -20,7 +20,6 @@
   unittest_toolbox module was created to provide additional testing tools for
   tuf's modules.  For more info see unittest_toolbox.py.
 
-
 <Methodology>
   Unit tests must follow a specific structure i.e. independent methods should
   be tested prior to dependent methods. More accurately: least dependent
@@ -32,7 +31,6 @@
   a number will be placed after 'test' and before methods name like so:
   'test_1_check_directory'.  The number is a measure of dependence, where 1
   is less dependent than 2.
-
 """
 
 import os
@@ -51,7 +49,7 @@ import tuf.log
 import tuf.formats
 import tuf.keydb
 import tuf.repo.keystore as keystore
-import tuf.repo.signerlib as signerlib
+import tuf.repository_tool as repo_tool 
 import tuf.roledb
 import tuf.tests.repository_setup as setup
 import tuf.tests.unittest_toolbox as unittest_toolbox
@@ -108,7 +106,7 @@ class TestUpdater_init_(unittest_toolbox.Modified_TestCase):
     for directory, junk, role_list in os.walk(client_current_dir):
       for role_filepath in role_list:
         role_filepath = os.path.join(directory, role_filepath)
-        if role_filepath.endswith('root.txt'):
+        if role_filepath.endswith('root.json'):
           continue
         os.remove(role_filepath)
     updater.Updater('Repo_Name', self.mirrors)
@@ -134,18 +132,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  Server side references.
     cls.server_repo_dir = cls.repositories['server_repository']
     cls.server_meta_dir = os.path.join(cls.server_repo_dir, 'metadata')
-    cls.root_filepath = os.path.join(cls.server_meta_dir, 'root.txt')
-    cls.timestamp_filepath = os.path.join(cls.server_meta_dir, 'timestamp.txt')
-    cls.targets_filepath = os.path.join(cls.server_meta_dir, 'targets.txt')
-    cls.release_filepath = os.path.join(cls.server_meta_dir, 'release.txt')
+    cls.root_filepath = os.path.join(cls.server_meta_dir, 'root.json')
+    cls.timestamp_filepath = os.path.join(cls.server_meta_dir, 'timestamp.json')
+    cls.targets_filepath = os.path.join(cls.server_meta_dir, 'targets.json')
+    cls.snapshot_filepath = os.path.join(cls.server_meta_dir, 'snapshot.json')
 
     #  References to delegated metadata paths and directories.
     cls.delegated_dir1 = os.path.join(cls.server_meta_dir, 'targets')
     cls.delegated_filepath1 = os.path.join(cls.delegated_dir1,
-                                           'delegated_role1.txt')
+                                           'delegated_role1.json')
     cls.delegated_dir2 = os.path.join(cls.delegated_dir1, 'delegated_role1')
     cls.delegated_filepath2 = os.path.join(cls.delegated_dir2,
-                                           'delegated_role2.txt')
+                                           'delegated_role2.json')
     cls.targets_dir = os.path.join(cls.server_repo_dir, 'targets')  
 
     #  Client side references.
@@ -172,7 +170,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  used as an optional argument to 'download_url_to_tempfileobj' patch 
     #  function.
     self.all_role_paths = [self.timestamp_filepath,
-                           self.release_filepath,
+                           self.snapshot_filepath,
                            self.root_filepath,
                            self.targets_filepath,
                            self.delegated_filepath1,
@@ -248,7 +246,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def _add_target_to_targets_dir(self, targets_keyids):
     """
     Adds a file to server's 'targets' directory and rebuilds
-    targets metadata (targets.txt).
+    targets metadata (targets.json).
     """
     
     targets_sub_dir = os.path.join(self.targets_dir, 'targets_sub_dir')
@@ -274,7 +272,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def _remove_target_from_targets_dir(self, target_filename, remove_all=True):
     """
     Remove a target 'target_filename' from server's targets directory and
-    rebuild 'targets', 'release', 'timestamp' metadata files.
+    rebuild 'targets', 'snapshot', 'timestamp' metadata files.
     'target_filename' is relative to targets directory. 
     Example of 'target_filename': 'targets_sub_dir/somefile.txt'.
 
@@ -345,8 +343,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Reference self.Repository._update_metadata_if_changed().
     update_if_changed = self.Repository._update_metadata_if_changed    
 
-    self._mock_download_url_to_tempfileobj(self.release_filepath)
-    update_if_changed('release', referenced_metadata = 'timestamp')
+    self._mock_download_url_to_tempfileobj(self.snapshot_filepath)
+    update_if_changed('snapshot', referenced_metadata = 'timestamp')
 
     self._mock_download_url_to_tempfileobj(self.root_filepath)
     update_if_changed('root')
@@ -363,19 +361,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_1__load_metadata_from_file(self):
     
     # Setup
-    #  Get root.txt file path.  Extract root metadata, 
+    #  Get root.json file path.  Extract root metadata, 
     #  it will be compared with content of loaded root metadata.
-    root_filepath = os.path.join(self.client_current_dir, 'root.txt')
+    root_filepath = os.path.join(self.client_current_dir, 'root.json')
     root_meta = tuf.util.load_json_file(root_filepath)
 
-
     # Test: normal case.
-    for role in self.role_list:
-      self.Repository._load_metadata_from_file('current', role)
+    #for role in self.role_list:
+    #  self.Repository._load_metadata_from_file('current', role)
+    self.Repository.refresh()
 
-    #  Verify that the correct number of metadata objects has been loaded. 
+    root_filepath = os.path.join(self.client_current_dir, 'root.json')
+    root_meta = tuf.util.load_json_file(root_filepath)
+   
+   #  Verify that the correct number of metadata objects has been loaded. 
     self.assertEqual(len(self.Repository.metadata['current']), 4)
 
+    print('root_metadata: '+repr(root_meta)+'\n\n')
+    print('self.Repository: '+repr(self.Repository.metadata['current']['root']))
+    
     #  Verify that the content of root metadata is valid.
     self.assertEqual(self.Repository.metadata['current']['root'],
                      root_meta['signed'])
@@ -414,16 +418,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  Load file info for top level roles.  This populates the fileinfo 
     #  dictionary.
     for role in self.role_list:
-      self.Repository._update_fileinfo(role+'.txt')
+      self.Repository._update_fileinfo(role+'.json')
 
     #  Verify that fileinfo has been populated and contains appropriate data.
     self.assertTrue(self.Repository.fileinfo)
     for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
+      role_filepath = os.path.join(self.client_current_dir, role+'.json')
       role_info = tuf.util.get_file_details(role_filepath)
       role_info_dict = {'length':role_info[0], 'hashes':role_info[1]}
-      self.assertTrue(role+'.txt' in self.Repository.fileinfo.keys())
-      self.assertEqual(self.Repository.fileinfo[role+'.txt'], role_info_dict)
+      self.assertTrue(role+'.json' in self.Repository.fileinfo.keys())
+      self.assertEqual(self.Repository.fileinfo[role+'.json'], role_info_dict)
 
 
 
@@ -465,7 +469,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-
+  """
   def test_2__ensure_all_targets_allowed(self):
     # Setup
     #  Reference to self.Repository._ensure_all_targets_allowed()    
@@ -477,7 +481,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targets_meta_dir = os.path.join(self.server_meta_dir, 'targets')
     role1_meta_dir = os.path.join(targets_meta_dir, 'delegated_role1')
     
-    role1_path = os.path.join(targets_meta_dir, 'delegated_role1.txt')
+    role1_path = os.path.join(targets_meta_dir, 'delegated_role1.json')
     role1_metadata_signable = tuf.util.load_json_file(role1_path)
     role1_metadata = role1_metadata_signable['signed']
     
@@ -495,15 +499,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  delegated role's metadata are not indicated in the metadata of the
     #  delegated role's parent, we need to modify delegated role's 'targets'
     #  field.
-    target = self.random_string()+'.txt'
+    target = self.random_string()+'.json'
     deleg_target_path = os.path.join('delegated_level', target)
     role1_metadata['targets'][deleg_target_path] = self.random_string()
 
     # Test: targets not included in the parent's metadata.
     self.assertRaises(tuf.RepositoryError, ensure_all_targets_allowed,
-                      'targets/delegated_role1',
-                      role1_metadata)
-
+                      'targets/delegated_role1', role1_metadata)
+  """
 
 
 
@@ -511,26 +514,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_2__fileinfo_has_changed(self):
     #  Verify that the method returns 'False' if file info was not changed.
     for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
+      role_filepath = os.path.join(self.client_current_dir, role+'.json')
       role_info = tuf.util.get_file_details(role_filepath)
       role_info_dict = {'length':role_info[0], 'hashes':role_info[1]}
-      self.assertFalse(self.Repository._fileinfo_has_changed(role+'.txt',
+      self.assertFalse(self.Repository._fileinfo_has_changed(role+'.json',
                                                              role_info_dict))
 
     # Verify that the method returns 'True' if length or hashes were changed.
     for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
+      role_filepath = os.path.join(self.client_current_dir, role+'.json')
       role_info = tuf.util.get_file_details(role_filepath)
       role_info_dict = {'length':8, 'hashes':role_info[1]}
-      self.assertTrue(self.Repository._fileinfo_has_changed(role+'.txt',
+      self.assertTrue(self.Repository._fileinfo_has_changed(role+'.json',
                                                              role_info_dict))
 
     for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.txt')
+      role_filepath = os.path.join(self.client_current_dir, role+'.json')
       role_info = tuf.util.get_file_details(role_filepath)
       role_info_dict = {'length':role_info[0],
                         'hashes':{'sha256':self.random_string()}}
-      self.assertTrue(self.Repository._fileinfo_has_changed(role+'.txt',
+      self.assertTrue(self.Repository._fileinfo_has_changed(role+'.json',
                                                              role_info_dict))
 
 
@@ -540,13 +543,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The test will consist of removing a metadata file from client's
     # {client_repository}/metadata/previous directory, executing the method
     # and then verifying that the 'previous' directory contains
-    # the release file.
-    release_meta_path = os.path.join(self.client_previous_dir, 'release.txt')
-    os.remove(release_meta_path)
-    self.assertFalse(os.path.exists(release_meta_path))
-    self.Repository._move_current_to_previous('release')
-    self.assertTrue(os.path.exists(release_meta_path))
-    shutil.copy(release_meta_path, self.client_current_dir)
+    # the snapshot file.
+    snapshot_meta_path = os.path.join(self.client_previous_dir, 'snapshot.json')
+    os.remove(snapshot_meta_path)
+    self.assertFalse(os.path.exists(snapshot_meta_path))
+    self.Repository._move_current_to_previous('snapshot')
+    self.assertTrue(os.path.exists(snapshot_meta_path))
+    shutil.copy(snapshot_meta_path, self.client_current_dir)
 
 
 
@@ -561,7 +564,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.Repository._delete_metadata('timestamp')
     self.assertFalse('timestamp' in self.Repository.metadata['current'])
     timestamp_meta_path = os.path.join(self.client_previous_dir,
-                                       'timestamp.txt')
+                                       'timestamp.json')
     shutil.copy(timestamp_meta_path, self.client_current_dir)
 
 
@@ -614,7 +617,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: Invalid file downloaded.
     #  Patch 'download.download_url_to_tempfileobj' function.
-    self._mock_download_url_to_tempfileobj(self.release_filepath)
+    self._mock_download_url_to_tempfileobj(self.snapshot_filepath)
 
     # TODO: Is this the original intent of this test?
     self.assertRaises(TypeError, _update_metadata, 'targets', None)
@@ -624,7 +627,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  Patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(self.targets_filepath)
     uncompressed_fileinfo = \
-      signerlib.get_metadata_file_info(self.targets_filepath)
+      repo_tool.get_metadata_file_info(self.targets_filepath)
     _update_metadata('targets', uncompressed_fileinfo)
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
@@ -637,23 +640,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  Add a file to targets directory and rebuild targets metadata. 
     added_target_2 = self._add_target_to_targets_dir(targets_keyids)
     uncompressed_fileinfo = \
-      signerlib.get_metadata_file_info(self.targets_filepath)
+      repo_tool.get_metadata_file_info(self.targets_filepath)
 
     #  To test compressed file handling, compress targets metadata file.
     targets_filepath_compressed = self._compress_file(self.targets_filepath)
     compressed_fileinfo = \
-      signerlib.get_metadata_file_info(targets_filepath_compressed)
+      repo_tool.get_metadata_file_info(targets_filepath_compressed)
 
     #  Re-patch 'download.download_url_to_tempfileobj' function.
     self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
+    
     # The length (but not the hash) passed to this function is incorrect. The
     # length must be that of the compressed file, whereas the hash must be that
     # of the uncompressed file.
     mixed_fileinfo = {
       'length': compressed_fileinfo['length'],
-      'hashes': uncompressed_fileinfo['hashes']
-    }
-    _update_metadata('targets', mixed_fileinfo, compression='gzip')
+      'hashes': uncompressed_fileinfo['hashes']}
+
+    _update_metadata('targets', mixed_fileinfo, compression='gzip',
+                     compressed_fileinfo=compressed_fileinfo)
     list_of_targets = self.Repository.metadata['current']['targets']['targets']
 
     #  Verify that the added target's path is listed in target's metadata.
@@ -663,7 +668,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Restoring server's repository to the initial state.
     os.remove(targets_filepath_compressed)
-    os.remove(os.path.join(self.client_current_dir,'targets.txt'))
+    os.remove(os.path.join(self.client_current_dir,'targets.json'))
     self._remove_target_from_targets_dir(added_target_1)
 
 
@@ -688,24 +693,24 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     update_if_changed = self.Repository._update_metadata_if_changed
 
 
-    # Test: normal case.  Update 'release' metadata.
+    # Test: normal case.  Update 'snapshot' metadata.
     #  Patch download_file.
     self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
 
-    #  Update timestamp metadata, it will indicate change in release metadata.
+    #  Update timestamp metadata, it will indicate change in snapshot metadata.
     self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
 
-    #  Save current release metadata before updating.  It will be used to
+    #  Save current snapshot metadata before updating.  It will be used to
     #  verify the update.
-    old_release_meta = self.Repository.metadata['current']['release']
-    self._mock_download_url_to_tempfileobj(self.release_filepath)
+    old_snapshot_meta = self.Repository.metadata['current']['snapshot']
+    self._mock_download_url_to_tempfileobj(self.snapshot_filepath)
 
-    #  Update release metadata, it will indicate change in targets metadata.
-    update_if_changed(metadata_role='release', referenced_metadata='timestamp')
-    current_release_meta = self.Repository.metadata['current']['release']
-    previous_release_meta = self.Repository.metadata['previous']['release']
-    self.assertEqual(old_release_meta, previous_release_meta)
-    self.assertNotEqual(old_release_meta, current_release_meta)
+    #  Update snapshot metadata, it will indicate change in targets metadata.
+    update_if_changed(metadata_role='snapshot', referenced_metadata='timestamp')
+    current_snapshot_meta = self.Repository.metadata['current']['snapshot']
+    previous_snapshot_meta = self.Repository.metadata['previous']['snapshot']
+    self.assertEqual(old_snapshot_meta, previous_snapshot_meta)
+    self.assertNotEqual(old_snapshot_meta, current_snapshot_meta)
 
 
     # Test: normal case.  Update 'targets' metadata. 
@@ -719,37 +724,37 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.fail('\nFailed to update targets metadata.')
 
 
-    # Test: normal case.  Update compressed release file.
-    release_filepath_compressed = self._compress_file(self.release_filepath)
+    # Test: normal case.  Update compressed snapshot file.
+    snapshot_filepath_compressed = self._compress_file(self.snapshot_filepath)
 
     #  Since client's '.../metadata/current' will need to have separate
     #  gzipped metadata file in order to test compressed file handling,
     #  we need to copy it there.  
-    shutil.copy(release_filepath_compressed, self.client_current_dir) 
+    shutil.copy(snapshot_filepath_compressed, self.client_current_dir) 
   
     #  Add a target file and rebuild metadata files at the server side.
     added_target_2 = self._add_target_to_targets_dir(targets_keyids)
     
-    #  Since release file was updated, update compressed release file.
-    release_filepath_compressed = self._compress_file(self.release_filepath)
+    #  Since snapshot file was updated, update compressed snapshot file.
+    snapshot_filepath_compressed = self._compress_file(self.snapshot_filepath)
  
     #  Patch download_file.
     self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
 
-    #  Update timestamp metadata, it will indicate change in release metadata.
+    #  Update timestamp metadata, it will indicate change in snapshot metadata.
     self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
 
-    #  Save current release metadata before updating.  It will be used to
+    #  Save current snapshot metadata before updating.  It will be used to
     #  verify the update.
-    old_release_meta = self.Repository.metadata['current']['release']
-    self._mock_download_url_to_tempfileobj(self.release_filepath)
+    old_snapshot_meta = self.Repository.metadata['current']['snapshot']
+    self._mock_download_url_to_tempfileobj(self.snapshot_filepath)
 
-    #  Update release metadata, and verify the change.
-    update_if_changed(metadata_role='release', referenced_metadata='timestamp')
-    current_release_meta = self.Repository.metadata['current']['release']
-    previous_release_meta = self.Repository.metadata['previous']['release']
-    self.assertEqual(old_release_meta, previous_release_meta)
-    self.assertNotEqual(old_release_meta, current_release_meta)
+    #  Update snapshot metadata, and verify the change.
+    update_if_changed(metadata_role='snapshot', referenced_metadata='timestamp')
+    current_snapshot_meta = self.Repository.metadata['current']['snapshot']
+    previous_snapshot_meta = self.Repository.metadata['previous']['snapshot']
+    self.assertEqual(old_snapshot_meta, previous_snapshot_meta)
+    self.assertNotEqual(old_snapshot_meta, current_snapshot_meta)
   
 
     # Test: Invalid targets metadata file downloaded.
@@ -764,8 +769,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         assert isinstance(mirror_error, tuf.DownloadLengthMismatchError)
 
     # Restoring repositories to the initial state.
-    os.remove(release_filepath_compressed)
-    os.remove(os.path.join(self.client_current_dir, 'release.txt.gz'))
+    os.remove(snapshot_filepath_compressed)
+    os.remove(os.path.join(self.client_current_dir, 'snapshot.json.gz'))
     self._remove_target_from_targets_dir(added_target_1)
 
 
@@ -786,7 +791,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     for target in range(len(targets_list)):
       targets_filepaths.append(targets_list[target]['filepath'])
     for dir_target in targets_dir_content:
-      if dir_target.endswith('.txt'):
+      if dir_target.endswith('.json'):
         self.assertTrue(dir_target in targets_filepaths)
 
 
@@ -843,9 +848,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Delegated roles paths.
     role1_dir = os.path.join(self.server_meta_dir, 'targets')
-    role1_filepath = os.path.join(role1_dir, 'delegated_role1.txt')
+    role1_filepath = os.path.join(role1_dir, 'delegated_role1.json')
     role2_dir = os.path.join(role1_dir, 'delegated_role1')
-    role2_filepath = os.path.join(role2_dir, 'delegated_role2.txt')
+    role2_filepath = os.path.join(role2_dir, 'delegated_role2.json')
 
     #  Create a file in the delegated targets directory.
     deleg_target_filepath2 = self._add_file_to_directory(targets_deleg_dir2)
@@ -914,7 +919,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    # Verify that there is a correct number of records in 'all_targets' list.
    # On the repository there are 4 target files, 2 of which are delegated.
    # The targets role lists all targets, for a total of 4.  The two delegated
-   # roles each list 1 of the already listed targets in 'targets.txt', for a
+   # roles each list 1 of the already listed targets in 'targets.json', for a
    # total of 2 (the delegated targets are listed twice).  The total number of
    # targets in 'all_targets' should then be 6.
    self.assertTrue(len(all_targets) is 6)   
@@ -937,7 +942,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     for target in range(len(targets_list)):
       targets_filepaths.append(targets_list[target]['filepath'])
     for dir_target in targets_dir_content:
-      if dir_target.endswith('.txt'):
+      if dir_target.endswith('.json'):
         self.assertTrue(dir_target in targets_filepaths)
 
 
@@ -960,7 +965,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: normal case.
     for _target in targets_dir_content:
-      if _target.endswith('.txt'):
+      if _target.endswith('.json'):
         target_info = target(_target)
         #  Verify that 'target_info' corresponds to 'TARGETFILE_SCHEMA'.
         self.assertTrue(tuf.formats.TARGETFILE_SCHEMA.matches(target_info))

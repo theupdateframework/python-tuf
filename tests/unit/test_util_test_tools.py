@@ -93,14 +93,14 @@ class test_UtilTestTools(unittest.TestCase):
     metadata_dir = os.path.join(tuf_repo, 'metadata')
     current_dir = os.path.join(tuf_client, 'metadata', 'current')
 
-    # Verify '{root_repo}/tuf_repo/metadata/role.txt' paths exists.
-    for role in ['root', 'targets', 'release', 'timestamp']:
+    # Verify '{root_repo}/tuf_repo/metadata/role.json' paths exists.
+    for role in ['root', 'targets', 'snapshot', 'timestamp']:
       # Repository side.
-      role_file = os.path.join(metadata_dir, role+'.txt')
+      role_file = os.path.join(metadata_dir, role+'.json')
       self.assertTrue(os.path.isfile(role_file))
 
       # Client side.
-      role_file = os.path.join(current_dir, role+'.txt')
+      role_file = os.path.join(current_dir, role+'.json')
       self.assertTrue(os.path.isfile(role_file))
 
     # Verify '{root_repo}/tuf_repo/keystore/keyid.key' exists.
@@ -126,8 +126,8 @@ class test_UtilTestTools(unittest.TestCase):
 
     Note: here file at the 'filepath' and the 'target' file at tuf-targets
     directory are identical files.
-    Ex: filepath = '{root_repo}/reg_repo/file.txt'
-        target = '{root_repo}/tuf_repo/targets/file.txt'
+    Ex: filepath = '{root_repo}/reg_repo/file.json'
+        target = '{root_repo}/tuf_repo/targets/file.json'
     """
 
     reg_repo = os.path.join(self.root_repo, 'reg_repo')

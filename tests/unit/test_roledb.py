@@ -13,7 +13,6 @@
 
 <Purpose>
   Unit test for 'roledb.py'.
-
 """
 
 
@@ -22,7 +21,7 @@ import logging
 
 import tuf
 import tuf.formats
-import tuf.rsa_key
+import tuf.keys
 import tuf.roledb
 import tuf.log
 
@@ -32,7 +31,7 @@ logger = logging.getLogger('tuf.test_roledb')
 # Generate the three keys to use in our test cases.
 KEYS = []
 for junk in range(3):
-  KEYS.append(tuf.rsa_key.generate(2048))
+  KEYS.append(tuf.keys.generate_rsa_key(2048))
 
 
 
@@ -320,11 +319,13 @@ class TestRoledb(unittest.TestCase):
     roledict = {'root': {'keyids': [keyid], 'threshold': 1},
                 'targets': {'keyids': [keyid2], 'threshold': 1}}
     version = 8
-    expiration_seconds = 200
+    consistent_snapshot = False
+    expires = '2012-10-16 06:42:12 UTC'
 
     root_metadata = tuf.formats.RootFile.make_metadata(version,
-                                                       expiration_seconds,
-                                                       keydict, roledict)
+                                                       expires,
+                                                       keydict, roledict,
+                                                       consistent_snapshot)
     self.assertEqual(None,
                      tuf.roledb.create_roledb_from_root_metadata(root_metadata))
     # Ensure 'Root' and 'Targets' were added to the role database.
@@ -355,22 +356,23 @@ class TestRoledb(unittest.TestCase):
                 'targets/role1': {'keyids': [keyid2], 'threshold': 1},
                 'release': {'keyids': [keyid3], 'threshold': 1}}
     version = 8
-    expiration_seconds = 200
     
     # Add a third key for 'release'.
     keydict[keyid3] = rsakey3
     
     root_metadata = tuf.formats.RootFile.make_metadata(version,
-                                                       expiration_seconds,
-                                                       keydict, roledict)
+                                                       expires,
+                                                       keydict, roledict,
+                                                       consistent_snapshot)
     self.assertRaises(tuf.Error,
                       tuf.roledb.create_roledb_from_root_metadata, root_metadata)
     # Remove the invalid role and re-generate 'root_metadata' to test for the
     # other two roles.
     del roledict['targets/role1']
     root_metadata = tuf.formats.RootFile.make_metadata(version,
-                                                       expiration_seconds,
-                                                       keydict, roledict)
+                                                       expires,
+                                                       keydict, roledict,
+                                                       consistent_snapshot)
     self.assertEqual(None,
                      tuf.roledb.create_roledb_from_root_metadata(root_metadata))
 

@@ -168,8 +168,10 @@ def test_arbitrary_package_attack(using_tuf=False, modify_metadata=False):
 print('Attempting arbitrary package attack without TUF:')
 try:
   test_arbitrary_package_attack(using_tuf=False)
+
 except ArbitraryPackageAlert, error:
   print(error)
+
 else:
   print('Extraneous dependency attack failed.')
 print()
@@ -180,6 +182,7 @@ try:
   test_arbitrary_package_attack(using_tuf=True, modify_metadata=False)
 except ArbitraryPackageAlert, error:
   print(error)
+
 else:
   print('Extraneous dependency attack failed.')
 print()
@@ -189,8 +192,10 @@ print('Attempting arbitrary package attack with TUF'+\
                                       ' (and tampering with metadata):')
 try:
   test_arbitrary_package_attack(using_tuf=True, modify_metadata=True)
+
 except ArbitraryPackageAlert, error:
   print(error)
+
 else:
   print('Extraneous dependency attack failed.')
 print()

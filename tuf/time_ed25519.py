@@ -3,30 +3,36 @@ import sys
 import timeit
 
 import tuf
-from tuf.ed25519_key import *
+from tuf.ed25519_keys import *
 
 use_pynacl = False
 if '--pynacl' in sys.argv:
   use_pynacl = True
   
-print('Time generate()')
-print(timeit.timeit('generate(use_pynacl)',
-                    setup='from __main__ import generate, use_pynacl',
+print('Time generate_public_and_private()')
+print(timeit.timeit('generate_public_and_private(use_pynacl)',
+                    setup='from __main__ import generate_public_and_private, \
+                                                use_pynacl',
                     number=1))
 
 print('\nTime create_signature()')
-print(timeit.timeit('create_signature(ed25519_key, data, use_pynacl)',
-                    setup='from __main__ import generate, create_signature, \
+print(timeit.timeit('create_signature(public, private, data, use_pynacl)',
+                    setup='from __main__ import generate_public_and_private, \
+                                                create_signature, \
                                                 use_pynacl; \
-                          ed25519_key = generate(use_pynacl);\
+                          public, private = \
+                            generate_public_and_private(use_pynacl); \
                           data = "The quick brown fox jumps over the lazy dog"',
                     number=1))
 
 print('\nTime verify_signature()')
-print(timeit.timeit('verify_signature(ed25519_key, signature, data, use_pynacl)',
-                    setup='from __main__ import generate, create_signature, \
-                                                verify_signature, use_pynacl;\
-                          ed25519_key = generate(use_pynacl);\
+print(timeit.timeit('verify_signature(public, method, signature, data, use_pynacl)',
+                    setup='from __main__ import generate_public_and_private, \
+                                                create_signature, \
+                                                verify_signature, use_pynacl; \
+                          public, private = \
+                            generate_public_and_private(use_pynacl); \
                           data = "The quick brown fox jumps over the lazy dog";\
-                          signature = create_signature(ed25519_key, data, use_pynacl)',
+                          signature, method = \
+                            create_signature(public, private, data, use_pynacl)',
                     number=1))

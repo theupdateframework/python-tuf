@@ -54,7 +54,6 @@
   processes:
   http://docs.python.org/2/library/logging.html#thread-safety
   http://docs.python.org/2/howto/logging-cookbook.html
-
 """
 
 
@@ -76,8 +75,8 @@ _DEFAULT_FILE_LOG_LEVEL = logging.DEBUG
 # Set the format for logging messages.
 # Example format for '_FORMAT_STRING': 
 # [2013-08-13 15:21:18,068 UTC] [tuf] [INFO][_update_metadata:851@updater.py]
-_FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s]'+\
-  '[%(funcName)s:%(lineno)s@%(filename)s] %(message)s'
+_FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s] '+\
+  '[%(funcName)s:%(lineno)s@%(filename)s]\n%(message)s\n'
 
 # Ask all Formatter instances to talk GMT.  Set the 'converter' attribute of
 # 'logging.Formatter' so that all formatters use Greenwich Mean Time. 
@@ -143,7 +142,6 @@ class ConsoleFilter(logging.Filter):
 
     <Returns>
       True.
-
     """
 
     # If this LogRecord object has an exception, then we will replace its text.
@@ -185,7 +183,6 @@ def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
 
   <Returns>
     None.
-
   """
   
   # Does 'log_level' have the correct format?
@@ -216,7 +213,6 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
 
   <Returns>
     None.
-
   """
   
   # Does 'log_level' have the correct format?
@@ -248,7 +244,6 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   <Returns>
     None.
-
   """
   
   # Does 'log_level' have the correct format?
@@ -287,16 +282,15 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   <Returns>
     None.
-
   """
   
-  # Assign to the global console_handler object.
-  global console_handler
-
   # Does 'log_level' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
+  # Assign to the global console_handler object.
+  global console_handler
+ 
   if not console_handler:
     # Set the console handler for the logger. The built-in console handler will
     # log messages to 'sys.stderr' and capture 'log_level' messages.
@@ -333,7 +327,6 @@ def remove_console_handler():
 
   <Returns>
     None.
-
   """
   
   # Assign to the global 'console_handler' object.

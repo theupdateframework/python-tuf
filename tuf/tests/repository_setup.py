@@ -14,7 +14,6 @@
 <Purpose>
   To provide a quick repository structure to be used in conjunction with
   test modules like test_updater.py for instance.
-
 """
 
 import os
@@ -24,12 +23,11 @@ import shutil
 import tempfile
 
 import tuf.formats
-import tuf.rsa_key as rsa_key
 import tuf.repo.keystore as keystore
 import tuf.repo.signerlib as signerlib
+import tuf.repository_tool as repo_tool
 import tuf.repo.signercli as signercli
 import tuf.tests.unittest_toolbox as unittest_toolbox
-
 
 
 #  Role:keyids dictionary.
@@ -217,8 +215,8 @@ def build_server_repository(server_repository_dir, targets_dir):
   keystore._keystore = unittest_toolbox.Modified_TestCase.rsa_keystore
   keystore._derived_keys = unittest_toolbox.Modified_TestCase.rsa_passwords
 
-  #  Build release file.
-  signerlib.build_release_file(role_keyids['release'], server_metadata_dir,
+  #  Build snapshot file.
+  signerlib.build_snapshot_file(role_keyids['snapshot'], server_metadata_dir,
                                version, expiration_date+' UTC')
 
   #  Build timestamp file.
@@ -276,7 +274,6 @@ def create_repositories():
   <Return>
     A dictionary of all repositories, with the following keys:
     (main_repository, client_repository, server_repository)
-
   """
 
   # Ensure the keyids for the required roles are loaded.  Role keyids are

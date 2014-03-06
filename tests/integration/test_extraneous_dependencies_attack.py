@@ -218,7 +218,6 @@ else:
   print('Extraneous dependency attack failed.')
 print()
 
-
 print('Attempting extraneous dependency attack with TUF:')
 try:
   test_extraneous_dependency_attack(using_tuf=True, modify_metadata=False)

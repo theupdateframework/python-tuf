@@ -26,23 +26,23 @@
 
   1. The software update system instructs TUF to check for updates.
 
-  2. TUF downloads and verifies timestamp.txt.
+  2. TUF downloads and verifies timestamp.json.
 
-  3. If timestamp.txt indicates that release.txt has changed, TUF downloads and
-  verifies release.txt.
+  3. If timestamp.json indicates that snapshot.json has changed, TUF downloads
+     and verifies snapshot.json.
 
-  4. TUF determines which metadata files listed in release.txt differ from those
-  described in the last release.txt that TUF has seen.  If root.txt has changed,
-  the update process starts over using the new root.txt.
+  4. TUF determines which metadata files listed in snapshot.json differ from
+     those described in the last snapshot.json that TUF has seen.  If root.json
+     has changed, the update process starts over using the new root.json.
 
   5. TUF provides the software update system with a list of available files
-  according to targets.txt.
+     according to targets.json.
 
   6. The software update system instructs TUF to download a specific target
-  file.
+     file.
 
   7. TUF downloads and verifies the file and then makes the file available to
-  the software update system.
+     the software update system.
 
 <Example Client>
 
@@ -97,7 +97,6 @@
   # The updated target files are saved locally to 'destination_directory'.
   for target in updated_targets:
     updater.download_target(target, destination_directory)
-
 """
 
 import errno
@@ -105,12 +104,15 @@ import logging
 import os
 import shutil
 import time
+import urllib
+import random
 
 import tuf
 import tuf.conf
 import tuf.download
 import tuf.formats
 import tuf.hash
+import tuf.keys
 import tuf.keydb
 import tuf.log
 import tuf.mirrors
@@ -144,7 +146,7 @@ class Updater(object):
       
     self.fileinfo:
       A cache of lengths and hashes of stored metadata files.
-      Example: {'root.txt': {'length': 13323,
+      Example: {'root.json': {'length': 13323,
                              'hashes': {'sha256': dbfac345..}},
                 ...}
 
@@ -158,7 +160,7 @@ class Updater(object):
   <Updater Methods>
     refresh():
       This method downloads, verifies, and loads metadata for the top-level
-      roles in a specific order (i.e., timestamp -> release -> root -> targets)
+      roles in a specific order (i.e., timestamp -> snapshot -> root -> targets)
       The expiration time for downloaded metadata is also verified.
       
       The metadata for delegated roles are not refreshed by this method, but by
@@ -195,6 +197,12 @@ class Updater(object):
       served by the repository but have since been removed, can be deleted
       from disk by the client by calling this method.
 
+    Note: The methods listed above are public and intended for the software
+    updater integrating TUF with this module.  All other methods that may begin
+    with a single leading underscore are non-public and only used internally.
+    updater.py is not subclassed in TUF, nor is it designed to be subclassed,
+    so double leading underscores is not used.
+    http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
   def __init__(self, updater_name, repository_mirrors):
@@ -219,7 +227,7 @@ class Updater(object):
       
       and, at a minimum, the root metadata file must exist:
 
-            {tuf.conf.repository_directory}/metadata/current/root.txt
+            {tuf.conf.repository_directory}/metadata/current/root.json
     
     <Arguments>
       updater_name:
@@ -243,15 +251,14 @@ class Updater(object):
       
       tuf.RepositoryError:
         If there is an error with the updater's repository files, such
-        as a missing 'root.txt' file.
+        as a missing 'root.json' file.
 
     <Side Effects>
-      Th metadata files (e.g., 'root.txt', 'targets.txt') for the top-
+      Th metadata files (e.g., 'root.json', 'targets.json') for the top-
       level roles are read from disk and stored in dictionaries.
 
     <Returns>
       None.
-
     """
   
     # Do the arguments have the correct format?
@@ -282,6 +289,11 @@ class Updater(object):
     
     # Store the location of the client's metadata directory.
     self.metadata_directory = {}
+
+    # Store the 'consistent_snapshot' of the Root role.  This setting
+    # determines if metadata and target files downloaded from remote
+    # repositories include the digest.
+    self.consistent_snapshot = False
     
     # Ensure the repository metadata directory has been set.
     if tuf.conf.repository_directory is None:
@@ -312,13 +324,13 @@ class Updater(object):
     
     # Load current and previous metadata.
     for metadata_set in ['current', 'previous']:
-      for metadata_role in ['root', 'targets', 'release', 'timestamp']:
+      for metadata_role in ['root', 'targets', 'snapshot', 'timestamp']:
         self._load_metadata_from_file(metadata_set, metadata_role)
       
     # Raise an exception if the repository is missing the required 'root'
     # metadata.
     if 'root' not in self.metadata['current']:
-      message = 'No root of trust! Could not find the "root.txt" file.'
+      message = 'No root of trust! Could not find the "root.json" file.'
       raise tuf.RepositoryError(message)
 
 
@@ -327,7 +339,6 @@ class Updater(object):
   def __str__(self):
     """
       The string representation of an Updater object.
-    
     """
     
     return self.name
@@ -340,7 +351,7 @@ class Updater(object):
     """
     <Purpose>
       Load current or previous metadata if there is a local file.  If the 
-      expected file belonging to 'metadata_role' (e.g., 'root.txt') cannot
+      expected file belonging to 'metadata_role' (e.g., 'root.json') cannot
       be loaded, raise an exception.  The extracted metadata object loaded
       from file is saved to the metadata store (i.e., self.metadata).
         
@@ -351,7 +362,7 @@ class Updater(object):
             
       metadata_role:
         The name of the metadata. This is a role name and should
-        not end in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        not end in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
 
     <Exceptions>
       tuf.FormatError:
@@ -370,7 +381,6 @@ class Updater(object):
 
     <Returns>
       None.
-      
     """
 
     # Ensure we have a valid metadata set.
@@ -379,7 +389,7 @@ class Updater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
-    metadata_filename = metadata_role + '.txt'
+    metadata_filename = metadata_role + '.json'
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
     
     # Ensure the metadata path is valid/exists, else ignore the call. 
@@ -395,12 +405,15 @@ class Updater(object):
    
       # Save the metadata object to the metadata store.
       self.metadata[metadata_set][metadata_role] = metadata_object
-   
-      # We need to rebuild the key and role databases if 
-      # metadata object is 'root' or target metadata.
+  
+      # If 'metadata_role' is 'root' or targets metadata, the key and role
+      # databases must be rebuilt.  If 'root', ensure self.consistent_snaptshots
+      # is updated.
       if metadata_set == 'current':
         if metadata_role == 'root':
           self._rebuild_key_and_role_db()
+          self.consistent_snapshot = metadata_object['consistent_snapshot']
+        
         elif metadata_object['_type'] == 'Targets':
           # TODO: Should we also remove the keys of the delegated roles?
           tuf.roledb.remove_delegated_roles(metadata_role)
@@ -414,10 +427,10 @@ class Updater(object):
     """
     <Purpose>
       Rebuild the key and role databases from the currently trusted
-      'root' metadata object extracted from 'root.txt'.  This private
-      function is called when a new/updated 'root' metadata file is loaded.
-      This function will only store the role information for the top-level
-      roles (i.e., 'root', 'targets', 'release', 'timestamp').
+      'root' metadata object extracted from 'root.json'.  This private
+      method is called when a new/updated 'root' metadata file is loaded.
+      This method will only store the role information for the top-level
+      roles (i.e., 'root', 'targets', 'snapshot', 'timestamp').
 
     <Arguments>
       None.
@@ -435,7 +448,6 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
     
     # Clobbering this means all delegated metadata files are rendered outdated
@@ -475,7 +487,6 @@ class Updater(object):
 
     <Returns>
       None.
-          
     """
         
     current_parent_metadata = self.metadata['current'][parent_role]
@@ -492,13 +503,13 @@ class Updater(object):
     # Iterate through the keys of the delegated roles of 'parent_role'
     # and load them.
     for keyid, keyinfo in keys_info.items():
-      if keyinfo['keytype'] == 'rsa': 
-        rsa_key = tuf.rsa_key.create_from_metadata_format(keyinfo)
+      if keyinfo['keytype'] in ['rsa', 'ed25519']:
+        key = tuf.keys.format_metadata_to_key(keyinfo)
       
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          tuf.keydb.add_rsakey(rsa_key, keyid)
+          tuf.keydb.add_key(key, keyid)
         except tuf.KeyAlreadyExistsError:
           pass
         except (tuf.FormatError, tuf.Error), e:
@@ -527,7 +538,7 @@ class Updater(object):
 
 
 
-  def refresh(self):
+  def refresh(self, unsafely_update_root_if_necessary=True):
     """
     <Purpose>
       Update the latest copies of the metadata for the top-level roles.
@@ -537,11 +548,13 @@ class Updater(object):
       The client would call refresh() prior to requesting target file
       information.  Calling refresh() ensures target methods, like
       all_targets() and target(), refer to the latest available content.
-      The latest copies for delegated metadata are downloaded and updated
-      by the target methods.
+      The latest copies, according to the currently trusted top-level metadata,
+      of delegated metadata are downloaded and updated by the target methods.
 
     <Arguments>
-      None.
+      unsafely_update_root_if_necessary:
+        Boolean that indicates whether to unsafely update the Root metadata
+        if any of the top-level metadata cannot be downloaded successfully.
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -556,15 +569,30 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
+    
+    # Do the arguments have the correct format? 
+    # This check ensures the arguments have the appropriate 
+    # number of objects and object types, and that all dict
+    # keys are properly named.
+    # Raise 'tuf.FormatError' if the check fail.
+    tuf.formats.BOOLEAN_SCHEMA.check_match(unsafely_update_root_if_necessary)
 
     # The timestamp role does not have signed metadata about it; otherwise we
     # would need an infinite regress of metadata. Therefore, we use some
     # default, sane metadata about it.
     DEFAULT_TIMESTAMP_FILEINFO = {
-      'hashes':None,
+      'hashes': {},
       'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    }
+
+    # The Root role may be updated without knowing its hash if top-level
+    # metadata cannot be safely downloaded (e.g., keys may have been revoked,
+    # thus requiring a new Root file that includes the updated keys) and
+    # 'unsafely_update_root_if_necessary' is True.
+    DEFAULT_ROOT_FILEINFO = {
+      'hashes': {},
+      'length': tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH
     }
 
     # Update the top-level metadata.  The _update_metadata_if_changed() and
@@ -574,40 +602,54 @@ class Updater(object):
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
-    self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+    try: 
+      self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+      self._update_metadata_if_changed('snapshot',
+                                       referenced_metadata='timestamp')
+      self._update_metadata_if_changed('root')
+      self._update_metadata_if_changed('targets')
+    
+    except tuf.NoWorkingMirrorError, e:
+      if unsafely_update_root_if_necessary:
+        message = 'Valid top-level metadata cannot be downloaded.  Unsafely '+\
+          'update the Root metadata.'
+        logger.info(message)
+        
+        self._update_metadata('root', DEFAULT_ROOT_FILEINFO)
+        self.refresh(unsafely_update_root_if_necessary=False)
+      
+      else:
+        raise
 
-    self._update_metadata_if_changed('release', referenced_metadata='timestamp')
-
-    self._update_metadata_if_changed('root')
-
-    self._update_metadata_if_changed('targets')
-
-    # Updated the top-level metadata (which all had valid signatures), however,
-    # have they expired?  Raise 'tuf.ExpiredMetadataError' if any of the metadata
-    # has expired.
-    for metadata_role in ['timestamp', 'root', 'release', 'targets']:
-      self._ensure_not_expired(metadata_role)
+    else:
+      # Updated the top-level metadata (which all had valid signatures),
+      # however, have they expired?  Raise 'tuf.ExpiredMetadataError' if any of
+      # the metadata has expired.
+      for metadata_role in ['timestamp', 'root', 'snapshot', 'targets']:
+        self._ensure_not_expired(metadata_role)
 
 
 
 
 
-  def __check_hashes(self, file_object, trusted_hashes):
+  def _check_hashes(self, file_object, trusted_hashes):
     """
     <Purpose>
-      A helper function that verifies multiple secure hashes of the downloaded
-      file.  If any of these fail it raises an exception.  This is to conform
-      with the TUF specs, which support clients with different hashing
-      algorithms. The 'hash.py' module is used to compute the hashes of the
-      'file_object'.
+      A private helper method that verifies multiple secure hashes of the
+      downloaded file 'file_object'.  If any of these fail it raises an
+      exception.  This is to conform with the TUF spec, which support clients
+      with different hashing algorithms. The 'hash.py' module is used to compute
+      the hashes of 'file_object'.
 
     <Arguments>
       file_object:
-        A file-like object.
+        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        read() without a size argument properly reads the entire file.
 
       trusted_hashes:
         A dictionary with hash-algorithm names as keys and hashes as dict values.
-        The hashes should be in the hexdigest format.
+        The hashes should be in the hexdigest format.  Should be Conformant to
+        'tuf.formats.HASHDICT_SCHEMA'.
 
     <Exceptions>
       tuf.BadHashError, if the hashes don't match.
@@ -617,15 +659,16 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
 
-    # Verify each trusted hash of 'trusted_hashes'.  Raise exception if
-    # any of the hashes are incorrect and return if all are correct.
+    # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
+    # return.
     for algorithm, trusted_hash in trusted_hashes.items():
       digest_object = tuf.hash.digest(algorithm)
       digest_object.update(file_object.read())
       computed_hash = digest_object.hexdigest()
+      
+      # Raise an exception if any of the hashes are incorrect.
       if trusted_hash != computed_hash:
         raise tuf.BadHashError(trusted_hash, computed_hash)
       else:
@@ -635,102 +678,115 @@ class Updater(object):
 
 
 
-  def __hard_check_compressed_file_length(self, file_object,
-                                          compressed_file_length):
+  def _hard_check_file_length(self, file_object, trusted_file_length):
     """
     <Purpose>
-      A helper function that checks the expected compressed length of a
-      file-like object. The length of the file must be strictly equal to the
-      expected length. This is a deliberately redundant implementation designed
-      to complement tuf.download._check_downloaded_length().
+      A private helper method that ensures the length of 'file_object' is
+      strictly equal to 'trusted_file_length'.  This is a deliberately
+      redundant implementation designed to complement
+      tuf.download._check_downloaded_length().
 
     <Arguments>
       file_object:
-        A file-like object.
+        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        read() without a size argument properly reads the entire file.
 
-      compressed_file_length:
-        A nonnegative integer that is the expected compressed length of the
-        file.
+      trusted_file_length:
+        A non-negative integer that is the trusted length of the file.
 
     <Exceptions>
-      tuf.DownloadLengthMismatchError, if the lengths don't match.
+      tuf.DownloadLengthMismatchError, if the lengths do not match.
 
     <Side Effects>
-      None.
+      Reads the contents of 'file_object' and logs a message if 'file_object'
+      matches the trusted length.
 
     <Returns>
       None.
-
     """
 
-    observed_length = file_object.get_compressed_length()
-    if observed_length != compressed_file_length:
-      raise tuf.DownloadLengthMismatchError(compressed_file_length,
+    # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
+    # object that ensures the entire file is read.
+    observed_length = len(file_object.read())
+   
+    # Return and log a message if the length 'file_object' is equal to
+    # 'trusted_file_length', otherwise raise an exception.  A hard check
+    # ensures that a downloaded file strictly matches a known, or trusted,
+    # file length.
+    if observed_length != trusted_file_length:
+      raise tuf.DownloadLengthMismatchError(trusted_file_length,
                                             observed_length)
     else:
-      logger.debug('file length ('+str(observed_length)+\
-                   ') == trusted length ('+str(compressed_file_length)+')')
+      logger.debug('Observed length ('+str(observed_length)+\
+                   ') == trusted length ('+str(trusted_file_length)+')')
 
 
 
 
 
-  def __soft_check_compressed_file_length(self, file_object,
-                                          compressed_file_length):
+  def _soft_check_file_length(self, file_object, trusted_file_length):
     """
     <Purpose>
-      A helper function that checks the expected compressed length of a
-      file-like object. The length of the file must be less than or equal to
-      the expected length. This is a deliberately redundant implementation
-      designed to complement tuf.download._check_downloaded_length().
+      A private helper method that checks the trusted file length of a
+      'tuf.util.TempFile' file-like object. The length of the file must be less
+      than or equal to the expected length. This is a deliberately redundant
+      implementation designed to complement
+      tuf.download._check_downloaded_length().
 
     <Arguments>
       file_object:
-        A file-like object.
+        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        read() without a size argument properly reads the entire file.
 
-      compressed_file_length:
-        A nonnegative integer that is the expected compressed length of the
-        file.
+      trusted_file_length:
+        A non-negative integer that is the trusted length of the file.
 
     <Exceptions>
-      tuf.DownloadLengthMismatchError, if the lengths don't match.
+      tuf.DownloadLengthMismatchError, if the lengths do not match.
 
     <Side Effects>
-      None.
+      Reads the contents of 'file_object' and logs a message if 'file_object'
+      is less than or equal to the trusted length.
 
     <Returns>
       None.
-
     """
 
-    observed_length = file_object.get_compressed_length()
-    if observed_length > compressed_file_length:
-      raise tuf.DownloadLengthMismatchError(compressed_file_length,
+    # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
+    # object that ensures the entire file is read.
+    observed_length = len(file_object.read()) 
+   
+    # Return and log a message if 'file_object' is less than or equal to
+    # 'trusted_file_length', otherwise raise an exception.  A soft check
+    # ensures that an upper bound restricts how large a file is downloaded.
+    if observed_length > trusted_file_length:
+      raise tuf.DownloadLengthMismatchError(trusted_file_length,
                                             observed_length)
     else:
-      logger.debug('file length ('+str(observed_length)+\
-                   ') <= trusted length ('+str(compressed_file_length)+')')
+      logger.debug('Observed length ('+str(observed_length)+\
+                   ') <= trusted length ('+str(trusted_file_length)+')')
 
 
 
 
 
-  def get_target_file(self, target_filepath, compressed_file_length,
-                      uncompressed_file_hashes):
+  def _get_target_file(self, target_filepath, file_length, file_hashes):
     """
     <Purpose>
-      Safely download a target file up to a certain length, and check its
+      Safely (i.e., the file length and hash are strictly equal to the
+      trusted) download a target file up to a certain length, and check its
       hashes thereafter.
 
     <Arguments>
       target_filepath:
-        The relative target filepath obtained from TUF targets metadata.
+        The target filepath (relative to the repository targets directory)
+        obtained from TUF targets metadata.
 
-      compressed_file_length:
+      file_length:
         The expected compressed length of the target file. If the file is not
         compressed, then it will simply be its uncompressed length.
 
-      uncompressed_file_hashes:
+      file_hashes:
         The expected hashes of the target file.
 
     <Exceptions>
@@ -744,37 +800,50 @@ class Updater(object):
       a temporary file and returned.
 
     <Returns>
-      A tuf.util.TempFile file-like object containing the target.
-
+      A 'tuf.util.TempFile' file-like object containing the target.
     """
 
-    def verify_uncompressed_target_file(target_file_object):
+    # Define a callable function that is passed as an argument to _get_file()
+    # and called.  The 'verify_target_file' function ensures the file length
+    # and hashes of 'target_filepath' are strictly equal to the trusted values.
+    def verify_target_file(target_file_object):
+      
       # Every target file must have its length and hashes inspected.
-      self.__hard_check_compressed_file_length(target_file_object,
-                                               compressed_file_length)
-      self.__check_hashes(target_file_object, uncompressed_file_hashes)
+      self._hard_check_file_length(target_file_object, file_length)
+      self._check_hashes(target_file_object, file_hashes)
 
-    return self.__get_file(target_filepath, verify_uncompressed_target_file,
-                           'target', compressed_file_length,
-                           download_safely=True, compression=None)
+    # Target files, unlike metadata files, are not decompressed; the
+    # 'compression' argument to _get_file() is needed only for decompression of
+    # metadata.  Target files may be compressed or uncompressed.
+    if self.consistent_snapshot:
+      target_digest = random.choice(file_hashes.values())
+      dirname, basename = os.path.split(target_filepath)
+      target_filepath = os.path.join(dirname, target_digest+'.'+basename)
+
+    return self._get_file(target_filepath, verify_target_file,
+                          'target', file_length, compression=None,
+                          verify_compressed_file_function=None,
+                          download_safely=True)
 
 
 
 
 
-  def __verify_uncompressed_metadata_file(self, metadata_file_object,
-                                          metadata_role):
+  def _verify_uncompressed_metadata_file(self, metadata_file_object,
+                                         metadata_role):
     """
     <Purpose>
-      A private helper function to verify an uncompressed downloaded metadata
+      A private helper function to verify an uncompressed metadata
       file.
 
     <Arguments>
       metadata_file_object:
-        A tuf.util.TempFile instance containing the metadata file.
+        A 'tuf.util.TempFile' instance containing the metadata file.
+        'metadata_file_object' ensures the entire file is returned with read().
 
       metadata_role:
-        The role name of the metadata.
+        The role name of the metadata (e.g., 'root', 'targets',
+        'targets/linux/x86').
 
     <Exceptions>
       tuf.ForbiddenTargetError:
@@ -797,20 +866,21 @@ class Updater(object):
         In case the metadata file does not have a valid signature.
 
     <Side Effects>
-      None.
+      The contents of 'metadata_file_object' is read and loaded.
 
     <Returns>
       None.
-
     """
 
     metadata = metadata_file_object.read()
+    
     try:
       metadata_signable = tuf.util.load_json_string(metadata)
     except Exception, exception:
       raise tuf.InvalidMetadataJSONError(exception)
     else:
-      # Ensure the loaded 'metadata_signable' is properly formatted.
+      # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
+      # 'tuf.FormatError' if not.
       tuf.formats.check_signable_object_format(metadata_signable)
 
     # Is 'metadata_signable' newer than the currently installed
@@ -827,9 +897,16 @@ class Updater(object):
                                         current_version)
 
     # Reject the metadata if any specified targets are not allowed.
+    # 'tuf.ForbiddenTargetError' raised if any of the targets of 'metadata_role'
+    # are not allowed.
     if metadata_signable['signed']['_type'] == 'Targets':
-      self._ensure_all_targets_allowed(metadata_role,
-                                       metadata_signable['signed'])
+      if metadata_role != 'targets':
+        metadata_targets = metadata_signable['signed']['targets'].keys()
+        parent_rolename = tuf.roledb.get_parent_rolename(metadata_role)
+        parent_role_metadata = self.metadata['current'][parent_rolename]
+        parent_delegations = parent_role_metadata['delegations']
+        tuf.util.ensure_all_targets_allowed(metadata_role, metadata_targets,
+                                            parent_delegations)
 
     # Verify the signature on the downloaded metadata object.
     valid = tuf.sig.verify(metadata_signable, metadata_role)
@@ -840,8 +917,10 @@ class Updater(object):
 
 
 
-  def unsafely_get_metadata_file(self, metadata_role, metadata_filepath,
-                                 compressed_file_length):
+  def _unsafely_get_metadata_file(self, metadata_role, metadata_filepath,
+                                  uncompressed_fileinfo,
+                                  compression=None, compressed_fileinfo=None):
+
     """
     <Purpose>
       Unsafely download a metadata file up to a certain length. The actual file
@@ -850,14 +929,24 @@ class Updater(object):
 
     <Arguments>
       metadata_role:
-        The role name of the metadata.
+        The role name of the metadata (e.g., 'root', 'targets',
+        'targets/linux/x86').
 
       metadata_filepath:
-        The relative metadata filepath.
+        The metadata filepath (i.e., relative to the repository metadata
+        directory).
 
-      compressed_file_length:
-        The expected compressed length of the metadata file. If the file is not
-        compressed, then it will simply be its uncompressed length.
+      uncompressed_fileinfo:
+        The trusted file length and hashes of the uncompressed version of the 
+        metadata file.  Should be 'tuf.formats.FILEINFO_SCHEMA'.
+
+      compression:
+        The name of the compression algorithm (e.g., 'gzip'), if the metadata
+        file is compressed. 
+        
+      compressed_fileinfo:
+        The fileinfo of the metadata file, if it is compressed.  Should be
+        'tuf.formats.FILEINFO_SCHEMA'.
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -870,28 +959,51 @@ class Updater(object):
       in a temporary file and returned.
 
     <Returns>
-      A tuf.util.TempFile file-like object containing the metadata.
-
+      A 'tuf.util.TempFile' file-like object containing the metadata.
     """
+   
+    # Store file length and hashes of the uncompressed version metadata.
+    # The uncompressed version is always verified.
+    uncompressed_file_length = uncompressed_fileinfo['length']
+    uncompressed_file_hashes = uncompressed_fileinfo['hashes']
+    download_file_length = uncompressed_file_length
+    compressed_file_length = None
+    compressed_file_hashes = None
+
+    # Store the file length and hashes of the compressed version of the
+    # metadata, if compressions is set.
+    if compression is not None and compressed_fileinfo is not None:
+      compressed_file_length = compressed_fileinfo['length']
+      compressed_file_hashes = compressed_fileinfo['hashes']
+      download_file_length = compressed_file_length
 
     def unsafely_verify_uncompressed_metadata_file(metadata_file_object):
-      self.__soft_check_compressed_file_length(metadata_file_object,
-                                               compressed_file_length)
-      self.__verify_uncompressed_metadata_file(metadata_file_object,
-                                               metadata_role)
+      self._soft_check_file_length(metadata_file_object,
+                                   uncompressed_file_length)
+      self._check_hashes(metadata_file_object, uncompressed_file_hashes)
+      self._verify_uncompressed_metadata_file(metadata_file_object,
+                                              metadata_role)
+    
+    def unsafely_verify_compressed_metadata_file(metadata_file_object):
+      self._hard_check_file_length(metadata_file_object, compressed_file_length) 
+      self._check_hashes(metadata_file_object, compressed_file_hashes)
 
-    return self.__get_file(metadata_filepath,
-                           unsafely_verify_uncompressed_metadata_file, 'meta',
-                           compressed_file_length, download_safely=False,
-                           compression=None)
+    if compression is None:
+      unsafely_verify_compressed_metadata_file = None
+
+    return self._get_file(metadata_filepath,
+                          unsafely_verify_uncompressed_metadata_file, 'meta',
+                          download_file_length, compression,
+                          unsafely_verify_compressed_metadata_file,
+                          download_safely=False)
 
 
 
 
 
-  def safely_get_metadata_file(self, metadata_role, metadata_filepath,
-                               compressed_file_length,
-                               uncompressed_file_hashes, compression):
+  def _safely_get_metadata_file(self, metadata_role, metadata_filepath,
+                                uncompressed_fileinfo,
+                                compression=None, compressed_fileinfo=None):
     """
     <Purpose>
       Safely download a metadata file up to a certain length, and check its
@@ -899,20 +1011,24 @@ class Updater(object):
 
     <Arguments>
       metadata_role:
-        The role name of the metadata.
+        The role name of the metadata (e.g., 'root', 'targets',
+        'targets/linux/x86').
 
       metadata_filepath:
-        The relative metadata filepath.
-
-      compressed_file_length:
-        The expected compressed length of the metadata file. If the file is not
-        compressed, then it will simply be its uncompressed length.
-
-      uncompressed_file_hashes:
-        The expected hashes of the metadata file.
+        The metadata filepath (i.e., relative to the repository metadata
+        directory).
+      
+      uncompressed_fileinfo:
+        The trusted file length and hashes of the uncompressed version of the 
+        metadata file.  Should be 'tuf.formats.FILEINFO_SCHEMA'.
 
       compression:
-        The name of the compression algorithm used to compress the metadata.
+        The name of the compression algorithm (e.g., 'gzip'), if the metadata
+        file is compressed. 
+        
+      compressed_fileinfo:
+        The fileinfo of the metadata file, if it is compressed.  Should be
+        'tuf.formats.FILEINFO_SCHEMA'.
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -925,21 +1041,41 @@ class Updater(object):
       in a temporary file and returned.
 
     <Returns>
-      A tuf.util.TempFile file-like object containing the metadata.
-
+      A 'tuf.util.TempFile' file-like object containing the metadata.
     """
-
+    
+    # Store file length and hashes of the uncompressed version metadata.
+    # The uncompressed version is always verified.
+    uncompressed_file_length = uncompressed_fileinfo['length']
+    uncompressed_file_hashes = uncompressed_fileinfo['hashes']
+    download_file_length = uncompressed_file_length
+    
+    # Store the file length and hashes of the compressed version of the
+    # metadata, if compressions is set.
+    if compression and compressed_fileinfo:
+      compressed_file_length = compressed_fileinfo['length']
+      compressed_file_hashes = compressed_fileinfo['hashes']
+      download_file_length = compressed_file_length
+    
     def safely_verify_uncompressed_metadata_file(metadata_file_object):
-      self.__hard_check_compressed_file_length(metadata_file_object,
-                                               compressed_file_length)
-      self.__check_hashes(metadata_file_object, uncompressed_file_hashes)
-      self.__verify_uncompressed_metadata_file(metadata_file_object,
+      self._hard_check_file_length(metadata_file_object,
+                                   uncompressed_file_length)
+      self._check_hashes(metadata_file_object, uncompressed_file_hashes)
+      self._verify_uncompressed_metadata_file(metadata_file_object,
                                                metadata_role)
 
-    return self.__get_file(metadata_filepath,
-                           safely_verify_uncompressed_metadata_file, 'meta',
-                           compressed_file_length, download_safely=True,
-                           compression=compression)
+    def safely_verify_compressed_metadata_file(metadata_file_object):
+      self._hard_check_file_length(metadata_file_object, compressed_file_length) 
+      self._check_hashes(metadata_file_object, compressed_file_hashes)
+
+    if compression is None:
+      safely_verify_compressed_metadata_file = None
+    
+    return self._get_file(metadata_filepath,
+                          safely_verify_uncompressed_metadata_file, 'meta',
+                          download_file_length, compression,
+                          safely_verify_compressed_metadata_file,
+                          download_safely=True)
 
 
 
@@ -948,8 +1084,9 @@ class Updater(object):
   # TODO: Instead of the more fragile 'download_safely' switch, unroll the
   # function into two separate ones: one for "safe" download, and the other one
   # for "unsafe" download? This should induce safer and more readable code.
-  def __get_file(self, filepath, verify_uncompressed_file, file_type,
-                 compressed_file_length, download_safely, compression):
+  def _get_file(self, filepath, verify_file_function, file_type,
+                file_length, compression=None,
+                verify_compressed_file_function=None, download_safely=True):
     """
     <Purpose>
       Try downloading, up to a certain length, a metadata or target file from a
@@ -960,25 +1097,33 @@ class Updater(object):
       filepath:
         The relative metadata or target filepath.
 
-      verify_uncompressed_file:
-        A function which expects an uncompressed file-like object and which
-        will raise an exception in case the file is not valid for any reason.
+      verify_file_function:
+        A callable function that expects a 'tuf.util.TempFile' file-like object
+        and raises an exception if the file is invalid.  Target files and
+        uncompressed versions of metadata may be verified with
+        'verify_file_function'.
 
       file_type:
         Type of data needed for download, must correspond to one of the strings
         in the list ['meta', 'target'].  'meta' for metadata file type or
-        'target' for target file type.  It should correspond to NAME_SCHEMA
-        format.
+        'target' for target file type.  It should correspond to the
+        'tuf.formats.NAME_SCHEMA' format.
 
-      compressed_file_length:
-        The expected compressed length of the target or metadata file. If the
-        file is not compressed, then it will simply be its uncompressed length.
+      file_length:
+        The expected length, or upper bound, of the target or metadata file to
+        be downloaded.
+
+      compression:
+        The name of the compression algorithm (e.g., 'gzip'), if the metadata
+        file is compressed. 
+     
+      verify_compressed_file_function:
+        If compression is specified, in the case of metadata files, this
+        callable function may be set to perform verification of the compressed
+        version of the metadata file.  Decompressed metadata is also verified. 
 
       download_safely:
         A boolean switch to toggle safe or unsafe download of the file.
-
-      compression:
-        The name of the compression algorithm used to compress the file.
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -991,8 +1136,7 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A tuf.util.TempFile file-like object containing the metadata or target.
-
+      A 'tuf.util.TempFile' file-like object containing the metadata or target.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
@@ -1005,18 +1149,23 @@ class Updater(object):
       try:
         if download_safely:
           file_object = tuf.download.safe_download(file_mirror,
-                                                   compressed_file_length)
+                                                   file_length)
         else:
           file_object = tuf.download.unsafe_download(file_mirror,
-                                                     compressed_file_length)
+                                                     file_length)
 
-        if compression:
-          logger.debug('Decompressing '+str(file_mirror))
+        if compression is not None:
+          if verify_compressed_file_function is not None: 
+            verify_compressed_file_function(file_object)  
+          logger.info('Decompressing '+str(file_mirror))
           file_object.decompress_temp_file_object(compression)
         else:
-          logger.debug('Not decompressing '+str(file_mirror))
-
-        verify_uncompressed_file(file_object)
+          logger.info('Not decompressing '+str(file_mirror))
+        
+        # Verify 'file_object' according to the callable function.
+        # 'file_object' is also verified if decompressed above (i.e., the
+        # uncompressed version).
+        verify_file_function(file_object)
 
       except Exception, exception:
         # Remember the error from this mirror, and "reset" the target file.
@@ -1037,11 +1186,12 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, fileinfo, compression=None):
+  def _update_metadata(self, metadata_role, uncompressed_fileinfo,
+                       compression=None, compressed_fileinfo=None):
     """
     <Purpose>
       Download, verify, and 'install' the metadata belonging to 'metadata_role'.
-      Calling this function implies the metadata has been updated by the
+      Calling this method implies the metadata has been updated by the
       repository and thus needs to be re-downloaded.  The current and previous
       metadata stores are updated if the newly downloaded metadata is
       successfully downloaded and verified.
@@ -1049,28 +1199,27 @@ class Updater(object):
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
       
-      fileinfo:
-        A dictionary containing length and hashes of the metadata file.
+      uncompressed_fileinfo:
+        A dictionary containing length and hashes of the uncompressed metadata
+        file.
+        
         Ex: {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
              "length": 1340}
-        The length must be that of the compressed metadata file if it is
-        compressed, or uncompressed metadata file if it is uncompressed.
-        The hashes must be that of the uncompressed metadata file.
-
-      STRICT_REQUIRED_LENGTH:
-        A Boolean indicator used to signal whether we should perform strict
-        checking of the required length in 'fileinfo'. True by default.  True
-        by default. We explicitly set this to False when we know that we want
-        to turn this off for downloading the timestamp metadata, which has no
-        signed required_length.
-
+        
       compression:
         A string designating the compression type of 'metadata_role'.
-        The 'release' metadata file may be optionally downloaded and stored in
+        The 'snapshot' metadata file may be optionally downloaded and stored in
         compressed form.  Currently, only metadata files compressed with 'gzip'
         are considered.  Any other string is ignored.
+
+      compressed_fileinfo:
+        A dictionary containing length and hashes of the compressed metadata
+        file.
+        
+        Ex: {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
+             "length": 1340}
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -1085,22 +1234,16 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
 
     # Construct the metadata filename as expected by the download/mirror modules.
-    metadata_filename = metadata_role + '.txt'
+    metadata_filename = metadata_role + '.json'
     uncompressed_metadata_filename = metadata_filename
    
-    # The 'release' or Targets metadata may be compressed.  Add the appropriate
+    # The 'snapshot' or Targets metadata may be compressed.  Add the appropriate
     # extension to 'metadata_filename'. 
     if compression == 'gzip':
       metadata_filename = metadata_filename + '.gz'
-
-    # Extract file length and file hashes.  They will be passed as arguments
-    # to 'download_file' function.
-    compressed_file_length = fileinfo['length']
-    uncompressed_file_hashes = fileinfo['hashes']
 
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
@@ -1121,17 +1264,36 @@ class Updater(object):
     # Note also that we presently support decompression of only "safe"
     # metadata, but this is easily extend to "unsafe" metadata as well as
     # "safe" targets.
-
+    
     if metadata_role == 'timestamp':
       metadata_file_object = \
-        self.unsafely_get_metadata_file(metadata_role, metadata_filename,
-                                        compressed_file_length)
-    else:
+        self._unsafely_get_metadata_file(metadata_role, metadata_filename,
+                                         uncompressed_fileinfo,
+                                         compression, compressed_fileinfo)
+    
+    elif metadata_role == 'root' and not len(uncompressed_fileinfo['hashes']):
       metadata_file_object = \
-        self.safely_get_metadata_file(metadata_role, metadata_filename,
-                                      compressed_file_length,
-                                      uncompressed_file_hashes,
-                                      compression=compression)
+        self._unsafely_get_metadata_file(metadata_role, metadata_filename,
+                                         uncompressed_fileinfo,
+                                         compression, compressed_fileinfo)
+    
+    else:
+      remote_filename = metadata_filename
+      if self.consistent_snapshot:
+        if compression:
+          filename_digest = \
+            random.choice(compressed_fileinfo['hashes'].values())
+        
+        else:
+          filename_digest = \
+            random.choice(uncompressed_fileinfo['hashes'].values())
+        dirname, basename = os.path.split(remote_filename)
+        remote_filename = os.path.join(dirname, filename_digest+'.'+basename)
+
+      metadata_file_object = \
+        self._safely_get_metadata_file(metadata_role, remote_filename,
+                                       uncompressed_fileinfo,
+                                       compression, compressed_fileinfo)
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -1144,6 +1306,7 @@ class Updater(object):
     previous_filepath = os.path.join(self.metadata_directory['previous'],
                                      metadata_filename)
     previous_filepath = os.path.abspath(previous_filepath)
+    
     if os.path.exists(current_filepath):
       # Previous metadata might not exist, say when delegations are added.
       tuf.util.ensure_parent_dir(previous_filepath)
@@ -1160,6 +1323,7 @@ class Updater(object):
       current_uncompressed_filepath = \
         os.path.abspath(current_uncompressed_filepath)
       metadata_file_object.move(current_uncompressed_filepath)
+    
     else:
       metadata_file_object.move(current_filepath)
 
@@ -1169,57 +1333,66 @@ class Updater(object):
     updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
 
-    # Finally, update the metadata and fileinfo stores.
+    # Finally, update the metadata and fileinfo stores, and rebuild the
+    # key and role info for the top-level roles if 'metadata_role' is root.
+    # Rebuilding the the key and role info is required if the newly-installed
+    # root metadata has revoked keys or updated any top-level role information.
     logger.debug('Updated '+repr(current_filepath)+'.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    self._update_fileinfo(metadata_filename) 
+    self._update_fileinfo(metadata_filename)
+
+    # Ensure the role and key information of the top-level roles is also updated
+    # according to the newly-installed Root metadata.
+    if metadata_role == 'root':
+      self._rebuild_key_and_role_db()
+      self.consistent_snapshot = updated_metadata_object['consistent_snapshot']
 
 
 
 
 
-  def _update_metadata_if_changed(self, metadata_role, referenced_metadata='release'):
+  def _update_metadata_if_changed(self, metadata_role, referenced_metadata='snapshot'):
     """
     <Purpose>
       Update the metadata for 'metadata_role' if it has changed.  With the
       exception of the 'timestamp' role, all the top-level roles are updated
-      by this function.  The 'timestamp' role is always downloaded from a mirror
+      by this method.  The 'timestamp' role is always downloaded from a mirror
       without first checking if it has been updated; it is updated in refresh()
-      by calling _update_metadata('timestamp').  This function is also called for
-      delegated role metadata, which are referenced by 'release'.
+      by calling _update_metadata('timestamp').  This method is also called for
+      delegated role metadata, which are referenced by 'snapshot'.
         
       If the metadata needs to be updated but an update cannot be obtained,
-      this function will delete the file (with the exception of the root
+      this method will delete the file (with the exception of the root
       metadata, which never gets removed without a replacement).
 
       Due to the way in which metadata files are updated, it is expected that
       'referenced_metadata' is not out of date and trusted.  The refresh()
-      method updates the top-level roles in 'timestamp -> release ->
+      method updates the top-level roles in 'timestamp -> snapshot ->
       root -> targets' order.  For delegated metadata, the parent role is
       updated before the delegated role.  Taking into account that
       'referenced_metadata' is updated and verified before 'metadata_role',
-      this function determines if 'metadata_role' has changed by checking
+      this method determines if 'metadata_role' has changed by checking
       the 'meta' field of the newly updated 'referenced_metadata'.
 
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
 
       referenced_metadata:
         This is the metadata that provides the role information for
-        'metadata_role'.  For the top-level roles, the 'release' role
+        'metadata_role'.  For the top-level roles, the 'snapshot' role
         is the referenced metadata for the 'root', and 'targets' roles.
         The 'timestamp' metadata is always downloaded regardless.  In
         other words, it is updated by calling _update_metadata('timestamp')
-        and not by this function.  The referenced metadata for 'release'
+        and not by this method.  The referenced metadata for 'snapshot'
         is 'timestamp'.  See refresh().
         
     <Exceptions>
       tuf.NoWorkingMirrorError:
-        If 'metadata_role' could not be downloaded after determining
-        that it had changed.
+        If 'metadata_role' could not be downloaded after determining that it had
+        changed.
         
       tuf.RepositoryError:
         If the referenced metadata is missing.
@@ -1234,17 +1407,17 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
         
-    uncompressed_metadata_filename = metadata_role + '.txt'
+    uncompressed_metadata_filename = metadata_role + '.json'
 
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
-    # updated without having 'release' available.  
+    # updated without having 'snapshot' available.  
     if referenced_metadata not in self.metadata['current']:
       message = 'Cannot update '+repr(metadata_role)+' because ' \
                 +referenced_metadata+' is missing.'
       raise tuf.RepositoryError(message)
+    
     # The referenced metadata has been loaded.  Extract the new
     # fileinfo for 'metadata_role' from it. 
     else:
@@ -1252,59 +1425,61 @@ class Updater(object):
         repr(referenced_metadata)+'.  '+repr(metadata_role)+' may be updated.'
       logger.debug(message)
     
-    # There might be a compressed version of 'release.txt' or Targets
+    # There might be a compressed version of 'snapshot.json' or Targets
     # metadata available for download.  Check the 'meta' field of
     # 'referenced_metadata' to see if it is listed when 'metadata_role'
-    # is 'release'.  The full rolename for delegated Targets metadata
-    # must begin with 'targets/'.  The Release role lists all the Targets
+    # is 'snapshot'.  The full rolename for delegated Targets metadata
+    # must begin with 'targets/'.  The snapshot role lists all the Targets
     # metadata available on the repository, including any that may be in
     # compressed form.
+    #
+    # In addition to validating the fileinfo (i.e., file lengths and hashes)
+    # of the uncompressed metadata, the compressed version is also verified to
+    # match its respective fileinfo.  Verifying the compressed fileinfo ensures
+    # untrusted data is not decompressed prior to verifying hashes, or
+    # decompressing a file that may be invalid or partially intact.
     compression = None
+    compressed_fileinfo = None
 
     # Extract the fileinfo of the uncompressed version of 'metadata_role'.
     uncompressed_fileinfo = self.metadata['current'][referenced_metadata] \
                                          ['meta'] \
                                          [uncompressed_metadata_filename]
 
-    # Check for availability of compressed versions of 'release.txt',
-    # 'targets.txt', and delegated Targets, which also start with 'targets'.
-    # For 'targets.txt' and delegated metadata, 'referenced_metata'
-    # should always be 'release'.  'release.txt' specifies all roles
-    # provided by a repository, including their file sizes and hashes.
-    if metadata_role == 'release' or metadata_role.startswith('targets'):
+    # Check for the availability of compressed versions of 'snapshot.json',
+    # 'targets.json', and delegated Targets (that also start with 'targets').
+    # For 'targets.json' and delegated metadata, 'referenced_metata'
+    # should always be 'snapshot'.  'snapshot.json' specifies all roles
+    # provided by a repository, including their file lengths and hashes.
+    if metadata_role == 'snapshot' or metadata_role.startswith('targets'):
       gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
       if gzip_metadata_filename in self.metadata['current'] \
                                                 [referenced_metadata]['meta']:
         compression = 'gzip'
         compressed_fileinfo = self.metadata['current'][referenced_metadata] \
                                     ['meta'][gzip_metadata_filename]
-        # NOTE: When we download the compressed file, we care about its
-        # compressed length.  However, we check the hash of the uncompressed
-        # file; therefore we use the hashes of the uncompressed file.
-        fileinfo = {'length': compressed_fileinfo['length'],
-                    'hashes': uncompressed_fileinfo['hashes']}
+        
         logger.debug('Compressed version of '+\
                      repr(uncompressed_metadata_filename)+' is available at '+\
                      repr(gzip_metadata_filename)+'.')
       else:
         logger.debug('Compressed version of '+\
                      repr(uncompressed_metadata_filename)+' not available.')
-        fileinfo = uncompressed_fileinfo
-    else:
-      fileinfo = uncompressed_fileinfo
 
     # Simply return if the file has not changed, according to the metadata
     # about the uncompressed file provided by the referenced metadata.
     if not self._fileinfo_has_changed(uncompressed_metadata_filename,
                                       uncompressed_fileinfo):
+      logger.info(repr(uncompressed_metadata_filename)+' up-to-date.')
+      
       return
 
     logger.debug('Metadata '+repr(uncompressed_metadata_filename)+\
                  ' has changed.')
 
     try:
-      self._update_metadata(metadata_role, fileinfo=fileinfo,
-                            compression=compression)
+      self._update_metadata(metadata_role, uncompressed_fileinfo, compression,
+                            compressed_fileinfo)
     except:
       # The current metadata we have is not current but we couldn't
       # get new metadata. We shouldn't use the old metadata anymore.
@@ -1315,187 +1490,18 @@ class Updater(object):
       # We shouldn't need to, but we need to check the trust
       # implications of the current implementation.
       self._delete_metadata(metadata_role)
-      logger.error('Metadata for '+str(metadata_role)+' could not be updated')
+      logger.error('Metadata for '+repr(metadata_role)+' cannot be updated.')
       raise
+    
     else:
       # We need to remove delegated roles because the delegated roles
       # may not be trusted anymore.
       if metadata_role == 'targets' or metadata_role.startswith('targets/'):
         logger.debug('Removing delegated roles of '+repr(metadata_role)+'.')
+        
         # TODO: Should we also remove the keys of the delegated roles?
         tuf.roledb.remove_delegated_roles(metadata_role)
         self._import_delegations(metadata_role)
-
-
-
-
-
-  def _ensure_all_targets_allowed(self, metadata_role, metadata_object):
-    """
-    <Purpose>
-      Ensure the delegated targets of 'metadata_role' are allowed; this is
-      determined by inspecting the 'delegations' field of the parent role
-      of 'metadata_role'.  If a target specified by 'metadata_object'
-      is not found in the parent role's delegations field, raise an exception.
-   
-      Targets allowed are either exlicitly listed under the 'paths' field, or
-      implicitly exist under a subdirectory of a parent directory listed
-      under 'paths'.  A parent role may delegate trust to all files under a 
-      particular directory, including files in subdirectories, by simply
-      listing the directory (e.g., 'packages/source/Django/', the equivalent
-      of 'packages/source/Django/*').  Targets listed in hashed bins are
-      also validated (i.e., its calculated path hash prefix must be delegated
-      by the parent role.
-
-      TODO: Should the TUF spec restrict the repository to one particular
-      algorithm?  Should we allow the repository to specify in the role
-      dictionary the algorithm used for these generated hashed paths?
-
-    <Arguments>
-      metadata_role:
-        The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
-      
-      metadata_object:
-        The metadata role object for 'metadata_role'.  This is the object
-        saved to the metadata store and stored in the 'signed' field of a
-        'signable' object (metadata roles are saved to metadata files as a
-        'signable' object).
-
-    <Exceptions>
-      tuf.ForbiddenTargetError:
-        If the targets of 'metadata_role' are not allowed according to
-        the parent's metadata file.  The 'paths' and 'path_hash_prefixes'
-        attributes are verified.
-
-    <Side Effects>
-      None.
-
-    <Returns>
-      None.
-    
-    """
-    
-    # Return if 'metadata_role' is 'targets'.  'targets' is not
-    # a delegated role.
-    if metadata_role == 'targets':
-      return
-    
-    # The targets of delegated roles are stored in the parent's
-    # metadata file.  Retrieve the parent role of 'metadata_role'
-    # to confirm 'metadata_role' contains valid targets.
-    parent_role = tuf.roledb.get_parent_rolename(metadata_role)
-
-    # Iterate over the targets of 'metadata_role' and confirm they are trusted,
-    # or their root parent directory exists in the role delegated paths of the
-    # parent role.
-    roles = self.metadata['current'][parent_role]['delegations']['roles']
-    role_index = tuf.repo.signerlib.find_delegated_role(roles, metadata_role)
-
-    # Ensure the delegated role exists prior to extracting trusted paths from
-    # the parent's 'paths', or trusted path hash prefixes from the parent's
-    # 'path_hash_prefixes'.
-    if role_index is not None:
-      role = roles[role_index] 
-      allowed_child_paths = role.get('paths')
-      allowed_child_path_hash_prefixes = role.get('path_hash_prefixes')
-      actual_child_targets = metadata_object['targets'].keys()
-
-      if allowed_child_path_hash_prefixes is not None:
-        consistent = self._paths_are_consistent_with_hash_prefixes
-        if not consistent(actual_child_targets,
-                          allowed_child_path_hash_prefixes):
-          raise tuf.ForbiddenTargetError('Role '+repr(metadata_role)+\
-                                         ' specifies target which does not'+\
-                                         ' have a path hash prefix matching'+\
-                                         ' the prefix listed by the parent'+\
-                                         ' role '+repr(parent_role)+'.')
-
-      elif allowed_child_paths is not None: 
-
-        # Check that each delegated target is either explicitly listed or a parent
-        # directory is found under role['paths'], otherwise raise an exception.
-        # If the parent role explicitly lists target file paths in 'paths',
-        # this loop will run in O(n^2), the worst-case.  The repository
-        # maintainer will likely delegate entire directories, and opt for
-        # explicit file paths if the targets in a directory are delegated to 
-        # different roles/developers.
-        for child_target in actual_child_targets:
-          for allowed_child_path in allowed_child_paths:
-            prefix = os.path.commonprefix([child_target, allowed_child_path])
-            if prefix == allowed_child_path:
-              break
-          else: 
-            raise tuf.ForbiddenTargetError('Role '+repr(metadata_role)+\
-                                           ' specifies target '+\
-                                           repr(child_target)+' which is not'+\
-                                           ' an allowed path according to'+\
-                                           ' the delegations set by '+\
-                                           repr(parent_role)+'.')
-
-      else:
-
-        # 'role' should have been validated when it was downloaded.
-        # The 'paths' or 'path_hash_prefixes' attributes should not be missing,
-        # so raise an error in case this clause is reached.
-        raise tuf.FormatError(repr(role)+' did not contain one of '+\
-                              'the required fields ("paths" or '+\
-                              '"path_hash_prefixes").')
-
-    # Raise an exception if the parent has not delegated to the specified
-    # 'metadata_role' child role.
-    else:
-      raise tuf.RepositoryError(repr(parent_role)+' has not delegated to '+\
-                                repr(metadata_role)+'.')
-
-
-
-
-
-  def _paths_are_consistent_with_hash_prefixes(self, paths,
-                                               path_hash_prefixes):
-    """
-    <Purpose>
-      Determine whether a list of paths are consistent with theirs alleged
-      path hash prefixes. By default, the SHA256 hash function will be used.
-
-    <Arguments>
-      paths:
-        A list of paths for which their hashes will be checked.
-
-      path_hash_prefixes:
-        The list of path hash prefixes with which to check the list of paths.
-
-    <Exceptions>
-      No known exceptions.
-
-    <Side Effects>
-      No known side effects.
-
-    <Returns>
-      A Boolean indicating whether or not the paths are consistent with the
-      hash prefix.
-    """
-
-    # Assume that 'paths' and 'path_hash_prefixes' are inconsistent until
-    # proven otherwise.
-    consistent = False
-
-    if len(paths) > 0 and len(path_hash_prefixes) > 0:
-      for path in paths:
-        path_hash = self._get_target_hash(path)
-        # Assume that every path is inconsistent until proven otherwise.
-        consistent = False
-
-        for path_hash_prefix in path_hash_prefixes:
-          if path_hash.startswith(path_hash_prefix):
-            consistent = True
-            break
-
-        # This path has no matching path_hash_prefix. Stop looking further.
-        if not consistent: break
-
-    return consistent
 
 
 
@@ -1507,21 +1513,21 @@ class Updater(object):
       Determine whether the current fileinfo of 'metadata_filename'
       differs from 'new_fileinfo'.  The 'new_fileinfo' argument
       should be extracted from the latest copy of the metadata
-      that references 'metadata_filename'.  Example: 'root.txt'
-      would be referenced by 'release.txt'.
+      that references 'metadata_filename'.  Example: 'root.json'
+      would be referenced by 'snapshot.json'.
         
       'new_fileinfo' should only be 'None' if this is for updating
-      'root.txt' without having 'release.txt' available.
+      'root.json' without having 'snapshot.json' available.
 
     <Arguments>
       metadadata_filename:
         The metadata filename for the role.  For the 'root' role,
-        'metadata_filename' would be 'root.txt'.
+        'metadata_filename' would be 'root.json'.
 
       new_fileinfo:
         A dict object representing the new file information for
         'metadata_filename'.  'new_fileinfo' may be 'None' when
-        updating 'root' without having 'release' available.  This
+        updating 'root' without having 'snapshot' available.  This
         dict conforms to 'tuf.formats.FILEINFO_SCHEMA' and has
         the form:
         {'length': 23423
@@ -1536,7 +1542,6 @@ class Updater(object):
 
     <Returns>
       Boolean.  True if the fileinfo has changed, false otherwise.
-    
     """
        
     # If there is no fileinfo currently stored for 'metadata_filename',
@@ -1564,8 +1569,9 @@ class Updater(object):
     for algorithm, hash_value in new_fileinfo['hashes'].items():
       # We're only looking for a single match. This isn't a security
       # check, we just want to prevent unnecessary downloads.
-      if hash_value == current_fileinfo['hashes'][algorithm]:
-        return False
+      if algorithm in current_fileinfo['hashes']: 
+        if hash_value == current_fileinfo['hashes'][algorithm]:
+          return False
 
     return True
 
@@ -1584,7 +1590,7 @@ class Updater(object):
     <Arguments>
       metadata_filename:
         The metadata filename for the role.  For the 'root' role,
-        'metadata_filename' would be 'root.txt'.
+        'metadata_filename' would be 'root.json'.
 
     <Exceptions>
       None.
@@ -1595,7 +1601,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
         
     # In case we delayed loading the metadata and didn't do it in
@@ -1629,7 +1634,7 @@ class Updater(object):
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
     
     <Exceptions>
       None.
@@ -1640,11 +1645,10 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
 
     # Get the 'current' and 'previous' full file paths for 'metadata_role'
-    metadata_filepath = metadata_role + '.txt'
+    metadata_filepath = metadata_role + '.json'
     previous_filepath = os.path.join(self.metadata_directory['previous'],
                                      metadata_filepath)
     current_filepath = os.path.join(self.metadata_directory['current'],
@@ -1668,13 +1672,13 @@ class Updater(object):
     <Purpose>
       Remove all (current) knowledge of 'metadata_role'.  The metadata
       belonging to 'metadata_role' is removed from the current
-      'self.metadata' store and from the role database. The 'root.txt' role
+      'self.metadata' store and from the role database. The 'root.json' role
       file is never removed.
 
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
 
     <Exceptions>
       None.
@@ -1685,7 +1689,6 @@ class Updater(object):
     
     <Returns>
       None.
-    
     """
       
     # The root metadata role is never deleted without a replacement.
@@ -1712,7 +1715,7 @@ class Updater(object):
     <Arguments>
       metadata_role:
         The name of the metadata. This is a role name and should not end
-        in '.txt'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
     
     <Exceptions>
       tuf.ExpiredMetadataError:
@@ -1723,13 +1726,12 @@ class Updater(object):
 
     <Returns>
       None.
-    
     """
   
     # Construct the full metadata filename and the location of its
     # current path.  The current path of 'metadata_role' is needed
     # to log the exact filename of the expired metadata.
-    metadata_filename = metadata_role + '.txt'
+    metadata_filename = metadata_role + '.json'
     rolepath =  os.path.join(self.metadata_directory['current'],
                              metadata_filename)
     rolepath = os.path.abspath(rolepath)
@@ -1756,8 +1758,11 @@ class Updater(object):
     <Purpose> 
       Get a list of the target information for all the trusted targets
       on the repository.  This list also includes all the targets of
-      delegated roles.  The list conforms to 'tuf.formats.TARGETFILES_SCHEMA'
+      delegated roles.  Targets of the list returned are ordered according
+      the trusted order of the delegated roles, where parent roles come before
+      children.  The list conforms to 'tuf.formats.TARGETFILES_SCHEMA'
       and has the form:
+      
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
                      'hashes': {'sha256': dbfac345..}}
@@ -1769,7 +1774,7 @@ class Updater(object):
     <Exceptions>
       tuf.RepositoryError:
         If the metadata for the 'targets' role is missing from
-        the 'release' metadata.
+        the 'snapshot' metadata.
 
       tuf.UnknownRoleError:
         If one of the roles could not be found in the role database.
@@ -1779,7 +1784,6 @@ class Updater(object):
 
     <Returns>
      A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
-
     """
     
     # Load the most up-to-date targets of the 'targets' role and all
@@ -1787,11 +1791,12 @@ class Updater(object):
     self._refresh_targets_metadata(include_delegations=True)
  
     all_targets = []
+    
     # Fetch the targets for the 'targets' role.
     all_targets = self._targets_of_role('targets', skip_refresh=True)
 
-    # Fetch the targets for the delegated roles.
-    for delegated_role in tuf.roledb.get_delegated_rolenames('targets'):
+    # Fetch the targets of the delegated roles. 
+    for delegated_role in sorted(tuf.roledb.get_delegated_rolenames('targets')):
       all_targets = self._targets_of_role(delegated_role, all_targets,
                                           skip_refresh=True)
     
@@ -1810,13 +1815,13 @@ class Updater(object):
       _update_metadata_if_changed('targets') call, not here.  Delegated roles
       are not loaded when the repository is first initialized.  They are loaded
       from disk, updated if they have changed, and stored to the 'self.metadata'
-      store by this function.  This function is called by the target methods,
+      store by this method.  This method is called by the target methods,
       like all_targets() and targets_of_role().
 
     <Arguments>
       rolename:
         This is a delegated role name and should not end
-        in '.txt'.  Example: 'targets/linux/x86'.
+        in '.json'.  Example: 'targets/linux/x86'.
       
       include_delegations:
          Boolean indicating if the delegated roles set by 'rolename' should
@@ -1825,7 +1830,7 @@ class Updater(object):
     <Exceptions>
       tuf.RepositoryError:
         If the metadata file for the 'targets' role is missing
-        from the 'release' metadata.
+        from the 'snapshot' metadata.
 
     <Side Effects>
       The metadata for the delegated roles are loaded and updated if they
@@ -1834,7 +1839,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
 
     roles_to_update = []
@@ -1842,19 +1846,22 @@ class Updater(object):
     # See if this role provides metadata and, if we're including
     # delegations, look for metadata from delegated roles.
     role_prefix = rolename + '/'
-    for metadata_path in self.metadata['current']['release']['meta'].keys():
-      if metadata_path == rolename + '.txt':
-        roles_to_update.append(metadata_path[:-len('.txt')])
+    for metadata_path in self.metadata['current']['snapshot']['meta'].keys():
+      if metadata_path == rolename + '.json':
+        roles_to_update.append(metadata_path[:-len('.json')])
       elif include_delegations and metadata_path.startswith(role_prefix):
-        roles_to_update.append(metadata_path[:-len('.txt')])
+        # Add delegated roles.  Skip roles names containing compression
+        # extensions.
+        if metadata_path.endswith('.json'): 
+          roles_to_update.append(metadata_path[:-len('.json')])
 
-    # Remove the 'targets' role because it gets updated when the targets.txt
+    # Remove the 'targets' role because it gets updated when the targets.json
     # file is updated in _update_metadata_if_changed('targets').
     if rolename == 'targets':
       try:
         roles_to_update.remove('targets')
       except ValueError:
-        message = 'The Release metadata file is missing the targets.txt entry.'
+        message = 'The snapshot metadata file is missing the targets.json entry.'
         raise tuf.RepositoryError(message)
   
     # If there is nothing to refresh, we are done.
@@ -1885,51 +1892,99 @@ class Updater(object):
 
   def refresh_targets_metadata_chain(self, rolename):
     """
-    Proof-of-concept.
+    <Purpose>
+      Refresh the minimum targets metadata of 'rolename'.  If 'rolename' is
+      'targets/claimed/3.3/django', refresh the metadata of the following roles:
+      
+      targets.json
+      targets/claimed.json
+      targets/claimed/3.3.json
 
+      Note that 'targets/claimed/3.3/django.json' is not refreshed here.
+      
+      The metadata of the 'targets' role is updated in refresh() by the 
+      _update_metadata_if_changed('targets') call, not here.  Delegated roles
+      are not loaded when the repository is first initialized; they can be
+      loaded from disk, updated if they have changed, and stored to the
+      'self.metadata' store by this method.  This method may be called
+      before targets_of_role('rolename') so that the most up-to-date metadata is
+      available to verify the target files of 'rolename', including the metadata 
+      of 'rolename'.
+
+    <Arguments>
+      rolename:
+        This is a full delegated rolename and should not end in '.json'.
+        Example: 'targets/linux/x86'.
+      
+    <Exceptions>
+      tuf.FormatError:
+        If any of the arguments are improperly formatted.
+
+      tuf.RepositoryError:
+        If the metadata of any of the parent roles of 'rolename' is missing
+        from the 'snapshot.json' metadata file.
+
+    <Side Effects>
+      The metadata of the parent roles of 'rolename' are loaded from disk and
+      updated if they have changed.  Metadata is removed from the role database
+      if it has expired.
+
+    <Returns>
+      A list of the roles that have been updated, loaded, and are valid.
     """
+    
+    # Do the arguments have the correct format? 
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if the check fail.
+    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
     
     # List of parent roles to update.
     parent_roles = []
 
+    # Separate each rolename (i.e., each rolename should exclude parent and
+    # child rolenames).  'rolename' should be the full rolename, as in
+    # 'targets/linux/x86'.
     parts = rolename.split('/')
 
     # Append the first role to the list.
     parent_roles.append(parts[0])
 
-    # The 'roles_added' string contains the roles already added.  If 'a' and 'a/b'
-    # have been added to 'parent_roles', 'roles_added' would contain 'a/b'
+    # The 'roles_added' string contains the roles (full rolename) already added.
+    # If 'a' and 'a/b' have been added to 'parent_roles', 'roles_added' would
+    # contain 'a/b'.
     roles_added = parts[0]
 
     # Add each subsequent role to the previous string (with a '/' separator).
-    # This only goes to -1 because we only want to return the parents (so we
+    # This only goes to -1 because we only want to store the parents (so we
     # ignore the last element).
     for next_role in parts[1:-1]:
       parent_roles.append(roles_added+'/'+next_role)
       roles_added = roles_added+'/'+next_role
 
-    message = 'Minimum metadata to download to set chain of trust: '+\
+    message = 'Minimum metadata to download and set the chain of trust: '+\
       repr(parent_roles)+'.'
     logger.info(message)
 
-    # See if this role provides metadata.  All the available roles
-    # on the repository are specified in the 'release.txt' metadata.
-    targets_metadata_allowed = self.metadata['current']['release']['meta'].keys()
+    # Check if 'snapshot.json' provides metadata for each of the roles in
+    # 'parent_roles'.  All the available roles on the repository are specified
+    # in the 'snapshot.json' metadata.
+    targets_metadata_allowed = self.metadata['current']['snapshot']['meta'].keys()
     for parent_role in parent_roles:
-      parent_role = parent_role + '.txt'
+      parent_role = parent_role + '.json'
 
       if parent_role not in targets_metadata_allowed:
-        message = '"release.txt" does not provide all the parent roles'+\
+        message = '"snapshot.json" does not provide all the parent roles '+\
           'of '+repr(rolename)+'.'
-        raise tuf.Repository(message)
+        raise tuf.RepositoryError(message)
 
-    # Remove the 'targets' role because it gets updated when the targets.txt
+    # Remove the 'targets' role because it gets updated when the targets.json
     # file is updated in _update_metadata_if_changed('targets').
     if rolename == 'targets':
       try:
         parent_roles.remove('targets')
       except ValueError:
-        message = 'The Release metadata file is missing the "targets.txt" entry.'
+        message = 'The snapshot metadata file is missing the "targets.json" entry.'
         raise tuf.RepositoryError(message)
   
     # If there is nothing to refresh, we are done.
@@ -1940,8 +1995,9 @@ class Updater(object):
     parent_roles.sort()
     logger.debug('Roles to update: '+repr(parent_roles)+'.')
 
-    # Iterate over 'roles_to_update', load its metadata
-    # file, and update it if it has changed.
+    # Iterate 'parent_roles', load each role's metadata file from disk, and
+    # update it if it has changed.  
+    refreshed_chain = []
     for rolename in parent_roles:
       self._load_metadata_from_file('previous', rolename)
       self._load_metadata_from_file('current', rolename)
@@ -1951,9 +2007,11 @@ class Updater(object):
       # Remove the role if it has expired.
       try:
         self._ensure_not_expired(rolename)
+        refreshed_chain.append(rolename)
       except tuf.ExpiredMetadataError:
         tuf.roledb.remove_role(rolename)
 
+    return refreshed_chain
 
 
 
@@ -1965,6 +2023,7 @@ class Updater(object):
       Return the target information for all the targets of 'rolename'.
       The returned information is a list conformant to
       'tuf.formats.TARGETFILES_SCHEMA' and has the form:
+      
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
                      'hashes': {'sha256': dbfac345..}}
@@ -1973,7 +2032,7 @@ class Updater(object):
     <Arguments>
       rolename:
         This is a role name and should not end
-        in '.txt'.  Examples: 'targets', 'targets/linux/x86'.
+        in '.json'.  Examples: 'targets', 'targets/linux/x86'.
       
       targets:
         A list of targets containing target information, conformant to
@@ -1993,7 +2052,6 @@ class Updater(object):
     <Returns>
       A list of dict objects containing the target information of all the
       targets of 'rolename'.  Conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
-
     """
 
     if targets is None:
@@ -2011,7 +2069,7 @@ class Updater(object):
   
     # Do we have metadata for 'rolename'?
     if rolename not in self.metadata['current']:
-      message = 'No metadata for '+rolename+'. Unable to determine targets.'
+      message = 'No metadata for '+repr(rolename)+'. Unable to determine targets.'
       logger.debug(message)
       return targets
 
@@ -2035,13 +2093,15 @@ class Updater(object):
       Return a list of trusted targets directly specified by 'rolename'.
       The returned information is a list conformant to
       tuf.formats.TARGETFILES_SCHEMA and has the form:
+      
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
                      'hashes': {'sha256': dbfac345..}}
        ...]
-      
-      This may be a very slow operation if there is a large number of
-      delegations and many metadata files aren't already downloaded.
+
+      The metadata of 'rolename' is updated if out of date, including the
+      metadata of its parent roles (i.e., the minimum roles needed to set the
+      chain of trust).
 
     <Arguments>
       rolename:
@@ -2063,15 +2123,15 @@ class Updater(object):
       
     <Returns>
       A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'. 
-
     """
       
     # Does 'rolename' have the correct format?
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(rolename)
 
+    self.refresh_targets_metadata_chain(rolename) 
     self._refresh_targets_metadata(rolename)
-    
+
     return self._targets_of_role(rolename, skip_refresh=True)
 
 
@@ -2081,7 +2141,8 @@ class Updater(object):
   def target(self, target_filepath):
     """
     <Purpose>
-      Return the target file information for 'target_filepath'.
+      Return the target file information of 'target_filepath' and update
+      its corresponding metadata, if necessary.
 
     <Arguments>    
       target_filepath:
@@ -2104,12 +2165,18 @@ class Updater(object):
     <Returns>
       The target information for 'target_filepath', conformant to
       'tuf.formats.TARGETFILE_SCHEMA'.
-
     """
 
     # Does 'target_filepath' have the correct format?
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
+  
+    # 'target_filepath' might contain URL encoding escapes.
+    # http://docs.python.org/2/library/urllib.html#urllib.unquote
+    target_filepath = urllib.unquote(target_filepath)
+
+    if not target_filepath.startswith('/'):
+      target_filepath = '/' + target_filepath
 
     # Get target by looking at roles in order of priority tags.
     target = self._preorder_depth_first_walk(target_filepath)
@@ -2152,18 +2219,17 @@ class Updater(object):
     <Returns>
       The target information for 'target_filepath', conformant to
       'tuf.formats.TARGETFILE_SCHEMA'.
-    
     """
 
     target = None
     current_metadata = self.metadata['current']
     role_names = ['targets']
 
-    # Ensure the client has the most up-to-date version of 'targets.txt'.
-    # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be successfully
-    # downloaded and 'tuf.RepositoryError' if the referenced metadata is
-    # missing.  Target methods such as this one are called after the top-level
-    # metadata have been refreshed (i.e., updater.refresh()).
+    # Ensure the client has the most up-to-date version of 'targets.json'.
+    # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be
+    # successfully downloaded and 'tuf.RepositoryError' if the referenced
+    # metadata is missing.  Target methods such as this one are called after the
+    # top-level metadata have been refreshed (i.e., updater.refresh()).
     self._update_metadata_if_changed('targets')
 
     # Preorder depth-first traversal of the tree of target delegations.
@@ -2175,7 +2241,7 @@ class Updater(object):
       # The metadata for 'role_name' must be downloaded/updated before
       # its targets, delegations, and child roles can be inspected.
       # self.metadata['current'][role_name] is currently missing.
-      # _refresh_targets_metadata() does not refresh 'targets.txt', it
+      # _refresh_targets_metadata() does not refresh 'targets.json', it
       # expects _update_metadata_if_changed() to have already refreshed it,
       # which this function has checked above.
       self._refresh_targets_metadata(role_name, include_delegations=False)
@@ -2234,7 +2300,6 @@ class Updater(object):
     <Returns>
       The target information for 'target_filepath', conformant to
       'tuf.formats.TARGETFILE_SCHEMA'.
-    
     """
 
     target = None
@@ -2265,8 +2330,8 @@ class Updater(object):
 
       Ensure that we explore only delegated roles trusted with the target. We
       assume conservation of delegated paths in the complete tree of
-      delegations. Note that the call to _ensure_all_targets_allowed in
-      __verify_uncompressed_metadata_file should already ensure that all
+      delegations. Note that the call to tuf.util.ensure_all_targets_allowed in
+      _verify_uncompressed_metadata_file should already verify that all
       targets metadata is valid; i.e. that the targets signed by a delegatee is
       a proper subset of the targets delegated to it by the delegator.
       Nevertheless, we check it again here for performance and safety reasons.
@@ -2295,7 +2360,6 @@ class Updater(object):
       'target_filepath', then we return the role name of 'child_role'.
 
       Otherwise, we return None.
-    
     """
 
     child_role_name = child_role['name']
@@ -2367,7 +2431,6 @@ class Updater(object):
     
     <Returns>
       The hash of 'target_filepath'.
-    
     """
 
     # Calculate the hash of the filepath to determine which bin to find the 
@@ -2417,7 +2480,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
   
     # Does 'destination_directory' have the correct format?
@@ -2459,6 +2521,7 @@ class Updater(object):
 
       The returned information is a list conformant to
       'tuf.formats.TARGETFILES_SCHEMA' and has the form:
+      
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
                      'hashes': {'sha256': dbfac345..}}
@@ -2466,7 +2529,8 @@ class Updater(object):
 
     <Arguments>
       targets:
-        A list of target files.
+        A list of target files.  Targets that come earlier in the list are
+        chosen over duplicates that may occur later.
 
       destination_directory:
         The directory containing the target files.
@@ -2480,7 +2544,6 @@ class Updater(object):
 
     <Returns>
       A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
-
     """
 
     # Do the arguments have the correct format?
@@ -2488,12 +2551,19 @@ class Updater(object):
     tuf.formats.TARGETFILES_SCHEMA.check_match(targets)
     tuf.formats.PATH_SCHEMA.check_match(destination_directory)
 
+    # Keep track of the target objects and filepaths of updated targets.
+    # Return 'updated_targets' and use 'updated_targetpaths' to avoid
+    # duplicates.
     updated_targets = []
+    updated_targetpaths = []
 
     for target in targets:
       # Get the target's filepath located in 'destination_directory'.
       # We will compare targets against this file.
       target_filepath = os.path.join(destination_directory, target['filepath'])
+      
+      if target_filepath in updated_targetpaths:
+        continue
       
       # Try one of the algorithm/digest combos for a mismatch.  We break
       # as soon as we find a mismatch.
@@ -2502,13 +2572,17 @@ class Updater(object):
         try:
           digest_object = tuf.hash.digest_filename(target_filepath,
                                                    algorithm=algorithm)
+        
         # This exception would occur if the target does not exist locally. 
         except IOError:
           updated_targets.append(target)
+          updated_targetpaths.append(target_filepath)
           break
+        
         # The file does exist locally, check if its hash differs. 
         if digest_object.hexdigest() != digest:
           updated_targets.append(target)
+          updated_targetpaths.append(target_filepath)
           break
     
     return updated_targets
@@ -2545,7 +2619,6 @@ class Updater(object):
 
     <Returns>
       None.
-
     """
 
     # Do the arguments have the correct format? 
@@ -2563,12 +2636,15 @@ class Updater(object):
 
     # get_target_file checks every mirror and returns the first target
     # that passes verification.
-    target_file_object = self.get_target_file(target_filepath, trusted_length,
-                                              trusted_hashes)
+    target_file_object = self._get_target_file(target_filepath, trusted_length,
+                                               trusted_hashes)
    
     # We acquired a target file object from a mirror.  Move the file into
-    # place (i.e., locally to 'destination_directory').
-    destination = os.path.join(destination_directory, target_filepath)
+    # place (i.e., locally to 'destination_directory').  Note: join() discards
+    # 'destination_directory' if 'target_path' contains a leading path separator
+    # (i.e., is treated as an absolute path).
+    destination = os.path.join(destination_directory,
+                               target_filepath.lstrip(os.sep))
     destination = os.path.abspath(destination)
     target_dirpath = os.path.dirname(destination)
     if target_dirpath:
@@ -2581,8 +2657,3 @@ class Updater(object):
       logger.warn(str(target_dirpath)+' does not exist.')
 
     target_file_object.move(destination)
-
-
-
-
-

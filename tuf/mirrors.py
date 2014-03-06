@@ -15,7 +15,6 @@
 <Purpose>
   To extract a list of mirror urls corresponding to the file type and
   the location of the file with respect to the base url.
-
 """
 
 import os
@@ -55,7 +54,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       {'url_prefix': 'http://localhost:8001',
        'metadata_path': 'metadata/',
        'targets_path': 'targets/',
-       'confined_target_dirs': ['targets/release1/', ...],
+       'confined_target_dirs': ['targets/snapshot1/', ...],
        'custom': {...}}
 
       The 'custom' field is optional.
@@ -68,7 +67,6 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   <Return>
     List of mirror urls corresponding to the file_type and file_path.  If no
     match is found, empty list is returned.
-
   """
 
   # Checking if all the arguments have appropriate format.
@@ -110,7 +108,8 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # the URL as UTF-8. We need a long-term solution with #61.
     # http://bugs.python.org/issue1712522
     file_path = urllib.quote(file_path)
-    url = base+'/'+file_path
+    url = base + '/' + file_path.lstrip(os.sep) 
+    #url = os.path.join(base, file_path.lstrip(os.sep)) 
     list_of_mirrors.append(url)
 
   return list_of_mirrors

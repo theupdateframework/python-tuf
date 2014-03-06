@@ -1,8 +1,37 @@
-% tuf_repo_spec.tex
+% tuf_server_spec.tex
+% This document has been deprecated.  We may later update and include it in
+% the supported documentation.
 \documentclass{article}
 \setlength\parindent{0pt}
 \usepackage{listings}
-\lstset{frameshape={ynn}{nny}{nnn}{yyn}, showstringspaces=false, basicstyle=\ttfamily}
+\usepackage{hyperref}
+\usepackage{color}
+\usepackage{textcomp}
+\definecolor{listinggray}{gray}{0.9}
+\definecolor{lbcolor}{rgb}{0.9,0.9,0.9}
+\lstset{
+  backgroundcolor=\color{lbcolor},
+  tabsize=4,
+  rulecolor=,
+  language=matlab,
+  basicstyle=\scriptsize,
+  upquote=true,
+  aboveskip={1.5\baselineskip},
+  columns=fixed,
+  showstringspaces=false,
+  extendedchars=true,
+  breaklines=true,
+  prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\hookleftarrow}},
+  frame=single,
+  showtabs=false,
+  showspaces=false,
+  showstringspaces=false,
+  identifierstyle=\ttfamily,
+  keywordstyle=\color[rgb]{0,0,1},
+  commentstyle=\color[rgb]{0.133,0.545,0.133},
+  stringstyle=\color[rgb]{0.627,0.126,0.941},
+}
+
 \begin{document}
 
 %--------------------------------- Header --------------------------------------

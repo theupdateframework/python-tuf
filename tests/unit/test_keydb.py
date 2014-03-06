@@ -13,7 +13,6 @@
 
 <Purpose>
   Unit test for 'keydb.py'.
-
 """
 
 import unittest
@@ -21,7 +20,7 @@ import logging
 
 import tuf
 import tuf.formats
-import tuf.rsa_key
+import tuf.keys
 import tuf.keydb
 import tuf.log
 
@@ -31,7 +30,7 @@ logger = logging.getLogger('tuf.test_keydb')
 # Generate the three keys to use in our test cases.
 KEYS = []
 for junk in range(3):
-  KEYS.append(tuf.rsa_key.generate(2048))
+  KEYS.append(tuf.keys.generate_rsa_key(2048))
 
 
 
@@ -89,7 +88,7 @@ class TestKeydb(unittest.TestCase):
 
     
 
-  def test_add_rsakey(self):
+  def test_add_key(self):
     # Test conditions using valid 'keyid' arguments.
     rsakey = KEYS[0]
     keyid = KEYS[0]['keyid']
@@ -97,9 +96,9 @@ class TestKeydb(unittest.TestCase):
     keyid2 = KEYS[1]['keyid']
     rsakey3 = KEYS[2]
     keyid3 = KEYS[2]['keyid']
-    self.assertEqual(None, tuf.keydb.add_rsakey(rsakey, keyid))
-    self.assertEqual(None, tuf.keydb.add_rsakey(rsakey2, keyid2))
-    self.assertEqual(None, tuf.keydb.add_rsakey(rsakey3))
+    self.assertEqual(None, tuf.keydb.add_key(rsakey, keyid))
+    self.assertEqual(None, tuf.keydb.add_key(rsakey2, keyid2))
+    self.assertEqual(None, tuf.keydb.add_key(rsakey3))
     
     self.assertEqual(rsakey, tuf.keydb.get_key(keyid))
     self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))
@@ -109,26 +108,26 @@ class TestKeydb(unittest.TestCase):
     tuf.keydb.clear_keydb()
     rsakey3['keytype'] = 'bad_keytype'
 
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_rsakey, None, keyid)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_rsakey, '', keyid)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_rsakey, ['123'], keyid)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_rsakey, {'a': 'b'}, keyid)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_rsakey, rsakey, {'keyid': ''})
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_rsakey, rsakey, 123)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_rsakey, rsakey, False)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_rsakey, rsakey, ['keyid'])
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_rsakey, rsakey3, keyid3)
+    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, None, keyid)
+    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, '', keyid)
+    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, ['123'], keyid)
+    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, {'a': 'b'}, keyid)
+    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey, {'keyid': ''})
+    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey, 123)
+    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey, False)
+    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey, ['keyid'])
+    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey3, keyid3)
     rsakey3['keytype'] = 'rsa' 
     
     # Test conditions where keyid does not match the rsakey.
-    self.assertRaises(tuf.Error, tuf.keydb.add_rsakey, rsakey, keyid2)
-    self.assertRaises(tuf.Error, tuf.keydb.add_rsakey, rsakey2, keyid)
+    self.assertRaises(tuf.Error, tuf.keydb.add_key, rsakey, keyid2)
+    self.assertRaises(tuf.Error, tuf.keydb.add_key, rsakey2, keyid)
 
     # Test conditions using keyids that have already been added.
-    tuf.keydb.add_rsakey(rsakey, keyid)
-    tuf.keydb.add_rsakey(rsakey2, keyid2)
-    self.assertRaises(tuf.KeyAlreadyExistsError, tuf.keydb.add_rsakey, rsakey)
-    self.assertRaises(tuf.KeyAlreadyExistsError, tuf.keydb.add_rsakey, rsakey2)
+    tuf.keydb.add_key(rsakey, keyid)
+    tuf.keydb.add_key(rsakey2, keyid2)
+    self.assertRaises(tuf.KeyAlreadyExistsError, tuf.keydb.add_key, rsakey)
+    self.assertRaises(tuf.KeyAlreadyExistsError, tuf.keydb.add_key, rsakey2)
 
 
   
@@ -140,12 +139,13 @@ class TestKeydb(unittest.TestCase):
     keyid2 = KEYS[1]['keyid']
     rsakey3 = KEYS[2]
     keyid3 = KEYS[2]['keyid']
-    tuf.keydb.add_rsakey(rsakey, keyid)
-    tuf.keydb.add_rsakey(rsakey2, keyid2)
-    tuf.keydb.add_rsakey(rsakey3, keyid3)
+    tuf.keydb.add_key(rsakey, keyid)
+    tuf.keydb.add_key(rsakey2, keyid2)
+    tuf.keydb.add_key(rsakey3, keyid3)
 
     self.assertEqual(None, tuf.keydb.remove_key(keyid))
     self.assertEqual(None, tuf.keydb.remove_key(keyid2))
+    
     # Ensure the keys were actually removed.
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid)
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid2)
@@ -170,11 +170,13 @@ class TestKeydb(unittest.TestCase):
     roledict = {'Root': {'keyids': [keyid], 'threshold': 1},
                 'Targets': {'keyids': [keyid2], 'threshold': 1}}
     version = 8
-    expiration_seconds = 200
+    consistent_snapshot = False
+    expires = '2012-10-16 06:42:12 UTC'
 
     root_metadata = tuf.formats.RootFile.make_metadata(version,
-                                                       expiration_seconds,
-                                                       keydict, roledict)
+                                                       expires,
+                                                       keydict, roledict,
+                                                       consistent_snapshot)
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
     # Ensure 'keyid' and 'keyid2' were added to the keydb database.
     self.assertEqual(rsakey, tuf.keydb.get_key(keyid))
@@ -206,11 +208,12 @@ class TestKeydb(unittest.TestCase):
     rsakey3['keytype'] = 'bad_keytype'
     keydict[keyid3] = rsakey3
     version = 8
-    expiration_seconds = 200
+    expires = '2012-10-16 06:42:12 UTC'
     
     root_metadata = tuf.formats.RootFile.make_metadata(version,
-                                                       expiration_seconds,
-                                                       keydict, roledict)
+                                                       expires,
+                                                       keydict, roledict,
+                                                       consistent_snapshot)
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
 
     # Ensure only 'keyid2' was added to the keydb database.  'keyid' and

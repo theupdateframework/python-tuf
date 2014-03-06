@@ -45,7 +45,7 @@ class Configuration(object):
 
 
   def __repr__(self):
-    MESSAGE = "Configuration(netloc={network_location})"
+    MESSAGE = "network location: {network_location}"
     return MESSAGE.format(network_location=self.network_location)
 
 

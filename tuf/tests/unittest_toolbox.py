@@ -15,7 +15,6 @@
   Provides an array of various methods for unit testing.  Use it instead of
   actual unittest module.  This module builds on unittest module.
   Specifically, Modified_TestCase is a derived class from unittest.TestCase.
-
 """
 
 import os
@@ -27,7 +26,7 @@ import random
 import string
 import ConfigParser
 
-import tuf.rsa_key as rsa_key
+import tuf.keys
 import tuf.repo.keystore as keystore
 
 # Modify the number of iterations (from the higher default count) so the unit
@@ -100,11 +99,10 @@ class Modified_TestCase(unittest.TestCase):
 
     random_string(length=7):
       Generate a 'length' long string of random characters.
-
   """
 
   # List of all top level roles.
-  role_list = ['root', 'targets', 'release', 'timestamp']
+  role_list = ['root', 'targets', 'snapshot', 'timestamp']
 
   # List of delegated roles.
   delegated_role_list = ['targets/delegated_role1',
@@ -222,6 +220,7 @@ class Modified_TestCase(unittest.TestCase):
     dictionary in it using ConfigParser.
     It then returns the temp file path, dictionary tuple.
     """
+    
     config = ConfigParser.RawConfigParser()
     if not config_dict:
       # Using the fact that empty sequences are false.
@@ -288,7 +287,6 @@ class Modified_TestCase(unittest.TestCase):
         Returns:
           ('/tmp/tmp_dir_Test_random/', [targets/tmp_random1.txt,
           targets/tmp_random2.txt, targets/more_targets/tmp_random3.txt])
-
     """
 
     if not _current_dir:
@@ -385,7 +383,7 @@ class Modified_TestCase(unittest.TestCase):
                   'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
     """
 
-    rsakey = rsa_key.generate()
+    rsakey = tuf.keys.generate_rsa_key()
     keyid = rsakey['keyid']
     Modified_TestCase.rsa_keyids.append(keyid)
     password = Modified_TestCase.random_string()

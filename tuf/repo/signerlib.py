@@ -16,20 +16,20 @@
   These functions contain code that can extract or create needed repository
   data, such as the extraction of role and keyid information from a config file,
   and the generation of actual metadata content.
-
 """
 
 import gzip
 import os
 import ConfigParser
 import logging
+import time
 
 import tuf
 import tuf.formats
 import tuf.hash
-import tuf.rsa_key
+import tuf.keys
 import tuf.repo.keystore
-import tuf.sig
+import tuf.keys
 import tuf.util
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -45,10 +45,10 @@ json = tuf.util.import_json()
 DEFAULT_RSA_KEY_BITS = 3072
 
 # The metadata filenames for the top-level roles.
-ROOT_FILENAME = 'root.txt'
-TARGETS_FILENAME = 'targets.txt'
-RELEASE_FILENAME = 'release.txt'
-TIMESTAMP_FILENAME = 'timestamp.txt'
+ROOT_FILENAME = 'root.json'
+TARGETS_FILENAME = 'targets.json'
+SNAPSHOT_FILENAME = 'snapshot.json'
+TIMESTAMP_FILENAME = 'timestamp.json'
 
 # The filename for the repository configuration file.
 # This file holds the keyids and threshold values for
@@ -81,7 +81,6 @@ def read_config_file(filename):
 
   <Returns>
     A dictionary containing the data loaded from the configuration file.
-
   """
 
   # Does 'filename' have the correct format?
@@ -128,7 +127,7 @@ def get_metadata_file_info(filename):
   <Purpose>
     Retrieve the file information for 'filename'.  The object returned
     conforms to 'tuf.formats.FILEINFO_SCHEMA'.  The information
-    generated for 'filename' is stored in metadata files like 'targets.txt'.
+    generated for 'filename' is stored in metadata files like 'targets.json'.
     The fileinfo object returned has the form:
     fileinfo = {'length': 1024,
                 'hashes': {'sha256': 1233dfba312, ...},
@@ -151,7 +150,6 @@ def get_metadata_file_info(filename):
     A dictionary conformant to 'tuf.formats.FILEINFO_SCHEMA'.  This
     dictionary contains the length, hashes, and custom data about
     the 'filename' metadata file.
-
   """
 
   # Does 'filename' have the correct format?
@@ -183,10 +181,10 @@ def get_metadata_filenames(metadata_directory=None):
     If 'metadata_directory' is set to 'metadata', the dictionary
     returned would contain:
 
-    filenames = {'root': 'metadata/root.txt',
-                 'targets': 'metadata/targets.txt',
-                 'release': 'metadata/release.txt',
-                 'timestamp': 'metadata/timestamp.txt'}
+    filenames = {'root': 'metadata/root.json',
+                 'targets': 'metadata/targets.json',
+                 'snapshot': 'metadata/snapshot.json',
+                 'timestamp': 'metadata/timestamp.json'}
 
     If the metadata directory is not set by the caller, the current
     directory is used.
@@ -203,8 +201,7 @@ def get_metadata_filenames(metadata_directory=None):
 
   <Returns>
     A dictionary containing the expected filenames of the top-level
-    metadata files, such as 'root.txt' and 'release.txt'.
-
+    metadata files, such as 'root.json' and 'snapshot.json'.
   """
 
   if metadata_directory is None:
@@ -217,7 +214,7 @@ def get_metadata_filenames(metadata_directory=None):
   filenames = {}
   filenames['root'] = os.path.join(metadata_directory, ROOT_FILENAME)
   filenames['targets'] = os.path.join(metadata_directory, TARGETS_FILENAME)
-  filenames['release'] = os.path.join(metadata_directory, RELEASE_FILENAME)
+  filenames['snapshot'] = os.path.join(metadata_directory, SNAPSHOT_FILENAME)
   filenames['timestamp'] = os.path.join(metadata_directory, TIMESTAMP_FILENAME)
 
   return filenames
@@ -255,7 +252,6 @@ def generate_root_metadata(config_filepath, version):
 
   <Returns>
     A root 'signable' object conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
-
   """
 
   # Does 'config_filepath' have the correct format?
@@ -272,7 +268,7 @@ def generate_root_metadata(config_filepath, version):
 
   # Extract the role, threshold, and keyid information from the config.
   # The necessary role metadata is generated from this information.
-  for rolename in ['root', 'targets', 'release', 'timestamp']:
+  for rolename in ['root', 'targets', 'snapshot', 'timestamp']:
     # If a top-level role is missing from the config, raise an exception.
     if rolename not in config:
       raise tuf.Error('No '+rolename+' section found in config file.')
@@ -290,8 +286,10 @@ def generate_root_metadata(config_filepath, version):
       keyid = key['keyid']
       # This appears to be a new keyid.  Let's generate the key for it.
       if keyid not in keydict:
-        if key['keytype'] == 'rsa':
-          keydict[keyid] = tuf.rsa_key.create_in_metadata_format(key['keyval'])
+        if key['keytype'] in ['rsa', 'ed25519']:
+          keytype = key['keytype']
+          keyval = key['keyval']
+          keydict[keyid] = tuf.keys.format_keyval_to_metadata(keytype, keyval)
         # This is not a recognized key.  Raise an exception.
         else:
           raise tuf.Error('Unsupported keytype: '+keyid)
@@ -312,8 +310,9 @@ def generate_root_metadata(config_filepath, version):
                         3600 * 24 * expiration['days'])
 
   # Generate the root metadata object.
-  root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_seconds,
-                                                     keydict, roledict)
+  expiration_date = tuf.formats.format_time(time.time()+expiration_seconds)
+  root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_date,
+                                                     keydict, roledict, False)
 
   # Note: make_signable() returns the following dictionary:
   # {'signed' : role_metadata, 'signatures' : []}
@@ -334,9 +333,9 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
   <Arguments>
     target_files:
-      The target files tracked by 'targets.txt'.  'target_files' is a list of
+      The target files tracked by 'targets.json'.  'target_files' is a list of
       paths/directories of target files that are relative to the repository
-      (e.g., ['targets/file1.txt', ...]).  If the target files are saved in
+      (e.g., ['targets/file1.json', ...]).  If the target files are saved in
       the root folder 'targets' on the repository, then 'targets' must be
       included in the target paths.  The repository does not have to name
       this folder 'targets'.
@@ -364,7 +363,6 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
   <Returns>
     A targets 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
-
   """
 
   # Do the arguments have the correct format.
@@ -401,17 +399,17 @@ def generate_targets_metadata(repository_directory, target_files, version,
 
 
 
-def generate_release_metadata(metadata_directory, version, expiration_date):
+def generate_snapshot_metadata(metadata_directory, version, expiration_date):
   """
   <Purpose>
-    Create the release metadata.  The minimum metadata must exist
-    (i.e., 'root.txt' and 'targets.txt'). This will also look through
+    Create the snapshot metadata.  The minimum metadata must exist
+    (i.e., 'root.json' and 'targets.json'). This will also look through
     the 'targets/' directory in 'metadata_directory' and the resulting
-    release file will list all the delegated roles.
+    snapshot file will list all the delegated roles.
 
   <Arguments>
     metadata_directory:
-      The directory containing the 'root.txt' and 'targets.txt' metadata
+      The directory containing the 'root.json' and 'targets.json' metadata
       files.
     
     version:
@@ -425,15 +423,14 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
   <Exceptions>
     tuf.FormatError, if 'metadata_directory' is improperly formatted.
 
-    tuf.Error, if an error occurred trying to generate the release metadata
+    tuf.Error, if an error occurred trying to generate the snapshot metadata
     object.
 
   <Side Effects>
-    The 'root.txt' and 'targets.txt' files are read.
+    The 'root.json' and 'targets.json' files are read.
 
   <Returns>
-    The release 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
-
+    The snapshot 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
   """
 
   # Does 'metadata_directory' have the correct format?
@@ -445,18 +442,18 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
   metadata_directory = check_directory(metadata_directory)
 
   # Retrieve the full filepath of the root and targets metadata file.
-  root_filename = os.path.join(metadata_directory, 'root.txt')
-  targets_filename = os.path.join(metadata_directory, 'targets.txt')
+  root_filename = os.path.join(metadata_directory, 'root.json')
+  targets_filename = os.path.join(metadata_directory, 'targets.json')
 
-  # Retrieve the file info of 'root.txt' and 'targets.txt'.  This file
+  # Retrieve the file info of 'root.json' and 'targets.json'.  This file
   # information includes data such as file length, hashes of the file, etc.
   filedict = {}
-  filedict['root.txt'] = get_metadata_file_info(root_filename)
-  filedict['targets.txt'] = get_metadata_file_info(targets_filename)
+  filedict['root.json'] = get_metadata_file_info(root_filename)
+  filedict['targets.json'] = get_metadata_file_info(targets_filename)
 
   # Walk the 'targets/' directory and generate the file info for all
   # the files listed there.  This information is stored in the 'meta'
-  # field of the release metadata object.
+  # field of the snapshot metadata object.
   targets_metadata = os.path.join(metadata_directory, 'targets')
   if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
     for directory_path, junk, files in os.walk(targets_metadata):
@@ -466,26 +463,26 @@ def generate_release_metadata(metadata_directory, version, expiration_date):
         metadata_name = metadata_path[len(metadata_directory):].lstrip(os.path.sep)
         filedict[metadata_name] = get_metadata_file_info(metadata_path)
 
-  # Generate the release metadata object.
-  release_metadata = tuf.formats.ReleaseFile.make_metadata(version,
-                                                           expiration_date,
-                                                           filedict)
+  # Generate the snapshot metadata object.
+  snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,
+                                                             expiration_date,
+                                                             filedict)
 
-  return tuf.formats.make_signable(release_metadata)
-
-
+  return tuf.formats.make_signable(snapshot_metadata)
 
 
 
-def generate_timestamp_metadata(release_filename, version,
+
+
+def generate_timestamp_metadata(snapshot_filename, version,
                                 expiration_date, compressions=()):
   """
   <Purpose>
-    Generate the timestamp metadata object.  The 'release.txt' file must exist.
+    Generate the timestamp metadata object.  The 'snapshot.json' file must exist.
 
   <Arguments>
-    release_filename:
-      The required filename of the release metadata file.
+    snapshot_filename:
+      The required filename of the snapshot metadata file.
     
     version:
       The metadata version number.  Clients use the version number to
@@ -496,7 +493,7 @@ def generate_timestamp_metadata(release_filename, version,
       Conformant to 'tuf.formats.TIME_SCHEMA'.
 
     compressions:
-      Compression extensions (e.g., 'gz').  If 'release.txt' is also saved in
+      Compression extensions (e.g., 'gz').  If 'snapshot.json' is also saved in
       compressed form, these compression extensions should be stored in
       'compressions' so the compressed timestamp files can be added to the
       timestamp metadata object.
@@ -510,30 +507,29 @@ def generate_timestamp_metadata(release_filename, version,
 
   <Returns>
     A timestamp 'signable' object, conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
-
   """
 
   # Do the arguments have the correct format?
   # Raise 'tuf.FormatError' if there is  mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(release_filename)
+  tuf.formats.PATH_SCHEMA.check_match(snapshot_filename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
-  # Retrieve the file info for the release metadata file.
+  # Retrieve the file info for the snapshot metadata file.
   # This file information contains hashes, file length, custom data, etc.
   fileinfo = {}
-  fileinfo['release.txt'] = get_metadata_file_info(release_filename)
+  fileinfo['snapshot.json'] = get_metadata_file_info(snapshot_filename)
 
-  # Save the file info of the compressed versions of 'timestamp.txt'.
+  # Save the file info of the compressed versions of 'timestamp.json'.
   for file_extension in compressions:
-    compressed_filename = release_filename + '.' + file_extension
+    compressed_filename = snapshot_filename + '.' + file_extension
     try:
       compressed_fileinfo = get_metadata_file_info(compressed_filename)
     except:
       logger.warn('Could not get fileinfo about '+str(compressed_filename))
     else:
       logger.info('Including fileinfo about '+str(compressed_filename))
-      fileinfo['release.txt.' + file_extension] = compressed_fileinfo
+      fileinfo['snapshot.json.' + file_extension] = compressed_fileinfo
 
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
@@ -557,7 +553,7 @@ def write_metadata_file(metadata, filename, compression=None):
 
     filename:
       The filename (absolute path) of the metadata to be
-      written (e.g., 'root.txt').
+      written (e.g., 'root.json').
 
     compression:
       Specify an algorithm as a string to compress the file; otherwise, the
@@ -575,7 +571,6 @@ def write_metadata_file(metadata, filename, compression=None):
 
   <Returns>
     The path to the written metadata file.
-
   """
 
   # Are the arguments properly formatted?
@@ -645,7 +640,6 @@ def read_metadata_file(filename):
 
   <Returns>
    The metadata object.
-
   """
 
   return tuf.util.load_json_file(filename)
@@ -671,7 +665,7 @@ def sign_metadata(metadata, keyids, filename):
 
     filename:
       The intended filename of the signed metadata object.
-      For example, 'root.txt' or 'targets.txt'.  This function
+      For example, 'root.json' or 'targets.json'.  This function
       does NOT save the signed metadata to this filename.
 
   <Exceptions>
@@ -684,7 +678,6 @@ def sign_metadata(metadata, keyids, filename):
 
   <Returns>
     A signable object conformant to 'tuf.formats.SIGNABLE_SCHEMA'.
-
   """
 
   # Does 'keyids' and 'filename' have the correct format?
@@ -715,7 +708,7 @@ def sign_metadata(metadata, keyids, filename):
     # Generate the signature using the appropriate signing method.
     if key['keytype'] == 'rsa':
       signed = signable['signed']
-      signature = tuf.sig.generate_rsa_signature(signed, key)
+      signature = tuf.keys.create_signature(key, signed)
       signable['signatures'].append(signature)
     else:
       raise tuf.Error('The keystore contains a key with an invalid key type')
@@ -767,7 +760,6 @@ def generate_and_save_rsa_key(keystore_directory, password,
      'keyid': keyid,
      'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
                 'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
-
   """
 
   # Are the arguments correctly formatted?
@@ -778,7 +770,7 @@ def generate_and_save_rsa_key(keystore_directory, password,
   keystore_directory = check_directory(keystore_directory)
 
   # tuf.FormatError or tuf.CryptoError raised.
-  rsakey = tuf.rsa_key.generate(bits)
+  rsakey = tuf.keys.generate_rsa_key(bits)
 
   logger.info('Generated a new key: '+rsakey['keyid'])
 
@@ -820,7 +812,6 @@ def check_directory(directory):
 
   <Returns>
     The normalized absolutized path of 'directory'.
-
   """
 
   # Does 'directory' have the correct format?
@@ -843,14 +834,14 @@ def get_target_keyids(metadata_directory):
   """
   <Purpose>
     Retrieve the role keyids for all the target roles located
-    in 'metadata_directory'.  The target's '.txt' metadata
-    file is inspected and the keyids extracted.  The 'targets.txt'
-    role, including delegated roles (e.g., 'targets/role1.txt'),
+    in 'metadata_directory'.  The target's '.json' metadata
+    file is inspected and the keyids extracted.  The 'targets.json'
+    role, including delegated roles (e.g., 'targets/role1.json'),
     are all read.
 
   <Arguments>
     metadata_directory:
-      The directory containing the 'targets.txt' metadata file and
+      The directory containing the 'targets.json' metadata file and
       the metadata for optional delegated roles.  The delegated role
       'role1' whose parent is 'targets', would be located in the
       '{metadata_directory}/targets/role1' directory.
@@ -868,7 +859,6 @@ def get_target_keyids(metadata_directory):
     A dictionary containing the role information extracted from the
     metadata.
     Ex: {'targets':[keyid1, ...], 'targets/role1':[keyid], ...}
-
   """
 
   # Does 'metadata_directory' have the correct format?
@@ -881,19 +871,19 @@ def get_target_keyids(metadata_directory):
   # This dict will be returned to the caller. 
   role_keyids = {}
 
-  # Read the 'targets.txt' file.  This file must exist.
-  targets_filepath = os.path.join(metadata_directory, 'targets.txt')
+  # Read the 'targets.json' file.  This file must exist.
+  targets_filepath = os.path.join(metadata_directory, 'targets.json')
   if not os.path.exists(targets_filepath):
-    raise tuf.RepositoryError('"targets.txt" not found')
+    raise tuf.RepositoryError('"targets.json" not found')
 
-  # Read the contents of 'targets.txt' and save the signable.
+  # Read the contents of 'targets.json' and save the signable.
   targets_signable = tuf.util.load_json_file(targets_filepath)
 
   # Ensure the signable is properly formatted.
   try:
     tuf.formats.check_signable_object_format(targets_signable)
   except tuf.FormatError, e:
-    raise tuf.RepositoryError('"targets.txt" is improperly formatted')
+    raise tuf.RepositoryError('"targets.json" is improperly formatted')
 
   # Store the keyids of the 'targets' role.  This target role is
   # required.
@@ -903,18 +893,18 @@ def get_target_keyids(metadata_directory):
 
   # Walk the 'targets/' directory and generate the file info for all
   # the targets.  This information is stored in the 'meta' field of
-  # the release metadata object.  The keyids for the optional
+  # the snapshot metadata object.  The keyids for the optional
   # delegated roles will now be extracted.
   targets_metadata = os.path.join(metadata_directory, 'targets')
   if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
     for directory_path, junk, files in os.walk(targets_metadata):
       for basename in files:
         # Store the metadata's file path and the role's full name (without
-        # the '.txt').   The target role is identified by its full name.
+        # the '.json').   The target role is identified by its full name.
         # The metadata's file path is needed so it can be loaded.
         metadata_path = os.path.join(directory_path, basename)
         metadata_name = metadata_path[len(metadata_directory):].lstrip(os.path.sep)
-        metadata_name = metadata_name[:-len('.txt')]
+        metadata_name = metadata_name[:-len('.json')]
 
         # Read the contents of 'metadata_path' and save the signable.
         targets_signable = tuf.util.load_json_file(metadata_path)
@@ -954,7 +944,7 @@ def build_config_file(config_file_directory, timeout, role_info):
       top-level roles.  Must conform to 'tuf.formats.ROLEDICT_SCHEMA':
       {'rolename': {'keyids': ['34345df32093bd12...'],
                     'threshold': 1
-                    'paths': ['path/to/role.txt']}}
+                    'paths': ['path/to/role.json']}}
 
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
@@ -964,7 +954,6 @@ def build_config_file(config_file_directory, timeout, role_info):
 
   <Returns>
     The normalized absolutized path of the saved configuration file.
-
   """
 
   # Do the arguments have the correct format?
@@ -980,7 +969,7 @@ def build_config_file(config_file_directory, timeout, role_info):
 
   # Verify that only the top-level roles are presented.
   for role in role_info.keys():
-    if role not in ['root', 'targets', 'release', 'timestamp']:
+    if role not in ['root', 'targets', 'snapshot', 'timestamp']:
       msg = ('\nCannot build configuration file: role '+repr(role)+
              ' is not a top-level role.')
       raise tuf.Error(msg)
@@ -1054,7 +1043,6 @@ def build_root_file(config_filepath, root_keyids, metadata_directory, version):
 
   <Returns>
     The path for the written root metadata file.
-
   """
 
   # Do the arguments have the correct format?
@@ -1090,7 +1078,7 @@ def build_targets_file(target_paths, targets_keyids, metadata_directory,
     target_paths:
       The list of directories and/or filepaths specifying
       the target files of the targets metadata.  For example:
-      ['targets/2.5/', 'targets/3.0/file.txt', 'targes/3.2/']
+      ['targets/2.5/', 'targets/3.0/file.json', 'targes/3.2/']
 
     targets_keyids:
       The list of keyids to be used as the signing keys for the targets file.
@@ -1116,7 +1104,6 @@ def build_targets_file(target_paths, targets_keyids, metadata_directory,
 
   <Returns>
     The path for the written targets metadata file.
-
   """
 
   # Do the arguments have the correct format?
@@ -1171,19 +1158,19 @@ def build_targets_file(target_paths, targets_keyids, metadata_directory,
 
 
 
-def build_release_file(release_keyids, metadata_directory,
+def build_snapshot_file(snapshot_keyids, metadata_directory,
                        version, expiration_date, compress=False):
   """
   <Purpose>
-    Build the release metadata file using the signing keys in 'release_keyids'.
+    Build the snapshot metadata file using the signing keys in 'snapshot_keyids'.
     The generated metadata file is saved in 'metadata_directory'.
 
   <Arguments>
-    release_keyids:
-      The list of keyids to be used as the signing keys for the release file.
+    snapshot_keyids:
+      The list of keyids to be used as the signing keys for the snapshot file.
 
     metadata_directory:
-      The directory (absolute path) to save the release metadata file.
+      The directory (absolute path) to save the snapshot metadata file.
     
     version:
       The metadata version number.  Clients use the version number to
@@ -1194,49 +1181,48 @@ def build_release_file(release_keyids, metadata_directory,
       Conformant to 'tuf.formats.TIME_SCHEMA'.
 
     compress:
-      Should we *include* a compressed version of the release file? By default,
+      Should we *include* a compressed version of the snapshot file? By default,
       the answer is no.
 
   <Exceptions>
     tuf.FormatError, if any of the arguments are improperly formatted.
 
-    tuf.Error, if there was an error while building the release file.
+    tuf.Error, if there was an error while building the snapshot file.
 
   <Side Effects>
-    The release metadata file is written to a file.
+    The snapshot metadata file is written to a file.
 
   <Returns>
-    The path for the written release metadata file.
-
+    The path for the written snapshot metadata file.
   """
 
   # Do the arguments have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.KEYIDS_SCHEMA.check_match(release_keyids)
+  tuf.formats.KEYIDS_SCHEMA.check_match(snapshot_keyids)
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
 
   metadata_directory = check_directory(metadata_directory)
 
-  # Generate the file path of the release metadata.
-  release_filepath = os.path.join(metadata_directory, RELEASE_FILENAME)
+  # Generate the file path of the snapshot metadata.
+  snapshot_filepath = os.path.join(metadata_directory, SNAPSHOT_FILENAME)
 
-  # Generate and sign the release metadata.
-  release_metadata = generate_release_metadata(metadata_directory,
+  # Generate and sign the snapshot metadata.
+  snapshot_metadata = generate_snapshot_metadata(metadata_directory,
                                                version, expiration_date)
-  signable = sign_metadata(release_metadata, release_keyids, release_filepath)
+  signable = sign_metadata(snapshot_metadata, snapshot_keyids, snapshot_filepath)
 
-  # Should we also include a compressed version of release.txt?
+  # Should we also include a compressed version of snapshot.json?
   if compress:
-    # If so, write a gzip version of release.txt.
+    # If so, write a gzip version of snapshot.json.
     compressed_written_filepath = \
-        write_metadata_file(signable, release_filepath, compression='gz')
+        write_metadata_file(signable, snapshot_filepath, compression='gz')
     logger.info('Wrote '+str(compressed_written_filepath))
   else:
-    logger.debug('No compressed version of release metadata will be included.')
+    logger.debug('No compressed version of snapshot metadata will be included.')
 
-  written_filepath = write_metadata_file(signable, release_filepath)
+  written_filepath = write_metadata_file(signable, snapshot_filepath)
   logger.info('Wrote '+str(written_filepath))
 
   return written_filepath
@@ -1247,7 +1233,7 @@ def build_release_file(release_keyids, metadata_directory,
 
 def build_timestamp_file(timestamp_keyids, metadata_directory,
                          version, expiration_date,
-                         include_compressed_release=True):
+                         include_compressed_snapshot=True):
   """
   <Purpose>
     Build the timestamp metadata file using the signing keys in 'timestamp_keyids'.
@@ -1268,8 +1254,8 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
       The expiration date, in UTC, of the metadata file.
       Conformant to 'tuf.formats.TIME_SCHEMA'.
 
-    include_compressed_release:
-      Should the timestamp role *include* compression versions of the release
+    include_compressed_snapshot:
+      Should the timestamp role *include* compression versions of the snapshot
       metadata, if any? We do this by default.
   
   <Exceptions>
@@ -1282,7 +1268,6 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
 
   <Returns>
     The path for the written timestamp metadata file.
-
   """
 
   # Do the arguments have the correct format?
@@ -1294,23 +1279,23 @@ def build_timestamp_file(timestamp_keyids, metadata_directory,
 
   metadata_directory = check_directory(metadata_directory)
 
-  # Generate the file path of the release and timestamp metadata.
-  release_filepath = os.path.join(metadata_directory, RELEASE_FILENAME)
+  # Generate the file path of the snapshot and timestamp metadata.
+  snapshot_filepath = os.path.join(metadata_directory, SNAPSHOT_FILENAME)
   timestamp_filepath = os.path.join(metadata_directory, TIMESTAMP_FILENAME)
 
-  # Should we include compressed versions of release in timestamp?
+  # Should we include compressed versions of snapshot in timestamp?
   compressions = ()
-  if include_compressed_release:
+  if include_compressed_snapshot:
     # Presently, we include only gzip versions by default.
     compressions = ('gz',)
-    logger.info('Including '+str(compressions)+' versions of release in '\
+    logger.info('Including '+str(compressions)+' versions of snapshot in '\
                 'timestamp.')
   else:
-    logger.warn('No compressed versions of release will be included in '\
+    logger.warn('No compressed versions of snapshot will be included in '\
                 'timestamp.')
 
   # Generate and sign the timestamp metadata.
-  timestamp_metadata = generate_timestamp_metadata(release_filepath,
+  timestamp_metadata = generate_timestamp_metadata(snapshot_filepath,
                                                    version,
                                                    expiration_date,
                                                    compressions=compressions)
@@ -1349,7 +1334,7 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
       The location of the delegated role's metadata.
 
     delegation_role_name:
-      The delegated role's file name ending in '.txt'.  Ex: 'role1.txt'.
+      The delegated role's file name ending in '.json'.  Ex: 'role1.json'.
 
     version:
       The metadata version number.  Clients use the version number to
@@ -1370,7 +1355,6 @@ def build_delegated_role_file(delegated_targets_directory, delegated_keyids,
 
   <Returns>
     The path for the written targets metadata file.
-
   """
 
   # Do the arguments have the correct format?
@@ -1432,7 +1416,6 @@ def find_delegated_role(roles, delegated_role):
   <Returns>
     None, if the role with the given name does not exist, or its unique index
     in the list of roles.
-
   """
 
   # Check argument types.
@@ -1487,7 +1470,6 @@ def accept_any_file(full_target_path):
 
   <Returns>
     True.
-  
   """
 
   return True
@@ -1524,7 +1506,6 @@ def get_targets(files_directory, recursive_walk=False, followlinks=True,
 
   <Returns>
     A list of absolute paths to target files in the given files_directory.
-  
   """
 
   targets = []
@@ -1546,8 +1527,3 @@ def get_targets(files_directory, recursive_walk=False, followlinks=True,
       del dirnames[:]
 
   return targets
-
-
-
-
-
