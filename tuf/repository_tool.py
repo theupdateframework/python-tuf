@@ -2739,11 +2739,12 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
                               consistent_snapshot):
   """
   Non-public function that deletes metadata files marked as removed by
-  'repository_tool.py'.  Metadata files marked as removed are not actually
-  deleted until this function is called.  Obsolete metadata should not be
-  kept in "metadata.staged", otherwise they may be incorrectly loaded as valid.
-  Note: Obsolete metadata may not always be detected due to partial metadata and
-  non-existent parent roles.
+  'repository_tool.py'.  Revoked metadata files are not actually deleted until
+  this function is called.  Obsolete metadata should *not* be retained in
+  "metadata.staged", otherwise they may be re-loaded by 'load_repository()'. 
+  Note: Obsolete metadata may not always be easily detected (by inspecting
+  top-level metadata during loading) due to partial metadata and top-level
+  metadata that have not been written yet.
   """
  
   # Walk the repository's metadata 'targets' sub-directory, where all the
@@ -3069,12 +3070,12 @@ def load_repository(repository_directory):
         targets_object._delegated_roles[(os.path.basename(metadata_name))] = \
                               new_targets_object
 
-        # Add the keys specified in the delegations field of the Targets role.
-        # Add 'key_object' to the list of recognized keys.  Keys may be shared,
-        # so do not raise an exception if 'key_object' has already been loaded.
-        # In contrast to the methods that may add duplicate keys, do not log
-        # a warning as there may be many such duplicate key warnings.  The
-        # repository maintainer should have also been made aware of the
+        # Extract the keys specified in the delegations field of the Targets
+        # role.  Add 'key_object' to the list of recognized keys.  Keys may be
+        # shared, so do not raise an exception if 'key_object' has already been
+        # added.  In contrast to the methods that may add duplicate keys, do not
+        # log a warning here as there may be many such duplicate key warnings.
+        # The repository maintainer should have also been made aware of the
         # duplicate key when it was added.
         for key_metadata in metadata_object['delegations']['keys'].values():
           key_object = tuf.keys.format_metadata_to_key(key_metadata)
@@ -4638,7 +4639,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
 
 
 
-def disable_console_messages():
+def disable_console_log_messages():
   """
   <Purpose>
     Disable logger messages printed to the console.  For example, repository
