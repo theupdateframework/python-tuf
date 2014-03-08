@@ -37,10 +37,11 @@
   $ pip install . 
     
   # Installing optional requirements (i.e., after installing tuf).
-  # 'fast_ed25519' currently supported, which enables faster and more secure
-  # ed25519 key generation and signature verification computations with
-  # pynacl+libsodium.
-  $ pip install tuf[fast_ed25519]
+  # The 'tools' optional requirement is currently supported, which enables
+  # fast and secure ed25519 key generation and signature verification
+  # computations with PyNaCl+libsodium.  General-purpose cryptography is also
+  # provided.  'tools' is needed by the TUF repository tools.
+  $ pip install tuf[tools]
 
 
   Alternate installation options:
@@ -70,7 +71,7 @@ from setuptools import setup
 from setuptools import find_packages
 
 extras = {
-  'fast_ed25519': ['pynacl>=0.2.3']
+  'tools': ['pycrypto>=2.6.1', 'pynacl>=0.2.3']
 }
 
 setup(
@@ -98,7 +99,7 @@ setup(
     'Topic :: Security',
     'Topic :: Software Development'
   ],
-  install_requires = ['pycrypto>=2.6.1'],
+  install_requires = [],
   packages = find_packages(exclude=['tests', 'tuf.tests']),
   extras_require = extras,
   scripts = [

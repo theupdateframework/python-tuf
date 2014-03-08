@@ -2,13 +2,15 @@
 # and installation.  It can be executed as follows:
 # $ pip install --requirement dev-requirements.txt
 # 
-# pip install TUF in editable mode (i.e., setuptools "develop mode").
-# The current working directory must contain 'setup.py'.
+# pip install TUF (minimal install) in editable mode (i.e., setuptools
+# "develop mode").  The current working directory must contain 'setup.py'.
 --editable .
 
 # Install PyNaCl for faster generation and verification of ed25519 keys and
 # signatures.  It also includes protection against side-channel attacks.
 # NOTE: TUF only uses the pure Python implementation of ed25519 for signature
 # verification.  PyNaCl is required for ed25519 key and signature generation
-# with the TUF repository tools.
+# with the TUF repository tools.  Also install PyCrypto for RSA key & signature
+# support and general-purpose cryptography needed by the repository tools.
+pycrypto==2.6.1
 pynacl==0.2.3

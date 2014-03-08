@@ -161,6 +161,7 @@ def generate_public_and_private():
   try:
     nacl_key = nacl.signing.SigningKey(seed)
     public = str(nacl_key.verify_key)
+  
   except NameError:
     message = 'The PyNaCl library and/or its dependencies unavailable.'
     raise tuf.UnsupportedLibraryError(message)
@@ -354,7 +355,7 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
       except nacl.exceptions.BadSignatureError:
         pass 
     
-    # Verify 'ed25519' signature with pure Python implementation. 
+    # Verify 'ed25519' signature with the pure Python implementation. 
     else:
       try:
         tuf._vendor.ed25519.ed25519.checkvalid(signature, data, public)
