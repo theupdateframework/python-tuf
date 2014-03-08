@@ -1,0 +1,11 @@
+# This is a requirements file executed by pip and may be used for TUF development
+# and installation.  It can be executed as follows:
+# $ pip install --requirement dev-requirements.txt
+# 
+# pip install TUF in editable mode (i.e., setuptools "develop mode").
+# The current working directory must contain 'setup.py'.
+--editable .
+
+# Install PyNaCl for faster generation and verification of ed25519 keys and
+# signatures.  It also includes protection against side-channel attacks.
+pynacl==0.2.3

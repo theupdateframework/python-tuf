@@ -23,19 +23,36 @@
   $ python setup.py sdist
 
 
-
   INSTALLATION OPTIONS
+   
+  pip - installing and managing Python packages (recommended):
+
+  # Installing from Python Package Index (https://pypi.python.org/pypi).
+  $ pip install tuf
+
+  # Installing from local source archive.
+  $ pip install <path to archive>
   
+  # Or from the root directory of the unpacked archive.
+  $ pip install . 
+    
+  # Installing optional requirements (i.e., after installing tuf).
+  # 'fast_ed25519' currently supported, which enables faster and more secure
+  # ed25519 key generation and signature verification computations with
+  # pynacl+libsodium.
+  $ pip install tuf[fast_ed25519]
+
+
+  Alternate installation options:
+
   Navigate to the root directory of the unpacked archive and
   run one of the following shell commands:
-  
+ 
   Install to the global site-packages directory.
   $ python setup.py install
- 
 
   Install to the user site-packages directory.
   $ python setup.py install --user
-
 
   Install to a chosen directory.
   $ python setup.py install --home=<directory>
@@ -43,44 +60,48 @@
   
   Note: The last two installation options may require modification of
   Python's search path (i.e., 'sys.path') or updating an OS environment
-  variable.
-  
-  E.g., Installing to the user site-packages directory might result in the
-  installation of TUF scripts to '~/.local/bin'.  The user may then be
-  required to update his $PATH variable:
-
+  variable.  For example, installing to the user site-packages directory might
+  result in the installation of TUF scripts to '~/.local/bin'.  The user may
+  then be required to update his $PATH variable:
   $ export PATH=$PATH:~/.local/bin
-
-  TUF scripts can then be run from any directory.
-
-  $ quickstart.py --project ./project-files
-  $ signercli.py --genrsakey ./keystore
 """
 
 from setuptools import setup
+from setuptools import find_packages
+
+extras = {
+  'fast_ed25519': ['pynacl>=0.2.3']
+}
 
 setup(
-  name='tuf',
-  version='0.7.5',
-  description='A secure updater framework for Python',
-  author='https://www.updateframework.com',
-  author_email='info@updateframework.com',
-  url='https://www.updateframework.com',
-  install_requires=['pycrypto>=2.6'],
-  packages=[
-    'ed25519',
-    'tuf',
-    'tuf.client',
-    'tuf.compatibility',
-    'tuf.interposition',
-    'tuf.pushtools',
-    'tuf.pushtools.transfer',
-    'tuf.repo',
-    'tuf.tests'
+  name = 'tuf',
+  version = '0.7.5',
+  description = 'A secure updater framework for Python',
+  author = 'http://www.theupdateframework.com',
+  author_email = 'theupdateframework@googlegroups.com',
+  url = 'http://www.theupdateframework.com',
+  keywords = 'update updater secure authentication key compromise revocation',
+  classifiers = [
+    'Development Status :: 4 - Beta',
+    'Intended Audience :: Developers',
+    'License :: Freely Distributable',
+    'Natural Language :: English',
+    'Operating System :: POSIX',
+    'Operating System :: POSIX :: Linux',
+    'Operating System :: MacOS :: MacOS X',
+    'Operating System :: Microsoft :: Windows',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 2',
+    'Programming Language :: Python :: 2.6',
+    'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Topic :: Security',
+    'Topic :: Software Development'
   ],
-  scripts=[
-    'tuf/pushtools/push.py',
-    'tuf/pushtools/receivetools/receive.py',
+  install_requires = ['pycrypto>=2.6.1'],
+  packages = find_packages(exclude=['tests', 'tuf.tests']),
+  extras_require = extras,
+  scripts = [
     'tuf/client/basic_client.py'
   ]
 )
