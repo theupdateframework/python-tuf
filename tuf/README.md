@@ -24,7 +24,7 @@
 
 
 ## Repository Tool Diagram ##
-![Repo Tools Diagram 1](https://raw.github.com/theupdateframework/tuf/repository-tools/docs/images/repository_tool-diagram.png)
+![Repo Tools Diagram 1](../docs/images/repository_tool-diagram.png)
 
 
 ## Create TUF Repository ##
