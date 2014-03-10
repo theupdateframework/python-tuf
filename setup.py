@@ -68,8 +68,9 @@ setup(
   url='https://www.updateframework.com',
   install_requires=['pycrypto>=2.6'],
   packages=[
-    'ed25519',
     'tuf',
+    'tuf._vendor',
+    'tuf._vendor.ed25519',
     'tuf.client',
     'tuf.compatibility',
     'tuf.interposition',
