@@ -116,7 +116,6 @@ import tuf.keys
 import tuf.keydb
 import tuf.log
 import tuf.mirrors
-import tuf.repo.signerlib
 import tuf.roledb
 import tuf.sig
 import tuf.util

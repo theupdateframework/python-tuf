@@ -1,0 +1,19 @@
+# This is a requirements file executed by pip and may be used during TUF
+# development, and installation.  It can be executed as follows:
+# $ pip install --requirement dev-requirements.txt
+# 
+# pip install TUF (minimal install) in editable mode (i.e., setuptools
+# "develop mode").  The current working directory must contain 'setup.py'.
+--editable .
+
+# Install PyNaCl for generation and verification of ed25519 keys and signatures.
+# It also includes protection against side-channel attacks.
+# NOTE: TUF only uses the pure Python implementation of ed25519 for signature
+# verification.  PyNaCl is required for ed25519 key and signature generation
+# with the TUF repository tools.  Also install PyCrypto for RSA key & signature
+# support, and general-purpose cryptography needed by the repository tools.
+# Client must also install PyCrypto to verify RSASSA-PSS signatures.  The
+# minimal install can only verify ed25519 signatures.  Pinned packages:
+# http://nvie.com/posts/pin-your-packages/
+pycrypto==2.6.1
+pynacl==0.2.3

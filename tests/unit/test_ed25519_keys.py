@@ -41,13 +41,7 @@ class TestEd25519_keys(unittest.TestCase):
     self.assertEqual(True, tuf.formats.ED25519PUBLIC_SCHEMA.matches(pub))
     self.assertEqual(True, tuf.formats.ED25519SEED_SCHEMA.matches(priv))
 
-    # Check for invalid argument.
-    self.assertRaises(tuf.FormatError,
-                      ed25519.generate_public_and_private, 'True')
-    
-    self.assertRaises(tuf.FormatError,
-                      ed25519.generate_public_and_private, 2048)
-    
+
 
   def test_create_signature(self):
     global public
