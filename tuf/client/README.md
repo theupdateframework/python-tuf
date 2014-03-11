@@ -136,7 +136,7 @@ for target in updated_target:
 ```
 
 ###A Simple Integration Example with basic_client.py
-```Bash
+```
 # Assume a simple TUF repository has been setup with 'tuf.repository_tool.py'.
 $ basic_client.py --repo http://localhost:8001
 
@@ -169,4 +169,4 @@ The file\'s sha256 hash is correct: a5019c28a1595c43a14cad2b6252c4d1db472dd6412a
 Downloading: http://localhost:8001/targets/file1.txt
 
 [2013-12-16 16:17:06,303 UTC] [tuf.client.updater] [INFO][_check_hashes:636@updater.py]
-The file's sha256 hash is correct: ecdc5536f73bdae8816f0ea40726ef5e9b810d914493075903bb90623d97b1d8
+The file\'s sha256 hash is correct: ecdc5536f73bdae8816f0ea40726ef5e9b810d914493075903bb90623d97b1d8
