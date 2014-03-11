@@ -2008,17 +2008,6 @@ class Targets(Metadata):
 
     # Add all the keys of 'public_keys' to tuf.keydb.
     for key in public_keys:
-      
-      # Add 'key' to the list of recognized keys.  Keys may be shared,
-      # so do not raise an exception if 'key' has already been loaded.
-      try:
-        tuf.keydb.add_key(key)
-      
-      except tuf.KeyAlreadyExistsError, e:
-        message = \
-          'Adding a public key that has already been used: '+key['keyid']
-        logger.warn(message)
-      
       keyid = key['keyid']
       key_metadata_format = tuf.keys.format_keyval_to_metadata(key['keytype'],
                                                                key['keyval'])
@@ -3379,8 +3368,6 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
-  # Password confirmation disabled here, which should ideally happen only when
-  # creating encrypted key files (i.e., improve usability).
   if password is None:
     message = 'Enter a password for the encrypted RSA file: '
     password = _get_password(message, confirm=False)
@@ -3637,8 +3624,6 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
-  # Password confirmation disabled here, which should ideally happen only when
-  # creating encrypted key files (i.e., improve usability).
   if password is None:
     message = 'Enter a password for the encrypted ED25519 key: '
     password = _get_password(message, confirm=False)

@@ -8,39 +8,41 @@
   Konstantin Andrianov
 
 <Started>
-  October 15, 2012
+  October 15, 2012.
+  March 11, 2014.  Refactored to avoid mocking, and to use exact repositories
+  and realistic retrieval of files. -vladimir.v.diaz
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
-  test_updater.py provides collection of methods that tries to test all the
-  units (methods) of the module under test.
+  test_updater.py provides a collection of methods that test all the methods
+  and functions of 'tuf.client.updater.py'.
 
-  unittest_toolbox module was created to provide additional testing tools for
-  tuf's modules.  For more info see unittest_toolbox.py.
+  The 'unittest_toolbox.py' module was created to provide additional testing
+  tools.  For more info see 'unittest_toolbox.py'.
 
 <Methodology>
-  Unit tests must follow a specific structure i.e. independent methods should
-  be tested prior to dependent methods. More accurately: least dependent
-  methods are tested before most dependent methods.  There is no reason to
-  rewrite or construct other methods that replicate already-tested methods
-  solely for testing purposes.  This is possible because 'unittest.TestCase'
-  class guarantees the order of unit tests.  So that, 'test_something_A'
-  method would be tested before 'test_something_B'.  To ensure the structure
-  a number will be placed after 'test' and before methods name like so:
-  'test_1_check_directory'.  The number is a measure of dependence, where 1
-  is less dependent than 2.
+  Test cases here should follow a specific order (i.e., independent methods are 
+  tested prior to dependent methods). More accurately, least dependent methods
+  are tested before most dependent methods.  There is no reason to rewrite or
+  construct other methods that replicate already-tested methods solely for
+  testing purposes.  This is possible because the 'unittest.TestCase' class
+  guarantees the order of unit tests.  The 'test_something_A' method would
+  be tested before 'test_something_B'.  To ensure the expected order of tests,
+  a number is be placed after 'test' and before methods name like so:
+  'test_1_check_directory'.  The number is a measure of dependence, where 1 is
+  less dependent than 2.
 """
 
 import os
-import gzip
 import time
 import shutil
 import tempfile
 import logging
 import unittest
-
+import random
+import subprocess
 
 import tuf
 import tuf.client.updater as updater
@@ -48,74 +50,13 @@ import tuf.conf
 import tuf.log
 import tuf.formats
 import tuf.keydb
-import tuf.repo.keystore as keystore
-import tuf.repository_tool as repo_tool 
 import tuf.roledb
-import tuf.tests.repository_setup as setup
+import tuf.repository_tool as repo_tool
 import tuf.tests.unittest_toolbox as unittest_toolbox
 import tuf.util
 
 logger = logging.getLogger('tuf.test_updater')
-
-
-# This is the default metadata that we would create for the timestamp role,
-# because it has no signed metadata for itself.
-DEFAULT_TIMESTAMP_FILEINFO = {
-  'hashes': None,
-  'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
-}
-
-original_safe_download = tuf.download.safe_download
-original_unsafe_download = tuf.download.unsafe_download
-
-class TestUpdater_init_(unittest_toolbox.Modified_TestCase):
-
-  def test__init__exceptions(self):
-    # Setup:
-    # Create an empty repository structure for client.
-    repo_dir = self.make_temp_directory()
-
-    # Config patch.  The repository directory must be configured in 'tuf.conf'.
-    tuf.conf.repository_directory = repo_dir
-
-
-    # Test: empty repository. 
-    self.assertRaises(tuf.RepositoryError, updater.Updater, 'Repo_Name',
-                      self.mirrors) 
-
-    # Test: empty repository with {repository_dir}/metadata directory.
-    meta_dir = os.path.join(repo_dir, 'metadata')
-    os.mkdir(meta_dir)
-    self.assertRaises(tuf.RepositoryError, updater.Updater, 'Repo_Name',
-                      self.mirrors) 
-
-    # Test: empty repository with {repository_dir}/metadata/current directory.
-    current_dir = os.path.join(meta_dir, 'current')
-    os.mkdir(current_dir)
-    self.assertRaises(tuf.RepositoryError, updater.Updater, 'Repo_Name',
-                      self.mirrors)
-
-    # Test: normal case.
-    repositories = setup.create_repositories()
-    client_repo_dir = repositories['client_repository']
-    tuf.conf.repository_directory = client_repo_dir
-    updater.Updater('Repo_Name', self.mirrors)
-    
-    # Test: case w/ only root metadata file present in the current dir.
-    client_current_dir = os.path.join(client_repo_dir, 'metadata', 'current')
-    for directory, junk, role_list in os.walk(client_current_dir):
-      for role_filepath in role_list:
-        role_filepath = os.path.join(directory, role_filepath)
-        if role_filepath.endswith('root.json'):
-          continue
-        os.remove(role_filepath)
-    updater.Updater('Repo_Name', self.mirrors)
-
-    #  Remove all created repositories and roles.
-    setup.remove_all_repositories(repositories['main_repository'])
-    tuf.roledb.clear_roledb()
-
-
+repo_tool.disable_console_log_messages()
 
 
 class TestUpdater(unittest_toolbox.Modified_TestCase):
@@ -123,123 +64,117 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   @classmethod
   def setUpClass(cls):
     # setUpClass() is called before tests in an individual class run.
-    # Create repositories.  'repositories' is a tuple that looks like this:
-    # (repository_dir, client_repository_dir, server_repository_dir), see 
-    # 'repository_setup.py' module.
-    cls.repositories = setup.create_repositories()
+    
+    # Create a temporary directory to store the repository, metadata, and target
+    # files.  'temporary_directory' must be deleted in TearDownModule() so that
+    # temporary files are always removed, including when exceptions occur. 
+    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
+    
+    # Launch a SimpleHTTPServer (serves files in the current directory).
+    cls.SERVER_PORT = random.randint(30000, 45000)
+    command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
+    cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    logger.info('\n\tServer process started.')
+    logger.info('\tServer process id: '+str(cls.server_process.pid))
+    logger.info('\tServing on port: '+str(cls.SERVER_PORT))
+    cls.url = 'http://localhost:'+str(cls.SERVER_PORT) + os.path.sep
 
-    # Save references to repository directories and metadata.
-    #  Server side references.
-    cls.server_repo_dir = cls.repositories['server_repository']
-    cls.server_meta_dir = os.path.join(cls.server_repo_dir, 'metadata')
-    cls.root_filepath = os.path.join(cls.server_meta_dir, 'root.json')
-    cls.timestamp_filepath = os.path.join(cls.server_meta_dir, 'timestamp.json')
-    cls.targets_filepath = os.path.join(cls.server_meta_dir, 'targets.json')
-    cls.snapshot_filepath = os.path.join(cls.server_meta_dir, 'snapshot.json')
-
-    #  References to delegated metadata paths and directories.
-    cls.delegated_dir1 = os.path.join(cls.server_meta_dir, 'targets')
-    cls.delegated_filepath1 = os.path.join(cls.delegated_dir1,
-                                           'delegated_role1.json')
-    cls.delegated_dir2 = os.path.join(cls.delegated_dir1, 'delegated_role1')
-    cls.delegated_filepath2 = os.path.join(cls.delegated_dir2,
-                                           'delegated_role2.json')
-    cls.targets_dir = os.path.join(cls.server_repo_dir, 'targets')  
-
-    #  Client side references.
-    cls.client_repo_dir = cls.repositories['client_repository']
-    cls.client_meta_dir = os.path.join(cls.client_repo_dir, 'metadata')
-    cls.client_current_dir = os.path.join(cls.client_meta_dir, 'current')
-    cls.client_previous_dir = os.path.join(cls.client_meta_dir, 'previous')
+    # NOTE: Following error is raised if a delay is not applied:
+    # <urlopen error [Errno 111] Connection refused>
+    time.sleep(1)
 
 
+
+  @classmethod 
+  def tearDownClass(cls):
+    # tearDownModule() is called after all the tests have run.
+    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
+   
+    # Remove the temporary repository directory, which should contain the
+    # metadata, targets, and key files.
+    shutil.rmtree(cls.temporary_directory)
+    
+    unittest_toolbox.Modified_TestCase.clear_toolbox()
+   
+    # Kill the SimpleHTTPServer process.
+    if cls.server_process.returncode is None:
+      logger.info('\tServer process '+str(cls.server_process.pid)+' terminated.')
+      cls.server_process.kill()
 
 
 
   def setUp(self):
-    #  We are inheriting from custom class.
+    # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
+  
+    # Copy the original repository files provided in the test folder.
+    # The 'test_repository' directory is expected to exist in the same directory
+    # as the unit test modules.
+    original_repository_files = os.path.join(os.getcwd(), 'test_repository') 
+    temporary_repository_root = \
+      self.make_temp_directory(directory=self.temporary_directory)
+   
+    original_repository = os.path.join(original_repository_files, 'repository')
+    original_keystore = os.path.join(original_repository_files, 'keystore')
+    original_client = os.path.join(original_repository_files, 'client')
 
-    #  Patching 'tuf.conf.repository_directory' with the one we set up.
-    tuf.conf.repository_directory = self.client_repo_dir
+    self.repository_directory = \
+      os.path.join(temporary_repository_root, 'repository')
+    self.keystore_directory = \
+      os.path.join(temporary_repository_root, 'keystore')
+    self.client_directory = os.path.join(temporary_repository_root, 'client')
+    self.client_metadata = os.path.join(self.client_directory, 'metadata')
+    self.client_metadata_current = os.path.join(self.client_metadata, 'current')
+    self.client_metadata_previous = \
+      os.path.join(self.client_metadata, 'previous')
 
-    #  Creating Repository instance.
-    self.Repository = updater.Updater('Client_Repository', self.mirrors)
+    # Copy the original 'repository', 'client', and 'keystore' directories
+    # to the temporary repository the test cases can use.
+    shutil.copytree(original_repository, self.repository_directory)
+    shutil.copytree(original_client, self.client_directory)
+    shutil.copytree(original_keystore, self.keystore_directory)
 
-    #  List of all role paths, (in order they are updated).  This list will be
-    #  used as an optional argument to 'download_url_to_tempfileobj' patch 
-    #  function.
-    self.all_role_paths = [self.timestamp_filepath,
-                           self.snapshot_filepath,
-                           self.root_filepath,
-                           self.targets_filepath,
-                           self.delegated_filepath1,
-                           self.delegated_filepath2]
+    # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'. 
+    repository_basepath = self.repository_directory[len(os.getcwd()):]
+    url_prefix = \
+      'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
+    
+    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # directory copied from the original repository files.
+    tuf.conf.repository_directory = self.client_directory 
+    
+    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
+                                           'metadata_path': 'metadata',
+                                           'targets_path': 'targets',
+                                           'confined_target_dirs': ['']}}
 
-    #  Making sure that server and client's metadata files are the same.
-    shutil.rmtree(self.client_current_dir)
-    shutil.copytree(self.server_meta_dir, self.client_current_dir)
+    # Creating Repository instance.
+    self.repository_updater = updater.Updater('test_repository',
+                                              self.repository_mirrors)
 
-
+    self.role_keys = _load_role_keys(self.keystore_directory)
 
 
 
   def tearDown(self):
-    #  We are inheriting from custom class.
+    # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-
-    #  Clear roledb and keydb dictionaries.
-    tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
-
+    
+    # Clear roledb and keydb dictionaries.
+    #tuf.roledb.clear_roledb()
+    #tuf.keydb.clear_keydb()
 
 
 
 
   # HELPER FUNCTIONS (start with '_').
-
-  def _mock_download_url_to_tempfileobj(self, output):
-    """
-    <Purpose>
-      Patch 'tuf.download.download_url_to_fileobject' method.
-      
-    <Arguments>
-      output:
-        Can be a file path or a list of file paths.  If 'output' is a file
-        path then a tuf.util.TempFile file-object of that path is returned on
-        the call.  Else if, 'output' is a list of file paths then first
-        element of the that list is popped and it's tuf.util.TempFile fileobject
-        of is returned every time the patch is called.
-
-    """
-
-    def _mock_download(url, length):
-      if isinstance(output, (str, unicode)):
-        file_path = output
-      elif isinstance(output, list):
-        file_path = output.pop(0)
-      file_obj = open(file_path, 'rb')
-      temp_fileobj = tuf.util.TempFile()
-      temp_fileobj.write(file_obj.read())
-      return temp_fileobj
-
-    # Patch tuf.download functions.
-    tuf.download.unsafe_download = _mock_download
-    tuf.download.safe_download = _mock_download
-
-
-
+  
   def _add_file_to_directory(self, directory):
     file_path = tempfile.mkstemp(suffix='.txt', dir=directory)
     fileobj = open(file_path[1], 'wb')
     fileobj.write(self.random_string())
     fileobj.close()
     return file_path[1]
-
-
-
-  def _remove_filepath(self, filepath):
-    os.remove(filepath)
 
 
 
@@ -301,88 +236,105 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def _compress_file(self, file_path):
-    fileobj = open(file_path, 'rb')
-    file_path_compressed = file_path+'.gz'
-    fileobj_compressed = gzip.open(file_path+'.gz', 'wb')
-    fileobj_compressed.writelines(fileobj)
-    fileobj_compressed.close()
-    fileobj.close()
-    return file_path_compressed
-
-
-
-  def _get_list_of_target_paths(self, targets_directory, relative=True):
-    # This helper function returns a list of all target filepaths
-    # located in the server's targets directory (where all target files are
-    # located).  If 'relative' is true, relative paths to 'targets_directory'
-    # are returned.
-
-    target_filepaths = []
-    if relative:
-      for directory, sub_directories, files in os.walk(targets_directory):
-        for _file in files:
-          file_path = os.path.join(directory, _file)
-          rel_file_path = os.path.relpath(file_path, targets_directory)
-          target_filepaths.append(rel_file_path) 
-
-    else:
-      for directory, sub_directories, files in os.walk(targets_directory):
-        for _file in files:
-          file_path = os.path.join(directory, _file)
-          target_filepaths.append(file_path)
-
-    return target_filepaths
-
-
-
-  def _update_top_level_roles(self):
-    self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
-    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
-
-    # Reference self.Repository._update_metadata_if_changed().
-    update_if_changed = self.Repository._update_metadata_if_changed    
-
-    self._mock_download_url_to_tempfileobj(self.snapshot_filepath)
-    update_if_changed('snapshot', referenced_metadata = 'timestamp')
-
-    self._mock_download_url_to_tempfileobj(self.root_filepath)
-    update_if_changed('root')
-
-    self._mock_download_url_to_tempfileobj(self.targets_filepath)
-    update_if_changed('targets')
-
-
-
-
 
   # UNIT TESTS.
+  
+  def test_1__init__exceptions(self):
+    # The client's repository requires a metadata directory (and the 'current'
+    # and 'previous' sub-directories), and at least the 'root.json' file.
+    # setUp(), called before each test case, instantiates the required updater
+    # objects and keys.  The needed objects/data is available in
+    # 'self.repository_updater', 'self.client_directory', etc.
+
+
+    # Test: Invalid arguments.
+    # Invalid 'updater_name' argument.  String expected. 
+    self.assertRaises(tuf.FormatError, updater.Updater, 8,
+                      self.repository_mirrors)
+   
+    # Invalid 'repository_mirrors' argument.  'tuf.formats.MIRRORDICT_SCHEMA'
+    # expected.
+    self.assertRaises(tuf.FormatError, updater.Updater, updater.Updater, 8)
+
+
+    # 'tuf.client.updater.py' requires that the client's repository directory
+    # be configured in 'tuf.conf.py'.
+    tuf.conf.repository_directory = None
+    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+                      self.repository_mirrors)
+    # Restore 'tuf.conf.repository_directory' to the original client directory.
+    tuf.conf.repository_directory = self.client_directory
+    
+
+    # Test: empty client repository (i.e., no metadata directory).
+    metadata_backup = self.client_metadata + '.backup'
+    shutil.move(self.client_metadata, metadata_backup)
+    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+                      self.repository_mirrors)
+    # Restore the client's metadata directory.
+    shutil.move(metadata_backup, self.client_metadata)
+
+
+    # Test: repository with only a '{repository_directory}/metadata' directory.
+    # (i.e., missing the required 'current' and 'previous' sub-directories). 
+    current_backup = self.client_metadata_current + '.backup'
+    previous_backup = self.client_metadata_previous + '.backup'
+    
+    shutil.move(self.client_metadata_current, current_backup)
+    shutil.move(self.client_metadata_previous, previous_backup)
+    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+                      self.repository_mirrors)
+    # Restore the client's previous directory.  The required 'current' directory
+    # is still missing.
+    shutil.move(previous_backup, self.client_metadata_previous)
+
+
+    # Test: repository with only a '{repository_directory/metadata/previous'
+    # directory.
+    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+                      self.repository_mirrors)
+    # Restore the client's current directory.
+    shutil.move(current_backup, self.client_metadata_current)
+   
+    # Test:  repository missing the required 'root.json' file.
+    client_root_file = os.path.join(self.client_metadata_current, 'root.json')
+    backup_root_file = client_root_file + '.backup'
+    shutil.move(client_root_file, backup_root_file)
+    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+                      self.repository_mirrors)
+    # Restore the client's 'root.json file.
+    shutil.move(backup_root_file, client_root_file)
+
+
+    # Test: Normal 'tuf.client.updater.Updater' instantiation.
+    updater.Updater('test_repository', self.repository_mirrors)
+
+
+
+
 
   def test_1__load_metadata_from_file(self):
     
     # Setup
-    #  Get root.json file path.  Extract root metadata, 
-    #  it will be compared with content of loaded root metadata.
-    root_filepath = os.path.join(self.client_current_dir, 'root.json')
-    root_meta = tuf.util.load_json_file(root_filepath)
-
-    # Test: normal case.
-    #for role in self.role_list:
-    #  self.Repository._load_metadata_from_file('current', role)
-    self.Repository.refresh()
-
-    root_filepath = os.path.join(self.client_current_dir, 'root.json')
-    root_meta = tuf.util.load_json_file(root_filepath)
-   
-   #  Verify that the correct number of metadata objects has been loaded. 
-    self.assertEqual(len(self.Repository.metadata['current']), 4)
-
-    print('root_metadata: '+repr(root_meta)+'\n\n')
-    print('self.Repository: '+repr(self.Repository.metadata['current']['root']))
+    # Get the 'role1.json' filepath.  Manually load the role metadata, and
+    # compare it against the loaded metadata by '_load_metadata_from_file()'.
+    role1_filepath = \
+      os.path.join(self.client_metadata_current, 'targets', 'role1.json')
+    role1_meta = tuf.util.load_json_file(role1_filepath)
+ 
+    # Load the 'role1.json' file with _load_metadata_from_file, which should
+    # store the loaded metadata in the 'self.repository_updater.metadata'
+    # store.
+    self.assertEqual(len(self.repository_updater.metadata['current']), 4)
+    self.repository_updater._load_metadata_from_file('current', 'targets/role1')
     
+    # Verify that the correct number of metadata objects has been loaded
+    # (i.e., only the 'root.json' file should have been loaded.
+    self.assertEqual(len(self.repository_updater.metadata['current']), 5)
+
     #  Verify that the content of root metadata is valid.
-    self.assertEqual(self.Repository.metadata['current']['root'],
-                     root_meta['signed'])
+    self.assertEqual(self.repository_updater.metadata['current']['targets/role1'],
+                     role1_meta['signed'])
 
 
 
@@ -390,166 +342,158 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_1__rebuild_key_and_role_db(self):    
     # Setup
-    root_meta = self.Repository.metadata['current']['root']
+    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    root_metadata = self.repository_updater.metadata['current']['root']
+    root_threshold = root_metadata['roles']['root']['threshold']
+    number_of_root_keys = len(root_metadata['keys'])
+
+    self.assertEqual(root_roleinfo['threshold'], root_threshold)
+    # Ensure we add 1 to the number of root keys, to include the delegated
+    # targets key.  The delegated roles of 'targets.json' are also loaded
+    # when the repository object is instantiated.
+    self.assertEqual(number_of_root_keys + 1, len(tuf.keydb._keydb_dict))
 
     # Test: normal case.
-    self.Repository._rebuild_key_and_role_db()
-    
-    #  Verify tuf.roledb._roledb_dict and tuf.keydb._keydb_dict dictionaries
-    #  are populated.  'top_level_role_info' is a unittest_toolbox's dict
-    #  that contains top level role information it corresponds to a
-    #  ROLEDICT_SCHEMA where roles are keys and role information their values.
-    self.assertEqual(tuf.roledb._roledb_dict, self.top_level_role_info)
-    self.assertEqual(len(tuf.keydb._keydb_dict), 4)
+    self.repository_updater._rebuild_key_and_role_db()
 
-    #  Verify that keydb dictionary was updated.
-    for role in self.role_list:
-      keyids = self.top_level_role_info[role]['keyids']
-      for keyid in keyids:
-        self.assertTrue(keyid in tuf.keydb._keydb_dict)
+    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    self.assertEqual(root_roleinfo['threshold'], root_threshold)
+    # _rebuild_key_and_role_db() will only rebuild the keys and roles specified
+    # in the 'root.json' file, unlike __init__().  Instantiating an updater
+    # object calls both _rebuild_key_and_role_db() and _import_delegations().
+    self.assertEqual(number_of_root_keys, len(tuf.keydb._keydb_dict))
+   
+    # Test: properly updated roledb and keydb dicts if Root role changes.
+    root_metadata = self.repository_updater.metadata['current']['root']
+    root_metadata['roles']['root']['threshold'] = 8
+    root_metadata['keys'].popitem()
+
+    self.repository_updater._rebuild_key_and_role_db()
+    
+    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    self.assertEqual(root_roleinfo['threshold'], 8)
+    self.assertEqual(number_of_root_keys - 1, len(tuf.keydb._keydb_dict))
+
+    
 
 
 
   def test_1__update_fileinfo(self):
     # Tests
-    #  Verify that fileinfo dictionary is empty.
-    self.assertFalse(self.Repository.fileinfo)
+    # Verify that the 'self.fileinfo' dictionary is empty (its starts off empty
+    # and is only populated if _update_fileinfo() is called.
+    fileinfo_dict = self.repository_updater.fileinfo
+    self.assertEqual(len(fileinfo_dict), 0)
 
-    #  Load file info for top level roles.  This populates the fileinfo 
-    #  dictionary.
-    for role in self.role_list:
-      self.Repository._update_fileinfo(role+'.json')
+    # Load the fileinfo of the top-level root role.  This populates the
+    # 'self.fileinfo' dictionary.
+    self.repository_updater._update_fileinfo('root.json')
+    self.assertEqual(len(fileinfo_dict), 1)
+    self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
+    root_filepath = os.path.join(self.client_metadata_current, 'root.json')
+    length, hashes = tuf.util.get_file_details(root_filepath)
+    root_fileinfo = tuf.formats.make_fileinfo(length, hashes) 
+    self.assertTrue('root.json' in fileinfo_dict.keys())
+    self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
 
-    #  Verify that fileinfo has been populated and contains appropriate data.
-    self.assertTrue(self.Repository.fileinfo)
-    for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.json')
-      role_info = tuf.util.get_file_details(role_filepath)
-      role_info_dict = {'length':role_info[0], 'hashes':role_info[1]}
-      self.assertTrue(role+'.json' in self.Repository.fileinfo.keys())
-      self.assertEqual(self.Repository.fileinfo[role+'.json'], role_info_dict)
+    # Verify that 'self.fileinfo' is incremented if another role is updated.
+    self.repository_updater._update_fileinfo('targets.json')
+    self.assertEqual(len(fileinfo_dict), 2)
+
+    # Verify that 'self.fileinfo' is inremented if a non-existent role is
+    # requested, and has its fileinfo entry set to 'None'.
+    self.repository_updater._update_fileinfo('bad_role.json')
+    self.assertEqual(len(fileinfo_dict), 3)
+    self.assertEqual(fileinfo_dict['bad_role.json'], None) 
 
 
 
 
 
   def test_2__import_delegations(self):
+    # Setup.
     # In order to test '_import_delegations' the parent of the delegation
     # has to be in Repository.metadata['current'], but it has to be inserted
-    # there without using '_load_metadata_from_file' function since it calls
-    # '_import_delegations'.
-    # Setup.
-    deleg_role1_signable = tuf.util.load_json_file(self.delegated_filepath1)
-    self.Repository.metadata['current']['targets/delegated_role1'] = \
-        deleg_role1_signable['signed']
+    # there without using '_load_metadata_from_file()' since it calls
+    # '_import_delegations()'.
+    tuf.keydb.clear_keydb()
+    tuf.roledb.clear_roledb()
 
- 
+    self.assertEqual(len(tuf.roledb._roledb_dict), 0)
+    self.assertEqual(len(tuf.keydb._keydb_dict), 0)
+    
+    self.repository_updater._rebuild_key_and_role_db()
+    
+    self.assertEqual(len(tuf.roledb._roledb_dict), 4)
+    self.assertEqual(len(tuf.keydb._keydb_dict), 4)
+
     # Test: pass a role without delegations.
-    self.Repository._import_delegations('root')
+    self.repository_updater._import_delegations('root')
 
-    #  Verify that there was no change in roledb and keydb dictionaries
-    #  by checking the number of elements in the dictionaries.
-    self.assertEqual(len(tuf.roledb._roledb_dict), 5)       
-    self.assertEqual(len(tuf.keydb._keydb_dict), 5)
+    # Verify that there was no change in roledb and keydb dictionaries
+    # by checking the number of elements in the dictionaries.
+    self.assertEqual(len(tuf.roledb._roledb_dict), 4)       
+    self.assertEqual(len(tuf.keydb._keydb_dict), 4)
 
     # Test: normal case, first level delegation.
-    self.Repository._import_delegations('targets/delegated_role1')
+    self.repository_updater._import_delegations('targets')
 
-    self.assertEqual(len(tuf.roledb._roledb_dict), 6)
-    self.assertEqual(len(tuf.keydb._keydb_dict), 6)
+    self.assertEqual(len(tuf.roledb._roledb_dict), 5)
+    self.assertEqual(len(tuf.keydb._keydb_dict), 5)
 
-    #  Verify that roledb dictionary was updated.
-    self.assertTrue('targets/delegated_role1' in tuf.roledb._roledb_dict)
+    # Verify that roledb dictionary was added.
+    self.assertTrue('targets/role1' in tuf.roledb._roledb_dict)
     
-    #  Verify that keydb dictionary was updated.
-    keyids = self.semi_roledict['targets/delegated_role1']['keyids']
+    # Verify that keydb dictionary was updated.
+    role1_signable = \
+      tuf.util.load_json_file(os.path.join(self.client_metadata_current,
+                                           'targets', 'role1.json'))
+    keyids = []
+    for signature in role1_signable['signatures']:
+      keyids.append(signature['keyid'])
+      
     for keyid in keyids:
       self.assertTrue(keyid in tuf.keydb._keydb_dict)
 
 
 
 
-  """
-  def test_2__ensure_all_targets_allowed(self):
-    # Setup
-    #  Reference to self.Repository._ensure_all_targets_allowed()    
-    ensure_all_targets_allowed = self.Repository._ensure_all_targets_allowed
-
-    #  Extract delegated role metadata, it will be used as an argument
-    #  to updater._ensure_all_targets_allowed() method.
-    #  'role1' is delegated by 'targets' role.
-    targets_meta_dir = os.path.join(self.server_meta_dir, 'targets')
-    role1_meta_dir = os.path.join(targets_meta_dir, 'delegated_role1')
-    
-    role1_path = os.path.join(targets_meta_dir, 'delegated_role1.json')
-    role1_metadata_signable = tuf.util.load_json_file(role1_path)
-    role1_metadata = role1_metadata_signable['signed']
-    
-
-    # Test: normal case.
-    ensure_all_targets_allowed('targets/delegated_role1', role1_metadata)
-
-    # Test: invalid role.  tuf.UnknownRoleError is raised since 
-    # 'delegated_role1' is not in the Repository's 'metadata' dictionary.
-    self.assertRaises(tuf.UnknownRoleError, ensure_all_targets_allowed,
-                      'targets/delegated_role1/delegated_role2',
-                      role1_metadata)
-
-    #  To verify that an exception is raised when targets listed in the 
-    #  delegated role's metadata are not indicated in the metadata of the
-    #  delegated role's parent, we need to modify delegated role's 'targets'
-    #  field.
-    target = self.random_string()+'.json'
-    deleg_target_path = os.path.join('delegated_level', target)
-    role1_metadata['targets'][deleg_target_path] = self.random_string()
-
-    # Test: targets not included in the parent's metadata.
-    self.assertRaises(tuf.RepositoryError, ensure_all_targets_allowed,
-                      'targets/delegated_role1', role1_metadata)
-  """
-
-
-
 
   def test_2__fileinfo_has_changed(self):
     #  Verify that the method returns 'False' if file info was not changed.
-    for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.json')
-      role_info = tuf.util.get_file_details(role_filepath)
-      role_info_dict = {'length':role_info[0], 'hashes':role_info[1]}
-      self.assertFalse(self.Repository._fileinfo_has_changed(role+'.json',
-                                                             role_info_dict))
+    root_filepath = os.path.join(self.client_metadata_current, 'root.json')
+    length, hashes = tuf.util.get_file_details(root_filepath)
+    root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
+                                                           root_fileinfo))
 
     # Verify that the method returns 'True' if length or hashes were changed.
-    for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.json')
-      role_info = tuf.util.get_file_details(role_filepath)
-      role_info_dict = {'length':8, 'hashes':role_info[1]}
-      self.assertTrue(self.Repository._fileinfo_has_changed(role+'.json',
-                                                             role_info_dict))
-
-    for role in self.role_list:
-      role_filepath = os.path.join(self.client_current_dir, role+'.json')
-      role_info = tuf.util.get_file_details(role_filepath)
-      role_info_dict = {'length':role_info[0],
-                        'hashes':{'sha256':self.random_string()}}
-      self.assertTrue(self.Repository._fileinfo_has_changed(role+'.json',
-                                                             role_info_dict))
+    new_length = 8
+    new_root_fileinfo = tuf.formats.make_fileinfo(new_length, hashes)
+    self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+                                                           new_root_fileinfo))
+    # Hashes were changed.
+    new_hashes = {'sha256': self.random_string()}
+    new_root_fileinfo = tuf.formats.make_fileinfo(length, new_hashes)
+    self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+                                                           new_root_fileinfo))
 
 
 
 
   def test_2__move_current_to_previous(self):
-    # The test will consist of removing a metadata file from client's
-    # {client_repository}/metadata/previous directory, executing the method
-    # and then verifying that the 'previous' directory contains
-    # the snapshot file.
-    snapshot_meta_path = os.path.join(self.client_previous_dir, 'snapshot.json')
-    os.remove(snapshot_meta_path)
-    self.assertFalse(os.path.exists(snapshot_meta_path))
-    self.Repository._move_current_to_previous('snapshot')
-    self.assertTrue(os.path.exists(snapshot_meta_path))
-    shutil.copy(snapshot_meta_path, self.client_current_dir)
+    # Test case will consist of removing a metadata file from client's
+    # '{client_repository}/metadata/previous' directory, executing the method
+    # and then verifying that the 'previous' directory contains the snapshot
+    # file.
+    previous_snapshot_filepath = os.path.join(self.client_metadata_previous,
+                                              'snapshot.json')
+    os.remove(previous_snapshot_filepath)
+    self.assertFalse(os.path.exists(previous_snapshot_filepath))
+    
+    self.repository_updater._move_current_to_previous('snapshot')
+    self.assertTrue(os.path.exists(previous_snapshot_filepath))
+    shutil.copy(previous_snapshot_filepath, self.client_metadata_current)
 
 
 
@@ -558,14 +502,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_2__delete_metadata(self):
     # This test will verify that 'root' metadata is never deleted, when
     # role is deleted verify that the file is not present in the 
-    # self.Repository.metadata dictionary.
-    self.Repository._delete_metadata('root')
-    self.assertTrue('root' in self.Repository.metadata['current'])
-    self.Repository._delete_metadata('timestamp')
-    self.assertFalse('timestamp' in self.Repository.metadata['current'])
-    timestamp_meta_path = os.path.join(self.client_previous_dir,
+    # 'self.repository_updater.metadata' dictionary.
+    self.repository_updater._delete_metadata('root')
+    self.assertTrue('root' in self.repository_updater.metadata['current'])
+    
+    self.repository_updater._delete_metadata('timestamp')
+    self.assertFalse('timestamp' in self.repository_updater.metadata['current'])
+    previous_timestamp_filepath = os.path.join(self.client_metadata_previous,
                                        'timestamp.json')
-    shutil.copy(timestamp_meta_path, self.client_current_dir)
+    shutil.copy(previous_timestamp_filepath, self.client_metadata_current)
 
 
 
@@ -574,18 +519,19 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_2__ensure_not_expired(self):
     # This test condition will verify that nothing is raised when a metadata
     # file has a future expiration date.
-    self.Repository._ensure_not_expired('root')
+    self.repository_updater._ensure_not_expired('root')
     
     # 'tuf.ExpiredMetadataError' should be raised in this next test condition,
     # because the expiration_date has expired by 10 seconds.
     expires = tuf.formats.format_time(time.time() - 10)
-    self.Repository.metadata['current']['root']['expires'] = expires
+    self.repository_updater.metadata['current']['root']['expires'] = expires
     
-    # Ensure the 'expires' field of the root file is properly formatted.
-    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(self.Repository.metadata\
-                                                    ['current']['root']))
+    # Ensure the 'expires' value of the root file is valid by checking the
+    # the formats of the 'root.json' object.
+    root_object = self.repository_updater.metadata['current']['root']
+    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_object))
     self.assertRaises(tuf.ExpiredMetadataError,
-                      self.Repository._ensure_not_expired, 'root')
+                      self.repository_updater._ensure_not_expired, 'root')
 
 
 
@@ -593,83 +539,102 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_3__update_metadata(self):
     """
-    This unit test verifies the method's proper behaviour on the expected input.
+    _update_metadata() downloads, verifies, and installs the specified metadata
+    role.  Remove knowledge of currently installed metadata and verify that
+    they are re-installed after calling _update_metadata().
     """
     
-    #  Since client's '.../metadata/current' will need to have separate
-    #  gzipped metadata file in order to test compressed file handling,
-    #  we need to copy it there.  
-    targets_filepath_compressed = self._compress_file(self.targets_filepath)
-    shutil.copy(targets_filepath_compressed, self.client_current_dir) 
-
-    #  To test updater._update_metadata(), 'targets' metadata file is
-    #  going to be modified at the server's repository.
-    #  Keyid's are required to build the metadata.
-    targets_keyids = setup.role_keyids['targets']
-
-    #  Add a file to targets directory and rebuild targets metadata.
-    #  Returned target's filename will be used to verify targets metadata.
-    added_target_1 = self._add_target_to_targets_dir(targets_keyids)
-
-    #  Reference 'self.Repository._update_metadata'.
-    _update_metadata = self.Repository._update_metadata
-
-
-    # Test: Invalid file downloaded.
-    #  Patch 'download.download_url_to_tempfileobj' function.
-    self._mock_download_url_to_tempfileobj(self.snapshot_filepath)
-
-    # TODO: Is this the original intent of this test?
-    self.assertRaises(TypeError, _update_metadata, 'targets', None)
-
+    # Setup
+    # Remove the installed metadata.  _update_metadata() will be called to
+    # ensure the removed metadata is properly re-installed.
+    
+    # This is the default metadata that we would create for the timestamp role,
+    # because it has no signed metadata for itself.
+    DEFAULT_TIMESTAMP_FILEINFO = {
+    'hashes': {},
+    'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    }
+    
+    targets_fileinfo = \
+      self.repository_updater.metadata['current']['snapshot']['meta']\
+                                      ['targets.json']
+    targets_compressed_fileinfo = \
+      self.repository_updater.metadata['current']['snapshot']['meta']\
+                                      ['targets.json.gz']
+   
+    # Remove the currently installed metadata from the store, and disk.  Verify
+    # that the metadata dictionary is re-populated after calling
+    # _update_metadata().
+    self.repository_updater.metadata['current'].clear()
+    timestamp_filepath = \
+      os.path.join(self.client_metadata_current, 'timestamp.json')
+    targets_filepath = os.path.join(self.client_metadata_current, 'targets.json')
+    root_filepath = os.path.join(self.client_metadata_current, 'root.json')
+    os.remove(timestamp_filepath)
+    os.remove(targets_filepath)
 
     # Test: normal case.
-    #  Patch 'download.download_url_to_tempfileobj' function.
-    self._mock_download_url_to_tempfileobj(self.targets_filepath)
-    uncompressed_fileinfo = \
-      repo_tool.get_metadata_file_info(self.targets_filepath)
-    _update_metadata('targets', uncompressed_fileinfo)
-    list_of_targets = self.Repository.metadata['current']['targets']['targets']
-
-    #  Verify that the added target's path is listed in target's metadata.
-    if added_target_1 not in list_of_targets.keys():
-      self.fail('\nFailed to update targets metadata.')
-
+    # Verify 'timestamp.json' is properly installed.
+    self.assertFalse('timestamp' in self.repository_updater.metadata)
+    self.repository_updater._update_metadata('timestamp',
+                                             DEFAULT_TIMESTAMP_FILEINFO)
+    self.assertTrue('timestamp' in self.repository_updater.metadata['current'])
+    os.path.exists(timestamp_filepath)
   
-    # Test: normal case, compressed metadata file.
-    #  Add a file to targets directory and rebuild targets metadata. 
-    added_target_2 = self._add_target_to_targets_dir(targets_keyids)
-    uncompressed_fileinfo = \
-      repo_tool.get_metadata_file_info(self.targets_filepath)
-
-    #  To test compressed file handling, compress targets metadata file.
-    targets_filepath_compressed = self._compress_file(self.targets_filepath)
-    compressed_fileinfo = \
-      repo_tool.get_metadata_file_info(targets_filepath_compressed)
-
-    #  Re-patch 'download.download_url_to_tempfileobj' function.
-    self._mock_download_url_to_tempfileobj(targets_filepath_compressed)
+    # Verify 'targets.json' is properly installed.
+    self.assertFalse('targets' in self.repository_updater.metadata['current'])
+    self.repository_updater._update_metadata('targets', targets_fileinfo)
+    self.assertTrue('targets' in self.repository_updater.metadata['current'])
+    length, hashes = tuf.util.get_file_details(targets_filepath)
+    self.assertEqual(targets_fileinfo, tuf.formats.make_fileinfo(length, hashes))
     
-    # The length (but not the hash) passed to this function is incorrect. The
-    # length must be that of the compressed file, whereas the hash must be that
-    # of the uncompressed file.
-    mixed_fileinfo = {
-      'length': compressed_fileinfo['length'],
-      'hashes': uncompressed_fileinfo['hashes']}
+    # Remove the 'targets.json' metadata so that the compressed version may be
+    # tested next.
+    del self.repository_updater.metadata['current']['targets']
+    os.remove(targets_filepath)
 
-    _update_metadata('targets', mixed_fileinfo, compression='gzip',
-                     compressed_fileinfo=compressed_fileinfo)
-    list_of_targets = self.Repository.metadata['current']['targets']['targets']
-
-    #  Verify that the added target's path is listed in target's metadata.
-    if added_target_2 not in list_of_targets.keys():
-      self.fail('\nFailed to update targets metadata.')
-
-
-    # Restoring server's repository to the initial state.
-    os.remove(targets_filepath_compressed)
-    os.remove(os.path.join(self.client_current_dir,'targets.json'))
-    self._remove_target_from_targets_dir(added_target_1)
+    # Verify 'targets.json.gz' is properly intalled.  Note: The uncompressed
+    # version is installed if the compressed one downloaded.
+    self.assertFalse('targets' in self.repository_updater.metadata['current'])
+    self.repository_updater._update_metadata('targets', targets_fileinfo, 'gzip',
+                                             targets_compressed_fileinfo)
+    self.assertTrue('targets' in self.repository_updater.metadata['current'])
+    length, hashes = tuf.util.get_file_details(targets_filepath)
+    self.assertEqual(targets_fileinfo, tuf.formats.make_fileinfo(length, hashes))
+    
+    # Test: Invalid fileinfo.
+    # Invalid fileinfo for the uncompressed version of 'targets.json'.
+    self.assertRaises(tuf.NoWorkingMirrorError,
+                      self.repository_updater._update_metadata,
+                      'targets', targets_compressed_fileinfo)
+    
+    # Verify that the specific exception raised is correct for the previous
+    # case.
+    try:
+      self.repository_updater._update_metadata('targets',
+                                               targets_compressed_fileinfo)
+    
+    except tuf.NoWorkingMirrorError, e:
+      for mirror_error in e.mirror_errors.values():
+        assert isinstance(mirror_error, tuf.BadHashError)
+    
+    # Invalid fileinfo for the compressed version of 'targets.json' 
+    self.assertRaises(tuf.NoWorkingMirrorError,
+                      self.repository_updater._update_metadata,
+                      'targets', targets_compressed_fileinfo, 'gzip',
+                      targets_fileinfo)
+    
+    # Verify that the specific exception raised is correct for the previous
+    # case.  The length is checked before the hashes, so the specific error in
+    # this case should be 'tuf.DownloadLengthMismatchError'.
+    try:
+      self.repository_updater._update_metadata('targets',
+                                               targets_compressed_fileinfo,
+                                               'gzip', targets_fileinfo)
+    
+    except tuf.NoWorkingMirrorError, e:
+      for mirror_error in e.mirror_errors.values():
+        assert isinstance(mirror_error, tuf.DownloadLengthMismatchError)
 
 
 
@@ -768,10 +733,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       for mirror_url, mirror_error in exception.mirror_errors.iteritems():
         assert isinstance(mirror_error, tuf.DownloadLengthMismatchError)
 
-    # Restoring repositories to the initial state.
-    os.remove(snapshot_filepath_compressed)
-    os.remove(os.path.join(self.client_current_dir, 'snapshot.json.gz'))
-    self._remove_target_from_targets_dir(added_target_1)
 
 
 
@@ -1148,13 +1109,63 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertTrue(os.listdir(dest_dir), 2)    
 
 
-def tearDownModule():
-  # tearDownModule() is called after all the tests have run.
-  # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
-  setup.remove_all_repositories(TestUpdater.repositories['main_repository'])
-  unittest_toolbox.Modified_TestCase.clear_toolbox()
-  tuf.download.safe_download = original_safe_download
-  tuf.download.unsafe_download = original_unsafe_download
+
+
+
+def _load_role_keys(keystore_directory):
+  
+  # Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
+  # We will need them in creating the keystore directory and metadata files.
+
+  # The pre-generated key files in 'test_repository" are all encrypted with
+  # a 'password' passphrase.
+  EXPECTED_KEYFILE_PASSWORD = 'password'
+
+  # Store the cryptography keys of the top-level roles.  Any delegated roles 
+  # should be assigned the key of the Targets role, to avoid .
+  role_keys = {}
+
+  root_key_file = os.path.join(keystore_directory, 'root_key')
+  targets_key_file = os.path.join(keystore_directory, 'targets_key')
+  snapshot_key_file = os.path.join(keystore_directory, 'snapshot_key')
+  timestamp_key_file = os.path.join(keystore_directory, 'timestamp_key')
+  delegation_key_file = os.path.join(keystore_directory, 'delegation_key')
+
+  role_keys = {'root': {}, 'targets': {}, 'snapshot': {}, 'timestamp': {},
+               'role1': {}}
+
+  # Import the top-level and delegated role public keys.
+  role_keys['root']['public'] = \
+    repo_tool.import_rsa_publickey_from_file(root_key_file+'.pub')
+  role_keys['targets']['public'] = \
+    repo_tool.import_rsa_publickey_from_file(targets_key_file+'.pub')
+  role_keys['snapshot']['public'] = \
+    repo_tool.import_rsa_publickey_from_file(snapshot_key_file+'.pub')
+  role_keys['timestamp']['public'] = \
+      repo_tool.import_rsa_publickey_from_file(timestamp_key_file+'.pub')
+  role_keys['role1']['public'] = \
+      repo_tool.import_rsa_publickey_from_file(delegation_key_file+'.pub')
+
+  # Import the private keys of the top-level rolesand delegated roles private
+  # keys.
+  role_keys['root']['private'] = \
+    repo_tool.import_rsa_privatekey_from_file(root_key_file, 
+                                              EXPECTED_KEYFILE_PASSWORD)
+  role_keys['targets']['private'] = \
+    repo_tool.import_rsa_privatekey_from_file(targets_key_file,
+                                              EXPECTED_KEYFILE_PASSWORD)
+  role_keys['snapshot']['private'] = \
+    repo_tool.import_rsa_privatekey_from_file(snapshot_key_file,
+                                              EXPECTED_KEYFILE_PASSWORD)
+  role_keys['timestamp']['private'] = \
+    repo_tool.import_rsa_privatekey_from_file(timestamp_key_file,
+                                              EXPECTED_KEYFILE_PASSWORD)
+  role_keys['role1']['private'] = \
+    repo_tool.import_rsa_privatekey_from_file(delegation_key_file,
+                                              EXPECTED_KEYFILE_PASSWORD)
+
+  return role_keys
+
 
 if __name__ == '__main__':
   unittest.main()

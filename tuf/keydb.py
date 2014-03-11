@@ -92,13 +92,16 @@ def create_keydb_from_root_metadata(root_metadata):
       key_dict = tuf.keys.format_metadata_to_key(key_metadata)
       try:
         add_key(key_dict, keyid)
+      
       # 'tuf.Error' raised if keyid does not match the keyid for 'rsakey_dict'.
       except tuf.Error, e:
         logger.error(e)
         continue
+      
       except tuf.KeyAlreadyExistsError, e:
         logger.warn(e)
         continue
+    
     else:
       logger.warn('Root Metadata file contains a key with an invalid keytype.')
 

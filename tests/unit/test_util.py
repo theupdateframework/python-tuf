@@ -15,7 +15,6 @@
 
 <Purpose>
   util.py unit tests.
-
 """
 
 import os

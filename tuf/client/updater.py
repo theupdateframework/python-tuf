@@ -135,16 +135,18 @@ class Updater(object):
   <Updater Attributes>
     self.metadata:
       Dictionary holding the currently and previously trusted metadata.
-      Example: {'current': {'root': ROOTROLE_SCHEMA,
-                            'targets':TARGETSROLE_SCHEMA, ...},
-                'previous': {'root': ROOTROLE_SCHEMA,
-                             'targets':TARGETSROLE_SCHEMA, ...}}
+      
+      Example: {'current': {'root': ROOT_SCHEMA,
+                            'targets':TARGETS_SCHEMA, ...},
+                'previous': {'root': ROOT_SCHEMA,
+                             'targets':TARGETS_SCHEMA, ...}}
     
     self.metadata_directory:
       The directory where trusted metadata is stored.
       
     self.fileinfo:
       A cache of lengths and hashes of stored metadata files.
+      
       Example: {'root.json': {'length': 13323,
                              'hashes': {'sha256': dbfac345..}},
                 ...}
@@ -509,12 +511,15 @@ class Updater(object):
         # for the key.
         try:
           tuf.keydb.add_key(key, keyid)
+        
         except tuf.KeyAlreadyExistsError:
           pass
+        
         except (tuf.FormatError, tuf.Error), e:
           logger.exception('Failed to add keyid: '+repr(keyid)+'.')
           logger.error('Aborting role delegation for parent role '+parent_role+'.')
           raise
+      
       else:
         logger.warn('Invalid key type for '+repr(keyid)+'.')
         continue
@@ -522,13 +527,15 @@ class Updater(object):
     # Add the roles to the role database.
     for roleinfo in roles_info:
       try:
-        # NOTE: tuf.roledb.add_role will take care
-        # of the case where rolename is None.
+        # NOTE: tuf.roledb.add_role will take care of the case where rolename
+        # is None.
         rolename = roleinfo.get('name')
         logger.debug('Adding delegated role: '+str(rolename)+'.')
         tuf.roledb.add_role(rolename, roleinfo)
+      
       except tuf.RoleAlreadyExistsError, e:
         logger.warn('Role already exists: '+rolename)
+      
       except:
         logger.exception('Failed to add delegated role: '+rolename+'.')
         raise
@@ -1204,8 +1211,10 @@ class Updater(object):
         A dictionary containing length and hashes of the uncompressed metadata
         file.
         
-        Ex: {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
-             "length": 1340}
+        Example:
+
+          {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
+           "length": 1340}
         
       compression:
         A string designating the compression type of 'metadata_role'.
@@ -1217,18 +1226,20 @@ class Updater(object):
         A dictionary containing length and hashes of the compressed metadata
         file.
         
-        Ex: {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
-             "length": 1340}
+        Example:
+          
+          {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
+           "length": 1340}
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
-        The metadata could not be updated. This is not specific to a single
+        The metadata cannot be updated. This is not specific to a single
         failure but rather indicates that all possible ways to update the
         metadata have been tried and failed.
 
     <Side Effects>
       The metadata file belonging to 'metadata_role' is downloaded from a
-      repository mirror.  If the metadata is valid, it is stored to the 
+      repository mirror.  If the metadata is valid, it is stored in the 
       metadata store.
 
     <Returns>
@@ -1551,7 +1562,7 @@ class Updater(object):
     # Return true if there is no fileinfo for 'metadata_filename'.
     # 'metadata_filename' is not in the 'self.fileinfo' store
     # and it doesn't exist in the 'current' metadata location.
-    if self.fileinfo.get(metadata_filename) is None:
+    if self.fileinfo[metadata_filename] is None:
       return True
 
     current_fileinfo = self.fileinfo[metadata_filename]
@@ -1611,7 +1622,7 @@ class Updater(object):
                                     metadata_filename)
     # If the path is invalid, simply return and leave fileinfo unset.
     if not os.path.exists(current_filepath):
-      self.fileinfo[current_filepath] = None
+      self.fileinfo[metadata_filename] = None
       return
    
     # Extract the file information from the actual file and save it
@@ -1859,6 +1870,7 @@ class Updater(object):
     if rolename == 'targets':
       try:
         roles_to_update.remove('targets')
+      
       except ValueError:
         message = 'The snapshot metadata file is missing the targets.json entry.'
         raise tuf.RepositoryError(message)
@@ -1871,8 +1883,8 @@ class Updater(object):
     roles_to_update.sort()
     logger.debug('Roles to update: '+repr(roles_to_update)+'.')
 
-    # Iterate through 'roles_to_update', load its metadata
-    # file, and update it if it has changed.
+    # Iterate 'roles_to_update', load its metadata file, and update it if 
+    # changed.
     for rolename in roles_to_update:
       self._load_metadata_from_file('previous', rolename)
       self._load_metadata_from_file('current', rolename)
