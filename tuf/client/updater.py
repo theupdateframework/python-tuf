@@ -351,10 +351,11 @@ class Updater(object):
   def _load_metadata_from_file(self, metadata_set, metadata_role):
     """
     <Purpose>
-      Load current or previous metadata if there is a local file.  If the 
-      expected file belonging to 'metadata_role' (e.g., 'root.json') cannot
-      be loaded, raise an exception.  The extracted metadata object loaded
-      from file is saved to the metadata store (i.e., self.metadata).
+      Non-public method that loads current or previous metadata if there is a
+      local file.  If the expected file belonging to 'metadata_role' (e.g.,
+      'root.json') cannot be loaded, raise an exception.  The extracted metadata
+      object loaded from file is saved to the metadata store (i.e.,
+      self.metadata).
         
     <Arguments>        
       metadata_set:
@@ -427,10 +428,10 @@ class Updater(object):
   def _rebuild_key_and_role_db(self):
     """
     <Purpose>
-      Rebuild the key and role databases from the currently trusted
-      'root' metadata object extracted from 'root.json'.  This private
-      method is called when a new/updated 'root' metadata file is loaded.
-      This method will only store the role information for the top-level
+      Non-public method that rebuilds the key and role databases from the
+      currently trusted 'root' metadata object extracted from 'root.json'.  This
+      private method is called when a new/updated 'root' metadata file is
+      loaded.  This method will only store the role information of the top-level
       roles (i.e., 'root', 'targets', 'snapshot', 'timestamp').
 
     <Arguments>
@@ -468,7 +469,7 @@ class Updater(object):
   def _import_delegations(self, parent_role):
     """
     <Purpose>
-      Import all the roles delegated by 'parent_role'.
+      Non-public method that imports all the roles delegated by 'parent_role'.
     
     <Arguments>
       parent_role:
@@ -570,8 +571,8 @@ class Updater(object):
         If any metadata has expired.
         
     <Side Effects>
-      Updates the metadata files for the top-level roles with the
-      latest information.
+      Updates the metadata files of the top-level roles with the latest
+      information.
 
     <Returns>
       None.
@@ -641,11 +642,11 @@ class Updater(object):
   def _check_hashes(self, file_object, trusted_hashes):
     """
     <Purpose>
-      A private helper method that verifies multiple secure hashes of the
-      downloaded file 'file_object'.  If any of these fail it raises an
-      exception.  This is to conform with the TUF spec, which support clients
-      with different hashing algorithms. The 'hash.py' module is used to compute
-      the hashes of 'file_object'.
+      Non-public method that verifies multiple secure hashes of the downloaded
+      file 'file_object'.  If any of these fail it raises an exception.  This is
+      to conform with the TUF spec, which support clients with different hashing
+      algorithms. The 'hash.py' module is used to compute the hashes of
+      'file_object'.
 
     <Arguments>
       file_object:
@@ -687,9 +688,9 @@ class Updater(object):
   def _hard_check_file_length(self, file_object, trusted_file_length):
     """
     <Purpose>
-      A private helper method that ensures the length of 'file_object' is
-      strictly equal to 'trusted_file_length'.  This is a deliberately
-      redundant implementation designed to complement
+      Non-public method that ensures the length of 'file_object' is strictly
+      equal to 'trusted_file_length'.  This is a deliberately redundant
+      implementation designed to complement
       tuf.download._check_downloaded_length().
 
     <Arguments>
@@ -733,7 +734,7 @@ class Updater(object):
   def _soft_check_file_length(self, file_object, trusted_file_length):
     """
     <Purpose>
-      A private helper method that checks the trusted file length of a
+      Non-public method that checks the trusted file length of a
       'tuf.util.TempFile' file-like object. The length of the file must be less
       than or equal to the expected length. This is a deliberately redundant
       implementation designed to complement
@@ -779,9 +780,9 @@ class Updater(object):
   def _get_target_file(self, target_filepath, file_length, file_hashes):
     """
     <Purpose>
-      Safely (i.e., the file length and hash are strictly equal to the
-      trusted) download a target file up to a certain length, and check its
-      hashes thereafter.
+      Non-public method that safely (i.e., the file length and hash are strictly
+      equal to the trusted) downloads a target file up to a certain length, and
+      checks its hashes thereafter.
 
     <Arguments>
       target_filepath:
@@ -839,8 +840,7 @@ class Updater(object):
                                          metadata_role):
     """
     <Purpose>
-      A private helper function to verify an uncompressed metadata
-      file.
+      Non-public method that verifies an uncompressed metadata file.
 
     <Arguments>
       metadata_file_object:
@@ -929,9 +929,9 @@ class Updater(object):
 
     """
     <Purpose>
-      Unsafely download a metadata file up to a certain length. The actual file
-      length may not be strictly equal to its expected length. File hashes will
-      not be checked because it is expected to be unknown.
+      Non-public method that downloads a metadata file up to a certain length.
+      The actual file length may not be strictly equal to its expected length.
+      File hashes will not be checked because it is expected to be unknown.
 
     <Arguments>
       metadata_role:
@@ -1012,8 +1012,8 @@ class Updater(object):
                                 compression=None, compressed_fileinfo=None):
     """
     <Purpose>
-      Safely download a metadata file up to a certain length, and check its
-      hashes thereafter.
+      Non-public method that safely downloads a metadata file up to a certain
+      length, and checks its hashes thereafter.
 
     <Arguments>
       metadata_role:
@@ -1095,9 +1095,9 @@ class Updater(object):
                 verify_compressed_file_function=None, download_safely=True):
     """
     <Purpose>
-      Try downloading, up to a certain length, a metadata or target file from a
-      list of known mirrors. As soon as the first valid copy of the file is
-      found, the rest of the mirrors will be skipped.
+      Non-public method that tries downloading, up to a certain length, a
+      metadata or target file from a list of known mirrors. As soon as the first
+      valid copy of the file is found, the rest of the mirrors will be skipped.
 
     <Arguments>
       filepath:
@@ -1196,11 +1196,11 @@ class Updater(object):
                        compression=None, compressed_fileinfo=None):
     """
     <Purpose>
-      Download, verify, and 'install' the metadata belonging to 'metadata_role'.
-      Calling this method implies the metadata has been updated by the
-      repository and thus needs to be re-downloaded.  The current and previous
-      metadata stores are updated if the newly downloaded metadata is
-      successfully downloaded and verified.
+      Non-public method that downloads, verifies, and 'installs' the metadata
+      belonging to 'metadata_role'.  Calling this method implies the metadata
+      has been updated by the repository and thus needs to be re-downloaded.
+      The current and previous metadata stores are updated if the newly
+      downloaded metadata is successfully downloaded and verified.
    
     <Arguments>
       metadata_role:
@@ -1362,15 +1362,17 @@ class Updater(object):
 
 
 
-  def _update_metadata_if_changed(self, metadata_role, referenced_metadata='snapshot'):
+  def _update_metadata_if_changed(self, metadata_role,
+                                  referenced_metadata='snapshot'):
     """
     <Purpose>
-      Update the metadata for 'metadata_role' if it has changed.  With the
-      exception of the 'timestamp' role, all the top-level roles are updated
-      by this method.  The 'timestamp' role is always downloaded from a mirror
-      without first checking if it has been updated; it is updated in refresh()
-      by calling _update_metadata('timestamp').  This method is also called for
-      delegated role metadata, which are referenced by 'snapshot'.
+      Non-public method that updates the metadata for 'metadata_role' if it has
+      changed.  With the exception of the 'timestamp' role, all the top-level
+      roles are updated by this method.  The 'timestamp' role is always
+      downloaded from a mirror without first checking if it has been updated; it
+      is updated in refresh() by calling _update_metadata('timestamp').  This
+      method is also called for delegated role metadata, which are referenced by
+      'snapshot'.
         
       If the metadata needs to be updated but an update cannot be obtained,
       this method will delete the file (with the exception of the root
@@ -1520,14 +1522,14 @@ class Updater(object):
   def _fileinfo_has_changed(self, metadata_filename, new_fileinfo):
     """
     <Purpose>
-      Determine whether the current fileinfo of 'metadata_filename'
-      differs from 'new_fileinfo'.  The 'new_fileinfo' argument
-      should be extracted from the latest copy of the metadata
-      that references 'metadata_filename'.  Example: 'root.json'
-      would be referenced by 'snapshot.json'.
+      Non-public method that determines whether the current fileinfo of
+      'metadata_filename' differs from 'new_fileinfo'.  The 'new_fileinfo'
+      argument should be extracted from the latest copy of the metadata that
+      references 'metadata_filename'.  Example: 'root.json' would be referenced
+      by 'snapshot.json'.
         
-      'new_fileinfo' should only be 'None' if this is for updating
-      'root.json' without having 'snapshot.json' available.
+      'new_fileinfo' should only be 'None' if this is for updating 'root.json'
+      without having 'snapshot.json' available.
 
     <Arguments>
       metadadata_filename:
@@ -1592,10 +1594,11 @@ class Updater(object):
   def _update_fileinfo(self, metadata_filename):
     """
     <Purpose>
-      Update the 'self.fileinfo' entry for the metadata belonging to
-      'metadata_filename'.  If the 'current' metadata for 'metadata_filename'
-      cannot be loaded, set its fileinfo' to 'None' to  signal that
-      it is not in the 'self.fileinfo' AND it also doesn't exist locally.
+      Non-public method that updates the 'self.fileinfo' entry for the metadata
+      belonging to 'metadata_filename'.  If the 'current' metadata for
+      'metadata_filename' cannot be loaded, set its fileinfo' to 'None' to
+      signal that it is not in the 'self.fileinfo' AND it also doesn't exist
+      locally.
 
     <Arguments>
       metadata_filename:
@@ -1638,8 +1641,8 @@ class Updater(object):
   def _move_current_to_previous(self, metadata_role):
     """
     <Purpose>
-      Move the current metadata file for 'metadata_role' to the previous
-      directory.
+      Non-public method that moves the current metadata file for 'metadata_role'
+      to the previous directory.
 
     <Arguments>
       metadata_role:
@@ -1680,8 +1683,8 @@ class Updater(object):
   def _delete_metadata(self, metadata_role):
     """
     <Purpose>
-      Remove all (current) knowledge of 'metadata_role'.  The metadata
-      belonging to 'metadata_role' is removed from the current
+      Non-public method that removes all (current) knowledge of 'metadata_role'.
+      The metadata belonging to 'metadata_role' is removed from the current
       'self.metadata' store and from the role database. The 'root.json' role
       file is never removed.
 
@@ -1720,7 +1723,8 @@ class Updater(object):
   def _ensure_not_expired(self, metadata_role):
     """
     <Purpose>
-      Raise an exception if the current specified metadata has expired.
+      Non-public method that raises an exception if the current specified
+      metadata has expired.
     
     <Arguments>
       metadata_role:
@@ -1819,28 +1823,28 @@ class Updater(object):
   def _refresh_targets_metadata(self, rolename='targets', include_delegations=False):
     """
     <Purpose>
-      Refresh the targets metadata of 'rolename'.  If 'include_delegations'
-      is True, include all the delegations that follow 'rolename'.  The metadata
-      for the 'targets' role is updated in refresh() by the 
-      _update_metadata_if_changed('targets') call, not here.  Delegated roles
-      are not loaded when the repository is first initialized.  They are loaded
-      from disk, updated if they have changed, and stored to the 'self.metadata'
-      store by this method.  This method is called by the target methods,
-      like all_targets() and targets_of_role().
+      Non-public method that refreshes the targets metadata of 'rolename'.  If
+      'include_delegations' is True, include all the delegations that follow
+      'rolename'.  The metadata for the 'targets' role is updated in refresh()
+      by the _update_metadata_if_changed('targets') call, not here.  Delegated
+      roles are not loaded when the repository is first initialized.  They are
+      loaded from disk, updated if they have changed, and stored to the
+      'self.metadata' store by this method.  This method is called by the target
+      methods, like all_targets() and targets_of_role().
 
     <Arguments>
       rolename:
-        This is a delegated role name and should not end
-        in '.json'.  Example: 'targets/linux/x86'.
+        This is a delegated role name and should not end in '.json'.  Example:
+        targets/linux/x86'.
       
       include_delegations:
-         Boolean indicating if the delegated roles set by 'rolename' should
-         be refreshed.
+         Boolean indicating if the delegated roles set by 'rolename' should be
+         refreshed.
 
     <Exceptions>
       tuf.RepositoryError:
-        If the metadata file for the 'targets' role is missing
-        from the 'snapshot' metadata.
+        If the metadata file for the 'targets' role is missing from the
+        'snapshot' metadata.
 
     <Side Effects>
       The metadata for the delegated roles are loaded and updated if they
@@ -1853,8 +1857,8 @@ class Updater(object):
 
     roles_to_update = []
 
-    # See if this role provides metadata and, if we're including
-    # delegations, look for metadata from delegated roles.
+    # See if this role provides metadata and, if we're including delegations,
+    # look for metadata from delegated roles.
     role_prefix = rolename + '/'
     for metadata_path in self.metadata['current']['snapshot']['meta'].keys():
       if metadata_path == rolename + '.json':
@@ -1894,6 +1898,7 @@ class Updater(object):
       # Remove the role if it has expired.
       try:
         self._ensure_not_expired(rolename)
+      
       except tuf.ExpiredMetadataError:
         tuf.roledb.remove_role(rolename)
 
@@ -2031,9 +2036,9 @@ class Updater(object):
   def _targets_of_role(self, rolename, targets=None, skip_refresh=False):
     """
     <Purpose>
-      Return the target information for all the targets of 'rolename'.
-      The returned information is a list conformant to
-      'tuf.formats.TARGETFILES_SCHEMA' and has the form:
+      Non-public method that returns the target information of all the targets
+      of 'rolename'.  The returned information is a list conformant to
+      'tuf.formats.TARGETFILES_SCHEMA', and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2042,8 +2047,8 @@ class Updater(object):
 
     <Arguments>
       rolename:
-        This is a role name and should not end
-        in '.json'.  Examples: 'targets', 'targets/linux/x86'.
+        This is a role name and should not end in '.json'.  Examples: 'targets',
+        'targets/linux/x86'.
       
       targets:
         A list of targets containing target information, conformant to
@@ -2103,7 +2108,7 @@ class Updater(object):
     <Purpose> 
       Return a list of trusted targets directly specified by 'rolename'.
       The returned information is a list conformant to
-      tuf.formats.TARGETFILES_SCHEMA and has the form:
+      'tuf.formats.TARGETFILES_SCHEMA', and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2124,13 +2129,13 @@ class Updater(object):
         If 'rolename' is improperly formatted.
      
       tuf.RepositoryError:
-        If the metadata of 'rolename' could not be updated.
+        If the metadata of 'rolename' cannot be updated.
 
       tuf.UnknownRoleError:
         If 'rolename' is not found in the role database.
 
     <Side Effects>
-      The metadata for updated delegated roles are downloaded and stored.
+      The metadata of updated delegated roles are downloaded and stored.
       
     <Returns>
       A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'. 
@@ -2140,6 +2145,9 @@ class Updater(object):
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(rolename)
 
+    if not tuf.roledb.role_exists(rolename):
+      raise tuf.UnknownRoleError(rolename)
+    
     self.refresh_targets_metadata_chain(rolename) 
     self._refresh_targets_metadata(rolename)
 
@@ -2152,14 +2160,13 @@ class Updater(object):
   def target(self, target_filepath):
     """
     <Purpose>
-      Return the target file information of 'target_filepath' and update
-      its corresponding metadata, if necessary.
+      Return the target file information of 'target_filepath', and update its
+      corresponding metadata, if necessary.
 
     <Arguments>    
       target_filepath:
-        The path to the target file on the repository. This
-        will be relative to the 'targets' (or equivalent) directory
-        on a given mirror.
+        The path to the target file on the repository. This will be relative to
+        the 'targets' (or equivalent) directory on a given mirror.
 
     <Exceptions>
       tuf.FormatError:
@@ -2197,6 +2204,7 @@ class Updater(object):
       message = target_filepath+' not found.'
       logger.error(message)
       raise tuf.UnknownTargetError(message)
+    
     # Otherwise, return the found target.
     else:
       return target
@@ -2208,9 +2216,9 @@ class Updater(object):
   def _preorder_depth_first_walk(self, target_filepath):
     """
     <Purpose>
-      Interrogate the tree of target delegations in order of appearance (which
-      implicitly order trustworthiness), and return the matching target
-      found in the most trusted role.
+      Non-public method that interrogates the tree of target delegations in
+      order of appearance (which implicitly order trustworthiness), and return
+      the matching target found in the most trusted role.
 
     <Arguments>    
       target_filepath:
@@ -2288,8 +2296,8 @@ class Updater(object):
   def _get_target_from_targets_role(self, role_name, targets, target_filepath):
     """
     <Purpose>
-      Determine whether the targets role with the given 'role_name' has the
-      target with the name 'target_filepath'.
+      Non-public method that determines whether the targets role with the given
+      'role_name' has the target with the name 'target_filepath'.
 
     <Arguments>
       role_name:
@@ -2336,8 +2344,8 @@ class Updater(object):
   def _visit_child_role(self, child_role, target_filepath):
     """
     <Purpose>
-      Determine whether the given 'child_role' has been delegated the target
-      with the name 'target_filepath'.
+      Non-public method that determines whether the given 'child_role' has been
+      delegated the target with the name 'target_filepath'.
 
       Ensure that we explore only delegated roles trusted with the target. We
       assume conservation of delegated paths in the complete tree of
@@ -2418,9 +2426,10 @@ class Updater(object):
   def _get_target_hash(self, target_filepath, hash_function='sha256'):
     """
     <Purpose>
-      Compute the hash of 'target_filepath'. This is useful in conjunction with
-      the "path_hash_prefixes" attribute in a delegated targets role, which
-      tells us which paths it is implicitly responsible for.
+      Non-public method that computes the hash of 'target_filepath'. This is
+      useful in conjunction with the "path_hash_prefixes" attribute in a
+      delegated targets role, which tells us which paths it is implicitly
+      responsible for.
 
     <Arguments>
       target_filepath:

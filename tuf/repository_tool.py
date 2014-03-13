@@ -1213,7 +1213,7 @@ class Metadata(object):
       'tuf.formats.COMPRESSIONS_SCHEMA'.
     """
 
-    tuf.roledb.get_roleinfo(self.rolename)
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     compressions = roleinfo['compressions']
 
     return compressions
@@ -4449,9 +4449,9 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
    
    
   # Generate the compressed versions of 'metadata', if necessary.  A compressed
-  # file may be written (without needed to write the uncompressed version) if
-  # the repository maintainer adds compression after writting the the
-  # uncompressed version.
+  # file may be written (without needing to write the uncompressed version) if
+  # the repository maintainer adds compression after writing the uncompressed
+  # version.
   for compression in compressions:
     file_object = None 
    
@@ -4474,10 +4474,10 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
       raise tuf.FormatError('Unknown compression algorithm: '+repr(compression))
    
     # Save the compressed version, ensuring an unchanged file is not re-saved.
-    # Re-savign the same compressed version may cause its digest to unexpectedly
+    # Re-saving the same compressed version may cause its digest to unexpectedly
     # change (gzip includes a timestamp) even though content has not changed.
     _write_compressed_metadata(file_object, compressed_filename,
-                               consistent_snapshot)
+                               write_new_metadata, consistent_snapshot)
   return written_filename
 
 
@@ -4485,7 +4485,7 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
 
 
 def _write_compressed_metadata(file_object, compressed_filename,
-                               consistent_snapshot):
+                               write_new_metadata, consistent_snapshot):
   """
   Write compressed versions of metadata, ensuring compressed file that have
   not changed are not re-written, the digest of the compressed file is properly
@@ -4497,7 +4497,7 @@ def _write_compressed_metadata(file_object, compressed_filename,
   # If a consistent snapshot is unneeded, 'file_object' may be simply moved
   # 'compressed_filename' if not already written. 
   if not consistent_snapshot:
-    if not os.path.exists(compressed_filename):
+    if not os.path.exists(compressed_filename) or write_new_metadata:
       file_object.move(compressed_filename)
     
     # The temporary file must be closed if 'file_object.move()' is not used.
