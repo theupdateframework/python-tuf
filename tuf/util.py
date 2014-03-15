@@ -18,7 +18,6 @@
   TempFile class that generates a file-like object for temporary storage, etc.
 """
 
-
 import os
 import sys
 import gzip
