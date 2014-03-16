@@ -410,7 +410,8 @@
 
 4.2. File formats: general principles
 
-   All signed files are of the format:
+   All signed metadata files have the format:
+   
        { "signed" : ROLE,
          "signatures" : [
             { "keyid" : KEYID,
@@ -424,16 +425,20 @@
           METHOD is the key signing method used to generate the signature.
           SIGNATURE is a signature of the canonical JSON form of ROLE.
 
-   We define two signing methods at present:
+   The current Python implementation of TUF defines two signing methods,
+   although TUF is not restricted to any particular key signing method,
+   key type, or cryptographic library:
+       
        "RSASSA-PSS" : RSA Probabilistic signature scheme with appendix.
        
-       "ed25519": Elliptic curve digital signature algorithm based on Twisted
+       "ed25519" : Elliptic curve digital signature algorithm based on Twisted
                   Edwards curves.
        
-       RSASSA-PSS: http://tools.ietf.org/html/rfc3447#page-29 
-       ed25519: http://ed25519.cr.yp.to/
+   RSASSA-PSS: http://tools.ietf.org/html/rfc3447#page-29 
+   ed25519: http://ed25519.cr.yp.to/
    
-   All keys are of the format:
+   All keys have the format:
+   
       { "keytype" : KEYTYPE,
         "keyval" : KEYVAL }
 
@@ -444,15 +449,17 @@
    We define two keytypes at present: 'rsa' and 'ed25519'.
    
    The 'rsa' format is:
+   
       { "keytype" : "rsa",
         "keyval" : { "public" : PUBLIC,
                      "private" : PRIVATE }
       }
 
    where PUBLIC and PRIVATE are in PEM format and are strings.  All RSA keys
-   must be at least 2048 bits long.
+   must be at least 2048 bits.
 
    The 'ed25519' format is:
+   
       { "keytype" : "ed25519",
         "keyval" : { "public" : PUBLIC,
                      "private" : PRIVATE }
@@ -461,6 +468,7 @@
    where PUBLIC and PRIVATE are both 32-byte strings.
 
    Metadata does not include the private portion of the key object:
+   
       { "keytype" : "rsa",
         "keyval" : { "public" : PUBLIC}
       }
@@ -797,10 +805,10 @@
 
     Additionally, the timestamp metadata (timestamp.json) should also be written
     to disk whenever it is updated. It is optional for an implementation to
-    write identical copies at timestamp.digest.json for record-keeping purposes,
+    write identical copies at digest.timestamp.json for record-keeping purposes,
     because a cryptographic hash of the timestamp metadata is usually not
     known in advance. The same step applies to the root metadata (root.json),
-    although an implementation must write both root.json and root.digest.json
+    although an implementation must write both root.json and digest.root.json
     because it is possible to download root metadata both with and without
     known hashes. These steps are required because these are the only metadata
     files that may be requested without known hashes.

@@ -48,6 +48,11 @@
 # hexlified.
 import binascii
 
+# NOTE:  'warnings' needed to temporarily suppress user warnings raised by
+# 'pynacl' (as of version 0.2.3).
+# http://docs.python.org/2/library/warnings.html#temporarily-suppressing-warnings
+import warnings
+
 # 'pycrypto' is the only currently supported library for the creation of RSA
 # keys.
 # https://github.com/dlitz/pycrypto
@@ -81,12 +86,21 @@ except ImportError:
 # Import the PyNaCl library, if available.  It is recommended this library be
 # used over the pure python implementation of ed25519, due to its speedier
 # routines and side-channel protections available in the libsodium library.
-try:
-  import nacl
-  import nacl.signing
-  _available_crypto_libraries.append('pynacl')
-except (ImportError, IOError):
-  pass
+
+# NOTE: Version 0.2.3 of 'pynacl' prints: "UserWarning: reimporting '...' might
+# overwrite older definitions." when importing 'nacl.signing' below.  Suppress
+# user warnings temporarily (at least until this issue is fixed).
+with warnings.catch_warnings():
+  warnings.simplefilter('ignore')
+  try:
+    import nacl
+    import nacl.signing
+    _available_crypto_libraries.append('pynacl')
+  
+  # PyNaCl's 'cffi' dependency may raise an 'IOError' exception when importing
+  # 'nacl.signing'.
+  except (ImportError, IOError):
+    pass
 
 # The optimized version of the ed25519 library provided by default is imported
 # regardless of the availability of PyNaCl.
@@ -128,6 +142,7 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
     addition, a keyid identifier for the RSA key is generated.  The object
     returned conforms to 'tuf.formats.RSAKEY_SCHEMA' and has the
     form:
+    
     {'keytype': 'rsa',
      'keyid': keyid,
      'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
@@ -279,11 +294,11 @@ def generate_ed25519_key():
   # provided by pyca and available in TUF.
   if 'pynacl' in _available_crypto_libraries:
     public, private = \
-      tuf.ed25519_keys.generate_public_and_private(use_pynacl=True)
+      tuf.ed25519_keys.generate_public_and_private()
   else:
-    public, private = \
-      tuf.ed25519_keys.generate_public_and_private(use_pynacl=False)
-    
+    message = 'The required PyNaCl library is unavailable.' 
+    raise tuf.UnsupportedLibraryError(message)
+
   # Generate the keyid of the ED25519 key.  'key_value' corresponds to the
   # 'keyval' entry of the 'ED25519KEY_SCHEMA' dictionary.  The private key
   # information is not included in the generation of the 'keyid' identifier.
@@ -645,15 +660,13 @@ def create_signature(key_dict, data):
   elif keytype == 'ed25519':
     public = binascii.unhexlify(public)
     private = binascii.unhexlify(private)
-    if _ED25519_CRYPTO_LIBRARY == 'pynacl' \
-                  and 'pynacl' in _available_crypto_libraries:
-      sig, method = tuf.ed25519_keys.create_signature(public, private,
-                                                      data, use_pynacl=True)
+    if 'pynacl' in _available_crypto_libraries:
+      sig, method = tuf.ed25519_keys.create_signature(public, private, data)
     
-    # Fall back to using the optimized pure python implementation of ed25519. 
     else:
-      sig, method = tuf.ed25519_keys.create_signature(public, private,
-                                                      data, use_pynacl=False)
+      message = 'The required PyNaCl library is unavailable.'
+      raise tuf.UnsupportedLibraryError(message)
+
   else:
     raise TypeError('Invalid key type.')
     
@@ -796,10 +809,11 @@ def verify_signature(key_dict, signature, data):
 def import_rsakey_from_encrypted_pem(encrypted_pem, password):
   """
   <Purpose> 
-    Generate public and private RSA keys, with modulus length 'bits'.  In
+    Import the public and private RSA keys stored in 'encrypted_pem'.  In
     addition, a keyid identifier for the RSA key is generated.  The object
     returned conforms to 'tuf.formats.RSAKEY_SCHEMA' and has the
     form:
+    
     {'keytype': 'rsa',
      'keyid': keyid,
      'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
@@ -822,14 +836,15 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
   
   <Arguments>
     encrypted_pem:
-      The key size, or key length, of the RSA key.  'bits' must be 2048, or
-      greater, and a multiple of 256.
+      A string in PEM format.
 
     password:
+      The password, or passphrase, to decrypt the private part of the RSA
+      key.  'password' is not used directly as the encryption key, a stronger
+      encryption key is derived from it.
 
   <Exceptions>
-    tuf.FormatError, if 'bits' is improperly or invalid (i.e., not an integer
-    and not at least 2048).
+    tuf.FormatError, if the arguments are improperly formatted.
    
     tuf.UnsupportedLibraryError, if any of the cryptography libraries specified
     in 'tuf.conf.py' are unsupported or unavailable.
@@ -902,56 +917,55 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
 def format_rsakey_from_pem(pem):
   """
   <Purpose> 
-    Generate public and private RSA keys, with modulus length 'bits'.  In
-    addition, a keyid identifier for the RSA key is generated.  The object
-    returned conforms to 'tuf.formats.RSAKEY_SCHEMA' and has the
-    form:
+    Generate an RSA key object from 'pem'.  In addition, a keyid identifier for
+    the RSA key is generated.  The object returned conforms to
+    'tuf.formats.RSAKEY_SCHEMA' and has the form:
+    
     {'keytype': 'rsa',
      'keyid': keyid,
      'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
                 'private': ''}}
     
-    The public and private keys are strings in PEM format.
+    The public portion of the RSA key is a string in PEM format.
 
-    Although the PyCrypto crytography library called sets a 1024-bit minimum
-    key size, generate() enforces a minimum key size of 2048 bits.  If 'bits' is
-    unspecified, a 3072-bit RSA key is generated, which is the key size
-    recommended by TUF. 
-    
-    >>>
-    >>>
-    >>>
+    >>> rsa_key = generate_rsa_key()
+    >>> public = rsa_key['keyval']['public']
+    >>> rsa_key['keyval']['private'] = ''
+    >>> rsa_key2 = format_rsakey_from_pem(public)
+    >>> rsa_key == rsa_key2
+    True
+    >>> format_rsakey_from_pem('bad_pem')
+    Traceback (most recent call last):
+     ... 
+    FormatError: The PEM string argument is improperly formatted.
 
   <Arguments>
     pem:
-      The key size, or key length, of the RSA key.  'bits' must be 2048, or
-      greater, and a multiple of 256.
+      A string in PEM format.
 
   <Exceptions>
-    tuf.FormatError, if 'bits' is improperly or invalid (i.e., not an integer
-    and not at least 2048).
-   
-    tuf.UnsupportedLibraryError, if any of the cryptography libraries specified
-    in 'tuf.conf.py' are unsupported or unavailable.
-
-    ValueError, if an exception occurs after calling the RSA key generation
-    routine.  'bits' must be a multiple of 256.  The 'ValueError' exception is
-    raised by the key generation function of the cryptography library called.
+    tuf.FormatError, if 'pem' is improperly formatted.
 
   <Side Effects>
-    The RSA keys are generated by calling PyCrypto's
-    Crypto.PublicKey.RSA.generate().
+    None.
 
   <Returns>
     A dictionary containing the RSA keys and other identifying information.
     Conforms to 'tuf.formats.RSAKEY_SCHEMA'. 
   """
-
+  
   # Does 'pem' have the correct format?
-  # This check will ensure 'pem' conforms to
-  # 'tuf.formats.PEMRSA_SCHEMA'.
+  # This check will ensure arguments has the appropriate number
+  # of objects and object types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PEMRSA_SCHEMA.check_match(pem)
-
+  
+  # Ensure the PEM string starts with the required number of dashes.  Although
+  # a simple validation of 'pem' is performed here, a fully valid PEM string is
+  # needed to successfully verify signatures.
+  if not pem.startswith(b'-----'):
+    raise tuf.FormatError('The PEM string argument is improperly formatted.') 
+  
   # Begin building the RSA key dictionary. 
   rsakey_dict = {}
   keytype = 'rsa'
@@ -1009,7 +1023,7 @@ def encrypt_key(key_object, password):
       'tuf.formats.ANYKEY_SCHEMA'
 
     password:
-      The password, or passphrase, to encrypt 'the private part of the RSA
+      The password, or passphrase, to encrypt the private part of the RSA
       key.  'password' is not used directly as the encryption key, a stronger
       encryption key is derived from it. 
 

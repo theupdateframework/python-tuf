@@ -51,6 +51,11 @@ import tuf.conf
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.repository_tool')
 
+# Add a console handler so that users are aware of potentially unintended
+# states, such as multiple roles that share keys.
+tuf.log.add_console_handler()
+tuf.log.set_console_log_level(logging.WARNING)
+
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1 
 # According to the document above, revised May 6, 2003, RSA keys of
@@ -315,7 +320,9 @@ class Repository(object):
 
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
-    # may have been revoked.
+    # may have been revoked and should no longer have their metadata files
+    # available on disk, otherwise loading a repository may unintentionally load
+    # them.
     _delete_obsolete_metadata(self._metadata_directory,
                               snapshot_signable['signed'], consistent_snapshot)
 
@@ -569,12 +576,15 @@ class Metadata(object):
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
 
     # Ensure 'key', which should contain the public portion, is added to
-    # 'tuf.keydb.py'.
+    # 'tuf.keydb.py'.  Add 'key' to the list of recognized keys.  Keys may be
+    # shared, so do not raise an exception if 'key' has already been loaded.
     try:
       tuf.keydb.add_key(key)
+    
     except tuf.KeyAlreadyExistsError, e:
-      pass
-   
+      message = 'Adding a verification key that has already been used.'
+      logger.warn(message)
+
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
    
@@ -590,7 +600,7 @@ class Metadata(object):
     """
     <Purpose>
       Remove 'key' from the role's currently recognized list of role keys.
-      The role expects a threshold number of signatures 
+      The role expects a threshold number of signatures. 
 
       >>> 
       >>> 
@@ -599,12 +609,15 @@ class Metadata(object):
     <Arguments>
       key:
         The role's key, conformant to 'tuf.formats.ANYKEY_SCHEMA'.  'key'
-        should contain the only the public portion, as only the public key
-        is needed.  The 'add_verification_key()' method should have previously added 'key'. 
+        should contain only the public portion, as only the public key is
+        needed.  The 'add_verification_key()' method should have previously
+        added 'key'. 
 
     <Exceptions>
       tuf.FormatError, if the 'key' argument is improperly formatted.
-
+      
+      tuf.Error, if the 'key' argument has not been previously added.
+    
     <Side Effects>
       Updates the role's 'tuf.roledb.py' entry.
 
@@ -625,6 +638,9 @@ class Metadata(object):
       roleinfo['keyids'].remove(keyid)
       
       tuf.roledb.update_roleinfo(self._rolename, roleinfo)
+    
+    else:
+      raise tuf.Error('Verification key not found.')
    
 
 
@@ -667,13 +683,14 @@ class Metadata(object):
     # Ensure the private portion of the key is available, otherwise signatures
     # cannot be generated when the metadata file is written to disk.
     if not len(key['keyval']['private']):
-      message = 'The private key is unavailable.'
+      message = 'This is not a private key.'
       raise tuf.Error(message)
 
     # Has the key, with the private portion included, been added to the keydb?
     # The public version of the key may have been previously added.
     try:
       tuf.keydb.add_key(key)
+    
     except tuf.KeyAlreadyExistsError, e:
       tuf.keydb.remove_key(key['keyid'])
       tuf.keydb.add_key(key)
@@ -684,9 +701,9 @@ class Metadata(object):
       roleinfo['signing_keyids'].append(key['keyid'])
       
       tuf.roledb.update_roleinfo(self.rolename, roleinfo)
-  
-  
-  
+
+
+
   def unload_signing_key(self, key):
     """
     <Purpose>
@@ -704,6 +721,8 @@ class Metadata(object):
 
     <Exceptions>
       tuf.FormatError, if the 'key' argument is improperly formatted.
+
+      tuf.Error, if the 'key' argument has not been previously loaded.
 
     <Side Effects>
       Updates the signing keys of the role in 'tuf.roledb.py'.
@@ -725,7 +744,10 @@ class Metadata(object):
       roleinfo['signing_keyids'].remove(key['keyid'])
       
       tuf.roledb.update_roleinfo(self.rolename, roleinfo)
-
+    
+    else:
+      raise tuf.Error('Signing key not found.')
+      
 
 
   def add_signature(self, signature):
@@ -1809,7 +1831,8 @@ class Targets(Metadata):
     <Exceptions>
       tuf.FormatError, if 'filepath' is improperly formatted.
 
-      tuf.Error, if 'filepath' is not under the repository's targets directory.
+      tuf.Error, if 'filepath' is not under the repository's targets directory,
+      or not found.
 
     <Side Effects>
       Modifies this Targets 'tuf.roledb.py' entry.
@@ -1840,8 +1863,10 @@ class Targets(Metadata):
     fileinfo = tuf.roledb.get_roleinfo(self.rolename)
     if relative_filepath in fileinfo['paths']:
       fileinfo['paths'].remove(relative_filepath)
-
-    tuf.roledb.update_roleinfo(self.rolename, fileinfo)
+      tuf.roledb.update_roleinfo(self.rolename, fileinfo)
+    
+    else:
+      raise tuf.Error('Target file path not found.')
 
 
 
@@ -1921,7 +1946,7 @@ class Targets(Metadata):
         rolename).
 
       public_keys:
-        A list of TUF keys objects in 'ANYKEYLIST_SCHEMA' format.  The list
+        A list of TUF key objects in 'ANYKEYLIST_SCHEMA' format.  The list
         may contain any of the supported key types: RSAKEY_SCHEMA,
         ED25519KEY_SCHEMA, etc.
 
@@ -1984,11 +2009,15 @@ class Targets(Metadata):
     # Add all the keys of 'public_keys' to tuf.keydb.
     for key in public_keys:
       
+      # Add 'key' to the list of recognized keys.  Keys may be shared,
+      # so do not raise an exception if 'key' has already been loaded.
       try:
         tuf.keydb.add_key(key)
       
       except tuf.KeyAlreadyExistsError, e:
-        pass
+        message = \
+          'Adding a public key that has already been used: '+key['keyid']
+        logger.warn(message)
       
       keyid = key['keyid']
       key_metadata_format = tuf.keys.format_keyval_to_metadata(key['keytype'],
@@ -2710,8 +2739,12 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
                               consistent_snapshot):
   """
   Non-public function that deletes metadata files marked as removed by
-  repository_tool.py.  Metadata files marked as removed are not actually deleted
-  until this function is called.
+  'repository_tool.py'.  Revoked metadata files are not actually deleted until
+  this function is called.  Obsolete metadata should *not* be retained in
+  "metadata.staged", otherwise they may be re-loaded by 'load_repository()'. 
+  Note: Obsolete metadata may not always be easily detected (by inspecting
+  top-level metadata during loading) due to partial metadata and top-level
+  metadata that have not been written yet.
   """
  
   # Walk the repository's metadata 'targets' sub-directory, where all the
@@ -2802,7 +2835,10 @@ def _strip_consistent_snapshot_digest(metadata_filename, consistent_snapshot):
   if consistent_snapshot:
     dirname, basename = os.path.split(metadata_filename)
     embeded_digest = basename[:basename.find('.')]
-    basename = basename[basename.find('.'):]
+    
+    # Ensure the digest, including the period, is stripped.
+    basename = basename[basename.find('.')+1:]
+    
     metadata_filename = os.path.join(dirname, basename)
   
 
@@ -3034,7 +3070,13 @@ def load_repository(repository_directory):
         targets_object._delegated_roles[(os.path.basename(metadata_name))] = \
                               new_targets_object
 
-        # Add the keys specified in the delegations field of the Targets role.
+        # Extract the keys specified in the delegations field of the Targets
+        # role.  Add 'key_object' to the list of recognized keys.  Keys may be
+        # shared, so do not raise an exception if 'key_object' has already been
+        # added.  In contrast to the methods that may add duplicate keys, do not
+        # log a warning here as there may be many such duplicate key warnings.
+        # The repository maintainer should have also been made aware of the
+        # duplicate key when it was added.
         for key_metadata in metadata_object['delegations']['keys'].values():
           key_object = tuf.keys.format_metadata_to_key(key_metadata)
           try: 
@@ -3078,7 +3120,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   snapshot_metadata = None
   timestamp_metadata = None
   
-  # Load ROOT.json.  A Root role file without a digest is always written. 
+  # Load 'root.json'.  A Root role file without a digest is always written. 
   if os.path.exists(root_filename):
     # Initialize the key and role metadata of the top-level roles.
     signable = tuf.util.load_json_file(root_filename)
@@ -3107,7 +3149,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     message = 'Cannot load the required root file: '+repr(root_filename)
     raise tuf.RepositoryError(message)
   
-  # Load TIMESTAMP.json.  A Timestamp role file without a digest is always
+  # Load 'timestamp.json'.  A Timestamp role file without a digest is always
   # written. 
   if os.path.exists(timestamp_filename):
     signable = tuf.util.load_json_file(timestamp_filename)
@@ -3128,7 +3170,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   else:
     pass
   
-  # Load SNAPSHOT.json.  A consistent snapshot of Snapshot must be calculated
+  # Load 'snapshot.json'.  A consistent snapshot of Snapshot must be calculated
   # if 'consistent_snapshot' is True.
   if consistent_snapshot:
     snapshot_hashes = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['hashes']
@@ -3156,7 +3198,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   else:
     pass 
 
-  # Load TARGETS.json.  A consistent snapshot of Targets must be calculated if
+  # Load 'targets.json'.  A consistent snapshot of Targets must be calculated if
   # 'consistent_snapshot' is True.
   if consistent_snapshot:
     targets_hashes = snapshot_metadata['meta'][TARGETS_FILENAME]['hashes']
@@ -3187,7 +3229,18 @@ def _load_top_level_metadata(repository, top_level_filenames):
     # Add the keys specified in the delegations field of the Targets role.
     for key_metadata in targets_metadata['delegations']['keys'].values():
       key_object = tuf.keys.format_metadata_to_key(key_metadata)
-      tuf.keydb.add_key(key_object)
+     
+      # Add 'key_object' to the list of recognized keys.  Keys may be shared,
+      # so do not raise an exception if 'key_object' has already been loaded.
+      # In contrast to the methods that may add duplicate keys, do not log
+      # a warning as there may be many such duplicate key warnings.  The
+      # repository maintainer should have also been made aware of the duplicate
+      # key when it was added.
+      try: 
+        tuf.keydb.add_key(key_object)
+      
+      except tuf.KeyAlreadyExistsError, e:
+        pass
 
     for role in targets_metadata['delegations']['roles']:
       rolename = role['name'] 
@@ -3326,9 +3379,11 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
+  # Password confirmation disabled here, which should ideally happen only when
+  # creating encrypted key files (i.e., improve usability).
   if password is None:
-    message = 'Enter a password for the encrypted RSA key file: '
-    password = _get_password(message, confirm=True)
+    message = 'Enter a password for the encrypted RSA file: '
+    password = _get_password(message, confirm=False)
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
@@ -3367,6 +3422,9 @@ def import_rsa_publickey_from_file(filepath):
   <Exceptions>
     tuf.FormatError, if 'filepath' is improperly formatted.
 
+    tuf.Error, if a valid RSA key object cannot be generated.  This may be
+    caused by an improperly formatted PEM file.
+
   <Side Effects>
     'filepath' is read and its contents extracted.
 
@@ -3385,9 +3443,13 @@ def import_rsa_publickey_from_file(filepath):
   with open(filepath, 'rb') as file_object:
     rsa_pubkey_pem = file_object.read()
 
-  # Convert 'rsa_pubkey_pem' in 'tuf.formats.RSAKEY_SCHEMA' format.
-  rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
-
+  # Convert 'rsa_pubkey_pem' to 'tuf.formats.RSAKEY_SCHEMA' format.
+  try: 
+    rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
+  
+  except tuf.FormatError, e:
+    raise tuf.Error('Cannot import improperly formatted PEM file.')
+  
   return rsakey_dict
 
 
@@ -3575,9 +3637,11 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
+  # Password confirmation disabled here, which should ideally happen only when
+  # creating encrypted key files (i.e., improve usability).
   if password is None:
-    message = 'Enter a password for the encrypted ED25519 key file: '
-    password = _get_password(message, confirm=True)
+    message = 'Enter a password for the encrypted ED25519 key: '
+    password = _get_password(message, confirm=False)
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
@@ -4314,6 +4378,10 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
       Specify the algorithms, as a list of strings, used to compress the file;
       The only currently available compression option is 'gz' (gzip).
 
+    consistent_snapshot:
+      Boolean that determines whether the metadata file's digest should be
+      prepended to the filename.
+
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
@@ -4573,6 +4641,31 @@ def create_tuf_client_directory(repository_directory, client_directory):
   shutil.copytree(metadata_directory, client_current)
   shutil.copytree(metadata_directory, client_previous)
 
+
+
+def disable_console_log_messages():
+  """
+  <Purpose>
+    Disable logger messages printed to the console.  For example, repository
+    maintainers may want to call this function if many roles will be sharing
+    keys, otherwise detected duplicate keys will continually log a warning
+    message.
+
+  <Arguments>
+    None.
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    Removes the 'tuf.log' console handler, added by default when
+    'tuf.repository_tool.py' is imported.
+  
+  <Returns>
+    None.
+  """
+  
+  tuf.log.remove_console_handler()
 
 
 if __name__ == '__main__':
