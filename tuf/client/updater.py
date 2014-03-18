@@ -1165,6 +1165,7 @@ class Updater(object):
             verify_compressed_file_function(file_object)  
           logger.info('Decompressing '+str(file_mirror))
           file_object.decompress_temp_file_object(compression)
+        
         else:
           logger.info('Not decompressing '+str(file_mirror))
         
@@ -1178,11 +1179,13 @@ class Updater(object):
         logger.exception('Update failed from '+file_mirror+'.')
         file_mirror_errors[file_mirror] = exception
         file_object = None
+      
       else:
         break
 
     if file_object:
       return file_object
+    
     else:
       logger.exception('Failed to update {0} from all mirrors: {1}'.format(
                        filepath, file_mirror_errors))
@@ -2479,10 +2482,9 @@ class Updater(object):
   def remove_obsolete_targets(self, destination_directory):
     """
     <Purpose>
-      Remove any files that are in 'previous' but not 'current'.  This
-      makes it so if you remove a file from a repository, it actually goes
-      away.  The targets for the 'targets' role and all delegated roles
-      are checked.
+      Remove any files that are in 'previous' but not 'current'.  This makes it
+      so if you remove a file from a repository, it actually goes away.  The
+      targets for the 'targets' role and all delegated roles are checked.
     
     <Arguments>
       destination_directory:
@@ -2519,12 +2521,15 @@ class Updater(object):
               destination = os.path.join(destination_directory, target) 
               try:
                 os.remove(destination)
+              
               except OSError, e:
                 # If 'filename' already removed, just log it.
                 if e.errno == errno.ENOENT:
                   logger.info('File '+repr(destination)+' was already removed.')
+                
                 else:
                   logger.error(str(e))
+              
               except Exception, e:
                 logger.error(str(e))
 
@@ -2535,9 +2540,9 @@ class Updater(object):
   def updated_targets(self, targets, destination_directory):
     """
     <Purpose>
-      Return the targets in 'targets' that have changed.  Targets are
-      considered changed if they do not exist at 'destination_directory'
-      or the target located there has mismatched file properties.
+      Return the targets in 'targets' that have changed.  Targets are considered
+      changed if they do not exist at 'destination_directory' or the target
+      located there has mismatched file properties.
 
       The returned information is a list conformant to
       'tuf.formats.TARGETFILES_SCHEMA' and has the form:
@@ -2654,7 +2659,7 @@ class Updater(object):
     trusted_length = target['fileinfo']['length']
     trusted_hashes = target['fileinfo']['hashes']
 
-    # get_target_file checks every mirror and returns the first target
+    # '_get_target_file()' checks every mirror and returns the first target
     # that passes verification.
     target_file_object = self._get_target_file(target_filepath, trusted_length,
                                                trusted_hashes)
@@ -2670,9 +2675,14 @@ class Updater(object):
     if target_dirpath:
       try:
         os.makedirs(target_dirpath)
+      
       except OSError, e:
-        if e.errno == errno.EEXIST: pass
-        else: raise
+        if e.errno == errno.EEXIST:
+          pass
+        
+        else:
+          raise
+    
     else:
       logger.warn(str(target_dirpath)+' does not exist.')
 

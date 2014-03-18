@@ -9,8 +9,8 @@
 
 <Started>
   October 15, 2012.
-  March 11, 2014.  Refactored to avoid mocking, use exact repositories, and 
-  add realistic retrieval of files. -vladimir.v.diaz
+  March 11, 2014.  Refactored to remove use of mocking, use exact repositories,
+  and add realistic retrieval of files. -vladimir.v.diaz
 
 <Copyright>
   See LICENSE for licensing information.
@@ -39,6 +39,7 @@
 import os
 import time
 import shutil
+import copy
 import tempfile
 import logging
 import unittest
@@ -638,100 +639,57 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_3__update_metadata_if_changed(self):
-    """
-    This unit test verifies the method's proper behaviour on expected input.
-    """
+    # Setup.
+    # The client repository is initially loaded with only four top-level roles.
+    # Verify that the metadata store contains the metadata of only these four
+    # roles before updating the metadata of 'targets.json'.
+    self.assertTrue(len(self.repository_updater.metadata['current']), 4)
+    self.assertTrue('targets' in self.repository_updater.metadata['current'])
+    targets_path = os.path.join(self.client_metadata_current, 'targets.json')
+    self.assertTrue(os.path.exists(targets_path))
+    self.assertEqual(self.repository_updater.metadata['current']['targets']['version'], 1)
     
-    #  To test updater._update_metadata_if_changed, 'targets' metadata file is
-    #  going to be modified at the server's repository.
-    #  Keyid's are required to build the metadata.
-    targets_keyids = setup.role_keyids['targets']
-
-    #  Add a file to targets directory and rebuild targets metadata.
-    #  Returned target's filename will be used to verify targets metadata.
-    added_target_1 = self._add_target_to_targets_dir(targets_keyids)
-
-    #  Reference 'self.Repository._update_metadata_if_changed' function.
-    update_if_changed = self.Repository._update_metadata_if_changed
-
-
-    # Test: normal case.  Update 'snapshot' metadata.
-    #  Patch download_file.
-    self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
-
-    #  Update timestamp metadata, it will indicate change in snapshot metadata.
-    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
-
-    #  Save current snapshot metadata before updating.  It will be used to
-    #  verify the update.
-    old_snapshot_meta = self.Repository.metadata['current']['snapshot']
-    self._mock_download_url_to_tempfileobj(self.snapshot_filepath)
-
-    #  Update snapshot metadata, it will indicate change in targets metadata.
-    update_if_changed(metadata_role='snapshot', referenced_metadata='timestamp')
-    current_snapshot_meta = self.Repository.metadata['current']['snapshot']
-    previous_snapshot_meta = self.Repository.metadata['previous']['snapshot']
-    self.assertEqual(old_snapshot_meta, previous_snapshot_meta)
-    self.assertNotEqual(old_snapshot_meta, current_snapshot_meta)
-
-
-    # Test: normal case.  Update 'targets' metadata. 
-    #  Patch 'download.download_url_to_tempfileobj' and update targets.
-    self._mock_download_url_to_tempfileobj(self.targets_filepath)
-    update_if_changed('targets')
-    list_of_targets = self.Repository.metadata['current']['targets']['targets']
-
-    #  Verify that the added target's path is listed in target's metadata.
-    if added_target_1 not in list_of_targets.keys():
-      self.fail('\nFailed to update targets metadata.')
-
-
-    # Test: normal case.  Update compressed snapshot file.
-    snapshot_filepath_compressed = self._compress_file(self.snapshot_filepath)
-
-    #  Since client's '.../metadata/current' will need to have separate
-    #  gzipped metadata file in order to test compressed file handling,
-    #  we need to copy it there.  
-    shutil.copy(snapshot_filepath_compressed, self.client_current_dir) 
-  
-    #  Add a target file and rebuild metadata files at the server side.
-    added_target_2 = self._add_target_to_targets_dir(targets_keyids)
+    # Test: normal case.  Update 'targets.json'.  The version number should not
+    # change.
+    self.repository_updater._update_metadata_if_changed('targets')
     
-    #  Since snapshot file was updated, update compressed snapshot file.
-    snapshot_filepath_compressed = self._compress_file(self.snapshot_filepath)
- 
-    #  Patch download_file.
-    self._mock_download_url_to_tempfileobj(self.timestamp_filepath)
-
-    #  Update timestamp metadata, it will indicate change in snapshot metadata.
-    self.Repository._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
-
-    #  Save current snapshot metadata before updating.  It will be used to
-    #  verify the update.
-    old_snapshot_meta = self.Repository.metadata['current']['snapshot']
-    self._mock_download_url_to_tempfileobj(self.snapshot_filepath)
-
-    #  Update snapshot metadata, and verify the change.
-    update_if_changed(metadata_role='snapshot', referenced_metadata='timestamp')
-    current_snapshot_meta = self.Repository.metadata['current']['snapshot']
-    previous_snapshot_meta = self.Repository.metadata['previous']['snapshot']
-    self.assertEqual(old_snapshot_meta, previous_snapshot_meta)
-    self.assertNotEqual(old_snapshot_meta, current_snapshot_meta)
-  
-
-    # Test: Invalid targets metadata file downloaded.
-    #  Patch 'download.download_url_to_tempfileobj' and update targets.
-    self._mock_download_url_to_tempfileobj(self.root_filepath)
-
-    # FIXME: What is the original intent of this test?
-    try:
-      update_if_changed('targets')
-    except tuf.NoWorkingMirrorError, exception:
-      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
-        assert isinstance(mirror_error, tuf.DownloadLengthMismatchError)
+    # Verify the current version of 'targets.json' has not changed.
+    self.assertEqual(self.repository_updater.metadata['current']['targets']['version'], 1)
 
 
+    # Modify one target file on the remote repository.
+    repository = repo_tool.load_repository(self.repository_directory)
+    target3 = os.path.join(self.repository_directory, 'targets', 'file3.txt')
+    
+    repository.targets.add_target(target3)
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.write()
+    
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
 
+
+    # Update 'targets.json' and verify that the client's current 'targets.json'
+    # has been updated.  'timestamp' and 'snapshot' must be manually updated
+    # so that 'targets' may be updated.
+    DEFAULT_TIMESTAMP_FILEINFO = {
+    'hashes': {},
+    'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    }
+
+    self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+    self.repository_updater._update_metadata_if_changed('snapshot', 'timestamp')
+    self.repository_updater._update_metadata_if_changed('targets')
+    targets_path = os.path.join(self.client_metadata_current, 'targets.json')
+    self.assertTrue(os.path.exists(targets_path))
+    self.assertTrue(self.repository_updater.metadata['current']['targets'])
+    self.assertEqual(self.repository_updater.metadata['current']['targets']['version'], 2)
+
+    
 
 
   def test_3__targets_of_role(self):
@@ -809,53 +767,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_4__refresh_targets_metadata(self):
-    
-    # To test this method a target file would be added to a delegated role,
-    # and metadata on the server side would be rebuilt.
-    targets_deleg_dir1 = os.path.join(self.targets_dir, 'delegated_level1')
-    targets_deleg_dir2 = os.path.join(targets_deleg_dir1, 'delegated_level2')
-    shutil.rmtree(self.server_meta_dir)
-    shutil.rmtree(os.path.join(self.server_repo_dir, 'keystore'))
-    tuf.roledb._roledb_dict['targets/delegated_role1'] = \
-        self.semi_roledict['targets/delegated_role1'] 
-    tuf.roledb._roledb_dict['targets/delegated_role1/delegated_role2'] = \
-        self.semi_roledict['targets/delegated_role1/delegated_role2']
-
-    #  Delegated roles paths.
-    role1_dir = os.path.join(self.server_meta_dir, 'targets')
-    role1_filepath = os.path.join(role1_dir, 'delegated_role1.json')
-    role2_dir = os.path.join(role1_dir, 'delegated_role1')
-    role2_filepath = os.path.join(role2_dir, 'delegated_role2.json')
-
-    #  Create a file in the delegated targets directory.
-    deleg_target_filepath2 = self._add_file_to_directory(targets_deleg_dir2)
-    junk, deleg_target_file2 = os.path.split(deleg_target_filepath2)
-  
-    #  Rebuild server's metadata and update client's metadata.
-    setup.build_server_repository(self.server_repo_dir, self.targets_dir)
-    self._update_top_level_roles()
-
-    #  Patching 'download.download_url_to_tempfilepbj' function.
-    delegated_roles = [role1_filepath, role2_filepath]
-    self._mock_download_url_to_tempfileobj(delegated_roles)
-
+    # Setup.
+    # Assumed the client repository has only loaded the top-level metadata.
+    # refresh the 'targets.json' metadata, including delegations. 
+    self.assertTrue(len(self.repository_updater.metadata['current']), 4)
 
     # Test: normal case.
-    self.Repository._refresh_targets_metadata(include_delegations=True)
+    self.repository_updater._refresh_targets_metadata(include_delegations=True)
 
-    #  References
-    deleg_role = 'targets/delegated_role1/delegated_role2'
-    deleg_metadata = self.Repository.metadata['current'][deleg_role]
-
-    #  Verify that client's metadata files were refreshed successfully by
-    #  checking that the added target file is listed in the client's metadata.
-    #  'targets_list' is the list of included targets from client's metadata.
-    targets_list = [] 
-    for target in deleg_metadata['targets']:
-      junk, target_file  = os.path.split(target)
-      targets_list.append(target_file)
-
-    self.assertTrue(deleg_target_file2 in targets_list)
+    # Verify that client's metadata files were refreshed successfully.
+    self.assertTrue(len(self.repository_updater.metadata['current']), 5)
 
 
 
@@ -968,170 +889,192 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_6_download_target(self):
     # Create temporary directory (destination directory of downloaded targets)
-    # that will be passed as an argument to the 'download_target()'.
+    # that will be passed as an argument to 'download_target()'.
     destination_directory = self.make_temp_directory()
-    target_files = \
-      self.repository_updater.metadata['current']['targets']['targets']
+    target_filepaths = \
+      self.repository_updater.metadata['current']['targets']['targets'].keys()
 
-    test_target_file = target_files.pop()
 
     # Test: normal case.
-    for file_path in target_rel_paths_src:
-      #  Get the target info which is a parameter to 'download_target' method.
-      target_info = self.Repository.target(file_path)
-      self._mock_download_url_to_tempfileobj(os.path.join(self.targets_dir, file_path))
-      self.Repository.download_target(target_info, dest_dir)
+    # Get the target info, which is an argument to 'download_target()'.
+    for target_filepath in target_filepaths:
+      target_fileinfo = self.repository_updater.target(target_filepath)
+      self.repository_updater.download_target(target_fileinfo,
+                                              destination_directory)
+      download_filepath = \
+        os.path.join(destination_directory, target_filepath.lstrip('/'))
+      self.assertTrue(os.path.exists(download_filepath))
+      length, hashes = tuf.util.get_file_details(download_filepath)
+      download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
+      self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
 
-    #  Verify that all target files are downloaded.
-    target_rel_paths_dest = self._get_list_of_target_paths(dest_dir)
-    self.assertTrue(target_rel_paths_dest, target_rel_paths_src)
+    # Test: Invalid arguments.
+    self.assertRaises(tuf.FormatError, self.repository_updater.download_target,
+                      8, destination_directory)
 
-
+    random_target_filepath = target_filepaths.pop()
+    target_fileinfo = self.repository_updater.target(random_target_filepath)
+    self.assertRaises(tuf.FormatError, self.repository_updater.download_target,
+                      target_fileinfo, 8)
+    
     # Test:
     # Attempt a file download of a valid target, however, a download exception
-    # occurs because the target is not within the mirror's confined
-    # target directories.
-    #  Adjust mirrors dictionary, so that 'confined_target_dirs' field
-    #  contains at least one confined target and excludes needed target file.
-    mirrors = self.Repository.mirrors
+    # occurs because the target is not within the mirror's confined target
+    # directories.  Adjust mirrors dictionary, so that 'confined_target_dirs'
+    # field contains at least one confined target and excludes needed target
+    # file.
+    mirrors = self.repository_updater.mirrors
     for mirror_name, mirror_info in mirrors.items():
       mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
 
-    #  Get the target file info.
-    file_path = target_rel_paths_src[0]
-    target_info = self.Repository.target(file_path)
-
-    #  Patch 'download.download_url_to_tempfileobj' and verify that an
-    #  exception is raised.
-    self._mock_download_url_to_tempfileobj(os.path.join(self.targets_dir, file_path))
-
     try:
-      self.Repository.download_target(target_info, dest_dir)
+      self.repository_updater.download_target(target_fileinfo,
+                                              destination_directory)
+    
     except tuf.NoWorkingMirrorError, exception:
       # Ensure that no mirrors were found due to mismatch in confined target
-      # directories.
-      assert len(exception.mirror_errors) == 0
-      
-    for mirror_name, mirror_info in mirrors.items():
-      mirrors[mirror_name]['confined_target_dirs'] = ['']
+      # directories.  get_list_of_mirrors() returns an empty list in this case,
+      # which does not generate specific exception errors.
+      self.assertEqual(len(exception.mirror_errors), 0)
+     
 
 
 
 
   def test_7_updated_targets(self):
-    
-    # In this test, client will have two target files.  Server will modify 
-    # one of them.  As with 'all_targets' function, tuf.roledb._roledb_dict
-    # has to be populated.  'tuf.download.safe_download' method
-    # should be patched.
-    target_rel_paths_src = self._get_list_of_target_paths(self.targets_dir)
-
-    #  Create temporary directory which will hold client's target files.
-    dest_dir = self.make_temp_directory()
-
-    target_info = []
-    for target_path in target_rel_paths_src:
-      target_info.append(self.Repository.target(target_path))
-
-    #  Populate 'dest_dir' with few target files.
-    target_path0 = os.path.join(self.targets_dir, target_info[0]['filepath'])
-    self._mock_download_url_to_tempfileobj(target_path0)
-    self.Repository.download_target(target_info[0], dest_dir)
-
-    target_path1 = os.path.join(self.targets_dir, target_info[1]['filepath'])
-    self._mock_download_url_to_tempfileobj(target_path1)
-    self.Repository.download_target(target_info[1], dest_dir)
-
-    #  Modify one of the above downloaded target files at the server side.
-    file_obj = open(target_path0, 'wb')
-    file_obj.write(2*self.random_string())
-    file_obj.close()
-
-    #  Rebuild server's metadata and update client's metadata.
-    setup.build_server_repository(self.server_repo_dir, self.targets_dir)
-    self._update_top_level_roles()
+    # Verify that list contains all files that need to be updated, these
+    # files include modified and new target files.  Also, confirm that files
+    # than need not to be updated are absent from the list.
+    # Setup 
+    # Create temporary directory which will hold client's target files.
+    destination_directory = self.make_temp_directory()
 
     # Get the list of target files.  It will be used as an argument to
     # 'updated_targets' function.
-    delegated_roles = []
-    delegated_roles = self.all_role_paths[4:]
-    self._mock_download_url_to_tempfileobj(delegated_roles)
-    all_targets = self.Repository.all_targets()
-
-    #  At this point client needs to update modified target and download
-    #  two other targets.  As a result of calling 'update_targets' method,
-    #  a list of updated/new targets (that will need to be downloaded)
-    #  should be returned.
-
+    all_targets = self.repository_updater.all_targets()
     
+    #  At this point client needs to update and download all targets.
     # Test: normal cases.
-    updated_targets = self.Repository.updated_targets(all_targets, dest_dir)
+    updated_targets = \
+      self.repository_updater.updated_targets(all_targets, destination_directory)
 
-    #  Verify that list contains all files that need to be updated, these
-    #  files include modified and new target files.  Also, confirm that files
-    #  than need not to be updated are absent from the list.
+    # Assumed the pre-generated repository specifies two target files in
+    # 'targets.json' and one delegated target file in 'targets/role1.json'. 
+    self.assertTrue(len(updated_targets), 3)
+    
+    # Test: download one of the targets.
+    download_target = copy.deepcopy(updated_targets).pop()
+    self.repository_updater.download_target(download_target,
+                                            destination_directory)
+    
+    updated_targets = \
+      self.repository_updater.updated_targets(all_targets, destination_directory)
+    
+    self.assertTrue(len(updated_targets), 2)
    
-    #  'updated_targets' list should contains 5 target files i.e. one - that
-    #  was modified, two - that are absent from the client's repository and
-    #  same two - belonging to delegated roles.
-    self.assertTrue(len(updated_targets) is 5)
-    for updated_target in updated_targets:
-      if target_info[1]['filepath'] == updated_target['filepath']:
-        msg = 'A file that need not to be updated is indicated as updated.'
-        self.fail(msg)
+    # Test: download all the targets.
+    for download_target in all_targets:
+      self.repository_updater.download_target(download_target,
+                                               destination_directory)
+    updated_targets = \
+      self.repository_updater.updated_targets(all_targets, destination_directory)
+
+    self.assertTrue(len(updated_targets), 0)
 
     
+    # Test: Invalid arguments.
+    self.assertRaises(tuf.FormatError, self.repository_updater.updated_targets,
+                      8, destination_directory)
+
+    self.assertRaises(tuf.FormatError, self.repository_updater.updated_targets,
+                      all_targets, 8)
+
+    # Modify one target file on the remote repository.
+    repository = repo_tool.load_repository(self.repository_directory)
+    target1 = os.path.join(self.repository_directory, 'targets', 'file1.txt')
+    
+    repository.targets.remove_target(target1)
+    with open(target1, 'a') as file_object:
+      file_object.write('append extra text')
+
+    repository.targets.add_target(target1)
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.write()
+    
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+    
+    # Ensure the client has the up-to-date metadata.
+    self.repository_updater.refresh()
+
+    # Verify that the new target file is considered updated.
+    all_targets = self.repository_updater.all_targets()
+    updated_targets = \
+      self.repository_updater.updated_targets(all_targets, destination_directory)
+    self.assertTrue(len(updated_targets), 1)
+
+
+
 
 
   def test_8_remove_obsolete_targets(self):
+    # Setup. 
+    # Create temporary directory which will hold client's target files.
+    destination_directory = self.make_temp_directory()
+
+    #  Populate 'destination_direction' with all target files.
+    all_targets = self.repository_updater.all_targets()
+
+    for target in all_targets:
+      self.repository_updater.download_target(target, destination_directory)
+
+    self.assertTrue(os.listdir(destination_directory), 3)
+
+    # Remove two target files from the server's repository.
+    repository = repo_tool.load_repository(self.repository_directory)
+    target1 = os.path.join(self.repository_directory, 'targets', 'file1.txt')
+    target2 = os.path.join(self.repository_directory, 'targets', 'file2.txt')
+    repository.targets.remove_target(target1)
+    repository.targets.remove_target(target2)
+
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.write()
     
-    # This unit test should be last, because it removes target files from the
-    # server's targets directory. It is done to avoid adding files, rebuilding 
-    # and updating metadata. 
-    target_rel_paths_src = self._get_list_of_target_paths(self.targets_dir)
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
 
-    #  Create temporary directory which will hold client's target files.
-    dest_dir = self.make_temp_directory()
-
-    #  Populate 'dest_dir' with all target files.
-    for target_path in target_rel_paths_src:
-      _target_info = self.Repository.target(target_path)
-      _target_path = os.path.join(self.targets_dir, target_path)
-      self._mock_download_url_to_tempfileobj(_target_path)
-      self.Repository.download_target(_target_info, dest_dir)
-
-    #  Remove few target files from the server's repository.
-    os.remove(os.path.join(self.targets_dir, target_rel_paths_src[0]))
-    os.remove(os.path.join(self.targets_dir, target_rel_paths_src[3]))
-
-    #  Rebuild server's metadata and update client's metadata.
-    setup.build_server_repository(self.server_repo_dir, self.targets_dir)
-    self._update_top_level_roles()
-
-    #  Get the list of target files.  It will be used as an argument to
-    #  'updated_targets' function.
-    delegated_roles = []
-    delegated_roles = self.all_role_paths[4:]
-    self._mock_download_url_to_tempfileobj(delegated_roles)
-    all_targets = self.Repository.all_targets()
-    
+    # Update client's metadata.
+    self.repository_updater.refresh()
 
     # Test: normal case.
-    #  Verify number of target files in the 'dest_dir' (should be 4),
-    #  and execute 'remove_obsolete_targets' function.
-    self.assertTrue(os.listdir(dest_dir), 4)
-    self.Repository.remove_obsolete_targets(dest_dir)
+    # Verify number of target files in 'destination_directory' (should be 1
+    # after the update made to the remote repository), and call
+    # 'remove_obsolete_targets()'.
+    all_targets = self.repository_updater.all_targets()
+    updated_targets = \
+      self.repository_updater.updated_targets(all_targets,
+                                              destination_directory)
 
-    #  Verify that number of target files in the 'dest_dir' is now 2, since
-    #  two files were previously removed.
-    self.assertTrue(os.listdir(dest_dir), 2)
-    self.assertTrue(os.path.join(dest_dir), target_rel_paths_src[1])
-    self.assertTrue(os.path.join(dest_dir), target_rel_paths_src[2])
+    for updated_target in updated_targets:
+      self.repository_updater.download_target(updated_target,
+                                              destination_directory)
+                              
+    self.assertTrue(os.listdir(destination_directory), 3)
+    self.repository_updater.remove_obsolete_targets(destination_directory)
+    self.assertTrue(os.listdir(destination_directory), 1)
 
-    #  Verify that if there are no obsolete files, the number of files,
-    #  in the 'dest_dir' remains the same.
-    self.Repository.remove_obsolete_targets(dest_dir)
-    self.assertTrue(os.listdir(dest_dir), 2)    
+    #  Verify that, if there are no obsolete files, the number of files
+    #  in 'destination_directory' remains the same.
+    self.repository_updater.remove_obsolete_targets(destination_directory)
+    self.assertTrue(os.listdir(destination_directory), 1)    
 
 
 
