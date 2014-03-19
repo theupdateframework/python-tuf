@@ -9,15 +9,17 @@
 
 <Started>
   October 15, 2012.
-  March 11, 2014.  Refactored to remove use of mocking, use exact repositories,
-  and add realistic retrieval of files. -vladimir.v.diaz
+
+  March 11, 2014.
+    Refactored to remove mocked modules and old repository tool dependence, use
+    exact repositories, and add realistic retrieval of files. -vladimir.v.diaz
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
-  'test_updater.py' provides a collection of methods that test the public
-  and non-public methods and functions and functions of 'tuf.client.updater.py'.
+  'test_updater.py' provides a collection of methods that test the public /
+  non-public methods and functions of 'tuf.client.updater.py'.
 
   The 'unittest_toolbox.py' module was created to provide additional testing
   tools, such as automatically deleting temporary files created in test cases. 
@@ -47,7 +49,7 @@ import random
 import subprocess
 
 import tuf
-import tuf.client.updater as updater
+import tuf.util
 import tuf.conf
 import tuf.log
 import tuf.formats
@@ -55,7 +57,7 @@ import tuf.keydb
 import tuf.roledb
 import tuf.repository_tool as repo_tool
 import tuf.tests.unittest_toolbox as unittest_toolbox
-import tuf.util
+import tuf.client.updater as updater
 
 logger = logging.getLogger('tuf.test_updater')
 repo_tool.disable_console_log_messages()
@@ -65,14 +67,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def setUpClass(cls):
-    # setUpClass() is called before tests in an individual class run.
+    # setUpClass() is called before tests in an individual class are executed.
     
     # Create a temporary directory to store the repository, metadata, and target
     # files.  'temporary_directory' must be deleted in TearDownModule() so that
-    # temporary files are always removed, including when exceptions occur. 
+    # temporary files are always removed, even when exceptions occur. 
     cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
     
     # Launch a SimpleHTTPServer (serves files in the current directory).
+    # Test cases will request metadata and target files that have been
+    # pre-generated in 'tuf/tests/unit/test_repository', which will be served
+    # by the SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
+    # assume the pre-generated metadata files have a specific structure, such
+    # as a delegated role 'targets/role1', three target files, five key files,
+    # etc.
     cls.SERVER_PORT = random.randint(30000, 45000)
     command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
     cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
@@ -92,8 +100,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # tearDownModule() is called after all the tests have run.
     # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
    
-    # Remove the temporary repository directory, which should contain the
-    # metadata, targets, and key files.
+    # Remove the temporary repository directory, which should contain all the
+    # metadata, targets, and key files generated for the test cases.
     shutil.rmtree(cls.temporary_directory)
     
     unittest_toolbox.Modified_TestCase.clear_toolbox()
@@ -109,17 +117,22 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
   
-    # Copy the original repository files provided in the test folder.
+    # Copy the original repository files provided in the test folder so that
+    # any modifications made to repository files are restricted to the copies.
     # The 'test_repository' directory is expected to exist in the same directory
     # as the unit test modules.
     original_repository_files = os.path.join(os.getcwd(), 'test_repository') 
     temporary_repository_root = \
       self.make_temp_directory(directory=self.temporary_directory)
-   
+  
+    # The original repository, keystore, and client directories will be copied
+    # for each test case. 
     original_repository = os.path.join(original_repository_files, 'repository')
     original_keystore = os.path.join(original_repository_files, 'keystore')
     original_client = os.path.join(original_repository_files, 'client')
 
+    # Save references to the often-needed client repository directories.
+    # Test cases need these references to access metadata and target files. 
     self.repository_directory = \
       os.path.join(temporary_repository_root, 'repository')
     self.keystore_directory = \
@@ -150,10 +163,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                            'targets_path': 'targets',
                                            'confined_target_dirs': ['']}}
 
-    # Creating Repository instance.
+    # Creating repository instance.  The test cases will use this client
+    # updater to refresh metadata, fetch target files, etc.
     self.repository_updater = updater.Updater('test_repository',
                                               self.repository_mirrors)
 
+    # Metadata role keys are needed by the test cases to make changes to the
+    # repository (e.g., adding a new target file to 'targets.json' and then
+    # requesting a refresh()).
     self.role_keys = _load_role_keys(self.keystore_directory)
 
 
@@ -162,79 +179,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     
-    # Clear roledb and keydb dictionaries.
-    #tuf.roledb.clear_roledb()
-    #tuf.keydb.clear_keydb()
-
-
-
-
-  # HELPER FUNCTIONS (start with '_').
-  
-  def _add_file_to_directory(self, directory):
-    file_path = tempfile.mkstemp(suffix='.txt', dir=directory)
-    fileobj = open(file_path[1], 'wb')
-    fileobj.write(self.random_string())
-    fileobj.close()
-    return file_path[1]
-
-
-
-  def _add_target_to_targets_dir(self, targets_keyids):
-    """
-    Adds a file to server's 'targets' directory and rebuilds
-    targets metadata (targets.json).
-    """
-    
-    targets_sub_dir = os.path.join(self.targets_dir, 'targets_sub_dir')
-    if not os.path.exists(targets_sub_dir):
-      os.mkdir(targets_sub_dir)
-    file_path = tempfile.mkstemp(suffix='.txt', dir=targets_sub_dir)
-    data = self.random_string()
-    file_object = open(file_path[1], 'wb')
-    file_object.write(data)
-    file_object.close()
-
-    #  In order to rebuild metadata, keystore's dictionary must be loaded.
-    #  Fortunately, 'unittest_toolbox.rsa_keystore' dictionary stores all keys.
-    keystore._keystore = self.rsa_keystore
-    setup.build_server_repository(self.server_repo_dir, self.targets_dir)
-
-    keystore._keystore = {}
-    junk, target_filename = os.path.split(file_path[1])
-    return os.path.join('targets_sub_dir', target_filename)
-
-
-
-  def _remove_target_from_targets_dir(self, target_filename, remove_all=True):
-    """
-    Remove a target 'target_filename' from server's targets directory and
-    rebuild 'targets', 'snapshot', 'timestamp' metadata files.
-    'target_filename' is relative to targets directory. 
-    Example of 'target_filename': 'targets_sub_dir/somefile.txt'.
-
-    If 'remove_all' is set to True, then the sub directory 'targets_sub_dir'
-    (with all added targets) is removed.  All listed metadata files are
-    rebuilt.
-    """
-    
-    targets_sub_dir = os.path.join(self.targets_dir, 'targets_sub_dir')
-    if remove_all:
-      shutil.rmtree(targets_sub_dir)
-    else:
-      target_path = os.path.join(targets_dir, target_filename)
-      os.remove(target_path)
-
-    #  In order to rebuild metadata, keystore's dictionary must be loaded.
-    keystore._keystore = self.rsa_keystore
-    setup.build_server_repository(self.server_repo_dir, self.targets_dir)
-  
-    #  Synchronise client's repository with server's repository.
-    shutil.rmtree(self.client_meta_dir)
-    shutil.copytree(self.server_meta_dir, self.client_current_dir)
-    shutil.copytree(self.server_meta_dir, self.client_previous_dir)
-
-    keystore._keystore = {}
 
 
 
@@ -364,7 +308,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # object calls both _rebuild_key_and_role_db() and _import_delegations().
     self.assertEqual(number_of_root_keys, len(tuf.keydb._keydb_dict))
    
-    # Test: properly updated roledb and keydb dicts if Root role changes.
+    # Test: properly updated roledb and keydb dicts if the Root role changes.
     root_metadata = self.repository_updater.metadata['current']['root']
     root_metadata['roles']['root']['threshold'] = 8
     root_metadata['keys'].popitem()
@@ -491,27 +435,24 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                               'snapshot.json')
     os.remove(previous_snapshot_filepath)
     self.assertFalse(os.path.exists(previous_snapshot_filepath))
-    
+   
+    # Verify that the current 'snapshot.json' is moved to the previous directory.
     self.repository_updater._move_current_to_previous('snapshot')
     self.assertTrue(os.path.exists(previous_snapshot_filepath))
-    shutil.copy(previous_snapshot_filepath, self.client_metadata_current)
 
 
 
 
 
   def test_2__delete_metadata(self):
-    # This test will verify that 'root' metadata is never deleted, when
-    # role is deleted verify that the file is not present in the 
+    # This test will verify that 'root' metadata is never deleted.  When a role
+    # is deleted verify that the file is not present in the 
     # 'self.repository_updater.metadata' dictionary.
     self.repository_updater._delete_metadata('root')
     self.assertTrue('root' in self.repository_updater.metadata['current'])
     
     self.repository_updater._delete_metadata('timestamp')
     self.assertFalse('timestamp' in self.repository_updater.metadata['current'])
-    previous_timestamp_filepath = os.path.join(self.client_metadata_previous,
-                                       'timestamp.json')
-    shutil.copy(previous_timestamp_filepath, self.client_metadata_current)
 
 
 
@@ -543,8 +484,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # _update_metadata() downloads, verifies, and installs the specified
     # metadata role.  Remove knowledge of currently installed metadata and
     # verify that they are re-installed after calling _update_metadata().
-    # Remove the installed metadata.  _update_metadata() will be called to
-    # ensure the removed metadata is properly re-installed.
     
     # This is the default metadata that we would create for the timestamp role,
     # because it has no signed metadata for itself.
@@ -552,7 +491,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     'hashes': {},
     'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
     }
-    
+   
+    # Save the fileinfo of 'targets.json' and 'targets.json.gz', needed later
+    # when re-installing with _update_metadata().
     targets_fileinfo = \
       self.repository_updater.metadata['current']['snapshot']['meta']\
                                       ['targets.json']
@@ -592,7 +533,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     os.remove(targets_filepath)
 
     # Verify 'targets.json.gz' is properly intalled.  Note: The uncompressed
-    # version is installed if the compressed one downloaded.
+    # version is installed if the compressed one is downloaded.
     self.assertFalse('targets' in self.repository_updater.metadata['current'])
     self.repository_updater._update_metadata('targets', targets_fileinfo, 'gzip',
                                              targets_compressed_fileinfo)
@@ -675,7 +616,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Update 'targets.json' and verify that the client's current 'targets.json'
     # has been updated.  'timestamp' and 'snapshot' must be manually updated
-    # so that 'targets' may be updated.
+    # so that new 'targets' may be recognized.
     DEFAULT_TIMESTAMP_FILEINFO = {
     'hashes': {},
     'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
@@ -1082,15 +1023,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 def _load_role_keys(keystore_directory):
   
-  # Populating 'rsa_keystore' and 'rsa_passwords' dictionaries.
-  # We will need them in creating the keystore directory and metadata files.
+  # Populating 'self.role_keys' by importing the required public and private
+  # keys of 'tuf/tests/unit/test_repository/'.  The role keys are needed when
+  # modifying the remote repository used by the test cases in this unit test.
 
   # The pre-generated key files in 'test_repository" are all encrypted with
   # a 'password' passphrase.
   EXPECTED_KEYFILE_PASSWORD = 'password'
 
-  # Store the cryptography keys of the top-level roles.  Any delegated roles 
-  # should be assigned the key of the Targets role, to avoid .
+  # Store and return the cryptography keys of the top-level roles, including 1
+  # delegated role.
   role_keys = {}
 
   root_key_file = os.path.join(keystore_directory, 'root_key')
@@ -1114,8 +1056,7 @@ def _load_role_keys(keystore_directory):
   role_keys['role1']['public'] = \
       repo_tool.import_rsa_publickey_from_file(delegation_key_file+'.pub')
 
-  # Import the private keys of the top-level rolesand delegated roles private
-  # keys.
+  # Import the private keys of the top-level and delegated roles.
   role_keys['root']['private'] = \
     repo_tool.import_rsa_privatekey_from_file(root_key_file, 
                                               EXPECTED_KEYFILE_PASSWORD)
