@@ -109,7 +109,8 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 # Initial 'targets.txt' expiration time of 3 months. 
 TARGETS_EXPIRATION = 7889230 
 
-
+# TODO: We should have a method like Describe to show the contents of the 
+#       instance
 class Project(object):
   """
   <Purpose>
@@ -807,9 +808,9 @@ def _get_password(prompt='Password: ', confirm=False):
     else:
       print('Mismatch; try again.')
 
-
-def create_new_project(metadata_directory, prefix = '',targets_directory=None,
-                       key=None):
+# TODO: change prefix to something like location_in_repository.
+def create_new_project(metadata_directory, location_in_repository = '',
+      targets_directory=None, key=None):
   """
   <Purpose>
     Create a new project object, instantiate barebones metadata for the 
