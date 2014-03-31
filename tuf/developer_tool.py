@@ -111,7 +111,7 @@ TARGETS_EXPIRATION = 7889230
 
 # TODO: We should have a method like Describe to show the contents of the 
 #       instance
-class Project(object):
+class Project(Targets):
   """
   <Purpose>
     This class works as the abstraction of the developer's files. this module
@@ -169,7 +169,7 @@ class Project(object):
     self.layout_type = "flat"
 
     # Set the top-level role objects.
-    self._targets = Targets(self._targets_directory, 'targets')
+    super(Project, self).__init__(self._targets_directory, 'targets')
 
     self.prefix = file_prefix
 
@@ -241,7 +241,7 @@ class Project(object):
 
     #save some other information that is not stored in the project's metadata 
     save_project_configuration(self._metadata_directory,self._targets_directory,
-                       self.targets.keys, self.prefix, self.targets.threshold,
+                       self.keys, self.prefix, self.threshold,
                        self.layout_type)
     
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
@@ -251,259 +251,6 @@ class Project(object):
 
 
 
-  def add_target(self,filepath):
-    """
-    <Purpose>
-      Provide an alternative to project.targets.add_target. using
-      project.add_target yields a more intuitive and straightforward way of
-      adding targets to the project.
-
-    <Arguments>
-      filepath:
-        The path to the target file. The file must be located under the 
-        projects target's directory
-
-    <Exceptions>
-      tuf.FormatError, if 'filepath' is improperly formatted. 
-
-      tuf.Error, if 'filepath' is not under the repository's targets 
-      directory
-
-    <Side Effects> 
-      Adds 'filepath' to this role's list of targets. This role's 
-      'tuf.roledb' is also updated.
-
-    <Returns>
-      None
-    """
-    try:
-      self.targets.add_target(filepath)
-    except tuf.FormatError, tuf.Error:
-      raise
-
-  def add_verification_key(self,key):
-    """
-      <Purpose>
-        Function as a thin wrapper call for the project._targets call
-        with the same name. This wrapper is only for usability purposes
-
-      <Arguments>
-        Key:
-          The role key to be added, conformant to tuf.formats.anykey_schema
-          Adding a public key to a role means that its corresponding private
-          key must generate and add its signture to the role. 
-
-      <Exceptions>
-        Tuf.FormatError, if the 'key' argument is improperly formatted.
-
-        Tuf.Error, if the project already contains a key
-
-      <Side Effects>
-        The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated
-
-      <Returns>
-        None
-    """
-    ### should check the number of keys for this role.
-    if len(self._targets.keys)>0:
-      raise tuf.Error("This project already contains a key")
-
-    try:
-      self._targets.add_verification_key(key)
-    except tuf.FormatError:
-      raise
-
-
-  def remove_verification_key(self,key):
-    """
-      <Purpose>
-        Function as a thin wrapper call for the project._targets call
-        with the same name. This wrapper is only for usability purposes
-
-      <Arguments>
-        Key:
-          The role key to be removed, conformant to tuf.formats.anykey_schema
-
-      <Exceptions>
-        Tuf.FormatError, if the 'key' argument is improperly formatted.
-
-      <Side Effects>
-        The role's entries in 'tuf.roledb.py' are updated
-
-      <Returns>
-        None
-    """
-    try:
-      self._targets.remove_verification_key(key)
-    except tuf.FormatError:
-      raise
-
-  def load_signing_key(self,key):
-    """
-      <Purpose>
-        To function as a thin wrapper call for the project._targets call
-        with the same name. This wrapper is only for usability purposes.
-
-      <Arguments>
-        Key:
-          The key to be used to sign the metadata with. This key is the private
-          key for the whole project. A project supports only one key.
-
-      <Exceptions>
-        tuf.FormatError, if the 'key' argument is improperly formatted.
-
-
-      <Side Effects>
-        The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated
-
-      <Returns>
-        none
-    """
-    try:
-      self._targets.load_signing_key(key)
-    except tuf.FormatError:
-      raise
-
-  
-  def unload_signing_key(self,key):
-    """
-      <Purpose>
-        To function as a thin wrapper call for the project._targets call
-        with the same name. This wrapper is only for usability purposes.
-
-      <Arguments>
-        Key:
-          The key to be used to sign the metadata with. This key is the private
-          key for the whole project. A project supports only one key.
-
-      <Exceptions>
-        tuf.FormatError, if the 'key' argument is improperly formatted.
-
-      <Side Effects>
-        The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated
-
-      <Returns>
-        none
-    """
-    try:
-      self._targets.unload_signing_key(key)
-    except tuf.FormatError:
-      raise
-
-
-
-  def delegate(self,rolename, public_keys, list_of_targets, threshold=1,
-                restricted_paths=None, path_hash_prefixes=None):
-    """
-      <Purpose>
-        To function as a thin wrapper call for the project._targets call
-        with the same name. This wrapper is only for usability purposes.
-
-      <Arguments>
-        rolename:
-          The name of the delegated role (e.g. django, qiime), not the full
-          rolename
-  
-        public_keys:
-          A list of TUF keys objects in 'ANYKEYLIST_SCHEMA' format. The list
-          may contain any of the supported key types: RSAKEY_SCHEMA, 
-          ED25519KEY_SCHEMA, etc.
-
-        list_of_targets:
-          A list of target filepaths that are added to the paths of 'rolename'
-          'list_of_targets' is a list of target filepaths, and can be empty.
-
-        threshold:
-          The threshold number of keys of 'rolename'.
-
-        restricted_paths:
-          A list of restricted directory or file paths of 'rolename'. Any 
-          targets files added to 'rolenae' must all under one of the 
-          'restructed' paths.
-
-        path_hash_prefixes:
-          A list of hash prefixes in 'tuf.formats.PATH_HASH_PREFIXES_SCHEMA'
-          format, used in hashed bin delegations. Targets may be located and
-          stored in hashed bins by calculating the target path's hash prefix.
-
-      <Exceptions>
-        tuf.FormatError, if any of the arguments are improperly formatted
-
-        tuf.Error, if the delegated role already exists or if any of the 
-        argument is an invalid path (i.e., not under the repository's targets
-        directory).
-
-      <Side Effects>
-        A new Target object is created for 'rolename' that is accessible to the
-        caller (i.e., targets.unclaimed.<rolename>). The 'tuf.keydb.py' and
-        'tuf.roledb.py' stores are updated with 'public_keys'
-
-      <Returns>
-        None.
-    """
-
-    try:
-      self._targets.delegate(rolename, public_keys, list_of_targets, 
-          threshold, restricted_paths, path_hash_prefixes)
-    except tuf.FormatError, tuf.Error:
-      raise
-  
-
-  def write_partial(self):
-    """
-    <Purpose>
-      Write all the JSON Metadata objects to their corresponding files, but
-      allow metadata files to contain an invalid threshold of signatures.  
-    
-    <Arguments>
-      None.
-
-    <Exceptions> 
-      tuf.Error, if any of the top-level roles do not have a minimum
-      threshold of signatures.
-
-    <Side Effects>
-      Creates metadata files in the repository's metadata directory.
-
-    <Returns>
-      None.
-    """
-
-    self.write(write_partial=True)
-  
-
-  def delegations(self, delegation_name):
-    """
-      <Purpose>
-        To provide a method to access the delegations under this project. This
-        function is completely analogous to the targets(delegation_name). This
-        method is also recommended because sanity checks, input format and any
-        bridge-functions needed to guarantee the correct operation with the
-        target's object.
-
-      <Arguments>
-        delegation_name:
-          The name of the delegation to be accessed, this argument has to match
-          the one used in the "delegate" method.
-
-      <Exceptions>
-        tuf.FormatError, if any of the arguments are improperly formatted.
-
-        tuf.Error, if the delegated role doesn't exist inside the targets
-        object.
-
-      <Side Effects>
-        None
-
-      <Returns>
-        A targets object with the information for the desired delegation.
-    """
-    try:
-      delegation = self._targets(delegation_name)
-    except tuf.FormatError, tuf.Error:
-      raise
-
-    return delegation
   
   def status(self):
     """
@@ -597,89 +344,6 @@ class Project(object):
     finally:
       shutil.rmtree(temp_project_directory, ignore_errors=True)
 
-
-
-  def get_filepaths_in_directory(self, files_directory, recursive_walk=False,
-                                 followlinks=True):
-    """
-    <Purpose>
-      Walk the given 'files_directory' and build a list of target files found.
-
-    <Arguments>
-      files_directory:
-        The path to a directory of target files.
-
-      recursive_walk:
-        To recursively walk the directory, set recursive_walk=True.
-
-      followlinks:
-        To follow symbolic links, set followlinks=True.
-
-    <Exceptions>
-      tuf.FormatError, if the arguments are improperly formatted.
-
-      tuf.Error, if 'file_directory' is not a valid directory.
-
-      Python IO exceptions.
-
-    <Side Effects>
-      None.
-
-    <Returns>
-      A list of absolute paths to target files in the given 'files_directory'.
-    """
-
-    # Do the arguments have the correct format?
-    # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.PATH_SCHEMA.check_match(files_directory)
-    tuf.formats.BOOLEAN_SCHEMA.check_match(recursive_walk)
-    tuf.formats.BOOLEAN_SCHEMA.check_match(followlinks)
-
-    # Ensure a valid directory is given.
-    if not os.path.isdir(files_directory):
-      message = repr(files_directory)+' is not a directory.'
-      raise tuf.Error(message)
-   
-    # A list of the target filepaths found in 'file_directory'.
-    targets = []
-
-    # FIXME: We need a way to tell Python 2, but not Python 3, to return
-    # filenames in Unicode; see #61 and:
-    # http://docs.python.org/2/howto/unicode.html#unicode-filenames
-    for dirpath, dirnames, filenames in os.walk(files_directory,
-                                                followlinks=followlinks):
-      for filename in filenames:
-        full_target_path = os.path.join(dirpath, filename)
-        targets.append(full_target_path)
-
-      # Prune the subdirectories to walk right now if we do not wish to
-      # recursively walk files_directory.
-      if recursive_walk is False:
-        del dirnames[:]
-
-    return targets
-
-  @property
-  def targets(self):
-    """
-      <Purpose>
-        A getter method for the target's role inside the project object.
-
-      <Arguments>
-        None
-
-      <Exceptions>
-        None
-
-      <Side Effects>
-        None
-
-      <Returns>
-        The targets contained in this project's instance.
-    """
-    return self._targets
 
 
 def _print_status(rolename, signable):
@@ -829,7 +493,7 @@ def create_new_project(metadata_directory, location_in_repository = '',
       the metadata directory if, for example, a project structure already
       exists and the user does not want to move it.
 
-    prefix:
+    location_in_repository:
       An optional argument to hold the "prefix" or the expected location for 
       the project files in the "upstream" respository. This value is only
       used to sign metadata in a way that it matches the future location
@@ -861,8 +525,9 @@ def create_new_project(metadata_directory, location_in_repository = '',
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
  
-  # Do the same for the prefix, we first check for it to be something valid
-  tuf.formats.PATH_SCHEMA.check_match(prefix)
+  # Do the same for the location in the repo, we first check for it to be
+  # something valid
+  tuf.formats.PATH_SCHEMA.check_match(location_in_repository)
 
   # for the targets directory we do the same, but first, let's find out what
   # layout the user needs, layout_type is a variable that is usually set to
@@ -917,7 +582,8 @@ def create_new_project(metadata_directory, location_in_repository = '',
   # Create the bare bones repository object, where only the top-level roles
   # have been set and contain default values (e.g., Root roles has a threshold
   # of 1, expires 1 year into the future, etc.)
-  project = Project(metadata_directory, targets_directory, prefix)
+  project = Project(metadata_directory, targets_directory,
+      location_in_repository)
 
   # add the key to the project. 
   if key is not None:
