@@ -1,33 +1,28 @@
+#!/usr/bin/env python
+
 """
-      
 <Program Name>
   test_arbitrary_package_attack.py
 
 <Author>
-  Konstantin Andrianov
+  Konstantin Andrianov.
 
 <Started>
-  February 22, 2012
+  February 22, 2012.
+
+  March 21, 2014.
+    Refactored to use the 'unittest' module (test conditions in code, rather
+    than verifying text output), use pre-generated repository files, and
+    discontinue use of the old repository tools. -vladimir.v.diaz
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
-  Simulate an arbitrary package attack.  A simple client update vs. client
-  update implementing TUF.
-
-  Note: The interposition provided by 'tuf.interposition' is used to intercept
-  all calls made by urllib/urillib2 to certain hostnames specified in 
-  the interposition configuration file.  Look up interposition.py for more
-  information and illustration of a sample contents of the interposition 
-  configuration file.  Interposition was meant to make TUF integration with an
-  existing software updater an easy process.  This allows for more flexibility
-  to the existing software updater.  However, if you are planning to solely use
-  TUF there should be no need for interposition, all necessary calls will be
-  generated from within TUF.
+  Simulate an arbitrary package attack, where an updater client attempts to
+  download a malicious file.  TUF and non-TUF client scenarios is tested.  
 
   There is no difference between 'updates' and 'target' files.
-
 """
 
 # Help with Python 3 compatability, where the print statement is a function, an
@@ -39,163 +34,258 @@ from __future__ import division
 
 import os
 import urllib
+import tempfile
+import random
+import time
+import shutil
+import json
+import subprocess
+import unittest
+import logging
 
 import tuf
-import tuf.interposition
-import tuf.tests.util_test_tools as util_test_tools
+import tuf.formats
+import tuf.util
+import tuf.log
+import tuf.client.updater as updater
+import tuf.tests.unittest_toolbox as unittest_toolbox
+
+logger = logging.getLogger('tuf.test_arbitrary_package_attack')
 
 
+class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
-class ArbitraryPackageAlert(Exception):
-  pass
-
-
-
-def _download(url, filename, using_tuf=False):
-  if using_tuf:
-    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
-
-  else:
-    urllib.urlretrieve(url, filename)
-
-
-
-
-
-def test_arbitrary_package_attack(using_tuf=False, modify_metadata=False):
-  """
-  <Purpose>
-    Illustrate arbitrary package attack vulnerability.
+  @classmethod
+  def setUpClass(cls):
+    # setUpClass() is called before any of the test cases in this unit test
+    # are executed.
     
-  <Arguments>
-    using_tuf:
-      If set to 'False' all directories that start with 'tuf_' are ignored, 
-      indicating that tuf is not implemented.
-  """
+    # Create a temporary directory to store the repository, metadata, and target
+    # files.  'temporary_directory' must be deleted in TearDownModule() so that
+    # temporary files are always removed, even when exceptions occur. 
+    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
+    
+    # Launch a SimpleHTTPServer (serves files in the current directory).
+    # Test cases will request metadata and target files that have been
+    # pre-generated in 'tuf/tests/repository_data', which will be served by the
+    # SimpleHTTPServer launched here.  The test cases of this unit test assume 
+    # the pre-generated metadata files have a specific structure, such
+    # as a delegated role 'targets/role1', three target files, five key files,
+    # etc.
+    cls.SERVER_PORT = random.randint(30000, 45000)
+    command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
+    cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    logger.info('Server process started.')
+    logger.info('Server process id: '+str(cls.server_process.pid))
+    logger.info('Serving on port: '+str(cls.SERVER_PORT))
+    cls.url = 'http://localhost:'+str(cls.SERVER_PORT) + os.path.sep
 
-  ERROR_MSG = 'Arbitrary Package Attack was Successful!'
+    # NOTE: Following error is raised if a delay is not applied:
+    # <urlopen error [Errno 111] Connection refused>
+    time.sleep(.2)
 
 
-  try:
-    # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf)
-    reg_repo = os.path.join(root_repo, 'reg_repo')
-    tuf_repo = os.path.join(root_repo, 'tuf_repo')
-    downloads = os.path.join(root_repo, 'downloads')
-    targets_dir = os.path.join(tuf_repo, 'targets')
 
-    # Add a file to 'repo' directory: {root_repo}
-    filepath = util_test_tools.add_file_to_repository(reg_repo, 'Test A')
-    file_basename = os.path.basename(filepath)
-    url_to_repo = url+'reg_repo/'+file_basename
-    downloaded_file = os.path.join(downloads, file_basename)
+  @classmethod 
+  def tearDownClass(cls):
+    # tearDownModule() is called after all the tests have run.
+    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
+   
+    # Remove the temporary repository directory, which should contain all the
+    # metadata, targets, and key files generated for all test cases.
+    shutil.rmtree(cls.temporary_directory)
+    
+    unittest_toolbox.Modified_TestCase.clear_toolbox()
+   
+    # Kill the SimpleHTTPServer process.
+    if cls.server_process.returncode is None:
+      logger.info('Server process '+str(cls.server_process.pid)+' terminated.')
+      cls.server_process.kill()
 
-    if using_tuf:
-      # Update TUF metadata before attacker modifies anything.
-      util_test_tools.tuf_refresh_repo(root_repo, keyids)
 
-      # Modify the url.  Remember that the interposition will intercept 
-      # urls that have 'localhost:9999' hostname, which was specified in
-      # the json interposition configuration file.  Look for 'hostname'
-      # in 'util_test_tools.py'. Further, the 'file_basename' is the target
-      # path relative to 'targets_dir'. 
-      url_to_repo = 'http://localhost:9999/'+file_basename
 
-      # Attacker modifies the file at the targets repository.
-      target_filepath = os.path.join(targets_dir, file_basename)
-      util_test_tools.modify_file_at_repository(target_filepath, 'Evil A')
+  def setUp(self):
+    # We are inheriting from custom class.
+    unittest_toolbox.Modified_TestCase.setUp(self)
+  
+    # Copy the original repository files provided in the test folder so that
+    # any modifications made to repository files are restricted to the copies.
+    # The 'repository_data' directory is expected to exist in 'tuf/tests/'.
+    original_repository_files = os.path.join(os.getcwd(), os.pardir,
+                                             'repository_data') 
+    temporary_repository_root = \
+      self.make_temp_directory(directory=self.temporary_directory)
+  
+    # The original repository, keystore, and client directories will be copied
+    # for each test case. 
+    original_repository = os.path.join(original_repository_files, 'repository')
+    original_client = os.path.join(original_repository_files, 'client')
 
-      if modify_metadata:
+    # Save references to the often-needed client repository directories.
+    # Test cases need these references to access metadata and target files. 
+    self.repository_directory = \
+      os.path.join(temporary_repository_root, 'repository')
+    self.client_directory = os.path.join(temporary_repository_root, 'client')
 
-        # Modify targets metadata to reflect the change to the target file.
-        targets_metadata_filepath = os.path.join(tuf_repo, 'metadata',
-                                                              'targets.txt')
-        util_test_tools.update_target_in_metadata(target_filepath,
-                                                  targets_metadata_filepath)
+    # Copy the original 'repository', 'client', and 'keystore' directories
+    # to the temporary repository the test cases can use.
+    shutil.copytree(original_repository, self.repository_directory)
+    shutil.copytree(original_client, self.client_directory)
+    #shutil.copytree(original_keystore, self.keystore_directory)
 
-        # Modify release metadata to reflect the change to targets metadata.
-        release_metadata_filepath = os.path.join(tuf_repo, 'metadata',
-                                                              'release.txt')
-        util_test_tools.update_role_in_metadata(targets_metadata_filepath,
-                                                release_metadata_filepath)
+    # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'. 
+    repository_basepath = self.repository_directory[len(os.getcwd()):]
+    url_prefix = \
+      'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
+    
+    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # directory copied from the original repository files.
+    tuf.conf.repository_directory = self.client_directory 
+    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
+                                           'metadata_path': 'metadata',
+                                           'targets_path': 'targets',
+                                           'confined_target_dirs': ['']}}
 
-        # Modify timestamp metadata to reflect the change to release metadata.
-        timestamp_metadata_filepath = os.path.join(tuf_repo, 'metadata',
-                                                              'timestamp.txt')
-        util_test_tools.update_role_in_metadata(release_metadata_filepath,
-                                                timestamp_metadata_filepath)
+    # Creating repository instance.  The test cases will use this client
+    # updater to refresh metadata, fetch target files, etc.
+    self.repository_updater = updater.Updater('test_repository',
+                                              self.repository_mirrors)
 
-    # Attacker modifies the file at the regular repository.
-    util_test_tools.modify_file_at_repository(filepath, 'Evil A')
 
-    # End of Setup.
+  def tearDown(self):
+    unittest_toolbox.Modified_TestCase.tearDown(self)
 
+
+
+  def test_without_tuf(self):
+    # Verify that a target file on themodified by an attacker is
+    # not downloaded by the TUF client.repository replaced with a malicious
+    # version is downloaded by a non-tuf client.  A tuf client, on the other
+    # hand, should detect that the downloaded target file is invalid.
+   
+    # Test: Download a valid target file from the repository.
+    # Ensure the target file to be downloaded has not already been downloaded,
+    # and generate its file size and digest of the target available on the
+    # repository.  The file size and digest is needed to check that the
+    # malicious file was indeed downloaded.
+    target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
+    client_target_path = os.path.join(self.client_directory, 'file1.txt') 
+    self.assertFalse(os.path.exists(client_target_path))
+    length, hashes = tuf.util.get_file_details(target_path)
+    fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    
+    url_prefix = self.repository_mirrors['mirror1']['url_prefix']
+    url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
+    urllib.urlretrieve(url_file, client_target_path)
+    
+    self.assertTrue(os.path.exists(client_target_path))
+    length, hashes = tuf.util.get_file_details(client_target_path)
+    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    self.assertEqual(fileinfo, download_fileinfo)
+  
+    # Test: Download a target file that has been modified by an attacker.
+    with open(target_path, 'wb') as file_object:
+      file_object.write('add malicious content.')
+    length, hashes = tuf.util.get_file_details(target_path)
+    malicious_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    
+    url = self.repository_mirrors['mirror1']['url_prefix']
+    file3_url = os.path.join(url, 'targets', 'file1.txt')
+    urllib.urlretrieve(file3_url, client_target_path)
+    
+    length, hashes = tuf.util.get_file_details(client_target_path)
+    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    
+    # Verify 'download_fileinfo' is unequal to the original trusted version.
+    self.assertNotEqual(download_fileinfo, fileinfo)
+
+    # Verify 'download_fileinfo' is equal to the malicious version.
+    self.assertEqual(download_fileinfo, malicious_fileinfo)
+
+
+
+  def test_with_tuf(self):
+    # Verify that a target file on the repository modified by an attacker is
+    # not downloaded by the TUF client.
+    # First test that the valid target file is successfully downloaded.
+    file1_fileinfo = self.repository_updater.target('file1.txt')
+    destination = os.path.join(self.client_directory)
+    self.repository_updater.download_target(file1_fileinfo, destination)
+    client_target_path = os.path.join(self.client_directory, 'file1.txt')
+    self.assertTrue(os.path.exists(client_target_path))
+
+    # Modify 'file1.txt' and confirm that the TUF client rejects it.
+    target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
+    with open(target_path, 'wb') as file_object:
+      file_object.write('add malicious content.')
 
     try:
-      # Client downloads (tries to download) the file.
-      _download(url_to_repo, downloaded_file, using_tuf)
+      self.repository_updater.download_target(file1_fileinfo, destination)
+    
+    except tuf.NoWorkingMirrorError, exception:
+      url_prefix = self.repository_mirrors['mirror1']['url_prefix']
+      url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
-    except tuf.NoWorkingMirrorError, error:
-      # We only set up one mirror, so if it fails, we expect a
-      # NoWorkingMirrorError. If TUF has worked as intended, the mirror error
-      # contained within should be a BadHashError or a BadSignatureError,
-      # depending on whether the metadata was modified.
-      if modify_metadata:
-        mirror_error = error.mirror_errors[url+'tuf_repo/metadata/timestamp.txt']
+      # Verify that only one exception raised for 'url_file'.
+      self.assertTrue(len(exception.mirror_errors), 1)
 
-        assert isinstance(mirror_error, tuf.BadSignatureError)
+      # Verify that the expected 'tuf.DownloadLengthMismatchError' exception
+      # is raised for 'url_file'.
+      self.assertTrue(url_file in exception.mirror_errors)
+      self.assertTrue(isinstance(exception.mirror_errors[url_file],
+                                 tuf.DownloadLengthMismatchError))
+  
+  
+  
+  def test_with_tuf_and_metadata_tampering(self):
+    # Test that a TUF client does not download a malicious target file, and
+    # a 'targets.json' metadata file that has also been modified by the 
+    # attacker.  The attacker does not attach a valid signature to
+    # 'targets.json'
+    
+    # An attacker modifies 'file1.txt'.
+    target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
+    with open(target_path, 'wb') as file_object:
+      file_object.write('add malicious content.')
 
-      else:
-        mirror_error = error.mirror_errors[url+'tuf_repo/targets/'+file_basename]
+    # An attacker also tries to add the malicious target's length and digest
+    # to its metadata file.
+    length, hashes = tuf.util.get_file_details(target_path)
 
-        assert isinstance(mirror_error, tuf.BadHashError)
+    metadata_path = \
+      os.path.join(self.repository_directory, 'metadata', 'targets.json')
+    
+    metadata = tuf.util.load_json_file(metadata_path)
+    metadata['signed']['targets']['/file1.txt']['hashes'] = hashes
+    metadata['signed']['targets']['/file1.txt']['length'] = length
 
-    else:
-      # Check whether the attack succeeded by inspecting the content of the
-      # update.  The update should contain 'Test A'.  Technically it suffices
-      # to check whether the file was downloaded or not.
-      downloaded_content = util_test_tools.read_file_content(downloaded_file)
-      if 'Test A' != downloaded_content:
-        raise ArbitraryPackageAlert(ERROR_MSG)
+    tuf.formats.check_signable_object_format(metadata) 
+    
+    with open(metadata_path, 'wb') as file_object:
+      json.dump(metadata, file_object, indent=1, sort_keys=True)   
+   
+    # Verify that the malicious 'targets.json' is not downloaded.  Perform
+    # a refresh of top-level metadata to demonstrate that the malicious
+    # 'targets.json' is not downloaded.
+    try:
+      self.repository_updater.refresh()
+      file1_fileinfo = self.repository_updater.target('file1.txt')
+      destination = os.path.join(self.client_directory)
+      self.repository_updater.download_target(file1_fileinfo, destination)
+    
+    except tuf.NoWorkingMirrorError, exception:
+      url_prefix = self.repository_mirrors['mirror1']['url_prefix']
+      url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
+      # Verify that an exception raised for only the malicious 'url_file'.
+      self.assertTrue(len(exception.mirror_errors), 1)
 
-  finally:
-    util_test_tools.cleanup(root_repo, server_proc)
-
-
-
-
-print('Attempting arbitrary package attack without TUF:')
-try:
-  test_arbitrary_package_attack(using_tuf=False)
-
-except ArbitraryPackageAlert, error:
-  print(error)
-
-else:
-  print('Extraneous dependency attack failed.')
-print()
-
-
-print('Attempting arbitrary package attack with TUF:')
-try:
-  test_arbitrary_package_attack(using_tuf=True, modify_metadata=False)
-except ArbitraryPackageAlert, error:
-  print(error)
-
-else:
-  print('Extraneous dependency attack failed.')
-print()
+      # Verify that the specific and expected mirror exception is raised.
+      self.assertTrue(url_file in exception.mirror_errors)
+      self.assertTrue(isinstance(exception.mirror_errors[url_file],
+                                 tuf.DownloadLengthMismatchError))
 
 
-print('Attempting arbitrary package attack with TUF'+\
-                                      ' (and tampering with metadata):')
-try:
-  test_arbitrary_package_attack(using_tuf=True, modify_metadata=True)
 
-except ArbitraryPackageAlert, error:
-  print(error)
-
-else:
-  print('Extraneous dependency attack failed.')
-print()
+if __name__ == '__main__':
+  unittest.main()
