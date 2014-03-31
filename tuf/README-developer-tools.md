@@ -109,7 +109,7 @@ Enter a password for the RSA key:
 ```
 
 <a name="managing_keys">
-## Managing keys ## 
+## Managing keys 
 When generating keys, it is possible to specity the length of the key in bits 
 and its password as parameters:
 
@@ -120,4 +120,37 @@ The bits parameter defaults to 3072, and values below 2048 will raise an error.
 The password parameter is only intended to be used in scripts.
 
 
+## Managing Targets
+
+```
+
+>>> list_of_targets = project.get_filepaths_in_directory(“path/within/targets/folder”, recursive_walk=False, follow_links=False)
+>>> project.add_targets(list_of_targets)
+```
+
+```
+>>> project.remove_target(“target_1”)
+```
+
+## Delegations
+
+The project we created above is secured entirely by one key. If you want to allow someone else to update part of your project independently, you will need to delegate a new role for them. For example, we can
+
+```
+>>> other_key = import_rsa_publickey_from_file(“sombodys_public_key.pub”)
+
+>>> project.delegate(“newrole”, [other_key], targets)
+```
+
+The new role is now an attribute of the Project instance, and contains the same methods as Project. For example, we can add targets in the same way as before:
+
+```
+
+>>> project(“newrole”).add_target(“delegated_1”)
+
+```
+
+
+
+Recall that we input the other person’s key as part of a list. That list can contain any number of public keys. You can also add keys to the role after creating it using the add_signing_key() method.
 
