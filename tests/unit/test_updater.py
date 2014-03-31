@@ -76,7 +76,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Launch a SimpleHTTPServer (serves files in the current directory).
     # Test cases will request metadata and target files that have been
-    # pre-generated in 'tuf/tests/unit/test_repository', which will be served
+    # pre-generated in 'tuf/tests/repository_data', which will be served
     # by the SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
     # assume the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
@@ -119,9 +119,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
-    # The 'test_repository' directory is expected to exist in the same directory
-    # as the unit test modules.
-    original_repository_files = os.path.join(os.getcwd(), 'test_repository') 
+    # The 'repository_data' directory is expected to exist in 'tuf.tests/'.
+    original_repository_files = os.path.join(os.getcwd(), os.pardir,
+                                             'repository_data') 
     temporary_repository_root = \
       self.make_temp_directory(directory=self.temporary_directory)
   
@@ -1024,10 +1024,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 def _load_role_keys(keystore_directory):
   
   # Populating 'self.role_keys' by importing the required public and private
-  # keys of 'tuf/tests/unit/test_repository/'.  The role keys are needed when
+  # keys of 'tuf/tests/repository_data/'.  The role keys are needed when
   # modifying the remote repository used by the test cases in this unit test.
 
-  # The pre-generated key files in 'test_repository" are all encrypted with
+  # The pre-generated key files in 'repository_data/keystore' are all encrypted with
   # a 'password' passphrase.
   EXPECTED_KEYFILE_PASSWORD = 'password'
 
