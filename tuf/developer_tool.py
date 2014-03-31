@@ -251,7 +251,65 @@ class Project(Targets):
 
 
 
-  
+  def remove_verification_key(self,key):
+    """
+      <Purpose>
+        Function as a thin wrapper call for the project._targets call
+        with the same name. This wrapper is only for usability purposes
+
+      <Arguments>
+        Key:
+          The role key to be removed, conformant to tuf.formats.anykey_schema
+
+      <Exceptions>
+        Tuf.FormatError, if the 'key' argument is improperly formatted.
+
+      <Side Effects>
+        The role's entries in 'tuf.roledb.py' are updated
+
+      <Returns>
+        None
+    """
+    try:
+      super(Project, self).remove_verification_key(key)
+    except tuf.FormatError:
+      raise
+
+
+  def add_verification_key(self,key):
+    """
+      <Purpose>
+        Function as a thin wrapper call for the project._targets call
+        with the same name. This wrapper is only for usability purposes
+
+      <Arguments>
+        Key:
+          The role key to be added, conformant to tuf.formats.anykey_schema
+          Adding a public key to a role means that its corresponding private
+          key must generate and add its signture to the role. 
+
+      <Exceptions>
+        Tuf.FormatError, if the 'key' argument is improperly formatted.
+
+        Tuf.Error, if the project already contains a key
+
+      <Side Effects>
+        The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated
+
+      <Returns>
+        None
+    """
+    ### should check the number of keys for this role.
+    if len(self.keys)>0:
+      raise tuf.Error("This project already contains a key")
+
+    try:
+      super(Project, self).add_verification_key(key)
+    except tuf.FormatError:
+      raise
+
+
+
   def status(self):
     """
     <Purpose>
