@@ -84,7 +84,33 @@ METADATA_EXTENSION = '.json'
 # The metadata filename for the targets metadata information.
 TARGETS_FILENAME = 'targets' + METADATA_EXTENSION
 
-# Project configuration filename
+# Project configuration filename. This file is intended to hold all of the
+# supporting information about the project that's not contained in a usual
+# TUF metadata file. The project.cfg file consists of the following fields:
+#
+#   targets_location:   the location of the targets folder.
+#
+#   prefix:             the directory location to prepend to the metadata so it
+#                       matches the metadata signed in the repository.
+#
+#   metadata_location:  the location of the metadata files.
+#
+#   threshold:          the threshold for this project object, it is fixed to
+#                       one in the current version
+#   
+#   public_keys:        a list of the public keys used to verify the metadata
+#                       in this project
+#
+#   layout_type:        a field describing the directory layout:
+#                         
+#                         repo-like: matches the layout of the repository tool.
+#                                    the targets and metadata folders are 
+#                                    located under a comon directory for the
+#                                    project.
+#
+#                         flat:      the targets directory and the
+#                                    metadata directory are located in different
+#                                    paths
 PROJECT_FILENAME = 'project.cfg'
 
 # The targets and metadata directory names.  Metadata files are written
@@ -127,10 +153,6 @@ class Project(Targets):
 
       
   <Arguments>
-    project_directory:
-      The root folder of the project that contains the metadata and targets
-      sub-directories.
-
     metadata_directory:
       The metadata sub-directory contains the files of the top-level
       roles, including all roles delegated from 'targets.txt'. 
