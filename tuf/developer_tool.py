@@ -74,8 +74,8 @@ logger = logging.getLogger('tuf.devtools')
 # are the recommended minimum and are good from the present through 2030.
 DEFAULT_RSA_KEY_BITS = 3072
 
-# The algorithm used by the repository to generate the hashes of the
-# target filepaths.  The repository may optionally organize targets into
+# The algorithm used by the developer tools to generate the hashes of the
+# target filepaths. 
 HASH_FUNCTION = 'sha256'
 
 # The extension of TUF metadata.
@@ -567,18 +567,17 @@ def create_new_project(metadata_directory, location_in_repository = '',
       key it should be removed and updated. 
   
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.FormatError, if the arguments are improperly formatted or if the public
+      key is not a valid one ( if it's not none ).
 
     OSError, if the filepaths provided do not have write permissions
-
-    tuf.FormatError, if the key is not a valid public key.
 
   <Side Effects>
     The 'metadata_directory' and 'targets_directory'  directories are created
     if they do not exist.
     
   <Returns>
-    A 'tuf.devtools.Repository' object.
+    A 'tuf.developer_tool.Project' object.
   """
 
   # Does 'metadata_directory' have the correct format?
@@ -609,7 +608,8 @@ def create_new_project(metadata_directory, location_in_repository = '',
 
   if key is not None:
     tuf.formats.KEY_SCHEMA.check_match(key)
-  # Set the repository, metadata, and targets directories.  These directories
+
+  # Set the metadata and targets directories.  These directories
   # are created if they do not exist.
   metadata_directory = os.path.abspath(metadata_directory)
   targets_directory = os.path.abspath(targets_directory)
@@ -760,7 +760,7 @@ def load_project(project_directory, prefix=''):
    stored in a libtuf.Repository object.
 
   <Returns>
-    libtuf.Repository object.
+    A  tuf.developer_tool.Project object.
   
   """
   # Does 'repository_directory' have the correct format?
@@ -810,7 +810,7 @@ def load_project(project_directory, prefix=''):
     project.add_verification_key(temp_pubkey)
   
 
-  # load the toplevel metadata
+  # load the project's metadata
   targets_metadata_path = os.path.join(metadata_directory, TARGETS_FILENAME)
   signable = tuf.util.load_json_file(targets_metadata_path)
   tuf.formats.check_signable_object_format(signable)
