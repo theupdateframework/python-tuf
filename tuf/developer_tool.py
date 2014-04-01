@@ -109,6 +109,8 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 # Initial 'targets.txt' expiration time of 3 months. 
 TARGETS_EXPIRATION = 7889230 
 
+
+
 # TODO: We should have a method like Describe to show the contents of the 
 #       instance
 class Project(Targets):
@@ -172,6 +174,7 @@ class Project(Targets):
     super(Project, self).__init__(self._targets_directory, 'targets')
 
     self.prefix = file_prefix
+
 
 
 
@@ -251,6 +254,8 @@ class Project(Targets):
 
 
 
+
+
   def remove_verification_key(self,key):
     """
       <Purpose>
@@ -274,6 +279,8 @@ class Project(Targets):
       super(Project, self).remove_verification_key(key)
     except tuf.FormatError:
       raise
+
+
 
 
   def add_verification_key(self,key):
@@ -307,6 +314,8 @@ class Project(Targets):
       super(Project, self).add_verification_key(key)
     except tuf.FormatError:
       raise
+
+
 
 
 
@@ -404,6 +413,8 @@ class Project(Targets):
 
 
 
+
+
 def _print_status(rolename, signable):
   """
   Non-public function prints the number of (good/threshold) signatures of
@@ -416,6 +427,10 @@ def _print_status(rolename, signable):
     repr(len(status['good_sigs']))+' / '+ \
     repr(status['threshold'])+' signatures.'
   print(message)
+
+
+
+
 
 def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                  targets_directory, metadata_directory,
@@ -496,6 +511,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # 'consistent_snaptshots' is True.  Client may request a timestamp and root
   # file without knowing its digest and file size.
   return signable, filename 
+
+
+
 
 
 def _prompt(message, result_type=str):
@@ -656,6 +674,11 @@ def create_new_project(metadata_directory, location_in_repository = '',
 
   return project
 
+
+
+
+
+
 def save_project_configuration(metadata_directory,targets_directory,
                                 public_keys, prefix, threshold, layout_type):
   """
@@ -735,6 +758,9 @@ def save_project_configuration(metadata_directory,targets_directory,
 
   # clean our mess
   fp.close()
+
+
+
 
 
 def load_project(project_directory, prefix=''):
@@ -949,6 +975,10 @@ def load_project(project_directory, prefix=''):
  
   return project
 
+
+
+
+
 def _strip_prefix_from_targets_metadata(targets_metadata, prefix):
   """ non-public method that removes the prefix from the targets metadata
       so it can be used again in compliance with the local copies
@@ -962,6 +992,10 @@ def _strip_prefix_from_targets_metadata(targets_metadata, prefix):
   targets_metadata['targets'] = unprefixed_targets_metadata
   
   return targets_metadata 
+
+
+
+
 
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
