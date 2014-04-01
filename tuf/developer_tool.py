@@ -62,7 +62,7 @@ from tuf.repository_tool import _delete_obsolete_metadata
 from tuf.repository_tool import generate_targets_metadata
 from tuf.repository_tool import sign_metadata
 from tuf.repository_tool import write_metadata_file
-from tuf.repository_tool import _check_if_partial_loaded
+from tuf.repository_tool import _metadata_is_partially_loaded
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.devtools')
@@ -824,8 +824,15 @@ def load_project(project_directory, prefix=''):
   roleinfo['version'] = targets_metadata['version']
   roleinfo['paths'] = targets_metadata['targets'].keys()
   roleinfo['delegations'] = targets_metadata['delegations']
+  roleinfo['partial_loaded'] = false
   
-  _check_if_partial_loaded('targets',signable,roleinfo)
+
+  # check if the loaded metadata was partially written and update the 
+  # flag in the roledb
+  if _metadata_is_partially_loaded('targets',signable,roleinfo):
+    roleinfo['partial_loaded'] = True
+
+
   tuf.roledb.update_roleinfo('targets',roleinfo)
 
   
@@ -893,12 +900,16 @@ def load_project(project_directory, prefix=''):
         roleinfo['expires'] = metadata_object['expires']
         roleinfo['paths'] = metadata_object['targets'].keys()
         roleinfo['delegations'] = metadata_object['delegations']
+        roleinfo['partial_loaded'] = False
       
         if os.path.exists(metadata_path+'.gz'):
           roleinfo['compressions'].append('gz')
 
+        # if the metadata was partially loaded, update the roleinfo flag.
+        if _metadata_is_partially_loaded(metadata_name, signable, roleinfo):
+          roleinfo['partial_loaded'] = True
 
-        _check_if_partial_loaded(metadata_name, signable, roleinfo)
+
         tuf.roledb.update_roleinfo(metadata_name, roleinfo)
 
         # append to list of elements to avoid reloading repeated metadata
