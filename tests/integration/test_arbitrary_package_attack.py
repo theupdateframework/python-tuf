@@ -20,7 +20,7 @@
 
 <Purpose>
   Simulate an arbitrary package attack, where an updater client attempts to
-  download a malicious file.  TUF and non-TUF client scenarios is tested.  
+  download a malicious file.  TUF and non-TUF client scenarios are tested.  
 
   There is no difference between 'updates' and 'target' files.
 """
@@ -57,8 +57,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def setUpClass(cls):
-    # setUpClass() is called before any of the test cases in this unit test
-    # are executed.
+    # setUpClass() is called before any of the test cases are executed.
     
     # Create a temporary directory to store the repository, metadata, and target
     # files.  'temporary_directory' must be deleted in TearDownModule() so that
@@ -88,11 +87,11 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
   @classmethod 
   def tearDownClass(cls):
-    # tearDownModule() is called after all the tests have run.
+    # tearDownModule() is called after all the test cases have run.
     # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
    
     # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated for all test cases.
+    # metadata, targets, and key files generated of all the test cases.
     shutil.rmtree(cls.temporary_directory)
     
     unittest_toolbox.Modified_TestCase.clear_toolbox()
@@ -131,8 +130,8 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     # to the temporary repository the test cases can use.
     shutil.copytree(original_repository, self.repository_directory)
     shutil.copytree(original_client, self.client_directory)
-    #shutil.copytree(original_keystore, self.keystore_directory)
 
+    # Set the url prefix required by the 'tuf/client/updater.py' updater.
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'. 
     repository_basepath = self.repository_directory[len(os.getcwd()):]
     url_prefix = \
@@ -146,28 +145,29 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
                                            'targets_path': 'targets',
                                            'confined_target_dirs': ['']}}
 
-    # Creating repository instance.  The test cases will use this client
+    # Create the repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
     self.repository_updater = updater.Updater('test_repository',
                                               self.repository_mirrors)
 
 
   def tearDown(self):
+    # Modified_TestCase.tearDown() automatically deletes temporary files and
+    # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
 
   def test_without_tuf(self):
-    # Verify that a target file on themodified by an attacker is
-    # not downloaded by the TUF client.repository replaced with a malicious
-    # version is downloaded by a non-tuf client.  A tuf client, on the other
-    # hand, should detect that the downloaded target file is invalid.
+    # Verify that a target file replaced with a malicious version is downloaded
+    # by a non-TUF client (i.e., a non-TUF client that does not verify hashes,
+    # detect mix-and-mix attacks, etc.)  A tuf client, on the other hand, should
+    # detect that the downloaded target file is invalid.
    
     # Test: Download a valid target file from the repository.
     # Ensure the target file to be downloaded has not already been downloaded,
-    # and generate its file size and digest of the target available on the
-    # repository.  The file size and digest is needed to check that the
-    # malicious file was indeed downloaded.
+    # and generate its file size and digest.  The file size and digest is needed
+    # to check that the malicious file was indeed downloaded.
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
     client_target_path = os.path.join(self.client_directory, 'file1.txt') 
     self.assertFalse(os.path.exists(client_target_path))
@@ -189,9 +189,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     length, hashes = tuf.util.get_file_details(target_path)
     malicious_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
-    url = self.repository_mirrors['mirror1']['url_prefix']
-    file3_url = os.path.join(url, 'targets', 'file1.txt')
-    urllib.urlretrieve(file3_url, client_target_path)
+    urllib.urlretrieve(url_file, client_target_path)
     
     length, hashes = tuf.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
@@ -205,13 +203,13 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
 
   def test_with_tuf(self):
-    # Verify that a target file on the repository modified by an attacker is
-    # not downloaded by the TUF client.
+    # Verify that a target file (on the remote repository) modified by an
+    # attacker is not downloaded by the TUF client.
     # First test that the valid target file is successfully downloaded.
     file1_fileinfo = self.repository_updater.target('file1.txt')
     destination = os.path.join(self.client_directory)
     self.repository_updater.download_target(file1_fileinfo, destination)
-    client_target_path = os.path.join(self.client_directory, 'file1.txt')
+    client_target_path = os.path.join(destination, 'file1.txt')
     self.assertTrue(os.path.exists(client_target_path))
 
     # Modify 'file1.txt' and confirm that the TUF client rejects it.
@@ -226,7 +224,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       url_prefix = self.repository_mirrors['mirror1']['url_prefix']
       url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
-      # Verify that only one exception raised for 'url_file'.
+      # Verify that only one exception is raised for 'url_file'.
       self.assertTrue(len(exception.mirror_errors), 1)
 
       # Verify that the expected 'tuf.DownloadLengthMismatchError' exception
@@ -238,10 +236,9 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
   
   
   def test_with_tuf_and_metadata_tampering(self):
-    # Test that a TUF client does not download a malicious target file, and
-    # a 'targets.json' metadata file that has also been modified by the 
-    # attacker.  The attacker does not attach a valid signature to
-    # 'targets.json'
+    # Test that a TUF client does not download a malicious target file, and a
+    # 'targets.json' metadata file that has also been modified by the attacker.
+    # The attacker does not attach a valid signature to 'targets.json'
     
     # An attacker modifies 'file1.txt'.
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
