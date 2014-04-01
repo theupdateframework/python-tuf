@@ -1,6 +1,6 @@
 """
 <Program Name>
-  tuf-devtoools.py
+  developer_tool.py
 
 <Authors>
   Santiago Torres <torresariass@gmail.com>
@@ -15,7 +15,8 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  See 'tuf/README' for a complete guide on using 'tuf.devtools.py'.
+  See 'tuf/README-developer-tools.md' for a complete guide on using
+  'developer_tool.py'.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
