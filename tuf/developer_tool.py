@@ -382,13 +382,13 @@ class Project(Targets):
 
       # Targets role.
       try: 
-        _check_role_keys(self.targets.rolename)
+        _check_role_keys(self.rolename)
       except tuf.InsufficientKeysError, e:
         print(str(e))
         return
       
       try:
-        signable =  _generate_and_write_metadata(self.targets.rolename,
+        signable =  _generate_and_write_metadata(self.rolename,
                                                 filenames['targets'], False,
                                                 self._targets_directory,
                                                 self._metadata_directory,
@@ -786,7 +786,7 @@ def load_project(project_directory, prefix=''):
   # create a blank project on the target directory
   project = Project(metadata_directory,targets_directory , prefix)
 
-  project.targets.threshold = project_configuration['threshold']
+  project.threshold = project_configuration['threshold']
   project.prefix = project_configuration['prefix']
   project.layout_type = project_configuration['layout_type']
 
@@ -816,7 +816,7 @@ def load_project(project_directory, prefix=''):
   targets_metadata = _strip_prefix_from_targets_metadata(targets_metadata,
                                               project_configuration['prefix'])
   for signature in signable['signatures']:
-    project.targets.add_signature(signature)
+    project.add_signature(signature)
 
   # update roledb
   roleinfo = tuf.roledb.get_roleinfo('targets')
@@ -849,7 +849,7 @@ def load_project(project_directory, prefix=''):
   # metadata object.
   targets_objects = {}
   loaded_metadata = []
-  targets_objects['targets'] = project.targets
+  targets_objects['targets'] = project
   targets_metadata_directory = os.path.join(metadata_directory,
                                             TARGETS_DIRECTORY_NAME)
   if os.path.exists(targets_metadata_directory) and \
