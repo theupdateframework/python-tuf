@@ -56,7 +56,6 @@ from tuf.repository_tool import import_rsa_privatekey_from_file
 from tuf.repository_tool import generate_and_write_ed25519_keypair
 from tuf.repository_tool import import_ed25519_publickey_from_file
 from tuf.repository_tool import import_ed25519_privatekey_from_file
-#from tuf.import _generate_and_write_metadata
 from tuf.repository_tool import _remove_invalid_and_duplicate_signatures
 from tuf.repository_tool import _check_role_keys
 from tuf.repository_tool import _delete_obsolete_metadata
@@ -197,7 +196,7 @@ class Project(Targets):
       threshold of signatures.
 
     <Side Effects>
-      Creates metadata files in the repository's metadata directory.
+      Creates metadata files in the projects's metadata directory.
 
     <Returns>
       None.
@@ -531,7 +530,11 @@ def _get_password(prompt='Password: ', confirm=False):
     else:
       print('Mismatch; try again.')
 
-# TODO: change prefix to something like location_in_repository.
+
+
+
+
+
 def create_new_project(metadata_directory, location_in_repository = '',
       targets_directory=None, key=None):
   """
@@ -622,7 +625,7 @@ def create_new_project(metadata_directory, location_in_repository = '',
   # Check for case where 'repository_directory' has already been created. 
   except OSError, e:
     if e.errno == errno.EEXIST:
-      # should check if we have wriite permissions here
+      # should check if we have write permissions here
       pass 
     else:
       raise
