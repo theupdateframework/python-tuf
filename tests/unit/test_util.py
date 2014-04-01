@@ -5,7 +5,7 @@
   test_util.py
 
 <Author>
-  Konstantin Andrianov
+  Konstantin Andrianov.
 
 <Started>
   February 1, 2013
@@ -280,11 +280,17 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
   def  test_B5_load_json_string(self):
+    # Test normal case. 
     data = ['a', {'b': ['c', None, 30.3, 29]}]
     json_string = util.json.dumps(data)
     self.assertEquals(data, util.load_json_string(json_string))
- 
 
+    # Test invalid arguments.
+    self.assertRaises(tuf.Error, util.load_json_string, 8)
+    invalid_json_string = {'a': tuf.FormatError}
+    self.assertRaises(tuf.Error, util.load_json_string, invalid_json_string)
+
+ 
 
   def  test_B6_load_json_file(self):
     data = ['a', {'b': ['c', None, 30.3, 29]}]
@@ -296,6 +302,205 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     Errors = (tuf.FormatError, IOError)
     for bogus_arg in ['a', 1, ['a'], {'a':'b'}]:
       self.assertRaises(Errors, util.load_json_file, bogus_arg)
+
+  
+  
+  def test_C1_get_target_hash(self):
+    # Test normal case. 
+    expected_target_hashes = {
+      '/file1.txt': 'e3a3d89eb3b70ce3fbce6017d7b8c12d4abd5635427a0e8a238f53157df85b3d',
+      '/README.txt': '8faee106f1bb69f34aaf1df1e3c2e87d763c4d878cb96b91db13495e32ceb0b0',
+      '/warehouse/file2.txt': 'd543a573a2cec67026eff06e75702303559e64e705eba06f65799baaf0424417'
+    }
+    for filepath, target_hash in expected_target_hashes.items():
+      self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.formats.HASH_SCHEMA.matches(target_hash))
+      self.assertEqual(util.get_target_hash(filepath), target_hash)
+   
+    # Test for improperly formatted argument.
+    self.assertRaises(tuf.FormatError, util.get_target_hash, 8)
+
+
+
+  def test_C2_find_delegated_role(self):
+    # Test normal case.  Create an expected role list, which is one of the
+    # required arguments to 'find_delegated_role()'.
+    role_list = [
+      {
+       "keyids": [
+        "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf"
+       ], 
+       "name": "targets/warehouse", 
+       "paths": [
+        "/file1.txt", "/README.txt", '/warehouse/'
+       ], 
+       "threshold": 3
+      },
+      {
+       "keyids": [
+        "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf"
+       ], 
+       "name": "targets/tuf", 
+       "paths": [
+        "/updater.py", "formats.py", '/tuf/'
+       ], 
+       "threshold": 4
+      }
+    ]
+
+    self.assertTrue(tuf.formats.ROLELIST_SCHEMA.matches(role_list))
+    self.assertEqual(util.find_delegated_role(role_list, 'targets/tuf'), 1)
+    self.assertEqual(util.find_delegated_role(role_list, 'targets/warehouse'), 0)
+    # Test for non-existent role.  'find_delegated_role()' returns 'None'
+    # if the role is not found.
+    self.assertEqual(util.find_delegated_role(role_list, 'targets/non-existent'),
+                                              None)
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, util.find_delegated_role, 8, role_list)
+    self.assertRaises(tuf.FormatError, util.find_delegated_role, 8, 'targets/tuf')
+
+    # Test duplicate roles.
+    role_list.append(role_list[1])
+    self.assertRaises(tuf.RepositoryError, util.find_delegated_role, role_list,
+                      'targets/tuf')
+
+    # Test missing 'name' attribute (optional, but required by 
+    # 'find_delegated_role()'.
+    # Delete the duplicate role, and the remaining role's 'name' attribute. 
+    del role_list[2]
+    del role_list[0]['name']
+    self.assertRaises(tuf.RepositoryError, util.find_delegated_role, role_list,
+                      'targets/warehouse')
+  
+  
+  
+  def test_C3_paths_are_consistent_with_hash_prefixes(self):
+    # Test normal case.
+    path_hash_prefixes = ['e3a3', '8fae', 'd543']
+    list_of_targets = ['/file1.txt', '/README.txt', '/warehouse/file2.txt']
+    
+    # Ensure the paths of 'list_of_targets' each have the epected path hash
+    # prefix listed in 'path_hash_prefixes'. 
+    for filepath in list_of_targets: 
+      self.assertTrue(util.get_target_hash(filepath)[0:4] in path_hash_prefixes)
+
+    self.assertTrue(util.paths_are_consistent_with_hash_prefixes(list_of_targets,
+                                                            path_hash_prefixes))
+
+    extra_invalid_prefix = ['e3a3', '8fae', 'd543', '0000']
+    self.assertTrue(util.paths_are_consistent_with_hash_prefixes(list_of_targets,
+                                                          extra_invalid_prefix))
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError,
+                      util.paths_are_consistent_with_hash_prefixes, 8,
+                      path_hash_prefixes) 
+    
+    self.assertRaises(tuf.FormatError,
+                      util.paths_are_consistent_with_hash_prefixes,
+                      list_of_targets, 8)
+    
+    self.assertRaises(tuf.FormatError,
+                      util.paths_are_consistent_with_hash_prefixes,
+                      list_of_targets, ['zza1'])
+    
+    # Test invalid list of targets.
+    bad_target_path = '/file5.txt'
+    self.assertTrue(util.get_target_hash(bad_target_path)[0:4] not in
+                    path_hash_prefixes)
+    self.assertFalse(util.paths_are_consistent_with_hash_prefixes([bad_target_path],
+                                                            path_hash_prefixes))
+
+    # Add invalid target path to 'list_of_targets'.
+    list_of_targets.append(bad_target_path)
+    self.assertFalse(util.paths_are_consistent_with_hash_prefixes(list_of_targets,
+                                                            path_hash_prefixes))
+
+
+
+  def test_C4_ensure_all_targets_allowed(self):
+    # Test normal case.
+    rolename = 'targets/warehouse'
+    self.assertTrue(tuf.formats.ROLENAME_SCHEMA.matches(rolename))
+    list_of_targets = ['/file1.txt', '/README.txt', '/warehouse/file2.txt'] 
+    self.assertTrue(tuf.formats.RELPATHS_SCHEMA.matches(list_of_targets))
+    parent_delegations = {"keys": {
+      "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf": {
+       "keytype": "ed25519", 
+       "keyval": {
+        "public": "3eb81026ded5af2c61fb3d4b272ac53cd1049a810ee88f4df1fc35cdaf918157"
+       }
+      }
+     }, 
+     "roles": [
+      {
+       "keyids": [
+        "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf"
+       ], 
+       "name": "targets/warehouse", 
+       "paths": [
+        "/file1.txt", "/README.txt", '/warehouse/'
+       ], 
+       "threshold": 1
+      }
+     ]
+    }
+    self.assertTrue(tuf.formats.DELEGATIONS_SCHEMA.matches(parent_delegations))
+
+    util.ensure_all_targets_allowed(rolename, list_of_targets,
+                                    parent_delegations)
+
+    # The target files of 'targets' are always allowed.  'list_of_targets' and
+    # 'parent_delegations' are not checked in this case. 
+    util.ensure_all_targets_allowed('targets', list_of_targets,
+                                    parent_delegations)
+    
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, util.ensure_all_targets_allowed,
+                      8, list_of_targets, parent_delegations)
+    
+    self.assertRaises(tuf.FormatError, util.ensure_all_targets_allowed,
+                      rolename, 8, parent_delegations)
+    
+    self.assertRaises(tuf.FormatError, util.ensure_all_targets_allowed,
+                      rolename, list_of_targets, 8)
+
+    # Test for invalid 'rolename', which has not been delegated by its parent,
+    # 'targets'.
+    self.assertRaises(tuf.RepositoryError, util.ensure_all_targets_allowed,
+                      'targets/non-delegated_rolename', list_of_targets,
+                      parent_delegations)
+
+    # Test for target file that is not allowed by the parent role.
+    self.assertRaises(tuf.ForbiddenTargetError, util.ensure_all_targets_allowed,
+                      'targets/warehouse', ['file8.txt'], parent_delegations)
+    
+    self.assertRaises(tuf.ForbiddenTargetError, util.ensure_all_targets_allowed,
+                      'targets/warehouse', ['file1.txt', 'bad-README.txt'],
+                      parent_delegations)
+
+    # Test for required attributes.
+    # Missing 'paths' attribute.
+    del parent_delegations['roles'][0]['paths']
+    self.assertRaises(tuf.FormatError, util.ensure_all_targets_allowed,
+                      'targets/warehouse', list_of_targets, parent_delegations)
+    
+    # Test 'path_hash_prefixes' attribute.
+    path_hash_prefixes = ['e3a3', '8fae', 'd543']
+    parent_delegations['roles'][0]['path_hash_prefixes'] = path_hash_prefixes
+    
+    # Test normal case for 'path_hash_prefixes'.
+    util.ensure_all_targets_allowed('targets/warehouse', list_of_targets,
+                                    parent_delegations)
+   
+    # Test target file with a path_hash_prefix that is not allowed in its
+    # parent role.
+    path_hash_prefix = util.get_target_hash('file5.txt')[0:4]
+    self.assertTrue(path_hash_prefix not in parent_delegations['roles'][0]
+                                                        ['path_hash_prefixes'])
+    self.assertRaises(tuf.ForbiddenTargetError, util.ensure_all_targets_allowed,
+                      'targets/warehouse', ['file5.txt'], parent_delegations)
 
 
 
