@@ -164,6 +164,11 @@ class Project(Targets):
       downloaded.  Metadata files are similarly referenced in the top-level
       metadata.
 
+    file_prefix:
+      The path strig that will be prepended to the generated metadata
+      (e.g. targets/foo -> targets/prefix/foo) so that it matches the actual
+      location in the upstream repository.
+
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
@@ -681,7 +686,7 @@ def create_new_project(metadata_directory, location_in_repository = '',
     else:
       raise
  
-  # Create the bare bones repository object, where only the top-level roles
+  # Create the bare bones project object, where only the top-level roles
   # have been set and contain default values (e.g., Root roles has a threshold
   # of 1, expires 1 year into the future, etc.)
   project = Project(metadata_directory, targets_directory,
@@ -710,28 +715,31 @@ def save_project_configuration(metadata_directory,targets_directory,
 
   <Arguments>
     metadata_directory:
-      where the project's metadata is located
+      Where the project's metadata is located
+
+    targets_directory:
+      The location of the target files in this project.
     
     public_keys:
-      a list containing the public keys for the toplevel targets role
+      A list containing the public keys for the project role.
     
     prefix: 
-      the project's prefix (if any)
+      The project's prefix (if any)
     
     threshold: 
-      the threshold value for the toplevel targets role
+      The threshold value for the project role.
   
     layout_type:
-      the layout type being used by the project, "flat" stands for separated
+      The layout type being used by the project, "flat" stands for separated
       targets and metadata directories, "repo-like" emulates the layout used
       by the repository tools
 
   <Exceptions>
-    Exceptions may rise if the metadata_directory/project.cfg file exists and
+    OSError may rise if the metadata_directory/project.cfg file exists and
     is non-writeable
 
-    Exceptions are also expected if either the prefix or the metadata directory
-    are malformed
+    tuf.FormatError are also expected if either the prefix or the metadata
+    directory are malformed
 
   <Side Effects>
     A project.cfg file is created or overwritten
