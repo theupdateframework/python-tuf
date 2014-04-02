@@ -162,7 +162,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # Scenario:
     # 'timestamp.json' specifies the latest version of the repository files.
     # A client should only accept the same version of this file up to a certain
-    # point, else it cannot detect that new files are available for download.
+    # point, or else it cannot detect that new files are available for download.
     # Modify the repository's timestamp.json' so that it expires soon, copy it
     # over the client, and attempt to re-fetch the same expired version. 
     # A non-TUF client (without a way to detect when metadata has expired) is
@@ -174,14 +174,15 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
     timestamp_metadata = tuf.util.load_json_file(timestamp_path)
     timestamp_metadata['signed']['expires'] = \
-      tuf.formats.format_time(time.time()-10) 
+      tuf.formats.format_time(time.time() - 10) 
     
     tuf.formats.check_signable_object_format(timestamp_metadata) 
     
     with open(timestamp_path, 'wb') as file_object:
       json.dump(timestamp_metadata, file_object, indent=1, sort_keys=True)   
     
-    client_timestamp_path = os.path.join(self.client_directory, 'timestamp.json')
+    client_timestamp_path = os.path.join(self.client_directory,
+                                         'timestamp.json')
     shutil.copy(timestamp_path, client_timestamp_path)
     
     length, hashes = tuf.util.get_file_details(timestamp_path)
@@ -201,14 +202,17 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
 
   def test_with_tuf(self):
-    # The same scenario outlined in test_without_tuf() is tested here, except
+    # The same scenario outlined in test_without_tuf() is followed here, except
     # with a TUF client.  The TUF client performs a refresh of top-level
-    # metadata, which also includes 'timestamp.json'. 
+    # metadata, which also includes 'timestamp.json'.
     
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
                                   'timestamp.json')
     
-    # Modify the timestamp file on the remote repository.
+    # Modify the timestamp file on the remote repository.  'timestamp.json'
+    # must be properly updated and signed with 'repository_tool.py', otherwise
+    # the client will reject it as invalid metadata.  The resulting
+    # 'timestamp.json' should be valid metadata, but expired (as intended).
     repository = repo_tool.load_repository(self.repository_directory)
  
     key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
@@ -219,15 +223,19 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     
     # expire in 1 second.
     utc_timestamp = tuf.formats.format_time(time.time() + 1)
-    repository.timestamp.expiration = utc_timestamp[0:utc_timestamp.rfind(' UTC')]
+    repository.timestamp.expiration = \
+      utc_timestamp[0:utc_timestamp.rfind(' UTC')]
     repository.write()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
-
-    self.assertRaises(tuf.ExpiredMetadataError, self.repository_updater.refresh()) 
+    
+    # Verify that the TUF client detects outdated metadata and refuses to
+    # continue the update process.
+    self.assertRaises(tuf.ExpiredMetadataError,
+                      self.repository_updater.refresh()) 
 
 
 
