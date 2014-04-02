@@ -64,8 +64,16 @@ from tuf.repository_tool import sign_metadata
 from tuf.repository_tool import write_metadata_file
 from tuf.repository_tool import _metadata_is_partially_loaded
 
+# import private functions to query for user input.
+from tuf.repository_tool import _prompt
+from tuf.repository_tool import _get_password
+
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.devtools')
+
+
+
+
 
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1 
@@ -538,44 +546,6 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # 'consistent_snaptshots' is True.  Client may request a timestamp and root
   # file without knowing its digest and file size.
   return signable, filename 
-
-
-
-
-
-def _prompt(message, result_type=str):
-  """
-    Non-public function that prompts the user for input by printing 'message',
-    converting the input to 'result_type', and returning the value to the
-    caller.
-  """
-
-  return result_type(raw_input(message))
-
-
-
-
-
-def _get_password(prompt='Password: ', confirm=False):
-  """
-    Non-public function that returns the password entered by the user.  If
-    'confirm' is True, the user is asked to enter the previously entered
-    password once again.  If they match, the password is returned to the caller.
-  """
-
-  while True:
-    # getpass() prompts the user for a password without echoing
-    # the user input.
-    password = getpass.getpass(prompt, sys.stderr)
-    if not confirm:
-      return password
-    password2 = getpass.getpass('Confirm: ', sys.stderr)
-    if password == password2:
-      return password
-    else:
-      print('Mismatch; try again.')
-
-
 
 
 
