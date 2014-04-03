@@ -136,7 +136,7 @@ for target in updated_target:
 ```
 
 ###A Simple Integration Example with basic_client.py
-```Bash
+```
 # Assume a simple TUF repository has been setup with 'tuf.repository_tool.py'.
 $ basic_client.py --repo http://localhost:8001
 
@@ -157,13 +157,13 @@ Downloaded 545 bytes, but expected 2048 bytes. There is a difference of 1503 byt
 Downloading: http://localhost:8001/metadata/snapshot.json
 
 [2013-12-16 16:17:05,612 UTC] [tuf.client.updater] [INFO][_check_hashes:636@updater.py]
-The file\'s sha256 hash is correct: 782675fadd650eeb2926d33c401b5896caacf4fd6766498baf2bce2f3b739db4
+The file's sha256 hash is correct: 782675fadd650eeb2926d33c401b5896caacf4fd6766498baf2bce2f3b739db4
 
 [2013-12-16 16:17:05,951 UTC] [tuf.download] [INFO][_download_file:726@download.py]
 Downloading: http://localhost:8001/metadata/targets.json
 
 [2013-12-16 16:17:05,952 UTC] [tuf.client.updater] [INFO][_check_hashes:636@updater.py]
-The file\'s sha256 hash is correct: a5019c28a1595c43a14cad2b6252c4d1db472dd6412a9204181ad6d61b1dd69a
+The file's sha256 hash is correct: a5019c28a1595c43a14cad2b6252c4d1db472dd6412a9204181ad6d61b1dd69a
 
 [2013-12-16 16:17:06,299 UTC] [tuf.download] [INFO][_download_file:726@download.py]
 Downloading: http://localhost:8001/targets/file1.txt

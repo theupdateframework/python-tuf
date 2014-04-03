@@ -444,7 +444,7 @@ class Repository(object):
       shutil.rmtree(temp_repository_directory, ignore_errors=True)
 
 
-
+  @staticmethod
   def get_filepaths_in_directory(self, files_directory, recursive_walk=False,
                                  followlinks=True):
     """
@@ -488,7 +488,7 @@ class Repository(object):
       message = repr(files_directory)+' is not a directory.'
       raise tuf.Error(message)
    
-    # A list of the target filepaths found in 'file_directory'.
+    # A list of the target filepaths found in 'files_directory'.
     targets = []
 
     # FIXME: We need a way to tell Python 2, but not Python 3, to return
@@ -1213,7 +1213,7 @@ class Metadata(object):
       'tuf.formats.COMPRESSIONS_SCHEMA'.
     """
 
-    tuf.roledb.get_roleinfo(self.rolename)
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     compressions = roleinfo['compressions']
 
     return compressions
@@ -1779,7 +1779,6 @@ class Targets(Metadata):
 
     # Update the tuf.roledb entry.
     targets_directory_length = len(self._targets_directory) 
-    absolute_list_of_targets = []
     relative_list_of_targets = []
    
     # Ensure the paths in 'list_of_targets' are valid and fall under the
@@ -1797,7 +1796,6 @@ class Targets(Metadata):
         raise tuf.Error(message)
       
       if os.path.isfile(filepath):
-        absolute_list_of_targets.append(filepath)
         relative_list_of_targets.append(filepath[targets_directory_length:])
       else:
         message = repr(filepath)+' is not a valid file.'
@@ -2008,17 +2006,6 @@ class Targets(Metadata):
 
     # Add all the keys of 'public_keys' to tuf.keydb.
     for key in public_keys:
-      
-      # Add 'key' to the list of recognized keys.  Keys may be shared,
-      # so do not raise an exception if 'key' has already been loaded.
-      try:
-        tuf.keydb.add_key(key)
-      
-      except tuf.KeyAlreadyExistsError, e:
-        message = \
-          'Adding a public key that has already been used: '+key['keyid']
-        logger.warn(message)
-      
       keyid = key['keyid']
       key_metadata_format = tuf.keys.format_keyval_to_metadata(key['keytype'],
                                                                key['keyval'])
@@ -2595,15 +2582,15 @@ def _get_password(prompt='Password: ', confirm=False):
 
 
 
-def _check_if_partial_loaded(rolename, signable, roleinfo):
+def _metadata_is_partially_loaded(rolename, signable, roleinfo):
   """
   Non-public function that determines whether 'rolename' is loaded with
-  at least 1 good signatures, but an insufficient threshold (which means
+  at least 1 good signature, but an insufficient threshold (which means
   'rolename' was written to disk with repository.write_partial().  If 'rolename'
   is found to be partially loaded, mark it as partially loaded in its
   'tuf.roledb' roleinfo.  This function exists to assist in deciding whether
   a role's version number should be incremented when write() or write_parital()
-  is called.
+  is called.  Return True if 'rolename' was partially loaded, False otherwise. 
   """
 
   # The signature status lists the number of good signatures, including
@@ -2611,8 +2598,11 @@ def _check_if_partial_loaded(rolename, signable, roleinfo):
   status = tuf.sig.get_signature_status(signable, rolename)
   
   if len(status['good_sigs']) < status['threshold'] and \
-                              len(status['good_sigs']) >= 1:
-    roleinfo['partial_loaded'] = True
+                                                  len(status['good_sigs']) >= 1:
+    return True
+  
+  else:
+    return False
 
 
 
@@ -3055,8 +3045,12 @@ def load_repository(repository_directory):
 
         if os.path.exists(metadata_path+'.gz'):
           roleinfo['compressions'].append('gz')
+       
+        # The roleinfo of 'metadata_name' should have been initialized with
+        # defaults when it was loaded from its parent role.
+        if _metadata_is_partially_loaded(metadata_name, signable, roleinfo):
+          roleinfo['partial_loaded'] = True
         
-        _check_if_partial_loaded(metadata_name, signable, roleinfo)
         tuf.roledb.update_roleinfo(metadata_name, roleinfo)
         loaded_metadata.append(metadata_name)
 
@@ -3138,8 +3132,13 @@ def _load_top_level_metadata(repository, top_level_filenames):
 
     if os.path.exists(root_filename+'.gz'):
       roleinfo['compressions'].append('gz')
+   
+    # By default, roleinfo['partial_loaded'] of top-level roles should be set to
+    # False in 'create_roledb_from_root_metadata()'.  Update this field, if
+    # necessary, now that we have its signable object.
+    if _metadata_is_partially_loaded('root', signable, roleinfo):
+      roleinfo['partial_loaded'] = True
     
-    _check_if_partial_loaded('root', signable, roleinfo)
     tuf.roledb.update_roleinfo('root', roleinfo)
 
     # Ensure the 'consistent_snapshot' field is extracted.
@@ -3164,7 +3163,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
     if os.path.exists(timestamp_filename+'.gz'):
       roleinfo['compressions'].append('gz')
     
-    _check_if_partial_loaded('timestamp', signable, roleinfo)
+    if _metadata_is_partially_loaded('timestamp', signable, roleinfo):
+      roleinfo['partial_loaded'] = True
+    
     tuf.roledb.update_roleinfo('timestamp', roleinfo)
   
   else:
@@ -3192,7 +3193,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
     if os.path.exists(snapshot_filename+'.gz'):
       roleinfo['compressions'].append('gz')
     
-    _check_if_partial_loaded('snapshot', signable, roleinfo)
+    if _metadata_is_partially_loaded('snapshot', signable, roleinfo):
+      roleinfo['partial_loaded'] = True
+    
     tuf.roledb.update_roleinfo('snapshot', roleinfo)
   
   else:
@@ -3222,8 +3225,10 @@ def _load_top_level_metadata(repository, top_level_filenames):
     roleinfo['delegations'] = targets_metadata['delegations']
     if os.path.exists(targets_filename+'.gz'):
       roleinfo['compressions'].append('gz')
+   
+    if _metadata_is_partially_loaded('targets', signable, roleinfo):
+      roleinfo['partial_loaded'] = True
     
-    _check_if_partial_loaded('targets', signable, roleinfo)
     tuf.roledb.update_roleinfo('targets', roleinfo)
 
     # Add the keys specified in the delegations field of the Targets role.
@@ -3246,9 +3251,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
       rolename = role['name'] 
       roleinfo = {'name': role['name'], 'keyids': role['keyids'],
                   'threshold': role['threshold'], 'compressions': [''],
-                  'signing_keyids': [], 'signatures': [],
-                  'delegations': {'keys': {},
-                                  'roles': []}}
+                  'signing_keyids': [], 'partial_loaded': False,
+                  'signatures': [], 'delegations': {'keys': {},
+                                                    'roles': []}}
       tuf.roledb.add_role(rolename, roleinfo)
   
   else:
@@ -3379,9 +3384,11 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
+  # Password confirmation disabled here, which should ideally happen only
+  # when creating encrypted key files (i.e., improve usability).
   if password is None:
-    message = 'Enter a password for the encrypted RSA key file: '
-    password = _get_password(message, confirm=True)
+    message = 'Enter a password for the encrypted RSA file: '
+    password = _get_password(message, confirm=False)
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
@@ -3635,9 +3642,11 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
+  # Password confirmation disabled here, which should ideally happen only
+  # when creating encrypted key files (i.e., improve usability).
   if password is None:
-    message = 'Enter a password for the encrypted ED25519 key file: '
-    password = _get_password(message, confirm=True)
+    message = 'Enter a password for the encrypted ED25519 key: '
+    password = _get_password(message, confirm=False)
 
   # Does 'password' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
@@ -4460,9 +4469,9 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
    
    
   # Generate the compressed versions of 'metadata', if necessary.  A compressed
-  # file may be written (without needed to write the uncompressed version) if
-  # the repository maintainer adds compression after writting the the
-  # uncompressed version.
+  # file may be written (without needing to write the uncompressed version) if
+  # the repository maintainer adds compression after writing the uncompressed
+  # version.
   for compression in compressions:
     file_object = None 
    
@@ -4485,10 +4494,10 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
       raise tuf.FormatError('Unknown compression algorithm: '+repr(compression))
    
     # Save the compressed version, ensuring an unchanged file is not re-saved.
-    # Re-savign the same compressed version may cause its digest to unexpectedly
+    # Re-saving the same compressed version may cause its digest to unexpectedly
     # change (gzip includes a timestamp) even though content has not changed.
     _write_compressed_metadata(file_object, compressed_filename,
-                               consistent_snapshot)
+                               write_new_metadata, consistent_snapshot)
   return written_filename
 
 
@@ -4496,7 +4505,7 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
 
 
 def _write_compressed_metadata(file_object, compressed_filename,
-                               consistent_snapshot):
+                               write_new_metadata, consistent_snapshot):
   """
   Write compressed versions of metadata, ensuring compressed file that have
   not changed are not re-written, the digest of the compressed file is properly
@@ -4508,7 +4517,7 @@ def _write_compressed_metadata(file_object, compressed_filename,
   # If a consistent snapshot is unneeded, 'file_object' may be simply moved
   # 'compressed_filename' if not already written. 
   if not consistent_snapshot:
-    if not os.path.exists(compressed_filename):
+    if not os.path.exists(compressed_filename) or write_new_metadata:
       file_object.move(compressed_filename)
     
     # The temporary file must be closed if 'file_object.move()' is not used.

@@ -29,16 +29,18 @@
   Optionally, ed25519 cryptographic operations may be executed by PyNaCl, which
   is a Python binding to the NaCl library and is faster than the pure python
   implementation.  Verifying signatures can take approximately 0.0009 seconds.
-  PyNaCl relies on the libsodium C library.
+  PyNaCl relies on the libsodium C library.  PyNaCl is required for key and
+  signature generation.  Verifying signatures may be done in pure Python.
  
   https://github.com/pyca/pynacl
   https://github.com/jedisct1/libsodium
   http://nacl.cr.yp.to/
+  https://github.com/pyca/ed25519
   
   The ed25519-related functions included here are generate(), create_signature()
   and verify_signature().  The 'ed25519' and PyNaCl (i.e., 'nacl') modules used 
-  by ed25519_keys.py generate the actual ed25519 keys and the functions listed
-  above can be viewed as an easy-to-use public interface.
+  by ed25519_keys.py perform the actual ed25519 computations and the functions
+  listed above can be viewed as an easy-to-use public interface.
  """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -52,6 +54,14 @@ from __future__ import division
 # public/private keys are hexlified.
 import binascii
 
+# TODO:  The 'warnings' module needed to temporarily suppress user warnings
+# raised by 'pynacl' (as of version 0.2.3).  Warnings temporarily suppressed
+# here to avoid confusing users with an unexpected error message that gives
+# no indication of its source.  These warnings are printed when using
+# the repository tools, including for clients that request an update.
+# http://docs.python.org/2/library/warnings.html#temporarily-suppressing-warnings
+import warnings
+
 # 'os' required to generate OS-specific randomness (os.urandom) suitable for
 # cryptographic use.
 # http://docs.python.org/2/library/os.html#miscellaneous-functions
@@ -59,21 +69,31 @@ import os
 
 # Import the python implementation of the ed25519 algorithm provided by pyca,
 # which is an optimized version of the one provided by ed25519's authors.
-# Note: The pure Python version do not include protection against side-channel
-# attacks.  Verifying signatures can take approximately 2 seconds on a intel
+# Note: The pure Python version does not include protection against side-channel
+# attacks.  Verifying signatures can take approximately 2 seconds on an intel
 # core 2 duo @ 2.2 ghz x 2).  Optionally, the PyNaCl module may be used to
 # speed up ed25519 cryptographic operations.
 # http://ed25519.cr.yp.to/software.html
 # https://github.com/pyca/ed25519
 # https://github.com/pyca/pynacl
 #
-# PyNaCl's 'cffi' dependency may thrown an 'IOError' exception when
-# importing 'nacl.signing'.
-try:
-  import nacl.signing
-  import nacl.encoding
-except (ImportError, IOError):
-  pass
+# Import the PyNaCl library, if available.  It is recommended this library be
+# used over the pure python implementation of ed25519, due to its speedier
+# routines and side-channel protections available in the libsodium library.
+# 
+# TODO: Version 0.2.3 of 'pynacl' prints: "UserWarning: reimporting '...' might
+# overwrite older definitions." when importing 'nacl.signing'.  Suppress user
+# warnings temporarily (at least until this issue is fixed by PyNaCl).
+with warnings.catch_warnings():
+  warnings.simplefilter('ignore')
+  try:
+    import nacl.signing
+    import nacl.encoding
+  
+  # PyNaCl's 'cffi' dependency may raise an 'IOError' exception when importing
+  # 'nacl.signing'.
+  except (ImportError, IOError):
+    pass
 
 # The optimized pure Python implementation of ed25519 provided by TUF.  If
 # PyNaCl cannot be imported and an attempt to use is made in this module, a
@@ -90,64 +110,46 @@ import tuf.formats
 
 # Supported ed25519 signing method: 'ed25519'.  The pure Python
 # implementation (i.e., 'tuf._vendor.ed25519.ed25519') and PyNaCl
-# (i.e., 'nacl', libsodium+Python bindgs) modules are currently supported in
+# (i.e., 'nacl', libsodium+Python bindings) modules are currently supported in
 # the creationg of 'ed25519' signatures.  Previously, a distinction was made
 # between signatures made by the pure Python implementation and PyNaCl. 
-_SUPPORTED_ED25519_SIGNING_METHODS = ['ed25519',]
+_SUPPORTED_ED25519_SIGNING_METHODS = ['ed25519']
 
 
-def generate_public_and_private(use_pynacl=False):
+def generate_public_and_private():
   """
   <Purpose> 
-    Generate a pair of ed25519 public and private keys.
-    The public and private keys returned conform to
-    'tuf.formats.ED25519PULIC_SCHEMA' and 'tuf.formats.ED25519SEED_SCHEMA',
-    respectively, and have the form:
+    Generate a pair of ed25519 public and private keys with PyNaCl.  The public
+    and private keys returned conform to 'tuf.formats.ED25519PULIC_SCHEMA' and
+    'tuf.formats.ED25519SEED_SCHEMA', respectively, and have the form:
     
     '\xa2F\x99\xe0\x86\x80%\xc8\xee\x11\xb95T\xd9\...'
 
     An ed25519 seed key is a random 32-byte string.  Public keys are also 32
     bytes.
 
-    >>> public, private = generate_public_and_private(use_pynacl=False)
-    >>> tuf.formats.ED25519PUBLIC_SCHEMA.matches(public)
-    True
-    >>> tuf.formats.ED25519SEED_SCHEMA.matches(private)
-    True
-    >>> public, private = generate_public_and_private(use_pynacl=True)
+    >>> public, private = generate_public_and_private()
     >>> tuf.formats.ED25519PUBLIC_SCHEMA.matches(public)
     True
     >>> tuf.formats.ED25519SEED_SCHEMA.matches(private)
     True
 
   <Arguments>
-    use_pynacl:
-      True, if the ed25519 keys should be generated with PyNaCl.  False, if the
-      keys should be generated with the pure Python implementation of ed25519
-      (slower).
+    None.
 
   <Exceptions>
-    tuf.FormatError, if 'use_pynacl' is not a Boolean.
-
-    tuf.UnsupportedLibraryError, if the PyNaCl ('nacl') module is unavailable
-    and 'use_pynacl' is True. 
+    tuf.UnsupportedLibraryError, if the PyNaCl ('nacl') module is unavailable.
 
     NotImplementedError, if a randomness source is not found by 'os.urandom'.
 
   <Side Effects>
     The ed25519 keys are generated by first creating a random 32-byte seed
-    with os.urandom() and then calling ed25519's
-    ed25519.25519.publickey(seed) or PyNaCl's nacl.signing.SigningKey().
+    with os.urandom() and then calling PyNaCl's nacl.signing.SigningKey().
 
   <Returns>
     A (public, private) tuple that conform to 'tuf.formats.ED25519PUBLIC_SCHEMA'
     and 'tuf.formats.ED25519SEED_SCHEMA', respectively.
   """
-  
-  # Does 'use_pynacl' have the correct format?
-  # This check will ensure 'use_pynacl' conforms to 'tuf.formats.BOOLEAN_SCHEMA'.
-  # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.BOOLEAN_SCHEMA.check_match(use_pynacl)
 
   # Generate ed25519's seed key by calling os.urandom().  The random bytes
   # returned should be suitable for cryptographic use and is OS-specific.
@@ -157,19 +159,15 @@ def generate_public_and_private(use_pynacl=False):
   seed = os.urandom(32)
   public = None
 
-  if use_pynacl:
-    # Generate the public key.  PyNaCl (i.e., 'nacl' module) performs
-    # the actual key generation.
-    try:
-      nacl_key = nacl.signing.SigningKey(seed)
-      public = str(nacl_key.verify_key)
-    except NameError:
-      message = 'The PyNaCl library and/or its dependencies unavailable.'
-      raise tuf.UnsupportedLibraryError(message)
-
-  # Use the pure Python implementation of ed25519. 
-  else: 
-    public = tuf._vendor.ed25519.ed25519.publickey(seed)
+  # Generate the public key.  PyNaCl (i.e., 'nacl' module) performs the actual
+  # key generation.
+  try:
+    nacl_key = nacl.signing.SigningKey(seed)
+    public = str(nacl_key.verify_key)
+  
+  except NameError:
+    message = 'The PyNaCl library and/or its dependencies unavailable.'
+    raise tuf.UnsupportedLibraryError(message)
   
   return public, seed
 
@@ -177,28 +175,27 @@ def generate_public_and_private(use_pynacl=False):
 
 
 
-def create_signature(public_key, private_key, data, use_pynacl=False):
+def create_signature(public_key, private_key, data):
   """
   <Purpose>
-    Return a (signature, method) tuple, where the method is 'ed25519' and
-    generated by either the pure python implemenation, or by PyNaCl
-    (i.e., 'nacl').  The signature returns conforms to
-    'tuf.formats.ED25519SIGNATURE_SCHEMA', and has the form:
+    Return a (signature, method) tuple, where the method is 'ed25519' and is
+    always generated by PyNaCl (i.e., 'nacl').  The signature returned conforms
+    to 'tuf.formats.ED25519SIGNATURE_SCHEMA', and has the form:
     
     '\xae\xd7\x9f\xaf\x95{bP\x9e\xa8YO Z\x86\x9d...'
 
     A signature is a 64-byte string.
 
-    >>> public, private = generate_public_and_private(use_pynacl=False)
+    >>> public, private = generate_public_and_private()
     >>> data = 'The quick brown fox jumps over the lazy dog'
     >>> signature, method = \
-        create_signature(public, private, data, use_pynacl=False)
+        create_signature(public, private, data)
     >>> tuf.formats.ED25519SIGNATURE_SCHEMA.matches(signature)
     True
     >>> method == 'ed25519'
     True
     >>> signature, method = \
-        create_signature(public, private, data, use_pynacl=True)
+        create_signature(public, private, data)
     >>> tuf.formats.ED25519SIGNATURE_SCHEMA.matches(signature)
     True
     >>> method == 'ed25519'
@@ -213,11 +210,6 @@ def create_signature(public_key, private_key, data, use_pynacl=False):
 
     data:
       Data object used by create_signature() to generate the signature.
-    
-    use_pynacl:
-      True, if the ed25519 signature should be generated with PyNaCl.  False,
-      if the signature should be generated with the pure Python implementation
-      of ed25519 (much slower).
 
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
@@ -225,8 +217,7 @@ def create_signature(public_key, private_key, data, use_pynacl=False):
     tuf.CryptoError, if a signature cannot be created.
 
   <Side Effects>
-    tuf._vendor.ed25519.ed25519.signature() or nacl.signing.SigningKey.sign()
-    called to generate the actual signature.
+    nacl.signing.SigningKey.sign() called to generate the actual signature.
 
   <Returns>
     A signature dictionary conformat to 'tuf.format.SIGNATURE_SCHEMA'.
@@ -243,13 +234,8 @@ def create_signature(public_key, private_key, data, use_pynacl=False):
   # Is 'private_key' properly formatted?
   tuf.formats.ED25519SEED_SCHEMA.check_match(private_key)
   
-  # Is 'use_pynacl' properly formatted?
-  tuf.formats.BOOLEAN_SCHEMA.check_match(use_pynacl)
-  
   # Signing the 'data' object requires a seed and public key.
-  # 'tuf._vendor.ed25519.ed25519.py' generates the actual 64-byte signature in
-  # pure Python.  nacl.signing.SigningKey.sign() generates the signature if
-  # 'use_pynacl' is True.
+  # nacl.signing.SigningKey.sign() generates the signature.
   public = public_key
   private = private_key
 
@@ -258,34 +244,20 @@ def create_signature(public_key, private_key, data, use_pynacl=False):
  
   # The private and public keys have been validated above by 'tuf.formats' and
   # should be 32-byte strings.
-  if use_pynacl:
-    method = 'ed25519'
-    try:
-      nacl_key = nacl.signing.SigningKey(private)
-      nacl_sig = nacl_key.sign(data)
-      signature = nacl_sig.signature
-    
-    except NameError:
-      message = 'The PyNaCl library and/or its dependencies unavailable.'
-      raise tuf.UnsupportedLibraryError(message)
-    
-    except (ValueError, nacl.signing.CryptoError):
-      message = 'An "ed25519" signature could not be created with PyNaCl.'
-      raise tuf.CryptoError(message)
-   
-  # Generate an "ed25519" signature with the pure python implementation.
-  else:
-    # tuf._vendor.ed25519.ed25519.signature() requires both the seed and
-    # public keys.  It calculates the SHA512 of the seed key, which is 32 bytes.
-    method = 'ed25519'
-    try:
-      signature = tuf._vendor.ed25519.ed25519.signature(data, private, public)
-   
-    # 'Exception' raised by ed25519.py for any exception that may occur.
-    except Exception, e:
-      message = 'An "ed25519" signature could not be generated in pure Python.'
-      raise tuf.CryptoError(message)
+  method = 'ed25519'
+  try:
+    nacl_key = nacl.signing.SigningKey(private)
+    nacl_sig = nacl_key.sign(data)
+    signature = nacl_sig.signature
   
+  except NameError:
+    message = 'The PyNaCl library and/or its dependencies unavailable.'
+    raise tuf.UnsupportedLibraryError(message)
+  
+  except (ValueError, TypeError, nacl.exceptions.CryptoError):
+    message = 'An "ed25519" signature could not be created with PyNaCl.'
+    raise tuf.CryptoError(message)
+   
   return signature, method
 
 
@@ -299,17 +271,17 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
     'signature'.  verify_signature() will use the public key, the 'method' and
     'sig', and 'data' arguments to complete the verification.
 
-    >>> public, private = generate_public_and_private(use_pynacl=False)
+    >>> public, private = generate_public_and_private()
     >>> data = 'The quick brown fox jumps over the lazy dog'
     >>> signature, method = \
-        create_signature(public, private, data, use_pynacl=False)
+        create_signature(public, private, data)
     >>> verify_signature(public, method, signature, data, use_pynacl=False)
     True
     >>> verify_signature(public, method, signature, data, use_pynacl=True)
     True
     >>> bad_data = 'The sly brown fox jumps over the lazy dog'
     >>> bad_signature, method = \
-        create_signature(public, private, bad_data, use_pynacl=False)
+        create_signature(public, private, bad_data)
     >>> verify_signature(public, method, bad_signature, data, use_pynacl=False)
     False
   
@@ -378,13 +350,15 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
         nacl_message = nacl_verify_key.verify(data, signature) 
         if nacl_message == data:
           valid_signature = True
+      
       except NameError:
         message = 'The PyNaCl library and/or its dependencies unavailable.'
         raise tuf.UnsupportedLibraryError(message)
-      except nacl.signing.BadSignatureError:
+      
+      except nacl.exceptions.BadSignatureError:
         pass 
     
-    # Verify 'ed25519' signature with pure Python implementation. 
+    # Verify 'ed25519' signature with the pure Python implementation. 
     else:
       try:
         tuf._vendor.ed25519.ed25519.checkvalid(signature, data, public)

@@ -48,6 +48,11 @@
 # hexlified.
 import binascii
 
+# NOTE:  'warnings' needed to temporarily suppress user warnings raised by
+# 'pynacl' (as of version 0.2.3).
+# http://docs.python.org/2/library/warnings.html#temporarily-suppressing-warnings
+import warnings
+
 # 'pycrypto' is the only currently supported library for the creation of RSA
 # keys.
 # https://github.com/dlitz/pycrypto
@@ -81,12 +86,21 @@ except ImportError:
 # Import the PyNaCl library, if available.  It is recommended this library be
 # used over the pure python implementation of ed25519, due to its speedier
 # routines and side-channel protections available in the libsodium library.
-try:
-  import nacl
-  import nacl.signing
-  _available_crypto_libraries.append('pynacl')
-except (ImportError, IOError):
-  pass
+
+# NOTE: Version 0.2.3 of 'pynacl' prints: "UserWarning: reimporting '...' might
+# overwrite older definitions." when importing 'nacl.signing' below.  Suppress
+# user warnings temporarily (at least until this issue is fixed).
+with warnings.catch_warnings():
+  warnings.simplefilter('ignore')
+  try:
+    import nacl
+    import nacl.signing
+    _available_crypto_libraries.append('pynacl')
+  
+  # PyNaCl's 'cffi' dependency may raise an 'IOError' exception when importing
+  # 'nacl.signing'.
+  except (ImportError, IOError):
+    pass
 
 # The optimized version of the ed25519 library provided by default is imported
 # regardless of the availability of PyNaCl.
@@ -280,11 +294,11 @@ def generate_ed25519_key():
   # provided by pyca and available in TUF.
   if 'pynacl' in _available_crypto_libraries:
     public, private = \
-      tuf.ed25519_keys.generate_public_and_private(use_pynacl=True)
+      tuf.ed25519_keys.generate_public_and_private()
   else:
-    public, private = \
-      tuf.ed25519_keys.generate_public_and_private(use_pynacl=False)
-    
+    message = 'The required PyNaCl library is unavailable.' 
+    raise tuf.UnsupportedLibraryError(message)
+
   # Generate the keyid of the ED25519 key.  'key_value' corresponds to the
   # 'keyval' entry of the 'ED25519KEY_SCHEMA' dictionary.  The private key
   # information is not included in the generation of the 'keyid' identifier.
@@ -646,15 +660,13 @@ def create_signature(key_dict, data):
   elif keytype == 'ed25519':
     public = binascii.unhexlify(public)
     private = binascii.unhexlify(private)
-    if _ED25519_CRYPTO_LIBRARY == 'pynacl' \
-                  and 'pynacl' in _available_crypto_libraries:
-      sig, method = tuf.ed25519_keys.create_signature(public, private,
-                                                      data, use_pynacl=True)
+    if 'pynacl' in _available_crypto_libraries:
+      sig, method = tuf.ed25519_keys.create_signature(public, private, data)
     
-    # Fall back to using the optimized pure python implementation of ed25519. 
     else:
-      sig, method = tuf.ed25519_keys.create_signature(public, private,
-                                                      data, use_pynacl=False)
+      message = 'The required PyNaCl library is unavailable.'
+      raise tuf.UnsupportedLibraryError(message)
+
   else:
     raise TypeError('Invalid key type.')
     
