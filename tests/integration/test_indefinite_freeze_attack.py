@@ -3,20 +3,23 @@
   test_indefinite_freeze_attack.py
 
 <Author>
-  Konstantin Andrianov
+  Konstantin Andrianov.
 
 <Started>
-  March 10, 2012
+  March 10, 2012.
+
+  April 1, 2014.
+    Refactored to use the 'unittest' module (test conditions in code, rather
+    than verifying text output), use pre-generated repository files, and
+    discontinue use of the old repository tools. -vladimir.v.diaz
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
-  Simulate an indefinite freeze attack.
-
-  In an indefinite freeze attack, attacker is able to respond to client's
-  requests with the same, outdated metadata without the client being aware.
-
+  Simulate an indefinite freeze attack.  In an indefinite freeze attack,
+  attacker is able to respond to client's requests with the same, outdated
+  metadata without the client being aware.
 """
 
 # Help with Python 3 compatability, where the print statement is a function, an
@@ -27,136 +30,214 @@ from __future__ import absolute_import
 from __future__ import division
 
 import os
-import sys
-import time
-import shutil
 import urllib
 import tempfile
+import random
+import time
+import shutil
+import json
+import subprocess
+import unittest
+import logging
 
-import tuf
 import tuf.formats
-import tuf.interposition
-import tuf.repo.signerlib as signerlib
-import tuf.tests.util_test_tools as util_test_tools
+import tuf.util
+import tuf.log
+import tuf.client.updater as updater
+import tuf.repository_tool as repo_tool
+import tuf.tests.unittest_toolbox as unittest_toolbox
+
+logger = logging.getLogger('tuf.test_indefinite_freeze_attack')
 
 
-class IndefiniteFreezeAttackAlert(Exception):
-  pass
+class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
-
-EXPIRATION = 1  # second(s)
-version = 1
-
-
-def _remake_timestamp(metadata_dir, keyids):
-  """Create timestamp metadata object.  Modify expiration date.  Sign and
-  write the metadata.
-  """
-  
-  global version
-  version = version+1
-  expiration_date = tuf.formats.format_time(time.time()+EXPIRATION)
-  
-  release_filepath = os.path.join(metadata_dir, 'release.txt')
-  timestamp_filepath = os.path.join(metadata_dir, 'timestamp.txt')
-  timestamp_metadata = signerlib.generate_timestamp_metadata(release_filepath,
-                                                             version,
-                                                             expiration_date)
-  signable = \
-    signerlib.sign_metadata(timestamp_metadata, keyids, timestamp_filepath)
-  signerlib.write_metadata_file(signable, timestamp_filepath)
-
-
-
-def _download(url, filename, using_tuf=False):
-  if using_tuf:
-    tuf.interposition.urllib_tuf.urlretrieve(url, filename)
+  @classmethod
+  def setUpClass(cls):
+    # setUpClass() is called before any of the test cases are executed.
     
-  else:
-    urllib.urlretrieve(url, filename)
-
-
-
-
-
-def test_indefinite_freeze_attack(using_tuf=False):
-  """
-  <Arguments>
-    using_tuf:
-      If set to 'False' all directories that start with 'tuf_' are ignored, 
-      indicating that tuf is not implemented.
-
-  The idea here is to expire timestamp metadata so that the attacker 
-
-  """
-
-  ERROR_MSG = '\tIndefinite Freeze Attack was Successful!\n\n'
-
-
-  try:
-    # Setup.
-    root_repo, url, server_proc, keyids = util_test_tools.init_repo(using_tuf)
-    reg_repo = os.path.join(root_repo, 'reg_repo')
-    tuf_repo = os.path.join(root_repo, 'tuf_repo')
-    metadata_dir = os.path.join(tuf_repo, 'metadata')
-    downloads = os.path.join(root_repo, 'downloads')
+    # Create a temporary directory to store the repository, metadata, and target
+    # files.  'temporary_directory' must be deleted in TearDownModule() so that
+    # temporary files are always removed, even when exceptions occur. 
+    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
     
-    # Add file to 'repo' directory: {root_repo}
-    filepath = util_test_tools.add_file_to_repository(reg_repo, 'Test A')
-    file_basename = os.path.basename(filepath)
-    url_to_repo = url+'reg_repo/'+file_basename
-    downloaded_file = os.path.join(downloads, file_basename)
+    # Launch a SimpleHTTPServer (serves files in the current directory).
+    # Test cases will request metadata and target files that have been
+    # pre-generated in 'tuf/tests/repository_data', which will be served by the
+    # SimpleHTTPServer launched here.  The test cases of this unit test assume 
+    # the pre-generated metadata files have a specific structure, such
+    # as a delegated role 'targets/role1', three target files, five key files,
+    # etc.
+    cls.SERVER_PORT = random.randint(30000, 45000)
+    command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
+    cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    logger.info('Server process started.')
+    logger.info('Server process id: '+str(cls.server_process.pid))
+    logger.info('Serving on port: '+str(cls.SERVER_PORT))
+    cls.url = 'http://localhost:'+str(cls.SERVER_PORT) + os.path.sep
 
-    if using_tuf:
-      print('TUF ...')
-
-      # Update TUF metadata before attacker modifies anything.
-      util_test_tools.tuf_refresh_repo(root_repo, keyids)
-
-      # Modify the url.  Remember that the interposition will intercept 
-      # urls that have 'localhost:9999' hostname, which was specified in
-      # the json interposition configuration file.  Look for 'hostname'
-      # in 'util_test_tools.py'. Further, the 'file_basename' is the target
-      # path relative to 'targets_dir'. 
-      url_to_repo = 'http://localhost:9999/'+file_basename
-
-      # Make timestamp metadata with close expiration date (2s).
-      _remake_timestamp(metadata_dir, keyids)
-
-
-    # Client performs initial download. If the computer is slow, it may
-    # take longer time than expiration time. In this case you will see
-    # an ExpiredMetadataError.
-    try:
-      _download(url_to_repo, downloaded_file, using_tuf)
-    except:
-      print('Initial download failed! It may be because your machine is '+ \
-        'busy. Try again later.')
-    else:
-      # Expire timestamp.
-      time.sleep(EXPIRATION)
-
-      # Try downloading again, this should raise an error.
-      try:
-        _download(url_to_repo, downloaded_file, using_tuf)
-      except tuf.ExpiredMetadataError, error:
-        print('Caught an expiration error!')
-      else:
-        raise IndefiniteFreezeAttackAlert(ERROR_MSG)
-  finally:
-    util_test_tools.cleanup(root_repo, server_proc)
+    # NOTE: Following error is raised if a delay is not applied:
+    # <urlopen error [Errno 111] Connection refused>
+    time.sleep(.2)
 
 
 
+  @classmethod 
+  def tearDownClass(cls):
+    # tearDownModule() is called after all the test cases have run.
+    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
+   
+    # Remove the temporary repository directory, which should contain all the
+    # metadata, targets, and key files generated of all the test cases.
+    shutil.rmtree(cls.temporary_directory)
+    
+    unittest_toolbox.Modified_TestCase.clear_toolbox()
+   
+    # Kill the SimpleHTTPServer process.
+    if cls.server_process.returncode is None:
+      logger.info('Server process '+str(cls.server_process.pid)+' terminated.')
+      cls.server_process.kill()
 
 
-try:
-  test_indefinite_freeze_attack(using_tuf=False)
-except IndefiniteFreezeAttackAlert, error:
-  print(error)
+
+  def setUp(self):
+    # We are inheriting from custom class.
+    unittest_toolbox.Modified_TestCase.setUp(self)
+  
+    # Copy the original repository files provided in the test folder so that
+    # any modifications made to repository files are restricted to the copies.
+    # The 'repository_data' directory is expected to exist in 'tuf/tests/'.
+    original_repository_files = os.path.join(os.getcwd(), os.pardir,
+                                             'repository_data') 
+    temporary_repository_root = \
+      self.make_temp_directory(directory=self.temporary_directory)
+  
+    # The original repository, keystore, and client directories will be copied
+    # for each test case. 
+    original_repository = os.path.join(original_repository_files, 'repository')
+    original_client = os.path.join(original_repository_files, 'client')
+    original_keystore = os.path.join(original_repository_files, 'keystore')
+    
+    # Save references to the often-needed client repository directories.
+    # Test cases need these references to access metadata and target files. 
+    self.repository_directory = \
+      os.path.join(temporary_repository_root, 'repository')
+    self.client_directory = os.path.join(temporary_repository_root, 'client')
+    self.keystore_directory = os.path.join(temporary_repository_root, 'keystore')
+    
+    # Copy the original 'repository', 'client', and 'keystore' directories
+    # to the temporary repository the test cases can use.
+    shutil.copytree(original_repository, self.repository_directory)
+    shutil.copytree(original_client, self.client_directory)
+    shutil.copytree(original_keystore, self.keystore_directory)
+    
+    # Set the url prefix required by the 'tuf/client/updater.py' updater.
+    # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'. 
+    repository_basepath = self.repository_directory[len(os.getcwd()):]
+    url_prefix = \
+      'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
+    
+    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # directory copied from the original repository files.
+    tuf.conf.repository_directory = self.client_directory 
+    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
+                                           'metadata_path': 'metadata',
+                                           'targets_path': 'targets',
+                                           'confined_target_dirs': ['']}}
+
+    # Create the repository instance.  The test cases will use this client
+    # updater to refresh metadata, fetch target files, etc.
+    self.repository_updater = updater.Updater('test_repository',
+                                              self.repository_mirrors)
 
 
-try:
-  test_indefinite_freeze_attack(using_tuf=True)
-except IndefiniteFreezeAttackAlert, error:
-  print(error)
+  def tearDown(self):
+    # Modified_TestCase.tearDown() automatically deletes temporary files and
+    # directories that may have been created during each test case.
+    unittest_toolbox.Modified_TestCase.tearDown(self)
+
+
+
+  def test_without_tuf(self):
+    # Scenario:
+    # 'timestamp.json' specifies the latest version of the repository files.
+    # A client should only accept the same version of this file up to a certain
+    # point, or else it cannot detect that new files are available for download.
+    # Modify the repository's timestamp.json' so that it expires soon, copy it
+    # over the client, and attempt to re-fetch the same expired version. 
+    # A non-TUF client (without a way to detect when metadata has expired) is
+    # expected to download the same version, and thus the same outdated files.
+    # Verify that the same file size and hash of 'timestamp.json' is downloaded.
+
+    timestamp_path = os.path.join(self.repository_directory, 'metadata',
+                                  'timestamp.json')
+
+    timestamp_metadata = tuf.util.load_json_file(timestamp_path)
+    timestamp_metadata['signed']['expires'] = \
+      tuf.formats.format_time(time.time() - 10) 
+    
+    tuf.formats.check_signable_object_format(timestamp_metadata) 
+    
+    with open(timestamp_path, 'wb') as file_object:
+      json.dump(timestamp_metadata, file_object, indent=1, sort_keys=True)   
+    
+    client_timestamp_path = os.path.join(self.client_directory,
+                                         'timestamp.json')
+    shutil.copy(timestamp_path, client_timestamp_path)
+    
+    length, hashes = tuf.util.get_file_details(timestamp_path)
+    fileinfo = tuf.formats.make_fileinfo(length, hashes) 
+    
+    url_prefix = self.repository_mirrors['mirror1']['url_prefix']
+    url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
+   
+    urllib.urlretrieve(url_file, client_timestamp_path)
+    
+    length, hashes = tuf.util.get_file_details(client_timestamp_path)
+    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    
+    # Verify 'download_fileinfo' is equal to the current local file.
+    self.assertEqual(download_fileinfo, fileinfo)
+
+
+
+  def test_with_tuf(self):
+    # The same scenario outlined in test_without_tuf() is followed here, except
+    # with a TUF client.  The TUF client performs a refresh of top-level
+    # metadata, which also includes 'timestamp.json'.
+    
+    timestamp_path = os.path.join(self.repository_directory, 'metadata',
+                                  'timestamp.json')
+    
+    # Modify the timestamp file on the remote repository.  'timestamp.json'
+    # must be properly updated and signed with 'repository_tool.py', otherwise
+    # the client will reject it as invalid metadata.  The resulting
+    # 'timestamp.json' should be valid metadata, but expired (as intended).
+    repository = repo_tool.load_repository(self.repository_directory)
+ 
+    key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
+    timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+                                                                  'password')
+
+    repository.timestamp.load_signing_key(timestamp_private)
+    
+    # expire in 1 second.
+    utc_timestamp = tuf.formats.format_time(time.time() + 1)
+    repository.timestamp.expiration = \
+      utc_timestamp[0:utc_timestamp.rfind(' UTC')]
+    repository.write()
+    
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+    
+    # Verify that the TUF client detects outdated metadata and refuses to
+    # continue the update process.
+    self.assertRaises(tuf.ExpiredMetadataError,
+                      self.repository_updater.refresh()) 
+
+
+
+if __name__ == '__main__':
+  unittest.main()
