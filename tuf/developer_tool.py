@@ -76,21 +76,22 @@ logger = logging.getLogger('tuf.devtools')
 
 
 # Recommended RSA key sizes:
-# http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1 
-# According to the document above, revised May 6, 2003, RSA keys of
-# size 3072 provide security through 2031 and beyond.  2048-bit keys
-# are the recommended minimum and are good from the present through 2030.
-DEFAULT_RSA_KEY_BITS = 3072
+# http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
+# According to the document above, revised May 6, 2003, RSA keys of size 3072
+# provide security through 2031 and beyond.  2048-bit keys are the recommended
+# minimum and are good from the present through 2030.
+from tuf.repository_tool import DEFAULT_RSA_KEY_BITS as DEFAULT_RSA_KEY_BITS
 
 # The algorithm used by the developer tools to generate the hashes of the
 # target filepaths. 
-HASH_FUNCTION = 'sha256'
+from tuf.repository_tool import HASH_FUNCTION as HASH_FUNCTION
 
 # The extension of TUF metadata.
-METADATA_EXTENSION = '.json'
+from tuf.repository_tool import METADATA_EXTENSION as METADATA_EXTENSION
+
 
 # The metadata filename for the targets metadata information.
-TARGETS_FILENAME = 'targets' + METADATA_EXTENSION
+from tuf.repository_tool import TARGETS_FILENAME as TARGETS_FILENAME
 
 # Project configuration filename. This file is intended to hold all of the
 # supporting information about the project that's not contained in a usual
