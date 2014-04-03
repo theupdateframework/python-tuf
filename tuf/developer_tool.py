@@ -120,6 +120,9 @@ from tuf.repository_tool import TARGETS_FILENAME as TARGETS_FILENAME
 #                         flat:      the targets directory and the
 #                                    metadata directory are located in different
 #                                    paths
+#
+#  project_name:       The name of the current project, this value is used to
+#                      match the resulting filename with the one in upstream
 PROJECT_FILENAME = 'project.cfg'
 
 # The targets and metadata directory names.  Metadata files are written
@@ -162,6 +165,10 @@ class Project(Targets):
 
       
   <Arguments>
+    project_name:
+      The name of the metadata file as it should be named in the upstream
+      repository.
+
     metadata_directory:
       The metadata sub-directory contains the files of the top-level
       roles, including all roles delegated from 'targets.txt'. 
@@ -189,7 +196,8 @@ class Project(Targets):
     roles.
   """
  
-  def __init__(self, metadata_directory, targets_directory, file_prefix):
+  def __init__(self, project_name ,metadata_directory, targets_directory,
+      file_prefix):
   
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -198,16 +206,19 @@ class Project(Targets):
     tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
     tuf.formats.PATH_SCHEMA.check_match(targets_directory)
     tuf.formats.PATH_SCHEMA.check_match(file_prefix)
+    tuf.formats.RELPATH_SCHEMA.check_match(project_name)
 
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
+    self._project_name = project_name
 
     # layout type defaults to "flat" unless explicitly specified in 
     # create_new_project
     self.layout_type = "flat"
 
-    # Set the top-level role objects.
-    super(Project, self).__init__(self._targets_directory, 'targets')
+    # Set the top-level role objects, we set the rolename to be the project's
+    # name
+    super(Project, self).__init__(self._targets_directory, project_name)
 
     self.prefix = file_prefix
 
@@ -252,7 +263,9 @@ class Project(Targets):
     # any of the top-level roles are missing signatures, keys, etc.
 
     # Write the metadata files of all the delegated roles.
-    delegated_rolenames = tuf.roledb.get_delegated_rolenames('targets')
+    delegated_rolenames = \
+      tuf.roledb.get_delegated_rolenames(self._project_name)
+
     for delegated_rolename in delegated_rolenames:
       roleinfo = tuf.roledb.get_roleinfo(delegated_rolename)
       delegated_filename = os.path.join(self._metadata_directory,
@@ -270,18 +283,17 @@ class Project(Targets):
       
     
     # Generate the 'targets.txt' metadata file.
-    targets_filename = 'targets' + METADATA_EXTENSION 
+    targets_filename = self._project_name + METADATA_EXTENSION 
     targets_filename = os.path.join(self._metadata_directory, targets_filename)
     project_signable, targets_filename = \
-      _generate_and_write_metadata('targets', targets_filename, write_partial,
-                                   self._targets_directory,
-                                   self._metadata_directory,
-                                   prefix=self.prefix)
+      _generate_and_write_metadata( self._project_name, targets_filename, 
+                                   write_partial, self._targets_directory,
+                                   self._metadata_directory, prefix=self.prefix)
 
     #save some other information that is not stored in the project's metadata 
-    save_project_configuration(self._metadata_directory,self._targets_directory,
-                       self.keys, self.prefix, self.threshold,
-                       self.layout_type)
+    _save_project_configuration(self._metadata_directory,
+        self._targets_directory, self.keys, self.prefix, self.threshold,
+        self.layout_type, self._project_name)
     
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked.
@@ -551,7 +563,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
 
 
-def create_new_project(metadata_directory, location_in_repository = '',
+def create_new_project(project_name, metadata_directory, location_in_repository = '',
       targets_directory=None, key=None):
   """
   <Purpose>
@@ -561,7 +573,14 @@ def create_new_project(metadata_directory, location_in_repository = '',
     The project object returned can be directly modified to meet the designer's
     criteria and then written using the method project.write().
 
+    The project name provided is the one that will be added to the resulting
+    metadata file as it should be named in upstream.
+
   <Arguments>
+    project_name:
+      The name of the project as it should be called in upstream. For example
+      targets/unclaimed/django should have its project_name set to "django"
+
     metadata_directory:
       The directory that will eventually hold the metadata and target files of
       the project.
@@ -576,6 +595,9 @@ def create_new_project(metadata_directory, location_in_repository = '',
       the project files in the "upstream" respository. This value is only
       used to sign metadata in a way that it matches the future location
       of the files.
+
+      For example, targets/unclaimed/django should have its project name set to
+      "targets/unclaimed"
 
     key:
       The public key to verify the project's metadata. Projects can only
@@ -602,9 +624,10 @@ def create_new_project(metadata_directory, location_in_repository = '',
   # Raise 'tuf.FormatError' if there is a mismatch.
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
  
-  # Do the same for the location in the repo, we first check for it to be
-  # something valid
+  # Do the same for the location in the repo and the project name, we must
+  # ensure they are valid pathnames.
   tuf.formats.PATH_SCHEMA.check_match(location_in_repository)
+  tuf.formats.RELPATH_SCHEMA.check_match(project_name)
 
   # for the targets directory we do the same, but first, let's find out what
   # layout the user needs, layout_type is a variable that is usually set to
@@ -660,7 +683,7 @@ def create_new_project(metadata_directory, location_in_repository = '',
   # Create the bare bones project object, where only the top-level roles
   # have been set and contain default values (e.g., Root roles has a threshold
   # of 1, expires 1 year into the future, etc.)
-  project = Project(metadata_directory, targets_directory,
+  project = Project(project_name, metadata_directory, targets_directory,
       location_in_repository)
 
   # add the key to the project. 
@@ -677,8 +700,9 @@ def create_new_project(metadata_directory, location_in_repository = '',
 
 
 
-def save_project_configuration(metadata_directory,targets_directory,
-                                public_keys, prefix, threshold, layout_type):
+def _save_project_configuration(metadata_directory,targets_directory,
+                                public_keys, prefix, threshold, layout_type, 
+                                project_name):
   """
   <Purpose>
     Persist the project's information in a file to provide the information
@@ -705,12 +729,15 @@ def save_project_configuration(metadata_directory,targets_directory,
       targets and metadata directories, "repo-like" emulates the layout used
       by the repository tools
 
+    project_name:
+      The name given to the project, this sets the metadata filename so it
+      matches the one stored in upstream.
+
   <Exceptions>
     OSError may rise if the metadata_directory/project.cfg file exists and
     is non-writeable
 
-    tuf.FormatError are also expected if either the prefix or the metadata
-    directory are malformed
+    tuf.FormatError are also expected if any of the arguments are malformed.
 
   <Side Effects>
     A project.cfg file is created or overwritten
@@ -718,10 +745,12 @@ def save_project_configuration(metadata_directory,targets_directory,
   <Returns>
     nothing
   """
+
   # schema check for metadata_directory and prefix
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.PATH_SCHEMA.check_match(prefix)
   tuf.formats.PATH_SCHEMA.check_match(targets_directory)
+  tuf.formats.RELPATH_SCHEMA.check_match(project_name)
 
   # get the absolute filepath to our metadata_directory for consistency
   metadata_directory = os.path.abspath(metadata_directory)
@@ -743,6 +772,8 @@ def save_project_configuration(metadata_directory,targets_directory,
   project_config['targets_location'] = targets_directory
   project_config['threshold'] = threshold
   project_config['layout_type'] = layout_type
+  project_config['project_name'] = project_name
+
   # build a dictionary containing the actual keys
   for key in public_keys:
     key_info = tuf.keydb.get_key(key)
@@ -770,6 +801,7 @@ def load_project(project_directory, prefix=''):
   <Arguments>
     project_directory: 
       The path to the project's folder
+
     prefix:
       the prefix for the metadata, if defined, it will replace the current
       prefix, by first removing the existing one (Saved) and setting the new
@@ -809,10 +841,13 @@ def load_project(project_directory, prefix=''):
   targets_directory = project_configuration['targets_location']
   if prefix=='':
     prefix = project_configuration['prefix']
-  
+ 
+  # load the projects filename.
+  project_name = project_configuration['project_name']
+  project_filename = project_name + METADATA_EXTENSION
 
   # create a blank project on the target directory
-  project = Project(metadata_directory,targets_directory , prefix)
+  project = Project(project_name, metadata_directory, targets_directory, prefix)
 
   project.threshold = project_configuration['threshold']
   project.prefix = project_configuration['prefix']
@@ -832,36 +867,35 @@ def load_project(project_directory, prefix=''):
     else:
       temp_pubkey = keydict
     project.add_verification_key(temp_pubkey)
-  
-
+ 
   # load the project's metadata
-  targets_metadata_path = os.path.join(metadata_directory, TARGETS_FILENAME)
+  targets_metadata_path = os.path.join(metadata_directory, project_filename)
   signable = tuf.util.load_json_file(targets_metadata_path)
   tuf.formats.check_signable_object_format(signable)
   targets_metadata = signable['signed']
   
   # remove the prefix from the metadata
   targets_metadata = _strip_prefix_from_targets_metadata(targets_metadata,
-                                              project_configuration['prefix'])
+                                            prefix) 
   for signature in signable['signatures']:
     project.add_signature(signature)
 
   # update roledb
-  roleinfo = tuf.roledb.get_roleinfo('targets')
+  roleinfo = tuf.roledb.get_roleinfo(project_name)
   roleinfo['signatures'].extend(signable['signatures'])
   roleinfo['version'] = targets_metadata['version']
   roleinfo['paths'] = targets_metadata['targets'].keys()
   roleinfo['delegations'] = targets_metadata['delegations']
-  roleinfo['partial_loaded'] = false
+  roleinfo['partial_loaded'] = False
   
 
   # check if the loaded metadata was partially written and update the 
   # flag in the roledb
-  if _metadata_is_partially_loaded('targets',signable,roleinfo):
+  if _metadata_is_partially_loaded( project_name, signable, roleinfo):
     roleinfo['partial_loaded'] = True
 
 
-  tuf.roledb.update_roleinfo('targets',roleinfo)
+  tuf.roledb.update_roleinfo( project_name, roleinfo)
 
   
   
@@ -920,7 +954,7 @@ def load_project(project_directory, prefix=''):
         # strip the extension from the 
         metadata_object = signable['signed']
         metadata_object = _strip_prefix_from_targets_metadata(metadata_object,
-                                              project_configuration['prefix'])
+                                             prefix) 
   
         roleinfo = tuf.roledb.get_roleinfo(metadata_name)
         roleinfo['signatures'].extend(signable['signatures'])
