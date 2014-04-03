@@ -30,7 +30,7 @@
   is a Python binding to the NaCl library and is faster than the pure python
   implementation.  Verifying signatures can take approximately 0.0009 seconds.
   PyNaCl relies on the libsodium C library.  PyNaCl is required for key and
-  signature generation.  Verifying signatures may be done in the pure Python.
+  signature generation.  Verifying signatures may be done in pure Python.
  
   https://github.com/pyca/pynacl
   https://github.com/jedisct1/libsodium

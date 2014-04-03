@@ -90,6 +90,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   for mirror_name, mirror_info in mirrors_dict.items():
     if file_type == 'meta':
       base = mirror_info['url_prefix']+'/'+mirror_info['metadata_path']
+    
     elif file_type == 'target':
       targets_path = mirror_info['targets_path']
       full_filepath = os.path.join(targets_path, file_path)
@@ -97,6 +98,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
                                    mirror_info['confined_target_dirs']):
         continue
       base = mirror_info['url_prefix']+'/'+mirror_info['targets_path']
+    
     else:
       message = repr(file_type)+' is not a supported file type.  '+ \
        'Supported file types: '+repr(_SUPPORTED_FILE_TYPES) 
@@ -109,7 +111,6 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # http://bugs.python.org/issue1712522
     file_path = urllib.quote(file_path)
     url = base + '/' + file_path.lstrip(os.sep) 
-    #url = os.path.join(base, file_path.lstrip(os.sep)) 
     list_of_mirrors.append(url)
 
   return list_of_mirrors
