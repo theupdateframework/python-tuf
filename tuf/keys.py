@@ -778,8 +778,14 @@ def verify_signature(key_dict, signature, data):
   # otherwise raise an exception.
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
-      valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
-                                                               public, data) 
+      if 'pycrypto' not in _available_crypto_libraries:
+        message = 'Metadata downloaded from the remote repository specified'+\
+          ' an RSA signature.  Verifying RSA signatures requires PyCrypto.' +\
+          '\n$ pip install PyCrypto, or pip install tuf[tools].'
+        raise tuf.UnsupportedLibraryError(message)
+      else:
+        valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
+                                                                 public, data) 
     else:
       message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": '+\
         repr(_RSA_CRYPTO_LIBRARY)+'.'
