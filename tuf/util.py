@@ -18,7 +18,6 @@
   TempFile class that generates a file-like object for temporary storage, etc.
 """
 
-
 import os
 import sys
 import gzip
@@ -545,10 +544,12 @@ def find_delegated_role(roles, delegated_role):
 def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
   """
   <Purpose>
-    Ensure the delegated targets of 'rolename' are allowed; this is
+    Ensure that the list of targets specified by 'rolename' are allowed; this is
     determined by inspecting the 'delegations' field of the parent role
     of 'rolename'.  If a target specified by 'rolename' is not found in the 
-    delegations field of 'metadata_object_of_parent', raise an exception.
+    delegations field of 'metadata_object_of_parent', raise an exception.  The
+    top-level role 'targets' is allowed to list any target file, so this
+    function does not raise an exception if 'rolename' is 'targets'.
  
     Targets allowed are either exlicitly listed under the 'paths' field, or
     implicitly exist under a subdirectory of a parent directory listed
@@ -560,9 +561,9 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
     by the parent role).
 
     TODO: Should the TUF spec restrict the repository to one particular
-    algorithm when calcutating path hash prefixes?  Should we allow the
-    repository to specify in the role dictionary the algorithm used for these
-    generated hashed paths?
+    algorithm when calcutating path hash prefixes (currently restricted to 
+    SHA256)?  Should we allow the repository to specify in the role dictionary
+    the algorithm used for these generated hashed paths?
 
   <Arguments>
     rolename:
@@ -608,7 +609,8 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
   tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
   tuf.formats.DELEGATIONS_SCHEMA.check_match(parent_delegations)
   
-  # Return if 'rolename' is 'targets'.  'targets' is not a delegated role.
+  # Return if 'rolename' is 'targets'.  'targets' is not a delegated role.  Any
+  # target file listed in 'targets' is allowed.
   if rolename == 'targets':
     return
   
@@ -635,8 +637,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
         if not consistent(actual_child_targets,
                           allowed_child_path_hash_prefixes):
           message =  repr(rolename)+' specifies a target that does not'+\
-            ' have a path hash prefix listed in its parent role '+\
-            repr(parent_role)+'.'
+            ' have a path hash prefix listed in its parent role.'
           raise tuf.ForbiddenTargetError(message)
     
     elif allowed_child_paths is not None: 
@@ -672,7 +673,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
   # 'rolename' child role.
   else:
     raise tuf.RepositoryError('The parent role has not delegated to '+\
-                              repr(metadata_role)+'.')
+                              repr(rolename)+'.')
 
 
 
@@ -682,7 +683,7 @@ def paths_are_consistent_with_hash_prefixes(paths, path_hash_prefixes):
   """
   <Purpose>
     Determine whether a list of paths are consistent with theirs alleged
-    path hash prefixes. By default, the SHA256 hash function will be used.
+    path hash prefixes. By default, the SHA256 hash function is used.
 
   <Arguments>
     paths:
@@ -895,11 +896,13 @@ def load_json_file(filepath):
   if filepath.endswith('.gz'):
     logger.debug('gzip.open('+str(filepath)+')')
     fileobject = gzip.open(filepath)
+  
   else:
     logger.debug('open('+str(filepath)+')')
     fileobject = open(filepath)
 
   try:
     return json.load(fileobject)
+  
   finally:
     fileobject.close()

@@ -84,6 +84,9 @@ def create_roledb_from_root_metadata(root_metadata):
   # Clear the role database.
   _roledb_dict.clear()
 
+  # Do not modify the contents of the 'root_metadata' argument.
+  root_metadata = copy.deepcopy(root_metadata)
+  
   # Iterate through the roles found in 'root_metadata'
   # and add them to '_roledb_dict'.  Duplicates are avoided.
   for rolename, roleinfo in root_metadata['roles'].items():

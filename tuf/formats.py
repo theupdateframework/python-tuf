@@ -30,6 +30,7 @@
   tuf.formats.<SCHEMA>.matches(object)
 
   Example:
+
   rsa_key = {'keytype': 'rsa'
              'keyid': 34892fc465ac76bc3232fab 
              'keyval': {'public': 'public_key',
