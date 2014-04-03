@@ -734,10 +734,6 @@ def save_project_configuration(metadata_directory,targets_directory,
 
   # is the file open-able? open for overwriting
   project_filename = os.path.join(cfg_file_directory,PROJECT_FILENAME)
-  try:
-    fp = open(project_filename,"wt")
-  except OSError, e:
-    raise
   
   # build the data structure
   project_config = {}
@@ -755,7 +751,8 @@ def save_project_configuration(metadata_directory,targets_directory,
     project_config['public_keys'][key]['public'] = key_info['keyval']['public']
 
   # save the actual data
-  json.dump(project_config,fp)
+  with open(project_filename,"wt") as fp:
+    json.dump(project_config,fp)
 
   # clean our mess
   fp.close()
