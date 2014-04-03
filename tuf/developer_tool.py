@@ -201,7 +201,7 @@ class Project(Targets):
 
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
-    
+
     # layout type defaults to "flat" unless explicitly specified in 
     # create_new_project
     self.layout_type = "flat"
@@ -272,7 +272,7 @@ class Project(Targets):
     # Generate the 'targets.txt' metadata file.
     targets_filename = 'targets' + METADATA_EXTENSION 
     targets_filename = os.path.join(self._metadata_directory, targets_filename)
-    release_signable, targets_filename = \
+    project_signable, targets_filename = \
       _generate_and_write_metadata('targets', targets_filename, write_partial,
                                    self._targets_directory,
                                    self._metadata_directory,
@@ -286,7 +286,7 @@ class Project(Targets):
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked.
     _delete_obsolete_metadata(self._metadata_directory,
-                              release_signable['signed'], False)
+                              project_signable['signed'], False)
 
 
 
@@ -487,7 +487,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
   roleinfo = tuf.roledb.get_roleinfo(rolename) 
-  #release_compressions = tuf.roledb.get_roleinfo('release')['compressions']
+
   metadata = generate_targets_metadata(targets_directory,
                                        roleinfo['paths'],
                                        roleinfo['version'],
