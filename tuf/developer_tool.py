@@ -69,7 +69,7 @@ from tuf.repository_tool import _prompt
 from tuf.repository_tool import _get_password
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.devtools')
+logger = logging.getLogger('tuf.developer_tool')
 
 
 
