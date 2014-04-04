@@ -158,8 +158,9 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
 RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
 
-# The number of bins used to delegate to hashed roles.
-NUMBINS_SCHEMA = SCHEMA.Integer(lo=16)
+# The number of bins, or the requested number of delegated hashed roles.
+# Expected to be a power of 2.
+NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
 # A PyCrypto signature.
 PYCRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyString()
