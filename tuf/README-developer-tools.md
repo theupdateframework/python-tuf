@@ -14,20 +14,20 @@
   - [Keys and thresholds](#keys_and_thresholds)
 
 <a name="overview">
-## Overview ## 
+## Overview 
 The TUF developer tool is a Python library that enables developers to create 
-and maintain the required metadata for diles hosted in a TUF Repository. This 
+and maintain the required metadata for files hosted in a TUF Repository. This 
 document has two parts. The first part walks through the creation of a
 prototypal TUF project. The second part demonstrates the full capabilities of 
-the TUF developer tool, which can be userd to expand the project from the first
+the TUF developer tool, which can be users to expand the project from the first
 part to meet the developer''s needs.
 
 <a name="creating_a_simple_project">
 ## Creating a Simple project ##
 ### Generating a Key ###
-First, uou will needd to generate a key to sign the metadata. Keys are generated
-in pairs: one public and the other private. the private key is password-protected
-and is used to sign metadata. The public key can be shared freely, andi s used
+First, you will need to generate a key to sign the metadata. Keys are generated
+in pairs: one public and the other private. The private key is password-protected
+and is used to sign metadata. The public key can be shared freely, and is used
 to verify signatures made by the private key.   
 
 The generate_and_write_rsa_keypair function will create two key files in the 
@@ -47,12 +47,12 @@ Confirm:
 ### The project class ###
 TUF-dev is built around the Project class, which is used to organize groups of 
 targets associated with a single set of metadata. Each Project instance keeps 
-track of which target files ar associated with a single set of metadata. Each 
+track of which target files are associated with a single set of metadata. Each 
 Project instance keeps track of which target files are signed and which need
 signing, which keys are used to sign metadata. It also keeps track of delegated
-rolse, which are covered later.
+roles, which are covered later.
 
-Before creating a project, you must know hwere it be located in the TUF 
+Before creating a project, you must know where it will be located in the TUF 
 Repository. In the following example, we will create a project to be hosted as
 "repo/example_project" within the repository, and store a local copy of the 
 metadata at "path/to/metadata". The project will comprise a single target file, 
@@ -60,7 +60,7 @@ metadata at "path/to/metadata". The project will comprise a single target file,
 the key generated above. 
 
 ```
->>> public_key = import_rsa_publickey_from_file("path/to/key.pub")
+>>> public_key = import_rsa_publickey_from_file("path/to/keys.pub")
 
 >>> project = create_new_project(metadata_directory="local/path/to/metadata/",
 ... targets_directory="local/path/to/example_project",
@@ -73,7 +73,7 @@ but we have not *signed* it with that key.
 
 <a name="signing_and_writing_the_metadata">
 ### Signing and writing the metadata ###
-In order to signe the metadata, we need to impot the private key corresponding 
+In order to sign the metadata, we need to import the private key corresponding 
 to the public key we added to the project. One the key is loaded to the project,
 it will automatically be used to sign the metadata whenever it is written.
 
@@ -110,7 +110,7 @@ Enter a password for the RSA key:
 
 <a name="managing_keys">
 ## Managing keys 
-When generating keys, it is possible to specity the length of the key in bits 
+When generating keys, it is possible to specify the length of the key in bits 
 and its password as parameters:
 
 ```
@@ -124,8 +124,10 @@ The password parameter is only intended to be used in scripts.
 
 ```
 
->>> list_of_targets = project.get_filepaths_in_directory(“path/within/targets/folder”, recursive_walk=False, follow_links=False)
->>> project.add_targets(list_of_targets)
+>>> list_of_targets = \
+...   project.get_filepaths_in_directory(“path/within/targets/folder”,
+...   recursive_walk=False, follow_links=False)
+...   project.add_targets(list_of_targets)
 ```
 
 ```
@@ -134,7 +136,9 @@ The password parameter is only intended to be used in scripts.
 
 ## Delegations
 
-The project we created above is secured entirely by one key. If you want to allow someone else to update part of your project independently, you will need to delegate a new role for them. For example, we can
+The project we created above is secured entirely by one key. If you want to
+allow someone else to update part of your project independently, you will need
+to delegate a new role for them. For example, we can
 
 ```
 >>> other_key = import_rsa_publickey_from_file(“sombodys_public_key.pub”)
@@ -142,7 +146,8 @@ The project we created above is secured entirely by one key. If you want to allo
 >>> project.delegate(“newrole”, [other_key], targets)
 ```
 
-The new role is now an attribute of the Project instance, and contains the same methods as Project. For example, we can add targets in the same way as before:
+The new role is now an attribute of the Project instance, and contains the same
+methods as Project. For example, we can add targets in the same way as before:
 
 ```
 
@@ -152,5 +157,7 @@ The new role is now an attribute of the Project instance, and contains the same 
 
 
 
-Recall that we input the other person’s key as part of a list. That list can contain any number of public keys. You can also add keys to the role after creating it using the add_signing_key() method.
+Recall that we input the other person’s key as part of a list. That list can
+contain any number of public keys. You can also add keys to the role after
+creating it using the add_signing_key() method.
 
