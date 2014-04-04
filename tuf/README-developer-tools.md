@@ -10,29 +10,37 @@
 - [Managing keys](#managing_keys)
 - [Managing targets](#managing_targets)
 - [Delegations](#delegations)
-  - [Restricted paths](#restricted_paths)
-  - [Keys and thresholds](#keys_and_thresholds)
 
 <a name="overview">
 ## Overview 
 The TUF developer tool is a Python library that enables developers to create 
-and maintain the required metadata for files hosted in a TUF Repository. This 
-document has two parts. The first part walks through the creation of a
+and maintain the required metadata for files hosted in a TUF Repository. The main
+concern when generating metadata for a TUF repository is generating information
+that matches the future location of the files in the repository. We use
+the developer tools to generate valid information so that the project and it's
+metadata can be applied to the TUF project transparently. 
+
+This  document has two parts. The first part walks through the creation of a
 prototypal TUF project. The second part demonstrates the full capabilities of 
-the TUF developer tool, which can be users to expand the project from the first
-part to meet the developer''s needs.
+the TUF developer tool, which can be used to expand the project from the first
+part to meet the developer's needs.
+
+
 
 <a name="creating_a_simple_project">
 ## Creating a Simple project ##
+The following section describes a very basic example usage of the developer tools with
+a one-file project. 
+
 ### Generating a Key ###
 First, you will need to generate a key to sign the metadata. Keys are generated
 in pairs: one public and the other private. The private key is password-protected
 and is used to sign metadata. The public key can be shared freely, and is used
 to verify signatures made by the private key.   
 
-The generate_and_write_rsa_keypair function will create two key files in the 
-path (path/to/) and named "key.pub", which is the public key and "key"
-which is the private key.
+The generate\_and\_write\_rsa\_keypair function will create two key files
+named "path/to/key.pub", which is the public key and "path/to/key", which
+is the private key.
 
 ```
 >>> from tuf.developer_tool import *
@@ -43,9 +51,17 @@ Confirm:
 >>> 
 ```
 
+We can also use the bits parameter to set a different key length (the default is 
+3072). We can also provide the password parameter in order to suppress the password
+prompt.
+
+During this example we will be using rsa keys, but ed25519 keys are also supported. 
+
+Now we have a key for our project, we can proceed to create our project. 
+
 <a name="the_project_class">
 ### The project class ###
-TUF-dev is built around the Project class, which is used to organize groups of 
+The TUF developer tool is built around the Project class, which is used to organize groups of 
 targets associated with a single set of metadata. Each Project instance keeps 
 track of which target files are associated with a single set of metadata. Each 
 Project instance keeps track of which target files are signed and which need
@@ -54,22 +70,49 @@ roles, which are covered later.
 
 Before creating a project, you must know where it will be located in the TUF 
 Repository. In the following example, we will create a project to be hosted as
-"repo/example_project" within the repository, and store a local copy of the 
+"repo/unclaimed/example_project" within the repository, and store a local copy of the 
 metadata at "path/to/metadata". The project will comprise a single target file, 
-"local/path/to/example_project/target_1" locally, and we will secure it with
+"local/path/to/example\_project/target\_1" locally, and we will secure it with
 the key generated above. 
+
+First, we must import the generated keys. We can do that by issuing the following:
 
 ```
 >>> public_key = import_rsa_publickey_from_file("path/to/keys.pub")
+```
 
->>> project = create_new_project(metadata_directory="local/path/to/metadata/",
-... targets_directory="local/path/to/example_project",
-... location_in_repository="repo/example_project", key=public_key)
+After importing the key, we can generate a new project with the following command 
+```
+>>> project = create_new_project(name="example_project",
+...  metadata_directory="local/path/to/metadata/",
+...  targets_directory="local/path/to/example_project",
+...  location_in_repository="repo/unclaimed", key=public_key)
+```
+Let's list the arguments and make sense out of this rather long function call:
+
+- create a project named example_project: the name of the metadata file will match this name
+- the metadata will be located in "local/path/to/metadata", this means all of the generated files
+for this project will be located here
+- the targets are located in local/path/to/example project. If your targets are located in some other
+place, you can point the targets directory there. Files must reside under the path local/path/to/example_project or else it won't be possible to add them.
+- location\_in\_repository points to repo/unclaimed, this will be prepended to the paths in the generated metadata so the signatures all match.
+
+Now the project is in memory and we can do different operations on it such as adding and
+removing targets, delegating files, changing signatures and keys, etc. For the moment we are 
+interested in adding our one and only target inside the project.
+
+To add a target, we issue the following method:
+```
 >>> project.add_target("target_1")
 ```
 
+Have in mind the file "target\_1" should be located in "local/path/to/example\_project"
+or else the adding procedure will throw an error.
+
 At this point, the metadata is not valid. We have assigned a key to the project,
-but we have not *signed* it with that key.
+but we have not *signed* it with that key. Signing is the process of generating
+a signature with our private key so it can be verified with the public key by the 
+server (upon uploading) and by the clients (when updating). 
 
 <a name="signing_and_writing_the_metadata">
 ### Signing and writing the metadata ###
@@ -85,11 +128,15 @@ Enter password for the RSA key:
 ```
 
 When all changes to a project have been written, the Project instance can safely
-be deleted.
+be deleted. 
+
+The project can be loaded later to update changes to the project. The metadata
+contains checksums that have to match the actual files or else it won't be accepted 
+by the upstream repository.
 
 <a name="loading_an_existing_project">
 To make changes to existing metadata, we will need the Project again. We can 
-restore it with the load_project() function.
+restore it with the load_project() function.  
 
 ```
 >>> from tuf.developer_tool import *
@@ -108,8 +155,16 @@ Enter a password for the RSA key:
 >>> project.write()
 ```
 
+Now we have a project properly setup. The rest of this guide contains a more
+in-depth description of the functions of the developer\_tool.
+===
+
 <a name="managing_keys">
 ## Managing keys 
+This section describes the key-related functions and parameters that weren't 
+mentioned inside the example:
+
+### Additional parameters for key generation
 When generating keys, it is possible to specify the length of the key in bits 
 and its password as parameters:
 
@@ -119,9 +174,37 @@ and its password as parameters:
 The bits parameter defaults to 3072, and values below 2048 will raise an error.
 The password parameter is only intended to be used in scripts.
 
+### Removing a key from a project/delegation
+Removing a verification key is really simple, we should only issue the following
+command:
+
+```
+>>> project.remove_verification_key(key)
+>>>
+```
+
+### Adding a key to a project/delegation
+Likewise, it is possible to add a key to a project by issuing the following command:
+```
+>>> project.add_verification_key(pubkey)
+>>>
+```
+Remember that a project can only have one key, so this method will return an error
+if there is already a key assigned to it. In order to replace a key we must first
+delete the existing one and then add the new one. It is possible to
+ommit the key parameter in the create\_new\_project function, and add the key 
+later.
+
 
 ## Managing Targets
+There are supporting functions of the targets library to make the project
+maintenance easier. These functions are described in this section.
 
+
+### get\_filepaths\_in\_directory()
+This function is specially useful when creating a new project to add all the files
+contained in the targets directory. The following code block illustrates the usage
+of this function:
 ```
 
 >>> list_of_targets = \
@@ -130,18 +213,24 @@ The password parameter is only intended to be used in scripts.
 ...   project.add_targets(list_of_targets)
 ```
 
+
+### deleting targets from a project
+It is possible that we want to delete existing targets inside our project. In order
+to stop the developer tool to track this file we must issue the following command:
 ```
 >>> project.remove_target(“target_1”)
 ```
+Now the target file won't be part of the metadata.
+
 
 ## Delegations
 
 The project we created above is secured entirely by one key. If you want to
 allow someone else to update part of your project independently, you will need
-to delegate a new role for them. For example, we can
+to delegate a new role for them. For example, we can do the following:
 
 ```
->>> other_key = import_rsa_publickey_from_file(“sombodys_public_key.pub”)
+>>> other_key = import_rsa_publickey_from_file(“another_public_key.pub”)
 
 >>> project.delegate(“newrole”, [other_key], targets)
 ```
@@ -155,9 +244,7 @@ methods as Project. For example, we can add targets in the same way as before:
 
 ```
 
-
-
 Recall that we input the other person’s key as part of a list. That list can
 contain any number of public keys. You can also add keys to the role after
-creating it using the add_signing_key() method.
+creating it using the add\_verification\_key() method.
 
