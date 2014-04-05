@@ -445,7 +445,7 @@ class Repository(object):
 
 
   @staticmethod
-  def get_filepaths_in_directory(self, files_directory, recursive_walk=False,
+  def get_filepaths_in_directory(files_directory, recursive_walk=False,
                                  followlinks=True):
     """
     <Purpose>
@@ -2151,7 +2151,7 @@ class Targets(Metadata):
                            number_of_bins=1024):
     """
     <Purpose>
-      Distribute a large number of target files into multiple delegated roles
+      Distribute a large number of target files over multiple delegated roles
       (hashed bins).  The metadata files of delegated roles will be nearly equal
       in size (i.e., 'list_of_targets' is uniformly distributed by calculating
       the target filepath's hash and determing which bin it should reside in.
@@ -2184,14 +2184,14 @@ class Targets(Metadata):
       number_of_bins:
         The number of delegated roles, or hashed bins, that should be generated
         and contain the target file attributes listed in 'list_of_targets'.
-        'number_of_bins' must be a multiple of 16.  Each bin may contain a
+        'number_of_bins' must be a power of 2.  Each bin may contain a
         range of path hash prefixes (e.g., target filepath digests that range
         from [000]... - [003]..., where the series of digits in brackets is
         considered the hash prefix).
 
     <Exceptions>
       tuf.FormatError, if the arguments are improperly formatted,
-        'number_of_bins' is not a multiple of 16, or one of the targets
+        'number_of_bins' is not a power of 2, or one of the targets
         in 'list_of_targets' is not located under the repository's targets
         directory.
 
@@ -2210,28 +2210,35 @@ class Targets(Metadata):
     tuf.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
     tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
     
-    # Determine the hex number of hashed bins from 'number_of_bins' and the
-    # maximum number of bins provided by the total number of hex digits needed.
-    # Strip the '0x' from the Python hex representation.  'prefix_length'
-    # and 'max_number_of_bins' affect hashed bin rolenames and the range of
-    # prefixes of each bin.
+    # Convert 'number_of_bins' to hexadecimal and determine the number of
+    # hexadecimal digits needed by each hash prefix.  Calculate the total number
+    # of hash prefixes (e.g., 000 - FFF total values) to be spread over
+    # 'number_of_bins' and strip the first two characters ('0x') from Python's
+    # representation of hexadecimal values (so that they are not used in
+    # the calculation of the prefix length.)
+    # Example: number_of_bins = 32, total_hash_prefixes = 256, and each hashed
+    # bin is responsible for 8 hash prefixes.
+    # Hashed bin roles created = 00-07.json, 08-0f.json, ..., f8-ff.json.
     prefix_length =  len(hex(number_of_bins - 1)[2:])
-    max_number_of_bins = 16 ** prefix_length
+    total_hash_prefixes = 16 ** prefix_length
 
-    # For simplicity, ensure that we can evenly distribute 'max_number_of_bins'
-    # over 'number_of_bins'.  Each bin will contain
-    # max_number_of_bin/number_of_bins hash prefixes.
-    if max_number_of_bins % number_of_bins != 0:
-      message = 'The number of bins argument must be a multiple of 16.'
+    # For simplicity, ensure that 'total_hash_prefixes' (16 ^ n) can be evenly
+    # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
+    # (total_hash_prefixes / number_of_bins) hash prefixes.
+    if total_hash_prefixes % number_of_bins != 0:
+      message = 'The "number_of_bins" argument must be a power of 2.'
       raise tuf.FormatError(message)
 
-    logger.info('There are '+str(len(list_of_targets))+' total targets.')
+    logger.info('Creating hashed bin delegations.')
+    logger.info(repr(len(list_of_targets)) + ' total targets.')
+    logger.info(repr(number_of_bins) + ' hashed bins.')
+    logger.info(repr(total_hash_prefixes) + ' total hash prefixes.')
 
     # Store the target paths that fall into each bin.  The digest of the
     # target path, reduced to the first 'prefix_length' hex digits, is
     # calculated to determine which 'bin_index' is should go. 
     target_paths_in_bin = {}
-    for bin_index in xrange(max_number_of_bins):
+    for bin_index in xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
     
     # Assign every path to its bin.  Ensure every target is located under the
@@ -2261,16 +2268,18 @@ class Targets(Metadata):
       # later added to the targets of the 'bin_index' role.
       target_paths_in_bin[bin_index].append(target_path)
 
-    # Calculate the path hash prefixes of each bin_offset stored in the parent
+    # Calculate the path hash prefixes of each 'bin_offset' stored in the parent
     # role.  For example: 'targets/unclaimed/000-003' may list the path hash
     # prefixes "000", "001", "002", "003" in the delegations dict of
     # 'targets/unclaimed'. 
-    bin_offset = max_number_of_bins // number_of_bins
-   
+    bin_offset = total_hash_prefixes // number_of_bins
+    
+    logger.info('Each bin ranges over ' + repr(bin_offset) + ' hash prefixes.')
+
     # The parent roles will list bin roles starting from "0" to
-    # 'max_number_of_bins' in 'bin_offset' increments.  The skipped bin roles
+    # 'total_hash_prefixes' in 'bin_offset' increments.  The skipped bin roles
     # are listed in 'path_hash_prefixes' of 'outer_bin_index.
-    for outer_bin_index in xrange(0, max_number_of_bins, bin_offset):
+    for outer_bin_index in xrange(0, total_hash_prefixes, bin_offset):
       # The bin index is hex padded from the left with zeroes for up to the
       # 'prefix_length' (e.g., 'targets/unclaimed/000-003').  Ensure the correct
       # hash bin name is generated if a prefix range is unneeded.
