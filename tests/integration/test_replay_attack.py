@@ -325,6 +325,9 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
         self.assertEqual(url_file, mirror_url)
         self.assertTrue(isinstance(mirror_error, tuf.ReplayedMetadataError))
 
+    else:
+      self.fail('TUF did not prevent a replay attack.')
+
 
 if __name__ == '__main__':
   unittest.main()

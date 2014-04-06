@@ -232,7 +232,9 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       self.assertTrue(url_file in exception.mirror_errors)
       self.assertTrue(isinstance(exception.mirror_errors[url_file],
                                  tuf.DownloadLengthMismatchError))
-  
+    
+    else:
+      self.fail('TUF did not prevent an arbitrary package attack.')
   
   
   def test_with_tuf_and_metadata_tampering(self):
@@ -281,7 +283,9 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       self.assertTrue(url_file in exception.mirror_errors)
       self.assertTrue(isinstance(exception.mirror_errors[url_file],
                                  tuf.DownloadLengthMismatchError))
-
+    
+    else:
+      self.fail('TUF did not prevent an arbitrary package attack.')
 
 
 if __name__ == '__main__':

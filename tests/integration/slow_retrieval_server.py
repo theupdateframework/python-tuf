@@ -5,19 +5,17 @@
   slow_retrieval_server.py
 
 <Author>
-  Konstantin Andrianov
+  Konstantin Andrianov.
 
 <Started>
-  March 13, 2012
+  March 13, 2012.
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
-  Server that throttles data by sending one byte at a time 
-  (specified time interval 'DELAY').  The server is used in
-  test_slow_retrieval_attack.py.
-
+  Server that throttles data by sending one byte at a time (specified time
+  interval 'DELAY').  The server is used in 'test_slow_retrieval_attack.py'.
 """
 
 import os
@@ -28,15 +26,12 @@ from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
 
 
-
-
-# Modify the HTTPServer class to pass the test_mode argument to do_GET function.
+# Modify the HTTPServer class to pass the 'test_mode' argument to
+# do_GET() function.
 class HTTPServer_Test(HTTPServer):
   def __init__(self, server_address, Handler, test_mode):
     HTTPServer.__init__(self, server_address, Handler)
     self.test_mode = test_mode
-
-
 
 
 
@@ -56,20 +51,22 @@ class Handler(BaseHTTPRequestHandler):
       self.send_header('Content-length', str(len(data)))
       self.end_headers()
       
-      if self.server.test_mode == "mode_1":
-      # before sends any data, the server does nothing during a long time.
-        DELAY = 1000
+      if self.server.test_mode == 'mode_1':
+        # Before sending any data, the server does nothing for a long time.
+        DELAY = 60
         time.sleep(DELAY)
         self.wfile.write(data)
 
         return
-
-      else: # "mode_2"
+      
+      # 'mode_2'
+      else:
         DELAY = 1
         # Throttle the file by sending a character every few seconds.
         for i in range(len(data)):
           self.wfile.write(data[i])
           time.sleep(DELAY)
+        
         return
 
     except IOError, e:
@@ -77,13 +74,9 @@ class Handler(BaseHTTPRequestHandler):
 
 
 
-
-
 def get_random_port():
   port = random.randint(30000, 45000)
   return port
-
-
 
 
 
@@ -94,10 +87,8 @@ def run(port, test_mode):
 
 
 
-
-
 if __name__ == '__main__':
   port = int(sys.argv[1])
   test_mode = sys.argv[2]
-  assert test_mode in ("mode_1", "mode_2")
+  assert test_mode in ('mode_1', 'mode_2')
   run(port, test_mode)
