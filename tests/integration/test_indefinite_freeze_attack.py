@@ -243,6 +243,5 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                       self.repository_updater.refresh) 
 
 
-
 if __name__ == '__main__':
   unittest.main()

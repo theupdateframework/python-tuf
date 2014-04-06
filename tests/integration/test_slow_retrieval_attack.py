@@ -5,34 +5,29 @@
   test_slow_retrieval_attack.py
 
 <Author>
-  Konstantin Andrianov
+  Konstantin Andrianov.
 
 <Started>
-  March 13, 2012
+  March 13, 2012.
+
+  April 5, 2014.
+    Refactored to use the 'unittest' module (test conditions in code, rather
+    than verifying text output), use pre-generated repository files, and
+    discontinue use of the old repository tools. Expanded comments and modified
+    previous setup. -vladimir.v.diaz
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
-  Simulate slow retrieval attack.  A simple client update vs. client
-  update implementing TUF.
+  Simulate a slow retrieval attack, where an attacker is able to prevent clients
+  from receiving updates by responding to client requests so slowly that updates
+  never complete.  Test cases included for two types of slow retrievals: data
+  that slowly trickles in, and data that is only returned after a long time
+  delay.  TUF prevents slow retrieval attacks by ensuring the download rate
+  does not fall below a required rate (tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED).
 
-  During the slow retrieval attack, attacker is able to prevent clients from
-  being aware of interference with receiving updates by responding to client
-  requests so slowly that automated updates never complete.
-
-  NOTE: The interposition provided by 'tuf.interposition' is used to intercept
-  all calls made by urllib/urillib2 to certain network locations specified in 
-  the interposition configuration file.  Look up interposition.py for more
-  information and illustration of a sample contents of the interposition 
-  configuration file.  Interposition was meant to make TUF integration with an
-  existing software updater an easy process.  This allows for more flexibility
-  to the existing software updater.  However, if you are planning to solely use
-  TUF there should be no need for interposition, all necessary calls will be
-  generated from within TUF.
-
-  There is no difference between 'updates' and 'target' files.
-
+  Note: There is no difference between 'updates' and 'target' files.
 """
 
 # Help with Python 3 compatability, where the print statement is a function, an
@@ -42,136 +37,271 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 
-from multiprocessing import Process
 import os
-import random
-import subprocess
 import sys
-import time
-import tuf
 import urllib
+import tempfile
+import random
+import time
+import shutil
+import json
+import subprocess
+import unittest
+import logging
 
-import tuf.interposition
-import tuf.tests.util_test_tools as util_test_tools
+import tuf.formats
+import tuf.util
+import tuf.log
+import tuf.client.updater as updater
+import tuf.tests.unittest_toolbox as unittest_toolbox
 
-
-class SlowRetrievalAttackAlert(Exception):
-  pass
-
-
-def _download(url, filename, using_tuf=False):
-  if using_tuf:
-    try:
-      tuf.interposition.urllib_tuf.urlretrieve(url, filename)
-    except tuf.NoWorkingMirrorError, exception:
-      slow_retrieval = False
-      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
-        if isinstance(mirror_error, tuf.SlowRetrievalError):
-          slow_retrieval = True
-          break
-
-      # We must fail due to a slow retrieval error; otherwise we will exit with
-      # a "successful termination" exit status to indicate that slow retrieval
-      # detection failed.
-      if slow_retrieval:
-        print('TUF stopped the update because it detected slow retrieval.')
-        sys.exit(-1)
-      else:
-        print('TUF stopped the update due to something other than slow retrieval.')
-        sys.exit(0)
-  else:
-    urllib.urlretrieve(url, filename)
+logger = logging.getLogger('tuf.test_slow_retrieval_attack')
 
 
 
-def test_slow_retrieval_attack(using_tuf=False, mode=None):
+class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
-  WAIT_TIME = 60  # Number of seconds to wait until download completes.
-  ERROR_MSG = 'Slow retrieval attack succeeded (using_tuf: '+str(using_tuf)+', mode: '+\
-              str(mode)+').'
-
-  # Launch the server.
-  port = random.randint(30000, 45000)
-  command = ['python', 'slow_retrieval_server.py', str(port), mode]
-  server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
-  time.sleep(1)
-
-  try:
-    # Setup.
-    root_repo, url, server_proc, keyids = \
-      util_test_tools.init_repo(using_tuf, port=port)
-    reg_repo = os.path.join(root_repo, 'reg_repo')
-    downloads = os.path.join(root_repo, 'downloads')
+  @classmethod
+  def setUpClass(cls):
+    # setUpClass() is called before any of the test cases are executed.
     
-    # Add file to 'repo' directory: {root_repo}
-    filepath = util_test_tools.add_file_to_repository(reg_repo, 'A'*30)
-    file_basename = os.path.basename(filepath)
-    url_to_file = url+'reg_repo/'+file_basename
-    downloaded_file = os.path.join(downloads, file_basename)
+    # Create a temporary directory to store the repository, metadata, and target
+    # files.  'temporary_directory' must be deleted in TearDownModule() so that
+    # temporary files are always removed, even when exceptions occur. 
+    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
+    cls.SERVER_PORT = random.randint(30000, 45000)
 
-    if using_tuf:
-      tuf_repo = os.path.join(root_repo, 'tuf_repo')
+
+
+  @classmethod 
+  def tearDownClass(cls):
+    # tearDownModule() is called after all the test cases have run.
+    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
+   
+    # Remove the temporary repository directory, which should contain all the
+    # metadata, targets, and key files generated of all the test cases.
+    shutil.rmtree(cls.temporary_directory)
+    
+    unittest_toolbox.Modified_TestCase.clear_toolbox()
+
+  
+
+  def _start_slow_server(self, mode):
+    # Launch a SimpleHTTPServer (serves files in the current directory).
+    # Test cases will request metadata and target files that have been
+    # pre-generated in 'tuf/tests/repository_data', which will be served by the
+    # SimpleHTTPServer launched here.  The test cases of this unit test assume 
+    # the pre-generated metadata files have a specific structure, such
+    # as a delegated role 'targets/role1', three target files, five key files,
+    # etc.
+    command = ['python', 'slow_retrieval_server.py', str(self.SERVER_PORT), mode]
+    server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    logger.info('Slow Retrieval Server process started.')
+    logger.info('Server process id: '+str(server_process.pid))
+    logger.info('Serving on port: '+str(self.SERVER_PORT))
+    url = 'http://localhost:'+str(self.SERVER_PORT) + os.path.sep
+
+    # NOTE: Following error is raised if a delay is not applied:
+    # <urlopen error [Errno 111] Connection refused>
+    time.sleep(.2)
+
+    return server_process
+   
+
+
+  def _stop_slow_server(self, server_process):
+    # Kill the SimpleHTTPServer process.
+    if server_process.returncode is None:
+      logger.info('Server process '+str(server_process.pid)+' terminated.')
+      server_process.kill()
+    
+
+
+  def setUp(self):
+    # We are inheriting from custom class.
+    unittest_toolbox.Modified_TestCase.setUp(self)
+  
+    # Copy the original repository files provided in the test folder so that
+    # any modifications made to repository files are restricted to the copies.
+    # The 'repository_data' directory is expected to exist in 'tuf/tests/'.
+    original_repository_files = os.path.join(os.getcwd(), os.pardir,
+                                             'repository_data') 
+    temporary_repository_root = \
+      self.make_temp_directory(directory=self.temporary_directory)
+  
+    # The original repository, keystore, and client directories will be copied
+    # for each test case. 
+    original_repository = os.path.join(original_repository_files, 'repository')
+    original_client = os.path.join(original_repository_files, 'client')
+    original_keystore = os.path.join(original_repository_files, 'keystore')
+    
+    # Save references to the often-needed client repository directories.
+    # Test cases need these references to access metadata and target files. 
+    self.repository_directory = \
+      os.path.join(temporary_repository_root, 'repository')
+    self.client_directory = os.path.join(temporary_repository_root, 'client')
+    self.keystore_directory = os.path.join(temporary_repository_root, 'keystore')
+    
+    # Copy the original 'repository', 'client', and 'keystore' directories
+    # to the temporary repository the test cases can use.
+    shutil.copytree(original_repository, self.repository_directory)
+    shutil.copytree(original_client, self.client_directory)
+    shutil.copytree(original_keystore, self.keystore_directory)
+    
+    # Set the url prefix required by the 'tuf/client/updater.py' updater.
+    # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'. 
+    repository_basepath = self.repository_directory[len(os.getcwd()):]
+    url_prefix = \
+      'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
+    
+    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # directory copied from the original repository files.
+    tuf.conf.repository_directory = self.client_directory 
+    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
+                                           'metadata_path': 'metadata',
+                                           'targets_path': 'targets',
+                                           'confined_target_dirs': ['']}}
+
+    # Create the repository instance.  The test cases will use this client
+    # updater to refresh metadata, fetch target files, etc.
+    self.repository_updater = updater.Updater('test_repository',
+                                              self.repository_mirrors)
+
+
+  def tearDown(self):
+    # Modified_TestCase.tearDown() automatically deletes temporary files and
+    # directories that may have been created during each test case.
+    unittest_toolbox.Modified_TestCase.tearDown(self)
+
+
+
+  def test_without_tuf_mode_1(self):
+    # Simulate a slow retrieval attack.
+    # 'mode_1': When download begins,the server blocks the download
+    # for a long time by doing nothing before it sends the first byte of data.
+
+    # Retrieve 'file1.txt' provided by the pre-generated repository.
+    url_prefix = self.repository_mirrors['mirror1']['url_prefix']
+    url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
+    client_filepath = os.path.join(self.client_directory, 'file1.txt')
+ 
+    # Generate the fileinfo of 'file.txt' to compare it to what is downloaded.
+    # The download should complete, albeit slowly (the slow retrieval server
+    # sets a limit on the delay.)
+    filepath = os.path.join(self.repository_directory, 'targets', 'file1.txt') 
+    length, hashes = tuf.util.get_file_details(filepath)
+    fileinfo = tuf.formats.make_fileinfo(length, hashes)
+   
+    try:
+      server_process = self._start_slow_server('mode_1')
+      urllib.urlretrieve(url_file, client_filepath)
+     
+      # Verify the expected file size and hash of the downloaded file.
+      length, hashes = tuf.util.get_file_details(client_filepath)
+      download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+      self.assertEqual(fileinfo, download_fileinfo)
+  
+    finally:
+      # Terminate the slow retrieval (mode 1) server.
+      self._stop_slow_server(server_process)
+ 
+
+  
+  def test_without_tuf_mode_2(self):
+    # Simulate a slow retrieval attack.
+    # 'mode_1': When download begins, the server blocks the download for a long
+    # time by doing nothing before it sends the first byte of data.
+
+    url_prefix = self.repository_mirrors['mirror1']['url_prefix']
+    url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
+    client_filepath = os.path.join(self.client_directory, 'file1.txt')
+  
+    # Generate the fileinfo of 'file.txt' to compare it to what is downloaded.
+    # The download should complete, albeit slowly (the slow retrieval server
+    # sets a limit on the delay.)
+    filepath = os.path.join(self.repository_directory, 'targets', 'file1.txt') 
+    length, hashes = tuf.util.get_file_details(filepath)
+    fileinfo = tuf.formats.make_fileinfo(length, hashes)
+   
+    try:
+      server_process = self._start_slow_server('mode_2')
+      urllib.urlretrieve(url_file, client_filepath)
       
-      # Update TUF metadata before attacker modifies anything.
-      util_test_tools.tuf_refresh_repo(root_repo, keyids)
-
-      # Modify the url.  Remember that the interposition will intercept 
-      # urls that have 'localhost:9999' hostname, which was specified in
-      # the json interposition configuration file.  Look for 'hostname'
-      # in 'util_test_tools.py'. Further, the 'file_basename' is the target
-      # path relative to 'targets_dir'. 
-      url_to_file = 'http://localhost:9999/'+file_basename
-
-
-    # Client tries to download.
-    # NOTE: if TUF is enabled the metadata files will be downloaded first.
-    proc = Process(target=_download, args=(url_to_file, downloaded_file, using_tuf))
-    proc.start()
-    proc.join(WAIT_TIME)
-
-    # In case the process did not exit or successfully exited, we failed.
-    if not proc.exitcode:
-      proc.terminate()
-      raise SlowRetrievalAttackAlert(ERROR_MSG)
-
-  finally:
-    server_process.kill()
-    util_test_tools.cleanup(root_repo, server_proc)
+      # Verify the expected file size and hash of the downloaded file.
+      length, hashes = tuf.util.get_file_details(client_filepath)
+      download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+      self.assertEqual(fileinfo, download_fileinfo)
+  
+    finally:
+      # Terminate the slow retrieval (mode 2) server.
+      self._stop_slow_server(server_process)
 
 
 
+  def test_with_tuf_mode_1(self):
+    # Simulate a slow retrieval attack.
+    # 'mode_1': When download begins,the server blocks the download for a long
+    # time by doing nothing before it sends the first byte of data.
 
+    server_process = self._start_slow_server('mode_1')
+    
+    # Verify that the TUF client detects replayed metadata and refuses to
+    # continue the update process.
+    client_filepath = os.path.join(self.client_directory, 'file1.txt')
+    try:
+      file1_target = self.repository_updater.target('file1.txt')
+      self.repository_updater.download_target(file1_target, client_filepath)
+     
+    # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
+    # each mirror.
+    except tuf.NoWorkingMirrorError, exception:
+      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+        url_prefix = self.repository_mirrors['mirror1']['url_prefix']
+        url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
+       
+        # Verify that 'file1.txt' is the culprit.
+        self.assertEqual(url_file, mirror_url)
+        self.assertTrue(isinstance(mirror_error, tuf.SlowRetrievalError))
+    
+    else:
+      self.fail('TUF did not prevent a slow retrieval attack.')
 
-# Stimulates two kinds of slow retrieval attacks.
-# mode_1: When download begins,the server blocks the download
-# for a long time by doing nothing before it sends first byte of data.
-# mode_2: During the download process, the server blocks the download 
-# by sending just several characters every few seconds.
-try:
-  test_slow_retrieval_attack(using_tuf=False, mode = "mode_1")
-except SlowRetrievalAttackAlert, error:
-  print(error)
-  print()
-
-try:
-  test_slow_retrieval_attack(using_tuf=False, mode = "mode_2")
-except SlowRetrievalAttackAlert, error:
-  print(error)
-  print()
-
-try:
-  test_slow_retrieval_attack(using_tuf=True, mode = "mode_1")
-except SlowRetrievalAttackAlert, error:
-  print(error)
-  print()
-
-try:
-  test_slow_retrieval_attack(using_tuf=True, mode = "mode_2")
-except SlowRetrievalAttackAlert, error:
-  print(error)
-  print()
-
-
+    finally:
+      self._stop_slow_server(server_process)
 
 
 
+  def test_with_tuf_mode_2(self):
+    # Simulate a slow retrieval attack.
+    # 'mode_2': During the download process, the server blocks the download 
+    # by sending just several characters every few seconds.
+
+    server_process = self._start_slow_server('mode_2')
+    
+    # Verify that the TUF client detects replayed metadata and refuses to
+    # continue the update process.
+    client_filepath = os.path.join(self.client_directory, 'file1.txt')
+    try:
+      file1_target = self.repository_updater.target('file1.txt')
+      self.repository_updater.download_target(file1_target, client_filepath)
+     
+    # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
+    # each mirror.
+    except tuf.NoWorkingMirrorError, exception:
+      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+        url_prefix = self.repository_mirrors['mirror1']['url_prefix']
+        url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
+       
+        # Verify that 'file1.txt' is the culprit.
+        self.assertEqual(url_file, mirror_url)
+        self.assertTrue(isinstance(mirror_error, tuf.SlowRetrievalError))
+    
+    else:
+      self.fail('TUF did not prevent a slow retrieval attack.')
+
+    finally:
+      self._stop_slow_server(server_process)
+
+
+if __name__ == '__main__':
+  unittest.main()
