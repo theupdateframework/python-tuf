@@ -188,7 +188,7 @@ class Repository(object):
       private keys, etc.
     
     <Arguments>
-      write_partial:
+      mrite_partial:
         A boolean indicating whether partial metadata should be written to
         disk.  Partial metadata may be written to allow multiple maintainters
         to independently sign and update role metadata.  write() raises an
@@ -1479,13 +1479,14 @@ class Targets(Metadata):
     tuf.FormatError, if the arguments are improperly formatted.
 
   <Side Effects>
-    Modifies the roleinfo of the targets role in 'tuf.roledb'.
+    Modifies the roleinfo of the targets role in 'tuf.roledb', or creates
+    a default one named 'targets'.
   
   <Returns>
     None.
   """
   
-  def __init__(self, targets_directory, rolename, roleinfo=None):
+  def __init__(self, targets_directory, rolename='targets', roleinfo=None):
    
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -3831,30 +3832,7 @@ def get_target_hash(target_filepath):
     The hash of 'target_filepath'.
   """
   
-  # Does 'target_filepath' have the correct format?
-  # Ensure the arguments have the appropriate number of objects and object
-  # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
-
-  # Calculate the hash of the filepath to determine which bin to find the 
-  # target.  The client currently assumes the repository uses
-  # 'HASH_FUNCTION' to generate hashes.
-  digest_object = tuf.hash.digest(HASH_FUNCTION)
-
-  try:
-    digest_object.update(target_filepath)
-  
-  except UnicodeEncodeError:
-    # Sometimes, there are Unicode characters in target paths. We assume a
-    # UTF-8 encoding and try to hash that.
-    digest_object = tuf.hash.digest(HASH_FUNCTION)
-    encoded_target_filepath = target_filepath.encode('utf-8')
-    digest_object.update(encoded_target_filepath)
-
-  target_filepath_hash = digest_object.hexdigest() 
-
-  return target_filepath_hash
+  return tuf.util.get_target_hash(target_filepath)
 
 
 
