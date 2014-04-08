@@ -274,7 +274,47 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_load_repository(self):
-    pass
+    # Test normal case.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory) 
+    original_repository_directory = os.path.join(os.pardir, 'repository_data',
+                                                 'repository')
+    repository_directory = os.path.join(temporary_directory, 'repository')
+    shutil.copytree(original_repository_directory, repository_directory)
+     
+    repository = repo_tool.load_repository(repository_directory)
+    self.assertTrue(isinstance(repository, repo_tool.Repository))
+
+    # Verify the expected roles have been loaded.  See
+    # 'tuf/tests/repository_data/repository/'.
+    expected_roles = \
+      ['root', 'targets', 'snapshot', 'timestamp', 'targets/role1']
+    for role in tuf.roledb.get_rolenames():
+      self.assertTrue(role in expected_roles)
+    
+    self.assertTrue(len(repository.root.keys))
+    self.assertTrue(len(repository.targets.keys))
+    self.assertTrue(len(repository.snapshot.keys))
+    self.assertTrue(len(repository.timestamp.keys))
+    self.assertTrue(len(repository.targets('role1').keys))
+
+    # Assumed the targets (tuf/tests/repository_data/) role contains 'file1.txt'
+    # and 'file2.txt'.
+    self.assertTrue('/file1.txt' in repository.targets.target_files)
+    self.assertTrue('/file2.txt' in repository.targets.target_files)
+    self.assertTrue('/file3.txt' in repository.targets('role1').target_files)
+    
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repo_tool.load_repository, 3)
+
+
+    # Test for invalid 'repository_directory' (i.e., does not contain the
+    # minimum required metadata.
+    root_filepath = \
+      os.path.join(repository_directory,
+                   repo_tool.METADATA_STAGED_DIRECTORY_NAME, 'root.json') 
+    os.remove(root_filepath)
+    self.assertRaises(tuf.RepositoryError, repo_tool.load_repository,
+                      repository_directory)
 
 
 
@@ -608,6 +648,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     version = 1
     expiration_date = '2088-01-01 12:00:00 UTC'
     target_files = ['file.txt']
+    
     delegations = {"keys": {
       "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf": {
        "keytype": "ed25519", 
@@ -754,21 +795,112 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                       snapshot_filename, version, 3, compressions)
     self.assertRaises(tuf.FormatError, repo_tool.generate_timestamp_metadata,
                       snapshot_filename, version, expiration_date, 3)
+    self.assertRaises(tuf.FormatError, repo_tool.generate_timestamp_metadata,
+                      snapshot_filename, version, expiration_date, ['compress'])
+
 
 
 
   def test_sign_metadata(self):
-    pass
+    # Test normal case.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    metadata_path = os.path.join(os.pardir, 'repository_data',
+                                 'repository', 'metadata')
+    keystore_path = os.path.join(os.pardir, 'repository_data',
+                                 'keystore')
+    root_filename = os.path.join(metadata_path, 'root.json')
+    root_metadata = tuf.util.load_json_file(root_filename)['signed']
+    
+    tuf.keydb.create_keydb_from_root_metadata(root_metadata)
+    tuf.roledb.create_roledb_from_root_metadata(root_metadata)
+    root_keyids = tuf.roledb.get_role_keyids('root')
+
+    root_private_keypath = os.path.join(keystore_path, 'root_key')
+    root_private_key = \
+      repo_tool.import_rsa_privatekey_from_file(root_private_keypath,
+                                                'password')
+    
+    # sign_metadata() expects the private key 'root_metadata' to be in
+    # 'tuf.keydb'.  Remove any public keys that may be loaded before
+    # adding private key, otherwise a 'tuf.KeyAlreadyExists' exception is
+    # raised.
+    tuf.keydb.remove_key(root_private_key['keyid'])
+    tuf.keydb.add_key(root_private_key)
+
+    root_signable = repo_tool.sign_metadata(root_metadata, root_keyids,
+                                            root_filename) 
+    self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(root_signable))
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repo_tool.sign_metadata, 3, root_keyids,
+                      'root.json')
+    self.assertRaises(tuf.FormatError, repo_tool.sign_metadata, root_metadata,
+                      3, 'root.json')
+    self.assertRaises(tuf.FormatError, repo_tool.sign_metadata, root_metadata,
+                      root_keyids, 3)
 
 
 
   def test_write_metadata_file(self):
-    pass
+    # Test normal case.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    metadata_directory = os.path.join(os.pardir, 'repository_data',
+                                      'repository', 'metadata')
+    root_filename = os.path.join(metadata_directory, 'root.json')
+    root_signable = tuf.util.load_json_file(root_filename)
+  
+    output_filename = os.path.join(temporary_directory, 'root.json')
+    compressions = ['gz']
+  
+    self.assertFalse(os.path.exists(output_filename))
+    repo_tool.write_metadata_file(root_signable, output_filename, compressions,
+                                  consistent_snapshot=False)
+    self.assertTrue(os.path.exists(output_filename))
+    self.assertTrue(os.path.exists(output_filename + '.gz'))
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repo_tool.write_metadata_file,
+                      3, output_filename, compressions, False)
+    self.assertRaises(tuf.FormatError, repo_tool.write_metadata_file,
+                      root_signable, 3, compressions, False)
+    self.assertRaises(tuf.FormatError, repo_tool.write_metadata_file,
+                      root_signable, output_filename, 3, False)
+    self.assertRaises(tuf.FormatError, repo_tool.write_metadata_file,
+                      root_signable, output_filename, compressions, 3)
 
 
 
   def test_create_tuf_client_directory(self):
-    pass
+    # Test normal case.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    repository_directory = os.path.join(os.pardir, 'repository_data',
+                                        'repository')
+    client_directory = os.path.join(temporary_directory, 'client')
+
+    repo_tool.create_tuf_client_directory(repository_directory, client_directory)
+
+    self.assertTrue(os.path.exists(client_directory))
+    metadata_directory = os.path.join(client_directory, 'metadata')
+    current_directory = os.path.join(metadata_directory, 'current')
+    previous_directory = os.path.join(metadata_directory, 'previous')
+    self.assertTrue(os.path.exists(client_directory))
+    self.assertTrue(os.path.exists(metadata_directory))
+    self.assertTrue(os.path.exists(current_directory))
+    self.assertTrue(os.path.exists(previous_directory))
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repo_tool.create_tuf_client_directory,
+                      3, client_directory)
+    self.assertRaises(tuf.FormatError, repo_tool.create_tuf_client_directory,
+                      repository_directory, 3)
+
+
+    # Test invalid argument (i.e., client directory already exists.)
+    self.assertRaises(tuf.RepositoryError, repo_tool.create_tuf_client_directory,
+                      repository_directory, client_directory)
 
 
 # Run the test cases.

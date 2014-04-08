@@ -878,7 +878,7 @@ class Metadata(object):
     <Purpose>
       A getter method that returns the role's keyids of the keys.  The role
       is expected to eventually contain a threshold of signatures generated
-      by the private keys of each of the role's keys (returned here as a keyid).
+      by the private keys of each of the role's keys (returned here as a keyid.)
 
     <Arguments>
       None.
@@ -2957,9 +2957,11 @@ def load_repository(repository_directory):
 
   <Exceptions>
     tuf.FormatError, if 'repository_directory' or any of the metadata files
-    are improperly formatted.  Also raised if, at a minimum, the Root role
-    cannot be found.
+    are improperly formatted.
 
+    tuf.RepositoryError, if the Root role cannot be found.  At a minimum,
+    a repository must contain 'root.json'
+  
   <Side Effects>
    All the metadata files found in the repository are loaded and their contents
    stored in a repository_tool.Repository object.
@@ -4249,11 +4251,11 @@ def generate_timestamp_metadata(snapshot_filename, version,
       compressed_fileinfo = get_metadata_fileinfo(compressed_filename)
     
     except:
-      logger.warn('Cannot get fileinfo about '+str(compressed_filename))
+      logger.warn('Cannot get fileinfo about '+repr(compressed_filename))
     
     else:
-      logger.info('Including fileinfo about '+str(compressed_filename))
-      fileinfo[SNAPSHOT_FILENAME+'.'+file_extension] = compressed_fileinfo
+      logger.info('Including fileinfo about '+repr(compressed_filename))
+      fileinfo[SNAPSHOT_FILENAME + '.' + file_extension] = compressed_fileinfo
 
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
