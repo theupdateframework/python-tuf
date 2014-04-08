@@ -15,14 +15,18 @@
   Unit test for 'repository_tool.py'.
 """
 
+import os
 import unittest
 import logging
+import tempfile
+import shutil
 
 import tuf
 import tuf.log
 import tuf.formats
 import tuf.roledb
 import tuf.keydb
+import tuf.hash
 import tuf.repository_tool as repo_tool
 
 logger = logging.getLogger('tuf.test_repository_tool')
@@ -193,6 +197,30 @@ class TestTargets(unittest.TestCase):
 
 
 class TestRepositoryToolFunctions(unittest.TestCase):
+  @classmethod
+  def setUpClass(cls):
+    
+    # setUpClass() is called before tests in an individual class are executed.
+    
+    # Create a temporary directory to store the repository, metadata, and target
+    # files.  'temporary_directory' must be deleted in TearDownClass() so that
+    # temporary files are always removed, even when exceptions occur. 
+    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
+    
+
+
+  @classmethod 
+  def tearDownClass(cls):
+    
+    # tearDownModule() is called after all the tests have run.
+    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
+   
+    # Remove the temporary repository directory, which should contain all the
+    # metadata, targets, and key files generated for the test cases.
+    shutil.rmtree(cls.temporary_directory)
+
+
+
   def setUp(self):
     pass
 
@@ -213,42 +241,268 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_generate_and_write_rsa_keypair(self):
-    pass
+  
+    # Test normal case.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory) 
+    test_keypath = os.path.join(temporary_directory, 'rsa_key')
+
+    repo_tool.generate_and_write_rsa_keypair(test_keypath, password='pw')
+    self.assertTrue(os.path.exists(test_keypath))
+    self.assertTrue(os.path.exists(test_keypath + '.pub'))
+    
+    # Ensure the generated key files are importable.
+    imported_pubkey = \
+      repo_tool.import_rsa_publickey_from_file(test_keypath + '.pub')
+    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_pubkey))
+    
+    imported_privkey = \
+      repo_tool.import_rsa_privatekey_from_file(test_keypath, 'pw')
+    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_privkey))
+
+    # Custom 'bits' argument.
+    os.remove(test_keypath)
+    os.remove(test_keypath + '.pub')
+    repo_tool.generate_and_write_rsa_keypair(test_keypath, bits=2048,
+                                             password='pw')
+    self.assertTrue(os.path.exists(test_keypath))
+    self.assertTrue(os.path.exists(test_keypath + '.pub'))
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repo_tool.generate_and_write_rsa_keypair,
+                      3, bits=2048, password='pw')
+    self.assertRaises(tuf.FormatError, repo_tool.generate_and_write_rsa_keypair,
+                      test_keypath, bits='bad', password='pw')
+    self.assertRaises(tuf.FormatError, repo_tool.generate_and_write_rsa_keypair,
+                      test_keypath, bits=2048, password=3)
+
+
+    # Test invalid 'bits' argument.
+    self.assertRaises(tuf.FormatError, repo_tool.generate_and_write_rsa_keypair,
+                      test_keypath, bits=1024, password='pw')
 
 
 
   def test_import_rsa_privatekey_from_file(self):
-    pass
+    # Test normal case.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    
+    # Load one of the pre-generated key files from 'tuf/tests/repository_data'.
+    # 'password' unlocks the pre-generated key files.
+    key_filepath = os.path.join(os.pardir, 'repository_data', 'keystore',
+                                'root_key')
+    self.assertTrue(os.path.exists(key_filepath))
+    
+    imported_rsa_key = repo_tool.import_rsa_privatekey_from_file(key_filepath,
+                                                                 'password')
+    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_rsa_key))
+
+    
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError,
+                      repo_tool.import_rsa_privatekey_from_file, 3, 'pw')
+
+
+    # Test invalid argument.
+    # Non-existent key file.
+    nonexistent_keypath = os.path.join(temporary_directory,
+                                       'nonexistent_keypath') 
+    self.assertRaises(IOError, repo_tool.import_rsa_privatekey_from_file,
+                      nonexistent_keypath, 'pw')
+    
+    # Invalid key file argument. 
+    invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile') 
+    with open(invalid_keyfile, 'wb') as file_object:
+      file_object.write('bad keyfile')
+    self.assertRaises(tuf.CryptoError, repo_tool.import_rsa_privatekey_from_file,
+                      invalid_keyfile, 'pw')
 
 
 
   def test_import_rsa_publickey_from_file(self):
-    pass
+    # Test normal case.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    
+    # Load one of the pre-generated key files from 'tuf/tests/repository_data'.
+    key_filepath = os.path.join(os.pardir, 'repository_data', 'keystore',
+                                'root_key.pub')
+    self.assertTrue(os.path.exists(key_filepath))
+    
+    imported_rsa_key = repo_tool.import_rsa_publickey_from_file(key_filepath)
+    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_rsa_key))
+
+    
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError,
+                      repo_tool.import_rsa_privatekey_from_file, 3)
+
+
+    # Test invalid argument.
+    # Non-existent key file.
+    nonexistent_keypath = os.path.join(temporary_directory,
+                                       'nonexistent_keypath')
+    self.assertRaises(IOError, repo_tool.import_rsa_publickey_from_file,
+                      nonexistent_keypath)
+    
+    # Invalid key file argument. 
+    invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile') 
+    with open(invalid_keyfile, 'wb') as file_object:
+      file_object.write('bad keyfile')
+    self.assertRaises(tuf.Error, repo_tool.import_rsa_publickey_from_file,
+                      invalid_keyfile)
 
 
 
   def test_generate_and_write_ed25519_keypair(self):
-    pass
+    
+    # Test normal case.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory) 
+    test_keypath = os.path.join(temporary_directory, 'ed25519_key')
+
+    repo_tool.generate_and_write_ed25519_keypair(test_keypath, password='pw')
+    self.assertTrue(os.path.exists(test_keypath))
+    self.assertTrue(os.path.exists(test_keypath + '.pub'))
+
+    # Ensure the generated key files are importable.
+    imported_pubkey = \
+      repo_tool.import_ed25519_publickey_from_file(test_keypath + '.pub')
+    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_pubkey))
+    
+    imported_privkey = \
+      repo_tool.import_ed25519_privatekey_from_file(test_keypath, 'pw')
+    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_privkey))
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError,
+                      repo_tool.generate_and_write_ed25519_keypair,
+                      3, password='pw')
+    self.assertRaises(tuf.FormatError, repo_tool.generate_and_write_rsa_keypair,
+                      test_keypath, password=3)
 
 
 
   def test_import_ed25519_publickey_from_file(self):
-    pass
+    # Test normal case.
+    # Generate ed25519 keys that can be imported.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    ed25519_keypath = os.path.join(temporary_directory, 'ed25519_key') 
+    repo_tool.generate_and_write_ed25519_keypair(ed25519_keypath, password='pw')
+     
+    imported_ed25519_key = \
+      repo_tool.import_ed25519_publickey_from_file(ed25519_keypath + '.pub')
+    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
+    
+    
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError,
+                      repo_tool.import_ed25519_publickey_from_file, 3)
+
+
+    # Test invalid argument.
+    # Non-existent key file.
+    nonexistent_keypath = os.path.join(temporary_directory,
+                                       'nonexistent_keypath')
+    self.assertRaises(IOError, repo_tool.import_ed25519_publickey_from_file,
+                      nonexistent_keypath)
+    
+    # Invalid key file argument. 
+    invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile') 
+    with open(invalid_keyfile, 'wb') as file_object:
+      file_object.write('bad keyfile')
+    
+    self.assertRaises(tuf.Error, repo_tool.import_ed25519_publickey_from_file,
+                      invalid_keyfile)
 
 
 
   def test_import_ed25519_privatekey_from_file(self):
-    pass
+    # Test normal case.
+    # Generate ed25519 keys that can be imported.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    ed25519_keypath = os.path.join(temporary_directory, 'ed25519_key') 
+    repo_tool.generate_and_write_ed25519_keypair(ed25519_keypath, password='pw')
+     
+    imported_ed25519_key = \
+      repo_tool.import_ed25519_privatekey_from_file(ed25519_keypath, 'pw')
+    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
+    
+    
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError,
+                      repo_tool.import_ed25519_privatekey_from_file, 3, 'pw')
+
+
+    # Test invalid argument.
+    # Non-existent key file.
+    nonexistent_keypath = os.path.join(temporary_directory,
+                                       'nonexistent_keypath')
+    self.assertRaises(IOError, repo_tool.import_ed25519_privatekey_from_file,
+                      nonexistent_keypath, 'pw')
+    
+    # Invalid key file argument. 
+    invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile') 
+    with open(invalid_keyfile, 'wb') as file_object:
+      file_object.write('bad keyfile')
+    
+    self.assertRaises(tuf.Error, repo_tool.import_ed25519_privatekey_from_file,
+                      invalid_keyfile, 'pw')
 
 
 
   def test_get_metadata_filenames(self):
-    pass
+   
+    # Test normal case.
+    metadata_directory = os.path.join('metadata/')
+    filenames = {'root.json': metadata_directory + 'root.json',
+                 'targets.json': metadata_directory + 'targets.json',
+                 'snapshot.json': metadata_directory + 'snapshot.json',
+                 'timestamp.json': metadata_directory + 'timestamp.json'}
+    
+    self.assertEqual(filenames, repo_tool.get_metadata_filenames('metadata/'))
+
+    # If a directory argument is not specified, the current working directory
+    # is used.
+    metadata_directory = os.getcwd()
+    filenames = {'root.json': os.path.join(metadata_directory, 'root.json'),
+                 'targets.json': os.path.join(metadata_directory, 'targets.json'),
+                 'snapshot.json': os.path.join(metadata_directory, 'snapshot.json'),
+                 'timestamp.json': os.path.join(metadata_directory,  'timestamp.json')}
+    self.assertEqual(filenames, repo_tool.get_metadata_filenames())
+
+
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError, repo_tool.get_metadata_filenames, 3)
 
 
 
-  def test_get_metadata_file_info(self):
-    pass
+  def test_get_metadata_fileinfo(self):
+    # Test normal case. 
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    test_filepath = os.path.join(temporary_directory, 'file.txt')
+    
+    with open(test_filepath, 'wb') as file_object:
+      file_object.write('test file')
+  
+    # Generate test fileinfo object.  It is assumed SHA256 hashes are computed
+    # by get_metadata_fileinfo().
+    file_length = os.path.getsize(test_filepath)
+    digest_object = tuf.hash.digest_filename(test_filepath)
+    file_hashes = {'sha256': digest_object.hexdigest()}
+    fileinfo = {'length': file_length, 'hashes': file_hashes}
+    self.assertTrue(tuf.formats.FILEINFO_SCHEMA.matches(fileinfo))
+    
+    self.assertEqual(fileinfo, repo_tool.get_metadata_fileinfo(test_filepath))
+
+
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError, repo_tool.get_metadata_fileinfo, 3)
+
+
+    # Test non-existent file.
+    nonexistent_filepath = os.path.join(temporary_directory, 'oops.txt')
+    self.assertRaises(tuf.Error, repo_tool.get_metadata_fileinfo,
+                      nonexistent_filepath)
 
 
 
