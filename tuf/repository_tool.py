@@ -3856,13 +3856,16 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
       'tuf.formats.TIME_SCHEMA'.
 
     consistent_snapshot:
+      Boolean.  If True, a file digest is expected to be prepended to the
+      filename of any target file located in the targets directory.  Each digest
+      is stripped from the target filename and listed in the snapshot metadata. 
 
   <Exceptions>
     tuf.FormatError, if the generated root metadata object could not
     be generated with the correct format.
 
     tuf.Error, if an error is encountered while generating the root
-    metadata object.
+    metadata object (e.g., a required top-level role not found in 'tuf.roledb'.)
   
   <Side Effects>
     The contents of 'tuf.keydb.py' and 'tuf.roledb.py' are read.
@@ -4060,7 +4063,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
                                root_filename, targets_filename,
-                               consistent_snapshot):
+                               consistent_snapshot=False):
   """
   <Purpose>
     Create the snapshot metadata.  The minimum metadata must exist
@@ -4096,7 +4099,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       is stripped from the target filename and listed in the snapshot metadata. 
 
   <Exceptions>
-    tuf.FormatError, if 'metadata_directory' is improperly formatted.
+    tuf.FormatError, if the arguments are improperly formatted.
 
     tuf.Error, if an error occurred trying to generate the snapshot metadata
     object.
@@ -4117,6 +4120,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   tuf.formats.TIME_SCHEMA.check_match(expiration_date)
   tuf.formats.PATH_SCHEMA.check_match(root_filename)
   tuf.formats.PATH_SCHEMA.check_match(targets_filename)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   metadata_directory = _check_directory(metadata_directory)
 

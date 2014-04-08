@@ -31,6 +31,7 @@ import tuf.repository_tool as repo_tool
 
 logger = logging.getLogger('tuf.test_repository_tool')
 
+repo_tool.disable_console_log_messages()
 
 
 class TestRepository(unittest.TestCase):
@@ -231,7 +232,44 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_create_new_repository(self):
-    pass
+    # Test normal case.
+    # Setup the temporary repository directories needed by
+    # create_new_repository().
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory) 
+    repository_directory = os.path.join(temporary_directory, 'repository')
+    metadata_directory = os.path.join(repository_directory,
+                                      repo_tool.METADATA_STAGED_DIRECTORY_NAME)
+    targets_directory = os.path.join(repository_directory,
+                                     repo_tool.TARGETS_DIRECTORY_NAME)
+    
+    repository = repo_tool.create_new_repository(repository_directory)
+    self.assertTrue(isinstance(repository, repo_tool.Repository))
+    
+    # Verify that the 'repository/', 'repository/metadata', and
+    # 'repository/targets' directories were created.
+    self.assertTrue(os.path.exists(repository_directory))
+    self.assertTrue(os.path.exists(metadata_directory))
+    self.assertTrue(os.path.exists(targets_directory))
+
+
+    # Test that the 'repository' directory is created (along with the other
+    # sub-directories) when it does not exist yet.  The repository tool creates
+    # the non-existent directory.
+    shutil.rmtree(repository_directory)
+
+    repository = repo_tool.create_new_repository(repository_directory)
+    repository = repo_tool.create_new_repository(repository_directory)
+    self.assertTrue(isinstance(repository, repo_tool.Repository))
+    
+    # Verify that the 'repository/', 'repository/metadata', and
+    # 'repository/targets' directories were created.
+    self.assertTrue(os.path.exists(repository_directory))
+    self.assertTrue(os.path.exists(metadata_directory))
+    self.assertTrue(os.path.exists(targets_directory))
+     
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repo_tool.create_new_repository, 3)
 
 
 
@@ -524,22 +562,198 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_generate_root_metadata(self):
-    pass
+    # Test normal case.
+    # Load the root metadata provided in 'tuf/tests/repository_data/'.
+    root_filepath = os.path.join(os.pardir, 'repository_data', 'repository',
+                                 'metadata', 'root.json')
+    root_signable = tuf.util.load_json_file(root_filepath)
+
+    # generate_root_metadata() expects the top-level roles and keys to be
+    # available in 'tuf.keydb' and 'tuf.roledb'.
+    tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'])
+    tuf.keydb.create_keydb_from_root_metadata(root_signable['signed'])
+
+    root_metadata = repo_tool.generate_root_metadata(1, '2088-01-01 12:00:00 UTC',
+                                                     consistent_snapshot=False)
+    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
+
+    
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repo_tool.generate_root_metadata,  
+                      '3', '2088-01-01 12:00:00 UTC', False) 
+    self.assertRaises(tuf.FormatError, repo_tool.generate_root_metadata,  
+                      1, 3, False) 
+    self.assertRaises(tuf.FormatError, repo_tool.generate_root_metadata,  
+                      1, '2088-01-01 12:00:00 UTC', 3) 
+
+    # Test for missing required roles and keys.
+    tuf.roledb.clear_roledb()
+    tuf.keydb.clear_keydb()
+    self.assertRaises(tuf.Error, repo_tool.generate_root_metadata,
+                      1, '2088-01-01 12:00:00 UTC', False)
 
 
 
   def test_generate_targets_metadata(self):
-    pass
+    # Test normal case. 
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    targets_directory = os.path.join(temporary_directory, 'targets')
+    file1_path = os.path.join(targets_directory, 'file.txt')
+    tuf.util.ensure_parent_dir(file1_path)
+
+    with open(file1_path, 'wb') as file_object:
+      file_object.write('test file.')
+   
+    # Set valid generate_targets_metadata() arguments.
+    version = 1
+    expiration_date = '2088-01-01 12:00:00 UTC'
+    target_files = ['file.txt']
+    delegations = {"keys": {
+      "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf": {
+       "keytype": "ed25519", 
+       "keyval": {
+        "public": "3eb81026ded5af2c61fb3d4b272ac53cd1049a810ee88f4df1fc35cdaf918157"
+       }
+      }
+     }, 
+     "roles": [
+      {
+       "keyids": [
+        "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf"
+       ], 
+       "name": "targets/warehouse", 
+       "paths": [
+        "/file1.txt", "/README.txt", '/warehouse/'
+       ], 
+       "threshold": 1
+      }
+     ]
+    }
+  
+    targets_metadata = \
+      repo_tool.generate_targets_metadata(targets_directory, target_files,
+                                          version, expiration_date, delegations,
+                                          False)
+    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
+
+    # Verify that 'digest.filename' file is saved to 'targets_directory' if
+    # the 'write_consistent_targets' argument is True.
+    list_targets_directory = os.listdir(targets_directory)
+    targets_metadata = \
+      repo_tool.generate_targets_metadata(targets_directory, target_files,
+                                          version, expiration_date, delegations,
+                                          write_consistent_targets=True)
+    new_list_targets_directory = os.listdir(targets_directory)
+    
+    # Verify that 'targets_directory' contains only one extra item.
+    self.assertTrue(len(list_targets_directory) + 1,
+                    len(new_list_targets_directory))
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repo_tool.generate_targets_metadata,
+                      3, target_files, version, expiration_date)  
+    self.assertRaises(tuf.FormatError, repo_tool.generate_targets_metadata,
+                      targets_directory, 3, version, expiration_date)  
+    self.assertRaises(tuf.FormatError, repo_tool.generate_targets_metadata,
+                      targets_directory, target_files, '3', expiration_date)  
+    self.assertRaises(tuf.FormatError, repo_tool.generate_targets_metadata,
+                      targets_directory, target_files, version, 3)  
+    
+    # Improperly formatted 'delegations' and 'write_consistent_targets' 
+    self.assertRaises(tuf.FormatError, repo_tool.generate_targets_metadata,
+                      targets_directory, target_files, version, expiration_date,
+                      3, False)  
+    self.assertRaises(tuf.FormatError, repo_tool.generate_targets_metadata,
+                      targets_directory, target_files, version, expiration_date,
+                      delegations, 3)  
+
+
+    # Test invalid 'target_files' argument.
+    self.assertRaises(tuf.Error, repo_tool.generate_targets_metadata,
+                      targets_directory, ['nonexistent_file.txt'], version,
+                      expiration_date)  
+
 
 
 
   def test_generate_snapshot_metadata(self):
-    pass
+    # Test normal case.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    original_repository_path = os.path.join(os.pardir, 'repository_data',
+                                            'repository')
+    repository_directory = os.path.join(temporary_directory, 'repository') 
+    shutil.copytree(original_repository_path, repository_directory)
+    metadata_directory = os.path.join(repository_directory,
+                                      repo_tool.METADATA_STAGED_DIRECTORY_NAME)
+    root_filename = os.path.join(metadata_directory, repo_tool.ROOT_FILENAME)
+    targets_filename = os.path.join(metadata_directory,
+                                    repo_tool.TARGETS_FILENAME)
+    version = 1
+    expiration_date = '2088-01-01 12:00:00 UTC'
+    
+    snapshot_metadata = \
+      repo_tool.generate_snapshot_metadata(metadata_directory, version,
+                                           expiration_date, root_filename,
+                                           targets_filename,
+                                           consistent_snapshot=False)
+    self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repo_tool.generate_snapshot_metadata,
+                      3, version, expiration_date,
+                      root_filename, targets_filename, consistent_snapshot=False)
+    self.assertRaises(tuf.FormatError, repo_tool.generate_snapshot_metadata,
+                      metadata_directory, '3', expiration_date,
+                      root_filename, targets_filename, consistent_snapshot=False)
+    self.assertRaises(tuf.FormatError, repo_tool.generate_snapshot_metadata,
+                      metadata_directory, version, 3,
+                      root_filename, targets_filename, consistent_snapshot=False)
+    self.assertRaises(tuf.FormatError, repo_tool.generate_snapshot_metadata,
+                      metadata_directory, version, expiration_date,
+                      3, targets_filename, consistent_snapshot=False)
+    self.assertRaises(tuf.FormatError, repo_tool.generate_snapshot_metadata,
+                      metadata_directory, version, expiration_date,
+                      root_filename, 3, consistent_snapshot=False)
+    self.assertRaises(tuf.FormatError, repo_tool.generate_snapshot_metadata,
+                      metadata_directory, version, expiration_date,
+                      root_filename, targets_filename, 3)
 
 
 
   def test_generate_timestamp_metadata(self):
-    pass
+    # Test normal case.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    original_repository_path = os.path.join(os.pardir, 'repository_data',
+                                            'repository')
+    repository_directory = os.path.join(temporary_directory, 'repository') 
+    shutil.copytree(original_repository_path, repository_directory)
+    metadata_directory = os.path.join(repository_directory,
+                                      repo_tool.METADATA_STAGED_DIRECTORY_NAME)
+    snapshot_filename = os.path.join(metadata_directory,
+                                     repo_tool.SNAPSHOT_FILENAME)
+   
+    # Set valid generate_timestamp_metadata() arguments.
+    version = 1
+    expiration_date = '2088-01-01 12:00:00 UTC'
+    compressions = ['gz']
+
+    snapshot_metadata = \
+      repo_tool.generate_timestamp_metadata(snapshot_filename, version,
+                                            expiration_date, compressions)
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(snapshot_metadata))
+    
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repo_tool.generate_timestamp_metadata,
+                      3, version, expiration_date, compressions)
+    self.assertRaises(tuf.FormatError, repo_tool.generate_timestamp_metadata,
+                      snapshot_filename, '3', expiration_date, compressions)
+    self.assertRaises(tuf.FormatError, repo_tool.generate_timestamp_metadata,
+                      snapshot_filename, version, 3, compressions)
+    self.assertRaises(tuf.FormatError, repo_tool.generate_timestamp_metadata,
+                      snapshot_filename, version, expiration_date, 3)
 
 
 
