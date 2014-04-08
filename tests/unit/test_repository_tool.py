@@ -64,6 +64,23 @@ class TestRepository(unittest.TestCase):
     self.assertRaises(tuf.FormatError, repo_tool.Repository,
                       'repository_directory', 'metadata_directory', 3)
 
+  
+
+  def test_write(self):
+    pass
+
+
+
+  def test_write_partial(self):
+    pass
+
+
+
+  def test_get_filepaths_in_directory(self):
+    pass
+
+
+
 
 
 class TestMetadata(unittest.TestCase):
@@ -73,6 +90,72 @@ class TestMetadata(unittest.TestCase):
 
 
   def tearDown(self):
+    pass
+
+  
+
+  def test_rolename(self):
+    pass
+  
+
+
+  def test_version(self):
+    pass
+
+
+
+  def test_threshold(self):
+    pass
+
+
+
+  def test_expiration(self):
+    pass
+
+
+
+  def test_keys(self):
+    pass
+
+
+
+  def test_signing_keys(self):
+    pass
+
+
+
+  def test_compressions(self):
+    pass
+
+
+
+  def test_add_verification_keys(self):
+    pass
+
+
+
+  def test_remove_verification_keys(self):
+    pass
+
+
+
+  def test_load_signing_key(self):
+    pass
+
+
+
+  def test_unload_signing_key(self):
+    pass
+
+
+
+  def test_add_signature(self):
+    pass
+
+
+
+
+  def test_remove_signature(self):
     pass
 
 
@@ -194,6 +277,63 @@ class TestTargets(unittest.TestCase):
     self.assertRaises(tuf.FormatError, repo_tool.Targets, 'targets_directory/', 3)
     self.assertRaises(tuf.FormatError, repo_tool.Targets, 'targets_directory/',
                       'targets', 3)
+
+
+
+  def test_get_delegated_rolenames(self):
+    pass
+
+
+
+  def test_target_files(self):
+    pass
+
+
+
+  def test_delegations(self):
+    pass
+
+
+
+  def test_add_target(self):
+    pass
+
+
+
+  def test_add_targets(self):
+    pass
+
+
+
+  def test_remove_target(self):
+    pass
+
+
+
+  def test_clear_targets(self):
+    pass
+
+
+
+  def test_delegate(self):
+    pass
+
+
+
+  def test_delegate_hashed_bins(self):
+    pass
+
+
+
+  def test_add_restricted_paths(self):
+    pass
+
+
+
+  def test_revoke(self):
+    pass
+
+
 
 
 
@@ -545,7 +685,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     filenames = {'root.json': os.path.join(metadata_directory, 'root.json'),
                  'targets.json': os.path.join(metadata_directory, 'targets.json'),
                  'snapshot.json': os.path.join(metadata_directory, 'snapshot.json'),
-                 'timestamp.json': os.path.join(metadata_directory,  'timestamp.json')}
+                 'timestamp.json': os.path.join(metadata_directory, 'timestamp.json')}
     self.assertEqual(filenames, repo_tool.get_metadata_filenames())
 
 
