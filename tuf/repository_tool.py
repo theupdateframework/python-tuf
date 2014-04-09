@@ -1117,7 +1117,8 @@ class Metadata(object):
         'tuf.formats.DATETIME_SCHEMA'.
 
     <Exceptions>
-      tuf.FormatError, if 'expiration_datetime_utc' is improperly formatted.
+      tuf.FormatError, if 'expiration_datetime_utc' is improperly formatted,
+      or invalid (e.g., already expired).
     
     <Side Effects>
       Modifies the expiration attribute of the Repository object.
@@ -1135,7 +1136,7 @@ class Metadata(object):
     # Further validate the datetime, such as a correct date, time, expiration.
     # Convert 'expiration_datetime_utc' to a unix timestamp so that it can be
     # compared with time.time().
-    expiration_datetime_utc = expiration_datetime_utc+' UTC'
+    expiration_datetime_utc = expiration_datetime_utc + ' UTC'
     try:
       unix_timestamp = tuf.formats.parse_time(expiration_datetime_utc)
     

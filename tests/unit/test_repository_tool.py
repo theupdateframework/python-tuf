@@ -16,6 +16,7 @@
 """
 
 import os
+import time
 import unittest
 import logging
 import tempfile
@@ -35,6 +36,30 @@ repo_tool.disable_console_log_messages()
 
 
 class TestRepository(unittest.TestCase):
+  @classmethod
+  def setUpClass(cls):
+    
+    # setUpClass() is called before tests in an individual class are executed.
+    
+    # Create a temporary directory to store the repository, metadata, and target
+    # files.  'temporary_directory' must be deleted in TearDownClass() so that
+    # temporary files are always removed, even when exceptions occur. 
+    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
+    
+
+
+  @classmethod 
+  def tearDownClass(cls):
+    
+    # tearDownModule() is called after all the tests have run.
+    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
+   
+    # Remove the temporary repository directory, which should contain all the
+    # metadata, targets, and key files generated for the test cases.
+    shutil.rmtree(cls.temporary_directory)
+  
+  
+  
   def setUp(self):
     pass
 
@@ -77,7 +102,27 @@ class TestRepository(unittest.TestCase):
 
 
   def test_get_filepaths_in_directory(self):
-    pass
+    # Test normal case.
+    # Use the pre-generated metadata directory for testing.
+    metadata_directory = os.path.join(os.pardir, 'repository_data',
+                                        'repository', 'metadata')
+    
+    
+    # Test improperly formatted arguments.
+    repo = repo_tool.Repository
+    self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,
+                      3, recursive_walk=False, followlinks=False)
+    self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,
+                      metadata_directory, 3, followlinks=False)
+    self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,
+                      metadata_directory, recursive_walk=False, followlinks=3)
+
+    # Test invalid directory argument.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    nonexistent_directory = os.path.join(temporary_directory, 'nonexistent/')
+    self.assertRaises(tuf.Error, repo.get_filepaths_in_directory,
+                      nonexistent_directory, recursive_walk=False,
+                      followlinks=False)
 
 
 
@@ -85,80 +130,313 @@ class TestRepository(unittest.TestCase):
 
 class TestMetadata(unittest.TestCase):
   def setUp(self):
-    pass
+    # Inherit from the repo_tool.Metadata() base class.  All of the methods
+    # to be tested in TestMetadata require at least 1 role, so create it here
+    # and set its roleinfo.
+    class MetadataRole(repo_tool.Metadata):
+      
+      def __init__(self):
+        super(MetadataRole, self).__init__() 
+        
+        self._rolename = 'metadata_role'
+        
+        # Expire in 86400 seconds (1 day).
+        expiration = tuf.formats.format_time(time.time() + 86400)
+        
+        roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
+                    'signatures': [], 'version': 0,
+                    'consistent_snapshot': False,
+                    'compressions': [''], 'expires': expiration,
+                    'partial_loaded': False}
+        
+        tuf.roledb.add_role(self._rolename, roleinfo)
+    
+    self.metadata = MetadataRole() 
 
 
 
   def tearDown(self):
-    pass
+    tuf.roledb.clear_roledb()
+    tuf.keydb.clear_keydb()
+    self.metadata = None 
 
   
 
   def test_rolename(self):
-    pass
-  
+    base_metadata = repo_tool.Metadata()
+    
+    self.assertEqual(base_metadata.rolename, None)
+    
+    # Test the sub-classed MetadataRole().
+    self.assertEqual(self.metadata.rolename, 'metadata_role')
+
 
 
   def test_version(self):
-    pass
+    # Test version getter, and the default version number.
+    self.assertEqual(self.metadata.version, 0)
+
+    # Test version setter, and verify updated version number.
+    self.metadata.version = 8
+    self.assertEqual(self.metadata.version, 8)
 
 
 
   def test_threshold(self):
-    pass
+    # Test threshold getter, and the default threshold number.
+    self.assertEqual(self.metadata.threshold, 1)
+
+    # Test threshold setter, and verify updated threshold number.
+    self.metadata.threshold = 3
+    self.assertEqual(self.metadata.threshold, 3)
 
 
 
   def test_expiration(self):
-    pass
+    # Test expiration getter.
+    expiration = self.metadata.expiration
+    self.assertTrue(tuf.formats.TIME_SCHEMA.matches(expiration))
+
+    # Test expiration setter. 
+    self.metadata.expiration = '2088-01-01 12:00:00'
+    expiration = self.metadata.expiration
+    self.assertTrue(tuf.formats.TIME_SCHEMA.matches(expiration))
+
+
+    # Test improperly formatted datetime.
+    try: 
+      self.metadata.expiration = '3' 
+    except tuf.FormatError:
+      pass
+    else:
+      self.fail('Setter failed to detect improperly formatted datetime.')
+
+
+    # Test invalid argument (i.e., expiration has already expired.)
+    expired_datetime = tuf.formats.format_time(time.time() - 1)
+    try: 
+      self.metadata.expiration = expired_datetime 
+    except tuf.FormatError:
+      pass
+    else:
+      self.fail('Setter failted to detect an expired datetime.')
 
 
 
   def test_keys(self):
-    pass
+    # Test default case, where a verification key has not been added. 
+    self.assertEqual(self.metadata.keys, [])
+
+
+    # Test keys() getter after a verification key has been loaded.
+    key_path = os.path.join(os.pardir, 'repository_data',
+                            'keystore', 'root_key.pub')
+    key_object = repo_tool.import_rsa_publickey_from_file(key_path)
+    self.metadata.add_verification_key(key_object)
+    
+    keyid = key_object['keyid']
+    self.assertEqual([keyid], self.metadata.keys)
 
 
 
   def test_signing_keys(self):
-    pass
+    # Test default case, where a signing key has not been added. 
+    self.assertEqual(self.metadata.signing_keys, [])
+
+
+    # Test signing_keys() getter after a signing key has been loaded.
+    key_path = os.path.join(os.pardir, 'repository_data',
+                            'keystore', 'root_key')
+    key_object = repo_tool.import_rsa_privatekey_from_file(key_path, 'password')
+    self.metadata.load_signing_key(key_object)
+    
+    keyid = key_object['keyid']
+    self.assertEqual([keyid], self.metadata.signing_keys)
 
 
 
   def test_compressions(self):
-    pass
+    # Test default case, where only uncompressed metadata is supported.
+    self.assertEqual(self.metadata.compressions, [''])
+
+    # Test compressions getter after a compressions algorithm is added.
+    self.metadata.compressions = ['gz']
+
+    self.assertEqual(self.metadata.compressions, ['', 'gz'])
+
+
+    # Test improperly formatted argument.
+    try:
+      self.metadata.compressions = 3
+    except tuf.FormatError:
+      pass
+    else:
+      self.fail('Setter failed to detect improperly formatted compressions')
 
 
 
-  def test_add_verification_keys(self):
-    pass
+  def test_add_verification_key(self):
+    # Add verification key and verify with keys() that it was added. 
+    key_path = os.path.join(os.pardir, 'repository_data',
+                            'keystore', 'root_key.pub')
+    key_object = repo_tool.import_rsa_publickey_from_file(key_path)
+    self.metadata.add_verification_key(key_object)
+    
+    keyid = key_object['keyid']
+    self.assertEqual([keyid], self.metadata.keys)
+
+
+    # Test improperly formatted key argument.
+    self.assertRaises(tuf.FormatError, self.metadata.add_verification_key, 3)
 
 
 
-  def test_remove_verification_keys(self):
-    pass
+  def test_remove_verification_key(self):
+    # Add verification key so that remove_verifiation_key() can be tested.
+    key_path = os.path.join(os.pardir, 'repository_data',
+                            'keystore', 'root_key.pub')
+    key_object = repo_tool.import_rsa_publickey_from_file(key_path)
+    self.metadata.add_verification_key(key_object)
+    
+    keyid = key_object['keyid']
+    self.assertEqual([keyid], self.metadata.keys)
+
+
+    # Test successful removal of verification key added above.
+    self.metadata.remove_verification_key(key_object)
+    self.assertEqual(self.metadata.keys, [])
+    
+
+    # Test improperly formatted argument
+    self.assertRaises(tuf.FormatError, self.metadata.remove_verification_key, 3)
+
+
+    # Test non-existent public key argument.
+    key_path = os.path.join(os.pardir, 'repository_data',
+                            'keystore', 'targets_key.pub')
+    unused_key_object = repo_tool.import_rsa_publickey_from_file(key_path)
+    
+    self.assertRaises(tuf.Error, self.metadata.remove_verification_key,
+                      unused_key_object)
 
 
 
   def test_load_signing_key(self):
-    pass
+    # Test normal case. 
+    key_path = os.path.join(os.pardir, 'repository_data',
+                            'keystore', 'root_key')
+    key_object = repo_tool.import_rsa_privatekey_from_file(key_path, 'password')
+    self.metadata.load_signing_key(key_object)
+    
+    keyid = key_object['keyid']
+    self.assertEqual([keyid], self.metadata.signing_keys)
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, self.metadata.load_signing_key, 3)
+
+    
+    # Test non-private key.
+    key_path = os.path.join(os.pardir, 'repository_data',
+                            'keystore', 'root_key.pub')
+    key_object = repo_tool.import_rsa_publickey_from_file(key_path)
+    self.assertRaises(tuf.Error, self.metadata.load_signing_key, key_object)
 
 
 
   def test_unload_signing_key(self):
-    pass
+    # Load a signing key so that unload_signing_key() can have a key to unload.
+    key_path = os.path.join(os.pardir, 'repository_data',
+                            'keystore', 'root_key')
+    key_object = repo_tool.import_rsa_privatekey_from_file(key_path, 'password')
+    self.metadata.load_signing_key(key_object)
+    
+    keyid = key_object['keyid']
+    self.assertEqual([keyid], self.metadata.signing_keys)
+
+    self.metadata.unload_signing_key(key_object)
+
+    self.assertEqual(self.metadata.signing_keys, [])
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, self.metadata.unload_signing_key, 3)
+
+
+    # Test non-existent key argument.
+    key_path = os.path.join(os.pardir, 'repository_data',
+                            'keystore', 'targets_key')
+    unused_key_object = repo_tool.import_rsa_privatekey_from_file(key_path,
+                                                                  'password')
+    
+    self.assertRaises(tuf.Error, self.metadata.unload_signing_key,
+                      unused_key_object)
 
 
 
   def test_add_signature(self):
-    pass
+    # Test normal case.
+    # Load signature list from any of pre-generated metadata; needed for
+    # testing.
+    metadata_directory = os.path.join(os.pardir, 'repository_data',
+                                      'repository', 'metadata')
+    root_filepath = os.path.join(metadata_directory, 'root.json')
+    root_signable = tuf.util.load_json_file(root_filepath)
+    signatures = root_signable['signatures']
 
+    # Add the first signature from the list, as only need one is needed.
+    self.metadata.add_signature(signatures[0])
+    self.assertEqual(signatures, self.metadata.signatures)
+
+
+    # Test improperly formatted signature argument.
+    self.assertRaises(tuf.FormatError, self.metadata.add_signature, 3)
 
 
 
   def test_remove_signature(self):
-    pass
+    # Test normal case.
+    # Add a signature so remove_signature() has some signature to remove.
+    metadata_directory = os.path.join(os.pardir, 'repository_data',
+                                      'repository', 'metadata')
+    root_filepath = os.path.join(metadata_directory, 'root.json')
+    root_signable = tuf.util.load_json_file(root_filepath)
+    signatures = root_signable['signatures']
+    self.metadata.add_signature(signatures[0])
+
+    self.metadata.remove_signature(signatures[0])
+    self.assertEqual(self.metadata.signatures, [])
 
 
+    # Test improperly formatted signature argument.
+    self.assertRaises(tuf.FormatError, self.metadata.remove_signature, 3)
+
+
+    # Test invalid signature argument (i.e., signature that has not been added.)
+    # Load an unused signature to be tested.
+    targets_filepath = os.path.join(metadata_directory, 'targets.json')
+    targets_signable = tuf.util.load_json_file(targets_filepath)
+    signatures = targets_signable['signatures']
+    
+    self.assertRaises(tuf.Error, self.metadata.remove_signature, signatures[0])
+
+
+
+  def test_signatures(self):
+    # Test default case, where no signatures have been added yet.
+    self.assertEqual(self.metadata.signatures, [])
+
+
+    # Test getter after adding an example signature.
+    metadata_directory = os.path.join(os.pardir, 'repository_data',
+                                      'repository', 'metadata')
+    root_filepath = os.path.join(metadata_directory, 'root.json')
+    root_signable = tuf.util.load_json_file(root_filepath)
+    signatures = root_signable['signatures']
+
+    # Add the first signature from the list, as only need one is needed.
+    self.metadata.add_signature(signatures[0])
+    self.assertEqual(signatures, self.metadata.signatures)
 
 
 
