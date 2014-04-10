@@ -1611,7 +1611,8 @@ class Targets(Metadata):
 
       child_rolename:
         The child delegation that requires an update to its restricted paths,
-        as listed in the parent role's delegations.
+        as listed in the parent role's delegations (e.g., 'Django' in
+        'targets/unclaimed/Django').
 
     <Exceptions>
       tuf.Error, if a directory path in 'list_of_directory_paths' is not a
@@ -2192,8 +2193,9 @@ class Targets(Metadata):
         considered the hash prefix).
 
     <Exceptions>
-      tuf.FormatError, if the arguments are improperly formatted,
-        'number_of_bins' is not a power of 2, or one of the targets
+      tuf.FormatError, if the arguments are improperly formatted.
+      
+      tuf.Error, if 'number_of_bins' is not a power of 2, or one of the targets
         in 'list_of_targets' is not located under the repository's targets
         directory.
 
@@ -2229,7 +2231,7 @@ class Targets(Metadata):
     # (total_hash_prefixes / number_of_bins) hash prefixes.
     if total_hash_prefixes % number_of_bins != 0:
       message = 'The "number_of_bins" argument must be a power of 2.'
-      raise tuf.FormatError(message)
+      raise tuf.Error(message)
 
     logger.info('Creating hashed bin delegations.')
     logger.info(repr(len(list_of_targets)) + ' total targets.')
@@ -2250,7 +2252,7 @@ class Targets(Metadata):
       if not target_path.startswith(self._targets_directory+os.sep):
         message = 'A path in the list of targets argument is not '+\
           'under the repository\'s targets directory: '+repr(target_path) 
-        raise tuf.FormatError(message)
+        raise tuf.Error(message)
       
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.  Example:

@@ -513,14 +513,45 @@ class TestSnapshot(unittest.TestCase):
 
 
 class TestTargets(unittest.TestCase):
+  @classmethod
+  def setUpClass(cls):
+    
+    # setUpClass() is called before tests in an individual class are executed.
+    
+    # Create a temporary directory to store the repository, metadata, and target
+    # files.  'temporary_directory' must be deleted in TearDownClass() so that
+    # temporary files are always removed, even when exceptions occur. 
+    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
+    
+
+
+  @classmethod 
+  def tearDownClass(cls):
+    
+    # tearDownModule() is called after all the tests have run.
+    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
+   
+    # Remove the temporary repository directory, which should contain all the
+    # metadata, targets, and key files generated for the test cases.
+    shutil.rmtree(cls.temporary_directory)
+ 
+
+
   def setUp(self):
-    pass
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    self.targets_directory = os.path.join(temporary_directory, 'repository',
+                                          'targets')
+    original_targets_directory = os.path.join(os.pardir, 'repository_data',
+                                              'repository', 'targets')
+    shutil.copytree(original_targets_directory, self.targets_directory)
+    self.targets_object = repo_tool.Targets(self.targets_directory)
 
 
 
   def tearDown(self):
     tuf.roledb.clear_roledb() 
     tuf.keydb.clear_keydb()
+    self.targets_object = None
   
   
   
@@ -559,57 +590,361 @@ class TestTargets(unittest.TestCase):
 
 
   def test_get_delegated_rolenames(self):
-    pass
+    # Test normal case.
+    # Perform two delegations so that get_delegated_rolenames() has roles to 
+    # return.
+    keystore_directory = os.path.join(os.pardir, 'repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+
+    # Set needed arguments by delegate().
+    public_keys = [public_key]
+    threshold = 1
+
+    self.targets_object.delegate('tuf', public_keys, [target1_filepath],
+                                 threshold, restricted_paths=None,
+                                 path_hash_prefixes=None)
+    self.targets_object.delegate('warehouse', public_keys, [target2_filepath],
+                                 threshold, restricted_paths=None,
+                                 path_hash_prefixes=None)
+
+    # Test that get_delegated_rolenames returns the expected delegations.
+    expected_delegated_rolenames = ['targets/tuf/', 'targets/warehouse']
+    for delegated_rolename in self.targets_object.get_delegated_rolenames():
+      delegated_rolename in expected_delegated_rolenames  
 
 
 
   def test_target_files(self):
-    pass
+    # Test normal case.
+    # Verify the targets object initially contains zero target files.
+    self.assertEqual(self.targets_object.target_files, [])
+
+    target_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    self.targets_object.add_target(target_filepath)
+
+    self.assertEqual(len(self.targets_object.target_files), 1)
+    self.assertTrue('/file1.txt' in self.targets_object.target_files)
 
 
 
   def test_delegations(self):
-    pass
+    # Test normal case.
+    # Perform a delegation so that delegations() has a Targets() object to
+    # return.
+    keystore_directory = os.path.join(os.pardir, 'repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+
+    # Set needed arguments by delegate().
+    public_keys = [public_key]
+    rolename = 'tuf'
+    list_of_targets = [target1_filepath] 
+    threshold = 1
+
+    self.targets_object.delegate(rolename, public_keys, list_of_targets,
+                                 threshold, restricted_paths=None,
+                                 path_hash_prefixes=None)
+
+    # Test that a valid Targets() object is returned by delegations().
+    for delegated_object in self.targets_object.delegations:
+      self.assertTrue(isinstance(delegated_object, repo_tool.Targets))
 
 
 
   def test_add_target(self):
-    pass
+    # Test normal case.
+    # Verify the targets object initially contains zero target files.
+    self.assertEqual(self.targets_object.target_files, [])
+
+    target_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    self.targets_object.add_target(target_filepath)
+
+    self.assertEqual(len(self.targets_object.target_files), 1)
+    self.assertTrue('/file1.txt' in self.targets_object.target_files)
+    
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, self.targets_object.add_target,
+                      3)
+
+
+    # Test invalid filepath argument (i.e., non-existent or invalid file.)
+    self.assertRaises(tuf.Error, self.targets_object.add_target,
+                      'non-existent.txt')
+    self.assertRaises(tuf.Error, self.targets_object.add_target,
+                      self.temporary_directory)
 
 
 
   def test_add_targets(self):
-    pass
+    # Test normal case.
+    # Verify the targets object initially contains zero target files.
+    self.assertEqual(self.targets_object.target_files, [])
+
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+    target3_filepath = os.path.join(self.targets_directory, 'file3.txt')
+    
+    target_files = [target1_filepath, target2_filepath, target3_filepath]
+    self.targets_object.add_targets(target_files)
+    
+    self.assertEqual(len(self.targets_object.target_files), 3)
+    self.assertEqual(self.targets_object.target_files, 
+                     ['/file1.txt', '/file2.txt', '/file3.txt'])
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, self.targets_object.add_targets,
+                      3)
+
+
+    # Test invalid filepath argument (i.e., non-existent or invalid file.)
+    self.assertRaises(tuf.Error, self.targets_object.add_target,
+                      ['non-existent.txt'])
+    self.assertRaises(tuf.Error, self.targets_object.add_target,
+                      [target1_filepath, target2_filepath, 'non-existent.txt'])
+    self.assertRaises(tuf.Error, self.targets_object.add_target,
+                      self.temporary_directory)
 
 
 
   def test_remove_target(self):
-    pass
+    # Test normal case.
+    # Verify the targets object initially contains zero target files.
+    self.assertEqual(self.targets_object.target_files, [])
+
+    # Add a target so that remove_target() has something to remove.
+    target_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    self.targets_object.add_target(target_filepath)
+
+    # Test remove_target()'s behavior.
+    self.targets_object.remove_target(target_filepath)
+    self.assertEqual(self.targets_object.target_files, [])
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, self.targets_object.remove_target,
+                      3)
+
+
+    # Test invalid filepath argument (i.e., non-existent or invalid file.)
+    self.assertRaises(tuf.Error, self.targets_object.remove_target,
+                      '/non-existent.txt')
 
 
 
   def test_clear_targets(self):
-    pass
+    # Test normal case.
+    # Verify the targets object initially contains zero target files.
+    self.assertEqual(self.targets_object.target_files, [])
+
+    # Add targets, to be tested by clear_targets().
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+    self.targets_object.add_targets([target1_filepath, target2_filepath])
+
+    self.targets_object.clear_targets()
+    self.assertEqual(self.targets_object.target_files, [])
 
 
 
   def test_delegate(self):
-    pass
+    # Test normal case.
+    # Need at least one public key and valid target paths required by
+    # delegate().
+    keystore_directory = os.path.join(os.pardir, 'repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+  
+
+    # Set needed arguments by delegate().
+    public_keys = [public_key]
+    rolename = 'tuf'
+    list_of_targets = [target1_filepath, target2_filepath] 
+    threshold = 1
+    restricted_paths = [self.targets_directory]
+    path_hash_prefixes = ['e3a3', '8fae', 'd543']
+
+    self.targets_object.delegate(rolename, public_keys, list_of_targets,
+                                 threshold, restricted_paths,
+                                 path_hash_prefixes)
+
+    self.assertEqual(self.targets_object.get_delegated_rolenames(),
+                     ['targets/tuf'])
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+                      3, public_keys, list_of_targets, threshold,
+                      restricted_paths, path_hash_prefixes)
+    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+                      rolename, 3, list_of_targets, threshold,
+                      restricted_paths, path_hash_prefixes)
+    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+                      rolename, public_keys, 3, threshold,
+                      restricted_paths, path_hash_prefixes)
+    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+                      rolename, public_keys, list_of_targets, '3',
+                      restricted_paths, path_hash_prefixes)
+    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+                      rolename, public_keys, list_of_targets, threshold,
+                      3, path_hash_prefixes)
+    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+                      rolename, public_keys, list_of_targets, threshold,
+                      restricted_paths, 3)
+
+
+    # Test invalid arguments (e.g., already delegated 'rolename', non-existent
+    # files, etc.).
+    # Test duplicate 'rolename' delegation, which should have been delegated
+    # in the normal case above.
+    self.assertRaises(tuf.Error, self.targets_object.delegate,
+                      rolename, public_keys, list_of_targets, threshold,
+                      restricted_paths, path_hash_prefixes)
+    
+    # Test non-existent target paths.
+    self.assertRaises(tuf.Error, self.targets_object.delegate,
+                      rolename, public_keys, ['/non-existent'], threshold,
+                      restricted_paths, path_hash_prefixes)
 
 
 
   def test_delegate_hashed_bins(self):
-    pass
+    # Test normal case.
+    keystore_directory = os.path.join(os.pardir, 'repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+
+    # Set needed arguments by delegate_hashed_bins().
+    public_keys = [public_key]
+    list_of_targets = [target1_filepath] 
+
+    # Test delegate_hashed_bins() and verify that 16 hashed bins have
+    # been delegated in the parent's roleinfo.
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+                                             number_of_bins=16)
+
+    # The expected child rolenames, since 'number_of_bins' = 16 
+    delegated_rolenames = ['0', '1', '2', '3', '4', '5', '6', '7',
+                           '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
+
+    # Prepend the parent's rolename.
+    expected_delegated_rolenames = []
+    for rolename in delegated_rolenames:
+      rolename = self.targets_object.rolename + '/' + rolename
+      expected_delegated_rolenames.append(rolename)
+
+    self.assertEqual(sorted(self.targets_object.get_delegated_rolenames()),
+                     sorted(expected_delegated_rolenames))
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError,
+                      self.targets_object.delegate_hashed_bins, 3, public_keys,
+                      number_of_bins=1)
+    self.assertRaises(tuf.FormatError,
+                      self.targets_object.delegate_hashed_bins,
+                      list_of_targets, 3, number_of_bins=1)
+    self.assertRaises(tuf.FormatError,
+                      self.targets_object.delegate_hashed_bins,
+                      list_of_targets, public_keys, '1')
+
+
+    # Test invalid arguments.
+    # Invalid number of bins, which must be a power of 2.
+    self.assertRaises(tuf.Error,
+                      self.targets_object.delegate_hashed_bins,
+                      list_of_targets, public_keys, number_of_bins=3)
+    
+    # Invalid 'list_of_targets'.
+    self.assertRaises(tuf.Error,
+                      self.targets_object.delegate_hashed_bins,
+                      ['/non-existent'], public_keys, number_of_bins=3)
 
 
 
   def test_add_restricted_paths(self):
-    pass
+    # Test normal case.
+    # Perform a delegation so that add_restricted_paths() has a child role
+    # to restrict.
+    keystore_directory = os.path.join(os.pardir, 'repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+
+    # Set needed arguments by delegate().
+    public_keys = [public_key]
+    rolename = 'tuf'
+    threshold = 1
+
+    self.targets_object.delegate(rolename, public_keys, [],
+                                 threshold, restricted_paths=None,
+                                 path_hash_prefixes=None)
+
+    restricted_path = os.path.join(self.targets_directory, 'tuf_files')
+    os.mkdir(restricted_path)
+    restricted_paths = [restricted_path]
+    self.targets_object.add_restricted_paths(restricted_paths, 'tuf')
+    
+    # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains
+    # the expected restricted paths of the delegated role.  Only
+    # Repository.write() verifies that child target paths are allowed by the
+    # parent.
+    targets_object_roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
+
+    delegated_role = targets_object_roleinfo['delegations']['roles'][0]
+    self.assertEqual(['/tuf_files/'], delegated_role['paths'])
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, self.targets_object.add_restricted_paths,
+                      3, 'tuf')
+    self.assertRaises(tuf.FormatError, self.targets_object.add_restricted_paths,
+                      restricted_paths, 3)
+
+
+    # Test invalid arguments.
+    # A non-delegated child role.
+    self.assertRaises(tuf.Error, self.targets_object.add_restricted_paths,
+                      restricted_paths, 'non_delegated_rolename')
+    
+    # Non-existent 'restricted_paths'.
+    self.assertRaises(tuf.Error, self.targets_object.add_restricted_paths,
+                      ['/non-existent'], 'tuf')
 
 
 
   def test_revoke(self):
-    pass
+    # Test normal case.
+    # Perform a delegation so that revoke() has a delegation to revoke.
+    keystore_directory = os.path.join(os.pardir, 'repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+
+    # Set needed arguments by delegate().
+    public_keys = [public_key]
+    rolename = 'tuf'
+    list_of_targets = [target1_filepath] 
+    threshold = 1
+
+    self.targets_object.delegate(rolename, public_keys, list_of_targets,
+                                 threshold, restricted_paths=None,
+                                 path_hash_prefixes=None)
+
+    # Test revoke()
+    self.targets_object.revoke('tuf')
+    self.assertEqual(self.targets_object.get_delegated_rolenames(), [])
+
+
+    # Test improperly formatted rolename argument.
+    self.assertRaises(tuf.FormatError, self.targets_object.revoke, 3)
 
 
 
