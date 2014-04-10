@@ -91,13 +91,109 @@ class TestRepository(unittest.TestCase):
 
   
 
-  def test_write(self):
-    pass
+  def test_write_and_write_partial(self):
+    # Test full example of creating a TUF repository, including delegations.
+    # 1. Load public and private keys.
+    # 2. Add verification keys.
+    # 3. Load signing keys.
+    # 4. Add target files.
+    # 5. Perform delegation.
+    # 5. write()
+    # 
+    # Copy the target files from 'tuf/tests/repository_data' so that write()
+    # has target files to include in metadata.
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    targets_directory = os.path.join(temporary_directory, 'repository',
+                                     repo_tool.TARGETS_DIRECTORY_NAME)
+    original_targets_directory = os.path.join(os.pardir, 'repository_data',
+                                              'repository', 'targets')
+    shutil.copytree(original_targets_directory, targets_directory)
+
+    # create_new_repository() creates the 'repository/' sub-directory in
+    # 'temporary_directory' if it does not exist.
+    repository_directory = os.path.join(temporary_directory, 'repository')
+    repository = repo_tool.create_new_repository(repository_directory)
+
+    
+    # (1) Load the public and private keys of the top-level roles, and one
+    # delegated.
+    keystore_directory = os.path.join(os.pardir, 'repository_data', 'keystore')
+   
+    # Load the public keys.
+    root_pubkey_path = os.path.join(keystore_directory, 'root_key.pub')
+    targets_pubkey_path = os.path.join(keystore_directory, 'targets_key.pub')
+    snapshot_pubkey_path = os.path.join(keystore_directory, 'snapshot_key.pub')
+    timestamp_pubkey_path = os.path.join(keystore_directory, 'timestamp_key.pub')
+    role1_pubkey_path = os.path.join(keystore_directory, 'delegation_key.pub')
+    
+    root_pubkey = repo_tool.import_rsa_publickey_from_file(root_pubkey_path)
+    targets_pubkey = repo_tool.import_rsa_publickey_from_file(targets_pubkey_path)
+    snapshot_pubkey = repo_tool.import_rsa_publickey_from_file(snapshot_pubkey_path)
+    timestamp_pubkey = repo_tool.import_rsa_publickey_from_file(timestamp_pubkey_path)
+    role1_pubkey = repo_tool.import_rsa_publickey_from_file(role1_pubkey_path)
+    
+    # Load the private keys.
+    root_privkey_path = os.path.join(keystore_directory, 'root_key')
+    targets_privkey_path = os.path.join(keystore_directory, 'targets_key')
+    snapshot_privkey_path = os.path.join(keystore_directory, 'snapshot_key')
+    timestamp_privkey_path = os.path.join(keystore_directory, 'timestamp_key')
+    role1_privkey_path = os.path.join(keystore_directory, 'delegation_key')
+    
+    root_privkey = \
+      repo_tool.import_rsa_privatekey_from_file(root_privkey_path, 'password')
+    targets_privkey = \
+      repo_tool.import_rsa_privatekey_from_file(targets_privkey_path,
+                                                'password')
+    snapshot_privkey = \
+      repo_tool.import_rsa_privatekey_from_file(snapshot_privkey_path,
+                                                'password')
+    timestamp_privkey = \
+      repo_tool.import_rsa_privatekey_from_file(timestamp_privkey_path,
+                                                'password')
+    role1_privkey = \
+      repo_tool.import_rsa_privatekey_from_file(role1_privkey_path,
+                                                'password')
 
 
+    # (2) Add verification keys.
+    repository.root.add_verification_key(root_pubkey)
+    repository.targets.add_verification_key(targets_pubkey)
+    repository.snapshot.add_verification_key(snapshot_pubkey)
+    repository.timestamp.add_verification_key(timestamp_pubkey)
+    
+    
+    # (3) Load signing keys.
+    repository.root.load_signing_key(root_privkey)
+    repository.targets.load_signing_key(targets_privkey)
+    repository.snapshot.load_signing_key(snapshot_privkey)
+    repository.timestamp.load_signing_key(timestamp_privkey)
+   
+    
+    # (4) Add target files.
+    target1 = os.path.join(targets_directory, 'file1.txt')
+    target2 = os.path.join(targets_directory, 'file2.txt')
+    target3 = os.path.join(targets_directory, 'file3.txt')
+    repository.targets.add_target(target1)
+    repository.targets.add_target(target2)
 
-  def test_write_partial(self):
-    pass
+    # (5) Perform delegation.
+    repository.targets.delegate('role1', [role1_pubkey], [target3]) 
+    repository.targets('role1').load_signing_key(role1_privkey)
+    
+    # (6) Write repository.
+    repository.targets.compressions = ['gz']
+    repository.write()
+
+
+    # TODO: Test expected exceptions for incomplete write().
+    # TODO: Test consistent snapshots.
+    # TODO: Test write_partial()
+    # TODO: Test multiple writes, loading repository, and compressed metadata.
+
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, repository.write, 3, False)
+    self.assertRaises(tuf.FormatError, repository.write, False, 3)
 
 
 
@@ -109,7 +205,9 @@ class TestRepository(unittest.TestCase):
     
     
     # Test improperly formatted arguments.
+    # Set 'repo' to improve readability.
     repo = repo_tool.Repository
+
     self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,
                       3, recursive_walk=False, followlinks=False)
     self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,
