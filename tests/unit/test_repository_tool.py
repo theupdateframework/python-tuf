@@ -92,7 +92,8 @@ class TestRepository(unittest.TestCase):
   
 
   def test_write_and_write_partial(self):
-    # Test full example of creating a TUF repository, including delegations.
+    # Test creation of a TUF repository.
+    # 
     # 1. Load public and private keys.
     # 2. Add verification keys.
     # 3. Load signing keys.
@@ -101,7 +102,7 @@ class TestRepository(unittest.TestCase):
     # 5. write()
     # 
     # Copy the target files from 'tuf/tests/repository_data' so that write()
-    # has target files to include in metadata.
+    # has target fileinfo to include in metadata.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     targets_directory = os.path.join(temporary_directory, 'repository',
                                      repo_tool.TARGETS_DIRECTORY_NAME)
@@ -109,14 +110,16 @@ class TestRepository(unittest.TestCase):
                                               'repository', 'targets')
     shutil.copytree(original_targets_directory, targets_directory)
 
-    # create_new_repository() creates the 'repository/' sub-directory in
-    # 'temporary_directory' if it does not exist.
+    # In this case, create_new_repository() creates the 'repository/'
+    # sub-directory in 'temporary_directory' if it does not exist.
     repository_directory = os.path.join(temporary_directory, 'repository')
+    metadata_directory = os.path.join(repository_directory,
+                                      repo_tool.METADATA_STAGED_DIRECTORY_NAME)
     repository = repo_tool.create_new_repository(repository_directory)
 
     
     # (1) Load the public and private keys of the top-level roles, and one
-    # delegated.
+    # delegated role.
     keystore_directory = os.path.join(os.pardir, 'repository_data', 'keystore')
    
     # Load the public keys.
@@ -127,9 +130,12 @@ class TestRepository(unittest.TestCase):
     role1_pubkey_path = os.path.join(keystore_directory, 'delegation_key.pub')
     
     root_pubkey = repo_tool.import_rsa_publickey_from_file(root_pubkey_path)
-    targets_pubkey = repo_tool.import_rsa_publickey_from_file(targets_pubkey_path)
-    snapshot_pubkey = repo_tool.import_rsa_publickey_from_file(snapshot_pubkey_path)
-    timestamp_pubkey = repo_tool.import_rsa_publickey_from_file(timestamp_pubkey_path)
+    targets_pubkey = \
+      repo_tool.import_rsa_publickey_from_file(targets_pubkey_path)
+    snapshot_pubkey = \
+      repo_tool.import_rsa_publickey_from_file(snapshot_pubkey_path)
+    timestamp_pubkey = \
+      repo_tool.import_rsa_publickey_from_file(timestamp_pubkey_path)
     role1_pubkey = repo_tool.import_rsa_publickey_from_file(role1_pubkey_path)
     
     # Load the private keys.
@@ -155,17 +161,27 @@ class TestRepository(unittest.TestCase):
                                                 'password')
 
 
-    # (2) Add verification keys.
+    # (2) Add top-level verification keys.
     repository.root.add_verification_key(root_pubkey)
     repository.targets.add_verification_key(targets_pubkey)
     repository.snapshot.add_verification_key(snapshot_pubkey)
+
+    # Verify that repository.write() fails for insufficient threshold
+    # of signatures (default threshold = 1).
+    self.assertRaises(tuf.UnsignedMetadataError, repository.write) 
+    
     repository.timestamp.add_verification_key(timestamp_pubkey)
     
     
-    # (3) Load signing keys.
+    # (3) Load top-level signing keys.
     repository.root.load_signing_key(root_privkey)
     repository.targets.load_signing_key(targets_privkey)
     repository.snapshot.load_signing_key(snapshot_privkey)
+   
+    # Verify that repository.write() fails for insufficient threshold
+    # of signatures (default threshold = 1).
+    self.assertRaises(tuf.UnsignedMetadataError, repository.write) 
+    
     repository.timestamp.load_signing_key(timestamp_privkey)
    
     
@@ -184,11 +200,56 @@ class TestRepository(unittest.TestCase):
     repository.targets.compressions = ['gz']
     repository.write()
 
+    
+    # Verify that the expected metadata is written.
+    for role in ['root.json', 'targets.json', 'snapshot.json', 'timestamp.json']:
+      role_filepath = os.path.join(metadata_directory, role)
+      role_signable = tuf.util.load_json_file(role_filepath)
+      
+      # Raise 'tuf.FormatError' if 'role_signable' is an invalid signable.
+      tuf.formats.check_signable_object_format(role_signable)
 
-    # TODO: Test expected exceptions for incomplete write().
-    # TODO: Test consistent snapshots.
-    # TODO: Test write_partial()
-    # TODO: Test multiple writes, loading repository, and compressed metadata.
+      if role == 'targets.json':
+        compressed_filepath = role_filepath + '.gz'
+        self.assertTrue(os.path.exists(compressed_filepath))
+       
+    # Verify the 'role1.json' delegation is also written.
+    role1_filepath = os.path.join(metadata_directory, 'targets', 'role1.json')
+    role1_signable = tuf.util.load_json_file(role1_filepath)
+    tuf.formats.check_signable_object_format(role1_signable)
+
+    # Verify that an exception is *not* raised for multiple repository.write().
+    repository.write()
+
+    # Verify that a write() fails if a repository is loaded and a change
+    # is made to a role.
+    repo_tool.load_repository(repository_directory)
+    
+    repository.timestamp.expiration = '2084-01-01 12:00:00'
+    self.assertRaises(tuf.UnsignedMetadataError, repository.write)
+
+    # Verify that a write_partial() is allowed. 
+    repository.write_partial()
+
+    # Next, perform a non-partial write() with consistent snapshots enabled.
+    # Since the timestamp was modified, load its private key.
+    repository.timestamp.load_signing_key(timestamp_privkey)
+
+    # Test creation of a consistent snapshot repository.  Writing a consistent
+    # snapshot modifies the Root metadata, which specifies whether a repository
+    # supports consistent snapshots.  Verify that an exception is raised due to
+    # the missing signatures of Root and Snapshot.
+    self.assertRaises(tuf.UnsignedMetadataError, repository.write,
+                      False, True)
+    
+    # Load the private keys of Root and Snapshot (new version required since
+    # Root has changed.)
+    repository.root.load_signing_key(root_privkey)
+    repository.snapshot.load_signing_key(snapshot_privkey)
+   
+    # Verify that consistent snapshot can be written and loaded. 
+    repository.write(consistent_snapshot=True) 
+    repo_tool.load_repository(repository_directory)
 
 
     # Test improperly formatted arguments.
@@ -205,7 +266,7 @@ class TestRepository(unittest.TestCase):
     
     
     # Test improperly formatted arguments.
-    # Set 'repo' to improve readability.
+    # Set 'repo' reference to improve readability.
     repo = repo_tool.Repository
 
     self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,

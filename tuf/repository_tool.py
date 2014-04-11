@@ -2771,29 +2771,32 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
       
         # Strip the digest if 'consistent_snapshot' is True.
         # Example:  'targets/unclaimed/13df98ab0.django.json'  -->
-        # 'targets/unclaimed/django.json'
-        metadata_name, embeded_digest = \
-          _strip_consistent_snapshot_digest(metadata_name, consistent_snapshot)
-
+        # 'targets/unclaimed/django.json'.  Consistent and non-consistent
+        # metadata might co-exist if write() and write(consistent_snapshot=True)
+        # are mixed, so ensure only 'digest.filename' metadata is stripped.
+        embeded_digest = None
+        if metadata_name not in snapshot_metadata['meta']: 
+          metadata_name, embeded_digest = \
+            _strip_consistent_snapshot_digest(metadata_name, consistent_snapshot)
+        
         # Strip filename extensions.  The role database does not include the
         # metadata extension.
+        metadata_name_extension = metadata_name
         for metadata_extension in METADATA_EXTENSIONS: 
           if metadata_name.endswith(metadata_extension):
-            metadata_name_without_extension = \
-              metadata_name[:-len(metadata_extension)]
+            metadata_name = metadata_name[:-len(metadata_extension)]
         
         # Delete the metadata file if it does not exist in 'tuf.roledb'.
-        # repository_tool.py might have marked 'metadata_name' as removed, but its
-        # metadata file is not actually deleted yet.  Do it now.
-        if not tuf.roledb.role_exists(metadata_name_without_extension):
+        # 'repository_tool.py' might have marked 'metadata_name' as removed, but
+        # its metadata file is not actually deleted yet.  Do it now.
+        if not tuf.roledb.role_exists(metadata_name):
           logger.info('Removing outdated metadata: ' + repr(metadata_path))
           os.remove(metadata_path)
 
         # Delete outdated consistent snapshots.  snapshot metadata includes
         # the file extension of roles.
-        if consistent_snapshot:
-          #metadata_name_extension = metadata_name + METADATA_EXTENSION 
-          file_hashes = snapshot_metadata['meta'][metadata_name] \
+        if consistent_snapshot and embeded_digest is not None:
+          file_hashes = snapshot_metadata['meta'][metadata_name_extension] \
                                         ['hashes'].values()
           if embeded_digest not in file_hashes:
             logger.info('Removing outdated metadata: ' + repr(metadata_path))
