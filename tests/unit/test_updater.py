@@ -5,7 +5,7 @@
   test_updater.py
 
 <Author>
-  Konstantin Andrianov
+  Konstantin Andrianov.
 
 <Started>
   October 15, 2012.

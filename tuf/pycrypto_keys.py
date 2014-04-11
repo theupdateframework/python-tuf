@@ -894,9 +894,15 @@ def _decrypt(file_contents, password):
   # from 'file_contents'.  These five values are delimited by
   # '_ENCRYPTION_DELIMITER'.  This delimiter is arbitrarily chosen and should
   # not occur in the hexadecimal representations of the fields it is separating.
-  salt, iterations, hmac, iv, ciphertext = \
-    file_contents.split(_ENCRYPTION_DELIMITER)
+  # Raise 'tuf.CryptoError', if 'file_contents' does not contains the expected
+  # data layout.
+  try: 
+    salt, iterations, hmac, iv, ciphertext = \
+      file_contents.split(_ENCRYPTION_DELIMITER)
   
+  except ValueError:
+    raise tuf.CryptoError('Invalid encrypted file.') 
+
   # Ensure we have the expected raw data for the delimited cryptographic data. 
   salt = binascii.unhexlify(salt)
   iterations = int(binascii.unhexlify(iterations))
