@@ -22,6 +22,7 @@
 """
 
 import shutil
+import datetime
 
 from tuf.repository_tool import *
 import tuf.util
@@ -105,11 +106,11 @@ repository.targets('role1').load_signing_key(delegation_private)
 # Set the top-level expiration times far into the future so that
 # they do not expire anytime soon, or else the tests fail.  Unit tests may
 # modify the expiration  datetimes (of the copied files), if they wish.
-repository.root.expiration = "2088-01-01 00:00:00"
-repository.targets.expiration = "2088-01-01 00:00:00"
-repository.snapshot.expiration = "2088-01-01 00:00:00"
-repository.timestamp.expiration = "2088-01-01 00:00:00"
-repository.targets('role1').expiration = "2088-01-01 00:00:00"
+repository.root.expiration = datetime.datetime(2030, 01, 01, 00, 00)
+repository.targets.expiration = datetime.datetime(2030, 01, 01, 00, 00)
+repository.snapshot.expiration = datetime.datetime(2030, 01, 01, 00, 00)
+repository.timestamp.expiration = datetime.datetime(2030, 01, 01, 00, 00)
+repository.targets('role1').expiration = datetime.datetime(2030, 01, 01, 00, 00)
 
 # Compress the 'targets.json' role so that the unit tests have a pre-generated
 # example of compressed metadata.
