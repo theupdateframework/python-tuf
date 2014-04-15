@@ -39,6 +39,7 @@ import urllib
 import tempfile
 import random
 import time
+import datetime
 import shutil
 import json
 import subprocess
@@ -209,7 +210,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     
     # Set an arbitrary expiration so that the repository tool generates a new
     # version.
-    repository.timestamp.expiration = '2088-01-01 12:12:00'
+    repository.timestamp.expiration = datetime.datetime(2030, 01, 01, 12, 12)
     repository.write()
     
     # Move the staged metadata to the "live" metadata.
@@ -280,7 +281,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     
     # Set an arbitrary expiration so that the repository tool generates a new
     # version.
-    repository.timestamp.expiration = '2088-01-01 12:12:00'
+    repository.timestamp.expiration = datetime.datetime(2030, 01, 01, 12, 12)
     repository.write()
     
     # Move the staged metadata to the "live" metadata.

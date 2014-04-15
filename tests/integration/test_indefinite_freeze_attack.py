@@ -177,8 +177,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                                   'timestamp.json')
 
     timestamp_metadata = tuf.util.load_json_file(timestamp_path)
-    timestamp_metadata['signed']['expires'] = \
-      tuf.formats.format_time(time.time() - 10) 
+    timestamp_metadata['signed']['expires'] = int(time.time() - 10)
     
     tuf.formats.check_signable_object_format(timestamp_metadata) 
     
@@ -226,9 +225,8 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     repository.timestamp.load_signing_key(timestamp_private)
     
     # expire in 1 second.
-    utc_timestamp = tuf.formats.format_time(time.time() + 1)
-    repository.timestamp.expiration = \
-      utc_timestamp[0:utc_timestamp.rfind(' UTC')]
+    datetime_object = tuf.formats.unix_timestamp_to_datetime(int(time.time() + 1))
+    repository.timestamp.expiration = datetime_object
     repository.write()
     
     # Move the staged metadata to the "live" metadata.
@@ -237,8 +235,9 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                     os.path.join(self.repository_directory, 'metadata'))
     
     # Verify that the TUF client detects outdated metadata and refuses to
-    # continue the update process.
-    time.sleep(1)
+    # continue the update process.  Sleep for at least 2 seconds to ensure
+    # 'repository.timestamp.expiration' is reached.
+    time.sleep(2)
     self.assertRaises(tuf.ExpiredMetadataError,
                       self.repository_updater.refresh) 
 
