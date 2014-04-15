@@ -17,6 +17,7 @@
 
 import os
 import time
+import datetime
 import unittest
 import logging
 import tempfile
@@ -225,7 +226,7 @@ class TestRepository(unittest.TestCase):
     # is made to a role.
     repo_tool.load_repository(repository_directory)
     
-    repository.timestamp.expiration = '2084-01-01 12:00:00'
+    repository.timestamp.expiration = datetime.datetime(2030, 01, 01, 12, 00)
     self.assertRaises(tuf.UnsignedMetadataError, repository.write)
 
     # Verify that a write_partial() is allowed. 
@@ -300,7 +301,7 @@ class TestMetadata(unittest.TestCase):
         self._rolename = 'metadata_role'
         
         # Expire in 86400 seconds (1 day).
-        expiration = tuf.formats.format_time(time.time() + 86400)
+        expiration = int(time.time() + 86400)
         
         roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
                     'signatures': [], 'version': 0,
@@ -354,31 +355,35 @@ class TestMetadata(unittest.TestCase):
   def test_expiration(self):
     # Test expiration getter.
     expiration = self.metadata.expiration
-    self.assertTrue(tuf.formats.TIME_SCHEMA.matches(expiration))
+    self.assertTrue(isinstance(expiration, datetime.datetime))
 
     # Test expiration setter. 
-    self.metadata.expiration = '2088-01-01 12:00:00'
+    self.metadata.expiration = datetime.datetime(2030, 01, 01, 12, 00)
     expiration = self.metadata.expiration
-    self.assertTrue(tuf.formats.TIME_SCHEMA.matches(expiration))
+    self.assertTrue(isinstance(expiration, datetime.datetime))
 
 
     # Test improperly formatted datetime.
     try: 
       self.metadata.expiration = '3' 
+    
     except tuf.FormatError:
       pass
+    
     else:
       self.fail('Setter failed to detect improperly formatted datetime.')
 
 
     # Test invalid argument (i.e., expiration has already expired.)
-    expired_datetime = tuf.formats.format_time(time.time() - 1)
+    expired_datetime = tuf.formats.unix_timestamp_to_datetime(int(time.time() - 1))
     try: 
       self.metadata.expiration = expired_datetime 
-    except tuf.FormatError:
+    
+    except tuf.Error:
       pass
+    
     else:
-      self.fail('Setter failted to detect an expired datetime.')
+      self.fail('Setter failed to detect an expired datetime.')
 
 
 
@@ -1525,24 +1530,24 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'])
     tuf.keydb.create_keydb_from_root_metadata(root_signable['signed'])
 
-    root_metadata = repo_tool.generate_root_metadata(1, '2088-01-01 12:00:00 UTC',
+    root_metadata = repo_tool.generate_root_metadata(1, 189345000,
                                                      consistent_snapshot=False)
     self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
 
     
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_tool.generate_root_metadata,  
-                      '3', '2088-01-01 12:00:00 UTC', False) 
+                      '3', 189345000, False) 
     self.assertRaises(tuf.FormatError, repo_tool.generate_root_metadata,  
-                      1, 3, False) 
+                      1, '3', False) 
     self.assertRaises(tuf.FormatError, repo_tool.generate_root_metadata,  
-                      1, '2088-01-01 12:00:00 UTC', 3) 
+                      1, 189345000, 3) 
 
     # Test for missing required roles and keys.
     tuf.roledb.clear_roledb()
     tuf.keydb.clear_keydb()
     self.assertRaises(tuf.Error, repo_tool.generate_root_metadata,
-                      1, '2088-01-01 12:00:00 UTC', False)
+                      1, 189345000, False)
 
 
 
@@ -1558,7 +1563,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
    
     # Set valid generate_targets_metadata() arguments.
     version = 1
-    expiration_date = '2088-01-01 12:00:00 UTC'
+    datetime_object = datetime.datetime(2030, 01, 01, 12, 00)
+    expiration_date = tuf.formats.datetime_to_unix_timestamp(datetime_object)
     target_files = ['file.txt']
     
     delegations = {"keys": {
@@ -1611,7 +1617,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(tuf.FormatError, repo_tool.generate_targets_metadata,
                       targets_directory, target_files, '3', expiration_date)  
     self.assertRaises(tuf.FormatError, repo_tool.generate_targets_metadata,
-                      targets_directory, target_files, version, 3)  
+                      targets_directory, target_files, version, '3')  
     
     # Improperly formatted 'delegations' and 'write_consistent_targets' 
     self.assertRaises(tuf.FormatError, repo_tool.generate_targets_metadata,
@@ -1643,7 +1649,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     targets_filename = os.path.join(metadata_directory,
                                     repo_tool.TARGETS_FILENAME)
     version = 1
-    expiration_date = '2088-01-01 12:00:00 UTC'
+    expiration_date = 189345000
     
     snapshot_metadata = \
       repo_tool.generate_snapshot_metadata(metadata_directory, version,
@@ -1661,7 +1667,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                       metadata_directory, '3', expiration_date,
                       root_filename, targets_filename, consistent_snapshot=False)
     self.assertRaises(tuf.FormatError, repo_tool.generate_snapshot_metadata,
-                      metadata_directory, version, 3,
+                      metadata_directory, version, '3',
                       root_filename, targets_filename, consistent_snapshot=False)
     self.assertRaises(tuf.FormatError, repo_tool.generate_snapshot_metadata,
                       metadata_directory, version, expiration_date,
@@ -1689,7 +1695,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
    
     # Set valid generate_timestamp_metadata() arguments.
     version = 1
-    expiration_date = '2088-01-01 12:00:00 UTC'
+    expiration_date = 189345000
     compressions = ['gz']
 
     snapshot_metadata = \
@@ -1704,7 +1710,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(tuf.FormatError, repo_tool.generate_timestamp_metadata,
                       snapshot_filename, '3', expiration_date, compressions)
     self.assertRaises(tuf.FormatError, repo_tool.generate_timestamp_metadata,
-                      snapshot_filename, version, 3, compressions)
+                      snapshot_filename, version, '3', compressions)
     self.assertRaises(tuf.FormatError, repo_tool.generate_timestamp_metadata,
                       snapshot_filename, version, expiration_date, 3)
     self.assertRaises(tuf.FormatError, repo_tool.generate_timestamp_metadata,

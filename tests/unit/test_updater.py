@@ -465,7 +465,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # 'tuf.ExpiredMetadataError' should be raised in this next test condition,
     # because the expiration_date has expired by 10 seconds.
-    expires = tuf.formats.format_time(time.time() - 10)
+    expires = int(time.time() - 10)
     self.repository_updater.metadata['current']['root']['expires'] = expires
     
     # Ensure the 'expires' value of the root file is valid by checking the

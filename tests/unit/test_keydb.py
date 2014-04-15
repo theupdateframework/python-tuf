@@ -171,7 +171,7 @@ class TestKeydb(unittest.TestCase):
                 'Targets': {'keyids': [keyid2], 'threshold': 1}}
     version = 8
     consistent_snapshot = False
-    expires = '2012-10-16 06:42:12 UTC'
+    expires = 499137720 
 
     root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,
@@ -208,7 +208,7 @@ class TestKeydb(unittest.TestCase):
     rsakey3['keytype'] = 'bad_keytype'
     keydict[keyid3] = rsakey3
     version = 8
-    expires = '2012-10-16 06:42:12 UTC'
+    expires = 499137720 
     
     root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,

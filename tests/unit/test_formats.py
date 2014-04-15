@@ -18,6 +18,7 @@
 """
 
 import unittest
+import datetime
 
 import tuf
 import tuf.formats
@@ -39,7 +40,7 @@ class TestFormats(unittest.TestCase):
   def test_schemas(self):
     # Test conditions for valid schemas.
     valid_schemas = {
-      'TIME_SCHEMA': (tuf.formats.TIME_SCHEMA, '2012-10-14 06:42:12 UTC'),
+      'UNIX_TIMESTAMP_SCHEMA': (tuf.formats.UNIX_TIMESTAMP_SCHEMA, 499137720),
       
       'HASH_SCHEMA': (tuf.formats.HASH_SCHEMA, 'A4582BCF323BCEF'),
       
@@ -53,7 +54,7 @@ class TestFormats(unittest.TestCase):
       'KEYIDS_SCHEMA': (tuf.formats.KEYIDS_SCHEMA,
                         ['123456789abcdef', '123456789abcdef']),
       
-      'SIG_METHOD_SCHEMA': (tuf.formats.SIG_METHOD_SCHEMA, 'evp'),
+      'SIG_METHOD_SCHEMA': (tuf.formats.SIG_METHOD_SCHEMA, 'ed25519'),
       
       'RELPATH_SCHEMA': (tuf.formats.RELPATH_SCHEMA, 'metadata/root/'),
       
@@ -184,7 +185,7 @@ class TestFormats(unittest.TestCase):
                       {'_type': 'Root',
                        'version': 8,
                        'consistent_snapshot': False,
-                       'expires': '2012-10-16 06:42:12 UTC',
+                       'expires': 499137720,
                        'keys': {'123abc': {'keytype': 'rsa',
                                            'keyval': {'public': 'pubkey',
                                                       'private': 'privkey'}}},
@@ -195,7 +196,7 @@ class TestFormats(unittest.TestCase):
       'TARGETS_SCHEMA': (tuf.formats.TARGETS_SCHEMA,
         {'_type': 'Targets',
          'version': 8,
-         'expires': '2012-10-16 06:42:12 UTC',
+         'expires': 499137720,
          'targets': {'metadata/targets.json': {'length': 1024,
                                               'hashes': {'sha256': 'ABCD123'},
                                               'custom': {'type': 'metadata'}}},
@@ -209,7 +210,7 @@ class TestFormats(unittest.TestCase):
       'SNAPSHOT_SCHEMA': (tuf.formats.SNAPSHOT_SCHEMA,
         {'_type': 'Snapshot',
          'version': 8,
-         'expires': '2012-10-16 06:42:12 UTC',
+         'expires': 499137720,
          'meta': {'metadata/snapshot.json': {'length': 1024,
                                            'hashes': {'sha256': 'ABCD123'},
                                            'custom': {'type': 'metadata'}}}}),
@@ -217,7 +218,7 @@ class TestFormats(unittest.TestCase):
       'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
         {'_type': 'Timestamp',
          'version': 8,
-         'expires': '2012-10-16 06:42:12 UTC',
+         'expires': 499137720,
          'meta': {'metadata/timestamp.json': {'length': 1024,
                                   'hashes': {'sha256': 'ABCD123'},
                                   'custom': {'type': 'metadata'}}}}),
@@ -239,7 +240,7 @@ class TestFormats(unittest.TestCase):
       'MIRRORLIST_SCHEMA': (tuf.formats.MIRRORLIST_SCHEMA,
         {'_type': 'Mirrors',
          'version': 8,
-         'expires': '2012-10-16 06:42:12 UTC',
+         'expires': 499137720,
          'mirrors': [{'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
          'targets_path': 'targets/',
@@ -289,7 +290,7 @@ class TestFormats(unittest.TestCase):
   def test_TimestampFile(self):
     # Test conditions for valid instances of 'tuf.formats.TimestampFile'.
     version = 8
-    expires = '2012-10-16 06:42:12 UTC'
+    expires = 499137720
     filedict = {'metadata/timestamp.json': {'length': 1024,
                                            'hashes': {'sha256': 'ABCD123'},
                                            'custom': {'type': 'metadata'}}}
@@ -323,7 +324,7 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid instances of 'tuf.formats.RootFile'.
     version = 8
     consistent_snapshot = False
-    expires = '2018-10-16 06:42:12 UTC'
+    expires = 499137720
     keydict = {'123abc': {'keytype': 'rsa',
                           'keyval': {'public': 'pubkey',
                                      'private': 'privkey'}}}
@@ -373,7 +374,7 @@ class TestFormats(unittest.TestCase):
   def test_SnapshotFile(self):
     # Test conditions for valid instances of 'tuf.formats.SnapshotFile'.
     version = 8
-    expires = '2012-10-16 06:42:12 UTC'
+    expires = 499137720
     filedict = {'metadata/snapshot.json': {'length': 1024,
                                          'hashes': {'sha256': 'ABCD123'},
                                          'custom': {'type': 'metadata'}}}
@@ -405,7 +406,7 @@ class TestFormats(unittest.TestCase):
   def test_TargetsFile(self):
     # Test conditions for valid instances of 'tuf.formats.TargetsFile'.
     version = 8
-    expires = '2012-10-16 06:42:12 UTC'
+    expires = 499137720
     filedict = {'metadata/targets.json': {'length': 1024,
                                          'hashes': {'sha256': 'ABCD123'},
                                          'custom': {'type': 'metadata'}}}
@@ -444,27 +445,30 @@ class TestFormats(unittest.TestCase):
 
 
 
-  def test_format_time(self):
+  def test_unix_timestamp_to_datetime(self):
     # Test conditions for valid arguments.
-    TIME_SCHEMA = tuf.formats.TIME_SCHEMA 
-    self.assertTrue(TIME_SCHEMA.matches(tuf.formats.format_time(499137720)))
-    self.assertEqual('1985-10-26 01:22:00 UTC', tuf.formats.format_time(499137720))
+    UNIX_TIMESTAMP_SCHEMA = tuf.formats.UNIX_TIMESTAMP_SCHEMA 
+    self.assertTrue(datetime.datetime, tuf.formats.unix_timestamp_to_datetime(499137720))
+    datetime_object = datetime.datetime(1985, 10, 26, 01, 22)
+    self.assertEqual(datetime_object, tuf.formats.unix_timestamp_to_datetime(499137720))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.formats.format_time, 'bad')
-    self.assertRaises(tuf.FormatError, tuf.formats.format_time, 1000000000000000000000)
-    self.assertRaises(tuf.FormatError, tuf.formats.format_time, ['5'])
+    self.assertRaises(tuf.FormatError, tuf.formats.unix_timestamp_to_datetime, 'bad')
+    self.assertRaises(tuf.FormatError, tuf.formats.unix_timestamp_to_datetime, 1000000000000000000000)
+    self.assertRaises(tuf.FormatError, tuf.formats.unix_timestamp_to_datetime, -1)
+    self.assertRaises(tuf.FormatError, tuf.formats.unix_timestamp_to_datetime, ['5'])
 
 
 
-  def test_parse_time(self):
+  def test_datetime_to_unix_timestamp(self):
     # Test conditions for valid arguments.
-    self.assertEqual(499137600, tuf.formats.parse_time('1985-10-26 01:20:00 UTC'))
+    datetime_object = datetime.datetime(2015, 10, 21, 19, 28)
+    self.assertEqual(1445455680, tuf.formats.datetime_to_unix_timestamp(datetime_object))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.formats.parse_time, 'bad')
-    self.assertRaises(tuf.FormatError, tuf.formats.parse_time, 1000000000000000000000)
-    self.assertRaises(tuf.FormatError, tuf.formats.parse_time, ['1'])
+    self.assertRaises(tuf.FormatError, tuf.formats.datetime_to_unix_timestamp, 'bad')
+    self.assertRaises(tuf.FormatError, tuf.formats.datetime_to_unix_timestamp, 1000000000000000000000)
+    self.assertRaises(tuf.FormatError, tuf.formats.datetime_to_unix_timestamp, ['1'])
 
 
 
@@ -498,7 +502,7 @@ class TestFormats(unittest.TestCase):
     root = {'_type': 'Root',
             'version': 8,
             'consistent_snapshot': False,
-            'expires': '2012-10-16 06:42:12 UTC',
+            'expires': 499137720,
             'keys': {'123abc': {'keytype': 'rsa',
                                 'keyval': {'public': 'pubkey',
                                            'private': 'privkey'}}},
@@ -625,7 +629,7 @@ class TestFormats(unittest.TestCase):
     root = {'_type': 'Root',
             'version': 8,
             'consistent_snapshot': False,
-            'expires': '2012-10-16 06:42:12 UTC',
+            'expires': 499137720,
             'keys': {'123abc': {'keytype': 'rsa',
                                 'keyval': {'public': 'pubkey',
                                            'private': 'privkey'}}},
