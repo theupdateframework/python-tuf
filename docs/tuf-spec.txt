@@ -476,7 +476,8 @@
    The KEYID of a key is the hexdigest of the SHA-256 hash of the
    canonical JSON form of the key, where the "private" object key is excluded.
    
-   All times are given as strings of the format "YYYY-MM-DD HH:MM:SS UTC".
+   All times are in Unix / POSIX format, an integer representing the number
+   of seconds since the epoch (January 1, 1970.)
 
 
 4.3. File formats: root.json
