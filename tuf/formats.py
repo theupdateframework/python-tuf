@@ -75,7 +75,10 @@ import tuf.schema as SCHEMA
 # additional keys which are not defined. Thus, any additions to them will be
 # easily backwards compatible with clients that are already deployed.
 
-# A date in 'YYYY-MM-DD HH:MM:SS UTC' format.
+# A Unix/POSIX time format.  An integer representing the number of seconds
+# since the epoch (January 1, 1970.)  Metadata uses this format for the
+# 'expires' field.  Set 'hi' to the upper timestamp limit (year 2038), the max
+# value of an int.
 UNIX_TIMESTAMP_SCHEMA = SCHEMA.Integer(lo=0, hi=2147483647)
 
 # A hexadecimal value in '23432df87ab..' format.
