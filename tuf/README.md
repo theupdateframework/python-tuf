@@ -170,6 +170,7 @@ Not enough signatures for 'path/to/repository/metadata.staged/targets.json'
 
 ```python
 # Continuing from the previous section . . .
+import datetime
 
 # Generate keys for the remaining top-level roles.  The root keys have been set above.
 # The password argument may be omitted if a password prompt is needed. 
@@ -200,7 +201,7 @@ repository.timestamp.load_signing_key(private_timestamp_key)
 
 # Optionally set the expiration date of the timestamp role.  By default, roles are set to expire
 # as follows:  root(1 year), targets(3 months), snapshot(1 week), timestamp(1 day).
-repository.timestamp.expiration = "2014-10-28 12:08:00"
+repository.timestamp.expiration = datetime.datetime(2014, 10, 28, 12, 08)
 
 # Metadata files may also be compressed.  Only "gz" is currently supported.
 repository.targets.compressions = ["gz"]
