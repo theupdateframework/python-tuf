@@ -22,6 +22,7 @@
 
 import urlparse
 
+
 # Import 'tuf.formats' if a module tries to import the
 # entire tuf package (i.e., from tuf import *). 
 __all__ = ['formats']
@@ -135,11 +136,11 @@ class ForbiddenTargetError(RepositoryError):
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
 
-  def __init__(self, expiry_time):
-    self.expiry_time = expiry_time # UTC
+  def __init__(self, expiration_string):
+    self.expiration_string = expiration_string 
 
   def __str__(self):
-    return 'Metadata expired on '+str(self.expiry_time)+'.'
+    return 'Metadata expired on '+str(expiration_string)+'.'
 
 
 

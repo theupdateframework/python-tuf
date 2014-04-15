@@ -29,6 +29,7 @@ import os
 import errno
 import sys
 import time
+import datetime
 import getpass
 import logging
 import tempfile
@@ -120,7 +121,7 @@ class Repository(object):
     access by default:
 
     repository.root.version = 2
-    repository.timestamp.expiration = "2015-08-08 12:00:00"
+    repository.timestamp.expiration = datetime.datetime(2015, 08, 08, 12, 00)
     repository.snapshot.add_verification_key(...)
     repository.targets.delegate('unclaimed', ...)
 
@@ -1087,39 +1088,37 @@ class Metadata(object):
       None.
 
     <Returns>
-      The role's expiration datetime, conformant to
-      'tuf.formats.DATETIME_SCHEMA'.
+      The role's expiration datetime, a datetime.datetime() object.
     """
     
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    expires = roleinfo['expires']
 
-    return roleinfo['expires']
+    return tuf.formats.unix_timestamp_to_datetime(expires) 
 
 
 
   @expiration.setter
-  def expiration(self, expiration_datetime_utc):
+  def expiration(self, datetime_object):
     """
     <Purpose>
       A setter method for the role's expiration datetime.  The top-level
       roles have a default expiration (e.g., ROOT_EXPIRATION), but may later
       be modified by this setter method.
       
-      TODO: expiration_datetime_utc in ISO 8601 format.
-      
       >>>  
       >>> 
       >>> 
 
     <Arguments>
-      expiration_datetime_utc:
-        The datetime expiration of the role, conformant to  
-        'tuf.formats.DATETIME_SCHEMA'.
+      datetime_object:
+        The datetime expiration of the role, a datetime.datetime() object.
 
     <Exceptions>
-      tuf.FormatError, if 'expiration_datetime_utc' is improperly formatted,
-      or invalid (e.g., already expired).
-    
+      tuf.FormatError, if 'datetime_object' is not a datetime.datetime() object. 
+   
+      tuf.Error, if 'datetime_object' has already expired.
+
     <Side Effects>
       Modifies the expiration attribute of the Repository object.
 
@@ -1127,31 +1126,23 @@ class Metadata(object):
       None.
     """
     
-    # Does 'expiration_datetime_utc' have the correct format?
-    # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.DATETIME_SCHEMA.check_match(expiration_datetime_utc)
-  
-    # Further validate the datetime, such as a correct date, time, expiration.
-    # Convert 'expiration_datetime_utc' to a unix timestamp so that it can be
-    # compared with time.time().
-    expiration_datetime_utc = expiration_datetime_utc + ' UTC'
-    try:
-      unix_timestamp = tuf.formats.parse_time(expiration_datetime_utc)
-    
-    except (tuf.FormatError, ValueError), e:
-      message = 'Invalid datetime argument: '+repr(expiration_datetime_utc)
-      raise tuf.FormatError(message)
-   
-    # Ensure the expiration has not already passed. 
-    if unix_timestamp < time.time():
+    # Is 'datetime_object' a datetime.datetime() object?
+    # Raise 'tuf.FormatError' if not.
+    if not isinstance(datetime_object, datetime.datetime):
+      message = repr(datetime_object) + ' is not a datetime.datetime() object.'
+      raise tuf.FormatError(message) 
+
+    # Ensure the expiration has not already passed.
+    current_datetime = tuf.formats.unix_timestamp_to_datetime(int(time.time()))
+    if datetime_object < current_datetime:
       message = 'The expiration date must occur after the current date.'
-      raise tuf.FormatError(message)
+      raise tuf.Error(message)
    
     # Update the role's 'expires' entry in 'tuf.roledb.py'. 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
-    roleinfo['expires'] = expiration_datetime_utc
+    unix_timestamp = tuf.formats.datetime_to_unix_timestamp(datetime_object)
+    roleinfo['expires'] = unix_timestamp 
+    
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
   
@@ -1307,7 +1298,7 @@ class Root(Metadata):
    
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION)
+    expiration = int(time.time()+ROOT_EXPIRATION)
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
                 'signatures': [], 'version': 0, 'consistent_snapshot': False,
@@ -1367,7 +1358,7 @@ class Timestamp(Metadata):
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION)
+    expiration = int(time.time()+TIMESTAMP_EXPIRATION)
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0, 'compressions': [''],
@@ -1421,7 +1412,7 @@ class Snapshot(Metadata):
    
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.format_time(time.time()+SNAPSHOT_EXPIRATION)
+    expiration = int(time.time()+SNAPSHOT_EXPIRATION)
     
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0, 'compressions': [''],
@@ -1507,7 +1498,7 @@ class Targets(Metadata):
   
     # By default, Targets objects are set to expire 3 months from the current
     # time.  May be later modified.
-    expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
+    expiration = int(time.time()+TARGETS_EXPIRATION)
 
     # If 'roleinfo' is not provided, set an initial default.
     if roleinfo is None:
@@ -2049,7 +2040,7 @@ class Targets(Metadata):
    
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
-    expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
+    expiration = int(time.time()+TARGETS_EXPIRATION)
     roleinfo = {'name': full_rolename, 'keyids': keyids, 'signing_keyids': [],
                 'threshold': threshold, 'version': 0, 'compressions': [''],
                 'expires': expiration, 'signatures': [], 'partial_loaded': False,
@@ -3860,8 +3851,8 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
       trusted.
     
     expiration_date:
-      The expiration date, in UTC, of the metadata file.  Conformant to
-      'tuf.formats.TIME_SCHEMA'.
+      The expiration date of the metadata file.  Conformant to
+      'tuf.formats.UNIX_TIMESTAMP_SCHEMA'.
 
     consistent_snapshot:
       Boolean.  If True, a file digest is expected to be prepended to the
@@ -3887,7 +3878,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
   # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.UNIX_TIMESTAMP_SCHEMA.check_match(expiration_date)
   tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   # The role and key dictionaries to be saved in the root metadata object.
@@ -3980,8 +3971,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
       trusted.
 
     expiration_date:
-      The expiration date, in UTC, of the metadata file.  Conformant to
-      'tuf.formats.TIME_SCHEMA'.
+      The expiration date of the metadata file.  Conformant to
+      'tuf.formats.UNIX_TIMESTAMP_SCHEMA'.
 
     delegations:
       The delegations made by the targets role to be generated.  'delegations'
@@ -4011,7 +4002,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
   tuf.formats.PATH_SCHEMA.check_match(targets_directory)
   tuf.formats.PATHS_SCHEMA.check_match(target_files)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.UNIX_TIMESTAMP_SCHEMA.check_match(expiration_date)
   tuf.formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
 
   if delegations is not None:
@@ -4090,8 +4081,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       trusted.
 
     expiration_date:
-      The expiration date, in UTC, of the metadata file.
-      Conformant to 'tuf.formats.TIME_SCHEMA'.
+      The expiration date of the metadata file.
+      Conformant to 'tuf.formats.UNIX_TIMESTAMP_SCHEMA'.
 
     root_filename:
       The filename of the top-level root role.  The hash and file size of this
@@ -4125,7 +4116,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.UNIX_TIMESTAMP_SCHEMA.check_match(expiration_date)
   tuf.formats.PATH_SCHEMA.check_match(root_filename)
   tuf.formats.PATH_SCHEMA.check_match(targets_filename)
   tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
@@ -4212,8 +4203,8 @@ def generate_timestamp_metadata(snapshot_filename, version,
       trusted.
 
     expiration_date:
-      The expiration date, in UTC, of the metadata file, conformant to
-      'tuf.formats.TIME_SCHEMA'.
+      The expiration date of the metadata file, conformant to
+      'tuf.formats.UNIX_TIMESTAMP_SCHEMA'.
 
     compressions:
       Compression extensions (e.g., 'gz').  If 'snapshot.json' is also saved in
@@ -4238,7 +4229,7 @@ def generate_timestamp_metadata(snapshot_filename, version,
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PATH_SCHEMA.check_match(snapshot_filename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.UNIX_TIMESTAMP_SCHEMA.check_match(expiration_date)
   tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
 
   # Retrieve the fileinfo of the snapshot metadata file.
