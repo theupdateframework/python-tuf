@@ -45,7 +45,6 @@ is the private key.
 
 ```
 >>> from tuf.developer_tool import *
-
 >>> generate_and_write_rsa_keypair("path/to/key")
 Enter a password for the RSA key:
 Confirm:
@@ -143,7 +142,6 @@ restore it with the load_project() function.
 ```
 >>> from tuf.developer_tool import *
 >>> project = load_project("local/path/to/metadata")
->>>
 ```
 Each time the project is loaded anew, the necessary private keys must also be 
 loaded in order to sign metadata.
@@ -151,9 +149,7 @@ loaded in order to sign metadata.
 ```
 >>> private_key = import_rsa_privatekey_from_file("path/to/key")
 Enter a password for the RSA key:
-
 >>> project.load_signing_key(private_key)
-
 >>> project.write()
 ```
 
@@ -181,14 +177,12 @@ command:
 
 ```
 >>> project.remove_verification_key(key)
->>>
 ```
 
 ### Adding a Key to a Project or Delegation
 Likewise, it is possible to add a key to a project by issuing the following command:
 ```
 >>> project.add_verification_key(pubkey)
->>>
 ```
 Remember that a project can only have one key, so this method will return an error
 if there is already a key assigned to it. In order to replace a key we must first
@@ -232,7 +226,6 @@ to delegate a new role for them. For example, we can do the following:
 
 ```
 >>> other_key = import_rsa_publickey_from_file(“another_public_key.pub”)
-
 >>> project.delegate(“newrole”, [other_key], targets)
 ```
 
@@ -240,9 +233,7 @@ The new role is now an attribute of the Project instance, and contains the same
 methods as Project. For example, we can add targets in the same way as before:
 
 ```
-
 >>> project(“newrole”).add_target(“delegated_1”)
-
 ```
 
 Recall that we input the other person’s key as part of a list. That list can
