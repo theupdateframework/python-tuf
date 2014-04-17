@@ -2,13 +2,13 @@
 
 ## Table of Contents ##
 - [Overview](#overview)
-- [Creating a simple project](#creating_a_simple_project)
-  - [Generating a key](#generating_a_key)
-  - [The Project class](#the_project_class)
-  - [Signing and writing metadata](#signing_and_writing_metadata)
-- [Loading an Existing project](#Loading_an_existing_project)
-- [Managing keys](#managing_keys)
-- [Managing targets](#managing_targets)
+- [Creating a Simple Project](#creating_a_simple_project)
+  - [Generating a Key](#generating_a_key)
+  - [The Project Class](#the_project_class)
+  - [Signing and Writing the Metadata](#signing_and_writing_the_metadata)
+- [Loading an Existing Project](#loading_an_existing_project)
+- [Managing Keys](#managing_keys)
+- [Managing Targets](#managing_targets)
 - [Delegations](#delegations)
 
 <a name="overview">
@@ -28,11 +28,12 @@ part to meet the developer's needs.
 
 
 <a name="creating_a_simple_project">
-## Creating a Simple project ##
+## Creating a Simple project
 The following section describes a very basic example usage of the developer tools with
 a one-file project. 
 
-### Generating a Key ###
+<a name="generating_a_key">
+### Generating a Key
 First, you will need to generate a key to sign the metadata. Keys are generated
 in pairs: one public and the other private. The private key is password-protected
 and is used to sign metadata. The public key can be shared freely, and is used
@@ -60,7 +61,7 @@ During this example we will be using rsa keys, but ed25519 keys are also support
 Now we have a key for our project, we can proceed to create our project. 
 
 <a name="the_project_class">
-### The project class ###
+### The Project Class
 The TUF developer tool is built around the Project class, which is used to organize groups of 
 targets associated with a single set of metadata. Each Project instance keeps 
 track of which target files are associated with a single set of metadata. Each 
@@ -115,7 +116,7 @@ a signature with our private key so it can be verified with the public key by th
 server (upon uploading) and by the clients (when updating). 
 
 <a name="signing_and_writing_the_metadata">
-### Signing and writing the metadata ###
+### Signing and Writing the Metadata ###
 In order to sign the metadata, we need to import the private key corresponding 
 to the public key we added to the project. One the key is loaded to the project,
 it will automatically be used to sign the metadata whenever it is written.
@@ -135,6 +136,7 @@ contains checksums that have to match the actual files or else it won't be accep
 by the upstream repository.
 
 <a name="loading_an_existing_project">
+## Loading an Existing Project
 To make changes to existing metadata, we will need the Project again. We can 
 restore it with the load_project() function.  
 
@@ -157,14 +159,13 @@ Enter a password for the RSA key:
 
 Now we have a project properly setup. The rest of this guide contains a more
 in-depth description of the functions of the developer\_tool.
-===
 
 <a name="managing_keys">
-## Managing keys 
+## Managing Keys 
 This section describes the key-related functions and parameters that weren't 
 mentioned inside the example:
 
-### Additional parameters for key generation
+### Additional Parameters for Key Generation
 When generating keys, it is possible to specify the length of the key in bits 
 and its password as parameters:
 
@@ -174,7 +175,7 @@ and its password as parameters:
 The bits parameter defaults to 3072, and values below 2048 will raise an error.
 The password parameter is only intended to be used in scripts.
 
-### Removing a key from a project/delegation
+### Removing a Key from a Project or Delegation
 Removing a verification key is really simple, we should only issue the following
 command:
 
@@ -183,7 +184,7 @@ command:
 >>>
 ```
 
-### Adding a key to a project/delegation
+### Adding a Key to a Project or Delegation
 Likewise, it is possible to add a key to a project by issuing the following command:
 ```
 >>> project.add_verification_key(pubkey)
@@ -195,7 +196,7 @@ delete the existing one and then add the new one. It is possible to
 ommit the key parameter in the create\_new\_project function, and add the key 
 later.
 
-
+<a name="managing_targets">
 ## Managing Targets
 There are supporting functions of the targets library to make the project
 maintenance easier. These functions are described in this section.
