@@ -7,9 +7,9 @@
   - [The Project Class](#the_project_class)
   - [Signing and Writing the Metadata](#signing_and_writing_the_metadata)
 - [Loading an Existing Project](#loading_an_existing_project)
+- [Delegations](#delegations)
 - [Managing Keys](#managing_keys)
 - [Managing Targets](#managing_targets)
-- [Delegations](#delegations)
 
 <a name="overview">
 ## Overview 
@@ -156,68 +156,7 @@ Enter a password for the RSA key:
 Now we have a project properly setup. The rest of this guide contains a more
 in-depth description of the functions of the developer\_tool.
 
-<a name="managing_keys">
-## Managing Keys 
-This section describes the key-related functions and parameters that weren't 
-mentioned inside the example:
-
-### Additional Parameters for Key Generation
-When generating keys, it is possible to specify the length of the key in bits 
-and its password as parameters:
-
-```
->>> generate_and_write_rsa_keypair("path/to/key",bits=2048, password="pw")
-```
-The bits parameter defaults to 3072, and values below 2048 will raise an error.
-The password parameter is only intended to be used in scripts.
-
-### Removing a Key from a Project or Delegation
-Removing a verification key is really simple, we should only issue the following
-command:
-
-```
->>> project.remove_verification_key(key)
-```
-
-### Adding a Key to a Project or Delegation
-Likewise, it is possible to add a key to a project by issuing the following command:
-```
->>> project.add_verification_key(pubkey)
-```
-Remember that a project can only have one key, so this method will return an error
-if there is already a key assigned to it. In order to replace a key we must first
-delete the existing one and then add the new one. It is possible to
-ommit the key parameter in the create\_new\_project function, and add the key 
-later.
-
-<a name="managing_targets">
-## Managing Targets
-There are supporting functions of the targets library to make the project
-maintenance easier. These functions are described in this section.
-
-
-### get\_filepaths\_in\_directory()
-This function is specially useful when creating a new project to add all the files
-contained in the targets directory. The following code block illustrates the usage
-of this function:
-```
-
->>> list_of_targets = \
-...   project.get_filepaths_in_directory(“path/within/targets/folder”,
-...   recursive_walk=False, follow_links=False)
-...   project.add_targets(list_of_targets)
-```
-
-
-### deleting targets from a project
-It is possible that we want to delete existing targets inside our project. In order
-to stop the developer tool to track this file we must issue the following command:
-```
->>> project.remove_target(“target_1”)
-```
-Now the target file won't be part of the metadata.
-
-
+<a name="delegations">
 ## Delegations
 
 The project we created above is secured entirely by one key. If you want to
@@ -239,4 +178,76 @@ methods as Project. For example, we can add targets in the same way as before:
 Recall that we input the other person’s key as part of a list. That list can
 contain any number of public keys. You can also add keys to the role after
 creating it using the add\_verification\_key() method.
+
+### Restricted Paths
+
+### Nested Delegations
+
+### Revoking Delegations
+
+<a name="managing_keys">
+## Managing Keys 
+This section describes the key-related functions and parameters that weren't 
+mentioned inside the example:
+
+### Additional Parameters for Key Generation
+When generating keys, it is possible to specify the length of the key in bits 
+and its password as parameters:
+
+```
+>>> generate_and_write_rsa_keypair("path/to/key",bits=2048, password="pw")
+```
+The bits parameter defaults to 3072, and values below 2048 will raise an error.
+The password parameter is only intended to be used in scripts.
+
+### Adding a Key to a Delegation
+Likewise, it is possible to add a key to a project by issuing the following command:
+```
+>>> project.add_verification_key(pubkey)
+```
+
+### Removing a Key from a Delegation
+Removing a verification key is really simple, we should only issue the following
+command:
+
+```
+>>> project.remove_verification_key(key)
+```
+
+Remember that a project can only have one key, so this method will return an error
+if there is already a key assigned to it. In order to replace a key we must first
+delete the existing one and then add the new one. It is possible to
+ommit the key parameter in the create\_new\_project function, and add the key 
+later.
+
+### Changing the Project Key
+
+### Delegation Thresholds
+
+<a name="managing_targets">
+## Managing Targets
+There are supporting functions of the targets library to make the project
+maintenance easier. These functions are described in this section.
+
+
+### Adding Targets by Directory
+This function is specially useful when creating a new project to add all the files
+contained in the targets directory. The following code block illustrates the usage
+of this function:
+```
+
+>>> list_of_targets = \
+...   project.get_filepaths_in_directory(“path/within/targets/folder”,
+...   recursive_walk=False, follow_links=False)
+>>> project.add_targets(list_of_targets)
+```
+
+
+### Deleting Targets from a Project
+It is possible that we want to delete existing targets inside our project. In order
+to stop the developer tool to track this file we must issue the following command:
+```
+>>> project.remove_target(“target_1”)
+```
+Now the target file won't be part of the metadata.
 
