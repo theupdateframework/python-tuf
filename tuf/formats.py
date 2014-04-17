@@ -7,7 +7,7 @@
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
 <Started>
-  Refactored April 30, 2012. -Vlad
+  Refactored April 30, 2012. -vladimir.v.diaz
 
 <Copyright>
   See LICENSE for licensing information.
@@ -365,11 +365,6 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
   keys = KEYDICT_SCHEMA,
   roles = ROLELIST_SCHEMA)
 
-# The number of seconds before metadata expires.  The minimum is 86400 seconds
-# (= 1 day).  This schema is used for the initial expiration date.  Repository
-# maintainers may later modify this value.
-EXPIRATION_SCHEMA = SCHEMA.Integer(lo=86400)
-
 # Supported compression extension (e.g., 'gz').
 COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
 
@@ -384,7 +379,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   signing_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
   threshold = THRESHOLD_SCHEMA,
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
-  expires = SCHEMA.Optional(SCHEMA.OneOf([EXPIRATION_SCHEMA, UNIX_TIMESTAMP_SCHEMA])),
+  expires = SCHEMA.Optional(UNIX_TIMESTAMP_SCHEMA),
   signatures = SCHEMA.Optional(SIGNATURES_SCHEMA),
   compressions = SCHEMA.Optional(COMPRESSIONS_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),

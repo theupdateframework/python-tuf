@@ -109,6 +109,13 @@ SNAPSHOT_EXPIRATION = 604800
 # Initial 'timestamp.json' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
 
+# Log warning when metadata expires in n days, or less.
+# root = 1 month, snapshot = 1 day, targets = 10 days, timestamp = 1 day.
+ROOT_EXPIRES_WARN_SECONDS = 2630000
+SNAPSHOT_EXPIRES_WARN_SECONDS = 86400
+TARGETS_EXPIRES_WARN_SECONDS = 864000
+TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
+
 
 class Repository(object):
   """
@@ -1133,15 +1140,18 @@ class Metadata(object):
       raise tuf.FormatError(message) 
 
     # Ensure the expiration has not already passed.
-    current_datetime = tuf.formats.unix_timestamp_to_datetime(int(time.time()))
-    if datetime_object < current_datetime:
-      message = 'The expiration date must occur after the current date.'
+    datetime_object_unix_timestamp = \
+      tuf.formats.datetime_to_unix_timestamp(datetime_object)
+    
+    current_unix_timestamp = int(time.time())
+    if datetime_object_unix_timestamp < current_unix_timestamp:
+      message = repr(self.rolename) + ' has already expired.'
       raise tuf.Error(message)
    
-    # Update the role's 'expires' entry in 'tuf.roledb.py'. 
+    # Update the role's 'expires' entry in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     unix_timestamp = tuf.formats.datetime_to_unix_timestamp(datetime_object)
-    roleinfo['expires'] = unix_timestamp 
+    roleinfo['expires'] = unix_timestamp
     
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
@@ -1498,7 +1508,7 @@ class Targets(Metadata):
   
     # By default, Targets objects are set to expire 3 months from the current
     # time.  May be later modified.
-    expiration = int(time.time()+TARGETS_EXPIRATION)
+    expiration = int(time.time() + TARGETS_EXPIRATION)
 
     # If 'roleinfo' is not provided, set an initial default.
     if roleinfo is None:
@@ -2041,6 +2051,7 @@ class Targets(Metadata):
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
     expiration = int(time.time()+TARGETS_EXPIRATION)
+    
     roleinfo = {'name': full_rolename, 'keyids': keyids, 'signing_keyids': [],
                 'threshold': threshold, 'version': 0, 'compressions': [''],
                 'expires': expiration, 'signatures': [], 'partial_loaded': False,
@@ -2361,6 +2372,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   if rolename == 'root':
     metadata = generate_root_metadata(roleinfo['version'],
                                       roleinfo['expires'], consistent_snapshot)
+    
+    _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
+                                 ROOT_EXPIRES_WARN_SECONDS)
  
   # Check for the Targets role, including delegated roles.
   elif rolename.startswith('targets'):
@@ -2370,6 +2384,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['expires'],
                                          roleinfo['delegations'],
                                          consistent_snapshot)
+    if rolename == 'targets':    
+      _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
+                                   TARGETS_EXPIRES_WARN_SECONDS)
   
   elif rolename == 'snapshot':
     root_filename = filenames['root']
@@ -2378,7 +2395,10 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['version'],
                                          roleinfo['expires'], root_filename,
                                          targets_filename,
-                                         consistent_snapshot )
+                                         consistent_snapshot)
+      
+    _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
+                                 SNAPSHOT_EXPIRES_WARN_SECONDS)
   
   elif rolename == 'timestamp':
     snapshot_filename = filenames['snapshot'] 
@@ -2386,6 +2406,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                            roleinfo['version'],
                                            roleinfo['expires'],
                                            snapshot_compressions)
+    
+    _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
+                                 TIMESTAMP_EXPIRES_WARN_SECONDS)
 
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
@@ -3024,6 +3047,7 @@ def load_repository(repository_directory):
         if metadata_name.endswith(METADATA_EXTENSION): 
           extension_length = len(METADATA_EXTENSION)
           metadata_name = metadata_name[:-extension_length]
+        
         else:
           continue
         
@@ -3148,6 +3172,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
     if _metadata_is_partially_loaded('root', signable, roleinfo):
       roleinfo['partial_loaded'] = True
     
+    _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
+                                 ROOT_EXPIRES_WARN_SECONDS)
+    
     tuf.roledb.update_roleinfo('root', roleinfo)
 
     # Ensure the 'consistent_snapshot' field is extracted.
@@ -3174,6 +3201,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
     
     if _metadata_is_partially_loaded('timestamp', signable, roleinfo):
       roleinfo['partial_loaded'] = True
+    
+    _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
+                                 TIMESTAMP_EXPIRES_WARN_SECONDS)
     
     tuf.roledb.update_roleinfo('timestamp', roleinfo)
   
@@ -3204,6 +3234,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
     
     if _metadata_is_partially_loaded('snapshot', signable, roleinfo):
       roleinfo['partial_loaded'] = True
+    
+    _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
+                                 SNAPSHOT_EXPIRES_WARN_SECONDS)
     
     tuf.roledb.update_roleinfo('snapshot', roleinfo)
   
@@ -3237,6 +3270,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
    
     if _metadata_is_partially_loaded('targets', signable, roleinfo):
       roleinfo['partial_loaded'] = True
+   
+    _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
+                                 TARGETS_EXPIRES_WARN_SECONDS)
     
     tuf.roledb.update_roleinfo('targets', roleinfo)
 
@@ -3269,6 +3305,24 @@ def _load_top_level_metadata(repository, top_level_filenames):
     pass 
   
   return repository, consistent_snapshot
+
+
+
+
+def _log_warning_if_expires_soon(rolename, expires_unix_timestamp,
+                                 seconds_remaining_to_warn):
+  
+    datetime_object = \
+      tuf.formats.unix_timestamp_to_datetime(expires_unix_timestamp)
+    seconds_until_expires = expires_unix_timestamp - int(time.time())
+    
+    if seconds_until_expires <= seconds_remaining_to_warn:
+      days_until_expires = seconds_until_expires / 86400
+      
+      message = repr(rolename) + ' expires ' + datetime_object.ctime() + \
+        '.\n' + repr(days_until_expires) + ' day(s) until it expires.'
+      
+      logger.warn(message)
 
 
 

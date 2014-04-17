@@ -135,12 +135,7 @@ class ForbiddenTargetError(RepositoryError):
 
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
-
-  def __init__(self, expiration_string):
-    self.expiration_string = expiration_string 
-
-  def __str__(self):
-    return 'Metadata expired on '+str(expiration_string)+'.'
+  pass
 
 
 
