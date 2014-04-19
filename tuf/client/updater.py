@@ -119,6 +119,7 @@ import tuf.mirrors
 import tuf.roledb
 import tuf.sig
 import tuf.util
+import tuf._vendor.iso8601 as iso8601
 
 logger = logging.getLogger('tuf.client.updater')
 
@@ -1757,18 +1758,20 @@ class Updater(object):
     expires = self.metadata['current'][metadata_role]['expires']
    
     # If the current time has surpassed the expiration date, raise
-    # an exception.  'expires' is in 'tuf.formats.UNIX_TIMESTAMP_SCHEMA' format,
-    # the number of seconds since the epoch (January 1, 1970.)  Compare it
-    # against the current time.time() (also in Unix/POSIX time format, although
-    # with microseconds attached.)
+    # an exception.  'expires' is in 'tuf.formats.ISO8601_DATETIME_SCHEMA'
+    # format (e.g., '1985-10-21T01:22:00Z'.)  Convert it to a unix timestamp and
+    # compare it against the current time.time() (also in Unix/POSIX time
+    # format, although with microseconds attached.)
     current_time = int(time.time())
 
     # Generate a user-friendly error message if 'expires' is less than the
     # current time (i.e., a local time.)
-    datetime_object = tuf.formats.unix_timestamp_to_datetime(expires)
-    local_time = datetime_object.ctime()
-    if expires < current_time:
-      message = 'Metadata '+repr(rolepath)+' expired on '+repr(local_time)+'.'
+    expires_datetime = iso8601.parse_date(expires)
+    expires_timestamp = tuf.formats.datetime_to_unix_timestamp(expires_datetime)
+    
+    if expires_timestamp < current_time:
+      message = 'Metadata '+repr(rolepath)+' expired on ' + \
+        expires_datetime.ctime() + ' (UTC).'
       logger.error(message)
 
       raise tuf.ExpiredMetadataError(message)

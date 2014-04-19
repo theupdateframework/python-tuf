@@ -47,7 +47,7 @@ import tuf.keys
 import tuf.sig
 import tuf.log
 import tuf.conf
-
+import tuf._vendor.iso8601 as iso8601
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.repository_tool')
@@ -1101,7 +1101,9 @@ class Metadata(object):
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     expires = roleinfo['expires']
 
-    return tuf.formats.unix_timestamp_to_datetime(expires) 
+    expires_datetime_object = iso8601.parse_date(expires)
+    
+    return expires_datetime_object 
 
 
 
@@ -1140,18 +1142,17 @@ class Metadata(object):
       raise tuf.FormatError(message) 
 
     # Ensure the expiration has not already passed.
-    datetime_object_unix_timestamp = \
-      tuf.formats.datetime_to_unix_timestamp(datetime_object)
+    current_datetime_object = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time()))
     
-    current_unix_timestamp = int(time.time())
-    if datetime_object_unix_timestamp < current_unix_timestamp:
+    if datetime_object < current_datetime_object:
       message = repr(self.rolename) + ' has already expired.'
       raise tuf.Error(message)
    
     # Update the role's 'expires' entry in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
-    unix_timestamp = tuf.formats.datetime_to_unix_timestamp(datetime_object)
-    roleinfo['expires'] = unix_timestamp
+    expires = datetime_object.isoformat() + 'Z'
+    roleinfo['expires'] = expires 
     
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
@@ -1308,7 +1309,9 @@ class Root(Metadata):
    
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = int(time.time()+ROOT_EXPIRATION)
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
                 'signatures': [], 'version': 0, 'consistent_snapshot': False,
@@ -1368,7 +1371,9 @@ class Timestamp(Metadata):
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = int(time.time()+TIMESTAMP_EXPIRATION)
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0, 'compressions': [''],
@@ -1422,8 +1427,10 @@ class Snapshot(Metadata):
    
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = int(time.time()+SNAPSHOT_EXPIRATION)
-    
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
+
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0, 'compressions': [''],
                 'expires': expiration, 'partial_loaded': False}
@@ -1508,7 +1515,9 @@ class Targets(Metadata):
   
     # By default, Targets objects are set to expire 3 months from the current
     # time.  May be later modified.
-    expiration = int(time.time() + TARGETS_EXPIRATION)
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
 
     # If 'roleinfo' is not provided, set an initial default.
     if roleinfo is None:
@@ -2050,7 +2059,9 @@ class Targets(Metadata):
    
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
-    expiration = int(time.time()+TARGETS_EXPIRATION)
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
     
     roleinfo = {'name': full_rolename, 'keyids': keyids, 'signing_keyids': [],
                 'threshold': threshold, 'version': 0, 'compressions': [''],
@@ -3309,20 +3320,29 @@ def _load_top_level_metadata(repository, top_level_filenames):
 
 
 
-def _log_warning_if_expires_soon(rolename, expires_unix_timestamp,
+def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
                                  seconds_remaining_to_warn):
+  """
+  Non-public function that logs a warning if 'rolename' expires in
+  'seconds_remaining_to_warn' seconds, or less.
+  """
+ 
+  # Metadata stores expiration datetimes in ISO8601 format.  Convert to
+  # unix timestamp, subtract from from current time.time() (also in POSIX time)
+  # and compare against 'seconds_remaining_to_warn'.  Log a warning message
+  # to console if 'rolename' expires soon.
+  datetime_object = iso8601.parse_date(expires_iso8601_timestamp)
+  expires_unix_timestamp = \
+    tuf.formats.datetime_to_unix_timestamp(datetime_object) 
+  seconds_until_expires = expires_unix_timestamp - int(time.time())
   
-    datetime_object = \
-      tuf.formats.unix_timestamp_to_datetime(expires_unix_timestamp)
-    seconds_until_expires = expires_unix_timestamp - int(time.time())
+  if seconds_until_expires <= seconds_remaining_to_warn:
+    days_until_expires = seconds_until_expires / 86400
     
-    if seconds_until_expires <= seconds_remaining_to_warn:
-      days_until_expires = seconds_until_expires / 86400
-      
-      message = repr(rolename) + ' expires ' + datetime_object.ctime() + \
-        '.\n' + repr(days_until_expires) + ' day(s) until it expires.'
-      
-      logger.warn(message)
+    message = repr(rolename) + ' expires ' + datetime_object.ctime() + \
+      ' (UTC).\n' + repr(days_until_expires) + ' day(s) until it expires.'
+    
+    logger.warn(message)
 
 
 
@@ -3906,7 +3926,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
     
     expiration_date:
       The expiration date of the metadata file.  Conformant to
-      'tuf.formats.UNIX_TIMESTAMP_SCHEMA'.
+      'tuf.formats.ISO8601_DATETIME_SCHEMA'.
 
     consistent_snapshot:
       Boolean.  If True, a file digest is expected to be prepended to the
@@ -3932,7 +3952,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
   # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.UNIX_TIMESTAMP_SCHEMA.check_match(expiration_date)
+  tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   # The role and key dictionaries to be saved in the root metadata object.
@@ -4026,7 +4046,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
     expiration_date:
       The expiration date of the metadata file.  Conformant to
-      'tuf.formats.UNIX_TIMESTAMP_SCHEMA'.
+      'tuf.formats.ISO8601_DATETIME_SCHEMA'.
 
     delegations:
       The delegations made by the targets role to be generated.  'delegations'
@@ -4056,7 +4076,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
   tuf.formats.PATH_SCHEMA.check_match(targets_directory)
   tuf.formats.PATHS_SCHEMA.check_match(target_files)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.UNIX_TIMESTAMP_SCHEMA.check_match(expiration_date)
+  tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   tuf.formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
 
   if delegations is not None:
@@ -4136,7 +4156,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
     expiration_date:
       The expiration date of the metadata file.
-      Conformant to 'tuf.formats.UNIX_TIMESTAMP_SCHEMA'.
+      Conformant to 'tuf.formats.ISO8601_DATETIME_SCHEMA'.
 
     root_filename:
       The filename of the top-level root role.  The hash and file size of this
@@ -4170,7 +4190,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.UNIX_TIMESTAMP_SCHEMA.check_match(expiration_date)
+  tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   tuf.formats.PATH_SCHEMA.check_match(root_filename)
   tuf.formats.PATH_SCHEMA.check_match(targets_filename)
   tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
@@ -4258,7 +4278,7 @@ def generate_timestamp_metadata(snapshot_filename, version,
 
     expiration_date:
       The expiration date of the metadata file, conformant to
-      'tuf.formats.UNIX_TIMESTAMP_SCHEMA'.
+      'tuf.formats.ISO8601_DATETIME_SCHEMA'.
 
     compressions:
       Compression extensions (e.g., 'gz').  If 'snapshot.json' is also saved in
@@ -4283,7 +4303,7 @@ def generate_timestamp_metadata(snapshot_filename, version,
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PATH_SCHEMA.check_match(snapshot_filename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.UNIX_TIMESTAMP_SCHEMA.check_match(expiration_date)
+  tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
 
   # Retrieve the fileinfo of the snapshot metadata file.

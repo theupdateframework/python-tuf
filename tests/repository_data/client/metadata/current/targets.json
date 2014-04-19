@@ -1,26 +1,26 @@
 {
  "signatures": [
   {
-   "keyid": "f53d2ce3b47c0a274f4459e256570616adee76c1830a02a88e1bd46ccd1b0370", 
+   "keyid": "05c63a47fba14be4a546233e292cbc27cbfb5678357fb71cf097a3c28ced5e6c", 
    "method": "RSASSA-PSS", 
-   "sig": "9abb9492106c0fa2ad9eb3dbc4a49cf0b0cc2969fd3ec8cffe157b190ab5f493867858dbf83aa2ac7b460a1c17ed64e63ca04bdbb38fa9a445ec33f31694888bce58bf9c30ce34166644f0769a696371350e454ebcd344b4b3a729097bb5fa37dbfd5ae7bdb1694d8b02a3230581d7e66bb078fe83c78ded92aa3e56dc3812c66d9bd8ffa9520128fca39f96eacdbed565f649f5ed5a878b4f8a47e9e41ca4c68e3680d60d20ceec003e6f75f0cd458e8494ec7e9b54c6c9f0f963a121611bf9e3ce93b9f2b397e37f5fd64911b28bba2066b22ffbe931103a5b26ef7a85897c6bd283672cc691796563a2ca5f5cf8f60b7cdb35ebfca6cae7e76a2dd65d1962"
+   "sig": "83fa3b2887b973afc968681484731306809aee00ece186d6a497409e9b8149b19ce3daffe2786c89aae323ee1e485aa4ef8687d0ac4031807c6bcba00f004573e01d4cb5dfca7b1e94dfcea2620f47f4312658e7bbe70e0d8a15701b357f5b1637198164bb6579b8b28ae082d586d1e85957e576146f08d5494afe53029b9e6b128a9e82018873aa13a97c0a15849528188e04cc0d6f6c212c20932efefaad9ca601ad9b1faf87b8ba0b7af1a7b476c2816eb5d9a770244f96b85fa38cc7a241371307948e98e4b13bd5451851588da02681c234c7a0570cb206ab42d52d6be7bb7e886faaba6126ffd85ac443ba9341d019b4c62fdd3b8385ccc7293c4089f5"
   }
  ], 
  "signed": {
   "_type": "Targets", 
   "delegations": {
    "keys": {
-    "748f222e84e654d7e5eda51bbe4f4c110dcef4539584912bdca05a40345b0737": {
+    "c6c7151a06949738630f9ae91f59aa64845eec0578b87e5909c3e61d5b251338": {
      "keytype": "rsa", 
      "keyval": {
-      "public": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyTjf6y2NyDye7RzEnpvj\nQlXPI4BBVM5kM1kPj2/xr1X7jnT48Fe29EsSYxCegolU8joWS/WkKmWEVljJ2DPd\nzQg7c6WV+yok6YJElossz82cfqNjhVOtPIqrom8/L7OIWdiKXvaor4/0/N+xZtAS\nSCacK9JiR4wUhE7EJacUYPFSUynray8oVic+UIIVPGXLh8AW5GWSktND4osooyyL\nSK7R/iPuN24OzgKNj7Vfihg3A3SynrDA/DVlpuTrOF9IF5WYJXxHaCYTNvKBlDFq\nD93DmMDNPHS3L0M7vQVKhzeQClNmeQALygg+qUxItOpylZrfKpZWpHqRbGML/WK7\nKwIDAQAB\n-----END PUBLIC KEY-----"
+      "public": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsD++h8KXKhrJpzYxvZTE\n7GqTDKM3uAWL8qGcQnvh7CNbqR4WmZrCQj1zF9hO5OAV+lGVD+JxUXW+yOPw+RjN\ni7mPVa12Mq+vCS7WuosoCoooLpnYhRRVYMgpnhbvnjS6xA+7myJ1Bob+7WUEZZlC\noWdsmjfYG82sA7TOTubPk0s9pqQllINMEsB4JTTt3P3DD9+uifCFhoAEKeAItcgA\np4PJw2ImNwJiuet5wTP1ssTclPPWB6ofkm8zXoJUywTIW+hcQhN88jQv4Egx1llj\npWZbEdkIpNxjm6BAEqfPfiuAt6MA8cmdRpDl+Jn030A1kI7NJossuvTcfHwvReZO\nWwIDAQAB\n-----END PUBLIC KEY-----"
      }
     }
    }, 
    "roles": [
     {
      "keyids": [
-      "748f222e84e654d7e5eda51bbe4f4c110dcef4539584912bdca05a40345b0737"
+      "c6c7151a06949738630f9ae91f59aa64845eec0578b87e5909c3e61d5b251338"
      ], 
      "name": "targets/role1", 
      "paths": [
@@ -30,7 +30,7 @@
     }
    ]
   }, 
-  "expires": 1893456000, 
+  "expires": "2030-01-01T00:00:00Z", 
   "targets": {
    "/file1.txt": {
     "hashes": {

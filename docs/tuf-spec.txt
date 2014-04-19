@@ -476,8 +476,10 @@
    The KEYID of a key is the hexdigest of the SHA-256 hash of the
    canonical JSON form of the key, where the "private" object key is excluded.
    
-   All times are in Unix / POSIX format, an integer representing the number
-   of seconds since the epoch (January 1, 1970.)
+   Metadata date-time data follows the ISO 8601 standard.  The expected format
+   of the combined date and time string is "YYYY-MM-DDTHH:MM:SSZ".  Time is
+   always in UTC, and the "Z" time zone designator is attached to indicate a
+   zero UTC offset.  An example date-time string is "1985-10-21T01:21:00Z".
 
 
 4.3. File formats: root.json

@@ -75,6 +75,12 @@ import tuf.schema as SCHEMA
 # additional keys which are not defined. Thus, any additions to them will be
 # easily backwards compatible with clients that are already deployed.
 
+# A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator
+# for the zero UTC offset is always used (i.e., a numerical offset is not
+# supported.)  Example: '2015-10-21T13:20:00Z'.  Note:  This is a simple format
+# check, and an ISO8601 string should be fully verified when it is parsed.
+ISO8601_DATETIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z')
+
 # A Unix/POSIX time format.  An integer representing the number of seconds
 # since the epoch (January 1, 1970.)  Metadata uses this format for the
 # 'expires' field.  Set 'hi' to the upper timestamp limit (year 2038), the max
@@ -379,7 +385,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   signing_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
   threshold = THRESHOLD_SCHEMA,
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
-  expires = SCHEMA.Optional(UNIX_TIMESTAMP_SCHEMA),
+  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
   signatures = SCHEMA.Optional(SIGNATURES_SCHEMA),
   compressions = SCHEMA.Optional(COMPRESSIONS_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
@@ -393,7 +399,7 @@ ROOT_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Root'),
   version = METADATAVERSION_SCHEMA,
   consistent_snapshot = BOOLEAN_SCHEMA,
-  expires = UNIX_TIMESTAMP_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)
 
@@ -402,7 +408,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETS_SCHEMA',
   _type = SCHEMA.String('Targets'),
   version = METADATAVERSION_SCHEMA,
-  expires = UNIX_TIMESTAMP_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
   targets = FILEDICT_SCHEMA,
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA))
 
@@ -411,7 +417,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   object_name = 'SNAPSHOT_SCHEMA',
   _type = SCHEMA.String('Snapshot'),
   version = METADATAVERSION_SCHEMA,
-  expires = UNIX_TIMESTAMP_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
   meta = FILEDICT_SCHEMA)
 
 # Timestamp role: indicates the latest version of the snapshot file.
@@ -419,7 +425,7 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
   _type = SCHEMA.String('Timestamp'),
   version = METADATAVERSION_SCHEMA,
-  expires = UNIX_TIMESTAMP_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
   meta = FILEDICT_SCHEMA)
 
 # A schema containing information a repository mirror may require,
@@ -446,7 +452,7 @@ MIRRORLIST_SCHEMA = SCHEMA.Object(
   object_name = 'MIRRORLIST_SCHEMA',
   _type = SCHEMA.String('Mirrors'),
   version = METADATAVERSION_SCHEMA,
-  expires = UNIX_TIMESTAMP_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
   mirrors = SCHEMA.ListOf(MIRROR_SCHEMA))
 
 # Any of the role schemas (e.g., TIMESTAMP_SCHEMA, SNAPSHOT_SCHEMA, etc.)
