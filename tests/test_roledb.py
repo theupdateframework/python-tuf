@@ -383,6 +383,25 @@ class TestRoledb(unittest.TestCase):
 
 
 
+  def test_update_roleinfo(self):
+    rolename = 'targets'
+    roleinfo = {'keyids': ['123'], 'threshold': 1}
+    tuf.roledb.add_role(rolename, roleinfo)
+    
+    # Test normal case.
+    tuf.roledb.update_roleinfo(rolename, roleinfo)
+
+    # Test for an unknown role.
+    self.assertRaises(tuf.UnknownRoleError, tuf.roledb.update_roleinfo,
+                      'unknown_rolename', roleinfo)
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, tuf.roledb.update_roleinfo, 1, roleinfo)
+    self.assertRaises(tuf.FormatError, tuf.roledb.update_roleinfo, rolename, 1)
+
+    
+
+
   def _test_rolename(self, test_function):
     # Private function that tests the 'rolename' argument of 'test_function'
     # for format, invalid name, and unknown role exceptions.

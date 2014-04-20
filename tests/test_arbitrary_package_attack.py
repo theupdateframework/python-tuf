@@ -48,7 +48,7 @@ import tuf.formats
 import tuf.util
 import tuf.log
 import tuf.client.updater as updater
-import tests.unittest_toolbox as unittest_toolbox
+import tuf.unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_arbitrary_package_attack')
 
@@ -93,8 +93,6 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated of all the test cases.
     shutil.rmtree(cls.temporary_directory)
-    
-    unittest_toolbox.Modified_TestCase.clear_toolbox()
    
     # Kill the SimpleHTTPServer process.
     if cls.server_process.returncode is None:

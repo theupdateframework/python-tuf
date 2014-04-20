@@ -16,6 +16,7 @@
 <Purpose>
   Unit test for 'util.py'
 """
+from __future__ import absolute_import
 
 import os
 import sys
@@ -29,7 +30,7 @@ import tuf
 import tuf.log
 import tuf.hash
 import tuf.util as util
-import tests.unittest_toolbox as unittest_toolbox
+import tuf.unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_util')
 
@@ -221,7 +222,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
     # Test: Incorrect input.
     bogus_inputs = [self.random_string(), 1234, [self.random_string()],
-                    {'a', 'a'}, None]
+                    {'a': 'b'}, None]
     for bogus_input in bogus_inputs:
       if isinstance(bogus_input, basestring):
         self.assertRaises(tuf.Error, util.get_file_details, bogus_input)

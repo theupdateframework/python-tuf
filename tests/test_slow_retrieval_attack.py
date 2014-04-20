@@ -53,7 +53,7 @@ import tuf.formats
 import tuf.util
 import tuf.log
 import tuf.client.updater as updater
-import tests.unittest_toolbox as unittest_toolbox
+import tuf.unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_slow_retrieval_attack')
 
@@ -81,10 +81,8 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated of all the test cases.
     shutil.rmtree(cls.temporary_directory)
-    
-    unittest_toolbox.Modified_TestCase.clear_toolbox()
 
-  
+
 
   def _start_slow_server(self, mode):
     # Launch a SimpleHTTPServer (serves files in the current directory).

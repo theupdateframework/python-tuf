@@ -50,7 +50,8 @@ try:
   from Crypto.Hash import SHA384
   from Crypto.Hash import SHA512
   _supported_libraries.append('pycrypto')
-except ImportError:
+
+except ImportError: # pragma: no cover
   logger.debug('Pycrypto hash algorithms could not be imported.  '
               'Supported libraries: '+str(_SUPPORTED_LIB_LIST))
 
@@ -61,13 +62,14 @@ except ImportError:
 try:
   import hashlib
   _supported_libraries.append('hashlib')
-except ImportError:
+
+except ImportError: # pragma: no cover
   logger.debug('Hashlib could not be imported.  '
               'Supported libraries: '+str(_SUPPORTED_LIB_LIST)) 
   pass
 
 # Were we able to import any hash libraries?
-if not _supported_libraries:
+if not _supported_libraries: # pragma: no cover
   # This is fatal, we'll have no way of generating hashes.
   raise tuf.Error('Unable to import a hash library from the '
                   'following supported list: '+str(_SUPPORTED_LIB_LIST)) 
@@ -132,6 +134,7 @@ def digest(algorithm=_DEFAULT_HASH_ALGORITHM,
   if hash_library == 'hashlib' and hash_library in _supported_libraries:
     try:
       return hashlib.new(algorithm)
+    
     except ValueError:
       raise tuf.UnsupportedAlgorithmError(algorithm)
 
@@ -295,7 +298,9 @@ def data_to_string(data):
 
   if isinstance(data, str):
     return data
+  
   elif isinstance(data, unicode):
     return data.encode("utf-8")
+  
   else:
     return str(data)

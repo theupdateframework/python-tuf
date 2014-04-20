@@ -225,6 +225,21 @@ class TestHash(unittest.TestCase):
       # to always seek to the beginning.
       self.assertEqual(digest_object_truth.digest(), digest_object.digest())
 
+  
+  def test_data_to_string(self):
+    self.assertEqual('12', tuf.hash.data_to_string('12'))
+    self.assertEqual(u'hello', tuf.hash.data_to_string(unicode('hello')))
+    self.assertEqual('12', tuf.hash.data_to_string(12))
+
+
+  def test_unsupported_digest_algorithm_and_library(self):
+    self.assertRaises(tuf.UnsupportedAlgorithmError, tuf.hash.digest,
+                      'sha123', 'hashlib')
+    self.assertRaises(tuf.UnsupportedAlgorithmError, tuf.hash.digest,
+                      'sha123', 'pycrypto')
+    
+    self.assertRaises(tuf.UnsupportedLibraryError, tuf.hash.digest,
+                      'sha256', 'badlib')
 
 
 # Run unit test.

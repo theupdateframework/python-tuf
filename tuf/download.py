@@ -276,9 +276,8 @@ class SaferHTTPResponse(httplib.HTTPResponse):
 
   def __init__(self, sock, debuglevel=0, strict=0, method=None,
                buffering=False):
-    httplib.HTTPResponse.__init__(self, sock, debuglevel=debuglevel,
-                                  strict=strict, method=method,
-                                  buffering=buffering)
+    httplib.HTTPResponse.__init__(self, sock, debuglevel,
+                                  strict, method)
 
     # Delete the previous socket file-like object...
     del self.fp
