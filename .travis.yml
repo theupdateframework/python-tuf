@@ -10,7 +10,9 @@ install:
 script: tox
 
 after_success:
+  cd tests 
   coveralls
+  cd -
 
 branches:
   only:
