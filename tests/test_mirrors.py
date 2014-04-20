@@ -15,12 +15,14 @@
   Unit test for 'mirrors.py'.
 """
 
+from __future__ import absolute_import
+
 import unittest
 
 import tuf
 import tuf.formats as formats
 import tuf.mirrors as mirrors
-import tests.unittest_toolbox as unittest_toolbox
+import tuf.unittest_toolbox as unittest_toolbox
 
 
 

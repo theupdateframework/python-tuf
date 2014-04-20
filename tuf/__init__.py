@@ -313,9 +313,11 @@ class NoWorkingMirrorError(Error):
       try:
         # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
         mirror_url_tokens = urlparse.urlparse(mirror_url)
+      
       except:
         logging.exception('Failed to parse mirror URL: '+str(mirror_url))
         mirror_netloc = mirror_url
+      
       else:
         mirror_netloc = mirror_url_tokens.netloc
 

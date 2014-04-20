@@ -23,7 +23,7 @@
 
   The 'unittest_toolbox.py' module was created to provide additional testing
   tools, such as automatically deleting temporary files created in test cases. 
-  For more information, see 'tuf/tests/unittest_toolbox.py'.
+  For more information, see 'tests/unittest_toolbox.py'.
 
 <Methodology>
   Test cases here should follow a specific order (i.e., independent methods are 
@@ -37,6 +37,8 @@
   'test_1_check_directory'.  The number is a measure of dependence, where 1 is
   less dependent than 2.
 """
+
+from __future__ import absolute_import
 
 import os
 import time
@@ -56,7 +58,7 @@ import tuf.formats
 import tuf.keydb
 import tuf.roledb
 import tuf.repository_tool as repo_tool
-import tests.unittest_toolbox as unittest_toolbox
+import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
 
 logger = logging.getLogger('tuf.test_updater')
@@ -104,8 +106,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # metadata, targets, and key files generated for the test cases.
     shutil.rmtree(cls.temporary_directory)
     
-    unittest_toolbox.Modified_TestCase.clear_toolbox()
-   
     # Kill the SimpleHTTPServer process.
     if cls.server_process.returncode is None:
       logger.info('\tServer process '+str(cls.server_process.pid)+' terminated.')

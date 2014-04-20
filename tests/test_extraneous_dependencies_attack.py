@@ -52,7 +52,7 @@ import tuf.formats
 import tuf.util
 import tuf.log
 import tuf.client.updater as updater
-import tests.unittest_toolbox as unittest_toolbox
+import tuf.unittest_toolbox as unittest_toolbox
 
 
 logger = logging.getLogger('tuf.test_extraneous_dependencies_attack')
@@ -100,8 +100,6 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     # metadata, targets, and key files generated of all the test cases.
     shutil.rmtree(cls.temporary_directory)
     
-    unittest_toolbox.Modified_TestCase.clear_toolbox()
-   
     # Kill the SimpleHTTPServer process.
     if cls.server_process.returncode is None:
       logger.info('Server process '+str(cls.server_process.pid)+' terminated.')

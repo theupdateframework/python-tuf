@@ -9,3 +9,5 @@ build/*
 *.swo
 *.swp
 tuf.egg-info
+.coverage
+.tox/*

@@ -20,6 +20,7 @@
   Otherwise, module that launches simple server would not be found.  
 """
 
+from __future__ import absolute_import
 
 import hashlib
 import logging
@@ -35,7 +36,7 @@ import tuf
 import tuf.conf as conf
 import tuf.download as download
 import tuf.log
-import tests.unittest_toolbox as unittest_toolbox
+import tuf.unittest_toolbox as unittest_toolbox
 
 logger = logging.getLogger('tuf.test_download')
 

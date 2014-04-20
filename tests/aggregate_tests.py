@@ -45,8 +45,8 @@ for test in tests_list:
 # Provide command-line option to randomize the order in which the tests run.
 # Randomization might catch errors with unit tests that do not properly clean
 # up or restore monkey-patched modules.
-if '--random' in sys.argv:
-  random.shuffle(tests_without_extension)
+#if '--random' in sys.argv:
+random.shuffle(tests_without_extension)
 
 
 suite = unittest.TestLoader().loadTestsFromNames(tests_without_extension)
