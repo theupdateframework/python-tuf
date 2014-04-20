@@ -5,11 +5,11 @@
   aggregate_tests.py
 
 <Author>
-  Konstantin Andrianov
-  Zane Fisher
+  Konstantin Andrianov.
+  Zane Fisher.
 
 <Started>
-  January 26, 2013
+  January 26, 2013.
 
   August 2013.
   Modified previous behavior that explicitly imported individual
@@ -45,7 +45,6 @@ for test in tests_list:
 # Provide command-line option to randomize the order in which the tests run.
 # Randomization might catch errors with unit tests that do not properly clean
 # up or restore monkey-patched modules.
-#if '--random' in sys.argv:
 random.shuffle(tests_without_extension)
 
 
