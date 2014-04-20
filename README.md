@@ -1,5 +1,7 @@
 ## A Framework for Securing Software Update Systems
 
+[![Build Status](https://travis-ci.org/theupdateframework/tuf.svg?branch=develop)](https://travis-ci.org/theupdateframework/tuf)
+
 TUF (The Update Framework) helps developers secure their new or existing
 software update systems. Software update systems are vulnerable to many known
 attacks, including those that can result in clients being compromised or
