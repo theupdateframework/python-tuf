@@ -54,9 +54,10 @@ import tuf.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf.repository_tool as repo_tool
 
 logger = logging.getLogger('tuf.test_slow_retrieval_attack')
-
+repo_tool.disable_console_log_messages()
 
 
 class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
@@ -145,6 +146,42 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     shutil.copytree(original_client, self.client_directory)
     shutil.copytree(original_keystore, self.keystore_directory)
     
+    # The slow retrieval server, in mode 2 (1 byte per second), will only
+    # sleep for a  total of (target file size) seconds.  Add a target file
+    # that contains sufficient number of bytes to trigger a slow retrieval
+    # error.  "sufficient number of bytes" assumed to be
+    # >> 'tuf.conf.SLOW_START_GRACE_PERIOD' bytes.
+    extra_bytes = 8
+    total_bytes = tuf.conf.SLOW_START_GRACE_PERIOD + extra_bytes 
+
+    repository = repo_tool.load_repository(self.repository_directory)
+    file1_filepath = os.path.join(self.repository_directory, 'targets',
+                                  'file1.txt')
+    
+    with open(file1_filepath, 'wb') as file_object:
+      file_object.write('a' * total_bytes)
+
+    key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
+    timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+                                                                  'password')
+    key_file = os.path.join(self.keystore_directory, 'snapshot_key') 
+    snapshot_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+                                                                  'password')
+    key_file = os.path.join(self.keystore_directory, 'targets_key') 
+    targets_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+                                                                  'password')
+
+    repository.targets.load_signing_key(targets_private)
+    repository.snapshot.load_signing_key(snapshot_private)
+    repository.timestamp.load_signing_key(timestamp_private)
+    
+    repository.write()
+    
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+    
     # Set the url prefix required by the 'tuf/client/updater.py' updater.
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'. 
     repository_basepath = self.repository_directory[len(os.getcwd()):]
@@ -163,6 +200,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # updater to refresh metadata, fetch target files, etc.
     self.repository_updater = updater.Updater('test_repository',
                                               self.repository_mirrors)
+    
 
 
   def tearDown(self):
@@ -208,7 +246,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # Simulate a slow retrieval attack.
     # 'mode_1': When download begins, the server blocks the download for a long
     # time by doing nothing before it sends the first byte of data.
-
+    
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
@@ -219,7 +257,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     filepath = os.path.join(self.repository_directory, 'targets', 'file1.txt') 
     length, hashes = tuf.util.get_file_details(filepath)
     fileinfo = tuf.formats.make_fileinfo(length, hashes)
-   
+  
     try:
       server_process = self._start_slow_server('mode_2')
       urllib.urlretrieve(url_file, client_filepath)
@@ -241,7 +279,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # time by doing nothing before it sends the first byte of data.
 
     server_process = self._start_slow_server('mode_1')
-    
+   
     # Verify that the TUF client detects replayed metadata and refuses to
     # continue the update process.
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
@@ -275,15 +313,15 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
     server_process = self._start_slow_server('mode_2')
     
-    # Verify that the TUF client detects replayed metadata and refuses to
-    # continue the update process.
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
     try:
       file1_target = self.repository_updater.target('file1.txt')
       self.repository_updater.download_target(file1_target, client_filepath)
-     
+
     # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
-    # each mirror.
+    # each mirror.  'file1.txt' should be large enough to trigger a slow
+    # retrieval attack, otherwise the expected exception may not be consistently
+    # raised.
     except tuf.NoWorkingMirrorError, exception:
       for mirror_url, mirror_error in exception.mirror_errors.iteritems():
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
@@ -294,6 +332,8 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
         self.assertTrue(isinstance(mirror_error, tuf.SlowRetrievalError))
     
     else:
+      # Another possibility is to check for a successfully downloaded
+      # 'file1.txt' at this point.
       self.fail('TUF did not prevent a slow retrieval attack.')
 
     finally:
