@@ -123,11 +123,12 @@ class SaferSocketFileObject(socket._fileobject):
 
     <Arguments>
       data_length:
-        A nonnegative integer indicating the size of data retrieved in bytes.
+        A non-negative integer indicating the size of data retrieved in bytes.
 
     <Exceptions>
       tuf.SlowRetrievalError:
-        When slow retrieval is detected.
+        If the average download speed falls below
+        'tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED'.  
 
       AssertionError:
         When any internal condition is not true.
@@ -151,6 +152,8 @@ class SaferSocketFileObject(socket._fileobject):
     self.__number_of_bytes_received += data_length
     self.__seconds_spent_receiving += time_delta
 
+    # self.__seconds_spent_receiving begins at negative
+    # 'tuf.conf.SLOW_START_GRACE_PERIOD'.
     if self.__seconds_spent_receiving > 0:
       average_download_speed = \
         self.__number_of_bytes_received/self.__seconds_spent_receiving
