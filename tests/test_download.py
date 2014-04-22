@@ -29,14 +29,13 @@ import random
 import subprocess
 import time
 import unittest
-import urllib2
-
 
 import tuf
 import tuf.conf as conf
 import tuf.download as download
 import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_download')
 
@@ -162,12 +161,12 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
                       download_file,
                       self.random_string(), self.target_data_length)
 
-    self.assertRaises(urllib2.HTTPError,
+    self.assertRaises(six.moves.urllib.error.HTTPError,
                       download_file,
                       'http://localhost:'+str(self.PORT)+'/'+self.random_string(), 
                       self.target_data_length)
 
-    self.assertRaises(urllib2.URLError,
+    self.assertRaises(six.moves.urllib.error.URLError,
                       download_file,
                       'http://localhost:'+str(self.PORT+1)+'/'+self.random_string(), 
                       self.target_data_length)

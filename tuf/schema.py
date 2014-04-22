@@ -45,7 +45,7 @@ import re
 import sys
 
 import tuf
-
+import tuf._vendor.six as six
 
 class Schema:
   """
@@ -141,7 +141,7 @@ class String(Schema):
   """
 
   def __init__(self, string):
-    if not isinstance(string, basestring):
+    if not isinstance(string, six.string_types):
       raise tuf.FormatError('Expected a string but got '+repr(string))
     
     self._string = string
@@ -188,7 +188,7 @@ class AnyString(Schema):
 
 
   def check_match(self, object):
-    if not isinstance(object, basestring):
+    if not isinstance(object, six.string_types):
       raise tuf.FormatError('Expected a string but got '+repr(object))
 
 
@@ -217,7 +217,7 @@ class LengthString(Schema):
   """
 
   def __init__(self, length):
-    if isinstance(length, bool) or not isinstance(length, (int, long)):
+    if isinstance(length, bool) or not isinstance(length, six.integer_types):
       # We need to check for bool as a special case, since bool
       # is for historical reasons a subtype of int.
       raise tuf.FormatError('Got '+repr(length)+' instead of an integer.')
@@ -226,7 +226,7 @@ class LengthString(Schema):
 
 
   def check_match(self, object):
-    if not isinstance(object, basestring):
+    if not isinstance(object, six.string_types):
       raise tuf.FormatError('Expected a string but got '+repr(object))
 
     if len(object) != self._string_length:
@@ -401,7 +401,7 @@ class ListOf(Schema):
     False
   """
 
-  def __init__(self, schema, min_count=0, max_count=sys.maxint, list_name='list'):
+  def __init__(self, schema, min_count=0, max_count=sys.maxsize, list_name='list'):
     """
     <Purpose> 
       Create a new ListOf schema.
@@ -433,7 +433,7 @@ class ListOf(Schema):
     for item in object:
       try:
         self._schema.check_match(item)
-      except tuf.FormatError, e:
+      except tuf.FormatError as e:
         raise tuf.FormatError(str(e)+' in '+repr(self._list_name))
 
     # Raise exception if the number of items in the list is
@@ -475,7 +475,7 @@ class Integer(Schema):
     False
   """
 
-  def __init__(self, lo= -sys.maxint, hi=sys.maxint):
+  def __init__(self, lo = -sys.maxint, hi = sys.maxint):
     """
     <Purpose> 
       Create a new Integer schema.
@@ -490,7 +490,7 @@ class Integer(Schema):
 
 
   def check_match(self, object):
-    if isinstance(object, bool) or not isinstance(object, (int, long)):
+    if isinstance(object, bool) or not isinstance(object, six.integer_types):
       # We need to check for bool as a special case, since bool
       # is for historical reasons a subtype of int.
       raise tuf.FormatError('Got '+repr(object)+' instead of an integer.')
@@ -556,7 +556,7 @@ class DictOf(Schema):
     if not isinstance(object, dict): 
       raise tuf.FormatError('Expected a dict but got '+repr(object))
 
-    for key, value in object.items():
+    for key, value in six.iteritems(object):
       self._key_schema.check_match(key)
       self._value_schema.check_match(value)
 
@@ -643,12 +643,12 @@ class Object(Schema):
     """
   
     # Ensure valid arguments. 
-    for key, schema in required.items():
+    for key, schema in six.iteritems(required):
       if not isinstance(schema, Schema):
         raise tuf.FormatError('Expected Schema but got '+repr(schema))
 
     self._object_name = object_name
-    self._required = required.items()
+    self._required = list(required.items())
 
 
   def check_match(self, object):
@@ -672,7 +672,7 @@ class Object(Schema):
       else:
         try:
           schema.check_match(item)
-        except tuf.FormatError, e:
+        except tuf.FormatError as e:
           raise tuf.FormatError(str(e)+' in '+self._object_name+'.'+key)
 
 
@@ -827,7 +827,7 @@ class RegularExpression(Schema):
       re_name: Identifier for the regular expression object.
     """
 
-    if not isinstance(pattern, basestring):
+    if not isinstance(pattern, six.string_types):
       raise tuf.FormatError(repr(pattern)+' is not a string.')
         
     if re_object is None:
@@ -848,10 +848,8 @@ class RegularExpression(Schema):
 
 
   def check_match(self, object):
-    if not isinstance(object, basestring) or not self._re_object.match(object):
+    if not isinstance(object, six.string_types) or not self._re_object.match(object):
       raise tuf.FormatError(repr(object)+' did not match '+repr(self._re_name))
-
-
 
 
 

@@ -23,7 +23,7 @@ import datetime
 import tuf
 import tuf.formats
 import tuf.schema
-
+import tuf._vendor.six as six
 
 
 class TestFormats(unittest.TestCase):
@@ -252,13 +252,13 @@ class TestFormats(unittest.TestCase):
    
     # Iterate 'valid_schemas', ensuring each 'valid_schema' correctly matches
     # its respective 'schema_type'.
-    for schema_name, (schema_type, valid_schema) in valid_schemas.items():
+    for schema_name, (schema_type, valid_schema) in six.iteritems(valid_schemas):
       self.assertEqual(True, schema_type.matches(valid_schema))
    
     # Test conditions for invalid schemas.
     # Set the 'valid_schema' of 'valid_schemas' to an invalid
     # value and test that it does not match 'schema_type'.
-    for schema_name, (schema_type, valid_schema) in valid_schemas.items():
+    for schema_name, (schema_type, valid_schema) in six.iteritems(valid_schemas):
       invalid_schema = 0xBAD
       if isinstance(schema_type, tuf.schema.Integer): 
         invalid_schema = 'BAD'
@@ -455,7 +455,7 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid arguments.
     UNIX_TIMESTAMP_SCHEMA = tuf.formats.UNIX_TIMESTAMP_SCHEMA 
     self.assertTrue(datetime.datetime, tuf.formats.unix_timestamp_to_datetime(499137720))
-    datetime_object = datetime.datetime(1985, 10, 26, 01, 22)
+    datetime_object = datetime.datetime(1985, 10, 26, 1, 22)
     self.assertEqual(datetime_object, tuf.formats.unix_timestamp_to_datetime(499137720))
 
     # Test conditions for invalid arguments.
@@ -482,7 +482,7 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid arguments.
     data = 'updateframework'
     self.assertEqual('dXBkYXRlZnJhbWV3b3Jr', tuf.formats.format_base64(data))
-    self.assertTrue(isinstance(tuf.formats.format_base64(data), basestring))
+    self.assertTrue(isinstance(tuf.formats.format_base64(data), six.string_types))
 
     # Test conditions for invalid arguments.
     self.assertRaises(tuf.FormatError, tuf.formats.format_base64, 123)
@@ -494,7 +494,7 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid arguments.
     base64 = 'dXBkYXRlZnJhbWV3b3Jr'
     self.assertEqual('updateframework', tuf.formats.parse_base64(base64))
-    self.assertTrue(isinstance(tuf.formats.parse_base64(base64), basestring))
+    self.assertTrue(isinstance(tuf.formats.parse_base64(base64), six.string_types))
 
     # Test conditions for invalid arguments.
     self.assertRaises(tuf.FormatError, tuf.formats.format_base64, 123)

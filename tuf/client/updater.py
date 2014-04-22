@@ -104,7 +104,6 @@ import logging
 import os
 import shutil
 import time
-import urllib
 import random
 
 import tuf
@@ -120,6 +119,7 @@ import tuf.roledb
 import tuf.sig
 import tuf.util
 import tuf._vendor.iso8601 as iso8601
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.client.updater')
 
@@ -505,7 +505,7 @@ class Updater(object):
    
     # Iterate through the keys of the delegated roles of 'parent_role'
     # and load them.
-    for keyid, keyinfo in keys_info.items():
+    for keyid, keyinfo in six.iteritems(keys_info):
       if keyinfo['keytype'] in ['rsa', 'ed25519']:
         key = tuf.keys.format_metadata_to_key(keyinfo)
       
@@ -517,7 +517,7 @@ class Updater(object):
         except tuf.KeyAlreadyExistsError:
           pass
         
-        except (tuf.FormatError, tuf.Error), e:
+        except (tuf.FormatError, tuf.Error) as e:
           logger.exception('Failed to add keyid: '+repr(keyid)+'.')
           logger.error('Aborting role delegation for parent role '+parent_role+'.')
           raise
@@ -535,7 +535,7 @@ class Updater(object):
         logger.debug('Adding delegated role: '+str(rolename)+'.')
         tuf.roledb.add_role(rolename, roleinfo)
       
-      except tuf.RoleAlreadyExistsError, e:
+      except tuf.RoleAlreadyExistsError as e:
         logger.warn('Role already exists: '+rolename)
       
       except:
@@ -617,7 +617,7 @@ class Updater(object):
       self._update_metadata_if_changed('root')
       self._update_metadata_if_changed('targets')
     
-    except tuf.NoWorkingMirrorError, e:
+    except tuf.NoWorkingMirrorError as e:
       if unsafely_update_root_if_necessary:
         message = 'Valid top-level metadata cannot be downloaded.  Unsafely '+\
           'update the Root metadata.'
@@ -671,7 +671,7 @@ class Updater(object):
 
     # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
     # return.
-    for algorithm, trusted_hash in trusted_hashes.items():
+    for algorithm, trusted_hash in six.iteritems(trusted_hashes):
       digest_object = tuf.hash.digest(algorithm)
       digest_object.update(file_object.read())
       computed_hash = digest_object.hexdigest()
@@ -824,7 +824,7 @@ class Updater(object):
     # 'compression' argument to _get_file() is needed only for decompression of
     # metadata.  Target files may be compressed or uncompressed.
     if self.consistent_snapshot:
-      target_digest = random.choice(file_hashes.values())
+      target_digest = random.choice(list(file_hashes.values()))
       dirname, basename = os.path.split(target_filepath)
       target_filepath = os.path.join(dirname, target_digest+'.'+basename)
 
@@ -883,8 +883,10 @@ class Updater(object):
     
     try:
       metadata_signable = tuf.util.load_json_string(metadata)
-    except Exception, exception:
+    
+    except Exception as exception:
       raise tuf.InvalidMetadataJSONError(exception)
+    
     else:
       # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
       # 'tuf.FormatError' if not.
@@ -908,7 +910,7 @@ class Updater(object):
     # are not allowed.
     if metadata_signable['signed']['_type'] == 'Targets':
       if metadata_role != 'targets':
-        metadata_targets = metadata_signable['signed']['targets'].keys()
+        metadata_targets = list(metadata_signable['signed']['targets'].keys())
         parent_rolename = tuf.roledb.get_parent_rolename(metadata_role)
         parent_role_metadata = self.metadata['current'][parent_rolename]
         parent_delegations = parent_role_metadata['delegations']
@@ -1175,7 +1177,7 @@ class Updater(object):
         # uncompressed version).
         verify_file_function(file_object)
 
-      except Exception, exception:
+      except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
         logger.exception('Update failed from '+file_mirror+'.')
         file_mirror_errors[file_mirror] = exception
@@ -1296,11 +1298,11 @@ class Updater(object):
       if self.consistent_snapshot:
         if compression:
           filename_digest = \
-            random.choice(compressed_fileinfo['hashes'].values())
+            random.choice(list(compressed_fileinfo['hashes'].values()))
         
         else:
           filename_digest = \
-            random.choice(uncompressed_fileinfo['hashes'].values())
+            random.choice(list(uncompressed_fileinfo['hashes'].values()))
         dirname, basename = os.path.split(remote_filename)
         remote_filename = os.path.join(dirname, filename_digest+'.'+basename)
 
@@ -1582,7 +1584,7 @@ class Updater(object):
     # without having that result in considering all files as needing to be
     # updated, or not all hash algorithms listed can be calculated on the
     # specific client.
-    for algorithm, hash_value in new_fileinfo['hashes'].items():
+    for algorithm, hash_value in six.iteritems(new_fileinfo['hashes']):
       # We're only looking for a single match. This isn't a security
       # check, we just want to prevent unnecessary downloads.
       if algorithm in current_fileinfo['hashes']: 
@@ -1873,7 +1875,7 @@ class Updater(object):
     # See if this role provides metadata and, if we're including delegations,
     # look for metadata from delegated roles.
     role_prefix = rolename + '/'
-    for metadata_path in self.metadata['current']['snapshot']['meta'].keys():
+    for metadata_path in six.iterkeys(self.metadata['current']['snapshot']['meta']):
       if metadata_path == rolename + '.json':
         roles_to_update.append(metadata_path[:-len('.json')])
       elif include_delegations and metadata_path.startswith(role_prefix):
@@ -1998,7 +2000,7 @@ class Updater(object):
     # Check if 'snapshot.json' provides metadata for each of the roles in
     # 'parent_roles'.  All the available roles on the repository are specified
     # in the 'snapshot.json' metadata.
-    targets_metadata_allowed = self.metadata['current']['snapshot']['meta'].keys()
+    targets_metadata_allowed = list(self.metadata['current']['snapshot']['meta'].keys())
     for parent_role in parent_roles:
       parent_role = parent_role + '.json'
 
@@ -2103,7 +2105,7 @@ class Updater(object):
       return targets
 
     # Get the targets specified by the role itself.
-    for filepath, fileinfo in self.metadata['current'][rolename]['targets'].items():
+    for filepath, fileinfo in six.iteritems(self.metadata['current'][rolename]['targets']):
       new_target = {} 
       new_target['filepath'] = filepath 
       new_target['fileinfo'] = fileinfo
@@ -2204,7 +2206,7 @@ class Updater(object):
   
     # 'target_filepath' might contain URL encoding escapes.
     # http://docs.python.org/2/library/urllib.html#urllib.unquote
-    target_filepath = urllib.unquote(target_filepath)
+    target_filepath = six.moves.urllib.parse.unquote(target_filepath)
 
     if not target_filepath.startswith('/'):
       target_filepath = '/' + target_filepath
@@ -2339,7 +2341,7 @@ class Updater(object):
     # Does the current role name have our target?
     logger.debug('Asking role '+repr(role_name)+' about target '+\
       repr(target_filepath))
-    for filepath, fileinfo in targets.iteritems():
+    for filepath, fileinfo in six.iteritems(targets):
       if filepath == target_filepath:
         logger.debug('Found target '+target_filepath+' in role '+role_name)
         target = {'filepath': filepath, 'fileinfo': fileinfo}
@@ -2523,8 +2525,8 @@ class Updater(object):
     for role in tuf.roledb.get_rolenames():
       if role.startswith('targets'):
         if role in self.metadata['previous'] and self.metadata['previous'][role] != None:
-          for target in self.metadata['previous'][role]['targets'].keys():
-            if target not in self.metadata['current'][role]['targets'].keys():
+          for target in self.metadata['previous'][role]['targets']:
+            if target not in self.metadata['current'][role]['targets']:
               # 'target' is only in 'previous', so remove it.
               logger.warn('Removing obsolete file: '+repr(target)+'.')
               # Remove the file if it hasn't been removed already.
@@ -2532,7 +2534,7 @@ class Updater(object):
               try:
                 os.remove(destination)
               
-              except OSError, e:
+              except OSError as e:
                 # If 'filename' already removed, just log it.
                 if e.errno == errno.ENOENT:
                   logger.info('File '+repr(destination)+' was already removed.')
@@ -2540,7 +2542,7 @@ class Updater(object):
                 else:
                   logger.error(str(e))
               
-              except Exception, e:
+              except Exception as e:
                 logger.error(str(e))
 
 
@@ -2602,7 +2604,7 @@ class Updater(object):
       
       # Try one of the algorithm/digest combos for a mismatch.  We break
       # as soon as we find a mismatch.
-      for algorithm, digest in target['fileinfo']['hashes'].items():
+      for algorithm, digest in six.iteritems(target['fileinfo']['hashes']):
         digest_object = None
         try:
           digest_object = tuf.hash.digest_filename(target_filepath,
@@ -2686,7 +2688,7 @@ class Updater(object):
       try:
         os.makedirs(target_dirpath)
       
-      except OSError, e:
+      except OSError as e:
         if e.errno == errno.EEXIST:
           pass
         

@@ -366,7 +366,7 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
       
       # The pure Python implementation raises 'Exception' if 'signature' is
       # invalid.
-      except Exception, e:
+      except Exception as e:
         pass
   else:
     message = 'Unsupported ed25519 signing method: '+repr(method)+'.\n'+ \

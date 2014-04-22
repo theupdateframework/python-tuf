@@ -33,7 +33,6 @@ from __future__ import absolute_import
 from __future__ import division
 
 import os
-import urllib
 import tempfile
 import random
 import time
@@ -49,6 +48,7 @@ import tuf.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_arbitrary_package_attack')
 
@@ -173,7 +173,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
-    urllib.urlretrieve(url_file, client_target_path)
+    six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     self.assertTrue(os.path.exists(client_target_path))
     length, hashes = tuf.util.get_file_details(client_target_path)
@@ -186,7 +186,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     length, hashes = tuf.util.get_file_details(target_path)
     malicious_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
-    urllib.urlretrieve(url_file, client_target_path)
+    six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     length, hashes = tuf.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
@@ -217,7 +217,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.download_target(file1_fileinfo, destination)
     
-    except tuf.NoWorkingMirrorError, exception:
+    except tuf.NoWorkingMirrorError as exception:
       url_prefix = self.repository_mirrors['mirror1']['url_prefix']
       url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
@@ -269,7 +269,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       destination = os.path.join(self.client_directory)
       self.repository_updater.download_target(file1_fileinfo, destination)
     
-    except tuf.NoWorkingMirrorError, exception:
+    except tuf.NoWorkingMirrorError as exception:
       url_prefix = self.repository_mirrors['mirror1']['url_prefix']
       url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 

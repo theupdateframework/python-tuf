@@ -69,7 +69,7 @@ import time
 
 import tuf
 import tuf.schema as SCHEMA
-
+import tuf._vendor.six as six
 
 # Note that in the schema definitions below, the 'SCHEMA.Object' types allow
 # additional keys which are not defined. Thus, any additions to them will be
@@ -477,7 +477,8 @@ class MetaFile(object):
 
   def __eq__(self, other):
     return isinstance(other, MetaFile) and self.info == other.info
-
+  
+  __hash__ = None
 
   def __ne__(self, other):
     return not self.__eq__(other)
@@ -489,10 +490,12 @@ class MetaFile(object):
       referred to directly without the info dict. The info dict is just
       to be able to do the __eq__ comparison generically.
     """
-    
+   
     if name in self.info:
       return self.info[name]
-    raise AttributeError, name
+    
+    else:
+      raise AttributeError(name)
 
 
 
@@ -818,7 +821,7 @@ def format_base64(data):
   try:
     return binascii.b2a_base64(data).rstrip('=\n ')
   
-  except (TypeError, binascii.Error), e:
+  except (TypeError, binascii.Error) as e:
     raise tuf.FormatError('Invalid base64 encoding: '+str(e))
 
 
@@ -846,7 +849,7 @@ def parse_base64(base64_string):
     'base64_string'.
   """
 
-  if not isinstance(base64_string, basestring):
+  if not isinstance(base64_string, six.string_types):
     message = 'Invalid argument: '+repr(base64_string)
     raise tuf.FormatError(message)
 
@@ -858,7 +861,7 @@ def parse_base64(base64_string):
   try:
     return binascii.a2b_base64(base64_string)
   
-  except (TypeError, binascii.Error), e:
+  except (TypeError, binascii.Error) as e:
     raise tuf.FormatError('Invalid base64 encoding: '+str(e))
 
 
@@ -1189,7 +1192,7 @@ def _encode_canonical(object, output_function):
   # Helper for encode_canonical.  Older versions of json.encoder don't
   # even let us replace the separators.
 
-  if isinstance(object, basestring):
+  if isinstance(object, six.string_types):
     output_function(_canonical_string_encoder(object))
   elif object is True:
     output_function("true")
@@ -1197,7 +1200,7 @@ def _encode_canonical(object, output_function):
     output_function("false")
   elif object is None:
     output_function("null")
-  elif isinstance(object, (int, long)):
+  elif isinstance(object, six.integer_types):
     output_function(str(object))
   elif isinstance(object, (tuple, list)):
     output_function("[")
@@ -1210,8 +1213,7 @@ def _encode_canonical(object, output_function):
   elif isinstance(object, dict):
     output_function("{")
     if len(object):
-      items = object.items()
-      items.sort()
+      items = sorted(six.iteritems(object))
       for key, value in items[:-1]:
         output_function(_canonical_string_encoder(key))
         output_function(":")
@@ -1289,7 +1291,7 @@ def encode_canonical(object, output_function=None):
   try:
     _encode_canonical(object, output_function)
   
-  except TypeError, e:
+  except TypeError as e:
     message = 'Could not encode '+repr(object)+': '+str(e)
     raise tuf.FormatError(message)
 

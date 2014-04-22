@@ -18,11 +18,11 @@
 """
 
 import os
-import urllib
 
 import tuf
 import tuf.util
 import tuf.formats
+import tuf._vendor.six as six
 
 # The type of file to be downloaded from a repository.  The
 # 'get_list_of_mirrors' function supports these file types.
@@ -87,7 +87,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   in_confined_directory = tuf.util.file_in_confined_directories
 
   list_of_mirrors = []
-  for mirror_name, mirror_info in mirrors_dict.items():
+  for mirror_name, mirror_info in six.iteritems(mirrors_dict):
     if file_type == 'meta':
       base = mirror_info['url_prefix']+'/'+mirror_info['metadata_path']
     
@@ -109,7 +109,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # side. Do *NOT* pass URLs with Unicode characters without first encoding
     # the URL as UTF-8. We need a long-term solution with #61.
     # http://bugs.python.org/issue1712522
-    file_path = urllib.quote(file_path)
+    file_path = six.moves.urllib.parse.quote(file_path)
     url = base + '/' + file_path.lstrip(os.sep) 
     list_of_mirrors.append(url)
 

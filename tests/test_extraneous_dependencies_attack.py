@@ -8,7 +8,7 @@
   Zane Fisher.
 
 <Started>
-  August 19, 2013
+  August 19, 2013.
   
   April 6, 2014.
     Refactored to use the 'unittest' module (test conditions in code, rather
@@ -38,7 +38,6 @@ from __future__ import absolute_import
 from __future__ import division
 
 import os
-import urllib
 import tempfile
 import random
 import time
@@ -53,7 +52,7 @@ import tuf.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
-
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_extraneous_dependencies_attack')
 
@@ -208,8 +207,8 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
    
     # Verify that the specific 'tuf.BadHashError' exception is raised by each
     # mirror.
-    except tuf.NoWorkingMirrorError, exception:
-      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+    except tuf.NoWorkingMirrorError as exception:
+      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'metadata', 'targets', 'role1.json')
        

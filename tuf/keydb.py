@@ -33,6 +33,7 @@ import copy
 import tuf
 import tuf.formats
 import tuf.keys
+import tuf._vendor.six as six
 
 # List of strings representing the key types supported by TUF.
 _SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
@@ -84,7 +85,7 @@ def create_keydb_from_root_metadata(root_metadata):
   # Iterate through the keys found in 'root_metadata' by converting
   # them to 'RSAKEY_SCHEMA' if their type is 'rsa', and then
   # adding them the database.  Duplicates are avoided.
-  for keyid, key_metadata in root_metadata['keys'].items():
+  for keyid, key_metadata in six.iteritems(root_metadata['keys']):
     if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA'
@@ -94,11 +95,11 @@ def create_keydb_from_root_metadata(root_metadata):
         add_key(key_dict, keyid)
       
       # 'tuf.Error' raised if keyid does not match the keyid for 'rsakey_dict'.
-      except tuf.Error, e:
+      except tuf.Error as e:
         logger.error(e)
         continue
       
-      except tuf.KeyAlreadyExistsError, e:
+      except tuf.KeyAlreadyExistsError as e:
         logger.warn(e)
         continue
     

@@ -241,7 +241,7 @@ class SaferSocketFileObject(socket._fileobject):
       except socket.timeout:
         self.__stop_clock_and_check_speed(0)
         continue
-      except socket.error, e:
+      except socket.error as e:
         if e.args[0] == EINTR:
           self.__stop_clock_and_check_speed(0)
           continue

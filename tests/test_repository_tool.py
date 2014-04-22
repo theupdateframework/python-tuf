@@ -222,6 +222,9 @@ class TestRepository(unittest.TestCase):
     # Verify that an exception is *not* raised for multiple repository.write().
     repository.write()
 
+    # Verify the status() does not raise an exception.
+    repository.status()
+
     # Verify that a write() fails if a repository is loaded and a change
     # is made to a role.
     repo_tool.load_repository(repository_directory)

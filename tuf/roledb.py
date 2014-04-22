@@ -41,6 +41,7 @@ import copy
 import tuf
 import tuf.formats
 import tuf.log
+import tuf._vendor.six as six
 
 # See 'tuf.log' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.roledb')
@@ -89,7 +90,7 @@ def create_roledb_from_root_metadata(root_metadata):
   
   # Iterate through the roles found in 'root_metadata'
   # and add them to '_roledb_dict'.  Duplicates are avoided.
-  for rolename, roleinfo in root_metadata['roles'].items():
+  for rolename, roleinfo in six.iteritems(root_metadata['roles']):
     if rolename == 'root':
       roleinfo['version'] = root_metadata['version']
       roleinfo['expires'] = root_metadata['expires']
@@ -104,7 +105,7 @@ def create_roledb_from_root_metadata(root_metadata):
     try:
       add_role(rolename, roleinfo)
     # tuf.Error raised if the parent role of 'rolename' does not exist.  
-    except tuf.Error, e:
+    except tuf.Error as e:
       logger.error(e)
       raise
 
@@ -475,7 +476,7 @@ def get_rolenames():
     A list of rolenames.
   """
   
-  return _roledb_dict.keys()
+  return list(_roledb_dict.keys())
 
 
 

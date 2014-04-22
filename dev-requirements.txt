@@ -17,3 +17,4 @@
 # http://nvie.com/posts/pin-your-packages/
 pycrypto==2.6.1
 pynacl==0.2.3
+tox

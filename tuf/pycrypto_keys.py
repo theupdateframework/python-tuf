@@ -284,7 +284,7 @@ def create_rsa_signature(private_key, data):
       sha256_object = Crypto.Hash.SHA256.new(data)
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
     
-    except (ValueError, IndexError, TypeError), e:
+    except (ValueError, IndexError, TypeError) as e:
       message = 'Invalid private key or hash data: '+str(e)
       raise tuf.CryptoError(message)
    
@@ -383,7 +383,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       sha256_object = Crypto.Hash.SHA256.new(data)
       valid_signature = pkcs1_pss_verifier.verify(sha256_object, signature)
     
-    except (ValueError, IndexError, TypeError), e:
+    except (ValueError, IndexError, TypeError) as e:
       message = 'The RSA signature could not be verified.'
       raise tuf.CryptoError(message)
   
@@ -463,7 +463,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
       encrypted_pem = rsa_key_object.exportKey(format='PEM',
                                                passphrase=passphrase) 
     
-    except (ValueError, IndexError, TypeError), e:
+    except (ValueError, IndexError, TypeError) as e:
       message = 'An encrypted RSA key in PEM format cannot be generated: '+str(e)
       raise tuf.CryptoError(message)
   
@@ -559,7 +559,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # (possibly because the passphrase is wrong)."
   # If the passphrase is incorrect, PyCrypto returns: "RSA key format is not
   # supported".
-  except (ValueError, IndexError, TypeError), e:
+  except (ValueError, IndexError, TypeError) as e:
     message = 'RSA (public, private) tuple cannot be generated from the'+\
       ' encrypted PEM string: '+str(e)
     # Raise 'tuf.CryptoError' and PyCrypto's exception message.  Avoid
@@ -851,7 +851,7 @@ def _encrypt(key_data, derived_key_information):
   # what circumstances.  PyCrypto example given is to call encrypt() without
   # checking for exceptions.  Avoid propogating the exception trace and only
   # raise 'tuf.CryptoError', along with the cause of encryption failure.
-  except (ValueError, IndexError, TypeError), e:
+  except (ValueError, IndexError, TypeError) as e:
     message = 'The key data cannot be encrypted: '+str(e)
     raise tuf.CryptoError(message)
 
@@ -939,7 +939,7 @@ def _decrypt(file_contents, password):
   # what circumstances.  PyCrypto example given is to call decrypt() without
   # checking for exceptions.  Avoid propogating the exception trace and only
   # raise 'tuf.CryptoError', along with the cause of decryption failure.
-  except (ValueError, IndexError, TypeError), e:
+  except (ValueError, IndexError, TypeError) as e:
     raise tuf.CryptoError('Decryption failed: '+str(e))
 
   return key_plaintext

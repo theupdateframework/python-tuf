@@ -29,6 +29,7 @@ import tuf
 import tuf.hash
 import tuf.conf
 import tuf.formats
+import tuf._vendor.six as six
 
 # The algorithm used by the repository to generate the digests of the
 # target filepaths, which are included in metadata files and may be prepended
@@ -54,7 +55,7 @@ class TempFile(object):
     """__init__ helper."""
     try:
       self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix)
-    except OSError, err:
+    except OSError as err:
       logger.critical('Temp file in '+temp_dir+'failed: '+repr(err))
       raise tuf.Error(err)
 
@@ -84,7 +85,7 @@ class TempFile(object):
       try:
         self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix,
                                                           dir=temp_dir)
-      except OSError, err:
+      except OSError as err:
         logger.error('Temp file in '+temp_dir+' failed: '+repr(err))
         logger.error('Will attempt to use system default temp dir.')
         self._default_temporary_directory(prefix)
@@ -293,7 +294,7 @@ class TempFile(object):
     try:
       self.temporary_file = gzip.GzipFile(fileobj=self.temporary_file,
                                           mode='rb')
-    except Exception, exception:
+    except Exception as exception:
       raise tuf.DecompressionError(exception)
 
 
@@ -508,7 +509,7 @@ def find_delegated_role(roles, delegated_role):
   # The index of a role, if any, with the same name.
   role_index = None
 
-  for index in xrange(len(roles)):
+  for index in six.moves.xrange(len(roles)):
     role = roles[index]
     name = role.get('name')
     
@@ -908,7 +909,7 @@ def load_json_file(filepath):
   try:
     deserialized_object = json.load(fileobject)
   
-  except ValueError, TypeError:
+  except (ValueError, TypeError) as e:
     message = 'Cannot deserialize to a Python object: '+repr(filepath)
     raise tuf.Error(message)
   

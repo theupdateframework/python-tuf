@@ -48,6 +48,7 @@ import tuf.sig
 import tuf.log
 import tuf.conf
 import tuf._vendor.iso8601 as iso8601
+import tuf._vendor.six as six
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.repository_tool')
@@ -262,7 +263,7 @@ class Repository(object):
                                      consistent_snapshot)
       
       # Include only the exception message.
-      except tuf.UnsignedMetadataError, e:
+      except tuf.UnsignedMetadataError as e:
         raise tuf.UnsignedMetadataError(e[0])
       
     # Generate the 'root.json' metadata file.
@@ -278,7 +279,7 @@ class Repository(object):
                                      consistent_snapshot)
     
     # Include only the exception message.
-    except tuf.UnsignedMetadataError, e:
+    except tuf.UnsignedMetadataError as e:
       raise tuf.UnsignedMetadataError(e[0])
     
     # Generate the 'targets.json' metadata file.
@@ -292,7 +293,7 @@ class Repository(object):
                                      consistent_snapshot)
     
     # Include only the exception message.
-    except tuf.UnsignedMetadataError, e:
+    except tuf.UnsignedMetadataError as e:
       raise tuf.UnsignedMetadataError(e[0])
     
     # Generate the 'snapshot.json' metadata file.
@@ -309,7 +310,7 @@ class Repository(object):
                                      consistent_snapshot, filenames)
     
     # Include only the exception message.
-    except tuf.UnsignedMetadataError, e:
+    except tuf.UnsignedMetadataError as e:
       raise tuf.UnsignedMetadataError(e[0])
     
     # Generate the 'timestamp.json' metadata file.
@@ -323,7 +324,7 @@ class Repository(object):
                                    filenames)
     
     # Include only the exception message.
-    except tuf.UnsignedMetadataError, e:
+    except tuf.UnsignedMetadataError as e:
       raise tuf.UnsignedMetadataError(e[0])
 
      
@@ -420,14 +421,14 @@ class Repository(object):
         try: 
           _check_role_keys(delegated_role)
         
-        except tuf.InsufficientKeysError, e:
+        except tuf.InsufficientKeysError as e:
           insufficient_keys.append(delegated_role)
           continue
         
         try: 
           _generate_and_write_metadata(delegated_role, filename, False,
                                        targets_directory, metadata_directory)
-        except tuf.UnsignedMetadataError, e:
+        except tuf.UnsignedMetadataError as e:
           insufficient_signatures.append(delegated_role)
      
       # Print the verification results of the delegated roles and return
@@ -589,7 +590,7 @@ class Metadata(object):
     try:
       tuf.keydb.add_key(key)
     
-    except tuf.KeyAlreadyExistsError, e:
+    except tuf.KeyAlreadyExistsError as e:
       message = 'Adding a verification key that has already been used.'
       logger.warn(message)
 
@@ -699,7 +700,7 @@ class Metadata(object):
     try:
       tuf.keydb.add_key(key)
     
-    except tuf.KeyAlreadyExistsError, e:
+    except tuf.KeyAlreadyExistsError as e:
       tuf.keydb.remove_key(key['keyid'])
       tuf.keydb.add_key(key)
 
@@ -1320,7 +1321,7 @@ class Root(Metadata):
     try: 
       tuf.roledb.add_role(self._rolename, roleinfo)
     
-    except tuf.RoleAlreadyExistsError, e:
+    except tuf.RoleAlreadyExistsError as e:
       pass
 
 
@@ -1382,7 +1383,7 @@ class Timestamp(Metadata):
     try: 
       tuf.roledb.add_role(self.rolename, roleinfo)
     
-    except tuf.RoleAlreadyExistsError, e:
+    except tuf.RoleAlreadyExistsError as e:
       pass
 
 
@@ -1438,7 +1439,7 @@ class Snapshot(Metadata):
     try:
       tuf.roledb.add_role(self._rolename, roleinfo)
     
-    except tuf.RoleAlreadyExistsError, e:
+    except tuf.RoleAlreadyExistsError as e:
       pass
 
 
@@ -1531,7 +1532,7 @@ class Targets(Metadata):
     try:
       tuf.roledb.add_role(self.rolename, roleinfo)
     
-    except tuf.RoleAlreadyExistsError, e:
+    except tuf.RoleAlreadyExistsError as e:
       pass  
 
 
@@ -2255,7 +2256,7 @@ class Targets(Metadata):
     # target path, reduced to the first 'prefix_length' hex digits, is
     # calculated to determine which 'bin_index' is should go. 
     target_paths_in_bin = {}
-    for bin_index in xrange(total_hash_prefixes):
+    for bin_index in six.moves.xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
     
     # Assign every path to its bin.  Ensure every target is located under the
@@ -2296,7 +2297,7 @@ class Targets(Metadata):
     # The parent roles will list bin roles starting from "0" to
     # 'total_hash_prefixes' in 'bin_offset' increments.  The skipped bin roles
     # are listed in 'path_hash_prefixes' of 'outer_bin_index.
-    for outer_bin_index in xrange(0, total_hash_prefixes, bin_offset):
+    for outer_bin_index in six.moves.xrange(0, total_hash_prefixes, bin_offset):
       # The bin index is hex padded from the left with zeroes for up to the
       # 'prefix_length' (e.g., 'targets/unclaimed/000-003').  Ensure the correct
       # hash bin name is generated if a prefix range is unneeded.
@@ -2312,7 +2313,7 @@ class Targets(Metadata):
       path_hash_prefixes = []
       bin_rolename_targets = []
 
-      for inner_bin_index in xrange(outer_bin_index, outer_bin_index+bin_offset):
+      for inner_bin_index in six.moves.xrange(outer_bin_index, outer_bin_index+bin_offset):
         # 'inner_bin_rolename' needed in padded hex.  For example, "00b".
         inner_bin_rolename = hex(inner_bin_index)[2:].zfill(prefix_length)
         path_hash_prefixes.append(inner_bin_rolename)
@@ -2505,7 +2506,7 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
     try:
       _check_role_keys(rolename)
     
-    except tuf.InsufficientKeysError, e:
+    except tuf.InsufficientKeysError as e:
       print(str(e))
       return
 
@@ -2520,7 +2521,7 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
  
   # 'tuf.UnsignedMetadataError' raised if metadata contains an invalid threshold
   # of signatures.  Print the valid/threshold message, where valid < threshold.
-  except tuf.UnsignedMetadataError, e:
+  except tuf.UnsignedMetadataError as e:
     signable = e[1]
     _print_status('root', signable)
     return
@@ -2532,7 +2533,7 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
                                    targets_directory, metadata_directory)
     _print_status('targets', signable)
   
-  except tuf.UnsignedMetadataError, e:
+  except tuf.UnsignedMetadataError as e:
     signable = e[1]
     _print_status('targets', signable)
     return
@@ -2546,7 +2547,7 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
                                    False, filenames)
     _print_status('snapshot', signable)
   
-  except tuf.UnsignedMetadataError, e:
+  except tuf.UnsignedMetadataError as e:
     signable = e[1]
     _print_status('snapshot', signable)
     return
@@ -2560,7 +2561,7 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
                                    False, filenames)
     _print_status('timestamp', signable)
   
-  except tuf.UnsignedMetadataError, e:
+  except tuf.UnsignedMetadataError as e:
     signable = e[1]
     _print_status('timestamp', signable)
     return
@@ -2591,7 +2592,7 @@ def _prompt(message, result_type=str):
     caller.
   """
 
-  return result_type(raw_input(message))
+  return result_type(six.moves.input(message))
 
 
 
@@ -2741,7 +2742,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
     try:
       key = tuf.keydb.get_key(keyid)
     
-    except tuf.UnknownKeyError, e:
+    except tuf.UnknownKeyError as e:
       signable['signatures'].remove(signature)
     
     # Remove 'signature' from 'signable' if it is an invalid signature.
@@ -2926,7 +2927,7 @@ def create_new_repository(repository_directory):
   
   # 'OSError' raised if the leaf directory already exists or cannot be created.
   # Check for case where 'repository_directory' has already been created. 
-  except OSError, e:
+  except OSError as e:
     if e.errno == errno.EEXIST:
       pass 
     else:
@@ -2949,7 +2950,7 @@ def create_new_repository(repository_directory):
     os.mkdir(metadata_directory)
   
   # 'OSError' raised if the leaf directory already exists or cannot be created.
-  except OSError, e:
+  except OSError as e:
     if e.errno == errno.EEXIST:
       pass
     else:
@@ -2961,7 +2962,7 @@ def create_new_repository(repository_directory):
     logger.info(message)
     os.mkdir(targets_directory)
   
-  except OSError, e:
+  except OSError as e:
     if e.errno == errno.EEXIST:
       pass
     else:
@@ -3073,7 +3074,7 @@ def load_repository(repository_directory):
         try:
           signable = tuf.util.load_json_file(metadata_path)
         
-        except (ValueError, IOError), e:
+        except (ValueError, IOError) as e:
           continue
         
         metadata_object = signable['signed']
@@ -3120,7 +3121,7 @@ def load_repository(repository_directory):
           try: 
             tuf.keydb.add_key(key_object)
           
-          except tuf.KeyAlreadyExistsError, e:
+          except tuf.KeyAlreadyExistsError as e:
             pass
        
         # Add the delegated role's initial roleinfo, to be fully populated
@@ -3300,7 +3301,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
       try: 
         tuf.keydb.add_key(key_object)
       
-      except tuf.KeyAlreadyExistsError, e:
+      except tuf.KeyAlreadyExistsError as e:
         pass
 
     for role in targets_metadata['delegations']['roles']:
@@ -3538,7 +3539,7 @@ def import_rsa_publickey_from_file(filepath):
   try: 
     rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
   
-  except tuf.FormatError, e:
+  except tuf.FormatError as e:
     raise tuf.Error('Cannot import improperly formatted PEM file.')
   
   return rsakey_dict
@@ -4509,7 +4510,7 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
       write_new_metadata = True
   
   # 'tuf.Error' raised if 'filename' does not exist.
-  except tuf.Error, e:
+  except tuf.Error as e:
     write_new_metadata = True
 
   if write_new_metadata:
@@ -4693,7 +4694,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
   try:
     os.makedirs(client_metadata_directory)
   
-  except OSError, e:
+  except OSError as e:
     if e.errno == errno.EEXIST:
       message = 'Cannot create a fresh client metadata directory: '+ \
         repr(client_metadata_directory)+'.  Already exists.'

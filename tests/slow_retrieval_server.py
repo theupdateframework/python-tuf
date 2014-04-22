@@ -22,21 +22,21 @@ import os
 import sys
 import time
 import random
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
+import tuf._vendor.six as six
 
 
 # Modify the HTTPServer class to pass the 'test_mode' argument to
 # do_GET() function.
-class HTTPServer_Test(HTTPServer):
+class HTTPServer_Test(six.moves.BaseHTTPServer.HTTPServer):
   def __init__(self, server_address, Handler, test_mode):
-    HTTPServer.__init__(self, server_address, Handler)
+    six.moves.BaseHTTPServer.HTTPServer.__init__(self, server_address, Handler)
     self.test_mode = test_mode
 
 
 
 # HTTP request handler.
-class Handler(BaseHTTPRequestHandler):
+class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
 
   # Overwrite do_GET.
   def do_GET(self):
@@ -73,7 +73,7 @@ class Handler(BaseHTTPRequestHandler):
         
         return
 
-    except IOError, e:
+    except IOError as e:
       self.send_error(404, 'File Not Found!')
 
 
