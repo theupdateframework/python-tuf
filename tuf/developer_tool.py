@@ -48,7 +48,7 @@ import tuf.conf
 import tuf.repository_tool
 
 from tuf.repository_tool import Targets
-from tuf.repository_tool import get_metadata_file_info
+from tuf.repository_tool import get_metadata_fileinfo
 from tuf.repository_tool import get_metadata_filenames
 from tuf.repository_tool import generate_and_write_rsa_keypair
 from tuf.repository_tool import import_rsa_publickey_from_file
