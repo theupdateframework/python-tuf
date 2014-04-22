@@ -80,7 +80,7 @@ try:
   import Crypto
   import tuf.pycrypto_keys
   _available_crypto_libraries.append('pycrypto')
-except ImportError:
+except ImportError: # pragma: no cover
   pass
 
 # Import the PyNaCl library, if available.  It is recommended this library be
@@ -99,7 +99,7 @@ with warnings.catch_warnings():
   
   # PyNaCl's 'cffi' dependency may raise an 'IOError' exception when importing
   # 'nacl.signing'.
-  except (ImportError, IOError):
+  except (ImportError, IOError): # pragma: no cover
     pass
 
 # The optimized version of the ed25519 library provided by default is imported
@@ -213,7 +213,8 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
   if _RSA_CRYPTO_LIBRARY == 'pycrypto':
     public, private = tuf.pycrypto_keys.generate_rsa_public_and_private(bits)
-  else:
+  
+  else: # pragma: no cover
     message = 'Invalid crypto library: '+repr(_RSA_CRYPTO_LIBRARY)+'.'
     raise tuf.UnsupportedLibraryError(message) 
     
@@ -295,7 +296,8 @@ def generate_ed25519_key():
   if 'pynacl' in _available_crypto_libraries:
     public, private = \
       tuf.ed25519_keys.generate_public_and_private()
-  else:
+  
+  else: # pragma: no cover
     message = 'The required PyNaCl library is unavailable.' 
     raise tuf.UnsupportedLibraryError(message)
 
@@ -652,7 +654,8 @@ def create_signature(key_dict, data):
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
       sig, method = tuf.pycrypto_keys.create_rsa_signature(private, data)
-    else:
+    
+    else: # pragma: no cover
       message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": '+\
         repr(_RSA_CRYPTO_LIBRARY)+'.'
       raise tuf.UnsupportedLibraryError(message)
@@ -663,11 +666,12 @@ def create_signature(key_dict, data):
     if 'pynacl' in _available_crypto_libraries:
       sig, method = tuf.ed25519_keys.create_signature(public, private, data)
     
-    else:
+    else: # pragma: no cover
       message = 'The required PyNaCl library is unavailable.'
       raise tuf.UnsupportedLibraryError(message)
 
-  else:
+  # 'tuf.formats.ANYKEY_SCHEMA' should detect invalid key types. 
+  else: # pragma: no cover
     raise TypeError('Invalid key type.')
     
   # Build the signature dictionary to be returned.
@@ -778,9 +782,16 @@ def verify_signature(key_dict, signature, data):
   # otherwise raise an exception.
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
-      valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
-                                                               public, data) 
-    else:
+      if 'pycrypto' not in _available_crypto_libraries: # pragma: no cover
+        message = 'Metadata downloaded from the remote repository specified'+\
+          ' an RSA signature.  Verifying RSA signatures requires PyCrypto.' +\
+          '\n$ pip install PyCrypto, or pip install tuf[tools].'
+        raise tuf.UnsupportedLibraryError(message)
+      
+      else:
+        valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
+                                                                 public, data) 
+    else: 
       message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": '+\
         repr(_RSA_CRYPTO_LIBRARY)+'.'
       raise tuf.UnsupportedLibraryError(message) 
@@ -797,7 +808,9 @@ def verify_signature(key_dict, signature, data):
       valid_signature = tuf.ed25519_keys.verify_signature(public,
                                                           method, sig, data,
                                                           use_pynacl=False)
-  else:
+  
+  # 'tuf.formats.ANYKEY_SCHEMA' should detect invalid key types. 
+  else: # pragma: no cover
     raise TypeError('Unsupported key type.')
 
   return valid_signature 
@@ -1067,6 +1080,7 @@ def encrypt_key(key_object, password):
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     encrypted_key = \
       tuf.pycrypto_keys.encrypt_key(key_object, password)
+  
   else:
     message = 'Invalid crypto library: '+repr(_GENERAL_CRYPTO_LIBRARY)+'.'
     raise tuf.UnsupportedLibraryError(message) 
@@ -1163,6 +1177,7 @@ def decrypt_key(encrypted_key, passphrase):
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     key_object = \
       tuf.pycrypto_keys.decrypt_key(encrypted_key, passphrase)
+  
   else:
     message = 'Invalid crypto library: '+repr(_GENERAL_CRYPTO_LIBRARY)+'.'
     raise tuf.UnsupportedLibraryError(message) 
@@ -1244,6 +1259,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   if _RSA_CRYPTO_LIBRARY == 'pycrypto':
     encrypted_pem = \
       tuf.pycrypto_keys.create_rsa_encrypted_pem(private_key, passphrase)
+  
   else:
     message = 'Invalid crypto library: '+repr(_RSA_CRYPTO_LIBRARY)+'.'
     raise tuf.UnsupportedLibraryError(message)

@@ -101,7 +101,7 @@ setup(
     'Topic :: Software Development'
   ],
   install_requires = [],
-  packages = find_packages(exclude=['tests', 'tuf.tests']),
+  packages = find_packages(exclude=['tests']),
   extras_require = extras,
   scripts = [
     'tuf/client/basic_client.py'

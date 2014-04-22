@@ -879,6 +879,8 @@ def load_json_file(filepath):
   <Exceptions>
     tuf.FormatError: If 'filepath' is improperly formatted.
 
+    tuf.Error: If 'filepath' cannot be deserialized to a Python object.
+
     IOError in case of runtime IO exceptions.
 
   <Side Effects>
@@ -892,6 +894,8 @@ def load_json_file(filepath):
   # tuf.FormatError is raised on incorrect format.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
+  deserialized_object = None
+
   # The file is mostly likely gzipped.
   if filepath.endswith('.gz'):
     logger.debug('gzip.open('+str(filepath)+')')
@@ -902,7 +906,14 @@ def load_json_file(filepath):
     fileobject = open(filepath)
 
   try:
-    return json.load(fileobject)
+    deserialized_object = json.load(fileobject)
+  
+  except ValueError, TypeError:
+    message = 'Cannot deserialize to a Python object: '+repr(filepath)
+    raise tuf.Error(message)
+  
+  else:
+    return deserialized_object
   
   finally:
     fileobject.close()

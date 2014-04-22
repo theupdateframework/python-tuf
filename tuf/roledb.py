@@ -406,8 +406,11 @@ def remove_role(rolename):
   _check_rolename(rolename)
   
   remove_delegated_roles(rolename)
-  if rolename in _roledb_dict:
-    del _roledb_dict[rolename]
+ 
+  # remove_delegated_roles() should have left 'rolename' in the database, and
+  # 'rolename' was verified to exist by _check_rolename().
+  # Remove 'rolename'.
+  del _roledb_dict[rolename]
 
 
 

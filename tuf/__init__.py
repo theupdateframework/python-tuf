@@ -22,6 +22,7 @@
 
 import urlparse
 
+
 # Import 'tuf.formats' if a module tries to import the
 # entire tuf package (i.e., from tuf import *). 
 __all__ = ['formats']
@@ -134,12 +135,7 @@ class ForbiddenTargetError(RepositoryError):
 
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
-
-  def __init__(self, expiry_time):
-    self.expiry_time = expiry_time # UTC
-
-  def __str__(self):
-    return 'Metadata expired on '+str(self.expiry_time)+'.'
+  pass
 
 
 
@@ -317,9 +313,11 @@ class NoWorkingMirrorError(Error):
       try:
         # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
         mirror_url_tokens = urlparse.urlparse(mirror_url)
+      
       except:
         logging.exception('Failed to parse mirror URL: '+str(mirror_url))
         mirror_netloc = mirror_url
+      
       else:
         mirror_netloc = mirror_url_tokens.netloc
 

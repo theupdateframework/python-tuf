@@ -7,7 +7,7 @@
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
 <Started>
-  Refactored April 30, 2012. -Vlad
+  Refactored April 30, 2012. -vladimir.v.diaz
 
 <Copyright>
   See LICENSE for licensing information.
@@ -64,6 +64,7 @@ import binascii
 import calendar
 import re
 import string
+import datetime
 import time
 
 import tuf
@@ -74,12 +75,17 @@ import tuf.schema as SCHEMA
 # additional keys which are not defined. Thus, any additions to them will be
 # easily backwards compatible with clients that are already deployed.
 
-# A date in 'YYYY-MM-DD HH:MM:SS UTC' format.
-# TODO: Support timestamps according to the ISO 8601 standard.
-TIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC')
+# A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator
+# for the zero UTC offset is always used (i.e., a numerical offset is not
+# supported.)  Example: '2015-10-21T13:20:00Z'.  Note:  This is a simple format
+# check, and an ISO8601 string should be fully verified when it is parsed.
+ISO8601_DATETIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z')
 
-# A date in 'YYYY-MM-DD HH:MM:SS UTC' format.
-DATETIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}')
+# A Unix/POSIX time format.  An integer representing the number of seconds
+# since the epoch (January 1, 1970.)  Metadata uses this format for the
+# 'expires' field.  Set 'hi' to the upper timestamp limit (year 2038), the max
+# value of an int.
+UNIX_TIMESTAMP_SCHEMA = SCHEMA.Integer(lo=0, hi=2147483647)
 
 # A hexadecimal value in '23432df87ab..' format.
 HASH_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
@@ -158,8 +164,9 @@ ROLENAME_SCHEMA = SCHEMA.AnyString()
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
 RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
 
-# The number of bins used to delegate to hashed roles.
-NUMBINS_SCHEMA = SCHEMA.Integer(lo=16)
+# The number of bins, or the requested number of delegated hashed roles.
+# Expected to be a power of 2.
+NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
 # A PyCrypto signature.
 PYCRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyString()
@@ -364,11 +371,6 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
   keys = KEYDICT_SCHEMA,
   roles = ROLELIST_SCHEMA)
 
-# The number of seconds before metadata expires.  The minimum is 86400 seconds
-# (= 1 day).  This schema is used for the initial expiration date.  Repository
-# maintainers may later modify this value (TIME_SCHEMA).
-EXPIRATION_SCHEMA = SCHEMA.Integer(lo=86400)
-
 # Supported compression extension (e.g., 'gz').
 COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
 
@@ -383,7 +385,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   signing_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
   threshold = THRESHOLD_SCHEMA,
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
-  expires = SCHEMA.Optional(SCHEMA.OneOf([EXPIRATION_SCHEMA, TIME_SCHEMA])),
+  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
   signatures = SCHEMA.Optional(SIGNATURES_SCHEMA),
   compressions = SCHEMA.Optional(COMPRESSIONS_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
@@ -397,7 +399,7 @@ ROOT_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Root'),
   version = METADATAVERSION_SCHEMA,
   consistent_snapshot = BOOLEAN_SCHEMA,
-  expires = TIME_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)
 
@@ -406,7 +408,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETS_SCHEMA',
   _type = SCHEMA.String('Targets'),
   version = METADATAVERSION_SCHEMA,
-  expires = TIME_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
   targets = FILEDICT_SCHEMA,
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA))
 
@@ -415,7 +417,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   object_name = 'SNAPSHOT_SCHEMA',
   _type = SCHEMA.String('Snapshot'),
   version = METADATAVERSION_SCHEMA,
-  expires = TIME_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
   meta = FILEDICT_SCHEMA)
 
 # Timestamp role: indicates the latest version of the snapshot file.
@@ -423,7 +425,7 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
   _type = SCHEMA.String('Timestamp'),
   version = METADATAVERSION_SCHEMA,
-  expires = TIME_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
   meta = FILEDICT_SCHEMA)
 
 # A schema containing information a repository mirror may require,
@@ -450,7 +452,7 @@ MIRRORLIST_SCHEMA = SCHEMA.Object(
   object_name = 'MIRRORLIST_SCHEMA',
   _type = SCHEMA.String('Mirrors'),
   version = METADATAVERSION_SCHEMA,
-  expires = TIME_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
   mirrors = SCHEMA.ListOf(MIRROR_SCHEMA))
 
 # Any of the role schemas (e.g., TIMESTAMP_SCHEMA, SNAPSHOT_SCHEMA, etc.)
@@ -511,8 +513,9 @@ class TimestampFile(MetaFile):
     TIMESTAMP_SCHEMA.check_match(object) 
 
     version = object['version']
-    expires = parse_time(object['expires'])
+    expires = object['expires']
     filedict = object['meta']
+    
     return TimestampFile(version, expires, filedict)
     
     
@@ -550,7 +553,7 @@ class RootFile(MetaFile):
     ROOT_SCHEMA.check_match(object) 
     
     version = object['version']
-    expires = parse_time(object['expires'])
+    expires = object['expires']
     keys = object['keys']
     roles = object['roles']
     consistent_snapshot = object['consistent_snapshot']
@@ -593,7 +596,7 @@ class SnapshotFile(MetaFile):
     SNAPSHOT_SCHEMA.check_match(object)
     
     version = object['version']
-    expires = parse_time(object['expires'])
+    expires = object['expires']
     filedict = object['meta']
     
     return SnapshotFile(version, expires, filedict)
@@ -636,7 +639,7 @@ class TargetsFile(MetaFile):
     TARGETS_SCHEMA.check_match(object)
     
     version = object['version']
-    expires = parse_time(object['expires'])
+    expires = object['expires']
     filedict = object.get('targets')
     delegations = object.get('delegations')
     
@@ -707,75 +710,86 @@ ROLE_CLASSES_BY_TYPE = {
 
 
 
-def format_time(timestamp):
+def datetime_to_unix_timestamp(datetime_object):
   """
   <Purpose>
-    Encode 'timestamp' in 'YYYY-MM-DD HH:MM:SS UTC' format.
-    'timestamp' is a Unix timestamp value.  For example, it is the time
-    format returned by calendar.timegm(). 
+    Convert 'datetime_object' (in datetime.datetime()) format) to a Unix/POSIX
+    timestamp.  For example, Python's time.time() returns a Unix timestamp, and
+    includes the number of microseconds.  'datetime_object' is converted to UTC.
 
-    >>> format_time(499137720)
-    '1985-10-26 01:22:00 UTC'
+    >>> datetime_object = datetime.datetime(1985, 10, 26, 01, 22)
+    >>> timestamp = datetime_to_unix_timestamp(datetime_object)
+    >>> timestamp 
+    499137720
 
   <Arguments>
-    timestamp:
-      The time to format.  This is a Unix timestamp.
+    datetime_object:
+      The datetime.datetime() object to convert to a Unix timestamp.
 
   <Exceptions>
-    tuf.Error, if 'timestamp' is invalid.
+    tuf.FormatError, if 'datetime_object' is not a datetime.datetime() object.
 
   <Side Effects>
     None.
 
   <Returns>
-    A string in 'YYYY-MM-DD HH:MM:SS UTC' format.
+    A unix (posix) timestamp (e.g., 499137660).
   """
+  
+  # Is 'datetime_object' a datetime.datetime() object?
+  # Raise 'tuf.FormatError' if not.
+  if not isinstance(datetime_object, datetime.datetime):
+    message = repr(datetime_object) + ' is not a datetime.datetime() object.'
+    raise tuf.FormatError(message) 
    
-  try:
-    # Convert the timestamp to 'yyyy-mm-dd HH:MM:SS' format.
-    formatted_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(timestamp))
-    
-    # Attach 'UTC' to the formatted time string prior to returning.  
-    return formatted_time+' UTC' 
+  unix_timestamp = calendar.timegm(datetime_object.timetuple())
   
-  except (ValueError, TypeError):
-    raise tuf.FormatError('Invalid argument value')
+  return unix_timestamp
 
 
 
 
-def parse_time(string):
+
+def unix_timestamp_to_datetime(unix_timestamp):
   """
   <Purpose>
-    Parse 'string', in 'YYYY-MM-DD HH:MM:SS UTC' format, to a Unix timestamp.
+    Convert 'unix_timestamp' (i.e., POSIX time, in UNIX_TIMESTAMP_SCHEMA format)
+    to a datetime.datetime() object.  'unix_timestamp' is the number of seconds
+    since the epoch (January 1, 1970.)
+   
+    >>> datetime_object = unix_timestamp_to_datetime(1445455680)
+    >>> datetime_object 
+    datetime.datetime(2015, 10, 21, 19, 28)
 
   <Arguments>
-    string:
-      A string representing the time (e.g., '1985-10-26 01:20:00 UTC').
+    unix_timestamp:
+      An integer representing the time (e.g., 1445455680).  Conformant to
+      'tuf.formats.UNIX_TIMESTAMP_SCHEMA'.
 
   <Exceptions>
-    tuf.FormatError, if parsing 'string' fails.
+    tuf.FormatError, if 'unix_timestamp' is improperly formatted.
 
   <Side Effects>
     None.
 
   <Returns>
-    A timestamp (e.g., 499137660).
+    A datetime.datetime() object corresponding to 'unix_timestamp'.
   """
   
-  # Is 'string' properly formatted?
+  # Is 'unix_timestamp' properly formatted?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  TIME_SCHEMA.check_match(string)
- 
-  # Strip the ' UTC' attached to the string.  The string time, minus the ' UTC',
-  # is the time format expected by the time functions called below.
-  string = string[0:string.rfind(' UTC')]
-  try:
-    return calendar.timegm(time.strptime(string, '%Y-%m-%d %H:%M:%S'))
-  
-  except ValueError:
-    raise tuf.FormatError('Malformed time: '+repr(string))
+  UNIX_TIMESTAMP_SCHEMA.check_match(unix_timestamp)
 
+  # Convert 'unix_timestamp' to a 'time.struct_time',  in UTC.  The Daylight
+  # Savings Time (DST) flag is set to zero.  datetime.fromtimestamp() is not
+  # used because it returns a local datetime.
+  struct_time = time.gmtime(unix_timestamp)
+
+  # Extract the (year, month, day, hour, minutes, seconds) arguments for the 
+  # datetime object to be returned.
+  datetime_object = datetime.datetime(*struct_time[:6])
+
+  return datetime_object
 
 
 
@@ -987,7 +1001,7 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
 
   if paths is not None and path_hash_prefixes is not None:
     raise \
-      tuf.FormatError('Both "paths" and "path_hash_prefixes" are specified!')
+      tuf.FormatError('Both "paths" and "path_hash_prefixes" are specified.')
 
   if path_hash_prefixes is not None:
     role_meta['path_hash_prefixes'] = path_hash_prefixes

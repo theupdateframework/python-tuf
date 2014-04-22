@@ -8,4 +8,6 @@ build/*
 *.session
 *.swo
 *.swp
-tuf.egg-info
+*.egg-info
+.coverage
+.tox/*

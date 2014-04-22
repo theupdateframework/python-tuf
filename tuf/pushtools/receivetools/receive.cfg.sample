@@ -1,6 +1,0 @@
-[general]
-pushroots = /home/user/pushes,/home/user2/pushes
-repository_directory = /var/tuf/test-repo
-metadata_directory = /var/tuf/test-repo/metadata
-targets_directory = /var/tuf/test-repo/targets
-backup_directory = /var/tuf/test-repo/replaced

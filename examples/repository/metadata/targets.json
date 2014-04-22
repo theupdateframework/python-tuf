@@ -1,0 +1,50 @@
+{
+ "signatures": [
+  {
+   "keyid": "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b", 
+   "method": "ed25519", 
+   "sig": "e9fd40008fba263758a3ff1dc59f93e42a4910a282749af915fbbea1401178e5a012090c228f06db1deb75ad8ddd7e40635ac51d4b04301fce0fd720074e0209"
+  }
+ ], 
+ "signed": {
+  "_type": "Targets", 
+  "delegations": {
+   "keys": {
+    "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba": {
+     "keytype": "ed25519", 
+     "keyval": {
+      "public": "b6e40fb71a6041212a3d84331336ecaa1f48a0c523f80ccc762a034c727606fa"
+     }
+    }
+   }, 
+   "roles": [
+    {
+     "keyids": [
+      "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba"
+     ], 
+     "name": "targets/project", 
+     "paths": [
+      "/project/file3.txt"
+     ], 
+     "threshold": 1
+    }
+   ]
+  }, 
+  "expires": "2030-01-01T00:00:00Z", 
+  "targets": {
+   "/file1.txt": {
+    "hashes": {
+     "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da"
+    }, 
+    "length": 31
+   }, 
+   "/file2.txt": {
+    "hashes": {
+     "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99"
+    }, 
+    "length": 39
+   }
+  }, 
+  "version": 1
+ }
+}

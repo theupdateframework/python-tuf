@@ -133,11 +133,13 @@ def get_signature_status(signable, role=None):
           if keyid not in tuf.roledb.get_role_keyids(role):
             untrusted_sigs.append(keyid)
             continue
+        
         # Unknown role, re-raise exception. 
         except tuf.UnknownRoleError:
           raise
       # Identify good/authorized key.
       good_sigs.append(keyid)
+    
     else:
       # Identify bad key.
       bad_sigs.append(keyid)

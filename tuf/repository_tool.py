@@ -29,6 +29,7 @@ import os
 import errno
 import sys
 import time
+import datetime
 import getpass
 import logging
 import tempfile
@@ -46,7 +47,7 @@ import tuf.keys
 import tuf.sig
 import tuf.log
 import tuf.conf
-
+import tuf._vendor.iso8601 as iso8601
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.repository_tool')
@@ -108,6 +109,13 @@ SNAPSHOT_EXPIRATION = 604800
 # Initial 'timestamp.json' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
 
+# Log warning when metadata expires in n days, or less.
+# root = 1 month, snapshot = 1 day, targets = 10 days, timestamp = 1 day.
+ROOT_EXPIRES_WARN_SECONDS = 2630000
+SNAPSHOT_EXPIRES_WARN_SECONDS = 86400
+TARGETS_EXPIRES_WARN_SECONDS = 864000
+TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
+
 
 class Repository(object):
   """
@@ -120,7 +128,7 @@ class Repository(object):
     access by default:
 
     repository.root.version = 2
-    repository.timestamp.expiration = "2015-08-08 12:00:00"
+    repository.timestamp.expiration = datetime.datetime(2015, 08, 08, 12, 00)
     repository.snapshot.add_verification_key(...)
     repository.targets.delegate('unclaimed', ...)
 
@@ -188,7 +196,7 @@ class Repository(object):
       private keys, etc.
     
     <Arguments>
-      write_partial:
+      mrite_partial:
         A boolean indicating whether partial metadata should be written to
         disk.  Partial metadata may be written to allow multiple maintainters
         to independently sign and update role metadata.  write() raises an
@@ -445,7 +453,7 @@ class Repository(object):
 
 
   @staticmethod
-  def get_filepaths_in_directory(self, files_directory, recursive_walk=False,
+  def get_filepaths_in_directory(files_directory, recursive_walk=False,
                                  followlinks=True):
     """
     <Purpose>
@@ -878,7 +886,7 @@ class Metadata(object):
     <Purpose>
       A getter method that returns the role's keyids of the keys.  The role
       is expected to eventually contain a threshold of signatures generated
-      by the private keys of each of the role's keys (returned here as a keyid).
+      by the private keys of each of the role's keys (returned here as a keyid.)
 
     <Arguments>
       None.
@@ -1087,38 +1095,39 @@ class Metadata(object):
       None.
 
     <Returns>
-      The role's expiration datetime, conformant to
-      'tuf.formats.DATETIME_SCHEMA'.
+      The role's expiration datetime, a datetime.datetime() object.
     """
     
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    expires = roleinfo['expires']
 
-    return roleinfo['expires']
+    expires_datetime_object = iso8601.parse_date(expires)
+    
+    return expires_datetime_object 
 
 
 
   @expiration.setter
-  def expiration(self, expiration_datetime_utc):
+  def expiration(self, datetime_object):
     """
     <Purpose>
       A setter method for the role's expiration datetime.  The top-level
       roles have a default expiration (e.g., ROOT_EXPIRATION), but may later
       be modified by this setter method.
       
-      TODO: expiration_datetime_utc in ISO 8601 format.
-      
       >>>  
       >>> 
       >>> 
 
     <Arguments>
-      expiration_datetime_utc:
-        The datetime expiration of the role, conformant to  
-        'tuf.formats.DATETIME_SCHEMA'.
+      datetime_object:
+        The datetime expiration of the role, a datetime.datetime() object.
 
     <Exceptions>
-      tuf.FormatError, if 'expiration_datetime_utc' is improperly formatted.
-    
+      tuf.FormatError, if 'datetime_object' is not a datetime.datetime() object. 
+   
+      tuf.Error, if 'datetime_object' has already expired.
+
     <Side Effects>
       Modifies the expiration attribute of the Repository object.
 
@@ -1126,31 +1135,25 @@ class Metadata(object):
       None.
     """
     
-    # Does 'expiration_datetime_utc' have the correct format?
-    # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.DATETIME_SCHEMA.check_match(expiration_datetime_utc)
-  
-    # Further validate the datetime, such as a correct date, time, expiration.
-    # Convert 'expiration_datetime_utc' to a unix timestamp so that it can be
-    # compared with time.time().
-    expiration_datetime_utc = expiration_datetime_utc+' UTC'
-    try:
-      unix_timestamp = tuf.formats.parse_time(expiration_datetime_utc)
+    # Is 'datetime_object' a datetime.datetime() object?
+    # Raise 'tuf.FormatError' if not.
+    if not isinstance(datetime_object, datetime.datetime):
+      message = repr(datetime_object) + ' is not a datetime.datetime() object.'
+      raise tuf.FormatError(message) 
+
+    # Ensure the expiration has not already passed.
+    current_datetime_object = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time()))
     
-    except (tuf.FormatError, ValueError), e:
-      message = 'Invalid datetime argument: '+repr(expiration_datetime_utc)
-      raise tuf.FormatError(message)
+    if datetime_object < current_datetime_object:
+      message = repr(self.rolename) + ' has already expired.'
+      raise tuf.Error(message)
    
-    # Ensure the expiration has not already passed. 
-    if unix_timestamp < time.time():
-      message = 'The expiration date must occur after the current date.'
-      raise tuf.FormatError(message)
-   
-    # Update the role's 'expires' entry in 'tuf.roledb.py'. 
+    # Update the role's 'expires' entry in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
-    roleinfo['expires'] = expiration_datetime_utc
+    expires = datetime_object.isoformat() + 'Z'
+    roleinfo['expires'] = expires 
+    
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
   
@@ -1306,7 +1309,9 @@ class Root(Metadata):
    
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.format_time(time.time()+ROOT_EXPIRATION)
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
                 'signatures': [], 'version': 0, 'consistent_snapshot': False,
@@ -1366,7 +1371,9 @@ class Timestamp(Metadata):
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.format_time(time.time()+TIMESTAMP_EXPIRATION)
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0, 'compressions': [''],
@@ -1420,8 +1427,10 @@ class Snapshot(Metadata):
    
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = tuf.formats.format_time(time.time()+SNAPSHOT_EXPIRATION)
-    
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
+
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0, 'compressions': [''],
                 'expires': expiration, 'partial_loaded': False}
@@ -1479,13 +1488,14 @@ class Targets(Metadata):
     tuf.FormatError, if the arguments are improperly formatted.
 
   <Side Effects>
-    Modifies the roleinfo of the targets role in 'tuf.roledb'.
+    Modifies the roleinfo of the targets role in 'tuf.roledb', or creates
+    a default one named 'targets'.
   
   <Returns>
     None.
   """
   
-  def __init__(self, targets_directory, rolename, roleinfo=None):
+  def __init__(self, targets_directory, rolename='targets', roleinfo=None):
    
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -1505,7 +1515,9 @@ class Targets(Metadata):
   
     # By default, Targets objects are set to expire 3 months from the current
     # time.  May be later modified.
-    expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
 
     # If 'roleinfo' is not provided, set an initial default.
     if roleinfo is None:
@@ -1609,7 +1621,8 @@ class Targets(Metadata):
 
       child_rolename:
         The child delegation that requires an update to its restricted paths,
-        as listed in the parent role's delegations.
+        as listed in the parent role's delegations (e.g., 'Django' in
+        'targets/unclaimed/Django').
 
     <Exceptions>
       tuf.Error, if a directory path in 'list_of_directory_paths' is not a
@@ -2046,7 +2059,10 @@ class Targets(Metadata):
    
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
-    expiration = tuf.formats.format_time(time.time()+TARGETS_EXPIRATION)
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+    expiration = expiration.isoformat() + 'Z'
+    
     roleinfo = {'name': full_rolename, 'keyids': keyids, 'signing_keyids': [],
                 'threshold': threshold, 'version': 0, 'compressions': [''],
                 'expires': expiration, 'signatures': [], 'partial_loaded': False,
@@ -2151,7 +2167,7 @@ class Targets(Metadata):
                            number_of_bins=1024):
     """
     <Purpose>
-      Distribute a large number of target files into multiple delegated roles
+      Distribute a large number of target files over multiple delegated roles
       (hashed bins).  The metadata files of delegated roles will be nearly equal
       in size (i.e., 'list_of_targets' is uniformly distributed by calculating
       the target filepath's hash and determing which bin it should reside in.
@@ -2184,14 +2200,15 @@ class Targets(Metadata):
       number_of_bins:
         The number of delegated roles, or hashed bins, that should be generated
         and contain the target file attributes listed in 'list_of_targets'.
-        'number_of_bins' must be a multiple of 16.  Each bin may contain a
+        'number_of_bins' must be a power of 2.  Each bin may contain a
         range of path hash prefixes (e.g., target filepath digests that range
         from [000]... - [003]..., where the series of digits in brackets is
         considered the hash prefix).
 
     <Exceptions>
-      tuf.FormatError, if the arguments are improperly formatted,
-        'number_of_bins' is not a multiple of 16, or one of the targets
+      tuf.FormatError, if the arguments are improperly formatted.
+      
+      tuf.Error, if 'number_of_bins' is not a power of 2, or one of the targets
         in 'list_of_targets' is not located under the repository's targets
         directory.
 
@@ -2210,28 +2227,35 @@ class Targets(Metadata):
     tuf.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
     tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
     
-    # Determine the hex number of hashed bins from 'number_of_bins' and the
-    # maximum number of bins provided by the total number of hex digits needed.
-    # Strip the '0x' from the Python hex representation.  'prefix_length'
-    # and 'max_number_of_bins' affect hashed bin rolenames and the range of
-    # prefixes of each bin.
+    # Convert 'number_of_bins' to hexadecimal and determine the number of
+    # hexadecimal digits needed by each hash prefix.  Calculate the total number
+    # of hash prefixes (e.g., 000 - FFF total values) to be spread over
+    # 'number_of_bins' and strip the first two characters ('0x') from Python's
+    # representation of hexadecimal values (so that they are not used in
+    # the calculation of the prefix length.)
+    # Example: number_of_bins = 32, total_hash_prefixes = 256, and each hashed
+    # bin is responsible for 8 hash prefixes.
+    # Hashed bin roles created = 00-07.json, 08-0f.json, ..., f8-ff.json.
     prefix_length =  len(hex(number_of_bins - 1)[2:])
-    max_number_of_bins = 16 ** prefix_length
+    total_hash_prefixes = 16 ** prefix_length
 
-    # For simplicity, ensure that we can evenly distribute 'max_number_of_bins'
-    # over 'number_of_bins'.  Each bin will contain
-    # max_number_of_bin/number_of_bins hash prefixes.
-    if max_number_of_bins % number_of_bins != 0:
-      message = 'The number of bins argument must be a multiple of 16.'
-      raise tuf.FormatError(message)
+    # For simplicity, ensure that 'total_hash_prefixes' (16 ^ n) can be evenly
+    # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
+    # (total_hash_prefixes / number_of_bins) hash prefixes.
+    if total_hash_prefixes % number_of_bins != 0:
+      message = 'The "number_of_bins" argument must be a power of 2.'
+      raise tuf.Error(message)
 
-    logger.info('There are '+str(len(list_of_targets))+' total targets.')
+    logger.info('Creating hashed bin delegations.')
+    logger.info(repr(len(list_of_targets)) + ' total targets.')
+    logger.info(repr(number_of_bins) + ' hashed bins.')
+    logger.info(repr(total_hash_prefixes) + ' total hash prefixes.')
 
     # Store the target paths that fall into each bin.  The digest of the
     # target path, reduced to the first 'prefix_length' hex digits, is
     # calculated to determine which 'bin_index' is should go. 
     target_paths_in_bin = {}
-    for bin_index in xrange(max_number_of_bins):
+    for bin_index in xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
     
     # Assign every path to its bin.  Ensure every target is located under the
@@ -2241,7 +2265,7 @@ class Targets(Metadata):
       if not target_path.startswith(self._targets_directory+os.sep):
         message = 'A path in the list of targets argument is not '+\
           'under the repository\'s targets directory: '+repr(target_path) 
-        raise tuf.FormatError(message)
+        raise tuf.Error(message)
       
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.  Example:
@@ -2261,16 +2285,18 @@ class Targets(Metadata):
       # later added to the targets of the 'bin_index' role.
       target_paths_in_bin[bin_index].append(target_path)
 
-    # Calculate the path hash prefixes of each bin_offset stored in the parent
+    # Calculate the path hash prefixes of each 'bin_offset' stored in the parent
     # role.  For example: 'targets/unclaimed/000-003' may list the path hash
     # prefixes "000", "001", "002", "003" in the delegations dict of
     # 'targets/unclaimed'. 
-    bin_offset = max_number_of_bins // number_of_bins
-   
+    bin_offset = total_hash_prefixes // number_of_bins
+    
+    logger.info('Each bin ranges over ' + repr(bin_offset) + ' hash prefixes.')
+
     # The parent roles will list bin roles starting from "0" to
-    # 'max_number_of_bins' in 'bin_offset' increments.  The skipped bin roles
+    # 'total_hash_prefixes' in 'bin_offset' increments.  The skipped bin roles
     # are listed in 'path_hash_prefixes' of 'outer_bin_index.
-    for outer_bin_index in xrange(0, max_number_of_bins, bin_offset):
+    for outer_bin_index in xrange(0, total_hash_prefixes, bin_offset):
       # The bin index is hex padded from the left with zeroes for up to the
       # 'prefix_length' (e.g., 'targets/unclaimed/000-003').  Ensure the correct
       # hash bin name is generated if a prefix range is unneeded.
@@ -2357,6 +2383,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   if rolename == 'root':
     metadata = generate_root_metadata(roleinfo['version'],
                                       roleinfo['expires'], consistent_snapshot)
+    
+    _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
+                                 ROOT_EXPIRES_WARN_SECONDS)
  
   # Check for the Targets role, including delegated roles.
   elif rolename.startswith('targets'):
@@ -2366,6 +2395,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['expires'],
                                          roleinfo['delegations'],
                                          consistent_snapshot)
+    if rolename == 'targets':    
+      _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
+                                   TARGETS_EXPIRES_WARN_SECONDS)
   
   elif rolename == 'snapshot':
     root_filename = filenames['root']
@@ -2374,7 +2406,10 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['version'],
                                          roleinfo['expires'], root_filename,
                                          targets_filename,
-                                         consistent_snapshot )
+                                         consistent_snapshot)
+      
+    _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
+                                 SNAPSHOT_EXPIRES_WARN_SECONDS)
   
   elif rolename == 'timestamp':
     snapshot_filename = filenames['snapshot'] 
@@ -2382,6 +2417,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                            roleinfo['version'],
                                            roleinfo['expires'],
                                            snapshot_compressions)
+    
+    _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
+                                 TIMESTAMP_EXPIRES_WARN_SECONDS)
 
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
@@ -2758,29 +2796,32 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
       
         # Strip the digest if 'consistent_snapshot' is True.
         # Example:  'targets/unclaimed/13df98ab0.django.json'  -->
-        # 'targets/unclaimed/django.json'
-        metadata_name, embeded_digest = \
-          _strip_consistent_snapshot_digest(metadata_name, consistent_snapshot)
-
+        # 'targets/unclaimed/django.json'.  Consistent and non-consistent
+        # metadata might co-exist if write() and write(consistent_snapshot=True)
+        # are mixed, so ensure only 'digest.filename' metadata is stripped.
+        embeded_digest = None
+        if metadata_name not in snapshot_metadata['meta']: 
+          metadata_name, embeded_digest = \
+            _strip_consistent_snapshot_digest(metadata_name, consistent_snapshot)
+        
         # Strip filename extensions.  The role database does not include the
         # metadata extension.
+        metadata_name_extension = metadata_name
         for metadata_extension in METADATA_EXTENSIONS: 
           if metadata_name.endswith(metadata_extension):
-            metadata_name_without_extension = \
-              metadata_name[:-len(metadata_extension)]
+            metadata_name = metadata_name[:-len(metadata_extension)]
         
         # Delete the metadata file if it does not exist in 'tuf.roledb'.
-        # repository_tool.py might have marked 'metadata_name' as removed, but its
-        # metadata file is not actually deleted yet.  Do it now.
-        if not tuf.roledb.role_exists(metadata_name_without_extension):
+        # 'repository_tool.py' might have marked 'metadata_name' as removed, but
+        # its metadata file is not actually deleted yet.  Do it now.
+        if not tuf.roledb.role_exists(metadata_name):
           logger.info('Removing outdated metadata: ' + repr(metadata_path))
           os.remove(metadata_path)
 
         # Delete outdated consistent snapshots.  snapshot metadata includes
         # the file extension of roles.
-        if consistent_snapshot:
-          #metadata_name_extension = metadata_name + METADATA_EXTENSION 
-          file_hashes = snapshot_metadata['meta'][metadata_name] \
+        if consistent_snapshot and embeded_digest is not None:
+          file_hashes = snapshot_metadata['meta'][metadata_name_extension] \
                                         ['hashes'].values()
           if embeded_digest not in file_hashes:
             logger.info('Removing outdated metadata: ' + repr(metadata_path))
@@ -2947,9 +2988,11 @@ def load_repository(repository_directory):
 
   <Exceptions>
     tuf.FormatError, if 'repository_directory' or any of the metadata files
-    are improperly formatted.  Also raised if, at a minimum, the Root role
-    cannot be found.
+    are improperly formatted.
 
+    tuf.RepositoryError, if the Root role cannot be found.  At a minimum,
+    a repository must contain 'root.json'
+  
   <Side Effects>
    All the metadata files found in the repository are loaded and their contents
    stored in a repository_tool.Repository object.
@@ -3015,6 +3058,7 @@ def load_repository(repository_directory):
         if metadata_name.endswith(METADATA_EXTENSION): 
           extension_length = len(METADATA_EXTENSION)
           metadata_name = metadata_name[:-extension_length]
+        
         else:
           continue
         
@@ -3139,6 +3183,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
     if _metadata_is_partially_loaded('root', signable, roleinfo):
       roleinfo['partial_loaded'] = True
     
+    _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
+                                 ROOT_EXPIRES_WARN_SECONDS)
+    
     tuf.roledb.update_roleinfo('root', roleinfo)
 
     # Ensure the 'consistent_snapshot' field is extracted.
@@ -3165,6 +3212,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
     
     if _metadata_is_partially_loaded('timestamp', signable, roleinfo):
       roleinfo['partial_loaded'] = True
+    
+    _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
+                                 TIMESTAMP_EXPIRES_WARN_SECONDS)
     
     tuf.roledb.update_roleinfo('timestamp', roleinfo)
   
@@ -3195,6 +3245,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
     
     if _metadata_is_partially_loaded('snapshot', signable, roleinfo):
       roleinfo['partial_loaded'] = True
+    
+    _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
+                                 SNAPSHOT_EXPIRES_WARN_SECONDS)
     
     tuf.roledb.update_roleinfo('snapshot', roleinfo)
   
@@ -3228,6 +3281,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
    
     if _metadata_is_partially_loaded('targets', signable, roleinfo):
       roleinfo['partial_loaded'] = True
+   
+    _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
+                                 TARGETS_EXPIRES_WARN_SECONDS)
     
     tuf.roledb.update_roleinfo('targets', roleinfo)
 
@@ -3260,6 +3316,33 @@ def _load_top_level_metadata(repository, top_level_filenames):
     pass 
   
   return repository, consistent_snapshot
+
+
+
+
+def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
+                                 seconds_remaining_to_warn):
+  """
+  Non-public function that logs a warning if 'rolename' expires in
+  'seconds_remaining_to_warn' seconds, or less.
+  """
+ 
+  # Metadata stores expiration datetimes in ISO8601 format.  Convert to
+  # unix timestamp, subtract from from current time.time() (also in POSIX time)
+  # and compare against 'seconds_remaining_to_warn'.  Log a warning message
+  # to console if 'rolename' expires soon.
+  datetime_object = iso8601.parse_date(expires_iso8601_timestamp)
+  expires_unix_timestamp = \
+    tuf.formats.datetime_to_unix_timestamp(datetime_object) 
+  seconds_until_expires = expires_unix_timestamp - int(time.time())
+  
+  if seconds_until_expires <= seconds_remaining_to_warn:
+    days_until_expires = seconds_until_expires / 86400
+    
+    message = repr(rolename) + ' expires ' + datetime_object.ctime() + \
+      ' (UTC).\n' + repr(days_until_expires) + ' day(s) until it expires.'
+    
+    logger.warn(message)
 
 
 
@@ -3370,6 +3453,8 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
+    tuf.CryptoError, if 'filepath' is not a valid encrypted key file.
+
   <Side Effects>
     The contents of 'filepath' is read, decrypted, and the key stored.
 
@@ -3399,7 +3484,8 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   with open(filepath, 'rb') as file_object:
     encrypted_pem = file_object.read()
 
-  # Convert 'encrypted_pem' to 'tuf.formats.RSAKEY_SCHEMA' format.
+  # Convert 'encrypted_pem' to 'tuf.formats.RSAKEY_SCHEMA' format.  Raise
+  # 'tuf.CryptoError' if 'encrypted_pem' is invalid.
   rsa_key = tuf.keys.import_rsakey_from_encrypted_pem(encrypted_pem, password)
   
   return rsa_key
@@ -3682,13 +3768,13 @@ def get_metadata_filenames(metadata_directory=None):
     If 'metadata_directory' is set to 'metadata', the dictionary
     returned would contain:
 
-    filenames = {'root': 'metadata/root.json',
-                 'targets': 'metadata/targets.json',
-                 'snapshot': 'metadata/snapshot.json',
-                 'timestamp': 'metadata/timestamp.json'}
+    filenames = {'root.json': 'metadata/root.json',
+                 'targets.json': 'metadata/targets.json',
+                 'snapshot.json': 'metadata/snapshot.json',
+                 'timestamp.json': 'metadata/timestamp.json'}
 
-    If the metadata directory is not set by the caller, the current
-    directory is used.
+    If 'metadata_directory' is not set by the caller, the current directory is
+    used.
 
   <Arguments>
     metadata_directory:
@@ -3705,17 +3791,13 @@ def get_metadata_filenames(metadata_directory=None):
     metadata files, such as 'root.json' and 'snapshot.json'.
   """
   
+  if metadata_directory is None:
+    metadata_directory = os.getcwd()
+  
   # Does 'metadata_directory' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
-
-  if metadata_directory is None:
-    metadata_directory = '.'
-
-  # Does 'metadata_directory' have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch. 
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
 
   # Store the filepaths of the top-level roles, including the
@@ -3740,13 +3822,14 @@ def get_metadata_filenames(metadata_directory=None):
 
 
 
-def get_metadata_file_info(filename):
+def get_metadata_fileinfo(filename):
   """
   <Purpose>
     Retrieve the file information of 'filename'.  The object returned
     conforms to 'tuf.formats.FILEINFO_SCHEMA'.  The information
     generated for 'filename' is stored in metadata files like 'targets.json'.
     The fileinfo object returned has the form:
+    
     fileinfo = {'length': 1024,
                 'hashes': {'sha256': 1233dfba312, ...},
                 'custom': {...}}
@@ -3767,7 +3850,7 @@ def get_metadata_file_info(filename):
   <Returns>
     A dictionary conformant to 'tuf.formats.FILEINFO_SCHEMA'.  This
     dictionary contains the length, hashes, and custom data about the
-    'filename' metadata file.
+    'filename' metadata file.  SHA256 hashes are generated by default.
   """
 
   # Does 'filename' have the correct format?
@@ -3822,30 +3905,7 @@ def get_target_hash(target_filepath):
     The hash of 'target_filepath'.
   """
   
-  # Does 'target_filepath' have the correct format?
-  # Ensure the arguments have the appropriate number of objects and object
-  # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
-
-  # Calculate the hash of the filepath to determine which bin to find the 
-  # target.  The client currently assumes the repository uses
-  # 'HASH_FUNCTION' to generate hashes.
-  digest_object = tuf.hash.digest(HASH_FUNCTION)
-
-  try:
-    digest_object.update(target_filepath)
-  
-  except UnicodeEncodeError:
-    # Sometimes, there are Unicode characters in target paths. We assume a
-    # UTF-8 encoding and try to hash that.
-    digest_object = tuf.hash.digest(HASH_FUNCTION)
-    encoded_target_filepath = target_filepath.encode('utf-8')
-    digest_object.update(encoded_target_filepath)
-
-  target_filepath_hash = digest_object.hexdigest() 
-
-  return target_filepath_hash
+  return tuf.util.get_target_hash(target_filepath)
 
 
 
@@ -3865,17 +3925,20 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
       trusted.
     
     expiration_date:
-      The expiration date, in UTC, of the metadata file.  Conformant to
-      'tuf.formats.TIME_SCHEMA'.
+      The expiration date of the metadata file.  Conformant to
+      'tuf.formats.ISO8601_DATETIME_SCHEMA'.
 
     consistent_snapshot:
+      Boolean.  If True, a file digest is expected to be prepended to the
+      filename of any target file located in the targets directory.  Each digest
+      is stripped from the target filename and listed in the snapshot metadata. 
 
   <Exceptions>
     tuf.FormatError, if the generated root metadata object could not
     be generated with the correct format.
 
     tuf.Error, if an error is encountered while generating the root
-    metadata object.
+    metadata object (e.g., a required top-level role not found in 'tuf.roledb'.)
   
   <Side Effects>
     The contents of 'tuf.keydb.py' and 'tuf.roledb.py' are read.
@@ -3889,7 +3952,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
   # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   # The role and key dictionaries to be saved in the root metadata object.
@@ -3982,8 +4045,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
       trusted.
 
     expiration_date:
-      The expiration date, in UTC, of the metadata file.  Conformant to
-      'tuf.formats.TIME_SCHEMA'.
+      The expiration date of the metadata file.  Conformant to
+      'tuf.formats.ISO8601_DATETIME_SCHEMA'.
 
     delegations:
       The delegations made by the targets role to be generated.  'delegations'
@@ -4013,7 +4076,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
   tuf.formats.PATH_SCHEMA.check_match(targets_directory)
   tuf.formats.PATHS_SCHEMA.check_match(target_files)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   tuf.formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
 
   if delegations is not None:
@@ -4047,7 +4110,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
         'targets metadata.'
       raise tuf.Error(message)
     
-    filedict[relative_targetpath] = get_metadata_file_info(target_path)
+    filedict[relative_targetpath] = get_metadata_fileinfo(target_path)
     
     if write_consistent_targets:
       for target_digest in filedict[relative_targetpath]['hashes'].values():
@@ -4073,7 +4136,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
 def generate_snapshot_metadata(metadata_directory, version, expiration_date,
                                root_filename, targets_filename,
-                               consistent_snapshot):
+                               consistent_snapshot=False):
   """
   <Purpose>
     Create the snapshot metadata.  The minimum metadata must exist
@@ -4092,8 +4155,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       trusted.
 
     expiration_date:
-      The expiration date, in UTC, of the metadata file.
-      Conformant to 'tuf.formats.TIME_SCHEMA'.
+      The expiration date of the metadata file.
+      Conformant to 'tuf.formats.ISO8601_DATETIME_SCHEMA'.
 
     root_filename:
       The filename of the top-level root role.  The hash and file size of this
@@ -4109,7 +4172,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       is stripped from the target filename and listed in the snapshot metadata. 
 
   <Exceptions>
-    tuf.FormatError, if 'metadata_directory' is improperly formatted.
+    tuf.FormatError, if the arguments are improperly formatted.
 
     tuf.Error, if an error occurred trying to generate the snapshot metadata
     object.
@@ -4127,17 +4190,18 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   tuf.formats.PATH_SCHEMA.check_match(root_filename)
   tuf.formats.PATH_SCHEMA.check_match(targets_filename)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   metadata_directory = _check_directory(metadata_directory)
 
   # Retrieve the fileinfo of 'root.json' and 'targets.json'.  This file
   # information includes data such as file length, hashes of the file, etc.
   filedict = {}
-  filedict[ROOT_FILENAME] = get_metadata_file_info(root_filename)
-  filedict[TARGETS_FILENAME] = get_metadata_file_info(targets_filename)
+  filedict[ROOT_FILENAME] = get_metadata_fileinfo(root_filename)
+  filedict[TARGETS_FILENAME] = get_metadata_fileinfo(targets_filename)
 
   # Add compressed versions of the 'targets.json' and 'root.json' metadata,
   # if they exist.
@@ -4149,10 +4213,10 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     # add their file attributes to 'filedict'.
     if os.path.exists(compressed_root_filename):
       filedict[ROOT_FILENAME+extension] = \
-        get_metadata_file_info(compressed_root_filename)
+        get_metadata_fileinfo(compressed_root_filename)
     if os.path.exists(compressed_targets_filename): 
       filedict[TARGETS_FILENAME+extension] = \
-        get_metadata_file_info(compressed_targets_filename)
+        get_metadata_fileinfo(compressed_targets_filename)
 
   # Walk the 'targets/' directory and generate the fileinfo of all the role
   # files found.  This information is stored in the 'meta' field of the snapshot
@@ -4182,7 +4246,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
             # Obsolete role files may still be found.  Ensure only roles loaded
             # in the roledb are included in the snapshot metadata.
             if tuf.roledb.role_exists(rolename):
-              filedict[metadata_name] = get_metadata_file_info(metadata_path)
+              filedict[metadata_name] = get_metadata_fileinfo(metadata_path)
 
   # Generate the snapshot metadata object.
   snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,
@@ -4213,8 +4277,8 @@ def generate_timestamp_metadata(snapshot_filename, version,
       trusted.
 
     expiration_date:
-      The expiration date, in UTC, of the metadata file, conformant to
-      'tuf.formats.TIME_SCHEMA'.
+      The expiration date of the metadata file, conformant to
+      'tuf.formats.ISO8601_DATETIME_SCHEMA'.
 
     compressions:
       Compression extensions (e.g., 'gz').  If 'snapshot.json' is also saved in
@@ -4239,13 +4303,13 @@ def generate_timestamp_metadata(snapshot_filename, version,
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PATH_SCHEMA.check_match(snapshot_filename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.formats.TIME_SCHEMA.check_match(expiration_date)
+  tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
 
   # Retrieve the fileinfo of the snapshot metadata file.
   # This file information contains hashes, file length, custom data, etc.
   fileinfo = {}
-  fileinfo[SNAPSHOT_FILENAME] = get_metadata_file_info(snapshot_filename)
+  fileinfo[SNAPSHOT_FILENAME] = get_metadata_fileinfo(snapshot_filename)
 
   # Save the fileinfo of the compressed versions of 'timestamp.json'
   # in 'fileinfo'.  Log the files included in 'fileinfo'.
@@ -4255,14 +4319,14 @@ def generate_timestamp_metadata(snapshot_filename, version,
 
     compressed_filename = snapshot_filename + '.' + file_extension
     try:
-      compressed_fileinfo = get_metadata_file_info(compressed_filename)
+      compressed_fileinfo = get_metadata_fileinfo(compressed_filename)
     
     except:
-      logger.warn('Cannot get fileinfo about '+str(compressed_filename))
+      logger.warn('Cannot get fileinfo about '+repr(compressed_filename))
     
     else:
-      logger.info('Including fileinfo about '+str(compressed_filename))
-      fileinfo[SNAPSHOT_FILENAME+'.'+file_extension] = compressed_fileinfo
+      logger.info('Including fileinfo about '+repr(compressed_filename))
+      fileinfo[SNAPSHOT_FILENAME + '.' + file_extension] = compressed_fileinfo
 
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,

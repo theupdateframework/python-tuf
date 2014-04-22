@@ -74,7 +74,7 @@ _DEFAULT_FILE_LOG_LEVEL = logging.DEBUG
 
 # Set the format for logging messages.
 # Example format for '_FORMAT_STRING': 
-# [2013-08-13 15:21:18,068 UTC] [tuf] [INFO][_update_metadata:851@updater.py]
+# [2013-08-13 15:21:18,068 localtime] [tuf] [INFO][_update_metadata:851@updater.py]
 _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s] '+\
   '[%(funcName)s:%(lineno)s@%(filename)s]\n%(message)s\n'
 
