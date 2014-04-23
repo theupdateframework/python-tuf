@@ -60,6 +60,7 @@ import tuf.roledb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_updater')
 repo_tool.disable_console_log_messages()
@@ -337,7 +338,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     root_filepath = os.path.join(self.client_metadata_current, 'root.json')
     length, hashes = tuf.util.get_file_details(root_filepath)
     root_fileinfo = tuf.formats.make_fileinfo(length, hashes) 
-    self.assertTrue('root.json' in fileinfo_dict.keys())
+    self.assertTrue('root.json' in fileinfo_dict)
     self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
 
     # Verify that 'self.fileinfo' is incremented if another role is updated.
@@ -553,8 +554,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater._update_metadata('targets',
                                                targets_compressed_fileinfo)
     
-    except tuf.NoWorkingMirrorError, e:
-      for mirror_error in e.mirror_errors.values():
+    except tuf.NoWorkingMirrorError as e:
+      for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, tuf.BadHashError)
     
     # Invalid fileinfo for the compressed version of 'targets.json' 
@@ -571,8 +572,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                                targets_compressed_fileinfo,
                                                'gzip', targets_fileinfo)
     
-    except tuf.NoWorkingMirrorError, e:
-      for mirror_error in e.mirror_errors.values():
+    except tuf.NoWorkingMirrorError as e:
+      for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, tuf.DownloadLengthMismatchError)
 
 
@@ -647,7 +648,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # target files.
     self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
     for target in targets_list:
-      self.assertTrue((target['filepath'], target['fileinfo']) in targets_in_metadata.items())
+      self.assertTrue((target['filepath'], target['fileinfo']) in six.iteritems(targets_in_metadata))
    
 
 
@@ -674,7 +675,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Reference 'self.Repository.metadata['current']['targets']'.  Ensure
     # 'target3' is not already specified.
     targets_metadata = self.repository_updater.metadata['current']['targets']
-    self.assertFalse(target3 in targets_metadata['targets'].keys())
+    self.assertFalse(target3 in targets_metadata['targets'])
 
     # Verify the expected version numbers of the roles to be modified.
     self.assertTrue(self.repository_updater.metadata['current']['targets']\
@@ -693,7 +694,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targets_metadata = self.repository_updater.metadata['current']['targets']
     targets_directory = os.path.join(self.repository_directory, 'targets') 
     target3 = target3[len(targets_directory):]
-    self.assertTrue(target3 in targets_metadata['targets'].keys())
+    self.assertTrue(target3 in targets_metadata['targets'])
 
     # Verify the expected version numbers of the updated roles.
     self.assertTrue(self.repository_updater.metadata['current']['targets']\
@@ -788,7 +789,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # target files.
     self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
     for target in targets_list:
-      self.assertTrue((target['filepath'], target['fileinfo']) in expected_targets.items())
+      self.assertTrue((target['filepath'], target['fileinfo']) in six.iteritems(expected_targets))
 
 
     # Test: Invalid arguments.
@@ -833,7 +834,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # that will be passed as an argument to 'download_target()'.
     destination_directory = self.make_temp_directory()
     target_filepaths = \
-      self.repository_updater.metadata['current']['targets']['targets'].keys()
+      list(self.repository_updater.metadata['current']['targets']['targets'].keys())
 
 
     # Test: normal case.
@@ -865,14 +866,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # field contains at least one confined target and excludes needed target
     # file.
     mirrors = self.repository_updater.mirrors
-    for mirror_name, mirror_info in mirrors.items():
+    for mirror_name, mirror_info in six.iteritems(mirrors):
       mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
 
     try:
       self.repository_updater.download_target(target_fileinfo,
                                               destination_directory)
     
-    except tuf.NoWorkingMirrorError, exception:
+    except tuf.NoWorkingMirrorError as exception:
       # Ensure that no mirrors were found due to mismatch in confined target
       # directories.  get_list_of_mirrors() returns an empty list in this case,
       # which does not generate specific exception errors.

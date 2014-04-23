@@ -16,6 +16,7 @@
 <Purpose>
   Unit test for 'util.py'
 """
+
 from __future__ import absolute_import
 
 import os
@@ -31,6 +32,7 @@ import tuf.log
 import tuf.hash
 import tuf.util as util
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_util')
 
@@ -143,8 +145,11 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
   def _compress_existing_file(self, filepath):
-    """[Helper]Compresses file 'filepath' and returns file path of 
-       the compresses file."""
+    """
+    [Helper]Compresses file 'filepath' and returns file path of 
+    the compresses file.
+    """
+    
     # NOTE: DO NOT forget to remove the newly created compressed file!
     if os.path.exists(filepath):
       compressed_filepath = filepath+'.gz'
@@ -154,8 +159,9 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       f_out.close()
       f_in.close()
       return compressed_filepath
+    
     else:
-      print 'Compression of '+repr(filepath)+' failed. Path does not exist.'
+      logger.error('Compression of '+repr(filepath)+' failed. Path does not exist.')
       sys.exit(1)
  
 
@@ -167,9 +173,10 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       file_content = f.read()
       f.close()
       return file_content
+    
     else:
-      print 'Decompression of '+repr(compressed_filepath)+' failed. '+\
-            'Path does not exist.'
+      logger.error('Decompression of '+repr(compressed_filepath)+' failed. '+\
+            'Path does not exist.')
       sys.exit(1)
 
 
@@ -223,8 +230,9 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     # Test: Incorrect input.
     bogus_inputs = [self.random_string(), 1234, [self.random_string()],
                     {'a': 'b'}, None]
+    
     for bogus_input in bogus_inputs:
-      if isinstance(bogus_input, basestring):
+      if isinstance(bogus_input, six.string_types):
         self.assertRaises(tuf.Error, util.get_file_details, bogus_input)
       else:
         self.assertRaises(tuf.FormatError, util.get_file_details, bogus_input)
@@ -236,7 +244,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     non_existing_parent_dir = os.path.join(existing_parent_dir, 'a', 'b')
 
     for parent_dir in [existing_parent_dir, non_existing_parent_dir, 12, [3]]:
-      if isinstance(parent_dir, basestring):
+      if isinstance(parent_dir, six.string_types):
         util.ensure_parent_dir(os.path.join(parent_dir, 'a.txt'))
         self.assertTrue(os.path.isdir(parent_dir))
       else:
@@ -313,7 +321,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       '/README.txt': '8faee106f1bb69f34aaf1df1e3c2e87d763c4d878cb96b91db13495e32ceb0b0',
       '/warehouse/file2.txt': 'd543a573a2cec67026eff06e75702303559e64e705eba06f65799baaf0424417'
     }
-    for filepath, target_hash in expected_target_hashes.items():
+    for filepath, target_hash in six.iteritems(expected_target_hashes):
       self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
       self.assertTrue(tuf.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(util.get_target_hash(filepath), target_hash)

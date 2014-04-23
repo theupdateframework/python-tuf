@@ -39,7 +39,6 @@ from __future__ import division
 
 import os
 import sys
-import urllib
 import tempfile
 import random
 import time
@@ -55,6 +54,7 @@ import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_slow_retrieval_attack')
 repo_tool.disable_console_log_messages()
@@ -229,7 +229,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
    
     try:
       server_process = self._start_slow_server('mode_1')
-      urllib.urlretrieve(url_file, client_filepath)
+      six.moves.urllib.request.urlretrieve(url_file, client_filepath)
      
       # Verify the expected file size and hash of the downloaded file.
       length, hashes = tuf.util.get_file_details(client_filepath)
@@ -260,7 +260,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
   
     try:
       server_process = self._start_slow_server('mode_2')
-      urllib.urlretrieve(url_file, client_filepath)
+      six.moves.urllib.request.urlretrieve(url_file, client_filepath)
       
       # Verify the expected file size and hash of the downloaded file.
       length, hashes = tuf.util.get_file_details(client_filepath)
@@ -289,8 +289,8 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
      
     # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
     # each mirror.
-    except tuf.NoWorkingMirrorError, exception:
-      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+    except tuf.NoWorkingMirrorError as exception:
+      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
        
@@ -322,8 +322,8 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # each mirror.  'file1.txt' should be large enough to trigger a slow
     # retrieval attack, otherwise the expected exception may not be consistently
     # raised.
-    except tuf.NoWorkingMirrorError, exception:
-      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+    except tuf.NoWorkingMirrorError as exception:
+      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
        

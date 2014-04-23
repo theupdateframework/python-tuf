@@ -30,6 +30,7 @@ import tuf.roledb
 import tuf.keydb
 import tuf.hash
 import tuf.repository_tool as repo_tool
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_repository_tool')
 
@@ -229,7 +230,7 @@ class TestRepository(unittest.TestCase):
     # is made to a role.
     repo_tool.load_repository(repository_directory)
     
-    repository.timestamp.expiration = datetime.datetime(2030, 01, 01, 12, 00)
+    repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 12, 0)
     self.assertRaises(tuf.UnsignedMetadataError, repository.write)
 
     # Verify that a write_partial() is allowed. 
@@ -362,7 +363,7 @@ class TestMetadata(unittest.TestCase):
     self.assertTrue(isinstance(expiration, datetime.datetime))
 
     # Test expiration setter. 
-    self.metadata.expiration = datetime.datetime(2030, 01, 01, 12, 00)
+    self.metadata.expiration = datetime.datetime(2030, 1, 1, 12, 0)
     expiration = self.metadata.expiration
     self.assertTrue(isinstance(expiration, datetime.datetime))
 
@@ -1512,7 +1513,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       '/README.txt': '8faee106f1bb69f34aaf1df1e3c2e87d763c4d878cb96b91db13495e32ceb0b0',
       '/packages/file2.txt': 'c9c4a5cdd84858dd6a23d98d7e6e6b2aec45034946c16b2200bc317c75415e92'  
     }
-    for filepath, target_hash in expected_target_hashes.items():
+    for filepath, target_hash in six.iteritems(expected_target_hashes):
       self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
       self.assertTrue(tuf.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(repo_tool.get_target_hash(filepath), target_hash)
@@ -1568,7 +1569,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
    
     # Set valid generate_targets_metadata() arguments.
     version = 1
-    datetime_object = datetime.datetime(2030, 01, 01, 12, 00)
+    datetime_object = datetime.datetime(2030, 1, 1, 12, 0)
     expiration_date = datetime_object.isoformat() + 'Z'
     target_files = ['file.txt']
     

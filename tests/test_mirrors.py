@@ -23,7 +23,7 @@ import tuf
 import tuf.formats as formats
 import tuf.mirrors as mirrors
 import tuf.unittest_toolbox as unittest_toolbox
-
+import tuf._vendor.six as six
 
 
 class TestMirrors(unittest_toolbox.Modified_TestCase):
@@ -54,7 +54,7 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
     # Test: Normal case.
     mirror_list = mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors) 
     self.assertEquals(len(mirror_list), 3)
-    for mirror, mirror_info in self.mirrors.items():
+    for mirror, mirror_info in six.iteritems(self.mirrors):
       url = mirror_info['url_prefix']+'/metadata/release.txt'
       self.assertTrue(url in mirror_list)
 
