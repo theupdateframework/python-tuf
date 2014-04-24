@@ -840,6 +840,8 @@ def load_project(project_directory, prefix=''):
   config_filename = os.path.join(project_directory,PROJECT_FILENAME)
   try:
     project_configuration = tuf.util.load_json_file(config_filename)
+    tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration)
+    
   except OSError, e:
     raise
   

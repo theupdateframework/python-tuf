@@ -428,6 +428,18 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   expires = ISO8601_DATETIME_SCHEMA,
   meta = FILEDICT_SCHEMA)
 
+# project.cfg file: stores information about the project in a json dictionary
+PROJECT_CFG_SCHEMA = SCHEMA.Object(
+    object_name = 'PROJECT_CFG_SCHEMA',
+    project_name = SCHEMA.AnyString(),
+    layout_type = SCHEMA.OneOf([SCHEMA.String('repo-like'), SCHEMA.String('flat')]),
+    targets_location = PATH_SCHEMA,
+    metadata_location = PATH_SCHEMA,
+    prefix = PATH_SCHEMA,
+    public_keys = KEYDICT_SCHEMA,
+    threshold = SCHEMA.Integer(lo = 0, hi = 2)
+    )
+
 # A schema containing information a repository mirror may require,
 # such as a url, the path of the directory metadata files, etc.
 MIRROR_SCHEMA = SCHEMA.Object(
