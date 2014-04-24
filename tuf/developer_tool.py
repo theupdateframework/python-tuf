@@ -825,6 +825,9 @@ def load_project(project_directory, prefix=''):
   # do the same for the prefix
   tuf.formats.PATH_SCHEMA.check_match(prefix)
 
+  # clear the role and keydbs
+  tuf.roledb.clear_roledb() 
+  tuf.keydb.clear_keydb()
 
   # Locate metadata filepaths and targets filepath.
   project_directory = os.path.abspath(project_directory)
