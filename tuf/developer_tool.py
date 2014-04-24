@@ -47,6 +47,9 @@ import tuf.log
 import tuf.conf
 import tuf.repository_tool
 
+from tuf.keys import format_keyval_to_metadata
+from tuf.keys import format_metadata_to_key
+
 from tuf.repository_tool import Targets
 from tuf.repository_tool import get_metadata_fileinfo
 from tuf.repository_tool import get_metadata_filenames
@@ -777,9 +780,9 @@ def _save_project_configuration(metadata_directory,targets_directory,
   # build a dictionary containing the actual keys
   for key in public_keys:
     key_info = tuf.keydb.get_key(key)
-    project_config['public_keys'][key] = {}
-    project_config['public_keys'][key]['keytype'] = key_info['keytype']
-    project_config['public_keys'][key]['public'] = key_info['keyval']['public']
+    key_metadata = format_keyval_to_metadata(key_info['keytype'],
+        key_info['keyval'])
+    project_config['public_keys'][key] = key_metadata
 
   # save the actual data
   with open(project_filename,"wt") as fp:
@@ -859,17 +862,8 @@ def load_project(project_directory, prefix=''):
   # traverse the public keys and add them to the project
   keydict = project_configuration['public_keys']
   for keyid in keydict:
-    if keydict[keyid]['keytype'] == 'rsa':
-      temp_pubkey = tuf.keys.format_rsakey_from_pem(keydict[keyid]['public'])
-    elif keydict[keyid]['keytype'] == 'ed25519':
-      temp_pubkey = {}
-      temp_pubkey['keytype'] = keydict[keyid]['keytype']
-      temp_pubkey['keyval'] = {}
-      temp_pubkey['keyval']['public'] = keydict[keyid]['public']
-      temp_pubkey['keyval']['private'] = ''
-    else:
-      temp_pubkey = keydict
-    project.add_verification_key(temp_pubkey)
+    key = format_metadata_to_key(keydict[keyid]) 
+    project.add_verification_key(key)
  
   # load the project's metadata
   targets_metadata_path = os.path.join(metadata_directory, project_filename)
