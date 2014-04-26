@@ -130,30 +130,21 @@ PROJECT_FILENAME = 'project.cfg'
 
 # The targets and metadata directory names.  Metadata files are written
 # to the staged metadata directory instead of the "live" one.
-METADATA_STAGED_DIRECTORY_NAME = 'metadata.staged'
-METADATA_DIRECTORY_NAME = 'metadata'
-TARGETS_DIRECTORY_NAME = 'targets' 
+from tuf.repository_tool import METADATA_STAGED_DIRECTORY_NAME
+from tuf.repository_tool import METADATA_DIRECTORY_NAME
+from tuf.repository_tool import TARGETS_DIRECTORY_NAME
 
 # The full list of supported TUF metadata extensions.
-METADATA_EXTENSIONS = ['.json', '.json.gz']
+from tuf.repository_tool import METADATA_EXTENSIONS
 
 # The recognized compression extensions. 
-SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
+from tuf.repository_tool import SUPPORTED_COMPRESSION_EXTENSIONS
+
 
 # Supported key types.
-SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
-
-# Expiration date delta, in seconds, of the top-level roles.  A metadata
-# expiration date is set by taking the current time and adding the expiration
-# seconds listed below.
-
-# Initial 'targets.txt' expiration time of 3 months. 
-TARGETS_EXPIRATION = 7889230 
+from tuf.repository_tool import SUPPORTED_KEY_TYPES
 
 
-
-# TODO: We should have a method like Describe to show the contents of the 
-#       instance
 class Project(Targets):
   """
   <Purpose>
