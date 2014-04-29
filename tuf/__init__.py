@@ -20,8 +20,12 @@
   provide that reason in those cases.
 """
 
+import logging
+
+import tuf.log
 import tuf._vendor.six as six
 
+logging = logging.getLogger('tuf.__init__')
 
 # Import 'tuf.formats' if a module tries to import the
 # entire tuf package (i.e., from tuf import *). 

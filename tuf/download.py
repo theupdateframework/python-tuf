@@ -502,10 +502,13 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       # Data successfully read from the connection.  Store it. 
       temp_file.write(data)
       total_downloaded = total_downloaded + len(data)
+  
   except:
     raise
+  
   else:
     return total_downloaded
+  
   finally:
     # Whatever happens, make sure that we always close the connection.
     connection.close()

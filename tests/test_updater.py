@@ -461,20 +461,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_2__ensure_not_expired(self):
     # This test condition will verify that nothing is raised when a metadata
     # file has a future expiration date.
-    self.repository_updater._ensure_not_expired('root')
+    root_metadata = self.repository_updater.metadata['current']['root']
+    self.repository_updater._ensure_not_expired(root_metadata, 'root')
     
     # 'tuf.ExpiredMetadataError' should be raised in this next test condition,
     # because the expiration_date has expired by 10 seconds.
     expires = tuf.formats.unix_timestamp_to_datetime(int(time.time() - 10))
     expires = expires.isoformat() + 'Z'
-    self.repository_updater.metadata['current']['root']['expires'] = expires
+    root_metadata['expires'] = expires
     
     # Ensure the 'expires' value of the root file is valid by checking the
     # the formats of the 'root.json' object.
-    root_object = self.repository_updater.metadata['current']['root']
-    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_object))
+    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
     self.assertRaises(tuf.ExpiredMetadataError,
-                      self.repository_updater._ensure_not_expired, 'root')
+                      self.repository_updater._ensure_not_expired,
+                      root_metadata, 'root')
 
 
 
@@ -658,6 +659,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # This unit test is based on adding an extra target file to the
     # server and rebuilding all server-side metadata.  All top-level metadata
     # should be updated when the client calls refresh().
+    
+    # First verify that an expired root metadata is updated.
+    expired_date = '1960-01-01T12:00:00Z' 
+    self.repository_updater.metadata['current']['root']['expires'] = expired_date
+    self.repository_updater.refresh() 
+
     repository = repo_tool.load_repository(self.repository_directory)
     target3 = os.path.join(self.repository_directory, 'targets', 'file3.txt')
 

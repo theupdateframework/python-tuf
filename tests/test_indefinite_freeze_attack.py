@@ -236,8 +236,12 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # continue the update process.  Sleep for at least 2 seconds to ensure
     # 'repository.timestamp.expiration' is reached.
     time.sleep(2)
-    self.assertRaises(tuf.ExpiredMetadataError,
-                      self.repository_updater.refresh) 
+    try:
+      self.repository_updater.refresh()
+    
+    except tuf.NoWorkingMirrorError as e:
+      for mirror_url, mirror_error in e.mirror_errors.iteritems():
+        self.assertTrue(isinstance(mirror_error, tuf.ExpiredMetadataError))
 
 
 if __name__ == '__main__':
