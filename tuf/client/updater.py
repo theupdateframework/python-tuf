@@ -99,6 +99,14 @@
     updater.download_target(target, destination_directory)
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import errno
 import logging
 import os
@@ -523,7 +531,7 @@ class Updater(object):
           raise
       
       else:
-        logger.warn('Invalid key type for '+repr(keyid)+'.')
+        logger.warning('Invalid key type for '+repr(keyid)+'.')
         continue
 
     # Add the roles to the role database.
@@ -536,7 +544,7 @@ class Updater(object):
         tuf.roledb.add_role(rolename, roleinfo)
       
       except tuf.RoleAlreadyExistsError as e:
-        logger.warn('Role already exists: '+rolename)
+        logger.warning('Role already exists: '+rolename)
       
       except:
         logger.exception('Failed to add delegated role: '+rolename+'.')
@@ -2531,7 +2539,7 @@ class Updater(object):
           for target in self.metadata['previous'][role]['targets']:
             if target not in self.metadata['current'][role]['targets']:
               # 'target' is only in 'previous', so remove it.
-              logger.warn('Removing obsolete file: '+repr(target)+'.')
+              logger.warning('Removing obsolete file: '+repr(target)+'.')
               # Remove the file if it hasn't been removed already.
               destination = os.path.join(destination_directory, target) 
               try:
@@ -2699,6 +2707,6 @@ class Updater(object):
           raise
     
     else:
-      logger.warn(str(target_dirpath)+' does not exist.')
+      logger.warning(str(target_dirpath)+' does not exist.')
 
     target_file_object.move(destination)

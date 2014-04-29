@@ -8,7 +8,7 @@
   Konstantin Andrianov.
 
 <Started>
-  February 1, 2013
+  February 1, 2013.
 
 <Copyright>
   See LICENSE for licensing information.
@@ -17,7 +17,13 @@
   Unit test for 'util.py'
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import os
 import sys
@@ -99,14 +105,14 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     for config_temp_dir in config_temp_dirs:
       config_temp_dir, actual_dir = \
       self._extract_tempfile_directory(config_temp_dir)
-      self.assertEquals(config_temp_dir, actual_dir)
+      self.assertEqual(config_temp_dir, actual_dir)
     
     # Test: Unexpected input handling.
     config_temp_dirs = [self.random_string(), 123, ['a'], {'a':1}]
     for config_temp_dir in config_temp_dirs:
       config_temp_dir, actual_dir = \
       self._extract_tempfile_directory(config_temp_dir)
-      self.assertEquals(tempfile.gettempdir(), actual_dir)
+      self.assertEqual(tempfile.gettempdir(), actual_dir)
 
 
    
@@ -118,8 +124,8 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     self.temp_fileobj.temporary_file = fileobj
 
     # Test: Expected input.
-    self.assertEquals(self.temp_fileobj.read(), '1234567890')
-    self.assertEquals(self.temp_fileobj.read(4), '1234')
+    self.assertEqual(self.temp_fileobj.read(), '1234567890')
+    self.assertEqual(self.temp_fileobj.read(4), '1234')
 
     # Test: Unexpected input.
     for bogus_arg in ['abcd', ['abcd'], {'a':'a'}, -100]:
@@ -130,7 +136,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
   def test_A4_tempfile_write(self):
     data = self.random_string()
     self.temp_fileobj.write(data)
-    self.assertEquals(data, self.temp_fileobj.read())
+    self.assertEqual(data, self.temp_fileobj.read())
 
 
 
@@ -198,14 +204,14 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       self.assertRaises(tuf.Error,
                         self.temp_fileobj.decompress_temp_file_object, arg)
     self.temp_fileobj.decompress_temp_file_object('gzip')
-    self.assertEquals(self.temp_fileobj.read(), fileobj.read())
+    self.assertEqual(self.temp_fileobj.read(), fileobj.read())
 
     # Checking the content of the TempFile's '_orig_file' instance.
     _orig_data_file = \
     self.make_temp_data_file(data=self.temp_fileobj._orig_file.read())
     data_in_orig_file = self._decompress_file(_orig_data_file)
     fileobj.seek(0)
-    self.assertEquals(data_in_orig_file, fileobj.read())
+    self.assertEqual(data_in_orig_file, fileobj.read())
 
     # Try decompressing once more.
     self.assertRaises(tuf.Error, 
@@ -225,7 +231,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     file_length = os.path.getsize(filepath)
  
     # Test: Expected input.
-    self.assertEquals(util.get_file_details(filepath), (file_length, file_hash))
+    self.assertEqual(util.get_file_details(filepath), (file_length, file_hash))
 
     # Test: Incorrect input.
     bogus_inputs = [self.random_string(), 1234, [self.random_string()],
@@ -292,7 +298,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     # Test normal case. 
     data = ['a', {'b': ['c', None, 30.3, 29]}]
     json_string = util.json.dumps(data)
-    self.assertEquals(data, util.load_json_string(json_string))
+    self.assertEqual(data, util.load_json_string(json_string))
 
     # Test invalid arguments.
     self.assertRaises(tuf.Error, util.load_json_string, 8)
@@ -307,7 +313,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     fileobj = open(filepath, 'wb')
     util.json.dump(data, fileobj)
     fileobj.close()
-    self.assertEquals(data, util.load_json_file(filepath))
+    self.assertEqual(data, util.load_json_file(filepath))
     Errors = (tuf.FormatError, IOError)
     for bogus_arg in ['a', 1, ['a'], {'a':'b'}]:
       self.assertRaises(Errors, util.load_json_file, bogus_arg)

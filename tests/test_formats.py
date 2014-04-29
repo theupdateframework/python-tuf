@@ -17,6 +17,14 @@
   Unit test for 'formats.py'
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import unittest
 import datetime
 
@@ -480,7 +488,7 @@ class TestFormats(unittest.TestCase):
 
   def test_format_base64(self):
     # Test conditions for valid arguments.
-    data = 'updateframework'
+    data = 'updateframework'.encode('utf-8')
     self.assertEqual('dXBkYXRlZnJhbWV3b3Jr', tuf.formats.format_base64(data))
     self.assertTrue(isinstance(tuf.formats.format_base64(data), six.string_types))
 
@@ -493,8 +501,8 @@ class TestFormats(unittest.TestCase):
   def test_parse_base64(self):
     # Test conditions for valid arguments.
     base64 = 'dXBkYXRlZnJhbWV3b3Jr'
-    self.assertEqual('updateframework', tuf.formats.parse_base64(base64))
-    self.assertTrue(isinstance(tuf.formats.parse_base64(base64), six.string_types))
+    self.assertEqual(b'updateframework', tuf.formats.parse_base64(base64))
+    self.assertTrue(isinstance(tuf.formats.parse_base64(base64), six.binary_type))
 
     # Test conditions for invalid arguments.
     self.assertRaises(tuf.FormatError, tuf.formats.format_base64, 123)

@@ -49,6 +49,7 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 # 'binascii' required for hexadecimal conversions.  Signatures and
 # public/private keys are hexlified.

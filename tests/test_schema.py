@@ -13,8 +13,15 @@
 
 <Purpose>
   Unit test for 'schema.py'
-
 """
+
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import unittest
 import logging
@@ -203,7 +210,9 @@ class TestSchema(unittest.TestCase):
     integer_schema = tuf.schema.Integer()
 
     self.assertTrue(integer_schema.matches(99))
-    self.assertTrue(integer_schema.matches(0L))
+    if six.PY3:
+      print('reached long(1)')
+      self.assertTrue(integer_schema.matches(long(1)))
     self.assertTrue(tuf.schema.Integer(lo=10, hi=30).matches(25))
     
     # Test conditions for invalid arguments.

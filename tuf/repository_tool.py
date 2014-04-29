@@ -24,6 +24,7 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import os
 import errno
@@ -592,7 +593,7 @@ class Metadata(object):
     
     except tuf.KeyAlreadyExistsError as e:
       message = 'Adding a verification key that has already been used.'
-      logger.warn(message)
+      logger.warning(message)
 
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -3343,7 +3344,7 @@ def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
     message = repr(rolename) + ' expires ' + datetime_object.ctime() + \
       ' (UTC).\n' + repr(days_until_expires) + ' day(s) until it expires.'
     
-    logger.warn(message)
+    logger.warning(message)
 
 
 
@@ -4120,7 +4121,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
         digest_target = os.path.join(dirname, digest_filename)
 
         if not os.path.exists(digest_target):
-          logger.warn('Hard linking target file to ' + repr(digest_target))
+          logger.warning('Hard linking target file to ' + repr(digest_target))
           os.link(target_path, digest_target)
   
   # Generate the targets metadata object.
@@ -4323,7 +4324,7 @@ def generate_timestamp_metadata(snapshot_filename, version,
       compressed_fileinfo = get_metadata_fileinfo(compressed_filename)
     
     except:
-      logger.warn('Cannot get fileinfo about '+repr(compressed_filename))
+      logger.warning('Cannot get fileinfo about '+repr(compressed_filename))
     
     else:
       logger.info('Including fileinfo about '+repr(compressed_filename))
@@ -4410,7 +4411,7 @@ def sign_metadata(metadata_object, keyids, filename):
         signable['signatures'].append(signature)
       
       else:
-        logger.warn('Private key unset.  Skipping: '+repr(keyid))
+        logger.warning('Private key unset.  Skipping: '+repr(keyid))
     
     else:
       raise tuf.Error('The keydb contains a key with an invalid key type.')

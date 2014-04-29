@@ -60,6 +60,14 @@
   signable_object = make_signable(unsigned_object)
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import binascii
 import calendar
 import re
@@ -805,7 +813,7 @@ def format_base64(data):
 
   <Arguments>
     data:
-      A string or buffer of data to convert.
+      Binary or buffer of data to convert.
 
   <Exceptions>
     tuf.FormatError, if the base64 encoding fails or the argument
@@ -819,7 +827,7 @@ def format_base64(data):
   """
   
   try:
-    return binascii.b2a_base64(data).rstrip('=\n ')
+    return binascii.b2a_base64(data).decode('utf-8').rstrip('=\n ')
   
   except (TypeError, binascii.Error) as e:
     raise tuf.FormatError('Invalid base64 encoding: '+str(e))
@@ -1179,10 +1187,8 @@ def _canonical_string_encoder(string):
   """
 
   string = '"%s"' % re.sub(r'(["\\])', r'\\\1', string)
-  if isinstance(string, unicode):
-    return string.encode('utf-8')
-  else:
-    return string
+  
+  return string 
 
 
 

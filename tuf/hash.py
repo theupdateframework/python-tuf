@@ -18,17 +18,25 @@
   available to TUF, simplifying the creation of digest objects, and
   providing a central location for hash routines are the main goals
   of this module.  Support routines implemented include functions to 
-  create digest objects given a filename or file object.
-  Hashlib and pycrypto hash algorithms currently supported.
-
+  create digest objects given a filename or file object.  Hashlib and PyCrypto
+  hash algorithms currently supported.
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import logging
 
 # Import tuf Exceptions.
 import tuf
 import tuf.log
+import tuf._vendor.six as six
+
 
 # Import tuf logger to log warning messages.
 logger = logging.getLogger('tuf.hash')
@@ -126,7 +134,6 @@ def digest(algorithm=_DEFAULT_HASH_ALGORITHM,
   <Returns>
     Digest object (e.g., hashlib.new(algorithm) or 
     algorithm.new() # pycrypto).
-
   """
 
   # Was a hashlib digest object requested and is it supported?
@@ -189,6 +196,7 @@ def digest_fileobject(file_object, algorithm=_DEFAULT_HASH_ALGORITHM,
 
   <Exceptions>
     tuf.UnsupportedAlgorithmError
+    
     tuf.Error
 
   <Side Effects>
@@ -197,7 +205,6 @@ def digest_fileobject(file_object, algorithm=_DEFAULT_HASH_ALGORITHM,
   <Returns>
     Digest object (e.g., hashlib.new(algorithm) or 
     algorithm.new() # pycrypto).
-
   """
 
   # Digest object returned whose hash will be updated using 'file_object'.
@@ -218,7 +225,13 @@ def digest_fileobject(file_object, algorithm=_DEFAULT_HASH_ALGORITHM,
     data = file_object.read(chunksize)
     if not data:
       break
-    digest_object.update(data_to_string(data))
+    
+    if not isinstance(data, six.binary_type):
+      digest_object.update(data.encode('utf-8'))
+    
+    else:
+      digest_object.update(data)
+
   return digest_object
 
 
@@ -254,7 +267,6 @@ def digest_filename(filename, algorithm=_DEFAULT_HASH_ALGORITHM,
   <Returns>
     Digest object (e.g., hashlib.new(algorithm) or 
     algorithm.new() # pycrypto).
-
   """
 
   # Open 'filename' in read+binary mode.
@@ -267,40 +279,5 @@ def digest_filename(filename, algorithm=_DEFAULT_HASH_ALGORITHM,
   digest_object = digest_fileobject(file_object, algorithm, hash_library)
   
   file_object.close()
+  
   return digest_object
-
-
-
-
-
-def data_to_string(data):
-  """
-  <Purpose>
-    Return 'data' as a string.  The update() function of a digest object
-    only accepts strings, however, TUF will often need to feed this function
-    non-strings.  This utility function circumvents this issue and decides how
-    exactly to convert these objects TUF might use.
-
-  <Arguments>
-    data:
-      The data object to be returned as a string. 
-
-  <Exceptions>
-    None.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    String.
-
-  """
-
-  if isinstance(data, str):
-    return data
-  
-  elif isinstance(data, unicode):
-    return data.encode("utf-8")
-  
-  else:
-    return str(data)

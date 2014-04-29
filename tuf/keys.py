@@ -44,6 +44,14 @@
   key (i.e., rsakey['keyid']).
  """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 # Required for hexadecimal conversions.  Signatures and public/private keys are
 # hexlified.
 import binascii
@@ -221,13 +229,13 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   # Generate the keyid of the RSA key.  'key_value' corresponds to the
   # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
   # information is not included in the generation of the 'keyid' identifier.
-  key_value = {'public': public,
+  key_value = {'public': public.decode(),
                'private': ''}
   keyid = _get_keyid(keytype, key_value)
 
   # Build the 'rsakey_dict' dictionary.  Update 'key_value' with the RSA
   # private key prior to adding 'key_value' to 'rsakey_dict'.
-  key_value['private'] = private
+  key_value['private'] = private.decode()
 
   rsakey_dict['keytype'] = keytype
   rsakey_dict['keyid'] = keyid
@@ -492,7 +500,7 @@ def _get_keyid(keytype, key_value):
   # Create a digest object and call update(), using the JSON 
   # canonical format of 'rskey_meta' as the update data.
   digest_object = tuf.hash.digest(_KEY_ID_HASH_ALGORITHM)
-  digest_object.update(key_update_data)
+  digest_object.update(key_update_data.encode('utf-8'))
 
   # 'keyid' becomes the hexadecimal representation of the hash.  
   keyid = digest_object.hexdigest()

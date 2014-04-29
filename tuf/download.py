@@ -21,10 +21,14 @@
   '_download_file()' function.
 """
 
-# Induce "true division" (http://www.python.org/dev/peps/pep-0238/).
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
-import httplib
 import logging
 import os.path
 import socket
@@ -35,11 +39,13 @@ import tuf.conf
 import tuf.hash
 import tuf.util
 import tuf.formats
+import tuf._vendor.six as six
 
-from tuf.compatibility import httplib, ssl, urllib2, urlparse
+from tuf.compatibility import ssl
 
 if ssl:
     from tuf.compatibility import match_hostname
+
 else:
     raise tuf.Error("No SSL support!")    # TODO: degrade gracefully
 
@@ -47,13 +53,10 @@ else:
 # reads.  Therefore, we will need these global variables.
 # http://hg.python.org/cpython/file/5be3fa83d436/Lib/socket.py#l84
 
-try:
-  from cStringIO import StringIO
-except ImportError:
-  from StringIO import StringIO
 
 try:
   import errno
+
 except ImportError:
   errno = None
 EINTR = getattr(errno, 'EINTR', 4)
@@ -65,6 +68,7 @@ logger = logging.getLogger('tuf.download')
 
 
 
+# socket._fileobject removed in PY3.  SocketIO?
 class SaferSocketFileObject(socket._fileobject):
   """We override socket._fileobject to produce a file-like object which reads
   from a socket more safely than its ancestor. One the safety properties is
@@ -222,11 +226,11 @@ class SaferSocketFileObject(socket._fileobject):
       # Already have size bytes in our buffer?  Extract and return.
       buf.seek(0)
       rv = buf.read(size)
-      self._rbuf = StringIO()
+      self._rbuf = six.StringIO()
       self._rbuf.write(buf.read())
       return rv
 
-    self._rbuf = StringIO()  # reset _rbuf.  we consume it via buf.
+    self._rbuf = six.StringIO()  # reset _rbuf.  we consume it via buf.
     # Since we try to detect slow retrieval, this should not be an infinite loop.
     while True:
       left = size - buf_len
@@ -273,20 +277,21 @@ class SaferSocketFileObject(socket._fileobject):
 
 
 
-class SaferHTTPResponse(httplib.HTTPResponse):
+class SaferHTTPResponse(six.moves.http_client.HTTPResponse):
   """A safer version of httplib.HTTPResponse, in which we only use safe socket
   file-like objects."""
 
   def __init__(self, sock, debuglevel=0, strict=0, method=None,
                buffering=False):
-    httplib.HTTPResponse.__init__(self, sock, debuglevel,
-                                  strict, method)
+    six.moves.http_client.HTTPResponse.__init__(self, sock, debuglevel, strict,
+                                                method)
 
     # Delete the previous socket file-like object...
     del self.fp
     # ...and replace it with our safer version.
     if buffering:
       self.fp = SaferSocketFileObject(sock._sock, 'rb')
+    
     else:
       self.fp = SaferSocketFileObject(sock._sock, 'rb', 0)
 
@@ -294,7 +299,7 @@ class SaferHTTPResponse(httplib.HTTPResponse):
 
 
 
-class VerifiedHTTPSConnection(httplib.HTTPSConnection):
+class VerifiedHTTPSConnection(six.moves.httplib.HTTPSConnection):
   """
   A connection that wraps connections with ssl certificate verification.
 
@@ -747,7 +752,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   # NOTE: Not thread-safe.
   # Save current values or functions for restoration later.
   previous_socket_timeout = socket.getdefaulttimeout()
-  previous_http_response_class = httplib.HTTPConnection.response_class
+  previous_http_response_class = six.moves.http_client.HTTPConnection.response_class
 
   # This is the temporary file that we will return to contain the contents of
   # the downloaded file.
@@ -758,7 +763,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     # Set timeout to induce non-blocking socket operations.
     socket.setdefaulttimeout(tuf.conf.SOCKET_TIMEOUT)
     # Replace the socket file-like object class with our safer version.
-    httplib.HTTPConnection.response_class = SaferHTTPResponse
+    six.moves.http_client.HTTPConnection.response_class = SaferHTTPResponse
 
     # Open the connection to the remote file.
     connection = _open_connection(url)
@@ -791,5 +796,5 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   finally:
     # NOTE: Not thread-safe.
     # Restore previously saved values or functions.
-    httplib.HTTPConnection.response_class = previous_http_response_class
+    six.moves.http_client.HTTPConnection.response_class = previous_http_response_class
     socket.setdefaulttimeout(previous_socket_timeout)
