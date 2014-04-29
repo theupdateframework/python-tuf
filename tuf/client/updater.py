@@ -615,18 +615,23 @@ class Updater(object):
     # 'unsafely_update_root_if_necessary' is True, update an expired Root role
     # now.  Updating the other top-level roles, regardless of their validity,
     # should only occur if the root of trust is up-to-date.
-    if unsafely_update_root_if_necessary:
-      root_metadata = self.metadata['current']['root']
-      try: 
-        self._ensure_not_expired(root_metadata, 'root')
-      
-      except tuf.ExpiredMetadataError as e:
-        # Raise 'tuf.NoWorkingMirrorError' if a valid (not expired, properly
-        # signed, and valid metadata) 'root' cannot be installed.
+    root_metadata = self.metadata['current']['root']
+    try: 
+      self._ensure_not_expired(root_metadata, 'root')
+    
+    except tuf.ExpiredMetadataError as e:
+      # Raise 'tuf.NoWorkingMirrorError' if a valid (not expired, properly
+      # signed, and valid metadata) 'root' cannot be installed.
+      if unsafely_update_root_if_necessary:
         message = \
           'Expired Root metadata was loaded from disk.  Try to update it now.' 
         logger.info(message)
         self._update_metadata('root', DEFAULT_ROOT_FILEINFO)
+     
+      # The caller explicitly requested not to unsafely fetch an expired Root.
+      else:
+        logger.info('An expired Root metadata was loaded and must be updated.')
+        raise
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
@@ -1009,9 +1014,9 @@ class Updater(object):
       self._verify_uncompressed_metadata_file(metadata_file_object,
                                               metadata_role)
       
-    def unsafely_verify_compressed_metadata_file(metadata_signable):
-      self._hard_check_file_length(metadata_signable, compressed_file_length) 
-      self._check_hashes(metadata_signable, compressed_file_hashes)
+    def unsafely_verify_compressed_metadata_file(metadata_file_object):
+      self._hard_check_file_length(metadata_file_object, compressed_file_length) 
+      self._check_hashes(metadata_file_object, compressed_file_hashes)
 
     if compression is None:
       unsafely_verify_compressed_metadata_file = None
@@ -1372,7 +1377,7 @@ class Updater(object):
     logger.debug('Updated '+repr(current_filepath)+'.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    self._update_fileinfo(metadata_filename)
+    self._update_fileinfo(uncompressed_metadata_filename)
 
     # Ensure the role and key information of the top-level roles is also updated
     # according to the newly-installed Root metadata.
