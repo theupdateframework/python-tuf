@@ -608,6 +608,26 @@ class Updater(object):
     # is insufficient trusted signatures for the specified metadata.
     # Raise 'tuf.NoWorkingMirrorError' if an update fails.
 
+    # Is the Root role expired?  When the top-level roles are initially loaded
+    # from disk, their expiration is not checked to allow their updating when
+    # requested (and give the updater the chance to continue, rather than always
+    # failing with an expired metadata error.)  If
+    # 'unsafely_update_root_if_necessary' is True, update an expired Root role
+    # now.  Updating the other top-level roles, regardless of their validity,
+    # should only occur if the root of trust is up-to-date.
+    if unsafely_update_root_if_necessary:
+      root_metadata = self.metadata['current']['root']
+      try: 
+        self._ensure_not_expired(root_metadata, 'root')
+      
+      except tuf.ExpiredMetadataError as e:
+        # Raise 'tuf.NoWorkingMirrorError' if a valid (not expired, properly
+        # signed, and valid metadata) 'root' cannot be installed.
+        message = \
+          'Expired Root metadata was loaded from disk.  Try to update it now.' 
+        logger.info(message)
+        self._update_metadata('root', DEFAULT_ROOT_FILEINFO)
+
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
     try: 
@@ -628,13 +648,6 @@ class Updater(object):
       
       else:
         raise
-
-    else:
-      # Updated the top-level metadata (which all had valid signatures),
-      # however, have they expired?  Raise 'tuf.ExpiredMetadataError' if any of
-      # the metadata has expired.
-      for metadata_role in ['timestamp', 'root', 'snapshot', 'targets']:
-        self._ensure_not_expired(metadata_role)
 
 
 
@@ -883,13 +896,18 @@ class Updater(object):
     
     try:
       metadata_signable = tuf.util.load_json_string(metadata)
+    
     except Exception, exception:
       raise tuf.InvalidMetadataJSONError(exception)
+    
     else:
       # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
       # 'tuf.FormatError' if not.
       tuf.formats.check_signable_object_format(metadata_signable)
 
+    # Is 'metadata_signable' expired?
+    self._ensure_not_expired(metadata_signable['signed'], metadata_role)
+    
     # Is 'metadata_signable' newer than the currently installed
     # version?
     current_metadata_role = self.metadata['current'].get(metadata_role)
@@ -990,10 +1008,10 @@ class Updater(object):
       self._check_hashes(metadata_file_object, uncompressed_file_hashes)
       self._verify_uncompressed_metadata_file(metadata_file_object,
                                               metadata_role)
-    
-    def unsafely_verify_compressed_metadata_file(metadata_file_object):
-      self._hard_check_file_length(metadata_file_object, compressed_file_length) 
-      self._check_hashes(metadata_file_object, compressed_file_hashes)
+      
+    def unsafely_verify_compressed_metadata_file(metadata_signable):
+      self._hard_check_file_length(metadata_signable, compressed_file_length) 
+      self._check_hashes(metadata_signable, compressed_file_hashes)
 
     if compression is None:
       unsafely_verify_compressed_metadata_file = None
@@ -1069,7 +1087,7 @@ class Updater(object):
                                    uncompressed_file_length)
       self._check_hashes(metadata_file_object, uncompressed_file_hashes)
       self._verify_uncompressed_metadata_file(metadata_file_object,
-                                               metadata_role)
+                                              metadata_role)
 
     def safely_verify_compressed_metadata_file(metadata_file_object):
       self._hard_check_file_length(metadata_file_object, compressed_file_length) 
@@ -1724,20 +1742,24 @@ class Updater(object):
 
 
 
-  def _ensure_not_expired(self, metadata_role):
+  def _ensure_not_expired(self, metadata_object, metadata_rolename):
     """
     <Purpose>
       Non-public method that raises an exception if the current specified
       metadata has expired.
     
     <Arguments>
-      metadata_role:
+      metadata_object:
+        The metadata that should be expired, a 'tuf.formats.ANYROLE_SCHEMA'
+        object.
+
+      metadata_rolename:
         The name of the metadata. This is a role name and should not end
         in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
     
     <Exceptions>
       tuf.ExpiredMetadataError:
-        If 'metadata_role' has expired.
+        If 'metadata_rolename' has expired.
 
     <Side Effects>
       None.
@@ -1745,17 +1767,9 @@ class Updater(object):
     <Returns>
       None.
     """
-  
-    # Construct the full metadata filename and the location of its
-    # current path.  The current path of 'metadata_role' is needed
-    # to log the exact filename of the expired metadata.
-    metadata_filename = metadata_role + '.json'
-    rolepath =  os.path.join(self.metadata_directory['current'],
-                             metadata_filename)
-    rolepath = os.path.abspath(rolepath)
-    
+
     # Extract the expiration time.
-    expires = self.metadata['current'][metadata_role]['expires']
+    expires = metadata_object['expires']
    
     # If the current time has surpassed the expiration date, raise
     # an exception.  'expires' is in 'tuf.formats.ISO8601_DATETIME_SCHEMA'
@@ -1770,7 +1784,7 @@ class Updater(object):
     expires_timestamp = tuf.formats.datetime_to_unix_timestamp(expires_datetime)
     
     if expires_timestamp < current_time:
-      message = 'Metadata '+repr(rolepath)+' expired on ' + \
+      message = 'Metadata '+repr(metadata_rolename)+' expired on ' + \
         expires_datetime.ctime() + ' (UTC).'
       logger.error(message)
 
@@ -1908,13 +1922,6 @@ class Updater(object):
 
       self._update_metadata_if_changed(rolename)
 
-      # Remove the role if it has expired.
-      try:
-        self._ensure_not_expired(rolename)
-      
-      except tuf.ExpiredMetadataError:
-        tuf.roledb.remove_role(rolename)
-
 
 
 
@@ -2032,13 +2039,6 @@ class Updater(object):
       self._load_metadata_from_file('current', rolename)
 
       self._update_metadata_if_changed(rolename)
-
-      # Remove the role if it has expired.
-      try:
-        self._ensure_not_expired(rolename)
-        refreshed_chain.append(rolename)
-      except tuf.ExpiredMetadataError:
-        tuf.roledb.remove_role(rolename)
 
     return refreshed_chain
 
