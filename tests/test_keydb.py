@@ -150,6 +150,9 @@ class TestKeydb(unittest.TestCase):
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid)
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid2)
 
+    # Test for 'keyid' not in keydb.
+    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, keyid)
+
     # Test conditions for arguments with invalid formats.
     self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, None)
     self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, '')
@@ -166,7 +169,10 @@ class TestKeydb(unittest.TestCase):
     keyid = KEYS[0]['keyid']
     rsakey2 = KEYS[1]
     keyid2 = KEYS[1]['keyid']
-    keydict = {keyid: rsakey, keyid2: rsakey2}
+    keydict = {keyid: rsakey, keyid2: rsakey2, keyid: rsakey}
+
+    # Add a duplicate 'keyid' to log/trigger a 'tuf.KeyAlreadyExistsError'
+    # block (loading continues). 
     roledict = {'Root': {'keyids': [keyid], 'threshold': 1},
                 'Targets': {'keyids': [keyid2], 'threshold': 1}}
     version = 8
@@ -178,6 +184,7 @@ class TestKeydb(unittest.TestCase):
                                                        keydict, roledict,
                                                        consistent_snapshot)
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
+    
     # Ensure 'keyid' and 'keyid2' were added to the keydb database.
     self.assertEqual(rsakey, tuf.keydb.get_key(keyid))
     self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))

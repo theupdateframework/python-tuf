@@ -13,12 +13,18 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Unit tests for hash.py.
-
+  Unit test for hash.py.
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import os
-import StringIO
 import logging
 import tempfile
 import unittest
@@ -26,6 +32,7 @@ import unittest
 import tuf
 import tuf.log
 import tuf.hash
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_hash')
 
@@ -215,7 +222,7 @@ class TestHash(unittest.TestCase):
 
   def _do_update_file_obj(self, library):
     data = 'abcdefgh' * 4096
-    file_obj = StringIO.StringIO()
+    file_obj = six.StringIO()
     file_obj.write(data)
     for algorithm in ['md5', 'sha1', 'sha224', 'sha256', 'sha384', 'sha512']:
       digest_object_truth = tuf.hash.digest(algorithm, library)

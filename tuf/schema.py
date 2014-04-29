@@ -475,7 +475,7 @@ class Integer(Schema):
     False
   """
 
-  def __init__(self, lo = -sys.maxint, hi = sys.maxint):
+  def __init__(self, lo = -2147483648, hi = 2147483647):
     """
     <Purpose> 
       Create a new Integer schema.
