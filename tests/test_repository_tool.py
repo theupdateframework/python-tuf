@@ -1035,6 +1035,64 @@ class TestTargets(unittest.TestCase):
 
 
 
+  def test_add_target_to_bin(self):
+    # Test normal case.
+    # Delegate the hashed bins so that add_target_to_bin() can be tested.
+    keystore_directory = os.path.join('repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+
+    # Set needed arguments by delegate_hashed_bins().
+    public_keys = [public_key]
+    list_of_targets = [target1_filepath] 
+
+    # Delegate to hashed bins.  The target filepath to be tested is expected 
+    # to contain a hash prefix of 'e', so it should be added to the
+    # 'targets/e' role.
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+                                             number_of_bins=16)
+ 
+    # Ensure each hashed bin initially contains zero targets.
+    for delegation in self.targets_object.delegations:
+      self.assertTrue(target1_filepath not in delegation.target_files)
+
+    # Add 'target1_filepath' and verify that the relative path of
+    # 'target1_filepath' is added to the correct bin.
+    self.targets_object.add_target_to_bin(target1_filepath)
+    for delegation in self.targets_object.delegations:
+      if delegation.rolename == 'targets/e':
+        self.assertTrue('/file1.txt' in delegation.target_files)
+      
+      else:
+        self.assertFalse('/file1.txt' in delegation.target_files)
+          
+    # Test for non-existent delegations and hashed bins.
+    empty_targets_role = repo_tool.Targets(self.targets_directory, 'empty')
+    
+    self.assertRaises(tuf.Error, empty_targets_role.add_target_to_bin,
+                      target1_filepath)
+    
+    # Non-bin delegation, although it has a correct hashed bin name.
+    empty_targets_role.delegate('e', [public_key], [target1_filepath])
+    self.assertRaises(tuf.Error, empty_targets_role.add_target_to_bin,
+                      target1_filepath)
+
+    # Test for a required hashed bin that does not exist.
+    self.targets_object.revoke('e')
+    self.assertRaises(tuf.Error, self.targets_object.add_target_to_bin,
+                      target1_filepath)
+
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError,
+                      self.targets_object.add_target_to_bin, 3)
+
+    # Invalid target file path argument.
+    self.assertRaises(tuf.Error,
+                      self.targets_object.add_target_to_bin, '/non-existent')
+    
+    
+
   def test_add_restricted_paths(self):
     # Test normal case.
     # Perform a delegation so that add_restricted_paths() has a child role

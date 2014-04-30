@@ -1566,6 +1566,7 @@ class Targets(Metadata):
    
     if rolename in self._delegated_roles:
       return self._delegated_roles[rolename]
+    
     else:
       message = repr(rolename)+' has not been delegated by '+repr(self.rolename) 
       raise tuf.UnknownRoleError(message)
@@ -1810,6 +1811,7 @@ class Targets(Metadata):
       
       if os.path.isfile(filepath):
         relative_list_of_targets.append(filepath[targets_directory_length:])
+      
       else:
         message = repr(filepath)+' is not a valid file.'
         raise tuf.Error(message)
@@ -2326,6 +2328,109 @@ class Targets(Metadata):
 
       message = 'Delegated from '+repr(self.rolename)+' to '+repr(bin_rolename)
       logger.debug(message)
+
+
+
+  def add_target_to_bin(self, target_filepath):
+    """
+    <Purpose>
+      Add the fileinfo of 'target_filepath' to the expected hashed bin if
+      the bin is available.  The hashed bin should have been created by 
+      {targets_role}.delegate_hashed_bins().  Assuming the target filepath
+      falls under the repository's targets directory, determine the filepath's
+      hash prefix, locate the expected bin (if any), and then add the fileinfo
+      to the expected bin.  Example:  'targets/foo.tar.gz' may be added to
+      the 'targets/unclaimed/58-5f.json' role's list of targets by calling this
+      method.
+
+      >>>
+      >>>
+      >>>
+
+    <Arguments>
+      target_filepath:
+        The filepath of the target to be added to a hashed bin.  The filepath
+        must fall under repository's targets directory.
+
+    <Exceptions>
+      tuf.FormatError, if 'target_filepath' is improperly formatted.
+      
+      tuf.Error, if 'target_filepath' cannot be added to a hashed bin
+      (e.g., an invalid target filepath, or the expected hashed bin does not
+      exist.)
+
+    <Side Effects>
+      The fileinfo of 'target_filepath' is added to a hashed bin of this Targets
+      object.
+
+    <Returns>
+      None. 
+    """
+    
+    # Do the arguments have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.PATH_SCHEMA.check_match(target_filepath)
+
+    # Determine the prefix length of any one of the hashed bins.  The prefix
+    # length is not stored in the roledb, so it must be determined here by
+    # inspecting one of path hash prefixes listed.
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    prefix_length = 0
+    delegation = None
+   
+    # Set 'delegation' if this Targets role has performed any delegations.
+    if len(roleinfo['delegations']['roles']):
+      delegation = roleinfo['delegations']['roles'][0]
+    
+    else:
+      raise tuf.Error(self.rolename + ' has not delegated to any roles.')
+
+    # Set 'prefix_length' if this Targets object has delegated to hashed bins,
+    # otherwise raise an exception.
+    if 'path_hash_prefixes' in delegation and len(delegation['path_hash_prefixes']):
+      prefix_length = len(delegation['path_hash_prefixes'][0])
+      
+    else:
+      raise tuf.Error(self.rolename + ' has not delegated to hashed bins.')
+   
+    # Ensure the filepath falls under the repository's targets directory.
+    filepath = os.path.abspath(target_filepath)
+    if not filepath.startswith(self._targets_directory + os.sep):
+      message = repr(filepath)+' is not under the Repository\'s targets '+\
+        'directory: '+repr(self._targets_directory)
+      raise tuf.Error(message)
+    
+    # Determine the hash prefix of 'target_path' by computing the digest of
+    # its path relative to the targets directory.  Example:
+    # '{repository_root}/targets/file1.txt' -> '/file1.txt'.
+    relative_path = filepath[len(self._targets_directory):]
+    digest_object = tuf.hash.digest(algorithm=HASH_FUNCTION)
+    digest_object.update(relative_path)
+    path_hash = digest_object.hexdigest()
+    path_hash_prefix = path_hash[:prefix_length]
+
+    # Search for 'path_hash_prefix', and if found, extract the hashed bin's
+    # rolename.  The hashed bin name is needed so that 'target_filepath' can be
+    # added to the Targets object of the hashed bin.
+    hashed_bin_name = None
+    for delegation in roleinfo['delegations']['roles']:
+      if path_hash_prefix in delegation['path_hash_prefixes']:
+        hashed_bin_name = delegation['name']
+        break
+      
+      else:
+        continue
+
+    # 'self._delegated_roles' is keyed by relative rolenames, so update
+    # 'hashed_bin_name'.
+    if hashed_bin_name is not None:
+      hashed_bin_name = hashed_bin_name[len(self.rolename)+1:] 
+      self._delegated_roles[hashed_bin_name].add_target(target_filepath)
+
+    else:
+      raise tuf.Error(target_filepath + ' cannot be added to any bins.')
 
 
 
