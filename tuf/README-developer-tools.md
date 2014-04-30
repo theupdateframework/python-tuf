@@ -25,8 +25,6 @@ prototypal TUF project. The second part demonstrates the full capabilities of
 the TUF developer tool, which can be used to expand the project from the first
 part to meet the developer's needs.
 
-
-
 <a name="creating_a_simple_project">
 ## Creating a Simple project
 The following section describes a very basic example usage of the developer tools with
@@ -177,11 +175,29 @@ methods as Project. For example, we can add targets in the same way as before:
 
 Recall that we input the other person’s key as part of a list. That list can
 contain any number of public keys. You can also add keys to the role after
-creating it using the add\_verification\_key() method.
+creating it using the [add\_verification\_key()](#adding_a_key_to_a_delegation) method.
 
 ### Restricted Paths
 
+By default, a delegated role is permitted to add and modify targets anywhere in the
+Project's targets directory. We can assign restricted paths to a delegated role to
+limit this permission.
+
+```
+>>> project.add_restricted_paths(["restricted/filepath"], "newrole")
+```
+
+This will prevent the delegated role from signing targets whose local filepaths do not
+begin with "restricted/filepath". We can assign several restricted filepaths to a role
+by adding them to the list in the first parameter, or by invoking the method again. A
+role with multiple restricted paths can add targets to any of them.
+
+Note that this method is invoked the parent role (in this case, the project) and takes
+the delegated role name as an argument.
+
 ### Nested Delegations
+
+
 
 ### Revoking Delegations
 
@@ -200,6 +216,7 @@ and its password as parameters:
 The bits parameter defaults to 3072, and values below 2048 will raise an error.
 The password parameter is only intended to be used in scripts.
 
+<a name="adding_a_key_to_a_delegation">
 ### Adding a Key to a Delegation
 Likewise, it is possible to add a key to a project by issuing the following command:
 ```
@@ -229,7 +246,6 @@ later.
 There are supporting functions of the targets library to make the project
 maintenance easier. These functions are described in this section.
 
-
 ### Adding Targets by Directory
 This function is specially useful when creating a new project to add all the files
 contained in the targets directory. The following code block illustrates the usage
@@ -241,7 +257,6 @@ of this function:
 ...   recursive_walk=False, follow_links=False)
 >>> project.add_targets(list_of_targets)
 ```
-
 
 ### Deleting Targets from a Project
 It is possible that we want to delete existing targets inside our project. In order
