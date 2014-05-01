@@ -654,6 +654,7 @@ class TargetsFile(MetaFile):
     result = {'_type' : 'Targets'}
     result['version'] = version
     result['expires'] = expiration_date
+    result['targets'] = {} 
     if filedict is not None:
       result['targets'] = filedict
     if delegations is not None:
@@ -1289,7 +1290,7 @@ def encode_canonical(object, output_function=None):
   try:
     _encode_canonical(object, output_function)
   
-  except TypeError, e:
+  except (TypeError, tuf.FormatError) as  e:
     message = 'Could not encode '+repr(object)+': '+str(e)
     raise tuf.FormatError(message)
 

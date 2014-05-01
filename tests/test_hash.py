@@ -13,8 +13,7 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Unit tests for hash.py.
-
+  Unit test for 'hash.py'.
 """
 
 import os

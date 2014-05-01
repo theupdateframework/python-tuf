@@ -429,8 +429,23 @@ class TestFormats(unittest.TestCase):
 
     self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(version, expires,
                                                          filedict, delegations)))
+    self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(version, expires, filedict)))
+
     metadata = make_metadata(version, expires, filedict, delegations)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
+    
+    # Test conditions for different combination of required arguments (i.e.,
+    # a filedict or delegations argument is required.)
+    metadata = make_metadata(version, expires, filedict)
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
+    
+    metadata = make_metadata(version, expires, delegations=delegations)
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
+    
+    # Directly instantiating a TargetsFile object.
+    tuf.formats.TargetsFile(version, expires)
+    tuf.formats.TargetsFile(version, expires, filedict)
+    tuf.formats.TargetsFile(version, expires, delegations=delegations)
 
     # Test conditions for invalid arguments.
     bad_version = 'eight'
@@ -448,6 +463,21 @@ class TestFormats(unittest.TestCase):
     self.assertRaises(tuf.Error, make_metadata, version, expires)
 
     self.assertRaises(tuf.FormatError, from_metadata, 123)
+    
+
+
+  def test_MirrorsFile(self):
+    # Test normal case.
+    version = 8
+    expires = '1985-10-21T13:20:00Z'
+    
+    mirrors_file = tuf.formats.MirrorsFile(version, expires)
+    
+    make_metadata = tuf.formats.MirrorsFile.make_metadata
+    from_metadata = tuf.formats.MirrorsFile.from_metadata
+
+    self.assertRaises(NotImplementedError, make_metadata)
+    self.assertRaises(NotImplementedError, from_metadata, mirrors_file)
 
 
 
@@ -497,9 +527,10 @@ class TestFormats(unittest.TestCase):
     self.assertTrue(isinstance(tuf.formats.parse_base64(base64), basestring))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.formats.format_base64, 123)
-    self.assertRaises(tuf.FormatError, tuf.formats.format_base64, True)
-    self.assertRaises(tuf.FormatError, tuf.formats.format_base64, ['123'])
+    self.assertRaises(tuf.FormatError, tuf.formats.parse_base64, 123)
+    self.assertRaises(tuf.FormatError, tuf.formats.parse_base64, True)
+    self.assertRaises(tuf.FormatError, tuf.formats.parse_base64, ['123'])
+    self.assertRaises(tuf.FormatError, tuf.formats.parse_base64, '/')
 
 
 
@@ -558,6 +589,7 @@ class TestFormats(unittest.TestCase):
     keyids = ['123abc', 'abc123']
     threshold = 2
     paths = ['path1/', 'path2']
+    path_hash_prefixes = ['000', '003']
     name = '123'
 
     ROLE_SCHEMA = tuf.formats.ROLE_SCHEMA
@@ -567,7 +599,9 @@ class TestFormats(unittest.TestCase):
     self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, name=name)))
     self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, paths=paths)))
     self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, name=name, paths=paths)))
-
+    self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, name=name,
+                                        path_hash_prefixes=path_hash_prefixes)))
+  
     # Test conditions for invalid arguments.
     bad_keyids = 'bad'
     bad_threshold = 'bad'
@@ -589,8 +623,9 @@ class TestFormats(unittest.TestCase):
     self.assertRaises(tuf.FormatError, make_role, keyids, bad_threshold, name=name, paths=paths)
     self.assertRaises(tuf.FormatError, make_role, keyids, threshold, name=bad_name, paths=paths)
     self.assertRaises(tuf.FormatError, make_role, keyids, threshold, name=name, paths=bad_paths)
-
-
+ 
+    # 'paths' and 'path_hash_prefixes' cannot both be specified.
+    self.assertRaises(tuf.FormatError, make_role, keyids, threshold, name, paths, path_hash_prefixes)
 
   def test_get_role_class(self):
     # Test conditions for valid arguments.
@@ -680,8 +715,10 @@ class TestFormats(unittest.TestCase):
     self.assertEqual('[]', encode([]))
     self.assertEqual('{"A":[99]}', encode({"A": [99]}))
     self.assertEqual('{"x":3,"y":2}', encode({"x": 3, "y": 2}))
+    
+    self.assertEqual('{"x":3,"y":null}', encode({"x": 3, "y": None}))
 
-    # Condition where 'encode()' sends the result the callable
+    # Condition where 'encode()' sends the result to the callable
     # 'output'.
     self.assertEqual(None, encode([1, 2, 3], output))
     self.assertEqual('[1,2,3]', ''.join(result))
@@ -692,6 +729,7 @@ class TestFormats(unittest.TestCase):
     self.assertRaises(tuf.FormatError, encode, {"x": 8.0})
     self.assertRaises(tuf.FormatError, encode, 8.0, output)
 
+    self.assertRaises(tuf.FormatError, encode, {"x": tuf.FormatError})
 
 
 # Run unit test.

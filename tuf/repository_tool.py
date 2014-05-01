@@ -229,8 +229,8 @@ class Repository(object):
     tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot) 
     
     # At this point the tuf.keydb and tuf.roledb stores must be fully
-    # populated, otherwise write() throwns a 'tuf.Repository' exception if 
-    # any of the top-level roles are missing signatures, keys, etc.
+    # populated, otherwise write() throwns a 'tuf.UnsignedMetadataError'
+    # exception if any of the top-level roles are missing signatures, keys, etc.
 
     # Write the metadata files of all the delegated roles.  Ensure target paths
     # are allowed, metadata is valid and properly signed, and required files and
@@ -1551,11 +1551,14 @@ class Targets(Metadata):
     <Exceptions>
       tuf.FormatError, if the arguments are improperly formatted.
 
+      tuf.UnknownRoleError, if 'rolename' has not been delegated by this
+      Targets object.
+
     <Side Effects>
       Modifies the roleinfo of the targets role in 'tuf.roledb'.
     
     <Returns>
-      None.
+      The Targets object of 'rolename'. 
     """
     
     # Do the arguments have the correct format?
@@ -2508,10 +2511,10 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     root_filename = filenames['root']
     targets_filename = filenames['targets']
     metadata = generate_snapshot_metadata(metadata_directory,
-                                         roleinfo['version'],
-                                         roleinfo['expires'], root_filename,
-                                         targets_filename,
-                                         consistent_snapshot)
+                                          roleinfo['version'],
+                                          roleinfo['expires'], root_filename,
+                                          targets_filename,
+                                          consistent_snapshot)
       
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
                                  SNAPSHOT_EXPIRES_WARN_SECONDS)
