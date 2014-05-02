@@ -1141,6 +1141,10 @@ class Metadata(object):
       message = repr(datetime_object) + ' is not a datetime.datetime() object.'
       raise tuf.FormatError(message) 
 
+    # truncate the microseconds value to produce a correct schema string 
+    # of the form yyyy-mm-ddThh:mm:ssZ
+    datetime_object = datetime_object.replace(microsecond = 0)
+    
     # Ensure the expiration has not already passed.
     current_datetime_object = \
       tuf.formats.unix_timestamp_to_datetime(int(time.time()))
