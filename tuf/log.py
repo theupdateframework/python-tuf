@@ -168,7 +168,8 @@ class ConsoleFilter(logging.Filter):
 def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
   """
   <Purpose>
-    Allow the default log level to be overridden.
+    Allow the default log level to be overridden.  If 'log_level' is not
+    provided, log level defaults to 'logging.DEBUG'. 
 
   <Arguments>
     log_level:
@@ -198,7 +199,8 @@ def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
 def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
   """
   <Purpose>
-    Allow the default file handler log level to be overridden.
+    Allow the default file handler log level to be overridden.  If 'log_level'
+    is not provided, log level defaults to 'logging.DEBUG'. 
 
   <Arguments>
     log_level:
@@ -228,7 +230,8 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
 def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   """
   <Purpose>
-    Allow the default log level for console messages to be overridden.
+    Allow the default log level for console messages to be overridden.  If
+    'log_level' is not provided, log level defaults to 'logging.INFO'. 
 
   <Arguments>
     log_level:

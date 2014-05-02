@@ -21,7 +21,11 @@
 """
 
 import urlparse
+import logging
 
+import tuf.log
+
+logging = logging.getLogger('tuf.__init__')
 
 # Import 'tuf.formats' if a module tries to import the
 # entire tuf package (i.e., from tuf import *). 

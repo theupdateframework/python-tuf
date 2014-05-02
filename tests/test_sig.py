@@ -47,6 +47,15 @@ class TestSig(unittest.TestCase):
 
   def test_get_signature_status_no_role(self):
     signable = {'signed' : 'test', 'signatures' : []}
+
+    # A valid, but empty signature status
+    sig_status = tuf.sig.get_signature_status(signable)
+    self.assertTrue(tuf.formats.SIGNATURESTATUS_SCHEMA.matches(sig_status))
+
+    # A valid signable, but non-existent role argument.
+    self.assertRaises(tuf.UnknownRoleError, tuf.sig.get_signature_status,
+                      signable, 'unknown_role')
+    
     # Should verify we are not adding a duplicate signature
     # when doing the following action.  Here we know 'signable'
     # has only one signature so it's okay.
@@ -57,6 +66,10 @@ class TestSig(unittest.TestCase):
 
     # No specific role we're considering.
     sig_status = tuf.sig.get_signature_status(signable, None)
+
+    # Non-existent role.
+    self.assertRaises(tuf.UnknownRoleError, tuf.sig.get_signature_status,
+                      signable, 'unknown_role')
 
     self.assertEqual(0, sig_status['threshold'])
     self.assertEqual([KEYS[0]['keyid']], sig_status['good_sigs'])
@@ -345,6 +358,9 @@ class TestSig(unittest.TestCase):
     self.assertEqual(1, len(signable['signatures']))
     signature = signable['signatures'][0]
     self.assertEqual(KEYS[0]['keyid'], signature['keyid'])
+    
+    returned_signature = tuf.sig.generate_rsa_signature(signable['signed'], KEYS[0]) 
+    self.assertTrue(tuf.formats.SIGNATURE_SCHEMA.matches(returned_signature))
 
     signable['signatures'].append(tuf.keys.create_signature(
                                   KEYS[1], signable['signed']))
@@ -353,6 +369,7 @@ class TestSig(unittest.TestCase):
     signature = signable['signatures'][1]
     self.assertEqual(KEYS[1]['keyid'], signature['keyid'])
 
+     
 
   def test_may_need_new_keys(self):
     # One untrusted key in 'signable'.    
