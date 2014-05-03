@@ -117,6 +117,15 @@ TARGETS_EXPIRES_WARN_SECONDS = 864000
 TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
 
 
+try:
+  tuf.keys.check_crypto_libraries(['rsa', 'ed25519', 'general'])
+
+except tuf.UnsupportedLibraryError as e:
+  message = 'Warning: The repository and developer tools require additional' + \
+    ' libraries and can be installed as follows:\n $ pip install tuf[tools]'  
+  logger.warn(message) 
+
+
 class Repository(object):
   """
   <Purpose>
@@ -430,23 +439,23 @@ class Repository(object):
         except tuf.UnsignedMetadataError, e:
           insufficient_signatures.append(delegated_role)
      
-      # Print the verification results of the delegated roles and return
+      # Log the verification results of the delegated roles and return
       # immediately after each invalid case.
       if len(insufficient_keys):
         message = \
           'Delegated roles with insufficient keys:\n'+repr(insufficient_keys)
-        print(message)
+        logger.info(message)
         return
       
       if len(insufficient_signatures):
         message = \
           'Delegated roles with insufficient signatures:\n'+\
           repr(insufficient_signatures)
-        print(message) 
+        logger.info(message) 
         return
 
-      # Verify the top-level roles and print the results.
-      _print_status_of_top_level_roles(targets_directory, metadata_directory)
+      # Verify the top-level roles and log the results.
+      _log_status_of_top_level_roles(targets_directory, metadata_directory)
     
     finally:
       shutil.rmtree(temp_repository_directory, ignore_errors=True)
@@ -2579,13 +2588,13 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
 
 
-def _print_status_of_top_level_roles(targets_directory, metadata_directory):
+def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   """
-  Non-public function that prints whether any of the top-level roles contain an
+  Non-public function that logs whether any of the top-level roles contain an
   invalid number of public and private keys, or an insufficient threshold of
   signatures.  Considering that the top-level metadata have to be verified in
   the expected root -> targets -> snapshot -> timestamp order, this function
-  prints the error message and returns as soon as a required metadata file is
+  logs the error message and returns as soon as a required metadata file is
   found to be invalid.  It is assumed here that the delegated roles have been
   written and verified.  Example output:
   
@@ -2614,7 +2623,7 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
       _check_role_keys(rolename)
     
     except tuf.InsufficientKeysError, e:
-      print(str(e))
+      logger.info(str(e))
       return
 
   # Do the top-level roles contain a valid threshold of signatures?  Top-level
@@ -2624,13 +2633,13 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
     signable, root_filename = \
       _generate_and_write_metadata('root', root_filename, False,
                                    targets_directory, metadata_directory)
-    _print_status('root', signable)
+    _log_status('root', signable)
  
   # 'tuf.UnsignedMetadataError' raised if metadata contains an invalid threshold
-  # of signatures.  Print the valid/threshold message, where valid < threshold.
+  # of signatures.  log the valid/threshold message, where valid < threshold.
   except tuf.UnsignedMetadataError, e:
     signable = e[1]
-    _print_status('root', signable)
+    _log_status('root', signable)
     return
 
   # Verify the metadata of the Targets role.
@@ -2638,11 +2647,11 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
     signable, targets_filename = \
       _generate_and_write_metadata('targets', targets_filename, False,
                                    targets_directory, metadata_directory)
-    _print_status('targets', signable)
+    _log_status('targets', signable)
   
   except tuf.UnsignedMetadataError, e:
     signable = e[1]
-    _print_status('targets', signable)
+    _log_status('targets', signable)
     return
 
   # Verify the metadata of the snapshot role.
@@ -2652,11 +2661,11 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
       _generate_and_write_metadata('snapshot', snapshot_filename, False,
                                    targets_directory, metadata_directory,
                                    False, filenames)
-    _print_status('snapshot', signable)
+    _log_status('snapshot', signable)
   
   except tuf.UnsignedMetadataError, e:
     signable = e[1]
-    _print_status('snapshot', signable)
+    _log_status('snapshot', signable)
     return
   
   # Verify the metadata of the Timestamp role.
@@ -2666,19 +2675,19 @@ def _print_status_of_top_level_roles(targets_directory, metadata_directory):
       _generate_and_write_metadata('timestamp', snapshot_filename, False,
                                    targets_directory, metadata_directory,
                                    False, filenames)
-    _print_status('timestamp', signable)
+    _log_status('timestamp', signable)
   
   except tuf.UnsignedMetadataError, e:
     signable = e[1]
-    _print_status('timestamp', signable)
+    _log_status('timestamp', signable)
     return
 
 
 
 
-def _print_status(rolename, signable):
+def _log_status(rolename, signable):
   """
-  Non-public function prints the number of (good/threshold) signatures of
+  Non-public function logs the number of (good/threshold) signatures of
   'rolename'.
   """
   
@@ -2686,7 +2695,7 @@ def _print_status(rolename, signable):
 
   message = repr(rolename)+' role contains '+ repr(len(status['good_sigs']))+\
     ' / '+repr(status['threshold'])+' signatures.'
-  print(message)
+  logger.info(message)
 
 
 
@@ -2694,7 +2703,7 @@ def _print_status(rolename, signable):
 
 def _prompt(message, result_type=str):
   """
-    Non-public function that prompts the user for input by printing 'message',
+    Non-public function that prompts the user for input by loging 'message',
     converting the input to 'result_type', and returning the value to the
     caller.
   """

@@ -258,6 +258,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   
   if console_handler is not None:
     console_handler.setLevel(log_level)
+  
   else:
     message = 'The console handler has not been set with add_console_handler().'
     raise tuf.Error(message)
@@ -298,14 +299,18 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
     # Set the console handler for the logger. The built-in console handler will
     # log messages to 'sys.stderr' and capture 'log_level' messages.
     console_handler = logging.StreamHandler()
+    
     # Get our filter for the console handler.
     console_filter = ConsoleFilter()
+    console_format_string = '%(message)s' 
+    formatter = logging.Formatter(console_format_string)
 
     console_handler.setLevel(log_level)
     console_handler.setFormatter(formatter)
     console_handler.addFilter(console_filter)
     logger.addHandler(console_handler)
     logger.debug('Added a console handler.')
+  
   else:
     logger.warn('We already have a console handler.')
 
@@ -339,5 +344,6 @@ def remove_console_handler():
     logger.removeHandler(console_handler)
     console_handler = None
     logger.debug('Removed a console handler.')
+  
   else:
     logger.warn('We do not have a console handler.')
