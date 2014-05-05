@@ -375,10 +375,16 @@ class TestMetadata(unittest.TestCase):
     self.assertTrue(isinstance(expiration, datetime.datetime))
 
     # test a setter with microseconds, we are forcing the microseconds value 
-    self.metadata.expiration = datetime.datetime.today().replace(microsecond = 1) +\
-      datetime.timedelta(weeks = 1)
-    expiration = self.metadata.expiration
-    self.assertTrue(isinstance(expiration, datetime.datetime))
+    expiration = datetime.datetime.today() + datetime.timedelta(weeks = 1)
+    # we force the microseconds value if we are unlucky enough to get a 0
+    if expiration.microsecond == 0:
+      expiration = expiration.replace(microsecond = 1)    
+
+    new_expiration = self.metadata.expiration
+    self.assertTrue(isinstance(new_expiration, datetime.datetime))
+
+    # check that the expiration value is truncated
+    self.assertTrue(new_expiration.microsecond == 0)
 
     # Test improperly formatted datetime.
     try: 
