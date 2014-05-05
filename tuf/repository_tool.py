@@ -2344,16 +2344,16 @@ class Targets(Metadata):
 
   # TODO: add docstring
   def add_target_to_bin(self, target_filepath):
-      return self.act_on_target_to_bin(target_filepath, 'add_target')
+      return self.__act_on_target_in_bin(target_filepath, 'add_target')
 
 
   # TODO: add docstring
   def remove_target_from_bin(self, target_filepath):
-      return self.act_on_target_to_bin(target_filepath, 'remove_target')
+      return self.__act_on_target_in_bin(target_filepath, 'remove_target')
 
 
   # TODO: add docstring about action
-  def act_on_target_to_bin(self, target_filepath, action):
+  def __act_on_target_in_bin(self, target_filepath, action):
     """
     <Purpose>
       Add the fileinfo of 'target_filepath' to the expected hashed bin if
