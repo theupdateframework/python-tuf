@@ -1129,7 +1129,8 @@ class Metadata(object):
       tuf.Error, if 'datetime_object' has already expired.
 
     <Side Effects>
-      Modifies the expiration attribute of the Repository object.
+      Modifies the expiration attribute of the Repository object. 
+      The datetime given will be truncated to microseconds = 0
 
     <Returns>
       None.
