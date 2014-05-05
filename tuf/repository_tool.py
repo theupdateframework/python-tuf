@@ -2342,8 +2342,18 @@ class Targets(Metadata):
       logger.debug(message)
 
 
-
+  # TODO: add docstring
   def add_target_to_bin(self, target_filepath):
+      return self.act_on_target_to_bin(target_filepath, 'add_target')
+
+
+  # TODO: add docstring
+  def remove_target_from_bin(self, target_filepath):
+      return self.act_on_target_to_bin(target_filepath, 'remove_target')
+
+
+  # TODO: add docstring about action
+  def act_on_target_to_bin(self, target_filepath, action):
     """
     <Purpose>
       Add the fileinfo of 'target_filepath' to the expected hashed bin if
@@ -2439,7 +2449,7 @@ class Targets(Metadata):
     # 'hashed_bin_name'.
     if hashed_bin_name is not None:
       hashed_bin_name = hashed_bin_name[len(self.rolename)+1:] 
-      self._delegated_roles[hashed_bin_name].add_target(target_filepath)
+      getattr(self._delegated_roles[hashed_bin_name], action)(target_filepath)
 
     else:
       raise tuf.Error(target_filepath + ' cannot be added to any bins.')
