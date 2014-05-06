@@ -241,7 +241,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
       self.repository_updater.refresh()
     
     except tuf.NoWorkingMirrorError as e:
-      for mirror_url, mirror_error in e.mirror_errors.iteritems():
+      for mirror_url, mirror_error in six.iteritems(e.mirror_errors):
         self.assertTrue(isinstance(mirror_error, tuf.ExpiredMetadataError))
 
 

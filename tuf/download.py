@@ -66,8 +66,6 @@ logger = logging.getLogger('tuf.download')
 
 
 
-
-
 # socket._fileobject removed in PY3.  SocketIO?
 class SaferSocketFileObject(socket._fileobject):
   """We override socket._fileobject to produce a file-like object which reads
@@ -299,7 +297,7 @@ class SaferHTTPResponse(six.moves.http_client.HTTPResponse):
 
 
 
-class VerifiedHTTPSConnection(six.moves.httplib.HTTPSConnection):
+class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
   """
   A connection that wraps connections with ssl certificate verification.
 
@@ -345,7 +343,7 @@ class VerifiedHTTPSConnection(six.moves.httplib.HTTPSConnection):
 
 
 
-class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
+class VerifiedHTTPSHandler(six.moves.urllib.request.HTTPSHandler):
   """
   A HTTPSHandler that uses our own VerifiedHTTPSConnection.
 
@@ -354,7 +352,7 @@ class VerifiedHTTPSHandler(urllib2.HTTPSHandler):
 
   def __init__(self, connection_class = VerifiedHTTPSConnection):
     self.specialized_conn_class = connection_class
-    urllib2.HTTPSHandler.__init__(self)
+    six.moves.urllib.request.HTTPSHandler.__init__(self)
 
   def https_open(self, req):
     return self.do_open(self.specialized_conn_class, req)
@@ -371,7 +369,7 @@ def _get_request(url):
   https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L147
   """
 
-  return urllib2.Request(url, headers={'Accept-encoding': 'identity'})
+  return six.moves.urllib.request.Request(url, headers={'Accept-encoding': 'identity'})
 
 
 
@@ -390,15 +388,15 @@ def _get_opener(scheme=None):
     # If we are going over https, use an opener which will provide SSL
     # certificate verification.
     https_handler = VerifiedHTTPSHandler()
-    opener = urllib2.build_opener(https_handler)
+    opener = six.moves.urllib.request.build_opener(https_handler)
 
     # strip out HTTPHandler to prevent MITM spoof
     for handler in opener.handlers:
-      if isinstance(handler, urllib2.HTTPHandler):
+      if isinstance(handler, six.moves.urllib.request.HTTPHandler):
         opener.handlers.remove(handler)
   else:
     # Otherwise, use the default opener.
-    opener = urllib2.build_opener()
+    opener = six.moves.urllib.request.build_opener()
 
   return opener
 
@@ -439,7 +437,7 @@ def _open_connection(url):
   # servers do not recognize connections that originates from 
   # Python-urllib/x.y.
 
-  parsed_url = urlparse.urlparse(url)
+  parsed_url = six.moves.urllib.parse.urlparse(url)
   opener = _get_opener(scheme=parsed_url.scheme)
   request = _get_request(url)
   return opener.open(request)
@@ -760,7 +758,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
   try:
     # NOTE: Not thread-safe.
-    # Set timeout to induce non-blocking socket operations.
+    # met timeout to induce non-blocking socket operations.
     socket.setdefaulttimeout(tuf.conf.SOCKET_TIMEOUT)
     # Replace the socket file-like object class with our safer version.
     six.moves.http_client.HTTPConnection.response_class = SaferHTTPResponse

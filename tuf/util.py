@@ -63,6 +63,7 @@ class TempFile(object):
     """__init__ helper."""
     try:
       self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix)
+    
     except OSError as err:
       logger.critical('Temp file in '+temp_dir+'failed: '+repr(err))
       raise tuf.Error(err)

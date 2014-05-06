@@ -116,7 +116,6 @@ class TestSchema(unittest.TestCase):
     
     self.assertTrue(anystring_schema.matches(''))
     self.assertTrue(anystring_schema.matches('a string'))
-    self.assertTrue(anystring_schema.matches(u'a unicode string'))
     
     # Test conditions for invalid arguments. 
     self.assertFalse(anystring_schema.matches(['a']))
@@ -210,9 +209,6 @@ class TestSchema(unittest.TestCase):
     integer_schema = tuf.schema.Integer()
 
     self.assertTrue(integer_schema.matches(99))
-    if six.PY3:
-      print('reached long(1)')
-      self.assertTrue(integer_schema.matches(long(1)))
     self.assertTrue(tuf.schema.Integer(lo=10, hi=30).matches(25))
     
     # Test conditions for invalid arguments.

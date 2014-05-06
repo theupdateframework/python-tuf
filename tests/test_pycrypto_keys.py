@@ -64,7 +64,7 @@ class TestPycrypto_keys(unittest.TestCase):
 
   def test_create_rsa_signature(self):
     global private_rsa
-    data = 'The quick brown fox jumps over the lazy dog'
+    data = 'The quick brown fox jumps over the lazy dog'.encode('utf-8')
     signature, method = pycrypto.create_rsa_signature(private_rsa, data)
 
     # Verify format of returned values.
@@ -85,7 +85,7 @@ class TestPycrypto_keys(unittest.TestCase):
   def test_verify_rsa_signature(self):
     global public_rsa
     global private_rsa
-    data = 'The quick brown fox jumps over the lazy dog'
+    data = 'The quick brown fox jumps over the lazy dog'.encode('utf-8')
     signature, method = pycrypto.create_rsa_signature(private_rsa, data)
 
     valid_signature = pycrypto.verify_rsa_signature(signature, method, public_rsa,

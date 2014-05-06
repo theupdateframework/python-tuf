@@ -54,7 +54,7 @@ class TestEd25519_keys(unittest.TestCase):
   def test_create_signature(self):
     global public
     global private
-    data = 'The quick brown fox jumps over the lazy dog'
+    data = b'The quick brown fox jumps over the lazy dog'
     signature, method = ed25519.create_signature(public, private, data)
 
     # Verify format of returned values.
@@ -79,7 +79,7 @@ class TestEd25519_keys(unittest.TestCase):
   def test_verify_signature(self):
     global public
     global private
-    data = 'The quick brown fox jumps over the lazy dog'
+    data = b'The quick brown fox jumps over the lazy dog'
     signature, method = ed25519.create_signature(public, private, data)
 
     valid_signature = ed25519.verify_signature(public, method, signature, data)
@@ -107,13 +107,13 @@ class TestEd25519_keys(unittest.TestCase):
                                                      signature, '123'))
    
     # Mismatched signature.
-    bad_signature = 'a'*64 
+    bad_signature = b'a'*64 
     self.assertEqual(False, ed25519.verify_signature(public, method,
                                                      bad_signature, data))
     
     # Generated signature created with different data.
     new_signature, method = ed25519.create_signature(public, private, 
-                                                     'mismatched data')
+                                                     b'mismatched data')
     
     self.assertEqual(False, ed25519.verify_signature(public, method,
                                                      new_signature, data))

@@ -213,7 +213,7 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   rsa_pubkey = rsa_key_object.publickey()
   public = rsa_pubkey.exportKey(format='PEM')
 
-  return public, private
+  return public.decode(), private.decode()
 
 
 
@@ -479,7 +479,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
     raise TypeError('The required private key is unset.')
     
 
-  return encrypted_pem
+  return encrypted_pem.decode()
 
 
 
@@ -588,7 +588,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     message = 'The public and private keys cannot be exported in PEM format.' 
     raise tuf.CryptoError(message)
   
-  return public, private
+  return public.decode(), private.decode()
 
 
 

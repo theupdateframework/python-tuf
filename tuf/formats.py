@@ -227,13 +227,13 @@ RSAKEY_SCHEMA = SCHEMA.Object(
   keyval = KEYVAL_SCHEMA)
 
 # An ED25519 raw public key, which must be 32 bytes.
-ED25519PUBLIC_SCHEMA = SCHEMA.LengthString(32)
+ED25519PUBLIC_SCHEMA = SCHEMA.LengthBytes(32)
 
 # An ED25519 raw seed key, which must be 32 bytes.  
-ED25519SEED_SCHEMA = SCHEMA.LengthString(32)
+ED25519SEED_SCHEMA = SCHEMA.LengthBytes(32)
 
 # An ED25519 raw signature, which must be 64 bytes.  
-ED25519SIGNATURE_SCHEMA = SCHEMA.LengthString(64)
+ED25519SIGNATURE_SCHEMA = SCHEMA.LengthBytes(64)
 
 # An ed25519 TUF key.
 ED25519KEY_SCHEMA = SCHEMA.Object(
@@ -728,7 +728,7 @@ def datetime_to_unix_timestamp(datetime_object):
     timestamp.  For example, Python's time.time() returns a Unix timestamp, and
     includes the number of microseconds.  'datetime_object' is converted to UTC.
 
-    >>> datetime_object = datetime.datetime(1985, 10, 26, 01, 22)
+    >>> datetime_object = datetime.datetime(1985, 10, 26, 1, 22)
     >>> timestamp = datetime_to_unix_timestamp(datetime_object)
     >>> timestamp 
     499137720

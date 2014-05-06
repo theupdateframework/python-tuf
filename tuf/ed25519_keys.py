@@ -164,7 +164,8 @@ def generate_public_and_private():
   # key generation.
   try:
     nacl_key = nacl.signing.SigningKey(seed)
-    public = str(nacl_key.verify_key)
+    #public = nacl_key.verify_key
+    public = nacl_key.verify_key.encode(encoder=nacl.encoding.RawEncoder())
   
   except NameError:
     message = 'The PyNaCl library and/or its dependencies unavailable.'
@@ -188,7 +189,7 @@ def create_signature(public_key, private_key, data):
     A signature is a 64-byte string.
 
     >>> public, private = generate_public_and_private()
-    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> data = b'The quick brown fox jumps over the lazy dog'
     >>> signature, method = \
         create_signature(public, private, data)
     >>> tuf.formats.ED25519SIGNATURE_SCHEMA.matches(signature)
@@ -273,14 +274,14 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
     'sig', and 'data' arguments to complete the verification.
 
     >>> public, private = generate_public_and_private()
-    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> data = b'The quick brown fox jumps over the lazy dog'
     >>> signature, method = \
         create_signature(public, private, data)
     >>> verify_signature(public, method, signature, data, use_pynacl=False)
     True
     >>> verify_signature(public, method, signature, data, use_pynacl=True)
     True
-    >>> bad_data = 'The sly brown fox jumps over the lazy dog'
+    >>> bad_data = b'The sly brown fox jumps over the lazy dog'
     >>> bad_signature, method = \
         create_signature(public, private, bad_data)
     >>> verify_signature(public, method, bad_signature, data, use_pynacl=False)

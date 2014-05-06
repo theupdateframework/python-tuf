@@ -244,6 +244,48 @@ class LengthString(Schema):
 
 
 
+class LengthBytes(Schema):
+  """
+  <Purpose>
+    Matches any Bytes of a specified length.  The argument object must be either
+    a str() in Python 2, or bytes() in Python 3.  At instantiation, the bytes
+    length is set and any future comparisons are checked against this internal
+    bytes value length.
+
+    Supported methods include
+      matches(): returns a Boolean result.
+      check_match(): raises 'tuf.FormatError' on a mismatch.
+
+  <Example Use>
+    
+    >>> schema = LengthBytes(5)
+    >>> schema.matches('Hello')
+    True
+    >>> schema.matches('Hi')
+    False
+  """
+
+  def __init__(self, length):
+    if isinstance(length, bool) or not isinstance(length, six.integer_types):
+      # We need to check for bool as a special case, since bool
+      # is for historical reasons a subtype of int.
+      raise tuf.FormatError('Got '+repr(length)+' instead of an integer.')
+    
+    self._bytes_length = length 
+
+
+  def check_match(self, object):
+    if not isinstance(object, six.binary_type):
+      raise tuf.FormatError('Expected a byte but got '+repr(object))
+
+    if len(object) != self._bytes_length:
+      raise tuf.FormatError('Expected a byte of length '+
+                            repr(self._bytes_length))
+
+
+
+
+
 class OneOf(Schema):
   """
   <Purpose>

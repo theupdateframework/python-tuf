@@ -324,7 +324,7 @@ class NoWorkingMirrorError(Error):
     for mirror_url, mirror_error in self.mirror_errors.iteritems():
       try:
         # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
-        mirror_url_tokens = six.moves.urlparse.urlparse(mirror_url)
+        mirror_url_tokens = six.moves.urllib.parse.urlparse(mirror_url)
       
       except:
         logging.exception('Failed to parse mirror URL: '+str(mirror_url))
