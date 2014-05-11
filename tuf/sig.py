@@ -122,6 +122,7 @@ def get_signature_status(signable, role=None):
     # Identify unrecognized key.
     try:
       key = tuf.keydb.get_key(keyid)
+    
     except tuf.UnknownKeyError:
       unknown_sigs.append(keyid)
       continue
@@ -129,6 +130,7 @@ def get_signature_status(signable, role=None):
     # Identify key using an unknown key signing method.
     try:
       valid_sig = tuf.keys.verify_signature(key, signature, signed)
+    
     except tuf.UnknownMethodError:
       unknown_method_sigs.append(keyid)
       continue
@@ -157,8 +159,10 @@ def get_signature_status(signable, role=None):
   if role is not None:
     try:
       threshold = tuf.roledb.get_role_threshold(role)
+    
     except tuf.UnknownRoleError:
       raise
+  
   else:
     threshold = 0
 

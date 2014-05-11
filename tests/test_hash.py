@@ -13,7 +13,7 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Unit test for hash.py.
+  Unit test for 'hash.py'.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an

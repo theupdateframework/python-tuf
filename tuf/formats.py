@@ -235,6 +235,11 @@ ED25519SEED_SCHEMA = SCHEMA.LengthBytes(32)
 # An ED25519 raw signature, which must be 64 bytes.  
 ED25519SIGNATURE_SCHEMA = SCHEMA.LengthBytes(64)
 
+# Required installation libraries expected by the repository tools and other
+# cryptography modules.
+REQUIRED_LIBRARIES_SCHEMA = SCHEMA.ListOf(SCHEMA.OneOf(
+  [SCHEMA.String('general'), SCHEMA.String('ed25519'), SCHEMA.String('rsa')]))
+
 # An ed25519 TUF key.
 ED25519KEY_SCHEMA = SCHEMA.Object(
   object_name = 'ED25519KEY_SCHEMA',
@@ -665,6 +670,7 @@ class TargetsFile(MetaFile):
     result = {'_type' : 'Targets'}
     result['version'] = version
     result['expires'] = expiration_date
+    result['targets'] = {} 
     if filedict is not None:
       result['targets'] = filedict
     if delegations is not None:
@@ -1297,7 +1303,7 @@ def encode_canonical(object, output_function=None):
   try:
     _encode_canonical(object, output_function)
   
-  except TypeError as e:
+  except (TypeError, tuf.FormatError) as  e:
     message = 'Could not encode '+repr(object)+': '+str(e)
     raise tuf.FormatError(message)
 

@@ -175,7 +175,8 @@ class ConsoleFilter(logging.Filter):
 def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
   """
   <Purpose>
-    Allow the default log level to be overridden.
+    Allow the default log level to be overridden.  If 'log_level' is not
+    provided, log level defaults to 'logging.DEBUG'. 
 
   <Arguments>
     log_level:
@@ -205,7 +206,8 @@ def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
 def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
   """
   <Purpose>
-    Allow the default file handler log level to be overridden.
+    Allow the default file handler log level to be overridden.  If 'log_level'
+    is not provided, log level defaults to 'logging.DEBUG'. 
 
   <Arguments>
     log_level:
@@ -235,7 +237,8 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
 def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   """
   <Purpose>
-    Allow the default log level for console messages to be overridden.
+    Allow the default log level for console messages to be overridden.  If
+    'log_level' is not provided, log level defaults to 'logging.INFO'. 
 
   <Arguments>
     log_level:
@@ -262,6 +265,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   
   if console_handler is not None:
     console_handler.setLevel(log_level)
+  
   else:
     message = 'The console handler has not been set with add_console_handler().'
     raise tuf.Error(message)
@@ -302,14 +306,18 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
     # Set the console handler for the logger. The built-in console handler will
     # log messages to 'sys.stderr' and capture 'log_level' messages.
     console_handler = logging.StreamHandler()
+    
     # Get our filter for the console handler.
     console_filter = ConsoleFilter()
+    console_format_string = '%(message)s' 
+    formatter = logging.Formatter(console_format_string)
 
     console_handler.setLevel(log_level)
     console_handler.setFormatter(formatter)
     console_handler.addFilter(console_filter)
     logger.addHandler(console_handler)
     logger.debug('Added a console handler.')
+  
   else:
     logger.warning('We already have a console handler.')
 
@@ -343,5 +351,6 @@ def remove_console_handler():
     logger.removeHandler(console_handler)
     console_handler = None
     logger.debug('Removed a console handler.')
+  
   else:
     logger.warning('We do not have a console handler.')

@@ -102,13 +102,13 @@ def create_keydb_from_root_metadata(root_metadata):
       try:
         add_key(key_dict, keyid)
       
+      except tuf.KeyAlreadyExistsError as e:
+        logger.warning(e)
+        continue
+      
       # 'tuf.Error' raised if keyid does not match the keyid for 'rsakey_dict'.
       except tuf.Error as e:
         logger.error(e)
-        continue
-      
-      except tuf.KeyAlreadyExistsError as e:
-        logger.warning(e)
         continue
     
     else:

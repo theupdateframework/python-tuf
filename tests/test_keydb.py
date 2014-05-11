@@ -160,6 +160,9 @@ class TestKeydb(unittest.TestCase):
 
     # Test for 'keyid' not in keydb.
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, keyid)
+    
+    # Test condition for unknown key argument.
+    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, '1')
 
     # Test conditions for arguments with invalid formats.
     self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, None)
@@ -185,13 +188,16 @@ class TestKeydb(unittest.TestCase):
                 'Targets': {'keyids': [keyid2], 'threshold': 1}}
     version = 8
     consistent_snapshot = False
-    expires = '1985-10-21T01:21:00Z' 
-
+    expires = '1985-10-21T01:21:00Z'
+    
+    tuf.keydb.add_key(rsakey)
     root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
                                                        consistent_snapshot)
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
+    
+    tuf.keydb.create_keydb_from_root_metadata(root_metadata)
     
     # Ensure 'keyid' and 'keyid2' were added to the keydb database.
     self.assertEqual(rsakey, tuf.keydb.get_key(keyid))

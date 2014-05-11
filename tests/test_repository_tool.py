@@ -264,6 +264,7 @@ class TestRepository(unittest.TestCase):
     repository.write(consistent_snapshot=True) 
     repo_tool.load_repository(repository_directory)
 
+    # Test 
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repository.write, 3, False)
@@ -274,14 +275,21 @@ class TestRepository(unittest.TestCase):
   def test_get_filepaths_in_directory(self):
     # Test normal case.
     # Use the pre-generated metadata directory for testing.
-    metadata_directory = os.path.join('repository_data',
-                                      'repository', 'metadata')
-    
-    
-    # Test improperly formatted arguments.
     # Set 'repo' reference to improve readability.
     repo = repo_tool.Repository
+    metadata_directory = os.path.join('repository_data',
+                                      'repository', 'metadata')
+    # Verify the expected filenames.  get_filepaths_in_directory() returns
+    # a list of absolute paths.
+    metadata_files = repo.get_filepaths_in_directory(metadata_directory) 
+    expected_files = ['root.json', 'targets.json', 'targets.json.gz',
+                      'snapshot.json', 'timestamp.json']
+    basenames = [] 
+    for filepath in metadata_files:
+      basenames.append(os.path.basename(filepath))
+    self.assertEqual(sorted(expected_files), sorted(basenames))
 
+    # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,
                       3, recursive_walk=False, followlinks=False)
     self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,
@@ -290,6 +298,9 @@ class TestRepository(unittest.TestCase):
                       metadata_directory, recursive_walk=False, followlinks=3)
 
     # Test invalid directory argument.
+    # A non-directory.
+    self.assertRaises(tuf.Error, repo.get_filepaths_in_directory,
+                      os.path.join(metadata_directory, 'root.json'))
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     nonexistent_directory = os.path.join(temporary_directory, 'nonexistent/')
     self.assertRaises(tuf.Error, repo.get_filepaths_in_directory,
@@ -375,6 +386,17 @@ class TestMetadata(unittest.TestCase):
     expiration = self.metadata.expiration
     self.assertTrue(isinstance(expiration, datetime.datetime))
 
+    # test a setter with microseconds, we are forcing the microseconds value 
+    expiration = datetime.datetime.today() + datetime.timedelta(weeks = 1)
+    # we force the microseconds value if we are unlucky enough to get a 0
+    if expiration.microsecond == 0:
+      expiration = expiration.replace(microsecond = 1)    
+
+    new_expiration = self.metadata.expiration
+    self.assertTrue(isinstance(new_expiration, datetime.datetime))
+
+    # check that the expiration value is truncated
+    self.assertTrue(new_expiration.microsecond == 0)
 
     # Test improperly formatted datetime.
     try: 
@@ -763,6 +785,29 @@ class TestTargets(unittest.TestCase):
     self.assertRaises(tuf.FormatError, repo_tool.Targets, 'targets_directory/', 3)
     self.assertRaises(tuf.FormatError, repo_tool.Targets, 'targets_directory/',
                       'targets', 3)
+  
+
+
+  def test_call(self):
+    # Test normal case.
+    # Perform a delegation so that a delegated role can be accessed and tested
+    # through __call__().  Example: {targets_object}('role1').
+    keystore_directory = os.path.join('repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+   
+    # Create Targets() object to be tested.
+    targets_object = repo_tool.Targets(self.targets_directory)
+    targets_object.delegate('role1', [public_key], [target1_filepath])
+
+    self.assertTrue(isinstance(targets_object('role1'), repo_tool.Targets))
+   
+    # Test invalid (i.e., non-delegated) rolename argument.
+    self.assertRaises(tuf.UnknownRoleError, targets_object, 'unknown_role')
+
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError, targets_object, 1)
 
 
 
@@ -852,8 +897,16 @@ class TestTargets(unittest.TestCase):
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
     self.assertRaises(tuf.Error, self.targets_object.add_target,
                       'non-existent.txt')
+
+    # Not under the repository's targets directory. 
     self.assertRaises(tuf.Error, self.targets_object.add_target,
                       self.temporary_directory)
+    
+    # Not a file (i.e., a valid path, but a directory.)
+    test_directory = os.path.join(self.targets_directory, 'test_directory')
+    os.mkdir(test_directory)
+    self.assertRaises(tuf.Error, self.targets_object.add_target,
+                      test_directory)
 
 
 
@@ -1047,6 +1100,64 @@ class TestTargets(unittest.TestCase):
 
 
 
+  def test_add_target_to_bin(self):
+    # Test normal case.
+    # Delegate the hashed bins so that add_target_to_bin() can be tested.
+    keystore_directory = os.path.join('repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+
+    # Set needed arguments by delegate_hashed_bins().
+    public_keys = [public_key]
+    list_of_targets = [target1_filepath] 
+
+    # Delegate to hashed bins.  The target filepath to be tested is expected 
+    # to contain a hash prefix of 'e', so it should be added to the
+    # 'targets/e' role.
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+                                             number_of_bins=16)
+ 
+    # Ensure each hashed bin initially contains zero targets.
+    for delegation in self.targets_object.delegations:
+      self.assertTrue(target1_filepath not in delegation.target_files)
+
+    # Add 'target1_filepath' and verify that the relative path of
+    # 'target1_filepath' is added to the correct bin.
+    self.targets_object.add_target_to_bin(target1_filepath)
+    for delegation in self.targets_object.delegations:
+      if delegation.rolename == 'targets/e':
+        self.assertTrue('/file1.txt' in delegation.target_files)
+      
+      else:
+        self.assertFalse('/file1.txt' in delegation.target_files)
+          
+    # Test for non-existent delegations and hashed bins.
+    empty_targets_role = repo_tool.Targets(self.targets_directory, 'empty')
+    
+    self.assertRaises(tuf.Error, empty_targets_role.add_target_to_bin,
+                      target1_filepath)
+    
+    # Non-bin delegation, although it has a correct hashed bin name.
+    empty_targets_role.delegate('e', [public_key], [target1_filepath])
+    self.assertRaises(tuf.Error, empty_targets_role.add_target_to_bin,
+                      target1_filepath)
+
+    # Test for a required hashed bin that does not exist.
+    self.targets_object.revoke('e')
+    self.assertRaises(tuf.Error, self.targets_object.add_target_to_bin,
+                      target1_filepath)
+
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError,
+                      self.targets_object.add_target_to_bin, 3)
+
+    # Invalid target file path argument.
+    self.assertRaises(tuf.Error,
+                      self.targets_object.add_target_to_bin, '/non-existent')
+    
+    
+
   def test_add_restricted_paths(self):
     # Test normal case.
     # Perform a delegation so that add_restricted_paths() has a child role
@@ -1063,6 +1174,10 @@ class TestTargets(unittest.TestCase):
     self.targets_object.delegate(rolename, public_keys, [],
                                  threshold, restricted_paths=None,
                                  path_hash_prefixes=None)
+
+    # Delegate an extra role for test coverage (i.e., check that restricted
+    # paths are not added to a child role not requested.)
+    self.targets_object.delegate('junk_role', public_keys, [])
 
     restricted_path = os.path.join(self.targets_directory, 'tuf_files')
     os.mkdir(restricted_path)
@@ -1094,6 +1209,11 @@ class TestTargets(unittest.TestCase):
     # Non-existent 'restricted_paths'.
     self.assertRaises(tuf.Error, self.targets_object.add_restricted_paths,
                       ['/non-existent'], 'tuf')
+    
+    # Directory not under the repository's targets directory.
+    repository_directory = os.path.join('repository_data', 'repository')
+    self.assertRaises(tuf.Error, self.targets_object.add_restricted_paths,
+                      [repository_directory], 'tuf')
 
 
 
