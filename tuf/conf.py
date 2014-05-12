@@ -57,7 +57,7 @@ DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 16384 #bytes
 DEFAULT_ROOT_REQUIRED_LENGTH = 512000 #bytes
 
 # Set a timeout value in seconds (float) for non-blocking socket operations.
-SOCKET_TIMEOUT = 1 #seconds
+SOCKET_TIMEOUT = 2 #seconds
 
 # The maximum chunk of data, in bytes, we would download in every round.
 CHUNK_SIZE = 8192 #bytes

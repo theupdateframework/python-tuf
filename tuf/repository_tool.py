@@ -2629,7 +2629,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
     try:
       _check_role_keys(rolename)
     
-    except tuf.InsufficientKeysError, e:
+    except tuf.InsufficientKeysError as e:
       logger.info(str(e))
       return
 

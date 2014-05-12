@@ -210,7 +210,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
-
+  """
   def test_without_tuf_mode_1(self):
     # Simulate a slow retrieval attack.
     # 'mode_1': When download begins,the server blocks the download
@@ -271,7 +271,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     finally:
       # Terminate the slow retrieval (mode 2) server.
       self._stop_slow_server(server_process)
-
+  """
 
 
   def test_with_tuf_mode_1(self):
