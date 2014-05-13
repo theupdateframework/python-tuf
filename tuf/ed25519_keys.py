@@ -256,9 +256,9 @@ def create_signature(public_key, private_key, data):
     message = 'The PyNaCl library and/or its dependencies unavailable.'
     raise tuf.UnsupportedLibraryError(message)
   
-  except (ValueError, TypeError, nacl.exceptions.CryptoError):
+  except (ValueError, TypeError, nacl.exceptions.CryptoError) as e:
     message = 'An "ed25519" signature could not be created with PyNaCl.'
-    raise tuf.CryptoError(message)
+    raise tuf.CryptoError(message + str(e))
    
   return signature, method
 

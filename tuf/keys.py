@@ -228,13 +228,13 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   # Generate the keyid of the RSA key.  'key_value' corresponds to the
   # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
   # information is not included in the generation of the 'keyid' identifier.
-  key_value = {'public': public.decode(),
+  key_value = {'public': public,
                'private': ''}
   keyid = _get_keyid(keytype, key_value)
 
   # Build the 'rsakey_dict' dictionary.  Update 'key_value' with the RSA
   # private key prior to adding 'key_value' to 'rsakey_dict'.
-  key_value['private'] = private.decode()
+  key_value['private'] = private
 
   rsakey_dict['keytype'] = keytype
   rsakey_dict['keyid'] = keyid

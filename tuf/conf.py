@@ -67,7 +67,7 @@ CHUNK_SIZE = 8192 #bytes
 MIN_AVERAGE_DOWNLOAD_SPEED = CHUNK_SIZE #bytes/second
 
 # The time (in seconds) we ignore a server with a slow initial retrieval speed.
-SLOW_START_GRACE_PERIOD = 30 #seconds
+SLOW_START_GRACE_PERIOD = 3 #seconds
 
 # The current "good enough" number of PBKDF2 passphrase iterations.
 # We recommend that important keys, such as root, be kept offline.

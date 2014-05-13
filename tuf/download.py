@@ -189,10 +189,12 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
   # 'tuf.conf.SLOW_START_GRACE_PERIOD' seconds.  Set 'seconds_spent_receiving'
   # to negative SLOW_START_GRACE_PERIOD seconds, and begin checking the average
   # download speed once it is positive.
-  seconds_spent_receiving = -tuf.conf.SLOW_START_GRACE_PERIOD
+  grace_period = -tuf.conf.SLOW_START_GRACE_PERIOD
 
   # Keep track of total bytes downloaded.
   number_of_bytes_received = 0
+  
+  start_time = timeit.default_timer()
 
   try:
     while True:
@@ -204,49 +206,49 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
                         required_length - number_of_bytes_received)
       logger.debug('Reading next chunk...')
       
-      start_time = timeit.default_timer()
-      
       try: 
         data = connection.read(read_amount)
-        if len(data):
-          print('len data: ' + str(len(data))) 
+      
       except socket.error:
         pass
+      
+      number_of_bytes_received = number_of_bytes_received + len(data)
+      
+      # Data successfully read from the connection.  Store it. 
+      temp_file.write(data)
+
+      if number_of_bytes_received == required_length:
+        break        
 
       stop_time = timeit.default_timer()
-      time_delta = stop_time - start_time
+      seconds_spent_receiving = stop_time - start_time
       
-      # Measure the average download speed.
-      number_of_bytes_received = number_of_bytes_received + len(data)
-      seconds_spent_receiving = seconds_spent_receiving + time_delta
-  
-      if seconds_spent_receiving > 0:
-        average_download_speed = number_of_bytes_received / seconds_spent_receiving
-
-        # If the average download speed is below a certain threshold, we flag
-        # this as a possible slow-retrieval attack.
-        if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
-          raise tuf.SlowRetrievalError(average_download_speed)
-        
-        else:
-          logger.debug('Good average download speed: '+\
-                       str(average_download_speed) + ' bytes per second')
-      
-      else:
+      if (seconds_spent_receiving + grace_period) < 0:
         logger.debug('Ignoring average download speed for another: '+\
                      str(-seconds_spent_receiving) + ' seconds')
+        continue 
+      
+      # Measure the average download speed.
+      average_download_speed = number_of_bytes_received / seconds_spent_receiving
+  
+      # If the average download speed is below a certain threshold, we flag
+      # this as a possible slow-retrieval attack.
+      if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
+        #raise tuf.SlowRetrievalError(average_download_speed)
+        break
+
+      else:
+        logger.debug('Good average download speed: '+\
+                     str(average_download_speed) + ' bytes per second')
       
       # We might have no more data to read. Check number of bytes downloaded. 
-      if not data and number_of_bytes_received == required_length:
+      if not data:
         message = 'Downloaded '+str(number_of_bytes_received)+'/'+ \
           str(required_length)+' bytes.'
         logger.debug(message)
 
         # Finally, we signal that the download is complete.
         break
-
-      # Data successfully read from the connection.  Store it. 
-      temp_file.write(data)
   
   except:
     raise

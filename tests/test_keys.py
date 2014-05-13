@@ -191,7 +191,7 @@ class TestKeys(unittest.TestCase):
     # in creating the 'rsa_signature'. Function should return 'False'.
     
     # Modifying 'DATA'.
-    _DATA = '1111'+DATA+'1111'
+    _DATA = '1111' + DATA + '1111'
   
     # Verifying the 'signature' of modified '_DATA'.
     verified = KEYS.verify_signature(self.rsakey_dict, rsa_signature, _DATA)

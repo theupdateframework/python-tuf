@@ -118,6 +118,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # STRICT_REQUIRED_LENGTH, which is True by default, mandates that we must
     # download exactly what is required.
     self.assertRaises(tuf.DownloadLengthMismatchError, download.safe_download,
+    #self.assertRaises(tuf.SlowRetrievalError, download.safe_download,
                       self.url, self.target_data_length + 1)
 
     # NOTE: However, we do not catch a tuf.DownloadLengthMismatchError here for

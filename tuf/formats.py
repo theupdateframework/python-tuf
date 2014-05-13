@@ -1194,7 +1194,7 @@ def _canonical_string_encoder(string):
 
   string = '"%s"' % re.sub(r'(["\\])', r'\\\1', string)
   
-  return string 
+  return string
 
 
 
@@ -1311,7 +1311,7 @@ def encode_canonical(object, output_function=None):
   # Note: Implies 'output_function' is None,
   # otherwise results are sent to 'output_function'.
   if result is not None:
-    return ''.join(result)
+    return ''.join(result).encode('utf-8')
 
 
 
