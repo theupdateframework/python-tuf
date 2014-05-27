@@ -116,7 +116,7 @@ class Modified_TestCase(unittest.TestCase):
   def make_temp_data_file(self, suffix='', directory=None, data = 'junk data'):
     """Returns an absolute path of a temp file containing data."""
     temp_file_path = self.make_temp_file(suffix=suffix, directory=directory)
-    temp_file = open(temp_file_path, 'wb')
+    temp_file = open(temp_file_path, 'wt')
     temp_file.write(data)
     temp_file.close()
     return temp_file_path

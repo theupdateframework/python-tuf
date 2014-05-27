@@ -329,7 +329,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
     and 'data' to complete the verification.
     
     >>> public, private = generate_rsa_public_and_private(2048)
-    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> data = b'The quick brown fox jumps over the lazy dog'
     >>> signature, method = create_rsa_signature(private, data)
     >>> verify_rsa_signature(signature, method, public, data)
     True
@@ -759,11 +759,11 @@ def decrypt_key(encrypted_key, password):
 
   # Decrypt 'encrypted_key', using 'password' (and additional key derivation
   # data like salts and password iterations) to re-derive the decryption key. 
-  json_data = _decrypt(encrypted_key, password)
+  json_data = _decrypt(encrypted_key.decode('utf-8'), password)
  
   # Raise 'tuf.Error' if 'json_data' cannot be deserialized to a valid
   # 'tuf.formats.ANYKEY_SCHEMA' key object.
-  key_object = tuf.util.load_json_string(json_data) 
+  key_object = tuf.util.load_json_string(json_data.decode()) 
   
   return key_object
 
@@ -844,7 +844,7 @@ def _encrypt(key_data, derived_key_information):
   # encryption.  
   iv = Crypto.Random.new().read(16)
   stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
-                                      initial_value=long(iv.encode('hex'), 16)) 
+                                      initial_value=int(binascii.hexlify(iv), 16)) 
   symmetric_key = derived_key_information['derived_key'] 
   aes_cipher = Crypto.Cipher.AES.new(symmetric_key,
                                      Crypto.Cipher.AES.MODE_CTR,
@@ -870,7 +870,7 @@ def _encrypt(key_data, derived_key_information):
   hmac_object = Crypto.Hash.HMAC.new(symmetric_key, ciphertext,
                                      Crypto.Hash.SHA256)
   hmac = hmac_object.hexdigest()
-
+  
   # Store the number of PBKDF2 iterations used to derive the symmetric key so
   # that the decryption routine can regenerate the symmetric key successfully.
   # The pbkdf2 iterations are allowed to vary for the keys loaded and saved.
@@ -881,11 +881,11 @@ def _encrypt(key_data, derived_key_information):
   # '_ENCRYPTION_DELIMITER' to make extraction easier.  This delimiter is
   # arbitrarily chosen and should not occur in the hexadecimal representations
   # of the fields it is separating.
-  return binascii.hexlify(salt) + _ENCRYPTION_DELIMITER + \
-         binascii.hexlify(str(iterations)) + _ENCRYPTION_DELIMITER + \
-         binascii.hexlify(hmac) + _ENCRYPTION_DELIMITER + \
-         binascii.hexlify(iv) + _ENCRYPTION_DELIMITER + \
-         binascii.hexlify(ciphertext)
+  return binascii.hexlify(salt).decode() + _ENCRYPTION_DELIMITER + \
+         str(iterations) + _ENCRYPTION_DELIMITER + \
+         hmac + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(iv).decode() + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(ciphertext).decode()
 
 
 
@@ -913,8 +913,7 @@ def _decrypt(file_contents, password):
 
   # Ensure we have the expected raw data for the delimited cryptographic data. 
   salt = binascii.unhexlify(salt)
-  iterations = int(binascii.unhexlify(iterations))
-  hmac = binascii.unhexlify(hmac)
+  iterations = int(iterations)
   iv = binascii.unhexlify(iv)
   ciphertext = binascii.unhexlify(ciphertext)
 
@@ -936,7 +935,7 @@ def _decrypt(file_contents, password):
   # The following decryption routine assumes 'ciphertext' was encrypted with
   # AES-256.
   stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
-                                      initial_value=long(iv.encode('hex'), 16)) 
+                                      initial_value=int(binascii.hexlify(iv), 16)) 
   aes_cipher = Crypto.Cipher.AES.new(derived_key,
                                      Crypto.Cipher.AES.MODE_CTR,
                                      counter=stateful_counter_128bit_blocks)

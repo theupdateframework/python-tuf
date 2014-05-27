@@ -905,7 +905,7 @@ class Updater(object):
       None.
     """
 
-    metadata = metadata_file_object.read()
+    metadata = metadata_file_object.read().decode('utf-8')
     
     try:
       metadata_signable = tuf.util.load_json_string(metadata)
@@ -1360,7 +1360,7 @@ class Updater(object):
     # Next, move the verified updated metadata file to the 'current' directory.
     # Note that the 'move' method comes from tuf.util's TempFile class.
     # 'metadata_file_object' is an instance of tuf.util.TempFile.
-    metadata_signable = tuf.util.load_json_string(metadata_file_object.read())
+    metadata_signable = tuf.util.load_json_string(metadata_file_object.read().decode('utf-8'))
     if compression == 'gzip':
       current_uncompressed_filepath = \
         os.path.join(self.metadata_directory['current'],

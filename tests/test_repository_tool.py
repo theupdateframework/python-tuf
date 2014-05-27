@@ -1441,7 +1441,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Invalid key file argument. 
     invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile') 
     with open(invalid_keyfile, 'wb') as file_object:
-      file_object.write('bad keyfile')
+      file_object.write(b'bad keyfile')
     self.assertRaises(tuf.CryptoError, repo_tool.import_rsa_privatekey_from_file,
                       invalid_keyfile, 'pw')
 
@@ -1475,7 +1475,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Invalid key file argument. 
     invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile') 
     with open(invalid_keyfile, 'wb') as file_object:
-      file_object.write('bad keyfile')
+      file_object.write(b'bad keyfile')
     self.assertRaises(tuf.Error, repo_tool.import_rsa_publickey_from_file,
                       invalid_keyfile)
 
@@ -1537,7 +1537,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Invalid key file argument. 
     invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile') 
     with open(invalid_keyfile, 'wb') as file_object:
-      file_object.write('bad keyfile')
+      file_object.write(b'bad keyfile')
     
     self.assertRaises(tuf.Error, repo_tool.import_ed25519_publickey_from_file,
                       invalid_keyfile)
@@ -1571,7 +1571,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Invalid key file argument. 
     invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile') 
     with open(invalid_keyfile, 'wb') as file_object:
-      file_object.write('bad keyfile')
+      file_object.write(b'bad keyfile')
     
     self.assertRaises(tuf.Error, repo_tool.import_ed25519_privatekey_from_file,
                       invalid_keyfile, 'pw')
@@ -1609,7 +1609,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     test_filepath = os.path.join(temporary_directory, 'file.txt')
     
-    with open(test_filepath, 'wb') as file_object:
+    with open(test_filepath, 'wt') as file_object:
       file_object.write('test file')
   
     # Generate test fileinfo object.  It is assumed SHA256 hashes are computed
@@ -1692,7 +1692,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     file1_path = os.path.join(targets_directory, 'file.txt')
     tuf.util.ensure_parent_dir(file1_path)
 
-    with open(file1_path, 'wb') as file_object:
+    with open(file1_path, 'wt') as file_object:
       file_object.write('test file.')
    
     # Set valid generate_targets_metadata() arguments.

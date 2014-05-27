@@ -181,7 +181,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     tuf.formats.check_signable_object_format(timestamp_metadata) 
     
     with open(timestamp_path, 'wb') as file_object:
-      json.dump(timestamp_metadata, file_object, indent=1, sort_keys=True)   
+      json.dumps(timestamp_metadata, file_object, indent=1, sort_keys=True).encode('utf-8')
     
     client_timestamp_path = os.path.join(self.client_directory,
                                          'timestamp.json')

@@ -266,45 +266,32 @@ class Repository(object):
       # sub-directory.
       tuf.util.ensure_parent_dir(delegated_filename)
    
-      try:
-        _generate_and_write_metadata(delegated_rolename, delegated_filename,
-                                     write_partial, self._targets_directory,
-                                     self._metadata_directory,
-                                     consistent_snapshot)
-      
-      # Include only the exception message.
-      except tuf.UnsignedMetadataError as e:
-        raise tuf.UnsignedMetadataError(e[0])
-      
+      _generate_and_write_metadata(delegated_rolename, delegated_filename,
+                                   write_partial, self._targets_directory,
+                                   self._metadata_directory,
+                                   consistent_snapshot)
+    
     # Generate the 'root.json' metadata file.
     # _generate_and_write_metadata() raises a 'tuf.Error' exception if the
     # metadata cannot be written.
     root_filename = 'root' + METADATA_EXTENSION 
     root_filename = os.path.join(self._metadata_directory, root_filename)
-    try: 
-      signable_junk, root_filename = \
-        _generate_and_write_metadata('root', root_filename, write_partial,
-                                     self._targets_directory,
-                                     self._metadata_directory,
-                                     consistent_snapshot)
     
-    # Include only the exception message.
-    except tuf.UnsignedMetadataError as e:
-      raise tuf.UnsignedMetadataError(e[0])
-    
+    signable_junk, root_filename = \
+      _generate_and_write_metadata('root', root_filename, write_partial,
+                                   self._targets_directory,
+                                   self._metadata_directory,
+                                   consistent_snapshot)
+
     # Generate the 'targets.json' metadata file.
     targets_filename = 'targets' + METADATA_EXTENSION 
     targets_filename = os.path.join(self._metadata_directory, targets_filename)
-    try: 
-      signable_junk, targets_filename = \
-        _generate_and_write_metadata('targets', targets_filename, write_partial,
-                                     self._targets_directory,
-                                     self._metadata_directory,
-                                     consistent_snapshot)
     
-    # Include only the exception message.
-    except tuf.UnsignedMetadataError as e:
-      raise tuf.UnsignedMetadataError(e[0])
+    signable_junk, targets_filename = \
+      _generate_and_write_metadata('targets', targets_filename, write_partial,
+                                   self._targets_directory,
+                                   self._metadata_directory,
+                                   consistent_snapshot)
     
     # Generate the 'snapshot.json' metadata file.
     snapshot_filename = os.path.join(self._metadata_directory, 'snapshot')
@@ -312,31 +299,22 @@ class Repository(object):
     snapshot_filename = os.path.join(self._metadata_directory, snapshot_filename)
     filenames = {'root': root_filename, 'targets': targets_filename}
     snapshot_signable = None
-    try: 
-      snapshot_signable, snapshot_filename = \
-        _generate_and_write_metadata('snapshot', snapshot_filename, write_partial,
-                                     self._targets_directory,
-                                     self._metadata_directory,
-                                     consistent_snapshot, filenames)
     
-    # Include only the exception message.
-    except tuf.UnsignedMetadataError as e:
-      raise tuf.UnsignedMetadataError(e[0])
-    
+    snapshot_signable, snapshot_filename = \
+      _generate_and_write_metadata('snapshot', snapshot_filename, write_partial,
+                                   self._targets_directory,
+                                   self._metadata_directory,
+                                   consistent_snapshot, filenames)
+
     # Generate the 'timestamp.json' metadata file.
     timestamp_filename = 'timestamp' + METADATA_EXTENSION 
     timestamp_filename = os.path.join(self._metadata_directory, timestamp_filename)
     filenames = {'snapshot': snapshot_filename}
-    try: 
-      _generate_and_write_metadata('timestamp', timestamp_filename, write_partial,
-                                   self._targets_directory,
-                                   self._metadata_directory, consistent_snapshot,
-                                   filenames)
     
-    # Include only the exception message.
-    except tuf.UnsignedMetadataError as e:
-      raise tuf.UnsignedMetadataError(e[0])
-
+    _generate_and_write_metadata('timestamp', timestamp_filename, write_partial,
+                                 self._targets_directory,
+                                 self._metadata_directory, consistent_snapshot,
+                                 filenames)
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked and should no longer have their metadata files
@@ -2293,7 +2271,7 @@ class Targets(Metadata):
       # '{repository_root}/targets/file1.txt' -> 'file1.txt'.
       relative_path = target_path[len(self._targets_directory):]
       digest_object = tuf.hash.digest(algorithm=HASH_FUNCTION)
-      digest_object.update(relative_path)
+      digest_object.update(relative_path.encode('utf-8'))
       relative_path_hash = digest_object.hexdigest()
       relative_path_hash_prefix = relative_path_hash[:prefix_length]
 
@@ -2426,7 +2404,7 @@ class Targets(Metadata):
     # '{repository_root}/targets/file1.txt' -> '/file1.txt'.
     relative_path = filepath[len(self._targets_directory):]
     digest_object = tuf.hash.digest(algorithm=HASH_FUNCTION)
-    digest_object.update(relative_path)
+    digest_object.update(relative_path.encode('utf-8'))
     path_hash = digest_object.hexdigest()
     path_hash_prefix = path_hash[:prefix_length]
 
@@ -2477,7 +2455,7 @@ class Targets(Metadata):
       A list containing the Targets objects of this Targets' delegations.
     """
 
-    return self._delegated_roles.values()
+    return list(self._delegated_roles.values())
 
 
 
@@ -2645,8 +2623,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   # 'tuf.UnsignedMetadataError' raised if metadata contains an invalid threshold
   # of signatures.  log the valid/threshold message, where valid < threshold.
   except tuf.UnsignedMetadataError as e:
-    signable = e[1]
-    _log_status('root', signable)
+    _log_status('root', e.signable)
     return
 
   # Verify the metadata of the Targets role.
@@ -2657,8 +2634,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
     _log_status('targets', signable)
   
   except tuf.UnsignedMetadataError as e:
-    signable = e[1]
-    _log_status('targets', signable)
+    _log_status('targets', e.signable)
     return
 
   # Verify the metadata of the snapshot role.
@@ -2671,8 +2647,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
     _log_status('snapshot', signable)
   
   except tuf.UnsignedMetadataError as e:
-    signable = e[1]
-    _log_status('snapshot', signable)
+    _log_status('snapshot', e.signable)
     return
   
   # Verify the metadata of the Timestamp role.
@@ -2685,8 +2660,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
     _log_status('timestamp', signable)
   
   except tuf.UnsignedMetadataError as e:
-    signable = e[1]
-    _log_status('timestamp', signable)
+    _log_status('timestamp', e.signable)
     return
 
 
@@ -2945,8 +2919,8 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         # Delete outdated consistent snapshots.  snapshot metadata includes
         # the file extension of roles.
         if consistent_snapshot and embeded_digest is not None:
-          file_hashes = snapshot_metadata['meta'][metadata_name_extension] \
-                                        ['hashes'].values()
+          file_hashes = list(snapshot_metadata['meta'][metadata_name_extension] \
+                                        ['hashes'].values())
           if embeded_digest not in file_hashes:
             logger.info('Removing outdated metadata: ' + repr(metadata_path))
             os.remove(metadata_path)
@@ -2961,8 +2935,8 @@ def _get_written_metadata_and_digests(metadata_signable):
   its digest.
   """
 
-  written_metadata_content = unicode(json.dumps(metadata_signable, indent=1,
-                                     sort_keys=True))
+  written_metadata_content = json.dumps(metadata_signable, indent=1,
+                                     sort_keys=True).encode('utf-8')
   written_metadata_digests = {}
 
   for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
@@ -3208,7 +3182,7 @@ def load_repository(repository_directory):
         roleinfo['signatures'].extend(signable['signatures'])
         roleinfo['version'] = metadata_object['version']
         roleinfo['expires'] = metadata_object['expires']
-        roleinfo['paths'] = metadata_object['targets'].keys()
+        roleinfo['paths'] = list(metadata_object['targets'].keys())
         roleinfo['delegations'] = metadata_object['delegations']
 
         if os.path.exists(metadata_path+'.gz'):
@@ -3239,7 +3213,7 @@ def load_repository(repository_directory):
         # log a warning here as there may be many such duplicate key warnings.
         # The repository maintainer should have also been made aware of the
         # duplicate key when it was added.
-        for key_metadata in metadata_object['delegations']['keys'].values():
+        for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
           key_object = tuf.keys.format_metadata_to_key(key_metadata)
           try: 
             tuf.keydb.add_key(key_object)
@@ -3349,7 +3323,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   # if 'consistent_snapshot' is True.
   if consistent_snapshot:
     snapshot_hashes = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['hashes']
-    snapshot_digest = random.choice(snapshot_hashes.values())
+    snapshot_digest = random.choice(list(snapshot_hashes.values()))
     dirname, basename = os.path.split(snapshot_filename)
     snapshot_filename = os.path.join(dirname, snapshot_digest + '.' + basename)
   
@@ -3382,7 +3356,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   # 'consistent_snapshot' is True.
   if consistent_snapshot:
     targets_hashes = snapshot_metadata['meta'][TARGETS_FILENAME]['hashes']
-    targets_digest = random.choice(targets_hashes.values())
+    targets_digest = random.choice(list(targets_hashes.values()))
     dirname, basename = os.path.split(targets_filename)
     targets_filename = os.path.join(dirname, targets_digest + '.' + basename)
   
@@ -3396,7 +3370,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
    
     # Update 'targets.json' in 'tuf.roledb.py' 
     roleinfo = tuf.roledb.get_roleinfo('targets')
-    roleinfo['paths'] = targets_metadata['targets'].keys()
+    roleinfo['paths'] = list(targets_metadata['targets'].keys())
     roleinfo['version'] = targets_metadata['version']
     roleinfo['expires'] = targets_metadata['expires']
     roleinfo['delegations'] = targets_metadata['delegations']
@@ -3408,11 +3382,11 @@ def _load_top_level_metadata(repository, top_level_filenames):
    
     _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
                                  TARGETS_EXPIRES_WARN_SECONDS)
-    
+   
     tuf.roledb.update_roleinfo('targets', roleinfo)
 
     # Add the keys specified in the delegations field of the Targets role.
-    for key_metadata in targets_metadata['delegations']['keys'].values():
+    for key_metadata in six.itervalues(targets_metadata['delegations']['keys']):
       key_object = tuf.keys.format_metadata_to_key(key_metadata)
      
       # Add 'key_object' to the list of recognized keys.  Keys may be shared,
@@ -3537,7 +3511,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
   # Create a tempororary file, write the contents of the public key, and move
   # to final destination.
   file_object = tuf.util.TempFile()
-  file_object.write(public)
+  file_object.write(public.encode('utf-8'))
   
   # The temporary file is closed after the final move.
   file_object.move(filepath+'.pub')
@@ -3546,7 +3520,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
   # Unlike the public key file, the private key does not have a file
   # extension.
   file_object = tuf.util.TempFile()
-  file_object.write(encrypted_pem)
+  file_object.write(encrypted_pem.encode('utf-8'))
   file_object.move(filepath)
 
 
@@ -3606,7 +3580,7 @@ def import_rsa_privatekey_from_file(filepath, password=None):
 
   # Read the contents of 'filepath' that should be an encrypted PEM.
   with open(filepath, 'rb') as file_object:
-    encrypted_pem = file_object.read()
+    encrypted_pem = file_object.read().decode('utf-8')
 
   # Convert 'encrypted_pem' to 'tuf.formats.RSAKEY_SCHEMA' format.  Raise
   # 'tuf.CryptoError' if 'encrypted_pem' is invalid.
@@ -3656,10 +3630,10 @@ def import_rsa_publickey_from_file(filepath):
   # Read the contents of the key file that should be in PEM format and contains
   # the public portion of the RSA key.
   with open(filepath, 'rb') as file_object:
-    rsa_pubkey_pem = file_object.read()
+    rsa_pubkey_pem = file_object.read().decode('utf-8')
 
   # Convert 'rsa_pubkey_pem' to 'tuf.formats.RSAKEY_SCHEMA' format.
-  try: 
+  try:
     rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
   
   except tuf.FormatError as e:
@@ -3744,7 +3718,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   # Create a tempororary file, write the contents of the public key, and move
   # to final destination.
   file_object = tuf.util.TempFile()
-  file_object.write(json.dumps(ed25519key_metadata_format))
+  file_object.write(json.dumps(ed25519key_metadata_format).encode('utf-8'))
   
   # The temporary file is closed after the final move.
   file_object.move(filepath+'.pub')
@@ -3752,7 +3726,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   # Write the encrypted key string, conformant to
   # 'tuf.formats.ENCRYPTEDKEY_SCHEMA', to '<filepath>'.
   file_object = tuf.util.TempFile()
-  file_object.write(encrypted_key)
+  file_object.write(encrypted_key.encode('utf-8'))
   file_object.move(filepath)
   
 
@@ -4237,7 +4211,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     filedict[relative_targetpath] = get_metadata_fileinfo(target_path)
     
     if write_consistent_targets:
-      for target_digest in filedict[relative_targetpath]['hashes'].values():
+      for target_digest in filedict[relative_targetpath]['hashes']:
         dirname, basename = os.path.split(target_path)
         digest_filename = target_digest + '.' + basename
         digest_target = os.path.join(dirname, digest_filename)
@@ -4613,7 +4587,7 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
   file_content, new_digests = _get_written_metadata_and_digests(metadata)
  
   if consistent_snapshot:
-    for new_digest in new_digests.values():
+    for new_digest in six.itervalues(new_digests):
       dirname, basename = os.path.split(filename)
       digest_and_filename = new_digest + '.' + basename
       consistent_filenames.append(os.path.join(dirname, digest_and_filename))

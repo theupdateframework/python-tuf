@@ -302,6 +302,13 @@ class InvalidNameError(Error):
 
 class UnsignedMetadataError(Error):
   """Indicate metadata object with insufficient threshold of signatures."""
+  
+  def __init__(self, message, signable):
+    self.exception_message = message
+    self.signable = signable
+
+  def __str__(self):
+    return self.exception_message
 
 
 

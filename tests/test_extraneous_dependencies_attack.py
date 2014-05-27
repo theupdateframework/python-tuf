@@ -185,7 +185,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
 
     tuf.formats.check_signable_object_format(role1_metadata) 
     
-    with open(role1_filepath, 'wb') as file_object:
+    with open(role1_filepath, 'wt') as file_object:
       json.dump(role1_metadata, file_object, indent=1, sort_keys=True)   
 
     # Un-install the metadata of the top-level roles so that the client can

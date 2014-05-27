@@ -78,7 +78,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # Computing hash of target file data.
     m = hashlib.md5()
-    m.update(self.target_data)
+    m.update(self.target_data.encode('utf-8'))
     digest = m.hexdigest()
     self.target_hash = {'md5':digest}  
 
@@ -98,7 +98,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     download_file = download.safe_download
 
     temp_fileobj = download_file(self.url, self.target_data_length)
-    self.assertEqual(self.target_data, temp_fileobj.read())
+    self.assertEqual(self.target_data, temp_fileobj.read().decode('utf-8'))
     self.assertEqual(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
 
@@ -126,7 +126,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # STRICT_REQUIRED_LENGTH.
     temp_fileobj = download.unsafe_download(self.url,
                                             self.target_data_length + 1)
-    self.assertEqual(self.target_data, temp_fileobj.read())
+    self.assertEqual(self.target_data, temp_fileobj.read().decode('utf-8'))
     self.assertEqual(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
 

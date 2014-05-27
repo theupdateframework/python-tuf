@@ -107,10 +107,10 @@ class TestPycrypto_keys(unittest.TestCase):
                                        method, public_rsa, 123)
     
     self.assertEqual(False, pycrypto.verify_rsa_signature(signature, method,
-                            public_rsa, 'mismatched data'))
+                            public_rsa, b'mismatched data'))
 
     mismatched_signature, method = pycrypto.create_rsa_signature(private_rsa,
-                                                             'mismatched data')
+                                                             b'mismatched data')
     
     self.assertEqual(False, pycrypto.verify_rsa_signature(mismatched_signature,
                             method, public_rsa, data))

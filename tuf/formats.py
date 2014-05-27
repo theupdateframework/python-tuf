@@ -154,7 +154,7 @@ HASHALGORITHMS_SCHEMA = SCHEMA.ListOf(SCHEMA.OneOf(
 
 # The contents of an encrypted TUF key.  Encrypted TUF keys are saved to files
 # in this format.
-ENCRYPTEDKEY_SCHEMA = SCHEMA.AnyString()
+ENCRYPTEDKEY_SCHEMA = SCHEMA.AnyBytes()
 
 # A value that is either True or False, on or off, etc.
 BOOLEAN_SCHEMA = SCHEMA.Boolean()
@@ -177,7 +177,7 @@ RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
 NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
 # A PyCrypto signature.
-PYCRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyString()
+PYCRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyBytes()
 
 # An RSA key in PEM format.
 PEMRSA_SCHEMA = SCHEMA.AnyString()
@@ -1193,7 +1193,7 @@ def _canonical_string_encoder(string):
   """
 
   string = '"%s"' % re.sub(r'(["\\])', r'\\\1', string)
-  
+ 
   return string
 
 
@@ -1311,7 +1311,7 @@ def encode_canonical(object, output_function=None):
   # Note: Implies 'output_function' is None,
   # otherwise results are sent to 'output_function'.
   if result is not None:
-    return ''.join(result).encode('utf-8')
+    return ''.join(result)
 
 
 

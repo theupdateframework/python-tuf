@@ -158,9 +158,9 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     repository = repo_tool.load_repository(self.repository_directory)
     file1_filepath = os.path.join(self.repository_directory, 'targets',
                                   'file1.txt')
-    
     with open(file1_filepath, 'wb') as file_object:
-      file_object.write('a' * total_bytes)
+      data = b'a' * total_bytes
+      file_object.write(data)
 
     key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
     timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
@@ -286,7 +286,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
     try:
       file1_target = self.repository_updater.target('file1.txt')
-      self.repository_updater.download_target(file1_target, client_filepath)
+      self.repository_updater.download_target(file1_target, self.client_directory)
      
     # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
     # each mirror.
@@ -297,7 +297,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.Error))
+        self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
     
     else:
       self.fail('TUF did not prevent a slow retrieval attack.')
@@ -317,7 +317,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
     try:
       file1_target = self.repository_updater.target('file1.txt')
-      self.repository_updater.download_target(file1_target, client_filepath)
+      self.repository_updater.download_target(file1_target, self.client_directory)
 
     # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
     # each mirror.  'file1.txt' should be large enough to trigger a slow

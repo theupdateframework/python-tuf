@@ -207,7 +207,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
   
     # Modify a 'role1.json' target file, and add it to its metadata so that a
     # new version is generated.
-    with open(file3_path, 'wb') as file_object:
+    with open(file3_path, 'wt') as file_object:
       file_object.write('update file3')
     repository.targets('role1').add_target(file3_path)
 

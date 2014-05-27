@@ -201,7 +201,7 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       # We download a fixed chunk of data in every round. This is so that we
       # can defend against slow retrieval attacks. Furthermore, we do not wish
       # to download an extremely large file in one shot.
-      data = '' 
+      data = b'' 
       read_amount = min(tuf.conf.CHUNK_SIZE,
                         required_length - number_of_bytes_received)
       logger.debug('Reading next chunk...')
@@ -234,7 +234,6 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       # If the average download speed is below a certain threshold, we flag
       # this as a possible slow-retrieval attack.
       if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
-        #raise tuf.SlowRetrievalError(average_download_speed)
         break
 
       else:

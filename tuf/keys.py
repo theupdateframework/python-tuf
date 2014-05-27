@@ -311,13 +311,13 @@ def generate_ed25519_key():
   # Generate the keyid of the ED25519 key.  'key_value' corresponds to the
   # 'keyval' entry of the 'ED25519KEY_SCHEMA' dictionary.  The private key
   # information is not included in the generation of the 'keyid' identifier.
-  key_value = {'public': binascii.hexlify(public),
+  key_value = {'public': binascii.hexlify(public).decode(),
                'private': ''}
   keyid = _get_keyid(keytype, key_value)
 
   # Build the 'ed25519_key' dictionary.  Update 'key_value' with the ED25519
   # private key prior to adding 'key_value' to 'ed25519_key'.
-  key_value['private'] = binascii.hexlify(private)
+  key_value['private'] = binascii.hexlify(private).decode()
 
   ed25519_key['keytype'] = keytype
   ed25519_key['keyid'] = keyid
@@ -692,7 +692,7 @@ def create_signature(key_dict, data):
   # otherwise raise an exception.
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
-      sig, method = tuf.pycrypto_keys.create_rsa_signature(private, data)
+      sig, method = tuf.pycrypto_keys.create_rsa_signature(private, data.encode('utf-8'))
     
     else: # pragma: no cover
       message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": '+\
@@ -703,7 +703,7 @@ def create_signature(key_dict, data):
     public = binascii.unhexlify(public)
     private = binascii.unhexlify(private)
     if 'pynacl' in _available_crypto_libraries:
-      sig, method = tuf.ed25519_keys.create_signature(public, private, data)
+      sig, method = tuf.ed25519_keys.create_signature(public, private, data.encode('utf-8'))
     
     else: # pragma: no cover
       message = 'The required PyNaCl library is unavailable.'
@@ -717,7 +717,7 @@ def create_signature(key_dict, data):
   # The hexadecimal representation of 'sig' is stored in the signature.
   signature['keyid'] = keyid
   signature['method'] = method
-  signature['sig'] = binascii.hexlify(sig)
+  signature['sig'] = binascii.hexlify(sig).decode()
 
   return signature
 
@@ -815,7 +815,7 @@ def verify_signature(key_dict, signature, data):
   # generated across different platforms and Python key dictionaries.  The
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
-  data = tuf.formats.encode_canonical(data)
+  data = tuf.formats.encode_canonical(data).encode('utf-8')
   
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
@@ -1015,7 +1015,7 @@ def format_rsakey_from_pem(pem):
   # Ensure the PEM string starts with the required number of dashes.  Although
   # a simple validation of 'pem' is performed here, a fully valid PEM string is
   # needed to successfully verify signatures.
-  if not pem.startswith(b'-----'):
+  if not pem.startswith('-----'):
     raise tuf.FormatError('The PEM string argument is improperly formatted.') 
   
   # Begin building the RSA key dictionary. 

@@ -202,6 +202,44 @@ class AnyString(Schema):
 
 
 
+class AnyBytes(Schema):
+  """
+  <Purpose>
+    Matches any byte string, but not a non-byte object.  This schema
+    can be viewed as the Any() schema applied to byte strings, but an
+    additional check is performed to ensure only strings are considered.
+
+    Supported methods include
+      matches(): returns a Boolean result.
+      check_match(): raises 'tuf.FormatError' on a mismatch.
+
+  <Example Use>
+    
+    >>> schema = AnyString()
+    >>> schema.matches(b'')
+    True
+    >>> schema.matches(b'a string')
+    True
+    >>> schema.matches(['a'])
+    False
+    >>> schema.matches(3)
+    False
+    >>> schema.matches({})
+    False
+  """
+
+  def __init__(self):
+    pass
+
+
+  def check_match(self, object):
+    if not isinstance(object, six.binary_type):
+      raise tuf.FormatError('Expected a byte string but got '+repr(object))
+
+
+
+
+
 class LengthString(Schema):
   """
   <Purpose>
