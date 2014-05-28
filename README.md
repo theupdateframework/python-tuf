@@ -81,6 +81,33 @@ TUF specification document is also available:
 * [The Update Framework Specification](docs/tuf-spec.txt?raw=true)                                           
 
 
+##Installation
+```Bash
+pip - installing and managing Python packages (recommended):
+
+# Installing from Python Package Index (https://pypi.python.org/pypi).
+$ pip install tuf
+
+# Installing from local source archive.
+$ pip install <path to archive>
+  
+# Or from the root directory of the unpacked archive.
+$ pip install . 
+```
+
+### Installing optional requirements (i.e., after installing tuf).
+```Bash
+# The optional `tuf[tools]` can be installed by users that wish to generate
+# TUF repository files, such as metadata, cryptographic keys, and signatures.
+# Whereas the basic install can only verify ed25519 signatures and is intended
+# for sofware updater clients, `tuf[tools]` provides repository maintainers
+# secure ed25519 key and signature generation with PyNaCl / libsodium.
+
+# The TUF tools also enable general-purpose cryptography with PyCrypto.  Software
+# updaters that want to support verification of RSASSA-PSS signatures must require
+# their clients to install `tuf[tools]`.
+$ pip install tuf[tools]
+```
 
 ##Using TUF
 
