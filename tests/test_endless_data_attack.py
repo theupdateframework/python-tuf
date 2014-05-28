@@ -256,13 +256,16 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
    
     original_length, hashes = tuf.util.get_file_details(timestamp_path)
     
-    with open(timestamp_path, 'r+t') as file_object:
-      original_content = file_object.read()
-      file_object.write(original_content+('append large amount of data' * 10000))
+    with open(timestamp_path, 'r+') as file_object:
+      timestamp_content = tuf.util.load_json_file(timestamp_path) 
+      large_data = 'LargeTimestamp' * 10000
+      timestamp_content['signed']['_type'] = large_data 
+      json.dump(timestamp_content, file_object, indent=1, sort_keys=True)
+
     
     modified_length, hashes = tuf.util.get_file_details(timestamp_path)
     self.assertTrue(modified_length > original_length)
- 
+
     # Does the TUF client download the upper limit of an unsafely fetched
     # 'timestamp.json'?  'timestamp.json' must not be greater than
     # 'tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH'.

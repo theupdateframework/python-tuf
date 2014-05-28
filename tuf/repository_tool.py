@@ -2936,7 +2936,7 @@ def _get_written_metadata_and_digests(metadata_signable):
   """
 
   written_metadata_content = json.dumps(metadata_signable, indent=1,
-                                     sort_keys=True).encode('utf-8')
+                                        sort_keys=True).encode('utf-8')
   written_metadata_digests = {}
 
   for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:

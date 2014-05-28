@@ -211,7 +211,7 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       
       except socket.error:
         pass
-      
+    
       number_of_bytes_received = number_of_bytes_received + len(data)
       
       # Data successfully read from the connection.  Store it. 
@@ -253,6 +253,9 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
     raise
   
   else:
+    # This else block returns and skips closing the connection in the finally
+    # block, so close the connection here.
+    connection.close()
     return number_of_bytes_received
   
   finally:
@@ -490,7 +493,7 @@ def _check_downloaded_length(total_downloaded, required_length,
     logger.info('Downloaded '+str(total_downloaded)+' bytes out of the '+\
                 'expected '+str(required_length)+ ' bytes.')
   else:
-    difference_in_bytes = abs(total_downloaded-required_length)
+    difference_in_bytes = abs(total_downloaded - required_length)
 
     # What we downloaded is not equal to the required length, but did we ask
     # for strict checking of required length?

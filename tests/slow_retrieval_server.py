@@ -52,7 +52,7 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
     try:
       filepath = os.path.join(current_dir, self.path.lstrip('/'))
       data = None
-      with open(filepath, 'rb') as fileobj:
+      with open(filepath, 'r') as fileobj:
         data = fileobj.read()
       
       self.send_response(200)
@@ -76,7 +76,7 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
         # 'tuf.conf.SLOW_START_GRACE_PERIOD' seconds before triggering a
         # potential slow retrieval error.
         for i in range(len(data)):
-          self.wfile.write(data[i])
+          self.wfile.write(data[i].encode('utf-8'))
           time.sleep(DELAY)
         
         return

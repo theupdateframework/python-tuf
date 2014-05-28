@@ -159,8 +159,8 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     file1_filepath = os.path.join(self.repository_directory, 'targets',
                                   'file1.txt')
     with open(file1_filepath, 'wb') as file_object:
-      data = b'a' * total_bytes
-      file_object.write(data)
+      data = 'a' * total_bytes
+      file_object.write(data.encode('utf-8'))
 
     key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
     timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
