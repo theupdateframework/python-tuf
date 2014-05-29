@@ -208,8 +208,9 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       
       try: 
         data = connection.read(read_amount)
-      
-      except socket.error:
+     
+      # Python 3.2 returns 'IOError' if the remote file object has timed out. 
+      except (socket.error, IOError):
         pass
     
       number_of_bytes_received = number_of_bytes_received + len(data)

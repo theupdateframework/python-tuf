@@ -208,7 +208,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     # Modify a 'role1.json' target file, and add it to its metadata so that a
     # new version is generated.
     with open(file3_path, 'wt') as file_object:
-      file_object.write('update file3')
+      file_object.write('This is role2\'s target file.')
     repository.targets('role1').add_target(file3_path)
 
     repository.write()
@@ -222,7 +222,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     shutil.move(backup_role1, role1_path)
     
     # Verify that the TUF client detects unexpected metadata (previously valid,
-    # but not up-to-date with the latest snashot of the repository) and refuses
+    # but not up-to-date with the latest snapshot of the repository) and refuses
     # to continue the update process.
     # Refresh top-level metadata so that the client is aware of the latest
     # snapshot of the repository.

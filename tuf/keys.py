@@ -700,8 +700,8 @@ def create_signature(key_dict, data):
       raise tuf.UnsupportedLibraryError(message)
   
   elif keytype == 'ed25519':
-    public = binascii.unhexlify(public)
-    private = binascii.unhexlify(private)
+    public = binascii.unhexlify(public.encode('utf-8'))
+    private = binascii.unhexlify(private.encode('utf-8'))
     if 'pynacl' in _available_crypto_libraries:
       sig, method = tuf.ed25519_keys.create_signature(public, private, data.encode('utf-8'))
     
@@ -806,7 +806,7 @@ def verify_signature(key_dict, signature, data):
   # key_dict['keyval']['private'].
   method = signature['method']
   sig = signature['sig']
-  sig = binascii.unhexlify(sig)
+  sig = binascii.unhexlify(sig.encode('utf-8'))
   public = key_dict['keyval']['public']
   keytype = key_dict['keytype']
   valid_signature = False
@@ -836,7 +836,7 @@ def verify_signature(key_dict, signature, data):
       raise tuf.UnsupportedLibraryError(message) 
   
   elif keytype == 'ed25519':
-    public = binascii.unhexlify(public)
+    public = binascii.unhexlify(public.encode('utf-8'))
     if _ED25519_CRYPTO_LIBRARY == 'pynacl' or \
                               'pynacl' in _available_crypto_libraries:
       valid_signature = tuf.ed25519_keys.verify_signature(public,

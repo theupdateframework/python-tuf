@@ -2564,7 +2564,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   
   # 'signable' contains an invalid threshold of signatures. 
   else:
-    message = 'Not enough signatures for '+repr(metadata_filename)
+    message = 'Not enough signatures for ' + repr(metadata_filename)
     raise tuf.UnsignedMetadataError(message, signable)
   
   return signable, filename 

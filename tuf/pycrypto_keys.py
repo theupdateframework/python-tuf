@@ -912,10 +912,10 @@ def _decrypt(file_contents, password):
     raise tuf.CryptoError('Invalid encrypted file.') 
 
   # Ensure we have the expected raw data for the delimited cryptographic data. 
-  salt = binascii.unhexlify(salt)
+  salt = binascii.unhexlify(salt.encode('utf-8'))
   iterations = int(iterations)
-  iv = binascii.unhexlify(iv)
-  ciphertext = binascii.unhexlify(ciphertext)
+  iv = binascii.unhexlify(iv.encode('utf-8'))
+  ciphertext = binascii.unhexlify(ciphertext.encode('utf-8'))
 
   # Generate derived key from 'password'.  The salt and iterations are specified
   # so that the expected derived key is regenerated correctly.  Discard the old

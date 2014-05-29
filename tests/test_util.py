@@ -65,7 +65,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
   def _extract_tempfile_directory(self, config_temp_dir=None):
-    """[Helper] Takes a directory (essentially specified in the config.py as
+    """[Helper] Takes a directory (essentially specified in the conf.py as
        'temporary_directory') and substitutes tempfile.TemporaryFile() with
        tempfile.mkstemp() in order to extract actual directory of the stored  
        tempfile.  Returns the config's temporary directory (or default temp
@@ -98,7 +98,8 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
  
   def test_A2_tempfile_init(self):
-    # Goal: Verify that tempfile is stored in an appropriate temp directory.  
+    # Goal: Verify that temporary files are stored in the appropriate temp
+    # directory.  The location of the temporary files is set in 'tuf.conf.py'.
 
     # Test: Expected input verification.
     config_temp_dirs = [None, self.make_temp_directory()]

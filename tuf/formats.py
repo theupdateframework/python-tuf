@@ -873,7 +873,7 @@ def parse_base64(base64_string):
     base64_string = base64_string + padding
 
   try:
-    return binascii.a2b_base64(base64_string)
+    return binascii.a2b_base64(base64_string.encode('utf-8'))
   
   except (TypeError, binascii.Error) as e:
     raise tuf.FormatError('Invalid base64 encoding: '+str(e))
