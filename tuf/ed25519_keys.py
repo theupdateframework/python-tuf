@@ -85,6 +85,10 @@ import os
 # TODO: Version 0.2.3 of 'pynacl' prints: "UserWarning: reimporting '...' might
 # overwrite older definitions." when importing 'nacl.signing'.  Suppress user
 # warnings temporarily (at least until this issue is fixed by PyNaCl).
+#
+# Note: A 'pragma: no cover' comment is intended for test 'coverage'.  Lines
+# or code blocks with this comment should not be flagged as uncovered.
+# pynacl will always be install prior to running the unit tests.
 with warnings.catch_warnings():
   warnings.simplefilter('ignore')
   try:
@@ -93,7 +97,7 @@ with warnings.catch_warnings():
   
   # PyNaCl's 'cffi' dependency may raise an 'IOError' exception when importing
   # 'nacl.signing'.
-  except (ImportError, IOError):
+  except (ImportError, IOError): # pragma: no cover
     pass
 
 # The optimized pure Python implementation of ed25519 provided by TUF.  If
@@ -164,10 +168,9 @@ def generate_public_and_private():
   # key generation.
   try:
     nacl_key = nacl.signing.SigningKey(seed)
-    #public = nacl_key.verify_key
     public = nacl_key.verify_key.encode(encoder=nacl.encoding.RawEncoder())
   
-  except NameError:
+  except NameError: # pragma: no cover
     message = 'The PyNaCl library and/or its dependencies unavailable.'
     raise tuf.UnsupportedLibraryError(message)
   
@@ -252,7 +255,7 @@ def create_signature(public_key, private_key, data):
     nacl_sig = nacl_key.sign(data)
     signature = nacl_sig.signature
   
-  except NameError:
+  except NameError: # pragma: no cover
     message = 'The PyNaCl library and/or its dependencies unavailable.'
     raise tuf.UnsupportedLibraryError(message)
   
@@ -350,10 +353,9 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
       try:
         nacl_verify_key = nacl.signing.VerifyKey(public)
         nacl_message = nacl_verify_key.verify(data, signature) 
-        if nacl_message == data:
-          valid_signature = True
+        valid_signature = True
       
-      except NameError:
+      except NameError: # pragma: no cover
         message = 'The PyNaCl library and/or its dependencies unavailable.'
         raise tuf.UnsupportedLibraryError(message)
       
@@ -370,6 +372,7 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
       # invalid.
       except Exception as e:
         pass
+  
   else:
     message = 'Unsupported ed25519 signing method: '+repr(method)+'.\n'+ \
       'Supported methods: '+repr(_SUPPORTED_ED25519_SIGNING_METHODS)+'.'

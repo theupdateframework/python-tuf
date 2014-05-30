@@ -3726,7 +3726,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   # Write the encrypted key string, conformant to
   # 'tuf.formats.ENCRYPTEDKEY_SCHEMA', to '<filepath>'.
   file_object = tuf.util.TempFile()
-  file_object.write(encrypted_key.encode('utf-8'))
+  file_object.write(encrypted_key)
   file_object.move(filepath)
   
 

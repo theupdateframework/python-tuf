@@ -1124,7 +1124,7 @@ def encrypt_key(key_object, password):
     message = 'Invalid crypto library: '+repr(_GENERAL_CRYPTO_LIBRARY)+'.'
     raise tuf.UnsupportedLibraryError(message) 
 
-  return encrypted_key
+  return encrypted_key.encode('utf-8')
 
 
 

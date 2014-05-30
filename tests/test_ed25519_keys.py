@@ -24,6 +24,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import unittest
+import os
 import logging
 
 import tuf
@@ -84,6 +85,19 @@ class TestEd25519_keys(unittest.TestCase):
 
     valid_signature = ed25519.verify_signature(public, method, signature, data)
     self.assertEqual(True, valid_signature)
+    
+    # Test with 'pynacl'.
+    valid_signature = ed25519.verify_signature(public, method, signature, data,
+                                               use_pynacl=True)
+    self.assertEqual(True, valid_signature)
+   
+    # Test with 'pynacl', but a bad signature is provided.
+    bad_signature = os.urandom(64)
+    valid_signature = ed25519.verify_signature(public, method, bad_signature,
+                                               data, use_pynacl=True)
+    self.assertEqual(False, valid_signature)
+    
+
 
     # Check for improperly formatted arguments.
     self.assertRaises(tuf.FormatError, ed25519.verify_signature, 123, method,
@@ -92,6 +106,10 @@ class TestEd25519_keys(unittest.TestCase):
     # Signature method improperly formatted.
     self.assertRaises(tuf.FormatError, ed25519.verify_signature, public, 123,
                                        signature, data)
+   
+    # Invalid signature method.
+    self.assertRaises(tuf.UnknownMethodError, ed25519.verify_signature, public,
+                                       'unsupported_method', signature, data)
    
     # Signature not a string.
     self.assertRaises(tuf.FormatError, ed25519.verify_signature, public, method,

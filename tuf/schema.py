@@ -215,7 +215,7 @@ class AnyBytes(Schema):
 
   <Example Use>
     
-    >>> schema = AnyString()
+    >>> schema = AnyBytes()
     >>> schema.matches(b'')
     True
     >>> schema.matches(b'a string')
@@ -915,7 +915,8 @@ class RegularExpression(Schema):
     """
 
     if not isinstance(pattern, six.string_types):
-      raise tuf.FormatError(repr(pattern)+' is not a string.')
+      if pattern is not None:
+        raise tuf.FormatError(repr(pattern)+' is not a string.')
         
     if re_object is None:
       if pattern is None:

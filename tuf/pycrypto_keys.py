@@ -275,8 +275,8 @@ def create_rsa_signature(private_key, data):
   signature = None
  
   # Verify the signature, but only if the private key has been set.  The private
-  # key is a NULL string if unset.  Although it may be clearer to explicit check
-  # that 'private_key' is not '', we can/should check for a value and not
+  # key is a NULL string if unset.  Although it may be clearer to explicitly
+  # check that 'private_key' is not '', we can/should check for a value and not
   # compare identities with the 'is' keyword.  Up to this point 'private_key'
   # has variable size and can be an empty string.
   if len(private_key):

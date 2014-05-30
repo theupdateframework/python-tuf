@@ -82,6 +82,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
   tuf.formats.NAME_SCHEMA.check_match(file_type)
 
+  # Verify 'file_type' is supported.
   if file_type not in _SUPPORTED_FILE_TYPES:
     message = 'Invalid file_type argument.  '+ \
       'Supported file types: '+repr(_SUPPORTED_FILE_TYPES)
@@ -98,19 +99,16 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   for mirror_name, mirror_info in six.iteritems(mirrors_dict):
     if file_type == 'meta':
       base = mirror_info['url_prefix']+'/'+mirror_info['metadata_path']
-    
-    elif file_type == 'target':
+
+    # 'file_type' == 'target'.  'file_type' should have been verified to contain
+    # a supported string value above (either 'meta' or 'target').
+    else:
       targets_path = mirror_info['targets_path']
       full_filepath = os.path.join(targets_path, file_path)
       if not in_confined_directory(full_filepath,
                                    mirror_info['confined_target_dirs']):
         continue
       base = mirror_info['url_prefix']+'/'+mirror_info['targets_path']
-    
-    else:
-      message = repr(file_type)+' is not a supported file type.  '+ \
-       'Supported file types: '+repr(_SUPPORTED_FILE_TYPES) 
-      raise tuf.Error(message)
 
     # urllib.quote(string) replaces special characters in string using the %xx
     # escape.  This is done to avoid parsing issues of the URL on the server
