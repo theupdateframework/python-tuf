@@ -1,40 +1,40 @@
 {
  "signatures": [
   {
-   "keyid": "5e41014efbca0b0cb8f9586f062d262dd21dd4b463625b8182e9f84ff9621d8a", 
-   "method": "RSASSA-PSS", 
-   "sig": "8f393eb1e682eae3be13c78df1ae790a0c18f527d4cc34293f6f00f14fd20deb42f3338c39baa07f618ef62e293a5b685958d192dadf3889bb714d3cccd6886242b169f8bc93a289362243085f222085bf61596e4d55188c7d517eb29e5eb0e988d609934da04796a6ff02beab3a194fb8c0f2cae100a1d7db04b91e82edfece746145bb83dfdd44bb761c7cbccb8ac49553331707211b880d75e7cb548dc57c18746a1c668618f8b22993535f530e86380ca9a7703471eabdfe19cd7b6105bf7d90b33f8c5fd455e2cef2c92fb960c42bb205df52f7a708a09a865a27fd71c3987af93eb1f88dcfa43f00cc5406c209b30595d7d28e8f9c8321fda392dbed18"
+   "keyid": "a456f581bf0026f5052b8ccb888a4ca4ab9dcdd7f043da5b442cce1c76214474",
+   "method": "RSASSA-PSS",
+   "sig": "723d837489d949afc08106d2db3508d3413a6df983b9595726283a1d68a8f758584edbd97c7fe0a0d8a0b34dd69728d1443b4f07b0e7c4b0b5750ed264ec929c02343d611e16c30bc69b8866479a953040a2aa7c074dba08321f96eaba8b6e35d56ad246f2fe310a49ab083a247f0c93a522f16c80b58fef8718e13efbd439c67567781737c65c5be4742deeb993fc202f6f3f66913a1c8f338e91d094508931e8dfd15c57d8e1f6fb7e9d1ca176635905b2b0f37fe209cfc12dfb4bb466f5a9877df091800dd0704cadc79b921100d6186683176a12edad712d568b60a88c3290b0f290a5639ff27404d4f913ccb2c76ef6f663670917c08bbb9774ec3a92fc"
   }
- ], 
+ ],
  "signed": {
-  "_type": "Snapshot", 
-  "expires": "2030-01-01T00:00:00Z", 
+  "_type": "Snapshot",
+  "expires": "2030-01-01T00:00:00Z",
   "meta": {
    "root.json": {
     "hashes": {
-     "sha256": "85a9d5b9b52627598d5cebd0c378bf7f4ba3e92e9ee9c3b01a4352db10e54f0a"
-    }, 
-    "length": 3778
-   }, 
+     "sha256": "7c8ec732f07ded16925c058123aa011bbcf3a4b85aede8794c50d42600224965"
+    },
+    "length": 3756
+   },
    "targets.json": {
     "hashes": {
-     "sha256": "e0f616c7b9aa7dd5ffbaa756929195d83cd2ce8cbf62957c0b089babf81245c1"
-    }, 
-    "length": 1951
-   }, 
+     "sha256": "150884004369d8824a5810089573af544d4d006e4d3b3ec5c71698ab3666ccd1"
+    },
+    "length": 1936
+   },
    "targets.json.gz": {
     "hashes": {
-     "sha256": "bee43bcd564d910267ebab295d9591f3552b2c1c3d20e798f86d3bf5f5580a32"
-    }, 
-    "length": 1211
-   }, 
+     "sha256": "fb5ab5148b5d9ef0236e73ef39eb0bd0f1fa723ebd08ae4460835d468758d226"
+    },
+    "length": 1202
+   },
    "targets/role1.json": {
     "hashes": {
-     "sha256": "fa7cbc2dcde405ba22e3fc16c4d464a1d9f301a5ca5c0fcaa768164312ce7c08"
-    }, 
-    "length": 983
+     "sha256": "7d03a9aac695bc827dc4a7aa4118ba4dea72f367659bfc74495b997803bbffac"
+    },
+    "length": 974
    }
-  }, 
+  },
   "version": 1
  }
 }
