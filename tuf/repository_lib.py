@@ -1753,8 +1753,8 @@ def sign_metadata(metadata_object, keyids, filename):
     key = tuf.keydb.get_key(keyid)
     logger.info('Signing '+repr(filename)+' with '+key['keyid'])
 
-    # Create a new signature list.  If 'keyid' is encountered,
-    # do not add it to new list.
+    # Create a new signature list.  If 'keyid' is encountered, do not add it
+    # to the new list.
     signatures = []
     for signature in signable['signatures']:
       if not keyid == signature['keyid']:
