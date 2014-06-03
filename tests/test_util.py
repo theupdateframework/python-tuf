@@ -138,6 +138,9 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     data = self.random_string()
     self.temp_fileobj.write(data.encode('utf-8'))
     self.assertEqual(data, self.temp_fileobj.read().decode('utf-8'))
+    
+    self.temp_fileobj.write(data.encode('utf-8'), auto_flush=False)
+    self.assertEqual(data, self.temp_fileobj.read().decode('utf-8'))
 
 
 
@@ -165,6 +168,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       f_out.writelines(f_in)
       f_out.close()
       f_in.close()
+      
       return compressed_filepath
     
     else:
@@ -217,8 +221,14 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     
     # Try decompressing once more.
     self.assertRaises(tuf.Error, 
-                      self.temp_fileobj.decompress_temp_file_object,'gzip')
+                      self.temp_fileobj.decompress_temp_file_object, 'gzip')
     
+    # Test decompression of invalid gzip file.
+    temp_file = tuf.util.TempFile()
+    fileobj.seek(0)
+    temp_file.write(fileobj.read())
+    temp_file.decompress_temp_file_object('gzip')
+
 
 
   def test_B1_get_file_details(self):
@@ -316,6 +326,11 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     tuf.util.json.dump(data, fileobj)
     fileobj.close()
     self.assertEqual(data, tuf.util.load_json_file(filepath))
+
+    # Test a gzipped file.
+    compressed_filepath = self._compress_existing_file(filepath)
+    self.assertEqual(data, tuf.util.load_json_file(compressed_filepath))
+
     Errors = (tuf.FormatError, IOError)
     for bogus_arg in [b'a', 1, [b'a'], {'a':b'b'}]:
       self.assertRaises(Errors, tuf.util.load_json_file, bogus_arg)
@@ -518,6 +533,23 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
                                                         ['path_hash_prefixes'])
     self.assertRaises(tuf.ForbiddenTargetError, tuf.util.ensure_all_targets_allowed,
                       'targets/warehouse', ['file5.txt'], parent_delegations)
+  
+  
+  
+  def test_C5_unittest_toolbox_make_temp_directory(self):
+    # Verify that the tearDown function does not fail when
+    # unittest_toolbox.make_temp_directory deletes the generated temp directory
+    # here.
+    temp_directory = self.make_temp_directory()
+    os.rmdir(temp_directory)
+
+
+
+  def test_c6_get_compressed_length(self):
+   self.temp_fileobj.write(b'hello world')
+   self.assertTrue(self.temp_fileobj.get_compressed_length() == 11)
+   
+   temp_file = tuf.util.TempFile()
 
 
 

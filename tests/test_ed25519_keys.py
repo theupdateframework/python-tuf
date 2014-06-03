@@ -1,3 +1,5 @@
+#!/usr/bin/env/ python
+
 """
 <Program Name>
   test_ed25519_keys.py

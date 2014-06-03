@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program>
   test_mirrors.py

@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program>
   simple_server.py

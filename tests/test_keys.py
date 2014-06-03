@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_keys.py
@@ -207,6 +209,51 @@ class TestKeys(unittest.TestCase):
 
     # Passing incorrect number of arguments.
     self.assertRaises(TypeError, KEYS.verify_signature)
+  
+  
+  
+  def test_create_rsa_encrypted_pem(self):
+    # Test valid arguments.
+    private = self.rsakey_dict['keyval']['private']
+    passphrase = 'secret'
+    encrypted_pem = KEYS.create_rsa_encrypted_pem(private, passphrase)
+    self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
+
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
+                      8, passphrase)
+    
+    self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
+                      private, 8)
+
+    # Test for missing required library.
+    KEYS._RSA_CRYPTO_LIBRARY = 'invalid'
+    self.assertRaises(tuf.UnsupportedLibraryError, KEYS.create_rsa_encrypted_pem,
+                      private, passphrase)
+    KEYS._RSA_CRYPTO_LIBRARY = 'pycrypto'
+  
+  
+  
+  def test_decrypt_key(self):
+    # Test valid arguments.
+    passphrase = 'secret'
+    encrypted_key = KEYS.encrypt_key(self.rsakey_dict, passphrase).encode('utf-8')
+    decrypted_key = KEYS.decrypt_key(encrypted_key, passphrase)
+
+    self.assertTrue(tuf.formats.ANYKEY_SCHEMA.matches(decrypted_key))
+    
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
+                      8, passphrase)
+    
+    self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
+                      encrypted_key, 8)
+
+    # Test for missing required library.
+    KEYS._GENERAL_CRYPTO_LIBRARY = 'invalid'
+    self.assertRaises(tuf.UnsupportedLibraryError, KEYS.decrypt_key,
+                      encrypted_key, passphrase)
+    KEYS._GENERAL_CRYPTO_LIBRARY = 'pycrypto' 
 
 
 

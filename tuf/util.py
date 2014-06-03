@@ -64,8 +64,8 @@ class TempFile(object):
     try:
       self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix)
     
-    except OSError as err:
-      logger.critical('Temp file in '+temp_dir+'failed: '+repr(err))
+    except OSError as err: # pragma: no cover
+      logger.critical('Cannot create a system temporary directory: '+repr(err))
       raise tuf.Error(err)
 
 
@@ -95,11 +95,14 @@ class TempFile(object):
         self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix,
                                                           dir=temp_dir)
       except OSError as err:
-        logger.error('Temp file in '+temp_dir+' failed: '+repr(err))
+        logger.error('Temp file in ' + temp_dir + ' failed: '+repr(err))
         logger.error('Will attempt to use system default temp dir.')
         self._default_temporary_directory(prefix)
+    
     else:
       self._default_temporary_directory(prefix)
+
+
 
 
 
@@ -144,6 +147,8 @@ class TempFile(object):
 
 
 
+
+
   def read(self, size=None):
     """
     <Purpose>
@@ -165,11 +170,16 @@ class TempFile(object):
       self.temporary_file.seek(0)
       data = self.temporary_file.read()
       self.temporary_file.seek(0)
+      
       return data
+    
     else:
       if not (isinstance(size, int) and size > 0):
         raise tuf.FormatError
+      
       return self.temporary_file.read(size)
+
+
 
 
 
@@ -226,6 +236,8 @@ class TempFile(object):
 
 
 
+
+
   def seek(self, *args):
     """
     <Purpose>
@@ -246,6 +258,8 @@ class TempFile(object):
     """
 
     self.temporary_file.seek(*args)
+
+
 
 
 
@@ -782,19 +796,10 @@ def get_target_hash(target_filepath):
 
   # Calculate the hash of the filepath to determine which bin to find the 
   # target.  The client currently assumes the repository uses
-  # 'HASH_FUNCTION' to generate hashes.
+  # 'HASH_FUNCTION' to generate hashes and 'utf-8'.
   digest_object = tuf.hash.digest(HASH_FUNCTION)
-
-  try:
-    digest_object.update(target_filepath.encode('utf-8'))
-  
-  except UnicodeEncodeError:
-    # Sometimes, there are Unicode characters in target paths. We assume a
-    # UTF-8 encoding and try to hash that.
-    digest_object = tuf.hash.digest(HASH_FUNCTION)
-    encoded_target_filepath = target_filepath.encode('utf-8')
-    digest_object.update(encoded_target_filepath)
-
+  encoded_target_filepath = target_filepath.encode('utf-8')
+  digest_object.update(encoded_target_filepath)
   target_filepath_hash = digest_object.hexdigest() 
 
   return target_filepath_hash
@@ -911,7 +916,7 @@ def load_json_file(filepath):
   # The file is mostly likely gzipped.
   if filepath.endswith('.gz'):
     logger.debug('gzip.open('+str(filepath)+')')
-    fileobject = gzip.open(filepath)
+    fileobject = six.StringIO(gzip.open(filepath).read().decode('utf-8'))
   
   else:
     logger.debug('open('+str(filepath)+')')
@@ -925,6 +930,7 @@ def load_json_file(filepath):
     raise tuf.Error(message)
   
   else:
+    fileobject.close() 
     return deserialized_object
   
   finally:
