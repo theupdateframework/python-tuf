@@ -460,8 +460,11 @@ def _get_written_metadata_and_digests(metadata_signable):
   its digest.
   """
 
-  written_metadata_content = json.dumps(metadata_signable, indent=1,
-                                        sort_keys=True).encode('utf-8')
+  # Explicitly specify the JSON separators for Python 2 + 3 consistent.
+  written_metadata_content = \
+    json.dumps(metadata_signable, indent=1, separators=(',', ': '),
+               sort_keys=True).encode('utf-8')
+  
   written_metadata_digests = {}
 
   for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:

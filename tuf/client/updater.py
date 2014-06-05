@@ -2008,8 +2008,8 @@ class Updater(object):
     # This only goes to -1 because we only want to store the parents (so we
     # ignore the last element).
     for next_role in parts[1:-1]:
-      parent_roles.append(roles_added+'/'+next_role)
-      roles_added = roles_added+'/'+next_role
+      parent_roles.append(roles_added + '/' + next_role)
+      roles_added = roles_added + '/' + next_role
 
     message = 'Minimum metadata to download and set the chain of trust: '+\
       repr(parent_roles)+'.'
@@ -2024,7 +2024,7 @@ class Updater(object):
 
       if parent_role not in targets_metadata_allowed:
         message = '"snapshot.json" does not provide all the parent roles '+\
-          'of '+repr(rolename)+'.'
+          'of ' + repr(rolename) + '.'
         raise tuf.RepositoryError(message)
 
     # Remove the 'targets' role because it gets updated when the targets.json
@@ -2042,7 +2042,7 @@ class Updater(object):
 
     # Sort the roles so that parent roles always come first.
     parent_roles.sort()
-    logger.debug('Roles to update: '+repr(parent_roles)+'.')
+    logger.debug('Roles to update: ' + repr(parent_roles) + '.')
 
     # Iterate 'parent_roles', load each role's metadata file from disk, and
     # update it if it has changed.  

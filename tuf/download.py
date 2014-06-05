@@ -204,7 +204,7 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       data = b'' 
       read_amount = min(tuf.conf.CHUNK_SIZE,
                         required_length - number_of_bytes_received)
-      logger.debug('Reading next chunk...')
+      #logger.debug('Reading next chunk...')
       
       try: 
         data = connection.read(read_amount)
@@ -225,8 +225,8 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       seconds_spent_receiving = stop_time - start_time
       
       if (seconds_spent_receiving + grace_period) < 0:
-        logger.debug('Ignoring average download speed for another: '+\
-                     str(-seconds_spent_receiving) + ' seconds')
+        #logger.debug('Ignoring average download speed for another: '+\
+                     #str(-seconds_spent_receiving) + ' seconds')
         continue 
       
       # Measure the average download speed.

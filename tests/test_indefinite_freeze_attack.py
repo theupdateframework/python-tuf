@@ -183,8 +183,12 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     tuf.formats.check_signable_object_format(timestamp_metadata) 
     
     with open(timestamp_path, 'wb') as file_object:
-      json.dumps(timestamp_metadata, file_object, indent=1, sort_keys=True).encode('utf-8')
-    
+      # Explicitly specify the JSON separators for Python 2 + 3 consistency.
+      timestamp_content = \
+        json.dumps(timestamp_metadata, indent=1, separators=(',', ': '),
+                   sort_keys=True).encode('utf-8')
+      file_object.write(timestamp_content)
+
     client_timestamp_path = os.path.join(self.client_directory,
                                          'timestamp.json')
     shutil.copy(timestamp_path, client_timestamp_path)
