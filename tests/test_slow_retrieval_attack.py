@@ -210,69 +210,6 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     unittest_toolbox.Modified_TestCase.tearDown(self)
 
 
-  """
-  def test_without_tuf_mode_1(self):
-    # Simulate a slow retrieval attack.
-    # 'mode_1': When download begins,the server blocks the download
-    # for a long time by doing nothing before it sends the first byte of data.
-
-    # Retrieve 'file1.txt' provided by the pre-generated repository.
-    url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-    url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
-    client_filepath = os.path.join(self.client_directory, 'file1.txt')
- 
-    # Generate the fileinfo of 'file.txt' to compare it to what is downloaded.
-    # The download should complete, albeit slowly (the slow retrieval server
-    # sets a limit on the delay.)
-    filepath = os.path.join(self.repository_directory, 'targets', 'file1.txt') 
-    length, hashes = tuf.util.get_file_details(filepath)
-    fileinfo = tuf.formats.make_fileinfo(length, hashes)
-   
-    try:
-      server_process = self._start_slow_server('mode_1')
-      six.moves.urllib.request.urlretrieve(url_file, client_filepath)
-     
-      # Verify the expected file size and hash of the downloaded file.
-      length, hashes = tuf.util.get_file_details(client_filepath)
-      download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
-      self.assertEqual(fileinfo, download_fileinfo)
-  
-    finally:
-      # Terminate the slow retrieval (mode 1) server.
-      self._stop_slow_server(server_process)
- 
-
-  
-  def test_without_tuf_mode_2(self):
-    # Simulate a slow retrieval attack.
-    # 'mode_1': When download begins, the server blocks the download for a long
-    # time by doing nothing before it sends the first byte of data.
-    
-    url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-    url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
-    client_filepath = os.path.join(self.client_directory, 'file1.txt')
-  
-    # Generate the fileinfo of 'file.txt' to compare it to what is downloaded.
-    # The download should complete, albeit slowly (the slow retrieval server
-    # sets a limit on the delay.)
-    filepath = os.path.join(self.repository_directory, 'targets', 'file1.txt') 
-    length, hashes = tuf.util.get_file_details(filepath)
-    fileinfo = tuf.formats.make_fileinfo(length, hashes)
-  
-    try:
-      server_process = self._start_slow_server('mode_2')
-      six.moves.urllib.request.urlretrieve(url_file, client_filepath)
-      
-      # Verify the expected file size and hash of the downloaded file.
-      length, hashes = tuf.util.get_file_details(client_filepath)
-      download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
-      self.assertEqual(fileinfo, download_fileinfo)
-  
-    finally:
-      # Terminate the slow retrieval (mode 2) server.
-      self._stop_slow_server(server_process)
-  """
-
 
   def test_with_tuf_mode_1(self):
     # Simulate a slow retrieval attack.
@@ -297,6 +234,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
+        print(repr(mirror_error))
         self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
     
     else:
@@ -330,6 +268,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
+        print(repr(mirror_error))
         self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
     
     else:
