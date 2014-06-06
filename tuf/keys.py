@@ -988,10 +988,6 @@ def format_rsakey_from_pem(pem):
     >>> rsa_key2 = format_rsakey_from_pem(public)
     >>> rsa_key == rsa_key2
     True
-    >>> format_rsakey_from_pem('bad_pem')
-    Traceback (most recent call last):
-     ... 
-    FormatError: The PEM string argument is improperly formatted.
 
   <Arguments>
     pem:
@@ -1067,7 +1063,7 @@ def encrypt_key(key_object, password):
 
     >>> ed25519_key = generate_ed25519_key()
     >>> password = 'secret'
-    >>> encrypted_key = encrypt_key(ed25519_key, password)
+    >>> encrypted_key = encrypt_key(ed25519_key, password).encode('utf-8')
     >>> tuf.formats.ENCRYPTEDKEY_SCHEMA.matches(encrypted_key)
     True
 
@@ -1158,7 +1154,7 @@ def decrypt_key(encrypted_key, passphrase):
     >>> ed25519_key = generate_ed25519_key()
     >>> password = 'secret'
     >>> encrypted_key = encrypt_key(ed25519_key, password)
-    >>> decrypted_key = decrypt_key(encrypted_key, password)
+    >>> decrypted_key = decrypt_key(encrypted_key.encode('utf-8'), password)
     >>> tuf.formats.ANYKEY_SCHEMA.matches(decrypted_key)
     True
     >>> decrypted_key == ed25519_key

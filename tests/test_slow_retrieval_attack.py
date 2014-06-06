@@ -110,7 +110,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
     # NOTE: Following error is raised if a delay is not applied:
     # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.2)
+    time.sleep(.5)
 
     return server_process
    
@@ -241,7 +241,6 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        print(repr(mirror_error))
         self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
     
     else:
@@ -275,7 +274,6 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        print(repr(mirror_error))
         self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
     
     else:
