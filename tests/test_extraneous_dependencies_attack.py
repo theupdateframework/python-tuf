@@ -87,7 +87,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
 
     # NOTE: Following error is raised if a delay is not applied:
     # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.2)
+    time.sleep(.7)
 
 
 

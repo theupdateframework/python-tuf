@@ -76,7 +76,7 @@ class InvalidMetadataJSONError(FormatError):
 
   def __str__(self):
     # Show the original exception.
-    return str(self.exception)
+    return repr(self.exception)
 
 
 
@@ -98,8 +98,8 @@ class BadHashError(Error):
     self.observed_hash = observed_hash
 
   def __str__(self):
-    return 'Observed hash ('+str(self.observed_hash)+\
-           ') != expected hash ('+str(self.expected_hash)+')'
+    return 'Observed hash (' + repr(self.observed_hash)+\
+           ') != expected hash (' + repr(self.expected_hash)+')'
 
 
 
@@ -163,9 +163,9 @@ class ReplayedMetadataError(RepositoryError):
 
 
   def __str__(self):
-    return 'Downloaded '+str(self.metadata_role)+' is older ('+\
-           str(self.previous_version)+') than the version currently '+\
-           'installed ('+repr(self.current_version)+').'
+    return 'Downloaded ' + repr(self.metadata_role)+' is older ('+\
+           repr(self.previous_version) + ') than the version currently '+\
+           'installed (' + repr(self.current_version) + ').'
 
 
 
@@ -186,7 +186,7 @@ class BadSignatureError(CryptoError):
     self.metadata_role_name = metadata_role_name
 
   def __str__(self):
-    return str(self.metadata_role_name)+' metadata has bad signature!'
+    return repr(self.metadata_role_name) + ' metadata has bad signature.'
 
 
 
@@ -217,7 +217,7 @@ class DecompressionError(Error):
 
   def __str__(self):
     # Show the original exception.
-    return str(self.exception)
+    return repr(self.exception)
 
 
 
@@ -239,8 +239,8 @@ class DownloadLengthMismatchError(DownloadError):
     self.observed_length = observed_length #bytes
 
   def __str__(self):
-    return 'Observed length ('+str(self.observed_length)+\
-           ') <= expected length ('+str(self.expected_length)+')'
+    return 'Observed length (' + repr(self.observed_length)+\
+           ') <= expected length (' + repr(self.expected_length) + ').'
 
 
 
@@ -253,8 +253,8 @@ class SlowRetrievalError(DownloadError):
     self.__average_download_speed = average_download_speed #bytes/second
 
   def __str__(self):
-    return "Download was too slow. Average speed: "+\
-           str(self.__average_download_speed)+" bytes per second"
+    return 'Download was too slow. Average speed: ' +\
+           repr(self.__average_download_speed) + ' bytes per second.'
 
 
 
@@ -315,11 +315,13 @@ class UnsignedMetadataError(Error):
 
 
 class NoWorkingMirrorError(Error):
-  """An updater will throw this exception in case it could not download a
-  metadata or target file.
+  """
+    An updater will throw this exception in case it could not download a
+    metadata or target file.
 
-  A dictionary of Exception instances indexed by every mirror URL will also be
-  provided."""
+    A dictionary of Exception instances indexed by every mirror URL will also be
+    provided.
+  """
 
   def __init__(self, mirror_errors):
     # Dictionary of URL strings to Exception instances
@@ -334,12 +336,12 @@ class NoWorkingMirrorError(Error):
         mirror_url_tokens = six.moves.urllib.parse.urlparse(mirror_url)
       
       except:
-        logging.exception('Failed to parse mirror URL: '+str(mirror_url))
+        logging.exception('Failed to parse mirror URL: ' + repr(mirror_url))
         mirror_netloc = mirror_url
       
       else:
         mirror_netloc = mirror_url_tokens.netloc
 
-      all_errors += '\n  '+str(mirror_netloc)+': '+str(mirror_error)
+      all_errors += '\n  ' + repr(mirror_netloc) + ': ' + repr(mirror_error)
 
     return all_errors
