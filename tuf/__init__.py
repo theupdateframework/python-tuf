@@ -334,12 +334,12 @@ class NoWorkingMirrorError(Error):
         mirror_url_tokens = six.moves.urllib.parse.urlparse(mirror_url)
       
       except:
-        logging.exception('Failed to parse mirror URL: '+str(mirror_url))
+        logging.exception('Failed to parse mirror URL: ' + repr(mirror_url))
         mirror_netloc = mirror_url
       
       else:
         mirror_netloc = mirror_url_tokens.netloc
 
-      all_errors += '\n  '+str(mirror_netloc)+': '+str(mirror_error)
+      all_errors += '\n  ' + repr(mirror_netloc) + ': ' + repr(mirror_error)
 
     return all_errors

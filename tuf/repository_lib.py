@@ -1914,9 +1914,12 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
       # Instantiate a gzip object, but save compressed content to
       # 'file_object' (i.e., GzipFile instance is based on its 'fileobj'
       # argument).
-      with gzip.GzipFile(fileobj=file_object, mode='wb') as gzip_object:
+      gzip_object = gzip.GzipFile(fileobj=file_object, mode='wb') 
+      try: 
         gzip_object.write(file_content)
-    
+      finally:
+        gzip_object.close()
+
     else:
       raise tuf.FormatError('Unknown compression algorithm: '+repr(compression))
    
