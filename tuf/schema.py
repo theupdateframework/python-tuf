@@ -299,9 +299,9 @@ class LengthBytes(Schema):
   <Example Use>
     
     >>> schema = LengthBytes(5)
-    >>> schema.matches('Hello')
+    >>> schema.matches(b'Hello')
     True
-    >>> schema.matches('Hi')
+    >>> schema.matches(b'Hi')
     False
   """
 
@@ -554,8 +554,6 @@ class Integer(Schema):
     True
     >>> schema.matches(False)
     False
-    >>> schema.matches(0L)
-    True
     >>> schema.matches('a string')
     False
     >>> Integer(lo=10, hi=30).matches(25)

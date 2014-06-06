@@ -234,13 +234,13 @@ def create_rsa_signature(private_key, data):
     http://www.ietf.org/rfc/rfc3447.txt
     
     >>> public, private = generate_rsa_public_and_private(2048)
-    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> data = 'The quick brown fox jumps over the lazy dog'.encode('utf-8')
     >>> signature, method = create_rsa_signature(private, data)
     >>> tuf.formats.NAME_SCHEMA.matches(method)
     True
     >>> method == 'RSASSA-PSS'
     True
-    >>> tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.matches(method)
+    >>> tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.matches(signature)
     True
 
   <Arguments>
@@ -335,7 +335,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
     >>> signature, method = create_rsa_signature(private, data)
     >>> verify_rsa_signature(signature, method, public, data)
     True
-    >>> verify_rsa_signature(signature, method, public, 'bad_data')
+    >>> verify_rsa_signature(signature, method, public, b'bad_data')
     False
 
   <Arguments>
@@ -626,7 +626,7 @@ def encrypt_key(key_object, password):
           '1f26964cc8d4f7ee5f3c5da2fbb7ab35811169573ac367b860a537e47789f8c4'}}
     >>> passphrase = 'secret'
     >>> encrypted_key = encrypt_key(ed25519_key, passphrase)
-    >>> tuf.formats.ENCRYPTEDKEY_SCHEMA.matches(encrypted_key)
+    >>> tuf.formats.ENCRYPTEDKEY_SCHEMA.matches(encrypted_key.encode('utf-8'))
     True
 
   <Arguments>
@@ -716,7 +716,7 @@ def decrypt_key(encrypted_key, password):
           '1f26964cc8d4f7ee5f3c5da2fbb7ab35811169573ac367b860a537e47789f8c4'}}
     >>> passphrase = 'secret'
     >>> encrypted_key = encrypt_key(ed25519_key, passphrase)
-    >>> decrypted_key = decrypt_key(encrypted_key, passphrase)
+    >>> decrypted_key = decrypt_key(encrypted_key.encode('utf-8'), passphrase)
     >>> tuf.formats.ED25519KEY_SCHEMA.matches(decrypted_key)
     True
     >>> decrypted_key == ed25519_key

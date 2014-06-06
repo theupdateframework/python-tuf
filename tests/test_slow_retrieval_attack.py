@@ -234,7 +234,6 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        print(repr(mirror_error))
         self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
     
     else:
@@ -268,7 +267,6 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        print(repr(mirror_error))
         self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
     
     else:
