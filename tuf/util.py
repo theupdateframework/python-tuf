@@ -87,10 +87,11 @@ class TempFile(object):
     """
 
     self._compression = None
+    
     # If compression is set then the original file is saved in 'self._orig_file'.
     self._orig_file = None
     temp_dir = tuf.conf.temporary_directory
-    if  temp_dir is not None and isinstance(temp_dir, str):
+    if temp_dir is not None and tuf.formats.PATH_SCHEMA.matches(temp_dir):
       try:
         self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix,
                                                           dir=temp_dir)

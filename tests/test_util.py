@@ -65,11 +65,14 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
 
   def _extract_tempfile_directory(self, config_temp_dir=None):
-    """[Helper] Takes a directory (essentially specified in the conf.py as
-       'temporary_directory') and substitutes tempfile.TemporaryFile() with
-       tempfile.mkstemp() in order to extract actual directory of the stored  
-       tempfile.  Returns the config's temporary directory (or default temp
-       directory) and actual directory."""
+    """
+      Takes a directory (essentially specified in the conf.py as
+      'temporary_directory') and substitutes tempfile.TemporaryFile() with
+      tempfile.mkstemp() in order to extract actual directory of the stored  
+      tempfile.  Returns the config's temporary directory (or default temp
+      directory) and actual directory.
+    """
+
     # Patching 'tuf.conf.temporary_directory'.
     tuf.conf.temporary_directory = config_temp_dir
 
@@ -102,12 +105,20 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     # directory.  The location of the temporary files is set in 'tuf.conf.py'.
 
     # Test: Expected input verification.
-    config_temp_dirs = [None, self.make_temp_directory()]
-    for config_temp_dir in config_temp_dirs:
-      config_temp_dir, actual_dir = \
-      self._extract_tempfile_directory(config_temp_dir)
-      self.assertEqual(config_temp_dir, actual_dir)
-    
+    # Assumed 'tuf.conf.temporary_directory' is 'None' initially.
+    temp_file = tuf.util.TempFile()
+    temp_file_directory = os.path.dirname(temp_file.temporary_file.name)
+    self.assertEqual(tempfile.gettempdir(), temp_file_directory)
+
+    saved_temporary_directory = tuf.conf.temporary_directory
+    temp_directory = self.make_temp_directory()
+    tuf.conf.temporary_directory = temp_directory
+    temp_file = tuf.util.TempFile()
+    temp_file_directory = os.path.dirname(temp_file.temporary_file.name)
+    self.assertEqual(temp_directory, temp_file_directory)
+
+    tuf.conf.temporary_directory = saved_temporary_directory
+
     # Test: Unexpected input handling.
     config_temp_dirs = [self.random_string(), 123, ['a'], {'a':1}]
     for config_temp_dir in config_temp_dirs:
