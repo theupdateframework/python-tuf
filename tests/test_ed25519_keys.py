@@ -1,9 +1,11 @@
+#!/usr/bin/env/ python
+
 """
 <Program Name>
   test_ed25519_keys.py
 
 <Author> 
-  Vladimir Diaz 
+  Vladimir Diaz <vladimir.v.diaz@gmail.com> 
 
 <Started>
   October 11, 2013. 
@@ -15,7 +17,16 @@
   Test cases for test_ed25519_keys.py.
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import unittest
+import os
 import logging
 
 import tuf
@@ -46,7 +57,7 @@ class TestEd25519_keys(unittest.TestCase):
   def test_create_signature(self):
     global public
     global private
-    data = 'The quick brown fox jumps over the lazy dog'
+    data = b'The quick brown fox jumps over the lazy dog'
     signature, method = ed25519.create_signature(public, private, data)
 
     # Verify format of returned values.
@@ -71,11 +82,24 @@ class TestEd25519_keys(unittest.TestCase):
   def test_verify_signature(self):
     global public
     global private
-    data = 'The quick brown fox jumps over the lazy dog'
+    data = b'The quick brown fox jumps over the lazy dog'
     signature, method = ed25519.create_signature(public, private, data)
 
     valid_signature = ed25519.verify_signature(public, method, signature, data)
     self.assertEqual(True, valid_signature)
+    
+    # Test with 'pynacl'.
+    valid_signature = ed25519.verify_signature(public, method, signature, data,
+                                               use_pynacl=True)
+    self.assertEqual(True, valid_signature)
+   
+    # Test with 'pynacl', but a bad signature is provided.
+    bad_signature = os.urandom(64)
+    valid_signature = ed25519.verify_signature(public, method, bad_signature,
+                                               data, use_pynacl=True)
+    self.assertEqual(False, valid_signature)
+    
+
 
     # Check for improperly formatted arguments.
     self.assertRaises(tuf.FormatError, ed25519.verify_signature, 123, method,
@@ -84,6 +108,10 @@ class TestEd25519_keys(unittest.TestCase):
     # Signature method improperly formatted.
     self.assertRaises(tuf.FormatError, ed25519.verify_signature, public, 123,
                                        signature, data)
+   
+    # Invalid signature method.
+    self.assertRaises(tuf.UnknownMethodError, ed25519.verify_signature, public,
+                                       'unsupported_method', signature, data)
    
     # Signature not a string.
     self.assertRaises(tuf.FormatError, ed25519.verify_signature, public, method,
@@ -99,13 +127,13 @@ class TestEd25519_keys(unittest.TestCase):
                                                      signature, '123'))
    
     # Mismatched signature.
-    bad_signature = 'a'*64 
+    bad_signature = b'a'*64 
     self.assertEqual(False, ed25519.verify_signature(public, method,
                                                      bad_signature, data))
     
     # Generated signature created with different data.
     new_signature, method = ed25519.create_signature(public, private, 
-                                                     'mismatched data')
+                                                     b'mismatched data')
     
     self.assertEqual(False, ed25519.verify_signature(public, method,
                                                      new_signature, data))

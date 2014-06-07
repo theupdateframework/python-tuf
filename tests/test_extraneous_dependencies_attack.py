@@ -8,7 +8,7 @@
   Zane Fisher.
 
 <Started>
-  August 19, 2013
+  August 19, 2013.
   
   April 6, 2014.
     Refactored to use the 'unittest' module (test conditions in code, rather
@@ -30,30 +30,37 @@
   There is no difference between 'updates' and 'target' files.
 """
 
-# Help with Python 3 compatability, where the print statement is a function, an
+# Help with Python 3 compatibility, where the print statement is a function, an
 # implicit relative import is invalid, and the '/' operator performs true
 # division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import os
-import urllib
 import tempfile
 import random
 import time
 import shutil
 import json
 import subprocess
-import unittest
 import logging
+import sys
+
+# 'unittest2' required for testing under Python < 2.7.
+if sys.version_info >= (2, 7):
+  import unittest
+
+else:
+  import unittest2 as unittest 
 
 import tuf.formats
 import tuf.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
-
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_extraneous_dependencies_attack')
 
@@ -87,7 +94,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
 
     # NOTE: Following error is raised if a delay is not applied:
     # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.2)
+    time.sleep(.7)
 
 
 
@@ -185,7 +192,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
 
     tuf.formats.check_signable_object_format(role1_metadata) 
     
-    with open(role1_filepath, 'wb') as file_object:
+    with open(role1_filepath, 'wt') as file_object:
       json.dump(role1_metadata, file_object, indent=1, sort_keys=True)   
 
     # Un-install the metadata of the top-level roles so that the client can
@@ -208,8 +215,8 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
    
     # Verify that the specific 'tuf.BadHashError' exception is raised by each
     # mirror.
-    except tuf.NoWorkingMirrorError, exception:
-      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+    except tuf.NoWorkingMirrorError as exception:
+      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'metadata', 'targets', 'role1.json')
        

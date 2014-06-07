@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   pycrypto_keys.py
@@ -43,6 +45,14 @@
   and Cipher-block chaining (CBC) for the mode of operation.  Password-Based Key
   Derivation Function 1 (PBKF1) + MD5.
  """
+
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import os
 import binascii
@@ -205,7 +215,7 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   rsa_pubkey = rsa_key_object.publickey()
   public = rsa_pubkey.exportKey(format='PEM')
 
-  return public, private
+  return public.decode(), private.decode()
 
 
 
@@ -224,13 +234,13 @@ def create_rsa_signature(private_key, data):
     http://www.ietf.org/rfc/rfc3447.txt
     
     >>> public, private = generate_rsa_public_and_private(2048)
-    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> data = 'The quick brown fox jumps over the lazy dog'.encode('utf-8')
     >>> signature, method = create_rsa_signature(private, data)
     >>> tuf.formats.NAME_SCHEMA.matches(method)
     True
     >>> method == 'RSASSA-PSS'
     True
-    >>> tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.matches(method)
+    >>> tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.matches(signature)
     True
 
   <Arguments>
@@ -267,8 +277,8 @@ def create_rsa_signature(private_key, data):
   signature = None
  
   # Verify the signature, but only if the private key has been set.  The private
-  # key is a NULL string if unset.  Although it may be clearer to explicit check
-  # that 'private_key' is not '', we can/should check for a value and not
+  # key is a NULL string if unset.  Although it may be clearer to explicitly
+  # check that 'private_key' is not '', we can/should check for a value and not
   # compare identities with the 'is' keyword.  Up to this point 'private_key'
   # has variable size and can be an empty string.
   if len(private_key):
@@ -284,7 +294,7 @@ def create_rsa_signature(private_key, data):
       sha256_object = Crypto.Hash.SHA256.new(data)
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
     
-    except (ValueError, IndexError, TypeError), e:
+    except (ValueError, IndexError, TypeError) as e:
       message = 'Invalid private key or hash data: '+str(e)
       raise tuf.CryptoError(message)
    
@@ -321,11 +331,11 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
     and 'data' to complete the verification.
     
     >>> public, private = generate_rsa_public_and_private(2048)
-    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> data = b'The quick brown fox jumps over the lazy dog'
     >>> signature, method = create_rsa_signature(private, data)
     >>> verify_rsa_signature(signature, method, public, data)
     True
-    >>> verify_rsa_signature(signature, method, public, 'bad_data')
+    >>> verify_rsa_signature(signature, method, public, b'bad_data')
     False
 
   <Arguments>
@@ -383,7 +393,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       sha256_object = Crypto.Hash.SHA256.new(data)
       valid_signature = pkcs1_pss_verifier.verify(sha256_object, signature)
     
-    except (ValueError, IndexError, TypeError), e:
+    except (ValueError, IndexError, TypeError) as e:
       message = 'The RSA signature could not be verified.'
       raise tuf.CryptoError(message)
   
@@ -463,7 +473,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
       encrypted_pem = rsa_key_object.exportKey(format='PEM',
                                                passphrase=passphrase) 
     
-    except (ValueError, IndexError, TypeError), e:
+    except (ValueError, IndexError, TypeError) as e:
       message = 'An encrypted RSA key in PEM format cannot be generated: '+str(e)
       raise tuf.CryptoError(message)
   
@@ -471,7 +481,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
     raise TypeError('The required private key is unset.')
     
 
-  return encrypted_pem
+  return encrypted_pem.decode()
 
 
 
@@ -559,7 +569,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # (possibly because the passphrase is wrong)."
   # If the passphrase is incorrect, PyCrypto returns: "RSA key format is not
   # supported".
-  except (ValueError, IndexError, TypeError), e:
+  except (ValueError, IndexError, TypeError) as e:
     message = 'RSA (public, private) tuple cannot be generated from the'+\
       ' encrypted PEM string: '+str(e)
     # Raise 'tuf.CryptoError' and PyCrypto's exception message.  Avoid
@@ -580,7 +590,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     message = 'The public and private keys cannot be exported in PEM format.' 
     raise tuf.CryptoError(message)
   
-  return public, private
+  return public.decode(), private.decode()
 
 
 
@@ -616,7 +626,7 @@ def encrypt_key(key_object, password):
           '1f26964cc8d4f7ee5f3c5da2fbb7ab35811169573ac367b860a537e47789f8c4'}}
     >>> passphrase = 'secret'
     >>> encrypted_key = encrypt_key(ed25519_key, passphrase)
-    >>> tuf.formats.ENCRYPTEDKEY_SCHEMA.matches(encrypted_key)
+    >>> tuf.formats.ENCRYPTEDKEY_SCHEMA.matches(encrypted_key.encode('utf-8'))
     True
 
   <Arguments>
@@ -706,7 +716,7 @@ def decrypt_key(encrypted_key, password):
           '1f26964cc8d4f7ee5f3c5da2fbb7ab35811169573ac367b860a537e47789f8c4'}}
     >>> passphrase = 'secret'
     >>> encrypted_key = encrypt_key(ed25519_key, passphrase)
-    >>> decrypted_key = decrypt_key(encrypted_key, passphrase)
+    >>> decrypted_key = decrypt_key(encrypted_key.encode('utf-8'), passphrase)
     >>> tuf.formats.ED25519KEY_SCHEMA.matches(decrypted_key)
     True
     >>> decrypted_key == ed25519_key
@@ -751,11 +761,11 @@ def decrypt_key(encrypted_key, password):
 
   # Decrypt 'encrypted_key', using 'password' (and additional key derivation
   # data like salts and password iterations) to re-derive the decryption key. 
-  json_data = _decrypt(encrypted_key, password)
+  json_data = _decrypt(encrypted_key.decode('utf-8'), password)
  
   # Raise 'tuf.Error' if 'json_data' cannot be deserialized to a valid
   # 'tuf.formats.ANYKEY_SCHEMA' key object.
-  key_object = tuf.util.load_json_string(json_data) 
+  key_object = tuf.util.load_json_string(json_data.decode()) 
   
   return key_object
 
@@ -836,7 +846,7 @@ def _encrypt(key_data, derived_key_information):
   # encryption.  
   iv = Crypto.Random.new().read(16)
   stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
-                                      initial_value=long(iv.encode('hex'), 16)) 
+                                      initial_value=int(binascii.hexlify(iv), 16)) 
   symmetric_key = derived_key_information['derived_key'] 
   aes_cipher = Crypto.Cipher.AES.new(symmetric_key,
                                      Crypto.Cipher.AES.MODE_CTR,
@@ -851,7 +861,7 @@ def _encrypt(key_data, derived_key_information):
   # what circumstances.  PyCrypto example given is to call encrypt() without
   # checking for exceptions.  Avoid propogating the exception trace and only
   # raise 'tuf.CryptoError', along with the cause of encryption failure.
-  except (ValueError, IndexError, TypeError), e:
+  except (ValueError, IndexError, TypeError) as e:
     message = 'The key data cannot be encrypted: '+str(e)
     raise tuf.CryptoError(message)
 
@@ -862,7 +872,7 @@ def _encrypt(key_data, derived_key_information):
   hmac_object = Crypto.Hash.HMAC.new(symmetric_key, ciphertext,
                                      Crypto.Hash.SHA256)
   hmac = hmac_object.hexdigest()
-
+  
   # Store the number of PBKDF2 iterations used to derive the symmetric key so
   # that the decryption routine can regenerate the symmetric key successfully.
   # The pbkdf2 iterations are allowed to vary for the keys loaded and saved.
@@ -873,11 +883,11 @@ def _encrypt(key_data, derived_key_information):
   # '_ENCRYPTION_DELIMITER' to make extraction easier.  This delimiter is
   # arbitrarily chosen and should not occur in the hexadecimal representations
   # of the fields it is separating.
-  return binascii.hexlify(salt) + _ENCRYPTION_DELIMITER + \
-         binascii.hexlify(str(iterations)) + _ENCRYPTION_DELIMITER + \
-         binascii.hexlify(hmac) + _ENCRYPTION_DELIMITER + \
-         binascii.hexlify(iv) + _ENCRYPTION_DELIMITER + \
-         binascii.hexlify(ciphertext)
+  return binascii.hexlify(salt).decode() + _ENCRYPTION_DELIMITER + \
+         str(iterations) + _ENCRYPTION_DELIMITER + \
+         hmac + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(iv).decode() + _ENCRYPTION_DELIMITER + \
+         binascii.hexlify(ciphertext).decode()
 
 
 
@@ -904,11 +914,10 @@ def _decrypt(file_contents, password):
     raise tuf.CryptoError('Invalid encrypted file.') 
 
   # Ensure we have the expected raw data for the delimited cryptographic data. 
-  salt = binascii.unhexlify(salt)
-  iterations = int(binascii.unhexlify(iterations))
-  hmac = binascii.unhexlify(hmac)
-  iv = binascii.unhexlify(iv)
-  ciphertext = binascii.unhexlify(ciphertext)
+  salt = binascii.unhexlify(salt.encode('utf-8'))
+  iterations = int(iterations)
+  iv = binascii.unhexlify(iv.encode('utf-8'))
+  ciphertext = binascii.unhexlify(ciphertext.encode('utf-8'))
 
   # Generate derived key from 'password'.  The salt and iterations are specified
   # so that the expected derived key is regenerated correctly.  Discard the old
@@ -928,7 +937,7 @@ def _decrypt(file_contents, password):
   # The following decryption routine assumes 'ciphertext' was encrypted with
   # AES-256.
   stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
-                                      initial_value=long(iv.encode('hex'), 16)) 
+                                      initial_value=int(binascii.hexlify(iv), 16)) 
   aes_cipher = Crypto.Cipher.AES.new(derived_key,
                                      Crypto.Cipher.AES.MODE_CTR,
                                      counter=stateful_counter_128bit_blocks)
@@ -939,7 +948,7 @@ def _decrypt(file_contents, password):
   # what circumstances.  PyCrypto example given is to call decrypt() without
   # checking for exceptions.  Avoid propogating the exception trace and only
   # raise 'tuf.CryptoError', along with the cause of decryption failure.
-  except (ValueError, IndexError, TypeError), e:
+  except (ValueError, IndexError, TypeError) as e:
     raise tuf.CryptoError('Decryption failed: '+str(e))
 
   return key_plaintext

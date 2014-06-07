@@ -20,10 +20,18 @@
   provide that reason in those cases.
 """
 
-import urlparse
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import logging
 
 import tuf.log
+import tuf._vendor.six as six
 
 logging = logging.getLogger('tuf.__init__')
 
@@ -68,7 +76,7 @@ class InvalidMetadataJSONError(FormatError):
 
   def __str__(self):
     # Show the original exception.
-    return str(self.exception)
+    return repr(self.exception)
 
 
 
@@ -90,8 +98,8 @@ class BadHashError(Error):
     self.observed_hash = observed_hash
 
   def __str__(self):
-    return 'Observed hash ('+str(self.observed_hash)+\
-           ') != expected hash ('+str(self.expected_hash)+')'
+    return 'Observed hash (' + repr(self.observed_hash)+\
+           ') != expected hash (' + repr(self.expected_hash)+')'
 
 
 
@@ -155,9 +163,9 @@ class ReplayedMetadataError(RepositoryError):
 
 
   def __str__(self):
-    return 'Downloaded '+str(self.metadata_role)+' is older ('+\
-           str(self.previous_version)+') than the version currently '+\
-           'installed ('+repr(self.current_version)+').'
+    return 'Downloaded ' + repr(self.metadata_role)+' is older ('+\
+           repr(self.previous_version) + ') than the version currently '+\
+           'installed (' + repr(self.current_version) + ').'
 
 
 
@@ -178,7 +186,7 @@ class BadSignatureError(CryptoError):
     self.metadata_role_name = metadata_role_name
 
   def __str__(self):
-    return str(self.metadata_role_name)+' metadata has bad signature!'
+    return repr(self.metadata_role_name) + ' metadata has bad signature.'
 
 
 
@@ -209,7 +217,7 @@ class DecompressionError(Error):
 
   def __str__(self):
     # Show the original exception.
-    return str(self.exception)
+    return repr(self.exception)
 
 
 
@@ -231,8 +239,8 @@ class DownloadLengthMismatchError(DownloadError):
     self.observed_length = observed_length #bytes
 
   def __str__(self):
-    return 'Observed length ('+str(self.observed_length)+\
-           ') <= expected length ('+str(self.expected_length)+')'
+    return 'Observed length (' + repr(self.observed_length)+\
+           ') <= expected length (' + repr(self.expected_length) + ').'
 
 
 
@@ -245,8 +253,8 @@ class SlowRetrievalError(DownloadError):
     self.__average_download_speed = average_download_speed #bytes/second
 
   def __str__(self):
-    return "Download was too slow. Average speed: "+\
-           str(self.__average_download_speed)+" bytes/second"
+    return 'Download was too slow. Average speed: ' +\
+           repr(self.__average_download_speed) + ' bytes per second.'
 
 
 
@@ -294,17 +302,26 @@ class InvalidNameError(Error):
 
 class UnsignedMetadataError(Error):
   """Indicate metadata object with insufficient threshold of signatures."""
+  
+  def __init__(self, message, signable):
+    self.exception_message = message
+    self.signable = signable
+
+  def __str__(self):
+    return self.exception_message
 
 
 
 
 
 class NoWorkingMirrorError(Error):
-  """An updater will throw this exception in case it could not download a
-  metadata or target file.
+  """
+    An updater will throw this exception in case it could not download a
+    metadata or target file.
 
-  A dictionary of Exception instances indexed by every mirror URL will also be
-  provided."""
+    A dictionary of Exception instances indexed by every mirror URL will also be
+    provided.
+  """
 
   def __init__(self, mirror_errors):
     # Dictionary of URL strings to Exception instances
@@ -316,15 +333,15 @@ class NoWorkingMirrorError(Error):
     for mirror_url, mirror_error in self.mirror_errors.iteritems():
       try:
         # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
-        mirror_url_tokens = urlparse.urlparse(mirror_url)
+        mirror_url_tokens = six.moves.urllib.parse.urlparse(mirror_url)
       
       except:
-        logging.exception('Failed to parse mirror URL: '+str(mirror_url))
+        logging.exception('Failed to parse mirror URL: ' + repr(mirror_url))
         mirror_netloc = mirror_url
       
       else:
         mirror_netloc = mirror_url_tokens.netloc
 
-      all_errors += '\n  '+str(mirror_netloc)+': '+str(mirror_error)
+      all_errors += '\n  ' + repr(mirror_netloc) + ': ' + repr(mirror_error)
 
     return all_errors

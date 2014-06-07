@@ -20,7 +20,13 @@
   Otherwise, module that launches simple server would not be found.  
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import hashlib
 import logging
@@ -29,14 +35,13 @@ import random
 import subprocess
 import time
 import unittest
-import urllib2
-
 
 import tuf
 import tuf.conf as conf
 import tuf.download as download
 import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_download')
 
@@ -73,7 +78,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # Computing hash of target file data.
     m = hashlib.md5()
-    m.update(self.target_data)
+    m.update(self.target_data.encode('utf-8'))
     digest = m.hexdigest()
     self.target_hash = {'md5':digest}  
 
@@ -93,8 +98,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     download_file = download.safe_download
 
     temp_fileobj = download_file(self.url, self.target_data_length)
-    self.assertEquals(self.target_data, temp_fileobj.read())
-    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
+    self.assertEqual(self.target_data, temp_fileobj.read().decode('utf-8'))
+    self.assertEqual(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
 
 
@@ -113,6 +118,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # STRICT_REQUIRED_LENGTH, which is True by default, mandates that we must
     # download exactly what is required.
     self.assertRaises(tuf.DownloadLengthMismatchError, download.safe_download,
+    #self.assertRaises(tuf.SlowRetrievalError, download.safe_download,
                       self.url, self.target_data_length + 1)
 
     # NOTE: However, we do not catch a tuf.DownloadLengthMismatchError here for
@@ -120,8 +126,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # STRICT_REQUIRED_LENGTH.
     temp_fileobj = download.unsafe_download(self.url,
                                             self.target_data_length + 1)
-    self.assertEquals(self.target_data, temp_fileobj.read())
-    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
+    self.assertEqual(self.target_data, temp_fileobj.read().decode('utf-8'))
+    self.assertEqual(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
 
 
@@ -139,8 +145,8 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     end_cpu = time.clock()
     end_real = time.time()  
  
-    self.assertEquals(self.target_data, temp_fileobj.read())
-    self.assertEquals(self.target_data_length, len(temp_fileobj.read()))
+    self.assertEqual(self.target_data, temp_fileobj.read())
+    self.assertEqual(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
 
     print "Performance cpu time: "+str(end_cpu - star_cpu)
@@ -162,12 +168,12 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
                       download_file,
                       self.random_string(), self.target_data_length)
 
-    self.assertRaises(urllib2.HTTPError,
+    self.assertRaises(six.moves.urllib.error.HTTPError,
                       download_file,
                       'http://localhost:'+str(self.PORT)+'/'+self.random_string(), 
                       self.target_data_length)
 
-    self.assertRaises(urllib2.URLError,
+    self.assertRaises(six.moves.urllib.error.URLError,
                       download_file,
                       'http://localhost:'+str(self.PORT+1)+'/'+self.random_string(), 
                       self.target_data_length)

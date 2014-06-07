@@ -30,24 +30,31 @@
   Note: There is no difference between 'updates' and 'target' files.
 """
 
-# Help with Python 3 compatability, where the print statement is a function, an
+# Help with Python 3 compatibility, where the print statement is a function, an
 # implicit relative import is invalid, and the '/' operator performs true
 # division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import os
 import sys
-import urllib
 import tempfile
 import random
 import time
 import shutil
 import json
 import subprocess
-import unittest
 import logging
+import sys
+
+# 'unittest2' required for testing under Python < 2.7.
+if sys.version_info >= (2, 7):
+  import unittest
+
+else:
+  import unittest2 as unittest 
 
 import tuf.formats
 import tuf.util
@@ -55,6 +62,7 @@ import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_slow_retrieval_attack')
 repo_tool.disable_console_log_messages()
@@ -102,7 +110,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
     # NOTE: Following error is raised if a delay is not applied:
     # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.2)
+    time.sleep(.5)
 
     return server_process
    
@@ -157,9 +165,9 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     repository = repo_tool.load_repository(self.repository_directory)
     file1_filepath = os.path.join(self.repository_directory, 'targets',
                                   'file1.txt')
-    
     with open(file1_filepath, 'wb') as file_object:
-      file_object.write('a' * total_bytes)
+      data = 'a' * total_bytes
+      file_object.write(data.encode('utf-8'))
 
     key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
     timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
@@ -210,69 +218,6 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_without_tuf_mode_1(self):
-    # Simulate a slow retrieval attack.
-    # 'mode_1': When download begins,the server blocks the download
-    # for a long time by doing nothing before it sends the first byte of data.
-
-    # Retrieve 'file1.txt' provided by the pre-generated repository.
-    url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-    url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
-    client_filepath = os.path.join(self.client_directory, 'file1.txt')
- 
-    # Generate the fileinfo of 'file.txt' to compare it to what is downloaded.
-    # The download should complete, albeit slowly (the slow retrieval server
-    # sets a limit on the delay.)
-    filepath = os.path.join(self.repository_directory, 'targets', 'file1.txt') 
-    length, hashes = tuf.util.get_file_details(filepath)
-    fileinfo = tuf.formats.make_fileinfo(length, hashes)
-   
-    try:
-      server_process = self._start_slow_server('mode_1')
-      urllib.urlretrieve(url_file, client_filepath)
-     
-      # Verify the expected file size and hash of the downloaded file.
-      length, hashes = tuf.util.get_file_details(client_filepath)
-      download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
-      self.assertEqual(fileinfo, download_fileinfo)
-  
-    finally:
-      # Terminate the slow retrieval (mode 1) server.
-      self._stop_slow_server(server_process)
- 
-
-  
-  def test_without_tuf_mode_2(self):
-    # Simulate a slow retrieval attack.
-    # 'mode_1': When download begins, the server blocks the download for a long
-    # time by doing nothing before it sends the first byte of data.
-    
-    url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-    url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
-    client_filepath = os.path.join(self.client_directory, 'file1.txt')
-  
-    # Generate the fileinfo of 'file.txt' to compare it to what is downloaded.
-    # The download should complete, albeit slowly (the slow retrieval server
-    # sets a limit on the delay.)
-    filepath = os.path.join(self.repository_directory, 'targets', 'file1.txt') 
-    length, hashes = tuf.util.get_file_details(filepath)
-    fileinfo = tuf.formats.make_fileinfo(length, hashes)
-  
-    try:
-      server_process = self._start_slow_server('mode_2')
-      urllib.urlretrieve(url_file, client_filepath)
-      
-      # Verify the expected file size and hash of the downloaded file.
-      length, hashes = tuf.util.get_file_details(client_filepath)
-      download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
-      self.assertEqual(fileinfo, download_fileinfo)
-  
-    finally:
-      # Terminate the slow retrieval (mode 2) server.
-      self._stop_slow_server(server_process)
-
-
-
   def test_with_tuf_mode_1(self):
     # Simulate a slow retrieval attack.
     # 'mode_1': When download begins,the server blocks the download for a long
@@ -285,18 +230,18 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
     try:
       file1_target = self.repository_updater.target('file1.txt')
-      self.repository_updater.download_target(file1_target, client_filepath)
+      self.repository_updater.download_target(file1_target, self.client_directory)
      
     # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
     # each mirror.
-    except tuf.NoWorkingMirrorError, exception:
-      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+    except tuf.NoWorkingMirrorError as exception:
+      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.SlowRetrievalError))
+        self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
     
     else:
       self.fail('TUF did not prevent a slow retrieval attack.')
@@ -316,20 +261,20 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
     try:
       file1_target = self.repository_updater.target('file1.txt')
-      self.repository_updater.download_target(file1_target, client_filepath)
+      self.repository_updater.download_target(file1_target, self.client_directory)
 
     # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
     # each mirror.  'file1.txt' should be large enough to trigger a slow
     # retrieval attack, otherwise the expected exception may not be consistently
     # raised.
-    except tuf.NoWorkingMirrorError, exception:
-      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+    except tuf.NoWorkingMirrorError as exception:
+      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.SlowRetrievalError))
+        self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
     
     else:
       # Another possibility is to check for a successfully downloaded

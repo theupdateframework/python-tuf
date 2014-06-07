@@ -25,23 +25,30 @@
   There is no difference between 'updates' and 'target' files.
 """
 
-# Help with Python 3 compatability, where the print statement is a function, an
+# Help with Python 3 compatibility, where the print statement is a function, an
 # implicit relative import is invalid, and the '/' operator performs true
 # division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import os
-import urllib
 import tempfile
 import random
 import time
 import shutil
 import json
 import subprocess
-import unittest
 import logging
+import sys
+
+# 'unittest2' required for testing under Python < 2.7.
+if sys.version_info >= (2, 7):
+  import unittest
+
+else:
+  import unittest2 as unittest 
 
 import tuf
 import tuf.formats
@@ -49,6 +56,7 @@ import tuf.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_arbitrary_package_attack')
 
@@ -173,7 +181,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
-    urllib.urlretrieve(url_file, client_target_path)
+    six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     self.assertTrue(os.path.exists(client_target_path))
     length, hashes = tuf.util.get_file_details(client_target_path)
@@ -181,12 +189,12 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     self.assertEqual(fileinfo, download_fileinfo)
   
     # Test: Download a target file that has been modified by an attacker.
-    with open(target_path, 'wb') as file_object:
+    with open(target_path, 'wt') as file_object:
       file_object.write('add malicious content.')
     length, hashes = tuf.util.get_file_details(target_path)
     malicious_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
-    urllib.urlretrieve(url_file, client_target_path)
+    six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     length, hashes = tuf.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
@@ -211,13 +219,13 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
     # Modify 'file1.txt' and confirm that the TUF client rejects it.
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
-    with open(target_path, 'wb') as file_object:
+    with open(target_path, 'wt') as file_object:
       file_object.write('add malicious content.')
 
     try:
       self.repository_updater.download_target(file1_fileinfo, destination)
     
-    except tuf.NoWorkingMirrorError, exception:
+    except tuf.NoWorkingMirrorError as exception:
       url_prefix = self.repository_mirrors['mirror1']['url_prefix']
       url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
@@ -241,7 +249,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     
     # An attacker modifies 'file1.txt'.
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
-    with open(target_path, 'wb') as file_object:
+    with open(target_path, 'wt') as file_object:
       file_object.write('add malicious content.')
 
     # An attacker also tries to add the malicious target's length and digest
@@ -258,7 +266,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     tuf.formats.check_signable_object_format(metadata) 
     
     with open(metadata_path, 'wb') as file_object:
-      json.dump(metadata, file_object, indent=1, sort_keys=True)   
+      json.dumps(metadata, file_object, indent=1, sort_keys=True).encode('utf-8')   
    
     # Verify that the malicious 'targets.json' is not downloaded.  Perform
     # a refresh of top-level metadata to demonstrate that the malicious
@@ -269,7 +277,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       destination = os.path.join(self.client_directory)
       self.repository_updater.download_target(file1_fileinfo, destination)
     
-    except tuf.NoWorkingMirrorError, exception:
+    except tuf.NoWorkingMirrorError as exception:
       url_prefix = self.repository_mirrors['mirror1']['url_prefix']
       url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 

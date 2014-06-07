@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_schema.py
@@ -13,10 +15,18 @@
 
 <Purpose>
   Unit test for 'schema.py'
-
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import unittest
+import re
 import logging
 
 import tuf
@@ -109,7 +119,6 @@ class TestSchema(unittest.TestCase):
     
     self.assertTrue(anystring_schema.matches(''))
     self.assertTrue(anystring_schema.matches('a string'))
-    self.assertTrue(anystring_schema.matches(u'a unicode string'))
     
     # Test conditions for invalid arguments. 
     self.assertFalse(anystring_schema.matches(['a']))
@@ -203,7 +212,6 @@ class TestSchema(unittest.TestCase):
     integer_schema = tuf.schema.Integer()
 
     self.assertTrue(integer_schema.matches(99))
-    self.assertTrue(integer_schema.matches(0L))
     self.assertTrue(tuf.schema.Integer(lo=10, hi=30).matches(25))
     
     # Test conditions for invalid arguments.
@@ -273,6 +281,11 @@ class TestSchema(unittest.TestCase):
     self.assertRaises(tuf.FormatError, tuf.schema.Object, a=tuf.schema.AnyString(),
                                                           b=1)
 
+    # Test condition for invalid non-dict arguments.
+    self.assertFalse(object_schema.matches([{'a':'XYZ'}]))
+    self.assertFalse(object_schema.matches(8))
+
+
 
   def test_Struct(self):
     # Test conditions for valid arguments. 
@@ -318,16 +331,95 @@ class TestSchema(unittest.TestCase):
 
 
   def test_RegularExpression(self):
-    # Test conditions for valid arguments. 
+    # Test conditions for valid arguments.
+    # RegularExpression(pattern, modifiers, re_object, re_name).
     re_schema = tuf.schema.RegularExpression('h.*d')
 
     self.assertTrue(re_schema.matches('hello world'))
     
+    # Provide a pattern that contains the trailing '$'
+    re_schema_2 = tuf.schema.RegularExpression(pattern='abc$',
+                                               modifiers=0,
+                                               re_object=None,
+                                               re_name='my_re')
+
+    self.assertTrue(re_schema_2.matches('abc'))
+   
+    # Test for valid optional arguments.
+    compiled_re = re.compile('^[a-z].*')
+    re_schema_optional = tuf.schema.RegularExpression(pattern='abc',
+                                                      modifiers=0,
+                                                      re_object=compiled_re,
+                                                      re_name='my_re')
+    self.assertTrue(re_schema_optional.matches('abc'))
+   
+    # Valid arguments, but the 'pattern' argument is unset (required if the 
+    # 're_object' is 'None'.)
+    self.assertRaises(tuf.FormatError, tuf.schema.RegularExpression, None, 0,
+                                                      None, None)
+    
+    # Valid arguments, 're_name' is unset, and 'pattern' is None.  An exception
+    # is not raised, but 're_name' is set to 'pattern'.
+    re_schema_optional = tuf.schema.RegularExpression(pattern=None,
+                                                      modifiers=0,
+                                                      re_object=compiled_re,
+                                                      re_name=None)
+    
+    self.assertTrue(re_schema_optional.matches('abc'))
+    self.assertTrue(re_schema_optional._re_name == 'pattern')
+
     # Test conditions for invalid arguments.
     self.assertFalse(re_schema.matches('Hello World'))
     self.assertFalse(re_schema.matches('hello world!'))
     self.assertFalse(re_schema.matches([33, 'Hello']))
 
+    self.assertRaises(tuf.FormatError, tuf.schema.RegularExpression, 8)
+
+
+
+  def test_LengthString(self):
+    # Test conditions for valid arguments.
+    length_string = tuf.schema.LengthString(11)
+
+    self.assertTrue(length_string.matches('Hello World'))
+    self.assertTrue(length_string.matches('Hello Marty'))
+
+    # Test conditions for invalid arguments.
+    self.assertRaises(tuf.FormatError, tuf.schema.LengthString, 'hello')
+ 
+    self.assertFalse(length_string.matches('hello'))
+    self.assertFalse(length_string.matches(8))
+  
+  
+  
+  def test_LengthBytes(self):
+    # Test conditions for valid arguments.
+    length_bytes = tuf.schema.LengthBytes(11)
+
+    self.assertTrue(length_bytes.matches(b'Hello World'))
+    self.assertTrue(length_bytes.matches(b'Hello Marty'))
+
+    # Test conditions for invalid arguments.
+    self.assertRaises(tuf.FormatError, tuf.schema.LengthBytes, 'hello')
+    self.assertRaises(tuf.FormatError, tuf.schema.LengthBytes, True)
+ 
+    self.assertFalse(length_bytes.matches(b'hello'))
+    self.assertFalse(length_bytes.matches(8))
+  
+  
+  
+  def test_AnyBytes(self):
+    # Test conditions for valid arguments. 
+    anybytes_schema = tuf.schema.AnyBytes()
+    
+    self.assertTrue(anybytes_schema.matches(b''))
+    self.assertTrue(anybytes_schema.matches(b'a string'))
+    
+    # Test conditions for invalid arguments.
+    self.assertFalse(anybytes_schema.matches('a string'))
+    self.assertFalse(anybytes_schema.matches(['a']))
+    self.assertFalse(anybytes_schema.matches(3))
+    self.assertFalse(anybytes_schema.matches({'a': 'string'}))
 
 
 # Run the unit tests.

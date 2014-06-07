@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 """
 <Program Name>
@@ -29,13 +30,17 @@ log_levels = [logging.CRITICAL, logging.ERROR, logging.WARNING,
 
 
 class TestLog(unittest.TestCase):
-  
-   
+
+
+  def tearDown(self):
+    tuf.log.remove_console_handler()
+
 
 
   def test_set_log_level(self):
     # Test normal case.
     global log_levels
+    global logger
 
     tuf.log.set_log_level()
     self.assertTrue(logger.isEnabledFor(logging.DEBUG))
@@ -53,22 +58,74 @@ class TestLog(unittest.TestCase):
 
 
   def test_set_filehandler_log_level(self):
-    pass
+    # Normal case.  Default log level. 
+    tuf.log.set_filehandler_log_level()
+   
+    # Expected log levels.
+    for level in log_levels:
+      tuf.log.set_log_level(level)
+    
+    # Test for improperly formatted argument.
+    self.assertRaises(tuf.FormatError, tuf.log.set_filehandler_log_level, '123')
+
+    # Test for invalid argument.
+    self.assertRaises(tuf.FormatError, tuf.log.set_filehandler_log_level, 51)
+
+
 
 
   def test_set_console_log_level(self):
-    pass
+    # Test setting a console log level without first adding one.
+    self.assertRaises(tuf.Error, tuf.log.set_console_log_level)
+    
+    # Normal case.  Default log level.  Setting the console log level first
+    # requires adding a console logger.
+    tuf.log.add_console_handler()
+    tuf.log.set_console_log_level()
+   
+    # Expected log levels.
+    for level in log_levels:
+      tuf.log.set_console_log_level(level)
+    
+    # Test for improperly formatted argument.
+    self.assertRaises(tuf.FormatError, tuf.log.set_console_log_level, '123')
+
+    # Test for invalid argument.
+    self.assertRaises(tuf.FormatError, tuf.log.set_console_log_level, 51)
 
 
 
   def test_add_console_handler(self):
-    pass
+    # Normal case.  Default log level.
+    tuf.log.add_console_handler()
 
+    # Adding a console handler when one has already been added.
+    tuf.log.add_console_handler()
+   
+    # Expected log levels.
+    for level in log_levels:
+      tuf.log.set_console_log_level(level)
+    
+    # Test for improperly formatted argument.
+    self.assertRaises(tuf.FormatError, tuf.log.add_console_handler, '123')
+
+    # Test for invalid argument.
+    self.assertRaises(tuf.FormatError, tuf.log.add_console_handler, 51)
+
+    try:
+      raise TypeError('Test exception output in the console.')
+
+    except TypeError as e:
+      logger.error(e)
 
 
   def test_remove_console_handler(self):
-    pass
+    # Normal case.
+    tuf.log.remove_console_handler()
 
+    # Removing a console handler that has not been added.  Logs a warning.
+    tuf.log.remove_console_handler()
+   
 
 
 # Run unit test.

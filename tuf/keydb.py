@@ -27,12 +27,21 @@
   'keyid' key (i.e., rsakey['keyid']).
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import logging
 import copy
 
 import tuf
 import tuf.formats
 import tuf.keys
+import tuf._vendor.six as six
 
 # List of strings representing the key types supported by TUF.
 _SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
@@ -84,7 +93,7 @@ def create_keydb_from_root_metadata(root_metadata):
   # Iterate through the keys found in 'root_metadata' by converting
   # them to 'RSAKEY_SCHEMA' if their type is 'rsa', and then
   # adding them the database.  Duplicates are avoided.
-  for keyid, key_metadata in root_metadata['keys'].items():
+  for keyid, key_metadata in six.iteritems(root_metadata['keys']):
     if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA'
@@ -93,17 +102,17 @@ def create_keydb_from_root_metadata(root_metadata):
       try:
         add_key(key_dict, keyid)
       
-      except tuf.KeyAlreadyExistsError, e:
-        logger.warn(e)
+      except tuf.KeyAlreadyExistsError as e:
+        logger.warning(e)
         continue
       
       # 'tuf.Error' raised if keyid does not match the keyid for 'rsakey_dict'.
-      except tuf.Error, e:
+      except tuf.Error as e:
         logger.error(e)
         continue
     
     else:
-      logger.warn('Root Metadata file contains a key with an invalid keytype.')
+      logger.warning('Root Metadata file contains a key with an invalid keytype.')
 
 
 
