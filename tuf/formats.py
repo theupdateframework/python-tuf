@@ -369,6 +369,7 @@ ROLE_SCHEMA = SCHEMA.Object(
   name = SCHEMA.Optional(ROLENAME_SCHEMA),
   keyids = KEYIDS_SCHEMA,
   threshold = THRESHOLD_SCHEMA,
+  backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
 
