@@ -843,7 +843,73 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: invalid target path.    
     self.assertRaises(tuf.UnknownTargetError, self.repository_updater.target,
                       self.random_path())
+    
+    # Test updater.target() backtracking behavior (enabled by default.)
+    targets_directory = os.path.join(self.repository_directory, 'targets')
+    foo_directory = os.path.join(targets_directory, 'foo')
+    os.makedirs(foo_directory)
 
+    foo_package = os.path.join(foo_directory, 'foo1.1.tar.gz')
+    with open(foo_package, 'wb') as file_object:
+      file_object.write(b'new release')
+    
+    # Modify delegations on the remote repository to test backtracking behavior.
+    repository = repo_tool.load_repository(self.repository_directory)
+  
+     
+    repository.targets.delegate('role2', [self.role_keys['targets']['public']],
+                                [], restricted_paths=[foo_directory])
+    
+    repository.targets.delegate('role3', [self.role_keys['targets']['public']],
+                                [foo_package], restricted_paths=[foo_directory])
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.write()
+    
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # updater.target() should find 'foo1.1.tar.gz' by backtracking to
+    # 'targets/role3'.  'targets/role2' allows backtracking.
+    self.repository_updater.refresh()
+    self.repository_updater.target('foo/foo1.1.tar.gz')
+
+
+    # Test when 'targets/role2' does *not* allow backtracking.  If
+    # 'foo/foo1.1.tar.gz' is not provided by the authoritative 'target/role2',
+    # updater.target() should return a 'tuf.UnknownTargetError' exception.
+    repository = repo_tool.load_repository(self.repository_directory)
+    
+    repository.targets.revoke('role2')
+    repository.targets.revoke('role3')
+   
+    # Ensure we delegate in trusted order (i.e., 'role2' has higher priority.)
+    repository.targets.delegate('role2', [self.role_keys['targets']['public']],
+                                [], backtrack=False, restricted_paths=[foo_directory])
+    repository.targets.delegate('role3', [self.role_keys['targets']['public']],
+                                [foo_package], restricted_paths=[foo_directory])
+    
+    repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.write()
+    
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # Verify that 'tuf.UnknownTargetError' is raised by updater.target().
+    self.repository_updater.refresh()
+    self.assertRaises(tuf.UnknownTargetError, self.repository_updater.target,
+                      'foo/foo1.1.tar.gz')
 
 
 

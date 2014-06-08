@@ -2300,15 +2300,28 @@ class Updater(object):
 
       if target is None:
 
-        # Push children in reverse order of appearance onto the stack.
+        child_roles_to_visit = []
         # NOTE: This may be a slow operation if there are many delegated roles.
-        for child_role in reversed(child_roles):
+        for child_role in child_roles:
           child_role_name = self._visit_child_role(child_role, target_filepath)
-          if child_role_name is None:
+          if not child_role['backtrack'] and child_role_name is not None:
+            logger.debug('Adding child role '+repr(child_role_name))
+            logger.debug('Not backtracking to other roles.')
+            role_names = []
+            child_roles_to_visit.append(child_role_name)
+            break
+          
+          elif child_role_name is None:
             logger.debug('Skipping child role '+repr(child_role_name))
+          
           else:
             logger.debug('Adding child role '+repr(child_role_name))
-            role_names.append(child_role_name)
+            child_roles_to_visit.append(child_role_name)
+
+        # Push 'child_roles_to_visit' in reverse order of appearance onto
+        # 'role_names'.  Roles are popped from the end of the 'role_names' list.
+        child_roles_to_visit.reverse()
+        role_names.extend(child_roles_to_visit)
 
       else:
         logger.debug('Found target in current role '+repr(role_name))
@@ -2350,13 +2363,15 @@ class Updater(object):
     target = None
 
     # Does the current role name have our target?
-    logger.debug('Asking role '+repr(role_name)+' about target '+\
+    logger.debug('Asking role ' + repr(role_name) + ' about target '+\
       repr(target_filepath))
+    
     for filepath, fileinfo in six.iteritems(targets):
       if filepath == target_filepath:
-        logger.debug('Found target '+target_filepath+' in role '+role_name)
+        logger.debug('Found target ' + target_filepath + ' in role ' + role_name)
         target = {'filepath': filepath, 'fileinfo': fileinfo}
         break
+      
       else:
         logger.debug('No target '+target_filepath+' in role '+role_name)
 
@@ -2434,7 +2449,7 @@ class Updater(object):
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
       raise tuf.FormatError(repr(child_role_name)+' has neither ' \
-                                '"paths" nor "path_hash_prefixes"!')
+                                '"paths" nor "path_hash_prefixes".')
 
     if child_role_is_relevant:
       logger.debug('Child role '+repr(child_role_name)+' has target '+

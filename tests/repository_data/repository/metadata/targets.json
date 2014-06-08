@@ -1,26 +1,27 @@
 {
  "signatures": [
   {
-   "keyid": "864ba5c59b99ff5d864ba2ed96d6a27d980141abda4c7306a093b1513195504d",
+   "keyid": "a07d55ab2637afc97b2d2fff88001618b9d23ac4e16d049cffa18d59ae374c05",
    "method": "RSASSA-PSS",
-   "sig": "32554bcb1870a814190c8874f9db2f53af981de2e5e2103924619825a7c401ad1ad9eb0ee736f76593f2708272f8d5d0a8f1028fe3193053aa3ddfe2299a3d3ce6f969e4933bd9ba5cc3a93d32330bdf356dce269d820ee9c845d54af1d1dcea1d5b61e35132b9e5c09bd62f0895b2ac35aaa1b2735908ecafe10eb82a3f5b952a14d16b9c804a1badf6db625baa70272bb9ad2c17f25cd0a260f2f56d7a01c7a6c9eb83afa4f2f032ab6248096dae01a5e315d35c119dc833a74053ded10a627e2b279b807c02fc132906bb88bb7bad8e95f2b3cf51eb425e10f48ff7688c34c7dbf896e6478dc998177db2164eade5060a77a7ae73f7cad2d6bd38ee898bde"
+   "sig": "9b918dd63238c34f1dc1d539c685b0a1275426a409cb4df2fcb422c5848567a2f38085cb6fbd21cea3380c54dbeed9f5d6ba643976cf7b28e19d45e6b86ee6d5c811bfb5bcfe2d2cc388854ea93fd38ff9103c3e3a8d8871bdf63eb4af746d387adf064f288f096bb4dd51e7eb3cbd6a9df2b847edb7b2e43a13506dcfbd80b317a10141711ced3c1882240af7d255db7e860af8fd068ce9cf4cb39f24e45fc9e2339bfefa4a8a8d43ad3b8f33008ad93b8d1e5e9108933838e52735c9ba5fe245f07cac4a39864de715f72f6cec4afba91b2adfb24d6c765d4260308c6a9b6d73d4c7b4ef843d5a1ea9aa7ef15c248e9d2e5cc36c0ee2c3c4441dff0b517814"
   }
  ],
  "signed": {
   "_type": "Targets",
   "delegations": {
    "keys": {
-    "7f7dc79f6c3a909973a387425dc5f3649dfc35054e4ed0e4a3d22cd23752ae1e": {
+    "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f": {
      "keytype": "rsa",
      "keyval": {
-      "public": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4Aaacry3Lrf+LxjlHoM7\nqkwM0K+Wm3G2dZh6SxrGEkm1/REOk51CPTFVqpVOUsw1tW0duAlxg/24cxXVX0xv\nBMilTYDZ5tBk6FXZXhuN28IREz2yMo8a93nHH3fCRDz2/eViLBZO8KMVF6s2340V\ntTNOFhm8x/6nfe3+M8PzEgoNPF693djhUw1OolEmQA4hb2v87L/86SFGBaA1w8De\nM+2zGJmk5rckLQAZFvMErZ8828WhW8ABFkK4QaUJDrnI+o00ep4+1Qu8CvOIw+pT\nlbYgv/+aXQOXQpkmKilpTCoynbQFOxIPmUmCBAnJXgYuHya8SUIeZLWxNvkChLMP\nSwIDAQAB\n-----END PUBLIC KEY-----"
+      "public": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqKdTRVn3mLQFUf02Rpug\nwVEU4yJtechILLb6nM7+urfwLe6f7EsNCDFhkiTP7vKuQywdLYrhwZKYZMDmaVnI\nq4d/tBLvb/jGY/IPFVvWbAOWtwWG7apiAFrcp3Idq6EKGaVVLn7tyv74+nisssYJ\ncVKodlkzpgX1Ibrdq73BUlAxhEQNDAUM5bzyJUW0BU4OSjUoFKCgc8BSkNcSLwXO\nRpyqAwDpPWiL68N1Dch7R9uD6GE9aREY9SKoYsNCvUOraIcme4fJZ3NmxpN3SVnX\ntepoiJo2iAtORtEI1yTCv/dOPap/iebveeCjn667HkMezJodSR8X3pMgMKMVyxhJ\ngwIDAQAB\n-----END PUBLIC KEY-----"
      }
     }
    },
    "roles": [
     {
+     "backtrack": true,
      "keyids": [
-      "7f7dc79f6c3a909973a387425dc5f3649dfc35054e4ed0e4a3d22cd23752ae1e"
+      "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f"
      ],
      "name": "targets/role1",
      "paths": [

@@ -878,7 +878,8 @@ class TestTargets(unittest.TestCase):
     threshold = 1
 
     self.targets_object.delegate(rolename, public_keys, list_of_targets,
-                                 threshold, restricted_paths=None,
+                                 threshold, backtrack=True,
+                                 restricted_paths=None,
                                  path_hash_prefixes=None)
 
     # Test that a valid Targets() object is returned by delegations().
@@ -1012,8 +1013,9 @@ class TestTargets(unittest.TestCase):
     path_hash_prefixes = ['e3a3', '8fae', 'd543']
 
     self.targets_object.delegate(rolename, public_keys, list_of_targets,
-                                 threshold, restricted_paths,
-                                 path_hash_prefixes)
+                                 threshold, backtrack=True,
+                                 restricted_paths=restricted_paths,
+                                 path_hash_prefixes=path_hash_prefixes)
 
     self.assertEqual(self.targets_object.get_delegated_rolenames(),
                      ['targets/tuf'])

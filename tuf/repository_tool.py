@@ -1920,9 +1920,8 @@ class Targets(Metadata):
     return tuf.roledb.get_delegated_rolenames(self.rolename)
 
 
-
-  def delegate(self, rolename, public_keys, list_of_targets,
-               threshold=1, restricted_paths=None, path_hash_prefixes=None):
+  def delegate(self, rolename, public_keys, list_of_targets, threshold=1,
+               backtrack=True, restricted_paths=None, path_hash_prefixes=None):
     """
     <Purpose>
       Create a new delegation, where 'rolename' is a child delegation of this
@@ -1953,6 +1952,17 @@ class Targets(Metadata):
 
       threshold:
         The threshold number of keys of 'rolename'. 
+      
+      backtrack:
+        Boolean that indicates whether this role allows the updater client
+        to continue searching for targets (target files it is trusted to list
+        but has not yet specified) in other delegations.  If 'backtrack' is
+        False and 'updater.target()' does not find 'example_target.tar.gz' in
+        this role, a 'tuf.UnknownTargetError' exception should be raised.  If
+        'backtrack' is True (default), and 'target/other_role' is also trusted
+        with 'example_target.tar.gz' and has listed it, updater.target()
+        should backtrack and return the target file specified by
+        'target/other_role'.
 
       restricted_paths:
         A list of restricted directory or file paths of 'rolename'.  Any target
@@ -1986,17 +1996,21 @@ class Targets(Metadata):
     tuf.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
     tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
     tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
+    tuf.formats.BOOLEAN_SCHEMA.check_match(backtrack)
+    
     if restricted_paths is not None:
       tuf.formats.RELPATHS_SCHEMA.check_match(restricted_paths)
+    
     if path_hash_prefixes is not None:
       tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
-    
+   
+
     # Check if 'rolename' is not already a delegation.  'tuf.roledb' expects the
     # full rolename. 
-    full_rolename = self._rolename+'/'+rolename
+    full_rolename = self._rolename + '/' + rolename
 
     if tuf.roledb.role_exists(full_rolename):
-      raise tuf.Error(repr(full_rolename)+' already delegated.')
+      raise tuf.Error(repr(full_rolename) + ' already delegated.')
 
     # Keep track of the valid keyids (added to the new Targets object) and their
     # keydicts (added to this Targets delegations). 
@@ -2068,9 +2082,12 @@ class Targets(Metadata):
     roleinfo = {'name': full_rolename,
                 'keyids': roleinfo['keyids'],
                 'threshold': roleinfo['threshold'],
+                'backtrack': backtrack,
                 'paths': roleinfo['paths']}
+    
     if restricted_paths is not None:
       roleinfo['paths'] = relative_restricted_paths
+    
     if path_hash_prefixes is not None:
       roleinfo['path_hash_prefixes'] = path_hash_prefixes
       # A role in a delegations must list either 'path_hash_prefixes'
