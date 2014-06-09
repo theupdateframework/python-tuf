@@ -52,6 +52,43 @@ logger = logging.getLogger('tuf.download')
 
 
 def safe_download(url, required_length):
+  """
+  <Purpose>
+    Given the 'url' and 'required_length' of the desired file, open a connection
+    to 'url', download it, and return the contents of the file.  Also ensure
+    the length of the downloaded file matches 'required_length' exactly.
+    tuf.download.unsafe_download() may be called if an upper download limit is
+    preferred.
+ 
+    'tuf.util.TempFile', the file-like object returned, is used instead of
+    regular tempfile object because of additional functionality provided, such
+    as handling compressed metadata and automatically closing files after
+    moving to final destination.
+  
+  <Arguments>
+    url:
+      A URL string that represents the location of the file. 
+  
+    required_length:
+      An integer value representing the length of the file.  This is an exact
+      limit.
+
+  <Side Effects>
+    A 'tuf.util.TempFile' object is created on disk to store the contents of
+    'url'.
+ 
+  <Exceptions>
+    tuf.DownloadLengthMismatchError, if there was a mismatch of observed vs
+    expected lengths while downloading the file.
+ 
+    tuf.FormatError, if any of the arguments are improperly formatted.
+
+    Any other unforeseen runtime exception.
+ 
+  <Returns>
+    A 'tuf.util.TempFile' file-like object that points to the contents of 'url'.
+  """
+  
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
 
 
@@ -59,6 +96,43 @@ def safe_download(url, required_length):
 
 
 def unsafe_download(url, required_length):
+  """
+  <Purpose>
+    Given the 'url' and 'required_length' of the desired file, open a connection
+    to 'url', download it, and return the contents of the file.  Also ensure
+    the length of the downloaded file is up to 'required_length', and no larger.
+    tuf.download.safe_download() may be called if an exact download limit is
+    preferred.
+ 
+    'tuf.util.TempFile', the file-like object returned, is used instead of
+    regular tempfile object because of additional functionality provided, such
+    as handling compressed metadata and automatically closing files after
+    moving to final destination.
+  
+  <Arguments>
+    url:
+      A URL string that represents the location of the file. 
+  
+    required_length:
+      An integer value representing the length of the file.  This is an upper
+      limit.
+
+  <Side Effects>
+    A 'tuf.util.TempFile' object is created on disk to store the contents of
+    'url'.
+ 
+  <Exceptions>
+    tuf.DownloadLengthMismatchError, if there was a mismatch of observed vs
+    expected lengths while downloading the file.
+ 
+    tuf.FormatError, if any of the arguments are improperly formatted.
+
+    Any other unforeseen runtime exception.
+ 
+  <Returns>
+    A 'tuf.util.TempFile' file-like object that points to the contents of 'url'.
+  """
+  
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
 
 
