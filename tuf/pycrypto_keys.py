@@ -948,7 +948,9 @@ def _decrypt(file_contents, password):
   # what circumstances.  PyCrypto example given is to call decrypt() without
   # checking for exceptions.  Avoid propogating the exception trace and only
   # raise 'tuf.CryptoError', along with the cause of decryption failure.
-  except (ValueError, IndexError, TypeError) as e:
+  # Note: decryption failure, due to malicious ciphertext, should not occur here
+  # if the hmac check above passed.
+  except (ValueError, IndexError, TypeError) as e: # pragma: no cover
     raise tuf.CryptoError('Decryption failed: '+str(e))
 
   return key_plaintext

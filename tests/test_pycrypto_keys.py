@@ -252,6 +252,44 @@ class TestPycrypto_keys(unittest.TestCase):
     self.assertRaises(tuf.CryptoError, tuf.pycrypto_keys.decrypt_key, b'bad',
                                        passphrase)
 
+    # Test for invalid encrypted content (i.e., invalid hmac and ciphertext.)
+    encryption_delimiter = tuf.pycrypto_keys._ENCRYPTION_DELIMITER 
+    salt, iterations, hmac, iv, ciphertext = \
+      encrypted_rsa_key.decode('utf-8').split(encryption_delimiter)
+   
+    # Set an invalid hmac.  The decryption routine sould raise a tuf.CryptoError
+    # exception because 'hmac' does not match the hmac calculated by the
+    # decryption routine.
+    bad_hmac = '12345abcd'
+    invalid_encrypted_rsa_key = \
+      salt + encryption_delimiter + iterations + encryption_delimiter + \
+      bad_hmac + encryption_delimiter + iv + encryption_delimiter + ciphertext
+      
+    self.assertRaises(tuf.CryptoError, tuf.pycrypto_keys.decrypt_key,
+                      invalid_encrypted_rsa_key.encode('utf-8'), passphrase)
+
+    # Test for invalid 'ciphertext'
+    bad_ciphertext = '12345abcde'
+    invalid_encrypted_rsa_key = \
+      salt + encryption_delimiter + iterations + encryption_delimiter + \
+      hmac + encryption_delimiter + iv + encryption_delimiter + bad_ciphertext
+    
+    self.assertRaises(tuf.CryptoError, tuf.pycrypto_keys.decrypt_key,
+                      invalid_encrypted_rsa_key.encode('utf-8'), passphrase)
+
+
+
+  def test__decrypt_key(self):
+    # Test for invalid arguments.
+    salt, iterations, derived_key = tuf.pycrypto_keys._generate_derived_key('pw')
+    derived_key_information = {'salt': salt, 'derived_key': derived_key,
+                               'iterations': iterations}
+    
+    self.assertRaises(tuf.CryptoError, tuf.pycrypto_keys._encrypt,
+                          8, derived_key_information)
+
+
+
 
 # Run the unit tests.
 if __name__ == '__main__':
