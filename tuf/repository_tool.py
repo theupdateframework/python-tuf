@@ -2675,7 +2675,7 @@ def load_repository(repository_directory):
         roleinfo['paths'] = list(metadata_object['targets'].keys())
         roleinfo['delegations'] = metadata_object['delegations']
 
-        if os.path.exists(metadata_path+'.gz'):
+        if os.path.exists(metadata_path + '.gz'):
           roleinfo['compressions'].append('gz')
        
         # The roleinfo of 'metadata_name' should have been initialized with

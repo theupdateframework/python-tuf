@@ -231,11 +231,14 @@ def _get_password(prompt='Password: ', confirm=False):
     # getpass() prompts the user for a password without echoing
     # the user input.
     password = getpass.getpass(prompt, sys.stderr)
+    
     if not confirm:
       return password
     password2 = getpass.getpass('Confirm: ', sys.stderr)
+    
     if password == password2:
       return password
+    
     else:
       print('Mismatch; try again.')
 
@@ -246,10 +249,14 @@ def _get_password(prompt='Password: ', confirm=False):
 def _metadata_is_partially_loaded(rolename, signable, roleinfo):
   """
   Non-public function that determines whether 'rolename' is loaded with
-  at least 1 good signature, but an insufficient threshold (which means
-  'rolename' was written to disk with repository.write_partial().  If 'rolename'
-  is found to be partially loaded, mark it as partially loaded in its
-  'tuf.roledb' roleinfo.  This function exists to assist in deciding whether
+  at least zero good signatures, but an insufficient threshold (which means
+  'rolename' was written to disk with repository.write_partial()).  A repository
+  maintainer may write partial metadata without including a valid signature.
+  Howerver, the final repository.write() must include a threshold number of
+  signatures.
+  
+  If 'rolename' is found to be partially loaded, mark it as partially loaded in
+  its 'tuf.roledb' roleinfo.  This function exists to assist in deciding whether
   a role's version number should be incremented when write() or write_parital()
   is called.  Return True if 'rolename' was partially loaded, False otherwise. 
   """
@@ -259,7 +266,7 @@ def _metadata_is_partially_loaded(rolename, signable, roleinfo):
   status = tuf.sig.get_signature_status(signable, rolename)
   
   if len(status['good_sigs']) < status['threshold'] and \
-                                                  len(status['good_sigs']) >= 1:
+                                                  len(status['good_sigs']) >= 0:
     return True
   
   else:
@@ -326,14 +333,14 @@ def _check_role_keys(rolename):
  
   # Raise an exception for an invalid threshold of public keys.
   if total_keyids < threshold: 
-    message = repr(rolename)+' role contains '+repr(total_keyids)+' / '+ \
-      repr(threshold)+' public keys.'
+    message = repr(rolename) + ' role contains ' + \
+      repr(total_keyids) + ' / ' + repr(threshold) + ' public keys.'
     raise tuf.InsufficientKeysError(message)
 
   # Raise an exception for an invalid threshold of signing keys.
   if total_signatures == 0 and total_signing_keys < threshold: 
-    message = repr(rolename)+' role contains '+repr(total_signing_keys)+' / '+ \
-      repr(threshold)+' signing keys.'
+    message = repr(rolename) + ' role contains ' + \
+      repr(total_signing_keys) + ' / ' + repr(threshold) + ' signing keys.'
     raise tuf.InsufficientKeysError(message)
 
 
@@ -2095,8 +2102,8 @@ def _log_status(rolename, signable):
   
   status = tuf.sig.get_signature_status(signable, rolename)
 
-  message = repr(rolename)+' role contains '+ repr(len(status['good_sigs']))+\
-    ' / '+repr(status['threshold'])+' signatures.'
+  message = repr(rolename) + ' role contains ' + repr(len(status['good_sigs']))+\
+    ' / ' + repr(status['threshold']) + ' signatures.'
   logger.info(message)
 
 
@@ -2173,6 +2180,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
       message = 'Cannot create a fresh client metadata directory: '+ \
         repr(client_metadata_directory)+'.  Already exists.'
       raise tuf.RepositoryError(message)
+    
     else:
       raise
 
