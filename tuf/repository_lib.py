@@ -246,10 +246,14 @@ def _get_password(prompt='Password: ', confirm=False):
 def _metadata_is_partially_loaded(rolename, signable, roleinfo):
   """
   Non-public function that determines whether 'rolename' is loaded with
-  at least 1 good signature, but an insufficient threshold (which means
-  'rolename' was written to disk with repository.write_partial().  If 'rolename'
-  is found to be partially loaded, mark it as partially loaded in its
-  'tuf.roledb' roleinfo.  This function exists to assist in deciding whether
+  at least zero good signatures, but an insufficient threshold (which means
+  'rolename' was written to disk with repository.write_partial()).  A repository
+  maintainer may write partial metadata without including a valid signature.
+  Howerver, the final repository.write() must include a threshold number of
+  signatures.
+  
+  If 'rolename' is found to be partially loaded, mark it as partially loaded in
+  its 'tuf.roledb' roleinfo.  This function exists to assist in deciding whether
   a role's version number should be incremented when write() or write_parital()
   is called.  Return True if 'rolename' was partially loaded, False otherwise. 
   """
@@ -259,7 +263,7 @@ def _metadata_is_partially_loaded(rolename, signable, roleinfo):
   status = tuf.sig.get_signature_status(signable, rolename)
   
   if len(status['good_sigs']) < status['threshold'] and \
-                                                  len(status['good_sigs']) >= 1:
+                                                  len(status['good_sigs']) >= 0:
     return True
   
   else:
