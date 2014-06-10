@@ -231,11 +231,14 @@ def _get_password(prompt='Password: ', confirm=False):
     # getpass() prompts the user for a password without echoing
     # the user input.
     password = getpass.getpass(prompt, sys.stderr)
+    
     if not confirm:
       return password
     password2 = getpass.getpass('Confirm: ', sys.stderr)
+    
     if password == password2:
       return password
+    
     else:
       print('Mismatch; try again.')
 
@@ -330,14 +333,14 @@ def _check_role_keys(rolename):
  
   # Raise an exception for an invalid threshold of public keys.
   if total_keyids < threshold: 
-    message = repr(rolename)+' role contains '+repr(total_keyids)+' / '+ \
-      repr(threshold)+' public keys.'
+    message = repr(rolename) + ' role contains ' + \
+      repr(total_keyids) + ' / ' + repr(threshold) + ' public keys.'
     raise tuf.InsufficientKeysError(message)
 
   # Raise an exception for an invalid threshold of signing keys.
   if total_signatures == 0 and total_signing_keys < threshold: 
-    message = repr(rolename)+' role contains '+repr(total_signing_keys)+' / '+ \
-      repr(threshold)+' signing keys.'
+    message = repr(rolename) + ' role contains ' + \
+      repr(total_signing_keys) + ' / ' + repr(threshold) + ' signing keys.'
     raise tuf.InsufficientKeysError(message)
 
 
@@ -2099,8 +2102,8 @@ def _log_status(rolename, signable):
   
   status = tuf.sig.get_signature_status(signable, rolename)
 
-  message = repr(rolename)+' role contains '+ repr(len(status['good_sigs']))+\
-    ' / '+repr(status['threshold'])+' signatures.'
+  message = repr(rolename) + ' role contains ' + repr(len(status['good_sigs']))+\
+    ' / ' + repr(status['threshold']) + ' signatures.'
   logger.info(message)
 
 
@@ -2177,6 +2180,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
       message = 'Cannot create a fresh client metadata directory: '+ \
         repr(client_metadata_directory)+'.  Already exists.'
       raise tuf.RepositoryError(message)
+    
     else:
       raise
 
