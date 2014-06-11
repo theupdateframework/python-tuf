@@ -30,6 +30,7 @@ import time
 import datetime
 import logging
 import tempfile
+import json
 import shutil
 import sys
 
@@ -262,6 +263,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     
     self.assertRaises(tuf.Error, repo_lib.import_ed25519_publickey_from_file,
                       invalid_keyfile)
+ 
+    # Invalid public key imported (contains unexpected keytype.)
+    keytype = imported_ed25519_key['keytype'] 
+    keyval = imported_ed25519_key['keyval']
+    ed25519key_metadata_format = \
+      tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
+    
+    ed25519key_metadata_format['keytype'] = 'invalid_keytype'
+    with open(ed25519_keypath + '.pub', 'wb') as file_object:
+      file_object.write(json.dumps(ed25519key_metadata_format).encode('utf-8'))
+    
+    self.assertRaises(tuf.FormatError,
+                      repo_lib.import_ed25519_publickey_from_file,
+                      ed25519_keypath + '.pub')
 
 
 
@@ -296,6 +311,32 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     
     self.assertRaises(tuf.Error, repo_lib.import_ed25519_privatekey_from_file,
                       invalid_keyfile, 'pw')
+    
+    # Invalid private key imported (contains unexpected keytype.)
+    imported_ed25519_key['keytype'] = 'invalid_keytype'
+
+    # Use 'pycrypto_keys.py' to bypass the key format validation performed by
+    # 'keys.py'.
+    salt, iterations, derived_key = \
+      tuf.pycrypto_keys._generate_derived_key('pw')
+ 
+    # Store the derived key info in a dictionary, the object expected
+    # by the non-public _encrypt() routine.
+    derived_key_information = {'salt': salt, 'iterations': iterations,
+                               'derived_key': derived_key}
+
+    # Convert the key object to json string format and encrypt it with the
+    # derived key.
+    encrypted_key = \
+      tuf.pycrypto_keys._encrypt(json.dumps(imported_ed25519_key),
+                                 derived_key_information)  
+    
+    with open(ed25519_keypath, 'wb') as file_object:
+      file_object.write(encrypted_key.encode('utf-8'))
+
+    self.assertRaises(tuf.FormatError,
+                      repo_lib.import_ed25519_privatekey_from_file,
+                      ed25519_keypath, 'pw')
 
 
 
@@ -675,6 +716,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test invalid argument (i.e., client directory already exists.)
     self.assertRaises(tuf.RepositoryError, repo_lib.create_tuf_client_directory,
                       repository_directory, client_directory)
+
+
+  def test__check_directory(self):
+    # Test for non-existent directory.
+    self.assertRaises(tuf.Error, repo_lib._check_directory, 'non-existent')
+
 
 
 # Run the test cases.

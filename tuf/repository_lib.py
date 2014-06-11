@@ -306,7 +306,7 @@ def _check_directory(directory):
 
   # Check if the directory exists.
   if not os.path.isdir(directory):
-    raise tuf.Error(repr(directory)+' directory does not exist.')
+    raise tuf.Error(repr(directory) + ' directory does not exist.')
 
   directory = os.path.abspath(directory)
   
@@ -501,7 +501,7 @@ def _strip_consistent_snapshot_digest(metadata_filename, consistent_snapshot):
     embeded_digest = basename[:basename.find('.')]
     
     # Ensure the digest, including the period, is stripped.
-    basename = basename[basename.find('.')+1:]
+    basename = basename[basename.find('.') + 1:]
     
     metadata_filename = os.path.join(dirname, basename)
   
@@ -761,7 +761,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
   tuf.formats.RSAKEYBITS_SCHEMA.check_match(bits)
 
   # If the caller does not provide a password argument, prompt for one.
-  if password is None:
+  if password is None: # pragma: no cover
     message = 'Enter a password for the RSA key file: '
     password = _get_password(message, confirm=True)
 
@@ -786,7 +786,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
   file_object.write(public.encode('utf-8'))
   
   # The temporary file is closed after the final move.
-  file_object.move(filepath+'.pub')
+  file_object.move(filepath + '.pub')
 
   # Write the private key in encrypted PEM format to '<filepath>'.
   # Unlike the public key file, the private key does not have a file
@@ -841,7 +841,7 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   # If the caller does not provide a password argument, prompt for one.
   # Password confirmation disabled here, which should ideally happen only
   # when creating encrypted key files (i.e., improve usability).
-  if password is None:
+  if password is None: # pragma: no cover
     message = 'Enter a password for the encrypted RSA file: '
     password = _get_password(message, confirm=False)
 
@@ -962,7 +962,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   tuf.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
-  if password is None:
+  if password is None: # pragma: no cover
     message = 'Enter a password for the ED25519 key: '
     password = _get_password(message, confirm=True)
 
@@ -993,7 +993,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   file_object.write(json.dumps(ed25519key_metadata_format).encode('utf-8'))
   
   # The temporary file is closed after the final move.
-  file_object.move(filepath+'.pub')
+  file_object.move(filepath + '.pub')
 
   # Write the encrypted key string, conformant to
   # 'tuf.formats.ENCRYPTEDKEY_SCHEMA', to '<filepath>'.
@@ -1041,9 +1041,11 @@ def import_ed25519_publickey_from_file(filepath):
   ed25519_key_metadata = tuf.util.load_json_file(filepath)
   ed25519_key = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
   
-  # Raise an exception if an unexpected key type is imported. 
-  if ed25519_key['keytype'] != 'ed25519':
-    message = 'Invalid key type loaded: '+repr(ed25519_key['keytype'])
+  # Raise an exception if an unexpected key type is imported.
+  # Redundant validation of 'keytype'.  'tuf.keys.format_metadata_to_key()'
+  # should have fully validated 'ed25519_key_metadata'.
+  if ed25519_key['keytype'] != 'ed25519': # pragma: no cover
+    message = 'Invalid key type loaded: ' + repr(ed25519_key['keytype'])
     raise tuf.FormatError(message)
 
   return ed25519_key
@@ -1100,7 +1102,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   # If the caller does not provide a password argument, prompt for one.
   # Password confirmation disabled here, which should ideally happen only
   # when creating encrypted key files (i.e., improve usability).
-  if password is None:
+  if password is None: # pragma: no cover
     message = 'Enter a password for the encrypted ED25519 key: '
     password = _get_password(message, confirm=False)
 
@@ -1122,7 +1124,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
 
   # Raise an exception if an unexpected key type is imported. 
   if key_object['keytype'] != 'ed25519':
-    message = 'Invalid key type loaded: '+repr(key_object['keytype'])
+    message = 'Invalid key type loaded: ' + repr(key_object['keytype'])
     raise tuf.FormatError(message)
 
   return key_object
@@ -1230,7 +1232,7 @@ def get_metadata_fileinfo(filename):
   tuf.formats.PATH_SCHEMA.check_match(filename)
 
   if not os.path.isfile(filename):
-    message = repr(filename)+' is not a file.'
+    message = repr(filename) + ' is not a file.'
     raise tuf.Error(message)
   
   # Note: 'filehashes' is a dictionary of the form
@@ -1337,7 +1339,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot):
     
     # If a top-level role is missing from 'tuf.roledb.py', raise an exception.
     if not tuf.roledb.role_exists(rolename):
-      raise tuf.Error(repr(rolename)+' not in "tuf.roledb".')
+      raise tuf.Error(repr(rolename) + ' not in "tuf.roledb".')
    
     # Keep track of the keys loaded to avoid duplicates.
     keyids = []
@@ -1476,7 +1478,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     # Ensure all target files listed in 'target_files' exist.  If just one of
     # these files does not exist, raise an exception.
     if not os.path.exists(target_path):
-      message = repr(target_path)+' cannot be read.  Unable to generate '+ \
+      message = repr(target_path) + ' cannot be read.  Unable to generate '+ \
         'targets metadata.'
       raise tuf.Error(message)
     
@@ -1692,10 +1694,10 @@ def generate_timestamp_metadata(snapshot_filename, version,
       compressed_fileinfo = get_metadata_fileinfo(compressed_filename)
     
     except:
-      logger.warning('Cannot get fileinfo about '+repr(compressed_filename))
+      logger.warning('Cannot get fileinfo about ' + repr(compressed_filename))
     
     else:
-      logger.info('Including fileinfo about '+repr(compressed_filename))
+      logger.info('Including fileinfo about ' + repr(compressed_filename))
       fileinfo[SNAPSHOT_FILENAME + '.' + file_extension] = compressed_fileinfo
 
   # Generate the timestamp metadata object.
@@ -1761,7 +1763,7 @@ def sign_metadata(metadata_object, keyids, filename):
     
     # Load the signing key.
     key = tuf.keydb.get_key(keyid)
-    logger.info('Signing '+repr(filename)+' with '+key['keyid'])
+    logger.info('Signing ' + repr(filename) + ' with ' + key['keyid'])
 
     # Create a new signature list.  If 'keyid' is encountered, do not add it
     # to the new list.
@@ -1779,7 +1781,7 @@ def sign_metadata(metadata_object, keyids, filename):
         signable['signatures'].append(signature)
       
       else:
-        logger.warning('Private key unset.  Skipping: '+repr(keyid))
+        logger.warning('Private key unset.  Skipping: ' + repr(keyid))
     
     else:
       raise tuf.Error('The keydb contains a key with an invalid key type.')
