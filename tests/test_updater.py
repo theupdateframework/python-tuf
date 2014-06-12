@@ -1103,6 +1103,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  in 'destination_directory' remains the same.
     self.repository_updater.remove_obsolete_targets(destination_directory)
     self.assertTrue(os.listdir(destination_directory), 1)    
+ 
+
+
+
+
+  def test_9__get_target_hash(self):
+    # Test normal case.
+    # Test target filepaths with ascii and non-ascii characters.
+    expected_target_hashes = {
+      '/file1.txt': 'e3a3d89eb3b70ce3fbce6017d7b8c12d4abd5635427a0e8a238f53157df85b3d',
+      '/Jalape\xc3\xb1o': '78bfd5c314680545eb48ecad508aceb861f8d6e680f4fe1b791da45c298cda88' 
+    }
+    for filepath, target_hash in six.iteritems(expected_target_hashes):
+      self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.formats.HASH_SCHEMA.matches(target_hash))
+      self.assertEqual(self.repository_updater._get_target_hash(filepath), target_hash)
+   
+    # Test for improperly formatted argument.
+    self.assertRaises(tuf.FormatError, tuf.util.get_target_hash, 8)
 
 
 
