@@ -29,25 +29,41 @@ import datetime
 from tuf.repository_tool import *
 import tuf.util
 
+import optparse
+
+parser = optparse.OptionParser()
+parser.add_option("-k","--keys", action='store_true',  dest="should_generate_keys",
+    help="Generate a new set of keys", default=False)
+parser.add_option("-d","--dry-run", action='store_true', dest="dry_run",
+    help="Do not write the files, just run", default=False)
+(options, args) = parser.parse_args()
+
+
 repository = create_new_repository('repository')
 
-# Generate and save the top-level role keys, including the delegated roles.
-# The unit tests should only have to import the keys they need from these
-# pre-generated key files.
 root_key_file = 'keystore/root_key'
 targets_key_file = 'keystore/targets_key' 
 snapshot_key_file = 'keystore/snapshot_key'
 timestamp_key_file = 'keystore/timestamp_key'
 delegation_key_file = 'keystore/delegation_key'
 
-# Generate public and private key files for the top-level roles, and two
-# delegated roles (these number of keys should be sufficient for most of the
-# unit tests).  Unit tests may generate additional keys, if needed.
-generate_and_write_rsa_keypair(root_key_file, bits=2048, password='password')
-generate_and_write_rsa_keypair(targets_key_file, bits=2048, password='password')
-generate_and_write_rsa_keypair(snapshot_key_file, bits=2048, password='password')
-generate_and_write_rsa_keypair(timestamp_key_file, bits=2048, password='password')
-generate_and_write_rsa_keypair(delegation_key_file, bits=2048, password='password')
+
+if options.should_generate_keys and not options.dry_run:
+  # Generate and save the top-level role keys, including the delegated roles.
+  # The unit tests should only have to import the keys they need from these
+  # pre-generated key files.
+  # Generate public and private key files for the top-level roles, and two
+  # delegated roles (these number of keys should be sufficient for most of the
+  # unit tests).  Unit tests may generate additional keys, if needed.
+  generate_and_write_rsa_keypair(root_key_file, bits=2048, password='password')
+  generate_and_write_rsa_keypair(targets_key_file, bits=2048,
+      password='password')
+  generate_and_write_rsa_keypair(snapshot_key_file, bits=2048,
+      password='password')
+  generate_and_write_rsa_keypair(timestamp_key_file, bits=2048,
+      password='password')
+  generate_and_write_rsa_keypair(delegation_key_file, bits=2048,
+      password='password')
 
 # Import the public keys.  These keys are needed so that metadata roles are
 # assigned verification keys, which clients use to verify the signatures created
@@ -88,14 +104,15 @@ tuf.util.ensure_parent_dir(target2_filepath)
 target3_filepath = 'repository/targets/file3.txt'
 tuf.util.ensure_parent_dir(target2_filepath)
 
-with open(target1_filepath, 'wt') as file_object:
-  file_object.write('This is an example target file.')
+if not options.dry_run:
+  with open(target1_filepath, 'wt') as file_object:
+    file_object.write('This is an example target file.')
 
-with open(target2_filepath, 'wt') as file_object:
-  file_object.write('This is an another example target file.')
+  with open(target2_filepath, 'wt') as file_object:
+    file_object.write('This is an another example target file.')
 
-with open(target3_filepath, 'wt') as file_object:
-  file_object.write('This is role1\'s target file.')
+  with open(target3_filepath, 'wt') as file_object:
+    file_object.write('This is role1\'s target file.')
 
 # Add target files to the top-level 'targets.json' role.  These target files
 # should already exist.
@@ -119,15 +136,18 @@ repository.targets('role1').expiration = datetime.datetime(2030, 1, 1, 0, 0)
 repository.targets.compressions = ['gz']
 
 # Create the actual metadata files, which are saved to 'metadata.staged'. 
-repository.write()
+if not options.dry_run:
+  repository.write()
 
 # Move the staged.metadata to 'metadata' and create the client folder.  The
 # client folder, which includes the required directory structure and metadata
 # files for clients to successfully load an 'tuf.client.updater.py' object.
 staged_metadata_directory = 'repository/metadata.staged'
 metadata_directory = 'repository/metadata'
-shutil.copytree(staged_metadata_directory, metadata_directory)
+if not options.dry_run:
+  shutil.copytree(staged_metadata_directory, metadata_directory)
 
 # Create the client files (required directory structure and minimal metadata)
 # required by the 'tuf.interposition' and 'tuf.client.updater.py' updaters.
-create_tuf_client_directory('repository', 'client')
+if not options.dry_run:
+  create_tuf_client_directory('repository', 'client')
