@@ -51,6 +51,14 @@
 
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import sys
 import optparse
 import logging
@@ -94,7 +102,7 @@ def update_client(repository_mirror):
   # Does 'repository_mirror' have the correct format?
   try:
     tuf.formats.URL_SCHEMA.check_match(repository_mirror)
-  except tuf.FormatError, e:
+  except tuf.FormatError as e:
     message = 'The repository mirror supplied is invalid.' 
     raise tuf.RepositoryError(message)
   
@@ -126,7 +134,7 @@ def update_client(repository_mirror):
   for target in updated_targets:
     try: 
       updater.download_target(target, destination_directory)
-    except tuf.DownloadError, e:
+    except tuf.DownloadError as e:
       pass
 
   # Remove any files from the destination directory that are no longer being
@@ -211,7 +219,8 @@ if __name__ == '__main__':
   # the current directory.
   try:
     update_client(repository_mirror)
-  except (tuf.NoWorkingMirrorError, tuf.RepositoryError), e:
+  
+  except (tuf.NoWorkingMirrorError, tuf.RepositoryError) as e:
     sys.stderr.write('Error: '+str(e)+'\n')
     sys.exit(1)
 

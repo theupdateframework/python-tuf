@@ -99,12 +99,19 @@
     updater.download_target(target, destination_directory)
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import errno
 import logging
 import os
 import shutil
 import time
-import urllib
 import random
 
 import tuf
@@ -120,6 +127,7 @@ import tuf.roledb
 import tuf.sig
 import tuf.util
 import tuf._vendor.iso8601 as iso8601
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.client.updater')
 
@@ -505,7 +513,7 @@ class Updater(object):
    
     # Iterate through the keys of the delegated roles of 'parent_role'
     # and load them.
-    for keyid, keyinfo in keys_info.items():
+    for keyid, keyinfo in six.iteritems(keys_info):
       if keyinfo['keytype'] in ['rsa', 'ed25519']:
         key = tuf.keys.format_metadata_to_key(keyinfo)
       
@@ -517,13 +525,13 @@ class Updater(object):
         except tuf.KeyAlreadyExistsError:
           pass
         
-        except (tuf.FormatError, tuf.Error), e:
+        except (tuf.FormatError, tuf.Error) as e:
           logger.exception('Failed to add keyid: '+repr(keyid)+'.')
           logger.error('Aborting role delegation for parent role '+parent_role+'.')
           raise
       
       else:
-        logger.warn('Invalid key type for '+repr(keyid)+'.')
+        logger.warning('Invalid key type for '+repr(keyid)+'.')
         continue
 
     # Add the roles to the role database.
@@ -535,8 +543,8 @@ class Updater(object):
         logger.debug('Adding delegated role: '+str(rolename)+'.')
         tuf.roledb.add_role(rolename, roleinfo)
       
-      except tuf.RoleAlreadyExistsError, e:
-        logger.warn('Role already exists: '+rolename)
+      except tuf.RoleAlreadyExistsError as e:
+        logger.warning('Role already exists: '+rolename)
       
       except:
         logger.exception('Failed to add delegated role: '+rolename+'.')
@@ -642,7 +650,7 @@ class Updater(object):
       self._update_metadata_if_changed('root')
       self._update_metadata_if_changed('targets')
     
-    except tuf.NoWorkingMirrorError, e:
+    except tuf.NoWorkingMirrorError as e:
       if unsafely_update_root_if_necessary:
         message = 'Valid top-level metadata cannot be downloaded.  Unsafely '+\
           'update the Root metadata.'
@@ -689,7 +697,7 @@ class Updater(object):
 
     # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
     # return.
-    for algorithm, trusted_hash in trusted_hashes.items():
+    for algorithm, trusted_hash in six.iteritems(trusted_hashes):
       digest_object = tuf.hash.digest(algorithm)
       digest_object.update(file_object.read())
       computed_hash = digest_object.hexdigest()
@@ -842,7 +850,7 @@ class Updater(object):
     # 'compression' argument to _get_file() is needed only for decompression of
     # metadata.  Target files may be compressed or uncompressed.
     if self.consistent_snapshot:
-      target_digest = random.choice(file_hashes.values())
+      target_digest = random.choice(list(file_hashes.values()))
       dirname, basename = os.path.split(target_filepath)
       target_filepath = os.path.join(dirname, target_digest+'.'+basename)
 
@@ -897,12 +905,12 @@ class Updater(object):
       None.
     """
 
-    metadata = metadata_file_object.read()
+    metadata = metadata_file_object.read().decode('utf-8')
     
     try:
       metadata_signable = tuf.util.load_json_string(metadata)
     
-    except Exception, exception:
+    except Exception as exception:
       raise tuf.InvalidMetadataJSONError(exception)
     
     else:
@@ -931,7 +939,7 @@ class Updater(object):
     # are not allowed.
     if metadata_signable['signed']['_type'] == 'Targets':
       if metadata_role != 'targets':
-        metadata_targets = metadata_signable['signed']['targets'].keys()
+        metadata_targets = list(metadata_signable['signed']['targets'].keys())
         parent_rolename = tuf.roledb.get_parent_rolename(metadata_role)
         parent_role_metadata = self.metadata['current'][parent_rolename]
         parent_delegations = parent_role_metadata['delegations']
@@ -1198,7 +1206,7 @@ class Updater(object):
         # uncompressed version).
         verify_file_function(file_object)
 
-      except Exception, exception:
+      except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
         logger.exception('Update failed from '+file_mirror+'.')
         file_mirror_errors[file_mirror] = exception
@@ -1319,11 +1327,11 @@ class Updater(object):
       if self.consistent_snapshot:
         if compression:
           filename_digest = \
-            random.choice(compressed_fileinfo['hashes'].values())
+            random.choice(list(compressed_fileinfo['hashes'].values()))
         
         else:
           filename_digest = \
-            random.choice(uncompressed_fileinfo['hashes'].values())
+            random.choice(list(uncompressed_fileinfo['hashes'].values()))
         dirname, basename = os.path.split(remote_filename)
         remote_filename = os.path.join(dirname, filename_digest+'.'+basename)
 
@@ -1352,7 +1360,7 @@ class Updater(object):
     # Next, move the verified updated metadata file to the 'current' directory.
     # Note that the 'move' method comes from tuf.util's TempFile class.
     # 'metadata_file_object' is an instance of tuf.util.TempFile.
-    metadata_signable = tuf.util.load_json_string(metadata_file_object.read())
+    metadata_signable = tuf.util.load_json_string(metadata_file_object.read().decode('utf-8'))
     if compression == 'gzip':
       current_uncompressed_filepath = \
         os.path.join(self.metadata_directory['current'],
@@ -1605,7 +1613,7 @@ class Updater(object):
     # without having that result in considering all files as needing to be
     # updated, or not all hash algorithms listed can be calculated on the
     # specific client.
-    for algorithm, hash_value in new_fileinfo['hashes'].items():
+    for algorithm, hash_value in six.iteritems(new_fileinfo['hashes']):
       # We're only looking for a single match. This isn't a security
       # check, we just want to prevent unnecessary downloads.
       if algorithm in current_fileinfo['hashes']: 
@@ -1892,7 +1900,7 @@ class Updater(object):
     # See if this role provides metadata and, if we're including delegations,
     # look for metadata from delegated roles.
     role_prefix = rolename + '/'
-    for metadata_path in self.metadata['current']['snapshot']['meta'].keys():
+    for metadata_path in six.iterkeys(self.metadata['current']['snapshot']['meta']):
       if metadata_path == rolename + '.json':
         roles_to_update.append(metadata_path[:-len('.json')])
       elif include_delegations and metadata_path.startswith(role_prefix):
@@ -2000,8 +2008,8 @@ class Updater(object):
     # This only goes to -1 because we only want to store the parents (so we
     # ignore the last element).
     for next_role in parts[1:-1]:
-      parent_roles.append(roles_added+'/'+next_role)
-      roles_added = roles_added+'/'+next_role
+      parent_roles.append(roles_added + '/' + next_role)
+      roles_added = roles_added + '/' + next_role
 
     message = 'Minimum metadata to download and set the chain of trust: '+\
       repr(parent_roles)+'.'
@@ -2010,13 +2018,13 @@ class Updater(object):
     # Check if 'snapshot.json' provides metadata for each of the roles in
     # 'parent_roles'.  All the available roles on the repository are specified
     # in the 'snapshot.json' metadata.
-    targets_metadata_allowed = self.metadata['current']['snapshot']['meta'].keys()
+    targets_metadata_allowed = list(self.metadata['current']['snapshot']['meta'].keys())
     for parent_role in parent_roles:
       parent_role = parent_role + '.json'
 
       if parent_role not in targets_metadata_allowed:
         message = '"snapshot.json" does not provide all the parent roles '+\
-          'of '+repr(rolename)+'.'
+          'of ' + repr(rolename) + '.'
         raise tuf.RepositoryError(message)
 
     # Remove the 'targets' role because it gets updated when the targets.json
@@ -2034,7 +2042,7 @@ class Updater(object):
 
     # Sort the roles so that parent roles always come first.
     parent_roles.sort()
-    logger.debug('Roles to update: '+repr(parent_roles)+'.')
+    logger.debug('Roles to update: ' + repr(parent_roles) + '.')
 
     # Iterate 'parent_roles', load each role's metadata file from disk, and
     # update it if it has changed.  
@@ -2108,7 +2116,7 @@ class Updater(object):
       return targets
 
     # Get the targets specified by the role itself.
-    for filepath, fileinfo in self.metadata['current'][rolename]['targets'].items():
+    for filepath, fileinfo in six.iteritems(self.metadata['current'][rolename]['targets']):
       new_target = {} 
       new_target['filepath'] = filepath 
       new_target['fileinfo'] = fileinfo
@@ -2209,7 +2217,7 @@ class Updater(object):
   
     # 'target_filepath' might contain URL encoding escapes.
     # http://docs.python.org/2/library/urllib.html#urllib.unquote
-    target_filepath = urllib.unquote(target_filepath)
+    target_filepath = six.moves.urllib.parse.unquote(target_filepath)
 
     if not target_filepath.startswith('/'):
       target_filepath = '/' + target_filepath
@@ -2292,15 +2300,28 @@ class Updater(object):
 
       if target is None:
 
-        # Push children in reverse order of appearance onto the stack.
+        child_roles_to_visit = []
         # NOTE: This may be a slow operation if there are many delegated roles.
-        for child_role in reversed(child_roles):
+        for child_role in child_roles:
           child_role_name = self._visit_child_role(child_role, target_filepath)
-          if child_role_name is None:
+          if not child_role['backtrack'] and child_role_name is not None:
+            logger.debug('Adding child role '+repr(child_role_name))
+            logger.debug('Not backtracking to other roles.')
+            role_names = []
+            child_roles_to_visit.append(child_role_name)
+            break
+          
+          elif child_role_name is None:
             logger.debug('Skipping child role '+repr(child_role_name))
+          
           else:
             logger.debug('Adding child role '+repr(child_role_name))
-            role_names.append(child_role_name)
+            child_roles_to_visit.append(child_role_name)
+
+        # Push 'child_roles_to_visit' in reverse order of appearance onto
+        # 'role_names'.  Roles are popped from the end of the 'role_names' list.
+        child_roles_to_visit.reverse()
+        role_names.extend(child_roles_to_visit)
 
       else:
         logger.debug('Found target in current role '+repr(role_name))
@@ -2342,13 +2363,15 @@ class Updater(object):
     target = None
 
     # Does the current role name have our target?
-    logger.debug('Asking role '+repr(role_name)+' about target '+\
+    logger.debug('Asking role ' + repr(role_name) + ' about target '+\
       repr(target_filepath))
-    for filepath, fileinfo in targets.iteritems():
+    
+    for filepath, fileinfo in six.iteritems(targets):
       if filepath == target_filepath:
-        logger.debug('Found target '+target_filepath+' in role '+role_name)
+        logger.debug('Found target ' + target_filepath + ' in role ' + role_name)
         target = {'filepath': filepath, 'fileinfo': fileinfo}
         break
+      
       else:
         logger.debug('No target '+target_filepath+' in role '+role_name)
 
@@ -2425,16 +2448,17 @@ class Updater(object):
       # 'role_name' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
-      raise tuf.FormatError(repr(child_role_name)+' has neither ' \
-                                '"paths" nor "path_hash_prefixes"!')
+      raise tuf.FormatError(repr(child_role_name) + ' has neither ' \
+                                '"paths" nor "path_hash_prefixes".')
 
     if child_role_is_relevant:
-      logger.debug('Child role '+repr(child_role_name)+' has target '+
+      logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
                    repr(target_filepath))
       return child_role_name
+    
     else:
-      logger.debug('Child role '+repr(child_role_name)+
-                   ' does not have target '+repr(target_filepath))
+      logger.debug('Child role ' + repr(child_role_name) + \
+                   ' does not have target ' + repr(target_filepath))
       return None
 
 
@@ -2472,20 +2496,11 @@ class Updater(object):
     """
 
     # Calculate the hash of the filepath to determine which bin to find the 
-    # target.  The client currently assumes the repository uses
-    # 'hash_function' to generate hashes.
-
+    # target.  The client currently assumes the repository (i.e., repository
+    # tool) uses 'hash_function' to generate hashes and UTF-8.
     digest_object = tuf.hash.digest(hash_function)
-
-    try:
-      digest_object.update(target_filepath)
-    except UnicodeEncodeError:
-      # Sometimes, there are Unicode characters in target paths. We assume a
-      # UTF-8 encoding and try to hash that.
-      digest_object = tuf.hash.digest(hash_function)
-      encoded_target_filepath = target_filepath.encode('utf-8')
-      digest_object.update(encoded_target_filepath)
-
+    encoded_target_filepath = target_filepath.encode('utf-8')
+    digest_object.update(encoded_target_filepath)
     target_filepath_hash = digest_object.hexdigest() 
 
     return target_filepath_hash
@@ -2528,24 +2543,24 @@ class Updater(object):
     for role in tuf.roledb.get_rolenames():
       if role.startswith('targets'):
         if role in self.metadata['previous'] and self.metadata['previous'][role] != None:
-          for target in self.metadata['previous'][role]['targets'].keys():
-            if target not in self.metadata['current'][role]['targets'].keys():
+          for target in self.metadata['previous'][role]['targets']:
+            if target not in self.metadata['current'][role]['targets']:
               # 'target' is only in 'previous', so remove it.
-              logger.warn('Removing obsolete file: '+repr(target)+'.')
+              logger.warning('Removing obsolete file: ' + repr(target) + '.')
               # Remove the file if it hasn't been removed already.
               destination = os.path.join(destination_directory, target) 
               try:
                 os.remove(destination)
               
-              except OSError, e:
+              except OSError as e:
                 # If 'filename' already removed, just log it.
                 if e.errno == errno.ENOENT:
-                  logger.info('File '+repr(destination)+' was already removed.')
+                  logger.info('File ' + repr(destination) + ' was already removed.')
                 
                 else:
                   logger.error(str(e))
               
-              except Exception, e:
+              except Exception as e:
                 logger.error(str(e))
 
 
@@ -2607,7 +2622,7 @@ class Updater(object):
       
       # Try one of the algorithm/digest combos for a mismatch.  We break
       # as soon as we find a mismatch.
-      for algorithm, digest in target['fileinfo']['hashes'].items():
+      for algorithm, digest in six.iteritems(target['fileinfo']['hashes']):
         digest_object = None
         try:
           digest_object = tuf.hash.digest_filename(target_filepath,
@@ -2691,7 +2706,7 @@ class Updater(object):
       try:
         os.makedirs(target_dirpath)
       
-      except OSError, e:
+      except OSError as e:
         if e.errno == errno.EEXIST:
           pass
         
@@ -2699,6 +2714,6 @@ class Updater(object):
           raise
     
     else:
-      logger.warn(str(target_dirpath)+' does not exist.')
+      logger.warning(repr(target_dirpath) + ' does not exist.')
 
     target_file_object.move(destination)

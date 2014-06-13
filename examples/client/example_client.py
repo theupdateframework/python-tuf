@@ -21,7 +21,7 @@
   The custom examples below demonstrate:
   (1) updating all targets
   (2) updating all the targets of a specified role
-  (3) updating a specific target explicitely named.
+  (3) updating a specific target explicitly named.
 
   It assumes a server is listening on 'http://localhost:8001'.  One can be
   started by navigating to the 'examples/repository/' and starting:

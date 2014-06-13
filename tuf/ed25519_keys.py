@@ -49,6 +49,7 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 # 'binascii' required for hexadecimal conversions.  Signatures and
 # public/private keys are hexlified.
@@ -84,6 +85,10 @@ import os
 # TODO: Version 0.2.3 of 'pynacl' prints: "UserWarning: reimporting '...' might
 # overwrite older definitions." when importing 'nacl.signing'.  Suppress user
 # warnings temporarily (at least until this issue is fixed by PyNaCl).
+#
+# Note: A 'pragma: no cover' comment is intended for test 'coverage'.  Lines
+# or code blocks with this comment should not be flagged as uncovered.
+# pynacl will always be install prior to running the unit tests.
 with warnings.catch_warnings():
   warnings.simplefilter('ignore')
   try:
@@ -92,7 +97,7 @@ with warnings.catch_warnings():
   
   # PyNaCl's 'cffi' dependency may raise an 'IOError' exception when importing
   # 'nacl.signing'.
-  except (ImportError, IOError):
+  except (ImportError, IOError): # pragma: no cover
     pass
 
 # The optimized pure Python implementation of ed25519 provided by TUF.  If
@@ -163,9 +168,9 @@ def generate_public_and_private():
   # key generation.
   try:
     nacl_key = nacl.signing.SigningKey(seed)
-    public = str(nacl_key.verify_key)
+    public = nacl_key.verify_key.encode(encoder=nacl.encoding.RawEncoder())
   
-  except NameError:
+  except NameError: # pragma: no cover
     message = 'The PyNaCl library and/or its dependencies unavailable.'
     raise tuf.UnsupportedLibraryError(message)
   
@@ -187,7 +192,7 @@ def create_signature(public_key, private_key, data):
     A signature is a 64-byte string.
 
     >>> public, private = generate_public_and_private()
-    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> data = b'The quick brown fox jumps over the lazy dog'
     >>> signature, method = \
         create_signature(public, private, data)
     >>> tuf.formats.ED25519SIGNATURE_SCHEMA.matches(signature)
@@ -250,13 +255,13 @@ def create_signature(public_key, private_key, data):
     nacl_sig = nacl_key.sign(data)
     signature = nacl_sig.signature
   
-  except NameError:
+  except NameError: # pragma: no cover
     message = 'The PyNaCl library and/or its dependencies unavailable.'
     raise tuf.UnsupportedLibraryError(message)
   
-  except (ValueError, TypeError, nacl.exceptions.CryptoError):
+  except (ValueError, TypeError, nacl.exceptions.CryptoError) as e:
     message = 'An "ed25519" signature could not be created with PyNaCl.'
-    raise tuf.CryptoError(message)
+    raise tuf.CryptoError(message + str(e))
    
   return signature, method
 
@@ -272,14 +277,14 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
     'sig', and 'data' arguments to complete the verification.
 
     >>> public, private = generate_public_and_private()
-    >>> data = 'The quick brown fox jumps over the lazy dog'
+    >>> data = b'The quick brown fox jumps over the lazy dog'
     >>> signature, method = \
         create_signature(public, private, data)
     >>> verify_signature(public, method, signature, data, use_pynacl=False)
     True
     >>> verify_signature(public, method, signature, data, use_pynacl=True)
     True
-    >>> bad_data = 'The sly brown fox jumps over the lazy dog'
+    >>> bad_data = b'The sly brown fox jumps over the lazy dog'
     >>> bad_signature, method = \
         create_signature(public, private, bad_data)
     >>> verify_signature(public, method, bad_signature, data, use_pynacl=False)
@@ -348,10 +353,9 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
       try:
         nacl_verify_key = nacl.signing.VerifyKey(public)
         nacl_message = nacl_verify_key.verify(data, signature) 
-        if nacl_message == data:
-          valid_signature = True
+        valid_signature = True
       
-      except NameError:
+      except NameError: # pragma: no cover
         message = 'The PyNaCl library and/or its dependencies unavailable.'
         raise tuf.UnsupportedLibraryError(message)
       
@@ -366,8 +370,9 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
       
       # The pure Python implementation raises 'Exception' if 'signature' is
       # invalid.
-      except Exception, e:
+      except Exception as e:
         pass
+  
   else:
     message = 'Unsupported ed25519 signing method: '+repr(method)+'.\n'+ \
       'Supported methods: '+repr(_SUPPORTED_ED25519_SIGNING_METHODS)+'.'

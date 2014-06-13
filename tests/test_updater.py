@@ -38,7 +38,13 @@
   less dependent than 2.
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
 from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import os
 import time
@@ -46,9 +52,16 @@ import shutil
 import copy
 import tempfile
 import logging
-import unittest
 import random
 import subprocess
+import sys
+
+# 'unittest2' required for testing under Python < 2.7.
+if sys.version_info >= (2, 7):
+  import unittest
+
+else:
+  import unittest2 as unittest 
 
 import tuf
 import tuf.util
@@ -60,6 +73,7 @@ import tuf.roledb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_updater')
 repo_tool.disable_console_log_messages()
@@ -337,7 +351,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     root_filepath = os.path.join(self.client_metadata_current, 'root.json')
     length, hashes = tuf.util.get_file_details(root_filepath)
     root_fileinfo = tuf.formats.make_fileinfo(length, hashes) 
-    self.assertTrue('root.json' in fileinfo_dict.keys())
+    self.assertTrue('root.json' in fileinfo_dict)
     self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
 
     # Verify that 'self.fileinfo' is incremented if another role is updated.
@@ -554,8 +568,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater._update_metadata('targets',
                                                targets_compressed_fileinfo)
     
-    except tuf.NoWorkingMirrorError, e:
-      for mirror_error in e.mirror_errors.values():
+    except tuf.NoWorkingMirrorError as e:
+      for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, tuf.BadHashError)
     
     # Invalid fileinfo for the compressed version of 'targets.json' 
@@ -572,8 +586,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                                targets_compressed_fileinfo,
                                                'gzip', targets_fileinfo)
     
-    except tuf.NoWorkingMirrorError, e:
-      for mirror_error in e.mirror_errors.values():
+    except tuf.NoWorkingMirrorError as e:
+      for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, tuf.DownloadLengthMismatchError)
 
 
@@ -648,7 +662,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # target files.
     self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
     for target in targets_list:
-      self.assertTrue((target['filepath'], target['fileinfo']) in targets_in_metadata.items())
+      self.assertTrue((target['filepath'], target['fileinfo']) in six.iteritems(targets_in_metadata))
    
 
 
@@ -681,7 +695,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Reference 'self.Repository.metadata['current']['targets']'.  Ensure
     # 'target3' is not already specified.
     targets_metadata = self.repository_updater.metadata['current']['targets']
-    self.assertFalse(target3 in targets_metadata['targets'].keys())
+    self.assertFalse(target3 in targets_metadata['targets'])
 
     # Verify the expected version numbers of the roles to be modified.
     self.assertTrue(self.repository_updater.metadata['current']['targets']\
@@ -700,7 +714,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targets_metadata = self.repository_updater.metadata['current']['targets']
     targets_directory = os.path.join(self.repository_directory, 'targets') 
     target3 = target3[len(targets_directory):]
-    self.assertTrue(target3 in targets_metadata['targets'].keys())
+    self.assertTrue(target3 in targets_metadata['targets'])
 
     # Verify the expected version numbers of the updated roles.
     self.assertTrue(self.repository_updater.metadata['current']['targets']\
@@ -795,7 +809,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # target files.
     self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
     for target in targets_list:
-      self.assertTrue((target['filepath'], target['fileinfo']) in expected_targets.items())
+      self.assertTrue((target['filepath'], target['fileinfo']) in six.iteritems(expected_targets))
 
 
     # Test: Invalid arguments.
@@ -829,7 +843,73 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: invalid target path.    
     self.assertRaises(tuf.UnknownTargetError, self.repository_updater.target,
                       self.random_path())
+    
+    # Test updater.target() backtracking behavior (enabled by default.)
+    targets_directory = os.path.join(self.repository_directory, 'targets')
+    foo_directory = os.path.join(targets_directory, 'foo')
+    os.makedirs(foo_directory)
 
+    foo_package = os.path.join(foo_directory, 'foo1.1.tar.gz')
+    with open(foo_package, 'wb') as file_object:
+      file_object.write(b'new release')
+    
+    # Modify delegations on the remote repository to test backtracking behavior.
+    repository = repo_tool.load_repository(self.repository_directory)
+  
+     
+    repository.targets.delegate('role2', [self.role_keys['targets']['public']],
+                                [], restricted_paths=[foo_directory])
+    
+    repository.targets.delegate('role3', [self.role_keys['targets']['public']],
+                                [foo_package], restricted_paths=[foo_directory])
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.write()
+    
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # updater.target() should find 'foo1.1.tar.gz' by backtracking to
+    # 'targets/role3'.  'targets/role2' allows backtracking.
+    self.repository_updater.refresh()
+    self.repository_updater.target('foo/foo1.1.tar.gz')
+
+
+    # Test when 'targets/role2' does *not* allow backtracking.  If
+    # 'foo/foo1.1.tar.gz' is not provided by the authoritative 'target/role2',
+    # updater.target() should return a 'tuf.UnknownTargetError' exception.
+    repository = repo_tool.load_repository(self.repository_directory)
+    
+    repository.targets.revoke('role2')
+    repository.targets.revoke('role3')
+   
+    # Ensure we delegate in trusted order (i.e., 'role2' has higher priority.)
+    repository.targets.delegate('role2', [self.role_keys['targets']['public']],
+                                [], backtrack=False, restricted_paths=[foo_directory])
+    repository.targets.delegate('role3', [self.role_keys['targets']['public']],
+                                [foo_package], restricted_paths=[foo_directory])
+    
+    repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.write()
+    
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # Verify that 'tuf.UnknownTargetError' is raised by updater.target().
+    self.repository_updater.refresh()
+    self.assertRaises(tuf.UnknownTargetError, self.repository_updater.target,
+                      'foo/foo1.1.tar.gz')
 
 
 
@@ -840,7 +920,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # that will be passed as an argument to 'download_target()'.
     destination_directory = self.make_temp_directory()
     target_filepaths = \
-      self.repository_updater.metadata['current']['targets']['targets'].keys()
+      list(self.repository_updater.metadata['current']['targets']['targets'].keys())
 
 
     # Test: normal case.
@@ -872,14 +952,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # field contains at least one confined target and excludes needed target
     # file.
     mirrors = self.repository_updater.mirrors
-    for mirror_name, mirror_info in mirrors.items():
+    for mirror_name, mirror_info in six.iteritems(mirrors):
       mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
 
     try:
       self.repository_updater.download_target(target_fileinfo,
                                               destination_directory)
     
-    except tuf.NoWorkingMirrorError, exception:
+    except tuf.NoWorkingMirrorError as exception:
       # Ensure that no mirrors were found due to mismatch in confined target
       # directories.  get_list_of_mirrors() returns an empty list in this case,
       # which does not generate specific exception errors.
@@ -1023,6 +1103,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #  in 'destination_directory' remains the same.
     self.repository_updater.remove_obsolete_targets(destination_directory)
     self.assertTrue(os.listdir(destination_directory), 1)    
+ 
+
+
+
+
+  def test_9__get_target_hash(self):
+    # Test normal case.
+    # Test target filepaths with ascii and non-ascii characters.
+    expected_target_hashes = {
+      '/file1.txt': 'e3a3d89eb3b70ce3fbce6017d7b8c12d4abd5635427a0e8a238f53157df85b3d',
+      '/Jalape\xc3\xb1o': '78bfd5c314680545eb48ecad508aceb861f8d6e680f4fe1b791da45c298cda88' 
+    }
+    for filepath, target_hash in six.iteritems(expected_target_hashes):
+      self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.formats.HASH_SCHEMA.matches(target_hash))
+      self.assertEqual(self.repository_updater._get_target_hash(filepath), target_hash)
+   
+    # Test for improperly formatted argument.
+    self.assertRaises(tuf.FormatError, tuf.util.get_target_hash, 8)
 
 
 

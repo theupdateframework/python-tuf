@@ -18,6 +18,14 @@
   TempFile class that generates a file-like object for temporary storage, etc.
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import os
 import sys
 import gzip
@@ -29,6 +37,7 @@ import tuf
 import tuf.hash
 import tuf.conf
 import tuf.formats
+import tuf._vendor.six as six
 
 # The algorithm used by the repository to generate the digests of the
 # target filepaths, which are included in metadata files and may be prepended
@@ -54,8 +63,9 @@ class TempFile(object):
     """__init__ helper."""
     try:
       self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix)
-    except OSError, err:
-      logger.critical('Temp file in '+temp_dir+'failed: '+repr(err))
+    
+    except OSError as err: # pragma: no cover
+      logger.critical('Cannot create a system temporary directory: '+repr(err))
       raise tuf.Error(err)
 
 
@@ -77,19 +87,23 @@ class TempFile(object):
     """
 
     self._compression = None
+    
     # If compression is set then the original file is saved in 'self._orig_file'.
     self._orig_file = None
     temp_dir = tuf.conf.temporary_directory
-    if  temp_dir is not None and isinstance(temp_dir, str):
+    if temp_dir is not None and tuf.formats.PATH_SCHEMA.matches(temp_dir):
       try:
         self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix,
                                                           dir=temp_dir)
-      except OSError, err:
-        logger.error('Temp file in '+temp_dir+' failed: '+repr(err))
+      except OSError as err:
+        logger.error('Temp file in ' + temp_dir + ' failed: '+repr(err))
         logger.error('Will attempt to use system default temp dir.')
         self._default_temporary_directory(prefix)
+    
     else:
       self._default_temporary_directory(prefix)
+
+
 
 
 
@@ -134,6 +148,8 @@ class TempFile(object):
 
 
 
+
+
   def read(self, size=None):
     """
     <Purpose>
@@ -155,11 +171,16 @@ class TempFile(object):
       self.temporary_file.seek(0)
       data = self.temporary_file.read()
       self.temporary_file.seek(0)
+      
       return data
+    
     else:
       if not (isinstance(size, int) and size > 0):
         raise tuf.FormatError
+      
       return self.temporary_file.read(size)
+
+
 
 
 
@@ -216,6 +237,8 @@ class TempFile(object):
 
 
 
+
+
   def seek(self, *args):
     """
     <Purpose>
@@ -236,6 +259,8 @@ class TempFile(object):
     """
 
     self.temporary_file.seek(*args)
+
+
 
 
 
@@ -293,7 +318,7 @@ class TempFile(object):
     try:
       self.temporary_file = gzip.GzipFile(fileobj=self.temporary_file,
                                           mode='rb')
-    except Exception, exception:
+    except Exception as exception:
       raise tuf.DecompressionError(exception)
 
 
@@ -415,8 +440,10 @@ def ensure_parent_dir(filename):
 
   # Split 'filename' into head and tail, check if head exists.
   directory = os.path.split(filename)[0]
+
   if directory and not os.path.exists(directory):
-    os.makedirs(directory, 0700)
+    # mode = 'rwx------'. 448 (decimal) is 700 in octal.
+    os.makedirs(directory, 448)
 
 
 
@@ -508,7 +535,7 @@ def find_delegated_role(roles, delegated_role):
   # The index of a role, if any, with the same name.
   role_index = None
 
-  for index in xrange(len(roles)):
+  for index in six.moves.xrange(len(roles)):
     role = roles[index]
     name = role.get('name')
     
@@ -770,19 +797,10 @@ def get_target_hash(target_filepath):
 
   # Calculate the hash of the filepath to determine which bin to find the 
   # target.  The client currently assumes the repository uses
-  # 'HASH_FUNCTION' to generate hashes.
+  # 'HASH_FUNCTION' to generate hashes and 'utf-8'.
   digest_object = tuf.hash.digest(HASH_FUNCTION)
-
-  try:
-    digest_object.update(target_filepath)
-  
-  except UnicodeEncodeError:
-    # Sometimes, there are Unicode characters in target paths. We assume a
-    # UTF-8 encoding and try to hash that.
-    digest_object = tuf.hash.digest(HASH_FUNCTION)
-    encoded_target_filepath = target_filepath.encode('utf-8')
-    digest_object.update(encoded_target_filepath)
-
+  encoded_target_filepath = target_filepath.encode('utf-8')
+  digest_object.update(encoded_target_filepath)
   target_filepath_hash = digest_object.hexdigest() 
 
   return target_filepath_hash
@@ -899,7 +917,7 @@ def load_json_file(filepath):
   # The file is mostly likely gzipped.
   if filepath.endswith('.gz'):
     logger.debug('gzip.open('+str(filepath)+')')
-    fileobject = gzip.open(filepath)
+    fileobject = six.StringIO(gzip.open(filepath).read().decode('utf-8'))
   
   else:
     logger.debug('open('+str(filepath)+')')
@@ -908,11 +926,12 @@ def load_json_file(filepath):
   try:
     deserialized_object = json.load(fileobject)
   
-  except ValueError, TypeError:
+  except (ValueError, TypeError) as e:
     message = 'Cannot deserialize to a Python object: '+repr(filepath)
     raise tuf.Error(message)
   
   else:
+    fileobject.close() 
     return deserialized_object
   
   finally:

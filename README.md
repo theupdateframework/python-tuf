@@ -118,3 +118,11 @@ TUF has four major classes of users: clients, for whom TUF is largely transparen
 * [Low-level Integration](tuf/client/README.md)
 
 * [High-level Integration](tuf/interposition/README.md)
+
+## Acknowledgements
+
+This material is based upon work supported by the National Science Foundation
+under Grant No. CNS-1345049 and CNS-0959138. Any opinions, findings, and
+conclusions or recommendations expressed in this material are those of the
+author(s) and do not necessarily reflect the views of the National Science
+Foundation.

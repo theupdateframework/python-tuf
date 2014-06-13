@@ -1,9 +1,11 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_pycrypto_keys.py
 
 <Author> 
-  Vladimir Diaz 
+  Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
 <Started>
   October 10, 2013. 
@@ -14,6 +16,14 @@
 <Purpose>
   Test cases for test_pycrypto_keys.py.
 """
+
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import unittest
 import logging
@@ -56,7 +66,7 @@ class TestPycrypto_keys(unittest.TestCase):
 
   def test_create_rsa_signature(self):
     global private_rsa
-    data = 'The quick brown fox jumps over the lazy dog'
+    data = 'The quick brown fox jumps over the lazy dog'.encode('utf-8')
     signature, method = pycrypto.create_rsa_signature(private_rsa, data)
 
     # Verify format of returned values.
@@ -65,9 +75,12 @@ class TestPycrypto_keys(unittest.TestCase):
                      FORMAT_ERROR_MSG)
     self.assertEqual('RSASSA-PSS', method)
 
-    # Check for improperly formatted argument.
+    # Check for improperly formatted arguments.
     self.assertRaises(tuf.FormatError,
                       pycrypto.create_rsa_signature, 123, data)
+    
+    self.assertRaises(TypeError,
+                      pycrypto.create_rsa_signature, '', data)
    
     # Check for invalid 'data'.
     self.assertRaises(tuf.CryptoError,
@@ -77,7 +90,7 @@ class TestPycrypto_keys(unittest.TestCase):
   def test_verify_rsa_signature(self):
     global public_rsa
     global private_rsa
-    data = 'The quick brown fox jumps over the lazy dog'
+    data = 'The quick brown fox jumps over the lazy dog'.encode('utf-8')
     signature, method = pycrypto.create_rsa_signature(private_rsa, data)
 
     valid_signature = pycrypto.verify_rsa_signature(signature, method, public_rsa,
@@ -94,19 +107,23 @@ class TestPycrypto_keys(unittest.TestCase):
     self.assertRaises(tuf.FormatError, pycrypto.verify_rsa_signature, 123, method,
                                        public_rsa, data)
     
+    self.assertRaises(tuf.UnknownMethodError, pycrypto.verify_rsa_signature,
+                                                      signature,
+                                                      'invalid_method',
+                                                      public_rsa, data)
+    
     # Check for invalid signature and data.
     self.assertRaises(tuf.CryptoError, pycrypto.verify_rsa_signature, signature,
                                        method, public_rsa, 123)
     
     self.assertEqual(False, pycrypto.verify_rsa_signature(signature, method,
-                            public_rsa, 'mismatched data'))
+                            public_rsa, b'mismatched data'))
 
     mismatched_signature, method = pycrypto.create_rsa_signature(private_rsa,
-                                                             'mismatched data')
+                                                             b'mismatched data')
     
     self.assertEqual(False, pycrypto.verify_rsa_signature(mismatched_signature,
                             method, public_rsa, data))
-
 
 
   def test_create_rsa_encrypted_pem(self):
@@ -134,8 +151,13 @@ class TestPycrypto_keys(unittest.TestCase):
                       pycrypto.create_rsa_encrypted_pem, 1, passphrase)
     self.assertRaises(tuf.FormatError,
                       pycrypto.create_rsa_encrypted_pem, private_rsa, ['pw'])
-  
-  
+ 
+    self.assertRaises(tuf.CryptoError, pycrypto.create_rsa_encrypted_pem,
+                                       'abc', passphrase)
+    self.assertRaises(TypeError, pycrypto.create_rsa_encrypted_pem, '', passphrase)
+ 
+
+
   def test_create_rsa_public_and_private_from_encrypted_pem(self):
     global private_rsa
     passphrase = 'pw'
@@ -190,7 +212,83 @@ class TestPycrypto_keys(unittest.TestCase):
     self.assertRaises(tuf.CryptoError,
                       pycrypto.create_rsa_public_and_private_from_encrypted_pem,
                       'invalid_pem', passphrase)
- 
+
+
+
+  def test_encrypt_key(self):
+    # Test for valid arguments.
+    global public_rsa
+    global private_rsa
+    passphrase = 'pw'
+    
+    rsa_key = {'keytype': 'rsa',
+    'keyid': 'd62247f817883f593cf6c66a5a55292488d457bcf638ae03207dbbba9dbe457d',
+    'keyval': {'public': public_rsa, 'private': private_rsa}}
+
+    encrypted_rsa_key = tuf.pycrypto_keys.encrypt_key(rsa_key, passphrase)
+
+    # Test for invalid arguments.
+    rsa_key['keyval']['private'] = ''
+    self.assertRaises(tuf.FormatError, tuf.pycrypto_keys.encrypt_key, rsa_key,
+                                       'passphrase')
+
+
+  def test_decrypt_key(self):
+    # Test for valid arguments.
+    global public_rsa
+    global private_rsa
+    passphrase = 'pw'
+    
+    rsa_key = {'keytype': 'rsa',
+    'keyid': 'd62247f817883f593cf6c66a5a55292488d457bcf638ae03207dbbba9dbe457d',
+    'keyval': {'public': public_rsa, 'private': private_rsa}}
+
+    encrypted_rsa_key = tuf.pycrypto_keys.encrypt_key(rsa_key, passphrase).encode('utf-8')
+    
+    decrypted_rsa_key = tuf.pycrypto_keys.decrypt_key(encrypted_rsa_key, passphrase)
+
+
+    # Test for invalid arguments.
+    self.assertRaises(tuf.CryptoError, tuf.pycrypto_keys.decrypt_key, b'bad',
+                                       passphrase)
+
+    # Test for invalid encrypted content (i.e., invalid hmac and ciphertext.)
+    encryption_delimiter = tuf.pycrypto_keys._ENCRYPTION_DELIMITER 
+    salt, iterations, hmac, iv, ciphertext = \
+      encrypted_rsa_key.decode('utf-8').split(encryption_delimiter)
+   
+    # Set an invalid hmac.  The decryption routine sould raise a tuf.CryptoError
+    # exception because 'hmac' does not match the hmac calculated by the
+    # decryption routine.
+    bad_hmac = '12345abcd'
+    invalid_encrypted_rsa_key = \
+      salt + encryption_delimiter + iterations + encryption_delimiter + \
+      bad_hmac + encryption_delimiter + iv + encryption_delimiter + ciphertext
+      
+    self.assertRaises(tuf.CryptoError, tuf.pycrypto_keys.decrypt_key,
+                      invalid_encrypted_rsa_key.encode('utf-8'), passphrase)
+
+    # Test for invalid 'ciphertext'
+    bad_ciphertext = '12345abcde'
+    invalid_encrypted_rsa_key = \
+      salt + encryption_delimiter + iterations + encryption_delimiter + \
+      hmac + encryption_delimiter + iv + encryption_delimiter + bad_ciphertext
+    
+    self.assertRaises(tuf.CryptoError, tuf.pycrypto_keys.decrypt_key,
+                      invalid_encrypted_rsa_key.encode('utf-8'), passphrase)
+
+
+
+  def test__decrypt_key(self):
+    # Test for invalid arguments.
+    salt, iterations, derived_key = tuf.pycrypto_keys._generate_derived_key('pw')
+    derived_key_information = {'salt': salt, 'derived_key': derived_key,
+                               'iterations': iterations}
+    
+    self.assertRaises(tuf.CryptoError, tuf.pycrypto_keys._encrypt,
+                          8, derived_key_information)
+
+
 
 
 # Run the unit tests.

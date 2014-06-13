@@ -17,6 +17,14 @@
   Specifically, Modified_TestCase is a derived class from unittest.TestCase.
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import os
 import sys
 import shutil
@@ -108,7 +116,7 @@ class Modified_TestCase(unittest.TestCase):
   def make_temp_data_file(self, suffix='', directory=None, data = 'junk data'):
     """Returns an absolute path of a temp file containing data."""
     temp_file_path = self.make_temp_file(suffix=suffix, directory=directory)
-    temp_file = open(temp_file_path, 'wb')
+    temp_file = open(temp_file_path, 'wt')
     temp_file.write(data)
     temp_file.close()
     return temp_file_path

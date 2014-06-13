@@ -18,25 +18,33 @@
   interval 'DELAY').  The server is used in 'test_slow_retrieval_attack.py'.
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import os
 import sys
 import time
 import random
-from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 
+import tuf._vendor.six as six
 
 
 # Modify the HTTPServer class to pass the 'test_mode' argument to
 # do_GET() function.
-class HTTPServer_Test(HTTPServer):
+class HTTPServer_Test(six.moves.BaseHTTPServer.HTTPServer):
   def __init__(self, server_address, Handler, test_mode):
-    HTTPServer.__init__(self, server_address, Handler)
+    six.moves.BaseHTTPServer.HTTPServer.__init__(self, server_address, Handler)
     self.test_mode = test_mode
 
 
 
 # HTTP request handler.
-class Handler(BaseHTTPRequestHandler):
+class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
 
   # Overwrite do_GET.
   def do_GET(self):
@@ -44,7 +52,7 @@ class Handler(BaseHTTPRequestHandler):
     try:
       filepath = os.path.join(current_dir, self.path.lstrip('/'))
       data = None
-      with open(filepath, 'rb') as fileobj:
+      with open(filepath, 'r') as fileobj:
         data = fileobj.read()
       
       self.send_response(200)
@@ -68,12 +76,12 @@ class Handler(BaseHTTPRequestHandler):
         # 'tuf.conf.SLOW_START_GRACE_PERIOD' seconds before triggering a
         # potential slow retrieval error.
         for i in range(len(data)):
-          self.wfile.write(data[i])
+          self.wfile.write(data[i].encode('utf-8'))
           time.sleep(DELAY)
         
         return
 
-    except IOError, e:
+    except IOError as e:
       self.send_error(404, 'File Not Found!')
 
 

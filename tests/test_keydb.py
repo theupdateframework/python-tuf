@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   test_keydb.py
@@ -14,6 +16,14 @@
 <Purpose>
   Unit test for 'keydb.py'.
 """
+
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import unittest
 import logging
@@ -150,6 +160,9 @@ class TestKeydb(unittest.TestCase):
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid)
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid2)
 
+    # Test for 'keyid' not in keydb.
+    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, keyid)
+    
     # Test condition for unknown key argument.
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, '1')
 
@@ -169,7 +182,10 @@ class TestKeydb(unittest.TestCase):
     keyid = KEYS[0]['keyid']
     rsakey2 = KEYS[1]
     keyid2 = KEYS[1]['keyid']
-    keydict = {keyid: rsakey, keyid2: rsakey2}
+    keydict = {keyid: rsakey, keyid2: rsakey2, keyid: rsakey}
+
+    # Add a duplicate 'keyid' to log/trigger a 'tuf.KeyAlreadyExistsError'
+    # block (loading continues). 
     roledict = {'Root': {'keyids': [keyid], 'threshold': 1},
                 'Targets': {'keyids': [keyid2], 'threshold': 1}}
     version = 8
@@ -182,6 +198,7 @@ class TestKeydb(unittest.TestCase):
                                                        keydict, roledict,
                                                        consistent_snapshot)
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
+    
     tuf.keydb.create_keydb_from_root_metadata(root_metadata)
     
     # Ensure 'keyid' and 'keyid2' were added to the keydb database.

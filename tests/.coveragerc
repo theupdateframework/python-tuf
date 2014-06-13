@@ -5,11 +5,15 @@ branch = True
 [report]
 exclude_lines =
     pragma: no cover
-    def _check_crypto_libraries
+    def check_crypto_libraries
+    def _get_password
+    def _prompt
     def __str__ 
     if __name__ == .__main__.:
 
 omit =
     */tuf/interposition/*
     */tuf/_vendor/*
-    */tuf/compatibility/*
+    
+    # Command-line tool and integration example that calls core TUF.
+    */tuf/client/basic_client.py

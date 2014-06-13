@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   formats.py
@@ -60,6 +62,14 @@
   signable_object = make_signable(unsigned_object)
 """
 
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
 import binascii
 import calendar
 import re
@@ -69,7 +79,7 @@ import time
 
 import tuf
 import tuf.schema as SCHEMA
-
+import tuf._vendor.six as six
 
 # Note that in the schema definitions below, the 'SCHEMA.Object' types allow
 # additional keys which are not defined. Thus, any additions to them will be
@@ -146,7 +156,7 @@ HASHALGORITHMS_SCHEMA = SCHEMA.ListOf(SCHEMA.OneOf(
 
 # The contents of an encrypted TUF key.  Encrypted TUF keys are saved to files
 # in this format.
-ENCRYPTEDKEY_SCHEMA = SCHEMA.AnyString()
+ENCRYPTEDKEY_SCHEMA = SCHEMA.AnyBytes()
 
 # A value that is either True or False, on or off, etc.
 BOOLEAN_SCHEMA = SCHEMA.Boolean()
@@ -169,7 +179,7 @@ RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
 NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
 # A PyCrypto signature.
-PYCRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyString()
+PYCRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyBytes()
 
 # An RSA key in PEM format.
 PEMRSA_SCHEMA = SCHEMA.AnyString()
@@ -219,13 +229,13 @@ RSAKEY_SCHEMA = SCHEMA.Object(
   keyval = KEYVAL_SCHEMA)
 
 # An ED25519 raw public key, which must be 32 bytes.
-ED25519PUBLIC_SCHEMA = SCHEMA.LengthString(32)
+ED25519PUBLIC_SCHEMA = SCHEMA.LengthBytes(32)
 
 # An ED25519 raw seed key, which must be 32 bytes.  
-ED25519SEED_SCHEMA = SCHEMA.LengthString(32)
+ED25519SEED_SCHEMA = SCHEMA.LengthBytes(32)
 
 # An ED25519 raw signature, which must be 64 bytes.  
-ED25519SIGNATURE_SCHEMA = SCHEMA.LengthString(64)
+ED25519SIGNATURE_SCHEMA = SCHEMA.LengthBytes(64)
 
 # Required installation libraries expected by the repository tools and other
 # cryptography modules.
@@ -359,6 +369,7 @@ ROLE_SCHEMA = SCHEMA.Object(
   name = SCHEMA.Optional(ROLENAME_SCHEMA),
   keyids = KEYIDS_SCHEMA,
   threshold = THRESHOLD_SCHEMA,
+  backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
 
@@ -494,7 +505,8 @@ class MetaFile(object):
 
   def __eq__(self, other):
     return isinstance(other, MetaFile) and self.info == other.info
-
+  
+  __hash__ = None
 
   def __ne__(self, other):
     return not self.__eq__(other)
@@ -506,10 +518,12 @@ class MetaFile(object):
       referred to directly without the info dict. The info dict is just
       to be able to do the __eq__ comparison generically.
     """
-    
+   
     if name in self.info:
       return self.info[name]
-    raise AttributeError, name
+    
+    else:
+      raise AttributeError(name)
 
 
 
@@ -735,7 +749,7 @@ def datetime_to_unix_timestamp(datetime_object):
     timestamp.  For example, Python's time.time() returns a Unix timestamp, and
     includes the number of microseconds.  'datetime_object' is converted to UTC.
 
-    >>> datetime_object = datetime.datetime(1985, 10, 26, 01, 22)
+    >>> datetime_object = datetime.datetime(1985, 10, 26, 1, 22)
     >>> timestamp = datetime_to_unix_timestamp(datetime_object)
     >>> timestamp 
     499137720
@@ -820,7 +834,7 @@ def format_base64(data):
 
   <Arguments>
     data:
-      A string or buffer of data to convert.
+      Binary or buffer of data to convert.
 
   <Exceptions>
     tuf.FormatError, if the base64 encoding fails or the argument
@@ -834,9 +848,9 @@ def format_base64(data):
   """
   
   try:
-    return binascii.b2a_base64(data).rstrip('=\n ')
+    return binascii.b2a_base64(data).decode('utf-8').rstrip('=\n ')
   
-  except (TypeError, binascii.Error), e:
+  except (TypeError, binascii.Error) as e:
     raise tuf.FormatError('Invalid base64 encoding: '+str(e))
 
 
@@ -864,7 +878,7 @@ def parse_base64(base64_string):
     'base64_string'.
   """
 
-  if not isinstance(base64_string, basestring):
+  if not isinstance(base64_string, six.string_types):
     message = 'Invalid argument: '+repr(base64_string)
     raise tuf.FormatError(message)
 
@@ -874,9 +888,9 @@ def parse_base64(base64_string):
     base64_string = base64_string + padding
 
   try:
-    return binascii.a2b_base64(base64_string)
+    return binascii.a2b_base64(base64_string.encode('utf-8'))
   
-  except (TypeError, binascii.Error), e:
+  except (TypeError, binascii.Error) as e:
     raise tuf.FormatError('Invalid base64 encoding: '+str(e))
 
 
@@ -1194,10 +1208,8 @@ def _canonical_string_encoder(string):
   """
 
   string = '"%s"' % re.sub(r'(["\\])', r'\\\1', string)
-  if isinstance(string, unicode):
-    return string.encode('utf-8')
-  else:
-    return string
+ 
+  return string
 
 
 
@@ -1207,7 +1219,7 @@ def _encode_canonical(object, output_function):
   # Helper for encode_canonical.  Older versions of json.encoder don't
   # even let us replace the separators.
 
-  if isinstance(object, basestring):
+  if isinstance(object, six.string_types):
     output_function(_canonical_string_encoder(object))
   elif object is True:
     output_function("true")
@@ -1215,7 +1227,7 @@ def _encode_canonical(object, output_function):
     output_function("false")
   elif object is None:
     output_function("null")
-  elif isinstance(object, (int, long)):
+  elif isinstance(object, six.integer_types):
     output_function(str(object))
   elif isinstance(object, (tuple, list)):
     output_function("[")
@@ -1228,8 +1240,7 @@ def _encode_canonical(object, output_function):
   elif isinstance(object, dict):
     output_function("{")
     if len(object):
-      items = object.items()
-      items.sort()
+      items = sorted(six.iteritems(object))
       for key, value in items[:-1]:
         output_function(_canonical_string_encoder(key))
         output_function(":")

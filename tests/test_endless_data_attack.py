@@ -28,23 +28,30 @@
   There is no difference between 'updates' and 'target' files.
 """
 
-# Help with Python 3 compatability, where the print statement is a function, an
+# Help with Python 3 compatibility, where the print statement is a function, an
 # implicit relative import is invalid, and the '/' operator performs true
 # division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import unicode_literals
 
 import os
-import urllib
 import tempfile
 import random
 import time
 import shutil
 import json
 import subprocess
-import unittest
 import logging
+import sys
+
+# 'unittest2' required for testing under Python < 2.7.
+if sys.version_info >= (2, 7):
+  import unittest
+
+else:
+  import unittest2 as unittest 
 
 import tuf
 import tuf.formats
@@ -52,6 +59,7 @@ import tuf.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_endless_data_attack')
 
@@ -84,7 +92,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
     # NOTE: Following error is raised if a delay is not applied:
     # <urlopen error [Errno 111] Connection refused>
-    time.sleep(.2)
+    time.sleep(.8)
 
 
 
@@ -178,7 +186,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
-    urllib.urlretrieve(url_file, client_target_path)
+    six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     self.assertTrue(os.path.exists(client_target_path))
     length, hashes = tuf.util.get_file_details(client_target_path)
@@ -187,7 +195,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
   
     # Test: Download a target file that has been modified by an attacker with
     # extra data.
-    with open(target_path, 'r+b') as file_object:
+    with open(target_path, 'r+t') as file_object:
       original_content = file_object.read() 
       file_object.write(original_content+('append large amount of data' * 100000))
     large_length, hashes = tuf.util.get_file_details(target_path)
@@ -196,7 +204,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     # Is the modified file actually larger? 
     self.assertTrue(large_length > length)
     
-    urllib.urlretrieve(url_file, client_target_path)
+    six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     length, hashes = tuf.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
@@ -231,7 +239,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
     # Modify 'file1.txt' and confirm that the TUF client only downloads up to
     # the expected file length.
-    with open(target_path, 'r+b') as file_object:
+    with open(target_path, 'r+t') as file_object:
       original_content = file_object.read()
       file_object.write(original_content+('append large amount of data' * 10000))
    
@@ -255,21 +263,24 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
    
     original_length, hashes = tuf.util.get_file_details(timestamp_path)
     
-    with open(timestamp_path, 'r+b') as file_object:
-      original_content = file_object.read()
-      file_object.write(original_content+('append large amount of data' * 10000))
+    with open(timestamp_path, 'r+') as file_object:
+      timestamp_content = tuf.util.load_json_file(timestamp_path) 
+      large_data = 'LargeTimestamp' * 10000
+      timestamp_content['signed']['_type'] = large_data 
+      json.dump(timestamp_content, file_object, indent=1, sort_keys=True)
+
     
     modified_length, hashes = tuf.util.get_file_details(timestamp_path)
     self.assertTrue(modified_length > original_length)
- 
+
     # Does the TUF client download the upper limit of an unsafely fetched
     # 'timestamp.json'?  'timestamp.json' must not be greater than
     # 'tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH'.
     try:
       self.repository_updater.refresh()
     
-    except tuf.NoWorkingMirrorError, exception:
-      for mirror_url, mirror_error in exception.mirror_errors.iteritems():
+    except tuf.NoWorkingMirrorError as exception:
+      for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         self.assertTrue(isinstance(mirror_error, tuf.InvalidMetadataJSONError))
     
     else:
