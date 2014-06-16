@@ -839,7 +839,7 @@ def format_base64(data):
     return binascii.b2a_base64(data).decode('utf-8').rstrip('=\n ')
   
   except (TypeError, binascii.Error) as e:
-    raise tuf.FormatError('Invalid base64 encoding: '+str(e))
+    raise tuf.FormatError('Invalid base64 encoding: ' + str(e))
 
 
 
@@ -879,7 +879,7 @@ def parse_base64(base64_string):
     return binascii.a2b_base64(base64_string.encode('utf-8'))
   
   except (TypeError, binascii.Error) as e:
-    raise tuf.FormatError('Invalid base64 encoding: '+str(e))
+    raise tuf.FormatError('Invalid base64 encoding: ' + str(e))
 
 
 
@@ -1077,7 +1077,8 @@ def get_role_class(expected_rolename):
     role_class = ROLE_CLASSES_BY_TYPE[expected_rolename]
   
   except KeyError:
-    raise tuf.FormatError(repr(expected_rolename)+' not supported.')
+    raise tuf.FormatError(repr(expected_rolename) + ' not supported.')
+  
   else:
     return role_class
 
@@ -1164,7 +1165,7 @@ def check_signable_object_format(object):
     schema = SCHEMAS_BY_TYPE[role_type]
   
   except KeyError:
-    raise tuf.FormatError('Unrecognized type '+repr(role_type))
+    raise tuf.FormatError('Unrecognized type ' + repr(role_type))
   
   # 'tuf.FormatError' raised if 'object' does not have a properly
   # formatted role schema.
@@ -1307,7 +1308,7 @@ def encode_canonical(object, output_function=None):
     _encode_canonical(object, output_function)
   
   except (TypeError, tuf.FormatError) as  e:
-    message = 'Could not encode '+repr(object)+': '+str(e)
+    message = 'Could not encode ' + repr(object) + ': ' + str(e)
     raise tuf.FormatError(message)
 
   # Return the encoded 'object' as a string.

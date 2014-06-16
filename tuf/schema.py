@@ -267,17 +267,17 @@ class LengthString(Schema):
     if isinstance(length, bool) or not isinstance(length, six.integer_types):
       # We need to check for bool as a special case, since bool
       # is for historical reasons a subtype of int.
-      raise tuf.FormatError('Got '+repr(length)+' instead of an integer.')
+      raise tuf.FormatError('Got ' + repr(length) + ' instead of an integer.')
     
     self._string_length = length 
 
 
   def check_match(self, object):
     if not isinstance(object, six.string_types):
-      raise tuf.FormatError('Expected a string but got '+repr(object))
+      raise tuf.FormatError('Expected a string but got ' + repr(object))
 
     if len(object) != self._string_length:
-      raise tuf.FormatError('Expected a string of length '+
+      raise tuf.FormatError('Expected a string of length ' + \
                             repr(self._string_length))
 
 
@@ -309,17 +309,17 @@ class LengthBytes(Schema):
     if isinstance(length, bool) or not isinstance(length, six.integer_types):
       # We need to check for bool as a special case, since bool
       # is for historical reasons a subtype of int.
-      raise tuf.FormatError('Got '+repr(length)+' instead of an integer.')
+      raise tuf.FormatError('Got ' + repr(length) + ' instead of an integer.')
     
     self._bytes_length = length 
 
 
   def check_match(self, object):
     if not isinstance(object, six.binary_type):
-      raise tuf.FormatError('Expected a byte but got '+repr(object))
+      raise tuf.FormatError('Expected a byte but got ' + repr(object))
 
     if len(object) != self._bytes_length:
-      raise tuf.FormatError('Expected a byte of length '+
+      raise tuf.FormatError('Expected a byte of length ' + \
                             repr(self._bytes_length))
 
 
@@ -358,10 +358,10 @@ class OneOf(Schema):
   def __init__(self, alternatives):
     # Ensure each item of the list contains the expected object type.
     if not isinstance(alternatives, list):
-      raise tuf.FormatError('Expected a list but got '+repr(alternatives))
+      raise tuf.FormatError('Expected a list but got ' + repr(alternatives))
     for alternative in alternatives:
       if not isinstance(alternative, Schema):
-        raise tuf.FormatError('List contains an invalid item '+repr(alternative))
+        raise tuf.FormatError('List contains an invalid item ' + repr(alternative))
     
     self._alternatives = alternatives
 
@@ -752,7 +752,7 @@ class Object(Schema):
       except KeyError:
         # If not an Optional schema, raise an exception.
         if not isinstance(schema, Optional):
-          message = 'Missing key '+repr(key)+' in '+repr(self._object_name)
+          message = 'Missing key ' + repr(key) + ' in ' + repr(self._object_name)
           raise tuf.FormatError(message)
       # Check that 'object's schema matches Object()'s schema for this
       # particular 'key'.
@@ -760,7 +760,7 @@ class Object(Schema):
         try:
           schema.check_match(item)
         except tuf.FormatError as e:
-          raise tuf.FormatError(str(e)+' in '+self._object_name+'.'+key)
+          raise tuf.FormatError(str(e) + ' in ' + self._object_name + '.' + key)
 
 
 
@@ -840,11 +840,11 @@ class Struct(Schema):
     
     # Ensure each item of the list contains the expected object type.
     if not isinstance(sub_schemas, (list, tuple)):
-      message = 'Expected Schema but got '+repr(sub_schemas)
+      message = 'Expected Schema but got ' + repr(sub_schemas)
       raise tuf.FormatError(message)
     for schema in sub_schemas:
       if not isinstance(schema, Schema):
-        raise tuf.FormatError('Expected Schema but got '+repr(schema))
+        raise tuf.FormatError('Expected Schema but got ' + repr(schema))
     
     self._sub_schemas = sub_schemas + optional_schemas
     self._min = len(sub_schemas)
@@ -854,11 +854,11 @@ class Struct(Schema):
 
   def check_match(self, object):
     if not isinstance(object, (list, tuple)):
-      raise tuf.FormatError('Expected '+repr(self._struct_name)+'; got '+repr(object))
+      raise tuf.FormatError('Expected ' + repr(self._struct_name) + '; got ' + repr(object))
     elif len(object) < self._min:
-      raise tuf.FormatError('Too few fields in '+self._struct_name)
+      raise tuf.FormatError('Too few fields in ' + self._struct_name)
     elif len(object) > len(self._sub_schemas) and not self._allow_more:
-      raise tuf.FormatError('Too many fields in '+self._struct_name)
+      raise tuf.FormatError('Too many fields in ' + self._struct_name)
     
     # Iterate through the items of 'object', checking against each schema
     # in the list of schemas allowed (i.e., the sub-schemas and also
@@ -916,7 +916,7 @@ class RegularExpression(Schema):
 
     if not isinstance(pattern, six.string_types):
       if pattern is not None:
-        raise tuf.FormatError(repr(pattern)+' is not a string.')
+        raise tuf.FormatError(repr(pattern) + ' is not a string.')
         
     if re_object is None:
       if pattern is None:
@@ -929,7 +929,7 @@ class RegularExpression(Schema):
         
     if re_name is None:
       if pattern is not None:
-        re_name = 'pattern /'+pattern+'/'
+        re_name = 'pattern /' + pattern + '/'
       else:
         re_name = 'pattern'
     self._re_name = re_name
@@ -937,7 +937,7 @@ class RegularExpression(Schema):
 
   def check_match(self, object):
     if not isinstance(object, six.string_types) or not self._re_object.match(object):
-      raise tuf.FormatError(repr(object)+' did not match '+repr(self._re_name))
+      raise tuf.FormatError(repr(object) + ' did not match ' + repr(self._re_name))
 
 
 
