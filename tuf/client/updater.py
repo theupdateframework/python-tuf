@@ -2448,16 +2448,17 @@ class Updater(object):
       # 'role_name' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
-      raise tuf.FormatError(repr(child_role_name)+' has neither ' \
+      raise tuf.FormatError(repr(child_role_name) + ' has neither ' \
                                 '"paths" nor "path_hash_prefixes".')
 
     if child_role_is_relevant:
-      logger.debug('Child role '+repr(child_role_name)+' has target '+
+      logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
                    repr(target_filepath))
       return child_role_name
+    
     else:
-      logger.debug('Child role '+repr(child_role_name)+
-                   ' does not have target '+repr(target_filepath))
+      logger.debug('Child role ' + repr(child_role_name) + \
+                   ' does not have target ' + repr(target_filepath))
       return None
 
 
@@ -2495,20 +2496,11 @@ class Updater(object):
     """
 
     # Calculate the hash of the filepath to determine which bin to find the 
-    # target.  The client currently assumes the repository uses
-    # 'hash_function' to generate hashes.
-
+    # target.  The client currently assumes the repository (i.e., repository
+    # tool) uses 'hash_function' to generate hashes and UTF-8.
     digest_object = tuf.hash.digest(hash_function)
-
-    try:
-      digest_object.update(target_filepath)
-    except UnicodeEncodeError:
-      # Sometimes, there are Unicode characters in target paths. We assume a
-      # UTF-8 encoding and try to hash that.
-      digest_object = tuf.hash.digest(hash_function)
-      encoded_target_filepath = target_filepath.encode('utf-8')
-      digest_object.update(encoded_target_filepath)
-
+    encoded_target_filepath = target_filepath.encode('utf-8')
+    digest_object.update(encoded_target_filepath)
     target_filepath_hash = digest_object.hexdigest() 
 
     return target_filepath_hash
@@ -2554,7 +2546,7 @@ class Updater(object):
           for target in self.metadata['previous'][role]['targets']:
             if target not in self.metadata['current'][role]['targets']:
               # 'target' is only in 'previous', so remove it.
-              logger.warning('Removing obsolete file: '+repr(target)+'.')
+              logger.warning('Removing obsolete file: ' + repr(target) + '.')
               # Remove the file if it hasn't been removed already.
               destination = os.path.join(destination_directory, target) 
               try:
@@ -2563,7 +2555,7 @@ class Updater(object):
               except OSError as e:
                 # If 'filename' already removed, just log it.
                 if e.errno == errno.ENOENT:
-                  logger.info('File '+repr(destination)+' was already removed.')
+                  logger.info('File ' + repr(destination) + ' was already removed.')
                 
                 else:
                   logger.error(str(e))
@@ -2722,6 +2714,6 @@ class Updater(object):
           raise
     
     else:
-      logger.warning(str(target_dirpath)+' does not exist.')
+      logger.warning(repr(target_dirpath) + ' does not exist.')
 
     target_file_object.move(destination)

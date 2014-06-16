@@ -461,8 +461,9 @@ def _get_content_length(connection):
     assert reported_length > -1
   
   except:
-    logger.exception('Could not get content length about '+str(connection)+
-                     ' from server!')
+    message = \
+      'Could not get content length about ' + str(connection) + ' from server.'
+    logger.exception(message)
     reported_length = None
   
   finally:

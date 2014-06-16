@@ -170,13 +170,28 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     self.assertRaises(six.moves.urllib.error.HTTPError,
                       download_file,
-                      'http://localhost:'+str(self.PORT)+'/'+self.random_string(), 
+                      'http://localhost:' + str(self.PORT) + '/' + self.random_string(), 
                       self.target_data_length)
 
     self.assertRaises(six.moves.urllib.error.URLError,
                       download_file,
-                      'http://localhost:'+str(self.PORT+1)+'/'+self.random_string(), 
+                      'http://localhost:' + str(self.PORT+1) + '/' + self.random_string(), 
                       self.target_data_length)
+ 
+
+
+  def test__get_opener(self):
+    # Test normal case.
+    # A simple https server should be used to test the rest of the optional
+    # ssl-related functions of 'tuf.download.py'.
+    fake_cacert = self.make_temp_data_file()
+    
+    with open(fake_cacert, 'wt') as file_object:
+      file_object.write('fake cacert')
+    
+    tuf.conf.ssl_certificates = fake_cacert
+    tuf.download._get_opener('https')
+    
 
 
 # Run unit test.
