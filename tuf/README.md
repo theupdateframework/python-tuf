@@ -2,7 +2,7 @@
 
 ## Table of Contents ##
 - [Repository Tool Diagram](#repository-tool-diagram)
-- [Create TUF Repository](#create-tuf-repository)
+- [Creating a TUF Repository](#create-tuf-repository)
   - [Purpose](#purpose)
   - [Keys](#keys)
     - [Create RSA Keys](#create-rsa-keys)
