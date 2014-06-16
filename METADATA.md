@@ -17,7 +17,7 @@ Required:
 
 Optional:
 
-* Mirrors 
+* Mirrors (unimplemented)
 
 There may also be any number of delegated target roles.
 
