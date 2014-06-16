@@ -25,11 +25,11 @@
 
 import shutil
 import datetime
+import optparse
 
 from tuf.repository_tool import *
 import tuf.util
 
-import optparse
 
 parser = optparse.OptionParser()
 parser.add_option("-k","--keys", action='store_true',  dest="should_generate_keys",
