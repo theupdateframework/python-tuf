@@ -27,7 +27,7 @@
 ![Repo Tools Diagram 1](../docs/images/repository_tool-diagram.png)
 
 
-## Create TUF Repository ##
+## Creating a TUF Repository ##
 
 ### Purpose ###
 
