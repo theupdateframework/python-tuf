@@ -37,7 +37,7 @@ import time
 import unittest
 
 import tuf
-import tuf.conf as conf
+import tuf.conf
 import tuf.download as download
 import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
@@ -62,7 +62,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.target_data = self.target_fileobj.read()
     self.target_data_length = len(self.target_data)
 
-    # Launch a SimpleHTTPServer (servers files in the current dir).
+    # Launch a SimpleHTTPServer (serves files in the current dir).
     self.PORT = random.randint(30000, 45000)
     command = ['python', 'simple_server.py', str(self.PORT)]
     self.server_proc = subprocess.Popen(command, stderr=subprocess.PIPE)
@@ -118,7 +118,6 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     # STRICT_REQUIRED_LENGTH, which is True by default, mandates that we must
     # download exactly what is required.
     self.assertRaises(tuf.DownloadLengthMismatchError, download.safe_download,
-    #self.assertRaises(tuf.SlowRetrievalError, download.safe_download,
                       self.url, self.target_data_length + 1)
 
     # NOTE: However, we do not catch a tuf.DownloadLengthMismatchError here for
@@ -191,7 +190,50 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     
     tuf.conf.ssl_certificates = fake_cacert
     tuf.download._get_opener('https')
+    tuf.conf.ssl_certificates = None
+
+
+
+
+  def test_https_connection(self):
+    # Make a temporary file to be served to the client.
+    current_directory = os.getcwd()
+    target_filepath = self.make_temp_data_file(directory=current_directory)
+    target_data = None  
+    target_data_length = 0
     
+    with open(target_filepath, 'r') as target_file_object:
+      target_data = target_file_object.read()
+      target_data_length = len(target_data)
+    
+    # Launch an https server (serves files in the current dir).
+    port = random.randint(30000, 45000)
+    command = ['python', 'simple_https_server.py', str(port)]
+    https_server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
+    
+    # NOTE: Following error is raised if delay is not applied:
+    #    <urlopen error [Errno 111] Connection refused>
+    time.sleep(1)
+    
+    junk, relative_target_filepath = os.path.split(target_filepath)
+    https_url = 'https://localhost:' + str(port) + '/' + relative_target_filepath
+   
+    # Download the target file using an https connection.
+    tuf.conf.ssl_certificates = 'https_client.pem'
+    message = 'Downloading target file from https server: ' + https_url  
+    logger.info(message)
+    try: 
+      download.safe_download(https_url, target_data_length - 1)
+      download.unsafe_download(https_url, target_data_length - 1)
+    
+    finally:
+      https_server_process 
+      if https_server_process.returncode is None:
+        message = \
+          'Server process ' + str(https_server_process.pid) + ' terminated.'
+        logger.info(message)
+        self.server_proc.kill()
+
 
 
 # Run unit test.
