@@ -32,6 +32,7 @@ import os
 import socket
 import logging
 import timeit
+import ssl
 
 import tuf
 import tuf.conf
@@ -40,6 +41,8 @@ import tuf.util
 import tuf.formats
 import tuf._vendor.six as six
 
+# 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
+# for Python 2.6 and 2.7.
 try:
     from ssl import match_hostname, CertificateError
 
