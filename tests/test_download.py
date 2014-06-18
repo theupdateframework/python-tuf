@@ -119,11 +119,12 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.DownloadLengthMismatchError, download.safe_download,
                       self.url, self.target_data_length + 1)
 
-    # However, we do *not* catch 'tuf.DownloadLengthMismatchError' next because 
-    # unsafe_download() does the enforce the upper limit.  The length reported
-    # and the length downloaded are still logged.
-    temp_fileobj = download.unsafe_download(self.url,
-                                            self.target_data_length + 1)
+    # However, we do *not* catch 'tuf.DownloadLengthMismatchError' in the next
+    # test condition because unsafe_download() does not enforce the required
+    # length argument.  The length reported and the length downloaded are still
+    # logged.
+    temp_fileobj = \
+      download.unsafe_download(self.url, self.target_data_length + 1)
     self.assertEqual(self.target_data, temp_fileobj.read().decode('utf-8'))
     self.assertEqual(self.target_data_length, len(temp_fileobj.read()))
     temp_fileobj.close_temp_file()
