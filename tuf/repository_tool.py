@@ -2431,7 +2431,8 @@ class Targets(Metadata):
 
       method_name:
         A supported method, in string format, of the Targets() class.  For
-        example, add_target() and remove_target():
+        example, 'add_target' and 'remove_target'.  If 'target_filepath' were 
+        to be manually added or removed from a bin: 
         
         repository.targets('unclaimed')('58-f7).add_target(target_filepath)
         repository.targets('unclaimed')('000-007).remove_target(target_filepath)
