@@ -2335,7 +2335,7 @@ class Targets(Metadata):
   def add_target_to_bin(self, target_filepath):
     """
     <Purpose>
-      Add the fileinfo of 'target_filepath' to the expected hashed bin if
+      Add the fileinfo of 'target_filepath' to the expected hashed bin, if
       the bin is available.  The hashed bin should have been created by 
       {targets_role}.delegate_hashed_bins().  Assuming the target filepath
       falls under the repository's targets directory, determine the filepath's
@@ -2343,10 +2343,6 @@ class Targets(Metadata):
       to the expected bin.  Example:  'targets/foo.tar.gz' may be added to
       the 'targets/unclaimed/58-5f.json' role's list of targets by calling this
       method.
-
-      >>>
-      >>>
-      >>>
 
     <Arguments>
       target_filepath:
@@ -2373,6 +2369,84 @@ class Targets(Metadata):
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.PATH_SCHEMA.check_match(target_filepath)
+    
+    return self._locate_and_update_target_in_bin(target_filepath, 'add_target')
+
+
+
+  def remove_target_from_bin(self, target_filepath):
+    """
+    <Purpose>
+      Remove the fileinfo of 'target_filepath' from the expected hashed bin, if
+      the bin is available.  The hashed bin should have been created by 
+      {targets_role}.delegate_hashed_bins().  Assuming the target filepath
+      falls under the repository's targets directory, determine the filepath's
+      hash prefix, locate the expected bin (if any), and then remove the
+      fileinfo from the expected bin.  Example:  'targets/foo.tar.gz' may be
+      removed from the 'targets/unclaimed/58-5f.json' role's list of targets by
+      calling this method.
+
+    <Arguments>
+      target_filepath:
+        The filepath of the target to be added to a hashed bin.  The filepath
+        must fall under repository's targets directory.
+
+    <Exceptions>
+      tuf.FormatError, if 'target_filepath' is improperly formatted.
+      
+      tuf.Error, if 'target_filepath' cannot be removed from a hashed bin
+      (e.g., an invalid target filepath, or the expected hashed bin does not
+      exist.)
+
+    <Side Effects>
+      The fileinfo of 'target_filepath' is removed from a hashed bin of this
+      Targets object.
+
+    <Returns>
+      None. 
+    """
+    
+    # Do the arguments have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if there is a mismatch.
+    tuf.formats.PATH_SCHEMA.check_match(target_filepath)
+   
+    return self._locate_and_update_target_in_bin(target_filepath, 'remove_target')
+
+
+
+  def _locate_and_update_target_in_bin(self, target_filepath, method_name):
+    """
+    <Purpose>
+      Assuming the target filepath falls under the repository's targets
+      directory, determine the filepath's hash prefix, locate the expected bin
+      (if any), and then call the 'method_name' method of the expected hashed
+      bin role.
+
+    <Arguments>
+      target_filepath:
+        The filepath of the target that may be specified in one of the hashed
+        bins.  'target_filepath' must fall under repository's targets directory.
+
+      method_name:
+        A supported method, in string format, of the Targets() class.  For
+        example, add_target() and remove_target():
+        
+        repository.targets('unclaimed')('58-f7).add_target(target_filepath)
+        repository.targets('unclaimed')('000-007).remove_target(target_filepath)
+
+    <Exceptions>
+      tuf.Error, if 'target_filepath' cannot be updated (e.g., an invalid target
+      filepath, or the expected hashed bin does not exist.)
+
+    <Side Effects>
+      The fileinfo of 'target_filepath' is added to a hashed bin of this Targets
+      object.
+
+    <Returns>
+      None. 
+    """
 
     # Determine the prefix length of any one of the hashed bins.  The prefix
     # length is not stored in the roledb, so it must be determined here by
@@ -2399,8 +2473,8 @@ class Targets(Metadata):
     # Ensure the filepath falls under the repository's targets directory.
     filepath = os.path.abspath(target_filepath)
     if not filepath.startswith(self._targets_directory + os.sep):
-      message = repr(filepath)+' is not under the Repository\'s targets '+\
-        'directory: '+repr(self._targets_directory)
+      message = repr(filepath) + ' is not under the Repository\'s targets ' +\
+        'directory: ' + repr(self._targets_directory)
       raise tuf.Error(message)
     
     # Determine the hash prefix of 'target_path' by computing the digest of
@@ -2427,11 +2501,14 @@ class Targets(Metadata):
     # 'self._delegated_roles' is keyed by relative rolenames, so update
     # 'hashed_bin_name'.
     if hashed_bin_name is not None:
-      hashed_bin_name = hashed_bin_name[len(self.rolename)+1:] 
-      self._delegated_roles[hashed_bin_name].add_target(target_filepath)
+      hashed_bin_name = hashed_bin_name[len(self.rolename) + 1:]
+
+      # 'method_name' should be one of the supported methods of the Targets()
+      # class.
+      getattr(self._delegated_roles[hashed_bin_name], method_name)(target_filepath)
 
     else:
-      raise tuf.Error(target_filepath + ' cannot be added to any bins.')
+      raise tuf.Error(target_filepath + ' not found in any of the bins.')
 
 
 
