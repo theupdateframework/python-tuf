@@ -217,7 +217,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
                              STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH)
 
   except:
-    # Close 'temp_file'; any written data is lost.
+    # Close 'temp_file'.  Any written data is lost.
     temp_file.close_temp_file()
     logger.exception('Could not download URL: '+str(url))
     raise

@@ -901,8 +901,7 @@ class TestTargets(unittest.TestCase):
     
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.targets_object.add_target,
-                      3)
+    self.assertRaises(tuf.FormatError, self.targets_object.add_target, 3)
 
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
@@ -916,8 +915,7 @@ class TestTargets(unittest.TestCase):
     # Not a file (i.e., a valid path, but a directory.)
     test_directory = os.path.join(self.targets_directory, 'test_directory')
     os.mkdir(test_directory)
-    self.assertRaises(tuf.Error, self.targets_object.add_target,
-                      test_directory)
+    self.assertRaises(tuf.Error, self.targets_object.add_target, test_directory)
 
 
 
@@ -968,8 +966,7 @@ class TestTargets(unittest.TestCase):
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.targets_object.remove_target,
-                      3)
+    self.assertRaises(tuf.FormatError, self.targets_object.remove_target, 3)
 
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
@@ -1167,6 +1164,61 @@ class TestTargets(unittest.TestCase):
     # Invalid target file path argument.
     self.assertRaises(tuf.Error,
                       self.targets_object.add_target_to_bin, '/non-existent')
+  
+  
+  
+  def test_remove_target_from_bin(self):
+    # Test normal case.
+    # Delegate the hashed bins so that add_target_to_bin() can be tested.
+    keystore_directory = os.path.join('repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+
+    # Set needed arguments by delegate_hashed_bins().
+    public_keys = [public_key]
+    list_of_targets = [target1_filepath] 
+
+    # Delegate to hashed bins.  The target filepath to be tested is expected 
+    # to contain a hash prefix of 'e', so it should be added to the
+    # 'targets/e' role.
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+                                             number_of_bins=16)
+ 
+    # Ensure each hashed bin initially contains zero targets.
+    for delegation in self.targets_object.delegations:
+      self.assertTrue(target1_filepath not in delegation.target_files)
+
+    # Add 'target1_filepath' and verify that the relative path of
+    # 'target1_filepath' is added to the correct bin.
+    self.targets_object.add_target_to_bin(target1_filepath)
+    
+    for delegation in self.targets_object.delegations:
+      if delegation.rolename == 'targets/e':
+        self.assertTrue('/file1.txt' in delegation.target_files)
+      
+      else:
+        self.assertTrue('/file1.txt' not in delegation.target_files)
+
+    # Test the remove_target_from_bin() method.  Verify that 'target1_filepath'
+    # has been removed.
+    self.targets_object.remove_target_from_bin(target1_filepath)
+    
+    for delegation in self.targets_object.delegations:
+      if delegation.rolename == 'targets/e':
+        self.assertTrue('/file1.txt' not in delegation.target_files)
+      
+      else:
+        self.assertTrue('/file1.txt' not in delegation.target_files)
+
+
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError,
+                      self.targets_object.remove_target_from_bin, 3)
+
+    # Invalid target file path argument.
+    self.assertRaises(tuf.Error, self.targets_object.remove_target_from_bin,
+                      '/non-existent')
     
     
 
