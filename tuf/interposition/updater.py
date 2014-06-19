@@ -1,3 +1,12 @@
+"""
+<Program Name>
+  updater.py
+
+<Author>
+  Pankhuri Goyal
+
+"""
+
 import mimetypes
 import os.path
 import re
