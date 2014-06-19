@@ -243,6 +243,49 @@ class TestRepository(unittest.TestCase):
 
     # Verify the status() does not raise an exception.
     repository.status()
+    
+    # Verify status() does not raise 'tuf.InsufficientKeysError' if a top-level
+    # role does not contain a threshold of keys.
+    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    old_threshold = root_roleinfo['threshold']  
+    root_roleinfo['threshold'] = 10
+    tuf.roledb.update_roleinfo('root', root_roleinfo)
+    repository.status()
+   
+    # Restore the original threshold value.
+    root_roleinfo['threshold'] = old_threshold
+    tuf.roledb.update_roleinfo('root', root_roleinfo)
+    
+    # Verify status() does not raise 'tuf.UnsignedMetadataError' if any of the
+    # the top-level roles are improperly signed.
+    repository.root.unload_signing_key(root_privkey)
+    repository.root.load_signing_key(targets_privkey)
+    repository.status()
+
+    # Reset Root and verify Targets. 
+    repository.root.unload_signing_key(targets_privkey)
+    repository.root.load_signing_key(root_privkey)
+    repository.targets.unload_signing_key(targets_privkey)
+    repository.targets.load_signing_key(snapshot_privkey)
+    repository.status()
+
+    # Reset Targets and verify Snapshot.
+    repository.targets.unload_signing_key(snapshot_privkey)
+    repository.targets.load_signing_key(targets_privkey)
+    repository.snapshot.unload_signing_key(snapshot_privkey)
+    repository.snapshot.load_signing_key(timestamp_privkey)
+    repository.status()
+   
+    # Reset Snapshot and verify timestamp. 
+    repository.snapshot.unload_signing_key(timestamp_privkey)
+    repository.snapshot.load_signing_key(snapshot_privkey)
+    repository.timestamp.unload_signing_key(timestamp_privkey)
+    repository.timestamp.load_signing_key(root_privkey)
+    repository.status()
+
+    # Reset Timestamp
+    repository.timestamp.unload_signing_key(root_privkey)
+    repository.timestamp.load_signing_key(timestamp_privkey)
 
     # Verify that a write() fails if a repository is loaded and a change
     # is made to a role.
@@ -273,8 +316,6 @@ class TestRepository(unittest.TestCase):
     # Verify that consistent snapshot can be written and loaded. 
     repository.write(consistent_snapshot=True) 
     repo_tool.load_repository(repository_directory)
-
-    # Test 
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repository.write, 3, False)
