@@ -32,6 +32,7 @@ import logging
 import tempfile
 import json
 import shutil
+import stat
 import sys
 
 # 'unittest2' required for testing under Python < 2.7.
@@ -716,6 +717,24 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test invalid argument (i.e., client directory already exists.)
     self.assertRaises(tuf.RepositoryError, repo_lib.create_tuf_client_directory,
                       repository_directory, client_directory)
+
+    # Test invalid client metadata directory (i.e., non-errno.EEXIST exceptions
+    # should be re-raised.) 
+    shutil.rmtree(metadata_directory)
+    current_client_directory_mode = os.stat(client_directory)[stat.ST_MODE]
+    
+    # Remove write access for the client directory so that the 'metadata'
+    # directory cannot be created.  create_tuf_client_directory() should
+    # re-raise the 'OSError' (i.e., errno.EACCES) exception and only handle
+    # errno.EEXIST.
+    os.chmod(client_directory, current_client_directory_mode & ~stat.S_IWUSR)
+
+    self.assertRaises(OSError, repo_lib.create_tuf_client_directory,
+                      repository_directory, client_directory)
+    
+    # Reset the client directory's mode.
+    os.chmod(client_directory, current_client_directory_mode)
+
 
 
   def test__check_directory(self):
