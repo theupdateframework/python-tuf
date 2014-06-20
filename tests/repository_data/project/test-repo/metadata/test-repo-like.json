@@ -1,0 +1,51 @@
+{
+ "signatures": [
+  {
+   "keyid": "6986b667c736a3b37471e030cf4ce7aa6c7e0d530325e64c2660276b77be3754",
+   "method": "RSASSA-PSS",
+   "sig": "cc9af51c70c92bafd614a27e4294cf8ee53c6f8ad9301f300cdd2f8650f1c22229d3242a84a17e96b669f6ae6f521895ac763aafe11969f5dd87672c83f4ba5cc2a6b4c45bd6edbeb113b98f8b9ea07d3d8e1fb23339f33a2a4f4703333261c32f6639b594e2e3171672a3ba7d4dffc723ad28dde4bc5c80237ff85125910f1632dbeb36b9fd4dd30b656ac6772881014ae2ab048dad15843064b74558cc79a6628e4000772ce50111bee17222a9bbf9fd184ae255e3bace9fbd3638067e3412769b72ce586479ec5269ba733976ad07a1bd138788c018a9010a20c11cadc6dbdeb04f7a14fb1a79b49110f85773ab2d464de9b532915040d7307eb5b946768c"
+  }
+ ],
+ "signed": {
+  "_type": "Targets",
+  "delegations": {
+   "keys": {
+    "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f": {
+     "keytype": "rsa",
+     "keyval": {
+      "public": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqKdTRVn3mLQFUf02Rpug\nwVEU4yJtechILLb6nM7+urfwLe6f7EsNCDFhkiTP7vKuQywdLYrhwZKYZMDmaVnI\nq4d/tBLvb/jGY/IPFVvWbAOWtwWG7apiAFrcp3Idq6EKGaVVLn7tyv74+nisssYJ\ncVKodlkzpgX1Ibrdq73BUlAxhEQNDAUM5bzyJUW0BU4OSjUoFKCgc8BSkNcSLwXO\nRpyqAwDpPWiL68N1Dch7R9uD6GE9aREY9SKoYsNCvUOraIcme4fJZ3NmxpN3SVnX\ntepoiJo2iAtORtEI1yTCv/dOPap/iebveeCjn667HkMezJodSR8X3pMgMKMVyxhJ\ngwIDAQAB\n-----END PUBLIC KEY-----"
+     }
+    }
+   },
+   "roles": [
+    {
+     "backtrack": true,
+     "keyids": [
+      "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f"
+     ],
+     "name": "test-repo-like/role1",
+     "paths": [
+      "/file3.txt"
+     ],
+     "threshold": 1
+    }
+   ]
+  },
+  "expires": "2030-01-01T00:00:00Z",
+  "targets": {
+   "prefix/file1.txt": {
+    "hashes": {
+     "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da"
+    },
+    "length": 31
+   },
+   "prefix/file2.txt": {
+    "hashes": {
+     "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99"
+    },
+    "length": 39
+   }
+  },
+  "version": 1
+ }
+}
