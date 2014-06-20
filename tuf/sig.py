@@ -224,7 +224,7 @@ def verify(signable, role):
   # Does 'status' have the required threshold of signatures?
   # First check for invalid threshold values before returning result.
   if threshold is None or threshold <= 0:
-      raise tuf.Error("Invalid threshold: "+str(threshold))
+      raise tuf.Error("Invalid threshold: " + str(threshold))
 
   return len(good_sigs) >= threshold
 

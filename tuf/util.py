@@ -232,6 +232,7 @@ class TempFile(object):
     destination_file = open(destination_path, 'wb')
     shutil.copyfileobj(self.temporary_file, destination_file)
     destination_file.close()
+    
     # 'self.close()' closes temporary file which destroys itself.
     self.close_temp_file()
 
@@ -389,7 +390,7 @@ def get_file_details(filepath, hash_algorithms=['sha256']):
 
   # Does the path exists?
   if not os.path.exists(filepath):
-    raise tuf.Error('Path '+repr(filepath)+' doest not exist.')
+    raise tuf.Error('Path ' + repr(filepath) + ' doest not exist.')
   filepath = os.path.abspath(filepath)
 
   # Obtaining length of the file.
@@ -554,7 +555,7 @@ def find_delegated_role(roles, delegated_role):
         
         # ...there are at least two roles with the same name.
         else:
-          duplicate_role_message = 'Duplicate role ('+str(delegated_role)+').'
+          duplicate_role_message = 'Duplicate role (' + str(delegated_role) + ').'
           raise tuf.RepositoryError(duplicate_role_message)
       
       # This role has a different name.
@@ -663,7 +664,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
       if len(actual_child_targets) > 0:
         if not consistent(actual_child_targets,
                           allowed_child_path_hash_prefixes):
-          message =  repr(rolename)+' specifies a target that does not'+\
+          message =  repr(rolename) + ' specifies a target that does not' + \
             ' have a path hash prefix listed in its parent role.'
           raise tuf.ForbiddenTargetError(message)
     
@@ -692,8 +693,8 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
       # 'role' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' attributes should not be missing,
       # so raise an error in case this clause is reached.
-      raise tuf.FormatError(repr(role)+' did not contain one of '+\
-                            'the required fields ("paths" or '+\
+      raise tuf.FormatError(repr(role) + ' did not contain one of ' +\
+                            'the required fields ("paths" or ' +\
                             '"path_hash_prefixes").')
 
   # Raise an exception if the parent has not delegated to the specified
@@ -873,11 +874,11 @@ def load_json_string(data):
     deserialized_object = json.loads(data)
  
   except TypeError:
-    message = 'Invalid JSON string: '+repr(data)
+    message = 'Invalid JSON string: ' + repr(data)
     raise tuf.Error(message)
   
   except ValueError:
-    message = 'Cannot deserialize to a Python object: '+repr(data)
+    message = 'Cannot deserialize to a Python object: ' + repr(data)
     raise tuf.Error(message)
   
   else:
@@ -916,18 +917,18 @@ def load_json_file(filepath):
 
   # The file is mostly likely gzipped.
   if filepath.endswith('.gz'):
-    logger.debug('gzip.open('+str(filepath)+')')
+    logger.debug('gzip.open(' + str(filepath) + ')')
     fileobject = six.StringIO(gzip.open(filepath).read().decode('utf-8'))
   
   else:
-    logger.debug('open('+str(filepath)+')')
+    logger.debug('open(' + str(filepath) + ')')
     fileobject = open(filepath)
 
   try:
     deserialized_object = json.load(fileobject)
   
   except (ValueError, TypeError) as e:
-    message = 'Cannot deserialize to a Python object: '+repr(filepath)
+    message = 'Cannot deserialize to a Python object: ' + repr(filepath)
     raise tuf.Error(message)
   
   else:

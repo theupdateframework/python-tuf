@@ -243,6 +243,49 @@ class TestRepository(unittest.TestCase):
 
     # Verify the status() does not raise an exception.
     repository.status()
+    
+    # Verify status() does not raise 'tuf.InsufficientKeysError' if a top-level
+    # role does not contain a threshold of keys.
+    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    old_threshold = root_roleinfo['threshold']  
+    root_roleinfo['threshold'] = 10
+    tuf.roledb.update_roleinfo('root', root_roleinfo)
+    repository.status()
+   
+    # Restore the original threshold value.
+    root_roleinfo['threshold'] = old_threshold
+    tuf.roledb.update_roleinfo('root', root_roleinfo)
+    
+    # Verify status() does not raise 'tuf.UnsignedMetadataError' if any of the
+    # the top-level roles are improperly signed.
+    repository.root.unload_signing_key(root_privkey)
+    repository.root.load_signing_key(targets_privkey)
+    repository.status()
+
+    # Reset Root and verify Targets. 
+    repository.root.unload_signing_key(targets_privkey)
+    repository.root.load_signing_key(root_privkey)
+    repository.targets.unload_signing_key(targets_privkey)
+    repository.targets.load_signing_key(snapshot_privkey)
+    repository.status()
+
+    # Reset Targets and verify Snapshot.
+    repository.targets.unload_signing_key(snapshot_privkey)
+    repository.targets.load_signing_key(targets_privkey)
+    repository.snapshot.unload_signing_key(snapshot_privkey)
+    repository.snapshot.load_signing_key(timestamp_privkey)
+    repository.status()
+   
+    # Reset Snapshot and verify timestamp. 
+    repository.snapshot.unload_signing_key(timestamp_privkey)
+    repository.snapshot.load_signing_key(snapshot_privkey)
+    repository.timestamp.unload_signing_key(timestamp_privkey)
+    repository.timestamp.load_signing_key(root_privkey)
+    repository.status()
+
+    # Reset Timestamp
+    repository.timestamp.unload_signing_key(root_privkey)
+    repository.timestamp.load_signing_key(timestamp_privkey)
 
     # Verify that a write() fails if a repository is loaded and a change
     # is made to a role.
@@ -273,8 +316,6 @@ class TestRepository(unittest.TestCase):
     # Verify that consistent snapshot can be written and loaded. 
     repository.write(consistent_snapshot=True) 
     repo_tool.load_repository(repository_directory)
-
-    # Test 
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repository.write, 3, False)
@@ -901,8 +942,7 @@ class TestTargets(unittest.TestCase):
     
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.targets_object.add_target,
-                      3)
+    self.assertRaises(tuf.FormatError, self.targets_object.add_target, 3)
 
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
@@ -916,8 +956,7 @@ class TestTargets(unittest.TestCase):
     # Not a file (i.e., a valid path, but a directory.)
     test_directory = os.path.join(self.targets_directory, 'test_directory')
     os.mkdir(test_directory)
-    self.assertRaises(tuf.Error, self.targets_object.add_target,
-                      test_directory)
+    self.assertRaises(tuf.Error, self.targets_object.add_target, test_directory)
 
 
 
@@ -968,8 +1007,7 @@ class TestTargets(unittest.TestCase):
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.targets_object.remove_target,
-                      3)
+    self.assertRaises(tuf.FormatError, self.targets_object.remove_target, 3)
 
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
@@ -1167,6 +1205,61 @@ class TestTargets(unittest.TestCase):
     # Invalid target file path argument.
     self.assertRaises(tuf.Error,
                       self.targets_object.add_target_to_bin, '/non-existent')
+  
+  
+  
+  def test_remove_target_from_bin(self):
+    # Test normal case.
+    # Delegate the hashed bins so that add_target_to_bin() can be tested.
+    keystore_directory = os.path.join('repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+
+    # Set needed arguments by delegate_hashed_bins().
+    public_keys = [public_key]
+    list_of_targets = [target1_filepath] 
+
+    # Delegate to hashed bins.  The target filepath to be tested is expected 
+    # to contain a hash prefix of 'e', so it should be added to the
+    # 'targets/e' role.
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+                                             number_of_bins=16)
+ 
+    # Ensure each hashed bin initially contains zero targets.
+    for delegation in self.targets_object.delegations:
+      self.assertTrue(target1_filepath not in delegation.target_files)
+
+    # Add 'target1_filepath' and verify that the relative path of
+    # 'target1_filepath' is added to the correct bin.
+    self.targets_object.add_target_to_bin(target1_filepath)
+    
+    for delegation in self.targets_object.delegations:
+      if delegation.rolename == 'targets/e':
+        self.assertTrue('/file1.txt' in delegation.target_files)
+      
+      else:
+        self.assertTrue('/file1.txt' not in delegation.target_files)
+
+    # Test the remove_target_from_bin() method.  Verify that 'target1_filepath'
+    # has been removed.
+    self.targets_object.remove_target_from_bin(target1_filepath)
+    
+    for delegation in self.targets_object.delegations:
+      if delegation.rolename == 'targets/e':
+        self.assertTrue('/file1.txt' not in delegation.target_files)
+      
+      else:
+        self.assertTrue('/file1.txt' not in delegation.target_files)
+
+
+    # Test improperly formatted argument.
+    self.assertRaises(tuf.FormatError,
+                      self.targets_object.remove_target_from_bin, 3)
+
+    # Invalid target file path argument.
+    self.assertRaises(tuf.Error, self.targets_object.remove_target_from_bin,
+                      '/non-existent')
     
     
 
