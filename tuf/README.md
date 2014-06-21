@@ -261,20 +261,20 @@ repository.targets.load_signing_key(private_targets_key)
 # to generate a valid set of metadata.
 private_root_key = import_rsa_privatekey_from_file("path/to/root_key")
 Enter a password for the encrypted RSA key:
+repository.root.load_signing_key(private_root_key)
 
 private_root_key2 = import_rsa_privatekey_from_file("path/to/root_key2")
 Enter a password for the encrypted RSA key:
+repository.root.load_signing_key(private_root_key2)
 
 private_snapshot_key = import_rsa_privatekey_from_file("path/to/snapshot_key")
 Enter a password for the encrypted RSA key:
+repository.snapshot.load_signing_key(private_snapshot_key)
 
 private_timestamp_key = import_rsa_privatekey_from_file("path/to/timestamp_key")
 Enter a password for the encrypted RSA key:
-
-repository.root.load_signing_key(private_root_key)
-repository.root.load_signing_key(private_root_key2)
-repository.snapshot.load_signing_key(private_snapshot_key)
 repository.timestamp.load_signing_key(private_timestamp_key)
+
 
 # Generate new versions of all the top-level metadata.
 repository.write()
