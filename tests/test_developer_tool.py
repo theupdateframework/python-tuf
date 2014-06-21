@@ -148,7 +148,31 @@ class TestProject(unittest.TestCase):
     self.assertTrue(len(project.keys) == 1)
     self.assertTrue(project.keys[0] == project_key['keyid'])
 
+    # set as readonly and try to write a repo
+    shutil.rmtree(targets_directory)
+    os.chmod(local_tmp, 0o0555)
+
+    tuf.roledb.clear_roledb()
+    tuf.keydb.clear_keydb()
+    self.assertRaises(OSError, developer_tool.create_new_project ,project_name,
+        metadata_directory, location_in_repository, targets_directory,
+        project_key)
+
+    os.chmod(local_tmp, 0o0777)
+
+    shutil.rmtree(metadata_directory)
+    os.chmod(local_tmp, 0o0555)
+
+    tuf.roledb.clear_roledb()
+    tuf.keydb.clear_keydb()
+    self.assertRaises(OSError, developer_tool.create_new_project ,project_name,
+        metadata_directory, location_in_repository, targets_directory,
+        project_key)
+
+
+    os.chmod(local_tmp, 0o0777)
     shutil.rmtree(local_tmp)
+    
 
 
   def test_load_project(self):
@@ -176,14 +200,25 @@ class TestProject(unittest.TestCase):
     self.assertTrue(project.layout_type == "repo-like")
 
     repo_filepath = os.path.join(local_tmp, 'project', 'test-flat')
-    project = developer_tool.load_project(repo_filepath)
-
+    new_targets_path = os.path.join(local_tmp, 'project', 'targets')
+    project = developer_tool.load_project(repo_filepath,
+        new_targets_location = new_targets_path)
+    self.assertTrue(project._targets_directory == new_targets_path)
     self.assertTrue(project.layout_type == 'flat')
 
     
     # load a project ovrwriting the prefix
     project = developer_tool.load_project(repo_filepath, prefix='new')
     self.assertTrue(project.prefix == 'new')
+
+    # load a project with a file missing
+    file_to_corrupt = os.path.join(repo_filepath, 'test-flat','role1.json')
+    with open(file_to_corrupt, 'wt') as fp:
+      fp.write("this is not a json file")
+    
+    self.assertRaises(tuf.Error, developer_tool.load_project, repo_filepath)
+
+    
 
 
   def test_add_verification_keys(self):
@@ -325,9 +360,10 @@ class TestProject(unittest.TestCase):
     project.compressions = ['gz']
     project('delegation').compressions = project.compressions
 
-    # write an reload
+    # write and reload
+    self.assertRaises(tuf.Error, project.write)
     project.write(write_partial=True)
-#    import pdb; pdb.set_trace()
+
     project = developer_tool.load_project(local_tmp)
 
     # check against backup
@@ -343,18 +379,23 @@ class TestProject(unittest.TestCase):
     
 
     roleinfo = tuf.roledb.get_roleinfo(project._project_name)
-    #import pdb;pdb.set_trace()
+
     self.assertEquals(roleinfo['partial_loaded'], True)
 
 
 
     # load_signing_keys
-    project.load_signing_key(project_private_key)
     project("delegation").load_signing_key(delegation_private_key)
+
+    project.status()
+
     project("delegation")("subdelegation").load_signing_key(
         subdelegation_private_key)
 
+#    import pdb; pdb.set_trace() 
     project.status()
+
+    project.load_signing_key(project_private_key)
 
     # backup everything
     # + backup targets:
@@ -376,9 +417,9 @@ class TestProject(unittest.TestCase):
     
     # + backup the name 
     name_backup = project._project_name
- 
+
     # call status (for the sake of doing it)
-    # project.status()
+    project.status()
 
     # call write
     project.write()

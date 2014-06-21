@@ -358,8 +358,15 @@ class Project(Targets):
     try:
       temp_project_directory = tempfile.mkdtemp()
       metadata_directory = os.path.join(temp_project_directory,
-                                        METADATA_STAGED_DIRECTORY_NAME)
-      os.mkdir(metadata_directory)
+          self._metadata_directory[1:])
+
+      #targets_directory = os.path.join(temp_project_directory,
+      #    self._targets_directory[1:])
+      targets_directory = self._targets_directory
+
+
+      os.makedirs(metadata_directory)
+      # os.makedirs(targets_directory)
 
       #filenames = get_metadata_filenames(metadata_directory)
       # we should do the schema check
@@ -382,10 +389,10 @@ class Project(Targets):
         try: 
           signable =  _generate_and_write_metadata(delegated_role,
                                                 filenames['targets'], False,
-                                                self._targets_directory,
-                                                self._metadata_directory,
+                                                targets_directory,
+                                                metadata_directory,
                                                 False)
-          self._print_status(delegated_role, signable)
+          self._print_status(delegated_role, signable[0])
         except tuf.Error:
           insufficient_signatures.append(delegated_role)
       
@@ -393,23 +400,26 @@ class Project(Targets):
         message = 'Delegated roles with insufficient keys: '+ \
           repr(insufficient_keys)
         print(message)
+        return
 
       if len(insufficient_signatures):
         message = 'Delegated roles with insufficient signatures: '+ \
           repr(insufficient_signatures)
         print(message) 
+        return
 
       # Targets role.
       try: 
         _check_role_keys(self.rolename)
       except tuf.InsufficientKeysError as e:
         print(str(e))
+        return
       
       try:
         signable, filename =  _generate_and_write_metadata(self._project_name,
                                                 filenames['targets'], False,
-                                                self._targets_directory,
-                                                self._metadata_directory,
+                                                targets_directory,
+                                                metadata_directory,
                                                 False)
         self._print_status(self._project_name, signable)
       except tuf.Error as e:
@@ -715,14 +725,16 @@ def _save_project_configuration(metadata_directory,targets_directory,
   tuf.formats.RELPATH_SCHEMA.check_match(project_name)
 
   # get the absolute filepath to our metadata_directory for consistency
-  metadata_directory = os.path.abspath(metadata_directory)
+  #metadata_directory = os.path.abspath(metadata_directory)
   cfg_file_directory = metadata_directory
 
   # check wheter if the layout type is "flat" or "repo-like" 
   # if it is, the .cfg file should be saved in the previous directory.
   if(layout_type == "repo-like"):
     cfg_file_directory = os.path.dirname(metadata_directory)
+    absolute_location, targets_directory = os.path.split(targets_directory)
 
+  absolute_location, metadata_directory = os.path.split(metadata_directory)
   # is the file open-able? open for overwriting
   project_filename = os.path.join(cfg_file_directory,PROJECT_FILENAME)
   
@@ -747,14 +759,12 @@ def _save_project_configuration(metadata_directory,targets_directory,
   with open(project_filename,"wt") as fp:
     json.dump(project_config,fp)
 
-  # clean our mess
-  fp.close()
 
 
 
 
 
-def load_project(project_directory, prefix=''):
+def load_project(project_directory, prefix='', new_targets_location=None):
   """
   <Purpose>
     Return a project object initialized with the contents of the metadata 
@@ -768,6 +778,11 @@ def load_project(project_directory, prefix=''):
       the prefix for the metadata, if defined, it will replace the current
       prefix, by first removing the existing one (Saved) and setting the new
       one in the end. 
+
+    new_targets_location:
+      For flat project configurations, you might want to reload the project 
+      with a new location for the target files. This overwrites the previous
+      path to search for the target files.
 
   <Exceptions>
     tuf.FormatError, if 'project_directory' or any of the metadata files
@@ -802,10 +817,19 @@ def load_project(project_directory, prefix=''):
     tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration) 
   except (OSError, IOError) as e:
     raise
+ 
+  targets_directory = os.path.join(project_directory,
+      project_configuration['targets_location'])
   
-  metadata_directory = project_configuration['metadata_location']
-  targets_directory = project_configuration['targets_location']
-  
+  if project_configuration['layout_type'] == 'flat':
+    project_directory, relative_junk = os.path.split(project_directory)
+    targets_directory = project_configuration['targets_location']
+    if new_targets_location is not None:
+      targets_directory = new_targets_location
+
+  metadata_directory = os.path.join(project_directory,
+      project_configuration['metadata_location'])
+
   new_prefix = None
   if prefix != '':
     new_prefix = prefix
@@ -830,7 +854,8 @@ def load_project(project_directory, prefix=''):
     project.add_verification_key(key)
  
   # load the project's metadata
-  targets_metadata_path = os.path.join(metadata_directory, project_filename)
+  targets_metadata_path = os.path.join(project_directory, metadata_directory,
+      project_filename)
   signable = tuf.util.load_json_file(targets_metadata_path)
   tuf.formats.check_signable_object_format(signable)
   targets_metadata = signable['signed']
@@ -879,8 +904,8 @@ def load_project(project_directory, prefix=''):
   targets_objects = {}
   loaded_metadata = []
   targets_objects[project_name] = project
-  targets_metadata_directory = os.path.join(metadata_directory,
-                                            project_name)
+  metadata_directory = os.path.join(project_directory, metadata_directory)
+  targets_metadata_directory = os.path.join(metadata_directory, project_name)
   if os.path.exists(targets_metadata_directory) and \
                     os.path.isdir(targets_metadata_directory):
     for root, directories, files in os.walk(targets_metadata_directory):
@@ -897,21 +922,15 @@ def load_project(project_directory, prefix=''):
           metadata_name = metadata_name[:-extension_length]
         else:
           continue
-        
-        # Keep a store metadata previously loaded metadata to prevent
-        # re-loading duplicate versions.  Duplicate versions may occur with
-        # consistent_snapshots, where the same metadata may be available in
-        # multiples files (the different hash is included in each filename.
-        if metadata_name in loaded_metadata:
-          continue
 
         signable = None
         try:
           signable = tuf.util.load_json_file(metadata_path)
-        except (ValueError, IOError):
+        except (ValueError, IOError, tuf.Error):
           raise
         
-        # strip the extension from the 
+        # strip the prefix from the local working copy, it will be added again
+        # at the time of writing.
         metadata_object = signable['signed']
         metadata_object = _strip_prefix_from_targets_metadata(metadata_object,
                                              prefix) 
