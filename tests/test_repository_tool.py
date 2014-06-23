@@ -893,7 +893,7 @@ class TestTargets(unittest.TestCase):
   def test_target_files(self):
     # Test normal case.
     # Verify the targets object initially contains zero target files.
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
     target_filepath = os.path.join(self.targets_directory, 'file1.txt')
     self.targets_object.add_target(target_filepath)
@@ -932,7 +932,7 @@ class TestTargets(unittest.TestCase):
   def test_add_target(self):
     # Test normal case.
     # Verify the targets object initially contains zero target files.
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
     target_filepath = os.path.join(self.targets_directory, 'file1.txt')
     self.targets_object.add_target(target_filepath)
@@ -963,7 +963,7 @@ class TestTargets(unittest.TestCase):
   def test_add_targets(self):
     # Test normal case.
     # Verify the targets object initially contains zero target files.
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
     target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
@@ -974,7 +974,7 @@ class TestTargets(unittest.TestCase):
     
     self.assertEqual(len(self.targets_object.target_files), 3)
     self.assertEqual(self.targets_object.target_files, 
-                     ['/file1.txt', '/file2.txt', '/file3.txt'])
+                     {'/file1.txt': {}, '/file2.txt': {}, '/file3.txt': {}})
 
 
     # Test improperly formatted arguments.
@@ -995,7 +995,7 @@ class TestTargets(unittest.TestCase):
   def test_remove_target(self):
     # Test normal case.
     # Verify the targets object initially contains zero target files.
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
     # Add a target so that remove_target() has something to remove.
     target_filepath = os.path.join(self.targets_directory, 'file1.txt')
@@ -1003,7 +1003,7 @@ class TestTargets(unittest.TestCase):
 
     # Test remove_target()'s behavior.
     self.targets_object.remove_target(target_filepath)
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
 
     # Test improperly formatted arguments.
@@ -1019,7 +1019,7 @@ class TestTargets(unittest.TestCase):
   def test_clear_targets(self):
     # Test normal case.
     # Verify the targets object initially contains zero target files.
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
     # Add targets, to be tested by clear_targets().
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
@@ -1027,7 +1027,7 @@ class TestTargets(unittest.TestCase):
     self.targets_object.add_targets([target1_filepath, target2_filepath])
 
     self.targets_object.clear_targets()
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
 
 

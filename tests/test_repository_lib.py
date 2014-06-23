@@ -462,7 +462,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     version = 1
     datetime_object = datetime.datetime(2030, 1, 1, 12, 0)
     expiration_date = datetime_object.isoformat() + 'Z'
-    target_files = ['file.txt']
+    target_files = {'file.txt': {}}
     
     delegations = {"keys": {
       "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf": {
