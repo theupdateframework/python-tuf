@@ -1691,6 +1691,9 @@ class Targets(Metadata):
         The path of the target file.  It must be located in the repository's
         targets directory.
 
+      custom:
+        An optional object providing additional information about the file.
+
     <Exceptions>
       tuf.FormatError, if 'filepath' is improperly formatted.
 

@@ -939,10 +939,28 @@ class TestTargets(unittest.TestCase):
 
     self.assertEqual(len(self.targets_object.target_files), 1)
     self.assertTrue('/file1.txt' in self.targets_object.target_files)
-    
+   
+    # Test the 'custom' parameter of add_target(), where additional informatio
+    # may be specified for the target.
+    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+
+    # The file permission of the target (octal number specifying file access
+    # for owner, group, others (e.g., 0755).
+    octal_file_permission = oct(os.stat(target2_filepath).st_mode)[4:]
+    custom_file_permission = {'file_mode': octal_file_permission}
+    self.targets_object.add_target(target2_filepath, custom_file_permission) 
+
+    self.assertEqual(len(self.targets_object.target_files), 2)
+    self.assertTrue('/file2.txt' in self.targets_object.target_files)
+    self.assertEqual(self.targets_object.target_files['/file2.txt'],
+                     custom_file_permission)
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, self.targets_object.add_target, 3)
+    self.assertRaises(tuf.FormatError, self.targets_object.add_target, 3,
+                      custom_file_permission)
+    self.assertRaises(tuf.FormatError, self.targets_object.add_target,
+                      target_filepath, 3)
 
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
