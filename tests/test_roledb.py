@@ -285,7 +285,7 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
 
-    self.assertEqual([], tuf.roledb.get_role_paths(rolename))
+    self.assertEqual({}, tuf.roledb.get_role_paths(rolename))
     self.assertEqual(paths, tuf.roledb.get_role_paths(rolename2))
 
     # Test conditions where the arguments are improperly formatted,

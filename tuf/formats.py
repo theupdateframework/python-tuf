@@ -110,6 +110,8 @@ HEX_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
 
 # A key identifier (e.g., a hexadecimal value identifying an RSA key).
 KEYID_SCHEMA = HASH_SCHEMA
+
+# A list of KEYID_SCHEMA.
 KEYIDS_SCHEMA = SCHEMA.ListOf(KEYID_SCHEMA)
 
 # The method used for a generated signature (e.g., 'RSASSA-PSS').
@@ -269,6 +271,8 @@ TARGETFILE_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETFILE_SCHEMA',
   filepath = RELPATH_SCHEMA,
   fileinfo = FILEINFO_SCHEMA)
+
+# A list of TARGETFILE_SCHEMA.
 TARGETFILES_SCHEMA = SCHEMA.ListOf(TARGETFILE_SCHEMA)
 
 # A single signature of an object.  Indicates the signature, the id of the
@@ -394,6 +398,15 @@ COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
 COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
   SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
 
+# The fileinfo format of targets specified in the repository and
+# developer tools.  The second element of this list holds custom data about the
+# target, such as file permissions, author(s), last modified, etc.
+CUSTOM_SCHEMA = SCHEMA.Object()
+
+PATH_FILEINFO_SCHEMA = SCHEMA.DictOf(
+  key_schema = RELPATH_SCHEMA,
+  value_schema = CUSTOM_SCHEMA)
+
 # tuf.roledb
 ROLEDB_SCHEMA = SCHEMA.Object(
   object_name = 'ROLEDB_SCHEMA',
@@ -404,7 +417,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
   signatures = SCHEMA.Optional(SIGNATURES_SCHEMA),
   compressions = SCHEMA.Optional(COMPRESSIONS_SCHEMA),
-  paths = SCHEMA.Optional(RELPATHS_SCHEMA),
+  paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
   partial_loaded = SCHEMA.Optional(BOOLEAN_SCHEMA))
