@@ -133,9 +133,9 @@ updated_target = updater.updated_targets([target], destination_directory)
                                                                                  
 for target in updated_target:                                                   
   updater.download_target(target, destination_directory)
-  # Client code may also reference target information (including 'custom') by directly
-  # accessing the dictionary entries of the target.  The 'custom' entry is additional
-  # file information explictly set by the remote repository.
+  # Client code here may also reference target information (including 'custom')
+  # by directly accessing the dictionary entries of the target.  The 'custom'
+  # entry is additional file information explicitly set by the remote repository.
   target_path = target['filepath']
   target_length = target['fileinfo']['length']
   target_hashes = target['fileinfo']['hashes']

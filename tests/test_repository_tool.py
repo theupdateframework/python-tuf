@@ -940,7 +940,7 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(len(self.targets_object.target_files), 1)
     self.assertTrue('/file1.txt' in self.targets_object.target_files)
    
-    # Test the 'custom' parameter of add_target(), where additional informatio
+    # Test the 'custom' parameter of add_target(), where additional information
     # may be specified for the target.
     target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
 

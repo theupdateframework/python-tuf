@@ -116,7 +116,7 @@ if not options.dry_run:
     file_object.write('This is role1\'s target file.')
 
 # Add target files to the top-level 'targets.json' role.  These target files
-# should already exist.  The 'target1_filepath' contains additional information
+# should already exist.  'target1_filepath' contains additional information
 # about the target (i.e., file permissions in octal format.)
 octal_file_permissions = oct(os.stat(target1_filepath).st_mode)[4:]
 file_permissions = {'file_permissions': octal_file_permissions}

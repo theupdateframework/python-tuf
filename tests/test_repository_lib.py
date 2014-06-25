@@ -459,7 +459,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       file_object.write('test file.')
    
     # Set valid generate_targets_metadata() arguments.  Add a custom field for
-    # the 'target_files' target.
+    # the 'target_files' target set below.
     version = 1
     datetime_object = datetime.datetime(2030, 1, 1, 12, 0)
     expiration_date = datetime_object.isoformat() + 'Z'
