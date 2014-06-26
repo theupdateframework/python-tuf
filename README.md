@@ -123,7 +123,7 @@ $ apt-get install libffi-dev
 
 Installation of minimal, optional, development, and testing requirements can then be accomplished with one command:
 ```Bash
-$ pip install -r dev-requirements
+$ pip install -r dev-requirements.txt
 ```
 
 The Update Framework's unit tests can be executed by invoking [tox](https://testrun.org/tox/).  All supported Python versions are tested, but must already be installed locally.
