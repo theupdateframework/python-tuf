@@ -91,9 +91,7 @@ $ pip install tuf
 Installing from local source archive.
 $ pip install <path to archive>
 
-
 Or from the root directory of the unpacked archive.
-
 $ pip install . 
 ```
 
