@@ -1,8 +1,7 @@
 # Repository Management #
 
 ## Table of Contents ##
-- [Repository Tool Diagram](#repository-tool-diagram)
-- [TUF Repository](#create-tuf-repository)
+- [The Files of a TUF Repository](#the-files-of-a-tuf-repository)
   - [Purpose](#purpose)
   - [Keys](#keys)
     - [Create RSA Keys](#create-rsa-keys)
@@ -21,19 +20,16 @@
 - [Client Setup and Repository Trial](#client-setup-and-repository-trial)
   - [Using TUF Within an Example Client Updater](#using-tuf-within-an-example-client-updater)
   - [Test TUF Locally](#test-tuf-locally)
+- [Repository Tool Diagram](#repository-tool-diagram)
 
 
-## Repository Tool Diagram ##
-![Repo Tools Diagram 1](../docs/images/repository_tool-diagram.png)
-
-
-## TUF Repository ##
+## The Files of a TUF Repository ##
 
 ### Purpose ###
 
-The **tuf.repository_tool** module can be used to create a TUF repository.
-It may either be imported into a Python module or used with the Python
-interpreter in interactive mode.
+The [tuf.repository_tool](tuf/repository_tool.py) module can be used to create a
+TUF repository.  It may either be imported into a Python module or used with the
+Python interpreter in interactive mode.
 
 ```Bash
 $ python
@@ -43,8 +39,9 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> from tuf.repository_tool import *
 >>> repository = load_repository("path/to/repository")
 ```
-Note that **tuf.repository_tool.py** is not used in TUF integrations.  The
-[tuf.interposition](/interposition/README.md)** package and
+Note that [tuf.repository_tool.py](tuf/repository_tool.py) is not used in TUF
+integrations.  The
+[tuf.interposition](/interposition/README.md) package and
 [tuf.client.updater](/client/README.md) module assist in integrating TUF with a
 software updater.
 
@@ -433,3 +430,6 @@ django  file1.txt  file2.txt
 targets/django/:
 file4.txt
 ```
+
+## Repository Tool Diagram ##
+![Repo Tools Diagram 1](../docs/images/repository_tool-diagram.png)
