@@ -1412,9 +1412,10 @@ def generate_targets_metadata(targets_directory, target_files, version,
       repository.
 
     target_files:
-      The target files tracked by 'targets.json'.  'target_files' is a list of
-      target paths that are relative to the targets directory (e.g.,
-      ['file1.txt', 'Django/module.py']).
+      The target files tracked by 'targets.json'.  'target_files' is a
+      dictionary of target paths that are relative to the targets directory and
+      an optional custom value (e.g., {'file1.txt': {'custom_data: 0755},
+      'Django/module.py': {}}).
 
     version:
       The metadata version number.  Clients use the version number to
@@ -1483,16 +1484,21 @@ def generate_targets_metadata(targets_directory, target_files, version,
     # Ensure all target files listed in 'target_files' exist.  If just one of
     # these files does not exist, raise an exception.
     if not os.path.exists(target_path):
-      message = repr(target_path) + ' cannot be read.  Unable to generate '+ \
+      message = repr(target_path) + ' cannot be read.  Unable to generate ' +\
         'targets metadata.'
       raise tuf.Error(message)
 
+    # Add 'custom' if it has been provided.  Custom data about the target is
+    # optional and will only be included in metadata (i.e., a 'custom' field in
+    # the target's fileinfo dictionary) if specified here.
     custom_data = None
     if len(custom):
       custom_data = custom
       
-    filedict[relative_targetpath] = get_metadata_fileinfo(target_path, custom_data)
-    
+    filedict[relative_targetpath] = \
+      get_metadata_fileinfo(target_path, custom_data)
+   
+    # Create hard links for 'target_path' if consistent hashing is enabled.
     if write_consistent_targets:
       for target_digest in filedict[relative_targetpath]['hashes']:
         dirname, basename = os.path.split(target_path)

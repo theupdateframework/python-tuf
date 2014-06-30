@@ -934,6 +934,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.assertTrue(os.path.exists(download_filepath))
       length, hashes = tuf.util.get_file_details(download_filepath)
       download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
+     
+      # Add any 'custom' data from the repository's target fileinfo to the
+      # 'download_targetfileinfo' object being tested.
+      if 'custom' in target_fileinfo['fileinfo']: 
+        download_targetfileinfo['custom'] = target_fileinfo['fileinfo']['custom']
       self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
 
     # Test: Invalid arguments.
