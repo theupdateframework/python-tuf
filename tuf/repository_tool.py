@@ -469,7 +469,7 @@ class Repository(object):
 
     # Ensure a valid directory is given.
     if not os.path.isdir(files_directory):
-      message = repr(files_directory)+' is not a directory.'
+      message = repr(files_directory) + ' is not a directory.'
       raise tuf.Error(message)
    
     # A list of the target filepaths found in 'files_directory'.
@@ -2271,8 +2271,8 @@ class Targets(Metadata):
     for target_path in list_of_targets:
       target_path = os.path.abspath(target_path)
       if not target_path.startswith(self._targets_directory+os.sep):
-        message = 'A path in the list of targets argument is not '+\
-          'under the repository\'s targets directory: '+repr(target_path) 
+        message = 'A path in the list of targets argument is not ' +\
+          'under the repository\'s targets directory: ' + repr(target_path) 
         raise tuf.Error(message)
       
       # Determine the hash prefix of 'target_path' by computing the digest of

@@ -295,7 +295,7 @@ def create_rsa_signature(private_key, data):
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
     
     except (ValueError, IndexError, TypeError) as e:
-      message = 'Invalid private key or hash data: '+str(e)
+      message = 'Invalid private key or hash data: ' + str(e)
       raise tuf.CryptoError(message)
    
     # Generate RSSA-PSS signature.  Raise 'tuf.CryptoError' for the expected
@@ -311,7 +311,7 @@ def create_rsa_signature(private_key, data):
       raise tuf.CryptoError('Missing required RSA private key.')
    
     except IndexError:
-      message = 'An RSA signature cannot be generated: '+str(e)
+      message = 'An RSA signature cannot be generated: ' + str(e)
       raise tuf.CryptoError(message)
   
   else:
@@ -474,7 +474,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
                                                passphrase=passphrase) 
     
     except (ValueError, IndexError, TypeError) as e:
-      message = 'An encrypted RSA key in PEM format cannot be generated: '+str(e)
+      message = 'An encrypted RSA key in PEM format cannot be generated: ' + str(e)
       raise tuf.CryptoError(message)
   
   else:
@@ -570,8 +570,8 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # If the passphrase is incorrect, PyCrypto returns: "RSA key format is not
   # supported".
   except (ValueError, IndexError, TypeError) as e:
-    message = 'RSA (public, private) tuple cannot be generated from the'+\
-      ' encrypted PEM string: '+str(e)
+    message = 'RSA (public, private) tuple cannot be generated from the' +\
+      ' encrypted PEM string: ' + str(e)
     # Raise 'tuf.CryptoError' and PyCrypto's exception message.  Avoid
     # propogating PyCrypto's exception trace to avoid revealing sensitive error.
     raise tuf.CryptoError(message)
@@ -692,7 +692,6 @@ def encrypt_key(key_object, password):
 def decrypt_key(encrypted_key, password):
   """
   <Purpose>
-    
     Return a string containing 'encrypted_key' in non-encrypted form.
     The decrypt_key() function can be applied to the encrypted string to restore
     the original key object, a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).
@@ -862,7 +861,7 @@ def _encrypt(key_data, derived_key_information):
   # checking for exceptions.  Avoid propogating the exception trace and only
   # raise 'tuf.CryptoError', along with the cause of encryption failure.
   except (ValueError, IndexError, TypeError) as e:
-    message = 'The key data cannot be encrypted: '+str(e)
+    message = 'The key data cannot be encrypted: ' + str(e)
     raise tuf.CryptoError(message)
 
   # Generate the hmac of the ciphertext to ensure it has not been modified.
@@ -951,7 +950,7 @@ def _decrypt(file_contents, password):
   # Note: decryption failure, due to malicious ciphertext, should not occur here
   # if the hmac check above passed.
   except (ValueError, IndexError, TypeError) as e: # pragma: no cover
-    raise tuf.CryptoError('Decryption failed: '+str(e))
+    raise tuf.CryptoError('Decryption failed: ' + str(e))
 
   return key_plaintext
 
