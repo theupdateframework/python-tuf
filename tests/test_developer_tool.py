@@ -2,17 +2,17 @@
 
 """
 <Program Name>
-  test_developer_tool.py
+  test_developer_tool.py.
 
 <Authors>
   Santiago Torres Arias <torresariass@gmail.com
   Zane Fisher <zanefisher@gmail.com>
 
 <Copyright>
-  See LICENSE for licensing inforation
+  See LICENSE for licensing inforation.
 
 <Purpose>
-  Unit tests for the 'developer_tool' module
+  Unit test for the 'developer_tool.py' module.
 """
 
 import os
@@ -34,6 +34,8 @@ from tuf.developer_tool import METADATA_DIRECTORY_NAME
 from tuf.developer_tool import TARGETS_DIRECTORY_NAME
 
 logger = logging.getLogger("tuf.test_developer_tool")
+
+developer_tool.disable_console_log_messages()
 
 class TestProject(unittest.TestCase):
 
@@ -57,52 +59,49 @@ class TestProject(unittest.TestCase):
     tuf.keydb.clear_keydb()
     pass
 
-  def test_emtpy(self):
-    return
-
   def test_create_new_project(self):
-    # test cases for the create_new_project function. In this test we will
+    # Test cases for the create_new_project function. In this test we will
     # check input, correct file creation and format. We also check
     # that a proper object is generated. We will use the normal layout for this
     # test suite.
   
-    # create a local subfolder for this test.
+    # Create a local subfolder for this test.
     local_tmp = tempfile.mkdtemp(dir = self.tmp_dir)
 
-    # these are the usual values we will be throwing to the function, however
+    # These are the usual values we will be throwing to the function, however
     # we will swap these for nulls or malformed values every now and then to
-    # test input
+    # test input.
     project_name = "test_suite"
     metadata_directory = local_tmp 
     location_in_repository = '/prefix'
     targets_directory = None 
     key = None
 
-    # create a blank project
+    # Create a blank project.
     project = developer_tool.create_new_project(project_name, metadata_directory, 
         location_in_repository)
 
     self.assertTrue(isinstance(project, developer_tool.Project))
     self.assertTrue(project.layout_type == 'repo-like')
-    self.assertTrue(project.prefix == location_in_repository)
+    self.assertTrue(project._prefix == location_in_repository)
     self.assertTrue(project._project_name == project_name)
     self.assertTrue(project._metadata_directory == 
         os.path.join(metadata_directory,METADATA_DIRECTORY_NAME))
     self.assertTrue(project._targets_directory == 
         os.path.join(metadata_directory,TARGETS_DIRECTORY_NAME))
 
-    # create a blank project without a prefix
+    # Create a blank project without a prefix.
     project = developer_tool.create_new_project(project_name, metadata_directory)
     self.assertTrue(isinstance(project, developer_tool.Project))
     self.assertTrue(project.layout_type == 'repo-like')
-    self.assertTrue(project.prefix == '')
+    self.assertTrue(project._prefix == '')
     self.assertTrue(project._project_name == project_name)
     self.assertTrue(project._metadata_directory == 
         os.path.join(metadata_directory,METADATA_DIRECTORY_NAME))
     self.assertTrue(project._targets_directory == 
         os.path.join(metadata_directory,TARGETS_DIRECTORY_NAME))
 
-    # create a blank project without a valid metadata directory
+    # Create a blank project without a valid metadata directory.
     self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
        0, metadata_directory, location_in_repository) 
     self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
@@ -111,23 +110,23 @@ class TestProject(unittest.TestCase):
        project_name, metadata_directory, 0) 
 
 
-    # create a new project with a flat layout
+    # Create a new project with a flat layout.
     targets_directory = tempfile.mkdtemp(dir = local_tmp)
     metadata_directory = tempfile.mkdtemp(dir = local_tmp)
     project = developer_tool.create_new_project(project_name, metadata_directory,
         location_in_repository, targets_directory)
     self.assertTrue(isinstance(project, developer_tool.Project))
     self.assertTrue(project.layout_type == 'flat')
-    self.assertTrue(project.prefix == location_in_repository)
+    self.assertTrue(project._prefix == location_in_repository)
     self.assertTrue(project._project_name == project_name)
     self.assertTrue(project._metadata_directory == metadata_directory)
     self.assertTrue(project._targets_directory == targets_directory)
 
-    # finally, check that if targets_directory is set, it is valid
+    # Finally, check that if targets_directory is set, it is valid.
     self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
         project_name, metadata_directory, location_in_repository, 0)
    
-    # copy a key to our workspace and create a new project with it.
+    # Copy a key to our workspace and create a new project with it.
     keystore_path = os.path.join('repository_data','keystore')
 
     # I will use the same key as the one provided in the repository
@@ -135,20 +134,20 @@ class TestProject(unittest.TestCase):
     root_key_path = os.path.join(keystore_path,'root_key.pub')
     project_key = developer_tool.import_rsa_publickey_from_file(root_key_path)
 
-    # test create new project with a key added by default
+    # Test create new project with a key added by default.
     project = developer_tool.create_new_project(project_name, metadata_directory,
         location_in_repository, targets_directory, project_key)
     
     self.assertTrue(isinstance(project, developer_tool.Project))
     self.assertTrue(project.layout_type == 'flat')
-    self.assertTrue(project.prefix == location_in_repository)
+    self.assertTrue(project._prefix == location_in_repository)
     self.assertTrue(project._project_name == project_name)
     self.assertTrue(project._metadata_directory == metadata_directory)
     self.assertTrue(project._targets_directory == targets_directory)
     self.assertTrue(len(project.keys) == 1)
     self.assertTrue(project.keys[0] == project_key['keyid'])
 
-    # set as readonly and try to write a repo
+    # Set as readonly and try to write a repo.
     shutil.rmtree(targets_directory)
     os.chmod(local_tmp, 0o0555)
 
@@ -176,24 +175,24 @@ class TestProject(unittest.TestCase):
 
 
   def test_load_project(self):
-    # this test case will try to load an existing project and test for the result
-    # then we will try to load a nonexisting project and expect a correct error
-    # handler
-    # finally, we will try to overwrite the existing prefix on the loaded project
+    # This test case will first try to load an existing project and test for
+    # verify the loaded object.  It will next try to load a nonexisting project
+    # and expect a correct error handler.  Finally, it will try to overwrite the
+    # existing prefix of the loaded project.
 
-    # create a local subfolder for this test.
+    # Create a local subfolder for this test.
     local_tmp = tempfile.mkdtemp(dir = self.tmp_dir)
 
-    # test inexisting project filepath
+    # Test non-existent project filepath.
     nonexistent_path = os.path.join(local_tmp, "nonexistent")
     self.assertRaises(IOError, developer_tool.load_project, nonexistent_path)
 
-    # copy the pregenerated metadata
+    # Copy the pregenerated metadata.
     project_data_filepath = os.path.join('repository_data', 'project')
     target_project_data_filepath = os.path.join(local_tmp, 'project')
     shutil.copytree("repository_data/project", target_project_data_filepath)
 
-    # load a project properly...
+    # Properly load a project.
     repo_filepath = os.path.join(local_tmp, 'project', 'test-repo')
     project = developer_tool.load_project(repo_filepath)
     
@@ -207,12 +206,12 @@ class TestProject(unittest.TestCase):
     self.assertTrue(project.layout_type == 'flat')
 
     
-    # load a project ovrwriting the prefix
+    # Load a project overwriting the prefix.
     project = developer_tool.load_project(repo_filepath, prefix='new')
-    self.assertTrue(project.prefix == 'new')
+    self.assertTrue(project._prefix == 'new')
 
-    # load a project with a file missing
-    file_to_corrupt = os.path.join(repo_filepath, 'test-flat','role1.json')
+    # Load a project with a file missing.
+    file_to_corrupt = os.path.join(repo_filepath, 'test-flat', 'role1.json')
     with open(file_to_corrupt, 'wt') as fp:
       fp.write("this is not a json file")
     
@@ -222,9 +221,6 @@ class TestProject(unittest.TestCase):
 
 
   def test_add_verification_keys(self):
-
-    # maybe we need to clear the roledb and keydb
-   
     # create a new project instance 
     project = developer_tool.Project("test_verification_keys", "somepath",
         "someotherpath", "prefix")
@@ -334,7 +330,7 @@ class TestProject(unittest.TestCase):
         developer_tool.import_rsa_privatekey_from_file(subdelegation_private_key_path,
             'password')
 
-    # test partial write
+    # Test partial write
     # backup everything (again)
     # + backup targets:
     targets_backup = project.target_files
@@ -346,45 +342,45 @@ class TestProject(unittest.TestCase):
     # + backup layout type
     layout_type_backup = project.layout_type
 
-    # + backup keyid's
+    # + backup keyids
     keys_backup = project.keys
     delegation_keys_backup = project("delegation").keys
 
-    # + backup the prefix
-    prefix_backup = project.prefix
+    # + backup the prefix.
+    prefix_backup = project._prefix
     
-    # + backup the name 
+    # + backup the name. 
     name_backup = project._project_name
  
-    # set the compressions, we will be checking this part here too
+    # Set the compressions, we will be checking this part here too
     project.compressions = ['gz']
     project('delegation').compressions = project.compressions
 
-    # write and reload
+    # Write and reload.
     self.assertRaises(tuf.Error, project.write)
     project.write(write_partial=True)
 
     project = developer_tool.load_project(local_tmp)
 
-    # check against backup
-    self.assertEquals(project.target_files, targets_backup)
+    # Check against backup.
+    self.assertEqual(project.target_files, list(targets_backup.keys()))
     new_delegations = tuf.roledb.get_delegated_rolenames(project._project_name)
-    self.assertEquals(new_delegations, delegations_backup)
-    self.assertEquals(project.layout_type, layout_type_backup)
-    self.assertEquals(project.keys, keys_backup)
-    self.assertEquals(project("delegation").keys, delegation_keys_backup)
-    self.assertEquals(project.prefix, prefix_backup)
-    self.assertEquals(project._project_name, name_backup)
+    self.assertEqual(new_delegations, delegations_backup)
+    self.assertEqual(project.layout_type, layout_type_backup)
+    self.assertEqual(project.keys, keys_backup)
+    self.assertEqual(project("delegation").keys, delegation_keys_backup)
+    self.assertEqual(project._prefix, prefix_backup)
+    self.assertEqual(project._project_name, name_backup)
 
     
 
     roleinfo = tuf.roledb.get_roleinfo(project._project_name)
 
-    self.assertEquals(roleinfo['partial_loaded'], True)
+    self.assertEqual(roleinfo['partial_loaded'], True)
 
 
 
-    # load_signing_keys
+    # Load_signing_keys.
     project("delegation").load_signing_key(delegation_private_key)
 
     project.status()
@@ -392,52 +388,51 @@ class TestProject(unittest.TestCase):
     project("delegation")("subdelegation").load_signing_key(
         subdelegation_private_key)
 
-#    import pdb; pdb.set_trace() 
     project.status()
 
     project.load_signing_key(project_private_key)
 
-    # backup everything
-    # + backup targets:
+    # Backup everything.
+    # + backup targets.
     targets_backup = project.target_files
 
-    # + backup delegations
+    # + backup delegations.
     delegations_backup = \
         tuf.roledb.get_delegated_rolenames(project._project_name)
 
-    # + backup layout type
+    # + backup layout type.
     layout_type_backup = project.layout_type
 
-    # + backup keyid's
+    # + backup keyids
     keys_backup = project.keys
     delegation_keys_backup = project("delegation").keys
 
-    # + backup the prefix
-    prefix_backup = project.prefix
+    # + backup the prefix.
+    prefix_backup = project._prefix
     
-    # + backup the name 
+    # + backup the name.
     name_backup = project._project_name
 
-    # call status (for the sake of doing it)
+    # Call status (for the sake of doing it.)
     project.status()
 
-    # call write
+    # Call write.
     project.write()
 
-    # call load
+    # Call load.
     project = developer_tool.load_project(local_tmp)
 
 
-    # check against backup
-    self.assertEquals(project.target_files, targets_backup)
+    # Check against backup.
+    self.assertEqual(project.target_files, targets_backup)
 
     new_delegations = tuf.roledb.get_delegated_rolenames(project._project_name)
-    self.assertEquals(new_delegations, delegations_backup)
-    self.assertEquals(project.layout_type, layout_type_backup)
-    self.assertEquals(project.keys, keys_backup)
-    self.assertEquals(project("delegation").keys, delegation_keys_backup)
-    self.assertEquals(project.prefix, prefix_backup)
-    self.assertEquals(project._project_name, name_backup)
+    self.assertEqual(new_delegations, delegations_backup)
+    self.assertEqual(project.layout_type, layout_type_backup)
+    self.assertEqual(project.keys, keys_backup)
+    self.assertEqual(project("delegation").keys, delegation_keys_backup)
+    self.assertEqual(project._prefix, prefix_backup)
+    self.assertEqual(project._project_name, name_backup)
 
 
 
