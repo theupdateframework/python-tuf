@@ -250,9 +250,10 @@ $ mkdir django; echo 'file4' > django/file4.txt
 # In the example below, file permissions of the target (octal number specifying file
 # access for owner, group, others (e.g., 0755) is added alongside the default fileinfo.
 # All target objects in metadata include the target's filepath, hash, and length.
->>> octal_file_permissions = oct(os.stat(target2_filepath).st_mode)[4:]
+>>> target3_filepath = "path/to/repository/targets/file3.txt"
+>>> octal_file_permissions = oct(os.stat(target3_filepath).st_mode)[4:]
 >>> custom_file_permissions = {'file_permissions': octal_file_permissions}
->>> repository.targets.add_target("path/to/repository/targets/file3.txt", custom_file_permissions)
+>>> repository.targets.add_target(target3_filepath, custom_file_permissions)
 
 # The private key of the updated targets metadata must be loaded before it can be signed and
 # written (Note the load_repository() call above).
