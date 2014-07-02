@@ -48,7 +48,6 @@
   --repo:
     Set the repository mirror that will be responding to client requests.
     E.g., 'http://locahost:8001'.
-
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -96,7 +95,6 @@ def update_client(repository_mirror):
 
   <Returns>
     None.
-
   """
 
   # Does 'repository_mirror' have the correct format?
@@ -169,7 +167,6 @@ def parse_options():
 
   <Returns>
     The 'options.REPOSITORY_MIRROR' string.
-
   """
 
   parser = optparse.OptionParser()
