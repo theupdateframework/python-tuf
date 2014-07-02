@@ -5,7 +5,7 @@
   test_developer_tool.py.
 
 <Authors>
-  Santiago Torres Arias <torresariass@gmail.com
+  Santiago Torres Arias <torresariass@gmail.com>
   Zane Fisher <zanefisher@gmail.com>
 
 <Copyright>
@@ -33,7 +33,7 @@ import tuf.developer_tool as developer_tool
 from tuf.developer_tool import METADATA_DIRECTORY_NAME
 from tuf.developer_tool import TARGETS_DIRECTORY_NAME
 
-logger = logging.getLogger("tuf.test_developer_tool")
+logger = logging.getLogger('tuf.test_developer_tool')
 
 developer_tool.disable_console_log_messages()
 
@@ -71,7 +71,7 @@ class TestProject(unittest.TestCase):
     # These are the usual values we will be throwing to the function, however
     # we will swap these for nulls or malformed values every now and then to
     # test input.
-    project_name = "test_suite"
+    project_name = 'test_suite'
     metadata_directory = local_tmp 
     location_in_repository = '/prefix'
     targets_directory = None 
@@ -184,19 +184,19 @@ class TestProject(unittest.TestCase):
     local_tmp = tempfile.mkdtemp(dir = self.tmp_dir)
 
     # Test non-existent project filepath.
-    nonexistent_path = os.path.join(local_tmp, "nonexistent")
+    nonexistent_path = os.path.join(local_tmp, 'nonexistent')
     self.assertRaises(IOError, developer_tool.load_project, nonexistent_path)
 
     # Copy the pregenerated metadata.
     project_data_filepath = os.path.join('repository_data', 'project')
     target_project_data_filepath = os.path.join(local_tmp, 'project')
-    shutil.copytree("repository_data/project", target_project_data_filepath)
+    shutil.copytree('repository_data/project', target_project_data_filepath)
 
     # Properly load a project.
     repo_filepath = os.path.join(local_tmp, 'project', 'test-repo')
     project = developer_tool.load_project(repo_filepath)
     
-    self.assertTrue(project.layout_type == "repo-like")
+    self.assertTrue(project.layout_type == 'repo-like')
 
     repo_filepath = os.path.join(local_tmp, 'project', 'test-flat')
     new_targets_path = os.path.join(local_tmp, 'project', 'targets')
@@ -213,7 +213,7 @@ class TestProject(unittest.TestCase):
     # Load a project with a file missing.
     file_to_corrupt = os.path.join(repo_filepath, 'test-flat', 'role1.json')
     with open(file_to_corrupt, 'wt') as fp:
-      fp.write("this is not a json file")
+      fp.write('this is not a json file')
     
     self.assertRaises(tuf.Error, developer_tool.load_project, repo_filepath)
 
@@ -221,14 +221,14 @@ class TestProject(unittest.TestCase):
 
 
   def test_add_verification_keys(self):
-    # create a new project instance 
-    project = developer_tool.Project("test_verification_keys", "somepath",
-        "someotherpath", "prefix")
+    # Create a new project instance. 
+    project = developer_tool.Project('test_verification_keys', 'somepath',
+        'someotherpath', 'prefix')
 
-    # add invalid verification key
-    self.assertRaises(tuf.FormatError, project.add_verification_key, "invalid")
+    # Add invalid verification key.
+    self.assertRaises(tuf.FormatError, project.add_verification_key, 'invalid')
 
-    # add verification key
+    # Add verification key.
     #  - load it first 
     keystore_path = os.path.join('repository_data','keystore')
     first_verification_key_path = os.path.join(keystore_path,'root_key.pub')
@@ -238,7 +238,7 @@ class TestProject(unittest.TestCase):
     project.add_verification_key(first_verification_key)
 
 
-    # add another verification key (should expect exception)
+    # Add another verification key (should expect exception.)
     second_verification_key_path = os.path.join(keystore_path,'snapshot_key.pub')
     second_verification_key = \
       developer_tool.import_rsa_publickey_from_file(second_verification_key_path)
@@ -248,72 +248,73 @@ class TestProject(unittest.TestCase):
 
 
     
-    # add a verification key for the delegation 
-    project.delegate("somedelegation", [], [])
-    project("somedelegation").add_verification_key(first_verification_key)
-    project("somedelegation").add_verification_key(second_verification_key)
+    # Add a verification key for the delegation.
+    project.delegate('somedelegation', [], [])
+    project('somedelegation').add_verification_key(first_verification_key)
+    project('somedelegation').add_verification_key(second_verification_key)
 
 
-    # add another delegation of the delegation
-    project("somedelegation").delegate("somesubdelegation", [], [])
-    project("somedelegation")("somesubdelegation").add_verification_key(
+    # Add another delegation of the delegation.
+    project('somedelegation').delegate('somesubdelegation', [], [])
+    project('somedelegation')('somesubdelegation').add_verification_key(
         first_verification_key)
-    project("somedelegation")("somesubdelegation").add_verification_key(
+    project('somedelegation')('somesubdelegation').add_verification_key(
         second_verification_key)
 
 
   def test_write(self):
 
-    # create tmp directory
+    # Create tmp directory.
     local_tmp = tempfile.mkdtemp(dir=self.tmp_dir)
 
-    # create new project inside tmp directory
-    project = developer_tool.create_new_project("test_write", local_tmp, 
-        "prefix");
+    # Create new project inside tmp directory.
+    project = developer_tool.create_new_project('test_write', local_tmp, 
+        'prefix');
 
-    # create some target files inside the tmp directory
-    target_filepath = os.path.join(local_tmp, "targets", "test_target")
-    with open(target_filepath, "wt") as fp:
-      fp.write("testing file")
+    # Create some target files inside the tmp directory.
+    target_filepath = os.path.join(local_tmp, 'targets', 'test_target')
+    with open(target_filepath, 'wt') as fp:
+      fp.write('testing file')
     
 
-    # add the targets
+    # Add the targets.
     project.add_target(target_filepath)
 
-    # add verification keys
-    keystore_path = os.path.join('repository_data','keystore')
-    project_key_path = os.path.join(keystore_path,'root_key.pub')
+    # Add verification keys.
+    keystore_path = os.path.join('repository_data', 'keystore')
+    project_key_path = os.path.join(keystore_path, 'root_key.pub')
     project_key = \
       developer_tool.import_rsa_publickey_from_file(project_key_path)
 
 
-    # call status (for the sake of doing it)
+    # Call status (for the sake of doing it and to improve test coverage by 
+    # executing its statements.)
     project.status()
   
     project.add_verification_key(project_key)
 
 
-    # add another verification key (should expect exception)
-    delegation_key_path = os.path.join(keystore_path,'snapshot_key.pub')
+    # Add another verification key (should expect exception.)
+    delegation_key_path = os.path.join(keystore_path, 'snapshot_key.pub')
     delegation_key = \
       developer_tool.import_rsa_publickey_from_file(delegation_key_path)
 
-    # add a subdelegation
-    subdelegation_key_path = os.path.join(keystore_path,'timestamp_key.pub')
+    # Add a subdelegation.
+    subdelegation_key_path = os.path.join(keystore_path, 'timestamp_key.pub')
     subdelegation_key = \
         developer_tool.import_rsa_publickey_from_file(subdelegation_key_path)
     
-    # add a delegation
-    project.delegate("delegation", [delegation_key], [])
-    project("delegation").delegate("subdelegation", [subdelegation_key], [])
+    # Add a delegation.
+    project.delegate('delegation', [delegation_key], [])
+    project('delegation').delegate('subdelegation', [subdelegation_key], [])
 
     # call write (except)
     self.assertRaises(tuf.Error, project.write, ())
 
-    # call status (for the sake of doing it)
+    # Call status (for the sake of doing it and executing its statements.)
     project.status()
   
-    # load private keys
+    # Load private keys.
     project_private_key_path = os.path.join(keystore_path, 'root_key')
     project_private_key = \
         developer_tool.import_rsa_privatekey_from_file(project_private_key_path,
@@ -330,21 +331,21 @@ class TestProject(unittest.TestCase):
         developer_tool.import_rsa_privatekey_from_file(subdelegation_private_key_path,
             'password')
 
-    # Test partial write
+    # Test partial write.
     # backup everything (again)
-    # + backup targets:
+    # + backup targets.
     targets_backup = project.target_files
 
-    # + backup delegations
+    # + backup delegations.
     delegations_backup = \
         tuf.roledb.get_delegated_rolenames(project._project_name)
 
-    # + backup layout type
+    # + backup layout type.
     layout_type_backup = project.layout_type
 
-    # + backup keyids
+    # + backup keyids.
     keys_backup = project.keys
-    delegation_keys_backup = project("delegation").keys
+    delegation_keys_backup = project('delegation').keys
 
     # + backup the prefix.
     prefix_backup = project._prefix
@@ -352,7 +353,7 @@ class TestProject(unittest.TestCase):
     # + backup the name. 
     name_backup = project._project_name
  
-    # Set the compressions, we will be checking this part here too
+    # Set the compressions.  We will be checking this part here too.
     project.compressions = ['gz']
     project('delegation').compressions = project.compressions
 
@@ -363,12 +364,12 @@ class TestProject(unittest.TestCase):
     project = developer_tool.load_project(local_tmp)
 
     # Check against backup.
-    self.assertEqual(project.target_files, list(targets_backup.keys()))
+    self.assertEqual(list(project.target_files.keys()), list(targets_backup.keys()))
     new_delegations = tuf.roledb.get_delegated_rolenames(project._project_name)
     self.assertEqual(new_delegations, delegations_backup)
     self.assertEqual(project.layout_type, layout_type_backup)
     self.assertEqual(project.keys, keys_backup)
-    self.assertEqual(project("delegation").keys, delegation_keys_backup)
+    self.assertEqual(project('delegation').keys, delegation_keys_backup)
     self.assertEqual(project._prefix, prefix_backup)
     self.assertEqual(project._project_name, name_backup)
 
@@ -381,11 +382,11 @@ class TestProject(unittest.TestCase):
 
 
     # Load_signing_keys.
-    project("delegation").load_signing_key(delegation_private_key)
+    project('delegation').load_signing_key(delegation_private_key)
 
     project.status()
 
-    project("delegation")("subdelegation").load_signing_key(
+    project('delegation')('subdelegation').load_signing_key(
         subdelegation_private_key)
 
     project.status()
@@ -405,7 +406,7 @@ class TestProject(unittest.TestCase):
 
     # + backup keyids
     keys_backup = project.keys
-    delegation_keys_backup = project("delegation").keys
+    delegation_keys_backup = project('delegation').keys
 
     # + backup the prefix.
     prefix_backup = project._prefix
@@ -424,17 +425,15 @@ class TestProject(unittest.TestCase):
 
 
     # Check against backup.
-    self.assertEqual(project.target_files, targets_backup)
+    self.assertEqual(list(project.target_files.keys()), list(targets_backup.keys()))
 
     new_delegations = tuf.roledb.get_delegated_rolenames(project._project_name)
     self.assertEqual(new_delegations, delegations_backup)
     self.assertEqual(project.layout_type, layout_type_backup)
     self.assertEqual(project.keys, keys_backup)
-    self.assertEqual(project("delegation").keys, delegation_keys_backup)
+    self.assertEqual(project('delegation').keys, delegation_keys_backup)
     self.assertEqual(project._prefix, prefix_backup)
     self.assertEqual(project._project_name, name_backup)
-
-
 
 
 
