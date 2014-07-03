@@ -46,6 +46,7 @@ import tuf.sig
 import tuf.log
 import tuf.conf
 import tuf.repository_tool
+import tuf._vendor.six as six
 
 # These imports provide the interface for 'developer_tool.py', since the imports
 # are made there. 
@@ -397,7 +398,7 @@ class Project(Targets):
                                                 targets_directory,
                                                 metadata_directory,
                                                 False)
-          self._print_status(delegated_role, signable[0])
+          self._log_status(delegated_role, signable[0])
         
         except tuf.Error:
           insufficient_signatures.append(delegated_role)
@@ -405,13 +406,13 @@ class Project(Targets):
       if len(insufficient_keys):
         message = 'Delegated roles with insufficient keys: ' +\
           repr(insufficient_keys)
-        print(message)
+        logger.info(message)
         return
 
       if len(insufficient_signatures):
         message = 'Delegated roles with insufficient signatures: ' +\
           repr(insufficient_signatures)
-        print(message) 
+        logger.info(message) 
         return
 
       # Targets role.
@@ -419,7 +420,7 @@ class Project(Targets):
         _check_role_keys(self.rolename)
       
       except tuf.InsufficientKeysError as e:
-        print(str(e))
+        logger.info(str(e))
         return
       
       try:
@@ -428,11 +429,11 @@ class Project(Targets):
                                                 targets_directory,
                                                 metadata_directory,
                                                 False)
-        self._print_status(self._project_name, signable)
+        self._log_status(self._project_name, signable)
       
       except tuf.Error as e:
         signable = e[1]
-        self._print_status(self._project_name, signable)
+        self._log_status(self._project_name, signable)
         return
 
     finally:
@@ -442,7 +443,7 @@ class Project(Targets):
 
 
 
-  def _print_status(self, rolename, signable):
+  def _log_status(self, rolename, signable):
     """
     Non-public function prints the number of (good/threshold) signatures of
     'rolename'.
@@ -453,7 +454,7 @@ class Project(Targets):
     message = repr(rolename) + ' role contains ' +\
       repr(len(status['good_sigs'])) + ' / ' + repr(status['threshold']) +\
       ' signatures.'
-    print(message)
+    logger.info(message)
 
 
 
@@ -486,8 +487,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                        roleinfo['delegations'],
                                        False) 
 
-  # Preprend the prefix to the project's filepath to avoid signature errors
-  # in upstream.
+  # Prepend the prefix to the project's filepath to avoid signature errors in
+  # upstream.
   target_filepaths = metadata['targets'].items()
   for element in list(metadata['targets']):
     junk_path, relative_target = os.path.split(element)
@@ -877,7 +878,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   roleinfo = tuf.roledb.get_roleinfo(project_name)
   roleinfo['signatures'].extend(signable['signatures'])
   roleinfo['version'] = targets_metadata['version']
-  roleinfo['paths'] = list(targets_metadata['targets'])
+  roleinfo['paths'] = targets_metadata['targets']
   roleinfo['delegations'] = targets_metadata['delegations']
   roleinfo['partial_loaded'] = False
   
@@ -922,8 +923,8 @@ def load_project(project_directory, prefix='', new_targets_location=None):
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
 
-        # Strip the extension.  The roledb does not include '.json' role
-        # extensions
+        # Strip the extension.  The roledb does not include an appended '.json'
+        # extensions for each role.
         if metadata_name.endswith(METADATA_EXTENSION): 
           extension_length = len(METADATA_EXTENSION)
           metadata_name = metadata_name[:-extension_length]
@@ -948,7 +949,9 @@ def load_project(project_directory, prefix='', new_targets_location=None):
         roleinfo['signatures'].extend(signable['signatures'])
         roleinfo['version'] = metadata_object['version']
         roleinfo['expires'] = metadata_object['expires']
-        roleinfo['paths'] = list(metadata_object['targets'])
+        roleinfo['paths'] = {}
+        for filepath, fileinfo in six.iteritems(metadata_object['targets']):
+          roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
         roleinfo['delegations'] = metadata_object['delegations']
         roleinfo['partial_loaded'] = False
       

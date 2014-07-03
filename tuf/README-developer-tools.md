@@ -1,6 +1,6 @@
-# Developing for a TUF repository #
+# The Update Framework Developer Tool: How to Update your Project Securely on a TUF Repository
 
-## Table of Contents ##
+## Table of Contents
 - [Overview](#overview)
 - [Creating a Simple Project](#creating_a_simple_project)
   - [Generating a Key](#generating_a_key)
@@ -13,29 +13,39 @@
 
 <a name="overview">
 ## Overview 
-The TUF developer tool is a Python library that enables developers to create
-and maintain the required metadata for files hosted in a TUF Repository. The
-main concern when generating metadata for a TUF repository is generating
-information that matches the future location of the files in the repository. We
-use the developer tools to generate valid information so that the project and
-its metadata can be applied to the TUF project transparently.
+The Update Framework (TUF) is a Python-based security system for software
+updates. In order to prevent your users from downloading vulnerable or malicious
+code disguised as updates to your software, TUF requires that each update you
+release include certain metadata verifying your authorship of the files.
 
-This  document has two parts. The first part walks through the creation of a
-prototypal TUF project. The second part demonstrates the full capabilities of
-the TUF developer tool, which can be used to expand the project from the first
-part to meet the developer's needs.
+The TUF developer tools are a Python Library that enables you to create and
+maintain the required metadata for files hosted on a TUF Repository. (We call
+these files “targets,” to distinguish them from the metadata associated with
+them. Both of these together comprise a complete “project”.) You will use these
+tools to generate the keys and metadata you need to claim and secure your files
+on the repository, and to update the metadata and sign it with those keys
+whenever you upload a new version of those files.
+
+This document will teach you how to use these tools in two parts. The first
+part walks through the creation of a minimal-complexity TUF project, which is
+all you need to get started, and can be expanded later. The second part details
+the full functionality of the tools, which offer a finer degree of control in
+securing your project.
 
 <a name="creating_a_simple_project">
-## Creating a Simple project
-The following section describes a very basic example usage of the developer
-tools with a one-file project.
+## Creating a Simple Project
+This section walks through the creation of a small example project with just
+one target. Once created, this project will be fully functional, and can be
+modified as needed.
 
 <a name="generating_a_key">
 ### Generating a Key
 First, we will need to generate a key to sign the metadata. Keys are generated
 in pairs: one public and the other private. The private key is
 password-protected and is used to sign metadata. The public key can be shared
-freely, and is used to verify signatures made by the private key.
+freely, and is used to verify signatures made by the private key. You will need
+too share your public key with the repository hosting your project so they can
+verify your metadata is signed by the right person.
 
 The generate\_and\_write\_rsa\_keypair function will create two key files named
 "path/to/key.pub", which is the public key and "path/to/key", which
@@ -60,11 +70,11 @@ Now we have a key for our project, we can proceed to create our project.
 <a name="the_project_class">
 ### The Project Class
 The TUF developer tool is built around the Project class, which is used to
-organize groups of targets associated with a single set of metadata. Each
-Project instance keeps track of which target files are associated with a single
-set of metadata. Each Project instance keeps track of which target files are
-signed and which need signing, which keys are used to sign metadata. It also
-keeps track of delegated roles, which are covered later.
+organize groups of targets associated with a single set of metadata. A single
+Project instance is used to keep track of all the target files and metadata
+files in one project. The Project also keeps track of the keys and signatures,
+so that it can update all the metadata with the correct changes and signatures
+on a single command.
 
 Before creating a project, you must know where it will be located in the TUF
 Repository. In the following example, we will create a project to be hosted as
@@ -74,7 +84,7 @@ target file, "local/path/to/example\_project/target\_1" locally, and we will
 secure it with the key generated above.
 
 First, we must import the generated keys. We can do that by issuing the
-following:
+following command:
 
 ```
 >>> public_key = import_rsa_publickey_from_file("path/to/keys.pub")
@@ -110,8 +120,8 @@ To add a target, we issue the following method:
 >>> project.add_target("target_1")
 ```
 
-Have in mind the file "target\_1" should be located in
-"local/path/to/example\_project" or else the adding procedure will throw an
+Note that the file "target\_1" should be located in
+"local/path/to/example\_project", or this method will throw an
 error.
 
 At this point, the metadata is not valid. We have assigned a key to the
@@ -132,8 +142,9 @@ Enter password for the RSA key:
 >>> project.write()
 ```
 
-When all changes to a project have been written, the Project instance can
-safely be deleted. 
+When all changes to the project have been written, the metadata is ready to be
+uploaded to the repository, and it is safe to exit the Python interpreter, or
+to delete the Project instance.
 
 The project can be loaded later to update changes to the project. The metadata
 contains checksums that have to match the actual files or else it won't be
@@ -165,6 +176,9 @@ Enter a password for the RSA key:
 >>> project.load_signing_key(private_key)
 >>> project.write()
 ```
+
+If your project does not use any delegations, the five commands above are all
+you need to update your project's metadata.
 
 <a name="delegations">
 ## Delegations
@@ -206,7 +220,7 @@ filepaths to a role by adding them to the list in the first parameter, or by
 invoking the method again. A role with multiple restricted paths can add
 targets to any of them.
 
-Note that this method is invoked the parent role (in this case, the Project)
+Note that this method is invoked from the parent role (in this case, the Project)
 and takes the delegated role name as an argument.
 
 ### Nested Delegations
