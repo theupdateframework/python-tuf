@@ -110,6 +110,8 @@ HEX_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
 
 # A key identifier (e.g., a hexadecimal value identifying an RSA key).
 KEYID_SCHEMA = HASH_SCHEMA
+
+# A list of KEYID_SCHEMA.
 KEYIDS_SCHEMA = SCHEMA.ListOf(KEYID_SCHEMA)
 
 # The method used for a generated signature (e.g., 'RSASSA-PSS').
@@ -269,6 +271,8 @@ TARGETFILE_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETFILE_SCHEMA',
   filepath = RELPATH_SCHEMA,
   fileinfo = FILEINFO_SCHEMA)
+
+# A list of TARGETFILE_SCHEMA.
 TARGETFILES_SCHEMA = SCHEMA.ListOf(TARGETFILE_SCHEMA)
 
 # A single signature of an object.  Indicates the signature, the id of the
@@ -394,6 +398,15 @@ COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
 COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
   SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
 
+# The fileinfo format of targets specified in the repository and
+# developer tools.  The second element of this list holds custom data about the
+# target, such as file permissions, author(s), last modified, etc.
+CUSTOM_SCHEMA = SCHEMA.Object()
+
+PATH_FILEINFO_SCHEMA = SCHEMA.DictOf(
+  key_schema = RELPATH_SCHEMA,
+  value_schema = CUSTOM_SCHEMA)
+
 # tuf.roledb
 ROLEDB_SCHEMA = SCHEMA.Object(
   object_name = 'ROLEDB_SCHEMA',
@@ -404,7 +417,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
   signatures = SCHEMA.Optional(SIGNATURES_SCHEMA),
   compressions = SCHEMA.Optional(COMPRESSIONS_SCHEMA),
-  paths = SCHEMA.Optional(RELPATHS_SCHEMA),
+  paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
   partial_loaded = SCHEMA.Optional(BOOLEAN_SCHEMA))
@@ -443,6 +456,18 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   meta = FILEDICT_SCHEMA)
+
+# project.cfg file: stores information about the project in a json dictionary
+PROJECT_CFG_SCHEMA = SCHEMA.Object(
+    object_name = 'PROJECT_CFG_SCHEMA',
+    project_name = SCHEMA.AnyString(),
+    layout_type = SCHEMA.OneOf([SCHEMA.String('repo-like'), SCHEMA.String('flat')]),
+    targets_location = PATH_SCHEMA,
+    metadata_location = PATH_SCHEMA,
+    prefix = PATH_SCHEMA,
+    public_keys = KEYDICT_SCHEMA,
+    threshold = SCHEMA.Integer(lo = 0, hi = 2)
+    )
 
 # A schema containing information a repository mirror may require,
 # such as a url, the path of the directory metadata files, etc.

@@ -32,6 +32,7 @@ import logging
 import tempfile
 import json
 import shutil
+import stat
 import sys
 
 # 'unittest2' required for testing under Python < 2.7.
@@ -457,11 +458,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     with open(file1_path, 'wt') as file_object:
       file_object.write('test file.')
    
-    # Set valid generate_targets_metadata() arguments.
+    # Set valid generate_targets_metadata() arguments.  Add a custom field for
+    # the 'target_files' target set below.
     version = 1
     datetime_object = datetime.datetime(2030, 1, 1, 12, 0)
     expiration_date = datetime_object.isoformat() + 'Z'
-    target_files = ['file.txt']
+    file_permissions = oct(os.stat(file1_path).st_mode)[4:] 
+    target_files = {'file.txt': {'file_permission': file_permissions}}
     
     delegations = {"keys": {
       "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf": {
@@ -490,7 +493,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                          version, expiration_date, delegations,
                                          False)
     self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
-
+    
     # Verify that 'digest.filename' file is saved to 'targets_directory' if
     # the 'write_consistent_targets' argument is True.
     list_targets_directory = os.listdir(targets_directory)
@@ -504,6 +507,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(len(list_targets_directory) + 1,
                     len(new_list_targets_directory))
 
+    # Verify that 'targets_metadata' contains a 'custom' entry (optional)
+    # for 'file.txt'.
+    self.assertTrue('custom' in targets_metadata['targets']['file.txt'])
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_lib.generate_targets_metadata,
@@ -716,6 +722,24 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test invalid argument (i.e., client directory already exists.)
     self.assertRaises(tuf.RepositoryError, repo_lib.create_tuf_client_directory,
                       repository_directory, client_directory)
+
+    # Test invalid client metadata directory (i.e., non-errno.EEXIST exceptions
+    # should be re-raised.) 
+    shutil.rmtree(metadata_directory)
+    current_client_directory_mode = os.stat(client_directory)[stat.ST_MODE]
+    
+    # Remove write access for the client directory so that the 'metadata'
+    # directory cannot be created.  create_tuf_client_directory() should
+    # re-raise the 'OSError' (i.e., errno.EACCES) exception and only handle
+    # errno.EEXIST.
+    os.chmod(client_directory, current_client_directory_mode & ~stat.S_IWUSR)
+
+    self.assertRaises(OSError, repo_lib.create_tuf_client_directory,
+                      repository_directory, client_directory)
+    
+    # Reset the client directory's mode.
+    os.chmod(client_directory, current_client_directory_mode)
+
 
 
   def test__check_directory(self):

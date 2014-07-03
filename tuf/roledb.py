@@ -108,6 +108,7 @@ def create_roledb_from_root_metadata(root_metadata):
     roleinfo['compressions'] = ['']
     roleinfo['partial_loaded'] = False
     if rolename.startswith('targets'):
+      roleinfo['paths'] = {}
       roleinfo['delegations'] = {'keys': {}, 'roles': []}
     
     try:
@@ -639,7 +640,7 @@ def get_role_paths(rolename):
   try:
     return roleinfo['paths']
   except KeyError:
-    return list()
+    return dict()
 
 
 

@@ -243,6 +243,49 @@ class TestRepository(unittest.TestCase):
 
     # Verify the status() does not raise an exception.
     repository.status()
+    
+    # Verify status() does not raise 'tuf.InsufficientKeysError' if a top-level
+    # role does not contain a threshold of keys.
+    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    old_threshold = root_roleinfo['threshold']  
+    root_roleinfo['threshold'] = 10
+    tuf.roledb.update_roleinfo('root', root_roleinfo)
+    repository.status()
+   
+    # Restore the original threshold value.
+    root_roleinfo['threshold'] = old_threshold
+    tuf.roledb.update_roleinfo('root', root_roleinfo)
+    
+    # Verify status() does not raise 'tuf.UnsignedMetadataError' if any of the
+    # the top-level roles are improperly signed.
+    repository.root.unload_signing_key(root_privkey)
+    repository.root.load_signing_key(targets_privkey)
+    repository.status()
+
+    # Reset Root and verify Targets. 
+    repository.root.unload_signing_key(targets_privkey)
+    repository.root.load_signing_key(root_privkey)
+    repository.targets.unload_signing_key(targets_privkey)
+    repository.targets.load_signing_key(snapshot_privkey)
+    repository.status()
+
+    # Reset Targets and verify Snapshot.
+    repository.targets.unload_signing_key(snapshot_privkey)
+    repository.targets.load_signing_key(targets_privkey)
+    repository.snapshot.unload_signing_key(snapshot_privkey)
+    repository.snapshot.load_signing_key(timestamp_privkey)
+    repository.status()
+   
+    # Reset Snapshot and verify timestamp. 
+    repository.snapshot.unload_signing_key(timestamp_privkey)
+    repository.snapshot.load_signing_key(snapshot_privkey)
+    repository.timestamp.unload_signing_key(timestamp_privkey)
+    repository.timestamp.load_signing_key(root_privkey)
+    repository.status()
+
+    # Reset Timestamp
+    repository.timestamp.unload_signing_key(root_privkey)
+    repository.timestamp.load_signing_key(timestamp_privkey)
 
     # Verify that a write() fails if a repository is loaded and a change
     # is made to a role.
@@ -273,8 +316,6 @@ class TestRepository(unittest.TestCase):
     # Verify that consistent snapshot can be written and loaded. 
     repository.write(consistent_snapshot=True) 
     repo_tool.load_repository(repository_directory)
-
-    # Test 
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repository.write, 3, False)
@@ -852,7 +893,7 @@ class TestTargets(unittest.TestCase):
   def test_target_files(self):
     # Test normal case.
     # Verify the targets object initially contains zero target files.
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
     target_filepath = os.path.join(self.targets_directory, 'file1.txt')
     self.targets_object.add_target(target_filepath)
@@ -891,17 +932,35 @@ class TestTargets(unittest.TestCase):
   def test_add_target(self):
     # Test normal case.
     # Verify the targets object initially contains zero target files.
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
     target_filepath = os.path.join(self.targets_directory, 'file1.txt')
     self.targets_object.add_target(target_filepath)
 
     self.assertEqual(len(self.targets_object.target_files), 1)
     self.assertTrue('/file1.txt' in self.targets_object.target_files)
-    
+   
+    # Test the 'custom' parameter of add_target(), where additional information
+    # may be specified for the target.
+    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+
+    # The file permission of the target (octal number specifying file access
+    # for owner, group, others (e.g., 0755).
+    octal_file_permissions = oct(os.stat(target2_filepath).st_mode)[4:]
+    custom_file_permissions = {'file_permissions': octal_file_permissions}
+    self.targets_object.add_target(target2_filepath, custom_file_permissions) 
+
+    self.assertEqual(len(self.targets_object.target_files), 2)
+    self.assertTrue('/file2.txt' in self.targets_object.target_files)
+    self.assertEqual(self.targets_object.target_files['/file2.txt'],
+                     custom_file_permissions)
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, self.targets_object.add_target, 3)
+    self.assertRaises(tuf.FormatError, self.targets_object.add_target, 3,
+                      custom_file_permissions)
+    self.assertRaises(tuf.FormatError, self.targets_object.add_target,
+                      target_filepath, 3)
 
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
@@ -922,7 +981,7 @@ class TestTargets(unittest.TestCase):
   def test_add_targets(self):
     # Test normal case.
     # Verify the targets object initially contains zero target files.
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
     target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
@@ -933,7 +992,7 @@ class TestTargets(unittest.TestCase):
     
     self.assertEqual(len(self.targets_object.target_files), 3)
     self.assertEqual(self.targets_object.target_files, 
-                     ['/file1.txt', '/file2.txt', '/file3.txt'])
+                     {'/file1.txt': {}, '/file2.txt': {}, '/file3.txt': {}})
 
 
     # Test improperly formatted arguments.
@@ -954,7 +1013,7 @@ class TestTargets(unittest.TestCase):
   def test_remove_target(self):
     # Test normal case.
     # Verify the targets object initially contains zero target files.
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
     # Add a target so that remove_target() has something to remove.
     target_filepath = os.path.join(self.targets_directory, 'file1.txt')
@@ -962,7 +1021,7 @@ class TestTargets(unittest.TestCase):
 
     # Test remove_target()'s behavior.
     self.targets_object.remove_target(target_filepath)
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
 
     # Test improperly formatted arguments.
@@ -978,7 +1037,7 @@ class TestTargets(unittest.TestCase):
   def test_clear_targets(self):
     # Test normal case.
     # Verify the targets object initially contains zero target files.
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
     # Add targets, to be tested by clear_targets().
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
@@ -986,7 +1045,7 @@ class TestTargets(unittest.TestCase):
     self.targets_object.add_targets([target1_filepath, target2_filepath])
 
     self.targets_object.clear_targets()
-    self.assertEqual(self.targets_object.target_files, [])
+    self.assertEqual(self.targets_object.target_files, {})
 
 
 

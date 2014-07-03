@@ -1,9 +1,9 @@
 {
  "signatures": [
   {
-   "keyid": "a07d55ab2637afc97b2d2fff88001618b9d23ac4e16d049cffa18d59ae374c05",
+   "keyid": "6986b667c736a3b37471e030cf4ce7aa6c7e0d530325e64c2660276b77be3754",
    "method": "RSASSA-PSS",
-   "sig": "2ee65198d1f25e77e77c7d3e4027a23659257bb597ccb51199223272368f0a3bcedf77b8f7d1ab52ac8dd26443589e7f938f74669503da9006f704339a2fd820dc9cb8859abe7aab4f76c367fc9cc7963c623156fcb73c5b15cb0957f0f1d00cbde7f7c4cb999542b9709e545402a50960d5d3d79074e170abda55d2a7ee849994c4a648bc835d4940f3d84ed0e2adeee0fc9b70b038a2986dcfb0398ec1acd0f9e1ebed2c4d9dc481ae9725770da40a7d84ade415f44db0dc1ba329a9b8a96c1bb62a11c51f3f5e1c4b122b3091ff0c814bfc0ead8393f46f9c061202613fad7135a6adda121fabd7ffdc014a68e4b6fe61854a4a9aca546e84f0c7cbf2b4f5"
+   "sig": "28bba2c262540c899d7d49896fac834744ff935891475ca793515bbff832c85778e624f4287bad19c962448f7f109d29b22d1ec74873e1a98e86f440302e8b0897490ce5bf23c7e4311f891073809efdb6b02e641fa4c0e29ba784a66b492e4c7e875298694b88655aec10e4fb43163690de10d32adec47984e0b765a85d49d8708c44f11731be24ef97b9d5e94bfd95ca7242a43dd761a858f51ddfb67f6318c3f1515f303a9ec4529a61a464cc0ed0f5087df17a2a9edabc26ae1335bdd45b1e9bed0b8713dbe244ec90d061f1f4ec8019d63dc563c27df2bed3ba8c9919264d7b9f66c648eca98fd3c47f9093ae8ac6d9abb5e93e5702c3d8f950b81f3e74"
   }
  ],
  "signed": {
@@ -23,7 +23,7 @@
      "keyids": [
       "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f"
      ],
-     "name": "targets/role1",
+     "name": "test-repo-like/role1",
      "paths": [
       "/file3.txt"
      ],
@@ -33,16 +33,13 @@
   },
   "expires": "2030-01-01T00:00:00Z",
   "targets": {
-   "/file1.txt": {
-    "custom": {
-     "file_permissions": "0664"
-    },
+   "prefix/file1.txt": {
     "hashes": {
      "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da"
     },
     "length": 31
    },
-   "/file2.txt": {
+   "prefix/file2.txt": {
     "hashes": {
      "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99"
     },

@@ -83,30 +83,52 @@ TUF specification document is also available:
 
 ##Installation
 ```Bash
-pip - installing and managing Python packages (recommended):
+pip - installing and managing Python packages (recommended)
 
-# Installing from Python Package Index (https://pypi.python.org/pypi).
+Installing from Python Package Index (https://pypi.python.org/pypi).
 $ pip install tuf
 
-# Installing from local source archive.
+Installing from local source archive.
 $ pip install <path to archive>
-  
-# Or from the root directory of the unpacked archive.
+
+Or from the root directory of the unpacked archive.
 $ pip install . 
 ```
 
-### Installing optional requirements (i.e., after installing tuf).
-```Bash
-# The optional `tuf[tools]` can be installed by users that wish to generate
-# TUF repository files, such as metadata, cryptographic keys, and signatures.
-# Whereas the basic install can only verify ed25519 signatures and is intended
-# for sofware updater clients, `tuf[tools]` provides repository maintainers
-# secure ed25519 key and signature generation with PyNaCl / libsodium.
+### Installation of Optional Requirements (after minimal install)
+The optional `tuf[tools]` can be installed by repository maintainers that need to generate TUF repository files, such as metadata, cryptographic keys, and signatures.  Whereas the minimal install can only verify ed25519 signatures and is intended for sofware updater clients, `tuf[tools]` provides repository maintainers secure ed25519 key and signature generation with PyNaCl / libsodium.
 
-# The TUF tools also enable general-purpose cryptography with PyCrypto.  Software
-# updaters that want to support verification of RSASSA-PSS signatures must require
-# their clients to install `tuf[tools]`.
+TUF tools also enable general-purpose cryptography with PyCrypto.  Software updaters that want to support verification of RSASSA-PSS signatures should require their clients to install `tuf[tools]`.
+```Bash
 $ pip install tuf[tools]
+```
+
+### Instructions for Contributors
+
+[Virtualenv](https://virtualenv.pypa.io/en/latest/virtualenv.html#introduction) is a tool to create isolated Python environments.  It also includes `pip` and `setuptools`, Python packages used to install TUF and its dependencies.  All installation methods of virtualenv are outlined in the [installation section](https://virtualenv.pypa.io/en/latest/virtualenv.html#installation) and instructions for installing locally from source here:
+```Bash
+$ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.11.6.tar.gz
+$ tar xvfz virtualenv-1.11.6.tar.gz
+$ cd virtualenv-1.11.6
+$ python virtualenv.py myVE
+```
+
+PyCrypto and PyNaCl (third-party dependencies needed by the repository tools) require
+Python and FFI (Foreign Function Interface) development header files.  Debian-based
+distributions can install these header libraries with apt (Advanced Package Tool.)
+```Bash
+$ apt-get install python-dev
+$ apt-get install libffi-dev
+```
+
+Installation of minimal, optional, development, and testing requirements can then be accomplished with one command:
+```Bash
+$ pip install -r dev-requirements.txt
+```
+
+The Update Framework's unit tests can be executed by invoking [tox](https://testrun.org/tox/).  All supported Python versions are tested, but must already be installed locally.
+```Bash
+$ tox
 ```
 
 ##Using TUF
