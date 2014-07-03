@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 """
 <Program Name>
@@ -1941,6 +1942,7 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
       gzip_object = gzip.GzipFile(fileobj=file_object, mode='wb') 
       try: 
         gzip_object.write(file_content)
+      
       finally:
         gzip_object.close()
 
@@ -2194,8 +2196,8 @@ def create_tuf_client_directory(repository_directory, client_directory):
   
   except OSError as e:
     if e.errno == errno.EEXIST:
-      message = 'Cannot create a fresh client metadata directory: '+ \
-        repr(client_metadata_directory)+'.  Already exists.'
+      message = 'Cannot create a fresh client metadata directory: ' +\
+        repr(client_metadata_directory) + '.  Already exists.'
       raise tuf.RepositoryError(message)
     
     else:
