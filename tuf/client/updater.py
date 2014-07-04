@@ -2613,8 +2613,11 @@ class Updater(object):
     updated_targetpaths = []
 
     for target in targets:
-      # Get the target's filepath located in 'destination_directory'.
-      # We will compare targets against this file.
+      # Prepend 'destination_directory' to the target's relative filepath (as
+      # stored in metadata.)  Verify the hash of 'target_filepath' against
+      # each hash listed for its fileinfo.  Note: join() discards
+      # 'destination_directory' if 'filepath' contains a leading path separator
+      # (i.e., is treated as an absolute path).
       filepath = target['filepath']
       if filepath[0] == '/':
         filepath = filepath[1:]
