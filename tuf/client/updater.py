@@ -2615,7 +2615,10 @@ class Updater(object):
     for target in targets:
       # Get the target's filepath located in 'destination_directory'.
       # We will compare targets against this file.
-      target_filepath = os.path.join(destination_directory, target['filepath'])
+      filepath = target['filepath']
+      if filepath[0] == '/':
+        filepath = filepath[1:]
+      target_filepath = os.path.join(destination_directory, filepath)
       
       if target_filepath in updated_targetpaths:
         continue
