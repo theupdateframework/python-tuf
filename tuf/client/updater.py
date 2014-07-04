@@ -2617,7 +2617,7 @@ class Updater(object):
       # We will compare targets against this file.
       filepath = target['filepath']
       if filepath[0] == '/':
-          filepath = filepath[1:]
+        filepath = filepath[1:]
       target_filepath = os.path.join(destination_directory, filepath)
       
       if target_filepath in updated_targetpaths:
