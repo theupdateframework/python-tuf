@@ -993,7 +993,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Assumed the pre-generated repository specifies two target files in
     # 'targets.json' and one delegated target file in 'targets/role1.json'. 
-    self.assertTrue(len(updated_targets), 3)
+    self.assertEqual(len(updated_targets), 3)
     
     # Test: download one of the targets.
     download_target = copy.deepcopy(updated_targets).pop()
@@ -1012,7 +1012,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     updated_targets = \
       self.repository_updater.updated_targets(all_targets, destination_directory)
 
-    self.assertTrue(len(updated_targets), 0)
+    self.assertEqual(len(updated_targets), 0)
 
     
     # Test: Invalid arguments.
@@ -1048,7 +1048,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     all_targets = self.repository_updater.all_targets()
     updated_targets = \
       self.repository_updater.updated_targets(all_targets, destination_directory)
-    self.assertTrue(len(updated_targets), 1)
+    self.assertEqual(len(updated_targets), 1)
 
 
 
