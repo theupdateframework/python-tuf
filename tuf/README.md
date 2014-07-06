@@ -1,13 +1,13 @@
 # Repository Management #
 
 ## Table of Contents ##
-- [The Files of a TUF Repository](#the-files-of-a-tuf-repository)
+- [How to Create and Modify a TUF Repository](#how-to-create-and-modify-a-tuf-repository)
   - [Purpose](#purpose)
   - [Keys](#keys)
     - [Create RSA Keys](#create-rsa-keys)
     - [Import RSA Keys](#import-rsa-keys)
     - [Create and Import ED25519 Keys](#create-and-import-ed25519-keys)
-  - [Create a New Repository](#create-a-new-repository)
+  - [Create Top-level Metadata](#create-a-new-repository)
     - [Create Root](#create-root)
     - [Create Timestamp, Snapshot, Targets](#create-timestamp-snapshot-targets)
   - [Targets](#targets)
@@ -23,7 +23,7 @@
 - [Repository Tool Diagram](#repository-tool-diagram)
 
 
-## The Files of a TUF Repository ##
+## How to Create and Modify a TUF Repository ##
 
 ### Purpose ###
 
@@ -49,6 +49,12 @@ The repository tool requires additional cryptographic libraries and may be
 installed as follows:
 ```Bash
 $ pip install tuf[tools]
+
+A [diagram](../docs/images/repository_tool-diagram.png) is available that lists
+the methods and functions of [repository_tool.py](tuf/repository_tool.py)
+
+Documentation for setting up a TUF client and performing an update is available
+[here](/client_setup_and_repository_example.md)
 ```
 
 ### Keys ###
@@ -354,6 +360,8 @@ $ cp -r "path/to/repository/metadata.staged/" "path/to/repository/metadata/"
 ```
 
 #### Delegate to Hashed Bins ####
+For software update systems with a large number of target files, delegating to
+hashed bins 
 
 A large number of target files may also be distributed to multiple hashed bins
 (delegated roles).  The metadata files of delegated roles will be nearly equal in size
@@ -385,6 +393,9 @@ delegate_hashed_bins(list_of_targets, keys_of_hashed_bins, number_of_bins)
 ```
 
 #### Consistent Snapshots ####
+There are cases where metadata and target files will be in an inconsistent state
+due to 
+
 A repository may optionally support multiple versions of `snapshot.json` simultaneously, where
 a client with version 1 of `snapshot.json` can download `target_file.zip` and another client with
 version 2 of `snapshot.json` can also download a different `target_file.zip` (same file
@@ -396,47 +407,3 @@ available on a repository.
 ```Python
 >>> repository.write(consistent_snapshot=True)
 ```
-
-
-## Client Setup and Repository Trial ##
-
-### Using TUF Within an Example Client Updater ###
-```python
->>> from tuf.repository_tool import *
-
-# The following function creates a directory structure that a client 
-# downloading new software using TUF (via tuf/client/updater.py) will expect.
-# The root.json metadata file must exist, and also the directories that hold the metadata files
-# downloaded from a repository.  Software updaters integrating with TUF may use this
-# directory to store TUF updates saved on the client side.  create_tuf_client_directory()
-# moves metadata from "path/to/repository/metadata" to "path/to/client/".  The repository
-# in "path/to/repository/" is the repository created in the "Create TUF Repository" section.
->>> create_tuf_client_directory("path/to/repository/", "path/to/client/")
-```
-
-### Test TUF Locally ###
-```Bash
-# Run the local TUF repository server.
-$ cd "path/to/repository/"; python -m SimpleHTTPServer 8001
-
-# Retrieve targets from the TUF repository and save them to "path/to/client/".  The
-# basic_client.py module is available in "tuf/client/".
-# In a different command-line prompt . . .
-$ cd "path/to/client/"
-$ ls
-metadata/
-
-$ basic_client.py --repo http://localhost:8001
-$ ls . targets/ targets/django/
-.:
-metadata  targets  tuf.log
-
-targets/:
-django  file1.txt  file2.txt
-
-targets/django/:
-file4.txt
-```
-
-## Repository Tool Diagram ##
-![Repo Tools Diagram 1](../docs/images/repository_tool-diagram.png)
