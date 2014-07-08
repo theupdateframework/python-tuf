@@ -2548,7 +2548,7 @@ class Updater(object):
               # 'target' is only in 'previous', so remove it.
               logger.warning('Removing obsolete file: ' + repr(target) + '.')
               # Remove the file if it hasn't been removed already.
-              destination = os.path.join(destination_directory, target) 
+              destination = os.path.join(destination_directory, target.lstrip(os.sep))
               try:
                 os.remove(destination)
               
@@ -2613,9 +2613,15 @@ class Updater(object):
     updated_targetpaths = []
 
     for target in targets:
-      # Get the target's filepath located in 'destination_directory'.
-      # We will compare targets against this file.
-      target_filepath = os.path.join(destination_directory, target['filepath'])
+      # Prepend 'destination_directory' to the target's relative filepath (as
+      # stored in metadata.)  Verify the hash of 'target_filepath' against
+      # each hash listed for its fileinfo.  Note: join() discards
+      # 'destination_directory' if 'filepath' contains a leading path separator
+      # (i.e., is treated as an absolute path).
+      filepath = target['filepath']
+      if filepath[0] == '/':
+        filepath = filepath[1:]
+      target_filepath = os.path.join(destination_directory, filepath)
       
       if target_filepath in updated_targetpaths:
         continue
