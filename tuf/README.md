@@ -7,7 +7,7 @@
     - [Create RSA Keys](#create-rsa-keys)
     - [Import RSA Keys](#import-rsa-keys)
     - [Create and Import ED25519 Keys](#create-and-import-ed25519-keys)
-  - [Create Top-level Metadata](#create-a-new-repository)
+  - [Create Top-level Metadata](#create-top-level-metadata)
     - [Create Root](#create-root)
     - [Create Timestamp, Snapshot, Targets](#create-timestamp-snapshot-targets)
   - [Targets](#targets)
@@ -110,7 +110,7 @@ Confirm:
 Enter a password for the encrypted ED25519 key: 
 ```
 
-### Create a New Repository ###
+### Create Top-level Metadata ###
 
 #### Create Root ####
 ```python
