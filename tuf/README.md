@@ -17,10 +17,6 @@
     - [Revoke Delegated Role](#revoke-delegated-role)
     - [Delegate to Hashed Bins](#delegate-to-hashed-bins)
   - [Consistent Snapshots](#consistent-snapshots)
-- [Client Setup and Repository Trial](#client-setup-and-repository-trial)
-  - [Using TUF Within an Example Client Updater](#using-tuf-within-an-example-client-updater)
-  - [Test TUF Locally](#test-tuf-locally)
-- [Repository Tool Diagram](#repository-tool-diagram)
 
 
 ## How to Create and Modify a TUF Repository ##
