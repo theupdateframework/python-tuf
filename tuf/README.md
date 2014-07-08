@@ -7,7 +7,7 @@
     - [Create RSA Keys](#create-rsa-keys)
     - [Import RSA Keys](#import-rsa-keys)
     - [Create and Import ED25519 Keys](#create-and-import-ed25519-keys)
-  - [Create Top-level Metadata](#create-a-new-repository)
+  - [Create Top-level Metadata](#create-top-level-metadata)
     - [Create Root](#create-root)
     - [Create Timestamp, Snapshot, Targets](#create-timestamp-snapshot-targets)
   - [Targets](#targets)
@@ -17,10 +17,6 @@
     - [Revoke Delegated Role](#revoke-delegated-role)
     - [Delegate to Hashed Bins](#delegate-to-hashed-bins)
   - [Consistent Snapshots](#consistent-snapshots)
-- [Client Setup and Repository Trial](#client-setup-and-repository-trial)
-  - [Using TUF Within an Example Client Updater](#using-tuf-within-an-example-client-updater)
-  - [Test TUF Locally](#test-tuf-locally)
-- [Repository Tool Diagram](#repository-tool-diagram)
 
 
 ## How to Create and Modify a TUF Repository ##
@@ -114,7 +110,7 @@ Confirm:
 Enter a password for the encrypted ED25519 key: 
 ```
 
-### Create a New Repository ###
+### Create Top-level Metadata ###
 
 #### Create Root ####
 ```python
