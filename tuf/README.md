@@ -39,23 +39,22 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> from tuf.repository_tool import *
 >>> repository = load_repository("path/to/repository")
 ```
-Note that [tuf.repository_tool.py](tuf/repository_tool.py) is not used in TUF
+Note that [tuf.repository_tool.py](repository_tool.py) is not used in TUF
 integrations.  The
-[tuf.interposition](/interposition/README.md) package and
-[tuf.client.updater](/client/README.md) module assist in integrating TUF with a
+[tuf.interposition](interposition/README.md) package and
+[tuf.client.updater](client/README.md) module assist in integrating TUF with a
 software updater.
 
 The repository tool requires additional cryptographic libraries and may be
 installed as follows:
 ```Bash
 $ pip install tuf[tools]
-
+```
 A [diagram](../docs/images/repository_tool-diagram.png) is available that lists
-the methods and functions of [repository_tool.py](tuf/repository_tool.py)
+the methods and functions of [repository_tool.py](repository_tool.py)
 
 Documentation for setting up a TUF client and performing an update is available
-[here](/client_setup_and_repository_example.md)
-```
+[here](client_setup_and_repository_example.md).
 
 ### Keys ###
 
