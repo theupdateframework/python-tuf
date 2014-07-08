@@ -27,7 +27,7 @@
 
 ### Purpose ###
 
-The [tuf.repository_tool](tuf/repository_tool.py) module can be used to create a
+The [tuf.repository_tool](repository_tool.py) module can be used to create a
 TUF repository.  It may either be imported into a Python module or used with the
 Python interpreter in interactive mode.
 
