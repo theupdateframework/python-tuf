@@ -118,8 +118,15 @@ Enter a password for the encrypted ED25519 key:
 ```
 
 ### Create Top-level Metadata ###
-The updater retrieves top-level metadata in which order?
-Purpose of each role.  Emphasis on Root.
+The [Metadata](../METADATA.md) document outlines the JSON metadata files that
+must exist on a TUF repository.  The following sub-sections provide the
+`repository_tool.py` calls repository maintainers may issue to generate the
+required roles.  The top-level roles to be created are `root`, `timestamp`,
+`snapshot`, and `target`.
+
+We begin with `root`, the root of trust that specifies the public keys of the 
+top-level roles, including itself. 
+
 
 #### Create Root ####
 ```python
@@ -180,6 +187,14 @@ Not enough signatures for '/path/to/repository/metadata.staged/targets.json'
 ```
 
 #### Create Timestamp, Snapshot, Targets
+Now that `root.json` has been created, the other top-level roles may be
+specified.  The signing keys added to these roles must correspond to the public
+keys assigned by the root role set above.
+
+On the client side, `root.json` must always exist.  The other top-level roles,
+created next, are requested by repository clients in (Timestamp -> Snapshot ->
+Root -> Targets) order to ensure required metadata is downloaded in a secure
+manner.
 
 ```python
 # Continuing from the previous section . . .
@@ -422,8 +437,8 @@ name, but different file digest.)  If the `consistent_snapshot` parameter of wri
 metadata and target file names on the file system have their digests prepended (note: target file
 names specified in metadata do not have digests included in their names.)  The repository
 maintainer is responsible for the duration of multiple versions of metadata and target files
-available on a repository.  Generating metadata and target files on the repository that
-may be 
+available on a repository.  Generating consistent metadata and target files on
+the repository is enabled by setting the `consistent_snapshot` argument of write(): 
 ```Python
 >>> repository.write(consistent_snapshot=True)
 ```
