@@ -283,7 +283,7 @@ $ mkdir django; echo 'file4' > django/file4.txt
 ```
 
 Import and load private keys of affected roles. 
-Python```
+```Python
 # The private key of the updated targets metadata must be loaded before it can be signed and
 # written (Note the load_repository() call above).
 >>> private_targets_key =  import_rsa_privatekey_from_file("/path/to/targets_key")
