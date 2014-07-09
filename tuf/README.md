@@ -1,7 +1,8 @@
 # Repository Management #
 
 ## Table of Contents ##
-- [How to Create and Modify a TUF Repository](#how-to-create-and-modify-a-tuf-repository)
+- [How to Create and Modify a Basic TUF Repository](#how-to-create-and-modify-a-tuf-repository)
+  - [Overview](#overview)
   - [Purpose](#purpose)
   - [Keys](#keys)
     - [Create RSA Keys](#create-rsa-keys)
@@ -15,11 +16,27 @@
     - [Remove Target Files](#remove-target-files)
   - [Delegations](#delegations)
     - [Revoke Delegated Role](#revoke-delegated-role)
-    - [Delegate to Hashed Bins](#delegate-to-hashed-bins)
-  - [Consistent Snapshots](#consistent-snapshots)
+- [Delegate to Hashed Bins](#delegate-to-hashed-bins)
+- [Consistent Snapshots](#consistent-snapshots)
 
 
 ## How to Create and Modify a TUF Repository ##
+
+### Overview ###
+Metadata, updater.py outline, tools.
+
+Note that [tuf.repository_tool.py](repository_tool.py) is not used in TUF
+integrations.  The
+[tuf.interposition](interposition/README.md) package and
+[tuf.client.updater](client/README.md) module assist in integrating TUF with a
+software updater.
+
+A [diagram](../docs/images/repository_tool-diagram.png) is available that lists
+the methods and functions of [repository_tool.py](repository_tool.py)
+
+Documentation for setting up a TUF client and performing an update is available
+[here](client_setup_and_repository_example.md).
+
 
 ### Purpose ###
 
@@ -33,26 +50,16 @@ Python 2.7.3 (default, Sep 26 2013, 20:08:41)
 [GCC 4.6.3] on linux2
 Type "help", "copyright", "credits" or "license" for more information.
 >>> from tuf.repository_tool import *
->>> repository = load_repository("path/to/repository")
+>>> repository = load_repository("/path/to/repository")
 ```
-Note that [tuf.repository_tool.py](repository_tool.py) is not used in TUF
-integrations.  The
-[tuf.interposition](interposition/README.md) package and
-[tuf.client.updater](client/README.md) module assist in integrating TUF with a
-software updater.
-
 The repository tool requires additional cryptographic libraries and may be
 installed as follows:
 ```Bash
 $ pip install tuf[tools]
 ```
-A [diagram](../docs/images/repository_tool-diagram.png) is available that lists
-the methods and functions of [repository_tool.py](repository_tool.py)
-
-Documentation for setting up a TUF client and performing an update is available
-[here](client_setup_and_repository_example.md).
 
 ### Keys ###
+Say a bit about key format, key types, how to store.
 
 #### Create RSA Keys ####
 ```python
@@ -60,13 +67,13 @@ Documentation for setting up a TUF client and performing an update is available
 
 # Generate and write the first of two root keys for the TUF repository.
 # The following function creates an RSA key pair, where the private key is saved to
-# "path/to/root_key" and the public key to "path/to/root_key.pub".
->>> generate_and_write_rsa_keypair("path/to/root_key", bits=2048, password="password")
+# "/path/to/root_key" and the public key to "/path/to/root_key.pub".
+>>> generate_and_write_rsa_keypair("/path/to/root_key", bits=2048, password="password")
 
 # If the key length is unspecified, it defaults to 3072 bits. A length of less 
 # than 2048 bits raises an exception. A password may be supplied as an 
 # argument, otherwise a user prompt is presented.
->>> generate_and_write_rsa_keypair("path/to/root_key2")
+>>> generate_and_write_rsa_keypair("/path/to/root_key2")
 Enter a password for the RSA key:
 Confirm:
 ```
@@ -82,11 +89,11 @@ The following four key files should now exist:
 >>> from tuf.repository_tool import *
 
 # Import an existing public key.
->>> public_root_key = import_rsa_publickey_from_file("path/to/root_key.pub")
+>>> public_root_key = import_rsa_publickey_from_file("/path/to/root_key.pub")
 
 # Import an existing private key.  Importing a private key requires a password, whereas
 # importing a public key does not.
->>> private_root_key = import_rsa_privatekey_from_file("path/to/root_key")
+>>> private_root_key = import_rsa_privatekey_from_file("/path/to/root_key")
 Enter a password for the encrypted RSA key:
 ```
 import_rsa_privatekey_from_file() raises a "tuf.CryptoError" exception if the key/password
@@ -98,19 +105,21 @@ is invalid.
 
 # Generate and write an ed25519 key pair.  The private key is saved encrypted.
 # A 'password' argument may be supplied, otherwise a prompt is presented.
->>> generate_and_write_ed25519_keypair('path/to/ed25519_key')
+>>> generate_and_write_ed25519_keypair('/path/to/ed25519_key')
 Enter a password for the ED25519 key: 
 Confirm:
 
 # Import the ed25519 public key just created . . .
->>> public_ed25519_key = import_ed25519_publickey_from_file('path/to/ed25519_key.pub')
+>>> public_ed25519_key = import_ed25519_publickey_from_file('/path/to/ed25519_key.pub')
 
 # and its corresponding private key.
->>> private_ed25519_key = import_ed25519_privatekey_from_file('path/to/ed25519_key')
+>>> private_ed25519_key = import_ed25519_privatekey_from_file('/path/to/ed25519_key')
 Enter a password for the encrypted ED25519 key: 
 ```
 
 ### Create Top-level Metadata ###
+The updater retrieves top-level metadata in which order?
+Purpose of each role.  Emphasis on Root.
 
 #### Create Root ####
 ```python
@@ -119,7 +128,7 @@ Enter a password for the encrypted ED25519 key:
 # Create a new Repository object that holds the file path to the repository and the four
 # top-level role objects (Root, Targets, Snapshot, Timestamp). Metadata files are created when
 # repository.write() is called.  The repository directory is created if it does not exist.
->>> repository = create_new_repository("path/to/repository/")
+>>> repository = create_new_repository("/path/to/repository/")
 
 # The Repository instance, 'repository', initially contains top-level Metadata objects.
 # Add one of the public keys, created in the previous section, to the root role.  Metadata is
@@ -133,7 +142,7 @@ Enter a password for the encrypted ED25519 key:
 
 # Add a second public key to the root role.  Although previously generated and saved to a file,
 # the second public key must be imported before it can added to a role.
->>> public_root_key2 = import_rsa_publickey_from_file("path/to/root_key2.pub")
+>>> public_root_key2 = import_rsa_publickey_from_file("/path/to/root_key2.pub")
 >>> repository.root.add_verification_key(public_root_key2)
 
 # Threshold of each role defaults to 1.   Users may change the threshold value, but repository_tool.py
@@ -141,7 +150,7 @@ Enter a password for the encrypted ED25519 key:
 # which means the root metadata file is considered valid if it contains at least two valid 
 # signatures.
 >>> repository.root.threshold = 2
->>> private_root_key2 = import_rsa_privatekey_from_file("path/to/root_key2", password="password")
+>>> private_root_key2 = import_rsa_privatekey_from_file("/path/to/root_key2", password="password")
 
 # Load the root signing keys to the repository, which write() uses to sign the root metadata.
 # The load_signing_key() method SHOULD warn when the key is NOT explicitly allowed to
@@ -165,7 +174,7 @@ Enter a password for the encrypted ED25519 key:
 # written metadata.
 >>> except tuf.UnsignedMetadataError, e:
 ...   print e 
-Not enough signatures for 'path/to/repository/metadata.staged/targets.json'
+Not enough signatures for '/path/to/repository/metadata.staged/targets.json'
 
 # In the next section, update the other top-level roles and create a repository with valid metadata.
 ```
@@ -178,23 +187,23 @@ Not enough signatures for 'path/to/repository/metadata.staged/targets.json'
 
 # Generate keys for the remaining top-level roles.  The root keys have been set above.
 # The password argument may be omitted if a password prompt is needed. 
->>> generate_and_write_rsa_keypair("path/to/targets_key", password="password")
->>> generate_and_write_rsa_keypair("path/to/snapshot_key", password="password")
->>> generate_and_write_rsa_keypair("path/to/timestamp_key", password="password")
+>>> generate_and_write_rsa_keypair("/path/to/targets_key", password="password")
+>>> generate_and_write_rsa_keypair("/path/to/snapshot_key", password="password")
+>>> generate_and_write_rsa_keypair("/path/to/timestamp_key", password="password")
 
 # Add the public keys of the remaining top-level roles.
->>> repository.targets.add_verification_key(import_rsa_publickey_from_file("path/to/targets_key.pub"))
->>> repository.snapshot.add_verification_key(import_rsa_publickey_from_file("path/to/snapshot_key.pub"))
->>> repository.timestamp.add_verification_key(import_rsa_publickey_from_file("path/to/timestamp_key.pub"))
+>>> repository.targets.add_verification_key(import_rsa_publickey_from_file("/path/to/targets_key.pub"))
+>>> repository.snapshot.add_verification_key(import_rsa_publickey_from_file("/path/to/snapshot_key.pub"))
+>>> repository.timestamp.add_verification_key(import_rsa_publickey_from_file("/path/to/timestamp_key.pub"))
 
 # Import the signing keys of the remaining top-level roles.  Prompt for passwords.
->>> private_targets_key = import_rsa_privatekey_from_file("path/to/targets_key")
+>>> private_targets_key = import_rsa_privatekey_from_file("/path/to/targets_key")
 Enter a password for the encrypted RSA key:
 
->>> private_snapshot_key = import_rsa_privatekey_from_file("path/to/snapshot_key")
+>>> private_snapshot_key = import_rsa_privatekey_from_file("/path/to/snapshot_key")
 Enter a password for the encrypted RSA key:
 
->>> private_timestamp_key = import_rsa_privatekey_from_file("path/to/timestamp_key")
+>>> private_timestamp_key = import_rsa_privatekey_from_file("/path/to/timestamp_key")
 Enter a password for the encrypted RSA key:
 
 # Load the signing keys of the remaining roles so that valid signatures are generated when
@@ -211,17 +220,19 @@ Enter a password for the encrypted RSA key:
 >>> repository.targets.compressions = ["gz"]
 >>> repository.snapshot.compressions = ["gz"]
 
-# Write all metadata to "path/to/repository/metadata.staged/".  The common case is to crawl the
-# filesystem for all delegated roles in "path/to/repository/metadata.staged/targets/".
+# Write all metadata to "/path/to/repository/metadata.staged/".  The common case is to crawl the
+# filesystem for all delegated roles in "/path/to/repository/metadata.staged/targets/".
 >>> repository.write()
 ```
 
 ### Targets ###
+How are targets specified in metadata?  What is included?
+length, hashes, custom.
 
 #### Add Target Files ####
 ```Bash
 # Create and save target files to the targets directory of the repository.
-$ cd path/to/repository/targets/
+$ cd /path/to/repository/targets/
 $ echo 'file1' > file1.txt
 $ echo 'file2' > file2.txt
 $ echo 'file3' > file3.txt
@@ -234,11 +245,11 @@ $ mkdir django; echo 'file4' > django/file4.txt
 
 # Load the repository created in the previous section.  This repository so far contains metadata for
 # the top-level roles, but no targets.
->>> repository = load_repository("path/to/repository/")
+>>> repository = load_repository("/path/to/repository/")
 
 # get_filepaths_in_directory() returns a list of file paths in a directory.  It can also return
 # files in sub-directories if 'recursive_walk' is True.
->>> list_of_targets = repository.get_filepaths_in_directory("path/to/repository/targets/",
+>>> list_of_targets = repository.get_filepaths_in_directory("/path/to/repository/targets/",
                                                         recursive_walk=False, followlinks=True) 
 
 # Add the list of target paths to the metadata of the Targets role.  Any target file paths
@@ -251,33 +262,36 @@ $ mkdir django; echo 'file4' > django/file4.txt
 # In the example below, file permissions of the target (octal number specifying file
 # access for owner, group, others (e.g., 0755) is added alongside the default fileinfo.
 # All target objects in metadata include the target's filepath, hash, and length.
->>> target3_filepath = "path/to/repository/targets/file3.txt"
+>>> target3_filepath = "/path/to/repository/targets/file3.txt"
 >>> octal_file_permissions = oct(os.stat(target3_filepath).st_mode)[4:]
 >>> custom_file_permissions = {'file_permissions': octal_file_permissions}
 >>> repository.targets.add_target(target3_filepath, custom_file_permissions)
+```
 
+Import and load private keys of affected roles. 
+```
 # The private key of the updated targets metadata must be loaded before it can be signed and
 # written (Note the load_repository() call above).
->>> private_targets_key =  import_rsa_privatekey_from_file("path/to/targets_key")
+>>> private_targets_key =  import_rsa_privatekey_from_file("/path/to/targets_key")
 Enter a password for the encrypted RSA key:
 
 >>> repository.targets.load_signing_key(private_targets_key)
 
 # Due to the load_repository(), we must also load the private keys of the other top-level roles
 # to generate a valid set of metadata.
->>> private_root_key = import_rsa_privatekey_from_file("path/to/root_key")
+>>> private_root_key = import_rsa_privatekey_from_file("/path/to/root_key")
 Enter a password for the encrypted RSA key:
 >>> repository.root.load_signing_key(private_root_key)
 
->>> private_root_key2 = import_rsa_privatekey_from_file("path/to/root_key2")
+>>> private_root_key2 = import_rsa_privatekey_from_file("/path/to/root_key2")
 Enter a password for the encrypted RSA key:
 >>> repository.root.load_signing_key(private_root_key2)
 
->>> private_snapshot_key = import_rsa_privatekey_from_file("path/to/snapshot_key")
+>>> private_snapshot_key = import_rsa_privatekey_from_file("/path/to/snapshot_key")
 Enter a password for the encrypted RSA key:
 >>> repository.snapshot.load_signing_key(private_snapshot_key)
 
->>> private_timestamp_key = import_rsa_privatekey_from_file("path/to/timestamp_key")
+>>> private_timestamp_key = import_rsa_privatekey_from_file("/path/to/timestamp_key")
 Enter a password for the encrypted RSA key:
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 
@@ -292,7 +306,7 @@ Enter a password for the encrypted RSA key:
 
 # Remove a target file listed in the "targets" metadata.  The target file is not actually deleted
 # from the file system.
->>> repository.targets.remove_target("path/to/repository/targets/file3.txt")
+>>> repository.targets.remove_target("/path/to/repository/targets/file3.txt")
 
 # repository.write() creates any new metadata files, updates those that have changed, and any that
 # need updating to make a new "snapshot" (new snapshot.json and timestamp.json).
@@ -300,12 +314,14 @@ Enter a password for the encrypted RSA key:
 ```
 
 ### Delegations ###
+Overview of delegations.  Why are they needed? Simple example.
+
 ```python
 # Continuing from the previous section . . .
 
 # Generate a key for a new delegated role named "unclaimed".
->>> generate_and_write_rsa_keypair("path/to/unclaimed_key", bits=2048, password="password")
->>> public_unclaimed_key = import_rsa_publickey_from_file("path/to/unclaimed_key.pub")
+>>> generate_and_write_rsa_keypair("/path/to/unclaimed_key", bits=2048, password="password")
+>>> public_unclaimed_key = import_rsa_publickey_from_file("/path/to/unclaimed_key.pub")
 
 # Make a delegation from "targets" to "targets/unclaimed", initially containing zero targets.
 # The delegated role’s full name is not expected.
@@ -315,7 +331,7 @@ Enter a password for the encrypted RSA key:
 
 # Load the private key of "targets/unclaimed" so that signatures are later added and valid
 # metadata is created.
->>> private_unclaimed_key = import_rsa_privatekey_from_file("path/to/unclaimed_key")
+>>> private_unclaimed_key = import_rsa_privatekey_from_file("/path/to/unclaimed_key")
 Enter a password for the encrypted RSA key:
 
 >>> repository.targets(unclaimed).load_signing_key(private_unclaimed_key)
@@ -327,9 +343,9 @@ Enter a password for the encrypted RSA key:
 # where it initially contains zero targets and future targets are restricted to a
 # particular directory.
 >>> repository.targets('unclaimed').delegate("django", [public_unclaimed_key], [],
-                                         restricted_paths=["path/to/repository/targets/django/"])
+                                         restricted_paths=["/path/to/repository/targets/django/"])
 >>> repository.targets('unclaimed')('django').load_signing_key(private_unclaimed_key)
->>> repository.targets('unclaimed')('django').add_target("path/to/repository/targets/django/file4.txt")
+>>> repository.targets('unclaimed')('django').add_target("/path/to/repository/targets/django/file4.txt")
 >>> repository.targets('unclaimed')('django').compressions = ["gz"]
 
 #  Write the metadata of "targets/unclaimed", "targets/unclaimed/django", root, targets, snapshot,
@@ -351,10 +367,12 @@ Enter a password for the encrypted RSA key:
 
 ```Bash
 # Copy the staged metadata directory changes to the live repository.
-$ cp -r "path/to/repository/metadata.staged/" "path/to/repository/metadata/"
+$ cp -r "/path/to/repository/metadata.staged/" "/path/to/repository/metadata/"
 ```
 
 #### Delegate to Hashed Bins ####
+Why use hashed bin delegations?
+
 For software update systems with a large number of target files, delegating to
 hashed bins 
 
@@ -375,7 +393,7 @@ delegate_hashed_bins(list_of_targets, keys_of_hashed_bins, number_of_bins)
 ```Python
 # Get a list of target paths for the hashed bins.
 >>> targets = \
-  repository.get_filepaths_in_directory('path/to/repository/targets/django', recursive_walk=True)
+  repository.get_filepaths_in_directory('/path/to/repository/targets/django', recursive_walk=True)
 >>> repository.targets('unclaimed')('django').delegate_hashed_bins(targets, [public_unclaimed_key], 32)
 
 # delegated_hashed_bins() only assigns the public key(s) of the hashed bins, so the private keys may
@@ -384,21 +402,28 @@ delegate_hashed_bins(list_of_targets, keys_of_hashed_bins, number_of_bins)
 ...   delegation.load_signing_key(private_unclaimed_key)
 
 # Delegated roles can be restricted to particular paths with add_restricted_paths().
->>> repository.targets('unclaimed').add_restricted_paths('path/to/repository/targets/django', 'django')
+>>> repository.targets('unclaimed').add_restricted_paths('/path/to/repository/targets/django', 'django')
 ```
 
 #### Consistent Snapshots ####
-There are cases where metadata and target files will be in an inconsistent state
-due to 
+The basic TUF repository we have generated so far is adequate for repositories
+that have some way of guaranteeing consistency of repository data.
+A community software repository is one example where consistency of files and
+metadata can become an issue.  Repositories of this kind are continually updated
+by multiple maintainers and software authors uploading their packages, increasing
+the likelihood that a client downloading version X of a release unexpectedly
+downloads the target files of a version Y just released.
 
-A repository may optionally support multiple versions of `snapshot.json` simultaneously, where
-a client with version 1 of `snapshot.json` can download `target_file.zip` and another client with
+To gaurantee consistency of metadata and target files, a repository may optionally
+support multiple versions of `snapshot.json` simultaneously, where a client with
+version 1 of `snapshot.json` can download `target_file.zip` and another client with
 version 2 of `snapshot.json` can also download a different `target_file.zip` (same file
-name, but different file digest).  If the `consistent_snapshot` parameter of write() is True,
+name, but different file digest.)  If the `consistent_snapshot` parameter of write() is True,
 metadata and target file names on the file system have their digests prepended (note: target file
-names specified in metadata do not have digests included in their names).  The repository
+names specified in metadata do not have digests included in their names.)  The repository
 maintainer is responsible for the duration of multiple versions of metadata and target files
-available on a repository.
+available on a repository.  Generating metadata and target files on the repository that
+may be 
 ```Python
 >>> repository.write(consistent_snapshot=True)
 ```
