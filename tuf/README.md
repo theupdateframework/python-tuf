@@ -25,8 +25,7 @@
 ### Overview ###
 Metadata, updater.py outline, tools.
 
-Note that [tuf.repository_tool.py](repository_tool.py) is not used in TUF
-integrations.  The
+[repository_tool.py](repository_tool.py) is not used in TUF integrations.  The
 [tuf.interposition](interposition/README.md) package and
 [tuf.client.updater](client/README.md) module assist in integrating TUF with a
 software updater.
@@ -284,7 +283,7 @@ $ mkdir django; echo 'file4' > django/file4.txt
 ```
 
 Import and load private keys of affected roles. 
-```
+Python```
 # The private key of the updated targets metadata must be loaded before it can be signed and
 # written (Note the load_repository() call above).
 >>> private_targets_key =  import_rsa_privatekey_from_file("/path/to/targets_key")
@@ -385,7 +384,7 @@ Enter a password for the encrypted RSA key:
 $ cp -r "/path/to/repository/metadata.staged/" "/path/to/repository/metadata/"
 ```
 
-#### Delegate to Hashed Bins ####
+## Delegate to Hashed Bins ##
 Why use hashed bin delegations?
 
 For software update systems with a large number of target files, delegating to
@@ -420,8 +419,8 @@ delegate_hashed_bins(list_of_targets, keys_of_hashed_bins, number_of_bins)
 >>> repository.targets('unclaimed').add_restricted_paths('/path/to/repository/targets/django', 'django')
 ```
 
-#### Consistent Snapshots ####
-The basic TUF repository we have generated so far is adequate for repositories
+## Consistent Snapshots ##
+The basic TUF repository we have generated above is adequate for repositories
 that have some way of guaranteeing consistency of repository data.
 A community software repository is one example where consistency of files and
 metadata can become an issue.  Repositories of this kind are continually updated
@@ -429,16 +428,18 @@ by multiple maintainers and software authors uploading their packages, increasin
 the likelihood that a client downloading version X of a release unexpectedly
 downloads the target files of a version Y just released.
 
-To gaurantee consistency of metadata and target files, a repository may optionally
+To guarantee consistency of metadata and target files, a repository may optionally
 support multiple versions of `snapshot.json` simultaneously, where a client with
 version 1 of `snapshot.json` can download `target_file.zip` and another client with
 version 2 of `snapshot.json` can also download a different `target_file.zip` (same file
 name, but different file digest.)  If the `consistent_snapshot` parameter of write() is True,
 metadata and target file names on the file system have their digests prepended (note: target file
-names specified in metadata do not have digests included in their names.)  The repository
-maintainer is responsible for the duration of multiple versions of metadata and target files
-available on a repository.  Generating consistent metadata and target files on
-the repository is enabled by setting the `consistent_snapshot` argument of write(): 
+names specified in metadata do not have digests included in their names.)
+
+The repository maintainer is responsible for the duration of multiple versions
+of metadata and target files available on a repository.  Generating consistent
+metadata and target files on the repository is enabled by setting the
+`consistent_snapshot` argument of write(): 
 ```Python
 >>> repository.write(consistent_snapshot=True)
 ```
