@@ -78,10 +78,10 @@ Confirm:
 ```
 The following four key files should now exist:
 
-1. **root_key**
-2. **root_key.pub**
-3. **root_key2**
-4. **root_key2.pub**
+1.  **root_key**
+2.  **root_key.pub**
+3.  **root_key2**
+4.  **root_key2.pub**
 
 ### Import RSA Keys ###
 ```python
@@ -95,7 +95,7 @@ The following four key files should now exist:
 >>> private_root_key = import_rsa_privatekey_from_file("/path/to/root_key")
 Enter a password for the encrypted RSA key:
 ```
-import_rsa_privatekey_from_file() raises a "tuf.CryptoError" exception if the
+`import_rsa_privatekey_from_file()` raises a `tuf.CryptoError` exception if the
 key / password is invalid.
 
 ### Create and Import ED25519 Keys ###
@@ -245,6 +245,15 @@ How are targets specified in metadata?  What is included?
 length, hashes, custom.
 
 #### Add Target Files ####
+
+The repository maintainer adds target files to roles (e.g., `targets`,
+`targets\unclaimed`) by specifying target paths.  These target paths must exist
+before the repository tool can generate and add their hashes, lengths, and
+filepath to metadata.
+
+The actual target files are added next to the `targets\` directory of the
+repository.
+
 ```Bash
 # Create and save target files to the targets directory of the repository.
 $ cd /path/to/repository/targets/
@@ -284,10 +293,10 @@ $ mkdir django; echo 'file4' > django/file4.txt
 >>> repository.targets.add_target(target3_filepath, custom_file_permissions)
 ```
 
-Import and load private keys of roles affected by the changes above.
-`targets.json` must be signed because a target file was added to its metadata.
-`snapshot.json` keys must be loaded and its metadata signed because
-`targets.json`  has changed.  Similarly, since `snapshot.json` has changed, the
+The private keys of roles affected by the changes above must now be imported and
+loaded.  `targets.json` must be signed because a target file was added to its
+metadata.  `snapshot.json` keys must be loaded and its metadata signed because
+`targets.json` has changed.  Similarly, since `snapshot.json` has changed, the
 `timestamp.json` role must also be signed.
 
 ```Python
@@ -313,6 +322,10 @@ Enter a password for the encrypted RSA key:
 ```
 
 #### Remove Target Files ####
+
+Target files previously added to roles may also be removed.  Removing a target
+file requires first removing the target from a role and then writing the
+new changes.
 ```python
 # Continuing from the previous section . . .
 
@@ -377,6 +390,17 @@ Enter a password for the encrypted RSA key:
 >>> repository.write()
 ```
 
+In summary, the five steps a repository maintainer follows to create a basic TUF
+repository are:
+1.  Generate repository directory that contains TUF metadata and the target files.
+2.  Create top-level roles (`root.json`, `snapshot.json`, `targets.json`, and `timestamp.json`.) 
+3.  Add target files to the `targets` role.
+4.  Optionally, create delegated roles to distribute target files.
+5.  Write the changes.
+
+The repository tool saves repository changes to a `metadata.staged` directory.
+Repository maintainers may push the final changes to the "live" repository by
+copying the staged directory to its destination. 
 ```Bash
 # Copy the staged metadata directory changes to the live repository.
 $ cp -r "/path/to/repository/metadata.staged/" "/path/to/repository/metadata/"
@@ -402,14 +426,14 @@ for repositories with a large number of target files, a way of easily distributi
 managing the metadata that lists the targets, and minimizing the number of metadata files
 (and size) downloaded by the client.
 
-The delegate_hashed_bins() method has the following form:
+The `delegate_hashed_bins()` method has the following form:
 ```Python
 delegate_hashed_bins(list_of_targets, keys_of_hashed_bins, number_of_bins)
 ```
 
-Here is a full example of retrieving target paths to add to hashed bins,
+A complete example of retrieving target paths to add to hashed bins,
 performing the hashed bin delegations, signing them, and finally adding
-restricted paths for some role.
+restricted paths for some role is provided next.
 ```Python
 # Get a list of target paths for the hashed bins.
 >>> targets = \
