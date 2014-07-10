@@ -12,19 +12,23 @@
 	See LICENSE for licensing information.
 
 <Purpose>
-	Interposition is the high-level integration of TUF. 'updater.py' is used to perform high-level integration of TUF to the 
-  software updater. This means that all the processes which are taking place in the low-level integration will be done 
-  automatically. This layer of processes will be transparent to the client.
+	Interposition is the high-level integration of TUF. 'updater.py' is used to
+  perform high-level integration of TUF to the software updater. This means 
+  that all the processes which are taking place in the low-level integration 
+  will be done automatically. This layer of processes will be transparent to 
+  the client.
   Updater.py have two classes named as Updater and UpdaterController.
-  TODO: Add more description to purpose.
-  TODO: Add Pros and Cons of using interposition.
+  #TODO: Add more description to purpose.
+  #TODO: Add Pros and Cons of using interposition.
 
 <Example Interpostion>
 
   To implement interpostion client only need to have two files -
-  1. A python file which client will have to run in order to perform interposition. For example - interposition.py.
+  1. A python file which client will have to run in order to perform 
+     interposition. For example - interposition.py.
 
-     # First import the main module called interposition which contains all the required directories and classes.
+     # First import the main module called interposition which contains all 
+     # the required directories and classes.
      import tuf.interposition              
     
      # urllib_tuf and urllib2_tuf are TUF's copy of urllib and urllib2
@@ -34,8 +38,9 @@
      # From tuf.interposition, configure() method is called.
      # configure() is within __init__.py
      # Ways to call this method are as follows :
-     # First, configure() - By default, the configuration object is expected to be situated in the current working directory 
-     # in the file with the name "tuf.interposition.json".
+     # First, configure() - By default, the configuration object is expected 
+     # to be situated in the current working directory in the file with the 
+     # name "tuf.interposition.json".
      # Second, configure(filename="/path/to/json")
      # Configure() returns a dictionary of configurations
      configurations = tuf.interposition.configure()
@@ -46,16 +51,21 @@
      urllib.urlretrieve(url)
      urllib2.urlopen(url)
 
-     # Remove TUF interposition for previously read configurations. That is remove the updater object.
+     # Remove TUF interposition for previously read configurations. That is 
+     # remove the updater object.
      tuf.interposition.deconfigure(configurations)
 
 
-  2. A JSON object which tells tuf.interposition which URLs to intercept, how to transform them (if necessary), and where to forward them
-     (possibly over SSL) for secure responses via TUF. By default, the name of the file is tuf.interposition.json which is as follows -
+  2. A JSON object which tells tuf.interposition which URLs to intercept, how 
+     to transform them (if necessary), and where to forward them (possibly over
+     SSL) for secure responses via TUF. By default, the name of the file is 
+     tuf.interposition.json which is as follows -
     
-     # configurations are simply a JSON object which allows you to answer these questions -
+     # configurations are simply a JSON object which allows you to answer 
+     # these questions -
      # - Which network location get intercepted?
-     # - Given a network location, which TUF mirrors should we forward requests to?
+     # - Given a network location, which TUF mirrors should we forward 
+     #   requests to?
      # - Given a network location, which paths should be intercepted?
      # - Given a TUF mirror, how do we verify its SSL certificate?
      {
@@ -81,8 +91,9 @@
        }
      }
 
-  # After making these two files on the client side, run interposition.py. This will start the interposition process. It generates a log 
-  # file in the same directory which can be used for a review.
+  # After making these two files on the client side, run interposition.py. This
+  # will start the interposition process. It generates a log file in the same 
+  # directory which can be used for a review.
 
 """
 
@@ -102,7 +113,7 @@ import tuf.conf
 # We import them directly into our namespace so that there is no name conflict.
 from configuration import Configuration, InvalidConfiguration
 from utility import Logger, InterpositionException
-
+#TODO: Remove utility because the Logger is it two places. 
 
 
 
@@ -110,9 +121,7 @@ from utility import Logger, InterpositionException
 ################################ GLOBAL CLASSES ################################
 
 
-
-
-
+#TODO: Put this class in the Exception file of TUF.
 class URLMatchesNoPattern(InterpositionException):
   """URL matches no user-specified regular expression pattern."""
   pass
@@ -190,6 +199,23 @@ class Updater(object):
 
   # TODO: decide prudent course of action in case of failure
   def get_target_filepath(self, source_url):
+    # Locate the fileinfo of 'target_filepath'.  updater.target() searches
+    # Targets metadata in order of trust, according to the currently trusted
+    # snapshot.  To prevent consecutive target file requests from referring to
+    # different snapshots, top-level metadata is not automatically refreshed.
+    targets = [self.updater.target(target_filepath)]
+
+    # TODO: targets are always updated if destination directory is new, right?
+    updated_targets = self.updater.updated_targets(targets, destination_directory)
+
+    for updated_target in updated_targets:
+      self.updater.download_target(updated_target, destination_directory)
+
+    return destination_directory, filename
+
+
+  # TODO: decide prudent course of action in case of failure
+  def get_target_filepath(self, source_url):
     """Given source->target map, figure out what TUF *should* download given a
     URL."""
 
@@ -242,8 +268,11 @@ class Updater(object):
     # Windows.
     # http://docs.python.org/2/tutorial/inputoutput.html#reading-and-writing-files
     # TODO: like tempfile, ensure file is deleted when closed?
+    # open() in the line below is a predefined function in python.
     temporary_file = open(filename, 'rb')
 
+    #TODO: addinfourl is not in urllib package anymore. We need to check if
+    # other option for this is working or not.
     # Extend temporary_file with info(), getcode(), geturl()
     # http://docs.python.org/2/library/urllib.html#urllib.urlopen
     response = urllib.addinfourl(temporary_file, headers, url, code=200)
@@ -453,24 +482,4 @@ class UpdaterController(object):
     UPDATER_REMOVED_MESSAGE = "Updater removed for interposed {configuration}."
 
     assert isinstance(configuration, Configuration)
-
-    repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
-
-    assert configuration.hostname in self.__updaters
-    assert repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames)
-
-    # Get the updater.
-    updater = self.__updaters.get(configuration.hostname)
-
-    # If all is well, remove the stored Updater as well as its associated
-    # repository mirror hostnames.
-    updater.cleanup()
-    del self.__updaters[configuration.hostname]
-    self.__repository_mirror_hostnames.difference_update(repository_mirror_hostnames)
-
-    Logger.info(UPDATER_REMOVED_MESSAGE.format(configuration=configuration))
-
-
-
-
 

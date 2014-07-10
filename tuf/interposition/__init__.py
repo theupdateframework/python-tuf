@@ -188,6 +188,9 @@ def __read_configuration(configuration_handler,
   parsed_configurations = {}
 
   try:
+    # open() is function in class Updater. It opens the file with given url
+    # as a temporary file in the binary mode and remains transparent to the 
+    # software updater.
     with open(filename) as tuf_interposition_json:
       tuf_interpositions = json.load(tuf_interposition_json)
       configurations = tuf_interpositions.get("configurations", {})
