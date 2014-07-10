@@ -15,6 +15,7 @@
 	Interposition is the high-level integration of TUF. 'updater.py' is used to perform high-level integration of TUF to the 
   software updater. This means that all the processes which are taking place in the low-level integration will be done 
   automatically. This layer of processes will be transparent to the client.
+  Updater.py have two classes named as Updater and UpdaterController.
   TODO: Add more description to purpose.
   TODO: Add Pros and Cons of using interposition.
 
