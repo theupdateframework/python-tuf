@@ -247,11 +247,11 @@ length, hashes, custom.
 #### Add Target Files ####
 
 The repository maintainer adds target files to roles (e.g., `targets`,
-`targets\unclaimed`) by specifying target paths.  These target paths must exist
-before the repository tool can generate and add their hashes, lengths, and
-filepath to metadata.
+`targets\unclaimed`) by specifying target paths.  Files at these target paths
+must exist before the repository tool can generate and add their (hashes,
+lengths, filepath) to metadata.
 
-The actual target files are added next to the `targets\` directory of the
+The actual target files are added first to the `targets\` directory of the
 repository.
 
 ```Bash
@@ -262,6 +262,10 @@ $ echo 'file2' > file2.txt
 $ echo 'file3' > file3.txt
 $ mkdir django; echo 'file4' > django/file4.txt
 ```
+
+With the target files available on the `targets\` directory of the repository,
+the `add_targets()` method of a Targets role can be called to add the target to
+metadata.
 
 ```python
 >>> from tuf.repository_tool import *
@@ -325,7 +329,7 @@ Enter a password for the encrypted RSA key:
 
 Target files previously added to roles may also be removed.  Removing a target
 file requires first removing the target from a role and then writing the
-new changes.
+new metadata to disk.
 ```python
 # Continuing from the previous section . . .
 
