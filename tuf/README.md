@@ -241,8 +241,15 @@ Enter a password for the encrypted RSA key:
 ```
 
 ### Targets ###
-How are targets specified in metadata?  What is included?
-length, hashes, custom.
+The Update Framework verifies target files by including their length, hash(es),
+and filepath in metadata.  The filepaths are relative to a `targets\` directory
+on the repository.  A TUF client can download a target file by first updating 
+the latest copy of metadata (and thus available targets), verifying that their
+length and hashes are valid, and then saving them locally to complete the
+process.
+
+In this section, the target files intended for clients are added to a repository
+and listed in `targets.json` metadata.
 
 #### Add Target Files ####
 
