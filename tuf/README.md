@@ -290,7 +290,7 @@ Import and load private keys of roles affected by the changes above.
 `targets.json`  has changed.  Similarly, since `snapshot.json` has changed, the
 `timestamp.json` role must also be signed.
 
-Python```
+```Python
 # The private key of the updated targets metadata must be loaded before it can be signed and
 # written (Note the load_repository() call above).
 >>> private_targets_key =  import_rsa_privatekey_from_file("/path/to/targets_key")
