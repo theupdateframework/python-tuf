@@ -8,7 +8,7 @@ TUF may use this directory to store TUF updates saved on the client side.
 
 ```python
 >>> from tuf.repository_tool import *
->>> create_tuf_client_directory("path/to/repository/", "path/to/client/")
+>>> create_tuf_client_directory("/path/to/repository/", "/path/to/client/")
 ```
 
 **create_tuf_client_directory()** moves metadata from `/path/to/repository/metadata`
@@ -19,14 +19,14 @@ example created in the repository tool README.
 ## Test TUF Locally ##
 Run the local TUF repository server.
 ```Bash
-$ cd "path/to/repository/"; python -m SimpleHTTPServer 8001
+$ cd "/path/to/repository/"; python -m SimpleHTTPServer 8001
 ```
 
-Retrieve targets from the TUF repository and save them to "path/to/client/".  The
+Retrieve targets from the TUF repository and save them to "/path/to/client/".  The
 `basic_client.py` module is available in `tuf/client/`.
 In a different command-line prompt . . .
 ```Bash
-$ cd "path/to/client/"
+$ cd "/path/to/client/"
 $ ls
 metadata/
 

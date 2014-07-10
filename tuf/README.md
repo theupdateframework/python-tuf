@@ -39,7 +39,7 @@ Documentation for setting up a TUF client and performing an update is available
 
 ### Purpose ###
 
-The [tuf.repository_tool](repository_tool.py) module can be used to create a
+The [repository_tool.py](repository_tool.py) module can be used to create a
 TUF repository.  It may either be imported into a Python module or used with the
 Python interpreter in interactive mode.
 
@@ -78,10 +78,10 @@ Confirm:
 ```
 The following four key files should now exist:
 
-1. root_key
-2. root_key.pub
-3. root_key2
-4. root_key2.pub
+1. **root_key**
+2. **root_key.pub**
+3. **root_key2**
+4. **root_key2.pub**
 
 ### Import RSA Keys ###
 ```python
@@ -95,8 +95,8 @@ The following four key files should now exist:
 >>> private_root_key = import_rsa_privatekey_from_file("/path/to/root_key")
 Enter a password for the encrypted RSA key:
 ```
-import_rsa_privatekey_from_file() raises a "tuf.CryptoError" exception if the key/password
-is invalid.
+import_rsa_privatekey_from_file() raises a "tuf.CryptoError" exception if the
+key / password is invalid.
 
 ### Create and Import ED25519 Keys ###
 ```Python
@@ -164,7 +164,8 @@ top-level roles, including itself.
 >>> repository.root.load_signing_key(private_root_key)
 >>> repository.root.load_signing_key(private_root_key2)
 
-# Print the number of valid signatures and public/private keys of the repository's metadata.
+# Print the number of valid signatures and public / private keys of the
+# repository's metadata.
 >>> repository.status()
 'root' role contains 2 / 2 signatures.
 'targets' role contains 0 / 1 public keys.
@@ -186,9 +187,9 @@ Not enough signatures for '/path/to/repository/metadata.staged/targets.json'
 ```
 
 #### Create Timestamp, Snapshot, Targets
-Now that `root.json` has been created, the other top-level roles may be
-specified.  The signing keys added to these roles must correspond to the public
-keys assigned by the root role set above.
+Now that `root.json` has been set, the other top-level roles may be created.
+The signing keys added to these roles must correspond to the public keys
+specified by the root.  
 
 On the client side, `root.json` must always exist.  The other top-level roles,
 created next, are requested by repository clients in (Timestamp -> Snapshot ->
@@ -228,9 +229,9 @@ Enter a password for the encrypted RSA key:
 
 # Optionally set the expiration date of the timestamp role.  By default, roles are set to expire
 # as follows:  root(1 year), targets(3 months), snapshot(1 week), timestamp(1 day).
->>> repository.timestamp.expiration = datetime.datetime(2014, 10, 28, 12, 08)
+>>> repository.timestamp.expiration = datetime.datetime(2014, 10, 28, 12, 8)
 
-# Metadata files may also be compressed.  Only "gz" is currently supported.
+# Metadata files may also be compressed.  Only "gz" (gzip) is currently supported.
 >>> repository.targets.compressions = ["gz"]
 >>> repository.snapshot.compressions = ["gz"]
 
@@ -257,8 +258,9 @@ $ mkdir django; echo 'file4' > django/file4.txt
 >>> from tuf.repository_tool import *
 >>> import os
 
-# Load the repository created in the previous section.  This repository so far contains metadata for
-# the top-level roles, but no targets.
+# Load the repository created in the previous section.  This repository so far
+# contains metadata for the top-level roles, but no targets are yet listed in
+# the metadata.
 >>> repository = load_repository("/path/to/repository/")
 
 # get_filepaths_in_directory() returns a list of file paths in a directory.  It can also return
@@ -267,9 +269,9 @@ $ mkdir django; echo 'file4' > django/file4.txt
                                                         recursive_walk=False, followlinks=True) 
 
 # Add the list of target paths to the metadata of the Targets role.  Any target file paths
-# that may already exist are NOT replaced.  add_targets() does not create or move target files.
-# Any target paths added to a role must be relative to the targets directory, otherwise an
-# exception is raised.
+# that may already exist are NOT replaced.  add_targets() does not create or move
+# target files on the file system.  Any target paths added to a role must be
+# relative to the targets directory, otherwise an exception is raised.
 >>> repository.targets.add_targets(list_of_targets)
 
 # Individual target files may also be added to roles, including custom data about the target.
@@ -282,7 +284,12 @@ $ mkdir django; echo 'file4' > django/file4.txt
 >>> repository.targets.add_target(target3_filepath, custom_file_permissions)
 ```
 
-Import and load private keys of affected roles. 
+Import and load private keys of roles affected by the changes above.
+`targets.json` must be signed because a target file was added to its metadata.
+`snapshot.json` keys must be loaded and its metadata signed because
+`targets.json`  has changed.  Similarly, since `snapshot.json` has changed, the
+`timestamp.json` role must also be signed.
+
 Python```
 # The private key of the updated targets metadata must be loaded before it can be signed and
 # written (Note the load_repository() call above).
@@ -291,16 +298,8 @@ Enter a password for the encrypted RSA key:
 
 >>> repository.targets.load_signing_key(private_targets_key)
 
-# Due to the load_repository(), we must also load the private keys of the other top-level roles
-# to generate a valid set of metadata.
->>> private_root_key = import_rsa_privatekey_from_file("/path/to/root_key")
-Enter a password for the encrypted RSA key:
->>> repository.root.load_signing_key(private_root_key)
-
->>> private_root_key2 = import_rsa_privatekey_from_file("/path/to/root_key2")
-Enter a password for the encrypted RSA key:
->>> repository.root.load_signing_key(private_root_key2)
-
+# Due to the load_repository() and new versions of metadata, we must also load
+# the private keys of Snapshot and Timestamp to generate a valid set of metadata.
 >>> private_snapshot_key = import_rsa_privatekey_from_file("/path/to/snapshot_key")
 Enter a password for the encrypted RSA key:
 >>> repository.snapshot.load_signing_key(private_snapshot_key)
@@ -308,7 +307,6 @@ Enter a password for the encrypted RSA key:
 >>> private_timestamp_key = import_rsa_privatekey_from_file("/path/to/timestamp_key")
 Enter a password for the encrypted RSA key:
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
-
 
 # Generate new versions of all the top-level metadata.
 >>> repository.write()
@@ -388,10 +386,15 @@ $ cp -r "/path/to/repository/metadata.staged/" "/path/to/repository/metadata/"
 Why use hashed bin delegations?
 
 For software update systems with a large number of target files, delegating to
-hashed bins 
+hashed bins (a special type of delegated role) might be an easier alternative to
+manually performing the delegations.  How many target files should each delegated
+role contain?  How will these delegations affect the number of metadata that
+clients must additionally download in a typical update?  Hashed bin delegations
+is availabe to integrators that rather not deal with the answers to these
+questions.
 
-A large number of target files may also be distributed to multiple hashed bins
-(delegated roles).  The metadata files of delegated roles will be nearly equal in size
+A large number of target files may be distributed to multiple hashed bins with
+`delegate_hashed_bins()`.  The metadata files of delegated roles will be nearly equal in size
 (i.e., target file paths are uniformly distributed by calculating the target filepath's
 digest and determining which bin it should reside in.  The updater client will use
 "lazy bin walk" to find a target file's hashed bin destination.  This method is intended
@@ -399,11 +402,14 @@ for repositories with a large number of target files, a way of easily distributi
 managing the metadata that lists the targets, and minimizing the number of metadata files
 (and size) downloaded by the client.
 
-Method that handles hashed bin delegations and example:
+The delegate_hashed_bins() method has the following form:
 ```Python
 delegate_hashed_bins(list_of_targets, keys_of_hashed_bins, number_of_bins)
 ```
 
+Here is a full example of retrieving target paths to add to hashed bins,
+performing the hashed bin delegations, signing them, and finally adding
+restricted paths for some role.
 ```Python
 # Get a list of target paths for the hashed bins.
 >>> targets = \
@@ -432,7 +438,7 @@ To guarantee consistency of metadata and target files, a repository may optional
 support multiple versions of `snapshot.json` simultaneously, where a client with
 version 1 of `snapshot.json` can download `target_file.zip` and another client with
 version 2 of `snapshot.json` can also download a different `target_file.zip` (same file
-name, but different file digest.)  If the `consistent_snapshot` parameter of write() is True,
+name, but different file digest.)  If the `consistent_snapshot` parameter of write() is `True`,
 metadata and target file names on the file system have their digests prepended (note: target file
 names specified in metadata do not have digests included in their names.)
 
