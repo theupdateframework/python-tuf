@@ -3,7 +3,85 @@
   updater.py
 
 <Author>
-  Pankhuri Goyal
+  Pankhuri Goyal <pankhurigoyal02@gmail.com>
+
+<Started>
+  June 2014.
+
+<Copyright>
+	See LICENSE for licensing information.
+
+<Purpose>
+	Interposition is the high-level integration of TUF. 'updater.py' is used to perform high-level integration of TUF to the 
+  software updater. This means that all the processes which are taking place in the low-level integration will be done 
+  automatically. This layer of processes will be transparent to the client.
+  TODO: Add more description to purpose.
+  TODO: Add Pros and Cons of using interposition.
+
+<Example Interpostion>
+
+  To implement interpostion client only need to have two files -
+  1. A python file which client will have to run in order to perform interposition. For example - interposition.py.
+
+     # First import the main module called interposition which contains all the required directories and classes.
+     import tuf.interposition              
+    
+     # urllib_tuf and urllib2_tuf are TUF's copy of urllib and urllib2
+     from tuf.interposition import urllib_tuf as urllib
+     from tuf.interposition import urllib2_tuf as urllib2
+     
+     # From tuf.interposition, configure() method is called.
+     # configure() is within __init__.py
+     # Ways to call this method are as follows :
+     # First, configure() - By default, the configuration object is expected to be situated in the current working directory 
+     # in the file with the name "tuf.interposition.json".
+     # Second, configure(filename="/path/to/json")
+     # Configure() returns a dictionary of configurations
+     configurations = tuf.interposition.configure()
+
+     url = 'http://example.com/path/to/document'
+     # This is the standard way of opening and retrieving url in python.
+     urllib.urlopen(url)
+     urllib.urlretrieve(url)
+     urllib2.urlopen(url)
+
+     # Remove TUF interposition for previously read configurations. That is remove the updater object.
+     tuf.interposition.deconfigure(configurations)
+
+
+  2. A JSON object which tells tuf.interposition which URLs to intercept, how to transform them (if necessary), and where to forward them
+     (possibly over SSL) for secure responses via TUF. By default, the name of the file is tuf.interposition.json which is as follows -
+    
+     # configurations are simply a JSON object which allows you to answer these questions -
+     # - Which network location get intercepted?
+     # - Given a network location, which TUF mirrors should we forward requests to?
+     # - Given a network location, which paths should be intercepted?
+     # - Given a TUF mirror, how do we verify its SSL certificate?
+     {
+     # This is required root object.
+       "configurations": {
+       # Which network location should be intercepted?
+       # Network locations may be specified as "hostname" or "hostname:port".
+         "seattle.poly.edu": {
+         # Where do we find the client copy of the TUF server metadata?
+           "repository_directory": ".",
+           # Where do we forward the requests to seattle.poly.edu?
+             "repository_mirrors" : {
+                "mirror1": {
+                # In this case, we forward them to http://tuf.seattle.poly.edu
+                  "url_prefix": "http://localhost:8001",
+                  # You do not have to worry about these default parameters.
+                  "metadata_path": "metadata",
+                  "targets_path": "targets",
+                  "confined_target_dirs": [ "" ]
+             }
+           }
+         }
+       }
+     }
+
+  # After making these two files on the client side, run interposition.py. This will start the interposition process. It generates a log 
+  # file in the same directory which can be used for a review.
 
 """
 
