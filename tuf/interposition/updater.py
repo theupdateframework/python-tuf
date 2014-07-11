@@ -9,10 +9,10 @@
   June 2014.
 
 <Copyright>
-	See LICENSE for licensing information.
+  See LICENSE for licensing information.
 
 <Purpose>
-	Interposition is the high-level integration of TUF. 'updater.py' is used to
+  Interposition is the high-level integration of TUF. 'updater.py' is used to
   perform high-level integration of TUF to the software updater. This means 
   that all the processes which are taking place in the low-level integration 
   will be done automatically. This layer of processes will be transparent to 
@@ -37,12 +37,17 @@
      
      # From tuf.interposition, configure() method is called.
      # configure() is within __init__.py
+     # It takes 3 arguments, one of which is filename of a JSON file.
+     # This JSON file contains a set of configurations. To make this file,
+     # follow the second point below.
      # Ways to call this method are as follows :
      # First, configure() - By default, the configuration object is expected 
      # to be situated in the current working directory in the file with the 
      # name "tuf.interposition.json".
      # Second, configure(filename="/path/to/json")
      # Configure() returns a dictionary of configurations
+     # Internally, configure() calls add(configuration) function which is in 
+     # the class UpdaterController.
      configurations = tuf.interposition.configure()
 
      url = 'http://example.com/path/to/document'
@@ -53,12 +58,17 @@
 
      # Remove TUF interposition for previously read configurations. That is 
      # remove the updater object.
+     # Deconfigure() takes only one argument i.e. configurations.
+     # It calls remove(configuration) function which is in UpdaterController
+     # class in updater.py.
      tuf.interposition.deconfigure(configurations)
 
 
-  2. A JSON object which tells tuf.interposition which URLs to intercept, how 
-     to transform them (if necessary), and where to forward them (possibly over
-     SSL) for secure responses via TUF. By default, the name of the file is 
+  2. The filename passed as a parameter in configure function is a JSON file. 
+     It is called as configurations. It is a JSON object which tells 
+     tuf.interposition which URLs to intercept, how to transform them (if 
+     necessary), and where to forward them (possibly over SSL) for secure 
+     responses via TUF. By default, the name of the file is 
      tuf.interposition.json which is as follows -
     
      # configurations are simply a JSON object which allows you to answer 
@@ -73,13 +83,13 @@
        "configurations": {
        # Which network location should be intercepted?
        # Network locations may be specified as "hostname" or "hostname:port".
-         "seattle.poly.edu": {
+         "localhost": {
          # Where do we find the client copy of the TUF server metadata?
            "repository_directory": ".",
-           # Where do we forward the requests to seattle.poly.edu?
+           # Where do we forward the requests to localhost?
              "repository_mirrors" : {
                 "mirror1": {
-                # In this case, we forward them to http://tuf.seattle.poly.edu
+                # In this case, we forward them to http://localhost:8001
                   "url_prefix": "http://localhost:8001",
                   # You do not have to worry about these default parameters.
                   "metadata_path": "metadata",
