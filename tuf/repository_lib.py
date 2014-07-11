@@ -374,6 +374,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
     
     except tuf.UnknownKeyError as e:
       signable['signatures'].remove(signature)
+      continue
     
     # Remove 'signature' from 'signable' if it is an invalid signature.
     if not tuf.keys.verify_signature(key, signature, signed):
