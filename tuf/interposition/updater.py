@@ -113,7 +113,7 @@ import tuf.conf
 # We import them directly into our namespace so that there is no name conflict.
 from configuration import Configuration, InvalidConfiguration
 from utility import Logger, InterpositionException
-#TODO: Remove utility because the Logger is it two places. 
+#TODO: Remove utility because the Logger is at two places. 
 
 
 
@@ -182,23 +182,6 @@ class Updater(object):
     # Switch TUF context.
     self.switch_context()
     
-    # Locate the fileinfo of 'target_filepath'.  updater.target() searches
-    # Targets metadata in order of trust, according to the currently trusted
-    # snapshot.  To prevent consecutive target file requests from referring to
-    # different snapshots, top-level metadata is not automatically refreshed.
-    targets = [self.updater.target(target_filepath)]
-
-    # TODO: targets are always updated if destination directory is new, right?
-    updated_targets = self.updater.updated_targets(targets, destination_directory)
-
-    for updated_target in updated_targets:
-      self.updater.download_target(updated_target, destination_directory)
-
-    return destination_directory, filename
-
-
-  # TODO: decide prudent course of action in case of failure
-  def get_target_filepath(self, source_url):
     # Locate the fileinfo of 'target_filepath'.  updater.target() searches
     # Targets metadata in order of trust, according to the currently trusted
     # snapshot.  To prevent consecutive target file requests from referring to
@@ -383,7 +366,6 @@ class UpdaterController(object):
     return repository_mirror_hostnames
 
 
-
   def add(self, configuration):
     """Add an Updater based on the given Configuration."""
 
@@ -393,7 +375,6 @@ class UpdaterController(object):
     Logger.info('Adding updater for interposed '+repr(configuration))
     self.__updaters[configuration.hostname] = Updater(configuration)
     self.__repository_mirror_hostnames.update(repository_mirror_hostnames)
-  
   
   
   def refresh(self, configuration):
@@ -417,7 +398,6 @@ class UpdaterController(object):
     Logger.info('Refreshing top-level metadata for '+ repr(configuration))
     updater = self.__updaters.get(configuration.hostname)
     updater.refresh()
-
 
 
   def get(self, url):
@@ -483,3 +463,18 @@ class UpdaterController(object):
 
     assert isinstance(configuration, Configuration)
 
+    repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
+
+    assert configuration.hostname in self.__updaters
+    assert repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames)
+
+    # Get the updater.
+    updater = self.__updaters.get(configuration.hostname)
+
+    # If all is well, remove the stored Updater as well as its associated
+    # repository mirror hostnames.
+    updater.cleanup()
+    del self.__updaters[configuration.hostname]
+    self.__repository_mirror_hostnames.difference_update(repository_mirror_hostnames)
+
+    Logger.info(UPDATER_REMOVED_MESSAGE.format(configuration=configuration))
