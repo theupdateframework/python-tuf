@@ -26,7 +26,7 @@
 ### Overview ###
 Metadata, updater.py outline, tools.
 
-[repository_tool.py](repository_tool.py) is not used in TUF integrations.  The
+The [repository tool](repository_tool.py) is not used in TUF integrations.  The
 [tuf.interposition](interposition/README.md) package and
 [tuf.client.updater](client/README.md) module assist in integrating TUF with a
 software updater.
@@ -118,7 +118,7 @@ Enter a password for the encrypted ED25519 key:
 ```
 
 ### Create Top-level Metadata ###
-The [Metadata](../METADATA.md) document outlines the JSON metadata files that
+The [metadata document](../METADATA.md) outlines the JSON metadata files that
 must exist on a TUF repository.  The following sub-sections provide the
 `repository_tool.py` calls repository maintainers may issue to generate the
 required roles.  The top-level roles to be created are `root`, `timestamp`,
@@ -242,7 +242,7 @@ Enter a password for the encrypted RSA key:
 ```
 
 ### Targets ###
-The Update Framework verifies target files by including their length, hash(es),
+TUF verifies target files by including their length, hash(es),
 and filepath in metadata.  The filepaths are relative to a `targets/` directory
 on the repository.  A TUF client can download a target file by first updating 
 the latest copy of metadata (and thus available targets), verifying that their
@@ -471,7 +471,7 @@ A community software repository is one example where consistency of files and
 metadata can become an issue.  Repositories of this kind are continually updated
 by multiple maintainers and software authors uploading their packages, increasing
 the likelihood that a client downloading version X of a release unexpectedly
-downloads the target files of a version Y just released.
+requests the target files of a version Y just released.
 
 To guarantee consistency of metadata and target files, a repository may optionally
 support multiple versions of `snapshot.json` simultaneously, where a client with
