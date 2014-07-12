@@ -37,7 +37,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> from tuf.repository_tool import *
 >>> repository = load_repository("/path/to/repository")
 ```
-The tool requires additional cryptographic libraries and may be installed
+The tool requires additional cryptographic libraries that may be installed
 with [pip](https://pypi.python.org/pypi/pip).
 ```Bash
 $ pip install tuf[tools]
@@ -66,16 +66,17 @@ Which cryptography library to use is determined by the default, or user modified
 settings in [conf.py](conf.py).
 
 The [PyCrypto](https://www.dlitz.net/software/pycrypto/) library may be selected to
-generate RSA keys, and [RSA-PSS](https://en.wikipedia.org/wiki/RSA-PSS) signatures.
+generate RSA keys and [RSA-PSS](https://en.wikipedia.org/wiki/RSA-PSS) signatures.
 If generation of Ed25519 signatures is needed, the [PyNaCl](https://github.com/pyca/pynacl)
 library setting should be enabled.  PyNaCl is a Python binding to the Networking and
 Cryptography Library.  For key storage, RSA keys may be stored in PEM or JSON format,
 and Ed25519 keys in JSON format.  Private keys, for both RSA and Ed25519, are encrypted
-and passphrase-protected (strengthened with PBKDF2-HMAC-SHA256.)
+and passphrase-protected (strengthened with PBKDF2-HMAC-SHA256.)  Generating cryptographic
+key files, importing, and loading them can be done with functions available in the repository
+tool.
 
-Generating cryptographic key files, and importing and loading them can be done with functions
-available in the repository tool.  We begin with RSA keys and the `generate_and_write_rsa_keypair()`
-function.
+To start, a public and private RSA key pair is generated with the `generate_and_write_rsa_keypair()`
+function.  The keys generated will sign the repository metadata files created in upcoming sub-sections.
 
 #### Create RSA Keys ####
 ```python
@@ -367,7 +368,18 @@ new metadata to disk.
 ```
 
 ### Delegations ###
-Overview of delegations.  Why are they needed? Simple example.
+All of the target files available on the repository created so far have been added to one role.
+But, what if multiple developers are responsible for the files of a project?  What if
+responsiblity separation is desired?  Performing a delegation, where one parent role delegates
+trust to a child, is an option for integrators that require custom roles in addition to the
+top-level roles required by default.
+
+In the next sub-section, a `targets/unclaimed` child role is delegated from the top-level `targets` role.
+The `targets` role specifies the delegated role's public keys, the paths it is trusted to provide, and
+its role name.  Futhermore, the example below demonstrates a nested delegation from `targets/unclaimed`
+to `targets/unclaimed/django`.  Once a parent role has delegated trust, child roles may add targets
+and generate signed metadata, according to the keys and paths allowed by the parent.
+
 
 ```python
 # Continuing from the previous section . . .
