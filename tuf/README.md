@@ -403,6 +403,7 @@ Enter a password for the encrypted RSA key:
 
 In summary, the five steps a repository maintainer follows to create a basic TUF
 repository are:
+
 1.  Generate repository directory that contains TUF metadata and the target files.
 2.  Create top-level roles (`root.json`, `snapshot.json`, `targets.json`, and `timestamp.json`.) 
 3.  Add target files to the `targets` role.
