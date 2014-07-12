@@ -599,7 +599,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The client repository is initially loaded with only four top-level roles.
     # Verify that the metadata store contains the metadata of only these four
     # roles before updating the metadata of 'targets.json'.
-    self.assertTrue(len(self.repository_updater.metadata['current']), 4)
+    self.assertEqual(len(self.repository_updater.metadata['current']), 4)
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
     targets_path = os.path.join(self.client_metadata_current, 'targets.json')
     self.assertTrue(os.path.exists(targets_path))
@@ -698,11 +698,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertFalse(target3 in targets_metadata['targets'])
 
     # Verify the expected version numbers of the roles to be modified.
-    self.assertTrue(self.repository_updater.metadata['current']['targets']\
+    self.assertEqual(self.repository_updater.metadata['current']['targets']\
                                                     ['version'], 1)
-    self.assertTrue(self.repository_updater.metadata['current']['snapshot']\
+    self.assertEqual(self.repository_updater.metadata['current']['snapshot']\
                                                     ['version'], 1)
-    self.assertTrue(self.repository_updater.metadata['current']['timestamp']\
+    self.assertEqual(self.repository_updater.metadata['current']['timestamp']\
                                                     ['version'], 1)
 
     # Test: normal case.  'targes.json' should now specify 'target3', and the
@@ -717,11 +717,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertTrue(target3 in targets_metadata['targets'])
 
     # Verify the expected version numbers of the updated roles.
-    self.assertTrue(self.repository_updater.metadata['current']['targets']\
+    self.assertEqual(self.repository_updater.metadata['current']['targets']\
                                                     ['version'], 2)
-    self.assertTrue(self.repository_updater.metadata['current']['snapshot']\
+    self.assertEqual(self.repository_updater.metadata['current']['snapshot']\
                                                     ['version'], 2)
-    self.assertTrue(self.repository_updater.metadata['current']['timestamp']\
+    self.assertEqual(self.repository_updater.metadata['current']['timestamp']\
                                                     ['version'], 2)
 
 
@@ -732,13 +732,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Setup.
     # Assumed the client repository has only loaded the top-level metadata.
     # refresh the 'targets.json' metadata, including delegations. 
-    self.assertTrue(len(self.repository_updater.metadata['current']), 4)
+    self.assertEqual(len(self.repository_updater.metadata['current']), 4)
 
     # Test: normal case.
     self.repository_updater._refresh_targets_metadata(include_delegations=True)
 
     # Verify that client's metadata files were refreshed successfully.
-    self.assertTrue(len(self.repository_updater.metadata['current']), 5)
+    self.assertEqual(len(self.repository_updater.metadata['current']), 5)
 
 
 
@@ -765,7 +765,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    # which are specified by 'targets.json'.)  The delegated role 'targets/role1'
    # specifies 1 target file.  The expected total number targets in
    # 'all_targets' should be 3.
-   self.assertTrue(len(all_targets) is 3)
+   self.assertEqual(len(all_targets), 3)
    target_filepaths = []
    for target in all_targets:
     target_filepaths.append(target['filepath'])
@@ -1003,7 +1003,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     updated_targets = \
       self.repository_updater.updated_targets(all_targets, destination_directory)
     
-    self.assertTrue(len(updated_targets), 2)
+    self.assertEqual(len(updated_targets), 2)
    
     # Test: download all the targets.
     for download_target in all_targets:
@@ -1056,16 +1056,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_8_remove_obsolete_targets(self):
     # Setup. 
-    # Create temporary directory which will hold client's target files.
+    # Create temporary directory that will hold the client's target files.
     destination_directory = self.make_temp_directory()
 
     #  Populate 'destination_direction' with all target files.
     all_targets = self.repository_updater.all_targets()
 
+    self.assertEqual(len(os.listdir(destination_directory)), 0)
+
     for target in all_targets:
       self.repository_updater.download_target(target, destination_directory)
 
-    self.assertTrue(os.listdir(destination_directory), 3)
+    self.assertEqual(len(os.listdir(destination_directory)), 3)
 
     # Remove two target files from the server's repository.
     repository = repo_tool.load_repository(self.repository_directory)
@@ -1092,6 +1094,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # after the update made to the remote repository), and call
     # 'remove_obsolete_targets()'.
     all_targets = self.repository_updater.all_targets()
+    
     updated_targets = \
       self.repository_updater.updated_targets(all_targets,
                                               destination_directory)
@@ -1099,15 +1102,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     for updated_target in updated_targets:
       self.repository_updater.download_target(updated_target,
                                               destination_directory)
-                              
-    self.assertTrue(os.listdir(destination_directory), 3)
+    
+    self.assertEqual(len(os.listdir(destination_directory)), 3)
     self.repository_updater.remove_obsolete_targets(destination_directory)
-    self.assertTrue(os.listdir(destination_directory), 1)
+    self.assertEqual(len(os.listdir(destination_directory)), 1)
 
     #  Verify that, if there are no obsolete files, the number of files
     #  in 'destination_directory' remains the same.
     self.repository_updater.remove_obsolete_targets(destination_directory)
-    self.assertTrue(os.listdir(destination_directory), 1)    
+    self.assertEqual(len(os.listdir(destination_directory)), 1)    
  
 
 

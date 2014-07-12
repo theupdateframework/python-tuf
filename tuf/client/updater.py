@@ -2548,7 +2548,7 @@ class Updater(object):
               # 'target' is only in 'previous', so remove it.
               logger.warning('Removing obsolete file: ' + repr(target) + '.')
               # Remove the file if it hasn't been removed already.
-              destination = os.path.join(destination_directory, target) 
+              destination = os.path.join(destination_directory, target.lstrip(os.sep))
               try:
                 os.remove(destination)
               
