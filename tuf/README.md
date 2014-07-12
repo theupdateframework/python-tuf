@@ -2,12 +2,12 @@
 
 ## Table of Contents ##
 - [How to Create and Modify a Basic TUF Repository](#how-to-create-and-modify-a-tuf-repository)
-  - [Overview](#overview)
   - [Purpose](#purpose)
+  - [Overview](#overview)
   - [Keys](#keys)
     - [Create RSA Keys](#create-rsa-keys)
     - [Import RSA Keys](#import-rsa-keys)
-    - [Create and Import ED25519 Keys](#create-and-import-ed25519-keys)
+    - [Create and Import Ed25519 Keys](#create-and-import-ed25519-keys)
   - [Create Top-level Metadata](#create-top-level-metadata)
     - [Create Root](#create-root)
     - [Create Timestamp, Snapshot, Targets](#create-timestamp-snapshot-targets)
@@ -22,6 +22,26 @@
 
 
 ## How to Create and Modify a TUF Repository ##
+
+### Purpose ###
+
+A tool that can create and update the required files, such as metadata and
+cryptographic keys, of a TUF repository.  It may either be imported into a
+Python module or used with the Python interpreter in interactive mode.
+
+```Bash
+$ python
+Python 2.7.3 (default, Sep 26 2013, 20:08:41) 
+[GCC 4.6.3] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+>>> from tuf.repository_tool import *
+>>> repository = load_repository("/path/to/repository")
+```
+The tool requires additional cryptographic libraries and may be installed
+with [pip](https://pypi.python.org/pypi/pip).
+```Bash
+$ pip install tuf[tools]
+```
 
 ### Overview ###
 Metadata, updater.py outline, tools.
@@ -38,28 +58,24 @@ Documentation for setting up a TUF client and performing an update is available
 [here](client_setup_and_repository_example.md).
 
 
-### Purpose ###
-
-The [repository_tool.py](repository_tool.py) module can be used to create a
-TUF repository.  It may either be imported into a Python module or used with the
-Python interpreter in interactive mode.
-
-```Bash
-$ python
-Python 2.7.3 (default, Sep 26 2013, 20:08:41) 
-[GCC 4.6.3] on linux2
-Type "help", "copyright", "credits" or "license" for more information.
->>> from tuf.repository_tool import *
->>> repository = load_repository("/path/to/repository")
-```
-The repository tool requires additional cryptographic libraries and may be
-installed as follows:
-```Bash
-$ pip install tuf[tools]
-```
-
 ### Keys ###
-Say a bit about key format, key types, how to store.
+The repository tool supports multiple public-key algorithms, such as
+[RSA](https://en.wikipedia.org/wiki/RSA_%28cryptosystem%29) and
+[Ed25519](http://ed25519.cr.yp.to/), and multiple cryptography libraries.
+Which cryptography library to use is determined by the default, or user modified,
+settings in [conf.py](conf.py).
+
+The [PyCrypto](https://www.dlitz.net/software/pycrypto/) library may be selected to
+generate RSA keys, and [RSA-PSS](https://en.wikipedia.org/wiki/RSA-PSS) signatures.
+If generation of Ed25519 signatures is needed, the [PyNaCl](https://github.com/pyca/pynacl)
+library setting should be enabled.  PyNaCl is a Python binding to the Networking and
+Cryptography Library.  For key storage, RSA keys may be stored in PEM or JSON format,
+and Ed25519 keys in JSON format.  Private keys, for both RSA and Ed25519, are encrypted
+and passphrase-protected (strengthened with PBKDF2-HMAC-SHA256.)
+
+Generating cryptographic key files, and importing and loading them can be done with functions
+available in the repository tool.  We begin with RSA keys and the `generate_and_write_rsa_keypair()`
+function.
 
 #### Create RSA Keys ####
 ```python
@@ -99,7 +115,7 @@ Enter a password for the encrypted RSA key:
 `import_rsa_privatekey_from_file()` raises a `tuf.CryptoError` exception if the
 key / password is invalid.
 
-### Create and Import ED25519 Keys ###
+### Create and Import Ed25519 Keys ###
 ```Python
 >>> from tuf.repository_tool import *
 
