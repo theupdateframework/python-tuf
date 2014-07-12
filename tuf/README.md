@@ -2,7 +2,6 @@
 
 ## Table of Contents ##
 - [How to Create and Modify a Basic TUF Repository](#how-to-create-and-modify-a-tuf-repository)
-  - [Purpose](#purpose)
   - [Overview](#overview)
   - [Keys](#keys)
     - [Create RSA Keys](#create-rsa-keys)
@@ -23,11 +22,23 @@
 
 ## How to Create and Modify a TUF Repository ##
 
-### Purpose ###
 
-A tool that can create and update the required files, such as metadata and
-cryptographic keys, of a TUF repository.  It may either be imported into a
-Python module or used with the Python interpreter in interactive mode.
+### Overview ###
+A software update system must complete two main tasks to integrate TUF (The Update
+Framework.)  First, it must add the framework to the client side of the system.
+The [tuf.client.updater](client/README.md) module and
+[tuf.interposition](interposition/README.md) package assist in integrating
+TUF on the client side.  Second, the repository on the server side must
+be modified to include a minimum of four metadata files.  No additional software
+is required to convert a repository to a TUF one on the server side.  The tool to
+assist in generating the required metadata files of the repository is the focus
+of this document.
+
+
+The [repository tool](repository_tool.py) contains functions to generate all the
+files needed to populate and manage a TUF repository.  The tool may either be
+imported into a Python module or used with the Python interpreter in interactive
+mode.
 
 ```Bash
 $ python
@@ -37,26 +48,35 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> from tuf.repository_tool import *
 >>> repository = load_repository("/path/to/repository")
 ```
+
 The tool requires additional cryptographic libraries that may be installed
 with [pip](https://pypi.python.org/pypi/pip).
 ```Bash
 $ pip install tuf[tools]
 ```
 
-### Overview ###
-Metadata, updater.py outline, tools.
+A repository object that encapsulates the metadata files of the repository
+can be either created or loaded by the repository tool.  Repository maintainers
+modify the repository object to update metadata files stored on the
+repository.  TUF uses the metadata files to validate files requested and
+downloaded by clients.  In addition to the repository object, where the majority
+of changes are made, the repository tool provides functions to generate and
+persist cryptographic keys.  The framework utilizes cryptographic keys to
+sign and verify metadata files.  For a comprehensive list of available repository
+tool functions and classes, a [diagram](../docs/images/repository_tool-diagram.png)
+is available.  Documentation for setting up a TUF client and performing an update is
+provided [here](client_setup_and_repository_example.md).
 
-The [repository tool](repository_tool.py) is not used in TUF integrations.  The
-[tuf.interposition](interposition/README.md) package and
-[tuf.client.updater](client/README.md) module assist in integrating TUF with a
-software updater.
-
-A [diagram](../docs/images/repository_tool-diagram.png) is available that lists
-the methods and functions of [repository_tool.py](repository_tool.py)
-
-Documentation for setting up a TUF client and performing an update is available
-[here](client_setup_and_repository_example.md).
-
+To begin, cryptographic keys are generated.  Before metadata files can be validated
+by clients and target files fetched in a secure manner, public keys must be created to
+pin to particular metadata roles and private keys to generate signatures.  After
+covering keys, the four required top-level roles are introduced.  Examples are
+given demonstrating the expected work flow, where the metadata roles are created
+in a specific order, keys imported and loaded, and the metadata objects signed and
+written to disk.  Next, target files are added to the repository and included
+in metadata.  Lastly, custom delegations are added to extend the default
+roles in the repository.  By the end, a fully populated TUF repository is generated
+that can be tested.
 
 ### Keys ###
 The repository tool supports multiple public-key algorithms, such as
