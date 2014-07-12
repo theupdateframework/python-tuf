@@ -16,6 +16,7 @@
     - [Remove Target Files](#remove-target-files)
   - [Delegations](#delegations)
     - [Revoke Delegated Role](#revoke-delegated-role)
+  - [Wrap-up](#wrap-up)
 - [Delegate to Hashed Bins](#delegate-to-hashed-bins)
 - [Consistent Snapshots](#consistent-snapshots)
 
@@ -400,6 +401,8 @@ Enter a password for the encrypted RSA key:
 >>> repository.targets('unclaimed').revoke("flask")
 >>> repository.write()
 ```
+
+#### Wrap-up ####
 
 In summary, the five steps a repository maintainer follows to create a basic TUF
 repository are:
