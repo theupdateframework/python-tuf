@@ -243,7 +243,7 @@ Enter a password for the encrypted RSA key:
 
 ### Targets ###
 The Update Framework verifies target files by including their length, hash(es),
-and filepath in metadata.  The filepaths are relative to a `targets\` directory
+and filepath in metadata.  The filepaths are relative to a `targets/` directory
 on the repository.  A TUF client can download a target file by first updating 
 the latest copy of metadata (and thus available targets), verifying that their
 length and hashes are valid, and then saving them locally to complete the
@@ -255,11 +255,11 @@ and listed in `targets.json` metadata.
 #### Add Target Files ####
 
 The repository maintainer adds target files to roles (e.g., `targets`,
-`targets\unclaimed`) by specifying target paths.  Files at these target paths
+`targets/unclaimed`) by specifying target paths.  Files at these target paths
 must exist before the repository tool can generate and add their (hashes,
 lengths, filepath) to metadata.
 
-The actual target files are added first to the `targets\` directory of the
+The actual target files are added first to the `targets/` directory of the
 repository.
 
 ```Bash
@@ -271,7 +271,7 @@ $ echo 'file3' > file3.txt
 $ mkdir django; echo 'file4' > django/file4.txt
 ```
 
-With the target files available on the `targets\` directory of the repository,
+With the target files available on the `targets/` directory of the repository,
 the `add_targets()` method of a Targets role can be called to add the target to
 metadata.
 
