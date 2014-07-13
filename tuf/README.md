@@ -20,7 +20,7 @@
 - [Consistent Snapshots](#consistent-snapshots)
 
 
-## How to Create and Modify a TUF Repository ##
+## How to Create and Modify a Basic TUF Repository ##
 
 
 ### Overview ###
@@ -30,8 +30,8 @@ The [tuf.client.updater](client/README.md) module and
 [tuf.interposition](interposition/README.md) package assist in integrating
 TUF on the client side.  Second, the repository on the server side must
 be modified to include a minimum of four metadata files.  No additional software
-is required to convert a repository to a TUF one.  The tool to assist in generating
-the required metadata files of the repository is the focus of this document.
+is required to convert a repository to a TUF one.  The tool to generate the
+required metadata files of the repository is the focus of this document.
 
 
 The [repository tool](repository_tool.py) contains functions to generate all the
@@ -73,7 +73,7 @@ covering keys, the four required top-level roles are introduced.  Examples are
 given demonstrating the expected work flow, where the metadata roles are created
 in a specific order, keys imported and loaded, and the metadata objects signed and
 written to disk.  Lastly, target files are added to the repository, included in
-metadata, and custom delegations performed to extend the default roles in the
+metadata, and custom delegations performed to extend the default roles of the
 repository.  By the end, a fully populated TUF repository is generated that can be
 tested.
 
@@ -282,7 +282,7 @@ TUF verifies target files by including their length, hash(es),
 and filepath in metadata.  The filepaths are relative to a `targets/` directory
 on the repository.  A TUF client can download a target file by first updating 
 the latest copy of metadata (and thus available targets), verifying that their
-length and hashes are valid, and then saving them locally to complete the
+length and hashes are valid, and then saving them locally to complete the update
 process.
 
 In this section, the target files intended for clients are added to a repository
@@ -292,8 +292,8 @@ and listed in `targets.json` metadata.
 
 The repository maintainer adds target files to roles (e.g., `targets`,
 `targets/unclaimed`) by specifying target paths.  Files at these target paths
-must exist before the repository tool can generate and add their (hashes,
-lengths, filepath) to metadata.
+must exist before the repository tool can generate and add their (hash(es),
+length, filepath) to metadata.
 
 The actual target files are added first to the `targets/` directory of the
 repository.
@@ -418,19 +418,19 @@ and generate signed metadata, according to the keys and paths allowed by the par
 >>> private_unclaimed_key = import_rsa_privatekey_from_file("/path/to/unclaimed_key")
 Enter a password for the encrypted RSA key:
 
->>> repository.targets(unclaimed).load_signing_key(private_unclaimed_key)
+>>> repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
 
 # Update an attribute of the unclaimed role.
->>> repository.targets('unclaimed').version = 2
+>>> repository.targets("unclaimed").version = 2
 
 # Delegations may also be nested.  Create the delegated role "targets/unclaimed/django",
 # where it initially contains zero targets and future targets are restricted to a
 # particular directory.
->>> repository.targets('unclaimed').delegate("django", [public_unclaimed_key], [],
+>>> repository.targets("unclaimed").delegate("django", [public_unclaimed_key], [],
                                          restricted_paths=["/path/to/repository/targets/django/"])
->>> repository.targets('unclaimed')('django').load_signing_key(private_unclaimed_key)
->>> repository.targets('unclaimed')('django').add_target("/path/to/repository/targets/django/file4.txt")
->>> repository.targets('unclaimed')('django').compressions = ["gz"]
+>>> repository.targets("unclaimed")("django").load_signing_key(private_unclaimed_key)
+>>> repository.targets("unclaimed")("django").add_target("/path/to/repository/targets/django/file4.txt")
+>>> repository.targets("unclaimed")("django").compressions = ["gz"]
 
 #  Write the metadata of "targets/unclaimed", "targets/unclaimed/django", root, targets, snapshot,
 # and timestamp.
@@ -482,7 +482,7 @@ questions.
 A large number of target files may be distributed to multiple hashed bins with
 `delegate_hashed_bins()`.  The metadata files of delegated roles will be nearly equal in size
 (i.e., target file paths are uniformly distributed by calculating the target filepath's
-digest and determining which bin it should reside in.  The updater client will use
+digest and determining which bin it should reside in.)  The updater client will use
 "lazy bin walk" to find a target file's hashed bin destination.  This method is intended
 for repositories with a large number of target files, a way of easily distributing and
 managing the metadata that lists the targets, and minimizing the number of metadata files
