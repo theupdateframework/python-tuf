@@ -141,10 +141,90 @@ class URLMatchesNoPattern(InterpositionException):
 
 
 class Updater(object):
-  """I am an Updater model."""
+  """
+  <Purpose>
+    Provide a class that can download target files securely. It performs all
+    those things which client/updator.py performs. But it performs it in the 
+    background, transparent to the client.
+
+  <Updater Methods>
+    refresh(): 
+      This method refresh top-level metadata. It calls the refresh() method of  
+      client/updater. refresh() method of client/updater.py downloads, verifies,
+      and loads metadata for the top-level roles in a specific order (i.e., 
+      timestamp -> snapshot -> root -> targets). The expiration time for 
+      downloaded metadata is also verified. 
+    
+    cleanup():
+      It will clean up all the temporary directories which were made as a result
+      of download. It then prints a message of deletion and also mentions the 
+      name of the deleted directory. 
+      
+    download_target(target_filepath):
+      It downloads the 'target' and verify it is trusted. This procedure happens 
+      in the background, transparent to the client. This will only store the 
+      file at 'destination_directory' if the downloaded file matches the 
+      description of the file in the trusted metadata.     
+    
+    get_target_filepath(source_url):
+      Given source->target map, this method will figure out what TUF should     
+      download when a URL is given.   
+   
+    open(url, data):
+      Open the URL url which can either be a string or a request object.        
+      The file is opened in the binary read mode as a temporary file.  
+    
+    retrieve(url, filename, reporthook, data):
+      retrieve() method first get the target file path by calling               
+      get_target_filepath(url) which in tuf.interposition.updater and then      
+      calls download_target() method for the above file path.   
+    
+    switch_context():
+      There is an updater object for each network location that is interposed.  
+      Context switching is required because there are multiple                  
+      tuf.client.Updater() objects and each one depends on tuf.conf settings    
+      that are shared.      
+  """
 
 
   def __init__(self, configuration):
+  """
+  <Purpose>
+    Constructor. Instantiating an updater object causes creation of a temporary
+    directory. This temporary directory is used for the interposition updater.
+    After that the updater of client module which performs the low-level 
+    integration is called.
+
+  <Arguments>
+    configuration:
+      A dictionary holding information like the following -
+      - Which network location get intercepted?                                
+      - Given a network location, which TUF mirrors should we forward requests 
+        to?                                                           
+      - Given a network location, which paths should be intercepted?           
+      - Given a TUF mirror, how do we verify its SSL certificate? 
+      
+      This dictionary holds repository mirror information, conformant to       
+      'tuf.formats.MIRRORDICT_SCHEMA'. Information such as the directory 
+      containing the metadata and target files, the server's URL prefix, and 
+      the target content directories the client should be confined to.                                                  
+      
+      repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
+                            'metadata_path': 'metadata',          
+                            'targets_path': 'targets',            
+                            'confined_target_dirs': ['']}} 
+
+  <Exceptions>
+    #TODO: Exceptions
+
+  <Side Effects>
+    The metadata files (e.g., 'root.json', 'targets.json') for the top-level 
+    roles are read from disk and stored in dictionaries. 
+ 
+  <Returns>
+    None.
+  """
+
     CREATED_TEMPDIR_MESSAGE = "Created temporary directory at {tempdir}"
 
     self.configuration = configuration
@@ -152,27 +232,51 @@ class Updater(object):
     self.tempdir = tempfile.mkdtemp()
     Logger.debug(CREATED_TEMPDIR_MESSAGE.format(tempdir=self.tempdir))
 
-    # must switch context before instantiating updater
-    # because updater depends on some module (tuf.conf) variables
+    # Switching context before instantiating updater because updater depends 
+    # on some module (tuf.conf) variables.
     self.switch_context()
+
+    # Instantiating an client/updater object causes all the configurations for 
+    # the top-level roles to be read from disk, including the key and role 
+    # information for the delegated targets of 'targets'. The actual metadata 
+    # for delegated roles is not loaded in __init__.  The metadata for these 
+    # delegated roles, including nested delegated roles, are loaded, updated, 
+    # and saved to the 'self.metadata' store by the target methods, like 
+    # all_targets() and targets_of_role().     
     self.updater = tuf.client.updater.Updater(self.configuration.hostname,
                                               self.configuration.repository_mirrors)
     
     # Update the client's top-level metadata.  The download_target() method does
     # not automatically refresh top-level prior to retrieving target files and
-    # their associated Targets metadata, so update the top-level
-    # metadata here.
+    # their associated Targets metadata, so update the top-level metadata here.
     Logger.info('Refreshing top-level metadata for interposed '+repr(configuration))
     self.updater.refresh()
   
  
   def refresh(self):
-    """Refresh top-level metadata"""
+    """
+    <Purpose>
+      This method refresh top-level metadata. It calls the refresh() method of 
+      client/updater.
+      refresh() method of client/updater.py downloads, verifies, and loads 
+      metadata for the top-level roles in a specific order (i.e., timestamp -> 
+      snapshot -> root -> targets)
+      The expiration time for downloaded metadata is also verified.             
+                                                                                     
+      This refresh() method should be called by the client before any target     
+      requests. Therefore to automate the process, it is called here.         
+    """
+
     self.updater.refresh()
 
 
   def cleanup(self):
-    """Clean up after certain side effects, such as temporary directories."""
+    """
+    <Purpose>
+      It will clean up all the temporary directories which were made as a 
+      result of download. It then prints a message of deletion and also 
+      mentions the name of the deleted directory.   
+    """
 
     DELETED_TEMPDIR_MESSAGE = "Deleted temporary directory at {tempdir}"
     shutil.rmtree(self.tempdir)
@@ -180,27 +284,62 @@ class Updater(object):
 
 
   def download_target(self, target_filepath):
-    """Downloads target with TUF as a side effect."""
+    """
+    <Purpose>
+      It downloads the 'target' and verify it is trusted. This procedure 
+      happens in the background, transparent to the client.
+                                                                                      
+      This will only store the file at 'destination_directory' if the downloaded
+      file matches the description of the file in the trusted metadata. 
 
-    # download file into a temporary directory shared over runtime
+    <Arguments>
+      target_filepath contains the path to the target to be downloaded.   
+
+    <Exceptions>
+      #TODO: Exceptions
+
+    <Side Effects>
+      A target file is saved to the local system.
+
+    <Returns>
+      It returns destination_directory where the target is been stored and 
+      filename of the target file been stored in the directory.
+    
+    """
+
+    # Download file into a temporary directory shared over runtime
     destination_directory = self.tempdir
     
+    # A new path is generated by joining the destination directory path that is 
+    # our temporary directory path and target file path.
     # Note: join() discards 'destination_directory' if 'target_filepath'
     # contains a leading path separator (i.e., is treated as an absolute path).
     filename = os.path.join(destination_directory, target_filepath.lstrip(os.sep))
     
-    # Switch TUF context.
+    # Switch TUF context. Switching context before instantiating updater 
+    # because updater depends on some module (tuf.conf) variables. 
     self.switch_context()
     
     # Locate the fileinfo of 'target_filepath'.  updater.target() searches
     # Targets metadata in order of trust, according to the currently trusted
     # snapshot.  To prevent consecutive target file requests from referring to
     # different snapshots, top-level metadata is not automatically refreshed.
+    # It returns the target information for a specific file identified by its 
+    # file path.  This target method also downloads the metadata of updated 
+    # targets. 
     targets = [self.updater.target(target_filepath)]
 
     # TODO: targets are always updated if destination directory is new, right?
+    # After the client has retrieved the target information for those targets   
+    # they are interested in updating, updated_targets() method is called to 
+    # determine which targets have changed from those saved locally on disk. 
+    # All the targets that have changed are returns in a list. From this list, 
+    # a request to download is made by calling 'download_target()'.    
     updated_targets = self.updater.updated_targets(targets, destination_directory)
 
+    # The download_target() method in client/updater.py  performs the actual 
+    # download of the specified target. The file is saved to the 
+    # 'destination_directory' argument. 
     for updated_target in updated_targets:
       self.updater.download_target(updated_target, destination_directory)
 
@@ -209,8 +348,18 @@ class Updater(object):
 
   # TODO: decide prudent course of action in case of failure
   def get_target_filepath(self, source_url):
-    """Given source->target map, figure out what TUF *should* download given a
-    URL."""
+    """
+    <Purpose>
+      Given source->target map, this method will figure out what TUF should 
+      download when a URL is given.
+    
+    <Arguments>
+      source_url is passed while calling the function. This is the url which 
+      we want to retrieve. For this url, get_target_filepath() method is called.
+
+    <Returns>
+      It returns target_filepath. This is the target which TUF should download.
+    """
 
     WARNING_MESSAGE = "Possibly invalid target_paths for " + \
         "{network_location}! No TUF interposition for {url}"
@@ -223,6 +372,7 @@ class Updater(object):
       # how to map the source URL to a target URL understood by TUF?
       for target_path in self.configuration.target_paths:
 
+        #TODO: What these two lines are doing?
         # target_path: { "regex_with_groups", "target_with_group_captures" }
         # e.g. { ".*(/some/directory)/$", "{0}/index.html" }
         source_path_pattern, target_path_pattern = target_path.items()[0]
@@ -253,6 +403,20 @@ class Updater(object):
 
   # TODO: distinguish between urllib and urllib2 contracts
   def open(self, url, data=None):
+    """
+    <Purpose>
+      Open the URL url which can either be a string or a request object. 
+      The file is opened in the binary read mode as a temporary file.
+
+    <Arguments>
+      url, the one which is to be opened.
+
+      data must be a bytes object specifying additional data to be sent to the  
+      server or None, if no such data needed. 
+  
+    <Returns>
+  
+    """
     filename, headers = self.retrieve(url, data=data)
 
     # TUF should always open files in binary mode and remain transparent to the
@@ -268,6 +432,7 @@ class Updater(object):
     # other option for this is working or not.
     # Extend temporary_file with info(), getcode(), geturl()
     # http://docs.python.org/2/library/urllib.html#urllib.urlopen
+    # addinfourl() works as a context manager.
     response = urllib.addinfourl(temporary_file, headers, url, code=200)
 
     return response
@@ -275,6 +440,22 @@ class Updater(object):
 
   # TODO: distinguish between urllib and urllib2 contracts
   def retrieve(self, url, filename=None, reporthook=None, data=None):
+    """
+    <Purpose>
+      retrieve() method first get the target file path by calling 
+      get_target_filepath(url) which in tuf.interposition.updater and then 
+      calls download_target() method for the above file path.
+
+    <Arguments>
+      url, which is to be retrieved. 
+
+      filename, if the is given then everywhere the given filename is used. 
+      If the filename is none, then temporary file is used.
+                     
+    <Returns>
+      It returns the filename and the headers of the file just retrieved.
+
+    """
     INTERPOSITION_MESSAGE = "Interposing for {url}"
 
     Logger.info(INTERPOSITION_MESSAGE.format(url=url))
@@ -311,11 +492,22 @@ class Updater(object):
 
   # TODO: thread-safety, perhaps with a context manager
   def switch_context(self):
-      # Set the local repository directory containing the metadata files.
-      tuf.conf.repository_directory = self.configuration.repository_directory
+    """
+    <Purpose>
+      There is an updater object for each network location that is interposed. 
+      Context switching is required because there are multiple 
+      tuf.client.Updater() objects and each one depends on tuf.conf settings 
+      that are shared.
 
-      # Set the local SSL certificates PEM file.
-      tuf.conf.ssl_certificates = self.configuration.ssl_certificates
+      For this, two settings are required -
+      1. Setting local repository directory
+      2. Setting the local SSL certificate PEM file
+    """
+    # Set the local repository directory containing the metadata files.
+    tuf.conf.repository_directory = self.configuration.repository_directory
+
+    # Set the local SSL certificates PEM file.
+    tuf.conf.ssl_certificates = self.configuration.ssl_certificates
 
 
 
@@ -464,7 +656,6 @@ class UpdaterController(object):
         Logger.warn(GENERIC_WARNING_MESSAGE.format(url=url))
 
       return updater
-
 
   def remove(self, configuration):
     """Remove an Updater matching the given Configuration."""
