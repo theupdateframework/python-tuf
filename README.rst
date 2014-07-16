@@ -2,10 +2,10 @@ A Framework for Securing Software Update Systems
 ------------------------------------------------
 
 .. image::  https://travis-ci.org/theupdateframework/tuf.svg?branch=develop
-    :target: https://travis-ci.org/theupdateframework/tuf
+   :target: https://travis-ci.org/theupdateframework/tuf
 
 .. image:: https://coveralls.io/repos/theupdateframework/tuf/badge.png?branch=develop
-    :target: theupdateframework/tuf?branch=develop
+   :target: https://coveralls.io/r/theupdateframework/tuf?branch=develop
 
 
 TUF (The Update Framework) helps developers secure their new or existing
@@ -30,7 +30,7 @@ Three major classes of software update systems are:
 
 -  **Library package managers** such as those offered by many
    programming languages for installing additional libraries. These are
-   systems such as Python's pip/easy\_install + PyPI, Perl's CPAN,
+   systems such as Python's pip/easy_install + PyPI, Perl's CPAN,
    Ruby's Gems, and PHP's PEAR.
 
 -  **System package managers** used by operating systems to update and
@@ -160,8 +160,11 @@ signature generation with PyNaCl / libsodium.
 TUF tools also enable general-purpose cryptography with PyCrypto.
 Software updaters that want to support verification of RSASSA-PSS
 signatures should require their clients to install ``tuf[tools]``.
-::
 
+Installing extras does not work if minimal install was a wheel (pip <= 1.5.6.)
+https://github.com/pypa/pip/issues/1885
+::
+    $ pip install -no-use-wheel tuf
     $ pip install tuf[tools]
 
 Instructions for Contributors
