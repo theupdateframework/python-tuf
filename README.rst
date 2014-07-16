@@ -1,9 +1,12 @@
 A Framework for Securing Software Update Systems
 ------------------------------------------------
 
-`|Build Status| <https://travis-ci.org/theupdateframework/tuf>`_
-`|Coverage
-Status| <https://coveralls.io/r/theupdateframework/tuf?branch=develop>`_
+.. image::  https://travis-ci.org/theupdateframework/tuf.svg?branch=develop
+    :target: https://travis-ci.org/theupdateframework/tuf
+
+.. image:: https://coveralls.io/repos/theupdateframework/tuf/badge.png?branch=develop
+    :target: theupdateframework/tuf?branch=develop
+
 
 TUF (The Update Framework) helps developers secure their new or existing
 software update systems. Software update systems are vulnerable to many
@@ -208,8 +211,3 @@ Foundation under Grant No. CNS-1345049 and CNS-0959138. Any opinions,
 findings, and conclusions or recommendations expressed in this material
 are those of the author(s) and do not necessarily reflect the views of
 the National Science Foundation.
-
-.. |Build
-Status| image:: https://travis-ci.org/theupdateframework/tuf.svg?branch=develop
-.. |Coverage
-Status| image:: https://coveralls.io/repos/theupdateframework/tuf/badge.png?branch=develop
