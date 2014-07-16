@@ -1,7 +1,7 @@
 A Framework for Securing Software Update Systems
 ------------------------------------------------
 
-.. image::  https://travis-ci.org/theupdateframework/tuf.svg?branch=develop
+.. image:: https://travis-ci.org/theupdateframework/tuf.svg?branch=develop
    :target: https://travis-ci.org/theupdateframework/tuf
 
 .. image:: https://coveralls.io/repos/theupdateframework/tuf/badge.png?branch=develop
@@ -162,8 +162,10 @@ Software updaters that want to support verification of RSASSA-PSS
 signatures should require their clients to install ``tuf[tools]``.
 
 Installing extras does not work if minimal install was a wheel (pip <= 1.5.6.)
-https://github.com/pypa/pip/issues/1885
+`https://github.com/pypa/pip/issues/1885 <https://github.com/pypa/pip/issues/1885>`_
+
 ::
+
     $ pip install -no-use-wheel tuf
     $ pip install tuf[tools]
 
