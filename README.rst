@@ -160,7 +160,8 @@ signature generation with PyNaCl / libsodium.
 TUF tools also enable general-purpose cryptography with PyCrypto.
 Software updaters that want to support verification of RSASSA-PSS
 signatures should require their clients to install ``tuf[tools]``.
-``Bash $ pip install tuf[tools]``
+::
+    $ pip install tuf[tools]
 
 Instructions for Contributors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -172,21 +173,31 @@ dependencies. All installation methods of virtualenv are outlined in the
 `installation
 section <https://virtualenv.pypa.io/en/latest/virtualenv.html#installation>`_
 and instructions for installing locally from source here:
-``Bash $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.11.6.tar.gz $ tar xvfz virtualenv-1.11.6.tar.gz $ cd virtualenv-1.11.6 $ python virtualenv.py myVE``
+::
+    $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.11.6.tar.gz
+    $ tar xvfz virtualenv-1.11.6.tar.gz
+    $ cd virtualenv-1.11.6
+    $ python virtualenv.py myVE
+
 
 PyCrypto and PyNaCl (third-party dependencies needed by the repository
 tools) require Python and FFI (Foreign Function Interface) development
 header files. Debian-based distributions can install these header
 libraries with apt (Advanced Package Tool.)
-``Bash $ apt-get install python-dev $ apt-get install libffi-dev``
+::
+    $ apt-get install python-dev
+    $ apt-get install libffi-dev
 
 Installation of minimal, optional, development, and testing requirements
 can then be accomplished with one command:
-``Bash $ pip install -r dev-requirements.txt``
+::
+    $ pip install -r dev-requirements.txt
 
 The Update Framework's unit tests can be executed by invoking
 `tox <https://testrun.org/tox/>`_. All supported Python versions are
-tested, but must already be installed locally. ``Bash $ tox``
+tested, but must already be installed locally.
+::
+    $ tox
 
 Using TUF
 ---------
