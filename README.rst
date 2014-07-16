@@ -166,6 +166,10 @@ signatures should require their clients to install ``tuf[tools]``.
 Instructions for Contributors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Development: https://github.com/theupdateframework/tuf
+
+Mailing list: https://groups.google.com/forum/?fromgroups#%21forum/theupdateframework
+
 `Virtualenv <https://virtualenv.pypa.io/en/latest/virtualenv.html#introduction>`_
 is a tool to create isolated Python environments. It also includes
 ``pip`` and ``setuptools``, Python packages used to install TUF and its
