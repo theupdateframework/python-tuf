@@ -99,13 +99,13 @@ updater systems, TUF's design and implementation details, attacks on
 package managers, and package management security:
 
 -  `Survivable Key Compromise in Software Update
-   Systems <docs/papers/survivable-key-compromise-ccs2010.pdf?raw=true>`_
+   Systems <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/survivable-key-compromise-ccs2010.pdf?raw=true>`_
 
 -  `A Look In the Mirror: Attacks on Package
-   Managers <docs/papers/package-management-security-tr08-02.pdf?raw=true>`_
+   Managers <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/package-management-security-tr08-02.pdf?raw=true>`_
 
 -  `Package Management
-   Security <docs/papers/attacks-on-package-managers-ccs2008.pdf?raw=true>`_
+   Security <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/attacks-on-package-managers-ccs2008.pdf?raw=true>`_
 
 What TUF Does
 -------------
@@ -129,7 +129,7 @@ trustworthy, TUF hands them over to your software update system. See
 
 TUF specification document is also available:
 
--  `The Update Framework Specification <docs/tuf-spec.txt?raw=true>`_
+-  `The Update Framework Specification <https://github.com/theupdateframework/tuf/tree/develop/docs/tuf-spec.txt?raw=true>`_
 
 Installation
 ------------
@@ -212,11 +212,11 @@ with TUF; upstream servers, who will largely be responsible for care and
 feeding of repositories; and integrators, who do the work of putting TUF
 into existing projects.
 
--  `Creating a Repository <tuf/README.md>`_
+-  `Creating a Repository <https://github.com/theupdateframework/tuf/tree/develop/tuf/README.md>`_
 
--  `Low-level Integration <tuf/client/README.md>`_
+-  `Low-level Integration <https://github.com/theupdateframework/tuf/tree/develop/tuf/client/README.md>`_
 
--  `High-level Integration <tuf/interposition/README.md>`_
+-  `High-level Integration <https://github.com/theupdateframework/tuf/tree/develop/tuf/interposition/README.md>`_
 
 Acknowledgements
 ----------------
