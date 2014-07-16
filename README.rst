@@ -1,9 +1,12 @@
 A Framework for Securing Software Update Systems
 ------------------------------------------------
 
-`|Build Status| <https://travis-ci.org/theupdateframework/tuf>`_
-`|Coverage
-Status| <https://coveralls.io/r/theupdateframework/tuf?branch=develop>`_
+.. image::  https://travis-ci.org/theupdateframework/tuf.svg?branch=develop
+    :target: https://travis-ci.org/theupdateframework/tuf
+
+.. image:: https://coveralls.io/repos/theupdateframework/tuf/badge.png?branch=develop
+    :target: theupdateframework/tuf?branch=develop
+
 
 TUF (The Update Framework) helps developers secure their new or existing
 software update systems. Software update systems are vulnerable to many
@@ -157,7 +160,8 @@ signature generation with PyNaCl / libsodium.
 TUF tools also enable general-purpose cryptography with PyCrypto.
 Software updaters that want to support verification of RSASSA-PSS
 signatures should require their clients to install ``tuf[tools]``.
-``Bash $ pip install tuf[tools]``
+::
+    $ pip install tuf[tools]
 
 Instructions for Contributors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -169,21 +173,31 @@ dependencies. All installation methods of virtualenv are outlined in the
 `installation
 section <https://virtualenv.pypa.io/en/latest/virtualenv.html#installation>`_
 and instructions for installing locally from source here:
-``Bash $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.11.6.tar.gz $ tar xvfz virtualenv-1.11.6.tar.gz $ cd virtualenv-1.11.6 $ python virtualenv.py myVE``
+::
+    $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.11.6.tar.gz
+    $ tar xvfz virtualenv-1.11.6.tar.gz
+    $ cd virtualenv-1.11.6
+    $ python virtualenv.py myVE
+
 
 PyCrypto and PyNaCl (third-party dependencies needed by the repository
 tools) require Python and FFI (Foreign Function Interface) development
 header files. Debian-based distributions can install these header
 libraries with apt (Advanced Package Tool.)
-``Bash $ apt-get install python-dev $ apt-get install libffi-dev``
+::
+    $ apt-get install python-dev
+    $ apt-get install libffi-dev
 
 Installation of minimal, optional, development, and testing requirements
 can then be accomplished with one command:
-``Bash $ pip install -r dev-requirements.txt``
+::
+    $ pip install -r dev-requirements.txt
 
 The Update Framework's unit tests can be executed by invoking
 `tox <https://testrun.org/tox/>`_. All supported Python versions are
-tested, but must already be installed locally. ``Bash $ tox``
+tested, but must already be installed locally.
+::
+    $ tox
 
 Using TUF
 ---------
@@ -208,8 +222,3 @@ Foundation under Grant No. CNS-1345049 and CNS-0959138. Any opinions,
 findings, and conclusions or recommendations expressed in this material
 are those of the author(s) and do not necessarily reflect the views of
 the National Science Foundation.
-
-.. |Build
-Status| image:: https://travis-ci.org/theupdateframework/tuf.svg?branch=develop
-.. |Coverage
-Status| image:: https://coveralls.io/repos/theupdateframework/tuf/badge.png?branch=develop
