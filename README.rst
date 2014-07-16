@@ -91,7 +91,7 @@ still at risk in many ways, including:
 
 These are just some of the attacks software update systems are
 vulnerable to when only using signed files. See
-`Security <SECURITY.md>`_ for a full list of attacks and updater
+`Security <https://github.com/theupdateframework/tuf/tree/develop/SECURITY.md>`_ for a full list of attacks and updater
 weaknesses TUF is designed to prevent.
 
 The following papers provide detailed information on securing software
@@ -125,7 +125,7 @@ software update system can then ask TUF to download these files. TUF
 downloads them and checks them against the TUF metadata that it also
 downloads from the repository. If the downloaded target files are
 trustworthy, TUF hands them over to your software update system. See
-`Metadata <METADATA.md>`_ for more information and examples.
+`Metadata <https://github.com/theupdateframework/tuf/tree/develop/METADATA.md>`_ for more information and examples.
 
 TUF specification document is also available:
 
