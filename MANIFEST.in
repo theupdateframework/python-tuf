@@ -1,0 +1,31 @@
+include AUTHORS.txt
+include LICENSE.txt
+include METADATA.md
+include README.rst
+include SECURITY.md
+include tox.ini
+include tests/repository_data/keystore/delegation_key
+include tests/repository_data/keystore/root_key
+include tests/repository_data/keystore/snapshot_key
+include tests/repository_data/keystore/targets_key
+include tests/repository_data/keystore/timestamp_key
+include tuf/_vendor/ed25519/test_data/ed25519
+include tuf/_vendor/ed25519/LICENSE
+include tuf/_vendor/iso8601/LICENSE 
+
+recursive-include docs *.txt
+recursive-include docs/papers *.pdf
+recursive-include docs/images *.png
+recursive-include examples *
+recursive-include tests *.py
+recursive-include tests *.pem
+recursive-include tests *.json
+recursive-include tests *.txt
+recursive-include tests *.cfg
+recursive-include tests *.coveragerc
+recursive-include tests *.gz
+recursive-include tests *.pub
+recursive-include tuf *.gitignore
+recursive-include tuf *.md
+recursive-include tuf *.rst
+recursive-include tuf *.yml
