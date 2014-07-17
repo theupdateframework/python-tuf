@@ -63,6 +63,9 @@ import binascii
 # http://docs.python.org/2/library/warnings.html#temporarily-suppressing-warnings
 import warnings
 
+# Used by the PEM key import code to clean up the key
+import re
+
 # 'pycrypto' is the only currently supported library for the creation of RSA
 # keys.
 # https://github.com/dlitz/pycrypto
@@ -1010,11 +1013,16 @@ def format_rsakey_from_pem(pem):
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PEMRSA_SCHEMA.check_match(pem)
   
-  # Ensure the PEM string starts with the required number of dashes.  Although
-  # a simple validation of 'pem' is performed here, a fully valid PEM string is
-  # needed to successfully verify signatures.
-  if not pem.startswith('-----'):
+  # Ensure the PEM string has a valid header and footer
+  pem_header = '-----BEGIN PUBLIC KEY-----'
+  pem_footer = '-----END PUBLIC KEY-----'
+  if pem_header not in pem or pem_footer not in pem:
     raise tuf.FormatError('The PEM string argument is improperly formatted.') 
+
+  # Clean up the PEM string. Remove everything in the string before the header
+  # and after the footer.
+  pem = re.sub("(.+)" + pem_header, pem_header, pem, flags=re.S|re.M)
+  pem = re.sub(pem_footer + "(.+)", pem_footer, pem, flags=re.S|re.M)
   
   # Begin building the RSA key dictionary. 
   rsakey_dict = {}
