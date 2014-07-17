@@ -166,7 +166,7 @@ Installing extras does not work if minimal install was a wheel (pip <= 1.5.6.)
 
 ::
 
-    $ pip install -no-use-wheel tuf
+    $ pip install --no-use-wheel tuf
     $ pip install tuf[tools]
 
 Instructions for Contributors
