@@ -63,9 +63,6 @@ import binascii
 # http://docs.python.org/2/library/warnings.html#temporarily-suppressing-warnings
 import warnings
 
-# Used by the PEM key import code to clean up the key
-import re
-
 # 'pycrypto' is the only currently supported library for the creation of RSA
 # keys.
 # https://github.com/dlitz/pycrypto
@@ -980,7 +977,7 @@ def format_rsakey_from_pem(pem):
     
     {'keytype': 'rsa',
      'keyid': keyid,
-     'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
+     'keyval': {'public': '-----BEGIN PUBLIC KEY----- ...',
                 'private': ''}}
     
     The public portion of the RSA key is a string in PEM format.
@@ -1000,7 +997,9 @@ def format_rsakey_from_pem(pem):
     tuf.FormatError, if 'pem' is improperly formatted.
 
   <Side Effects>
-    None.
+    Only the public portion of the PEM is extracted.  Leading or trailing
+    whitespace is not included in the PEM string stored in the rsakey object
+    returned.
 
   <Returns>
     A dictionary containing the RSA keys and other identifying information.
@@ -1013,21 +1012,43 @@ def format_rsakey_from_pem(pem):
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PEMRSA_SCHEMA.check_match(pem)
   
-  # Ensure the PEM string has a valid header and footer
+  # Ensure the PEM string has a valid header and footer.  Although a simple
+  # validation of 'pem' is performed here, a fully valid PEM string is
+  # needed to later successfully verify signatures.
   pem_header = '-----BEGIN PUBLIC KEY-----'
   pem_footer = '-----END PUBLIC KEY-----'
-  if pem_header not in pem or pem_footer not in pem:
-    raise tuf.FormatError('The PEM string argument is improperly formatted.') 
+  header_start = 0
+  footer_start = 0
 
-  # Clean up the PEM string. Remove everything in the string before the header
-  # and after the footer.
-  pem = re.sub("(.+)" + pem_header, pem_header, pem, flags=re.S|re.M)
-  pem = re.sub(pem_footer + "(.+)", pem_footer, pem, flags=re.S|re.M)
+  # Raise error message if the expected header or footer is not found in 'pem'.
+  try:
+    header_start = pem.index(pem_header)
   
+  except ValueError:
+    message = \
+      'Required PEM header ' + repr(pem_header) + '\n not found in PEM' + \
+      ' string: ' + repr(pem) 
+    raise tuf.FormatError(message)
+  
+  try:
+    # Search for 'pem_footer' after the PEM header.
+    footer_start = pem.index(pem_footer, header_start + len(pem_header))
+  
+  except ValueError:
+    message = \
+      'Required PEM footer ' + repr(pem_footer) + '\n not found in PEM' + \
+      ' string ' + repr(pem)
+    raise tuf.FormatError(message)
+  
+  # Extract only the public portion of 'pem'.  Leading or trailing whitespace
+  # is not included.
+  public_pem = pem[header_start:footer_start + len(pem_footer)] 
+
+
   # Begin building the RSA key dictionary. 
   rsakey_dict = {}
   keytype = 'rsa'
-  public = pem 
+  public = public_pem 
 
   # Generate the keyid of the RSA key.  'key_value' corresponds to the
   # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
