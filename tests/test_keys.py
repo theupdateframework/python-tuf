@@ -118,11 +118,12 @@ class TestKeys(unittest.TestCase):
     # Supplying an improperly formatted PEM.
     # Strip the PEM header and footer.
     pem_header = '-----BEGIN PUBLIC KEY-----'
-    pem_footer= '-----END PUBLIC KEY-----'
-    self.assertRaises(tuf.FormatError, KEYS.format_rsakey_from_pem,
-                      pem[:len(pem_footer)])
     self.assertRaises(tuf.FormatError, KEYS.format_rsakey_from_pem,
                       pem[len(pem_header):])
+                      
+    pem_footer = '-----END PUBLIC KEY-----'
+    self.assertRaises(tuf.FormatError, KEYS.format_rsakey_from_pem,
+                      pem[:-len(pem_footer)])
 
 
 
