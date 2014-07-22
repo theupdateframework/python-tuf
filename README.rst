@@ -222,6 +222,14 @@ with TUF; upstream servers, who will largely be responsible for care and
 feeding of repositories; and integrators, who do the work of putting TUF
 into existing projects.
 
+A low-level integration requires importing a single module and calling
+particular methods to perform updates.  A high-level integration, on the
+other hand, can handle TUF-related updates transparently.  The client
+populates a configuration file and the library interposes on urllib calls.
+Generating metadata files stored on upstream servers can be handled by the
+repository tool, covered in ``Creating a Repository``.
+
+
 -  `Creating a Repository <https://github.com/theupdateframework/tuf/tree/develop/tuf/README.md>`_
 
 -  `Low-level Integration <https://github.com/theupdateframework/tuf/tree/develop/tuf/client/README.md>`_
