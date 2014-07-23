@@ -80,7 +80,7 @@ with open('README.rst') as file_object:
 
 setup(
   name = 'tuf',
-  version = '0.9.8',
+  version = '0.9.9',
   description = 'A secure updater framework for Python',
   long_description = long_description,
   author = 'http://www.theupdateframework.com',

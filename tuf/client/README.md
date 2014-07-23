@@ -149,7 +149,7 @@ for target in updated_target:
 ```
 
 ###A Simple Integration Example with basic_client.py
-```
+``` Bash
 # Assume a simple TUF repository has been setup with 'tuf.repository_tool.py'.
 $ basic_client.py --repo http://localhost:8001
 
