@@ -1,27 +1,25 @@
+#!/usr/bin/env python
+
+"""
+
+"""
+
+# Help with Python 3 compatibility where the print statement is a function, an  
+# implicit relative import is invalid, and the '/' operator performs true       
+# division. Example:  print 'hello world' raises a 'SyntaxError' exception.     
+from __future__ import print_function                                           
+from __future__ import absolute_import                                          
+from __future__ import division                                                 
+from __future__ import unicode_literals         
+
 import os.path
 import types
 import urlparse
 
-
-# We import them directly into our namespace so that there is no name conflict.
-from utility import Logger, InterpositionException
+import tuf.log
 
 
-
-
-
-################################ GLOBAL CLASSES ################################
-
-
-
-
-
-class InvalidConfiguration(InterpositionException):
-  """User configuration is invalid."""
-  pass
-
-
-
+Logger = logging.getLogger('tuf.interposition.configuration')
 
 
 class Configuration(object):
@@ -59,6 +57,7 @@ class Configuration(object):
 
     for repository_mirror in repository_mirrors:
       mirror_configuration = repository_mirrors[repository_mirror]
+      
       url_prefix = mirror_configuration["url_prefix"]
       parsed_url = urlparse.urlparse(url_prefix)
       mirror_hostname = parsed_url.hostname
