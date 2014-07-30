@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 <Program Name>
   updater.py
@@ -21,11 +23,14 @@
   #TODO: Add more description to purpose.
   #TODO: Add Pros and Cons of using interposition.
 
-<Example Interpostion>
+<Example Integration with Interposition>
 
-  To implement interpostion client only need to have two files -
-  1. A python file which client will have to run in order to perform 
-     interposition. For example - interposition.py.
+  To implement interpostion client only need to have-
+  First, a client module which is modified to include interposition library and 
+  code and second, a JSON configuration file is created, each of which is 
+  explained below - 
+  1. "interposition.py" is an example client updater module that is integrating
+     TUF with interposition.
 
      # First import the main module called interposition which contains all 
      # the required directories and classes.
@@ -47,7 +52,7 @@
      # Second, configure(filename="/path/to/json")
      # Configure() returns a dictionary of configurations
      # Internally, configure() calls add(configuration) function which is in 
-     # the class UpdaterController.
+     # the tuf.interposition.UpdaterController.
      configurations = tuf.interposition.configure()
 
      url = 'http://example.com/path/to/document'
@@ -59,8 +64,8 @@
      # Remove TUF interposition for previously read configurations. That is 
      # remove the updater object.
      # Deconfigure() takes only one argument i.e. configurations.
-     # It calls remove(configuration) function which is in UpdaterController
-     # class in updater.py.
+     # It calls remove(configuration) function which is in 
+     # tuf.interposition.UpdaterController.
      tuf.interposition.deconfigure(configurations)
 
 
@@ -88,7 +93,7 @@
            "repository_directory": ".",
            # Where do we forward the requests to localhost?
              "repository_mirrors" : {
-                "mirror1": {
+           gg     "mirror1": {
                 # In this case, we forward them to http://localhost:8001
                   "url_prefix": "http://localhost:8001",
                   # You do not have to worry about these default parameters.
@@ -102,10 +107,17 @@
      }
 
   # After making these two files on the client side, run interposition.py. This
-  # will start the interposition process. It generates a log file in the same 
-  # directory which can be used for a review.
-
+  # will start the interposition process. It generates a log file named tuf.log
+  # in the same directory, which can be used for a review.
 """
+
+# Help with Python 3 compatibility where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division. Example:  print 'hello world' raises a 'SyntaxError' exception. 
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 
 import mimetypes
 import os.path
@@ -114,30 +126,17 @@ import shutil
 import tempfile
 import urllib
 import urlparse
-
+import logging
 
 import tuf.client.updater
 import tuf.conf
-
+import tuf.log
 
 # We import them directly into our namespace so that there is no name conflict.
 from configuration import Configuration, InvalidConfiguration
-from utility import Logger, InterpositionException
-#TODO: Remove utility because the Logger is at two places. 
 
 
-
-
-################################ GLOBAL CLASSES ################################
-
-
-#TODO: Put this class in the Exception file of TUF.
-class URLMatchesNoPattern(InterpositionException):
-  """URL matches no user-specified regular expression pattern."""
-  pass
-
-
-
+Logger = logging.getLogger('tuf.interposition.updater')
 
 
 class Updater(object):
@@ -150,9 +149,9 @@ class Updater(object):
   <Updater Methods>
     refresh(): 
       This method refresh top-level metadata. It calls the refresh() method of  
-      client/updater. refresh() method of client/updater.py downloads, verifies,
-      and loads metadata for the top-level roles in a specific order (i.e., 
-      timestamp -> snapshot -> root -> targets). The expiration time for 
+      tuf.client.updater. refresh() method of tuf.client.updater downloads, 
+      verifies, and loads metadata for the top-level roles in a specific order
+      (i.e., timestamp -> snapshot -> root -> targets). The expiration time for 
       downloaded metadata is also verified. 
     
     cleanup():
@@ -161,14 +160,12 @@ class Updater(object):
       name of the deleted directory. 
       
     download_target(target_filepath):
-      It downloads the 'target' and verify it is trusted. This procedure happens 
-      in the background, transparent to the client. This will only store the 
-      file at 'destination_directory' if the downloaded file matches the 
-      description of the file in the trusted metadata.     
+      It downloads the target from the target_filepath. It also downloads the 
+      metadata of the updated targets.
     
     get_target_filepath(source_url):
-      Given source->target map, this method will figure out what TUF should     
-      download when a URL is given.   
+      source_url is the url of the file to be updated. This method will find the
+      updated target for this file.
    
     open(url, data):
       Open the URL url which can either be a string or a request object.        
@@ -182,21 +179,21 @@ class Updater(object):
     switch_context():
       There is an updater object for each network location that is interposed.  
       Context switching is required because there are multiple                  
-      tuf.client.Updater() objects and each one depends on tuf.conf settings    
+      tuf.client.updater objects and each one depends on tuf.conf settings    
       that are shared.      
   """
 
 
   def __init__(self, configuration):
-  """
-  <Purpose>
-    Constructor. Instantiating an updater object causes creation of a temporary
-    directory. This temporary directory is used for the interposition updater.
-    After that the updater of client module which performs the low-level 
-    integration is called.
+    """
+    <Purpose>
+      Constructor. Instantiating an updater object causes creation of a 
+      temporary directory. This temporary directory is used for the 
+      tuf.interposition.updater. After that the tuf.client.updater module which 
+      performs the low-level integration is called.
 
-  <Arguments>
-    configuration:
+    <Arguments>
+      configuration:
       A dictionary holding information like the following -
       - Which network location get intercepted?                                
       - Given a network location, which TUF mirrors should we forward requests 
@@ -210,20 +207,20 @@ class Updater(object):
       the target content directories the client should be confined to.                                                  
       
       repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
-                            'metadata_path': 'metadata',          
-                            'targets_path': 'targets',            
-                            'confined_target_dirs': ['']}} 
+                              'metadata_path': 'metadata',          
+                              'targets_path': 'targets',            
+                              'confined_target_dirs': ['']}} 
 
-  <Exceptions>
-    #TODO: Exceptions
+    <Exceptions>
+      #TODO: Exceptions
 
-  <Side Effects>
-    The metadata files (e.g., 'root.json', 'targets.json') for the top-level 
-    roles are read from disk and stored in dictionaries. 
+    <Side Effects>
+      The metadata files (e.g., 'root.json', 'targets.json') for the top-level 
+      roles are read from disk and stored in dictionaries. 
  
-  <Returns>
-    None.
-  """
+    <Returns>
+      None.
+    """
 
     CREATED_TEMPDIR_MESSAGE = "Created temporary directory at {tempdir}"
 
@@ -236,8 +233,8 @@ class Updater(object):
     # on some module (tuf.conf) variables.
     self.switch_context()
 
-    # Instantiating an client/updater object causes all the configurations for 
-    # the top-level roles to be read from disk, including the key and role 
+    # Instantiating an tuf.client.updater object causes all the configurations 
+    # for the top-level roles to be read from disk, including the key and role 
     # information for the delegated targets of 'targets'. The actual metadata 
     # for delegated roles is not loaded in __init__.  The metadata for these 
     # delegated roles, including nested delegated roles, are loaded, updated, 
@@ -257,14 +254,31 @@ class Updater(object):
     """
     <Purpose>
       This method refresh top-level metadata. It calls the refresh() method of 
-      client/updater.
-      refresh() method of client/updater.py downloads, verifies, and loads 
+      tuf.client.updater.
+      refresh() method of tuf.client.updater.py downloads, verifies, and loads 
       metadata for the top-level roles in a specific order (i.e., timestamp -> 
       snapshot -> root -> targets)
       The expiration time for downloaded metadata is also verified.             
                                                                                      
       This refresh() method should be called by the client before any target     
-      requests. Therefore to automate the process, it is called here.         
+      requests. Therefore to automate the process, it is called here.
+
+    <Arguments>
+      None
+
+    <Exceptions>
+      tuf.NoWorkingMirrorError:                                                 
+        If the metadata for any of the top-level roles cannot be updated.       
+                                                                                     
+      tuf.ExpiredMetadataError:                                                 
+        if any metadata has expired.
+
+    <Side Effects>
+      Updates the metadata files of the top-level roles with the latest 
+      information
+
+    <Returns>
+      None
     """
 
     self.updater.refresh()
@@ -286,14 +300,24 @@ class Updater(object):
   def download_target(self, target_filepath):
     """
     <Purpose>
-      It downloads the 'target' and verify it is trusted. This procedure 
-      happens in the background, transparent to the client.
+      It downloads the target files from the path provided named 
+      target_filepath. 
+      Everything here is performed in a temporary directory. 
+      It identifies the target information for target_filepath by calling
+      target() method of tuf.client.updater. This method also downloads the 
+      metadata of the updated targets. By doing this, the client retrieves the 
+      target information for the targets they want to update. When client 
+      retrieves all the information, the updated_targets() method of 
+      tuf.client.updater is called to determine the list of targets which have 
+      been changed from those saved locally on disk. 
+      tuf.client.upater.download_target() downloads all the targets in the list
+      in the destination directory which is our temporary directory.
                                                                                       
       This will only store the file at 'destination_directory' if the downloaded
       file matches the description of the file in the trusted metadata. 
 
     <Arguments>
-      target_filepath contains the path to the target to be downloaded.   
+      'target_filepath' is the target's relative path on the remote repository.   
 
     <Exceptions>
       #TODO: Exceptions
@@ -321,7 +345,7 @@ class Updater(object):
     self.switch_context()
     
     # Locate the fileinfo of 'target_filepath'.  updater.target() searches
-    # Targets metadata in order of trust, according to the currently trusted
+    # targets metadata in order of trust, according to the currently trusted
     # snapshot.  To prevent consecutive target file requests from referring to
     # different snapshots, top-level metadata is not automatically refreshed.
     # It returns the target information for a specific file identified by its 
@@ -333,11 +357,11 @@ class Updater(object):
     # After the client has retrieved the target information for those targets   
     # they are interested in updating, updated_targets() method is called to 
     # determine which targets have changed from those saved locally on disk. 
-    # All the targets that have changed are returns in a list. From this list, 
+    # All the targets that have changed are returned in a list. From this list, 
     # a request to download is made by calling 'download_target()'.    
     updated_targets = self.updater.updated_targets(targets, destination_directory)
 
-    # The download_target() method in client/updater.py  performs the actual 
+    # The download_target() method in tuf.client.updater performs the actual 
     # download of the specified target. The file is saved to the 
     # 'destination_directory' argument. 
     for updated_target in updated_targets:
@@ -359,7 +383,8 @@ class Updater(object):
 
     <Returns>
       It returns target_filepath. This is the target which TUF should download.
-    """
+   
+   """
 
     WARNING_MESSAGE = "Possibly invalid target_paths for " + \
         "{network_location}! No TUF interposition for {url}"
@@ -390,7 +415,7 @@ class Updater(object):
       # If source_url does not match any regular expression...
       if target_filepath is None:
         # ...then we raise a predictable exception.
-        raise URLMatchesNoPattern(source_url)
+        raise tuf.URLMatchesNoPattern(source_url)
 
     except:
       Logger.exception(WARNING_MESSAGE.format(
@@ -407,15 +432,13 @@ class Updater(object):
     <Purpose>
       Open the URL url which can either be a string or a request object. 
       The file is opened in the binary read mode as a temporary file.
-
+  
     <Arguments>
       url, the one which is to be opened.
 
       data must be a bytes object specifying additional data to be sent to the  
       server or None, if no such data needed. 
-  
-    <Returns>
-  
+
     """
     filename, headers = self.retrieve(url, data=data)
 
@@ -496,7 +519,7 @@ class Updater(object):
     <Purpose>
       There is an updater object for each network location that is interposed. 
       Context switching is required because there are multiple 
-      tuf.client.Updater() objects and each one depends on tuf.conf settings 
+      tuf.client.updater objects and each one depends on tuf.conf settings 
       that are shared.
 
       For this, two settings are required -
@@ -515,11 +538,55 @@ class Updater(object):
 
 class UpdaterController(object):
   """
-  I am a controller of Updaters; given a Configuration, I will build and
-  store an Updater which you can get and use later.
+  <Purpose>
+    tuf.interposition.UpdaterController is a controller of the Updaters.
+    Given a configuration, it can build and store an Updater, which can be 
+    used later with the help of get() method.
+
+  <UpdaterController's Methods>
+    
+    __init__():
+      It creates and initializes an empty private map of updaters and an empty
+      private set of repository mirror hostnames. This is used to store the 
+      updaters added by TUF and later on TUF can get these updater to reutilize.
+
+    __check_configuration_on_add(configuration):
+      It checks if the given configuration is valid or not.
+
+    add(configuration):
+      This method adds the updater by adding an object of 
+      tuf.interposition.Updater in the __updater map and by adding repository
+      mirror's hostname in the empty set initialized when the object of 
+      tuf.interposition.UpdaterController is created.
+
+    get(url):
+    refresh(configuration):
+    remove(configuration):
+
   """
 
   def __init__(self):
+    """
+    <Purpose>
+      To initalize a private map of updaters and a private set of repository
+      mirror hostnames once the object of tuf.interposition.UpdaterController
+      is created. This empty map and set is later used to add, get and remove
+      updaters and their mirrors.
+
+    <Arguments>
+      None
+
+    <Exceptions>
+      None
+
+    <Side Effects>
+      An empty map called '__updaters' and an empty set called 
+      '__repository_mirror_hostnames' is created.
+
+    <Returns>
+      None
+    """
+
     # A private map of Updaters (network_location: str -> updater: Updater)
     self.__updaters = {}
 
@@ -529,24 +596,58 @@ class UpdaterController(object):
 
   def __check_configuration_on_add(self, configuration):
     """
-    If the given Configuration is invalid, I raise an exception.
-    Otherwise, I return some information about the Configuration,
-    such as repository mirror hostnames.
+    <Purpose>
+      If the given Configuration is invalid, an exception is raised.
+      Otherwise, repository mirror hostnames are returned. 
+    
+    <Arguments>
+      'configuration' contains hostname, port number, repository mirrors which 
+      are to be checked if they are valid or not.
+
+    <Exceptions>
+      tuf.FormatError
+        This exception is raised if the configuration is invalid i.e. if the 
+        hostname is not unique or configuration.hostname is same as 
+        repository_mirror_hostname.
+
+    <Side Effects>
+      It logs the error message.
+   
+    <Returns>
+      'repository_mirror_hostnames'
+        In order to prove that everything worked well, a part of configuration
+        is returned which is the list of repository mirrors.
     """
 
     INVALID_REPOSITORY_MIRROR = "Invalid repository mirror {repository_mirror}!"
 
     # Updater has a "global" view of configurations, so it performs
-    # additional checks after Configuration's own local checks.
-    assert isinstance(configuration, Configuration)
+    # additional checks after Configuration's own local checks. This will 
+    # check if everything in tuf.interposition.ConfigurationParser worked
+    # or not.
+
+    # According to __read_configuration() method in 
+    # tuf.interposition.__init__.py, 
+    # configuration is an instance of tuf.interposition.Configuration because
+    # in this method - 
+    # configuration = configuration_parser.parse()
+    # configuration_parser is an instance of 
+    # tuf.interposition.ConfigurationParser
+    # The configuration_parser.parse() returns tuf.interposition.Configuration
+    # as an object which makes configuration an instance of 
+    # tuf.interposition.Configuration
+    if not isinstance(configuration, Configuration):
+      raise tuf.FormatError("Invalid Configuration")
 
     # Restrict each (incoming, outgoing) hostname pair to be unique across
     # configurations; this prevents interposition cycles, amongst other
     # things.
     # GOOD: A -> { A:X, A:Y, B, ... }, C -> { D }, ...
     # BAD: A -> { B }, B -> { C }, C -> { A }, ...
-    assert configuration.hostname not in self.__updaters
-    assert configuration.hostname not in self.__repository_mirror_hostnames
+    if configuration.hostname in self.__updaters:
+      raise tuf.FormatError("Hostname Not Unique")
+    if configuration.hostname in self.__repository_mirror_hostnames:
+      raise tuf.FormatError("Hostname Already Exists")
 
     # Check for redundancy in server repository mirrors.
     repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
@@ -556,8 +657,10 @@ class UpdaterController(object):
         # Restrict each hostname in every (incoming, outgoing) pair to be
         # unique across configurations; this prevents interposition cycles,
         # amongst other things.
-        assert mirror_hostname not in self.__updaters
-        assert mirror_hostname not in self.__repository_mirror_hostnames
+        if mirror_hostname in self.__updaters:
+          raise tuf.FormatError("Mirror Hostname Not Unique")
+        if mirror_hostname in self.__repository_mirror_hostnames:
+          raise tuf.FormatError("Mirror Hostname Already Exists")
 
       except:
         error_message = \
@@ -569,25 +672,85 @@ class UpdaterController(object):
 
 
   def add(self, configuration):
-    """Add an Updater based on the given Configuration."""
+    """
+    <Purpose>
+      Add an Updater based on the given Configuration. Tuf keeps the track of
+      the updaters so that it can be fetched for later use.
+    
+    <Arguments>
+      'configuration' is an object and on the basis of this configuration, an
+      updater will be added.
+
+    <Exceptions>
+      tuf.FormatError
+        This exception is raised if the hostname which tuf is trying to add
+        is not unique.
+    
+    <Side Effects>
+      The object of tuf.interposition.Updater is added in the list of updaters.
+      Also, the mirrors of this updater are added into a 
+      repository_mirror_hostname are added.
+
+    <Returns>
+      None
+    """
 
     repository_mirror_hostnames = self.__check_configuration_on_add(configuration)
     
     # If all is well, build and store an Updater, and remember hostnames.
     Logger.info('Adding updater for interposed '+repr(configuration))
+    # Adding an object of the tuf.interposition.updater with the given 
+    # configuration. 
     self.__updaters[configuration.hostname] = Updater(configuration)
+    # Adding the new the repository mirror hostnames to the list.
     self.__repository_mirror_hostnames.update(repository_mirror_hostnames)
   
   
   def refresh(self, configuration):
-    """Refresh the top-level metadata of the given Configuration."""
+    """
+    <Purpose>
+      To refresh the top-level metadata of the given 'configuration'.
+      It updates the latest copies of the metadata for the top-level roles.
 
-    assert isinstance(configuration, Configuration)
+    <Arguments>
+      'configuration' is the object containing the configurations of the updater
+      to be refreshed.
 
+    <Exceptions>
+      tuf.FormatError:
+        If there is anything wrong with the Format of the configuration, this 
+        exception is raised.
+
+      tuf.NotFound:
+        If the updater to be refreshed is not found in the list of updaters or 
+        mirrors, then tuf.NotFound exception is raised.
+      
+      tuf.NoWorkingMirrorError:
+        If the metadata for any of the top-level roles cannot be updated.
+
+      tuf.ExpiredMetadataError:
+        If any metadata has expired.
+
+    <Side Effects>
+      It refreshes the updater and indicate this in the log file.
+
+    <Returns>
+      None
+    """
+    
+    # Check if the configuration is valid else raise an exception.
+    if not isinstance(configuration, Configuration):
+      raise tuf.FormatError("Invalid Configuration")
+
+    # Get the repository mirrors of the given configuration.
     repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
 
-    assert configuration.hostname in self.__updaters
-    assert repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames)
+    # Check if the configuration.hostname is available in the updater or mirror
+    # list.
+    if not configuration.hostname in self.__updaters:
+      raise tuf.NotFound("Hostname Not Found")
+    if not repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames):
+      raise tuf.NotFound("Hostname Not Found")
 
     # Get the updater and refresh its top-level metadata.  In the majority of
     # integrations, a software updater integrating TUF with interposition will
@@ -598,15 +761,37 @@ class UpdaterController(object):
     # updaters that require an explicit refresh of top-level metadata, this
     # method is provided.
     Logger.info('Refreshing top-level metadata for '+ repr(configuration))
+    
+    # If everything is good then fetch the updater from __updaters with the 
+    # given configurations. 
     updater = self.__updaters.get(configuration.hostname)
+
+    # Refresh the fetched updater.
     updater.refresh()
 
 
   def get(self, url):
-    """Get an Updater, if any, for this URL.
+    """
+    <Purpose>
+      This method is to get the updater if it already exists. It takes the url 
+      and parse it. Then it utilizes hostname and port of that url to check if 
+      it already exists or not. If the updater exists, then it calls the 
+      get_target_filepath() method which returns a target file path to be 
+      downloaded.
 
-    Assumptions:
-      - @url is a string."""
+    <Arguments>
+      url, for which tuf is trying to get an updater. Assumption that url is a
+      string.
+    
+    <Exceptions>
+    
+    
+    <Side Effects>    
+    
+    
+    <Returns>
+
+    """
 
     GENERIC_WARNING_MESSAGE = "No updater or interposition for url={url}"
     DIFFERENT_NETLOC_MESSAGE = "We have an updater for netloc={netloc1} but not for netlocs={netloc2}"
@@ -622,8 +807,9 @@ class UpdaterController(object):
       netloc = parsed_url.netloc
       network_location = "{hostname}:{port}".format(hostname=hostname, port=port)
 
-      # Sometimes parsed_url.netloc does not have a port (e.g. 80),
-      # so we do a double check.
+      # There can be a case when parsed_url.netloc does not have a port (e.g. 
+      # 80). To avoid errors because of this case, tuf.interposition again set
+      # the parameters.
       network_locations = set((netloc, network_location))
 
       updater = self.__updaters.get(hostname)
@@ -658,7 +844,16 @@ class UpdaterController(object):
       return updater
 
   def remove(self, configuration):
-    """Remove an Updater matching the given Configuration."""
+    """
+    <Purpose>
+    Remove an Updater matching the given Configuration.
+    
+    <Arguments>
+    <Exceptions>
+    <Side Effects>
+    <Returns>
+
+    """
 
     UPDATER_REMOVED_MESSAGE = "Updater removed for interposed {configuration}."
 
