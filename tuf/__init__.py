@@ -355,3 +355,8 @@ class NotFound(Error):
 class URLMatchesNoPattern(Error):
 	"""URL matches no user-specified regular expression pattern"""
 	pass
+
+
+class InvalidConfiguration(Error):
+	"""If the configuration do not match a particular pattern then InvalidConfiguration Exception is raised"""
+	pass
