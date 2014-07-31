@@ -240,9 +240,6 @@ def configure(filename="tuf.interposition.json",
   containing parent directory of the "repository_directory" specified in a
   configuration for *all* network locations, because sometimes the absolute
   location of the "repository_directory" is only known at runtime. If you
-  containing parent directory of the "repository_directory" specified in a
-  configuration for *all* network locations, because sometimes the absolute
-  location of the "repository_directory" is only known at runtime. If you
   need to specify a different parent_repository_directory for other
   network locations, simply call this method again with different parameters.
 
