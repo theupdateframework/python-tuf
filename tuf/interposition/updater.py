@@ -133,7 +133,7 @@ import tuf.conf
 import tuf.log
 
 # We import them directly into our namespace so that there is no name conflict.
-from configuration import Configuration, InvalidConfiguration
+from tuf.interposition.configuration import Configuration
 
 
 Logger = logging.getLogger('tuf.interposition.updater')
@@ -547,8 +547,9 @@ class UpdaterController(object):
     
     __init__():
       It creates and initializes an empty private map of updaters and an empty
-      private set of repository mirror hostnames. This is used to store the 
-      updaters added by TUF and later on TUF can get these updater to reutilize.
+      private set of repository mirror network locations (hostname:port). This 
+      is used to store the updaters added by TUF and later on TUF can get these
+      updater to reutilize.
 
     __check_configuration_on_add(configuration):
       It checks if the given configuration is valid or not.
@@ -556,7 +557,7 @@ class UpdaterController(object):
     add(configuration):
       This method adds the updater by adding an object of 
       tuf.interposition.Updater in the __updater map and by adding repository
-      mirror's hostname in the empty set initialized when the object of 
+      mirror's network location in the empty set initialized when the object of 
       tuf.interposition.UpdaterController is created.
 
     get(url):
@@ -569,9 +570,9 @@ class UpdaterController(object):
     """
     <Purpose>
       To initalize a private map of updaters and a private set of repository
-      mirror hostnames once the object of tuf.interposition.UpdaterController
-      is created. This empty map and set is later used to add, get and remove
-      updaters and their mirrors.
+      mirror network locations (hostname:port) once the object of 
+      tuf.interposition.UpdaterController is created. This empty map and set is 
+      later used to add, get and remove updaters and their mirrors.
 
     <Arguments>
       None
@@ -581,7 +582,7 @@ class UpdaterController(object):
 
     <Side Effects>
       An empty map called '__updaters' and an empty set called 
-      '__repository_mirror_hostnames' is created.
+      '__repository_mirror_network_locations' is created.
 
     <Returns>
       None
@@ -590,31 +591,34 @@ class UpdaterController(object):
     # A private map of Updaters (network_location: str -> updater: Updater)
     self.__updaters = {}
 
-    # A private set of repository mirror hostnames
-    self.__repository_mirror_hostnames = set()
+    # A private set of repository mirror network locations
+    self.__repository_mirror_network_locations = set()
 
 
   def __check_configuration_on_add(self, configuration):
     """
     <Purpose>
       If the given Configuration is invalid, an exception is raised.
-      Otherwise, repository mirror hostnames are returned. 
+      Otherwise, repository mirror network locations are returned. 
     
     <Arguments>
       'configuration' contains hostname, port number, repository mirrors which 
       are to be checked if they are valid or not.
 
     <Exceptions>
-      tuf.FormatError
-        This exception is raised if the configuration is invalid i.e. if the 
-        hostname is not unique or configuration.hostname is same as 
-        repository_mirror_hostname.
+      tuf.InvalidConfiguration:
+        If the configuration is invalid. For example - wrong hostname, invalid
+        port number, wrong mirror format.
+
+      tuf.FormatError:
+        If the network_location is not unique or configuration.network_location
+        is same as repository_mirror_network_locations.
 
     <Side Effects>
       It logs the error message.
    
     <Returns>
-      'repository_mirror_hostnames'
+      'repository_mirror_network_locations'
         In order to prove that everything worked well, a part of configuration
         is returned which is the list of repository mirrors.
     """
@@ -637,38 +641,38 @@ class UpdaterController(object):
     # as an object which makes configuration an instance of 
     # tuf.interposition.Configuration
     if not isinstance(configuration, Configuration):
-      raise tuf.FormatError("Invalid Configuration")
+      raise tuf.InvalidConfiguration("Invalid Configuration")
 
-    # Restrict each (incoming, outgoing) hostname pair to be unique across
+    # Restrict each (incoming, outgoing) network location pair to be unique across
     # configurations; this prevents interposition cycles, amongst other
     # things.
     # GOOD: A -> { A:X, A:Y, B, ... }, C -> { D }, ...
     # BAD: A -> { B }, B -> { C }, C -> { A }, ...
-    if configuration.hostname in self.__updaters:
-      raise tuf.FormatError("Hostname Not Unique")
-    if configuration.hostname in self.__repository_mirror_hostnames:
-      raise tuf.FormatError("Hostname Already Exists")
+    if configuration.network_location in self.__updaters:
+      raise tuf.FormatError("Updater with "+repr(configuration.network_location)+" Already Exists as an updater")
+    if configuration.network_location in self.__repository_mirror_network_locations:
+      raise tuf.FormatError("Updater with "+repr(configuration.network_location)+" Already Exists as a mirror")
 
     # Check for redundancy in server repository mirrors.
-    repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
+    repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
 
-    for mirror_hostname in repository_mirror_hostnames:
+    for mirror_network_location in repository_mirror_network_locations:
       try:
-        # Restrict each hostname in every (incoming, outgoing) pair to be
+        # Restrict each network location in every (incoming, outgoing) pair to be
         # unique across configurations; this prevents interposition cycles,
         # amongst other things.
-        if mirror_hostname in self.__updaters:
-          raise tuf.FormatError("Mirror Hostname Not Unique")
-        if mirror_hostname in self.__repository_mirror_hostnames:
-          raise tuf.FormatError("Mirror Hostname Already Exists")
+        if mirror_network_location in self.__updaters:
+          raise tuf.FormatError("Mirror with "+repr(mirror_network_location)+" Already Exists as an updater")
+        if mirror_network_location in self.__repository_mirror_network_locations:
+          raise tuf.FormatError("Mirror with "+repr(mirror_network_location)+" Already Exists as a mirror")
 
-      except:
+      except (tuf.FormatError) as e:
         error_message = \
-          INVALID_REPOSITORY_MIRROR.format(repository_mirror=mirror_hostname)
+          INVALID_REPOSITORY_MIRROR.format(repository_mirror=mirror_network_location)
         Logger.exception(error_message)
-        raise InvalidConfiguration(error_message)
+        raise
 
-    return repository_mirror_hostnames
+    return repository_mirror_network_locations
 
 
   def add(self, configuration):
@@ -683,27 +687,27 @@ class UpdaterController(object):
 
     <Exceptions>
       tuf.FormatError
-        This exception is raised if the hostname which tuf is trying to add
-        is not unique.
+        This exception is raised if the network location which tuf is trying to 
+        add is not unique.
     
     <Side Effects>
       The object of tuf.interposition.Updater is added in the list of updaters.
       Also, the mirrors of this updater are added into a 
-      repository_mirror_hostname are added.
+      repository_mirror_network_locations are added.
 
     <Returns>
       None
     """
 
-    repository_mirror_hostnames = self.__check_configuration_on_add(configuration)
+    repository_mirror_network_locations = self.__check_configuration_on_add(configuration)
     
-    # If all is well, build and store an Updater, and remember hostnames.
+    # If all is well, build and store an Updater, and remember network locations.
     Logger.info('Adding updater for interposed '+repr(configuration))
     # Adding an object of the tuf.interposition.updater with the given 
     # configuration. 
-    self.__updaters[configuration.hostname] = Updater(configuration)
-    # Adding the new the repository mirror hostnames to the list.
-    self.__repository_mirror_hostnames.update(repository_mirror_hostnames)
+    self.__updaters[configuration.network_location] = Updater(configuration)
+    # Adding the new the repository mirror network locations to the list.
+    self.__repository_mirror_network_locations.update(repository_mirror_network_locations)
   
   
   def refresh(self, configuration):
@@ -717,7 +721,7 @@ class UpdaterController(object):
       to be refreshed.
 
     <Exceptions>
-      tuf.FormatError:
+      tuf.InvalidConfiguration:
         If there is anything wrong with the Format of the configuration, this 
         exception is raised.
 
@@ -740,17 +744,17 @@ class UpdaterController(object):
     
     # Check if the configuration is valid else raise an exception.
     if not isinstance(configuration, Configuration):
-      raise tuf.FormatError("Invalid Configuration")
+      raise tuf.InvalidConfiguration("Invalid Configuration")
 
     # Get the repository mirrors of the given configuration.
-    repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
+    repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
 
-    # Check if the configuration.hostname is available in the updater or mirror
+    # Check if the configuration.network_location is available in the updater or mirror
     # list.
-    if not configuration.hostname in self.__updaters:
-      raise tuf.NotFound("Hostname Not Found")
-    if not repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames):
-      raise tuf.NotFound("Hostname Not Found")
+    if not configuration.network_location in self.__updaters:
+      raise tuf.NotFound("Network Location Not Found")
+    if not repository_mirror_network_locations.issubset(self.__repository_mirror_network_locations):
+      raise tuf.NotFound("Network Location Not Found")
 
     # Get the updater and refresh its top-level metadata.  In the majority of
     # integrations, a software updater integrating TUF with interposition will
@@ -764,7 +768,7 @@ class UpdaterController(object):
     
     # If everything is good then fetch the updater from __updaters with the 
     # given configurations. 
-    updater = self.__updaters.get(configuration.hostname)
+    updater = self.__updaters.get(configuration.network_location)
 
     # Refresh the fetched updater.
     updater.refresh()
@@ -784,13 +788,15 @@ class UpdaterController(object):
       string.
     
     <Exceptions>
-    
+      None
     
     <Side Effects>    
-    
+      This method logs the messages in a log file if updater is not found or 
+      not for the given url.
     
     <Returns>
-
+      The get() method returns the updater with the given configuration. If 
+      updater does not exists, it returns None.
     """
 
     GENERIC_WARNING_MESSAGE = "No updater or interposition for url={url}"
@@ -801,10 +807,14 @@ class UpdaterController(object):
     updater = None
 
     try:
+      # Parse the given url to access individual parts of it.
       parsed_url = urlparse.urlparse(url)
       hostname = parsed_url.hostname
       port = parsed_url.port or 80
       netloc = parsed_url.netloc
+
+      # Combine the hostname and port number and assign it to network_location.
+      # The combination of hostname and port is used to identify an updater.
       network_location = "{hostname}:{port}".format(hostname=hostname, port=port)
 
       # There can be a case when parsed_url.netloc does not have a port (e.g. 
@@ -812,7 +822,7 @@ class UpdaterController(object):
       # the parameters.
       network_locations = set((netloc, network_location))
 
-      updater = self.__updaters.get(hostname)
+      updater = self.__updaters.get(network_location)
 
       if updater is None:
         Logger.warn(HOSTNAME_NOT_FOUND_MESSAGE.format(hostname=hostname))
@@ -843,34 +853,61 @@ class UpdaterController(object):
 
       return updater
 
+
   def remove(self, configuration):
     """
     <Purpose>
-    Remove an Updater matching the given Configuration.
+      Remove an Updater matching the given Configuration as well as its 
+      associated mirrors.
     
     <Arguments>
-    <Exceptions>
-    <Side Effects>
-    <Returns>
+      'configuration' is the configuration object of the updater to be removed.
 
+    <Exceptions>
+      tuf.InvalidConfiguration:
+        If there is anything wrong with the configuration for example invalid 
+        hostname, invalid port number etc, tuf.InvalidConfiguration is raised.
+
+      tuf.NotFound:
+        If the updater with the given configuration does not exists, 
+        tuf.NotFound exception is raised.
+
+    <Side Effects>
+      Removes the stored updater and the mirrors associated with that updater.
+      Then tuf logs this information in a log file.
+
+    <Returns>
+      None
     """
 
     UPDATER_REMOVED_MESSAGE = "Updater removed for interposed {configuration}."
 
-    assert isinstance(configuration, Configuration)
+    # Check if the given configuration is valid or not.
+    if not isinstance(configuration, Configuration):
+      raise tuf.InvalidConfiguration('Invalid Configuration')
+    
+    # If the configuration is valid, get the repository mirrors associated with 
+    # it.
+    repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
 
-    repository_mirror_hostnames = configuration.get_repository_mirror_hostnames()
+    # Check if network location of the given configuration exists or not.
+    if configuration.network_location not in self.__updaters:
+      raise tuf.NotFound('Network Location Not Found')
 
-    assert configuration.hostname in self.__updaters
-    assert repository_mirror_hostnames.issubset(self.__repository_mirror_hostnames)
+    # Check if the associated mirrors exists or not.
+    if not repository_mirror_network_locations.issubset(self.__repository_mirror_network_locations):
+      raise tuf.NotFound('Repository Mirror Does Not Exists')
 
     # Get the updater.
-    updater = self.__updaters.get(configuration.hostname)
+    updater = self.__updaters.get(configuration.network_location)
 
-    # If all is well, remove the stored Updater as well as its associated
-    # repository mirror hostnames.
+    # If everything works well, remove the stored Updater as well as its 
+    # associated repository mirror network locations.
     updater.cleanup()
-    del self.__updaters[configuration.hostname]
-    self.__repository_mirror_hostnames.difference_update(repository_mirror_hostnames)
+    # Delete the updater from the list of updaters.
+    del self.__updaters[configuration.network_location]
+    # Remove the associated mirrors from the repository mirror set.
+    self.__repository_mirror_network_locations.difference_update(repository_mirror_network_locations)
 
+    # Log the message that the given updater is removed.
     Logger.info(UPDATER_REMOVED_MESSAGE.format(configuration=configuration))
