@@ -15,6 +15,7 @@ from __future__ import unicode_literals
 import os.path
 import types
 import urlparse
+import logging
 
 import tuf.log
 
@@ -61,7 +62,10 @@ class Configuration(object):
       url_prefix = mirror_configuration["url_prefix"]
       parsed_url = urlparse.urlparse(url_prefix)
       mirror_hostname = parsed_url.hostname
-      repository_mirror_hostnames.add(mirror_hostname)
+      mirror_port = parsed_url.port
+      mirror_network_location = \
+        "{hostname}:{port}".format(hostname=mirror_hostname, port = mirror_port)
+      repository_mirror_hostnames.add(mirror_network_location)
 
     return repository_mirror_hostnames
 
@@ -96,7 +100,7 @@ class ConfigurationParser(object):
     if len(network_location_tokens) > 1:
       port = int(network_location_tokens[1], 10)
       if port <= 0 or port >= 2**16:
-        raise InvalidConfiguration(INVALID_NETWORK_LOCATION.format(
+        raise tuf.InvalidConfiguration(INVALID_NETWORK_LOCATION.format(
           network_location=self.network_location))
 
     return hostname, port
@@ -120,7 +124,7 @@ class ConfigurationParser(object):
         # TODO: assert os.path.isdir(repository_directory)
 
       else:
-        raise InvalidConfiguration(INVALID_PARENT_REPOSITORY_DIRECTORY.format(
+        raise tuf.InvalidConfiguration(INVALID_PARENT_REPOSITORY_DIRECTORY.format(
           network_location=self.network_location))
 
     return repository_directory
@@ -146,11 +150,11 @@ class ConfigurationParser(object):
                                           ssl_certificates)
 
           if not os.path.isfile(ssl_certificates):
-            raise InvalidConfiguration(INVALID_SSL_CERTIFICATES.format(
+            raise tuf.InvalidConfiguration(INVALID_SSL_CERTIFICATES.format(
                 network_location=self.network_location))
 
         else:
-          raise InvalidConfiguration(
+          raise tuf.InvalidConfiguration(
             INVALID_PARENT_SSL_CERTIFICATES_DIRECTORY.format(
               network_location=self.network_location))
 
@@ -199,7 +203,7 @@ class ConfigurationParser(object):
         error_message = \
           INVALID_REPOSITORY_MIRROR.format(repository_mirror=repository_mirror)
         Logger.exception(error_message)
-        raise InvalidConfiguration(error_message)
+        raise tuf.InvalidConfiguration(error_message)
 
     return repository_mirrors
 
@@ -233,7 +237,7 @@ class ConfigurationParser(object):
         error_message = \
           INVALID_TARGET_PATH.format(network_location=self.network_location)
         Logger.exception(error_message)
-        raise InvalidConfiguration(error_message)
+        raise tuf.InvalidConfiguration(error_message)
 
     return target_paths
 
