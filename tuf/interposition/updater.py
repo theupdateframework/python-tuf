@@ -93,7 +93,7 @@
            "repository_directory": ".",
            # Where do we forward the requests to localhost?
              "repository_mirrors" : {
-           gg     "mirror1": {
+                "mirror1": {
                 # In this case, we forward them to http://localhost:8001
                   "url_prefix": "http://localhost:8001",
                   # You do not have to worry about these default parameters.
@@ -415,7 +415,7 @@ class Updater(object):
       # If source_url does not match any regular expression...
       if target_filepath is None:
         # ...then we raise a predictable exception.
-        raise tuf.URLMatchesNoPattern(source_url)
+        raise tuf.URLMatchesNoPatternError(source_url)
 
     except:
       Logger.exception(WARNING_MESSAGE.format(
@@ -606,7 +606,7 @@ class UpdaterController(object):
       are to be checked if they are valid or not.
 
     <Exceptions>
-      tuf.InvalidConfiguration:
+      tuf.InvalidConfigurationError:
         If the configuration is invalid. For example - wrong hostname, invalid
         port number, wrong mirror format.
 
@@ -641,7 +641,7 @@ class UpdaterController(object):
     # tuf.interposition.configuration.Configuration as an object which makes 
     # configuration an instance of tuf.interposition.configuration.Configuration
     if not isinstance(configuration, Configuration):
-      raise tuf.InvalidConfiguration("Invalid Configuration")
+      raise tuf.InvalidConfigurationError("Invalid configuration")
 
     # Restrict each (incoming, outgoing) network location pair to be unique across
     # configurations; this prevents interposition cycles, amongst other
@@ -649,9 +649,10 @@ class UpdaterController(object):
     # GOOD: A -> { A:X, A:Y, B, ... }, C -> { D }, ...
     # BAD: A -> { B }, B -> { C }, C -> { A }, ...
     if configuration.network_location in self.__updaters:
-      raise tuf.FormatError("Updater with "+repr(configuration.network_location)+" Already Exists as an updater")
+      raise tuf.FormatError("Updater with "+repr(configuration.network_location)+" already exists as an updater")
+    
     if configuration.network_location in self.__repository_mirror_network_locations:
-      raise tuf.FormatError("Updater with "+repr(configuration.network_location)+" Already Exists as a mirror")
+      raise tuf.FormatError("Updater with "+repr(configuration.network_location)+" already exists as a mirror")
 
     # Check for redundancy in server repository mirrors.
     repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
@@ -662,9 +663,9 @@ class UpdaterController(object):
         # unique across configurations; this prevents interposition cycles,
         # amongst other things.
         if mirror_network_location in self.__updaters:
-          raise tuf.FormatError("Mirror with "+repr(mirror_network_location)+" Already Exists as an updater")
+          raise tuf.FormatError("Mirror with "+repr(mirror_network_location)+" already exists as an updater")
         if mirror_network_location in self.__repository_mirror_network_locations:
-          raise tuf.FormatError("Mirror with "+repr(mirror_network_location)+" Already Exists as a mirror")
+          raise tuf.FormatError("Mirror with "+repr(mirror_network_location)+" already exists as a mirror")
 
       except (tuf.FormatError) as e:
         error_message = \
@@ -721,13 +722,13 @@ class UpdaterController(object):
       to be refreshed.
 
     <Exceptions>
-      tuf.InvalidConfiguration:
+      tuf.InvalidConfigurationError:
         If there is anything wrong with the Format of the configuration, this 
         exception is raised.
 
-      tuf.NotFound:
-        If the updater to be refreshed is not found in the list of updaters or 
-        mirrors, then tuf.NotFound exception is raised.
+      tuf.NotFoundError:
+        If the updater to be refreshed is not found in the list of updaters or
+        mirrors, then tuf.NotFoundError exception is raised.
       
       tuf.NoWorkingMirrorError:
         If the metadata for any of the top-level roles cannot be updated.
@@ -744,17 +745,17 @@ class UpdaterController(object):
     
     # Check if the configuration is valid else raise an exception.
     if not isinstance(configuration, Configuration):
-      raise tuf.InvalidConfiguration("Invalid Configuration")
+      raise tuf.InvalidConfigurationError("Invalid configuration")
 
     # Get the repository mirrors of the given configuration.
     repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
 
     # Check if the configuration.network_location is available in the updater or mirror
     # list.
-    if not configuration.network_location in self.__updaters:
-      raise tuf.NotFound("Network Location Not Found")
+    if configuration.network_location not in self.__updaters:
+      raise tuf.NotFoundError("Network location not found")
     if not repository_mirror_network_locations.issubset(self.__repository_mirror_network_locations):
-      raise tuf.NotFound("Network Location Not Found")
+      raise tuf.NotFoundError("Network location not found")
 
     # Get the updater and refresh its top-level metadata.  In the majority of
     # integrations, a software updater integrating TUF with interposition will
@@ -864,13 +865,14 @@ class UpdaterController(object):
       'configuration' is the configuration object of the updater to be removed.
 
     <Exceptions>
-      tuf.InvalidConfiguration:
+      tuf.InvalidConfigurationError:
         If there is anything wrong with the configuration for example invalid 
-        hostname, invalid port number etc, tuf.InvalidConfiguration is raised.
+        hostname, invalid port number etc, tuf.InvalidConfigurationError is 
+        raised.
 
-      tuf.NotFound:
+      tuf.NotFoundError:
         If the updater with the given configuration does not exists, 
-        tuf.NotFound exception is raised.
+        tuf.NotFoundError exception is raised.
 
     <Side Effects>
       Removes the stored updater and the mirrors associated with that updater.
@@ -884,7 +886,7 @@ class UpdaterController(object):
 
     # Check if the given configuration is valid or not.
     if not isinstance(configuration, Configuration):
-      raise tuf.InvalidConfiguration('Invalid Configuration')
+      raise tuf.InvalidConfigurationError('Invalid configuration')
     
     # If the configuration is valid, get the repository mirrors associated with 
     # it.
@@ -892,11 +894,11 @@ class UpdaterController(object):
 
     # Check if network location of the given configuration exists or not.
     if configuration.network_location not in self.__updaters:
-      raise tuf.NotFound('Network Location Not Found')
+      raise tuf.NotFoundError('Network location not found')
 
     # Check if the associated mirrors exists or not.
     if not repository_mirror_network_locations.issubset(self.__repository_mirror_network_locations):
-      raise tuf.NotFound('Repository Mirror Does Not Exists')
+      raise tuf.NotFoundError('Repository mirror does not exists')
 
     # Get the updater.
     updater = self.__updaters.get(configuration.network_location)
