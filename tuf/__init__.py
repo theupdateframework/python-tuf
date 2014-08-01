@@ -347,16 +347,16 @@ class NoWorkingMirrorError(Error):
     return all_errors
 
 
-class NotFound(Error):
+class NotFoundError(Error):
 	"""If any configuration hostname or repository mirror hostname are not found"""
 	pass
 
 
-class URLMatchesNoPattern(Error):
+class URLMatchesNoPatternError(Error):
 	"""URL matches no user-specified regular expression pattern"""
 	pass
 
 
-class InvalidConfiguration(Error):
+class InvalidConfigurationError(Error):
 	"""If the configuration do not match a particular pattern then InvalidConfiguration Exception is raised"""
 	pass
