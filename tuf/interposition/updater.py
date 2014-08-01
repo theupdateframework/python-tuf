@@ -52,7 +52,7 @@
      # Second, configure(filename="/path/to/json")
      # Configure() returns a dictionary of configurations
      # Internally, configure() calls add(configuration) function which is in 
-     # the tuf.interposition.UpdaterController.
+     # the tuf.interposition.updater.UpdaterController.
      configurations = tuf.interposition.configure()
 
      url = 'http://example.com/path/to/document'
@@ -65,7 +65,7 @@
      # remove the updater object.
      # Deconfigure() takes only one argument i.e. configurations.
      # It calls remove(configuration) function which is in 
-     # tuf.interposition.UpdaterController.
+     # tuf.interposition.updater.UpdaterController.
      tuf.interposition.deconfigure(configurations)
 
 
@@ -173,8 +173,8 @@ class Updater(object):
     
     retrieve(url, filename, reporthook, data):
       retrieve() method first get the target file path by calling               
-      get_target_filepath(url) which in tuf.interposition.updater and then      
-      calls download_target() method for the above file path.   
+      get_target_filepath(url) which in tuf.interposition.updater.Updater and 
+      then calls download_target() method for the above file path.   
     
     switch_context():
       There is an updater object for each network location that is interposed.  
@@ -189,7 +189,7 @@ class Updater(object):
     <Purpose>
       Constructor. Instantiating an updater object causes creation of a 
       temporary directory. This temporary directory is used for the 
-      tuf.interposition.updater. After that the tuf.client.updater module which 
+      tuf.interposition.updater.Updater. After that the tuf.client.updater module which 
       performs the low-level integration is called.
 
     <Arguments>
@@ -466,8 +466,8 @@ class Updater(object):
     """
     <Purpose>
       retrieve() method first get the target file path by calling 
-      get_target_filepath(url) which in tuf.interposition.updater and then 
-      calls download_target() method for the above file path.
+      get_target_filepath(url) which is in tuf.interposition.updater.Updater 
+      and then calls download_target() method for the above file path.
 
     <Arguments>
       url, which is to be retrieved. 
@@ -539,7 +539,7 @@ class Updater(object):
 class UpdaterController(object):
   """
   <Purpose>
-    tuf.interposition.UpdaterController is a controller of the Updaters.
+    tuf.interposition.updater.UpdaterController is a controller of the Updaters.
     Given a configuration, it can build and store an Updater, which can be 
     used later with the help of get() method.
 
@@ -556,9 +556,9 @@ class UpdaterController(object):
 
     add(configuration):
       This method adds the updater by adding an object of 
-      tuf.interposition.Updater in the __updater map and by adding repository
+      tuf.interposition.updater.Updater in the __updater map and by adding repository
       mirror's network location in the empty set initialized when the object of 
-      tuf.interposition.UpdaterController is created.
+      tuf.interposition.updater.UpdaterController is created.
 
     get(url):
     refresh(configuration):
@@ -571,7 +571,7 @@ class UpdaterController(object):
     <Purpose>
       To initalize a private map of updaters and a private set of repository
       mirror network locations (hostname:port) once the object of 
-      tuf.interposition.UpdaterController is created. This empty map and set is 
+      tuf.interposition.updater.UpdaterController is created. This empty map and set is 
       later used to add, get and remove updaters and their mirrors.
 
     <Arguments>
@@ -627,19 +627,19 @@ class UpdaterController(object):
 
     # Updater has a "global" view of configurations, so it performs
     # additional checks after Configuration's own local checks. This will 
-    # check if everything in tuf.interposition.ConfigurationParser worked
-    # or not.
+    # check if everything in tuf.interposition.configuration.ConfigurationParser 
+    # worked or not.
 
     # According to __read_configuration() method in 
-    # tuf.interposition.__init__.py, 
-    # configuration is an instance of tuf.interposition.Configuration because
-    # in this method - 
+    # tuf.interposition.__init__, 
+    # configuration is an instance of 
+    # tuf.interposition.configuration.Configuration because in this method - 
     # configuration = configuration_parser.parse()
     # configuration_parser is an instance of 
-    # tuf.interposition.ConfigurationParser
-    # The configuration_parser.parse() returns tuf.interposition.Configuration
-    # as an object which makes configuration an instance of 
-    # tuf.interposition.Configuration
+    # tuf.interposition.configuration.ConfigurationParser
+    # The configuration_parser.parse() returns 
+    # tuf.interposition.configuration.Configuration as an object which makes 
+    # configuration an instance of tuf.interposition.configuration.Configuration
     if not isinstance(configuration, Configuration):
       raise tuf.InvalidConfiguration("Invalid Configuration")
 
@@ -691,7 +691,7 @@ class UpdaterController(object):
         add is not unique.
     
     <Side Effects>
-      The object of tuf.interposition.Updater is added in the list of updaters.
+      The object of tuf.interposition.updater.Updater is added in the list of updaters.
       Also, the mirrors of this updater are added into a 
       repository_mirror_network_locations are added.
 
@@ -703,7 +703,7 @@ class UpdaterController(object):
     
     # If all is well, build and store an Updater, and remember network locations.
     Logger.info('Adding updater for interposed '+repr(configuration))
-    # Adding an object of the tuf.interposition.updater with the given 
+    # Adding an object of the tuf.interposition.updater.Updater with the given 
     # configuration. 
     self.__updaters[configuration.network_location] = Updater(configuration)
     # Adding the new the repository mirror network locations to the list.
