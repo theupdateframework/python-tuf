@@ -198,7 +198,7 @@ def __read_configuration(configuration_handler,
       configurations = tuf_interpositions.get("configurations", {})
 
       if len(configurations) == 0:
-        raise tuf.InvalidConfiguration(NO_CONFIGURATIONS.format(filename=filename))
+        raise tuf.InvalidConfigurationError(NO_CONFIGURATIONS.format(filename=filename))
 
       else:
         for network_location, configuration in configurations.iteritems():
