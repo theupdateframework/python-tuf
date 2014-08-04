@@ -228,8 +228,20 @@ class Updater(object):
                               'confined_target_dirs': ['']}} 
 
     <Exceptions>
-      #TODO: Exceptions
+      tuf.FormatError:                                                          
+        If the arguments of tuf.client.updater.Updater are improperly formatted.                              
+                                                                              
+      tuf.RepositoryError:                                                      
+        If there is an error with the updater's repository files, such          
+        as a missing 'root.json' file.   
 
+      tuf.NoWorkingMirrorError:                                                 
+        If while refreshing, the metadata for any of the top-level roles cannot 
+        be updated.       
+                                                                                        
+      tuf.ExpiredMetadataError:                                                 
+        While refreshing, if any metadata has expired.  
+ 
     <Side Effects>
       The metadata files (e.g., 'root.json', 'targets.json') for the top-level 
       roles are read from disk and stored in dictionaries. 
@@ -303,7 +315,19 @@ class Updater(object):
     <Purpose>
       It will clean up all the temporary directories which were made as a 
       result of download. It then prints a message of deletion and also 
-      mentions the name of the deleted directory.   
+      mentions the name of the deleted directory. 
+    
+    <Arguments>
+      None
+
+    <Exceptions>
+      None
+
+    <Side Effects>
+      Removal of the temporary directory.
+
+    <Returns>
+      None
     """
     
     shutil.rmtree(self.tempdir)
@@ -333,7 +357,16 @@ class Updater(object):
       'target_filepath' is the target's relative path on the remote repository.   
 
     <Exceptions>
-      #TODO: Exceptions
+      tuf.FormatError:                                                          
+        If 'target_filepath', 'updated_target' in 
+        tuf.client.updater.download_target and arguments of updated_targets are 
+        improperly formatted.                           
+
+      tuf.UnknownTargetError:                                                   
+        If 'target_filepath' was not found. 
+
+      tuf.NoWorkingMirrorError:                                                 
+        If a 'target_filepath' could not be downloaded from any of the mirrors.  
 
     <Side Effects>
       A target file is saved to the local system.
@@ -393,6 +426,14 @@ class Updater(object):
       source_url is passed while calling the function. This is the url which 
       we want to retrieve. For this url, get_target_filepath() method is called.
 
+    <Exceptions>
+      tuf.URLMatchesNoPatternError:
+        This exception is raised when no target_path url pattern is wrong and 
+        does match regular expression.
+
+    <Side Effects>
+      None
+
     <Returns>
       It returns target_filepath. This is the target which TUF should download.
     """
@@ -447,7 +488,30 @@ class Updater(object):
       url, the one which is to be opened.
 
       data must be a bytes object specifying additional data to be sent to the  
-      server or None, if no such data needed. 
+      server or None, if no such data needed.
+
+    <Exceptions>
+      tuf.FormatError:                                                          
+        If 'target_filepath', 'updated_target' in 
+        tuf.client.updater.download_target and arguments of updated_targets are 
+        improperly formatted.                           
+
+      tuf.UnknownTargetError:                                                   
+        If 'target_filepath' was not found. 
+
+      tuf.NoWorkingMirrorError:                                                 
+        If a 'target_filepath' could not be downloaded from any of the mirrors.  
+
+      tuf.URLMatchesNoPatternError:
+        This exception is raised when no target_path url pattern is wrong and 
+        does match regular expression.
+
+    <Side Effects>
+      None
+
+    <Returns>
+      #TODO:
+      'response'  
     """
     filename, headers = self.retrieve(url, data=data)
 
@@ -483,7 +547,27 @@ class Updater(object):
 
       filename, if the is given then everywhere the given filename is used. 
       If the filename is none, then temporary file is used.
-                     
+     
+    <Exceptions> 
+      tuf.FormatError:                                                          
+        If 'target_filepath', 'updated_target' in 
+        tuf.client.updater.download_target and arguments of updated_targets are 
+        improperly formatted.                           
+
+      tuf.UnknownTargetError:                                                   
+        If 'target_filepath' was not found. 
+
+      tuf.NoWorkingMirrorError:                                                 
+        If a 'target_filepath' could not be downloaded from any of the mirrors.  
+
+      tuf.URLMatchesNoPatternError:
+        This exception is raised when no target_path url pattern is wrong and 
+        does match regular expression.
+
+    <Side Effects>
+      A target file is saved to the local system when the 
+      download_target(target_filepath) is called.
+    
     <Returns>
       It returns the filename and the headers of the file just retrieved.
     """
@@ -532,6 +616,19 @@ class Updater(object):
       For this, two settings are required -
       1. Setting local repository directory
       2. Setting the local SSL certificate PEM file
+
+    <Arguments>
+      None
+
+    <Exceptions>
+      None
+
+    <Side Effects>
+      The given configuration's repository_directory and ssl_certificates are
+      assigned to tuf.conf.repository_directory and tuf.conf.ssl_certificates.
+
+    <Returns>
+      None
     """
     
     # Set the local repository directory containing the metadata files.
