@@ -34,7 +34,7 @@
   list of updaters. tuf.interposition.updater.UpdaterController maintains a
   map of updaters and a set of its mirrors. The map of updaters contains the
   objects of tuf.interposition.updater.Updater for each updater. The set
-  contains all the mirrors. The addition and removal of these updaters and thei
+  contains all the mirrors. The addition and removal of these updaters and their
   mirrors depends on the methods of tuf.interposition.updater.UpdaterController.
   
   #TODO: Add Pros and Cons of using interposition.
@@ -253,7 +253,7 @@ class Updater(object):
     self.configuration = configuration
     # A temporary directory used for this updater over runtime.
     self.tempdir = tempfile.mkdtemp()
-    Logger.debug('Created temporary directory at '+repr(self.tempdir))
+    Logger.debug('Created temporary directory at '+ repr(self.tempdir))
 
     # Switching context before instantiating updater because updater depends 
     # on some module (tuf.conf) variables.
@@ -272,7 +272,7 @@ class Updater(object):
     # Update the client's top-level metadata.  The download_target() method does
     # not automatically refresh top-level prior to retrieving target files and
     # their associated Targets metadata, so update the top-level metadata here.
-    Logger.info('Refreshing top-level metadata for interposed '+repr(configuration))
+    Logger.info('Refreshing top-level metadata for interposed '+ repr(configuration))
     self.updater.refresh()
   
  
@@ -331,7 +331,7 @@ class Updater(object):
     """
     
     shutil.rmtree(self.tempdir)
-    Logger.debug('Deleted temporary directory at '+repr(self.tempdir))
+    Logger.debug('Deleted temporary directory at '+ repr(self.tempdir))
 
 
   def download_target(self, target_filepath):
@@ -510,8 +510,7 @@ class Updater(object):
       None
 
     <Returns>
-      #TODO:
-      'response'  
+      'response' which is a file object with info() and geturl() methods added.  
     """
     filename, headers = self.retrieve(url, data=data)
 
@@ -760,10 +759,10 @@ class UpdaterController(object):
     # GOOD: A -> { A:X, A:Y, B, ... }, C -> { D }, ...
     # BAD: A -> { B }, B -> { C }, C -> { A }, ...
     if configuration.network_location in self.__updaters:
-      raise tuf.FormatError("Updater with "+repr(configuration.network_location)+" already exists as an updater")
+      raise tuf.FormatError("Updater with "+ repr(configuration.network_location)+" already exists as an updater")
     
     if configuration.network_location in self.__repository_mirror_network_locations:
-      raise tuf.FormatError("Updater with "+repr(configuration.network_location)+" already exists as a mirror")
+      raise tuf.FormatError("Updater with "+ repr(configuration.network_location)+" already exists as a mirror")
 
     # Check for redundancy in server repository mirrors.
     repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
@@ -774,13 +773,13 @@ class UpdaterController(object):
         # unique across configurations; this prevents interposition cycles,
         # amongst other things.
         if mirror_network_location in self.__updaters:
-          raise tuf.FormatError("Mirror with "+repr(mirror_network_location)+" already exists as an updater")
+          raise tuf.FormatError("Mirror with "+ repr(mirror_network_location)+" already exists as an updater")
         if mirror_network_location in self.__repository_mirror_network_locations:
-          raise tuf.FormatError("Mirror with "+repr(mirror_network_location)+" already exists as a mirror")
+          raise tuf.FormatError("Mirror with "+ repr(mirror_network_location)+" already exists as a mirror")
 
       except (tuf.FormatError) as e:
         error_message = \
-          'Invalid repository mirror '+repr(mirror_network_location)
+          'Invalid repository mirror '+ repr(mirror_network_location)
         Logger.exception(error_message)
         raise
 
@@ -818,7 +817,7 @@ class UpdaterController(object):
     repository_mirror_network_locations = self.__check_configuration_on_add(configuration)
     
     # If all is well, build and store an Updater, and remember network locations.
-    Logger.info('Adding updater for interposed '+repr(configuration))
+    Logger.info('Adding updater for interposed '+ repr(configuration))
     # Adding an object of the tuf.interposition.updater.Updater with the given 
     # configuration. 
     self.__updaters[configuration.network_location] = Updater(configuration)
@@ -868,10 +867,10 @@ class UpdaterController(object):
     # Check if the configuration.network_location is available in the updater or mirror
     # list.
     if configuration.network_location not in self.__updaters:
-      raise tuf.NotFoundError("Updater with "+repr(configuration.network_location)+" not found")
+      raise tuf.NotFoundError("Updater with "+ repr(configuration.network_location)+" not found")
 
     if not repository_mirror_network_locations.issubset(self.__repository_mirror_network_locations):
-      raise tuf.NotFoundError("Mirror with "+repr(repository_mirror_network_locations)+" not found")
+      raise tuf.NotFoundError("Mirror with "+ repr(repository_mirror_network_locations)+" not found")
 
     # Get the updater and refresh its top-level metadata.  In the majority of
     # integrations, a software updater integrating TUF with interposition will
@@ -937,7 +936,7 @@ class UpdaterController(object):
       updater = self.__updaters.get(network_location)
 
       if updater is None:
-        Logger.warn('No updater for '+repr(hostname))
+        Logger.warn('No updater for '+ repr(hostname))
 
       else:
 
