@@ -19,8 +19,24 @@
   that all the processes which are taking place in the low-level integration 
   will be done automatically. This layer of processes will be transparent to 
   the client.
+
   Updater.py have two classes named as Updater and UpdaterController.
-  #TODO: Add more description to purpose.
+  
+  tuf.interposition.updater.Updater contains those methods which are to be 
+  performed on each individual updater. For example - refresh(), cleanup(), 
+  download_target(target_filepath), get_target_filepath(source_url), open(url), 
+  retrieve(url), switch_context(), all these for a particular updater. 
+  
+  tuf.interposition.updater.UpdaterController contains those methods which 
+  are performed on updaters as a group. It basically keeps track of all the 
+  updaters. For example - add(configuration), get(configuration), 
+  refresh(configuration), remove(configuration), all these are performed on the
+  list of updaters. tuf.interposition.updater.UpdaterController maintains a
+  map of updaters and a set of its mirrors. The map of updaters contains the
+  objects of tuf.interposition.updater.Updater for each updater. The set
+  contains all the mirrors. The addition and removal of these updaters and thei
+  mirrors depends on the methods of tuf.interposition.updater.UpdaterController.
+  
   #TODO: Add Pros and Cons of using interposition.
 
 <Example Integration with Interposition>
@@ -222,12 +238,10 @@ class Updater(object):
       None.
     """
 
-    CREATED_TEMPDIR_MESSAGE = "Created temporary directory at {tempdir}"
-
     self.configuration = configuration
     # A temporary directory used for this updater over runtime.
     self.tempdir = tempfile.mkdtemp()
-    Logger.debug(CREATED_TEMPDIR_MESSAGE.format(tempdir=self.tempdir))
+    Logger.debug('Created temporary directory at '+repr(self.tempdir))
 
     # Switching context before instantiating updater because updater depends 
     # on some module (tuf.conf) variables.
@@ -291,10 +305,9 @@ class Updater(object):
       result of download. It then prints a message of deletion and also 
       mentions the name of the deleted directory.   
     """
-
-    DELETED_TEMPDIR_MESSAGE = "Deleted temporary directory at {tempdir}"
+    
     shutil.rmtree(self.tempdir)
-    Logger.debug(DELETED_TEMPDIR_MESSAGE.format(tempdir=self.tempdir))
+    Logger.debug('Deleted temporary directory at '+repr(self.tempdir))
 
 
   def download_target(self, target_filepath):
@@ -328,7 +341,6 @@ class Updater(object):
     <Returns>
       It returns destination_directory where the target is been stored and 
       filename of the target file been stored in the directory.
-    
     """
 
     # Download file into a temporary directory shared over runtime
@@ -383,11 +395,7 @@ class Updater(object):
 
     <Returns>
       It returns target_filepath. This is the target which TUF should download.
-   
-   """
-
-    WARNING_MESSAGE = "Possibly invalid target_paths for " + \
-        "{network_location}! No TUF interposition for {url}"
+    """
 
     parsed_source_url = urlparse.urlparse(source_url)
     target_filepath = None
@@ -418,8 +426,9 @@ class Updater(object):
         raise tuf.URLMatchesNoPatternError(source_url)
 
     except:
-      Logger.exception(WARNING_MESSAGE.format(
-        network_location=self.configuration.network_location, url=source_url))
+      Logger.exception('Possibly invalid target_paths for '+ \
+        repr(self.configuration.network_location)+'! No TUF interposition for '\
+          + repr(source_url))
       raise
 
     else:
@@ -431,14 +440,14 @@ class Updater(object):
     """
     <Purpose>
       Open the URL url which can either be a string or a request object. 
-      The file is opened in the binary read mode as a temporary file.
+      The file is opened in the binary read mode as a temporary file. This is
+      called when TUF wants to open an already existing updater's 'url'. 
   
     <Arguments>
       url, the one which is to be opened.
 
       data must be a bytes object specifying additional data to be sent to the  
       server or None, if no such data needed. 
-
     """
     filename, headers = self.retrieve(url, data=data)
 
@@ -477,11 +486,9 @@ class Updater(object):
                      
     <Returns>
       It returns the filename and the headers of the file just retrieved.
-
     """
-    INTERPOSITION_MESSAGE = "Interposing for {url}"
-
-    Logger.info(INTERPOSITION_MESSAGE.format(url=url))
+    
+    Logger.info('Interposing for '+ repr(url))
 
     # What is the actual target to download given the URL? Sometimes we would
     # like to transform the given URL to the intended target; e.g. "/simple/"
@@ -526,13 +533,12 @@ class Updater(object):
       1. Setting local repository directory
       2. Setting the local SSL certificate PEM file
     """
+    
     # Set the local repository directory containing the metadata files.
     tuf.conf.repository_directory = self.configuration.repository_directory
 
     # Set the local SSL certificates PEM file.
     tuf.conf.ssl_certificates = self.configuration.ssl_certificates
-
-
 
 
 
@@ -556,14 +562,24 @@ class UpdaterController(object):
 
     add(configuration):
       This method adds the updater by adding an object of 
-      tuf.interposition.updater.Updater in the __updater map and by adding repository
-      mirror's network location in the empty set initialized when the object of 
-      tuf.interposition.updater.UpdaterController is created.
+      tuf.interposition.updater.Updater in the __updater map and by adding 
+      repository mirror's network location in the empty set initialized when 
+      the object of tuf.interposition.updater.UpdaterController is created.
 
     get(url):
-    refresh(configuration):
-    remove(configuration):
+      This method is to get the updater if it already exists. It takes the url 
+      and parse it. Then it utilizes hostname and port of that url to check if 
+      it already exists or not. If the updater exists, then it calls the 
+      get_target_filepath() method which returns a target file path to be 
+      downloaded.
 
+    refresh(configuration):
+      To refresh the top-level metadata of the given 'configuration'.
+      It updates the latest copies of the metadata for the top-level roles.
+
+    remove(configuration):
+      Remove an Updater matching the given Configuration as well as its 
+      associated mirrors.
   """
 
   def __init__(self):
@@ -571,8 +587,8 @@ class UpdaterController(object):
     <Purpose>
       To initalize a private map of updaters and a private set of repository
       mirror network locations (hostname:port) once the object of 
-      tuf.interposition.updater.UpdaterController is created. This empty map and set is 
-      later used to add, get and remove updaters and their mirrors.
+      tuf.interposition.updater.UpdaterController is created. This empty map 
+      and set is later used to add, get and remove updaters and their mirrors.
 
     <Arguments>
       None
@@ -623,8 +639,6 @@ class UpdaterController(object):
         is returned which is the list of repository mirrors.
     """
 
-    INVALID_REPOSITORY_MIRROR = "Invalid repository mirror {repository_mirror}!"
-
     # Updater has a "global" view of configurations, so it performs
     # additional checks after Configuration's own local checks. This will 
     # check if everything in tuf.interposition.configuration.ConfigurationParser 
@@ -669,7 +683,7 @@ class UpdaterController(object):
 
       except (tuf.FormatError) as e:
         error_message = \
-          INVALID_REPOSITORY_MIRROR.format(repository_mirror=mirror_network_location)
+          'Invalid repository mirror '+repr(mirror_network_location)
         Logger.exception(error_message)
         raise
 
@@ -687,7 +701,11 @@ class UpdaterController(object):
       updater will be added.
 
     <Exceptions>
-      tuf.FormatError
+      tuf.InvalidConfigurationError:
+        If the configuration is invalid. For example - wrong hostname, invalid
+        port number, wrong mirror format.
+
+      tuf.FormatError:
         This exception is raised if the network location which tuf is trying to 
         add is not unique.
     
@@ -753,9 +771,10 @@ class UpdaterController(object):
     # Check if the configuration.network_location is available in the updater or mirror
     # list.
     if configuration.network_location not in self.__updaters:
-      raise tuf.NotFoundError("Network location not found")
+      raise tuf.NotFoundError("Updater with "+repr(configuration.network_location)+" not found")
+
     if not repository_mirror_network_locations.issubset(self.__repository_mirror_network_locations):
-      raise tuf.NotFoundError("Network location not found")
+      raise tuf.NotFoundError("Mirror with "+repr(repository_mirror_network_locations)+" not found")
 
     # Get the updater and refresh its top-level metadata.  In the majority of
     # integrations, a software updater integrating TUF with interposition will
@@ -800,11 +819,6 @@ class UpdaterController(object):
       updater does not exists, it returns None.
     """
 
-    GENERIC_WARNING_MESSAGE = "No updater or interposition for url={url}"
-    DIFFERENT_NETLOC_MESSAGE = "We have an updater for netloc={netloc1} but not for netlocs={netloc2}"
-    HOSTNAME_FOUND_MESSAGE = "Found updater for interposed network location: {netloc}"
-    HOSTNAME_NOT_FOUND_MESSAGE = "No updater for hostname={hostname}"
-
     updater = None
 
     try:
@@ -826,13 +840,15 @@ class UpdaterController(object):
       updater = self.__updaters.get(network_location)
 
       if updater is None:
-        Logger.warn(HOSTNAME_NOT_FOUND_MESSAGE.format(hostname=hostname))
+        Logger.warn('No updater for '+repr(hostname))
 
       else:
 
         # Ensure that the updater is meant for this (hostname, port).
         if updater.configuration.network_location in network_locations:
-          Logger.info(HOSTNAME_FOUND_MESSAGE.format(netloc=network_location))
+          Logger.info('Found updater for interposed network location: '+ \
+            repr(network_location))
+          
           # Raises an exception in case we do not recognize how to
           # transform this URL for TUF. In that case, there will be no
           # updater for this URL.
@@ -840,17 +856,18 @@ class UpdaterController(object):
 
         else:
           # Same hostname, but different (not user-specified) port.
-          Logger.warn(DIFFERENT_NETLOC_MESSAGE.format(
-            netloc1=updater.configuration.network_location, netloc2=network_locations))
+          Logger.warn('We have an updater for '+ \
+            repr(updater.configuration.network_location)+ \
+              'but not for '+ repr(network_locations))
           updater = None
 
     except:
-      Logger.exception(GENERIC_WARNING_MESSAGE.format(url=url))
+      Logger.exception('No updater or interposition for '+ repr(url))
       updater = None
 
     finally:
       if updater is None:
-        Logger.warn(GENERIC_WARNING_MESSAGE.format(url=url))
+        Logger.warn('No updater or interposition for '+ repr(url))
 
       return updater
 
@@ -882,8 +899,6 @@ class UpdaterController(object):
       None
     """
 
-    UPDATER_REMOVED_MESSAGE = "Updater removed for interposed {configuration}."
-
     # Check if the given configuration is valid or not.
     if not isinstance(configuration, Configuration):
       raise tuf.InvalidConfigurationError('Invalid configuration')
@@ -906,10 +921,12 @@ class UpdaterController(object):
     # If everything works well, remove the stored Updater as well as its 
     # associated repository mirror network locations.
     updater.cleanup()
+    
     # Delete the updater from the list of updaters.
     del self.__updaters[configuration.network_location]
+    
     # Remove the associated mirrors from the repository mirror set.
     self.__repository_mirror_network_locations.difference_update(repository_mirror_network_locations)
 
     # Log the message that the given updater is removed.
-    Logger.info(UPDATER_REMOVED_MESSAGE.format(configuration=configuration))
+    Logger.info('Updater removed for interposed '+ repr(configuration))
