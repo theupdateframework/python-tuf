@@ -1502,7 +1502,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
    
     # Create hard links for 'target_path' if consistent hashing is enabled.
     if write_consistent_targets:
-      for target_digest in filedict[relative_targetpath]['hashes']:
+      for target_digest in six.itervalues(filedict[relative_targetpath]['hashes']):
         dirname, basename = os.path.split(target_path)
         digest_filename = target_digest + '.' + basename
         digest_target = os.path.join(dirname, digest_filename)
