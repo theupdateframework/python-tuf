@@ -1913,7 +1913,7 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
     # and indentation is used.  The 'tuf.util.TempFile' file-like object is
     # automically closed after the final move.
     file_object.write(file_content)
-    logger.info('Saving ' + repr(written_filename))
+    logger.debug('Saving ' + repr(written_filename))
     file_object.move(written_filename)
     
     for consistent_filename in consistent_filenames:
