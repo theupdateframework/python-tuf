@@ -560,7 +560,7 @@ def find_delegated_role(roles, delegated_role):
       
       # This role has a different name.
       else:
-        continue
+        logger.debug('Skipping delegated role: ' + repr(delegated_role))
 
   return role_index
 
