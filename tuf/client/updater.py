@@ -129,7 +129,13 @@ import tuf.util
 import tuf._vendor.iso8601 as iso8601
 import tuf._vendor.six as six
 
+# See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.client.updater')
+
+# Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the
+# log file.
+iso8601_logger = logging.getLogger('tuf._vendor.iso8601.iso8601')
+iso8601_logger.disabled = True
 
 
 class Updater(object):

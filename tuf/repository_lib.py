@@ -57,6 +57,11 @@ import tuf._vendor.six as six
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.repository_lib')
 
+# Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the
+# log file.
+iso8601_logger = logging.getLogger('tuf._vendor.iso8601.iso8601')
+iso8601_logger.disabled = True
+
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
 # According to the document above, revised May 6, 2003, RSA keys of
