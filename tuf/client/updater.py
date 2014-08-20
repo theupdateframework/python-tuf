@@ -324,7 +324,7 @@ class Updater(object):
     
     # Ensure the current path is valid/exists before saving it.
     if not os.path.exists(current_path):
-      message = 'Missing '+repr(current_path)+'.  This path must exist and, ' \
+      message = 'Missing ' + repr(current_path) + '.  This path must exist and, ' \
                 'at a minimum, contain the root metadata file.' 
       raise tuf.RepositoryError(message)
     self.metadata_directory['current'] = current_path
@@ -334,7 +334,7 @@ class Updater(object):
    
     # Ensure the previous path is valid/exists.
     if not os.path.exists(previous_path):
-      message = 'Missing '+repr(previous_path)+'.  This path must exist.'
+      message = 'Missing ' + repr(previous_path) + '.  This path must exist.'
       raise tuf.RepositoryError(message)
     self.metadata_directory['previous'] = previous_path
     
@@ -402,7 +402,7 @@ class Updater(object):
 
     # Ensure we have a valid metadata set.
     if metadata_set not in ['current', 'previous']:
-      raise tuf.Error('Invalid metadata set: '+repr(metadata_set))
+      raise tuf.Error('Invalid metadata set: ' + repr(metadata_set))
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
