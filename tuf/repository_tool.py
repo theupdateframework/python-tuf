@@ -2807,6 +2807,7 @@ def load_repository(repository_directory):
                       'threshold': role['threshold'],
                       'compressions': [''], 'signing_keyids': [],
                       'signatures': [],
+                      'paths': {},
                       'partial_loaded': False,
                       'delegations': {'keys': {},
                                       'roles': []}}
