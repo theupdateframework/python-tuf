@@ -129,7 +129,13 @@ import tuf.util
 import tuf._vendor.iso8601 as iso8601
 import tuf._vendor.six as six
 
+# See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.client.updater')
+
+# Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the
+# log file.
+iso8601_logger = logging.getLogger('tuf._vendor.iso8601.iso8601')
+iso8601_logger.disabled = True
 
 
 class Updater(object):
@@ -2548,7 +2554,7 @@ class Updater(object):
               # 'target' is only in 'previous', so remove it.
               logger.warning('Removing obsolete file: ' + repr(target) + '.')
               # Remove the file if it hasn't been removed already.
-              destination = os.path.join(destination_directory, target) 
+              destination = os.path.join(destination_directory, target.lstrip(os.sep))
               try:
                 os.remove(destination)
               
@@ -2613,9 +2619,15 @@ class Updater(object):
     updated_targetpaths = []
 
     for target in targets:
-      # Get the target's filepath located in 'destination_directory'.
-      # We will compare targets against this file.
-      target_filepath = os.path.join(destination_directory, target['filepath'])
+      # Prepend 'destination_directory' to the target's relative filepath (as
+      # stored in metadata.)  Verify the hash of 'target_filepath' against
+      # each hash listed for its fileinfo.  Note: join() discards
+      # 'destination_directory' if 'filepath' contains a leading path separator
+      # (i.e., is treated as an absolute path).
+      filepath = target['filepath']
+      if filepath[0] == '/':
+        filepath = filepath[1:]
+      target_filepath = os.path.join(destination_directory, filepath)
       
       if target_filepath in updated_targetpaths:
         continue

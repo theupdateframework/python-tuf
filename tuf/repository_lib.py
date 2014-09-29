@@ -57,6 +57,11 @@ import tuf._vendor.six as six
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.repository_lib')
 
+# Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the
+# log file.
+iso8601_logger = logging.getLogger('tuf._vendor.iso8601.iso8601')
+iso8601_logger.disabled = True
+
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
 # According to the document above, revised May 6, 2003, RSA keys of
@@ -374,6 +379,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
     
     except tuf.UnknownKeyError as e:
       signable['signatures'].remove(signature)
+      continue
     
     # Remove 'signature' from 'signable' if it is an invalid signature.
     if not tuf.keys.verify_signature(key, signature, signed):
@@ -1501,7 +1507,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
    
     # Create hard links for 'target_path' if consistent hashing is enabled.
     if write_consistent_targets:
-      for target_digest in filedict[relative_targetpath]['hashes']:
+      for target_digest in six.itervalues(filedict[relative_targetpath]['hashes']):
         dirname, basename = os.path.split(target_path)
         digest_filename = target_digest + '.' + basename
         digest_target = os.path.join(dirname, digest_filename)
@@ -1912,7 +1918,7 @@ def write_metadata_file(metadata, filename, compressions, consistent_snapshot):
     # and indentation is used.  The 'tuf.util.TempFile' file-like object is
     # automically closed after the final move.
     file_object.write(file_content)
-    logger.info('Saving ' + repr(written_filename))
+    logger.debug('Saving ' + repr(written_filename))
     file_object.move(written_filename)
     
     for consistent_filename in consistent_filenames:

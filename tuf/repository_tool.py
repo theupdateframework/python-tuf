@@ -66,7 +66,7 @@ logger = logging.getLogger('tuf.repository_tool')
 # Add a console handler so that users are aware of potentially unintended
 # states, such as multiple roles that share keys.
 tuf.log.add_console_handler()
-tuf.log.set_console_log_level(logging.WARNING)
+tuf.log.set_console_log_level(logging.INFO)
 
 # The algorithm used by the repository to generate the digests of the
 # target filepaths, which are included in metadata files and may be prepended
@@ -2807,6 +2807,7 @@ def load_repository(repository_directory):
                       'threshold': role['threshold'],
                       'compressions': [''], 'signing_keyids': [],
                       'signatures': [],
+                      'paths': {},
                       'partial_loaded': False,
                       'delegations': {'keys': {},
                                       'roles': []}}

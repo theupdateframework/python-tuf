@@ -75,10 +75,14 @@ extras = {
   'tools': ['pycrypto>=2.6.1', 'pynacl>=0.2.3']
 }
 
+with open('README.rst') as file_object:
+  long_description = file_object.read()
+
 setup(
   name = 'tuf',
-  version = '0.7.5',
+  version = '0.9.9',
   description = 'A secure updater framework for Python',
+  long_description = long_description,
   author = 'http://www.theupdateframework.com',
   author_email = 'theupdateframework@googlegroups.com',
   url = 'http://www.theupdateframework.com',
