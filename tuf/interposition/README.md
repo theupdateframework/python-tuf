@@ -2,14 +2,6 @@
 
 Interposition is the high-level integration of TUF. 'updater.py' is used to perform high-level integration of TUF to the software updater. This means that all the processes which are taking place in the low-level integration will be done automatically. This layer of processes will be transparent to the client.
                                                                                 
-Updater.py have two classes named as Updater and UpdaterController.
-                                                                                
-tuf.interposition.updater.Updater contains those methods which are to be performed on each individual updater. For example - refresh(), cleanup(),download_target(target_filepath), get_target_filepath(source_url), open(url), retrieve(url), switch_context(), all these for a particular updater.          
-                                                                              
-tuf.interposition.updater.UpdaterController contains those methods which are performed on updaters as a group. It basically keeps track of all the updaters. For example - add(configuration), get(configuration), refresh(configuration), remove(configuration), all these are performed on the list of updaters. 
-tuf.interposition.updater.UpdaterController maintains a map of updaters and a set of its mirrors. The map of updaters contains the objects of 
-tuf.interposition.updater.Updater for each updater. The set contains all the mirrors. The addition and removal of these updaters and their mirrors depends on the methods of tuf.interposition.updater.UpdaterController
-
 ### Integration with interposition example
 
 To implement interpostion, client only need to have the following-                           
