@@ -1,7 +1,20 @@
 #!/usr/bin/env python
 
 """
+<Program Name>
+  test_interpose_updater.py
 
+<Author>
+  Pankhuri Goyal <pankhurigoyal02@gmail.com>
+
+<Started>
+  August 2014.
+
+<Copyright>
+  See LICENSE for licensing information.
+
+<Purpose>
+  Unit test for tuf.interposition.updater.
 """
 
 from __future__ import print_function                                           
