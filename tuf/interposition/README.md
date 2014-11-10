@@ -5,23 +5,27 @@ Interposition is the high-level integration of TUF. 'updater.py' is used to perf
 ### Integration with interposition example
 
 To implement interpostion, client only need to have the following-                           
-First, a client module which is modified to include interposition library and code and second, a JSON configuration file is created, each of which is explained below -      
+First, a client module which is modified to include interposition library and code. Second, a JSON configuration file is created, each of which is explained below -      
 
 1. "interposition.py" is an example client updater module that is integrating TUF with interposition. 
 
 ```python
 import tuf.interposition
-# Configurations are simply a JSON object which allows you to answer these questions:
-# - Which network locations get intercepted?
-# - Given a network location, which TUF mirrors should we forward requests to?
-# - Given a network location, which paths should be intercepted?
-# - Given a TUF mirror, how do we verify its SSL certificate?
-tuf.interposition.configure()
+
+// configure() is used to tell TUF to start interposing for a url given below in the option one.
+configuration = tuf.interposition.configure()
+
+// It is required to refresh the top-level metadata which is done using the following.
+tuf.interposition.refresh(configuration)
+
+// deconfigure() is used to stop the interposition
+tuf.interposition.deconfigure(configuration)
 ```
 
 ### Option one
 
 ```python
+// Importing this will interpose all the urllib contained between configure and deconfigure.
 from tuf.interposition import urllib_tuf as urllib
 from tuf.interposition import urllib2_tuf as urllib2
 
