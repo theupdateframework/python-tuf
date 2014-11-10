@@ -12,20 +12,20 @@ First, a client module which is modified to include interposition library and co
 ```python
 import tuf.interposition
 
-// configure() is used to tell TUF to start interposing for a url given below in the option one.
+# configure() is used to tell TUF to start interposing for a url given below in the option one.
 configuration = tuf.interposition.configure()
 
-// It is required to refresh the top-level metadata which is done using the following.
+# It is required to refresh the top-level metadata which is done using the following.
 tuf.interposition.refresh(configuration)
 
-// deconfigure() is used to stop the interposition
+# deconfigure() is used to stop the interposition
 tuf.interposition.deconfigure(configuration)
 ```
 
 ### Option one
 
 ```python
-// Importing this will interpose all the urllib contained between configure and deconfigure.
+# Importing this will interpose all the urllib contained between configure and deconfigure.
 from tuf.interposition import urllib_tuf as urllib
 from tuf.interposition import urllib2_tuf as urllib2
 
