@@ -44,7 +44,7 @@ First, we will need to generate a key to sign the metadata. Keys are generated
 in pairs: one public and the other private. The private key is
 password-protected and is used to sign metadata. The public key can be shared
 freely, and is used to verify signatures made by the private key. You will need
-too share your public key with the repository hosting your project so they can
+to share your public key with the repository hosting your project so they can
 verify your metadata is signed by the right person.
 
 The generate\_and\_write\_rsa\_keypair function will create two key files named
@@ -94,7 +94,7 @@ After importing the key, we can generate a new project with the following
 command:
 
 ```
->>> project = create_new_project(name="example_project",
+>>> project = create_new_project(project_name="example_project",
 ...  metadata_directory="local/path/to/metadata/",
 ...  targets_directory="local/path/to/example_project",
 ...  location_in_repository="repo/unclaimed", key=public_key)
@@ -117,7 +117,7 @@ the project.
 To add a target, we issue the following method:
 
 ```
->>> project.add_target("target_1")
+>>> project.add_target("local/path/to/example_project/target_1")
 ```
 
 Note that the file "target\_1" should be located in
@@ -189,6 +189,7 @@ to delegate a new role for them. For example, we can do the following:
 
 ```
 >>> other_key = import_rsa_publickey_from_file(“another_public_key.pub”)
+>>> targets = ['local/path/to/newtarget']
 >>> project.delegate(“newrole”, [other_key], targets)
 ```
 

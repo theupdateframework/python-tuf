@@ -4,13 +4,15 @@ import json
 import socket
 import urllib
 import urllib2
+import logging
 
+import tuf.log
 
 # We import them directly into our namespace so that there is no name conflict.
-from configuration import ConfigurationParser, InvalidConfiguration
-from utility import Logger
-from updater import UpdaterController
+from tuf.interposition.configuration import ConfigurationParser
+from tuf.interposition.updater import UpdaterController
 
+Logger = logging.getLogger('tuf.interposition.__init__')
 
 # Export nothing when: from tuf.interposition import *
 __all__ = []
@@ -188,12 +190,15 @@ def __read_configuration(configuration_handler,
   parsed_configurations = {}
 
   try:
+    # open() is function in class Updater. It opens the file with given url
+    # as a temporary file in the binary mode and remains transparent to the 
+    # software updater.
     with open(filename) as tuf_interposition_json:
       tuf_interpositions = json.load(tuf_interposition_json)
       configurations = tuf_interpositions.get("configurations", {})
 
       if len(configurations) == 0:
-        raise InvalidConfiguration(NO_CONFIGURATIONS.format(filename=filename))
+        raise tuf.InvalidConfigurationError(NO_CONFIGURATIONS.format(filename=filename))
 
       else:
         for network_location, configuration in configurations.iteritems():
@@ -201,7 +206,11 @@ def __read_configuration(configuration_handler,
             configuration_parser = ConfigurationParser(network_location,
               configuration, parent_repository_directory=parent_repository_directory,
               parent_ssl_certificates_directory=parent_ssl_certificates_directory)
-
+            
+            # configuration_parser.parse() returns 
+            # tuf.interposition.Configuration which makes configuration an 
+            # object. The integration of interposition is done on the basis
+            # of 'configuration' which is an object.
             configuration = configuration_parser.parse()
             configuration_handler(configuration)
             parsed_configurations[configuration.hostname] = configuration
@@ -216,9 +225,6 @@ def __read_configuration(configuration_handler,
 
   else:
     return parsed_configurations
-
-
-
 
 
 # TODO: Is parent_repository_directory a security risk? For example, would it
@@ -363,8 +369,5 @@ def open_url(instancemethod):
 
 # Build and monkey patch public copies of the urllib and urllib2 modules.
 __monkey_patch()
-
-
-
 
 

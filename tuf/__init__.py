@@ -345,3 +345,18 @@ class NoWorkingMirrorError(Error):
       all_errors += '\n  ' + repr(mirror_netloc) + ': ' + repr(mirror_error)
 
     return all_errors
+
+
+class NotFoundError(Error):
+	"""If any configuration hostname or repository mirror hostname are not found"""
+	pass
+
+
+class URLMatchesNoPatternError(Error):
+	"""URL matches no user-specified regular expression pattern"""
+	pass
+
+
+class InvalidConfigurationError(Error):
+	"""If the configuration do not match a particular pattern then InvalidConfiguration Exception is raised"""
+	pass
