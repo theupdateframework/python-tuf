@@ -131,7 +131,7 @@
    installing software that is older than that which the client previously knew
    to be available.
 
-   Indefinite freeze attacks.  Attackers should not be able respond to client
+   Indefinite freeze attacks.  Attackers should not be able to respond to client
    requests with the same, outdated metadata without the client being aware of
    the problem.
 
@@ -177,7 +177,7 @@
    files, or executable binaries is irrelevant to the framework.
 
    The metadata describing target files is the information necessary to
-   securely identity the file and indicate which roles are trusted to provide
+   securely identify the file and indicate which roles are trusted to provide
    the file.  As providing additional information about
    target files may be important to some software update systems using the
    framework, additional arbitrary information can be provided with any target
