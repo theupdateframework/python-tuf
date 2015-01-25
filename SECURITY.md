@@ -24,7 +24,7 @@ The following are some of the known attacks on software update systems, includin
 
 * **Malicious mirrors preventing updates**. An attacker in control of one repository mirror is able to prevent users from obtaining updates from other, good mirrors. 
 
-* **Vulnerability to key compromises**. At attacker who is able to compromise a single key or less than a given threshold of keys can compromise clients. This includes relying on a single online key (such as only being protected by SSL) or a single offline key (such as most software update systems use to sign files). 
+* **Vulnerability to key compromises**. An attacker who is able to compromise a single key or less than a given threshold of keys can compromise clients. This includes relying on a single online key (such as only being protected by SSL) or a single offline key (such as most software update systems use to sign files). 
 
 ##Design Concepts
 
@@ -55,7 +55,7 @@ File integrity is important both with respect to single files as well as collect
 
 ## Freshness
 
-As software updates often fix security bugs, it is important that software update systems be able to obtain the latest versions of files that are available. An attacker may want to trick a client into installing outdated versions of software or even just convince a client that no updates are available.
+As software updates often fix security bugs, it is important for software update systems to be able to obtain the latest versions of files that are available. An attacker may want to trick a client into installing outdated versions of software or even just convince a client that no updates are available.
 
 Ensuring freshness means to:
 
