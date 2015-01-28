@@ -293,7 +293,7 @@ class UnknownTargetError(Error):
 
 
 class InvalidNameError(Error):
-  """Indicate an error while trying to validate any type of named object"""
+  """Indicate an error while trying to validate any type of named object."""
   pass
 
 
@@ -348,15 +348,15 @@ class NoWorkingMirrorError(Error):
 
 
 class NotFoundError(Error):
-	"""If any configuration hostname or repository mirror hostname are not found"""
+	"""If a required configuration or resource is not found."""
 	pass
 
 
 class URLMatchesNoPatternError(Error):
-	"""URL matches no user-specified regular expression pattern"""
+	"""If a URL does not match a user-specified regular expression."""
 	pass
 
 
 class InvalidConfigurationError(Error):
-	"""If the configuration do not match a particular pattern then InvalidConfiguration Exception is raised"""
+	"""If a configuration object does not match the expected format."""
 	pass
