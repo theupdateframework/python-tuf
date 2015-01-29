@@ -1,47 +1,57 @@
 ## Interposition
 
-Interposition is the high-level integration of TUF. 'updater.py' is used to perform high-level integration of TUF to the software updater. This means that all the processes which are taking place in the low-level integration will be done automatically. This layer of processes will be transparent to the client.
-                                                                                
-### Integration with interposition example
+The interposition package (tuf/interposition/) can be used to integrate TUF
+into a software updater.  It is an integration method that requires the least
+amount of effort from developers who are performing the integration.  The
+integration method used by interposition is considered high-level because the
+integrator does not explicitly call TUF methods to refresh metadata and
+download target files.  For example, performing a low-level integration with
+*tuf/client/updater.py* requires the integrator to instantiate an updater
+object, call updater.refresh() to refresh TUF metadata, and
+updater.download_target() to download target files referenced in TUF metadata.
+In contrast, an integrator may utilize interposition to load some configuration
+settings to indicate which URLs requested by Python urllib calls should be
+interposed by TUF.  This means that all the update calls for metadata and
+target requests are made transparently by the low level *tuf/client/updater.py*
+module.
 
-To implement interpostion, client only need to have the following-                           
-First, a client module which is modified to include interposition library and code. Second, a JSON configuration file is created, each of which is explained below -      
 
-1. "interposition.py" is an example client updater module that is integrating TUF with interposition. 
+### Interposition Example
+
+To use interposition, integrators must:
+
+1. Create an interposition configuration file.
+2. Import interposition, and load the configuration file with configure().
+3. Perform updater urllib calls that may be interposed.
+4. Deconfigure interposition.
+
 
 ```python
-import tuf.interposition
-
-# configure() is used to tell TUF to start interposing for a url given below in the option one.
-configuration = tuf.interposition.configure()
-
-# It is required to refresh the top-level metadata which is done using the following.
-tuf.interposition.refresh(configuration)
-
-# deconfigure() is used to stop the interposition
-tuf.interposition.deconfigure(configuration)
-```
-
-### Option one
-
-```python
-# Importing this will interpose all the urllib contained between configure and deconfigure.
 from tuf.interposition import urllib_tuf as urllib
 from tuf.interposition import urllib2_tuf as urllib2
 
+# configure() loads the interposition configuration file that indicates which
+# URLs should be interposed by TUF.  Any urllib calls that occur after
+# configure() are subject to interposition.
+
+configuration = tuf.interposition.configure()
+
 url = 'http://example.com/path/to/document'
+
 urllib.urlopen(url)
-urllib.urlretrieve(url)
+urllib.urlretrieve(url, 'mytarget')
 urllib2.urlopen(url)
+
+# deconfigure() is used to stop interposition.  Any urllib calls that occur
+# after deconfigure() are not interposed.
+tuf.interposition.deconfigure(configuration)
+
 ```
 
-### Option two
+Note: tuf.interposition.refresh(configuration) may be called to force a
+refresh of the TUF metadata.  Interposition normally performs a refresh of TUF
+metadata when configure() is called.
 
-```python
-@tuf.interposition.open_url
-def instancemethod(self, url, ...):
-  ...
-```
 
 ## Configuration
 
