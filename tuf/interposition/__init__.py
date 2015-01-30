@@ -12,7 +12,7 @@ import tuf.log
 from tuf.interposition.configuration import ConfigurationParser
 from tuf.interposition.updater import UpdaterController
 
-Logger = logging.getLogger('tuf.interposition.__init__')
+logger = logging.getLogger('tuf.interposition.__init__')
 
 # Export nothing when: from tuf.interposition import *
 __all__ = []
@@ -61,15 +61,17 @@ __updater_controller = UpdaterController()
 
 
 def __monkey_patch():
-  """Build and monkey patch public copies of the urllib and urllib2 modules.
+  """
+    Build and monkey patch public copies of the urllib and urllib2 modules.
 
-  We prefer simplicity, which leads to easier proof of security, even if it may
-  come at the cost of not honouring some provisions of the urllib and urllib2
-  module contracts unrelated to security.
+    We prefer simplicity, which leads to easier proof of security, even if it may
+    come at the cost of not honouring some provisions of the urllib and urllib2
+    module contracts unrelated to security.
 
-  References:
-    http://stackoverflow.com/a/11285504
-    http://docs.python.org/2/library/imp.html"""
+    References:
+      http://stackoverflow.com/a/11285504
+      http://docs.python.org/2/library/imp.html
+  """
 
   global urllib_tuf
   global urllib2_tuf
@@ -80,8 +82,10 @@ def __monkey_patch():
       urllib_tuf = \
         imp.load_module( "urllib_tuf", module_file, pathname, description)
       module_file.close()
+    
     except:
       raise
+    
     else:
       urllib_tuf.urlopen = __urllib_urlopen
       urllib_tuf.urlretrieve = __urllib_urlretrieve
@@ -92,8 +96,10 @@ def __monkey_patch():
       urllib2_tuf = \
         imp.load_module( "urllib2_tuf", module_file, pathname, description)
       module_file.close()
+    
     except:
       raise
+    
     else:
       urllib2_tuf.urlopen = __urllib2_urlopen
 
@@ -108,6 +114,7 @@ def __urllib_urlopen(url, data=None, proxies=None):
 
   if updater is None:
     return urllib.urlopen(url, data=data, proxies=proxies)
+  
   else:
     return updater.open(url, data=data)
 
@@ -122,6 +129,7 @@ def __urllib_urlretrieve(url, filename=None, reporthook=None, data=None):
 
   if updater is None:
     return urllib.urlretrieve(url, filename=filename, reporthook=reporthook, data=data)
+  
   else:
     return updater.retrieve(url, filename=filename, reporthook=reporthook, data=data)
 
@@ -143,22 +151,27 @@ def __urllib2_urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
     if url.get_method() == "GET":
       # ...then you should check with TUF.
       updater = __updater_controller.get(url.get_full_url())
+    
     else:
       # ...otherwise, revert to default behaviour.
-      Logger.warn(NON_GET_HTTP_METHOD_MESSAGE.format(method=url.get_method(),
+      logger.warn(NON_GET_HTTP_METHOD_MESSAGE.format(method=url.get_method(),
                                                     url=url.get_full_url()))
       return urllib2.urlopen(url, data=data, timeout=timeout)
+  
   else:
     # ...otherwise, we assume this is a string.
     updater = __updater_controller.get(url)
 
   if updater is None:
     return urllib2.urlopen(url, data=data, timeout=timeout)
+  
   else:
     response = updater.open(url, data=data)
+    
     # See urllib2.AbstractHTTPHandler.do_open
     # TODO: let Updater handle this
     response.msg = ""
+    
     return response
 
 
@@ -175,12 +188,13 @@ def __read_configuration(configuration_handler,
                          parent_ssl_certificates_directory=None):
   """
   A generic function to read TUF interposition configurations off a file, and
-  then handle those configurations with a given function. configuration_handler
-  must be a function which accepts a tuf.interposition.Configuration
-  instance.
+  then handle those configurations with a given function.
+  configuration_handler must be a function which accepts a
+  tuf.interposition.Configuration instance.
 
   Returns the parsed configurations as a dictionary of configurations indexed
-  by hostnames."""
+  by hostnames.
+  """
 
   INVALID_TUF_CONFIGURATION = "Invalid configuration for {network_location}!"
   INVALID_TUF_INTERPOSITION_JSON = "Invalid configuration in {filename}!"
@@ -190,9 +204,6 @@ def __read_configuration(configuration_handler,
   parsed_configurations = {}
 
   try:
-    # open() is function in class Updater. It opens the file with given url
-    # as a temporary file in the binary mode and remains transparent to the 
-    # software updater.
     with open(filename) as tuf_interposition_json:
       tuf_interpositions = json.load(tuf_interposition_json)
       configurations = tuf_interpositions.get("configurations", {})
@@ -207,20 +218,19 @@ def __read_configuration(configuration_handler,
               configuration, parent_repository_directory=parent_repository_directory,
               parent_ssl_certificates_directory=parent_ssl_certificates_directory)
             
-            # configuration_parser.parse() returns 
-            # tuf.interposition.Configuration which makes configuration an 
-            # object. The integration of interposition is done on the basis
-            # of 'configuration' which is an object.
+            # configuration_parser.parse() returns a
+            # 'tuf.interposition.Configuration' object, which interposition
+            # uses to determine which URLs should be interposed.
             configuration = configuration_parser.parse()
             configuration_handler(configuration)
             parsed_configurations[configuration.hostname] = configuration
 
           except:
-            Logger.exception(INVALID_TUF_CONFIGURATION.format(network_location=network_location))
+            logger.exception(INVALID_TUF_CONFIGURATION.format(network_location=network_location))
             raise
 
   except:
-    Logger.exception(INVALID_TUF_INTERPOSITION_JSON.format(filename=filename))
+    logger.exception(INVALID_TUF_INTERPOSITION_JSON.format(filename=filename))
     raise
 
   else:
@@ -236,7 +246,8 @@ def configure(filename="tuf.interposition.json",
               parent_repository_directory=None,
               parent_ssl_certificates_directory=None):
 
-  """The optional parent_repository_directory parameter is used to specify the
+  """
+  The optional parent_repository_directory parameter is used to specify the
   containing parent directory of the "repository_directory" specified in a
   configuration for *all* network locations, because sometimes the absolute
   location of the "repository_directory" is only known at runtime. If you
@@ -278,7 +289,8 @@ def configure(filename="tuf.interposition.json",
   optional; it must specify certificates bundled as PEM (RFC 1422).
 
   Returns the parsed configurations as a dictionary of configurations indexed
-  by hostnames."""
+  by hostnames.
+  """
 
   configurations = \
     __read_configuration(__updater_controller.add, filename=filename,
@@ -320,8 +332,10 @@ def deconfigure(configurations):
 
 
 def open_url(instancemethod):
-  """Decorate an instance method of the form
-  instancemethod(self, url, ...) with me in order to pass it to TUF."""
+  """
+  Decorate an instance method of the form
+  instancemethod(self, url, ...) with me in order to pass it to TUF.
+  """
 
   @functools.wraps(instancemethod)
   def wrapper(self, *args, **kwargs):
@@ -336,11 +350,13 @@ def open_url(instancemethod):
       if url_object.get_method() == "GET":
         # ...then you should check with TUF.
         url = url_object.get_full_url()
+      
       else:
         # ...otherwise, revert to default behaviour.
-        Logger.warn(NON_GET_HTTP_METHOD_MESSAGE.format(method=url_object.get_method(),
+        logger.warn(NON_GET_HTTP_METHOD_MESSAGE.format(method=url_object.get_method(),
                                                       url=url_object.get_full_url()))
         return instancemethod(self, *args, **kwargs)
+    
     # ...otherwise, we assume this is a string.
     else:
       url = url_object
@@ -351,6 +367,7 @@ def open_url(instancemethod):
     if updater is None:
       # ...then revert to default behaviour.
       return instancemethod(self, *args, **kwargs)
+    
     else:
       # ...otherwise, use TUF to get this document.
       return updater.open(url, data=data)
