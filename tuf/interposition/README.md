@@ -16,7 +16,7 @@ target requests are made transparently by the low level *tuf/client/updater.py*
 module.
 
 
-### Interposition Example
+### Interposition Examples
 
 To use interposition, integrators must:
 
@@ -25,6 +25,8 @@ To use interposition, integrators must:
 3. Perform updater urllib calls that may be interposed.
 4. Deconfigure interposition.
 
+
+## Option 1
 
 ```python
 from tuf.interposition import urllib_tuf as urllib
@@ -47,6 +49,15 @@ urllib2.urlopen(url)
 tuf.interposition.deconfigure(configuration)
 
 ```
+
+## Option 2
+
+```python
+@tuf.interposition.open_url
+def instancemethod(self, url, ...):
+  ...
+```
+
 
 Note: tuf.interposition.refresh(configuration) may be called to force a
 refresh of the TUF metadata.  Interposition normally performs a refresh of TUF
