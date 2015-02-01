@@ -1,0 +1,11 @@
+tuf (1:0.2-1) unstable; urgency=low
+
+  * New upstream version.
+
+ -- Patrick Schleizer <adrelanos@riseup.net>  Sun, 17 Aug 2014 20:44:58 +0000
+
+tuf (1:0.1-2) unstable; urgency=low
+
+  * Initial release.
+
+ -- Patrick Schleizer <adrelanos@riseup.net>  Sun, 17 Aug 2014 17:55:59 +0000

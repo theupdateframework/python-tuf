@@ -1,0 +1,9 @@
+#!/usr/bin/make -f
+
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+#export DH_VERBOSE=1
+
+%:
+	dh $@ --with python2

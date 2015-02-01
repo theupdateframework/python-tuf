@@ -1,0 +1,7 @@
+#!/bin/bash
+
+## This file is part of Whonix.
+## Copyright (C) 2012 - 2014 Patrick Schleizer <adrelanos@riseup.net>
+## See the file COPYING for copying conditions.
+
+faketime -f "2013-08-15 11:02:35" fakeroot "$@"
