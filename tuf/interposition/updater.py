@@ -1,10 +1,9 @@
-#!/usr/bin/env python
-
 """
 <Program Name>
   updater.py
 
 <Author>
+  Trishank Kuppusamy
   Pankhuri Goyal <pankhurigoyal02@gmail.com>
 
 <Started>
@@ -72,7 +71,7 @@
      configurations = tuf.interposition.configure()
 
      url = 'http://example.com/path/to/document'
-     # This is the standard way of opening and retrieving url in python.
+     # This is the standard way of opening and retrieving url in Python.
      urllib.urlopen(url)
      urllib.urlretrieve(url)
      urllib2.urlopen(url)
@@ -152,7 +151,7 @@ import tuf.log
 from tuf.interposition.configuration import Configuration
 
 
-Logger = logging.getLogger('tuf.interposition.updater')
+logger = logging.getLogger('tuf.interposition.updater')
 
 
 class Updater(object):
@@ -253,7 +252,7 @@ class Updater(object):
     self.configuration = configuration
     # A temporary directory used for this updater over runtime.
     self.tempdir = tempfile.mkdtemp()
-    Logger.debug('Created temporary directory at '+ repr(self.tempdir))
+    logger.debug('Created temporary directory at '+ repr(self.tempdir))
 
     # Switching context before instantiating updater because updater depends 
     # on some module (tuf.conf) variables.
@@ -272,7 +271,7 @@ class Updater(object):
     # Update the client's top-level metadata.  The download_target() method does
     # not automatically refresh top-level prior to retrieving target files and
     # their associated Targets metadata, so update the top-level metadata here.
-    Logger.info('Refreshing top-level metadata for interposed '+ repr(configuration))
+    logger.info('Refreshing top-level metadata for interposed '+ repr(configuration))
     self.updater.refresh()
   
  
@@ -331,7 +330,7 @@ class Updater(object):
     """
     
     shutil.rmtree(self.tempdir)
-    Logger.debug('Deleted temporary directory at '+ repr(self.tempdir))
+    logger.debug('Deleted temporary directory at '+ repr(self.tempdir))
 
 
   def download_target(self, target_filepath):
@@ -468,7 +467,7 @@ class Updater(object):
         raise tuf.URLMatchesNoPatternError(source_url)
 
     except:
-      Logger.exception('Possibly invalid target_paths for '+ \
+      logger.exception('Possibly invalid target_paths for '+ \
         repr(self.configuration.network_location)+'! No TUF interposition for '\
           + repr(source_url))
       raise
@@ -572,7 +571,7 @@ class Updater(object):
       It returns the filename and the headers of the file just retrieved.
     """
     
-    Logger.info('Interposing for '+ repr(url))
+    logger.info('Interposing for '+ repr(url))
 
     # What is the actual target to download given the URL? Sometimes we would
     # like to transform the given URL to the intended target; e.g. "/simple/"
@@ -781,7 +780,7 @@ class UpdaterController(object):
       except (tuf.FormatError) as e:
         error_message = \
           'Invalid repository mirror '+ repr(mirror_network_location)
-        Logger.exception(error_message)
+        logger.exception(error_message)
         raise
 
     return repository_mirror_network_locations
@@ -818,7 +817,7 @@ class UpdaterController(object):
     repository_mirror_network_locations = self.__check_configuration_on_add(configuration)
     
     # If all is well, build and store an Updater, and remember network locations.
-    Logger.info('Adding updater for interposed '+ repr(configuration))
+    logger.info('Adding updater for interposed '+ repr(configuration))
     # Adding an object of the tuf.interposition.updater.Updater with the given 
     # configuration. 
     self.__updaters[configuration.network_location] = Updater(configuration)
@@ -881,7 +880,7 @@ class UpdaterController(object):
     # Although interposition was designed to remain transparent, for software
     # updaters that require an explicit refresh of top-level metadata, this
     # method is provided.
-    Logger.info('Refreshing top-level metadata for '+ repr(configuration))
+    logger.info('Refreshing top-level metadata for '+ repr(configuration))
     
     # If everything is good then fetch the updater from __updaters with the 
     # given configurations. 
@@ -937,13 +936,13 @@ class UpdaterController(object):
       updater = self.__updaters.get(network_location)
 
       if updater is None:
-        Logger.warn('No updater for '+ repr(hostname))
+        logger.warn('No updater for '+ repr(hostname))
 
       else:
 
         # Ensure that the updater is meant for this (hostname, port).
         if updater.configuration.network_location in network_locations:
-          Logger.info('Found updater for interposed network location: '+ \
+          logger.info('Found updater for interposed network location: '+ \
             repr(network_location))
           
           # Raises an exception in case we do not recognize how to
@@ -953,18 +952,18 @@ class UpdaterController(object):
 
         else:
           # Same hostname, but different (not user-specified) port.
-          Logger.warn('We have an updater for '+ \
+          logger.warn('We have an updater for '+ \
             repr(updater.configuration.network_location)+ \
               'but not for '+ repr(network_locations))
           updater = None
 
     except:
-      Logger.exception('No updater or interposition for '+ repr(url))
+      logger.exception('No updater or interposition for '+ repr(url))
       updater = None
 
     finally:
       if updater is None:
-        Logger.warn('No updater or interposition for '+ repr(url))
+        logger.warn('No updater or interposition for '+ repr(url))
 
       return updater
 
@@ -1026,4 +1025,4 @@ class UpdaterController(object):
     self.__repository_mirror_network_locations.difference_update(repository_mirror_network_locations)
 
     # Log the message that the given updater is removed.
-    Logger.info('Updater removed for interposed '+ repr(configuration))
+    logger.info('Updater removed for interposed '+ repr(configuration))
