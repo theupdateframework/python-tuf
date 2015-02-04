@@ -817,7 +817,7 @@ class UpdaterController(object):
     repository_mirror_network_locations = self.__check_configuration_on_add(configuration)
     
     # If all is well, build and store an Updater, and remember network locations.
-    logger.info('Adding updater for interposed '+ repr(configuration))
+    logger.info('Adding updater for interposed ' + repr(configuration))
     # Adding an object of the tuf.interposition.updater.Updater with the given 
     # configuration. 
     self.__updaters[configuration.network_location] = Updater(configuration)
@@ -880,7 +880,7 @@ class UpdaterController(object):
     # Although interposition was designed to remain transparent, for software
     # updaters that require an explicit refresh of top-level metadata, this
     # method is provided.
-    logger.info('Refreshing top-level metadata for '+ repr(configuration))
+    logger.info('Refreshing top-level metadata for ' + repr(configuration))
     
     # If everything is good then fetch the updater from __updaters with the 
     # given configurations. 
@@ -936,7 +936,7 @@ class UpdaterController(object):
       updater = self.__updaters.get(network_location)
 
       if updater is None:
-        logger.warn('No updater for '+ repr(hostname))
+        logger.warning('No updater for ' + repr(hostname))
 
       else:
 
@@ -952,18 +952,18 @@ class UpdaterController(object):
 
         else:
           # Same hostname, but different (not user-specified) port.
-          logger.warn('We have an updater for '+ \
-            repr(updater.configuration.network_location)+ \
-              'but not for '+ repr(network_locations))
+          logger.warning('We have an updater for ' + \
+            repr(updater.configuration.network_location) + \
+              'but not for ' + repr(network_locations))
           updater = None
 
     except:
-      logger.exception('No updater or interposition for '+ repr(url))
+      logger.exception('No updater or interposition for ' + repr(url))
       updater = None
 
     finally:
       if updater is None:
-        logger.warn('No updater or interposition for '+ repr(url))
+        logger.warning('No updater or interposition for ' + repr(url))
 
       return updater
 
@@ -1026,4 +1026,4 @@ class UpdaterController(object):
     self.__repository_mirror_network_locations.difference_update(repository_mirror_network_locations)
 
     # Log the message that the given updater is removed.
-    logger.info('Updater removed for interposed '+ repr(configuration))
+    logger.info('Updater removed for interposed ' + repr(configuration))

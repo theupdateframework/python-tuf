@@ -95,7 +95,7 @@ def __monkey_patch():
     try:
       module_file, pathname, description = imp.find_module(urllib_module_name)
       urllib_tuf = \
-        imp.load_module( "urllib_tuf", module_file, pathname, description)
+        imp.load_module('urllib_tuf', module_file, pathname, description)
       module_file.close()
     
     except:
@@ -113,7 +113,7 @@ def __monkey_patch():
     try:
       module_file, pathname, description = imp.find_module(urllib2_module_name)
       urllib2_tuf = \
-        imp.load_module( "urllib2_tuf", module_file, pathname, description)
+        imp.load_module('urllib2_tuf', module_file, pathname, description)
       module_file.close()
     
     except:
