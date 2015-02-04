@@ -1,14 +1,23 @@
+# Help with Python 3 compatibility, where the print statement is a function, an
+# implicit relative import is invalid, and the '/' operator performs true
+# division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+
+
 import functools
 import imp
 import json
 import socket
-import urllib
-import urllib2
 import logging
 
 import tuf.log
+import tuf._vendor.six as six 
 
-# We import them directly into our namespace so that there is no name conflict.
+# We import the following directly into our namespace so that there is no name
+# conflict.
 from tuf.interposition.configuration import ConfigurationParser
 from tuf.interposition.updater import UpdaterController
 
@@ -21,10 +30,12 @@ __all__ = []
 # TODO:
 # - Document design decisions.
 # - Interposition: Honour urllib/urllib2 contract.
-# - Review security issues resulting from regular expressions (e.g. complexity attacks).
+# - Review security issues resulting from regular expressions
+#   (e.g. complexity attacks).
 # - Warn user when TUF is used without any configuration.
 # - Override other default (e.g. HTTPS) urllib2 handlers.
-# - Failsafe: If TUF fails, offer option to unsafely resort back to urllib/urllib2?
+# - Failsafe: If TUF fails, offer option to unsafely resort back to
+#   urllib/urllib2?
 
 
 
@@ -77,8 +88,12 @@ def __monkey_patch():
   global urllib2_tuf
 
   if urllib_tuf is None:
+    urllib_module_name = 'urllib'
+    if six.PY3:
+      urllib_module_name = 'urllib/request'
+
     try:
-      module_file, pathname, description = imp.find_module("urllib")
+      module_file, pathname, description = imp.find_module(urllib_module_name)
       urllib_tuf = \
         imp.load_module( "urllib_tuf", module_file, pathname, description)
       module_file.close()
@@ -91,8 +106,12 @@ def __monkey_patch():
       urllib_tuf.urlretrieve = __urllib_urlretrieve
 
   if urllib2_tuf is None:
+    urllib2_module_name = 'urllib2'
+    if six.PY3:
+      urllib2_module_name = 'urllib/request'
+    
     try:
-      module_file, pathname, description = imp.find_module("urllib2")
+      module_file, pathname, description = imp.find_module(urllib2_module_name)
       urllib2_tuf = \
         imp.load_module( "urllib2_tuf", module_file, pathname, description)
       module_file.close()
@@ -113,7 +132,7 @@ def __urllib_urlopen(url, data=None, proxies=None):
   updater = __updater_controller.get(url)
 
   if updater is None:
-    return urllib.urlopen(url, data=data, proxies=proxies)
+    return six.moves.urllib.request.urlopen(url, data=data, proxies=proxies)
   
   else:
     return updater.open(url, data=data)
@@ -128,7 +147,7 @@ def __urllib_urlretrieve(url, filename=None, reporthook=None, data=None):
   updater = __updater_controller.get(url)
 
   if updater is None:
-    return urllib.urlretrieve(url, filename=filename, reporthook=reporthook, data=data)
+    return six.moves.urllib.request.urlretrieve(url, filename=filename, reporthook=reporthook, data=data)
   
   else:
     return updater.retrieve(url, filename=filename, reporthook=reporthook, data=data)
@@ -146,7 +165,7 @@ def __urllib2_urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
   updater = None
 
   # If this is a urllib2.Request...
-  if isinstance(url, urllib2.Request):
+  if isinstance(url, six.moves.request.Request):
     # If this is a GET HTTP method...
     if url.get_method() == "GET":
       # ...then you should check with TUF.
@@ -156,14 +175,14 @@ def __urllib2_urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
       # ...otherwise, revert to default behaviour.
       logger.warn(NON_GET_HTTP_METHOD_MESSAGE.format(method=url.get_method(),
                                                     url=url.get_full_url()))
-      return urllib2.urlopen(url, data=data, timeout=timeout)
+      return six.moves.urllib.request.urlopen(url, data=data, timeout=timeout)
   
   else:
     # ...otherwise, we assume this is a string.
     updater = __updater_controller.get(url)
 
   if updater is None:
-    return urllib2.urlopen(url, data=data, timeout=timeout)
+    return six.moves.urllib.request.urlopen(url, data=data, timeout=timeout)
   
   else:
     response = updater.open(url, data=data)
@@ -212,7 +231,7 @@ def __read_configuration(configuration_handler,
         raise tuf.InvalidConfigurationError(NO_CONFIGURATIONS.format(filename=filename))
 
       else:
-        for network_location, configuration in configurations.iteritems():
+        for network_location, configuration in six.iteritems(configurations):
           try:
             configuration_parser = ConfigurationParser(network_location,
               configuration, parent_repository_directory=parent_repository_directory,
@@ -314,7 +333,7 @@ def refresh(configurations):
   # Although interposition was designed to remain transparent, for software
   # updaters that require an explicit refresh of top-level metadata, this
   # method is provided.
-  for configuration in configurations.itervalues():
+  for configuration in six.itervalues(configurations):
     __updater_controller.refresh(configuration)
 
 
@@ -324,7 +343,7 @@ def refresh(configurations):
 def deconfigure(configurations):
   """Remove TUF interposition for previously read configurations."""
 
-  for configuration in configurations.itervalues():
+  for configuration in six.itervalues(configuration):
     __updater_controller.remove(configuration)
 
 
@@ -345,7 +364,7 @@ def open_url(instancemethod):
     data = kwargs.get("data")
 
     # If this is a urllib2.Request...
-    if isinstance(url_object, urllib2.Request):
+    if isinstance(url_object, six.moves.request.Request):
       # If this is a GET HTTP method...
       if url_object.get_method() == "GET":
         # ...then you should check with TUF.

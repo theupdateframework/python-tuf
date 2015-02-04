@@ -25,12 +25,10 @@ from __future__ import division
 from __future__ import unicode_literals         
 
 import os.path
-import types
-import urlparse
 import logging
 
 import tuf.log
-
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.interposition.configuration')
 
@@ -107,7 +105,7 @@ class Configuration(object):
       mirror_configuration = repository_mirrors[repository_mirror]
       
       url_prefix = mirror_configuration["url_prefix"]
-      parsed_url = urlparse.urlparse(url_prefix)
+      parsed_url = six.moves.urllib.parse.urlparse(url_prefix)
       mirror_hostname = parsed_url.hostname
       mirror_port = parsed_url.port
       mirror_network_location = \
@@ -299,7 +297,7 @@ class ConfigurationParser(object):
 
       try:
         url_prefix = mirror_configuration["url_prefix"]
-        parsed_url = urlparse.urlparse(url_prefix)
+        parsed_url = six.moves.urllib.parse.urlparse(url_prefix)
         mirror_hostname = parsed_url.hostname
         mirror_port = parsed_url.port or 80
         mirror_scheme = parsed_url.scheme
@@ -360,13 +358,13 @@ class ConfigurationParser(object):
     target_paths = self.configuration.get("target_paths", [WILD_TARGET_PATH])
 
     # target_paths: [ target_path, ... ]
-    assert isinstance(target_paths, types.ListType)
+    assert isinstance(target_paths, list)
 
     for target_path in target_paths:
       try:
         # target_path: { "regex_with_groups", "target_with_group_captures" }
         # e.g. { ".*(/some/directory)/$", "{0}/index.html" }
-        assert isinstance(target_path, types.DictType)
+        assert isinstance(target_path, dict)
         assert len(target_path) == 1
 
       except:

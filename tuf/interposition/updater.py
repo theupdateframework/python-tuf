@@ -13,15 +13,15 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Interposition is the high-level integration of TUF. 'updater.py' is used to
+  Extend 'updater.py' is used to
   perform high-level integration of TUF to the software updater. This means 
   that all the processes which are taking place in the low-level integration 
   will be done automatically. This layer of processes will be transparent to 
   the client.
 
-  Updater.py have two classes named as Updater and UpdaterController.
+  This module provides two classes: Updater and UpdaterController.
   
-  tuf.interposition.updater.Updater contains those methods which are to be 
+  'tuf.interposition.updater.Updater contains those methods which are to be 
   performed on each individual updater. For example - refresh(), cleanup(), 
   download_target(target_filepath), get_target_filepath(source_url), open(url), 
   retrieve(url), switch_context(), all these for a particular updater. 
@@ -139,13 +139,12 @@ import os.path
 import re
 import shutil
 import tempfile
-import urllib
-import urlparse
 import logging
 
 import tuf.client.updater
 import tuf.conf
 import tuf.log
+import tuf._vendor.six as six
 
 # We import them directly into our namespace so that there is no name conflict.
 from tuf.interposition.configuration import Configuration
@@ -202,10 +201,10 @@ class Updater(object):
   def __init__(self, configuration):
     """
     <Purpose>
-      Constructor. Instantiating an updater object causes creation of a 
-      temporary directory. This temporary directory is used for the 
-      tuf.interposition.updater.Updater. After that the tuf.client.updater module which 
-      performs the low-level integration is called.
+      Constructor. Instantiating an updater object causes creation of a
+      temporary directory. This temporary directory is used for the
+      tuf.interposition.updater.Updater. After that the tuf.client.updater
+      module which performs the low-level integration is called.
 
     <Arguments>
       configuration:
@@ -438,7 +437,7 @@ class Updater(object):
       It returns target_filepath. This is the target which TUF should download.
     """
 
-    parsed_source_url = urlparse.urlparse(source_url)
+    parsed_source_url = six.moves.urllib.parse.urlparse(source_url)
     target_filepath = None
 
     try:
@@ -449,7 +448,7 @@ class Updater(object):
         #TODO: What these two lines are doing?
         # target_path: { "regex_with_groups", "target_with_group_captures" }
         # e.g. { ".*(/some/directory)/$", "{0}/index.html" }
-        source_path_pattern, target_path_pattern = target_path.items()[0]
+        source_path_pattern, target_path_pattern = list(target_path.items())[0]
         source_path_match = re.match(source_path_pattern, parsed_source_url.path)
 
         # TODO: A failure in string formatting is *critical*.
@@ -528,7 +527,7 @@ class Updater(object):
     # Extend temporary_file with info(), getcode(), geturl()
     # http://docs.python.org/2/library/urllib.html#urllib.urlopen
     # addinfourl() works as a context manager.
-    response = urllib.addinfourl(temporary_file, headers, url, code=200)
+    response = six.moves.urllib.response.addinfourl(temporary_file, headers, url, code=200)
 
     return response
 
@@ -774,6 +773,7 @@ class UpdaterController(object):
         # amongst other things.
         if mirror_network_location in self.__updaters:
           raise tuf.FormatError("Mirror with "+ repr(mirror_network_location)+" already exists as an updater")
+        
         if mirror_network_location in self.__repository_mirror_network_locations:
           raise tuf.FormatError("Mirror with "+ repr(mirror_network_location)+" already exists as a mirror")
 
@@ -919,7 +919,7 @@ class UpdaterController(object):
 
     try:
       # Parse the given url to access individual parts of it.
-      parsed_url = urlparse.urlparse(url)
+      parsed_url = six.moves.urllib.parse.urlparse(url)
       hostname = parsed_url.hostname
       port = parsed_url.port or 80
       netloc = parsed_url.netloc
@@ -1001,7 +1001,8 @@ class UpdaterController(object):
     
     # If the configuration is valid, get the repository mirrors associated with 
     # it.
-    repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
+    repository_mirror_network_locations = \
+      configuration.get_repository_mirror_hostnames()
 
     # Check if network location of the given configuration exists or not.
     if configuration.network_location not in self.__updaters:

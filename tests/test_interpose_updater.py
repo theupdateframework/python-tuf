@@ -14,7 +14,7 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Unit test for tuf.interposition.updater.
+  Unit test for 'tuf.interposition.updater.py'.
 """
 
 from __future__ import print_function                                           
