@@ -44,6 +44,7 @@
   First, a client module which is modified to include interposition library and 
   code and second, a JSON configuration file is created, each of which is 
   explained below - 
+  
   1. "interposition.py" is an example client updater module that is integrating
      TUF with interposition.
 
@@ -178,8 +179,8 @@ class Updater(object):
       metadata of the updated targets.
     
     get_target_filepath(source_url):
-      source_url is the url of the file to be updated. This method will find the
-      updated target for this file.
+      source_url is the url of the file to be updated.  This method will find
+      the updated target for this file.
    
     open(url, data):
       Open the URL url which can either be a string or a request object.        
@@ -382,7 +383,8 @@ class Updater(object):
     # our temporary directory path and target file path.
     # Note: join() discards 'destination_directory' if 'target_filepath'
     # contains a leading path separator (i.e., is treated as an absolute path).
-    filename = os.path.join(destination_directory, target_filepath.lstrip(os.sep))
+    filename = os.path.join(destination_directory,
+                            target_filepath.lstrip(os.sep))
     
     # Switch TUF context. Switching context before instantiating updater 
     # because updater depends on some module (tuf.conf) variables. 
@@ -449,11 +451,13 @@ class Updater(object):
         # target_path: { "regex_with_groups", "target_with_group_captures" }
         # e.g. { ".*(/some/directory)/$", "{0}/index.html" }
         source_path_pattern, target_path_pattern = list(target_path.items())[0]
-        source_path_match = re.match(source_path_pattern, parsed_source_url.path)
+        source_path_match = \
+          re.match(source_path_pattern, parsed_source_url.path)
 
         # TODO: A failure in string formatting is *critical*.
         if source_path_match is not None:
-          target_filepath = target_path_pattern.format(*source_path_match.groups())
+          target_filepath = \
+            target_path_pattern.format(*source_path_match.groups())
 
           # If there is more than one regular expression which
           # matches source_url, we resolve ambiguity by order of
@@ -466,9 +470,9 @@ class Updater(object):
         raise tuf.URLMatchesNoPatternError(source_url)
 
     except:
-      logger.exception('Possibly invalid target_paths for '+ \
-        repr(self.configuration.network_location)+'! No TUF interposition for '\
-          + repr(source_url))
+      logger.exception('Possibly invalid target_paths for ' + \
+        repr(self.configuration.network_location) + \
+        '! No TUF interposition for ' + repr(source_url))
       raise
 
     else:
@@ -518,8 +522,8 @@ class Updater(object):
     # end-of-line characters and prevents binary files from properly loading on
     # Windows.
     # http://docs.python.org/2/tutorial/inputoutput.html#reading-and-writing-files
-    # TODO: like tempfile, ensure file is deleted when closed?
-    # open() in the line below is a predefined function in python.
+    # TODO: like tempfile, ensure file is deleted when closed?  open() in the
+    # line below is a predefined function in python.
     temporary_file = open(filename, 'rb')
 
     #TODO: addinfourl is not in urllib package anymore. We need to check if
@@ -527,7 +531,8 @@ class Updater(object):
     # Extend temporary_file with info(), getcode(), geturl()
     # http://docs.python.org/2/library/urllib.html#urllib.urlopen
     # addinfourl() works as a context manager.
-    response = six.moves.urllib.response.addinfourl(temporary_file, headers, url, code=200)
+    response = six.moves.urllib.response.addinfourl(temporary_file, headers,
+                                                    url, code=200)
 
     return response
 
@@ -589,7 +594,8 @@ class Updater(object):
     }
 
     # Download the target filepath determined by the original URL.
-    temporary_directory, temporary_filename = self.download_target(target_filepath)
+    temporary_directory, temporary_filename = \
+      self.download_target(target_filepath)
 
     if filename is None:
         # If no filename is given, use the temporary file.
@@ -750,7 +756,7 @@ class UpdaterController(object):
     # tuf.interposition.configuration.Configuration as an object which makes 
     # configuration an instance of tuf.interposition.configuration.Configuration
     if not isinstance(configuration, Configuration):
-      raise tuf.InvalidConfigurationError("Invalid configuration")
+      raise tuf.InvalidConfigurationError('Invalid configuration')
 
     # Restrict each (incoming, outgoing) network location pair to be unique across
     # configurations; this prevents interposition cycles, amongst other
@@ -758,10 +764,14 @@ class UpdaterController(object):
     # GOOD: A -> { A:X, A:Y, B, ... }, C -> { D }, ...
     # BAD: A -> { B }, B -> { C }, C -> { A }, ...
     if configuration.network_location in self.__updaters:
-      raise tuf.FormatError("Updater with "+ repr(configuration.network_location)+" already exists as an updater")
+      message = 'Updater with ' + repr(configuration.network_location) + \
+                ' already exists as an updater.'
+      raise tuf.FormatError()
     
     if configuration.network_location in self.__repository_mirror_network_locations:
-      raise tuf.FormatError("Updater with "+ repr(configuration.network_location)+" already exists as a mirror")
+      message = 'Updater with ' + repr(configuration.network_location) + \
+                ' already exists as a mirror.'
+      raise tuf.FormatError(message)
 
     # Check for redundancy in server repository mirrors.
     repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
@@ -772,14 +782,18 @@ class UpdaterController(object):
         # unique across configurations; this prevents interposition cycles,
         # amongst other things.
         if mirror_network_location in self.__updaters:
-          raise tuf.FormatError("Mirror with "+ repr(mirror_network_location)+" already exists as an updater")
+          message = 'Mirror with ' + repr(mirror_network_location) + \
+                    ' already exists as an updater.'
+          raise tuf.FormatError(message)
         
         if mirror_network_location in self.__repository_mirror_network_locations:
-          raise tuf.FormatError("Mirror with "+ repr(mirror_network_location)+" already exists as a mirror")
+          message = 'Mirror with ' + repr(mirror_network_location) + \
+                    ' already exists as a mirror.'
+          raise tuf.FormatError(message)
 
       except (tuf.FormatError) as e:
-        error_message = \
-          'Invalid repository mirror '+ repr(mirror_network_location)
+        error_message = 'Invalid repository mirror ' + \
+                        repr(mirror_network_location)
         logger.exception(error_message)
         raise
 
@@ -806,9 +820,9 @@ class UpdaterController(object):
         add is not unique.
     
     <Side Effects>
-      The object of tuf.interposition.updater.Updater is added in the list of updaters.
-      Also, the mirrors of this updater are added into a 
-      repository_mirror_network_locations are added.
+      The object of 'tuf.interposition.updater.Updater' is added in the list of
+      updaters.  Also, the mirrors of this updater are added to 
+      'repository_mirror_network_locations'.
 
     <Returns>
       None
@@ -859,18 +873,22 @@ class UpdaterController(object):
     
     # Check if the configuration is valid else raise an exception.
     if not isinstance(configuration, Configuration):
-      raise tuf.InvalidConfigurationError("Invalid configuration")
+      raise tuf.InvalidConfigurationError('Invalid configuration')
 
     # Get the repository mirrors of the given configuration.
     repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
 
-    # Check if the configuration.network_location is available in the updater or mirror
-    # list.
+    # Check if the configuration.network_location is available in the updater
+    # or mirror list.
     if configuration.network_location not in self.__updaters:
-      raise tuf.NotFoundError("Updater with "+ repr(configuration.network_location)+" not found")
+      message = 'Update with ' + repr(configuration.network_location) + \
+                ' not found.'
+      raise tuf.NotFoundError(message)
 
     if not repository_mirror_network_locations.issubset(self.__repository_mirror_network_locations):
-      raise tuf.NotFoundError("Mirror with "+ repr(repository_mirror_network_locations)+" not found")
+      message = 'Mirror with ' + repr(repository_mirror_network_location) + \
+                ' not found.'
+      raise tuf.NotFoundError(message)
 
     # Get the updater and refresh its top-level metadata.  In the majority of
     # integrations, a software updater integrating TUF with interposition will
@@ -926,7 +944,8 @@ class UpdaterController(object):
 
       # Combine the hostname and port number and assign it to network_location.
       # The combination of hostname and port is used to identify an updater.
-      network_location = "{hostname}:{port}".format(hostname=hostname, port=port)
+      network_location = \
+        "{hostname}:{port}".format(hostname=hostname, port=port)
 
       # There can be a case when parsed_url.netloc does not have a port (e.g. 
       # 80). To avoid errors because of this case, tuf.interposition again set
