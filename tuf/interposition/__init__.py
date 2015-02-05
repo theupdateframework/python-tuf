@@ -165,7 +165,7 @@ def __urllib2_urlopen(url, data=None, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
   updater = None
 
   # If this is a urllib2.Request...
-  if isinstance(url, six.moves.request.Request):
+  if isinstance(url, six.moves.urllib.request.Request):
     # If this is a GET HTTP method...
     if url.get_method() == "GET":
       # ...then you should check with TUF.
@@ -343,7 +343,7 @@ def refresh(configurations):
 def deconfigure(configurations):
   """Remove TUF interposition for previously read configurations."""
 
-  for configuration in six.itervalues(configuration):
+  for configuration in six.itervalues(configurations):
     __updater_controller.remove(configuration)
 
 
