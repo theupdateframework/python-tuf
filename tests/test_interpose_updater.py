@@ -57,18 +57,18 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
   def setUpClass(cls):
     # This method is called before tests in individual class are executed.
     
-    # Create a temporary directory to store the repository, metadata, and target
-    # files. 'temporary_directory' must be deleted in TearDownModule() so that 
-    # temporary files are always removed, even when exceptions occur.  
+    # Create a temporary directory to store the repository, metadata, and
+    # target files. 'temporary_directory' must be deleted in TearDownModule()
+    # so that temporary files are always removed, even when exceptions occur.  
     cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
 
-    # Launch a SimpleHTTPServer (serves files in the current directory).        
-    # Test cases will request metadata and target files that have been          
-    # pre-generated in 'tuf/tests/repository_data', which will be served        
-    # by the SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
-    # assume the pre-generated metadata files have a specific structure, such   
-    # as a delegated role 'targets/role1', three target files, five key files,  
-    # etc.          
+    # Launch a SimpleHTTPServer (serves files in the current directory).
+    # Test cases will request metadata and target files that have been
+    # pre-generated in 'tuf/tests/repository_data', which will be served
+    # by the SimpleHTTPServer launched here.  The test cases of
+    # 'test_updater.py' assume the pre-generated metadata files have a specific
+    # structure, such   as a delegated role 'targets/role1', three target
+    # files, five key files,  etc.          
     cls.SERVER_PORT = random.randint(30000, 45000)                              
     command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]              
     cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)      
@@ -88,7 +88,9 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
 
     # Kill the SimpleHTTPServer Process
     if cls.server_process is None:
-      logger.info('\tServer process '+str(cls.server_process.pid)+' terminated.')
+      message = '\tServer process ' + str(cls.server_process.pid) + \
+                ' terminated.'
+      logger.info(message)
       cls.server_process.kill()  
 
 
@@ -133,8 +135,7 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
    
     # Test Set 1 -
     port = self.SERVER_PORT
-    url_prefix = \
-      'http://localhost:' + str(port) + repository_basepath
+    url_prefix = 'http://localhost:' + str(port) + repository_basepath
 
     # Setting 'tuf.conf.repository_directory' with the temporary client         
     # directory copied from the original repository files.                      
@@ -163,21 +164,22 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
                                       self.repository_mirrors,
                                       'targets', None)                             
     
-    test_server_port=random.randint(30000,45000)
+    test_server_port=random.randint(30000, 45000)
 
-    self.test3_configuration = configuration.Configuration('localhost', test_server_port,
-                                      self.client_directory,
-                                      self.repository_mirrors,
-                                      'targets', None)
+    self.test3_configuration = configuration.Configuration('localhost',
+                                                        test_server_port,
+                                                        self.client_directory,
+                                                        self.repository_mirrors,
+                                                        'targets', None)
   
     url_prefix_test = \
       'http://localhost:' + str(test_server_port) + repository_basepath
 
 
     self.repository_mirrors = {'mirror': {'url_prefix': url_prefix_test,            
-                                           'metadata_path': 'metadata',         
-                                           'targets_path': 'targets',           
-                                           'confined_target_dirs': ['']}
+                                          'metadata_path': 'metadata',         
+                                          'targets_path': 'targets',           
+                                          'confined_target_dirs': ['']}
                               }
  
     self.test4_configuration = configuration.Configuration('localhost', 8004,
@@ -238,7 +240,8 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     updater_controller.refresh(self.good_configuration)
 
     # Check for invalid configuration error.
-    self.assertRaises(tuf.InvalidConfigurationError, updater_controller.refresh, 8)
+    self.assertRaises(tuf.InvalidConfigurationError,
+                      updater_controller.refresh, 8)
     
     # Check if the updater not added in the updater list is refreshed, gives an 
     # error or not.
@@ -246,7 +249,7 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
                       self.test1_configuration)
     
     # Giving the same port number and network location as good_configuration.
-    self.test4_configuration.port= 8001
+    self.test4_configuration.port = 8001
     self.test4_configuration.network_location = 'localhost:8001'
 
     # Check if the mirror not added is refreshed, gives an error or not.
@@ -258,7 +261,8 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     good_updater = updater.Updater(self.good_configuration)
     good_updater.refresh()
     
-    self.good_configuration.repository_mirrors['mirror']['url_prefix'] = 'http://localhost:99999999'
+    self.good_configuration.repository_mirrors['mirror']['url_prefix'] = \
+      'http://localhost:99999999'
  
     # To check if a bad url_prefix of a mirror raises an exception or not. 
     self.assertRaises(tuf.NoWorkingMirrorError, good_updater.refresh)
@@ -277,7 +281,8 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     updater_controller.get(wrong_url)
 
     good_updater = updater.Updater(self.good_configuration)
-    self.assertRaises(tuf.URLMatchesNoPatternError, good_updater.get_target_filepath, url)
+    self.assertRaises(tuf.URLMatchesNoPatternError,
+                      good_updater.get_target_filepath, url)
 
 
 
@@ -288,15 +293,18 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     updater_controller.add(self.good_configuration)
 
     # Check for invalid configuration error.
-    self.assertRaises(tuf.InvalidConfigurationError, updater_controller.remove, 8)
+    self.assertRaises(tuf.InvalidConfigurationError,
+                      updater_controller.remove, 8)
     
-    self.assertRaises(tuf.NotFoundError, updater_controller.remove, self.test1_configuration)
+    self.assertRaises(tuf.NotFoundError, updater_controller.remove,
+                      self.test1_configuration)
     
     # Giving the same port number and network location as good_configuration.
-    self.test4_configuration.port= 8001
+    self.test4_configuration.port = 8001
     self.test4_configuration.network_location = 'localhost:8001'
 
-    self.assertRaises(tuf.NotFoundError, updater_controller.remove, self.test4_configuration)
+    self.assertRaises(tuf.NotFoundError, updater_controller.remove,
+                      self.test4_configuration)
 
 
 class TestUpdater(unittest_toolbox.Modified_TestCase):
@@ -305,18 +313,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def setUpClass(cls):
     # This method is called before tests in individual class are executed.
     
-    # Create a temporary directory to store the repository, metadata, and target
-    # files. 'temporary_directory' must be deleted in TearDownModule() so that 
-    # temporary files are always removed, even when exceptions occur.  
+    # Create a temporary directory to store the repository, metadata, and
+    # target files. 'temporary_directory' must be deleted in TearDownModule()
+    # so that temporary files are always removed, even when exceptions occur.  
     cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
 
-    # Launch a SimpleHTTPServer (serves files in the current directory).        
-    # Test cases will request metadata and target files that have been          
-    # pre-generated in 'tuf/tests/repository_data', which will be served        
-    # by the SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
-    # assume the pre-generated metadata files have a specific structure, such   
-    # as a delegated role 'targets/role1', three target files, five key files,  
-    # etc.          
+    # Launch a SimpleHTTPServer (serves files in the current directory).
+    # Test cases will request metadata and target files that have been
+    # pre-generated in 'tuf/tests/repository_data', which will be served
+    # by the SimpleHTTPServer launched here.  The test cases of
+    # 'test_updater.py' assume the pre-generated metadata files have a specific
+    # structure, such   as a delegated role 'targets/role1', three target
+    # files, five key files,  etc.          
     cls.SERVER_PORT = random.randint(30000, 45000)                              
     command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]              
     cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)      
@@ -334,7 +342,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Kill the SimpleHTTPServer Process
     if cls.server_process is None:
-      logger.info('\tServer process '+str(cls.server_process.pid)+' terminated.')
+      message = '\tServer process ' + str(cls.server_process.pid) + \
+                ' terminated.')
+      logger.info(message)
       cls.server_process.kill()  
 
 
@@ -378,17 +388,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test Set 1 -
     port = self.SERVER_PORT
-    url_prefix = \
-      'http://localhost:' + str(port) + repository_basepath
+    url_prefix = 'http://localhost:' + str(port) + repository_basepath
 
     # Setting 'tuf.conf.repository_directory' with the temporary client         
     # directory copied from the original repository files.                      
     tuf.conf.repository_directory = self.client_directory
 
     self.repository_mirrors = {'mirror': {'url_prefix': url_prefix,            
-                                           'metadata_path': 'metadata',         
-                                           'targets_path': 'targets',           
-                                           'confined_target_dirs': ['']}
+                                          'metadata_path': 'metadata',         
+                                          'targets_path': 'targets',           
+                                          'confined_target_dirs': ['']}
                               }
 
     self.target_paths = [{".*/targets":"/file1.txt"}]
@@ -410,11 +419,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     myUpdater = updater.Updater(self.good_configuration)  
     
     target_filepath = 'file.txt'
-    self.assertRaises(tuf.UnknownTargetError, myUpdater.download_target, target_filepath)
+    self.assertRaises(tuf.UnknownTargetError, myUpdater.download_target,
+                      target_filepath)
     
     self.assertRaises(tuf.FormatError, myUpdater.download_target, 8)
     
-    target_filepath='file1.txt'
+    target_filepath = 'file1.txt'
     myUpdater.download_target(target_filepath)
 
 
@@ -424,7 +434,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertRaises(AttributeError, myUpdater.get_target_filepath, 8)
 
     test_source_url = 'http://localhost:9999'
-    self.assertRaises(tuf.URLMatchesNoPatternError, myUpdater.get_target_filepath, test_source_url)
+    self.assertRaises(tuf.URLMatchesNoPatternError,
+                      myUpdater.get_target_filepath, test_source_url)
     
     test_source_url = 'http://localhost:8001/targets/file.txt'
     myUpdater.get_target_filepath(test_source_url)
@@ -445,12 +456,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertRaises(AttributeError, myUpdater.retrieve, 8)
 
     test_source_url = 'http://localhost:8001/targets/file1.txt'
-    myUpdater.retrieve(test_source_url,'interposition.json')
+    myUpdater.retrieve(test_source_url, 'interposition.json')
 
     #self.assertRaises(tuf.NoWorkingMirrorError, myUpdater.retrieve, test_source_url)
 
     test_source_url = 'http://6767:localhost'
-    self.assertRaises(tuf.URLMatchesNoPatternError, myUpdater.retrieve, test_source_url)
+    self.assertRaises(tuf.URLMatchesNoPatternError, myUpdater.retrieve,
+                      test_source_url)
 
     test_source_url = 'http://localhost:8001/targets/file1.txt'
     myUpdater.retrieve(test_source_url)
