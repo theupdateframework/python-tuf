@@ -8,123 +8,128 @@
 
 <Started>
   June 2014.
+    Refactored and unit tested by Pankhuri.
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
-  Extend 'updater.py' is used to
-  perform high-level integration of TUF to the software updater. This means 
-  that all the processes which are taking place in the low-level integration 
-  will be done automatically. This layer of processes will be transparent to 
-  the client.
-
-  This module provides two classes: Updater and UpdaterController.
+  Assist with high-level integrations, which means that all the processes that
+  are taking place in the low-level 'tuf.client.updater.py' will be automated
+  by this module. This layer of automation will be transparent to the software
+  updater; urllib-type calls will be intercepted and TUF metadata automatically
+  fetched along with the packages requested by the software updater.
   
-  'tuf.interposition.updater.Updater contains those methods which are to be 
-  performed on each individual updater. For example - refresh(), cleanup(), 
+  This module provides two classes: Updater and UpdaterController:
+  
+  'tuf.interposition.updater.Updater' contains those methods which are to be 
+  performed on each individual updater. For example: refresh(), cleanup(), 
   download_target(target_filepath), get_target_filepath(source_url), open(url), 
-  retrieve(url), switch_context(), all these for a particular updater. 
+  retrieve(url), switch_context(); all these methods act on particular updater. 
   
-  tuf.interposition.updater.UpdaterController contains those methods which 
-  are performed on updaters as a group. It basically keeps track of all the 
-  updaters. For example - add(configuration), get(configuration), 
+  'tuf.interposition.updater.UpdaterController' contains those methods which
+  are performed on updaters as a group. It basically keeps track of all the
+  updaters. For example: add(configuration), get(configuration),
   refresh(configuration), remove(configuration), all these are performed on the
-  list of updaters. tuf.interposition.updater.UpdaterController maintains a
+  list of updaters. 'tuf.interposition.updater.UpdaterController' maintains a
   map of updaters and a set of its mirrors. The map of updaters contains the
-  objects of tuf.interposition.updater.Updater for each updater. The set
-  contains all the mirrors. The addition and removal of these updaters and their
-  mirrors depends on the methods of tuf.interposition.updater.UpdaterController.
+  objects of 'tuf.interposition.updater.Updater' for each updater. The set
+  contains all the mirrors. The addition and removal of these updaters and
+  their mirrors depends on the methods of
+  'tuf.interposition.updater.UpdaterController'.
+
+<Example integration with interposition>
+
+  To integrate TUF into a software updater with interposition, integrators only
+  need to complete two main tasks:  First, a JSON configuration file for
+  interposition is created.  Second, the software updater is modified to import
+  the interposition library and configure interposition.    
   
-  #TODO: Add Pros and Cons of using interposition.
+  1. 'interposition.py' (code included below) is a basic example software
+     updater that is integrating TUF with interposition.
 
-<Example Integration with Interposition>
-
-  To implement interpostion client only need to have-
-  First, a client module which is modified to include interposition library and 
-  code and second, a JSON configuration file is created, each of which is 
-  explained below - 
-  
-  1. "interposition.py" is an example client updater module that is integrating
-     TUF with interposition.
-
-     # First import the main module called interposition which contains all 
-     # the required directories and classes.
+     # First import the interposition package, which contains all of the
+     # required classes and functions to use TUF and interposition.
      import tuf.interposition              
     
-     # urllib_tuf and urllib2_tuf are TUF's copy of urllib and urllib2
+     # Next, explicitly import the urllib modules that interposition will be
+     # interposing/overwriting.  'urllib_tuf' and 'urllib2_tuf' are TUF's
+     # copies of urllib and urllib2 that are modified to perform updates using
+     # the framework and the TUF metadata.
      from tuf.interposition import urllib_tuf as urllib
      from tuf.interposition import urllib2_tuf as urllib2
      
-     # From tuf.interposition, configure() method is called.
-     # configure() is within __init__.py
-     # It takes 3 arguments, one of which is filename of a JSON file.
+     # The configure() method must now be called.  It takes 3 optional
+     # arguments, one of which is the filename of a JSON configuration file.
      # This JSON file contains a set of configurations. To make this file,
-     # follow the second point below.
-     # Ways to call this method are as follows :
-     # First, configure() - By default, the configuration object is expected 
-     # to be situated in the current working directory in the file with the 
-     # name "tuf.interposition.json".
-     # Second, configure(filename="/path/to/json")
-     # Configure() returns a dictionary of configurations
-     # Internally, configure() calls add(configuration) function which is in 
-     # the tuf.interposition.updater.UpdaterController.
+     # follow the second point below.  Ways to call this method are as follows:
+     # First, configure() - By default, the configuration object is expected to
+     # be located in the current working directory in the file with the name
+     # "tuf.interposition.json".  Second, configure(filename="/path/to/json")
+     # Configure() returns a dictionary of configurations. Internally,
+     # configure() calls add(configuration) function which is in the
+     # 'tuf.interposition.updater.UpdaterController' class.
      configurations = tuf.interposition.configure()
 
-     url = 'http://example.com/path/to/document'
-     # This is the standard way of opening and retrieving url in Python.
+     url = 'http://example.com/path/to/file'
+     
+     # This is the standard way of opening and retrieving URLs in Python.
+     # All three urllib calls below are intercepted by TUF's interposition.
      urllib.urlopen(url)
      urllib.urlretrieve(url)
      urllib2.urlopen(url)
 
      # Remove TUF interposition for previously read configurations. That is 
      # remove the updater object.
-     # Deconfigure() takes only one argument i.e. configurations.
-     # It calls remove(configuration) function which is in 
-     # tuf.interposition.updater.UpdaterController.
+     # Deconfigure() takes only one argument (i.e. configurations).
+     # It calls the remove(configuration) function which is in 
+     # 'tuf.interposition.updater.UpdaterController'.
      tuf.interposition.deconfigure(configurations)
 
 
-  2. The filename passed as a parameter in configure function is a JSON file. 
-     It is called as configurations. It is a JSON object which tells 
-     tuf.interposition which URLs to intercept, how to transform them (if 
-     necessary), and where to forward them (possibly over SSL) for secure 
-     responses via TUF. By default, the name of the file is 
-     tuf.interposition.json which is as follows -
+  2. The filename passed as a argument to configure() is a JSON file. 
+     It is loaded as a JSON object, which tells tuf.interposition which URLs to
+     intercept, how to transform them (if necessary), and where to forward them
+     (possibly over SSL) for secure responses via TUF. By default, the name of
+     the file is tuf.interposition.json.  An example of a configuration file
+     follows.
     
-     # configurations are simply a JSON object which allows you to answer 
+     # configurations are simply a JSON object that allows you to answer 
      # these questions -
-     # - Which network location get intercepted?
+     # - Which network locations get intercepted?
      # - Given a network location, which TUF mirrors should we forward 
      #   requests to?
      # - Given a network location, which paths should be intercepted?
      # - Given a TUF mirror, how do we verify its SSL certificate?
      {
-     # This is required root object.
-       "configurations": {
+     # This is a required root object.
+     "configurations": {
        # Which network location should be intercepted?
        # Network locations may be specified as "hostname" or "hostname:port".
-         "localhost": {
+       "localhost": {
+         
          # Where do we find the client copy of the TUF server metadata?
-           "repository_directory": ".",
-           # Where do we forward the requests to localhost?
-             "repository_mirrors" : {
-                "mirror1": {
-                # In this case, we forward them to http://localhost:8001
-                  "url_prefix": "http://localhost:8001",
-                  # You do not have to worry about these default parameters.
-                  "metadata_path": "metadata",
-                  "targets_path": "targets",
-                  "confined_target_dirs": [ "" ]
-             }
+         "repository_directory": ".",
+         
+         # Where do we forward the requests to localhost?
+         "repository_mirrors" : {
+           "mirror1": {
+             # In this case, we forward them to http://localhost:8001
+             "url_prefix": "http://localhost:8001",
+             
+             # You do not have to worry about these default parameters.
+             "metadata_path": "metadata",
+             "targets_path": "targets",
+             "confined_target_dirs": [""]
            }
          }
        }
      }
 
-  # After making these two files on the client side, run interposition.py. This
-  # will start the interposition process. It generates a log file named tuf.log
-  # in the same directory, which can be used for a review.
+  # After creating 'tuf.configuration.json' and the example updater module, run
+  # 'interposition.py'.  The urllib calls will be intercepted, and information
+  # about the update process is generated to a log file named 'tuf.log' in the
+  # same directory, which can be reviewed.
 """
 
 # Help with Python 3 compatibility where the print statement is a function, an
@@ -147,7 +152,6 @@ import tuf.conf
 import tuf.log
 import tuf._vendor.six as six
 
-# We import them directly into our namespace so that there is no name conflict.
 from tuf.interposition.configuration import Configuration
 
 
@@ -158,43 +162,43 @@ class Updater(object):
   """
   <Purpose>
     Provide a class that can download target files securely. It performs all
-    those things which client/updator.py performs. But it performs it in the 
-    background, transparent to the client.
+    the actions of 'tuf/client/updater.py', but adds methods to handle HTTP
+    requests and multiple updater objects.   
 
   <Updater Methods>
     refresh(): 
-      This method refresh top-level metadata. It calls the refresh() method of  
-      tuf.client.updater. refresh() method of tuf.client.updater downloads, 
-      verifies, and loads metadata for the top-level roles in a specific order
+      This method refreshes top-level metadata. It calls the refresh() method of  
+      'tuf.client.updater'. refresh() method of 'tuf.client.updater' downloads, 
+      verifies, and loads metadata of the top-level roles in a specific order
       (i.e., timestamp -> snapshot -> root -> targets). The expiration time for 
-      downloaded metadata is also verified. 
+      downloaded metadata is also verified.
     
     cleanup():
-      It will clean up all the temporary directories which were made as a result
-      of download. It then prints a message of deletion and also mentions the 
-      name of the deleted directory. 
+      It will clean up all the temporary directories that are made following a
+      download request. It also logs a message when a temporary file/directory
+      is deleted.
       
     download_target(target_filepath):
-      It downloads the target from the target_filepath. It also downloads the 
-      metadata of the updated targets.
+      It downloads the 'target_filepath' repository file. It also downloads any
+      required metadata to securely satisfy the 'target_filepath' request.
     
     get_target_filepath(source_url):
-      source_url is the url of the file to be updated.  This method will find
+      'source_url' is the URL of the file to be updated.  This method will find
       the updated target for this file.
    
     open(url, data):
-      Open the URL url which can either be a string or a request object.        
+      Open the 'url' URL, which can either be a string or a request object.        
       The file is opened in the binary read mode as a temporary file.  
     
     retrieve(url, filename, reporthook, data):
-      retrieve() method first get the target file path by calling               
-      get_target_filepath(url) which in tuf.interposition.updater.Updater and 
-      then calls download_target() method for the above file path.   
+      retrieve() method first gets the target file path by calling               
+      get_target_filepath(url), which is in 'tuf.interposition.updater.Updater'
+      and then calls download_target() for the above file path.   
     
     switch_context():
       There is an updater object for each network location that is interposed.  
       Context switching is required because there are multiple                  
-      tuf.client.updater objects and each one depends on tuf.conf settings    
+      'tuf.client.updater' objects and each one depends on tuf.conf settings    
       that are shared.      
   """
 
@@ -202,9 +206,9 @@ class Updater(object):
   def __init__(self, configuration):
     """
     <Purpose>
-      Constructor. Instantiating an updater object causes creation of a
-      temporary directory. This temporary directory is used for the
-      tuf.interposition.updater.Updater. After that the tuf.client.updater
+      Constructor. Instantiating an updater object causes the creation of a
+      temporary directory. This temporary directory is used by
+      'tuf.interposition.updater.Updater'. After that the tuf.client.updater
       module which performs the low-level integration is called.
 
     <Arguments>
@@ -774,7 +778,8 @@ class UpdaterController(object):
       raise tuf.FormatError(message)
 
     # Check for redundancy in server repository mirrors.
-    repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
+    repository_mirror_network_locations = \
+      configuration.get_repository_mirror_hostnames()
 
     for mirror_network_location in repository_mirror_network_locations:
       try:
@@ -876,7 +881,8 @@ class UpdaterController(object):
       raise tuf.InvalidConfigurationError('Invalid configuration')
 
     # Get the repository mirrors of the given configuration.
-    repository_mirror_network_locations = configuration.get_repository_mirror_hostnames()
+    repository_mirror_network_locations = \
+      configuration.get_repository_mirror_hostnames()
 
     # Check if the configuration.network_location is available in the updater
     # or mirror list.
@@ -886,7 +892,7 @@ class UpdaterController(object):
       raise tuf.NotFoundError(message)
 
     if not repository_mirror_network_locations.issubset(self.__repository_mirror_network_locations):
-      message = 'Mirror with ' + repr(repository_mirror_network_location) + \
+      message = 'Mirror with ' + repr(repository_mirror_network_locations) + \
                 ' not found.'
       raise tuf.NotFoundError(message)
 
