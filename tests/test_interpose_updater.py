@@ -343,7 +343,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Kill the SimpleHTTPServer Process
     if cls.server_process is None:
       message = '\tServer process ' + str(cls.server_process.pid) + \
-                ' terminated.')
+                ' terminated.'
       logger.info(message)
       cls.server_process.kill()  
 
