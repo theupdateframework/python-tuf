@@ -1,3 +1,21 @@
+"""
+  <Program Name>
+    __init__.py
+
+  <Author>
+    Trishank Kuppusamy.
+    Pankhuri Goyal <pankhurigoyal02@gmail.com>
+
+  <Started>
+  
+  <Copyright>
+    See LICENSE for licensing information.
+
+  <Purpose>
+    TODO: Add pros / cons of using interposition.  Also, should we move code
+    here to its own module (instead of __init__.py)?
+"""
+
 # Help with Python 3 compatibility, where the print statement is a function, an
 # implicit relative import is invalid, and the '/' operator performs true
 # division.  Example:  print 'hello world' raises a 'SyntaxError' exception.
@@ -405,5 +423,4 @@ def open_url(instancemethod):
 
 # Build and monkey patch public copies of the urllib and urllib2 modules.
 __monkey_patch()
-
 
