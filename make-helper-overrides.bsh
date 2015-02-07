@@ -5,6 +5,6 @@
 ## See the file COPYING for copying conditions.
 
 make_hook_at_the_end_of_get_destdir() {
-   DESTDIR="$DESTDIR/usr/lib"
+   DESTDIR="$DESTDIR/usr/share/pyshared"
    make_folder_list_for_un_and_install="tuf"
 }
