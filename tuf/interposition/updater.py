@@ -206,33 +206,37 @@ class Updater(object):
   def __init__(self, configuration):
     """
     <Purpose>
-      Constructor. Instantiating an updater object causes the creation of a
-      temporary directory. This temporary directory is used by
-      'tuf.interposition.updater.Updater'. After that the tuf.client.updater
-      module which performs the low-level integration is called.
+      Constructor for an updater object that may be used to satisfy TUF update
+      requests, and can be used independent of other updater objects.  A
+      temporary directory is created when this updater object is instantiated,
+      which is needed by 'tuf.interposition.updater.Updater', and the top-level
+      roles are refreshed.  The 'tuf.client.updater' module performs the
+      low-level calls.
 
     <Arguments>
       configuration:
-      A dictionary holding information like the following -
-      - Which network location get intercepted?                                
-      - Given a network location, which TUF mirrors should we forward requests 
-        to?                                                           
-      - Given a network location, which paths should be intercepted?           
-      - Given a TUF mirror, how do we verify its SSL certificate? 
+        A dictionary holding information like the following:
+
+        - Which network location get intercepted?                                
+        - Given a network location, which TUF mirrors should we forward requests 
+          to?                                                           
+        - Given a network location, which paths should be intercepted?           
+        - Given a TUF mirror, how do we verify its SSL certificate? 
       
       This dictionary holds repository mirror information, conformant to       
       'tuf.formats.MIRRORDICT_SCHEMA'. Information such as the directory 
       containing the metadata and target files, the server's URL prefix, and 
-      the target content directories the client should be confined to.                                                  
+      the target directories the client should be confined to.                                                  
       
       repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
-                              'metadata_path': 'metadata',          
-                              'targets_path': 'targets',            
-                              'confined_target_dirs': ['']}} 
+                                        'metadata_path': 'metadata',          
+                                        'targets_path': 'targets',            
+                                        'confined_target_dirs': ['']}} 
 
     <Exceptions>
       tuf.FormatError:                                                          
-        If the arguments of tuf.client.updater.Updater are improperly formatted.                              
+        If the arguments of 'tuf.client.updater.Updater' are improperly
+        formatted.                              
                                                                               
       tuf.RepositoryError:                                                      
         If there is an error with the updater's repository files, such          
@@ -254,40 +258,41 @@ class Updater(object):
     """
 
     self.configuration = configuration
+    
     # A temporary directory used for this updater over runtime.
     self.tempdir = tempfile.mkdtemp()
-    logger.debug('Created temporary directory at '+ repr(self.tempdir))
+    logger.debug('Created temporary directory at ' + repr(self.tempdir))
 
     # Switching context before instantiating updater because updater depends 
     # on some module (tuf.conf) variables.
     self.switch_context()
 
-    # Instantiating an tuf.client.updater object causes all the configurations 
-    # for the top-level roles to be read from disk, including the key and role 
-    # information for the delegated targets of 'targets'. The actual metadata 
-    # for delegated roles is not loaded in __init__.  The metadata for these 
-    # delegated roles, including nested delegated roles, are loaded, updated, 
-    # and saved to the 'self.metadata' store by the target methods, like 
+    # Instantiating a 'tuf.client.updater' object causes all the configurations
+    # for the top-level roles to be read from disk, including the key and role
+    # information for the delegated targets of 'targets'. The actual metadata
+    # for delegated roles is not loaded in __init__.  The metadata for these
+    # delegated roles, including nested delegated roles, are loaded, updated,
+    # and saved to the 'self.metadata' store by the target methods, like
     # all_targets() and targets_of_role().     
     self.updater = tuf.client.updater.Updater(self.configuration.hostname,
                                               self.configuration.repository_mirrors)
     
-    # Update the client's top-level metadata.  The download_target() method does
-    # not automatically refresh top-level prior to retrieving target files and
-    # their associated Targets metadata, so update the top-level metadata here.
-    logger.info('Refreshing top-level metadata for interposed '+ repr(configuration))
+    # Update the client's top-level metadata.  The download_target() method
+    # does not automatically refresh top-level prior to retrieving target files
+    # and their associated Targets metadata, so update the top-level metadata
+    # here.
+    logger.info('Refreshing top-level metadata for interposed ' + repr(configuration))
     self.updater.refresh()
   
  
   def refresh(self):
     """
     <Purpose>
-      This method refresh top-level metadata. It calls the refresh() method of 
-      tuf.client.updater.
-      refresh() method of tuf.client.updater.py downloads, verifies, and loads 
-      metadata for the top-level roles in a specific order (i.e., timestamp -> 
-      snapshot -> root -> targets)
-      The expiration time for downloaded metadata is also verified.             
+      This method refreshes the top-level metadata. It calls the refresh()
+      method of 'tuf.client.updater'.  refresh() method of
+      'tuf.client.updater.py' downloads, verifies, and loads metadata for the
+      top-level roles in a specific order (i.e., timestamp -> snapshot -> root
+      -> targets) The expiration time for downloaded metadata is also verified.             
                                                                                      
       This refresh() method should be called by the client before any target     
       requests. Therefore to automate the process, it is called here.
@@ -300,11 +305,11 @@ class Updater(object):
         If the metadata for any of the top-level roles cannot be updated.       
                                                                                      
       tuf.ExpiredMetadataError:                                                 
-        if any metadata has expired.
+        If any metadata has expired.
 
     <Side Effects>
       Updates the metadata files of the top-level roles with the latest 
-      information
+      information.
 
     <Returns>
       None
@@ -316,9 +321,8 @@ class Updater(object):
   def cleanup(self):
     """
     <Purpose>
-      It will clean up all the temporary directories which were made as a 
-      result of download. It then prints a message of deletion and also 
-      mentions the name of the deleted directory. 
+      Clean up the updater object's temporary directory (and any
+      sub-directories).
     
     <Arguments>
       None
@@ -327,14 +331,14 @@ class Updater(object):
       None
 
     <Side Effects>
-      Removal of the temporary directory.
+      Removal of the temporary 'self.tempdir' directory.
 
     <Returns>
       None
     """
     
     shutil.rmtree(self.tempdir)
-    logger.debug('Deleted temporary directory at '+ repr(self.tempdir))
+    logger.debug('Deleted temporary directory at ' + repr(self.tempdir))
 
 
   def download_target(self, target_filepath):
