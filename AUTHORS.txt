@@ -6,6 +6,7 @@ Konstantin Andrianov
 Martin Peck
 Monzur Muhammad
 Nick Mathewson
+Pankhuri Goyal
 Roger Dingledine
 Santiago Torres
 Sebastian Hahn
