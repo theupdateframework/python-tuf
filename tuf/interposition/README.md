@@ -1,34 +1,68 @@
-## Examples
+## Interposition
 
-```python
-import tuf.interposition
-# Configurations are simply a JSON object which allows you to answer these questions:
-# - Which network locations get intercepted?
-# - Given a network location, which TUF mirrors should we forward requests to?
-# - Given a network location, which paths should be intercepted?
-# - Given a TUF mirror, how do we verify its SSL certificate?
-tuf.interposition.configure()
-```
+The interposition package (tuf/interposition/) can be used to integrate TUF
+into a software updater.  It is an integration method that requires the least
+amount of effort from developers who are performing the integration.  The
+integration method used by interposition is considered high-level because the
+integrator does not explicitly call TUF methods to refresh metadata and
+download target files.  For example, performing a low-level integration with
+*tuf/client/updater.py* requires the integrator to instantiate an updater
+object, call updater.refresh() to refresh TUF metadata, and
+updater.download_target() to download target files referenced in TUF metadata.
+In contrast, an integrator may utilize interposition to load some configuration
+settings to indicate which URLs requested by Python urllib calls should be
+interposed by TUF.  This means that all the update calls for metadata and
+target requests are made transparently by the low level *tuf/client/updater.py*
+module.
 
-### Option one
+
+### Interposition Examples
+
+To use interposition, integrators must:
+
+1. Create an interposition configuration file.
+2. Import interposition, and load the configuration file with configure().
+3. Perform updater urllib calls that may be interposed.
+4. Deconfigure interposition.
+
+
+## Option 1
 
 ```python
 from tuf.interposition import urllib_tuf as urllib
 from tuf.interposition import urllib2_tuf as urllib2
 
+# configure() loads the interposition configuration file that indicates which
+# URLs should be interposed by TUF.  Any urllib calls that occur after
+# configure() are subject to interposition.
+
+configuration = tuf.interposition.configure()
+
 url = 'http://example.com/path/to/document'
+
 urllib.urlopen(url)
-urllib.urlretrieve(url)
+urllib.urlretrieve(url, 'mytarget')
 urllib2.urlopen(url)
+
+# deconfigure() is used to stop interposition.  Any urllib calls that occur
+# after deconfigure() are not interposed.
+tuf.interposition.deconfigure(configuration)
+
 ```
 
-### Option two
+## Option 2
 
 ```python
 @tuf.interposition.open_url
 def instancemethod(self, url, ...):
   ...
 ```
+
+
+Note: tuf.interposition.refresh(configuration) may be called to force a
+refresh of the TUF metadata.  Interposition normally performs a refresh of TUF
+metadata when configure() is called.
+
 
 ## Configuration
 
