@@ -1,38 +1,71 @@
+"""
+<Program Name>
+  configuration.py
+
+<Author>
+  Trishank Kuppusamy
+  Pankhuri Goyal <pankhurigoyal02@gmail.com>
+  Vladimir Diaz <vladimir.v.diaz@gmail.com>
+
+<Started>
+
+<Copyright>
+  See LICENSE for licensing information.
+
+<Purpose>
+
+"""
+
+# Help with Python 3 compatibility where the print statement is a function, an  
+# implicit relative import is invalid, and the '/' operator performs true       
+# division. Example:  print 'hello world' raises a 'SyntaxError' exception.     
+from __future__ import print_function                                           
+from __future__ import absolute_import                                          
+from __future__ import division                                                 
+from __future__ import unicode_literals         
+
 import os.path
-import types
-import urlparse
+import logging
 
+import tuf.log
+import tuf._vendor.six as six
 
-# We import them directly into our namespace so that there is no name conflict.
-from utility import Logger, InterpositionException
-
-
-
-
-
-################################ GLOBAL CLASSES ################################
-
-
-
-
-
-class InvalidConfiguration(InterpositionException):
-  """User configuration is invalid."""
-  pass
-
-
-
+logger = logging.getLogger('tuf.interposition.configuration')
 
 
 class Configuration(object):
-  """Holds TUF interposition configuration information about a network
-  location which is important to an updater for that network location."""
-
+  """
+  <Purpose>
+    Holds TUF interposition configuration information about a network
+    location which is important to an updater for that network location.
+  """
 
   def __init__(self, hostname, port, repository_directory, repository_mirrors,
                target_paths, ssl_certificates):
 
-    """Constructor assumes that its parameters are valid."""
+    """
+    <Purpose>
+      Constructor assumes that its parameters are valid.
+
+    <Arguments>
+      hostname:
+
+      port:
+
+      repository_directory:
+
+      repository_mirrors:
+
+      target_paths:
+
+      ssl_certificates:
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+    """
 
     self.hostname = hostname
     self.port = port
@@ -50,8 +83,19 @@ class Configuration(object):
 
 
   def get_repository_mirror_hostnames(self):
-    """Get a set of hostnames of every repository mirror of this
-    configuration."""
+    """
+    <Purpose>
+      Get a set of hostnames of every repository mirror of this configuration.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+    """
 
     # Parse TUF server repository mirrors.
     repository_mirrors = self.repository_mirrors
@@ -59,10 +103,14 @@ class Configuration(object):
 
     for repository_mirror in repository_mirrors:
       mirror_configuration = repository_mirrors[repository_mirror]
+      
       url_prefix = mirror_configuration["url_prefix"]
-      parsed_url = urlparse.urlparse(url_prefix)
+      parsed_url = six.moves.urllib.parse.urlparse(url_prefix)
       mirror_hostname = parsed_url.hostname
-      repository_mirror_hostnames.add(mirror_hostname)
+      mirror_port = parsed_url.port
+      mirror_network_location = \
+        "{hostname}:{port}".format(hostname=mirror_hostname, port = mirror_port)
+      repository_mirror_hostnames.add(mirror_network_location)
 
     return repository_mirror_hostnames
 
@@ -71,14 +119,36 @@ class Configuration(object):
 
 
 class ConfigurationParser(object):
-  """Parses TUF interposition configuration information about a network
-  location, stored as a JSON object, and returns it as a Configuration."""
+  """
+  <Purpose>
+    Parses TUF interposition configuration information about a network
+    location, stored as a JSON object, and returns it as a Configuration.
+  """
 
 
   def __init__(self, network_location, configuration,
                parent_repository_directory=None,
                parent_ssl_certificates_directory=None):
+    """
+    <Purpose>
 
+    <Arguments>
+      network_location:
+
+      configuration:
+
+      parent_repository_directory:
+
+      parent_ssl_certificates_directory:
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+      None.
+    """
+    
     self.network_location = network_location
     self.configuration = configuration
     self.parent_repository_directory = parent_repository_directory
@@ -86,7 +156,20 @@ class ConfigurationParser(object):
 
 
   def get_network_location(self):
-    """Check network location."""
+    """
+    <Purpose>
+      Check network location.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+
+    """
 
     INVALID_NETWORK_LOCATION = "Invalid network location {network_location}!"
 
@@ -97,14 +180,27 @@ class ConfigurationParser(object):
     if len(network_location_tokens) > 1:
       port = int(network_location_tokens[1], 10)
       if port <= 0 or port >= 2**16:
-        raise InvalidConfiguration(INVALID_NETWORK_LOCATION.format(
+        raise tuf.InvalidConfigurationError(INVALID_NETWORK_LOCATION.format(
           network_location=self.network_location))
 
     return hostname, port
 
 
   def get_repository_directory(self):
-    """Locate TUF client metadata repository."""
+    """
+    <Purpose>
+      Locate TUF client metadata repository.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+
+    """
 
     INVALID_PARENT_REPOSITORY_DIRECTORY = \
         "Invalid parent_repository_directory for {network_location}!"
@@ -121,14 +217,27 @@ class ConfigurationParser(object):
         # TODO: assert os.path.isdir(repository_directory)
 
       else:
-        raise InvalidConfiguration(INVALID_PARENT_REPOSITORY_DIRECTORY.format(
+        raise tuf.InvalidConfigurationError(INVALID_PARENT_REPOSITORY_DIRECTORY.format(
           network_location=self.network_location))
 
     return repository_directory
 
 
   def get_ssl_certificates(self):
-    """Get any PEM certificate bundle."""
+    """
+    <Purpose>
+      Get any PEM certificate bundle.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+
+    """
 
     INVALID_SSL_CERTIFICATES = \
       "Invalid ssl_certificates for {network_location}!"
@@ -147,11 +256,11 @@ class ConfigurationParser(object):
                                           ssl_certificates)
 
           if not os.path.isfile(ssl_certificates):
-            raise InvalidConfiguration(INVALID_SSL_CERTIFICATES.format(
+            raise tuf.InvalidConfigurationError(INVALID_SSL_CERTIFICATES.format(
                 network_location=self.network_location))
 
         else:
-          raise InvalidConfiguration(
+          raise tuf.InvalidConfigurationError(
             INVALID_PARENT_SSL_CERTIFICATES_DIRECTORY.format(
               network_location=self.network_location))
 
@@ -159,7 +268,24 @@ class ConfigurationParser(object):
 
 
   def get_repository_mirrors(self, hostname, port, ssl_certificates):
-    """Parse TUF server repository mirrors."""
+    """
+    <Purpose>
+      Parse TUF server repository mirrors.
+    
+    <Arguments>
+      hostname:
+
+      port:
+
+      ssl_certificates:
+    
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+
+    """
 
     INVALID_REPOSITORY_MIRROR = "Invalid repository mirror {repository_mirror}!"
 
@@ -171,7 +297,7 @@ class ConfigurationParser(object):
 
       try:
         url_prefix = mirror_configuration["url_prefix"]
-        parsed_url = urlparse.urlparse(url_prefix)
+        parsed_url = six.moves.urllib.parse.urlparse(url_prefix)
         mirror_hostname = parsed_url.hostname
         mirror_port = parsed_url.port or 80
         mirror_scheme = parsed_url.scheme
@@ -199,18 +325,29 @@ class ConfigurationParser(object):
       except:
         error_message = \
           INVALID_REPOSITORY_MIRROR.format(repository_mirror=repository_mirror)
-        Logger.exception(error_message)
-        raise InvalidConfiguration(error_message)
+        logger.exception(error_message)
+        raise tuf.InvalidConfigurationError(error_message)
 
     return repository_mirrors
 
 
   def get_target_paths(self):
     """
-    Within a network_location, we match URLs with this list of regular
-    expressions, which tell us to map from a source URL to a target URL.
-    If there are multiple regular expressions which match a source URL,
-    the order of appearance will be used to resolve ambiguity.
+    <Purpose>
+      Within a network_location, we match URLs with this list of regular
+      expressions, which tell us to map from a source URL to a target URL.
+      If there are multiple regular expressions which match a source URL,
+      the order of appearance will be used to resolve ambiguity.
+    
+    <Arguments> 
+      None.
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+
     """
 
     INVALID_TARGET_PATH = "Invalid target path in {network_location}!"
@@ -221,27 +358,40 @@ class ConfigurationParser(object):
     target_paths = self.configuration.get("target_paths", [WILD_TARGET_PATH])
 
     # target_paths: [ target_path, ... ]
-    assert isinstance(target_paths, types.ListType)
+    assert isinstance(target_paths, list)
 
     for target_path in target_paths:
       try:
         # target_path: { "regex_with_groups", "target_with_group_captures" }
         # e.g. { ".*(/some/directory)/$", "{0}/index.html" }
-        assert isinstance(target_path, types.DictType)
+        assert isinstance(target_path, dict)
         assert len(target_path) == 1
 
       except:
         error_message = \
           INVALID_TARGET_PATH.format(network_location=self.network_location)
-        Logger.exception(error_message)
-        raise InvalidConfiguration(error_message)
+        logger.exception(error_message)
+        raise tuf.InvalidConfigurationError(error_message)
 
     return target_paths
 
 
   # TODO: more input sanity checks?
   def parse(self):
-    """Parse, check and get the required configuration parameters."""
+    """
+    <Purpose>
+      Parse, check, and get the required configuration parameters.
+
+    <Arguments>
+      None.
+
+    <Exceptions>
+
+    <Side Effects>
+
+    <Returns>
+
+    """
 
     hostname, port = self.get_network_location()
     ssl_certificates = self.get_ssl_certificates()
@@ -252,5 +402,5 @@ class ConfigurationParser(object):
       self.get_repository_mirrors(hostname, port, ssl_certificates)
 
     # If everything passes, we return a Configuration.
-    return Configuration(hostname, port, repository_directory, repository_mirrors,
-                         target_paths, ssl_certificates)
+    return Configuration(hostname, port, repository_directory,
+                         repository_mirrors, target_paths, ssl_certificates)

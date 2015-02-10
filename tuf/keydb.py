@@ -164,9 +164,9 @@ def add_key(key_dict, keyid=None):
     # Raise 'tuf.FormatError' if the check fails. 
     tuf.formats.KEYID_SCHEMA.check_match(keyid)
 
-    # Check if the keyid found in 'rsakey_dict' matches 'keyid'.
+    # Check if the keyid found in 'key_dict' matches 'keyid'.
     if keyid != key_dict['keyid']:
-      raise tuf.Error('Incorrect keyid '+key_dict['keyid']+' expected '+keyid)
+      raise tuf.Error('Incorrect keyid ' + key_dict['keyid'] + ' expected ' + keyid)
  
   # Check if the keyid belonging to 'rsakey_dict' is not already
   # available in the key database before returning.

@@ -324,7 +324,7 @@ class Updater(object):
     
     # Ensure the current path is valid/exists before saving it.
     if not os.path.exists(current_path):
-      message = 'Missing '+repr(current_path)+'.  This path must exist and, ' \
+      message = 'Missing ' + repr(current_path) + '.  This path must exist and, ' \
                 'at a minimum, contain the root metadata file.' 
       raise tuf.RepositoryError(message)
     self.metadata_directory['current'] = current_path
@@ -334,7 +334,7 @@ class Updater(object):
    
     # Ensure the previous path is valid/exists.
     if not os.path.exists(previous_path):
-      message = 'Missing '+repr(previous_path)+'.  This path must exist.'
+      message = 'Missing ' + repr(previous_path) + '.  This path must exist.'
       raise tuf.RepositoryError(message)
     self.metadata_directory['previous'] = previous_path
     
@@ -402,7 +402,7 @@ class Updater(object):
 
     # Ensure we have a valid metadata set.
     if metadata_set not in ['current', 'previous']:
-      raise tuf.Error('Invalid metadata set: '+repr(metadata_set))
+      raise tuf.Error('Invalid metadata set: ' + repr(metadata_set))
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
@@ -515,7 +515,7 @@ class Updater(object):
     keys_info = current_parent_metadata['delegations'].get('keys', {})
     roles_info = current_parent_metadata['delegations'].get('roles', [])
 
-    logger.debug('Adding roles delegated from '+repr(parent_role)+'.')
+    logger.debug('Adding roles delegated from ' + repr(parent_role) + '.')
    
     # Iterate through the keys of the delegated roles of 'parent_role'
     # and load them.
@@ -532,12 +532,12 @@ class Updater(object):
           pass
         
         except (tuf.FormatError, tuf.Error) as e:
-          logger.exception('Failed to add keyid: '+repr(keyid)+'.')
-          logger.error('Aborting role delegation for parent role '+parent_role+'.')
+          logger.exception('Invalid key for keyid: ' + repr(keyid) + '.')
+          logger.error('Aborting role delegation for parent role ' + parent_role + '.')
           raise
       
       else:
-        logger.warning('Invalid key type for '+repr(keyid)+'.')
+        logger.warning('Invalid key type for ' + repr(keyid) + '.')
         continue
 
     # Add the roles to the role database.
@@ -546,14 +546,14 @@ class Updater(object):
         # NOTE: tuf.roledb.add_role will take care of the case where rolename
         # is None.
         rolename = roleinfo.get('name')
-        logger.debug('Adding delegated role: '+str(rolename)+'.')
+        logger.debug('Adding delegated role: ' + str(rolename) + '.')
         tuf.roledb.add_role(rolename, roleinfo)
       
       except tuf.RoleAlreadyExistsError as e:
-        logger.warning('Role already exists: '+rolename)
+        logger.warning('Role already exists: ' + rolename)
       
       except:
-        logger.exception('Failed to add delegated role: '+rolename+'.')
+        logger.exception('Failed to add delegated role: ' + rolename + '.')
         raise
 
 

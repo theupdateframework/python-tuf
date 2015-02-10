@@ -394,6 +394,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     self.assertTrue(tuf.formats.ROLELIST_SCHEMA.matches(role_list))
     self.assertEqual(tuf.util.find_delegated_role(role_list, 'targets/tuf'), 1)
     self.assertEqual(tuf.util.find_delegated_role(role_list, 'targets/warehouse'), 0)
+    
     # Test for non-existent role.  'find_delegated_role()' returns 'None'
     # if the role is not found.
     self.assertEqual(tuf.util.find_delegated_role(role_list, 'targets/non-existent'),

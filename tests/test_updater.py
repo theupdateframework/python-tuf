@@ -243,17 +243,24 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.move(self.client_metadata_previous, previous_backup)
     self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
                       self.repository_mirrors)
+    
     # Restore the client's previous directory.  The required 'current' directory
     # is still missing.
     shutil.move(previous_backup, self.client_metadata_previous)
 
-
-    # Test: repository with only a '{repository_directory/metadata/previous'
+    # Test: repository with only a '{repository_directory}/metadata/previous'
     # directory.
     self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
                       self.repository_mirrors)
     # Restore the client's current directory.
     shutil.move(current_backup, self.client_metadata_current)
+   
+    # Test: repository with a '{repository_directory}/metadata/current'
+    # directory, but the 'previous' directory is missing.
+    shutil.move(self.client_metadata_previous, previous_backup)
+    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+                      self.repository_mirrors)
+    shutil.move(previous_backup, self.client_metadata_previous)
    
     # Test:  repository missing the required 'root.json' file.
     client_root_file = os.path.join(self.client_metadata_current, 'root.json')
@@ -290,9 +297,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # (i.e., only the 'root.json' file should have been loaded.
     self.assertEqual(len(self.repository_updater.metadata['current']), 5)
 
-    #  Verify that the content of root metadata is valid.
+    # Verify that the content of root metadata is valid.
     self.assertEqual(self.repository_updater.metadata['current']['targets/role1'],
                      role1_meta['signed'])
+
+    # Test invalid metadata set argument (must be either
+    # 'current' or 'previous'.)
+    self.assertRaises(tuf.Error,
+                      self.repository_updater._load_metadata_from_file,
+                      'bad_metadata_set', 'targets/role1')
 
 
 
@@ -413,7 +426,40 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     for keyid in keyids:
       self.assertTrue(keyid in tuf.keydb._keydb_dict)
 
+    # Verify that _import_delegations() ignores invalid keytypes in the 'keys'
+    # field of parent role's 'delegations'
+    existing_keyid = keyids[0]
+    
+    self.repository_updater.metadata['current']['targets']\
+      ['delegations']['keys'][existing_keyid]['keytype'] = 'bad_keytype'
+    self.repository_updater._import_delegations('targets')
+    # Restore the keytype of 'existing_keyid'.
+    self.repository_updater.metadata['current']['targets']\
+      ['delegations']['keys'][existing_keyid]['keytype'] = 'rsa'
 
+    # Verify that _import_delegations() raises an exception if any key in
+    # 'delegations' is improperly formatted (i.e., bad keyid.)
+    tuf.keydb.clear_keydb()
+    self.repository_updater.metadata['current']['targets']\
+      ['delegations']['keys'][existing_keyid]['keyid'] = '123'
+    
+    print(repr(self.repository_updater.metadata['current']['targets']\
+      ['delegations']['keys'][existing_keyid]['keyid']))
+    self.repository_updater._import_delegations('targets')
+    #self.assertRaises(tuf.Error, self.repository_updater._import_delegations,
+    #                  'targets')
+
+    # Restore the keyid of 'existing_keyids2'.
+    self.repository_updater.metadata['current']['targets']\
+      ['delegations']['keys'][existing_keyid]['keyid'] = existing_keyid
+
+    # Verify that _import_delegations() raises an exception if it fails to add
+    # one of the roles loaded from parent role's 'delegations'.
+
+
+
+
+    
 
 
 

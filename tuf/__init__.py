@@ -293,7 +293,7 @@ class UnknownTargetError(Error):
 
 
 class InvalidNameError(Error):
-  """Indicate an error while trying to validate any type of named object"""
+  """Indicate an error while trying to validate any type of named object."""
   pass
 
 
@@ -345,3 +345,18 @@ class NoWorkingMirrorError(Error):
       all_errors += '\n  ' + repr(mirror_netloc) + ': ' + repr(mirror_error)
 
     return all_errors
+
+
+class NotFoundError(Error):
+	"""If a required configuration or resource is not found."""
+	pass
+
+
+class URLMatchesNoPatternError(Error):
+	"""If a URL does not match a user-specified regular expression."""
+	pass
+
+
+class InvalidConfigurationError(Error):
+	"""If a configuration object does not match the expected format."""
+	pass
