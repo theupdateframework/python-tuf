@@ -722,7 +722,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # First verify that an expired root metadata is updated.
     expired_date = '1960-01-01T12:00:00Z' 
     self.repository_updater.metadata['current']['root']['expires'] = expired_date
-    self.repository_updater.refresh() 
+    self.repository_updater.refresh()
+
+    # Second, verify that expired root metadata is not updated if
+    # 'unsafely_update_root_if_necessary' is explictly set to 'False'.
+    expired_date = '1960-01-01T12:00:00Z' 
+    self.repository_updater.metadata['current']['root']['expires'] = expired_date
+    self.assertRaises(tuf.ExpiredMetadataError,
+                      self.repository_updater.refresh,
+                      unsafely_update_root_if_necessary=False)
 
     repository = repo_tool.load_repository(self.repository_directory)
     target3 = os.path.join(self.repository_directory, 'targets', 'file3.txt')

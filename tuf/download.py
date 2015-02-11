@@ -44,10 +44,10 @@ import tuf._vendor.six as six
 # 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
 # for Python 2.6 and 2.7.
 try:
-    from ssl import match_hostname, CertificateError
+  from ssl import match_hostname, CertificateError
 
-except ImportError:
-    from tuf._vendor.ssl_match_hostname import match_hostname, CertificateError
+except ImportError: # pragma: no cover
+  from tuf._vendor.ssl_match_hostname import match_hostname, CertificateError
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
