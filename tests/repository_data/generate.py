@@ -135,9 +135,12 @@ repository.snapshot.expiration = datetime.datetime(2030, 1, 1, 0, 0)
 repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 0, 0)
 repository.targets('role1').expiration = datetime.datetime(2030, 1, 1, 0, 0)
 
-# Compress the 'targets.json' role so that the unit tests have a pre-generated
-# example of compressed metadata.
+# Compress the top-level role metadata so that the unit tests have a
+# pre-generated example of compressed metadata.
+repository.root.compressions = ['gz']
 repository.targets.compressions = ['gz']
+repository.snapshot.compressions = ['gz']
+repository.timestamp.compressions = ['gz']
 
 # Create the actual metadata files, which are saved to 'metadata.staged'. 
 if not options.dry_run:

@@ -493,7 +493,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                          version, expiration_date, delegations,
                                          False)
     self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
-    
+   
+    # Valid arguments with 'delegations' set to None.
+    targets_metadata = \
+      repo_lib.generate_targets_metadata(targets_directory, target_files,
+                                         version, expiration_date, None,
+                                         False)
+    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
+
     # Verify that 'digest.filename' file is saved to 'targets_directory' if
     # the 'write_consistent_targets' argument is True.
     list_targets_directory = os.listdir(targets_directory)
@@ -529,11 +536,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                       targets_directory, target_files, version, expiration_date,
                       delegations, 3)  
 
+    # Test non-existent target file.
+    bad_target_file = \
+      {'non-existent.txt': {'file_permission': file_permissions}}
 
-    # Test invalid 'target_files' argument.
     self.assertRaises(tuf.Error, repo_lib.generate_targets_metadata,
-                      targets_directory, ['nonexistent_file.txt'], version,
-                      expiration_date)  
+                      targets_directory, bad_target_file, version,
+                      expiration_date)
 
 
 
