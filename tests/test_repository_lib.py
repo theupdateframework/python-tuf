@@ -647,8 +647,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     root_private_keypath = os.path.join(keystore_path, 'root_key')
     root_private_key = \
-      repo_lib.import_rsa_privatekey_from_file(root_private_keypath,
-                                                'password')
+      repo_lib.import_rsa_privatekey_from_file(root_private_keypath, 'password')
     
     # sign_metadata() expects the private key 'root_metadata' to be in
     # 'tuf.keydb'.  Remove any public keys that may be loaded before
@@ -669,6 +668,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                       3, 'root.json')
     self.assertRaises(tuf.FormatError, repo_lib.sign_metadata, root_metadata,
                       root_keyids, 3)
+
+    # Test 
 
 
 

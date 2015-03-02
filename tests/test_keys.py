@@ -235,8 +235,19 @@ class TestKeys(unittest.TestCase):
 
     # Passing incorrect number of arguments.
     self.assertRaises(TypeError, KEYS.verify_signature)
-  
-  
+ 
+    # Verify that the pure python 'ed25519' base case (triggered if 'pynacl' is
+    # unavailable) is executed in tuf.keys.verify_signature().
+    KEYS._ED25519_CRYPTO_LIBRARY = 'invalid'
+    KEYS._available_crypto_libraries = ['invalid']
+    verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
+    self.assertTrue(verified, "Incorrect signature.")
+   
+    # Reset to the expected available crypto libraries.
+    KEYS._ED25519_CRYPTO_LIBRARY = 'pynacl'
+    KEYS._available_crypto_libraries = ['ed25519', 'pycrypto', 'pynacl']
+ 
+
   
   def test_create_rsa_encrypted_pem(self):
     # Test valid arguments.

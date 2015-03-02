@@ -265,8 +265,8 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
     # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
     # each mirror.  'file1.txt' should be large enough to trigger a slow
-    # retrieval attack, otherwise the expected exception may not be consistently
-    # raised.
+    # retrieval attack, otherwise the expected exception may not be
+    # consistently raised.
     except tuf.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
