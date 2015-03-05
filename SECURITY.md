@@ -18,7 +18,7 @@ The following are some of the known attacks on software update systems, includin
 
 * **Extraneous dependencies attacks**. An attacker indicates to clients that in order to install the software they wanted, they also need to install unrelated software. This unrelated software can be from a trusted source but may have known vulnerabilities that are exploitable by the attacker. 
 
-* **Mix-and-match attacks**. An attacker presents clients with a view of a repository that includes files that never existed together on the repository at the same time. This can result in, for example, outdated versions of dependencies being installed. 
+* **Mix-and-match attacks**. An attacker presents clients with a view of a repository that includes files that did not exist together on the repository at the same time. This can result in, for example, outdated versions of dependencies being installed. 
 
 * **Wrong software installation**. An attacker provides a client with a trusted file that is not the one the client wanted. 
 
