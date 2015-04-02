@@ -585,8 +585,9 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     public = rsa_pubkey.exportKey(format='PEM')
  
   # PyCrypto raises 'ValueError' if the public or private keys cannot be
-  # exported.  See 'Crypto.PublicKey.RSA'.  
-  except (ValueError):
+  # exported.  See 'Crypto.PublicKey.RSA'.  'ValueError' should not be raised
+  # if the 'Crypto.PublicKey.RSA.importKey() call above passed.
+  except (ValueError): #pragma: no cover
     message = 'The public and private keys cannot be exported in PEM format.' 
     raise tuf.CryptoError(message)
   
