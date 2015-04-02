@@ -102,7 +102,7 @@ TIMESTAMP_EXPIRATION = 86400
 try:
   tuf.keys.check_crypto_libraries(['rsa', 'ed25519', 'general'])
 
-except tuf.UnsupportedLibraryError as e:
+except tuf.UnsupportedLibraryError as e: #pragma: no cover
   message = 'Warning: The repository and developer tools require additional' + \
     ' libraries and can be installed as follows:\n $ pip install tuf[tools]'  
   logger.warn(message) 
@@ -1795,7 +1795,7 @@ class Targets(Metadata):
     # times these checks are performed.
     for target in list_of_targets:
       filepath = os.path.abspath(target)
-     
+    
       if not filepath.startswith(self._targets_directory+os.sep):
         message = repr(filepath) + ' is not under the Repository\'s targets ' +\
           'directory: ' + repr(self._targets_directory)
@@ -1813,6 +1813,9 @@ class Targets(Metadata):
     for relative_target in relative_list_of_targets:
       if relative_target not in roleinfo['paths']:
         roleinfo['paths'].update({relative_target: {}})
+      
+      else:
+        continue
     
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
