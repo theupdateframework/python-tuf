@@ -162,6 +162,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
+  else:
+    raise tuf.Error('Invalid rolename') 
 
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
@@ -387,7 +389,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
     
     # Although valid, it may still need removal if it is a duplicate.  Check
     # the keyid, rather than the signature, to remove duplicate PSS signatures.
-    #  PSS may generate multiple different signatures for the same keyid.
+    # PSS may generate multiple different signatures for the same keyid.
     else:
       if keyid in signature_keyids:
         signable['signatures'].remove(signature)
