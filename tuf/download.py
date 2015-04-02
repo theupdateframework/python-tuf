@@ -505,20 +505,16 @@ def _check_content_length(reported_length, required_length, strict_length=True):
 
   logger.debug('The server reported a length of '+repr(reported_length)+' bytes.')
   comparison_result = None
+ 
+  if reported_length < required_length:
+    comparison_result = 'less than' 
   
-  try:
-    if reported_length < required_length:
-      comparison_result = 'less than' 
-    
-    elif reported_length > required_length:
-      comparison_result = 'greater than' 
-    
-    else:
-      comparison_result = 'equal to' 
+  elif reported_length > required_length:
+    comparison_result = 'greater than' 
   
-  except:
-    logger.exception('Could not check reported and required lengths.')
-  
+  else:
+    comparison_result = 'equal to' 
+
   if strict_length:
     message = 'The reported length is '+comparison_result+' the required '+\
       'length of '+repr(required_length)+' bytes.'

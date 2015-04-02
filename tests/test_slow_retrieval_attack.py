@@ -257,8 +257,10 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # by sending just several characters every few seconds.
 
     server_process = self._start_slow_server('mode_2')
-    
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
+    original_average_download_speed = tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED 
+    tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED = 1
+
     try:
       file1_target = self.repository_updater.target('file1.txt')
       self.repository_updater.download_target(file1_target, self.client_directory)
@@ -283,6 +285,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
     finally:
       self._stop_slow_server(server_process)
+      tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED = original_average_download_speed 
 
 
 if __name__ == '__main__':
