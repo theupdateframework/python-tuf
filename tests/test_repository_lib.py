@@ -649,13 +649,25 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     root_private_key = \
       repo_lib.import_rsa_privatekey_from_file(root_private_keypath, 'password')
     
+    # Sign with a valid, but not a threshold, key.
+    targets_private_keypath = os.path.join(keystore_path, 'targets_key')
+    targets_private_key = \
+      repo_lib.import_rsa_privatekey_from_file(targets_private_keypath,
+                                               'password')
+
     # sign_metadata() expects the private key 'root_metadata' to be in
     # 'tuf.keydb'.  Remove any public keys that may be loaded before
     # adding private key, otherwise a 'tuf.KeyAlreadyExists' exception is
     # raised.
     tuf.keydb.remove_key(root_private_key['keyid'])
     tuf.keydb.add_key(root_private_key)
-
+    tuf.keydb.remove_key(targets_private_key['keyid'])
+    tuf.keydb.add_key(targets_private_key)
+   
+    root_keyids.extend(tuf.roledb.get_role_keyids('targets'))
+    # Add the snapshot's public key (to test whether non-private keys are
+    # ignored by sign_metadata()).
+    root_keyids.extend(tuf.roledb.get_role_keyids('snapshot'))
     root_signable = repo_lib.sign_metadata(root_metadata, root_keyids,
                                            root_filename) 
     self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(root_signable))
@@ -669,7 +681,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(tuf.FormatError, repo_lib.sign_metadata, root_metadata,
                       root_keyids, 3)
 
-    # Test 
+    # Test for a key that does not contain the private portion. 
 
 
 

@@ -1795,11 +1795,14 @@ def sign_metadata(metadata_object, keyids, filename):
     for signature in signable['signatures']:
       if not keyid == signature['keyid']:
         signatures.append(signature)
+      
+      else:
+        continue
     signable['signatures'] = signatures
 
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:
-      if len(key['keyval']['private']):
+      if 'private' in key['keyval']:
         signed = signable['signed']
         signature = tuf.keys.create_signature(key, signed)
         signable['signatures'].append(signature)
