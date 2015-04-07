@@ -681,8 +681,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(tuf.FormatError, repo_lib.sign_metadata, root_metadata,
                       root_keyids, 3)
 
-    # Test for a key that does not contain the private portion. 
-
 
 
   def test_write_metadata_file(self):

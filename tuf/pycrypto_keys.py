@@ -304,13 +304,13 @@ def create_rsa_signature(private_key, data):
       pkcs1_pss_signer = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)
       signature = pkcs1_pss_signer.sign(sha256_object)
     
-    except ValueError:
+    except ValueError: #pragma: no cover
       raise tuf.CryptoError('The RSA key too small for given hash algorithm.')
     
     except TypeError:
       raise tuf.CryptoError('Missing required RSA private key.')
    
-    except IndexError:
+    except IndexError: # pragma: no cover
       message = 'An RSA signature cannot be generated: ' + str(e)
       raise tuf.CryptoError(message)
   
