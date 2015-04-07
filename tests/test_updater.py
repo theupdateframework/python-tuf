@@ -443,8 +443,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.metadata['current']['targets']\
       ['delegations']['keys'][existing_keyid]['keyid'] = '123'
     
-    print(repr(self.repository_updater.metadata['current']['targets']\
-      ['delegations']['keys'][existing_keyid]['keyid']))
     self.repository_updater._import_delegations('targets')
     #self.assertRaises(tuf.Error, self.repository_updater._import_delegations,
     #                  'targets')
@@ -1227,7 +1225,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_10__hard_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
     temp_file_object = tuf.util.TempFile()
-    temp_file_object.write('X')
+    temp_file_object.write(b'X')
     temp_file_object.seek(0)
     self.assertRaises(tuf.DownloadLengthMismatchError,
                      self.repository_updater._hard_check_file_length,
@@ -1240,7 +1238,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_10__soft_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
     temp_file_object = tuf.util.TempFile()
-    temp_file_object.write('XXX')
+    temp_file_object.write(b'XXX')
     temp_file_object.seek(0)
     self.assertRaises(tuf.DownloadLengthMismatchError,
                      self.repository_updater._soft_check_file_length,

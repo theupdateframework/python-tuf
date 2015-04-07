@@ -84,7 +84,6 @@ class TestPycrypto_keys(unittest.TestCase):
                       pycrypto.create_rsa_signature, '', data)
    
     # Check for invalid 'data'.
-    print(repr(private_rsa))
     pycrypto.create_rsa_signature(private_rsa, '')
     
     self.assertRaises(tuf.CryptoError,

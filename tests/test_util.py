@@ -241,7 +241,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     
     # Test decompression of invalid gzip file.
     temp_file = tuf.util.TempFile()
-    temp_file.write('bad zip')
+    temp_file.write(b'bad zip')
     contents = temp_file.read()
     self.assertRaises(tuf.DecompressionError,
                       temp_file.decompress_temp_file_object, 'gzip')
