@@ -844,6 +844,7 @@ def verify_signature(key_dict, signature, data):
       valid_signature = tuf.ed25519_keys.verify_signature(public,
                                                           method, sig, data,
                                                           use_pynacl=True)
+    
     # Fall back to the optimized pure python implementation of ed25519. 
     else: # pragma: no cover
       valid_signature = tuf.ed25519_keys.verify_signature(public,

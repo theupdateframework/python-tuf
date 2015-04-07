@@ -182,17 +182,15 @@ class TestKeydb(unittest.TestCase):
     keyid = KEYS[0]['keyid']
     rsakey2 = KEYS[1]
     keyid2 = KEYS[1]['keyid']
-    keydict = {keyid: rsakey, keyid2: rsakey2, keyid: rsakey}
+    
+    keydict = {keyid: rsakey, keyid2: rsakey2}
 
-    # Add a duplicate 'keyid' to log/trigger a 'tuf.KeyAlreadyExistsError'
-    # block (loading continues). 
     roledict = {'Root': {'keyids': [keyid], 'threshold': 1},
-                'Targets': {'keyids': [keyid2], 'threshold': 1}}
+                'Targets': {'keyids': [keyid2, keyid], 'threshold': 1}}
     version = 8
     consistent_snapshot = False
     expires = '1985-10-21T01:21:00Z'
     
-    tuf.keydb.add_key(rsakey)
     root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
@@ -231,7 +229,7 @@ class TestKeydb(unittest.TestCase):
     rsakey3['keytype'] = 'bad_keytype'
     keydict[keyid3] = rsakey3
     version = 8
-    expires = '1985-10-21T01:21:00Z' 
+    expires = '1985-10-21T01:21:00Z'
     
     root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,

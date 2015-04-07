@@ -304,13 +304,13 @@ def create_rsa_signature(private_key, data):
       pkcs1_pss_signer = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)
       signature = pkcs1_pss_signer.sign(sha256_object)
     
-    except ValueError:
+    except ValueError: #pragma: no cover
       raise tuf.CryptoError('The RSA key too small for given hash algorithm.')
     
     except TypeError:
       raise tuf.CryptoError('Missing required RSA private key.')
    
-    except IndexError:
+    except IndexError: # pragma: no cover
       message = 'An RSA signature cannot be generated: ' + str(e)
       raise tuf.CryptoError(message)
   
@@ -585,8 +585,9 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     public = rsa_pubkey.exportKey(format='PEM')
  
   # PyCrypto raises 'ValueError' if the public or private keys cannot be
-  # exported.  See 'Crypto.PublicKey.RSA'.  
-  except (ValueError):
+  # exported.  See 'Crypto.PublicKey.RSA'.  'ValueError' should not be raised
+  # if the 'Crypto.PublicKey.RSA.importKey() call above passed.
+  except (ValueError): #pragma: no cover
     message = 'The public and private keys cannot be exported in PEM format.' 
     raise tuf.CryptoError(message)
   

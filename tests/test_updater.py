@@ -443,8 +443,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.metadata['current']['targets']\
       ['delegations']['keys'][existing_keyid]['keyid'] = '123'
     
-    print(repr(self.repository_updater.metadata['current']['targets']\
-      ['delegations']['keys'][existing_keyid]['keyid']))
     self.repository_updater._import_delegations('targets')
     #self.assertRaises(tuf.Error, self.repository_updater._import_delegations,
     #                  'targets')
@@ -457,10 +455,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # one of the roles loaded from parent role's 'delegations'.
 
 
-
-
     
-
 
 
   def test_2__fileinfo_has_changed(self):
@@ -875,6 +870,39 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_6_refresh_tagets_metadata_chain(self):
+    # NOTE: This function does not refresh the role specified in the argument,
+    # only its parent roles.
+    
+    # Remove the metadata of the delegated roles.
+    os.remove(os.path.join(self.client_metadata_current, 'targets.json'))
+    os.remove(os.path.join(self.client_metadata_current, 'targets', 'role1.json'))
+  
+    # Test: normal case.
+    metadata_list = \
+      self.repository_updater.refresh_targets_metadata_chain('targets')
+
+    """
+    print(repr(metadata_list))
+    self.assertEqual(len(metadata_list), 0)
+    self.assertTrue('targets' in metadata_list)
+
+    # Verify that the expected role files were downloaded and installed.
+    os.path.exists(os.path.join(self.client_metadata_current, 'targets.json'))
+    
+    self.assertTrue('targets' in self.repository_updater.metadata['current'])
+    self.assertFalse('targets/role1' in self.repository_updater.metadata['current'])
+    """
+    # Test: Invalid arguments.
+    # refresh_targets_metadata_chain() expects a string rolename.
+    self.assertRaises(tuf.FormatError,
+                      self.repository_updater.refresh_targets_metadata_chain,
+                      8)
+    self.assertRaises(tuf.RepositoryError,
+                      self.repository_updater.refresh_targets_metadata_chain,
+                      'unknown_rolename')
+
+
 
   def test_6_target(self):
     # Setup
@@ -983,6 +1011,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       target_fileinfo = self.repository_updater.target(target_filepath)
       self.repository_updater.download_target(target_fileinfo,
                                               destination_directory)
+
       download_filepath = \
         os.path.join(destination_directory, target_filepath.lstrip('/'))
       self.assertTrue(os.path.exists(download_filepath))
@@ -994,6 +1023,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       if 'custom' in target_fileinfo['fileinfo']: 
         download_targetfileinfo['custom'] = target_fileinfo['fileinfo']['custom']
       self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
+     
+      # Test when consistent snapshots is set.
+      self.repository_updater.consistent_snapshots = True
+      self.repository_updater.download_target(target_fileinfo,
+                                              destination_directory)
 
     # Test: Invalid arguments.
     self.assertRaises(tuf.FormatError, self.repository_updater.download_target,
@@ -1183,9 +1217,48 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.assertEqual(self.repository_updater._get_target_hash(filepath), target_hash)
    
     # Test for improperly formatted argument.
-    self.assertRaises(tuf.FormatError, tuf.util.get_target_hash, 8)
+    #self.assertRaises(tuf.FormatError, self.repository_updater._get_target_hash, 8)
 
 
+
+
+  def test_10__hard_check_file_length(self):
+    # Test for exception if file object is not equal to trusted file length.
+    temp_file_object = tuf.util.TempFile()
+    temp_file_object.write(b'X')
+    temp_file_object.seek(0)
+    self.assertRaises(tuf.DownloadLengthMismatchError,
+                     self.repository_updater._hard_check_file_length,
+                     temp_file_object, 10) 
+
+
+
+
+
+  def test_10__soft_check_file_length(self):
+    # Test for exception if file object is not equal to trusted file length.
+    temp_file_object = tuf.util.TempFile()
+    temp_file_object.write(b'XXX')
+    temp_file_object.seek(0)
+    self.assertRaises(tuf.DownloadLengthMismatchError,
+                     self.repository_updater._soft_check_file_length,
+                     temp_file_object, 1)
+
+
+
+  def test_10__targets_of_role(self):
+    # Test for non-existent role. 
+    self.assertRaises(tuf.UnknownRoleError,
+                      self.repository_updater._targets_of_role,
+                      'non-existent-role')
+    
+    # Test for role that hasn't been loaded yet.
+    del self.repository_updater.metadata['current']['targets']
+    self.assertEqual(len(self.repository_updater._targets_of_role('targets')),
+                     0)
+
+
+    
 
 
 

@@ -114,7 +114,7 @@ class TestRepository(unittest.TestCase):
   def test_write_and_write_partial(self):
     # Test creation of a TUF repository.
     # 
-    # 1. Load public and private keys.
+    # 1. Import public and private keys.
     # 2. Add verification keys.
     # 3. Load signing keys.
     # 4. Add target files.
@@ -245,26 +245,37 @@ class TestRepository(unittest.TestCase):
     repository.status()
     
     # Verify status() does not raise 'tuf.InsufficientKeysError' if a top-level
-    # role does not contain a threshold of keys.
+    # role does and 'targets/role1' do not contain a threshold of keys.
     root_roleinfo = tuf.roledb.get_roleinfo('root')
-    old_threshold = root_roleinfo['threshold']  
+    old_threshold = root_roleinfo['threshold']
     root_roleinfo['threshold'] = 10
+    role1_roleinfo = tuf.roledb.get_roleinfo('targets/role1')
+    old_role1_threshold = role1_roleinfo['threshold']
+    role1_roleinfo['threshold'] = 10
     tuf.roledb.update_roleinfo('root', root_roleinfo)
+    tuf.roledb.update_roleinfo('targets/role1', role1_roleinfo)
     repository.status()
    
-    # Restore the original threshold value.
+    # Restore the original threshold values.
     root_roleinfo['threshold'] = old_threshold
     tuf.roledb.update_roleinfo('root', root_roleinfo)
-    
+    role1_roleinfo['threshold'] = old_role1_threshold
+    tuf.roledb.update_roleinfo('targets/role1', role1_roleinfo)
+
+
     # Verify status() does not raise 'tuf.UnsignedMetadataError' if any of the
-    # the top-level roles are improperly signed.
+    # the top-level roles and 'targets/role1' are improperly signed.
     repository.root.unload_signing_key(root_privkey)
     repository.root.load_signing_key(targets_privkey)
+    repository.targets('role1').unload_signing_key(role1_privkey)
+    repository.targets('role1').load_signing_key(targets_privkey)
     repository.status()
 
-    # Reset Root and verify Targets. 
+    # Reset Root and 'targets/role1', and verify Targets.
     repository.root.unload_signing_key(targets_privkey)
     repository.root.load_signing_key(root_privkey)
+    repository.targets('role1').unload_signing_key(targets_privkey)
+    repository.targets('role1').load_signing_key(role1_privkey)
     repository.targets.unload_signing_key(targets_privkey)
     repository.targets.load_signing_key(snapshot_privkey)
     repository.status()
@@ -987,8 +998,11 @@ class TestTargets(unittest.TestCase):
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
     target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
     target3_filepath = os.path.join(self.targets_directory, 'file3.txt')
-    
-    target_files = [target1_filepath, target2_filepath, target3_filepath]
+   
+    # Add a 'target1_filepath' duplicate for testing purposes
+    # ('target1_filepath' should not be added twice.)
+    target_files = \
+      [target1_filepath, target2_filepath, target3_filepath, target1_filepath]
     self.targets_object.add_targets(target_files)
     
     self.assertEqual(len(self.targets_object.target_files), 3)
@@ -997,17 +1011,19 @@ class TestTargets(unittest.TestCase):
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.targets_object.add_targets,
-                      3)
-
+    self.assertRaises(tuf.FormatError, self.targets_object.add_targets, 3)
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
-    self.assertRaises(tuf.Error, self.targets_object.add_target,
+    self.assertRaises(tuf.Error, self.targets_object.add_targets,
                       ['non-existent.txt'])
-    self.assertRaises(tuf.Error, self.targets_object.add_target,
+    self.assertRaises(tuf.Error, self.targets_object.add_targets,
                       [target1_filepath, target2_filepath, 'non-existent.txt'])
-    self.assertRaises(tuf.Error, self.targets_object.add_target,
-                      self.temporary_directory)
+    self.assertRaises(tuf.Error, self.targets_object.add_targets,
+                      [self.temporary_directory])
+    temp_directory = os.path.join(self.targets_directory, 'temp')
+    os.mkdir(temp_directory)
+    self.assertRaises(tuf.Error, self.targets_object.add_targets,
+                      [temp_directory])
 
 
 
@@ -1032,6 +1048,10 @@ class TestTargets(unittest.TestCase):
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
     self.assertRaises(tuf.Error, self.targets_object.remove_target,
                       '/non-existent.txt')
+    # Test for filepath that hasn't been added yet.
+    target5_filepath = os.path.join(self.targets_directory, 'file5.txt')
+    self.assertRaises(tuf.Error, self.targets_object.remove_target,
+                      target5_filepath)
 
 
 
@@ -1076,6 +1096,25 @@ class TestTargets(unittest.TestCase):
 
     self.assertEqual(self.targets_object.get_delegated_rolenames(),
                      ['targets/tuf'])
+    
+    # Try to delegate to a role that has already been delegated.
+    self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,
+                      public_keys, list_of_targets, threshold, backtrack=True,
+                      restricted_paths=restricted_paths,
+                      path_hash_prefixes=path_hash_prefixes)
+
+    # Test for targets that do not exist under the targets directory.
+    self.targets_object.revoke(rolename)
+    self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,
+                      public_keys, ['non-existent.txt'], threshold,
+                      backtrack=True, restricted_paths=restricted_paths,
+                      path_hash_prefixes=path_hash_prefixes)
+    
+    # Test for targets that do not exist under the targets directory.
+    self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,
+                      public_keys, list_of_targets, threshold,
+                      backtrack=True, restricted_paths=['non-existent.txt'],
+                      path_hash_prefixes=path_hash_prefixes)
 
 
     # Test improperly formatted arguments.
