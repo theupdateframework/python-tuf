@@ -1037,8 +1037,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         download_targetfileinfo['custom'] = target_fileinfo['fileinfo']['custom']
       self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
      
-      # Test when consistent snapshots is set.  TODO: creat a repository
-      # with consistent snapshots set.
+      # Test when consistent snapshots is set.  TODO: create a valid repository
+      # with consistent snapshots set.  The updater expects the existence
+      # of <hash>.filename files if root.json sets 'consistent_snapshot = True'.
       """ 
       self.repository_updater.consistent_snapshot = True
       self.repository_updater.download_target(target_fileinfo,
