@@ -422,7 +422,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
                       'targets/tuf')
 
     # Test missing 'name' attribute (optional, but required by 
-    # 'find_delegated_role()'.
+    # 'find_delegated_role()').
     # Delete the duplicate role, and the remaining role's 'name' attribute. 
     del role_list[2]
     del role_list[0]['name']

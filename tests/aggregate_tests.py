@@ -62,6 +62,8 @@ for test in tests_list:
 # modules.
 random.shuffle(tests_without_extension)
 
-
-suite = unittest.TestLoader().loadTestsFromNames(tests_without_extension)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+  suite = unittest.TestLoader().loadTestsFromNames(tests_without_extension)
+  all_tests_passed = unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+  if not all_tests_passed:
+    sys.exit(1)
