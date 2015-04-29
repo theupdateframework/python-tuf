@@ -551,6 +551,10 @@
 
    METAPATH is the the metadata file's path on the repository relative to the
    metadata base URL.
+   
+   The HASHES and LENGTH are the hashes and length of the file.  LENGTH is an
+   integer.  HASHES is a dictionary that specifies one or more hashes, including
+   the cryptographic hash function.  For example: { "sha256": HASH, ... }
 
 4.5. File formats: targets.json and delegated target roles
 
@@ -578,8 +582,8 @@
    It is allowed to have a TARGETS object with no TARGETPATH elements.  This
    can be used to indicate that no target files are available.
 
-   The HASH and LENGTH are the hash and length of the target file. If
-   defined, the elements and values of "custom" will be made available to the
+   If
+   If defined, the elements and values of "custom" will be made available to the
    client application.  The information in "custom" is opaque to the framework
    and can include version numbers, dependencies, requirements, and any other
    data that the application wants to include to describe the file at
