@@ -582,7 +582,6 @@
    It is allowed to have a TARGETS object with no TARGETPATH elements.  This
    can be used to indicate that no target files are available.
 
-   If
    If defined, the elements and values of "custom" will be made available to the
    client application.  The information in "custom" is opaque to the framework
    and can include version numbers, dependencies, requirements, and any other
@@ -596,13 +595,16 @@
            KEYID : KEY,
            ... },
        "roles" : [{
-           "name": ROLE,
+           "name": ROLENAME,
            "keyids" : [ KEYID, ... ] ,
            "threshold" : THRESHOLD,
            ("path_hash_prefixes" : [ HEX_DIGEST, ... ] |
             "paths" : [ PATHPATTERN, ... ])
        }, ... ]
      }
+     
+   ROLENAME is the full name of the delegated role.  For example,
+   "targets/projects"
 
    In order to discuss target paths, a role MUST specify only one of the
    "path_hash_prefixes" or "paths" attributes, each of which we discuss next.
@@ -616,10 +618,6 @@
    prefix as one of the prefixes in "path_hash_prefixes". This is useful to
    split a large number of targets into separate bins identified by consistent
    hashing.
-
-   TODO: Should the TUF spec restrict the repository to one particular
-   algorithm?  Should we allow the repository to specify in the role dictionary
-   the algorithm used for these generated hashed paths?
 
    The "paths" list describes paths that the role is trusted to provide.
    Clients MUST check that a target is in one of the trusted paths of all roles
