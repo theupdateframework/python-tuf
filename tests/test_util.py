@@ -219,26 +219,32 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     for arg in bogus_args:    
       self.assertRaises(tuf.Error,
                         self.temp_fileobj.decompress_temp_file_object, arg)
+    
+    # Test for a valid util.decompress_temp_file_object() call. 
     self.temp_fileobj.decompress_temp_file_object('gzip')
     self.assertEqual(self.temp_fileobj.read(), fileobj.read())
 
     # Checking the content of the TempFile's '_orig_file' instance.
     check_compressed_original = self.make_temp_file()
     with open(check_compressed_original, 'wb') as file_object:
-      file_object.write(self.temp_fileobj._orig_file.read())
+      self.temp_fileobj._orig_file.seek(0)
+      original_content = self.temp_fileobj._orig_file.read()
+      file_object.write(original_content)
+    
     data_in_orig_file = self._decompress_file(check_compressed_original)
     fileobj.seek(0)
     self.assertEqual(data_in_orig_file, fileobj.read())
-    
+
     # Try decompressing once more.
     self.assertRaises(tuf.Error, 
                       self.temp_fileobj.decompress_temp_file_object, 'gzip')
     
     # Test decompression of invalid gzip file.
     temp_file = tuf.util.TempFile()
-    fileobj.seek(0)
-    temp_file.write(fileobj.read())
-    temp_file.decompress_temp_file_object('gzip')
+    temp_file.write(b'bad zip')
+    contents = temp_file.read()
+    self.assertRaises(tuf.DecompressionError,
+                      temp_file.decompress_temp_file_object, 'gzip')
 
 
 
@@ -314,6 +320,12 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
   def test_B4_import_json(self):
     self.assertTrue('json' in sys.modules)
+    json_module = tuf.util.import_json()
+    self.assertTrue(json_module is not None)
+
+    # Test import_json() when 'util._json_moduel' is non-None.
+    tuf.util._json_module = 'junk_module'
+    self.assertEqual(tuf.util.import_json(), 'junk_module')
 
 
 
@@ -410,7 +422,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
                       'targets/tuf')
 
     # Test missing 'name' attribute (optional, but required by 
-    # 'find_delegated_role()'.
+    # 'find_delegated_role()').
     # Delete the duplicate role, and the remaining role's 'name' attribute. 
     del role_list[2]
     del role_list[0]['name']
@@ -424,7 +436,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     path_hash_prefixes = ['e3a3', '8fae', 'd543']
     list_of_targets = ['/file1.txt', '/README.txt', '/warehouse/file2.txt']
     
-    # Ensure the paths of 'list_of_targets' each have the epected path hash
+    # Ensure the paths of 'list_of_targets' each have the expected path hash
     # prefix listed in 'path_hash_prefixes'. 
     for filepath in list_of_targets: 
       self.assertTrue(tuf.util.get_target_hash(filepath)[0:4] in path_hash_prefixes)

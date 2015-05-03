@@ -116,7 +116,7 @@ class TestLog(unittest.TestCase):
       raise TypeError('Test exception output in the console.')
 
     except TypeError as e:
-      logger.error(e)
+      logger.exception(e)
 
 
   def test_remove_console_handler(self):

@@ -237,6 +237,12 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test__get_content_length(self):
+    content_length = \
+      tuf.download._get_content_length({'bad_connection_object': 8})
+    self.assertEqual(content_length, None)
+
+
 # Run unit test.
 if __name__ == '__main__':
   unittest.main()

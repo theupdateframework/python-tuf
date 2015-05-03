@@ -139,6 +139,8 @@ Installation
     pip - installing and managing Python packages (recommended)
 
     Installing from Python Package Index (https://pypi.python.org/pypi).
+    Note: Please use "pip install --no-use-wheel tuf" if your version
+    of pip <= 1.5.6
     $ pip install tuf
 
     Installing from local source archive.

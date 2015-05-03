@@ -18,13 +18,13 @@ The following are some of the known attacks on software update systems, includin
 
 * **Extraneous dependencies attacks**. An attacker indicates to clients that in order to install the software they wanted, they also need to install unrelated software. This unrelated software can be from a trusted source but may have known vulnerabilities that are exploitable by the attacker. 
 
-* **Mix-and-match attacks**. An attacker presents clients with a view of a repository that includes files that never existed together on the repository at the same time. This can result in, for example, outdated versions of dependencies being installed. 
+* **Mix-and-match attacks**. An attacker presents clients with a view of a repository that includes files that did not exist together on the repository at the same time. This can result in, for example, outdated versions of dependencies being installed. 
 
 * **Wrong software installation**. An attacker provides a client with a trusted file that is not the one the client wanted. 
 
 * **Malicious mirrors preventing updates**. An attacker in control of one repository mirror is able to prevent users from obtaining updates from other, good mirrors. 
 
-* **Vulnerability to key compromises**. At attacker who is able to compromise a single key or less than a given threshold of keys can compromise clients. This includes relying on a single online key (such as only being protected by SSL) or a single offline key (such as most software update systems use to sign files). 
+* **Vulnerability to key compromises**. An attacker who is able to compromise a single key or less than a given threshold of keys can compromise clients. This includes relying on a single online key (such as only being protected by SSL) or a single offline key (such as most software update systems use to sign files). 
 
 ##Design Concepts
 
@@ -55,7 +55,7 @@ File integrity is important both with respect to single files as well as collect
 
 ## Freshness
 
-As software updates often fix security bugs, it is important that software update systems be able to obtain the latest versions of files that are available. An attacker may want to trick a client into installing outdated versions of software or even just convince a client that no updates are available.
+As software updates often fix security bugs, it is important for software update systems to be able to obtain the latest versions of files that are available. An attacker may want to trick a client into installing outdated versions of software or even just convince a client that no updates are available.
 
 Ensuring freshness means to:
 

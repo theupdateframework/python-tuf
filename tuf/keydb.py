@@ -90,9 +90,9 @@ def create_keydb_from_root_metadata(root_metadata):
   # Clear the key database.
   _keydb_dict.clear()
 
-  # Iterate through the keys found in 'root_metadata' by converting
-  # them to 'RSAKEY_SCHEMA' if their type is 'rsa', and then
-  # adding them the database.  Duplicates are avoided.
+  # Iterate the keys found in 'root_metadata' by converting them to
+  # 'RSAKEY_SCHEMA' if their type is 'rsa', and then adding them to the
+  # database.
   for keyid, key_metadata in six.iteritems(root_metadata['keys']):
     if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
@@ -102,7 +102,9 @@ def create_keydb_from_root_metadata(root_metadata):
       try:
         add_key(key_dict, keyid)
       
-      except tuf.KeyAlreadyExistsError as e:
+      # Although keyid duplicates should *not* occur (unique dict keys), log a
+      # warning and continue.
+      except tuf.KeyAlreadyExistsError as e: # pragma: no cover
         logger.warning(e)
         continue
       

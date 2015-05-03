@@ -317,8 +317,12 @@ class TempFile(object):
     self._orig_file = self.temporary_file
 
     try:
-      self.temporary_file = gzip.GzipFile(fileobj=self.temporary_file,
-                                          mode='rb')
+      gzip_file_object = gzip.GzipFile(fileobj=self.temporary_file, mode='rb')
+      uncompressed_content = gzip_file_object.read()
+      self.temporary_file = tempfile.NamedTemporaryFile()
+      self.temporary_file.write(uncompressed_content)
+      self.flush() 
+    
     except Exception as exception:
       raise tuf.DecompressionError(exception)
 
@@ -661,12 +665,14 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
 
     if allowed_child_path_hash_prefixes is not None:
       consistent = paths_are_consistent_with_hash_prefixes
-      if len(actual_child_targets) > 0:
-        if not consistent(actual_child_targets,
-                          allowed_child_path_hash_prefixes):
-          message =  repr(rolename) + ' specifies a target that does not' + \
-            ' have a path hash prefix listed in its parent role.'
-          raise tuf.ForbiddenTargetError(message)
+      
+      # 'actual_child_tarets' (i.e., 'list_of_targets') should have lenth
+      # greater than zero due to the tuf.format check above.
+      if not consistent(actual_child_targets,
+                        allowed_child_path_hash_prefixes):
+        message =  repr(rolename) + ' specifies a target that does not' + \
+          ' have a path hash prefix listed in its parent role.'
+        raise tuf.ForbiddenTargetError(message)
     
     elif allowed_child_paths is not None: 
       # Check that each delegated target is either explicitly listed or a parent
@@ -710,7 +716,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
 def paths_are_consistent_with_hash_prefixes(paths, path_hash_prefixes):
   """
   <Purpose>
-    Determine whether a list of paths are consistent with theirs alleged
+    Determine whether a list of paths are consistent with their alleged
     path hash prefixes. By default, the SHA256 hash function is used.
 
   <Arguments>
@@ -743,20 +749,22 @@ def paths_are_consistent_with_hash_prefixes(paths, path_hash_prefixes):
   # proven otherwise.
   consistent = False
 
-  if len(paths) > 0 and len(path_hash_prefixes) > 0:
-    for path in paths:
-      path_hash = get_target_hash(path)
-      # Assume that every path is inconsistent until proven otherwise.
-      consistent = False
+  # The format checks above ensure the 'paths' and 'path_hash_prefix' lists
+  # have lengths greater than zero.
+  for path in paths:
+    path_hash = get_target_hash(path)
+    
+    # Assume that every path is inconsistent until proven otherwise.
+    consistent = False
 
-      for path_hash_prefix in path_hash_prefixes:
-        if path_hash.startswith(path_hash_prefix):
-          consistent = True
-          break
-
-      # This path has no matching path_hash_prefix. Stop looking further.
-      if not consistent:
+    for path_hash_prefix in path_hash_prefixes:
+      if path_hash.startswith(path_hash_prefix):
+        consistent = True
         break
+
+    # This path has no matching path_hash_prefix. Stop looking further.
+    if not consistent:
+      break
 
   return consistent
 
@@ -836,11 +844,16 @@ def import_json():
 
   if _json_module is not None:
     return _json_module
+  
   else:
     try:
       module = __import__('json')
-    except ImportError:
+   
+    # The 'json' module is available in Python > 2.6, and thus this exception
+    # should not occur in all supported Python installations (> 2.6) of TUF.
+    except ImportError: #pragma: no cover
       raise ImportError('Could not import the json module')
+    
     else:
       _json_module = module
       return module

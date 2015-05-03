@@ -1914,6 +1914,9 @@ class Updater(object):
         # extensions.
         if metadata_path.endswith('.json'): 
           roles_to_update.append(metadata_path[:-len('.json')])
+        
+        else:
+          continue
 
     # Remove the 'targets' role because it gets updated when the targets.json
     # file is updated in _update_metadata_if_changed('targets').
@@ -2440,6 +2443,9 @@ class Updater(object):
       for child_role_path_hash_prefix in child_role_path_hash_prefixes:
         if target_filepath_hash.startswith(child_role_path_hash_prefix):
           child_role_is_relevant = True
+        
+        else:
+          continue
 
     elif child_role_paths is not None:
       for child_role_path in child_role_paths:
@@ -2726,6 +2732,8 @@ class Updater(object):
           raise
     
     else:
-      logger.warning(repr(target_dirpath) + ' does not exist.')
+      message = repr(target_dirpath) + ' does not exist.'
+      logger.warning(message)
+      raise tuf.Error(message)
 
     target_file_object.move(destination)

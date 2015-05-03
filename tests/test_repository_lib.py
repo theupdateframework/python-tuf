@@ -493,7 +493,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                          version, expiration_date, delegations,
                                          False)
     self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
-    
+   
+    # Valid arguments with 'delegations' set to None.
+    targets_metadata = \
+      repo_lib.generate_targets_metadata(targets_directory, target_files,
+                                         version, expiration_date, None,
+                                         False)
+    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
+
     # Verify that 'digest.filename' file is saved to 'targets_directory' if
     # the 'write_consistent_targets' argument is True.
     list_targets_directory = os.listdir(targets_directory)
@@ -529,11 +536,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                       targets_directory, target_files, version, expiration_date,
                       delegations, 3)  
 
+    # Test non-existent target file.
+    bad_target_file = \
+      {'non-existent.txt': {'file_permission': file_permissions}}
 
-    # Test invalid 'target_files' argument.
     self.assertRaises(tuf.Error, repo_lib.generate_targets_metadata,
-                      targets_directory, ['nonexistent_file.txt'], version,
-                      expiration_date)  
+                      targets_directory, bad_target_file, version,
+                      expiration_date)
 
 
 
@@ -638,16 +647,27 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     root_private_keypath = os.path.join(keystore_path, 'root_key')
     root_private_key = \
-      repo_lib.import_rsa_privatekey_from_file(root_private_keypath,
-                                                'password')
+      repo_lib.import_rsa_privatekey_from_file(root_private_keypath, 'password')
     
+    # Sign with a valid, but not a threshold, key.
+    targets_private_keypath = os.path.join(keystore_path, 'targets_key')
+    targets_private_key = \
+      repo_lib.import_rsa_privatekey_from_file(targets_private_keypath,
+                                               'password')
+
     # sign_metadata() expects the private key 'root_metadata' to be in
     # 'tuf.keydb'.  Remove any public keys that may be loaded before
     # adding private key, otherwise a 'tuf.KeyAlreadyExists' exception is
     # raised.
     tuf.keydb.remove_key(root_private_key['keyid'])
     tuf.keydb.add_key(root_private_key)
-
+    tuf.keydb.remove_key(targets_private_key['keyid'])
+    tuf.keydb.add_key(targets_private_key)
+   
+    root_keyids.extend(tuf.roledb.get_role_keyids('targets'))
+    # Add the snapshot's public key (to test whether non-private keys are
+    # ignored by sign_metadata()).
+    root_keyids.extend(tuf.roledb.get_role_keyids('snapshot'))
     root_signable = repo_lib.sign_metadata(root_metadata, root_keyids,
                                            root_filename) 
     self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(root_signable))
@@ -746,6 +766,85 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test for non-existent directory.
     self.assertRaises(tuf.Error, repo_lib._check_directory, 'non-existent')
 
+
+
+  def test__generate_and_write_metadata(self):
+    # Test for invalid, or unsupported, rolename.
+    # Load the root metadata provided in 'tuf/tests/repository_data/'.
+    root_filepath = os.path.join('repository_data', 'repository',
+                                 'metadata', 'root.json')
+    root_signable = tuf.util.load_json_file(root_filepath)
+
+    # _generate_and_write_metadata() expects the top-level roles
+    # (specifically 'snapshot') and keys to be available in 'tuf.roledb'.
+    tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'])
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    targets_directory = os.path.join(temporary_directory, 'targets')
+    os.mkdir(targets_directory)
+    repository_directory = os.path.join(temporary_directory, 'repository') 
+    metadata_directory = os.path.join(repository_directory,
+                                      repo_lib.METADATA_STAGED_DIRECTORY_NAME)
+    targets_metadata = os.path.join('repository_data', 'repository', 'metadata',
+                                    'targets.json')
+    obsolete_metadata = os.path.join(metadata_directory, 'targets',
+                                            'obsolete_role.json')
+    tuf.util.ensure_parent_dir(obsolete_metadata)
+    shutil.copyfile(targets_metadata, obsolete_metadata)
+    
+    # Test for an invalid, or unsupported, rolename. 
+    roleinfo = {'keyids': ['123'], 'threshold': 1} 
+    tuf.roledb.add_role('bad_rolename', roleinfo) 
+    self.assertRaises(tuf.Error,
+                      tuf.repository_lib._generate_and_write_metadata,
+                      'bad_rolename', 'bad_rolename.json', False,
+                      targets_directory, metadata_directory)
+
+    # Verify that obsolete metadata (a metadata file exists on disk, but the
+    # role is unavailable in 'tuf.roledb').  First add the obsolete
+    # role to 'tuf.roledb' so that its metadata file can be written to disk.
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets')
+    targets_roleinfo['version'] = 1
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
+    expiration = expiration.isoformat() + 'Z' 
+    targets_roleinfo['expires'] = expiration 
+    tuf.roledb.add_role('targets/obsolete_role', targets_roleinfo)
+
+    snapshot_filepath = os.path.join('repository_data', 'repository',
+                                     'metadata', 'snapshot.json')
+    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    tuf.roledb.remove_role('targets/obsolete_role')
+    self.assertTrue(os.path.exists(os.path.join(metadata_directory,
+                                                'targets/obsolete_role.json')))
+    tuf.repository_lib._delete_obsolete_metadata(metadata_directory,
+                                                 snapshot_signable['signed'],
+                                                 False)
+    self.assertFalse(os.path.exists(metadata_directory + 'targets/obsolete_role.json'))
+
+
+
+  def test__remove_invalid_and_duplicate_signatures(self):
+    # Remove duplicate PSS signatures (same key generates valid, but different
+    # signatures).  First load a valid signable (in this case, the root role).
+    root_filepath = os.path.join('repository_data', 'repository',
+                                 'metadata', 'root.json')
+    root_signable = tuf.util.load_json_file(root_filepath)
+    key_filepath = os.path.join('repository_data', 'keystore', 'root_key')
+    root_rsa_key = repo_lib.import_rsa_privatekey_from_file(key_filepath,
+                                                            'password')
+
+    # Append the new valid, but duplicate PSS signature, and test that
+    # duplicates are removed.
+    new_pss_signature = tuf.keys.create_signature(root_rsa_key,
+                                                  root_signable['signed'])
+    root_signable['signatures'].append(new_pss_signature)
+    expected_number_of_signatures = len(root_signable['signatures'])
+    tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
+    self.assertEqual(len(root_signable), expected_number_of_signatures)
+
+    # Test that invalid keyid are ignored.
+    root_signable['signatures'][0]['keyid'] = '404'
+    tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
 
 
 # Run the test cases.

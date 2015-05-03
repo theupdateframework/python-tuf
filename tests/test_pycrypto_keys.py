@@ -66,6 +66,7 @@ class TestPycrypto_keys(unittest.TestCase):
 
   def test_create_rsa_signature(self):
     global private_rsa
+    global public_rsa
     data = 'The quick brown fox jumps over the lazy dog'.encode('utf-8')
     signature, method = pycrypto.create_rsa_signature(private_rsa, data)
 
@@ -83,8 +84,14 @@ class TestPycrypto_keys(unittest.TestCase):
                       pycrypto.create_rsa_signature, '', data)
    
     # Check for invalid 'data'.
+    pycrypto.create_rsa_signature(private_rsa, '')
+    
     self.assertRaises(tuf.CryptoError,
                       pycrypto.create_rsa_signature, private_rsa, 123)
+
+    # Check for missing private key.
+    self.assertRaises(tuf.CryptoError,
+                      pycrypto.create_rsa_signature, public_rsa, data)
 
 
   def test_verify_rsa_signature(self):
@@ -209,6 +216,7 @@ class TestPycrypto_keys(unittest.TestCase):
     self.assertRaises(tuf.FormatError,
                       pycrypto.create_rsa_public_and_private_from_encrypted_pem,
                       pem_rsakey, ['pw'])
+    
     self.assertRaises(tuf.CryptoError,
                       pycrypto.create_rsa_public_and_private_from_encrypted_pem,
                       'invalid_pem', passphrase)
