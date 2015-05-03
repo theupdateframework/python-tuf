@@ -254,7 +254,7 @@ software updater over TUF, which we expect to publish soon.
 ### PyPI + TUF + pip
 
 We have a demonstration of the Python package manager, [pip, over
-TUF](https://github.com/dachshund/pip/tree/tuf).
+TUF](https://github.com/theupdateframework/pip/wiki/pip-over-TUF).
 
 ## Limitations (at the time of writing)
 
