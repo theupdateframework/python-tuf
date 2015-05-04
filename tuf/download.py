@@ -70,7 +70,8 @@ def safe_download(url, required_length):
   
   <Arguments>
     url:
-      A URL string that represents the location of the file. 
+      A URL string that represents the location of the file.  The URI scheme
+      component must be one of 'tuf.conf.SUPPORTED_URI_SCHEMES'.
   
     required_length:
       An integer value representing the length of the file.  This is an exact
@@ -91,6 +92,25 @@ def safe_download(url, required_length):
   <Returns>
     A 'tuf.util.TempFile' file-like object that points to the contents of 'url'.
   """
+  
+  # Do all of the arguments have the appropriate format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.URL_SCHEMA.check_match(url)
+  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+
+  # Ensure 'url' specifies one of the URI schemes in
+  # 'tuf.conf.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
+  # supported.  If the URI scheme of 'url' is empty or "file", files on the
+  # local system can be accessed.  Unexpected files may be accessed by
+  # compromised metadata (unlikely to happen if targets.json metadata is signed
+  # with offline keys).  
+  parsed_url = six.moves.urllib.parse.urlparse(url)
+
+  if parsed_url.scheme not in tuf.conf.SUPPORTED_URI_SCHEMES:
+    message = \
+      repr(url) + ' specifies an unsupported URI scheme.  Supported ' + \
+      ' URI Schemes: ' + repr(tuf.conf.SUPPORTED_URI_SCHEMES)
+    raise tuf.FormatError(message)
   
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
 
@@ -114,7 +134,8 @@ def unsafe_download(url, required_length):
   
   <Arguments>
     url:
-      A URL string that represents the location of the file. 
+      A URL string that represents the location of the file.  The URI scheme
+      component must be one of 'tuf.conf.SUPPORTED_URI_SCHEMES'.
   
     required_length:
       An integer value representing the length of the file.  This is an upper
@@ -135,6 +156,25 @@ def unsafe_download(url, required_length):
   <Returns>
     A 'tuf.util.TempFile' file-like object that points to the contents of 'url'.
   """
+  
+  # Do all of the arguments have the appropriate format?
+  # Raise 'tuf.FormatError' if there is a mismatch.
+  tuf.formats.URL_SCHEMA.check_match(url)
+  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  
+  # Ensure 'url' specifies one of the URI schemes in
+  # 'tuf.conf.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
+  # supported.  If the URI scheme of 'url' is empty or "file", files on the
+  # local system can be accessed.  Unexpected files may be accessed by
+  # compromised metadata (unlikely to happen if targets.json metadata is signed
+  # with offline keys).  
+  parsed_url = six.moves.urllib.parse.urlparse(url)
+
+  if parsed_url.scheme not in tuf.conf.SUPPORTED_URI_SCHEMES:
+    message = \
+      repr(url) + ' specifies an unsupported URI scheme.  Supported ' + \
+      ' URI Schemes: ' + repr(tuf.conf.SUPPORTED_URI_SCHEMES) 
+    raise tuf.FormatError(message)
   
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
 
