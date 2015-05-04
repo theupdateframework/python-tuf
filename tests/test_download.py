@@ -160,11 +160,12 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
   def test_download_url_to_tempfileobj_and_urls(self):
 
     download_file = download.safe_download
+    unsafe_download_file = download.unsafe_download
 
     self.assertRaises(tuf.FormatError,
                       download_file, None, self.target_data_length)
 
-    self.assertRaises(ValueError,
+    self.assertRaises(tuf.FormatError,
                       download_file,
                       self.random_string(), self.target_data_length)
 
@@ -177,8 +178,15 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
                       download_file,
                       'http://localhost:' + str(self.PORT+1) + '/' + self.random_string(), 
                       self.target_data_length)
- 
 
+    # Specify an unsupported URI scheme.
+    url_with_unsupported_uri = self.url.replace('http', 'file')
+    self.assertRaises(tuf.FormatError, download_file, url_with_unsupported_uri,
+                      self.target_data_length)
+    self.assertRaises(tuf.FormatError, unsafe_download_file,
+                      url_with_unsupported_uri, self.target_data_length)
+
+ 
 
   def test__get_opener(self):
     # Test normal case.

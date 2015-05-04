@@ -101,3 +101,10 @@ GENERAL_CRYPTO_LIBRARY = 'pycrypto'
 # to generate the digests listed in metadata and prepended to the filenames of
 # consistent snapshots.
 REPOSITORY_HASH_ALGORITHMS = ['sha256']
+
+# Software updaters that integrate the framework are required to specify
+# the URL prefix for the mirrors that clients can contact to download updates.
+# The following URI schemes are those that download.py support.  By default,
+# the ['http', 'https'] URI schemes are supported, but may be modified by
+# integrators to schemes that they wish to support for their integration.
+SUPPORTED_URI_SCHEMES = ['http', 'https']
