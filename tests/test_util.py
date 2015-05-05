@@ -603,9 +603,6 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
                              setup='from tuf.util import digests_are_equal',
                              number=100000)
 
-    print('\nruntime1: ' + repr(runtime))
-    print('runtime2: ' + repr(runtime2))
-
     runtime3 = timeit.timeit('"ab8df" == "ab8df"', number=100000)
     
     runtime4 = timeit.timeit('"ab8df" == "1b8df"', number=1000000)
