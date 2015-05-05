@@ -931,7 +931,7 @@ def _decrypt(file_contents, password):
                                                Crypto.Hash.SHA256)
   generated_hmac = generated_hmac_object.hexdigest()
 
-  if generated_hmac != hmac:
+  if not tuf.util.digests_are_equal(generated_hmac, hmac):
     raise tuf.CryptoError('Decryption failed.')
 
   # The following decryption routine assumes 'ciphertext' was encrypted with

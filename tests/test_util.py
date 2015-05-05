@@ -32,6 +32,7 @@ import shutil
 import logging
 import tempfile
 import unittest
+import timeit
 
 import tuf
 import tuf.log
@@ -574,6 +575,48 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
    self.assertTrue(self.temp_fileobj.get_compressed_length() == 11)
    
    temp_file = tuf.util.TempFile()
+
+
+
+  def test_digests_are_equal(self):
+    digest = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+
+    # Normal case: test for digests that are equal.
+    self.assertTrue(tuf.util.digests_are_equal(digest, digest))
+
+    # Normal case: test for digests that are unequal.
+    self.assertFalse(tuf.util.digests_are_equal(digest, '0a8df1'))
+
+    # Test for invalid arguments.
+    self.assertRaises(tuf.FormatError, tuf.util.digests_are_equal, 7,
+                      digest)
+    self.assertRaises(tuf.FormatError, tuf.util.digests_are_equal, digest,
+                      7)
+   
+    # Test that digests_are_equal() takes the same amount of time to compare
+    # equal and unequal arguments.
+    runtime = timeit.timeit('digests_are_equal("ab8df", "ab8df")',
+                            setup='from tuf.util import digests_are_equal',
+                            number=100000)
+
+    runtime2 = timeit.timeit('digests_are_equal("ab8df", "1b8df")',
+                             setup='from tuf.util import digests_are_equal',
+                             number=100000)
+
+    print('\nruntime1: ' + repr(runtime))
+    print('runtime2: ' + repr(runtime2))
+
+    runtime3 = timeit.timeit('"ab8df" == "ab8df"', number=100000)
+    
+    runtime4 = timeit.timeit('"ab8df" == "1b8df"', number=1000000)
+
+    # The ratio for the 'digest_are_equal' runtimes should be at or near 1.
+    ratio_digests_are_equal = abs(runtime2 / runtime)
+    
+    # The ratio for the variable-time runtimes should be (>1) & at or near 10?
+    ratio_variable_compare = abs(runtime4 / runtime3)
+
+    self.assertTrue(ratio_digests_are_equal < ratio_variable_compare)
 
 
 
