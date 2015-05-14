@@ -1,5 +1,8 @@
                       The Update Framework Specification
 
+14 May 2015
+Version 0.9
+
 1. Introduction
 
 1.1. Scope
