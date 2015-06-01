@@ -8,7 +8,7 @@ python:
   - "2.7"
 
 before_script:
-  - pip install -U pip wheel tox coveralls 
+  - pip install -U pip wheel tox
 
 script: tox
 

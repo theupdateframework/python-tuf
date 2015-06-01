@@ -1,0 +1,4 @@
+pynacl
+pycrypto
+coverage
+coveralls
