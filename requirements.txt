@@ -1,6 +1,5 @@
 pynacl
 pycrypto
-ed25519
 six
 iso8601
 coverage
