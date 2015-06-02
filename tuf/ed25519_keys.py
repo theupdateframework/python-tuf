@@ -103,7 +103,7 @@ with warnings.catch_warnings():
 # The optimized pure Python implementation of ed25519 provided by TUF.  If
 # PyNaCl cannot be imported and an attempt to use is made in this module, a
 # 'tuf.UnsupportedLibraryError' exception is raised.  
-import ed25519
+import tuf._vendor.ed25519.ed25519
 
 import tuf
 
@@ -317,8 +317,9 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
     tuf.FormatError. Raised if the arguments are improperly formatted. 
 
   <Side Effects>
-    ed25519.checkvalid() called to do the actual verification.
-    nacl.signing.VerifyKey.verify() called if 'use_pynacl' is True.
+    tuf._vendor.ed25519.ed25519.checkvalid() called to do the actual
+    verification.  nacl.signing.VerifyKey.verify() called if 'use_pynacl' is
+    True.
 
   <Returns>
     Boolean.  True if the signature is valid, False otherwise.
@@ -363,7 +364,7 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
     # Verify 'ed25519' signature with the pure Python implementation. 
     else:
       try:
-        ed25519.checkvalid(signature, data, public)
+        tuf._vendor.ed25519.ed25519.checkvalid(signature, data, public)
         valid_signature = True
       
       # The pure Python implementation raises 'Exception' if 'signature' is
