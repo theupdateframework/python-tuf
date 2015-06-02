@@ -34,7 +34,8 @@ import unittest
 import tuf
 import tuf.log
 import tuf.hash
-import tuf._vendor.six as six
+
+import six
 
 logger = logging.getLogger('tuf.test_hash')
 

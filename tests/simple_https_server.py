@@ -38,7 +38,7 @@ import sys
 import random
 import ssl
 
-import tuf._vendor.six as six
+import six
 
 PORT = 0
 

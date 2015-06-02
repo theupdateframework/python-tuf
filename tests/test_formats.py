@@ -31,7 +31,8 @@ import datetime
 import tuf
 import tuf.formats
 import tuf.schema
-import tuf._vendor.six as six
+
+import six
 
 
 class TestFormats(unittest.TestCase):

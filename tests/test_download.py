@@ -41,7 +41,8 @@ import tuf.conf
 import tuf.download as download
 import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
-import tuf._vendor.six as six
+
+import six
 
 logger = logging.getLogger('tuf.test_download')
 

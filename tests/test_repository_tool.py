@@ -48,7 +48,8 @@ import tuf.roledb
 import tuf.keydb
 import tuf.hash
 import tuf.repository_tool as repo_tool
-import tuf._vendor.six as six
+
+import six
 
 logger = logging.getLogger('tuf.test_repository_tool')
 
