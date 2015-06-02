@@ -35,7 +35,7 @@ import logging
 # Import tuf Exceptions.
 import tuf
 import tuf.log
-import tuf._vendor.six as six
+import six
 
 
 # Import tuf logger to log warning messages.

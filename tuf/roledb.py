@@ -49,7 +49,7 @@ import copy
 import tuf
 import tuf.formats
 import tuf.log
-import tuf._vendor.six as six
+import six
 
 # See 'tuf.log' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.roledb')

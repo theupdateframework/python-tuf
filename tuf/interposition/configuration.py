@@ -28,7 +28,7 @@ import os.path
 import logging
 
 import tuf.log
-import tuf._vendor.six as six
+import six
 
 logger = logging.getLogger('tuf.interposition.configuration')
 

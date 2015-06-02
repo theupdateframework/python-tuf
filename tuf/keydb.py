@@ -41,7 +41,7 @@ import copy
 import tuf
 import tuf.formats
 import tuf.keys
-import tuf._vendor.six as six
+import six
 
 # List of strings representing the key types supported by TUF.
 _SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']

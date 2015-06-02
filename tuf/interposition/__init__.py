@@ -32,7 +32,7 @@ import socket
 import logging
 
 import tuf.log
-import tuf._vendor.six as six 
+import six 
 
 # We import the following directly into our namespace so that there is no name
 # conflict.

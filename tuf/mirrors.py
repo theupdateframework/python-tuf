@@ -30,7 +30,8 @@ import os
 import tuf
 import tuf.util
 import tuf.formats
-import tuf._vendor.six as six
+
+import six
 
 # The type of file to be downloaded from a repository.  The
 # 'get_list_of_mirrors' function supports these file types.

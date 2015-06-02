@@ -56,8 +56,9 @@ from tuf.repository_lib import import_rsa_privatekey_from_file
 from tuf.repository_lib import import_ed25519_privatekey_from_file
 from tuf.repository_lib import create_tuf_client_directory
 from tuf.repository_lib import disable_console_log_messages 
-import tuf._vendor.iso8601 as iso8601
-import tuf._vendor.six as six
+
+import iso8601
+import six
 
 
 # See 'log.py' to learn how logging is handled in TUF.
