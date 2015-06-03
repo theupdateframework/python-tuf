@@ -108,7 +108,7 @@ setup(
     'Topic :: Security',
     'Topic :: Software Development'
   ],
-  install_requires = [],
+  install_requires = ['iso8601', 'six'],
   packages = find_packages(exclude=['tests']),
   extras_require = extras,
   scripts = [

@@ -31,7 +31,8 @@ from __future__ import unicode_literals
 import logging
 
 import tuf.log
-import tuf._vendor.six as six
+
+import six
 
 logging = logging.getLogger('tuf.__init__')
 

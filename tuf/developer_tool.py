@@ -46,7 +46,7 @@ import tuf.sig
 import tuf.log
 import tuf.conf
 import tuf.repository_tool
-import tuf._vendor.six as six
+import six
 
 # These imports provide the interface for 'developer_tool.py', since the imports
 # are made there. 

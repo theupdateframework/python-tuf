@@ -31,7 +31,7 @@ import sys
 import time
 import random
 
-import tuf._vendor.six as six
+import six
 
 
 # Modify the HTTPServer class to pass the 'test_mode' argument to

@@ -150,7 +150,7 @@ import logging
 import tuf.client.updater
 import tuf.conf
 import tuf.log
-import tuf._vendor.six as six
+import six
 
 from tuf.interposition.configuration import Configuration
 

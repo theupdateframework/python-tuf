@@ -62,7 +62,8 @@ import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
-import tuf._vendor.six as six
+
+import six
 
 logger = logging.getLogger('tuf.test_slow_retrieval_attack')
 repo_tool.disable_console_log_messages()

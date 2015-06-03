@@ -1,11 +1,14 @@
 language: python
 
+sudo: false
+
+cache: pip
+
 python:
   - "2.7"
 
-install:
-  - pip install tox
-  - pip install coveralls
+before_script:
+  - pip install -U pip wheel tox
 
 script: tox
 

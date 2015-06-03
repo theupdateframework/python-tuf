@@ -79,7 +79,8 @@ import time
 
 import tuf
 import tuf.schema as SCHEMA
-import tuf._vendor.six as six
+
+import six
 
 # Note that in the schema definitions below, the 'SCHEMA.Object' types allow
 # additional keys which are not defined. Thus, any additions to them will be

@@ -50,8 +50,9 @@ import tuf.keys
 import tuf.sig
 import tuf.log
 import tuf.conf
-import tuf._vendor.iso8601 as iso8601
-import tuf._vendor.six as six
+
+import iso8601
+import six
 
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -59,7 +60,7 @@ logger = logging.getLogger('tuf.repository_lib')
 
 # Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the
 # log file.
-iso8601_logger = logging.getLogger('tuf._vendor.iso8601.iso8601')
+iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
 
 # Recommended RSA key sizes:

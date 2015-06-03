@@ -33,7 +33,7 @@ from __future__ import unicode_literals
 import sys
 import random
 
-import tuf._vendor.six as six
+import six
 
 PORT = 0
 

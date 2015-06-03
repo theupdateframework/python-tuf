@@ -37,7 +37,7 @@ import tuf
 import tuf.hash
 import tuf.conf
 import tuf.formats
-import tuf._vendor.six as six
+import six
 
 # The algorithm used by the repository to generate the digests of the
 # target filepaths, which are included in metadata files and may be prepended

@@ -39,7 +39,7 @@ import tuf.conf
 import tuf.hash
 import tuf.util
 import tuf.formats
-import tuf._vendor.six as six
+import six
 
 # 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
 # for Python 2.6 and 2.7.

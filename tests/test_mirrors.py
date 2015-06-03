@@ -31,7 +31,8 @@ import tuf
 import tuf.formats as formats
 import tuf.mirrors as mirrors
 import tuf.unittest_toolbox as unittest_toolbox
-import tuf._vendor.six as six
+
+import six
 
 
 class TestMirrors(unittest_toolbox.Modified_TestCase):

@@ -54,7 +54,7 @@ import re
 import sys
 
 import tuf
-import tuf._vendor.six as six
+import six
 
 class Schema:
   """
