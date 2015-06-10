@@ -77,10 +77,10 @@ import Crypto.Hash.SHA256
 # https://tools.ietf.org/html/rfc3447#section-8.1 
 import Crypto.Signature.PKCS1_PSS
 
-# Import PyCrypto's Key Derivation Function (KDF) module.  'keystore.py'
-# needs this module to derive a secret key according to the Password-Based
-# Key Derivation Function 2 specification.  The derived key is used as the
-# symmetric key to encrypt TUF key information.  PyCrypto's implementation:
+# Import PyCrypto's Key Derivation Function (KDF) module.  'keys.py' needs this
+# module to derive a secret key according to the Password-Based Key Derivation
+# Function 2 specification.  The derived key is used as the symmetric key to
+# encrypt TUF key information.  PyCrypto's implementation:
 # Crypto.Protocol.KDF.PBKDF2().  PKCS#5 v2.0 PBKDF2 specification:
 # http://tools.ietf.org/html/rfc2898#section-5.2 
 import Crypto.Protocol.KDF
@@ -506,7 +506,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     method is used, where a passphrase is specified.  PyCrypto uses PBKDF1+MD5
     to strengthen 'passphrase', and 3DES with CBC mode for encryption/decryption.    
     Alternatively, key data may be encrypted with AES-CTR-Mode and the passphrase
-    strengthened with PBKDF2+SHA256.  See 'keystore.py'.
+    strengthened with PBKDF2+SHA256.
 
     >>> public, private = generate_rsa_public_and_private(2048)
     >>> passphrase = 'secret'
