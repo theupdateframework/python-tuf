@@ -73,8 +73,7 @@ import tuf.roledb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
-
-import six
+import tuf._vendor.six as six
 
 logger = logging.getLogger('tuf.test_updater')
 repo_tool.disable_console_log_messages()
@@ -1038,14 +1037,31 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         download_targetfileinfo['custom'] = target_fileinfo['fileinfo']['custom']
       self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
      
-      # Test when consistent snapshots is set.  TODO: create a valid repository
-      # with consistent snapshots set.  The updater expects the existence
-      # of <hash>.filename files if root.json sets 'consistent_snapshot = True'.
-      """ 
-      self.repository_updater.consistent_snapshot = True
+      # Test when consistent snapshots is set.  First, create a valid
+      # repository with consistent snapshots set (root.json contains a
+      # "consistent_snapshots" entry that the updater uses to correctly fetch
+      # snapshots.  The updater expects the existence of <hash>.filename files
+      # if root.json sets 'consistent_snapshot = True'.
+      
+      # The repository must be rewritten with consistent snapshots set.
+      repository = repo_tool.load_repository(self.repository_directory)
+     
+      repository.root.load_signing_key(self.role_keys['snapshot']['private'])
+      repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+      repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+      repository.write(consistent_snapshot=True)
+      
+      # Move the staged metadata to the "live" metadata.
+      shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+      shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                      os.path.join(self.repository_directory, 'metadata'))
+      
+      self.repository_updater.refresh()
+      
+      # self.repository_updater.consistent_snapshot = True
+      
       self.repository_updater.download_target(target_fileinfo,
                                               destination_directory)
-      """
 
     # Test: Invalid arguments.
     self.assertRaises(tuf.FormatError, self.repository_updater.download_target,
