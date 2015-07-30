@@ -15,7 +15,7 @@
 
 <Purpose>
   The goal of this module is to support public-key and general-purpose
-  cryptography through the 'cryptography' (pyca/cryptography) library.
+  cryptography through the 'pyca/cryptography' library.
   
   The RSA-related functions provided:
   generate_rsa_public_and_private()
@@ -60,31 +60,24 @@ import os
 import binascii
 import json
 
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 # Needed to generate keys in PEM format.
 from cryptography.hazmat.primitives import serialization
 
-# Needed to generate PSS signatures.
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
-
+# Needed to catch pyca/cryptography exceptions.
 import cryptography.exceptions
 
-# Crypto.PublicKey (i.e., PyCrypto's public-key cryptography modules) supports 
-# algorithms like the Digital Signature Algorithm (DSA) and the ElGamal
-# encryption system.  'Crypto.PublicKey.RSA' is needed here to generate, sign,
-# and verify RSA keys.
-import Crypto.PublicKey.RSA
-
-# pyca/cryptography
+# cryptography.hazmat.primitives.asymmetric (i.e., pyca/cryptography's
+# public-key cryptography modules) supports algorithms like the Digital
+# Signature Algorithm (DSA) and the ElGamal encryption system.
+# 'rsa' is needed here to generate, sign,
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-# PyCrypto requires 'Crypto.Hash' hash objects to generate PKCS#1 PSS
-# signatures (i.e., Crypto.Signature.PKCS1_PSS).
-import Crypto.Hash.SHA256
+# pyca/Cryptography requires hash objects to generate PKCS#1 PSS
+# signatures (i.e., padding.PSS).
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hmac
 
 # RSA's probabilistic signature scheme with appendix (RSASSA-PSS).
 # PKCS#1 v1.5 is available for compatibility with existing applications, but
@@ -93,7 +86,8 @@ import Crypto.Hash.SHA256
 # deterministic (e.g., PKCS#1 v1.5).
 # http://en.wikipedia.org/wiki/RSA-PSS#Schemes 
 # https://tools.ietf.org/html/rfc3447#section-8.1 
-import Crypto.Signature.PKCS1_PSS
+# Needed to generate PSS signatures.
+from cryptography.hazmat.primitives.asymmetric import padding
 
 # Import PyCrypto's Key Derivation Function (KDF) module.  'keys.py' needs this
 # module to derive a secret key according to the Password-Based Key Derivation
@@ -101,18 +95,18 @@ import Crypto.Signature.PKCS1_PSS
 # encrypt TUF key information.  PyCrypto's implementation:
 # Crypto.Protocol.KDF.PBKDF2().  PKCS#5 v2.0 PBKDF2 specification:
 # http://tools.ietf.org/html/rfc2898#section-5.2 
-import Crypto.Protocol.KDF
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
 
 # PyCrypto's AES implementation.  AES is a symmetric key algorithm that
 # operates on fixed block sizes of 128-bits.
 # https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
-import Crypto.Cipher.AES
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms
 
 # 'Crypto.Random' is a cryptographically strong version of Python's standard
 # "random" module.  Random bits of data is needed for salts and 
 # initialization vectors suitable for the encryption algorithms used in 
 # 'pycrypto_keys.py'.
-import Crypto.Random
 
 # The mode of operation is presently set to CTR (CounTeR Mode) for symmetric
 # block encryption (AES-256, where the symmetric key is 256 bits).  PyCrypto
@@ -120,7 +114,7 @@ import Crypto.Random
 # when needed.  The initial random block, or initialization vector (IV), can
 # be set to begin the process of incrementing the 128-bit blocks and allowing
 # the AES algorithm to perform cipher block operations on them. 
-import Crypto.Util.Counter
+from cryptography.hazmat.primitives.ciphers import modes
 
 # Import the TUF package and TUF-defined exceptions in __init__.py.
 import tuf
@@ -426,7 +420,8 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 
       verifier.update(data)
       
-      # verify() raises an 'InvalidSignature' exception. 
+      # verify() raises 'cryptogrpahy.exceptions.InvalidSignature' if the
+      # signature is invalid. 
       try: 
         verifier.verify()
         valid_signature = True 
@@ -498,8 +493,9 @@ def encrypt_key(key_object, password):
     created.
 
   <Side Effects>
-    PyCrypto cryptographic operations called to perform the actual encryption of
-    'key_object'.  'password' used to derive a suitable encryption key.
+    pyca/Cryptography cryptographic operations called to perform the actual
+    encryption of 'key_object'.  'password' used to derive a suitable
+    encryption key.
 
   <Returns>
     An encrypted string in 'tuf.formats.ENCRYPTEDKEY_SCHEMA' format.
@@ -543,41 +539,28 @@ def encrypt_key(key_object, password):
 def _generate_derived_key(password, salt=None, iterations=None):
   """
   Generate a derived key by feeding 'password' to the Password-Based Key
-  Derivation Function (PBKDF2).  PyCrypto's PBKDF2 implementation is
-  currently used.  'salt' may be specified so that a previous derived key
-  may be regenerated.
+  Derivation Function (PBKDF2).  pyca/cryptography's PBKDF2 implementation is
+  used in this module.  'salt' may be specified so that a previous derived key
+  may be regenerated, otherwise '_SALT_SIZE' is used by default.  'iterations'
+  is the number of SHA-256 iterations to perform, otherwise
+  '_PBKDF2_ITERATIONS' is used by default.
   """
   
+  backend = default_backend()
+  
   if salt is None:
-    salt = Crypto.Random.new().read(_SALT_SIZE) 
+    salt = os.urandom(_SALT_SIZE) 
 
   if iterations is None:
     iterations = _PBKDF2_ITERATIONS
+  
+  # Derive an AES key with PBKDF2.  The  'length' is the desired key length of
+  # the derived key.
+  pbkdf_object = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt,
+       iterations=iterations, backend=backend)
 
-  derived_key = \
-    derive_pbkdf2_hmac(self, algorithm, length, salt, iterations, password)
-
-  """
-  def pseudorandom_function(password, salt):
-    """
-    PyCrypto's PBKDF2() expects a callable function for its optional
-    'prf' argument.  'prf' is set to HMAC-SHA1 (in PyCrypto's PBKDF2 function)
-    by default.  'pseudorandom_function' instead sets 'prf' to HMAC-SHA256. 
-    """
-    
-    return Crypto.Hash.HMAC.new(password, salt, Crypto.Hash.SHA256).digest()  
-
-
-  # 'dkLen' is the desired key length.  'count' is the number of password
-  # iterations performed by PBKDF2.  'prf' is a pseudorandom function, which
-  # must be callable. 
-  derived_key = Crypto.Protocol.KDF.PBKDF2(password, salt,
-                                           dkLen=_AES_KEY_SIZE,
-                                           count=iterations,
-                                           prf=pseudorandom_function)
-
-  """
-
+  derived_key = pbkdf_object.derive(password.encode('utf-8'))
+  
   return salt, iterations, derived_key
 
 
@@ -605,46 +588,49 @@ def _encrypt(key_data, derived_key_information):
 
   'tuf.CryptoError' raised if the encryption fails.
   """
-  
-  # Generate a random initialization vector (IV).  The 'iv' is treated as the
-  # initial counter block to a stateful counter block function (i.e.,
-  # PyCrypto's 'Crypto.Util.Counter').  The AES block cipher operates on 128-bit
-  # blocks, so generate a random 16-byte initialization block.  PyCrypto expects
-  # the initial value of the stateful counter to be an integer.
-  # Follow the provably secure encrypt-then-MAC approach, which affords the
-  # ability to verify ciphertext without needing to decrypt it and preventing
-  # an attacker from feeding the block cipher malicious data.  Modes like GCM
-  # provide both encryption and authentication, whereas CTR only provides
-  # encryption.  
-  iv = Crypto.Random.new().read(16)
-  stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
-                                      initial_value=int(binascii.hexlify(iv), 16)) 
-  symmetric_key = derived_key_information['derived_key'] 
-  aes_cipher = Crypto.Cipher.AES.new(symmetric_key,
-                                     Crypto.Cipher.AES.MODE_CTR,
-                                     counter=stateful_counter_128bit_blocks)
- 
-  # Use AES-256 to encrypt 'key_data'.  The key size determines how many cycle
-  # repetitions are performed by AES, 14 cycles for 256-bit keys.
-  try:
-    ciphertext = aes_cipher.encrypt(key_data)
- 
-  # PyCrypto does not document the exceptions that may be raised or under
-  # what circumstances.  PyCrypto example given is to call encrypt() without
-  # checking for exceptions.  Avoid propogating the exception trace and only
-  # raise 'tuf.CryptoError', along with the cause of encryption failure.
-  except (ValueError, IndexError, TypeError) as e:
-    message = 'The key data cannot be encrypted: ' + str(e)
-    raise tuf.CryptoError(message)
 
+  # Generate a random initialization vector (IV).  Follow the provably secure
+  # encrypt-then-MAC approach, which affords the ability to verify ciphertext
+  # without needing to decrypt it and preventing an attacker from feeding the
+  # block cipher malicious data.  Modes like GCM provide both encryption and
+  # authentication, whereas CTR only provides encryption.  
+  
+  # Generate a random 128-bit IV.
+  iv = os.urandom(16)
+  
+  # Construct an AES-CTR Cipher object with the given key and a randomly
+  # generated IV.
+  symmetric_key = derived_key_information['derived_key'] 
+  encryptor = Cipher(algorithms.AES(symmetric_key), modes.CTR(iv),
+                     backend=default_backend()).encryptor()
+  
+  # associated_data will be authenticated but not encrypted,
+  # it must also be passed in on decryption.
+  #encryptor.authenticate_additional_data(associated_data)
+
+  # Encrypt the plaintext and get the associated ciphertext.
+  # Do we need to check for any exceptions?
+  ciphertext = encryptor.update(key_data) + encryptor.finalize()
+
+    
+  # Cryptography will generate a 128-bit tag when finalizing encryption. You can
+  # shorten a tag by truncating it to the desired length but this is not
+  # recommended as it lowers the security margins of the authentication (NIST
+  # SP-800-38D recommends 96-bits or greater). Applications wishing to allow
+  # truncation must pass the min_tag_length parameter.
+  #return (iv, ciphertext, encryptor.tag)
+  
   # Generate the hmac of the ciphertext to ensure it has not been modified.
   # The decryption routine may verify a ciphertext without having to perform
   # a decryption operation.
-  salt = derived_key_information['salt'] 
-  hmac_object = Crypto.Hash.HMAC.new(symmetric_key, ciphertext,
-                                     Crypto.Hash.SHA256)
-  hmac = hmac_object.hexdigest()
-  
+  symmetric_key = derived_key_information['derived_key']
+  salt = derived_key_information['salt']
+  hmac_object = \
+    cryptography.hazmat.primitives.hmac.HMAC(symmetric_key, hashes.SHA256(), 
+                                             backend=default_backend())
+  hmac_object.update(ciphertext)
+  hmac_value = binascii.hexlify(hmac_object.finalize())
+
   # Store the number of PBKDF2 iterations used to derive the symmetric key so
   # that the decryption routine can regenerate the symmetric key successfully.
   # The pbkdf2 iterations are allowed to vary for the keys loaded and saved.
@@ -657,11 +643,11 @@ def _encrypt(key_data, derived_key_information):
   # of the fields it is separating.
   return binascii.hexlify(salt).decode() + _ENCRYPTION_DELIMITER + \
          str(iterations) + _ENCRYPTION_DELIMITER + \
-         hmac + _ENCRYPTION_DELIMITER + \
+         hmac_value + _ENCRYPTION_DELIMITER + \
          binascii.hexlify(iv).decode() + _ENCRYPTION_DELIMITER + \
          binascii.hexlify(ciphertext).decode()
-
-
+  
+  
 
 
 
@@ -671,7 +657,7 @@ def _decrypt(file_contents, password):
 
   'tuf.CryptoError' raised if the decryption fails.
   """
- 
+  
   # Extract the salt, iterations, hmac, initialization vector, and ciphertext
   # from 'file_contents'.  These five values are delimited by
   # '_ENCRYPTION_DELIMITER'.  This delimiter is arbitrarily chosen and should
@@ -699,33 +685,43 @@ def _decrypt(file_contents, password):
 
   # Verify the hmac to ensure the ciphertext is valid and has not been altered.
   # See the encryption routine for why we use the encrypt-then-MAC approach.
-  generated_hmac_object = Crypto.Hash.HMAC.new(derived_key, ciphertext,
-                                               Crypto.Hash.SHA256)
-  generated_hmac = generated_hmac_object.hexdigest()
+  # The decryption routine may verify a ciphertext without having to perform
+  # a decryption operation.
+  symmetric_key = derived_key_information['derived_key'] 
+  generated_hmac_object = hmac.HMAC(symmetric_key, hashes.SHA256(),
+                                    backend=default_backend())
+  generated_hmac_object.update(ciphertext)
+  generated_hmac = binascii.hexlify(generated_hmac_object.finalize())
+
 
   if not tuf.util.digests_are_equal(generated_hmac, hmac):
     raise tuf.CryptoError('Decryption failed.')
+    
+  # Construct a Cipher object, with the key and iv.
+  decryptor = Cipher(algorithms.AES(symmetric_key), modes.CTR(iv),
+                     backend=default_backend()).decryptor()
 
-  # The following decryption routine assumes 'ciphertext' was encrypted with
-  # AES-256.
-  stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
-                                      initial_value=int(binascii.hexlify(iv), 16)) 
-  aes_cipher = Crypto.Cipher.AES.new(derived_key,
-                                     Crypto.Cipher.AES.MODE_CTR,
-                                     counter=stateful_counter_128bit_blocks)
+  # We put associated_data back in or the tag will fail to verify when we
+  # finalize the decryptor.
+  #decryptor.authenticate_additional_data(associated_data)
+
+  # Decryption gets us the authenticated plaintext.
+  # If the tag does not match, an InvalidTag exception will be raised.
+  plaintext = None
+ 
   try:
-    key_plaintext = aes_cipher.decrypt(ciphertext)
+    plaintext = decryptor.update(ciphertext) + decryptor.finalize()
   
-  # PyCrypto does not document the exceptions that may be raised or under
-  # what circumstances.  PyCrypto example given is to call decrypt() without
-  # checking for exceptions.  Avoid propogating the exception trace and only
-  # raise 'tuf.CryptoError', along with the cause of decryption failure.
-  # Note: decryption failure, due to malicious ciphertext, should not occur here
-  # if the hmac check above passed.
+  # Avoid propogating the exception trace and only raise 'tuf.CryptoError',
+  # along with the cause of decryption failure.  Note: decryption failure, due
+  # to malicious ciphertext, should not occur here if the hmac check above
+  # passed.
+  # TODO: Substitute expeceted pyca exceptions.
   except (ValueError, IndexError, TypeError) as e: # pragma: no cover
     raise tuf.CryptoError('Decryption failed: ' + str(e))
 
-  return key_plaintext
+  return plaintext 
+
 
 
 

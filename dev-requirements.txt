@@ -17,6 +17,7 @@
 # http://nvie.com/posts/pin-your-packages/
 pycrypto==2.6.1
 pynacl==0.2.3
+cryptography==0.9
 
 # Testing requirements.  The rest of the testing dependencies available in
 # 'tox.ini'

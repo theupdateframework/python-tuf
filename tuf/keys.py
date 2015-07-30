@@ -63,10 +63,11 @@ import binascii
 # http://docs.python.org/2/library/warnings.html#temporarily-suppressing-warnings
 import warnings
 
-# 'pycrypto' is the only currently supported library for the creation of RSA
-# keys.
+# 'pycrypto' and 'cryptography' are the only currently supported libraries for
+# the creation of RSA keys.
 # https://github.com/dlitz/pycrypto
-_SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto']
+# https://github.com/pyca/cryptography
+_SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
 
 # The currently supported libraries for the creation of ed25519 keys and
 # signatures.  The 'pynacl' library should be installed and used over the slower
@@ -74,11 +75,11 @@ _SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto']
 # if 'pynacl' is unavailable.
 _SUPPORTED_ED25519_CRYPTO_LIBRARIES = ['ed25519', 'pynacl']
 
-# 'pycrypto' is the only currently supported library for general-purpose
-# cryptography, with plans to support pyca/cryptography.
+# 'pycrypto' and 'cryptography' are the only currently supported library for
+# general-purpose cryptography, with plans to support pyca/cryptography.
 # https://github.com/dlitz/pycrypto
 # https://github.com/pyca/cryptography
-_SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto']
+_SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
 
 # Track which libraries are imported and thus available.  An optimized version
 # of the ed25519 python implementation is provided by TUF and avaialable by
@@ -90,6 +91,15 @@ try:
   import Crypto
   import tuf.pycrypto_keys
   _available_crypto_libraries.append('pycrypto')
+except ImportError: # pragma: no cover
+  pass
+
+# Import the pyca/Cryptography library so that RSA and generate-purpose
+# cryptography primitives are supported. 
+try:
+  import cryptography
+  import tuf.pyca_crypto_keys
+  _available_crypto_libraries.append('pyca-cryptography')
 except ImportError: # pragma: no cover
   pass
 
@@ -222,6 +232,9 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
   if _RSA_CRYPTO_LIBRARY == 'pycrypto':
     public, private = tuf.pycrypto_keys.generate_rsa_public_and_private(bits)
+  
+  elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
+    public, private = tuf.pyca_crypto_keys.generate_rsa_public_and_private(bits)
   
   else: # pragma: no cover
     message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'
@@ -695,6 +708,9 @@ def create_signature(key_dict, data):
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
       sig, method = tuf.pycrypto_keys.create_rsa_signature(private, data.encode('utf-8'))
+   
+    elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
+      sig, method = tuf.pyca_crypto_keys.create_rsa_signature(private, data.encode('utf-8'))
     
     else: # pragma: no cover
       message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": ' +\
@@ -832,6 +848,17 @@ def verify_signature(key_dict, signature, data):
       else:
         valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
                                                                  public, data) 
+    elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography': 
+      if 'pyca-cryptography' not in _available_crypto_libraries: # pragma: no cover
+        message = 'Metadata downloaded from the remote repository specified' +\
+          ' an RSA signature.  Verifying RSA signatures requires pyca/cryptography.' +\
+          '\n$ pip install cryptography, or pip install tuf[tools].'
+        raise tuf.UnsupportedLibraryError(message)
+      
+      else:
+        valid_signature = tuf.pyca_crypto_keys.verify_rsa_signature(sig, method,
+                                                                 public, data) 
+    
     else: # pragma: no cover
       message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": ' +\
         repr(_RSA_CRYPTO_LIBRARY)+'.'
@@ -1147,6 +1174,10 @@ def encrypt_key(key_object, password):
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     encrypted_key = \
       tuf.pycrypto_keys.encrypt_key(key_object, password)
+  
+  elif _GENERAL_CRYPTO_LIBRARY == 'pyca-cryptography':
+    encrypted_key = \
+      tuf.pyca_crypto_keys.encrypt_key(key_object, password)
  
   # check_crypto_libraries() should have fully verified _GENERAL_CRYPTO_LIBRARY.
   else: # pragma: no cover
@@ -1245,6 +1276,10 @@ def decrypt_key(encrypted_key, passphrase):
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     key_object = \
       tuf.pycrypto_keys.decrypt_key(encrypted_key, passphrase)
+  
+  elif _GENERAL_CRYPTO_LIBRARY == 'pyca-cryptography':
+    key_object = \
+      tuf.pyca_crypto_keys.decrypt_key(encrypted_key, passphrase)
   
   # check_crypto_libraries() should have fully verified _GENERAL_CRYPTO_LIBRARY.
   else: # pragma: no cover
