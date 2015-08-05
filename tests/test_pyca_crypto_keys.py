@@ -121,7 +121,7 @@ class TestPyca_crypto_keys(unittest.TestCase):
                                                       public_rsa, data)
     
     # Check for invalid signature and data.
-    self.assertRaises(tuf.CryptoError, crypto_keys.verify_rsa_signature, signature,
+    self.assertRaises(AttributeError, crypto_keys.verify_rsa_signature, signature,
                                        method, public_rsa, 123)
     
     self.assertEqual(False, crypto_keys.verify_rsa_signature(signature, method,

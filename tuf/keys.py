@@ -971,6 +971,11 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
     public, private = \
       tuf.pycrypto_keys.create_rsa_public_and_private_from_encrypted_pem(encrypted_pem,
                                                                          password)
+  elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
+    public, private = \
+      tuf.pyca_crypto_keys.create_rsa_public_and_private_from_encrypted_pem(encrypted_pem,
+                                                                         password)
+  
   else: #pragma: no cover
     message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'
     raise tuf.UnsupportedLibraryError(message) 
@@ -1363,7 +1368,11 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   if _RSA_CRYPTO_LIBRARY == 'pycrypto':
     encrypted_pem = \
       tuf.pycrypto_keys.create_rsa_encrypted_pem(private_key, passphrase)
- 
+
+  elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
+    encrypted_pem = \
+      tuf.pycrypto_keys.create_rsa_encrypted_pem(private_key, passphrase)
+
   # check_crypto_libraries() should have fully verified _RSA_CRYPTO_LIBRARY.
   else: # pragma: no cover
     message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'
