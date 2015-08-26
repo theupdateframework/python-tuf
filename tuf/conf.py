@@ -84,6 +84,7 @@ PBKDF2_ITERATIONS = 100000
 # The user client may set the specific cryptography library used by The Update
 # Framework updater, or the software updater integrating TUF.  
 # Supported RSA cryptography libraries:  ['pycrypto', 'pyca-cryptography']
+
 RSA_CRYPTO_LIBRARY = 'pyca-cryptography'
 
 # Supported ed25519 cryptography libraries: ['pynacl', 'ed25519']
@@ -96,6 +97,7 @@ ED25519_CRYPTO_LIBRARY = 'ed25519'
 # RSA_CRYPTO_LIBRARY and ED25519_CRYPTO_LIBRARY are needed on the client side
 # of the software updater.
 # Supported RSA cryptography libraries:  ['pycrypto', 'pyca-cryptography']
+
 GENERAL_CRYPTO_LIBRARY = 'pyca-cryptography'
 
 # The algorithm(s) in REPOSITORY_HASH_ALGORITHMS are chosen by the repository
