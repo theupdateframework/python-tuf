@@ -971,15 +971,15 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
     public, private = \
       tuf.pycrypto_keys.create_rsa_public_and_private_from_encrypted_pem(encrypted_pem,
                                                                          password)
-    public = format_rsakey_from_pem(public)
-    private = format_rsakey_from_pem(private, check_private=True)
+    public = format_rsakey_from_pem(public)['keyval']['public']
+    private = extract_pem(private, private_pem=True)
 
   elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
     public, private = \
       tuf.pyca_crypto_keys.create_rsa_public_and_private_from_encrypted_pem(encrypted_pem,
                                                                          password)
-    public = format_rsakey_from_pem(public)
-    private = format_rsakey_from_pem(private, check_private=True)
+    public = format_rsakey_from_pem(public)['keyval']['public']
+    private = extract_pem(private, private_pem=True)
   
   else: #pragma: no cover
     message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'
@@ -1006,7 +1006,7 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
 
 
 
-def format_rsakey_from_pem(pem, check_private=False):
+def format_rsakey_from_pem(pem):
   """
   <Purpose> 
     Generate an RSA key object from 'pem'.  In addition, a keyid identifier for
@@ -1031,9 +1031,6 @@ def format_rsakey_from_pem(pem, check_private=False):
     pem:
       A string in PEM format.
 
-    check_private:
-      A boolean indicating whether the check for a private key in PEM format. 
-
   <Exceptions>
     tuf.FormatError, if 'pem' is improperly formatted.
 
@@ -1056,7 +1053,59 @@ def format_rsakey_from_pem(pem, check_private=False):
   # Ensure the PEM string has a valid header and footer.  Although a simple
   # validation of 'pem' is performed here, a fully valid PEM string is
   # needed to later successfully verify signatures.
-  if check_private:
+  public_pem = extract_pem(pem) 
+
+  # Begin building the RSA key dictionary. 
+  rsakey_dict = {}
+  keytype = 'rsa'
+  public = public_pem 
+
+  # Generate the keyid of the RSA key.  'key_value' corresponds to the
+  # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
+  # information is not included in the generation of the 'keyid' identifier.
+  key_value = {'public': public,
+               'private': ''}
+  keyid = _get_keyid(keytype, key_value)
+
+  rsakey_dict['keytype'] = keytype
+  rsakey_dict['keyid'] = keyid
+  rsakey_dict['keyval'] = key_value
+
+  return rsakey_dict
+
+
+
+
+
+def extract_pem(pem, private_pem=False):
+  """
+  <Purpose> 
+    Extract only the portion of the pem that include the header and footer, and
+    any leading and trailing characters removed.  The string returned as the
+    following form:
+    
+    '-----BEGIN PUBLIC KEY----- ... -----END PUBLIC KEY-----'
+
+    or
+
+    '-----BEGIN RSA PRIVATE KEY----- ... -----END RSA PRIVATE KEY-----'
+
+  <Arguments>
+    pem:
+      A string in PEM format.
+
+  <Exceptions>
+    tuf.FormatError, if 'pem' is improperly formatted.
+
+  <Side Effects>
+    Only the public and private portion of the PEM is extracted.  Leading or
+    trailing whitespace is not included in the PEM string returned.
+
+  <Returns>
+    A PEM string (excluding leading and trailing newline characters.  
+  """
+  
+  if private_pem:
     pem_header = '-----BEGIN RSA PRIVATE KEY-----'
     pem_footer = '-----END RSA PRIVATE KEY-----'
   
@@ -1088,27 +1137,10 @@ def format_rsakey_from_pem(pem, check_private=False):
     raise tuf.FormatError(message)
   
   # Extract only the public portion of 'pem'.  Leading or trailing whitespace
-  # is not included.
-  public_pem = pem[header_start:footer_start + len(pem_footer)] 
+  # is excluded.
+  pem = pem[header_start:footer_start + len(pem_footer)]
 
-
-  # Begin building the RSA key dictionary. 
-  rsakey_dict = {}
-  keytype = 'rsa'
-  public = public_pem 
-
-  # Generate the keyid of the RSA key.  'key_value' corresponds to the
-  # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
-  # information is not included in the generation of the 'keyid' identifier.
-  key_value = {'public': public,
-               'private': ''}
-  keyid = _get_keyid(keytype, key_value)
-
-  rsakey_dict['keytype'] = keytype
-  rsakey_dict['keyid'] = keyid
-  rsakey_dict['keyval'] = key_value
-
-  return rsakey_dict
+  return pem
 
 
 
