@@ -1046,7 +1046,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # The repository must be rewritten with consistent snapshots set.
       repository = repo_tool.load_repository(self.repository_directory)
      
-      repository.root.load_signing_key(self.role_keys['snapshot']['private'])
+      repository.root.load_signing_key(self.role_keys['root']['private'])
       repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
       repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
       repository.write(consistent_snapshot=True)
