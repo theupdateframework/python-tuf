@@ -640,7 +640,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   public_pem = public_key.public_bytes(encoding=serialization.Encoding.PEM,
                     format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
-  return public_pem, private_pem
+  return public_pem.decode(), private_pem.decode()
 
 
 
