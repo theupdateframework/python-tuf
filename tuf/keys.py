@@ -149,7 +149,7 @@ _DEFAULT_RSA_KEY_BITS = 3072
 
 # The crypto libraries to use in 'keys.py', set by default or by the user.
 # The following cryptography libraries are currently supported:
-# ['pycrypto', 'pynacl', 'ed25519']
+# ['pycrypto', 'pynacl', 'ed25519', 'pyca-cryptography']
 _RSA_CRYPTO_LIBRARY = tuf.conf.RSA_CRYPTO_LIBRARY
 _ED25519_CRYPTO_LIBRARY = tuf.conf.ED25519_CRYPTO_LIBRARY
 _GENERAL_CRYPTO_LIBRARY = tuf.conf.GENERAL_CRYPTO_LIBRARY
@@ -587,7 +587,7 @@ def check_crypto_libraries(required_libraries):
                                      _available_crypto_libraries:
     message = 'The '+repr(_RSA_CRYPTO_LIBRARY)+' crypto library specified'+ \
       ' in "tuf.conf.RSA_CRYPTO_LIBRARY" could not be imported.'
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.UnsupportedLibraryError(message+repr(_available_crypto_libraries))
   
   if 'ed25519' in required_libraries and _ED25519_CRYPTO_LIBRARY not in \
                                          _available_crypto_libraries:
@@ -971,10 +971,15 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
     public, private = \
       tuf.pycrypto_keys.create_rsa_public_and_private_from_encrypted_pem(encrypted_pem,
                                                                          password)
+    public = format_rsakey_from_pem(public)
+    private = format_rsakey_from_pem(private, check_private=True)
+
   elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
     public, private = \
       tuf.pyca_crypto_keys.create_rsa_public_and_private_from_encrypted_pem(encrypted_pem,
                                                                          password)
+    public = format_rsakey_from_pem(public)
+    private = format_rsakey_from_pem(private, check_private=True)
   
   else: #pragma: no cover
     message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'
@@ -1001,7 +1006,7 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
 
 
 
-def format_rsakey_from_pem(pem):
+def format_rsakey_from_pem(pem, check_private=False):
   """
   <Purpose> 
     Generate an RSA key object from 'pem'.  In addition, a keyid identifier for
@@ -1026,6 +1031,9 @@ def format_rsakey_from_pem(pem):
     pem:
       A string in PEM format.
 
+    check_private:
+      A boolean indicating whether the check for a private key in PEM format. 
+
   <Exceptions>
     tuf.FormatError, if 'pem' is improperly formatted.
 
@@ -1048,8 +1056,14 @@ def format_rsakey_from_pem(pem):
   # Ensure the PEM string has a valid header and footer.  Although a simple
   # validation of 'pem' is performed here, a fully valid PEM string is
   # needed to later successfully verify signatures.
-  pem_header = '-----BEGIN PUBLIC KEY-----'
-  pem_footer = '-----END PUBLIC KEY-----'
+  if check_private:
+    pem_header = '-----BEGIN RSA PRIVATE KEY-----'
+    pem_footer = '-----END RSA PRIVATE KEY-----'
+  
+  else:
+    pem_header = '-----BEGIN PUBLIC KEY-----'
+    pem_footer = '-----END PUBLIC KEY-----'
+  
   header_start = 0
   footer_start = 0
 
