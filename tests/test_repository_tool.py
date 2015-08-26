@@ -55,6 +55,7 @@ logger = logging.getLogger('tuf.test_repository_tool')
 
 repo_tool.disable_console_log_messages()
 
+
 class TestRepository(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
