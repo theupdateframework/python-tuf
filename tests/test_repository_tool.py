@@ -53,8 +53,7 @@ import six
 
 logger = logging.getLogger('tuf.test_repository_tool')
 
-#repo_tool.disable_console_log_messages()
-
+repo_tool.disable_console_log_messages()
 
 class TestRepository(unittest.TestCase):
   @classmethod
@@ -219,9 +218,6 @@ class TestRepository(unittest.TestCase):
     
     # (6) Write repository.
     repository.targets.compressions = ['gz']
-    print('start') 
-    repository.status()
-    print('end')
     repository.write()
 
     
