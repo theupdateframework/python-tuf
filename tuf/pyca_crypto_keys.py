@@ -76,6 +76,9 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.backends.interfaces import PEMSerializationBackend
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+import Crypto.PublicKey.RSA
+
+
 # pyca/Cryptography requires hash objects to generate PKCS#1 PSS
 # signatures (i.e., padding.PSS).
 from cryptography.hazmat.primitives import hashes
@@ -388,7 +391,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   <Side Effects>
     Crypto.Signature.PKCS1_PSS.verify() called to do the actual verification.
 
-  <Returns>
+   <Returns>
     Boolean.  True if the signature is valid, False otherwise.
   """
   
@@ -507,7 +510,8 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   # 'private_key' may still be a NULL string after the
   # 'tuf.formats.PEMRSA_SCHEMA' (i.e., 'private_key' has variable size and can
   # be an empty string.
-
+  # TODO: Use PyCrypto to generate the encrypted PEM string.
+  # generating encrypted PEMs currently unsupported by 'pyca/cryptography'. 
   if len(private_key):
     try:
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
@@ -636,7 +640,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   public_pem = public_key.public_bytes(encoding=serialization.Encoding.PEM,
                     format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
-  return public_pem.decode(), private_pem.decode()
+  return public_pem, private_pem
 
 
 
@@ -731,6 +735,89 @@ def encrypt_key(key_object, password):
   encrypted_key = _encrypt(json.dumps(key_object), derived_key_information)  
 
   return encrypted_key
+
+
+
+
+
+def decrypt_key(encrypted_key, password):
+  """
+  <Purpose>
+    Return a string containing 'encrypted_key' in non-encrypted form.
+    The decrypt_key() function can be applied to the encrypted string to restore
+    the original key object, a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).
+    This function calls the appropriate cryptography module (e.g.,
+    pycrypto_keys.py) to perform the decryption.
+    
+    Encrypted TUF keys use AES-256-CTR-Mode and passwords strengthened with
+    PBKDF2-HMAC-SHA256 (100K iterations be default, but may be overriden in
+    'tuf.conf.py' by the user).
+  
+    http://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+    http://en.wikipedia.org/wiki/CTR_mode#Counter_.28CTR.29
+    https://en.wikipedia.org/wiki/PBKDF2
+
+    >>> ed25519_key = {'keytype': 'ed25519', \
+                       'keyid': \
+          'd62247f817883f593cf6c66a5a55292488d457bcf638ae03207dbbba9dbe457d', \
+                       'keyval': {'public': \
+          '74addb5ad544a4306b34741bc1175a3613a8d7dc69ff64724243efdec0e301ad', \
+                                  'private': \
+          '1f26964cc8d4f7ee5f3c5da2fbb7ab35811169573ac367b860a537e47789f8c4'}}
+    >>> passphrase = 'secret'
+    >>> encrypted_key = encrypt_key(ed25519_key, passphrase)
+    >>> decrypted_key = decrypt_key(encrypted_key.encode('utf-8'), passphrase)
+    >>> tuf.formats.ED25519KEY_SCHEMA.matches(decrypted_key)
+    True
+    >>> decrypted_key == ed25519_key
+    True
+
+  <Arguments>
+    encrypted_key:
+      An encrypted TUF key (additional data is also included, such as salt,
+      number of password iterations used for the derived encryption key, etc)
+      of the form 'tuf.formats.ENCRYPTEDKEY_SCHEMA'.  'encrypted_key' should
+      have been generated with encrypted_key().
+
+    password:
+      The password, or passphrase, to encrypt the private part of the RSA
+      key.  'password' is not used directly as the encryption key, a stronger
+      encryption key is derived from it. 
+
+  <Exceptions>
+    tuf.FormatError, if the arguments are improperly formatted.
+
+    tuf.CryptoError, if a TUF key cannot be decrypted from 'encrypted_key'.
+    
+    tuf.Error, if a valid TUF key object is not found in 'encrypted_key'.
+
+  <Side Effects>
+    The 'pyca/cryptography' is library called to perform the actual decryption
+    of 'encrypted_key'.  The key derivation data stored in 'encrypted_key' is
+    used to re-derive the encryption/decryption key.
+
+  <Returns>
+    The decrypted key object in 'tuf.formats.ANYKEY_SCHEMA' format.
+  """
+  
+  # Do the arguments have the correct format?
+  # Ensure the arguments have the appropriate number of objects and object
+  # types, and that all dict keys are properly named.
+  # Raise 'tuf.FormatError' if the check fails.
+  tuf.formats.ENCRYPTEDKEY_SCHEMA.check_match(encrypted_key)
+  
+  # Does 'password' have the correct format?
+  tuf.formats.PASSWORD_SCHEMA.check_match(password)
+
+  # Decrypt 'encrypted_key', using 'password' (and additional key derivation
+  # data like salts and password iterations) to re-derive the decryption key. 
+  json_data = _decrypt(encrypted_key.decode('utf-8'), password)
+ 
+  # Raise 'tuf.Error' if 'json_data' cannot be deserialized to a valid
+  # 'tuf.formats.ANYKEY_SCHEMA' key object.
+  key_object = tuf.util.load_json_string(json_data.decode()) 
+  
+  return key_object
 
 
 
@@ -880,16 +967,16 @@ def _decrypt(file_contents, password):
   # Generate derived key from 'password'.  The salt and iterations are specified
   # so that the expected derived key is regenerated correctly.  Discard the old
   # "salt" and "iterations" values, as we only need the old derived key.
-  junk_old_salt, junk_old_iterations, derived_key = \
+  junk_old_salt, junk_old_iterations, symmetric_key = \
     _generate_derived_key(password, salt, iterations)
 
   # Verify the hmac to ensure the ciphertext is valid and has not been altered.
   # See the encryption routine for why we use the encrypt-then-MAC approach.
   # The decryption routine may verify a ciphertext without having to perform
   # a decryption operation.
-  symmetric_key = derived_key_information['derived_key'] 
-  generated_hmac_object = hmac.HMAC(symmetric_key, hashes.SHA256(),
-                                    backend=default_backend())
+  generated_hmac_object = \
+    cryptography.hazmat.primitives.hmac.HMAC(symmetric_key, hashes.SHA256(),
+                                             backend=default_backend())
   generated_hmac_object.update(ciphertext)
   generated_hmac = binascii.hexlify(generated_hmac_object.finalize())
 
