@@ -131,6 +131,19 @@ TUF specification document is also available:
 
 -  `The Update Framework Specification <https://github.com/theupdateframework/tuf/tree/develop/docs/tuf-spec.txt?raw=true>`_
 
+TUF Home Page
+-------------
+
+The home page for the TUF project can be found at:
+https://updateframework.com
+
+Mailing List
+------------
+Please visit `https://groups.google.com/forum/?fromgroups#!forum/theupdateframework <https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if you would like to contact the TUF team.  Questions, feedback, and suggestions are welcomed in this low-volume mailing list.
+
+A group feed is available at: https://groups.google.com/forum/feed/theupdateframework/msgs/atom.xml?num=50
+
+
 Installation
 ------------
 
@@ -175,8 +188,6 @@ Instructions for Contributors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Development: `https://github.com/theupdateframework/tuf <https://github.com/theupdateframework/tuf>`_
-
-Mailing list: `https://groups.google.com/forum/?fromgroups#%21forum/theupdateframework <https://groups.google.com/forum/?fromgroups#%21forum/theupdateframework>`_
 
 `Virtualenv <https://virtualenv.pypa.io/en/latest/virtualenv.html#introduction>`_
 is a tool to create isolated Python environments. It also includes
