@@ -465,6 +465,9 @@ def create_rsa_encrypted_pem(private_key, passphrase):
     mode of operation.  Password-Based Key Derivation Function 1 (PBKF1) + MD5
     is used to strengthen 'passphrase'.
 
+    TODO: Generate encrypted PEM (that matches PyCrypto's) once support is
+    added to pyca/cryptography.
+
     https://en.wikipedia.org/wiki/Triple_DES
     https://en.wikipedia.org/wiki/PBKDF2
 
@@ -488,7 +491,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
 
     tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
 
-    TypeError, 'private_key' is unset. 
+    TypeError, if 'private_key' is unset. 
 
   <Side Effects>
     PyCrypto's Crypto.PublicKey.RSA.exportKey() called to perform the actual
@@ -516,8 +519,8 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   # 'private_key' may still be a NULL string after the
   # 'tuf.formats.PEMRSA_SCHEMA' (i.e., 'private_key' has variable size and can
   # be an empty string.
-  # TODO: Use PyCrypto to generate the encrypted PEM string.
-  # generating encrypted PEMs currently unsupported by 'pyca/cryptography'. 
+  # TODO: Use PyCrypto to generate the encrypted PEM string.  Generating
+  # encrypted PEMs appears currently unsupported by 'pyca/cryptography'. 
   if len(private_key):
     try:
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
