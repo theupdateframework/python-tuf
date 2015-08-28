@@ -84,9 +84,10 @@ class TestPyca_crypto_keys(unittest.TestCase):
                       crypto_keys.create_rsa_signature, '', data)
    
     # Check for invalid 'data'.
-    #crypto_keys.create_rsa_signature(private_rsa, '')
+    self.assertRaises(TypeError,
+                      crypto_keys.create_rsa_signature, private_rsa, '')
     
-    self.assertRaises(tuf.CryptoError,
+    self.assertRaises(tuf.FormatError,
                       crypto_keys.create_rsa_signature, private_rsa, 123)
 
     # Check for missing private key.
@@ -120,9 +121,9 @@ class TestPyca_crypto_keys(unittest.TestCase):
                                                       'invalid_method',
                                                       public_rsa, data)
     
-    # Check for invalid signature and data.
-    self.assertRaises(AttributeError, crypto_keys.verify_rsa_signature, signature,
-                                       method, public_rsa, 123)
+    # Check for invalid 'signature' and 'data' arguments.
+    self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature,
+                      signature, method, public_rsa, 123)
     
     self.assertEqual(False, crypto_keys.verify_rsa_signature(signature, method,
                             public_rsa, b'mismatched data'))

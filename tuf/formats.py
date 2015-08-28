@@ -151,6 +151,9 @@ LOGLEVEL_SCHEMA = SCHEMA.Integer(lo=0, hi=50)
 NAME_SCHEMA = SCHEMA.AnyString()
 NAMES_SCHEMA = SCHEMA.ListOf(NAME_SCHEMA)
 
+# A string representing data.
+DATA_SCHEMA = SCHEMA.AnyString()
+
 # Supported hash algorithms.
 HASHALGORITHMS_SCHEMA = SCHEMA.ListOf(SCHEMA.OneOf(
   [SCHEMA.String('md5'), SCHEMA.String('sha1'),

@@ -207,7 +207,7 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
 
   <Side Effects>
     The RSA keys are generated from pyca/cryptography's
-    rsa.generate_private_key().
+    rsa.generate_private_key() function.
 
   <Returns>
     A (public, private) tuple containing the RSA keys in PEM format.
@@ -232,12 +232,14 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   private_pem = private_key.private_bytes(encoding=serialization.Encoding.PEM,
                         format=serialization.PrivateFormat.TraditionalOpenSSL,
                         encryption_algorithm=serialization.NoEncryption())
-  
+ 
+  # Need to generate the public pem from the private key before serialization
+  # to PEM.
   public_key = private_key.public_key()
   public_pem = public_key.public_bytes(encoding=serialization.Encoding.PEM,
                     format=serialization.PublicFormat.SubjectPublicKeyInfo)
  
-  return public_pem, private_pem
+  return public_pem.decode(), private_pem.decode()
 
 
 
@@ -249,8 +251,8 @@ def create_rsa_signature(private_key, data):
     Generate an RSASSA-PSS signature.  The signature, and the method (signature
     algorithm) used, is returned as a (signature, method) tuple.
 
-    The signing process will use 'private_key' and 'data' to generate the
-    signature.
+    The signing process will use 'private_key' to generate the signature of
+    'data'.
 
     RFC3447 - RSASSA-PSS 
     http://www.ietf.org/rfc/rfc3447.txt
@@ -270,7 +272,7 @@ def create_rsa_signature(private_key, data):
       The private RSA key, a string in PEM format.
 
     data:
-      Data object used by create_rsa_signature() to generate the signature.
+      Data (string) used by create_rsa_signature() to generate the signature.
 
   <Exceptions>
     tuf.FormatError, if 'private_key' is improperly formatted.
@@ -280,20 +282,23 @@ def create_rsa_signature(private_key, data):
     tuf.CryptoError, if the signature cannot be generated. 
 
   <Side Effects>
-    PyCrypto's 'Crypto.Signature.PKCS1_PSS' called to generate the signature.
+    pyca/cryptography's 'RSAPrivateKey.signer()' called to generate the
+    signature.
 
   <Returns>
     A (signature, method) tuple, where the signature is a string and the method
     is 'RSASSA-PSS'.
   """
   
-  # Does 'private_key' have the correct format?
-  # This check will ensure 'private_key' conforms to 'tuf.formats.PEMRSA_SCHEMA'.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Does the arguments have the correct format?
+  # This check will ensure the arguments conform to 'tuf.formats.PEMRSA_SCHEMA'.
+  # and 'tuf.formats.DATA_SCHEMA' 
+  # Raise 'tuf.FormatError' if the checks fail.
   tuf.formats.PEMRSA_SCHEMA.check_match(private_key)
-  
-  # Signing the 'data' object requires a private key.  The 'RSASSA-PSS' signing
-  # method is the only method currently supported.
+  tuf.formats.DATA_SCHEMA.check_match(data) 
+
+  # Signing 'data' requires a private key.  The 'RSASSA-PSS' signing method is
+  # the only method currently supported.
   method = 'RSASSA-PSS'
   signature = None
 
@@ -303,43 +308,37 @@ def create_rsa_signature(private_key, data):
   # compare identities with the 'is' keyword.  Up to this point 'private_key'
   # has variable size and can be an empty string.
   if len(private_key):
-   
-    # Calculate the SHA256 hash of 'data' and generate the hash's PKCS1-PSS
-    # signature. 
     
     # pyca/cryptography's expected exceptions when generating RSA key object:
     # "ValueError/IndexError/TypeError:  When the given key cannot be parsed
     # (possibly because the passphrase is wrong)."
-    # If the passphrase is incorrect, pyca/cryptography returns: "".
+    # A passphrase or password is not used to 'private_key', since it should
+    # not be encrypted.
     try:
-      # 'private_pem' must be converted to a pyca/cryptography private key object
-      # before a signature can be generated.
-      private_key_object = load_pem_private_key(private_key.encode('utf-8'), password=None,
+      # 'private_key' (in PEM format) must be converted to a
+      # 'pyca/cryptography' private key object before a signature can be
+      # generated.
+      private_key_object = load_pem_private_key(private_key.encode('utf-8'),
+                                                password=None,
                                                 backend=default_backend())
+   
+      # Calculate the SHA256 hash of 'data' and generate the hash's PKCS1-PSS
+      # signature. 
       rsa_signer = \
         private_key_object.signer(padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
                       salt_length=hashes.SHA256().digest_size), hashes.SHA256())
                           
-  
-    except (ValueError, IndexError, TypeError) as e:
-      message = 'Invalid private key or hash data: ' + str(e)
-      raise tuf.CryptoError(message)
-   
-    # Generate RSSA-PSS signature.  Raise 'tuf.CryptoError' for the expected
-    # pyca/cryptography exceptions.
-    try:
-      rsa_signer.update(data)
-      signature = rsa_signer.finalize()
-    
     except ValueError: #pragma: no cover
-      raise tuf.CryptoError('The RSA key too small for given hash algorithm.')
-    
-    except TypeError:
-      raise tuf.CryptoError('Missing required RSA private key.')
-   
-    except IndexError: # pragma: no cover
-      message = 'An RSA signature cannot be generated: ' + str(e)
+      raise tuf.CryptoError('The private key could not be deserialized.')
+ 
+    except cryptography.exceptions.UnsupportedAlgorithm: #pragma: no cover
+      message = 'The private key is encrypted with an unsupported algorithm.'
       raise tuf.CryptoError(message)
+   
+    # Generate an RSSA-PSS signature.  Raise 'tuf.CryptoError' for the expected
+    # 'pyca/cryptography' exceptions.
+    rsa_signer.update(data)
+    signature = rsa_signer.finalize()
   
   else:
     raise TypeError('The required private key is unset.')
@@ -367,7 +366,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 
   <Arguments>
     signature:
-      An RSASSA PSS signature as a string.  This is the signature returned
+      An RSASSA PSS signature, as a string.  This is the signature returned
       by create_rsa_signature(). 
 
     signature_method:
@@ -378,18 +377,19 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       The RSA public key, a string in PEM format.
 
     data:
-      Data object used by tuf.keys.create_signature() to generate
-      'signature'.  'data' is needed here to verify the signature.
+      Data used by tuf.keys.create_signature() to generate
+      'signature'.  'data' (a string) is needed here to verify 'signature'.
 
   <Exceptions>
     tuf.UnknownMethodError.  Raised if the signing method used by
     'signature' is not one supported by tuf.keys.create_signature().
     
     tuf.FormatError. Raised if 'signature', 'signature_method', or 'public_key'
-    is improperly formatted.
+    are improperly formatted.
 
   <Side Effects>
-    Crypto.Signature.PKCS1_PSS.verify() called to do the actual verification.
+    pyca/cryptography's RSAPublicKey.verifier() called to do the actual
+    verification.
 
    <Returns>
     Boolean.  True if the signature is valid, False otherwise.
@@ -405,21 +405,24 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 
   # Does 'signature' have the correct format?
   tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.check_match(signature)
+  
+  # What about 'data'?
+  tuf.formats.DATA_SCHEMA.check_match(data)
 
   # Verify whether the private key of 'public_key' produced 'signature'.
   # Before returning the 'valid_signature' Boolean result, ensure 'RSASSA-PSS'
   # was used as the signing method.
   valid_signature = False
 
-  # Verify the signature with PyCrypto if the signature method is valid,
-  # otherwise raise 'tuf.UnknownMethodError'.
+  # Verify the signature with pyca/cryptography if the signature method is
+  # valid, otherwise raise 'tuf.UnknownMethodError'.
   if signature_method == 'RSASSA-PSS':
     try:
       public_key_object = serialization.load_pem_public_key(public_key.encode('utf-8'),
                                                      backend=default_backend())
       
       # 'salt_length' is set to the digest size of the hashing algorithm (to
-      # match the default size used PyCrypto.
+      # match the default size used by 'tuf.pycrypto_keys.py').
       verifier = public_key_object.verifier(signature,
                                   padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
                                   salt_length=hashes.SHA256().digest_size), 
@@ -427,19 +430,22 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 
       verifier.update(data.encode('utf-8'))
       
-      # verify() raises 'cryptogrpahy.exceptions.InvalidSignature' if the
-      # signature is invalid. 
+      # verify() raises 'cryptograpahy.exceptions.InvalidSignature' if the
+      # signature is invalid.
       try: 
         verifier.verify()
         valid_signature = True 
       
       except cryptography.exceptions.InvalidSignature as e:
         pass
-    
-    except (ValueError, IndexError, TypeError) as e:
-      message = 'The RSA signature could not be verified.'
-      raise 
-      raise tuf.CryptoError(message)
+ 
+    # Raised by load_pem_public_key(). 
+    except ValueError:
+      raise tuf.CryptoError('The PEM could not be decoded successfully.')
+
+    # Raised by load_pem_public_key().
+    except cryptography.exceptions.UnsupportedAlgorithm:
+      raise tuf.Cryptography('The private key type is not supported.')
   
   else:
     raise tuf.UnknownMethodError(signature_method)
