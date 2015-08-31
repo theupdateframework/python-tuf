@@ -104,7 +104,7 @@ try:
 
 except tuf.UnsupportedLibraryError as e: #pragma: no cover
   message = 'Warning: The repository and developer tools require additional' + \
-    ' libraries, which that can be installed as follows:\n $ pip install tuf[tools]'  
+    ' libraries, which can be installed as follows:\n $ pip install tuf[tools]'  
   logger.warn(message) 
 
 
