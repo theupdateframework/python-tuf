@@ -83,23 +83,26 @@ PBKDF2_ITERATIONS = 100000
 
 # The user client may set the specific cryptography library used by The Update
 # Framework updater, or the software updater integrating TUF.  
-# Supported RSA cryptography libraries:  ['pycrypto']
-RSA_CRYPTO_LIBRARY = 'pycrypto'
+# Supported RSA cryptography libraries:  ['pycrypto', 'pyca-cryptography']
+
+RSA_CRYPTO_LIBRARY = 'pyca-cryptography'
 
 # Supported ed25519 cryptography libraries: ['pynacl', 'ed25519']
 ED25519_CRYPTO_LIBRARY = 'ed25519'
 
-# General purpose cryptography. Algorithms and functions that fall under general
-# purpose include AES, PBKDF2, cryptographically strong random number
+# General purpose cryptography. Algorithms and functions that fall under
+# general purpose include AES, PBKDF2, cryptographically strong random number
 # generators, and cryptographic hash functions.  The majority of the general
 # cryptography is needed by the repository and developer tools.
 # RSA_CRYPTO_LIBRARY and ED25519_CRYPTO_LIBRARY are needed on the client side
 # of the software updater.
-GENERAL_CRYPTO_LIBRARY = 'pycrypto'
+# Supported RSA cryptography libraries:  ['pycrypto', 'pyca-cryptography']
 
-# The algorithm(s) in REPOSITORY_HASH_ALGORITHMS are chosen by the repository tool
-# to generate the digests listed in metadata and prepended to the filenames of
-# consistent snapshots.
+GENERAL_CRYPTO_LIBRARY = 'pyca-cryptography'
+
+# The algorithm(s) in REPOSITORY_HASH_ALGORITHMS are chosen by the repository
+# tool to generate the digests listed in metadata and prepended to the
+# filenames of consistent snapshots.
 REPOSITORY_HASH_ALGORITHMS = ['sha256']
 
 # Software updaters that integrate the framework are required to specify

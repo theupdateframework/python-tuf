@@ -1,3 +1,4 @@
+cryptography
 pynacl
 pycrypto
 six

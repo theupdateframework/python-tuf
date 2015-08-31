@@ -85,8 +85,9 @@ class TestPycrypto_keys(unittest.TestCase):
    
     # Check for invalid 'data'.
     pycrypto.create_rsa_signature(private_rsa, '')
-    
-    self.assertRaises(tuf.CryptoError,
+   
+    # create_rsa_signature should reject non-string data.
+    self.assertRaises(tuf.FormatError,
                       pycrypto.create_rsa_signature, private_rsa, 123)
 
     # Check for missing private key.
@@ -120,9 +121,10 @@ class TestPycrypto_keys(unittest.TestCase):
                                                       public_rsa, data)
     
     # Check for invalid signature and data.
-    self.assertRaises(tuf.CryptoError, pycrypto.verify_rsa_signature, signature,
+    # Verify_rsa_signature should reject non-string data.
+    self.assertRaises(tuf.FormatError, pycrypto.verify_rsa_signature, signature,
                                        method, public_rsa, 123)
-    
+   
     self.assertEqual(False, pycrypto.verify_rsa_signature(signature, method,
                             public_rsa, b'mismatched data'))
 

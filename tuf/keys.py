@@ -63,10 +63,11 @@ import binascii
 # http://docs.python.org/2/library/warnings.html#temporarily-suppressing-warnings
 import warnings
 
-# 'pycrypto' is the only currently supported library for the creation of RSA
-# keys.
+# 'pycrypto' and 'cryptography' are the only currently supported libraries for
+# the creation of RSA keys.
 # https://github.com/dlitz/pycrypto
-_SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto']
+# https://github.com/pyca/cryptography
+_SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
 
 # The currently supported libraries for the creation of ed25519 keys and
 # signatures.  The 'pynacl' library should be installed and used over the slower
@@ -74,11 +75,11 @@ _SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto']
 # if 'pynacl' is unavailable.
 _SUPPORTED_ED25519_CRYPTO_LIBRARIES = ['ed25519', 'pynacl']
 
-# 'pycrypto' is the only currently supported library for general-purpose
-# cryptography, with plans to support pyca/cryptography.
+# 'pycrypto' and 'cryptography' are the only currently supported library for
+# general-purpose cryptography, with plans to support pyca/cryptography.
 # https://github.com/dlitz/pycrypto
 # https://github.com/pyca/cryptography
-_SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto']
+_SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
 
 # Track which libraries are imported and thus available.  An optimized version
 # of the ed25519 python implementation is provided by TUF and avaialable by
@@ -90,6 +91,15 @@ try:
   import Crypto
   import tuf.pycrypto_keys
   _available_crypto_libraries.append('pycrypto')
+except ImportError: # pragma: no cover
+  pass
+
+# Import the pyca/Cryptography library so that RSA and generate-purpose
+# cryptography primitives are supported. 
+try:
+  import cryptography
+  import tuf.pyca_crypto_keys
+  _available_crypto_libraries.append('pyca-cryptography')
 except ImportError: # pragma: no cover
   pass
 
@@ -139,7 +149,7 @@ _DEFAULT_RSA_KEY_BITS = 3072
 
 # The crypto libraries to use in 'keys.py', set by default or by the user.
 # The following cryptography libraries are currently supported:
-# ['pycrypto', 'pynacl', 'ed25519']
+# ['pycrypto', 'pynacl', 'ed25519', 'pyca-cryptography']
 _RSA_CRYPTO_LIBRARY = tuf.conf.RSA_CRYPTO_LIBRARY
 _ED25519_CRYPTO_LIBRARY = tuf.conf.ED25519_CRYPTO_LIBRARY
 _GENERAL_CRYPTO_LIBRARY = tuf.conf.GENERAL_CRYPTO_LIBRARY
@@ -222,6 +232,9 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
   if _RSA_CRYPTO_LIBRARY == 'pycrypto':
     public, private = tuf.pycrypto_keys.generate_rsa_public_and_private(bits)
+  
+  elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
+    public, private = tuf.pyca_crypto_keys.generate_rsa_public_and_private(bits)
   
   else: # pragma: no cover
     message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'
@@ -574,7 +587,7 @@ def check_crypto_libraries(required_libraries):
                                      _available_crypto_libraries:
     message = 'The '+repr(_RSA_CRYPTO_LIBRARY)+' crypto library specified'+ \
       ' in "tuf.conf.RSA_CRYPTO_LIBRARY" could not be imported.'
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.UnsupportedLibraryError(message+repr(_available_crypto_libraries))
   
   if 'ed25519' in required_libraries and _ED25519_CRYPTO_LIBRARY not in \
                                          _available_crypto_libraries:
@@ -695,6 +708,9 @@ def create_signature(key_dict, data):
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
       sig, method = tuf.pycrypto_keys.create_rsa_signature(private, data.encode('utf-8'))
+   
+    elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
+      sig, method = tuf.pyca_crypto_keys.create_rsa_signature(private, data.encode('utf-8'))
     
     else: # pragma: no cover
       message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": ' +\
@@ -832,6 +848,17 @@ def verify_signature(key_dict, signature, data):
       else:
         valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
                                                                  public, data) 
+    elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography': 
+      if 'pyca-cryptography' not in _available_crypto_libraries: # pragma: no cover
+        message = 'Metadata downloaded from the remote repository specified' +\
+          ' an RSA signature.  Verifying RSA signatures requires pyca/cryptography.' +\
+          '\n$ pip install cryptography, or pip install tuf[tools].'
+        raise tuf.UnsupportedLibraryError(message)
+      
+      else:
+        valid_signature = tuf.pyca_crypto_keys.verify_rsa_signature(sig, method,
+                                                                 public, data) 
+    
     else: # pragma: no cover
       message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": ' +\
         repr(_RSA_CRYPTO_LIBRARY)+'.'
@@ -944,6 +971,16 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
     public, private = \
       tuf.pycrypto_keys.create_rsa_public_and_private_from_encrypted_pem(encrypted_pem,
                                                                          password)
+    public = format_rsakey_from_pem(public)['keyval']['public']
+    private = extract_pem(private, private_pem=True)
+
+  elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
+    public, private = \
+      tuf.pyca_crypto_keys.create_rsa_public_and_private_from_encrypted_pem(encrypted_pem,
+                                                                         password)
+    public = format_rsakey_from_pem(public)['keyval']['public']
+    private = extract_pem(private, private_pem=True)
+  
   else: #pragma: no cover
     message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'
     raise tuf.UnsupportedLibraryError(message) 
@@ -1016,8 +1053,66 @@ def format_rsakey_from_pem(pem):
   # Ensure the PEM string has a valid header and footer.  Although a simple
   # validation of 'pem' is performed here, a fully valid PEM string is
   # needed to later successfully verify signatures.
-  pem_header = '-----BEGIN PUBLIC KEY-----'
-  pem_footer = '-----END PUBLIC KEY-----'
+  public_pem = extract_pem(pem) 
+
+  # Begin building the RSA key dictionary. 
+  rsakey_dict = {}
+  keytype = 'rsa'
+  public = public_pem 
+
+  # Generate the keyid of the RSA key.  'key_value' corresponds to the
+  # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
+  # information is not included in the generation of the 'keyid' identifier.
+  key_value = {'public': public,
+               'private': ''}
+  keyid = _get_keyid(keytype, key_value)
+
+  rsakey_dict['keytype'] = keytype
+  rsakey_dict['keyid'] = keyid
+  rsakey_dict['keyval'] = key_value
+
+  return rsakey_dict
+
+
+
+
+
+def extract_pem(pem, private_pem=False):
+  """
+  <Purpose> 
+    Extract only the portion of the pem that include the header and footer, and
+    any leading and trailing characters removed.  The string returned as the
+    following form:
+    
+    '-----BEGIN PUBLIC KEY----- ... -----END PUBLIC KEY-----'
+
+    or
+
+    '-----BEGIN RSA PRIVATE KEY----- ... -----END RSA PRIVATE KEY-----'
+
+  <Arguments>
+    pem:
+      A string in PEM format.
+
+  <Exceptions>
+    tuf.FormatError, if 'pem' is improperly formatted.
+
+  <Side Effects>
+    Only the public and private portion of the PEM is extracted.  Leading or
+    trailing whitespace is not included in the PEM string returned.
+
+  <Returns>
+    A PEM string (excluding leading and trailing newline characters.  
+  """
+  
+  if private_pem:
+    pem_header = '-----BEGIN RSA PRIVATE KEY-----'
+    pem_footer = '-----END RSA PRIVATE KEY-----'
+  
+  else:
+    pem_header = '-----BEGIN PUBLIC KEY-----'
+    pem_footer = '-----END PUBLIC KEY-----'
+  
   header_start = 0
   footer_start = 0
 
@@ -1042,27 +1137,10 @@ def format_rsakey_from_pem(pem):
     raise tuf.FormatError(message)
   
   # Extract only the public portion of 'pem'.  Leading or trailing whitespace
-  # is not included.
-  public_pem = pem[header_start:footer_start + len(pem_footer)] 
+  # is excluded.
+  pem = pem[header_start:footer_start + len(pem_footer)]
 
-
-  # Begin building the RSA key dictionary. 
-  rsakey_dict = {}
-  keytype = 'rsa'
-  public = public_pem 
-
-  # Generate the keyid of the RSA key.  'key_value' corresponds to the
-  # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
-  # information is not included in the generation of the 'keyid' identifier.
-  key_value = {'public': public,
-               'private': ''}
-  keyid = _get_keyid(keytype, key_value)
-
-  rsakey_dict['keytype'] = keytype
-  rsakey_dict['keyid'] = keyid
-  rsakey_dict['keyval'] = key_value
-
-  return rsakey_dict
+  return pem
 
 
 
@@ -1147,6 +1225,10 @@ def encrypt_key(key_object, password):
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     encrypted_key = \
       tuf.pycrypto_keys.encrypt_key(key_object, password)
+  
+  elif _GENERAL_CRYPTO_LIBRARY == 'pyca-cryptography':
+    encrypted_key = \
+      tuf.pyca_crypto_keys.encrypt_key(key_object, password)
  
   # check_crypto_libraries() should have fully verified _GENERAL_CRYPTO_LIBRARY.
   else: # pragma: no cover
@@ -1246,6 +1328,10 @@ def decrypt_key(encrypted_key, passphrase):
     key_object = \
       tuf.pycrypto_keys.decrypt_key(encrypted_key, passphrase)
   
+  elif _GENERAL_CRYPTO_LIBRARY == 'pyca-cryptography':
+    key_object = \
+      tuf.pyca_crypto_keys.decrypt_key(encrypted_key, passphrase)
+  
   # check_crypto_libraries() should have fully verified _GENERAL_CRYPTO_LIBRARY.
   else: # pragma: no cover
     message = 'Invalid crypto library: ' + repr(_GENERAL_CRYPTO_LIBRARY) + '.'
@@ -1328,7 +1414,11 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   if _RSA_CRYPTO_LIBRARY == 'pycrypto':
     encrypted_pem = \
       tuf.pycrypto_keys.create_rsa_encrypted_pem(private_key, passphrase)
- 
+
+  elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
+    encrypted_pem = \
+      tuf.pycrypto_keys.create_rsa_encrypted_pem(private_key, passphrase)
+
   # check_crypto_libraries() should have fully verified _RSA_CRYPTO_LIBRARY.
   else: # pragma: no cover
     message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'

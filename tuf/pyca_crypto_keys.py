@@ -2,20 +2,23 @@
 
 """
 <Program Name>
-  pycrypto_keys.py
+  pyca_crypto_keys.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
 <Started>
-  October 7, 2013.
+  June 3, 2015.
 
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
   The goal of this module is to support public-key and general-purpose
-  cryptography through the PyCrypto library.  The RSA-related functions provided:
+  cryptography through the pyca/cryptography (available as 'cryptography' on
+  pypi) library.
+  
+  The RSA-related functions provided include:
   generate_rsa_public_and_private()
   create_rsa_signature()
   verify_rsa_signature()
@@ -26,22 +29,23 @@
   encrypt_key()
   decrypt_key()
   
-  PyCrypto (i.e., the 'Crypto' package) performs the actual cryptographic
-  operations and the functions listed above can be viewed as the easy-to-use
-  public interface. 
+  pyca/cryptography performs the actual cryptographic operations and the
+  functions listed above can be viewed as the easy-to-use public interface. 
+
+  https://pypi.python.org/pypi/cryptography/
+  https://github.com/pyca/cryptography
   
-  https://github.com/dlitz/pycrypto 
   https://en.wikipedia.org/wiki/RSA_(algorithm)
   https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
-  https://en.wikipedia.org/wiki/3des
   https://en.wikipedia.org/wiki/PBKDF
-  
+  http://en.wikipedia.org/wiki/Scrypt
+
   TUF key files are encrypted with the AES-256-CTR-Mode symmetric key
   algorithm.  User passwords are strengthened with PBKDF2, currently set to
   100,000 passphrase iterations.  The previous evpy implementation used 1,000
   iterations.
   
-  PEM-encrypted RSA key files use the Triple Data Encryption Algorithm (3DES)
+  PEM-encrypted RSA key files use the Triple Data Encryption Algorithm (3DES),
   and Cipher-block chaining (CBC) for the mode of operation.  Password-Based Key
   Derivation Function 1 (PBKF1) + MD5.
  """
@@ -58,15 +62,34 @@ import os
 import binascii
 import json
 
-# Crypto.PublicKey (i.e., PyCrypto's public-key cryptography modules) supports 
-# algorithms like the Digital Signature Algorithm (DSA) and the ElGamal
-# encryption system.  'Crypto.PublicKey.RSA' is needed here to generate, sign,
-# and verify RSA keys.
+
+# Import pyca/cryptography routines needed to generate and load cryptographic
+# keys in PEM format.
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends.interfaces import PEMSerializationBackend
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from cryptography.hazmat.backends import default_backend
+
+# Import Exception classes need to catch pyca/cryptography exceptions.
+import cryptography.exceptions
+
+# 'cryptography.hazmat.primitives.asymmetric' (i.e., pyca/cryptography's
+# public-key cryptography modules) supports algorithms like the Digital
+# Signature Algorithm (DSA) and the ECDSA (Elliptic Curve Digital Signature
+# Algorithm) encryption system.  The 'rsa' module module is needed here to
+# generate RSA keys and PS
+from cryptography.hazmat.primitives.asymmetric import rsa
+
+# PyCrypo's RSA module is needed to generate and import encrypted RSA keys.
+# Generating and loading encrypted key files with pyca/cryptography will be
+# added once these routines are supported.
 import Crypto.PublicKey.RSA
 
-# PyCrypto requires 'Crypto.Hash' hash objects to generate PKCS#1 PSS
-# signatures (i.e., Crypto.Signature.PKCS1_PSS).
-import Crypto.Hash.SHA256
+# pyca/Cryptography requires hash objects to generate PKCS#1 PSS
+# signatures (i.e., padding.PSS).  The 'hmac' module is needed to verify
+# ciphertexts in encrypted key files.
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hmac
 
 # RSA's probabilistic signature scheme with appendix (RSASSA-PSS).
 # PKCS#1 v1.5 is available for compatibility with existing applications, but
@@ -75,60 +98,56 @@ import Crypto.Hash.SHA256
 # deterministic (e.g., PKCS#1 v1.5).
 # http://en.wikipedia.org/wiki/RSA-PSS#Schemes 
 # https://tools.ietf.org/html/rfc3447#section-8.1 
-import Crypto.Signature.PKCS1_PSS
+# The 'padding' module is needed for PSS signatures.
+from cryptography.hazmat.primitives.asymmetric import padding
 
-# Import PyCrypto's Key Derivation Function (KDF) module.  'keys.py' needs this
-# module to derive a secret key according to the Password-Based Key Derivation
-# Function 2 specification.  The derived key is used as the symmetric key to
-# encrypt TUF key information.  PyCrypto's implementation:
-# Crypto.Protocol.KDF.PBKDF2().  PKCS#5 v2.0 PBKDF2 specification:
-# http://tools.ietf.org/html/rfc2898#section-5.2 
-import Crypto.Protocol.KDF
+# Import pyca/cryptography's Key Derivation Function (KDF) module.
+# 'tuf.keys.py' needs this module to derive a secret key according to the
+# Password-Based Key Derivation Function 2 specification.  The derived key is
+# used as the symmetric key to encrypt TUF key information.
+# PKCS#5 v2.0 PBKDF2 specification: http://tools.ietf.org/html/rfc2898#section-5.2 
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
-# PyCrypto's AES implementation.  AES is a symmetric key algorithm that
-# operates on fixed block sizes of 128-bits.
+# pyca/cryptography's AES implementation available in 'ciphers.Cipher. and
+# 'ciphers.algorithms'.  AES is a symmetric key algorithm that operates on
+# fixed block sizes of 128-bits.
 # https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
-import Crypto.Cipher.AES
-
-# 'Crypto.Random' is a cryptographically strong version of Python's standard
-# "random" module.  Random bits of data is needed for salts and 
-# initialization vectors suitable for the encryption algorithms used in 
-# 'pycrypto_keys.py'.
-import Crypto.Random
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms
 
 # The mode of operation is presently set to CTR (CounTeR Mode) for symmetric
-# block encryption (AES-256, where the symmetric key is 256 bits).  PyCrypto
-# provides a callable stateful block counter that can update successive blocks
-# when needed.  The initial random block, or initialization vector (IV), can
-# be set to begin the process of incrementing the 128-bit blocks and allowing
-# the AES algorithm to perform cipher block operations on them. 
-import Crypto.Util.Counter
+# block encryption (AES-256, where the symmetric key is 256 bits).  'modes' can
+# be used as an argument to 'ciphers.Cipher' to specify the mode of operation
+# for the block cipher.  The initial random block, or initialization vector
+# (IV), can be set to begin the process of incrementing the 128-bit blocks and
+# allowing the AES algorithm to perform cipher block operations on them. 
+from cryptography.hazmat.primitives.ciphers import modes
 
 # Import the TUF package and TUF-defined exceptions in __init__.py.
 import tuf
 
-# Digest objects needed to generate hashes.
+# Digest objects are needed to generate hashes.
 import tuf.hash
 
 # Perform object format-checking.
 import tuf.formats
 
-# Extract the cryptography library settings.
+# Extract/reference the cryptography library settings.  For example
+# 'tuf.conf.RSA_CRYPTO_LIBRARY'
 import tuf.conf
 
-# Import key files containing json data.
+# Import routine to process key files containing JSON data.
 import tuf.util
 
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
-# According to the document above, revised May 6, 2003, RSA keys of
-# size 3072 provide security through 2031 and beyond.
+# According to the document above, revised May 6, 2003, RSA keys of size 3072
+# provide security through 2031 and beyond.
 _DEFAULT_RSA_KEY_BITS = 3072 
 
-# The delimiter symbol used to separate the different sections
-# of encrypted files (i.e., salt, iterations, hmac, IV, ciphertext).
-# This delimiter is arbitrarily chosen and should not occur in
-# the hexadecimal representations of the fields it is separating.
+# The delimiter symbol used to separate the different sections of encrypted
+# files (i.e., salt, iterations, hmac, IV, ciphertext).  This delimiter is
+# arbitrarily chosen and should not occur in the hexadecimal representations of
+# the fields it is separating.
 _ENCRYPTION_DELIMITER = '@@@@'
 
 # AES key size.  Default key size = 32 bytes = AES-256.
@@ -152,12 +171,14 @@ _SALT_SIZE = 16
 _PBKDF2_ITERATIONS = tuf.conf.PBKDF2_ITERATIONS
 
 
+
 def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   """
   <Purpose> 
     Generate public and private RSA keys with modulus length 'bits'.
     The public and private keys returned conform to 'tuf.formats.PEMRSA_SCHEMA'
     and have the form:
+
     '-----BEGIN RSA PUBLIC KEY----- ...'
 
     or
@@ -166,10 +187,9 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
     
     The public and private keys are returned as strings in PEM format.
 
-    Although PyCrypto sets a 1024-bit minimum key size,
-    generate_rsa_public_and_private() enforces a minimum key size of 2048 bits.
-    If 'bits' is unspecified, a 3072-bit RSA key is generated, which is the key
-    size recommended by TUF.
+    'generate_rsa_public_and_private()' enforces a minimum key size of 2048
+    bits.  If 'bits' is unspecified, a 3072-bit RSA key is generated, which is
+    the key size recommended by TUF.
     
     >>> public, private = generate_rsa_public_and_private(2048)
     >>> tuf.formats.PEMRSA_SCHEMA.matches(public)
@@ -180,17 +200,14 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   <Arguments>
     bits:
       The key size, or key length, of the RSA key.  'bits' must be 2048, or
-      greater, and a multiple of 256.
+      greater.  'bits' defaults to 3072 if not specified. 
 
   <Exceptions>
     tuf.FormatError, if 'bits' does not contain the correct format.
-    
-    ValueError, if an exception occurs in the RSA key generation routine.
-    'bits' must be a multiple of 256.  The 'ValueError' exception is raised by
-    the PyCrypto key generation function.
 
   <Side Effects>
-    The RSA keys are generated by PyCrypto's Crypto.PublicKey.RSA.generate().
+    The RSA keys are generated from pyca/cryptography's
+    rsa.generate_private_key() function.
 
   <Returns>
     A (public, private) tuple containing the RSA keys in PEM format.
@@ -202,20 +219,27 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.RSAKEYBITS_SCHEMA.check_match(bits)
   
-  # Generate the public and private RSA keys.  The PyCrypto module performs
-  # the actual key generation.  Raise 'ValueError' if 'bits' is less than 1024 
-  # or not a multiple of 256, although a 2048-bit minimum is enforced by
+  # Generate the public and private RSA keys.  The pyca/cryptography 'rsa'
+  # module performs the actual key generation.  The 'bits' argument is used,
+  # and a 2048-bit minimum is enforced by
   # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
-  rsa_key_object = Crypto.PublicKey.RSA.generate(bits)
-  
+  private_key = rsa.generate_private_key(public_exponent=65537, key_size=bits,
+                                         backend=default_backend())
+
   # Extract the public & private halves of the RSA key and generate their
   # PEM-formatted representations.  Return the key pair as a (public, private)
   # tuple, where each RSA is a string in PEM format.
-  private = rsa_key_object.exportKey(format='PEM')
-  rsa_pubkey = rsa_key_object.publickey()
-  public = rsa_pubkey.exportKey(format='PEM')
-
-  return public.decode(), private.decode()
+  private_pem = private_key.private_bytes(encoding=serialization.Encoding.PEM,
+                        format=serialization.PrivateFormat.TraditionalOpenSSL,
+                        encryption_algorithm=serialization.NoEncryption())
+ 
+  # Need to generate the public pem from the private key before serialization
+  # to PEM.
+  public_key = private_key.public_key()
+  public_pem = public_key.public_bytes(encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo)
+ 
+  return public_pem.decode(), private_pem.decode()
 
 
 
@@ -227,8 +251,8 @@ def create_rsa_signature(private_key, data):
     Generate an RSASSA-PSS signature.  The signature, and the method (signature
     algorithm) used, is returned as a (signature, method) tuple.
 
-    The signing process will use 'private_key' and 'data' to generate the
-    signature.
+    The signing process will use 'private_key' to generate the signature of
+    'data'.
 
     RFC3447 - RSASSA-PSS 
     http://www.ietf.org/rfc/rfc3447.txt
@@ -258,64 +282,63 @@ def create_rsa_signature(private_key, data):
     tuf.CryptoError, if the signature cannot be generated. 
 
   <Side Effects>
-    PyCrypto's 'Crypto.Signature.PKCS1_PSS' called to generate the signature.
+    pyca/cryptography's 'RSAPrivateKey.signer()' called to generate the
+    signature.
 
   <Returns>
     A (signature, method) tuple, where the signature is a string and the method
     is 'RSASSA-PSS'.
   """
   
-  # Does 'private_key' have the correct format?
-  # This check will ensure 'private_key' conforms to 'tuf.formats.PEMRSA_SCHEMA'.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Does the arguments have the correct format?
+  # This check will ensure the arguments conform to 'tuf.formats.PEMRSA_SCHEMA'.
+  # and 'tuf.formats.DATA_SCHEMA' 
+  # Raise 'tuf.FormatError' if the checks fail.
   tuf.formats.PEMRSA_SCHEMA.check_match(private_key)
+  tuf.formats.DATA_SCHEMA.check_match(data) 
 
-  # Does 'data' have the correct format?
-  tuf.formats.DATA_SCHEMA.check_match(data)
-
-  # Signing the 'data' object requires a private key.
-  # The 'RSASSA-PSS' (i.e., PyCrypto module) signing method is the
-  # only method currently supported.
+  # Signing 'data' requires a private key.  The 'RSASSA-PSS' signing method is
+  # the only method currently supported.
   method = 'RSASSA-PSS'
   signature = None
- 
+
   # Verify the signature, but only if the private key has been set.  The private
   # key is a NULL string if unset.  Although it may be clearer to explicitly
   # check that 'private_key' is not '', we can/should check for a value and not
   # compare identities with the 'is' keyword.  Up to this point 'private_key'
   # has variable size and can be an empty string.
   if len(private_key):
-    # Calculate the SHA256 hash of 'data' and generate the hash's PKCS1-PSS
-    # signature. 
-   
-    # PyCrypto's expected exceptions when generating RSA key object:
+    
+    # pyca/cryptography's expected exceptions when generating RSA key object:
     # "ValueError/IndexError/TypeError:  When the given key cannot be parsed
     # (possibly because the passphrase is wrong)."
-    # If the passphrase is incorrect, PyCrypto returns: "RSA key format is not
-    # supported".
+    # A passphrase or password is not used to 'private_key', since it should
+    # not be encrypted.
     try:
-      sha256_object = Crypto.Hash.SHA256.new(data.encode('utf-8'))
-      rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
-    
-    except (ValueError, IndexError, TypeError) as e:
-      message = 'Invalid private key or hash data: ' + str(e)
-      raise tuf.CryptoError(message)
+      # 'private_key' (in PEM format) must be converted to a
+      # pyca/cryptography private key object before a signature can be
+      # generated.
+      private_key_object = load_pem_private_key(private_key.encode('utf-8'),
+                                                password=None,
+                                                backend=default_backend())
    
-    # Generate RSSA-PSS signature.  Raise 'tuf.CryptoError' for the expected
-    # PyCrypto exceptions.
-    try:
-      pkcs1_pss_signer = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)
-      signature = pkcs1_pss_signer.sign(sha256_object)
-    
+      # Calculate the SHA256 hash of 'data' and generate the hash's PKCS1-PSS
+      # signature. 
+      rsa_signer = \
+        private_key_object.signer(padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
+                      salt_length=hashes.SHA256().digest_size), hashes.SHA256())
+                          
     except ValueError: #pragma: no cover
-      raise tuf.CryptoError('The RSA key too small for given hash algorithm.')
-    
-    except TypeError:
-      raise tuf.CryptoError('Missing required RSA private key.')
-   
-    except IndexError: # pragma: no cover
-      message = 'An RSA signature cannot be generated: ' + str(e)
+      raise tuf.CryptoError('The private key could not be deserialized.')
+ 
+    except cryptography.exceptions.UnsupportedAlgorithm: #pragma: no cover
+      message = 'The private key is encrypted with an unsupported algorithm.'
       raise tuf.CryptoError(message)
+   
+    # Generate an RSSA-PSS signature.  Raise 'tuf.CryptoError' for the expected
+    # pyca/cryptography exceptions.
+    rsa_signer.update(data)
+    signature = rsa_signer.finalize()
   
   else:
     raise TypeError('The required private key is unset.')
@@ -343,7 +366,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 
   <Arguments>
     signature:
-      An RSASSA PSS signature as a string.  This is the signature returned
+      An RSASSA PSS signature, as a string.  This is the signature returned
       by create_rsa_signature(). 
 
     signature_method:
@@ -354,20 +377,21 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       The RSA public key, a string in PEM format.
 
     data:
-      Data object used by tuf.keys.create_signature() to generate
-      'signature'.  'data' is needed here to verify the signature.
+      Data used by tuf.keys.create_signature() to generate
+      'signature'.  'data' (a string) is needed here to verify 'signature'.
 
   <Exceptions>
     tuf.UnknownMethodError.  Raised if the signing method used by
     'signature' is not one supported by tuf.keys.create_signature().
     
     tuf.FormatError. Raised if 'signature', 'signature_method', or 'public_key'
-    is improperly formatted.
+    are improperly formatted.
 
   <Side Effects>
-    Crypto.Signature.PKCS1_PSS.verify() called to do the actual verification.
+    pyca/cryptography's RSAPublicKey.verifier() called to do the actual
+    verification.
 
-  <Returns>
+   <Returns>
     Boolean.  True if the signature is valid, False otherwise.
   """
   
@@ -381,8 +405,8 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 
   # Does 'signature' have the correct format?
   tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.check_match(signature)
-
-  # Does 'data' have the correct format?
+  
+  # What about 'data'?
   tuf.formats.DATA_SCHEMA.check_match(data)
 
   # Verify whether the private key of 'public_key' produced 'signature'.
@@ -390,18 +414,38 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   # was used as the signing method.
   valid_signature = False
 
-  # Verify the signature with PyCrypto if the signature method is valid,
-  # otherwise raise 'tuf.UnknownMethodError'.
+  # Verify the signature with pyca/cryptography if the signature method is
+  # valid, otherwise raise 'tuf.UnknownMethodError'.
   if signature_method == 'RSASSA-PSS':
     try:
-      rsa_key_object = Crypto.PublicKey.RSA.importKey(public_key)
-      pkcs1_pss_verifier = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)
-      sha256_object = Crypto.Hash.SHA256.new(data.encode('utf'))
-      valid_signature = pkcs1_pss_verifier.verify(sha256_object, signature)
-    
-    except (ValueError, IndexError, TypeError) as e:
-      message = 'The RSA signature could not be verified.'
-      raise tuf.CryptoError(message)
+      public_key_object = serialization.load_pem_public_key(public_key.encode('utf-8'),
+                                                     backend=default_backend())
+      
+      # 'salt_length' is set to the digest size of the hashing algorithm (to
+      # match the default size used by 'tuf.pycrypto_keys.py').
+      verifier = public_key_object.verifier(signature,
+                                  padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
+                                  salt_length=hashes.SHA256().digest_size), 
+                                  hashes.SHA256())
+
+      verifier.update(data.encode('utf-8'))
+      
+      # verify() raises 'cryptograpahy.exceptions.InvalidSignature' if the
+      # signature is invalid.
+      try: 
+        verifier.verify()
+        valid_signature = True 
+      
+      except cryptography.exceptions.InvalidSignature as e:
+        pass
+ 
+    # Raised by load_pem_public_key(). 
+    except ValueError:
+      raise tuf.CryptoError('The PEM could not be decoded successfully.')
+
+    # Raised by load_pem_public_key().
+    except cryptography.exceptions.UnsupportedAlgorithm:
+      raise tuf.Cryptography('The private key type is not supported.')
   
   else:
     raise tuf.UnknownMethodError(signature_method)
@@ -420,6 +464,9 @@ def create_rsa_encrypted_pem(private_key, passphrase):
     Data Encryption Algorithm (3DES) and Cipher-block chaining (CBC) for the 
     mode of operation.  Password-Based Key Derivation Function 1 (PBKF1) + MD5
     is used to strengthen 'passphrase'.
+
+    TODO: Generate encrypted PEM (that matches PyCrypto's) once support is
+    added to pyca/cryptography.
 
     https://en.wikipedia.org/wiki/Triple_DES
     https://en.wikipedia.org/wiki/PBKDF2
@@ -444,7 +491,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
 
     tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
 
-    TypeError, 'private_key' is unset. 
+    TypeError, if 'private_key' is unset. 
 
   <Side Effects>
     PyCrypto's Crypto.PublicKey.RSA.exportKey() called to perform the actual
@@ -472,7 +519,8 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   # 'private_key' may still be a NULL string after the
   # 'tuf.formats.PEMRSA_SCHEMA' (i.e., 'private_key' has variable size and can
   # be an empty string.
-
+  # TODO: Use PyCrypto to generate the encrypted PEM string.  Generating
+  # encrypted PEMs appears currently unsupported by pyca/cryptography. 
   if len(private_key):
     try:
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
@@ -500,19 +548,21 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     The public and private keys returned conform to 'tuf.formats.PEMRSA_SCHEMA'
     and have the form:
 
-    '-----BEGIN RSA PUBLIC KEY----- ...'
+    '-----BEGIN RSA PUBLIC KEY----- ... -----END RSA PUBLIC KEY-----'
 
-    or
+    and
 
-    '-----BEGIN RSA PRIVATE KEY----- ...'
+    '-----BEGIN RSA PRIVATE KEY----- ...-----END RSA PRIVATE KEY-----'
     
     The public and private keys are returned as strings in PEM format.
 
-    The private key part of 'encrypted_pem' is encrypted.  PyCrypto's importKey
-    method is used, where a passphrase is specified.  PyCrypto uses PBKDF1+MD5
-    to strengthen 'passphrase', and 3DES with CBC mode for encryption/decryption.    
-    Alternatively, key data may be encrypted with AES-CTR-Mode and the passphrase
-    strengthened with PBKDF2+SHA256.
+    The private key part of 'encrypted_pem' is encrypted.  pyca/cryptography's
+    load_pem_private_key() method is used, where a passphrase is specified.  In
+    the default case here, pyca/cryptography will decrypt with a PBKDF1+MD5
+    strengthened'passphrase', and 3DES with CBC mode for encryption/decryption.
+    Alternatively, key data may be encrypted with AES-CTR-Mode and the
+    passphrase strengthened with PBKDF2+SHA256, although this method is used
+    only with TUF encrypted key files.
 
     >>> public, private = generate_rsa_public_and_private(2048)
     >>> passphrase = 'secret'
@@ -548,8 +598,9 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     from 'encrypted_pem', or exported in PEM format.
 
   <Side Effects>
-    PyCrypto's 'Crypto.PublicKey.RSA.importKey()' called to perform the actual
-    conversion from an encrypted RSA private key.
+    pyca/cryptography's 'serialization.load_pem_private_key()' called to
+    perform the actual conversion from an encrypted RSA private key to
+    PEM format.
 
   <Returns>
     A (public, private) tuple containing the RSA keys in PEM format.
@@ -563,41 +614,48 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
 
   # Does 'passphrase' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
- 
-  # Generate a PyCrypto key object from 'encrypted_pem'.  The generated PyCrypto
-  # key contains the required export methods needed to generate the
-  # PEM-formatted representations of the public and private RSA key.
+  
+  # Generate a pyca/cryptography key object from 'encrypted_pem'.  The
+  # generated PyCrypto key contains the required export methods needed to
+  # generate the PEM-formatted representations of the public and private RSA
+  # key.
   try:
-    rsa_key_object = Crypto.PublicKey.RSA.importKey(encrypted_pem, passphrase)
+    private_key = load_pem_private_key(encrypted_pem.encode('utf-8'),
+                                       passphrase.encode('utf-8'),
+                                       backend=default_backend())
  
-  # PyCrypto's expected exceptions:
-  # "ValueError/IndexError/TypeError:  When the given key cannot be parsed
+  # pyca/cryptography's expected exceptions for 'load_pem_private_key()':
+  # ValueError: If the PEM data could not be decrypted.
   # (possibly because the passphrase is wrong)."
-  # If the passphrase is incorrect, PyCrypto returns: "RSA key format is not
-  # supported".
-  except (ValueError, IndexError, TypeError) as e:
+  # TypeError: If a password was given and the private key was not encrypted.
+  # Or if the key was encrypted but no password was supplied.
+  # UnsupportedAlgorithm: If the private key (or if the key is encrypted with
+  # an unsupported symmetric cipher) is not supported by the backend.
+  except (ValueError, TypeError, cryptography.exceptions.UnsupportedAlgorithm) as e:
     message = 'RSA (public, private) tuple cannot be generated from the' +\
       ' encrypted PEM string: ' + str(e)
-    # Raise 'tuf.CryptoError' and PyCrypto's exception message.  Avoid
-    # propogating PyCrypto's exception trace to avoid revealing sensitive error.
+    # Raise 'tuf.CryptoError' and pyca/cryptography's exception message.  Avoid
+    # propogating pyca/cryptography's exception trace to avoid revealing
+    # sensitive error.
     raise tuf.CryptoError(message)
   
-  # Export the public and private halves of the PyCrypto RSA key object.  The
-  # (public, private) tuple returned contains the public and private RSA keys
-  # in PEM format, as strings.
-  try:
-    private = rsa_key_object.exportKey(format='PEM') 
-    rsa_pubkey = rsa_key_object.publickey()
-    public = rsa_pubkey.exportKey(format='PEM')
+  # Export the public and private halves of the pyca/cryptography RSA key
+  # object.  The (public, private) tuple returned contains the public and
+  # private RSA keys in PEM format, as strings.
+  # Extract the public & private halves of the RSA key and generate their
+  # PEM-formatted representations.  Return the key pair as a (public, private)
+  # tuple, where each RSA is a string in PEM format.
+  private_pem = private_key.private_bytes(encoding=serialization.Encoding.PEM,
+                        format=serialization.PrivateFormat.TraditionalOpenSSL,
+                        encryption_algorithm=serialization.NoEncryption())
  
-  # PyCrypto raises 'ValueError' if the public or private keys cannot be
-  # exported.  See 'Crypto.PublicKey.RSA'.  'ValueError' should not be raised
-  # if the 'Crypto.PublicKey.RSA.importKey() call above passed.
-  except (ValueError): #pragma: no cover
-    message = 'The public and private keys cannot be exported in PEM format.' 
-    raise tuf.CryptoError(message)
+  # Need to generate the public key from the private one before serializing
+  # to PEM format.
+  public_key = private_key.public_key()
+  public_pem = public_key.public_bytes(encoding=serialization.Encoding.PEM,
+                    format=serialization.PublicFormat.SubjectPublicKeyInfo)
 
-  return public.decode(), private.decode()
+  return public_pem.decode(), private_pem.decode()
 
 
 
@@ -606,12 +664,12 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
 def encrypt_key(key_object, password):
   """
   <Purpose>
-    Return a string containing 'key_object' in encrypted form. Encrypted strings
-    may be safely saved to a file.  The corresponding decrypt_key() function can
-    be applied to the encrypted string to restore the original key object.
-    'key_object' is a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).  This
-    function calls the PyCrypto library to perform the encryption and derive
-    a suitable encryption key.
+    Return a string containing 'key_object' in encrypted form. Encrypted
+    strings may be safely saved to a file.  The corresponding decrypt_key()
+    function can be applied to the encrypted string to restore the original key
+    object.  'key_object' is a TUF key (e.g., RSAKEY_SCHEMA,
+    ED25519KEY_SCHEMA).  This function calls the pyca/cryptography library to
+    perform the encryption and derive a suitable encryption key.
     
     Whereas an encrypted PEM file uses the Triple Data Encryption Algorithm
     (3DES), the Cipher-block chaining (CBC) mode of operation, and the Password
@@ -654,8 +712,9 @@ def encrypt_key(key_object, password):
     created.
 
   <Side Effects>
-    PyCrypto cryptographic operations called to perform the actual encryption of
-    'key_object'.  'password' used to derive a suitable encryption key.
+    pyca/Cryptography cryptographic operations called to perform the actual
+    encryption of 'key_object'.  'password' used to derive a suitable
+    encryption key.
 
   <Returns>
     An encrypted string in 'tuf.formats.ENCRYPTEDKEY_SCHEMA' format.
@@ -702,8 +761,8 @@ def decrypt_key(encrypted_key, password):
     Return a string containing 'encrypted_key' in non-encrypted form.
     The decrypt_key() function can be applied to the encrypted string to restore
     the original key object, a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).
-    This function calls the appropriate cryptography module (e.g.,
-    pycrypto_keys.py) to perform the decryption.
+    This function calls the appropriate cryptography module (i.e.,
+    pyca_crypto_keys.py) to perform the decryption.
     
     Encrypted TUF keys use AES-256-CTR-Mode and passwords strengthened with
     PBKDF2-HMAC-SHA256 (100K iterations be default, but may be overriden in
@@ -748,9 +807,9 @@ def decrypt_key(encrypted_key, password):
     tuf.Error, if a valid TUF key object is not found in 'encrypted_key'.
 
   <Side Effects>
-    The PyCrypto library called to perform the actual decryption of
-    'encrypted_key'.  The key derivation data stored in 'encrypted_key' is used
-    to re-derive the encryption/decryption key.
+    The pyca/cryptography is library called to perform the actual decryption
+    of 'encrypted_key'.  The key derivation data stored in 'encrypted_key' is
+    used to re-derive the encryption/decryption key.
 
   <Returns>
     The decrypted key object in 'tuf.formats.ANYKEY_SCHEMA' format.
@@ -782,36 +841,34 @@ def decrypt_key(encrypted_key, password):
 def _generate_derived_key(password, salt=None, iterations=None):
   """
   Generate a derived key by feeding 'password' to the Password-Based Key
-  Derivation Function (PBKDF2).  PyCrypto's PBKDF2 implementation is
-  currently used.  'salt' may be specified so that a previous derived key
-  may be regenerated.
+  Derivation Function (PBKDF2).  pyca/cryptography's PBKDF2 implementation is
+  used in this module.  'salt' may be specified so that a previous derived key
+  may be regenerated, otherwise '_SALT_SIZE' is used by default.  'iterations'
+  is the number of SHA-256 iterations to perform, otherwise
+  '_PBKDF2_ITERATIONS' is used by default.
   """
-  
+ 
+  # Use pyca/cryptography's default backend (e.g., openSSL, CommonCrypto, etc.)
+  # The default backend is not fixed and can be changed by pyca/cryptography
+  # over time.
+  backend = default_backend()
+ 
+  # If 'salt' and 'iterations' are unspecified, a new derived key is generated.
+  # If specified, a deterministic key is derived according to the given
+  # 'salt' and 'iterrations' values.
   if salt is None:
-    salt = Crypto.Random.new().read(_SALT_SIZE) 
+    salt = os.urandom(_SALT_SIZE) 
 
   if iterations is None:
     iterations = _PBKDF2_ITERATIONS
+  
+  # Derive an AES key with PBKDF2.  The  'length' is the desired key length of
+  # the derived key.
+  pbkdf_object = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt,
+       iterations=iterations, backend=backend)
 
-
-  def pseudorandom_function(password, salt):
-    """
-    PyCrypto's PBKDF2() expects a callable function for its optional
-    'prf' argument.  'prf' is set to HMAC-SHA1 (in PyCrypto's PBKDF2 function)
-    by default.  'pseudorandom_function' instead sets 'prf' to HMAC-SHA256. 
-    """
-    
-    return Crypto.Hash.HMAC.new(password, salt, Crypto.Hash.SHA256).digest()  
-
-
-  # 'dkLen' is the desired key length.  'count' is the number of password
-  # iterations performed by PBKDF2.  'prf' is a pseudorandom function, which
-  # must be callable. 
-  derived_key = Crypto.Protocol.KDF.PBKDF2(password, salt,
-                                           dkLen=_AES_KEY_SIZE,
-                                           count=iterations,
-                                           prf=pseudorandom_function)
-
+  derived_key = pbkdf_object.derive(password.encode('utf-8'))
+  
   return salt, iterations, derived_key
 
 
@@ -828,6 +885,7 @@ def _encrypt(key_data, derived_key_information):
 
   'key_data' is the JSON string representation of the key.  In the case
   of RSA keys, this format would be 'tuf.formats.RSAKEY_SCHEMA':
+  
   {'keytype': 'rsa',
    'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
               'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
@@ -839,49 +897,42 @@ def _encrypt(key_data, derived_key_information):
 
   'tuf.CryptoError' raised if the encryption fails.
   """
-  
-  # Generate a random initialization vector (IV).  The 'iv' is treated as the
-  # initial counter block to a stateful counter block function (i.e.,
-  # PyCrypto's 'Crypto.Util.Counter').  The AES block cipher operates on 128-bit
-  # blocks, so generate a random 16-byte initialization block.  PyCrypto expects
-  # the initial value of the stateful counter to be an integer.
-  # Follow the provably secure encrypt-then-MAC approach, which affords the
-  # ability to verify ciphertext without needing to decrypt it and preventing
-  # an attacker from feeding the block cipher malicious data.  Modes like GCM
-  # provide both encryption and authentication, whereas CTR only provides
-  # encryption.  
-  iv = Crypto.Random.new().read(16)
-  stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
-                                      initial_value=int(binascii.hexlify(iv), 16)) 
-  symmetric_key = derived_key_information['derived_key'] 
-  aes_cipher = Crypto.Cipher.AES.new(symmetric_key,
-                                     Crypto.Cipher.AES.MODE_CTR,
-                                     counter=stateful_counter_128bit_blocks)
- 
-  # Use AES-256 to encrypt 'key_data'.  The key size determines how many cycle
-  # repetitions are performed by AES, 14 cycles for 256-bit keys.
-  try:
-    ciphertext = aes_cipher.encrypt(key_data)
- 
-  # PyCrypto does not document the exceptions that may be raised or under
-  # what circumstances.  PyCrypto example given is to call encrypt() without
-  # checking for exceptions.  Avoid propogating the exception trace and only
-  # raise 'tuf.CryptoError', along with the cause of encryption failure.
-  except (ValueError, IndexError, TypeError) as e:
-    message = 'The key data cannot be encrypted: ' + str(e)
-    raise tuf.CryptoError(message)
 
+  # Generate a random Initialization Vector (IV).  Follow the provably secure
+  # encrypt-then-MAC approach, which affords the ability to verify ciphertext
+  # without needing to decrypt it and preventing an attacker from feeding the
+  # block cipher malicious data.  Modes like GCM provide both encryption and
+  # authentication, whereas CTR only provides encryption.  
+  
+  # Generate a random 128-bit IV.  Random bits of data is needed for salts and
+  # initialization vectors suitable for the encryption algorithms used in
+  # 'pyca_crypto_keys.py'.
+  iv = os.urandom(16)
+  
+  # Construct an AES-CTR Cipher object with the given key and a randomly
+  # generated IV.
+  symmetric_key = derived_key_information['derived_key'] 
+  encryptor = Cipher(algorithms.AES(symmetric_key), modes.CTR(iv),
+                     backend=default_backend()).encryptor()
+
+  # Encrypt the plaintext and get the associated ciphertext.
+  # Do we need to check for any exceptions?
+  ciphertext = encryptor.update(key_data) + encryptor.finalize()
+  
   # Generate the hmac of the ciphertext to ensure it has not been modified.
   # The decryption routine may verify a ciphertext without having to perform
   # a decryption operation.
-  salt = derived_key_information['salt'] 
-  hmac_object = Crypto.Hash.HMAC.new(symmetric_key, ciphertext,
-                                     Crypto.Hash.SHA256)
-  hmac = hmac_object.hexdigest()
-  
+  symmetric_key = derived_key_information['derived_key']
+  salt = derived_key_information['salt']
+  hmac_object = \
+    cryptography.hazmat.primitives.hmac.HMAC(symmetric_key, hashes.SHA256(), 
+                                             backend=default_backend())
+  hmac_object.update(ciphertext)
+  hmac_value = binascii.hexlify(hmac_object.finalize())
+
   # Store the number of PBKDF2 iterations used to derive the symmetric key so
   # that the decryption routine can regenerate the symmetric key successfully.
-  # The pbkdf2 iterations are allowed to vary for the keys loaded and saved.
+  # The PBKDF2 iterations are allowed to vary for the keys loaded and saved.
   iterations = derived_key_information['iterations']
 
   # Return the salt, iterations, hmac, initialization vector, and ciphertext
@@ -891,11 +942,11 @@ def _encrypt(key_data, derived_key_information):
   # of the fields it is separating.
   return binascii.hexlify(salt).decode() + _ENCRYPTION_DELIMITER + \
          str(iterations) + _ENCRYPTION_DELIMITER + \
-         hmac + _ENCRYPTION_DELIMITER + \
+         hmac_value + _ENCRYPTION_DELIMITER + \
          binascii.hexlify(iv).decode() + _ENCRYPTION_DELIMITER + \
          binascii.hexlify(ciphertext).decode()
-
-
+  
+  
 
 
 
@@ -905,7 +956,7 @@ def _decrypt(file_contents, password):
 
   'tuf.CryptoError' raised if the decryption fails.
   """
- 
+  
   # Extract the salt, iterations, hmac, initialization vector, and ciphertext
   # from 'file_contents'.  These five values are delimited by
   # '_ENCRYPTION_DELIMITER'.  This delimiter is arbitrarily chosen and should
@@ -928,44 +979,39 @@ def _decrypt(file_contents, password):
   # Generate derived key from 'password'.  The salt and iterations are specified
   # so that the expected derived key is regenerated correctly.  Discard the old
   # "salt" and "iterations" values, as we only need the old derived key.
-  junk_old_salt, junk_old_iterations, derived_key = \
+  junk_old_salt, junk_old_iterations, symmetric_key = \
     _generate_derived_key(password, salt, iterations)
 
   # Verify the hmac to ensure the ciphertext is valid and has not been altered.
   # See the encryption routine for why we use the encrypt-then-MAC approach.
-  generated_hmac_object = Crypto.Hash.HMAC.new(derived_key, ciphertext,
-                                               Crypto.Hash.SHA256)
-  generated_hmac = generated_hmac_object.hexdigest()
+  # The decryption routine may verify a ciphertext without having to perform
+  # a decryption operation.
+  generated_hmac_object = \
+    cryptography.hazmat.primitives.hmac.HMAC(symmetric_key, hashes.SHA256(),
+                                             backend=default_backend())
+  generated_hmac_object.update(ciphertext)
+  generated_hmac = binascii.hexlify(generated_hmac_object.finalize())
+
 
   if not tuf.util.digests_are_equal(generated_hmac, hmac):
     raise tuf.CryptoError('Decryption failed.')
+    
+  # Construct a Cipher object, with the key and iv.
+  decryptor = Cipher(algorithms.AES(symmetric_key), modes.CTR(iv),
+                     backend=default_backend()).decryptor()
 
-  # The following decryption routine assumes 'ciphertext' was encrypted with
-  # AES-256.
-  stateful_counter_128bit_blocks = Crypto.Util.Counter.new(128,
-                                      initial_value=int(binascii.hexlify(iv), 16)) 
-  aes_cipher = Crypto.Cipher.AES.new(derived_key,
-                                     Crypto.Cipher.AES.MODE_CTR,
-                                     counter=stateful_counter_128bit_blocks)
-  try:
-    key_plaintext = aes_cipher.decrypt(ciphertext)
-  
-  # PyCrypto does not document the exceptions that may be raised or under
-  # what circumstances.  PyCrypto example given is to call decrypt() without
-  # checking for exceptions.  Avoid propogating the exception trace and only
-  # raise 'tuf.CryptoError', along with the cause of decryption failure.
-  # Note: decryption failure, due to malicious ciphertext, should not occur here
-  # if the hmac check above passed.
-  except (ValueError, IndexError, TypeError) as e: # pragma: no cover
-    raise tuf.CryptoError('Decryption failed: ' + str(e))
+  # Decryption gets us the authenticated plaintext.
+  plaintext = decryptor.update(ciphertext) + decryptor.finalize()
 
-  return key_plaintext
+  return plaintext 
+
+
 
 
 
 if __name__ == '__main__':
-  # The interactive sessions of the documentation strings can
-  # be tested by running 'pycrypto_keys.py' as a standalone module:
-  # $ python pycrypto_keys.py
+  # The interactive sessions of the documentation strings can be tested by
+  # running 'pyca_crypto_keys.py' as a standalone module:
+  # $ python pyca_crypto_keys.py
   import doctest
   doctest.testmod()

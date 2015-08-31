@@ -99,13 +99,12 @@ SNAPSHOT_EXPIRATION = 604800
 # Initial 'timestamp.json' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
 
-
 try:
   tuf.keys.check_crypto_libraries(['rsa', 'ed25519', 'general'])
 
 except tuf.UnsupportedLibraryError as e: #pragma: no cover
   message = 'Warning: The repository and developer tools require additional' + \
-    ' libraries and can be installed as follows:\n $ pip install tuf[tools]'  
+    ' libraries, which that can be installed as follows:\n $ pip install tuf[tools]'  
   logger.warn(message) 
 
 
@@ -188,7 +187,7 @@ class Repository(object):
       private keys, etc.
     
     <Arguments>
-      mrite_partial:
+      write_partial:
         A boolean indicating whether partial metadata should be written to
         disk.  Partial metadata may be written to allow multiple maintainters
         to independently sign and update role metadata.  write() raises an
