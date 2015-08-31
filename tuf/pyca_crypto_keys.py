@@ -664,12 +664,12 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
 def encrypt_key(key_object, password):
   """
   <Purpose>
-    Return a string containing 'key_object' in encrypted form. Encrypted strings
-    may be safely saved to a file.  The corresponding decrypt_key() function can
-    be applied to the encrypted string to restore the original key object.
-    'key_object' is a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).  This
-    function calls the PyCrypto library to perform the encryption and derive
-    a suitable encryption key.
+    Return a string containing 'key_object' in encrypted form. Encrypted
+    strings may be safely saved to a file.  The corresponding decrypt_key()
+    function can be applied to the encrypted string to restore the original key
+    object.  'key_object' is a TUF key (e.g., RSAKEY_SCHEMA,
+    ED25519KEY_SCHEMA).  This function calls the pyca/cryptography library to
+    perform the encryption and derive a suitable encryption key.
     
     Whereas an encrypted PEM file uses the Triple Data Encryption Algorithm
     (3DES), the Cipher-block chaining (CBC) mode of operation, and the Password
@@ -761,8 +761,8 @@ def decrypt_key(encrypted_key, password):
     Return a string containing 'encrypted_key' in non-encrypted form.
     The decrypt_key() function can be applied to the encrypted string to restore
     the original key object, a TUF key (e.g., RSAKEY_SCHEMA, ED25519KEY_SCHEMA).
-    This function calls the appropriate cryptography module (e.g.,
-    pycrypto_keys.py) to perform the decryption.
+    This function calls the appropriate cryptography module (i.e.,
+    pyca_crypto_keys.py) to perform the decryption.
     
     Encrypted TUF keys use AES-256-CTR-Mode and passwords strengthened with
     PBKDF2-HMAC-SHA256 (100K iterations be default, but may be overriden in
