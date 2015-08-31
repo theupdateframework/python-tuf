@@ -914,22 +914,10 @@ def _encrypt(key_data, derived_key_information):
   symmetric_key = derived_key_information['derived_key'] 
   encryptor = Cipher(algorithms.AES(symmetric_key), modes.CTR(iv),
                      backend=default_backend()).encryptor()
-  
-  # associated_data will be authenticated but not encrypted,
-  # it must also be passed in on decryption.
-  #encryptor.authenticate_additional_data(associated_data)
 
   # Encrypt the plaintext and get the associated ciphertext.
   # Do we need to check for any exceptions?
   ciphertext = encryptor.update(key_data) + encryptor.finalize()
-
-    
-  # Cryptography will generate a 128-bit tag when finalizing encryption. You can
-  # shorten a tag by truncating it to the desired length but this is not
-  # recommended as it lowers the security margins of the authentication (NIST
-  # SP-800-38D recommends 96-bits or greater). Applications wishing to allow
-  # truncation must pass the min_tag_length parameter.
-  #return (iv, ciphertext, encryptor.tag)
   
   # Generate the hmac of the ciphertext to ensure it has not been modified.
   # The decryption routine may verify a ciphertext without having to perform
@@ -944,7 +932,7 @@ def _encrypt(key_data, derived_key_information):
 
   # Store the number of PBKDF2 iterations used to derive the symmetric key so
   # that the decryption routine can regenerate the symmetric key successfully.
-  # The pbkdf2 iterations are allowed to vary for the keys loaded and saved.
+  # The PBKDF2 iterations are allowed to vary for the keys loaded and saved.
   iterations = derived_key_information['iterations']
 
   # Return the salt, iterations, hmac, initialization vector, and ciphertext
@@ -1012,24 +1000,8 @@ def _decrypt(file_contents, password):
   decryptor = Cipher(algorithms.AES(symmetric_key), modes.CTR(iv),
                      backend=default_backend()).decryptor()
 
-  # We put associated_data back in or the tag will fail to verify when we
-  # finalize the decryptor.
-  #decryptor.authenticate_additional_data(associated_data)
-
   # Decryption gets us the authenticated plaintext.
-  # If the tag does not match, an InvalidTag exception will be raised.
-  plaintext = None
- 
-  try:
-    plaintext = decryptor.update(ciphertext) + decryptor.finalize()
-  
-  # Avoid propogating the exception trace and only raise 'tuf.CryptoError',
-  # along with the cause of decryption failure.  Note: decryption failure, due
-  # to malicious ciphertext, should not occur here if the hmac check above
-  # passed.
-  # TODO: Substitute expected pyca exceptions.
-  except (ValueError, IndexError, TypeError) as e: # pragma: no cover
-    raise tuf.CryptoError('Decryption failed: ' + str(e))
+  plaintext = decryptor.update(ciphertext) + decryptor.finalize()
 
   return plaintext 
 
