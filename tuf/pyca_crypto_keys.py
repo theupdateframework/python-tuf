@@ -847,9 +847,15 @@ def _generate_derived_key(password, salt=None, iterations=None):
   is the number of SHA-256 iterations to perform, otherwise
   '_PBKDF2_ITERATIONS' is used by default.
   """
-  
+ 
+  # Use pyca/cryptography's default backend (e.g., openSSL, CommonCrypto, etc.)
+  # The default backend is not fixed and can be changed by pyca/cryptography
+  # over time.
   backend = default_backend()
-  
+ 
+  # If 'salt' and 'iterations' are unspecified, a new derived key is generated.
+  # If specified, a deterministic key is derived according to the given
+  # 'salt' and 'iterrations' values.
   if salt is None:
     salt = os.urandom(_SALT_SIZE) 
 
