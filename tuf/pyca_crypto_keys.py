@@ -15,7 +15,7 @@
 
 <Purpose>
   The goal of this module is to support public-key and general-purpose
-  cryptography through the 'pyca/cryptography'(available as 'cryptography' on
+  cryptography through the pyca/cryptography (available as 'cryptography' on
   pypi) library.
   
   The RSA-related functions provided include:
@@ -29,7 +29,7 @@
   encrypt_key()
   decrypt_key()
   
-  'pyca/cryptography' performs the actual cryptographic operations and the
+  pyca/cryptography performs the actual cryptographic operations and the
   functions listed above can be viewed as the easy-to-use public interface. 
 
   https://pypi.python.org/pypi/cryptography/
@@ -66,11 +66,11 @@ import json
 # Import pyca/cryptography routines needed to generate and load cryptographic
 # keys in PEM format.
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.backends.interfaces import PEMSerializationBackend
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.backends import default_backend
 
-# Import Exception classes need to catch 'pyca/cryptography' exceptions.
+# Import Exception classes need to catch pyca/cryptography exceptions.
 import cryptography.exceptions
 
 # 'cryptography.hazmat.primitives.asymmetric' (i.e., pyca/cryptography's
@@ -81,11 +81,11 @@ import cryptography.exceptions
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 # PyCrypo's RSA module is needed to generate and import encrypted RSA keys.
-# Generating and loading encrypted key files with 'pyca/cryptography' will be
+# Generating and loading encrypted key files with pyca/cryptography will be
 # added once these routines are supported.
 import Crypto.PublicKey.RSA
 
-# 'pyca/Cryptography requires' hash objects to generate PKCS#1 PSS
+# pyca/Cryptography requires hash objects to generate PKCS#1 PSS
 # signatures (i.e., padding.PSS).  The 'hmac' module is needed to verify
 # ciphertexts in encrypted key files.
 from cryptography.hazmat.primitives import hashes
@@ -316,7 +316,7 @@ def create_rsa_signature(private_key, data):
     # not be encrypted.
     try:
       # 'private_key' (in PEM format) must be converted to a
-      # 'pyca/cryptography' private key object before a signature can be
+      # pyca/cryptography private key object before a signature can be
       # generated.
       private_key_object = load_pem_private_key(private_key.encode('utf-8'),
                                                 password=None,
@@ -336,7 +336,7 @@ def create_rsa_signature(private_key, data):
       raise tuf.CryptoError(message)
    
     # Generate an RSSA-PSS signature.  Raise 'tuf.CryptoError' for the expected
-    # 'pyca/cryptography' exceptions.
+    # pyca/cryptography exceptions.
     rsa_signer.update(data)
     signature = rsa_signer.finalize()
   
@@ -520,7 +520,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   # 'tuf.formats.PEMRSA_SCHEMA' (i.e., 'private_key' has variable size and can
   # be an empty string.
   # TODO: Use PyCrypto to generate the encrypted PEM string.  Generating
-  # encrypted PEMs appears currently unsupported by 'pyca/cryptography'. 
+  # encrypted PEMs appears currently unsupported by pyca/cryptography. 
   if len(private_key):
     try:
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
@@ -548,19 +548,21 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     The public and private keys returned conform to 'tuf.formats.PEMRSA_SCHEMA'
     and have the form:
 
-    '-----BEGIN RSA PUBLIC KEY----- ...'
+    '-----BEGIN RSA PUBLIC KEY----- ... -----END RSA PUBLIC KEY-----'
 
-    or
+    and
 
-    '-----BEGIN RSA PRIVATE KEY----- ...'
+    '-----BEGIN RSA PRIVATE KEY----- ...-----END RSA PRIVATE KEY-----'
     
     The public and private keys are returned as strings in PEM format.
 
-    The private key part of 'encrypted_pem' is encrypted.  PyCrypto's importKey
-    method is used, where a passphrase is specified.  PyCrypto uses PBKDF1+MD5
-    to strengthen 'passphrase', and 3DES with CBC mode for encryption/decryption.    
-    Alternatively, key data may be encrypted with AES-CTR-Mode and the passphrase
-    strengthened with PBKDF2+SHA256.
+    The private key part of 'encrypted_pem' is encrypted.  pyca/cryptography's
+    load_pem_private_key() method is used, where a passphrase is specified.  In
+    the default case here, pyca/cryptography will decrypt with a PBKDF1+MD5
+    strengthened'passphrase', and 3DES with CBC mode for encryption/decryption.
+    Alternatively, key data may be encrypted with AES-CTR-Mode and the
+    passphrase strengthened with PBKDF2+SHA256, although this method is used
+    only with TUF encrypted key files.
 
     >>> public, private = generate_rsa_public_and_private(2048)
     >>> passphrase = 'secret'
@@ -596,8 +598,9 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     from 'encrypted_pem', or exported in PEM format.
 
   <Side Effects>
-    PyCrypto's 'Crypto.PublicKey.RSA.importKey()' called to perform the actual
-    conversion from an encrypted RSA private key.
+    pyca/cryptography's 'serialization.load_pem_private_key()' called to
+    perform the actual conversion from an encrypted RSA private key to
+    PEM format.
 
   <Returns>
     A (public, private) tuple containing the RSA keys in PEM format.
@@ -612,22 +615,23 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # Does 'passphrase' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
   
-  # Generate a pyca/Cryptography key object from 'encrypted_pem'.  The
+  # Generate a pyca/cryptography key object from 'encrypted_pem'.  The
   # generated PyCrypto key contains the required export methods needed to
   # generate the PEM-formatted representations of the public and private RSA
   # key.
-  
   try:
     private_key = load_pem_private_key(encrypted_pem.encode('utf-8'),
                                        passphrase.encode('utf-8'),
                                        backend=default_backend())
  
-  # pyca/cryptography's expected exceptions:
-  # ValueError: If the PEM data could not be decrypted. 
+  # pyca/cryptography's expected exceptions for 'load_pem_private_key()':
+  # ValueError: If the PEM data could not be decrypted.
   # (possibly because the passphrase is wrong)."
   # TypeError: If a password was given and the private key was not encrypted.
-  # Or if the key was encrypted but no password was supplied. 
-  except (ValueError, TypeError) as e:
+  # Or if the key was encrypted but no password was supplied.
+  # UnsupportedAlgorithm: If the private key (or if the key is encrypted with
+  # an unsupported symmetric cipher) is not supported by the backend.
+  except (ValueError, TypeError, cryptography.exceptions.UnsupportedAlgorithm) as e:
     message = 'RSA (public, private) tuple cannot be generated from the' +\
       ' encrypted PEM string: ' + str(e)
     # Raise 'tuf.CryptoError' and pyca/cryptography's exception message.  Avoid
@@ -636,7 +640,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     raise tuf.CryptoError(message)
   
   # Export the public and private halves of the pyca/cryptography RSA key
-  # object.  The # (public, private) tuple returned contains the public and
+  # object.  The (public, private) tuple returned contains the public and
   # private RSA keys in PEM format, as strings.
   # Extract the public & private halves of the RSA key and generate their
   # PEM-formatted representations.  Return the key pair as a (public, private)
@@ -644,7 +648,9 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   private_pem = private_key.private_bytes(encoding=serialization.Encoding.PEM,
                         format=serialization.PrivateFormat.TraditionalOpenSSL,
                         encryption_algorithm=serialization.NoEncryption())
-  
+ 
+  # Need to generate the public key from the private one before serializing
+  # to PEM format.
   public_key = private_key.public_key()
   public_pem = public_key.public_bytes(encoding=serialization.Encoding.PEM,
                     format=serialization.PublicFormat.SubjectPublicKeyInfo)
@@ -801,7 +807,7 @@ def decrypt_key(encrypted_key, password):
     tuf.Error, if a valid TUF key object is not found in 'encrypted_key'.
 
   <Side Effects>
-    The 'pyca/cryptography' is library called to perform the actual decryption
+    The pyca/cryptography is library called to perform the actual decryption
     of 'encrypted_key'.  The key derivation data stored in 'encrypted_key' is
     used to re-derive the encryption/decryption key.
 
