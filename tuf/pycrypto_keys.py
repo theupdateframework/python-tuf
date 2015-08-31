@@ -248,7 +248,7 @@ def create_rsa_signature(private_key, data):
       The private RSA key, a string in PEM format.
 
     data:
-      Data object used by create_rsa_signature() to generate the signature.
+      Data (string) used by create_rsa_signature() to generate the signature.
 
   <Exceptions>
     tuf.FormatError, if 'private_key' is improperly formatted.
@@ -269,6 +269,9 @@ def create_rsa_signature(private_key, data):
   # This check will ensure 'private_key' conforms to 'tuf.formats.PEMRSA_SCHEMA'.
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.PEMRSA_SCHEMA.check_match(private_key)
+
+  # Does 'data' have the correct format?
+  tuf.formats.DATA_SCHEMA.check_match(data)
 
   # Signing the 'data' object requires a private key.
   # The 'RSASSA-PSS' (i.e., PyCrypto module) signing method is the
@@ -378,6 +381,9 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 
   # Does 'signature' have the correct format?
   tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.check_match(signature)
+
+  # Does 'data' have the correct format?
+  tuf.formats.DATA_SCHEMA.check_match(data)
 
   # Verify whether the private key of 'public_key' produced 'signature'.
   # Before returning the 'valid_signature' Boolean result, ensure 'RSASSA-PSS'
