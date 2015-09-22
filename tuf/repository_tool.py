@@ -2021,7 +2021,7 @@ class Targets(Metadata):
     full_rolename = self._rolename + '/' + rolename
 
     if tuf.roledb.role_exists(full_rolename):
-      raise tuf.Error(repr(full_rolename) + ' already delegated.')
+      raise tuf.Error(repr(rolename) + ' already delegated.')
 
     # Keep track of the valid keyids (added to the new Targets object) and their
     # keydicts (added to this Targets delegations). 

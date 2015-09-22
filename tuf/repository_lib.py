@@ -180,12 +180,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     if len(status['good_sigs']) == 0:
       metadata['version'] = metadata['version'] + 1
       if rolename != 'snapshot':
-        print('write metadata: ' + rolename)
-        #roleinfo = tuf.roledb.get_roleinfo(rolename + METADATA_EXTENSION)
         roleinfo = tuf.roledb.get_roleinfo(rolename)
         roleinfo['version'] = roleinfo['version'] + 1
         tuf.roledb.update_roleinfo(rolename, roleinfo)
-        #tuf.roledb.update_roleinfo(rolename + METADATA_EXTENSION, roleinfo)
       signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                                metadata_filename)
   # non-partial write()
@@ -193,12 +190,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     if tuf.sig.verify(signable, rolename) and not roleinfo['partial_loaded']:
       metadata['version'] = metadata['version'] + 1
       if rolename != 'snapshot':
-        print('write metadata: ' + rolename)
-        print(repr(tuf.roledb.get_rolenames()))
-        #roleinfo = tuf.roledb.get_roleinfo(rolename + METADATA_EXTENSION)
         roleinfo = tuf.roledb.get_roleinfo(rolename)
+        roleinfo['version'] = roleinfo['version'] + 1
         tuf.roledb.update_roleinfo(rolename, roleinfo) 
-        #tuf.roledb.update_roleinfo(rolename + METADATA_EXTENSION, roleinfo) 
       signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                                metadata_filename)
   
@@ -1312,7 +1306,6 @@ def get_metadata_versioninfo(rolename):
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
   
   roleinfo = tuf.roledb.get_roleinfo(rolename) 
-   
   versioninfo = {'version': roleinfo['version']}
   
   return versioninfo 
