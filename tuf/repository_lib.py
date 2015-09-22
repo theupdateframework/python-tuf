@@ -143,8 +143,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                    TARGETS_EXPIRES_WARN_SECONDS)
   
   elif rolename == 'snapshot':
-    root_filename = filenames['root']
-    targets_filename = filenames['targets']
+    root_filename = 'root'
+    targets_filename = 'targets'
     metadata = generate_snapshot_metadata(metadata_directory,
                                           roleinfo['version'],
                                           roleinfo['expires'], root_filename,
@@ -179,12 +179,26 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     status = tuf.sig.get_signature_status(temp_signable, rolename)
     if len(status['good_sigs']) == 0:
       metadata['version'] = metadata['version'] + 1
+      if rolename != 'snapshot':
+        print('write metadata: ' + rolename)
+        #roleinfo = tuf.roledb.get_roleinfo(rolename + METADATA_EXTENSION)
+        roleinfo = tuf.roledb.get_roleinfo(rolename)
+        roleinfo['version'] = roleinfo['version'] + 1
+        tuf.roledb.update_roleinfo(rolename, roleinfo)
+        #tuf.roledb.update_roleinfo(rolename + METADATA_EXTENSION, roleinfo)
       signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                                metadata_filename)
   # non-partial write()
   else:
     if tuf.sig.verify(signable, rolename) and not roleinfo['partial_loaded']:
       metadata['version'] = metadata['version'] + 1
+      if rolename != 'snapshot':
+        print('write metadata: ' + rolename)
+        print(repr(tuf.roledb.get_rolenames()))
+        #roleinfo = tuf.roledb.get_roleinfo(rolename + METADATA_EXTENSION)
+        roleinfo = tuf.roledb.get_roleinfo(rolename)
+        tuf.roledb.update_roleinfo(rolename, roleinfo) 
+        #tuf.roledb.update_roleinfo(rolename + METADATA_EXTENSION, roleinfo) 
       signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                                metadata_filename)
   
@@ -1265,6 +1279,47 @@ def get_metadata_fileinfo(filename, custom=None):
 
 
 
+def get_metadata_versioninfo(rolename):
+  """
+  <Purpose>
+    Retrieve the version information of 'rolename'.  The object returned
+    conforms to 'tuf.formats.VERSIONINFO_SCHEMA'.  The information
+    generated for 'rolename' is stored in 'snapshot.json'.
+    The versioninfo object returned has the form:
+    
+    versioninfo = {'version': 14}
+
+  <Arguments>
+    rolename:
+      The metadata role whose version number is needed.  It must exist.
+
+  <Exceptions>
+    tuf.FormatError, if 'rolename' is improperly formatted.
+
+    tuf.UnknownRoleError, if 'rolename' does not exist.
+
+  <Side Effects>
+    None.
+  
+  <Returns>
+    A dictionary conformant to 'tuf.formats.VERSIONINFO_SCHEMA'.  This
+    dictionary contains the version  number of 'rolename'.
+  """
+  
+  # Does 'rolename' have the correct format?
+  # Ensure the arguments have the appropriate number of objects and object
+  # types, and that all dict keys are properly named.
+  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  
+  roleinfo = tuf.roledb.get_roleinfo(rolename) 
+   
+  versioninfo = {'version': roleinfo['version']}
+  
+  return versioninfo 
+
+
+
+
 
 def get_target_hash(target_filepath):
   """
@@ -1596,9 +1651,9 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
   # Retrieve the fileinfo of 'root.json' and 'targets.json'.  This file
   # information includes data such as file length, hashes of the file, etc.
-  filedict = {}
-  filedict[ROOT_FILENAME] = get_metadata_fileinfo(root_filename)
-  filedict[TARGETS_FILENAME] = get_metadata_fileinfo(targets_filename)
+  versiondict = {}
+  versiondict[ROOT_FILENAME] = get_metadata_versioninfo(root_filename)
+  versiondict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename)
 
   # Add compressed versions of the 'targets.json' and 'root.json' metadata,
   # if they exist.
@@ -1607,13 +1662,13 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     compressed_targets_filename = targets_filename+extension
     
     # If the compressed versions of the root and targets metadata is found,
-    # add their file attributes to 'filedict'.
+    # add their file attributes to 'versiondict'.
     if os.path.exists(compressed_root_filename):
-      filedict[ROOT_FILENAME+extension] = \
-        get_metadata_fileinfo(compressed_root_filename)
+      versiondict[ROOT_FILENAME+extension] = \
+        get_metadata_versioninfo(compressed_root_filename)
     if os.path.exists(compressed_targets_filename): 
-      filedict[TARGETS_FILENAME+extension] = \
-        get_metadata_fileinfo(compressed_targets_filename)
+      versiondict[TARGETS_FILENAME+extension] = \
+        get_metadata_versioninfo(compressed_targets_filename)
 
   # Walk the 'targets/' directory and generate the fileinfo of all the role
   # files found.  This information is stored in the 'meta' field of the snapshot
@@ -1643,12 +1698,12 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
             # Obsolete role files may still be found.  Ensure only roles loaded
             # in the roledb are included in the snapshot metadata.
             if tuf.roledb.role_exists(rolename):
-              filedict[metadata_name] = get_metadata_fileinfo(metadata_path)
+              versiondict[metadata_name] = get_metadata_versioninfo(rolename)
 
   # Generate the snapshot metadata object.
   snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,
-                                                           expiration_date,
-                                                           filedict)
+                                                             expiration_date,
+                                                             versiondict)
 
   return snapshot_metadata
 

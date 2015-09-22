@@ -255,7 +255,7 @@ ED25519KEY_SCHEMA = SCHEMA.Object(
   keyid = KEYID_SCHEMA,
   keyval = KEYVAL_SCHEMA)
 
-# Info that describes both metadata and target files.
+# Information that describes both metadata and target files.
 # This schema allows the storage of multiple hashes for the same file
 # (e.g., sha256 and sha512 may be computed for the same file and stored).
 FILEINFO_SCHEMA = SCHEMA.Object(
@@ -263,6 +263,21 @@ FILEINFO_SCHEMA = SCHEMA.Object(
   length = LENGTH_SCHEMA,
   hashes = HASHDICT_SCHEMA,
   custom = SCHEMA.Optional(SCHEMA.Object()))
+
+# Version information included in "snapshot.json" for each role available on
+# the TUF repository.  The 'FILEINFO_SCHEMA' object was previously listed in
+# the snapshot role, but was switched to this object format to reduce the
+# amount of metadata that needs to be downloaded.  Listing version numbers in
+# "snapshot.json" also prevents rollback attacks for roles that clients have
+# not downloaded. 
+VERSIONINFO_SCHEMA = SCHEMA.Object(
+  object_name = 'VERSIONINFO_SCHEMA',
+  version = METADATAVERSION_SCHEMA)
+
+#
+VERSIONDICT_SCHEMA = SCHEMA.DictOf(
+  key_schema = RELPATH_SCHEMA,
+  value_schema = VERSIONINFO_SCHEMA)
 
 # A dict holding the information for a particular file.  The keys hold the
 # relative file path and the values the relevant file information.
@@ -279,9 +294,9 @@ TARGETFILE_SCHEMA = SCHEMA.Object(
 # A list of TARGETFILE_SCHEMA.
 TARGETFILES_SCHEMA = SCHEMA.ListOf(TARGETFILE_SCHEMA)
 
-# A single signature of an object.  Indicates the signature, the id of the
+# A single signature of an object.  Indicates the signature, the ID of the
 # signing key, and the signing method.
-# I debated making the signature schema not contain the key id and instead have
+# I debated making the signature schema not contain the key ID and instead have
 # the signatures of a file be a dictionary with the key being the keyid and the
 # value being the signature schema without the keyid. That would be under
 # the argument that a key should only be able to sign a file once. However,
@@ -451,7 +466,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Snapshot'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
-  meta = FILEDICT_SCHEMA)
+  meta = VERSIONDICT_SCHEMA)
 
 # Timestamp role: indicates the latest version of the snapshot file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
@@ -630,11 +645,11 @@ class RootFile(MetaFile):
 
 
 class SnapshotFile(MetaFile):
-  def __init__(self, version, expires, filedict):
+  def __init__(self, version, expires, versiondict):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
-    self.info['meta'] = filedict
+    self.info['meta'] = versiondict
 
 
   @staticmethod
@@ -645,17 +660,17 @@ class SnapshotFile(MetaFile):
     
     version = object['version']
     expires = object['expires']
-    filedict = object['meta']
+    versiondict = object['meta']
     
-    return SnapshotFile(version, expires, filedict)
+    return SnapshotFile(version, expires, versiondict)
 
 
   @staticmethod
-  def make_metadata(version, expiration_date, filedict):
+  def make_metadata(version, expiration_date, versiondict):
     result = {'_type' : 'Snapshot'}
     result['version'] = version 
     result['expires'] = expiration_date
-    result['meta'] = filedict
+    result['meta'] = versiondict
 
     # Is 'result' a Snapshot metadata file?
     # Raise 'tuf.FormatError' if not.
