@@ -160,12 +160,10 @@ class Updater(object):
     self.metadata_directory:
       The directory where trusted metadata is stored.
       
-    self.fileinfo:
-      A cache of lengths and hashes of stored metadata files.
+    self.versioninfo:
+      A cache of version numbers of stored metadata files.
       
-      Example: {'root.json': {'length': 13323,
-                             'hashes': {'sha256': dbfac345..}},
-                ...}
+      Example: {'root.json': {'version': 128}, ...}
 
     self.mirrors:
       The repository mirrors from which metadata and targets are available.
@@ -299,10 +297,11 @@ class Updater(object):
     # Store the previously trusted/verified metadata.
     self.metadata['previous'] = {}
 
-    # Store the file information of all the metadata files.  The dict keys are
-    # paths, the dict values fileinfo data. This information can help determine
-    # whether a metadata file has changed and so needs to be re-downloaded.
-    self.fileinfo = {}
+    # Store the version numbers of all metadata files.  The dict keys are
+    # paths, the dict values versioninfo data. This information can help
+    # determine whether a metadata file has changed and so needs to be
+    # re-downloaded.
+    self.versioninfo = {}
     
     # Store the location of the client's metadata directory.
     self.metadata_directory = {}
@@ -1522,8 +1521,8 @@ class Updater(object):
 
     # Simply return if the file has not changed, according to the metadata
     # about the uncompressed file provided by the referenced metadata.
-    if not self._fileinfo_has_changed(uncompressed_metadata_filename,
-                                      uncompressed_fileinfo):
+    if not self._versioninfo_has_changed(uncompressed_metadata_filename,
+                                         uncompressed_fileinfo):
       logger.info(repr(uncompressed_metadata_filename)+' up-to-date.')
       
       return
@@ -1561,65 +1560,69 @@ class Updater(object):
 
 
 
-  def _fileinfo_has_changed(self, metadata_filename, new_fileinfo):
+  def _versioninfo_has_changed(self, metadata_filename, new_versioninfo):
     """
     <Purpose>
-      Non-public method that determines whether the current fileinfo of
-      'metadata_filename' differs from 'new_fileinfo'.  The 'new_fileinfo'
+      Non-public method that determines whether the current versioninfo of
+      'metadata_filename' differs from 'new_versioninfo'.  The 'new_versioninfo'
       argument should be extracted from the latest copy of the metadata that
       references 'metadata_filename'.  Example: 'root.json' would be referenced
       by 'snapshot.json'.
         
-      'new_fileinfo' should only be 'None' if this is for updating 'root.json'
-      without having 'snapshot.json' available.
+      'new_versioninfo' should only be 'None' if this is for updating
+      'root.json' without having 'snapshot.json' available.
 
     <Arguments>
       metadadata_filename:
         The metadata filename for the role.  For the 'root' role,
         'metadata_filename' would be 'root.json'.
 
-      new_fileinfo:
+      new_versioninfo:
         A dict object representing the new file information for
-        'metadata_filename'.  'new_fileinfo' may be 'None' when
+        'metadata_filename'.  'new_versioninfo' may be 'None' when
         updating 'root' without having 'snapshot' available.  This
-        dict conforms to 'tuf.formats.FILEINFO_SCHEMA' and has
+        dict conforms to 'tuf.formats.VERSIONINFO_SCHEMA' and has
         the form:
-        {'length': 23423
-         'hashes': {'sha256': adfbc32343..}}
+        
+        {'version': 288}
         
     <Exceptions>
       None.
 
     <Side Effects>
-      If there is no fileinfo currently loaded for 'metada_filename',
+      If there is no versioninfo currently loaded for 'metada_filename',
       try to load it.
 
     <Returns>
-      Boolean.  True if the fileinfo has changed, false otherwise.
+      Boolean.  True if the versioninfo has increased, false otherwise.
     """
-       
-    # If there is no fileinfo currently stored for 'metadata_filename',
-    # try to load the file, calculate the fileinfo, and store it.
-    if metadata_filename not in self.fileinfo:
-      self._update_fileinfo(metadata_filename)
+    
+    # If there is no versioninfo currently stored for 'metadata_filename',
+    # try to load the file, calculate the versioninfo, and store it.
+    if metadata_filename not in self.versioninfo:
+      self._update_versioninfo(metadata_filename)
 
-    # Return true if there is no fileinfo for 'metadata_filename'.
-    # 'metadata_filename' is not in the 'self.fileinfo' store
+    # Return true if there is no versioninfo for 'metadata_filename'.
+    # 'metadata_filename' is not in the 'self.versioninfo' store
     # and it doesn't exist in the 'current' metadata location.
-    if self.fileinfo[metadata_filename] is None:
+    if self.versioninfo[metadata_filename] is None:
       return True
 
-    current_fileinfo = self.fileinfo[metadata_filename]
+    current_versioninfo = self.versioninfo[metadata_filename]
 
-    if current_fileinfo['length'] != new_fileinfo['length']:
+    if new_versioninfo['version'] > current_versioninfo['version']:
       return True
+    
+    else:
+      return False
 
     # Now compare hashes. Note that the reason we can't just do a simple
-    # equality check on the fileinfo dicts is that we want to support the
+    # equality check on the versioninfo dicts is that we want to support the
     # case where the hash algorithms listed in the metadata have changed
     # without having that result in considering all files as needing to be
     # updated, or not all hash algorithms listed can be calculated on the
     # specific client.
+    """
     for algorithm, hash_value in six.iteritems(new_fileinfo['hashes']):
       # We're only looking for a single match. This isn't a security
       # check, we just want to prevent unnecessary downloads.
@@ -1628,18 +1631,18 @@ class Updater(object):
           return False
 
     return True
+    """
 
 
 
 
-
-  def _update_fileinfo(self, metadata_filename):
+  def _update_versioninfo(self, metadata_filename):
     """
     <Purpose>
-      Non-public method that updates the 'self.fileinfo' entry for the metadata
-      belonging to 'metadata_filename'.  If the 'current' metadata for
-      'metadata_filename' cannot be loaded, set its fileinfo' to 'None' to
-      signal that it is not in the 'self.fileinfo' AND it also doesn't exist
+      Non-public method that updates the 'self.versioninfo' entry for the
+      metadata belonging to 'metadata_filename'.  If the current metadata for
+      'metadata_filename' cannot be loaded, set its 'versioninfo' to 'None' to
+      signal that it is not in 'self.versioninfo' AND it also doesn't exist
       locally.
 
     <Arguments>
@@ -1651,30 +1654,31 @@ class Updater(object):
       None.
 
     <Side Effects>
-      The file details of 'metadata_filename' is calculated and
-      stored in 'self.fileinfo'.
+      The version number of 'metadata_filename' is calculated and
+      stored in its corresponding entry in 'self.versioninfo'.
 
     <Returns>
       None.
     """
         
     # In case we delayed loading the metadata and didn't do it in
-    # __init__ (such as with delegated metadata), then get the file
+    # __init__ (such as with delegated metadata), then get the version 
     # info now.
        
     # Save the path to the current metadata file for 'metadata_filename'.
     current_filepath = os.path.join(self.metadata_directory['current'],
                                     metadata_filename)
-    # If the path is invalid, simply return and leave fileinfo unset.
+    # If the path is invalid, simply return and leave versioninfo unset.
     if not os.path.exists(current_filepath):
-      self.fileinfo[metadata_filename] = None
+      self.versioninfo[metadata_filename] = None
       return
    
-    # Extract the file information from the actual file and save it
-    # to the fileinfo store.
-    file_length, hashes = tuf.util.get_file_details(current_filepath)
-    metadata_fileinfo = tuf.formats.make_fileinfo(file_length, hashes)
-    self.fileinfo[metadata_filename] = metadata_fileinfo
+    # Extract the version information from the trusted snapshot role and save
+    # it to the fileinfo store.
+    trusted_versioninfo = \
+      self.metadata['current']['snapshot']['meta'][metadata_filename]
+
+    self.versioninfo[metadata_filename] = trusted_versioninfo
   
  
 
