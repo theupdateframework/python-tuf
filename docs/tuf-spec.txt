@@ -277,7 +277,7 @@ Version 0.9
 
    To prevent an adversary from replaying an out-of-date signed metadata file
    whose signature has not yet expired, an automated process periodically signs
-   a timestamped statement containing the the hash of the snapshot file.  Even
+   a timestamped statement containing the hash of the snapshot file.  Even
    though this timestamp key must be kept online, the risk posed to clients by
    compromise of this key is minimal.
 
