@@ -1124,6 +1124,7 @@ class Updater(object):
        
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number.
+        print('metadata_signable: ' + repr(metadata_signable))
         version_downloaded = metadata_signable['signed']['version'] 
         if expected_version is None:
           if version_downloaded <= expected_version:
@@ -1153,7 +1154,7 @@ class Updater(object):
     
     else:
       logger.exception('Failed to update {0} from all mirrors: {1}'.format(
-                       filepath, file_mirror_errors))
+                       remote_filename, file_mirror_errors))
       raise tuf.NoWorkingMirrorError(file_mirror_errors)
 
 
@@ -1432,12 +1433,12 @@ class Updater(object):
     # "safe" targets.
    
     remote_filename = metadata_filename
-    
+    filename_version = ''
+
     if self.consistent_snapshot:
       filename_version = str(version)
-    
-    dirname, basename = os.path.split(remote_filename)
-    remote_filename = os.path.join(dirname, filename_digest + '.' + basename)
+      dirname, basename = os.path.split(remote_filename)
+      remote_filename = os.path.join(dirname, filename_version + '.' + basename)
     
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
@@ -1590,12 +1591,11 @@ class Updater(object):
     # untrusted data is not decompressed prior to verifying hashes, or
     # decompressing a file that may be invalid or partially intact.
     compression = None
-    compressed_fileinfo = None
 
-    # Extract the fileinfo of the uncompressed version of 'metadata_role'.
-    uncompressed_fileinfo = self.metadata['current'][referenced_metadata] \
-                                         ['meta'] \
-                                         [uncompressed_metadata_filename]
+    # Extract the versioninfo of the uncompressed version of 'metadata_role'.
+    expected_versioninfo = self.metadata['current'][referenced_metadata] \
+                                        ['meta'] \
+                                        [uncompressed_metadata_filename]
 
     # Check for the availability of compressed versions of 'snapshot.json',
     # 'targets.json', and delegated Targets (that also start with 'targets').
@@ -1607,8 +1607,6 @@ class Updater(object):
       if gzip_metadata_filename in self.metadata['current'] \
                                                 [referenced_metadata]['meta']:
         compression = 'gzip'
-        compressed_fileinfo = self.metadata['current'][referenced_metadata] \
-                                    ['meta'][gzip_metadata_filename]
         
         logger.debug('Compressed version of '+\
                      repr(uncompressed_metadata_filename)+' is available at '+\
@@ -1620,7 +1618,7 @@ class Updater(object):
     # Simply return if the file has not changed, according to the metadata
     # about the uncompressed file provided by the referenced metadata.
     if not self._versioninfo_has_changed(uncompressed_metadata_filename,
-                                         uncompressed_fileinfo):
+                                         expected_versioninfo):
       logger.info(repr(uncompressed_metadata_filename)+' up-to-date.')
       
       return
@@ -1628,9 +1626,24 @@ class Updater(object):
     logger.debug('Metadata '+repr(uncompressed_metadata_filename)+\
                  ' has changed.')
 
+    # The file lengths of metadata are unknown, only their version numbers
+    # known.  Set an upper limit to the length of the download for each
+    # expected role.  Note: The Timestamp role is not updated via this
+    # function.
+    if metadata_role == 'snapshot': 
+      upperbound_filelength = tuf.conf.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
+    
+    elif metadata_role == 'root':
+      upperbound_filelength = tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH
+      
+    # The metadata is considered Targets (or delegated Targets metadata).
+    else:
+      upperbound_filelength = tuf.conf.DEFAULT_TARGETS_REQUIRED_LENGTH
+    
     try:
-      self._update_metadata(metadata_role, uncompressed_fileinfo, compression,
-                            compressed_fileinfo)
+      self._update_metadata(metadata_role, upperbound_filelength,
+                            expected_versioninfo['version'], compression)
+
     except:
       # The current metadata we have is not current but we couldn't
       # get new metadata. We shouldn't use the old metadata anymore.
