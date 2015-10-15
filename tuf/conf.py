@@ -50,11 +50,20 @@ ssl_certificates = None
 # default but sane upper bound for the number of bytes required to download it.
 DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 16384 #bytes
 
-# The Root role may be updated without knowing its hash if top-level metadata
-# cannot be safely downloaded (e.g., keys may have been revoked, thus requiring
-# a new Root file that includes the updated keys).  Set a default upper bound
-# for the maximum total bytes that may be downloaded for Root metadata.
+# The Root role may be updated without knowing its version if top-level
+# metadata cannot be safely downloaded (e.g., keys may have been revoked, thus
+# requiring a new Root file that includes the updated keys).  Set a default
+# upper bound for the maximum total bytes that may be downloaded for Root
+# metadata.
 DEFAULT_ROOT_REQUIRED_LENGTH = 512000 #bytes
+
+# Set a default but sane upper bound for the number of bytes required to
+# download Snapshot metadata.
+DEFAULT_SNAPSHOT_REQUIRED_LENGTH = 2000000 #bytes 
+
+# Set a default but sane upper bound for the number of bytes required to
+# download Targets metadata.
+DEFAULT_TARGETS_REQUIRED_LENGTH = 5000000 #bytes 
 
 # Set a timeout value in seconds (float) for non-blocking socket operations.
 SOCKET_TIMEOUT = 2 #seconds

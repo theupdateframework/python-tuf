@@ -106,6 +106,13 @@ class BadHashError(Error):
 
 
 
+class BadVersionNumberError(Error):
+  """Indicate an error after fetching metadata that contains an invalid version"""
+
+
+
+
+
 class BadPasswordError(Error):
   """Indicate an error after encountering an invalid password."""
   pass

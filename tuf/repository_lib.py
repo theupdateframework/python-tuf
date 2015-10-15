@@ -179,20 +179,18 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     status = tuf.sig.get_signature_status(temp_signable, rolename)
     if len(status['good_sigs']) == 0:
       metadata['version'] = metadata['version'] + 1
-      if rolename != 'snapshot':
-        roleinfo = tuf.roledb.get_roleinfo(rolename)
-        roleinfo['version'] = roleinfo['version'] + 1
-        tuf.roledb.update_roleinfo(rolename, roleinfo)
+      roleinfo = tuf.roledb.get_roleinfo(rolename)
+      roleinfo['version'] = roleinfo['version'] + 1
+      tuf.roledb.update_roleinfo(rolename, roleinfo)
       signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                                metadata_filename)
   # non-partial write()
   else:
     if tuf.sig.verify(signable, rolename) and not roleinfo['partial_loaded']:
       metadata['version'] = metadata['version'] + 1
-      if rolename != 'snapshot':
-        roleinfo = tuf.roledb.get_roleinfo(rolename)
-        roleinfo['version'] = roleinfo['version'] + 1
-        tuf.roledb.update_roleinfo(rolename, roleinfo) 
+      roleinfo = tuf.roledb.get_roleinfo(rolename)
+      roleinfo['version'] = roleinfo['version'] + 1
+      tuf.roledb.update_roleinfo(rolename, roleinfo) 
       signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                                metadata_filename)
   
@@ -1751,13 +1749,16 @@ def generate_timestamp_metadata(snapshot_filename, version,
   tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
 
-  # Retrieve the fileinfo of the snapshot metadata file.
-  # This file information contains hashes, file length, custom data, etc.
-  fileinfo = {}
-  fileinfo[SNAPSHOT_FILENAME] = get_metadata_fileinfo(snapshot_filename)
+  # Retrieve the versioninfo of the Snapshot metadata file.
+  versioninfo = {}
+  versioninfo[SNAPSHOT_FILENAME] = get_metadata_versioninfo('snapshot')
 
-  # Save the fileinfo of the compressed versions of 'timestamp.json'
+  # Save the versioninfo of the compressed versions of 'timestamp.json'
   # in 'fileinfo'.  Log the files included in 'fileinfo'.
+  # TODO: Since version numbers are now stored, the version numbers of 
+  # compressed roles do not change and can thus be excluded.  Remove this
+  # after testing.
+  """
   for file_extension in compressions:
     if not len(file_extension):
       continue
@@ -1772,11 +1773,12 @@ def generate_timestamp_metadata(snapshot_filename, version,
     else:
       logger.info('Including fileinfo about ' + repr(compressed_filename))
       fileinfo[SNAPSHOT_FILENAME + '.' + file_extension] = compressed_fileinfo
+  """
 
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
                                                                expiration_date,
-                                                               fileinfo)
+                                                               versioninfo)
 
   return timestamp_metadata
 

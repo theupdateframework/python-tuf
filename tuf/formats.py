@@ -474,7 +474,7 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Timestamp'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
-  meta = FILEDICT_SCHEMA)
+  meta = VERSIONDICT_SCHEMA)
 
 # project.cfg file: stores information about the project in a json dictionary
 PROJECT_CFG_SCHEMA = SCHEMA.Object(
@@ -562,11 +562,11 @@ class MetaFile(object):
 
 
 class TimestampFile(MetaFile):
-  def __init__(self, version, expires, filedict):
+  def __init__(self, version, expires, versiondict):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
-    self.info['meta'] = filedict
+    self.info['meta'] = versiondict
 
 
   @staticmethod
@@ -577,17 +577,17 @@ class TimestampFile(MetaFile):
 
     version = object['version']
     expires = object['expires']
-    filedict = object['meta']
+    versiondict = object['meta']
     
-    return TimestampFile(version, expires, filedict)
+    return TimestampFile(version, expires, versiondict)
     
     
   @staticmethod
-  def make_metadata(version, expiration_date, filedict):
+  def make_metadata(version, expiration_date, versiondict):
     result = {'_type' : 'Timestamp'}
     result['version'] = version 
     result['expires'] = expiration_date
-    result['meta'] = filedict
+    result['meta'] = versiondict
 
     # Is 'result' a Timestamp metadata file?
     # Raise 'tuf.FormatError' if not.
@@ -1004,6 +1004,45 @@ def make_fileinfo(length, hashes, custom=None):
 
   return fileinfo
 
+
+
+
+
+
+def make_versioninfo(version_number):
+  """
+  <Purpose>
+    Create a dictionary conformant to 'VERSIONINFO_SCHEMA'.
+    This dict describes both metadata and target files.
+
+  <Arguments>
+    length:
+      An integer representing the size of the file.
+
+    hashes:
+      A dict of hashes in 'HASHDICT_SCHEMA' format, which has the form:
+       {'sha256': 123df8a9b12, 'sha512': 324324dfc121, ...}
+
+  <Exceptions>
+    tuf.FormatError, if the 'VERSIONINFO_SCHEMA' to be returned
+    does not have the correct format.
+
+  <Side Effects>
+    If any of the arguments are incorrectly formatted, the dict
+    returned will be checked for formatting errors, and if found,
+    will raise a 'tuf.FormatError' exception.
+
+  <Returns>
+    A dictionary conformant to 'VERSIONINFO_SCHEMA', ile
+    information of a metadata or target file.
+  """
+
+  versioninfo = {'version' : version_number}
+
+  # Raise 'tuf.FormatError' if 'versioninfo' is improperly formatted.
+  VERSIONINFO_SCHEMA.check_match(versioninfo)
+
+  return versioninfo
 
 
 
