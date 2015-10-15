@@ -349,33 +349,40 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_1__update_fileinfo(self):
+  def test_1__update_versioninfo(self):
     # Tests
-    # Verify that the 'self.fileinfo' dictionary is empty (its starts off empty
-    # and is only populated if _update_fileinfo() is called.
-    fileinfo_dict = self.repository_updater.fileinfo
-    self.assertEqual(len(fileinfo_dict), 0)
+    # Verify that the 'self.versioninfo' dictionary is empty (its starts off
+    # empty and is only populated if _update_versioninfo() is called.
+    versioninfo_dict = self.repository_updater.versioninfo
+    self.assertEqual(len(versioninfo_dict), 0)
 
-    # Load the fileinfo of the top-level root role.  This populates the
-    # 'self.fileinfo' dictionary.
-    self.repository_updater._update_fileinfo('root.json')
-    self.assertEqual(len(fileinfo_dict), 1)
-    self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
-    root_filepath = os.path.join(self.client_metadata_current, 'root.json')
-    length, hashes = tuf.util.get_file_details(root_filepath)
-    root_fileinfo = tuf.formats.make_fileinfo(length, hashes) 
-    self.assertTrue('root.json' in fileinfo_dict)
-    self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
+    # Load the versioninfo of the top-level Root role.  This action populates
+    # the 'self.versioninfo' dictionary.
+    self.repository_updater._update_versioninfo('root.json')
+    self.assertEqual(len(versioninfo_dict), 1)
+    self.assertTrue(tuf.formats.VERSIONDICT_SCHEMA.matches(versioninfo_dict))
+   
+    # The Snapshot role stores the version numbers of all the roles available
+    # on the repository.  Load Snapshot to extract root's version number
+    # and compare it against the one loaded by 'self.repository_updater'.
+    snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
+    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    root_versioninfo = snapshot_signable['signed']['meta']['root.json'] 
+   
+    # Verify that the manually loaded version number of root.json matches
+    # the one loaded by the updater object.
+    self.assertTrue('root.json' in versioninfo_dict)
+    self.assertEqual(versioninfo_dict['root.json'], root_versioninfo)
 
-    # Verify that 'self.fileinfo' is incremented if another role is updated.
-    self.repository_updater._update_fileinfo('targets.json')
-    self.assertEqual(len(fileinfo_dict), 2)
+    # Verify that 'self.versioninfo' is incremented if another role is updated.
+    self.repository_updater._update_versioninfo('targets.json')
+    self.assertEqual(len(versioninfo_dict), 2)
 
-    # Verify that 'self.fileinfo' is inremented if a non-existent role is
-    # requested, and has its fileinfo entry set to 'None'.
-    self.repository_updater._update_fileinfo('bad_role.json')
-    self.assertEqual(len(fileinfo_dict), 3)
-    self.assertEqual(fileinfo_dict['bad_role.json'], None) 
+    # Verify that 'self.versioninfo' is inremented if a non-existent role is
+    # requested, and has its versioninfo entry set to 'None'.
+    self.repository_updater._update_versioninfo('bad_role.json')
+    self.assertEqual(len(versioninfo_dict), 3)
+    self.assertEqual(versioninfo_dict['bad_role.json'], None) 
 
 
 
@@ -458,24 +465,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
 
 
-  def test_2__fileinfo_has_changed(self):
-    #  Verify that the method returns 'False' if file info was not changed.
-    root_filepath = os.path.join(self.client_metadata_current, 'root.json')
-    length, hashes = tuf.util.get_file_details(root_filepath)
-    root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
-    self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
-                                                           root_fileinfo))
+  def test_2__versioninfo_has_changed(self):
+    # Verify that the method returns 'False' if a versioninfo was not changed.
+    snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
+    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    root_versioninfo = snapshot_signable['signed']['meta']['root.json'] 
+    
+    self.assertFalse(self.repository_updater._versioninfo_has_changed('root.json',
+                                                           root_versioninfo))
 
-    # Verify that the method returns 'True' if length or hashes were changed.
-    new_length = 8
-    new_root_fileinfo = tuf.formats.make_fileinfo(new_length, hashes)
-    self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
-                                                           new_root_fileinfo))
-    # Hashes were changed.
-    new_hashes = {'sha256': self.random_string()}
-    new_root_fileinfo = tuf.formats.make_fileinfo(length, new_hashes)
-    self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
-                                                           new_root_fileinfo))
+    # Verify that the method returns 'True' if Root's version number changes.
+    root_versioninfo['version'] = 8 
+    self.assertTrue(self.repository_updater._versioninfo_has_changed('root.json',
+                                                           root_versioninfo))
+
 
 
 
