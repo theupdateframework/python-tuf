@@ -447,6 +447,7 @@ ROOT_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Root'),
   version = METADATAVERSION_SCHEMA,
   consistent_snapshot = BOOLEAN_SCHEMA,
+  compression_algorithms = COMPRESSIONS_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)
@@ -600,13 +601,15 @@ class TimestampFile(MetaFile):
 
 
 class RootFile(MetaFile):
-  def __init__(self, version, expires, keys, roles, consistent_snapshot):
+  def __init__(self, version, expires, keys, roles, consistent_snapshot,
+               compression_algorithms):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
     self.info['keys'] = keys
     self.info['roles'] = roles
     self.info['consistent_snapshot'] = consistent_snapshot
+    self.info['compression_algorithms'] = compression_algorithms
 
 
   @staticmethod
@@ -620,19 +623,22 @@ class RootFile(MetaFile):
     keys = object['keys']
     roles = object['roles']
     consistent_snapshot = object['consistent_snapshot']
+    compression_algorithms = object['compression_algorithms']
     
-    return RootFile(version, expires, keys, roles, consistent_snapshot)
+    return RootFile(version, expires, keys, roles, consistent_snapshot,
+                    compression_algorithms)
 
 
   @staticmethod
   def make_metadata(version, expiration_date, keydict, roledict,
-                    consistent_snapshot):
+                    consistent_snapshot, compression_algorithms):
     result = {'_type' : 'Root'}
     result['version'] = version
     result['expires'] = expiration_date
     result['keys'] = keydict
     result['roles'] = roledict
     result['consistent_snapshot'] = consistent_snapshot
+    result['compression_algorithms'] = compression_algorithms
     
     # Is 'result' a Root metadata file?
     # Raise 'tuf.FormatError' if not.

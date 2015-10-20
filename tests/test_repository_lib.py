@@ -50,6 +50,8 @@ import tuf.keydb
 import tuf.hash
 import tuf.repository_lib as repo_lib
 
+import tuf.repository_tool as repo_tool
+
 import six
 
 logger = logging.getLogger('tuf.test_repository_lib')
@@ -429,7 +431,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     expires = '1985-10-21T01:22:00Z'
 
     root_metadata = repo_lib.generate_root_metadata(1, expires,
-                                                     consistent_snapshot=False)
+                                                    consistent_snapshot=False)
     self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
 
     
@@ -547,7 +549,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
 
-  """
   def test_generate_snapshot_metadata(self):
     # Test normal case.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
@@ -557,21 +558,27 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     shutil.copytree(original_repository_path, repository_directory)
     metadata_directory = os.path.join(repository_directory,
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
+    targets_directory = os.path.join(repository_directory, repo_lib.TARGETS_DIRECTORY_NAME)
     root_filename = os.path.join(metadata_directory, repo_lib.ROOT_FILENAME)
     targets_filename = os.path.join(metadata_directory,
                                     repo_lib.TARGETS_FILENAME)
     version = 1
     expiration_date = '1985-10-21T13:20:00Z'
-  
-    # TODO:
+   
+
+    repository = repo_tool.Repository(repository_directory, metadata_directory,
+                                     targets_directory)
+   
+    repository_junk = repo_tool.load_repository(repository_directory)
+
     root_filename = 'root'
     targets_filename = 'targets'
     
     snapshot_metadata = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
-                                           expiration_date, root_filename,
-                                           targets_filename,
-                                           consistent_snapshot=False)
+                                          expiration_date, root_filename,
+                                          targets_filename,
+                                          consistent_snapshot=False)
     self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
 
 
@@ -594,7 +601,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(tuf.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, version, expiration_date,
                       root_filename, targets_filename, 3)
-  """
+
 
 
   def test_generate_timestamp_metadata(self):
@@ -613,21 +620,23 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     version = 1
     expiration_date = '1985-10-21T13:20:00Z'
 
-    compressions = ['gz']
+    compression_algorithms = ['gz']
 
     snapshot_metadata = \
       repo_lib.generate_timestamp_metadata(snapshot_filename, version,
-                                            expiration_date, compressions)
+                                           expiration_date,
+                                           compression_algorithms)
     self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(snapshot_metadata))
     
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
-                      3, version, expiration_date, compressions)
+                      3, version, expiration_date, compression_algorithms)
     self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
-                      snapshot_filename, '3', expiration_date, compressions)
+                      snapshot_filename, '3', expiration_date,
+                      compression_algorithms)
     self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
-                      snapshot_filename, version, '3', compressions)
+                      snapshot_filename, version, '3', compression_algorithms)
     self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
                       snapshot_filename, version, expiration_date, 3)
     self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
@@ -697,24 +706,31 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     root_signable = tuf.util.load_json_file(root_filename)
   
     output_filename = os.path.join(temporary_directory, 'root.json')
-    compressions = ['gz']
+    compression_algorithms = ['gz']
+    version_number = root_signable['signed']['version'] + 1
   
     self.assertFalse(os.path.exists(output_filename))
-    repo_lib.write_metadata_file(root_signable, output_filename, compressions,
-                                  consistent_snapshot=False)
+    repo_lib.write_metadata_file(root_signable, output_filename,
+                                 version_number,
+                                 compression_algorithms,
+                                 consistent_snapshot=False)
     self.assertTrue(os.path.exists(output_filename))
     self.assertTrue(os.path.exists(output_filename + '.gz'))
 
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
-                      3, output_filename, compressions, False)
+                      3, output_filename, version_number,
+                      compression_algorithms, False)
     self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
-                      root_signable, 3, compressions, False)
+                      root_signable, 3, version_number, compression_algorithms,
+                      False)
     self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
-                      root_signable, output_filename, 3, False)
+                      root_signable, output_filename, '3',
+                      compression_algorithms, False)
     self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
-                      root_signable, output_filename, compressions, 3)
+                      root_signable, output_filename, version_number,
+                      compression_algorithms, 3)
 
 
 

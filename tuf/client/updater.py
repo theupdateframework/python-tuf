@@ -1115,16 +1115,11 @@ class Updater(object):
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
 
-        # Verify that the version number is the version that was requested.
-        current_version = \
-          self.metadata['current'][metadata_role]['signed']['version']
-        
         metadata_signable = \
           tuf.util.load_json_string(file_object.read().decode('utf-8'))
        
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number.
-        print('metadata_signable: ' + repr(metadata_signable))
         version_downloaded = metadata_signable['signed']['version'] 
         if expected_version is None:
           if version_downloaded <= expected_version:
@@ -1132,7 +1127,9 @@ class Updater(object):
               'Downloaded version number: ' + repr(version_downloaded) + '.' \
               ' Version number MUST be greater than: ' + repr(expected_version)
             raise tuf.BadVersionNumberError(message) 
-        
+       
+        # Otherwise, verify that the downloaded version matches the version
+        # requested.
         else:
           if version_downloaded != expected_version:
             message = \
@@ -1436,9 +1433,9 @@ class Updater(object):
     filename_version = ''
 
     if self.consistent_snapshot:
-      filename_version = str(version)
+      filename_version = version
       dirname, basename = os.path.split(remote_filename)
-      remote_filename = os.path.join(dirname, filename_version + '.' + basename)
+      remote_filename = os.path.join(dirname, str(filename_version) + '.' + basename)
     
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
@@ -1490,7 +1487,7 @@ class Updater(object):
     logger.debug('Updated ' + repr(current_filepath) + '.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    self._update_fileinfo(uncompressed_metadata_filename)
+    self._update_versioninfo(uncompressed_metadata_filename)
 
     # Ensure the role and key information of the top-level roles is also updated
     # according to the newly-installed Root metadata.
@@ -1566,15 +1563,15 @@ class Updater(object):
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.  
     if referenced_metadata not in self.metadata['current']:
-      message = 'Cannot update '+repr(metadata_role)+' because ' \
-                +referenced_metadata+' is missing.'
+      message = 'Cannot update ' + repr(metadata_role) + ' because ' \
+                + referenced_metadata + ' is missing.'
       raise tuf.RepositoryError(message)
     
     # The referenced metadata has been loaded.  Extract the new
     # versioninfo for 'metadata_role' from it. 
     else:
-      message = repr(metadata_role)+' referenced in '+\
-        repr(referenced_metadata)+'.  '+repr(metadata_role)+' may be updated.'
+      message = repr(metadata_role) + ' referenced in ' +\
+        repr(referenced_metadata)+ '.  ' + repr(metadata_role)+' may be updated.'
       logger.debug(message)
     
     # There might be a compressed version of 'snapshot.json' or Targets
@@ -1601,29 +1598,28 @@ class Updater(object):
     # 'targets.json', and delegated Targets (that also start with 'targets').
     # For 'targets.json' and delegated metadata, 'referenced_metata'
     # should always be 'snapshot'.  'snapshot.json' specifies all roles
-    # provided by a repository, including their file lengths and hashes.
+    # provided by a repository, including their version numbers.
     if metadata_role == 'snapshot' or metadata_role.startswith('targets'):
       gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
-      if gzip_metadata_filename in self.metadata['current'] \
-                                                [referenced_metadata]['meta']:
+      if 'gzip' in self.metadata['current']['root']['compression_algorithms']:
         compression = 'gzip'
         
-        logger.debug('Compressed version of '+\
-                     repr(uncompressed_metadata_filename)+' is available at '+\
-                     repr(gzip_metadata_filename)+'.')
+        logger.debug('Compressed version of ' + \
+                repr(uncompressed_metadata_filename) + ' is available at ' + \
+                repr(gzip_metadata_filename) + '.')
       else:
-        logger.debug('Compressed version of '+\
-                     repr(uncompressed_metadata_filename)+' not available.')
+        logger.debug('Compressed version of ' + \
+                     repr(uncompressed_metadata_filename) + ' not available.')
 
     # Simply return if the file has not changed, according to the metadata
     # about the uncompressed file provided by the referenced metadata.
     if not self._versioninfo_has_changed(uncompressed_metadata_filename,
                                          expected_versioninfo):
-      logger.info(repr(uncompressed_metadata_filename)+' up-to-date.')
+      logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
       
       return
 
-    logger.debug('Metadata '+repr(uncompressed_metadata_filename)+\
+    logger.debug('Metadata ' + repr(uncompressed_metadata_filename) + \
                  ' has changed.')
 
     # The file lengths of metadata are unknown, only their version numbers
@@ -1785,9 +1781,18 @@ class Updater(object):
       return
    
     # Extract the version information from the trusted snapshot role and save
-    # it to the fileinfo store.
-    trusted_versioninfo = \
-      self.metadata['current']['snapshot']['meta'][metadata_filename]
+    # it to the versioninfo store.
+    if metadata_filename == 'timestamp.json':
+      trusted_versioninfo = \
+        self.metadata['current']['timestamp']['version']
+
+    elif metadata_filename == 'snapshot.json':
+      trusted_versioninfo = \
+        self.metadata['current']['timestamp']['meta']['snapshot.json']
+      
+    else:
+      trusted_versioninfo = \
+        self.metadata['current']['snapshot']['meta'][metadata_filename]
 
     self.versioninfo[metadata_filename] = trusted_versioninfo
   

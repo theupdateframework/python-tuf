@@ -546,21 +546,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # This is the default metadata that we would create for the timestamp role,
     # because it has no signed metadata for itself.
-    DEFAULT_TIMESTAMP_FILEINFO = {
-    'hashes': {},
-    'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
-    }
+    DEFAULT_TIMESTAMP_FILELENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
    
-    # Save the fileinfo of 'targets.json' and 'targets.json.gz', needed later
-    # when re-installing with _update_metadata().
-    targets_fileinfo = \
+    # Save the versioninfo of 'targets.json,' needed later when re-installing
+    # with _update_metadata().
+    targets_versioninfo = \
       self.repository_updater.metadata['current']['snapshot']['meta']\
                                       ['targets.json']
-    targets_compressed_fileinfo = \
-      self.repository_updater.metadata['current']['snapshot']['meta']\
-                                      ['targets.json.gz']
    
-    # Remove the currently installed metadata from the store, and disk.  Verify
+    # Remove the currently installed metadata from the store and disk.  Verify
     # that the metadata dictionary is re-populated after calling
     # _update_metadata().
     self.repository_updater.metadata['current'].clear()
@@ -575,16 +569,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify 'timestamp.json' is properly installed.
     self.assertFalse('timestamp' in self.repository_updater.metadata)
     self.repository_updater._update_metadata('timestamp',
-                                             DEFAULT_TIMESTAMP_FILEINFO)
+                                             DEFAULT_TIMESTAMP_FILELENGTH)
     self.assertTrue('timestamp' in self.repository_updater.metadata['current'])
     os.path.exists(timestamp_filepath)
   
     # Verify 'targets.json' is properly installed.
     self.assertFalse('targets' in self.repository_updater.metadata['current'])
-    self.repository_updater._update_metadata('targets', targets_fileinfo)
+    self.repository_updater._update_metadata('targets', targets_versioninfo)
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
-    length, hashes = tuf.util.get_file_details(targets_filepath)
-    self.assertEqual(targets_fileinfo, tuf.formats.make_fileinfo(length, hashes))
+   
+    targets_signable = tuf.util.load_json_file(targets_filepath)
+    loaded_targets_version = targets_signable['signed']['version']
+    self.assertEqual(targets_versioninfo['version'], loaded_targets_version)
     
     # Remove the 'targets.json' metadata so that the compressed version may be
     # tested next.
@@ -676,12 +672,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Update 'targets.json' and verify that the client's current 'targets.json'
     # has been updated.  'timestamp' and 'snapshot' must be manually updated
     # so that new 'targets' may be recognized.
-    DEFAULT_TIMESTAMP_FILEINFO = {
-    'hashes': {},
-    'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
-    }
+    DEFAULT_TIMESTAMP_FILELENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
-    self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+    self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILELENGTH)
     self.repository_updater._update_metadata_if_changed('snapshot', 'timestamp')
     self.repository_updater._update_metadata_if_changed('targets')
     targets_path = os.path.join(self.client_metadata_current, 'targets.json')

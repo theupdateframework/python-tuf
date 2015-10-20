@@ -178,7 +178,8 @@ class Repository(object):
 
 
 
-  def write(self, write_partial=False, consistent_snapshot=False):
+  def write(self, write_partial=False, consistent_snapshot=False,
+            compressions=['gz']):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files.
@@ -200,6 +201,11 @@ class Repository(object):
         <digest>.targets.json.gz, <digest>.README.json, where <digest> is the
         file's SHA256 digest.  Example:
         1f4e35a60c8f96d439e27e858ce2869c770c1cdd54e1ef76657ceaaf01da18a3.root.json'
+      
+      compressions:
+        A list of compression algorithms.  Each of these algorithms will be
+        used to compress all of the metadata available on the repository.
+        By default, all metadata is compressed with gzip.
         
     <Exceptions>
       tuf.UnsignedMetadataError, if any of the top-level and delegated roles do
@@ -217,7 +223,9 @@ class Repository(object):
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.BOOLEAN_SCHEMA.check_match(write_partial)
-    tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot) 
+    tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+    tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
+    
     
     # At this point the tuf.keydb and tuf.roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.UnsignedMetadataError'
@@ -263,7 +271,7 @@ class Repository(object):
       repo_lib._generate_and_write_metadata('root', root_filename, write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
-                                            consistent_snapshot)
+                                            consistent_snapshot, compressions)
 
     # Generate the 'targets.json' metadata file.
     targets_filename = repo_lib.TARGETS_FILENAME
@@ -2726,11 +2734,11 @@ def load_repository(repository_directory):
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
 
-        # Strip the digest if 'consistent_snapshot' is True.
-        # Example:  'targets/unclaimed/13df98ab0.django.json' -->
+        # Strip the version number if 'consistent_snapshot' is True.
+        # Example:  'targets/unclaimed/10.django.json' -->
         # 'targets/unclaimed/django.json'
-        metadata_name, digest_junk = \
-          repo_lib._strip_consistent_snapshot_digest(metadata_name,
+        metadata_name, version_number_junk = \
+          repo_lib._strip_consistent_snapshot_version_number(metadata_name,
                                                      consistent_snapshot)
 
         if metadata_name.endswith(METADATA_EXTENSION): 
