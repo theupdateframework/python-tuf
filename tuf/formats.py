@@ -255,16 +255,16 @@ ED25519KEY_SCHEMA = SCHEMA.Object(
   keyid = KEYID_SCHEMA,
   keyval = KEYVAL_SCHEMA)
 
-# Information that describes both metadata and target files.
-# This schema allows the storage of multiple hashes for the same file
-# (e.g., sha256 and sha512 may be computed for the same file and stored).
+# Information about target files, like file length and file hash(es).  This
+# schema allows the storage of multiple hashes for the same file (e.g., sha256
+# and sha512 may be computed for the same file and stored).
 FILEINFO_SCHEMA = SCHEMA.Object(
   object_name = 'FILEINFO_SCHEMA',
   length = LENGTH_SCHEMA,
   hashes = HASHDICT_SCHEMA,
   custom = SCHEMA.Optional(SCHEMA.Object()))
 
-# Version information included in "snapshot.json" for each role available on
+# Version information specified in "snapshot.json" for each role available on
 # the TUF repository.  The 'FILEINFO_SCHEMA' object was previously listed in
 # the snapshot role, but was switched to this object format to reduce the
 # amount of metadata that needs to be downloaded.  Listing version numbers in
@@ -274,13 +274,16 @@ VERSIONINFO_SCHEMA = SCHEMA.Object(
   object_name = 'VERSIONINFO_SCHEMA',
   version = METADATAVERSION_SCHEMA)
 
-#
+# A dict holding the version information for a particular metadata role.  The
+# dict keys hold the relative file paths, and the dict values the corresponding
+# version numbers.
 VERSIONDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
   value_schema = VERSIONINFO_SCHEMA)
 
-# A dict holding the information for a particular file.  The keys hold the
-# relative file path and the values the relevant file information.
+# A dict holding the information for a particular target / file.  The dict keys
+# hold the relative file paths, and the dict values the corresponding file
+# information.
 FILEDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
   value_schema = FILEINFO_SCHEMA)
@@ -1014,20 +1017,17 @@ def make_fileinfo(length, hashes, custom=None):
 
 
 
-
 def make_versioninfo(version_number):
   """
   <Purpose>
-    Create a dictionary conformant to 'VERSIONINFO_SCHEMA'.
-    This dict describes both metadata and target files.
+    Create a dictionary conformant to 'VERSIONINFO_SCHEMA'.  This dict
+    describes both metadata and target files.
 
   <Arguments>
-    length:
-      An integer representing the size of the file.
-
-    hashes:
-      A dict of hashes in 'HASHDICT_SCHEMA' format, which has the form:
-       {'sha256': 123df8a9b12, 'sha512': 324324dfc121, ...}
+    version_number:
+      An integer representing the version of a particular metadata role.
+      The dictionary returned by this function is expected to be included
+      in Snapshot metadata.
 
   <Exceptions>
     tuf.FormatError, if the 'VERSIONINFO_SCHEMA' to be returned
@@ -1039,8 +1039,8 @@ def make_versioninfo(version_number):
     will raise a 'tuf.FormatError' exception.
 
   <Returns>
-    A dictionary conformant to 'VERSIONINFO_SCHEMA', ile
-    information of a metadata or target file.
+    A dictionary conformant to 'VERSIONINFO_SCHEMA', containing the version
+    information of a metadata role.
   """
 
   versioninfo = {'version' : version_number}
