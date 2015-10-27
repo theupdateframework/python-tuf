@@ -107,7 +107,7 @@ class BadHashError(Error):
 
 
 class BadVersionNumberError(Error):
-  """Indicate an error after fetching metadata that contains an invalid version"""
+  """Indicate an error for metadata that contains an invalid version number."""
 
 
 
