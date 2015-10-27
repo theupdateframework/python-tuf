@@ -57,11 +57,11 @@ DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 16384 #bytes
 # metadata.
 DEFAULT_ROOT_REQUIRED_LENGTH = 512000 #bytes
 
-# Set a default but sane upper bound for the number of bytes required to
+# Set a default, but sane, upper bound for the number of bytes required to
 # download Snapshot metadata.
 DEFAULT_SNAPSHOT_REQUIRED_LENGTH = 2000000 #bytes 
 
-# Set a default but sane upper bound for the number of bytes required to
+# Set a default, but sane, upper bound for the number of bytes required to
 # download Targets metadata.
 DEFAULT_TARGETS_REQUIRED_LENGTH = 5000000 #bytes 
 
