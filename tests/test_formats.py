@@ -360,7 +360,7 @@ class TestFormats(unittest.TestCase):
     bad_expires = 'eight'
     bad_keydict = 123
     bad_roledict = 123
-    bad_compression_algorithms = 'nozip'
+    bad_compression_algorithms = ['nozip']
 
     self.assertRaises(tuf.FormatError, make_metadata, bad_version,
                                                       expires,
