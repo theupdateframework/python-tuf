@@ -197,10 +197,10 @@ class Repository(object):
 
       consistent_snapshot:
         A boolean indicating whether written metadata and target files should
-        include a digest in the filename (i.e., <digest>.root.json,
-        <digest>.targets.json.gz, <digest>.README.json, where <digest> is the
-        file's SHA256 digest.  Example:
-        1f4e35a60c8f96d439e27e858ce2869c770c1cdd54e1ef76657ceaaf01da18a3.root.json'
+        include a version number in the filename (i.e.,
+        <version_number>.root.json, <version_number>.targets.json.gz,
+        <version_number>.README.json, where <version_number> is the file's
+        SHA256 digest.  Example: 13.root.json'
       
       compressions:
         A list of compression algorithms.  Each of these algorithms will be
@@ -271,7 +271,7 @@ class Repository(object):
       repo_lib._generate_and_write_metadata('root', root_filename, write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
-                                            consistent_snapshot, compressions)
+                                            consistent_snapshot)
 
     # Generate the 'targets.json' metadata file.
     targets_filename = repo_lib.TARGETS_FILENAME
@@ -2704,9 +2704,9 @@ def load_repository(repository_directory):
   
   filenames = repo_lib.get_metadata_filenames(metadata_directory)
 
-  # The Root file is always available without a consistent snapshots digest
-  # attached to the filename.  Store the 'consistent_snapshot' value read the
-  # loaded Root file so that other metadata files may be located.
+  # The Root file is always available without a consistent snapshots version
+  # number attached to the filename.  Store the 'consistent_snapshot' value
+  # read the loaded Root file so that other metadata files may be located.
   # 'consistent_snapshot' value. 
   consistent_snapshot = False
 
@@ -2747,10 +2747,10 @@ def load_repository(repository_directory):
         
         else:
           continue
-        
+       
         # Keep a store metadata previously loaded metadata to prevent
         # re-loading duplicate versions.  Duplicate versions may occur with
-        # consistent_snapshot, where the same metadata may be available in
+        # 'consistent_snapshot', where the same metadata may be available in
         # multiples files (the different hash is included in each filename.
         if metadata_name in loaded_metadata:
           continue
@@ -2766,6 +2766,8 @@ def load_repository(repository_directory):
      
         # Extract the metadata attributes 'metadata_name' and update its
         # corresponding roleinfo.
+        # TODO: Test for detection of the Targets role. 
+        
         roleinfo = tuf.roledb.get_roleinfo(metadata_name)
         roleinfo['signatures'].extend(signable['signatures'])
         roleinfo['version'] = metadata_object['version']

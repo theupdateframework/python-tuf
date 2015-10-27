@@ -223,7 +223,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.BadHashError))
+        self.assertTrue(isinstance(mirror_error, tuf.ForbiddenTargetError))
 
     else:
       self.fail('TUF did not prevent an extraneous dependencies attack.')

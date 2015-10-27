@@ -921,10 +921,13 @@ class Updater(object):
     # Is 'metadata_signable' expired?
     self._ensure_not_expired(metadata_signable['signed'], metadata_role)
     
+    """
+
     # Is 'metadata_signable' newer than the currently installed
     # version?
     current_metadata_role = self.metadata['current'].get(metadata_role)
 
+      
     # Compare metadata version numbers.  Ensure there is a current
     # version of the metadata role to be updated.
     if current_metadata_role is not None:
@@ -933,6 +936,12 @@ class Updater(object):
       if downloaded_version < current_version:
         raise tuf.ReplayedMetadataError(metadata_role, downloaded_version,
                                         current_version)
+      else:
+        logger.info('current_version >= downloaded_version')
+        
+    else:
+      logger.info('current_metadata_role is None')
+    """
 
     # Reject the metadata if any specified targets are not allowed.
     # 'tuf.ForbiddenTargetError' raised if any of the targets of 'metadata_role'
@@ -1114,29 +1123,44 @@ class Updater(object):
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
-
         metadata_signable = \
           tuf.util.load_json_string(file_object.read().decode('utf-8'))
        
         # If the version number is unspecified, ensure that the version number
-        # downloaded is greater than the currently trusted version number.
+        # downloaded is greater than the currently trusted version number for
+        # 'metadata_role'.
         version_downloaded = metadata_signable['signed']['version'] 
-        if expected_version is None:
-          if version_downloaded <= expected_version:
-            message = \
-              'Downloaded version number: ' + repr(version_downloaded) + '.' \
-              ' Version number MUST be greater than: ' + repr(expected_version)
-            raise tuf.BadVersionNumberError(message) 
-       
-        # Otherwise, verify that the downloaded version matches the version
-        # requested.
-        else:
+        
+        if expected_version is not None:
+          # Verify that the downloaded version matches the version expected by
+          # the caller.
           if version_downloaded != expected_version:
             message = \
               'Downloaded version number: ' + repr(version_downloaded) + '.' \
               ' Version number MUST be: ' + repr(expected_version)
             raise tuf.BadVersionNumberError(message) 
-  
+         
+        # The caller does not know which version to download.  Verify that the
+        # downloaded version is at least greater than the one locally available.
+        else:
+          # Verify that the version number of the locally stored
+          # 'timestamp.json', if available, is less than what was downloaded.
+          # Otherwise, accept the new timestamp with version number
+          # 'version_downloaded'.
+          logger.info('metadata_role: ' + repr(metadata_role)) 
+          try:
+            current_version = \
+              self.metadata['current'][metadata_role]['version']
+              
+            if version_downloaded < current_version:
+              raise tuf.ReplayedMetadataError(metadata_role, version_downloaded,
+                                              current_version)
+          
+          except KeyError:
+            logger.info(metadata_role + ' not available locally.')
+
+        self._verify_uncompressed_metadata_file(file_object, metadata_role)
+
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
         logger.exception('Update failed from ' + file_mirror + '.')
@@ -1436,7 +1460,8 @@ class Updater(object):
       filename_version = version
       dirname, basename = os.path.split(remote_filename)
       remote_filename = os.path.join(dirname, str(filename_version) + '.' + basename)
-    
+   
+    logger.info('Verifying ' + repr(metadata_role) + ' requesting version: ' + repr(version))
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
                               upperbound_filelength, version, compression)
@@ -1703,7 +1728,7 @@ class Updater(object):
     <Returns>
       Boolean.  True if the versioninfo has increased, false otherwise.
     """
-    
+   
     # If there is no versioninfo currently stored for 'metadata_filename',
     # try to load the file, calculate the versioninfo, and store it.
     if metadata_filename not in self.versioninfo:
@@ -1786,13 +1811,36 @@ class Updater(object):
       trusted_versioninfo = \
         self.metadata['current']['timestamp']['version']
 
+    # When updating snapshot.json, the client either (1) has a copy of
+    # snapshot.json, or (2) in the process of obtaining it by first downloading
+    # timestamp.json.  Note: Clients may have only root.json and perform a
+    # refresh of top-level metadata to obtain the remaining roles.
     elif metadata_filename == 'snapshot.json':
-      trusted_versioninfo = \
-        self.metadata['current']['timestamp']['meta']['snapshot.json']
+      
+      # Verify the version number of the currently trusted snapshot.json in
+      # snapshot.json itself.  Checking the version number specified in
+      # timestamp.json may be greater than the version specified in the
+      # client's copy of snapshot.json.
+      try:
+        timestamp_version_number = self.metadata['current']['snapshot']['version']
+        trusted_versioninfo = tuf.formats.make_versioninfo(timestamp_version_number)
+      
+      except KeyError:
+        trusted_versioninfo = \
+          self.metadata['current']['timestamp']['meta']['snapshot.json']
       
     else:
-      trusted_versioninfo = \
-        self.metadata['current']['snapshot']['meta'][metadata_filename]
+      
+      try:
+        # The metadata file names in 'self.metadata' exclude the role
+        # extension.  Strip the '.json' extension when checking if
+        # 'metadata_filename' currently exists.
+        targets_version_number = self.metadata['current'][metadata_filename[:-len('.json')]]['version']
+        trusted_versioninfo = tuf.formats.make_versioninfo(targets_version_number)
+      
+      except KeyError:
+        trusted_versioninfo = \
+          self.metadata['current']['snapshot']['meta'][metadata_filenamed]
 
     self.versioninfo[metadata_filename] = trusted_versioninfo
   
@@ -2841,20 +2889,15 @@ class Updater(object):
                                target_filepath.lstrip(os.sep))
     destination = os.path.abspath(destination)
     target_dirpath = os.path.dirname(destination)
-    if target_dirpath:
-      try:
-        os.makedirs(target_dirpath)
-      
-      except OSError as e:
-        if e.errno == errno.EEXIST:
-          pass
-        
-        else:
-          raise
     
-    else:
-      message = repr(target_dirpath) + ' does not exist.'
-      logger.warning(message)
-      raise tuf.Error(message)
+    try:
+      os.makedirs(target_dirpath)
+    
+    except OSError as e:
+      if e.errno == errno.EEXIST:
+        pass
+      
+      else:
+        raise
 
     target_file_object.move(destination)

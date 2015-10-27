@@ -547,7 +547,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # This is the default metadata that we would create for the timestamp role,
     # because it has no signed metadata for itself.
     DEFAULT_TIMESTAMP_FILELENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
-   
+ 
+    # This is the the upper bound length for Targets metadata.
+    DEFAULT_TARGETS_FILELENGTH = tuf.conf.DEFAULT_TARGETS_REQUIRED_LENGTH
+
     # Save the versioninfo of 'targets.json,' needed later when re-installing
     # with _update_metadata().
     targets_versioninfo = \
@@ -557,7 +560,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Remove the currently installed metadata from the store and disk.  Verify
     # that the metadata dictionary is re-populated after calling
     # _update_metadata().
-    self.repository_updater.metadata['current'].clear()
+    del self.repository_updater.metadata['current']['timestamp']
+    del self.repository_updater.metadata['current']['targets']
+    
     timestamp_filepath = \
       os.path.join(self.client_metadata_current, 'timestamp.json')
     targets_filepath = os.path.join(self.client_metadata_current, 'targets.json')
@@ -575,7 +580,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   
     # Verify 'targets.json' is properly installed.
     self.assertFalse('targets' in self.repository_updater.metadata['current'])
-    self.repository_updater._update_metadata('targets', targets_versioninfo)
+    self.repository_updater._update_metadata('targets',
+                                DEFAULT_TARGETS_FILELENGTH,
+                                targets_versioninfo['version'])
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
    
     targets_signable = tuf.util.load_json_file(targets_filepath)
@@ -590,45 +597,47 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify 'targets.json.gz' is properly intalled.  Note: The uncompressed
     # version is installed if the compressed one is downloaded.
     self.assertFalse('targets' in self.repository_updater.metadata['current'])
-    self.repository_updater._update_metadata('targets', targets_fileinfo, 'gzip',
-                                             targets_compressed_fileinfo)
+    self.repository_updater._update_metadata('targets',
+                                             DEFAULT_TARGETS_FILELENGTH,
+                                             targets_versioninfo['version'],                                          
+                                             'gzip')
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
-    length, hashes = tuf.util.get_file_details(targets_filepath)
-    self.assertEqual(targets_fileinfo, tuf.formats.make_fileinfo(length, hashes))
+    self.assertEqual(targets_versioninfo['version'],
+              self.repository_updater.metadata['current']['targets']['version'])
     
-    # Test: Invalid fileinfo.
-    # Invalid fileinfo for the uncompressed version of 'targets.json'.
+    # Test: Invalid version numbers.
+    # Invalid version number for the uncompressed version of 'targets.json'.
     self.assertRaises(tuf.NoWorkingMirrorError,
                       self.repository_updater._update_metadata,
-                      'targets', targets_compressed_fileinfo)
+                      'targets', DEFAULT_TARGETS_FILELENGTH, 88)
     
     # Verify that the specific exception raised is correct for the previous
     # case.
     try:
       self.repository_updater._update_metadata('targets',
-                                               targets_compressed_fileinfo)
+                                               DEFAULT_TARGETS_FILELENGTH, 88)
     
     except tuf.NoWorkingMirrorError as e:
       for mirror_error in six.itervalues(e.mirror_errors):
-        assert isinstance(mirror_error, tuf.BadHashError)
+        assert isinstance(mirror_error, tuf.BadVersionNumberError)
     
-    # Invalid fileinfo for the compressed version of 'targets.json' 
+    # Invalid version number for the compressed version of 'targets.json' 
     self.assertRaises(tuf.NoWorkingMirrorError,
                       self.repository_updater._update_metadata,
-                      'targets', targets_compressed_fileinfo, 'gzip',
-                      targets_fileinfo)
+                      'targets', DEFAULT_TARGETS_FILELENGTH, 88,
+                      'gzip')
     
     # Verify that the specific exception raised is correct for the previous
-    # case.  The length is checked before the hashes, so the specific error in
+    # case.  The version number is checked before the hashes, so the specific error in
     # this case should be 'tuf.DownloadLengthMismatchError'.
     try:
       self.repository_updater._update_metadata('targets',
-                                               targets_compressed_fileinfo,
-                                               'gzip', targets_fileinfo)
+                                               DEFAULT_TARGETS_FILELENGTH,
+                                               88, 'gzip')
     
     except tuf.NoWorkingMirrorError as e:
       for mirror_error in six.itervalues(e.mirror_errors):
-        assert isinstance(mirror_error, tuf.DownloadLengthMismatchError)
+        assert isinstance(mirror_error, tuf.BadVersionNumberError)
 
 
 
@@ -652,7 +661,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify the current version of 'targets.json' has not changed.
     self.assertEqual(self.repository_updater.metadata['current']['targets']['version'], 1)
 
-
     # Modify one target file on the remote repository.
     repository = repo_tool.load_repository(self.repository_directory)
     target3 = os.path.join(self.repository_directory, 'targets', 'file3.txt')
@@ -668,12 +676,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
-
     # Update 'targets.json' and verify that the client's current 'targets.json'
     # has been updated.  'timestamp' and 'snapshot' must be manually updated
     # so that new 'targets' may be recognized.
     DEFAULT_TIMESTAMP_FILELENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
+    logger.info('Attempting to increment targets to version 2...')
     self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILELENGTH)
     self.repository_updater._update_metadata_if_changed('snapshot', 'timestamp')
     self.repository_updater._update_metadata_if_changed('targets')
@@ -1013,68 +1021,65 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     target_filepaths = \
       list(self.repository_updater.metadata['current']['targets']['targets'].keys())
 
-
     # Test: normal case.
     # Get the target info, which is an argument to 'download_target()'.
-    for target_filepath in target_filepaths:
-      target_fileinfo = self.repository_updater.target(target_filepath)
-      self.repository_updater.download_target(target_fileinfo,
-                                              destination_directory)
+   
+    # 'target_filepaths' is expected to have at least two targets.  The first
+    # target will be used to test against download_target().  The second
+    # will be used to test against download_target() and a repository with
+    # consistent snapshots.
+    target_filepath1 = target_filepaths.pop()
+    target_fileinfo = self.repository_updater.target(target_filepath1)
+    self.repository_updater.download_target(target_fileinfo,
+                                            destination_directory)
 
-      download_filepath = \
-        os.path.join(destination_directory, target_filepath.lstrip('/'))
-      self.assertTrue(os.path.exists(download_filepath))
-      length, hashes = tuf.util.get_file_details(download_filepath)
-      download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
+    download_filepath = \
+      os.path.join(destination_directory, target_filepath1.lstrip('/'))
+    self.assertTrue(os.path.exists(download_filepath))
+    length, hashes = tuf.util.get_file_details(download_filepath)
+    download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
+   
+    # Add any 'custom' data from the repository's target fileinfo to the
+    # 'download_targetfileinfo' object being tested.
+    if 'custom' in target_fileinfo['fileinfo']: 
+      download_targetfileinfo['custom'] = target_fileinfo['fileinfo']['custom']
+    self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
+
+    # Test when consistent snapshots is set.  First, create a valid
+    # repository with consistent snapshots set (root.json contains a
+    # "consistent_snapshot" entry that the updater uses to correctly fetch
+    # snapshots.  The updater expects the existence of
+    # <version_number>.filename files if root.json sets 'consistent_snapshot
+    # = True'.
+    
+    # The repository must be rewritten with consistent snapshots set.
+    repository = repo_tool.load_repository(self.repository_directory)
+   
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
      
-      # Add any 'custom' data from the repository's target fileinfo to the
-      # 'download_targetfileinfo' object being tested.
-      if 'custom' in target_fileinfo['fileinfo']: 
-        download_targetfileinfo['custom'] = target_fileinfo['fileinfo']['custom']
-      self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
-     
-      # Test when consistent snapshots is set.  First, create a valid
-      # repository with consistent snapshots set (root.json contains a
-      # "consistent_snapshots" entry that the updater uses to correctly fetch
-      # snapshots.  The updater expects the existence of <hash>.filename files
-      # if root.json sets 'consistent_snapshot = True'.
-      
-      # The repository must be rewritten with consistent snapshots set.
-      repository = repo_tool.load_repository(self.repository_directory)
-     
-      repository.root.load_signing_key(self.role_keys['root']['private'])
-      repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
-      repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-      repository.write(consistent_snapshot=True)
-      
-      # Move the staged metadata to the "live" metadata.
-      shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
-      shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
-                      os.path.join(self.repository_directory, 'metadata'))
-      
-      self.repository_updater.refresh()
-      
-      # self.repository_updater.consistent_snapshot = True
-      
-      self.repository_updater.download_target(target_fileinfo,
-                                              destination_directory)
+    repository.write(consistent_snapshot=True)
+    
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+    
+    self.repository_updater.refresh()
+    
+    target_filepath2 = target_filepaths.pop()
+    target_fileinfo2 = self.repository_updater.target(target_filepath2)
+    self.repository_updater.download_target(target_fileinfo2,
+                                            destination_directory)
 
     # Test: Invalid arguments.
     self.assertRaises(tuf.FormatError, self.repository_updater.download_target,
                       8, destination_directory)
 
-    random_target_filepath = target_filepaths.pop()
-    target_fileinfo = self.repository_updater.target(random_target_filepath)
     self.assertRaises(tuf.FormatError, self.repository_updater.download_target,
                       target_fileinfo, 8)
    
-    # Non-existent destination.
-    # TODO: test for non-existent directories. 
-    """
-    self.assertRaises(tuf.Error, self.repository_updater.download_target,
-                      target_fileinfo, 'non-existent/bad_path')
-    """
-
     # Test:
     # Attempt a file download of a valid target, however, a download exception
     # occurs because the target is not within the mirror's confined target
@@ -1100,15 +1105,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def test_7_updated_targets(self):
-    # Verify that list contains all files that need to be updated, these
-    # files include modified and new target files.  Also, confirm that files
-    # than need not to be updated are absent from the list.
+    # Verify that the list of targets returned by updated_targets() contains
+    # all the files that need to be updated, these files include modified and
+    # new target files.  Also, confirm that files than need not to be updated
+    # are absent from the list.
     # Setup 
     # Create temporary directory which will hold client's target files.
     destination_directory = self.make_temp_directory()
 
-    # Get the list of target files.  It will be used as an argument to
-    # 'updated_targets' function.
+    # Get the list of target files.  It will be used as an argument to the
+    # 'updated_targets()' function.
     all_targets = self.repository_updater.all_targets()
      
     # Test for duplicates and targets in the root directory of the repository.
@@ -1161,8 +1167,17 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     target1 = os.path.join(self.repository_directory, 'targets', 'file1.txt')
     
     repository.targets.remove_target(target1)
+    
+    length, hashes = tuf.util.get_file_details(target1)
+
+    repository.targets.add_target(target1)
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    
     with open(target1, 'a') as file_object:
       file_object.write('append extra text')
+
+    length, hashes = tuf.util.get_file_details(target1)
 
     repository.targets.add_target(target1)
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
@@ -1175,7 +1190,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
     
-    # Ensure the client has the up-to-date metadata.
+    # Ensure the client has up-to-date metadata.
+    logger.info('refreshing top-level metadata after updating targets.json..') 
     self.repository_updater.refresh()
 
     # Verify that the new target file is considered updated.

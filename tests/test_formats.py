@@ -197,6 +197,7 @@ class TestFormats(unittest.TestCase):
                       {'_type': 'Root',
                        'version': 8,
                        'consistent_snapshot': False,
+                       'compression_algorithms': ['gz'],
                        'expires': '1985-10-21T13:20:00Z',
                        'keys': {'123abc': {'keytype': 'rsa',
                                            'keyval': {'public': 'pubkey',
@@ -223,17 +224,13 @@ class TestFormats(unittest.TestCase):
         {'_type': 'Snapshot',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
-         'meta': {'metadata/snapshot.json': {'length': 1024,
-                                           'hashes': {'sha256': 'ABCD123'},
-                                           'custom': {'type': 'metadata'}}}}),
+         'meta': {'metadata/snapshot.json': {'version': 1024}}}),
 
       'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
         {'_type': 'Timestamp',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
-         'meta': {'metadata/timestamp.json': {'length': 1024,
-                                  'hashes': {'sha256': 'ABCD123'},
-                                  'custom': {'type': 'metadata'}}}}),
+         'meta': {'metadata/timestamp.json': {'version': 1024}}}),
 
       'MIRROR_SCHEMA': (tuf.formats.MIRROR_SCHEMA,
         {'url_prefix': 'http://localhost:8001',
@@ -303,29 +300,27 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid instances of 'tuf.formats.TimestampFile'.
     version = 8
     expires = '1985-10-21T13:20:00Z'
-    filedict = {'metadata/timestamp.json': {'length': 1024,
-                                           'hashes': {'sha256': 'ABCD123'},
-                                           'custom': {'type': 'metadata'}}}
+    versiondict = {'targets.json': {'version': version}}
 
     make_metadata = tuf.formats.TimestampFile.make_metadata
     from_metadata = tuf.formats.TimestampFile.from_metadata
     TIMESTAMP_SCHEMA = tuf.formats.TIMESTAMP_SCHEMA
 
     self.assertTrue(TIMESTAMP_SCHEMA.matches(make_metadata(version, expires,
-                                                           filedict)))
-    metadata = make_metadata(version, expires, filedict)
+                                                           versiondict)))
+    metadata = make_metadata(version, expires, versiondict)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TimestampFile))
 
     # Test conditions for invalid arguments.
     bad_version = 'eight'
     bad_expires = '2000'
-    bad_filedict = 123
+    bad_versiondict = 123
     self.assertRaises(tuf.FormatError, make_metadata, bad_version,
-                                                      expires, filedict)
+                                                      expires, versiondict)
     self.assertRaises(tuf.FormatError, make_metadata, version,
-                                                      bad_expires, filedict)
+                                                      bad_expires, versiondict)
     self.assertRaises(tuf.FormatError, make_metadata, version,
-                                                      expires, bad_filedict)
+                                                      expires, bad_versiondict)
     
     self.assertRaises(tuf.FormatError, from_metadata, 123)
 
@@ -345,6 +340,8 @@ class TestFormats(unittest.TestCase):
     roledict = {'root': {'keyids': ['123abc'],
                          'threshold': 1,
                          'paths': ['path1/', 'path2']}}
+    
+    compression_algorithms = ['gz']
 
     make_metadata = tuf.formats.RootFile.make_metadata
     from_metadata = tuf.formats.RootFile.from_metadata
@@ -352,9 +349,10 @@ class TestFormats(unittest.TestCase):
 
     self.assertTrue(ROOT_SCHEMA.matches(make_metadata(version, expires,
                                                       keydict, roledict,
-                                                      consistent_snapshot)))
+                                                      consistent_snapshot,
+                                                      compression_algorithms)))
     metadata = make_metadata(version, expires, keydict, roledict,
-                             consistent_snapshot)
+                             consistent_snapshot, compression_algorithms)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.RootFile))
 
     # Test conditions for invalid arguments.
@@ -362,23 +360,28 @@ class TestFormats(unittest.TestCase):
     bad_expires = 'eight'
     bad_keydict = 123
     bad_roledict = 123
+    bad_compression_algorithms = 'nozip'
 
     self.assertRaises(tuf.FormatError, make_metadata, bad_version,
                                                       expires,
                                                       keydict, roledict,
-                                                      consistent_snapshot)
+                                                      consistent_snapshot,
+                                                      compression_algorithms)
     self.assertRaises(tuf.FormatError, make_metadata, version,
                                                       bad_expires,
                                                       keydict, roledict,
-                                                      consistent_snapshot)
+                                                      consistent_snapshot,
+                                                      compression_algorithms)
     self.assertRaises(tuf.FormatError, make_metadata, version,
                                                       expires,
                                                       bad_keydict, roledict,
-                                                      consistent_snapshot)
+                                                      consistent_snapshot,
+                                                      compression_algorithms)
     self.assertRaises(tuf.FormatError, make_metadata, version,
                                                       expires,
                                                       keydict, bad_roledict,
-                                                      consistent_snapshot)
+                                                      consistent_snapshot,
+                                                      compression_algorithms)
 
     self.assertRaises(tuf.FormatError, from_metadata, 'bad')
 
@@ -388,30 +391,27 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid instances of 'tuf.formats.SnapshotFile'.
     version = 8
     expires = '1985-10-21T13:20:00Z'
-
-    filedict = {'metadata/snapshot.json': {'length': 1024,
-                                         'hashes': {'sha256': 'ABCD123'},
-                                         'custom': {'type': 'metadata'}}}
-
+    versiondict = {'targets.json' : {'version': version}}
+  
     make_metadata = tuf.formats.SnapshotFile.make_metadata
     from_metadata = tuf.formats.SnapshotFile.from_metadata
     SNAPSHOT_SCHEMA = tuf.formats.SNAPSHOT_SCHEMA
 
     self.assertTrue(SNAPSHOT_SCHEMA.matches(make_metadata(version, expires,
-                                                         filedict)))
-    metadata = make_metadata(version, expires, filedict)
+                                                         versiondict)))
+    metadata = make_metadata(version, expires, versiondict)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.SnapshotFile))
 
     # Test conditions for invalid arguments.
     bad_version = '8'
     bad_expires = '2000'
-    bad_filedict = 123
+    bad_versiondict = 123
     self.assertRaises(tuf.FormatError, make_metadata, version,
-                                                      expires, bad_filedict)
+                                                      expires, bad_versiondict)
     self.assertRaises(tuf.FormatError, make_metadata, bad_version, expires, 
-                                                      filedict)
+                                                      versiondict)
     self.assertRaises(tuf.FormatError, make_metadata, version, bad_expires,
-                                                      bad_filedict)
+                                                      bad_versiondict)
     
     self.assertRaises(tuf.FormatError, from_metadata, 123)
 
@@ -548,6 +548,7 @@ class TestFormats(unittest.TestCase):
     root = {'_type': 'Root',
             'version': 8,
             'consistent_snapshot': False,
+            'compression_algorithms': ['gz'],
             'expires': '1985-10-21T13:20:00Z',
             'keys': {'123abc': {'keytype': 'rsa',
                                 'keyval': {'public': 'pubkey',
@@ -679,6 +680,7 @@ class TestFormats(unittest.TestCase):
     root = {'_type': 'Root',
             'version': 8,
             'consistent_snapshot': False,
+            'compression_algorithms': ['gz'],
             'expires': '1985-10-21T13:20:00Z',
             'keys': {'123abc': {'keytype': 'rsa',
                                 'keyval': {'public': 'pubkey',

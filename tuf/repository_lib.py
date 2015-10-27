@@ -121,7 +121,6 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
   roleinfo = tuf.roledb.get_roleinfo(rolename) 
-  snapshot_compressions = tuf.roledb.get_roleinfo('snapshot')['compressions']
 
   # Generate the appropriate role metadata for 'rolename'. 
   if rolename == 'root':
@@ -140,6 +139,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['expires'],
                                          roleinfo['delegations'],
                                          consistent_snapshot)
+
     if rolename == 'targets':    
       _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
                                    TARGETS_EXPIRES_WARN_SECONDS)
@@ -152,6 +152,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                           roleinfo['expires'], root_filename,
                                           targets_filename,
                                           consistent_snapshot)
+           
       
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
                                  SNAPSHOT_EXPIRES_WARN_SECONDS)
@@ -160,8 +161,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     snapshot_filename = filenames['snapshot'] 
     metadata = generate_timestamp_metadata(snapshot_filename,
                                            roleinfo['version'],
-                                           roleinfo['expires'],
-                                           snapshot_compressions)
+                                           roleinfo['expires'])
     
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
@@ -205,9 +205,9 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                    metadata['version'], compressions,
                                    consistent_snapshot)
     
-    # The root and timestamp files should also be written without a digest if
-    # 'consistent_snaptshots' is True.  Client may request a timestamp and root
-    # file without knowing its digest and file size.
+    # The root and timestamp files should also be written without a version
+    # number prepended if 'consistent_snaptshots' is True.  Client may request
+    # a timestamp and root file without knowing its version number.
     if rolename == 'root' or rolename == 'timestamp':
       write_metadata_file(signable, metadata_filename, metadata['version'],
                           compressions, consistent_snapshot=False)
@@ -218,7 +218,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     message = 'Not enough signatures for ' + repr(metadata_filename)
     raise tuf.UnsignedMetadataError(message, signable)
   
-  return signable, filename 
+  return signable, filename
 
 
 
@@ -578,7 +578,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     consistent_snapshot = root_metadata['consistent_snapshot']
   
   else:
-    message = 'Cannot load the required root file: '+repr(root_filename)
+    message = 'Cannot load the required root file: ' + repr(root_filename)
     raise tuf.RepositoryError(message)
   
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
@@ -1542,7 +1542,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     # Note: join() discards 'targets_directory' if 'target' contains a leading
     # path separator (i.e., is treated as an absolute path).
     target_path = os.path.join(targets_directory, target.lstrip(os.sep))
-   
+
     # Ensure all target files listed in 'target_files' exist.  If just one of
     # these files does not exist, raise an exception.
     if not os.path.exists(target_path):
@@ -1711,7 +1711,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
 
 def generate_timestamp_metadata(snapshot_filename, version,
-                                expiration_date, compressions=()):
+                                expiration_date):
   """
   <Purpose>
     Generate the timestamp metadata object.  The 'snapshot.json' file must
@@ -1755,7 +1755,6 @@ def generate_timestamp_metadata(snapshot_filename, version,
   tuf.formats.PATH_SCHEMA.check_match(snapshot_filename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
 
   # Retrieve the versioninfo of the Snapshot metadata file.
   versioninfo = {}
@@ -1764,8 +1763,8 @@ def generate_timestamp_metadata(snapshot_filename, version,
   # Save the versioninfo of the compressed versions of 'timestamp.json'
   # in 'versioninfo'.  Log the files included in 'fileinfo'.
   # TODO: Since version numbers are now stored, the version numbers of 
-  # compressed roles do not change and can thus be excluded.  Remove this
-  # after testing.
+  # compressed roles do not change and can thus be excluded.  Remove the
+  # following commented lines after testing.
   """
   for file_extension in compressions:
     if not len(file_extension):

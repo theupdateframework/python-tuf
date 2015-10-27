@@ -248,7 +248,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'timestamp.json' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.BadHashError))
+        self.assertTrue(isinstance(mirror_error, tuf.BadVersionNumberError))
 
     else:
       self.fail('TUF did not prevent a mix-and-match attack.')

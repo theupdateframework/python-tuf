@@ -620,27 +620,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     version = 1
     expiration_date = '1985-10-21T13:20:00Z'
 
-    compression_algorithms = ['gz']
-
     snapshot_metadata = \
       repo_lib.generate_timestamp_metadata(snapshot_filename, version,
-                                           expiration_date,
-                                           compression_algorithms)
+                                           expiration_date)
     self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(snapshot_metadata))
     
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
-                      3, version, expiration_date, compression_algorithms)
+                      3, version, expiration_date)
     self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
-                      snapshot_filename, '3', expiration_date,
-                      compression_algorithms)
+                      snapshot_filename, '3', expiration_date)
     self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
-                      snapshot_filename, version, '3', compression_algorithms)
-    self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
-                      snapshot_filename, version, expiration_date, 3)
-    self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
-                      snapshot_filename, version, expiration_date, ['compress'])
+                      snapshot_filename, version, '3')
+
 
 
 
