@@ -179,7 +179,7 @@ class Repository(object):
 
 
   def write(self, write_partial=False, consistent_snapshot=False,
-            compressions=['gz']):
+            compression_algorithms=['gz']):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files.
@@ -202,7 +202,7 @@ class Repository(object):
         <version_number>.README.json, where <version_number> is the file's
         SHA256 digest.  Example: 13.root.json'
       
-      compressions:
+      compression_algorithms:
         A list of compression algorithms.  Each of these algorithms will be
         used to compress all of the metadata available on the repository.
         By default, all metadata is compressed with gzip.
@@ -224,7 +224,7 @@ class Repository(object):
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.BOOLEAN_SCHEMA.check_match(write_partial)
     tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
-    tuf.formats.COMPRESSIONS_SCHEMA.check_match(compressions)
+    tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
     
     
     # At this point the tuf.keydb and tuf.roledb stores must be fully
@@ -2704,10 +2704,9 @@ def load_repository(repository_directory):
   
   filenames = repo_lib.get_metadata_filenames(metadata_directory)
 
-  # The Root file is always available without a consistent snapshots version
-  # number attached to the filename.  Store the 'consistent_snapshot' value
-  # read the loaded Root file so that other metadata files may be located.
-  # 'consistent_snapshot' value. 
+  # The Root file is always available without a version number (a consistent
+  # snapshot) attached to the filename.  Store the 'consistent_snapshot' value
+  # and read the loaded Root file so that other metadata files may be located.
   consistent_snapshot = False
 
   # Load the metadata of the top-level roles (i.e., Root, Timestamp, Targets,
@@ -2766,8 +2765,6 @@ def load_repository(repository_directory):
      
         # Extract the metadata attributes 'metadata_name' and update its
         # corresponding roleinfo.
-        # TODO: Test for detection of the Targets role. 
-        
         roleinfo = tuf.roledb.get_roleinfo(metadata_name)
         roleinfo['signatures'].extend(signable['signatures'])
         roleinfo['version'] = metadata_object['version']
