@@ -315,7 +315,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Restore the previous version of 'timestamp.json' on the remote repository
     # and verify that the non-TUF client downloads it (expected, but not ideal).
     shutil.move(backup_timestamp, timestamp_path)
-    logger.info('Moving the backup timestamp to the current version.')
+    logger.info('Moving the timestamp.json backup to the current version.')
     
     # Verify that the TUF client detects replayed metadata and refuses to
     # continue the update process.
