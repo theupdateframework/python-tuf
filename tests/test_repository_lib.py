@@ -49,7 +49,6 @@ import tuf.roledb
 import tuf.keydb
 import tuf.hash
 import tuf.repository_lib as repo_lib
-
 import tuf.repository_tool as repo_tool
 
 import six
@@ -565,15 +564,15 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     version = 1
     expiration_date = '1985-10-21T13:20:00Z'
    
-
+    # Load a valid repository so that top-level roles exist in roledb and 
+    # generate_snapshot_metadata() has roles to specify in snapshot metadata. 
     repository = repo_tool.Repository(repository_directory, metadata_directory,
-                                     targets_directory)
+                                      targets_directory)
    
     repository_junk = repo_tool.load_repository(repository_directory)
 
     root_filename = 'root'
     targets_filename = 'targets'
-    
     snapshot_metadata = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date, root_filename,
