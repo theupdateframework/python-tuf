@@ -351,7 +351,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_1__update_versioninfo(self):
     # Tests
-    # Verify that the 'self.versioninfo' dictionary is empty (its starts off
+    # Verify that the 'self.versioninfo' dictionary is empty (it starts off
     # empty and is only populated if _update_versioninfo() is called.
     versioninfo_dict = self.repository_updater.versioninfo
     self.assertEqual(len(versioninfo_dict), 0)
@@ -363,7 +363,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertTrue(tuf.formats.VERSIONDICT_SCHEMA.matches(versioninfo_dict))
    
     # The Snapshot role stores the version numbers of all the roles available
-    # on the repository.  Load Snapshot to extract root's version number
+    # on the repository.  Load Snapshot to extract Root's version number
     # and compare it against the one loaded by 'self.repository_updater'.
     snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
     snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
@@ -378,7 +378,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._update_versioninfo('targets.json')
     self.assertEqual(len(versioninfo_dict), 2)
 
-    # Verify that 'self.versioninfo' is inremented if a non-existent role is
+    # Verify that 'self.versioninfo' is incremented if a non-existent role is
     # requested, and has its versioninfo entry set to 'None'.
     self.repository_updater._update_versioninfo('bad_role.json')
     self.assertEqual(len(versioninfo_dict), 3)
@@ -605,7 +605,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(targets_versioninfo['version'],
               self.repository_updater.metadata['current']['targets']['version'])
     
-    # Test: Invalid version numbers.
+    # Test: Invalid / untrusted version numbers.
     # Invalid version number for the uncompressed version of 'targets.json'.
     self.assertRaises(tuf.NoWorkingMirrorError,
                       self.repository_updater._update_metadata,
@@ -628,8 +628,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                       'gzip')
     
     # Verify that the specific exception raised is correct for the previous
-    # case.  The version number is checked before the hashes, so the specific error in
-    # this case should be 'tuf.DownloadLengthMismatchError'.
+    # case.  The version number is checked, so the specific error in
+    # this case should be 'tuf.BadVersionNumberError'.
     try:
       self.repository_updater._update_metadata('targets',
                                                DEFAULT_TARGETS_FILELENGTH,
@@ -678,10 +678,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Update 'targets.json' and verify that the client's current 'targets.json'
     # has been updated.  'timestamp' and 'snapshot' must be manually updated
-    # so that new 'targets' may be recognized.
+    # so that new 'targets' can be recognized.
     DEFAULT_TIMESTAMP_FILELENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
-    logger.info('Attempting to increment targets to version 2...')
     self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILELENGTH)
     self.repository_updater._update_metadata_if_changed('snapshot', 'timestamp')
     self.repository_updater._update_metadata_if_changed('targets')
@@ -1027,7 +1026,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # 'target_filepaths' is expected to have at least two targets.  The first
     # target will be used to test against download_target().  The second
     # will be used to test against download_target() and a repository with
-    # consistent snapshots.
+    # 'consistent_snapshot' set to True.
     target_filepath1 = target_filepaths.pop()
     target_fileinfo = self.repository_updater.target(target_filepath1)
     self.repository_updater.download_target(target_fileinfo,
@@ -1049,10 +1048,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # repository with consistent snapshots set (root.json contains a
     # "consistent_snapshot" entry that the updater uses to correctly fetch
     # snapshots.  The updater expects the existence of
-    # <version_number>.filename files if root.json sets 'consistent_snapshot
+    # '<version_number>.filename' files if root.json sets 'consistent_snapshot
     # = True'.
     
-    # The repository must be rewritten with consistent snapshots set.
+    # The repository must be rewritten with 'consistent_snapshot' set.
     repository = repo_tool.load_repository(self.repository_directory)
    
     repository.root.load_signing_key(self.role_keys['root']['private'])
@@ -1065,7 +1064,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
-    
+   
+    # And ensure the client has the latest top-level metadata.
     self.repository_updater.refresh()
     
     target_filepath2 = target_filepaths.pop()
@@ -1099,7 +1099,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # directories.  get_list_of_mirrors() returns an empty list in this case,
       # which does not generate specific exception errors.
       self.assertEqual(len(exception.mirror_errors), 0)
-     
+
 
 
 
@@ -1107,7 +1107,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_7_updated_targets(self):
     # Verify that the list of targets returned by updated_targets() contains
     # all the files that need to be updated, these files include modified and
-    # new target files.  Also, confirm that files than need not to be updated
+    # new target files.  Also, confirm that files that need not to be updated
     # are absent from the list.
     # Setup 
     # Create temporary directory which will hold client's target files.
@@ -1191,7 +1191,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                     os.path.join(self.repository_directory, 'metadata'))
     
     # Ensure the client has up-to-date metadata.
-    logger.info('refreshing top-level metadata after updating targets.json..') 
     self.repository_updater.refresh()
 
     # Verify that the new target file is considered updated.
