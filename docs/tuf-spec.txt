@@ -433,6 +433,7 @@ Version 0.9
    key type, or cryptographic library:
        
        "RSASSA-PSS" : RSA Probabilistic signature scheme with appendix.
+                      The underlying hash function is SHA256.
        
        "ed25519" : Elliptic curve digital signature algorithm based on Twisted
                   Edwards curves.
