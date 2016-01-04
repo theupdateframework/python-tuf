@@ -1226,8 +1226,8 @@ class Updater(object):
       return file_object
     
     else:
-      logger.exception('Failed to update {0} from all mirrors: {1}'.format(
-                       filepath, file_mirror_errors))
+      logger.error('Failed to update {0} from all mirrors: {1}'.format(
+                   filepath, file_mirror_errors))
       raise tuf.NoWorkingMirrorError(file_mirror_errors)
 
 

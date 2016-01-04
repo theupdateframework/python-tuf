@@ -264,7 +264,7 @@ def create_rsa_signature(private_key, data):
     True
     >>> method == 'RSASSA-PSS'
     True
-    >>> tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.matches(signature)
+    >>> tuf.formats.PYCACRYPTOSIGNATURE_SCHEMA.matches(signature)
     True
 
   <Arguments>
@@ -404,7 +404,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   tuf.formats.NAME_SCHEMA.check_match(signature_method)
 
   # Does 'signature' have the correct format?
-  tuf.formats.PYCRYPTOSIGNATURE_SCHEMA.check_match(signature)
+  tuf.formats.PYCACRYPTOSIGNATURE_SCHEMA.check_match(signature)
   
   # What about 'data'?
   tuf.formats.DATA_SCHEMA.check_match(data)
@@ -428,7 +428,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
                                   salt_length=hashes.SHA256().digest_size), 
                                   hashes.SHA256())
 
-      verifier.update(data.encode('utf-8'))
+      verifier.update(data)
       
       # verify() raises 'cryptograpahy.exceptions.InvalidSignature' if the
       # signature is invalid.
