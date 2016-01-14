@@ -104,6 +104,10 @@ formatter = logging.Formatter(_FORMAT_STRING)
 # set by default.
 console_handler = None
 
+# Set the logger and its settings.
+logger = logging.getLogger('tuf')
+logger.setLevel(_DEFAULT_LOG_LEVEL)
+
 # Set the built-in file handler.  Messages will be logged to
 # 'tuf.conf.LOG_FILENAME', and only those messages with a log level of
 # '_DEFAULT_LOG_LEVEL'.  The log level of messages handled by 'file_handler'
@@ -113,14 +117,6 @@ if tuf.conf.ENABLE_FILE_LOGGING:
   file_handler = logging.FileHandler(tuf.conf.LOG_FILENAME)
   file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
   file_handler.setFormatter(formatter)
-else:
-  pass
-
-
-# Set the logger and its settings.
-logger = logging.getLogger('tuf')
-logger.setLevel(_DEFAULT_LOG_LEVEL)
-if tuf.conf.ENABLE_FILE_LOGGING:
   logger.addHandler(file_handler)
 else:
   pass
