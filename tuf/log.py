@@ -66,15 +66,16 @@ from __future__ import unicode_literals
 
 import logging
 import time
+import os
 
 import tuf
 import tuf.formats
+import tuf.conf
 
 # Setting a handler's log level filters only logging messages of that level
 # (and above).  For example, setting the built-in StreamHandler's log level to
 # 'logging.WARNING' will cause the stream handler to only process messages
 # of levels: WARNING, ERROR, and CRITICAL. 
-_DEFAULT_LOG_FILENAME = 'tuf.log'
 _DEFAULT_LOG_LEVEL = logging.DEBUG
 _DEFAULT_CONSOLE_LOG_LEVEL = logging.INFO
 _DEFAULT_FILE_LOG_LEVEL = logging.DEBUG
@@ -104,18 +105,25 @@ formatter = logging.Formatter(_FORMAT_STRING)
 console_handler = None
 
 # Set the built-in file handler.  Messages will be logged to
-# '_DEFAULT_LOG_FILENAME', and only those messages with a log level of
+# 'tuf.conf.LOG_FILENAME', and only those messages with a log level of
 # '_DEFAULT_LOG_LEVEL'.  The log level of messages handled by 'file_handler'
-# may be modified with 'set_filehandler_log_level()'.  '_DEFAULT_LOG_FILENAME'
+# may be modified with 'set_filehandler_log_level()'.  'tuf.conf.LOG_FILENAME'
 # will be opened in append mode.
-file_handler = logging.FileHandler(_DEFAULT_LOG_FILENAME)
-file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
-file_handler.setFormatter(formatter)
+if tuf.conf.ENABLE_FILE_LOGGING:
+  file_handler = logging.FileHandler(tuf.conf.LOG_FILENAME)
+  file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
+  file_handler.setFormatter(formatter)
+else:
+  pass
+
 
 # Set the logger and its settings.
 logger = logging.getLogger('tuf')
 logger.setLevel(_DEFAULT_LOG_LEVEL)
-logger.addHandler(file_handler)
+if tuf.conf.ENABLE_FILE_LOGGING:
+  logger.addHandler(file_handler)
+else:
+  pass
 
 # Silently ignore logger exceptions.
 logging.raiseExceptions = False
