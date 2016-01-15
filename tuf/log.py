@@ -66,7 +66,6 @@ from __future__ import unicode_literals
 
 import logging
 import time
-import os
 
 import tuf
 import tuf.formats
