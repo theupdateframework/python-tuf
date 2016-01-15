@@ -917,7 +917,7 @@ def _encrypt(key_data, derived_key_information):
 
   # Encrypt the plaintext and get the associated ciphertext.
   # Do we need to check for any exceptions?
-  ciphertext = encryptor.update(key_data) + encryptor.finalize()
+  ciphertext = encryptor.update(key_data.encode('utf-8')) + encryptor.finalize()
   
   # Generate the hmac of the ciphertext to ensure it has not been modified.
   # The decryption routine may verify a ciphertext without having to perform
@@ -942,7 +942,7 @@ def _encrypt(key_data, derived_key_information):
   # of the fields it is separating.
   return binascii.hexlify(salt).decode() + _ENCRYPTION_DELIMITER + \
          str(iterations) + _ENCRYPTION_DELIMITER + \
-         hmac_value + _ENCRYPTION_DELIMITER + \
+         hmac_value.decode() + _ENCRYPTION_DELIMITER + \
          binascii.hexlify(iv).decode() + _ENCRYPTION_DELIMITER + \
          binascii.hexlify(ciphertext).decode()
   
@@ -993,7 +993,7 @@ def _decrypt(file_contents, password):
   generated_hmac = binascii.hexlify(generated_hmac_object.finalize())
 
 
-  if not tuf.util.digests_are_equal(generated_hmac, hmac):
+  if not tuf.util.digests_are_equal(generated_hmac.decode(), hmac):
     raise tuf.CryptoError('Decryption failed.')
     
   # Construct a Cipher object, with the key and iv.
