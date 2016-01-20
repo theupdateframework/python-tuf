@@ -112,6 +112,9 @@ class TestLog(unittest.TestCase):
     # Test for invalid argument.
     self.assertRaises(tuf.FormatError, tuf.log.add_console_handler, 51)
 
+    # Test that an exception is printed to the console.  Note: A stack trace
+    # is not included in the exception output because 'log.py' applies a filter
+    # to minimize the amount of output to the console. 
     try:
       raise TypeError('Test exception output in the console.')
 

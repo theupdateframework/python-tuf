@@ -28,13 +28,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import logging
-
-import tuf.log
-
 import six
-
-logging = logging.getLogger('tuf.__init__')
 
 # Import 'tuf.formats' if a module tries to import the
 # entire tuf package (i.e., from tuf import *). 
