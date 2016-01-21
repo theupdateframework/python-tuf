@@ -98,7 +98,7 @@ except ImportError: # pragma: no cover
 
 # Try to import TUF's pyca/Cryptography module(pyca_crypto_keys.py), and verify
 # and record that pyca/Cryptography's library is available.  pyca_crypto_keys.py
-# is used for general-purpose cryptography, RSA, and Ed25519.
+# is used for general-purpose cryptography and RSA.
 try:
   import cryptography
   import tuf.pyca_crypto_keys
