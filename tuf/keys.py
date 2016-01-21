@@ -859,7 +859,6 @@ def verify_signature(key_dict, signature, data):
           ' (in conf.py) to generate RSA signatures, but the "cryptography"'
           ' library is not installed.  \n$ pip install cryptography, or pip'
           ' install tuf[tools].')
-     
 
       else:
         valid_signature = tuf.pyca_crypto_keys.verify_rsa_signature(sig, method,
