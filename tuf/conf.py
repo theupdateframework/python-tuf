@@ -89,13 +89,16 @@ SLOW_START_GRACE_PERIOD = 3 #seconds
 # https://en.wikipedia.org/wiki/PBKDF2
 PBKDF2_ITERATIONS = 100000
 
-# The user client may set the specific cryptography library used by The Update
-# Framework updater, or the software updater integrating TUF.  
-# Supported RSA cryptography libraries:  ['pycrypto', 'pyca-cryptography']
+# The client, or the software updater that is integrating TUF, may set the
+# specific cryptography library used by The Update Framework updater.  Only a
+# subset of the supported crypto libraries are used for general-purpose
+# cryptography (PyCrypto and PyCA Cryptography).
 
+# Supported cryptography libraries that can be used to generate and verify RSA
+# keys and signatures:  ['pycrypto', 'pyca-cryptography']
 RSA_CRYPTO_LIBRARY = 'pyca-cryptography'
 
-# Supported ed25519 cryptography libraries: ['pynacl', 'ed25519']
+# Supported Ed25519 cryptography libraries: ['pynacl', 'ed25519']
 ED25519_CRYPTO_LIBRARY = 'ed25519'
 
 # General purpose cryptography. Algorithms and functions that fall under
@@ -104,8 +107,8 @@ ED25519_CRYPTO_LIBRARY = 'ed25519'
 # cryptography is needed by the repository and developer tools.
 # RSA_CRYPTO_LIBRARY and ED25519_CRYPTO_LIBRARY are needed on the client side
 # of the software updater.
-# Supported RSA cryptography libraries:  ['pycrypto', 'pyca-cryptography']
-
+# Supported libraries for general-purpose cryptography:  ['pycrypto',
+# 'pyca-cryptography']
 GENERAL_CRYPTO_LIBRARY = 'pyca-cryptography'
 
 # The algorithm(s) in REPOSITORY_HASH_ALGORITHMS are chosen by the repository
