@@ -96,9 +96,9 @@ try:
 except ImportError: # pragma: no cover
   pass
 
-# Try to import TUF's pyca/Cryptography module(pyca_crypto_keys.py), and verify
-# and record that pyca/Cryptography's library is available.  pyca_crypto_keys.py
-# is used for general-purpose cryptography and RSA.
+# Try to import TUF's pyca/Cryptography module (pyca_crypto_keys.py), and
+# verify and record that pyca/Cryptography's library is available.
+# pyca_crypto_keys.py is used for general-purpose cryptography and RSA.
 try:
   import cryptography
   import tuf.pyca_crypto_keys
@@ -843,21 +843,24 @@ def verify_signature(key_dict, signature, data):
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
       if 'pycrypto' not in _available_crypto_libraries: # pragma: no cover
-        message = 'Metadata downloaded from the remote repository specified' +\
-          ' an RSA signature.  Verifying RSA signatures requires PyCrypto.' +\
-          '\n$ pip install PyCrypto, or pip install tuf[tools].'
-        raise tuf.UnsupportedLibraryError(message)
+        raise tuf.UnsupportedLibraryError('Metadata downloaded from the remote'
+          ' repository listed an RSA signature.  "pycrypto" was set'
+          ' (in conf.py) to generate RSA signatures, but the PyCrypto library'
+          ' is not installed.  \n$ pip install PyCrypto, or pip install'
+          ' tuf[tools].')
       
       else:
         valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
                                                                  public, data) 
     elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography': 
       if 'pyca-cryptography' not in _available_crypto_libraries: # pragma: no cover
-        message = 'Metadata downloaded from the remote repository specified' +\
-          ' an RSA signature.  Verifying RSA signatures requires pyca/cryptography.' +\
-          '\n$ pip install cryptography, or pip install tuf[tools].'
-        raise tuf.UnsupportedLibraryError(message)
-      
+        raise tuf.UnsupportedLibraryError('Metadata downloaded from the remote'
+          ' repository listed an RSA signature.  "pyca-cryptography" was set'
+          ' (in conf.py) to generate RSA signatures, but the "cryptography"'
+          ' library is not installed.  \n$ pip install cryptography, or pip'
+          ' install tuf[tools].')
+     
+
       else:
         valid_signature = tuf.pyca_crypto_keys.verify_rsa_signature(sig, method,
                                                                  public, data) 
