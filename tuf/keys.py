@@ -75,8 +75,8 @@ _SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
 # if 'pynacl' is unavailable.
 _SUPPORTED_ED25519_CRYPTO_LIBRARIES = ['ed25519', 'pynacl']
 
-# 'pycrypto' and 'cryptography' are the only currently supported library for
-# general-purpose cryptography, with plans to support pyca/cryptography.
+# 'pycrypto' and 'cryptography' are the only currently supported libraries for
+# general-purpose cryptography.
 # https://github.com/dlitz/pycrypto
 # https://github.com/pyca/cryptography
 _SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
@@ -86,7 +86,9 @@ _SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
 # default.  https://github.com/pyca/ed25519
 _available_crypto_libraries = ['ed25519']
 
-# Import the PyCrypto library so that RSA keys are supported.
+# Try to import TUF's PyCrypto module (pycrypto_keys.py), and verify and record
+# that the PyCrypto library is available.  pycrypto_keys.py is used here for
+# general-purpose cryptography and RSA.
 try:
   import Crypto
   import tuf.pycrypto_keys
@@ -94,8 +96,9 @@ try:
 except ImportError: # pragma: no cover
   pass
 
-# Import the pyca/Cryptography library so that RSA and generate-purpose
-# cryptography primitives are supported. 
+# Try to import TUF's pyca/Cryptography module(pyca_crypto_keys.py), and verify
+# and record that pyca/Cryptography's library is available.  pyca_crypto_keys.py
+# is used for general-purpose cryptography, RSA, and Ed25519.
 try:
   import cryptography
   import tuf.pyca_crypto_keys
