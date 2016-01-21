@@ -332,8 +332,9 @@ def create_rsa_signature(private_key, data):
       raise tuf.CryptoError('The private key could not be deserialized.')
  
     except cryptography.exceptions.UnsupportedAlgorithm: #pragma: no cover
-      message = 'The private key is encrypted with an unsupported algorithm.'
-      raise tuf.CryptoError(message)
+      raise tuf.CryptoError('The private key is encrypted with an unsupported'
+        ' algorithm.')
+
    
     # Generate an RSSA-PSS signature.  Raise 'tuf.CryptoError' for the expected
     # pyca/cryptography exceptions.
@@ -528,8 +529,8 @@ def create_rsa_encrypted_pem(private_key, passphrase):
                                                passphrase=passphrase) 
     
     except (ValueError, IndexError, TypeError) as e:
-      message = 'An encrypted RSA key in PEM format cannot be generated: ' + str(e)
-      raise tuf.CryptoError(message)
+      raise tuf.CryptoError('An encrypted RSA key in PEM format cannot be'
+        ' generated: ' + str(e))
   
   else:
     raise TypeError('The required private key is unset.')
@@ -632,12 +633,11 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # UnsupportedAlgorithm: If the private key (or if the key is encrypted with
   # an unsupported symmetric cipher) is not supported by the backend.
   except (ValueError, TypeError, cryptography.exceptions.UnsupportedAlgorithm) as e:
-    message = 'RSA (public, private) tuple cannot be generated from the' +\
-      ' encrypted PEM string: ' + str(e)
     # Raise 'tuf.CryptoError' and pyca/cryptography's exception message.  Avoid
     # propogating pyca/cryptography's exception trace to avoid revealing
     # sensitive error.
-    raise tuf.CryptoError(message)
+    raise tuf.CryptoError('RSA (public, private) tuple cannot be generated'
+      ' from the encrypted PEM string: ' + str(e))
   
   # Export the public and private halves of the pyca/cryptography RSA key
   # object.  The (public, private) tuple returned contains the public and
@@ -731,8 +731,7 @@ def encrypt_key(key_object, password):
 
   # Ensure the private portion of the key is included in 'key_object'.
   if not key_object['keyval']['private']:
-    message = 'Key object does not contain a private part.'
-    raise tuf.FormatError(message)
+    raise tuf.FormatError('Key object does not contain a private part.')
 
   # Derive a key (i.e., an appropriate encryption key and not the
   # user's password) from the given 'password'.  Strengthen 'password' with
