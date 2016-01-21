@@ -46,6 +46,14 @@ repository_directory = None
 # http://docs.python.org/2/library/ssl.html#certificates
 ssl_certificates = None
 
+# The 'log.py' module manages TUF's logging system.  Users have the option to
+# enable/disable logging to a file via 'ENABLE_FILE_LOGGING'
+ENABLE_FILE_LOGGING = True
+
+# If file logging is enabled via 'ENABLE_FILE_LOGGING', TUF log messages will
+# be saved to 'LOG_FILENAME'
+LOG_FILENAME = 'tuf.log'
+
 # Since the timestamp role does not have signed metadata about itself, we set a
 # default but sane upper bound for the number of bytes required to download it.
 DEFAULT_TIMESTAMP_REQUIRED_LENGTH = 16384 #bytes
