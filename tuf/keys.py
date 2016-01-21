@@ -1063,12 +1063,11 @@ def format_rsakey_from_pem(pem):
   # Begin building the RSA key dictionary. 
   rsakey_dict = {}
   keytype = 'rsa'
-  public = public_pem 
 
   # Generate the keyid of the RSA key.  'key_value' corresponds to the
   # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
   # information is not included in the generation of the 'keyid' identifier.
-  key_value = {'public': public,
+  key_value = {'public': public_pem,
                'private': ''}
   keyid = _get_keyid(keytype, key_value)
 
