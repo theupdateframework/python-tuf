@@ -1084,15 +1084,20 @@ def format_rsakey_from_pem(pem):
 def extract_pem(pem, private_pem=False):
   """
   <Purpose> 
-    Extract only the portion of the pem that include the header and footer, and
-    any leading and trailing characters removed.  The string returned as the
-    following form:
+    Extract only the portion of the pem that includes the header and footer,
+    with any leading and trailing characters removed.  The string returned has
+    the following form:
     
     '-----BEGIN PUBLIC KEY----- ... -----END PUBLIC KEY-----'
 
     or
 
     '-----BEGIN RSA PRIVATE KEY----- ... -----END RSA PRIVATE KEY-----'
+
+    Note: This function assumes "pem" is a valid pem in the following format:
+    pem header + key material + key footer.  Crypto libraries (e.g., pyca's
+    cryptography) that parse the pem returned by this function are expected to
+    fully validate and process the pem.
 
   <Arguments>
     pem:
@@ -1103,10 +1108,12 @@ def extract_pem(pem, private_pem=False):
 
   <Side Effects>
     Only the public and private portion of the PEM is extracted.  Leading or
-    trailing whitespace is not included in the PEM string returned.
+    trailing whitespace is not included in the returned PEM string.
 
   <Returns>
-    A PEM string (excluding leading and trailing newline characters.  
+    A PEM string (excluding leading and trailing newline characters).
+    That is: pem header + key material + pem footer.
+    
   """
   
   if private_pem:
