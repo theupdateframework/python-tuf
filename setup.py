@@ -80,12 +80,12 @@ with open('README.rst') as file_object:
 
 setup(
   name = 'tuf',
-  version = '0.9.9',
+  version = '0.10.0',
   description = 'A secure updater framework for Python',
   long_description = long_description,
-  author = 'http://www.theupdateframework.com',
+  author = 'https://www.updateframework.com',
   author_email = 'theupdateframework@googlegroups.com',
-  url = 'http://www.theupdateframework.com',
+  url = 'https://www.updateframework.com',
   keywords = 'update updater secure authentication key compromise revocation',
   classifiers = [
     'Development Status :: 4 - Beta',
@@ -101,9 +101,9 @@ setup(
     'Programming Language :: Python :: 2.6',
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.2',
     'Programming Language :: Python :: 3.3',
     'Programming Language :: Python :: 3.4',
+    'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: Implementation :: CPython',
     'Topic :: Security',
     'Topic :: Software Development'
