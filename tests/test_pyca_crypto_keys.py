@@ -78,7 +78,7 @@ class TestPyca_crypto_keys(unittest.TestCase):
     self.assertRaises(tuf.FormatError,
                       crypto_keys.create_rsa_signature, 123, data)
     
-    self.assertRaises(TypeError,
+    self.assertRaises(ValueError,
                       crypto_keys.create_rsa_signature, '', data)
    
     # Check for invalid 'data'.
