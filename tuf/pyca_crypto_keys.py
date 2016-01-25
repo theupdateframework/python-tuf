@@ -277,7 +277,7 @@ def create_rsa_signature(private_key, data):
   <Exceptions>
     tuf.FormatError, if 'private_key' is improperly formatted.
     
-    TypeError, if 'private_key' is unset.
+    ValueError, if 'private_key' is unset.
 
     tuf.CryptoError, if the signature cannot be generated. 
 
@@ -341,15 +341,15 @@ def create_rsa_signature(private_key, data):
     # key is of a type that is not supported by the backend, or if the key is
     # encrypted with a symmetric cipher that is not supported by the backend.
     except cryptography.exceptions.UnsupportedAlgorithm: #pragma: no cover
-      message = 'The private key is encrypted with an unsupported algorithm.'
-      raise tuf.CryptoError(message)
+      raise tuf.CryptoError('The private key is encrypted with an'
+        ' unsupported algorithm.')
    
     # Generate an RSSA-PSS signature.
     rsa_signer.update(data)
     signature = rsa_signer.finalize()
   
   else:
-    raise TypeError('The required private key is unset.')
+    raise ValueError('The required private key is unset.')
 
   return signature, method
 
