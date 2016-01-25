@@ -17,11 +17,14 @@
   The goal of this module is to centralize cryptographic key routines and their
   supported operations (e.g., creating and verifying signatures).  This module
   is designed to support multiple public-key algorithms, such as RSA and
-  ED25519, and multiple cryptography libraries.  Which cryptography library to
+  Ed25519, and multiple cryptography libraries.  Which cryptography library to
   use is determined by the default, or user modified, values set in
   'tuf.conf.py'
   
-  The (RSA and ED25519)-related functions provided include generate_rsa_key(),
+  https://en.wikipedia.org/wiki/RSA_(algorithm)
+  http://ed25519.cr.yp.to/
+  
+  The (RSA and Ed25519)-related functions provided include generate_rsa_key(),
   generate_ed25519_key(), create_signature(), and verify_signature().
   The cryptography libraries called by 'tuf.keys.py' generate the actual TUF
   keys and the functions listed above can be viewed as the easy-to-use public
@@ -34,9 +37,7 @@
   of TUF keys, such as public & private keys, and a keyID.  create_signature()
   and verify_signature() are supplemental functions needed for generating
   signatures and verifying them.
-  
-  https://en.wikipedia.org/wiki/RSA_(algorithm)
-  http://ed25519.cr.yp.to/
+
 
   Key IDs are used as identifiers for keys (e.g., RSA key).  They are the
   hexadecimal representation of the hash of key object (specifically, the key
@@ -219,8 +220,9 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.RSAKEYBITS_SCHEMA.check_match(bits)
 
-  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified in
-  # 'tuf.conf', are unsupported or unavailable: 'tuf.conf.RSA_CRYPTO_LIBRARY'. 
+  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified
+  # in 'tuf.conf', are unsupported or unavailable:
+  # 'tuf.conf.RSA_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['rsa'])
 
   # Begin building the RSA key dictionary. 
@@ -240,8 +242,8 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
     public, private = tuf.pyca_crypto_keys.generate_rsa_public_and_private(bits)
   
   else: # pragma: no cover
-    message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'
-    raise tuf.UnsupportedLibraryError(message) 
+    raise tuf.UnsupportedLibraryError('Invalid crypto'
+      ' library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.') 
     
   # Generate the keyid of the RSA key.  'key_value' corresponds to the
   # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
@@ -323,8 +325,8 @@ def generate_ed25519_key():
       tuf.ed25519_keys.generate_public_and_private()
   
   else: # pragma: no cover
-    message = 'The required PyNaCl library is unavailable.' 
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.UnsupportedLibraryError('The required PyNaCl library'
+      ' is unavailable.')
 
   # Generate the keyid of the ED25519 key.  'key_value' corresponds to the
   # 'keyval' entry of the 'ED25519KEY_SCHEMA' dictionary.  The private key
@@ -716,9 +718,8 @@ def create_signature(key_dict, data):
       sig, method = tuf.pyca_crypto_keys.create_rsa_signature(private, data.encode('utf-8'))
     
     else: # pragma: no cover
-      message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": ' +\
-        repr(_RSA_CRYPTO_LIBRARY) + '.'
-      raise tuf.UnsupportedLibraryError(message)
+      raise tuf.UnsupportedLibraryError('Unsupported'
+        ' "tuf.conf.RSA_CRYPTO_LIBRARY": ' + repr(_RSA_CRYPTO_LIBRARY) + '.')
   
   elif keytype == 'ed25519':
     public = binascii.unhexlify(public.encode('utf-8'))
@@ -727,8 +728,8 @@ def create_signature(key_dict, data):
       sig, method = tuf.ed25519_keys.create_signature(public, private, data.encode('utf-8'))
     
     else: # pragma: no cover
-      message = 'The required PyNaCl library is unavailable.'
-      raise tuf.UnsupportedLibraryError(message)
+      raise tuf.UnsupportedLibraryError('The required PyNaCl library'
+        ' is unavailable.')
 
   # 'tuf.formats.ANYKEY_SCHEMA' should detect invalid key types. 
   else: # pragma: no cover
@@ -865,9 +866,8 @@ def verify_signature(key_dict, signature, data):
                                                                  public, data) 
     
     else: # pragma: no cover
-      message = 'Unsupported "tuf.conf.RSA_CRYPTO_LIBRARY": ' +\
-        repr(_RSA_CRYPTO_LIBRARY)+'.'
-      raise tuf.UnsupportedLibraryError(message) 
+      raise tuf.UnsupportedLibraryError('Unsupported'
+        ' "tuf.conf.RSA_CRYPTO_LIBRARY": ' + repr(_RSA_CRYPTO_LIBRARY) + '.') 
   
   elif keytype == 'ed25519':
     public = binascii.unhexlify(public.encode('utf-8'))
@@ -987,8 +987,8 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
     private = extract_pem(private, private_pem=True)
   
   else: #pragma: no cover
-    message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'
-    raise tuf.UnsupportedLibraryError(message) 
+    raise tuf.UnsupportedLibraryError('Invalid crypto'
+      ' library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.') 
     
   # Generate the keyid of the RSA key.  'key_value' corresponds to the
   # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
@@ -1132,20 +1132,16 @@ def extract_pem(pem, private_pem=False):
     header_start = pem.index(pem_header)
   
   except ValueError:
-    message = \
-      'Required PEM header ' + repr(pem_header) + '\n not found in PEM' + \
-      ' string: ' + repr(pem) 
-    raise tuf.FormatError(message)
+    raise tuf.FormatError('Required PEM header ' + repr(pem_header) + '\n not'
+      ' found in PEM string: ' + repr(pem))
   
   try:
     # Search for 'pem_footer' after the PEM header.
     footer_start = pem.index(pem_footer, header_start + len(pem_header))
   
   except ValueError:
-    message = \
-      'Required PEM footer ' + repr(pem_footer) + '\n not found in PEM' + \
-      ' string ' + repr(pem)
-    raise tuf.FormatError(message)
+    raise tuf.FormatError('Required PEM footer ' + repr(pem_footer) + '\n not'
+      ' found in PEM string ' + repr(pem))
   
   # Extract only the public portion of 'pem'.  Leading or trailing whitespace
   # is excluded.
@@ -1243,8 +1239,8 @@ def encrypt_key(key_object, password):
  
   # check_crypto_libraries() should have fully verified _GENERAL_CRYPTO_LIBRARY.
   else: # pragma: no cover
-    message = 'Invalid crypto library: ' + repr(_GENERAL_CRYPTO_LIBRARY) + '.'
-    raise tuf.UnsupportedLibraryError(message) 
+    raise tuf.UnsupportedLibraryError('Invalid crypto library:'
+      ' ' + repr(_GENERAL_CRYPTO_LIBRARY) + '.') 
 
   return encrypted_key
 
@@ -1345,8 +1341,8 @@ def decrypt_key(encrypted_key, passphrase):
   
   # check_crypto_libraries() should have fully verified _GENERAL_CRYPTO_LIBRARY.
   else: # pragma: no cover
-    message = 'Invalid crypto library: ' + repr(_GENERAL_CRYPTO_LIBRARY) + '.'
-    raise tuf.UnsupportedLibraryError(message) 
+    raise tuf.UnsupportedLibraryError('Invalid crypto library:'
+      ' ' + repr(_GENERAL_CRYPTO_LIBRARY) + '.')
 
   # The corresponding encrypt_key() encrypts and stores key objects in
   # non-metadata format (i.e., original format of key object argument to
@@ -1432,8 +1428,8 @@ def create_rsa_encrypted_pem(private_key, passphrase):
 
   # check_crypto_libraries() should have fully verified _RSA_CRYPTO_LIBRARY.
   else: # pragma: no cover
-    message = 'Invalid crypto library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.'
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.UnsupportedLibraryError('Invalid crypto library:'
+      ' ' + repr(_RSA_CRYPTO_LIBRARY) + '.')
 
   return encrypted_pem
 
