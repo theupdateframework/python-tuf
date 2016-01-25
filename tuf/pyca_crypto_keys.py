@@ -131,7 +131,7 @@ import tuf.hash
 # Perform object format-checking.
 import tuf.formats
 
-# Extract/reference the cryptography library settings.  For example
+# Extract/reference the cryptography library settings.  For example:
 # 'tuf.conf.RSA_CRYPTO_LIBRARY'
 import tuf.conf
 
