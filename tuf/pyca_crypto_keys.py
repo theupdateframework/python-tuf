@@ -389,12 +389,15 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       'signature'.  'data' (a string) is needed here to verify 'signature'.
 
   <Exceptions>
-    tuf.UnknownMethodError.  Raised if the signing method used by
-    'signature' is not one supported by tuf.keys.create_signature().
-    
-    tuf.FormatError. Raised if 'signature', 'signature_method', or 'public_key'
-    are improperly formatted.
+    tuf.FormatError, if 'signature', 'signature_method', 'public_key', or
+    'data' are improperly formatted.
 
+    tuf.UnknownMethodError, if the signing method used by
+    'signature' is not one supported by tuf.keys.create_signature().
+
+    tuf.CryptoError, if the private key cannot be decoded or its key type
+    is unsupported.
+    
   <Side Effects>
     pyca/cryptography's RSAPublicKey.verifier() called to do the actual
     verification.
