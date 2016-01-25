@@ -425,41 +425,40 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   # was used as the signing method.
   valid_signature = False
 
-  # Verify the signature with pyca/cryptography if the signature method is
-  # valid, otherwise raise 'tuf.UnknownMethodError'.
-  if signature_method == 'RSASSA-PSS':
-    try:
-      public_key_object = serialization.load_pem_public_key(public_key.encode('utf-8'),
-                                                     backend=default_backend())
-      
-      # 'salt_length' is set to the digest size of the hashing algorithm (to
-      # match the default size used by 'tuf.pycrypto_keys.py').
-      verifier = public_key_object.verifier(signature,
-                                  padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
-                                  salt_length=hashes.SHA256().digest_size), 
-                                  hashes.SHA256())
-
-      verifier.update(data)
-      
-      # verify() raises 'cryptograpahy.exceptions.InvalidSignature' if the
-      # signature is invalid.
-      try: 
-        verifier.verify()
-        valid_signature = True 
-      
-      except cryptography.exceptions.InvalidSignature as e:
-        pass
- 
-    # Raised by load_pem_public_key(). 
-    except ValueError:
-      raise tuf.CryptoError('The PEM could not be decoded successfully.')
-
-    # Raised by load_pem_public_key().
-    except cryptography.exceptions.UnsupportedAlgorithm:
-      raise tuf.Cryptography('The private key type is not supported.')
-  
-  else:
+  # Verify the expected 'signature_method' value.
+  if signature_method != 'RSASSA-PSS':
     raise tuf.UnknownMethodError(signature_method)
+  
+  # Verify the RSASSA-PSS signature with pyca/cryptography.
+  try:
+    public_key_object = serialization.load_pem_public_key(public_key.encode('utf-8'),
+                                                   backend=default_backend())
+    
+    # 'salt_length' is set to the digest size of the hashing algorithm (to
+    # match the default size used by 'tuf.pycrypto_keys.py').
+    verifier = public_key_object.verifier(signature,
+                                padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
+                                salt_length=hashes.SHA256().digest_size), 
+                                hashes.SHA256())
+
+    verifier.update(data)
+    
+    # verify() raises 'cryptograpahy.exceptions.InvalidSignature' if the
+    # signature is invalid.
+    try: 
+      verifier.verify()
+      valid_signature = True 
+    
+    except cryptography.exceptions.InvalidSignature as e:
+      pass
+
+  # Raised by load_pem_public_key(). 
+  except ValueError:
+    raise tuf.CryptoError('The PEM could not be decoded successfully.')
+
+  # Raised by load_pem_public_key().
+  except cryptography.exceptions.UnsupportedAlgorithm:
+    raise tuf.Cryptography('The private key type is not supported.')
 
   return valid_signature 
 
