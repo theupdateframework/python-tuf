@@ -449,7 +449,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       verifier.verify()
       valid_signature = True 
     
-    except cryptography.exceptions.InvalidSignature as e:
+    except cryptography.exceptions.InvalidSignature:
       pass
 
   # Raised by load_pem_public_key(). 
