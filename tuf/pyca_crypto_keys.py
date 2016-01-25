@@ -458,7 +458,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 
   # Raised by load_pem_public_key().
   except cryptography.exceptions.UnsupportedAlgorithm:
-    raise tuf.Cryptography('The private key type is not supported.')
+    raise tuf.CryptoError('The private key type is not supported.')
 
   return valid_signature 
 
