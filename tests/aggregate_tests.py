@@ -64,6 +64,6 @@ random.shuffle(tests_without_extension)
 
 if __name__ == '__main__':
   suite = unittest.TestLoader().loadTestsFromNames(tests_without_extension)
-  all_tests_passed = unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful()
+  all_tests_passed = unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful()
   if not all_tests_passed:
     sys.exit(1)
