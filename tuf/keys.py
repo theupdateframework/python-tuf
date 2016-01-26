@@ -40,9 +40,9 @@
 
 
   Key IDs are used as identifiers for keys (e.g., RSA key).  They are the
-  hexadecimal representation of the hash of key object (specifically, the key
-  object containing only the public key).  Review 'keys.py' and the
-  '_get_keyid()' function to see precisely how keyids are generated.  One may
+  hexadecimal representation of the hash of the key object (specifically, the
+  key object containing only the public key).  Review the '_get_keyid()'
+  function of this module to see precisely how keyids are generated.  One may
   get the keyid of a key object by simply accessing the dictionary's 'keyid'
   key (i.e., rsakey['keyid']).
  """
