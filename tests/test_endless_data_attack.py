@@ -282,7 +282,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     
     except tuf.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
-        self.assertTrue(isinstance(mirror_error, tuf.InvalidMetadataJSONError))
+        self.assertTrue(isinstance(mirror_error, tuf.Error))
     
     else:
       self.fail('TUF did not prevent an endless data attack.')
