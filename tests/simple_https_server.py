@@ -60,7 +60,8 @@ else:
 httpd = six.moves.BaseHTTPServer.HTTPServer(('localhost', PORT),
                             six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler)
 
-httpd.socket = ssl.wrap_socket(httpd.socket, certfile='https_server.pem',
+httpd.socket = ssl.wrap_socket(httpd.socket, keyfile='ssl_cert.key',
+                               certfile='ssl_cert.crt',
                                server_side=True)
 
 #print('Starting https server on port: ' + str(PORT))
