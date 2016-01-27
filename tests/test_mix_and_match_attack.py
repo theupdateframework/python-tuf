@@ -239,16 +239,16 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.targets_of_role('targets/role1')
    
-    # Verify that the specific 'tuf.BadHashError' exception is raised by each
-    # mirror.
+    # Verify that the specific 'tuf.BadVersionNumberError' exception is raised
+    # by each mirror.
     except tuf.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'metadata', 'targets', 'role1.json')
        
-        # Verify that 'timestamp.json' is the culprit.
+        # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.BadHashError))
+        self.assertTrue(isinstance(mirror_error, tuf.BadVersionNumberError))
 
     else:
       self.fail('TUF did not prevent a mix-and-match attack.')

@@ -3,7 +3,7 @@
   {
    "keyid": "5cf100388585b33a11b42e11bb008350c2afc508f9aff248a1dc49cc787c1eb7",
    "method": "RSASSA-PSS",
-   "sig": "2fe8b02bfc79fd504cc0ab564e0e4a5dd34039b4b93da692c0b630bf589e85735abdd549ecea2055e9cb1c29abc04432b891afe8f760fd97ecc77bbc26cef0d23af40a5cc7981d1a9734d241ecefc5077d310124f90e51f40932857a915966f487c121dd35686c50b033e006141c7b354b8d998391a0e357f39fc386aa75fb5edf8de4d0d552fd51f03d9c5470d5351ad24fe4e360406021966ae18c1e070b788afa81fb1ea5b9db33a4f89e54ed34420577bcf105a3a6f5c435afdfa2ea36a426e545a698ab112937799a40f52ae15ba38eff6272b7b7a7360e3d9803aa7b54d4ef59d952fd17637b4d1a61896dc97b0433080cd45fffe6c094775114c23581"
+   "sig": "d3c4b800f108f80e053eda38ae9ba40830970e6e85e01421c4010b43e8d316835834cf2a0a456d6cbc25f1e4cda67978f31b5bc403aed663f41684a15ff90dede5cb57672a34c212d8b7e6e5834c77a43a7ae99a452452824d63e4503543e3d6794a42d04ed8a3607e920b6d562c45736a9b85b4e2f1e4433cb2667d0ced05215ba74018a47ebc0bea7c86f6385d78175ed0d8b4bc41b86c3c4187aeb6a424dba4c7fdb743b006dca30f94cb7f67d8952fbbb5ef7f3a8c0d1922eea91614aa25b8af9ccd85768f2931fff75c59252139d452ec67bee10c84f80ea0dcb090771ea0a14a1dbbc1c56e2a055e45fb08f8b16e13647430a38a11bd55666b5c6eec50"
   }
  ],
  "signed": {
@@ -11,34 +11,13 @@
   "expires": "2030-01-01T00:00:00Z",
   "meta": {
    "root.json": {
-    "hashes": {
-     "sha256": "120f7296a53a3b7829976912485a6df4093e7912edbaa9b9d85a63b2ed449813"
-    },
-    "length": 3756
-   },
-   "root.json.gz": {
-    "hashes": {
-     "sha256": "8bde832373ce3bad75ae0b3ff48d579b184375deb5b4649a390eb20204b7ba4f"
-    },
-    "length": 2054
+    "version": 1
    },
    "targets.json": {
-    "hashes": {
-     "sha256": "1b54878e0f5cfffbe67b693f222e127e5c528b5749fe7ab11b44b13a72555566"
-    },
-    "length": 2014
-   },
-   "targets.json.gz": {
-    "hashes": {
-     "sha256": "d3b93d4753bbb5fcc118311094789c1dcf85ef624ec23f044338f310dc7feb03"
-    },
-    "length": 1237
+    "version": 1
    },
    "targets/role1.json": {
-    "hashes": {
-     "sha256": "0ea2c8457b0e069c58e58db55543bc7bceee02d61371548a1ccec7d724c50ad4"
-    },
-    "length": 974
+    "version": 1
    }
   },
   "version": 1

@@ -526,7 +526,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   if tuf.sig.verify(signable, rolename) or write_partial:
     _remove_invalid_and_duplicate_signatures(signable)
     compressions = roleinfo['compressions']
-    filename = write_metadata_file(signable, metadata_filename, compressions,
+    filename = write_metadata_file(signable, metadata_filename,
+                                   metadata['version'], compressions,
                                    False)
     
   # 'signable' contains an invalid threshold of signatures. 

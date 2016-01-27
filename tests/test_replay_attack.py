@@ -289,7 +289,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # version.
     repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 12, 12)
     repository.write()
-    
+   
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
@@ -315,6 +315,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Restore the previous version of 'timestamp.json' on the remote repository
     # and verify that the non-TUF client downloads it (expected, but not ideal).
     shutil.move(backup_timestamp, timestamp_path)
+    logger.info('Moving the timestamp.json backup to the current version.')
     
     # Verify that the TUF client detects replayed metadata and refuses to
     # continue the update process.

@@ -413,7 +413,7 @@ def _get_opener(scheme=None):
     https_handler = VerifiedHTTPSHandler()
     opener = six.moves.urllib.request.build_opener(https_handler)
 
-    # strip out HTTPHandler to prevent MITM spoof
+    # Strip out HTTPHandler to prevent MITM spoof.
     for handler in opener.handlers:
       if isinstance(handler, six.moves.urllib.request.HTTPHandler):
         opener.handlers.remove(handler)
@@ -662,7 +662,7 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
       self._tunnel()
 
     # set location of certificate authorities
-    assert os.path.isfile( tuf.conf.ssl_certificates )
+    assert os.path.isfile(tuf.conf.ssl_certificates)
     cert_path = tuf.conf.ssl_certificates
 
     # TODO: Disallow SSLv2.

@@ -329,12 +329,14 @@ class TestRoledb(unittest.TestCase):
                 'targets': {'keyids': [keyid2], 'threshold': 1}}
     version = 8
     consistent_snapshot = False
-    expires = '1985-10-21T01:21:00Z' 
+    expires = '1985-10-21T01:21:00Z'
+    compression_algorithms = ['gz'] 
 
     root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
-                                                       consistent_snapshot)
+                                                       consistent_snapshot,
+                                                       compression_algorithms)
     self.assertEqual(None,
                      tuf.roledb.create_roledb_from_root_metadata(root_metadata))
     # Ensure 'Root' and 'Targets' were added to the role database.
@@ -372,7 +374,8 @@ class TestRoledb(unittest.TestCase):
     root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
-                                                       consistent_snapshot)
+                                                       consistent_snapshot,
+                                                       compression_algorithms)
     self.assertRaises(tuf.Error,
                       tuf.roledb.create_roledb_from_root_metadata, root_metadata)
     # Remove the invalid role and re-generate 'root_metadata' to test for the
@@ -381,7 +384,8 @@ class TestRoledb(unittest.TestCase):
     root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
-                                                       consistent_snapshot)
+                                                       consistent_snapshot,
+                                                       compression_algorithms)
     self.assertEqual(None,
                      tuf.roledb.create_roledb_from_root_metadata(root_metadata))
 

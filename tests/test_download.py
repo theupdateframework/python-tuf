@@ -229,7 +229,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     https_url = 'https://localhost:' + str(port) + '/' + relative_target_filepath
    
     # Download the target file using an https connection.
-    tuf.conf.ssl_certificates = 'https_client.pem'
+    tuf.conf.ssl_certificates = 'ssl_cert.crt'
     message = 'Downloading target file from https server: ' + https_url  
     logger.info(message)
     try: 

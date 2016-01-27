@@ -178,7 +178,8 @@ class Repository(object):
 
 
 
-  def write(self, write_partial=False, consistent_snapshot=False):
+  def write(self, write_partial=False, consistent_snapshot=False,
+            compression_algorithms=['gz']):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files.
@@ -196,10 +197,15 @@ class Repository(object):
 
       consistent_snapshot:
         A boolean indicating whether written metadata and target files should
-        include a digest in the filename (i.e., <digest>.root.json,
-        <digest>.targets.json.gz, <digest>.README.json, where <digest> is the
-        file's SHA256 digest.  Example:
-        1f4e35a60c8f96d439e27e858ce2869c770c1cdd54e1ef76657ceaaf01da18a3.root.json'
+        include a version number in the filename (i.e.,
+        <version_number>.root.json, <version_number>.targets.json.gz,
+        <version_number>.README.json, where <version_number> is the file's
+        SHA256 digest.  Example: 13.root.json'
+      
+      compression_algorithms:
+        A list of compression algorithms.  Each of these algorithms will be
+        used to compress all of the metadata available on the repository.
+        By default, all metadata is compressed with gzip.
         
     <Exceptions>
       tuf.UnsignedMetadataError, if any of the top-level and delegated roles do
@@ -217,7 +223,9 @@ class Repository(object):
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.BOOLEAN_SCHEMA.check_match(write_partial)
-    tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot) 
+    tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+    tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
+    
     
     # At this point the tuf.keydb and tuf.roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.UnsignedMetadataError'
@@ -2021,7 +2029,7 @@ class Targets(Metadata):
     full_rolename = self._rolename + '/' + rolename
 
     if tuf.roledb.role_exists(full_rolename):
-      raise tuf.Error(repr(full_rolename) + ' already delegated.')
+      raise tuf.Error(repr(rolename) + ' already delegated.')
 
     # Keep track of the valid keyids (added to the new Targets object) and their
     # keydicts (added to this Targets delegations). 
@@ -2696,10 +2704,9 @@ def load_repository(repository_directory):
   
   filenames = repo_lib.get_metadata_filenames(metadata_directory)
 
-  # The Root file is always available without a consistent snapshots digest
-  # attached to the filename.  Store the 'consistent_snapshot' value read the
-  # loaded Root file so that other metadata files may be located.
-  # 'consistent_snapshot' value. 
+  # The Root file is always available without a version number (a consistent
+  # snapshot) attached to the filename.  Store the 'consistent_snapshot' value
+  # and read the loaded Root file so that other metadata files may be located.
   consistent_snapshot = False
 
   # Load the metadata of the top-level roles (i.e., Root, Timestamp, Targets,
@@ -2726,11 +2733,11 @@ def load_repository(repository_directory):
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
 
-        # Strip the digest if 'consistent_snapshot' is True.
-        # Example:  'targets/unclaimed/13df98ab0.django.json' -->
+        # Strip the version number if 'consistent_snapshot' is True.
+        # Example:  'targets/unclaimed/10.django.json' -->
         # 'targets/unclaimed/django.json'
-        metadata_name, digest_junk = \
-          repo_lib._strip_consistent_snapshot_digest(metadata_name,
+        metadata_name, version_number_junk = \
+          repo_lib._strip_consistent_snapshot_version_number(metadata_name,
                                                      consistent_snapshot)
 
         if metadata_name.endswith(METADATA_EXTENSION): 
@@ -2739,10 +2746,10 @@ def load_repository(repository_directory):
         
         else:
           continue
-        
+       
         # Keep a store metadata previously loaded metadata to prevent
         # re-loading duplicate versions.  Duplicate versions may occur with
-        # consistent_snapshot, where the same metadata may be available in
+        # 'consistent_snapshot', where the same metadata may be available in
         # multiples files (the different hash is included in each filename.
         if metadata_name in loaded_metadata:
           continue
