@@ -160,12 +160,10 @@ class Updater(object):
     self.metadata_directory:
       The directory where trusted metadata is stored.
       
-    self.fileinfo:
-      A cache of lengths and hashes of stored metadata files.
+    self.versioninfo:
+      A cache of version numbers for the roles available on the repository.
       
-      Example: {'root.json': {'length': 13323,
-                             'hashes': {'sha256': dbfac345..}},
-                ...}
+      Example: {'root.json': {'version': 128}, ...}
 
     self.mirrors:
       The repository mirrors from which metadata and targets are available.
@@ -299,10 +297,11 @@ class Updater(object):
     # Store the previously trusted/verified metadata.
     self.metadata['previous'] = {}
 
-    # Store the file information of all the metadata files.  The dict keys are
-    # paths, the dict values fileinfo data. This information can help determine
-    # whether a metadata file has changed and so needs to be re-downloaded.
-    self.fileinfo = {}
+    # Store the version numbers of all roles available on the repository.  The
+    # dict keys are paths, and the dict values versioninfo data. This
+    # information can help determine whether a metadata file has changed and
+    # needs to be re-downloaded.
+    self.versioninfo = {}
     
     # Store the location of the client's metadata directory.
     self.metadata_directory = {}
@@ -576,8 +575,9 @@ class Updater(object):
 
     <Arguments>
       unsafely_update_root_if_necessary:
-        Boolean that indicates whether to unsafely update the Root metadata
-        if any of the top-level metadata cannot be downloaded successfully.
+        Boolean that indicates whether to unsafely update the Root metadata if
+        any of the top-level metadata cannot be downloaded successfully.  The
+        Root role is unsafely updated if its current version number is unknown.
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -601,22 +601,17 @@ class Updater(object):
     # Raise 'tuf.FormatError' if the check fail.
     tuf.formats.BOOLEAN_SCHEMA.check_match(unsafely_update_root_if_necessary)
 
-    # The timestamp role does not have signed metadata about it; otherwise we
+    # The Timestamp role does not have signed metadata about it; otherwise we
     # would need an infinite regress of metadata. Therefore, we use some
-    # default, sane metadata about it.
-    DEFAULT_TIMESTAMP_FILEINFO = {
-      'hashes': {},
-      'length': tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
-    }
+    # default, but sane, upper file length for its metadata.
+    DEFAULT_TIMESTAMP_UPPERLENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
-    # The Root role may be updated without knowing its hash if top-level
-    # metadata cannot be safely downloaded (e.g., keys may have been revoked,
-    # thus requiring a new Root file that includes the updated keys) and
-    # 'unsafely_update_root_if_necessary' is True.
-    DEFAULT_ROOT_FILEINFO = {
-      'hashes': {},
-      'length': tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH
-    }
+    # The Root role may be updated without knowing its version number if
+    # top-level metadata cannot be safely downloaded (e.g., keys may have been
+    # revoked, thus requiring a new Root file that includes the updated keys)
+    # and 'unsafely_update_root_if_necessary' is True.
+    # We use some default, but sane, upper file length for its metadata.
+    DEFAULT_ROOT_UPPERLENGTH = tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH
 
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
@@ -636,12 +631,12 @@ class Updater(object):
     
     except tuf.ExpiredMetadataError as e:
       # Raise 'tuf.NoWorkingMirrorError' if a valid (not expired, properly
-      # signed, and valid metadata) 'root' cannot be installed.
+      # signed, and valid metadata) 'root.json' cannot be installed.
       if unsafely_update_root_if_necessary:
         message = \
           'Expired Root metadata was loaded from disk.  Try to update it now.' 
         logger.info(message)
-        self._update_metadata('root', DEFAULT_ROOT_FILEINFO)
+        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
      
       # The caller explicitly requested not to unsafely fetch an expired Root.
       else:
@@ -651,7 +646,7 @@ class Updater(object):
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
     try: 
-      self._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILEINFO)
+      self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
       self._update_metadata_if_changed('snapshot',
                                        referenced_metadata='timestamp')
       self._update_metadata_if_changed('root')
@@ -663,7 +658,7 @@ class Updater(object):
           'update the Root metadata.'
         logger.info(message)
         
-        self._update_metadata('root', DEFAULT_ROOT_FILEINFO)
+        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
         self.refresh(unsafely_update_root_if_necessary=False)
       
       else:
@@ -874,7 +869,9 @@ class Updater(object):
                                          metadata_role):
     """
     <Purpose>
-      Non-public method that verifies an uncompressed metadata file.
+      Non-public method that verifies an uncompressed metadata file.  An
+      exception is raised if 'metadata_file_object is invalid, and there is no
+      return value.
 
     <Arguments>
       metadata_file_object:
@@ -906,7 +903,7 @@ class Updater(object):
         In case the metadata file does not have a valid signature.
 
     <Side Effects>
-      The contents of 'metadata_file_object' is read and loaded.
+      The content of 'metadata_file_object' is read and loaded.
 
     <Returns>
       None.
@@ -927,19 +924,10 @@ class Updater(object):
 
     # Is 'metadata_signable' expired?
     self._ensure_not_expired(metadata_signable['signed'], metadata_role)
-    
-    # Is 'metadata_signable' newer than the currently installed
-    # version?
-    current_metadata_role = self.metadata['current'].get(metadata_role)
-
-    # Compare metadata version numbers.  Ensure there is a current
-    # version of the metadata role to be updated.
-    if current_metadata_role is not None:
-      current_version = current_metadata_role['version']
-      downloaded_version = metadata_signable['signed']['version']
-      if downloaded_version < current_version:
-        raise tuf.ReplayedMetadataError(metadata_role, downloaded_version,
-                                        current_version)
+   
+    # We previously verified version numbers in this function, but have since
+    # moved version number verification to the functions that retrieve
+    # metadata.
 
     # Reject the metadata if any specified targets are not allowed.
     # 'tuf.ForbiddenTargetError' raised if any of the targets of 'metadata_role'
@@ -1041,6 +1029,130 @@ class Updater(object):
                           download_file_length, compression,
                           unsafely_verify_compressed_metadata_file,
                           download_safely=False)
+
+
+
+
+
+  def _get_metadata_file(self, metadata_role, remote_filename,
+                         upperbound_filelength, expected_version,
+                         compression_algorithm):
+    """
+    <Purpose>
+      Non-public method that tries downloading, up to a certain length, a
+      metadata file from a list of known mirrors. As soon as the first valid
+      copy of the file is found, the downloaded file is returned and the
+      remaining mirrors are skipped.
+
+    <Arguments>
+      metadata_role:
+        The role name of the metadata (e.g., 'root', 'targets',
+        'targets/linux/x86').
+
+      remote_filename:
+        The relative file path (on the remove repository) of 'metadata_role'.
+
+      upperbound_filelength:
+        The expected length, or upper bound, of the metadata file to be
+        downloaded.
+
+      expected_version:
+        The expected and required version number of the 'metadata_role' file
+        downloaded.  'expected_version' is an integer.
+
+      compression_algorithm:
+        The name of the compression algorithm (e.g., 'gzip').  The algorithm is
+        needed if the remote metadata file is compressed. 
+
+    <Exceptions>
+      tuf.NoWorkingMirrorError:
+        The metadata could not be fetched. This is raised only when all known
+        mirrors failed to provide a valid copy of the desired metadata file.
+
+    <Side Effects>
+      The file is downloaded from all known repository mirrors in the worst
+      case. If a valid copy of the file is found, it is stored in a temporary
+      file and returned.
+
+    <Returns>
+      A 'tuf.util.TempFile' file-like object containing the metadata.
+    """
+
+    file_mirrors = tuf.mirrors.get_list_of_mirrors('meta', remote_filename,
+                                                   self.mirrors)
+    # file_mirror (URL): error (Exception)
+    file_mirror_errors = {}
+    file_object = None
+
+    for file_mirror in file_mirrors:
+      try:
+        file_object = tuf.download.unsafe_download(file_mirror,
+                                                   upperbound_filelength)
+
+        if compression_algorithm is not None:
+          logger.info('Decompressing ' + str(file_mirror))
+          file_object.decompress_temp_file_object(compression_algorithm)
+        
+        else:
+          logger.info('Not decompressing ' + str(file_mirror))
+        
+        # Verify 'file_object' according to the callable function.
+        # 'file_object' is also verified if decompressed above (i.e., the
+        # uncompressed version).
+        metadata_signable = \
+          tuf.util.load_json_string(file_object.read().decode('utf-8'))
+       
+        # If the version number is unspecified, ensure that the version number
+        # downloaded is greater than the currently trusted version number for
+        # 'metadata_role'.
+        version_downloaded = metadata_signable['signed']['version'] 
+        
+        if expected_version is not None:
+          # Verify that the downloaded version matches the version expected by
+          # the caller.
+          if version_downloaded != expected_version:
+            message = \
+              'Downloaded version number: ' + repr(version_downloaded) + '.' \
+              ' Version number MUST be: ' + repr(expected_version)
+            raise tuf.BadVersionNumberError(message) 
+         
+        # The caller does not know which version to download.  Verify that the
+        # downloaded version is at least greater than the one locally available.
+        else:
+          # Verify that the version number of the locally stored
+          # 'timestamp.json', if available, is less than what was downloaded.
+          # Otherwise, accept the new timestamp with version number
+          # 'version_downloaded'.
+          logger.info('metadata_role: ' + repr(metadata_role)) 
+          try:
+            current_version = \
+              self.metadata['current'][metadata_role]['version']
+              
+            if version_downloaded < current_version:
+              raise tuf.ReplayedMetadataError(metadata_role, version_downloaded,
+                                              current_version)
+          
+          except KeyError:
+            logger.info(metadata_role + ' not available locally.')
+
+        self._verify_uncompressed_metadata_file(file_object, metadata_role)
+
+      except Exception as exception:
+        # Remember the error from this mirror, and "reset" the target file.
+        logger.exception('Update failed from ' + file_mirror + '.')
+        file_mirror_errors[file_mirror] = exception
+        file_object = None
+      
+      else:
+        break
+
+    if file_object:
+      return file_object
+    
+    else:
+      logger.exception('Failed to update {0} from all mirrors: {1}'.format(
+                       remote_filename, file_mirror_errors))
+      raise tuf.NoWorkingMirrorError(file_mirror_errors)
 
 
 
@@ -1234,8 +1346,8 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, uncompressed_fileinfo,
-                       compression=None, compressed_fileinfo=None):
+  def _update_metadata(self, metadata_role, upperbound_filelength, version=None,
+                       compression_algorithm=None):
     """
     <Purpose>
       Non-public method that downloads, verifies, and 'installs' the metadata
@@ -1248,30 +1360,20 @@ class Updater(object):
       metadata_role:
         The name of the metadata. This is a role name and should not end
         in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
-      
-      uncompressed_fileinfo:
-        A dictionary containing length and hashes of the uncompressed metadata
-        file.
-        
-        Example:
+     
+      upperbound_filelength:
+        The expected length, or upper bound, of the metadata file to be
+        downloaded.
 
-          {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
-           "length": 1340}
-        
-      compression:
+      version:
+        The expected and required version number of the 'metadata_role' file
+        downloaded.  'expected_version' is an integer.
+      
+      compression_algorithm:
         A string designating the compression type of 'metadata_role'.
         The 'snapshot' metadata file may be optionally downloaded and stored in
         compressed form.  Currently, only metadata files compressed with 'gzip'
         are considered.  Any other string is ignored.
-
-      compressed_fileinfo:
-        A dictionary containing length and hashes of the compressed metadata
-        file.
-        
-        Example:
-          
-          {"hashes": {"sha256": "3a5a6ec1f353...dedce36e0"}, 
-           "length": 1340}
 
     <Exceptions>
       tuf.NoWorkingMirrorError:
@@ -1294,7 +1396,7 @@ class Updater(object):
    
     # The 'snapshot' or Targets metadata may be compressed.  Add the appropriate
     # extension to 'metadata_filename'. 
-    if compression == 'gzip':
+    if compression_algorithm == 'gzip':
       metadata_filename = metadata_filename + '.gz'
 
     # Attempt a file download from each mirror until the file is downloaded and
@@ -1307,45 +1409,29 @@ class Updater(object):
     #
     # Some metadata (presently timestamp) will be downloaded "unsafely", in the
     # sense that we can only estimate its true length and know nothing about
-    # its hashes.  This is because not all metadata will have other metadata
+    # its version.  This is because not all metadata will have other metadata
     # for it; otherwise we will have an infinite regress of metadata signing
     # for each other. In this case, we will download the metadata up to the
-    # best length we can get for it, not check its hashes, but perform the rest
-    # of the checks (e.g signature verification).
+    # best length we can get for it, not request a specific version, but
+    # perform the rest of the checks (e.g., signature verification).
     #
     # Note also that we presently support decompression of only "safe"
     # metadata, but this is easily extend to "unsafe" metadata as well as
     # "safe" targets.
-    
-    if metadata_role == 'timestamp':
-      metadata_file_object = \
-        self._unsafely_get_metadata_file(metadata_role, metadata_filename,
-                                         uncompressed_fileinfo,
-                                         compression, compressed_fileinfo)
-    
-    elif metadata_role == 'root' and not len(uncompressed_fileinfo['hashes']):
-      metadata_file_object = \
-        self._unsafely_get_metadata_file(metadata_role, metadata_filename,
-                                         uncompressed_fileinfo,
-                                         compression, compressed_fileinfo)
-    
-    else:
-      remote_filename = metadata_filename
-      if self.consistent_snapshot:
-        if compression:
-          filename_digest = \
-            random.choice(list(compressed_fileinfo['hashes'].values()))
-        
-        else:
-          filename_digest = \
-            random.choice(list(uncompressed_fileinfo['hashes'].values()))
-        dirname, basename = os.path.split(remote_filename)
-        remote_filename = os.path.join(dirname, filename_digest+'.'+basename)
+   
+    remote_filename = metadata_filename
+    filename_version = ''
 
-      metadata_file_object = \
-        self._safely_get_metadata_file(metadata_role, remote_filename,
-                                       uncompressed_fileinfo,
-                                       compression, compressed_fileinfo)
+    if self.consistent_snapshot:
+      filename_version = version
+      dirname, basename = os.path.split(remote_filename)
+      remote_filename = os.path.join(dirname, str(filename_version) + '.' + basename)
+   
+    logger.info('Verifying ' + repr(metadata_role) + ' requesting version: ' + repr(version))
+    metadata_file_object = \
+      self._get_metadata_file(metadata_role, remote_filename,
+                              upperbound_filelength, version,
+                              compression_algorithm)
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -1367,8 +1453,9 @@ class Updater(object):
     # Next, move the verified updated metadata file to the 'current' directory.
     # Note that the 'move' method comes from tuf.util's TempFile class.
     # 'metadata_file_object' is an instance of tuf.util.TempFile.
-    metadata_signable = tuf.util.load_json_string(metadata_file_object.read().decode('utf-8'))
-    if compression == 'gzip':
+    metadata_signable = \
+      tuf.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+    if compression_algorithm == 'gzip':
       current_uncompressed_filepath = \
         os.path.join(self.metadata_directory['current'],
                      uncompressed_metadata_filename)
@@ -1389,10 +1476,10 @@ class Updater(object):
     # key and role info for the top-level roles if 'metadata_role' is root.
     # Rebuilding the the key and role info is required if the newly-installed
     # root metadata has revoked keys or updated any top-level role information.
-    logger.debug('Updated '+repr(current_filepath)+'.')
+    logger.debug('Updated ' + repr(current_filepath) + '.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    self._update_fileinfo(uncompressed_metadata_filename)
+    self._update_versioninfo(uncompressed_metadata_filename)
 
     # Ensure the role and key information of the top-level roles is also updated
     # according to the newly-installed Root metadata.
@@ -1468,15 +1555,15 @@ class Updater(object):
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.  
     if referenced_metadata not in self.metadata['current']:
-      message = 'Cannot update '+repr(metadata_role)+' because ' \
-                +referenced_metadata+' is missing.'
+      message = 'Cannot update ' + repr(metadata_role) + ' because ' \
+                + referenced_metadata + ' is missing.'
       raise tuf.RepositoryError(message)
     
     # The referenced metadata has been loaded.  Extract the new
-    # fileinfo for 'metadata_role' from it. 
+    # versioninfo for 'metadata_role' from it. 
     else:
-      message = repr(metadata_role)+' referenced in '+\
-        repr(referenced_metadata)+'.  '+repr(metadata_role)+' may be updated.'
+      message = repr(metadata_role) + ' referenced in ' +\
+        repr(referenced_metadata)+ '.  ' + repr(metadata_role)+' may be updated.'
       logger.debug(message)
     
     # There might be a compressed version of 'snapshot.json' or Targets
@@ -1493,47 +1580,58 @@ class Updater(object):
     # untrusted data is not decompressed prior to verifying hashes, or
     # decompressing a file that may be invalid or partially intact.
     compression = None
-    compressed_fileinfo = None
 
-    # Extract the fileinfo of the uncompressed version of 'metadata_role'.
-    uncompressed_fileinfo = self.metadata['current'][referenced_metadata] \
-                                         ['meta'] \
-                                         [uncompressed_metadata_filename]
+    # Extract the versioninfo of the uncompressed version of 'metadata_role'.
+    expected_versioninfo = self.metadata['current'][referenced_metadata] \
+                                        ['meta'] \
+                                        [uncompressed_metadata_filename]
 
     # Check for the availability of compressed versions of 'snapshot.json',
     # 'targets.json', and delegated Targets (that also start with 'targets').
     # For 'targets.json' and delegated metadata, 'referenced_metata'
     # should always be 'snapshot'.  'snapshot.json' specifies all roles
-    # provided by a repository, including their file lengths and hashes.
+    # provided by a repository, including their version numbers.
     if metadata_role == 'snapshot' or metadata_role.startswith('targets'):
       gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
-      if gzip_metadata_filename in self.metadata['current'] \
-                                                [referenced_metadata]['meta']:
+      if 'gzip' in self.metadata['current']['root']['compression_algorithms']:
         compression = 'gzip'
-        compressed_fileinfo = self.metadata['current'][referenced_metadata] \
-                                    ['meta'][gzip_metadata_filename]
         
-        logger.debug('Compressed version of '+\
-                     repr(uncompressed_metadata_filename)+' is available at '+\
-                     repr(gzip_metadata_filename)+'.')
+        logger.debug('Compressed version of ' + \
+                repr(uncompressed_metadata_filename) + ' is available at ' + \
+                repr(gzip_metadata_filename) + '.')
       else:
-        logger.debug('Compressed version of '+\
-                     repr(uncompressed_metadata_filename)+' not available.')
+        logger.debug('Compressed version of ' + \
+                     repr(uncompressed_metadata_filename) + ' not available.')
 
     # Simply return if the file has not changed, according to the metadata
     # about the uncompressed file provided by the referenced metadata.
-    if not self._fileinfo_has_changed(uncompressed_metadata_filename,
-                                      uncompressed_fileinfo):
-      logger.info(repr(uncompressed_metadata_filename)+' up-to-date.')
+    if not self._versioninfo_has_changed(uncompressed_metadata_filename,
+                                         expected_versioninfo):
+      logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
       
       return
 
-    logger.debug('Metadata '+repr(uncompressed_metadata_filename)+\
+    logger.debug('Metadata ' + repr(uncompressed_metadata_filename) + \
                  ' has changed.')
 
+    # The file lengths of metadata are unknown, only their version numbers are
+    # known.  Set an upper limit for the length of the downloaded file for each
+    # expected role.  Note: The Timestamp role is not updated via this
+    # function.
+    if metadata_role == 'snapshot': 
+      upperbound_filelength = tuf.conf.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
+    
+    elif metadata_role == 'root':
+      upperbound_filelength = tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH
+      
+    # The metadata is considered Targets (or delegated Targets metadata).
+    else:
+      upperbound_filelength = tuf.conf.DEFAULT_TARGETS_REQUIRED_LENGTH
+    
     try:
-      self._update_metadata(metadata_role, uncompressed_fileinfo, compression,
-                            compressed_fileinfo)
+      self._update_metadata(metadata_role, upperbound_filelength,
+                            expected_versioninfo['version'], compression)
+
     except:
       # The current metadata we have is not current but we couldn't
       # get new metadata. We shouldn't use the old metadata anymore.
@@ -1544,14 +1642,14 @@ class Updater(object):
       # We shouldn't need to, but we need to check the trust
       # implications of the current implementation.
       self._delete_metadata(metadata_role)
-      logger.error('Metadata for '+repr(metadata_role)+' cannot be updated.')
+      logger.error('Metadata for ' +repr(metadata_role) + ' cannot be updated.')
       raise
     
     else:
-      # We need to remove delegated roles because the delegated roles
-      # may not be trusted anymore.
+      # We need to remove delegated roles because the delegated roles may not
+      # be trusted anymore.
       if metadata_role == 'targets' or metadata_role.startswith('targets/'):
-        logger.debug('Removing delegated roles of '+repr(metadata_role)+'.')
+        logger.debug('Removing delegated roles of ' + repr(metadata_role) + '.')
         
         # TODO: Should we also remove the keys of the delegated roles?
         tuf.roledb.remove_delegated_roles(metadata_role)
@@ -1561,85 +1659,73 @@ class Updater(object):
 
 
 
-  def _fileinfo_has_changed(self, metadata_filename, new_fileinfo):
+  def _versioninfo_has_changed(self, metadata_filename, new_versioninfo):
     """
     <Purpose>
-      Non-public method that determines whether the current fileinfo of
-      'metadata_filename' differs from 'new_fileinfo'.  The 'new_fileinfo'
+      Non-public method that determines whether the current versioninfo of
+      'metadata_filename' differs from 'new_versioninfo'.  The 'new_versioninfo'
       argument should be extracted from the latest copy of the metadata that
       references 'metadata_filename'.  Example: 'root.json' would be referenced
       by 'snapshot.json'.
         
-      'new_fileinfo' should only be 'None' if this is for updating 'root.json'
-      without having 'snapshot.json' available.
+      'new_versioninfo' should only be 'None' if this is for updating
+      'root.json' without having 'snapshot.json' available.
 
     <Arguments>
       metadadata_filename:
         The metadata filename for the role.  For the 'root' role,
         'metadata_filename' would be 'root.json'.
 
-      new_fileinfo:
+      new_versioninfo:
         A dict object representing the new file information for
-        'metadata_filename'.  'new_fileinfo' may be 'None' when
+        'metadata_filename'.  'new_versioninfo' may be 'None' when
         updating 'root' without having 'snapshot' available.  This
-        dict conforms to 'tuf.formats.FILEINFO_SCHEMA' and has
+        dict conforms to 'tuf.formats.VERSIONINFO_SCHEMA' and has
         the form:
-        {'length': 23423
-         'hashes': {'sha256': adfbc32343..}}
+        
+        {'version': 288}
         
     <Exceptions>
       None.
 
     <Side Effects>
-      If there is no fileinfo currently loaded for 'metada_filename',
+      If there is no versioninfo currently loaded for 'metada_filename',
       try to load it.
 
     <Returns>
-      Boolean.  True if the fileinfo has changed, false otherwise.
+      Boolean.  True if the versioninfo has changed, false otherwise.
     """
-       
-    # If there is no fileinfo currently stored for 'metadata_filename',
-    # try to load the file, calculate the fileinfo, and store it.
-    if metadata_filename not in self.fileinfo:
-      self._update_fileinfo(metadata_filename)
+   
+    # If there is no versioninfo currently stored for 'metadata_filename',
+    # try to load the file, calculate the versioninfo, and store it.
+    if metadata_filename not in self.versioninfo:
+      self._update_versioninfo(metadata_filename)
 
-    # Return true if there is no fileinfo for 'metadata_filename'.
-    # 'metadata_filename' is not in the 'self.fileinfo' store
+    # Return true if there is no versioninfo for 'metadata_filename'.
+    # 'metadata_filename' is not in the 'self.versioninfo' store
     # and it doesn't exist in the 'current' metadata location.
-    if self.fileinfo[metadata_filename] is None:
+    if self.versioninfo[metadata_filename] is None:
       return True
 
-    current_fileinfo = self.fileinfo[metadata_filename]
+    current_versioninfo = self.versioninfo[metadata_filename]
 
-    if current_fileinfo['length'] != new_fileinfo['length']:
+    if new_versioninfo['version'] > current_versioninfo['version']:
       return True
-
-    # Now compare hashes. Note that the reason we can't just do a simple
-    # equality check on the fileinfo dicts is that we want to support the
-    # case where the hash algorithms listed in the metadata have changed
-    # without having that result in considering all files as needing to be
-    # updated, or not all hash algorithms listed can be calculated on the
-    # specific client.
-    for algorithm, hash_value in six.iteritems(new_fileinfo['hashes']):
-      # We're only looking for a single match. This isn't a security
-      # check, we just want to prevent unnecessary downloads.
-      if algorithm in current_fileinfo['hashes']: 
-        if hash_value == current_fileinfo['hashes'][algorithm]:
-          return False
-
-    return True
+    
+    else:
+      return False
 
 
 
 
 
-  def _update_fileinfo(self, metadata_filename):
+  def _update_versioninfo(self, metadata_filename):
     """
     <Purpose>
-      Non-public method that updates the 'self.fileinfo' entry for the metadata
-      belonging to 'metadata_filename'.  If the 'current' metadata for
-      'metadata_filename' cannot be loaded, set its fileinfo' to 'None' to
-      signal that it is not in the 'self.fileinfo' AND it also doesn't exist
+      Non-public method that updates the 'self.versioninfo' entry for the
+      metadata belonging to 'metadata_filename'.  If the current metadata for
+      'metadata_filename' cannot be loaded, set its 'versioninfo' to 'None' to
+      signal that it is not in 'self.versioninfo' AND it also doesn't exist
       locally.
 
     <Arguments>
@@ -1651,32 +1737,67 @@ class Updater(object):
       None.
 
     <Side Effects>
-      The file details of 'metadata_filename' is calculated and
-      stored in 'self.fileinfo'.
+      The version number of 'metadata_filename' is calculated and stored in its
+      corresponding entry in 'self.versioninfo'.
 
     <Returns>
       None.
     """
         
     # In case we delayed loading the metadata and didn't do it in
-    # __init__ (such as with delegated metadata), then get the file
+    # __init__ (such as with delegated metadata), then get the version 
     # info now.
        
     # Save the path to the current metadata file for 'metadata_filename'.
     current_filepath = os.path.join(self.metadata_directory['current'],
                                     metadata_filename)
-    # If the path is invalid, simply return and leave fileinfo unset.
+    # If the path is invalid, simply return and leave versioninfo unset.
     if not os.path.exists(current_filepath):
-      self.fileinfo[metadata_filename] = None
+      self.versioninfo[metadata_filename] = None
       return
    
-    # Extract the file information from the actual file and save it
-    # to the fileinfo store.
-    file_length, hashes = tuf.util.get_file_details(current_filepath)
-    metadata_fileinfo = tuf.formats.make_fileinfo(file_length, hashes)
-    self.fileinfo[metadata_filename] = metadata_fileinfo
-  
- 
+    # Extract the version information from the trusted snapshot role and save
+    # it to the 'self.versioninfo' store.
+    if metadata_filename == 'timestamp.json':
+      trusted_versioninfo = \
+        self.metadata['current']['timestamp']['version']
+
+    # When updating snapshot.json, the client either (1) has a copy of
+    # snapshot.json, or (2) in the process of obtaining it by first downloading
+    # timestamp.json.  Note: Clients may have only root.json and perform a
+    # refresh of top-level metadata to obtain the remaining roles.
+    elif metadata_filename == 'snapshot.json':
+      
+      # Verify the version number of the currently trusted snapshot.json in
+      # snapshot.json itself.  Checking the version number specified in
+      # timestamp.json may be greater than the version specified in the
+      # client's copy of snapshot.json.
+      try:
+        timestamp_version_number = self.metadata['current']['snapshot']['version']
+        trusted_versioninfo = tuf.formats.make_versioninfo(timestamp_version_number)
+      
+      except KeyError:
+        trusted_versioninfo = \
+          self.metadata['current']['timestamp']['meta']['snapshot.json']
+      
+    else:
+      
+      try:
+        # The metadata file names in 'self.metadata' exclude the role
+        # extension.  Strip the '.json' extension when checking if
+        # 'metadata_filename' currently exists.
+        targets_version_number = \
+          self.metadata['current'][metadata_filename[:-len('.json')]]['version']
+        trusted_versioninfo = \
+          tuf.formats.make_versioninfo(targets_version_number)
+      
+      except KeyError:
+        trusted_versioninfo = \
+          self.metadata['current']['snapshot']['meta'][metadata_filenamed]
+
+    self.versioninfo[metadata_filename] = trusted_versioninfo
+
+
 
 
 
@@ -2721,20 +2842,15 @@ class Updater(object):
                                target_filepath.lstrip(os.sep))
     destination = os.path.abspath(destination)
     target_dirpath = os.path.dirname(destination)
-    if target_dirpath:
-      try:
-        os.makedirs(target_dirpath)
-      
-      except OSError as e:
-        if e.errno == errno.EEXIST:
-          pass
-        
-        else:
-          raise
     
-    else:
-      message = repr(target_dirpath) + ' does not exist.'
-      logger.warning(message)
-      raise tuf.Error(message)
+    try:
+      os.makedirs(target_dirpath)
+    
+    except OSError as e:
+      if e.errno == errno.EEXIST:
+        pass
+      
+      else:
+        raise
 
     target_file_object.move(destination)

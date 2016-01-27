@@ -262,17 +262,35 @@ ED25519KEY_SCHEMA = SCHEMA.Object(
   keyid = KEYID_SCHEMA,
   keyval = KEYVAL_SCHEMA)
 
-# Info that describes both metadata and target files.
-# This schema allows the storage of multiple hashes for the same file
-# (e.g., sha256 and sha512 may be computed for the same file and stored).
+# Information about target files, like file length and file hash(es).  This
+# schema allows the storage of multiple hashes for the same file (e.g., sha256
+# and sha512 may be computed for the same file and stored).
 FILEINFO_SCHEMA = SCHEMA.Object(
   object_name = 'FILEINFO_SCHEMA',
   length = LENGTH_SCHEMA,
   hashes = HASHDICT_SCHEMA,
   custom = SCHEMA.Optional(SCHEMA.Object()))
 
-# A dict holding the information for a particular file.  The keys hold the
-# relative file path and the values the relevant file information.
+# Version information specified in "snapshot.json" for each role available on
+# the TUF repository.  The 'FILEINFO_SCHEMA' object was previously listed in
+# the snapshot role, but was switched to this object format to reduce the
+# amount of metadata that needs to be downloaded.  Listing version numbers in
+# "snapshot.json" also prevents rollback attacks for roles that clients have
+# not downloaded. 
+VERSIONINFO_SCHEMA = SCHEMA.Object(
+  object_name = 'VERSIONINFO_SCHEMA',
+  version = METADATAVERSION_SCHEMA)
+
+# A dict holding the version information for a particular metadata role.  The
+# dict keys hold the relative file paths, and the dict values the corresponding
+# version numbers.
+VERSIONDICT_SCHEMA = SCHEMA.DictOf(
+  key_schema = RELPATH_SCHEMA,
+  value_schema = VERSIONINFO_SCHEMA)
+
+# A dict holding the information for a particular target / file.  The dict keys
+# hold the relative file paths, and the dict values the corresponding file
+# information.
 FILEDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
   value_schema = FILEINFO_SCHEMA)
@@ -286,9 +304,9 @@ TARGETFILE_SCHEMA = SCHEMA.Object(
 # A list of TARGETFILE_SCHEMA.
 TARGETFILES_SCHEMA = SCHEMA.ListOf(TARGETFILE_SCHEMA)
 
-# A single signature of an object.  Indicates the signature, the id of the
+# A single signature of an object.  Indicates the signature, the ID of the
 # signing key, and the signing method.
-# I debated making the signature schema not contain the key id and instead have
+# I debated making the signature schema not contain the key ID and instead have
 # the signatures of a file be a dictionary with the key being the keyid and the
 # value being the signature schema without the keyid. That would be under
 # the argument that a key should only be able to sign a file once. However,
@@ -439,6 +457,7 @@ ROOT_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Root'),
   version = METADATAVERSION_SCHEMA,
   consistent_snapshot = BOOLEAN_SCHEMA,
+  compression_algorithms = COMPRESSIONS_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)
@@ -458,7 +477,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Snapshot'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
-  meta = FILEDICT_SCHEMA)
+  meta = VERSIONDICT_SCHEMA)
 
 # Timestamp role: indicates the latest version of the snapshot file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
@@ -466,7 +485,7 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Timestamp'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
-  meta = FILEDICT_SCHEMA)
+  meta = VERSIONDICT_SCHEMA)
 
 # project.cfg file: stores information about the project in a json dictionary
 PROJECT_CFG_SCHEMA = SCHEMA.Object(
@@ -554,11 +573,11 @@ class MetaFile(object):
 
 
 class TimestampFile(MetaFile):
-  def __init__(self, version, expires, filedict):
+  def __init__(self, version, expires, versiondict):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
-    self.info['meta'] = filedict
+    self.info['meta'] = versiondict
 
 
   @staticmethod
@@ -569,17 +588,17 @@ class TimestampFile(MetaFile):
 
     version = object['version']
     expires = object['expires']
-    filedict = object['meta']
+    versiondict = object['meta']
     
-    return TimestampFile(version, expires, filedict)
+    return TimestampFile(version, expires, versiondict)
     
     
   @staticmethod
-  def make_metadata(version, expiration_date, filedict):
+  def make_metadata(version, expiration_date, versiondict):
     result = {'_type' : 'Timestamp'}
     result['version'] = version 
     result['expires'] = expiration_date
-    result['meta'] = filedict
+    result['meta'] = versiondict
 
     # Is 'result' a Timestamp metadata file?
     # Raise 'tuf.FormatError' if not.
@@ -592,13 +611,15 @@ class TimestampFile(MetaFile):
 
 
 class RootFile(MetaFile):
-  def __init__(self, version, expires, keys, roles, consistent_snapshot):
+  def __init__(self, version, expires, keys, roles, consistent_snapshot,
+               compression_algorithms):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
     self.info['keys'] = keys
     self.info['roles'] = roles
     self.info['consistent_snapshot'] = consistent_snapshot
+    self.info['compression_algorithms'] = compression_algorithms
 
 
   @staticmethod
@@ -612,19 +633,22 @@ class RootFile(MetaFile):
     keys = object['keys']
     roles = object['roles']
     consistent_snapshot = object['consistent_snapshot']
+    compression_algorithms = object['compression_algorithms']
     
-    return RootFile(version, expires, keys, roles, consistent_snapshot)
+    return RootFile(version, expires, keys, roles, consistent_snapshot,
+                    compression_algorithms)
 
 
   @staticmethod
   def make_metadata(version, expiration_date, keydict, roledict,
-                    consistent_snapshot):
+                    consistent_snapshot, compression_algorithms):
     result = {'_type' : 'Root'}
     result['version'] = version
     result['expires'] = expiration_date
     result['keys'] = keydict
     result['roles'] = roledict
     result['consistent_snapshot'] = consistent_snapshot
+    result['compression_algorithms'] = compression_algorithms
     
     # Is 'result' a Root metadata file?
     # Raise 'tuf.FormatError' if not.
@@ -637,11 +661,11 @@ class RootFile(MetaFile):
 
 
 class SnapshotFile(MetaFile):
-  def __init__(self, version, expires, filedict):
+  def __init__(self, version, expires, versiondict):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
-    self.info['meta'] = filedict
+    self.info['meta'] = versiondict
 
 
   @staticmethod
@@ -652,17 +676,17 @@ class SnapshotFile(MetaFile):
     
     version = object['version']
     expires = object['expires']
-    filedict = object['meta']
+    versiondict = object['meta']
     
-    return SnapshotFile(version, expires, filedict)
+    return SnapshotFile(version, expires, versiondict)
 
 
   @staticmethod
-  def make_metadata(version, expiration_date, filedict):
+  def make_metadata(version, expiration_date, versiondict):
     result = {'_type' : 'Snapshot'}
     result['version'] = version 
     result['expires'] = expiration_date
-    result['meta'] = filedict
+    result['meta'] = versiondict
 
     # Is 'result' a Snapshot metadata file?
     # Raise 'tuf.FormatError' if not.
@@ -996,6 +1020,42 @@ def make_fileinfo(length, hashes, custom=None):
 
   return fileinfo
 
+
+
+
+
+def make_versioninfo(version_number):
+  """
+  <Purpose>
+    Create a dictionary conformant to 'VERSIONINFO_SCHEMA'.  This dict
+    describes both metadata and target files.
+
+  <Arguments>
+    version_number:
+      An integer representing the version of a particular metadata role.
+      The dictionary returned by this function is expected to be included
+      in Snapshot metadata.
+
+  <Exceptions>
+    tuf.FormatError, if the 'VERSIONINFO_SCHEMA' to be returned
+    does not have the correct format.
+
+  <Side Effects>
+    If any of the arguments are incorrectly formatted, the dict
+    returned will be checked for formatting errors, and if found,
+    will raise a 'tuf.FormatError' exception.
+
+  <Returns>
+    A dictionary conformant to 'VERSIONINFO_SCHEMA', containing the version
+    information of a metadata role.
+  """
+
+  versioninfo = {'version' : version_number}
+
+  # Raise 'tuf.FormatError' if 'versioninfo' is improperly formatted.
+  VERSIONINFO_SCHEMA.check_match(versioninfo)
+
+  return versioninfo
 
 
 
