@@ -189,12 +189,12 @@ Instructions for Contributors
 
 Development: `https://github.com/theupdateframework/tuf <https://github.com/theupdateframework/tuf>`_
 
-`Virtualenv <https://virtualenv.pypa.io/en/latest/virtualenv.html#introduction>`_
+`Virtualenv <https://virtualenv.pypa.io/en/latest/index.html>`_
 is a tool to create isolated Python environments. It also includes
 ``pip`` and ``setuptools``, Python packages used to install TUF and its
 dependencies. All installation methods of virtualenv are outlined in the
 `installation
-section <https://virtualenv.pypa.io/en/latest/virtualenv.html#installation>`_
+section <https://virtualenv.pypa.io/en/latest/installation.html>`_
 and instructions for installing locally from source here:
 ::
 

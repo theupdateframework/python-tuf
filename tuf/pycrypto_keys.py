@@ -294,7 +294,7 @@ def create_rsa_signature(private_key, data):
     # If the passphrase is incorrect, PyCrypto returns: "RSA key format is not
     # supported".
     try:
-      sha256_object = Crypto.Hash.SHA256.new(data.encode('utf-8'))
+      sha256_object = Crypto.Hash.SHA256.new(data)
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
     
     except (ValueError, IndexError, TypeError) as e:
@@ -396,7 +396,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
     try:
       rsa_key_object = Crypto.PublicKey.RSA.importKey(public_key)
       pkcs1_pss_verifier = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)
-      sha256_object = Crypto.Hash.SHA256.new(data.encode('utf'))
+      sha256_object = Crypto.Hash.SHA256.new(data)
       valid_signature = pkcs1_pss_verifier.verify(sha256_object, signature)
     
     except (ValueError, IndexError, TypeError) as e:

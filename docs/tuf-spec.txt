@@ -39,7 +39,7 @@ Version 0.9
    (http://www.geni.net/)
    (http://www.nsf.gov/)
 
-   TUF's Python implementation is based heavily on Thandy, the application
+   TUF's reference implementation is based heavily on Thandy, the application
    updater for Tor (http://www.torproject.org/). Its design and this spec are
    also largely based on Thandy's, with many parts being directly borrowed
    from Thandy. The Thandy spec can be found here:
@@ -277,7 +277,7 @@ Version 0.9
 
    To prevent an adversary from replaying an out-of-date signed metadata file
    whose signature has not yet expired, an automated process periodically signs
-   a timestamped statement containing the the hash of the snapshot file.  Even
+   a timestamped statement containing the hash of the snapshot file.  Even
    though this timestamp key must be kept online, the risk posed to clients by
    compromise of this key is minimal.
 
@@ -428,11 +428,12 @@ Version 0.9
           METHOD is the key signing method used to generate the signature.
           SIGNATURE is a signature of the canonical JSON form of ROLE.
 
-   The current Python implementation of TUF defines two signing methods,
+   The current reference implementation of TUF defines two signing methods,
    although TUF is not restricted to any particular key signing method,
    key type, or cryptographic library:
        
        "RSASSA-PSS" : RSA Probabilistic signature scheme with appendix.
+                      The underlying hash function is SHA256.
        
        "ed25519" : Elliptic curve digital signature algorithm based on Twisted
                   Edwards curves.
@@ -954,9 +955,11 @@ Version 0.9
 
 6.1. Key management and migration
 
-   All keys except the timestamp file signing key and the mirror list signing
-   key should be stored securely offline (e.g. encrypted and on a separate
-   machine, in special-purpose hardware, etc.).
+   All keys, except those for the timestamp and mirrors roles, should be
+   stored securely offline (e.g. encrypted and on a separate machine, in
+   special-purpose hardware, etc.).  This document does not prescribe how keys
+   should be encrypted and stored, and so it is left to implementers of
+   this document to decide how best to secure them. 
 
    To replace a compromised root key or any other top-level role key, the root
    role signs a new root.json file that lists the updated trusted keys for the

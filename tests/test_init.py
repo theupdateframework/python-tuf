@@ -29,8 +29,9 @@ import unittest
 import logging
 
 import tuf
+import tuf.log
 
-logger = logging.getLogger('tuf.test_keys')
+logger = logging.getLogger('tuf.test_init')
 
 class TestInit(unittest.TestCase):
   def setUp(self):

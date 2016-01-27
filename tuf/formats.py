@@ -151,8 +151,8 @@ LOGLEVEL_SCHEMA = SCHEMA.Integer(lo=0, hi=50)
 NAME_SCHEMA = SCHEMA.AnyString()
 NAMES_SCHEMA = SCHEMA.ListOf(NAME_SCHEMA)
 
-# A string representing data.
-DATA_SCHEMA = SCHEMA.AnyString()
+# A byte string representing data.
+DATA_SCHEMA = SCHEMA.AnyBytes()
 
 # Supported hash algorithms.
 HASHALGORITHMS_SCHEMA = SCHEMA.ListOf(SCHEMA.OneOf(
@@ -186,6 +186,9 @@ NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
 # A PyCrypto signature.
 PYCRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyBytes()
+
+# A pyca-cryptography signature.
+PYCACRYPTOSIGNATURE_SCHEMA = SCHEMA.AnyBytes()
 
 # An RSA key in PEM format.
 PEMRSA_SCHEMA = SCHEMA.AnyString()
