@@ -245,9 +245,8 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
     raise tuf.UnsupportedLibraryError('Invalid crypto'
       ' library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.') 
     
-  # Generate the keyid of the RSA key.  'key_value' corresponds to the
-  # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
-  # information is not included in the generation of the 'keyid' identifier.
+  # Generate the keyid of the RSA key.  Note: The private key material is
+  # not included in the generation of the 'keyid' identifier.
   key_value = {'public': public,
                'private': ''}
   keyid = _get_keyid(keytype, key_value)
