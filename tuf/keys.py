@@ -910,11 +910,6 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
     
     The public and private keys are strings in PEM format.
 
-    Although the PyCrypto crytography library called sets a 1024-bit minimum
-    key size, generate() enforces a minimum key size of 2048 bits.  If 'bits' is
-    unspecified, a 3072-bit RSA key is generated, which is the key size
-    recommended by TUF. 
-    
     >>> rsa_key = generate_rsa_key()
     >>> private = rsa_key['keyval']['private']
     >>> passphrase = 'secret'
