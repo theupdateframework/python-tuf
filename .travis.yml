@@ -5,7 +5,7 @@ sudo: false
 cache: pip
 
 python:
-  - "2.7"
+  - "3.5"
 
 before_script:
   - pip install -U pip wheel tox
