@@ -311,15 +311,17 @@ def generate_ed25519_key():
   # 'tuf.conf.ED25519_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['ed25519'])
 
-  # Begin building the ED25519 key dictionary. 
+  # Begin building the Ed25519 key dictionary. 
   ed25519_key = {}
   keytype = 'ed25519'
   public = None
   private = None
 
-  # Generate the public and private ED25519 keys.  Use the 'pynacl' library
-  # if available, otherwise fall back to optimized pure python implementation
-  # provided by pyca and available in TUF.
+  # Generate the public and private Ed25519 key with the 'pynacl' library.
+  # Unlike in the verification of Ed25519 signatures, do not fall back to the
+  # optimized, pure python implementation provided by PyCA.  Ed25519 should
+  # always be generated with a backend like libsodium to prevent side-channel
+  # attacks.
   if 'pynacl' in _available_crypto_libraries:
     public, private = \
       tuf.ed25519_keys.generate_public_and_private()
@@ -328,14 +330,14 @@ def generate_ed25519_key():
     raise tuf.UnsupportedLibraryError('The required PyNaCl library'
       ' is unavailable.')
 
-  # Generate the keyid of the ED25519 key.  'key_value' corresponds to the
-  # 'keyval' entry of the 'ED25519KEY_SCHEMA' dictionary.  The private key
+  # Generate the keyid of the Ed25519 key.  'key_value' corresponds to the
+  # 'keyval' entry of the 'Ed25519KEY_SCHEMA' dictionary.  The private key
   # information is not included in the generation of the 'keyid' identifier.
   key_value = {'public': binascii.hexlify(public).decode(),
                'private': ''}
   keyid = _get_keyid(keytype, key_value)
 
-  # Build the 'ed25519_key' dictionary.  Update 'key_value' with the ED25519
+  # Build the 'ed25519_key' dictionary.  Update 'key_value' with the Ed25519
   # private key prior to adding 'key_value' to 'ed25519_key'.
   key_value['private'] = binascii.hexlify(private).decode()
 
@@ -559,7 +561,7 @@ def check_crypto_libraries(required_libraries):
   tuf.formats.REQUIRED_LIBRARIES_SCHEMA.check_match(required_libraries)
  
   # The checks below all raise 'tuf.UnsupportedLibraryError' if the general,
-  # RSA, and ED25519 crypto libraries specified in 'tuf.conf.py' are not
+  # RSA, and Ed25519 crypto libraries specified in 'tuf.conf.py' are not
   # supported or unavailable.  The appropriate error message is added to the
   # exception.  The funcions of this module that depend on user-installed
   # crypto libraries should call this private function to ensure the called
@@ -692,7 +694,7 @@ def create_signature(key_dict, data):
 
   # Signing the 'data' object requires a private key.
   # The 'RSASSA-PSS' (i.e., PyCrypto module) and 'ed25519' (i.e., PyNaCl and the
-  # optimized pure Python implementation of ed25519) are the only signing
+  # optimized pure Python implementation of Ed25519) are the only signing
   # methods  currently supported.
   signature = {}
   keytype = key_dict['keytype']
