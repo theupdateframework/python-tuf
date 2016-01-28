@@ -177,7 +177,10 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
     Although the PyCrypto crytography library called sets a 1024-bit minimum
     key size, generate() enforces a minimum key size of 2048 bits.  If 'bits' is
     unspecified, a 3072-bit RSA key is generated, which is the key size
-    recommended by TUF. 
+    recommended by TUF.  These key size restrictions are only enforced for keys
+    generated within TUF.  RSA keys with sizes lower than what we
+    recommended may still be imported (e.g., with
+    import_rsakey_from_encrypted_pem().
     
     >>> rsa_key = generate_rsa_key(bits=2048)
     >>> tuf.formats.RSAKEY_SCHEMA.matches(rsa_key)
