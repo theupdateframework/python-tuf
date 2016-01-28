@@ -693,9 +693,10 @@ def create_signature(key_dict, data):
   check_crypto_libraries([key_dict['keytype']])
 
   # Signing the 'data' object requires a private key.
-  # The 'RSASSA-PSS' (i.e., PyCrypto module) and 'ed25519' (i.e., PyNaCl and the
-  # optimized pure Python implementation of Ed25519) are the only signing
-  # methods  currently supported.
+  # 'RSASSA-PSS' and 'ed25519' are the only signing methods currently
+  # supported.  RSASSA-PSS keys and signatures can be generated and verified by
+  # the PyCrypto and 'cryptography' modules, and Ed25519's by PyNaCl and PyCA's
+  # optimized, pure python implementation of Ed25519.
   signature = {}
   keytype = key_dict['keytype']
   public = key_dict['keyval']['public']
