@@ -677,7 +677,7 @@ def create_signature(key_dict, data):
     actual signing routine.
 
   <Returns>
-    A signature dictionary conformat to 'tuf.format.SIGNATURE_SCHEMA'.
+    A signature dictionary conformant to 'tuf.format.SIGNATURE_SCHEMA'.
   """
 
   # Does 'key_dict' have the correct format?
