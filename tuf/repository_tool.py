@@ -102,10 +102,10 @@ TIMESTAMP_EXPIRATION = 86400
 try:
   tuf.keys.check_crypto_libraries(['rsa', 'ed25519', 'general'])
 
-except tuf.UnsupportedLibraryError as e: #pragma: no cover
-  message = 'Warning: The repository and developer tools require additional' + \
-    ' libraries, which can be installed as follows:\n $ pip install tuf[tools]'  
-  logger.warn(message) 
+except tuf.UnsupportedLibraryError: #pragma: no cover
+  logger.warn('Warning: The repository and developer tools require'
+    ' additional libraries, which can be installed as follows:'
+    '\n $ pip install tuf[tools]') 
 
 
 class Repository(object):
@@ -402,7 +402,7 @@ class Repository(object):
         try: 
           repo_lib._check_role_keys(delegated_role)
         
-        except tuf.InsufficientKeysError as e:
+        except tuf.InsufficientKeysError:
           insufficient_keys.append(delegated_role)
           continue
         
@@ -410,22 +410,19 @@ class Repository(object):
           repo_lib._generate_and_write_metadata(delegated_role, filename, False,
                                                 targets_directory,
                                                 metadata_directory)
-        except tuf.UnsignedMetadataError as e:
+        except tuf.UnsignedMetadataError:
           insufficient_signatures.append(delegated_role)
      
       # Log the verification results of the delegated roles and return
       # immediately after each invalid case.
       if len(insufficient_keys):
-        message = \
-          'Delegated roles with insufficient keys:\n' + repr(insufficient_keys)
-        logger.info(message)
+        logger.info('Delegated roles with insufficient'
+          ' keys:\n' + repr(insufficient_keys))
         return
       
       if len(insufficient_signatures):
-        message = \
-          'Delegated roles with insufficient signatures:\n' +\
-          repr(insufficient_signatures)
-        logger.info(message) 
+        logger.info('Delegated roles with insufficient'
+          ' signatures:\n' + repr(insufficient_signatures)) 
         return
 
       # Verify the top-level roles and log the results.
@@ -477,8 +474,7 @@ class Repository(object):
 
     # Ensure a valid directory is given.
     if not os.path.isdir(files_directory):
-      message = repr(files_directory) + ' is not a directory.'
-      raise tuf.Error(message)
+      raise tuf.Error(repr(files_directory) + ' is not a directory.')
    
     # A list of the target filepaths found in 'files_directory'.
     targets = []
@@ -573,9 +569,8 @@ class Metadata(object):
     try:
       tuf.keydb.add_key(key)
     
-    except tuf.KeyAlreadyExistsError as e:
-      message = 'Adding a verification key that has already been used.'
-      logger.warning(message)
+    except tuf.KeyAlreadyExistsError:
+      logger.warning('Adding a verification key that has already been used.')
 
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -675,15 +670,14 @@ class Metadata(object):
     # Ensure the private portion of the key is available, otherwise signatures
     # cannot be generated when the metadata file is written to disk.
     if not len(key['keyval']['private']):
-      message = 'This is not a private key.'
-      raise tuf.Error(message)
+      raise tuf.Error('This is not a private key.')
 
     # Has the key, with the private portion included, been added to the keydb?
     # The public version of the key may have been previously added.
     try:
       tuf.keydb.add_key(key)
     
-    except tuf.KeyAlreadyExistsError as e:
+    except tuf.KeyAlreadyExistsError:
       tuf.keydb.remove_key(key['keyid'])
       tuf.keydb.add_key(key)
 
@@ -1123,8 +1117,8 @@ class Metadata(object):
     # Is 'datetime_object' a datetime.datetime() object?
     # Raise 'tuf.FormatError' if not.
     if not isinstance(datetime_object, datetime.datetime):
-      message = repr(datetime_object) + ' is not a datetime.datetime() object.'
-      raise tuf.FormatError(message) 
+      raise tuf.FormatError(repr(datetime_object) + ' is not a'
+        ' datetime.datetime() object.') 
 
     # truncate the microseconds value to produce a correct schema string 
     # of the form yyyy-mm-ddThh:mm:ssZ
@@ -1135,8 +1129,7 @@ class Metadata(object):
       tuf.formats.unix_timestamp_to_datetime(int(time.time()))
     
     if datetime_object < current_datetime_object:
-      message = repr(self.rolename) + ' has already expired.'
-      raise tuf.Error(message)
+      raise tuf.Error(repr(self.rolename) + ' has already expired.')
    
     # Update the role's 'expires' entry in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1309,7 +1302,7 @@ class Root(Metadata):
     try: 
       tuf.roledb.add_role(self._rolename, roleinfo)
     
-    except tuf.RoleAlreadyExistsError as e:
+    except tuf.RoleAlreadyExistsError:
       pass
 
 
@@ -1371,7 +1364,7 @@ class Timestamp(Metadata):
     try: 
       tuf.roledb.add_role(self.rolename, roleinfo)
     
-    except tuf.RoleAlreadyExistsError as e:
+    except tuf.RoleAlreadyExistsError:
       pass
 
 
@@ -1427,7 +1420,7 @@ class Snapshot(Metadata):
     try:
       tuf.roledb.add_role(self._rolename, roleinfo)
     
-    except tuf.RoleAlreadyExistsError as e:
+    except tuf.RoleAlreadyExistsError:
       pass
 
 
@@ -1520,7 +1513,7 @@ class Targets(Metadata):
     try:
       tuf.roledb.add_role(self.rolename, roleinfo)
     
-    except tuf.RoleAlreadyExistsError as e:
+    except tuf.RoleAlreadyExistsError:
       pass  
 
 
@@ -1560,8 +1553,8 @@ class Targets(Metadata):
       return self._delegated_roles[rolename]
     
     else:
-      message = repr(rolename) + ' has not been delegated by ' + repr(self.rolename) 
-      raise tuf.UnknownRoleError(message)
+      raise tuf.UnknownRoleError(repr(rolename) + ' has not been delegated'
+        ' by ' + repr(self.rolename))
 
 
 
@@ -1650,17 +1643,15 @@ class Targets(Metadata):
     for directory_path in list_of_directory_paths:
       directory_path = os.path.abspath(directory_path)
       if not os.path.isdir(directory_path):
-        message = repr(directory_path) + ' is not a directory.'
-        raise tuf.Error(message)
+        raise tuf.Error(repr(directory_path) + ' is not a directory.')
 
       # Are the paths in the repository's targets directory?  Append a trailing
       # path separator with os.path.join(path, '').
       targets_directory = os.path.join(self._targets_directory, '')
       directory_path = os.path.join(directory_path, '')
       if not directory_path.startswith(targets_directory):
-        message = repr(directory_path) + ' is not under the Repository\'s ' +\
-          'targets directory: ' + repr(self._targets_directory)
-        raise tuf.Error(message)
+        raise tuf.Error(repr(directory_path) + ' is not under the'
+          ' Repository\'s targets directory: ' + repr(self._targets_directory))
 
       directory_paths.append(directory_path[len(self._targets_directory):])
 
@@ -1731,9 +1722,8 @@ class Targets(Metadata):
    
     # Ensure 'filepath' is found under the repository's targets directory.
     if not filepath.startswith(self._targets_directory): 
-      message = repr(filepath) + ' is not under the Repository\'s targets ' +\
-        'directory: ' + repr(self._targets_directory)
-      raise tuf.Error(message)
+      raise tuf.Error(repr(filepath) + ' is not under the Repository\'s'
+        ' targets directory: ' + repr(self._targets_directory))
 
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
     # list of targets.  'filepath' will be verified as an allowed path according
@@ -1751,8 +1741,7 @@ class Targets(Metadata):
       tuf.roledb.update_roleinfo(self._rolename, roleinfo)
     
     else:
-      message = repr(filepath) + ' is not a valid file.'
-      raise tuf.Error(message)
+      raise tuf.Error(repr(filepath) + ' is not a valid file.')
  
 
   
@@ -1805,16 +1794,14 @@ class Targets(Metadata):
       filepath = os.path.abspath(target)
     
       if not filepath.startswith(self._targets_directory+os.sep):
-        message = repr(filepath) + ' is not under the Repository\'s targets ' +\
-          'directory: ' + repr(self._targets_directory)
-        raise tuf.Error(message)
+        raise tuf.Error(repr(filepath) + ' is not under the Repository\'s'
+          ' targets directory: ' + repr(self._targets_directory))
       
       if os.path.isfile(filepath):
         relative_list_of_targets.append(filepath[targets_directory_length:])
       
       else:
-        message = repr(filepath) + ' is not a valid file.'
-        raise tuf.Error(message)
+        raise tuf.Error(repr(filepath) + ' is not a valid file.')
 
     # Update this Targets 'tuf.roledb.py' entry.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
@@ -1868,9 +1855,8 @@ class Targets(Metadata):
     
     # Ensure 'filepath' is under the repository targets directory.
     if not filepath.startswith(self._targets_directory+os.sep):
-      message = repr(filepath) + ' is not under the Repository\'s targets ' +\
-        'directory: ' + repr(self._targets_directory)
-      raise tuf.Error(message)
+      raise tuf.Error(repr(filepath) + ' is not under the Repository\'s'
+        ' targets directory: ' + repr(self._targets_directory))
 
     # The relative filepath is listed in 'paths'.
     relative_filepath = filepath[targets_directory_length:]
@@ -2054,9 +2040,8 @@ class Targets(Metadata):
     for target in list_of_targets:
       target = os.path.abspath(target)
       if not target.startswith(self._targets_directory+os.sep):
-        message = repr(target) + ' is not under the Repository\'s targets ' +\
-        'directory: ' + repr(self._targets_directory)
-        raise tuf.Error(message)
+        raise tuf.Error(repr(target) + ' is not under the Repository\'s'
+          ' targets directory: ' + repr(self._targets_directory))
 
       relative_targetpaths.update({target[targets_directory_length:]: {}})
     
@@ -2068,9 +2053,8 @@ class Targets(Metadata):
       for path in restricted_paths:
         path = os.path.abspath(path) + os.sep
         if not path.startswith(self._targets_directory + os.sep):
-          message = repr(path) + ' is not under the Repository\'s targets ' +\
-            'directory: ' +repr(self._targets_directory)
-          raise tuf.Error(message)
+          raise tuf.Error(repr(path) + ' is not under the Repository\'s'
+            ' targets directory: ' +repr(self._targets_directory))
         
         # Append a trailing path separator with os.path.join(path, '').
         path = os.path.join(path, '')
@@ -2265,8 +2249,7 @@ class Targets(Metadata):
     # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
     # (total_hash_prefixes / number_of_bins) hash prefixes.
     if total_hash_prefixes % number_of_bins != 0:
-      message = 'The "number_of_bins" argument must be a power of 2.'
-      raise tuf.Error(message)
+      raise tuf.Error('The "number_of_bins" argument must be a power of 2.')
 
     logger.info('Creating hashed bin delegations.')
     logger.info(repr(len(list_of_targets)) + ' total targets.')
@@ -2285,9 +2268,8 @@ class Targets(Metadata):
     for target_path in list_of_targets:
       target_path = os.path.abspath(target_path)
       if not target_path.startswith(self._targets_directory+os.sep):
-        message = 'A path in the list of targets argument is not ' +\
-          'under the repository\'s targets directory: ' + repr(target_path) 
-        raise tuf.Error(message)
+        raise tuf.Error('A path in the list of targets argument is not'
+          ' under the repository\'s targets directory: ' + repr(target_path))
       
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.  Example:
@@ -2345,10 +2327,7 @@ class Targets(Metadata):
       self.delegate(bin_rolename, keys_of_hashed_bins,
                     list_of_targets=bin_rolename_targets,
                     path_hash_prefixes=path_hash_prefixes)   
-
-      message = 'Delegated from ' + repr(self.rolename) + ' to ' +\
-        repr(bin_rolename)
-      logger.debug(message)
+      logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_rolename))
 
 
 
@@ -2494,9 +2473,8 @@ class Targets(Metadata):
     # Ensure the filepath falls under the repository's targets directory.
     filepath = os.path.abspath(target_filepath)
     if not filepath.startswith(self._targets_directory + os.sep):
-      message = repr(filepath) + ' is not under the Repository\'s targets ' +\
-        'directory: ' + repr(self._targets_directory)
-      raise tuf.Error(message)
+      raise tuf.Error(repr(filepath) + ' is not under the Repository\'s'
+        ' targets directory: ' + repr(self._targets_directory))
     
     # Determine the hash prefix of 'target_path' by computing the digest of
     # its path relative to the targets directory.  Example:
@@ -2603,8 +2581,7 @@ def create_new_repository(repository_directory):
   
   # Try to create 'repository_directory' if it does not exist.
   try:
-    message = 'Creating ' + repr(repository_directory)
-    logger.info(message)
+    logger.info('Creating ' + repr(repository_directory))
     os.makedirs(repository_directory)
   
   # 'OSError' raised if the leaf directory already exists or cannot be created.
@@ -2627,8 +2604,7 @@ def create_new_repository(repository_directory):
   # Try to create the metadata directory that will hold all of the metadata
   # files, such as 'root.json' and 'snapshot.json'.
   try:
-    message = 'Creating ' + repr(metadata_directory)
-    logger.info(message)
+    logger.info('Creating ' + repr(metadata_directory))
     os.mkdir(metadata_directory)
   
   # 'OSError' raised if the leaf directory already exists or cannot be created.
@@ -2640,8 +2616,7 @@ def create_new_repository(repository_directory):
   
   # Try to create the targets directory that will hold all of the target files.
   try:
-    message = 'Creating ' + repr(targets_directory)
-    logger.info(message)
+    logger.info('Creating ' + repr(targets_directory))
     os.mkdir(targets_directory)
   
   except OSError as e:
@@ -2758,7 +2733,7 @@ def load_repository(repository_directory):
         try:
           signable = tuf.util.load_json_file(metadata_path)
         
-        except (ValueError, IOError) as e:
+        except (ValueError, IOError):
           continue
         
         metadata_object = signable['signed']
@@ -2806,7 +2781,7 @@ def load_repository(repository_directory):
           try: 
             tuf.keydb.add_key(key_object)
           
-          except tuf.KeyAlreadyExistsError as e:
+          except tuf.KeyAlreadyExistsError:
             pass
        
         # Add the delegated role's initial roleinfo, to be fully populated
