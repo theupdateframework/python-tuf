@@ -1135,16 +1135,28 @@ def extract_pem(pem, private_pem=False):
     header_start = pem.index(pem_header)
   
   except ValueError:
-    raise tuf.FormatError('Required PEM header ' + repr(pem_header) + '\n not'
-      ' found in PEM string: ' + repr(pem))
+    # Be careful not to print private key material in exception message. 
+    if not private_pem:  
+      raise tuf.FormatError('Required PEM header ' + repr(pem_header) + '\n not'
+        ' found in PEM string: ' + repr(pem))
+    
+    else:
+      raise tuf.FormatError('Required PEM header ' + repr(pem_header) + '\n not'
+        ' found in private PEM string.')
   
   try:
     # Search for 'pem_footer' after the PEM header.
     footer_start = pem.index(pem_footer, header_start + len(pem_header))
   
   except ValueError:
-    raise tuf.FormatError('Required PEM footer ' + repr(pem_footer) + '\n not'
-      ' found in PEM string ' + repr(pem))
+    # Be careful not to print private key material in exception message.
+    if not private_pem:  
+      raise tuf.FormatError('Required PEM footer ' + repr(pem_footer) + '\n not'
+        ' found in PEM string ' + repr(pem))
+
+    else:
+      raise tuf.FormatError('Required PEM footer ' + repr(pem_footer) + '\n not'
+        ' found in private PEM string.')
   
   # Extract only the public portion of 'pem'.  Leading or trailing whitespace
   # is excluded.
