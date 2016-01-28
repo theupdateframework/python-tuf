@@ -921,7 +921,9 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
     >>> passphrase = 'secret'
     >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase) 
     >>> rsa_key2 = import_rsakey_from_encrypted_pem(encrypted_pem, passphrase)
-    >>> rsa_key == rsa_key2
+    >>> tuf.formats.RSAKEY_SCHEMA.matches(rsa_key)
+    True
+    >>> tuf.formats.RSAKEY_SCHEMA.matches(rsa_key2)
     True
   
   <Arguments>
@@ -1032,7 +1034,9 @@ def format_rsakey_from_pem(pem):
     >>> public = rsa_key['keyval']['public']
     >>> rsa_key['keyval']['private'] = ''
     >>> rsa_key2 = format_rsakey_from_pem(public)
-    >>> rsa_key == rsa_key2
+    >>> tuf.formats.RSAKEY_SCHEMA.matches(rsa_key)
+    True
+    >>> tuf.formats.RSAKEY_SCHEMA.matches(rsa_key2)
     True
 
   <Arguments>
@@ -1059,8 +1063,9 @@ def format_rsakey_from_pem(pem):
   tuf.formats.PEMRSA_SCHEMA.check_match(pem)
   
   # Ensure the PEM string has a valid header and footer.  Although a simple
-  # validation of 'pem' is performed here, a fully valid PEM string is
-  # needed to later successfully verify signatures.
+  # validation of 'pem' is performed here, a fully valid PEM string is needed
+  # later to successfully verify signatures.  Performing stricter validation of
+  # PEMs are left to the external libraries that use 'pem'.
   public_pem = extract_pem(pem) 
 
   # Begin building the RSA key dictionary. 
