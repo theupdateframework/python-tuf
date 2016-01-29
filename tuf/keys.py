@@ -400,7 +400,8 @@ def format_keyval_to_metadata(keytype, key_value, private=False):
 
   <Exceptions>
     tuf.FormatError, if 'key_value' does not conform to 
-    'tuf.formats.KEYVAL_SCHEMA'.
+    'tuf.formats.KEYVAL_SCHEMA', or if the private key is not present in
+    'key_value' if requested by the caller via 'private'.
 
   <Side Effects>
     None.
@@ -418,8 +419,17 @@ def format_keyval_to_metadata(keytype, key_value, private=False):
   # Does 'key_value' have the correct format?
   tuf.formats.KEYVAL_SCHEMA.check_match(key_value)
 
-  if private is True and 'private' in key_value:
-    return {'keytype': keytype, 'keyval': key_value}
+  if private is True:
+    # If the caller requests (via the 'private' argument) to include a private
+    # key in the returned dictionary, ensure the private key is actually
+    # present in 'key_val' (a private key is optional for 'KEYVAL_SCHEMA'
+    # dicts).
+    if 'private' not in key_value:
+      raise tuf.FormatError('The required private key is missing'
+        ' from: ' + repr(key_value))
+    
+    else: 
+      return {'keytype': keytype, 'keyval': key_value}
   
   else:
     public_key_value = {'public': key_value['public']}
