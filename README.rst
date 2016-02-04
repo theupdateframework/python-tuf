@@ -8,11 +8,12 @@ A Framework for Securing Software Update Systems
    :target: https://coveralls.io/r/theupdateframework/tuf?branch=develop
 
 
-TUF (The Update Framework) helps developers secure their new or existing
-software update systems. Software update systems are vulnerable to many
-known attacks, including those that can result in clients being
-compromised or crashed. TUF helps solve this problem by providing a
-flexible security framework that can be added to software updaters.
+The Update Framework (TUF) helps developers secure new or existing
+software update systems, which are vulnerable to many known attacks
+that can result in clients being compromised or crashed. TUF helps
+solve this widespread problem by providing a comprehensive, flexible
+security framework that developers can integrate with any software
+update system.
 
 What Is a Software Update System?
 ---------------------------------
@@ -31,7 +32,7 @@ Three major classes of software update systems are:
 -  **Library package managers** such as those offered by many
    programming languages for installing additional libraries. These are
    systems such as Python's pip/easy_install + PyPI, Perl's CPAN,
-   Ruby's Gems, and PHP's PEAR.
+   Ruby's RubyGems, and PHP's PEAR.
 
 -  **System package managers** used by operating systems to update and
    install all of the software on a client system. Debian's APT, Red
@@ -235,19 +236,17 @@ with TUF; upstream servers, who will largely be responsible for care and
 feeding of repositories; and integrators, who do the work of putting TUF
 into existing projects.
 
-A low-level integration requires importing a single module and calling
-particular methods to perform updates.  A high-level integration, on the
-other hand, can handle TUF-related updates transparently.  The client
-populates a configuration file and the library interposes on urllib calls.
-Generating metadata files stored on upstream servers can be handled by the
-repository tool, covered in ``Creating a Repository``.
+An integration requires importing a single module into the new or existing
+software updater and calling particular methods to perform updates.  Generating
+metadata files stored on upstream servers can be handled by repository tools that
+we provide for this purpose.
 
 
--  `Creating a Repository <https://github.com/theupdateframework/tuf/tree/develop/tuf/README.md>`_
+-  Integrating with a Software Updater <https://github.com/theupdateframework/tuf/tree/develop/tuf/client/README.md>`_
 
--  `Low-level Integration <https://github.com/theupdateframework/tuf/tree/develop/tuf/client/README.md>`_
+-  Creating a TUF Repository  <https://github.com/theupdateframework/tuf/tree/develop/tuf/README.md>`_
 
--  `High-level Integration <https://github.com/theupdateframework/tuf/tree/develop/tuf/interposition/README.md>`_
+
 
 Acknowledgements
 ----------------
