@@ -8,20 +8,23 @@ A Framework for Securing Software Update Systems
    :target: https://coveralls.io/r/theupdateframework/tuf?branch=develop
 
 
-The Update Framework (TUF) helps developers secure new or existing
-software update systems, which are vulnerable to many known attacks
-that can result in clients being compromised or crashed. TUF helps
-solve this widespread problem by providing a comprehensive, flexible
-security framework that developers can integrate with any software
-update system.
+The Update Framework (TUF) helps developers to secure new or existing
+software update systems, which are often found to be vulnerable to many
+known attacks. TUF addresses
+this widespread problem by providing a comprehensive, flexible security
+framework that developers can integrate with any software update system.
+The framework can be easily integrated (or implemented in the native
+programming languages of these system) due to its concise, self-contained
+architecture and specification.
 
 What Is a Software Update System?
 ---------------------------------
 
 Generally, a software update system is an application (or part of an
 application) running on a client system that obtains and installs
-software. This can include updates to software that is already installed
-or even completely new software.
+software. These systems typically update the applications installed
+on client systems to introduce new features, enhancements, and security
+fixes.
 
 Three major classes of software update systems are:
 
@@ -52,22 +55,23 @@ transparently) used to secure software update systems.
 Overview
 --------
 
-At the highest level, TUF simply provides applications with a secure
-method of obtaining files and knowing when new versions of files are
-available. We call these files, the ones that are supposed to be
-downloaded, "target files". The most common need for these abilities is
-in software update systems and that's what we had in mind when creating
-TUF.
-
-On the surface, this all sounds simple. Securely obtaining updates just
-means:
+On the surface, the update procedure followed by a software update system can be regarded
+as straightforward.  Obtaining and installing an update just means:
 
 -  Knowing when an update exists.
--  Downloading the updated file.
+-  Downloading the update.
+-  Applying the changes introduced by the update.
 
-The problem is that this is only simple when there are no malicious
-parties involved. If an attacker is trying to interfere with these
-seemingly simple steps, there is plenty they can do.
+The problem with this view is that it is only straightforward when there
+are no malicious parties involved throughout the update procedure. If an attacker
+is trying to interfere with these seemingly simple steps, there is plenty
+that they can do.
+
+TUF is designed to perform the first two steps of the above update procedure,
+while guarding against the majority of attacks that malicious actors have at
+their disposable; especially those attacks that are overlooked by security-concscious
+developers.
+ 
 
 Background
 ----------
@@ -188,15 +192,16 @@ Installing extras does not work if minimal install was a wheel (pip <= 1.5.6.)
 Instructions for Contributors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Development: `https://github.com/theupdateframework/tuf <https://github.com/theupdateframework/tuf>`_
+Note: Development of TUF occurs on the "develop" branch of this repository.
 
-`Virtualenv <https://virtualenv.pypa.io/en/latest/index.html>`_
-is a tool to create isolated Python environments. It also includes
-``pip`` and ``setuptools``, Python packages used to install TUF and its
-dependencies. All installation methods of virtualenv are outlined in the
-`installation
-section <https://virtualenv.pypa.io/en/latest/installation.html>`_
-and instructions for installing locally from source here:
+To facilitate development and installation of edited version of the code base,
+developers are encouraged to install `Virtualenv <https://virtualenv.pypa.io/en/latest/index.html>`_,
+which is a tool to create isolated Python environments.  It includes
+``pip`` and ``setuptools``, Python packages that can be used to
+install TUF and its dependencies. All installation methods of
+virtualenv are outlined in the `installation
+section <https://virtualenv.pypa.io/en/latest/installation.html>`_,
+and instructions for installing locally from source are provided here:
 ::
 
     $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.11.6.tar.gz
@@ -205,9 +210,10 @@ and instructions for installing locally from source here:
     $ python virtualenv.py myVE
 
 
-PyCrypto and PyNaCl (third-party dependencies needed by the repository
-tools) require Python and FFI (Foreign Function Interface) development
-header files. Debian-based distributions can install these header
+Before installing TUF, a couple of its Python dependencies have non-Python dependencies
+of their own that should installed first.  PyCrypto and PyNaCl (third-party dependencies
+needed by the repository tools) require Python and FFI (Foreign Function Interface)
+development header files. Debian-based distributions can install these header
 libraries with apt (Advanced Package Tool.)
 ::
 
