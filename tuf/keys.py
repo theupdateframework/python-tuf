@@ -581,42 +581,42 @@ def check_crypto_libraries(required_libraries):
   
   if 'rsa' in required_libraries and _RSA_CRYPTO_LIBRARY not in \
                                    _SUPPORTED_RSA_CRYPTO_LIBRARIES:
-    message = 'The ' + repr(_RSA_CRYPTO_LIBRARY) + ' crypto library specified' +\
-      ' in "tuf.conf.RSA_CRYPTO_LIBRARY" is not supported.\n' +\
-      'Supported crypto libraries: ' + repr(_SUPPORTED_RSA_CRYPTO_LIBRARIES) + '.'
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.UnsupportedLibraryError('The ' + repr(_RSA_CRYPTO_LIBRARY) +
+      ' crypto library specified in "tuf.conf.RSA_CRYPTO_LIBRARY" is not '
+      ' supported.\nSupported crypto libraries: ' +
+      repr(_SUPPORTED_RSA_CRYPTO_LIBRARIES) + '.')
   
   if 'ed25519' in required_libraries and _ED25519_CRYPTO_LIBRARY not in \
                                          _SUPPORTED_ED25519_CRYPTO_LIBRARIES:
-    message = 'The '+repr(_ED25519_CRYPTO_LIBRARY)+' crypto library specified'+\
-      ' in "tuf.conf.ED25519_CRYPTO_LIBRARY" is not supported.\n'+ \
-      'Supported crypto libraries: '+repr(_SUPPORTED_ED25519_CRYPTO_LIBRARIES)+'.'
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.UnsupportedLibraryError('The ' + repr(_ED25519_CRYPTO_LIBRARY) +
+      ' crypto library specified in "tuf.conf.ED25519_CRYPTO_LIBRARY" is not '
+      ' supported.\nSupported crypto libraries: ' +
+      repr(_SUPPORTED_ED25519_CRYPTO_LIBRARIES) + '.')
   
   if 'general' in required_libraries and _GENERAL_CRYPTO_LIBRARY not in \
                                          _SUPPORTED_GENERAL_CRYPTO_LIBRARIES:
-    message = 'The '+repr(_GENERAL_CRYPTO_LIBRARY)+' crypto library specified'+\
-      ' in "tuf.conf.GENERAL_CRYPTO_LIBRARY" is not supported.\n'+ \
-      'Supported crypto libraries: '+repr(_SUPPORTED_GENERAL_CRYPTO_LIBRARIES)+'.'
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.UnsupportedLibraryError('The ' + repr(_GENERAL_CRYPTO_LIBRARY) +
+      ' crypto library specified in "tuf.conf.GENERAL_CRYPTO_LIBRARY" is not'
+      ' supported.\nSupported crypto libraries: ' +
+      repr(_SUPPORTED_GENERAL_CRYPTO_LIBRARIES) + '.')
 
   if 'rsa' in required_libraries and _RSA_CRYPTO_LIBRARY not in \
                                      _available_crypto_libraries:
-    message = 'The '+repr(_RSA_CRYPTO_LIBRARY)+' crypto library specified'+ \
-      ' in "tuf.conf.RSA_CRYPTO_LIBRARY" could not be imported.'
-    raise tuf.UnsupportedLibraryError(message+repr(_available_crypto_libraries))
+    raise tuf.UnsupportedLibraryError('The ' + repr(_RSA_CRYPTO_LIBRARY) +
+      ' crypto library specified in "tuf.conf.RSA_CRYPTO_LIBRARY" could not'
+      ' be imported.  Available libraries: ' + repr(_available_crypto_libraries))
   
   if 'ed25519' in required_libraries and _ED25519_CRYPTO_LIBRARY not in \
                                          _available_crypto_libraries:
-    message = 'The '+repr(_ED25519_CRYPTO_LIBRARY)+' crypto library specified'+\
-      ' in "tuf.conf.ED25519_CRYPTO_LIBRARY" could not be imported.'
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.UnsupportedLibraryError('The ' + repr(_ED25519_CRYPTO_LIBRARY) +
+      ' crypto library specified in "tuf.conf.ED25519_CRYPTO_LIBRARY" could'
+      ' not be imported.')
   
   if 'general' in required_libraries and _GENERAL_CRYPTO_LIBRARY not in \
                                          _available_crypto_libraries:
-    message = 'The '+repr(_GENERAL_CRYPTO_LIBRARY)+' crypto library specified'+\
-      ' in "tuf.conf.GENERAL_CRYPTO_LIBRARY" could not be imported.'
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.UnsupportedLibraryError('The ' + repr(_GENERAL_CRYPTO_LIBRARY) +
+      ' crypto library specified in "tuf.conf.GENERAL_CRYPTO_LIBRARY" could'
+      ' not be imported.')
 
 
 
