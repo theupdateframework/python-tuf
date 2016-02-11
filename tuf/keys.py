@@ -87,23 +87,21 @@ _SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
 # default.  https://github.com/pyca/ed25519
 _available_crypto_libraries = ['ed25519']
 
-# Try to import TUF's PyCrypto module (pycrypto_keys.py), and verify and record
-# that the PyCrypto library is available.  pycrypto_keys.py is used here for
-# general-purpose cryptography and RSA.
+# Try to import TUF's PyCrypto module (pycrypto_keys.py), which is used here
+# for general-purpose cryptography and RSA.
 try:
-  import Crypto
   import tuf.pycrypto_keys
   _available_crypto_libraries.append('pycrypto')
+
 except ImportError: # pragma: no cover
   pass
 
-# Try to import TUF's pyca/Cryptography module (pyca_crypto_keys.py), and
-# verify and record that pyca/Cryptography's library is available.
-# pyca_crypto_keys.py is used for general-purpose cryptography and RSA.
+# Try to import TUF's pyca/Cryptography module (pyca_crypto_keys.py), which is
+# used for general-purpose cryptography and RSA.
 try:
-  import cryptography
   import tuf.pyca_crypto_keys
   _available_crypto_libraries.append('pyca-cryptography')
+
 except ImportError: # pragma: no cover
   pass
 
@@ -863,7 +861,8 @@ def verify_signature(key_dict, signature, data):
           ' repository listed an RSA signature.  "pycrypto" was set'
           ' (in conf.py) to generate RSA signatures, but the PyCrypto library'
           ' is not installed.  \n$ pip install PyCrypto, or pip install'
-          ' tuf[tools].')
+          ' tuf[tools], or you can try switching your configuration'
+          ' (tuf.conf.py) to use pyca-cryptography if that is available instead.')
       
       else:
         valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
@@ -874,7 +873,8 @@ def verify_signature(key_dict, signature, data):
           ' repository listed an RSA signature.  "pyca-cryptography" was set'
           ' (in conf.py) to generate RSA signatures, but the "cryptography"'
           ' library is not installed.  \n$ pip install cryptography, or pip'
-          ' install tuf[tools].')
+          ' install tuf[tools], or you can try switching your configuration'
+          ' (tuf/conf.py) to use PyCrypto if that is available instead.')
 
       else:
         valid_signature = tuf.pyca_crypto_keys.verify_rsa_signature(sig, method,

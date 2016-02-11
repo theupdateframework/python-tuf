@@ -312,8 +312,9 @@ def create_rsa_signature(private_key, data):
     # Generate an RSSA-PSS signature.  Raise 'tuf.CryptoError' for any of the
     # expected exceptions raised by pyca/cryptography.
     try:
-      # 'private_key' (in PEM format) must be converted to a pyca/cryptography
-      # private key object before a signature can be generated.
+      # 'private_key' (in PEM format) must first be converted to a
+      # pyca/cryptography private key object before a signature can be
+      # generated.
       private_key_object = load_pem_private_key(private_key.encode('utf-8'),
                                                 password=None,
                                                 backend=default_backend())
