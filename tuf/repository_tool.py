@@ -226,14 +226,13 @@ class Repository(object):
     tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
     tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
     
-    
     # At this point the tuf.keydb and tuf.roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.UnsignedMetadataError'
     # exception if any of the top-level roles are missing signatures, keys, etc.
 
     # Write the metadata files of all the delegated roles.  Ensure target paths
-    # are allowed, metadata is valid and properly signed, and required files and
-    # directories are created. 
+    # are allowed, metadata is valid and properly signed, and required files
+    # and directories are created. 
     delegated_rolenames = tuf.roledb.get_delegated_rolenames('targets')
     for delegated_rolename in delegated_rolenames:
       delegated_filename = os.path.join(self._metadata_directory,
