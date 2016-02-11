@@ -86,23 +86,21 @@ _SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
 # default.  https://github.com/pyca/ed25519
 _available_crypto_libraries = ['ed25519']
 
-# Try to import TUF's PyCrypto module (pycrypto_keys.py), and verify and record
-# that the PyCrypto library is available.  pycrypto_keys.py is used here for
-# general-purpose cryptography and RSA.
+# Try to import TUF's PyCrypto module (pycrypto_keys.py), which is used here
+# for general-purpose cryptography and RSA.
 try:
-  import Crypto
   import tuf.pycrypto_keys
   _available_crypto_libraries.append('pycrypto')
+
 except ImportError: # pragma: no cover
   pass
 
-# Try to import TUF's pyca/Cryptography module (pyca_crypto_keys.py), and
-# verify and record that pyca/Cryptography's library is available.
-# pyca_crypto_keys.py is used for general-purpose cryptography and RSA.
+# Try to import TUF's pyca/Cryptography module (pyca_crypto_keys.py), which is
+# used for general-purpose cryptography and RSA.
 try:
-  import cryptography
   import tuf.pyca_crypto_keys
   _available_crypto_libraries.append('pyca-cryptography')
+
 except ImportError: # pragma: no cover
   pass
 
