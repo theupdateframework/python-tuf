@@ -131,7 +131,7 @@ import tuf.hash
 # Perform object format-checking.
 import tuf.formats
 
-# Extract/reference the cryptography library settings.  For example
+# Extract/reference the cryptography library settings.  For example:
 # 'tuf.conf.RSA_CRYPTO_LIBRARY'
 import tuf.conf
 
@@ -277,7 +277,7 @@ def create_rsa_signature(private_key, data):
   <Exceptions>
     tuf.FormatError, if 'private_key' is improperly formatted.
     
-    TypeError, if 'private_key' is unset.
+    ValueError, if 'private_key' is unset.
 
     tuf.CryptoError, if the signature cannot be generated. 
 
@@ -309,13 +309,10 @@ def create_rsa_signature(private_key, data):
   # has variable size and can be an empty string.
   if len(private_key):
     
-    # pyca/cryptography's expected exceptions when generating RSA key object:
-    # "ValueError/IndexError/TypeError:  When the given key cannot be parsed
-    # (possibly because the passphrase is wrong)."
-    # A passphrase or password is not used to 'private_key', since it should
-    # not be encrypted.
+    # Generate an RSSA-PSS signature.  Raise 'tuf.CryptoError' for any of the
+    # expected exceptions raised by pyca/cryptography.
     try:
-      # 'private_key' (in PEM format) must be converted to a
+      # 'private_key' (in PEM format) must first be converted to a
       # pyca/cryptography private key object before a signature can be
       # generated.
       private_key_object = load_pem_private_key(private_key.encode('utf-8'),
@@ -327,21 +324,33 @@ def create_rsa_signature(private_key, data):
       rsa_signer = \
         private_key_object.signer(padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
                       salt_length=hashes.SHA256().digest_size), hashes.SHA256())
-                          
+     
+    # If the PEM data could not be decrypted, or if its structure could not be
+    # decoded successfully.
     except ValueError: #pragma: no cover
-      raise tuf.CryptoError('The private key could not be deserialized.')
- 
+      raise tuf.CryptoError('The private key (in PEM format) could not be'
+        ' deserialized.')
+
+    # 'TypeError' raised if a password was given and the private key was not
+    # encrypted, or if the key was encrypted but no password was supplied.
+    # Note: A passphrase or password is not used when generating 'private_key',
+    # since it should not be encrypted.
+    except TypeError: #pragma: no cover
+      raise tuf.CryptoError('The private key was unexpectedly encrypted.')
+    
+    # 'cryptography.exceptions.UnsupportedAlgorithm' raised if the serialized
+    # key is of a type that is not supported by the backend, or if the key is
+    # encrypted with a symmetric cipher that is not supported by the backend.
     except cryptography.exceptions.UnsupportedAlgorithm: #pragma: no cover
-      message = 'The private key is encrypted with an unsupported algorithm.'
-      raise tuf.CryptoError(message)
+      raise tuf.CryptoError('The private key is encrypted with an'
+        ' unsupported algorithm.')
    
-    # Generate an RSSA-PSS signature.  Raise 'tuf.CryptoError' for the expected
-    # pyca/cryptography exceptions.
+    # Generate an RSSA-PSS signature.
     rsa_signer.update(data)
     signature = rsa_signer.finalize()
   
   else:
-    raise TypeError('The required private key is unset.')
+    raise ValueError('The required private key is unset.')
 
   return signature, method
 
@@ -381,12 +390,15 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       'signature'.  'data' (a string) is needed here to verify 'signature'.
 
   <Exceptions>
-    tuf.UnknownMethodError.  Raised if the signing method used by
-    'signature' is not one supported by tuf.keys.create_signature().
-    
-    tuf.FormatError. Raised if 'signature', 'signature_method', or 'public_key'
-    are improperly formatted.
+    tuf.FormatError, if 'signature', 'signature_method', 'public_key', or
+    'data' are improperly formatted.
 
+    tuf.UnknownMethodError, if the signing method used by
+    'signature' is not one supported by tuf.keys.create_signature().
+
+    tuf.CryptoError, if the private key cannot be decoded or its key type
+    is unsupported.
+    
   <Side Effects>
     pyca/cryptography's RSAPublicKey.verifier() called to do the actual
     verification.
@@ -414,43 +426,40 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   # was used as the signing method.
   valid_signature = False
 
-  # Verify the signature with pyca/cryptography if the signature method is
-  # valid, otherwise raise 'tuf.UnknownMethodError'.
-  if signature_method == 'RSASSA-PSS':
-    try:
-      public_key_object = serialization.load_pem_public_key(public_key.encode('utf-8'),
-                                                     backend=default_backend())
-      
-      # 'salt_length' is set to the digest size of the hashing algorithm (to
-      # match the default size used by 'tuf.pycrypto_keys.py').
-      verifier = public_key_object.verifier(signature,
-                                  padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
-                                  salt_length=hashes.SHA256().digest_size), 
-                                  hashes.SHA256())
-
-      verifier.update(data)
-      
-      # verify() raises 'cryptograpahy.exceptions.InvalidSignature' if the
-      # signature is invalid.
-      try: 
-        verifier.verify()
-        valid_signature = True 
-      
-      except cryptography.exceptions.InvalidSignature as e:
-        pass
- 
-    # Raised by load_pem_public_key(). 
-    except ValueError:
-      raise tuf.CryptoError('The PEM could not be decoded successfully.')
-
-    # Raised by load_pem_public_key().
-    except cryptography.exceptions.UnsupportedAlgorithm:
-      raise tuf.Cryptography('The private key type is not supported.')
-  
-  else:
+  # Verify the expected 'signature_method' value.
+  if signature_method != 'RSASSA-PSS':
     raise tuf.UnknownMethodError(signature_method)
+  
+  # Verify the RSASSA-PSS signature with pyca/cryptography.
+  try:
+    public_key_object = serialization.load_pem_public_key(public_key.encode('utf-8'),
+                                                   backend=default_backend())
+    
+    # 'salt_length' is set to the digest size of the hashing algorithm (to
+    # match the default size used by 'tuf.pycrypto_keys.py').
+    verifier = public_key_object.verifier(signature,
+                                padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
+                                salt_length=hashes.SHA256().digest_size), 
+                                hashes.SHA256())
 
-  return valid_signature 
+    verifier.update(data)
+    
+    # verify() raises 'cryptograpahy.exceptions.InvalidSignature' if the
+    # signature is invalid.
+    try: 
+      verifier.verify()
+      return True 
+    
+    except cryptography.exceptions.InvalidSignature:
+      return False
+
+  # Raised by load_pem_public_key(). 
+  except ValueError:
+    raise tuf.CryptoError('The PEM could not be decoded successfully.')
+
+  # Raised by load_pem_public_key().
+  except cryptography.exceptions.UnsupportedAlgorithm:
+    raise tuf.CryptoError('The private key type is not supported.')
 
 
 
@@ -528,8 +537,8 @@ def create_rsa_encrypted_pem(private_key, passphrase):
                                                passphrase=passphrase) 
     
     except (ValueError, IndexError, TypeError) as e:
-      message = 'An encrypted RSA key in PEM format cannot be generated: ' + str(e)
-      raise tuf.CryptoError(message)
+      raise tuf.CryptoError('An encrypted RSA key in PEM format cannot be'
+        ' generated: ' + str(e))
   
   else:
     raise TypeError('The required private key is unset.')
@@ -632,12 +641,11 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # UnsupportedAlgorithm: If the private key (or if the key is encrypted with
   # an unsupported symmetric cipher) is not supported by the backend.
   except (ValueError, TypeError, cryptography.exceptions.UnsupportedAlgorithm) as e:
-    message = 'RSA (public, private) tuple cannot be generated from the' +\
-      ' encrypted PEM string: ' + str(e)
     # Raise 'tuf.CryptoError' and pyca/cryptography's exception message.  Avoid
     # propogating pyca/cryptography's exception trace to avoid revealing
     # sensitive error.
-    raise tuf.CryptoError(message)
+    raise tuf.CryptoError('RSA (public, private) tuple cannot be generated'
+      ' from the encrypted PEM string: ' + str(e))
   
   # Export the public and private halves of the pyca/cryptography RSA key
   # object.  The (public, private) tuple returned contains the public and
@@ -731,8 +739,7 @@ def encrypt_key(key_object, password):
 
   # Ensure the private portion of the key is included in 'key_object'.
   if not key_object['keyval']['private']:
-    message = 'Key object does not contain a private part.'
-    raise tuf.FormatError(message)
+    raise tuf.FormatError('Key object does not contain a private part.')
 
   # Derive a key (i.e., an appropriate encryption key and not the
   # user's password) from the given 'password'.  Strengthen 'password' with

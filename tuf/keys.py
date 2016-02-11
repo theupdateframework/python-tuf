@@ -75,8 +75,8 @@ _SUPPORTED_RSA_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
 # if 'pynacl' is unavailable.
 _SUPPORTED_ED25519_CRYPTO_LIBRARIES = ['ed25519', 'pynacl']
 
-# 'pycrypto' and 'cryptography' are the only currently supported library for
-# general-purpose cryptography, with plans to support pyca/cryptography.
+# 'pycrypto' and 'cryptography' are the only currently supported libraries for
+# general-purpose cryptography.
 # https://github.com/dlitz/pycrypto
 # https://github.com/pyca/cryptography
 _SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
@@ -86,20 +86,21 @@ _SUPPORTED_GENERAL_CRYPTO_LIBRARIES = ['pycrypto', 'pyca-cryptography']
 # default.  https://github.com/pyca/ed25519
 _available_crypto_libraries = ['ed25519']
 
-# Import the PyCrypto library so that RSA keys are supported.
+# Try to import TUF's PyCrypto module (pycrypto_keys.py), which is used here
+# for general-purpose cryptography and RSA.
 try:
-  import Crypto
   import tuf.pycrypto_keys
   _available_crypto_libraries.append('pycrypto')
+
 except ImportError: # pragma: no cover
   pass
 
-# Import the pyca/Cryptography library so that RSA and generate-purpose
-# cryptography primitives are supported. 
+# Try to import TUF's pyca/Cryptography module (pyca_crypto_keys.py), which is
+# used for general-purpose cryptography and RSA.
 try:
-  import cryptography
   import tuf.pyca_crypto_keys
   _available_crypto_libraries.append('pyca-cryptography')
+
 except ImportError: # pragma: no cover
   pass
 
@@ -840,21 +841,25 @@ def verify_signature(key_dict, signature, data):
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
       if 'pycrypto' not in _available_crypto_libraries: # pragma: no cover
-        message = 'Metadata downloaded from the remote repository specified' +\
-          ' an RSA signature.  Verifying RSA signatures requires PyCrypto.' +\
-          '\n$ pip install PyCrypto, or pip install tuf[tools].'
-        raise tuf.UnsupportedLibraryError(message)
+        raise tuf.UnsupportedLibraryError('Metadata downloaded from the remote'
+          ' repository listed an RSA signature.  "pycrypto" was set'
+          ' (in conf.py) to generate RSA signatures, but the PyCrypto library'
+          ' is not installed.  \n$ pip install PyCrypto, or pip install'
+          ' tuf[tools], or you can try switching your configuration'
+          ' (tuf.conf.py) to use pyca-cryptography if that is available instead.')
       
       else:
         valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
                                                                  public, data) 
     elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography': 
       if 'pyca-cryptography' not in _available_crypto_libraries: # pragma: no cover
-        message = 'Metadata downloaded from the remote repository specified' +\
-          ' an RSA signature.  Verifying RSA signatures requires pyca/cryptography.' +\
-          '\n$ pip install cryptography, or pip install tuf[tools].'
-        raise tuf.UnsupportedLibraryError(message)
-      
+        raise tuf.UnsupportedLibraryError('Metadata downloaded from the remote'
+          ' repository listed an RSA signature.  "pyca-cryptography" was set'
+          ' (in conf.py) to generate RSA signatures, but the "cryptography"'
+          ' library is not installed.  \n$ pip install cryptography, or pip'
+          ' install tuf[tools], or you can try switching your configuration'
+          ' (tuf/conf.py) to use PyCrypto if that is available instead.')
+
       else:
         valid_signature = tuf.pyca_crypto_keys.verify_rsa_signature(sig, method,
                                                                  public, data) 
@@ -1058,12 +1063,11 @@ def format_rsakey_from_pem(pem):
   # Begin building the RSA key dictionary. 
   rsakey_dict = {}
   keytype = 'rsa'
-  public = public_pem 
 
   # Generate the keyid of the RSA key.  'key_value' corresponds to the
   # 'keyval' entry of the 'RSAKEY_SCHEMA' dictionary.  The private key
   # information is not included in the generation of the 'keyid' identifier.
-  key_value = {'public': public,
+  key_value = {'public': public_pem,
                'private': ''}
   keyid = _get_keyid(keytype, key_value)
 
@@ -1080,15 +1084,20 @@ def format_rsakey_from_pem(pem):
 def extract_pem(pem, private_pem=False):
   """
   <Purpose> 
-    Extract only the portion of the pem that include the header and footer, and
-    any leading and trailing characters removed.  The string returned as the
-    following form:
+    Extract only the portion of the pem that includes the header and footer,
+    with any leading and trailing characters removed.  The string returned has
+    the following form:
     
     '-----BEGIN PUBLIC KEY----- ... -----END PUBLIC KEY-----'
 
     or
 
     '-----BEGIN RSA PRIVATE KEY----- ... -----END RSA PRIVATE KEY-----'
+
+    Note: This function assumes "pem" is a valid pem in the following format:
+    pem header + key material + key footer.  Crypto libraries (e.g., pyca's
+    cryptography) that parse the pem returned by this function are expected to
+    fully validate and process the pem.
 
   <Arguments>
     pem:
@@ -1099,10 +1108,12 @@ def extract_pem(pem, private_pem=False):
 
   <Side Effects>
     Only the public and private portion of the PEM is extracted.  Leading or
-    trailing whitespace is not included in the PEM string returned.
+    trailing whitespace is not included in the returned PEM string.
 
   <Returns>
-    A PEM string (excluding leading and trailing newline characters.  
+    A PEM string (excluding leading and trailing newline characters).
+    That is: pem header + key material + pem footer.
+    
   """
   
   if private_pem:

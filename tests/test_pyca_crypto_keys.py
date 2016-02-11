@@ -53,12 +53,10 @@ class TestPyca_crypto_keys(unittest.TestCase):
     self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(priv),
                      FORMAT_ERROR_MSG)
 
-    # Check for invalid bits argument.  bit >= 2048 and a multiple of 256.
+    # Check for an invalid "bits" argument.  bits >= 2048.
     self.assertRaises(tuf.FormatError,
                       crypto_keys.generate_rsa_public_and_private, 1024)
    
-    crypto_keys.generate_rsa_public_and_private(2050)
-
     self.assertRaises(tuf.FormatError,
                       crypto_keys.generate_rsa_public_and_private, '2048')
   
@@ -80,7 +78,7 @@ class TestPyca_crypto_keys(unittest.TestCase):
     self.assertRaises(tuf.FormatError,
                       crypto_keys.create_rsa_signature, 123, data)
     
-    self.assertRaises(TypeError,
+    self.assertRaises(ValueError,
                       crypto_keys.create_rsa_signature, '', data)
    
     # Check for invalid 'data'.
