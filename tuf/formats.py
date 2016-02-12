@@ -175,13 +175,17 @@ THRESHOLD_SCHEMA = SCHEMA.Integer(lo=1)
 # A string representing a role's name. 
 ROLENAME_SCHEMA = SCHEMA.AnyString()
 
-# The minimum number of bits for an RSA key recommended by TUF.  Must be 2048
-# bits, or greater.  Recommended RSA key sizes:
+# The minimum number of bits for an RSA key.  Must be 2048 bits, or greater
+# (recommended by TUF). Crypto modules like 'pycrypto_keys.py' may set further
+# restrictions on keys (e.g., the number of bits must be a multiple of 256).
+# Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
 RSAKEYBITS_SCHEMA = SCHEMA.Integer(lo=2048)
 
-# The number of bins, or the requested number of delegated hashed roles.
-# Expected to be a power of 2.
+# The number of hashed bins, or the number of delegated roles.  See
+# delegate_hashed_bins() in 'repository_tool.py' for an example.  Note:
+# Tools may require further restrictions on the number of bins, such
+# as requiring them to be a power of 2. 
 NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
 # A PyCrypto signature.

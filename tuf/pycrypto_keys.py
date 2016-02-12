@@ -298,8 +298,7 @@ def create_rsa_signature(private_key, data):
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
     
     except (ValueError, IndexError, TypeError) as e:
-      message = 'Invalid private key or hash data: ' + str(e)
-      raise tuf.CryptoError(message)
+      raise tuf.CryptoError('Invalid private key or hash data: ' + str(e))
    
     # Generate RSSA-PSS signature.  Raise 'tuf.CryptoError' for the expected
     # PyCrypto exceptions.
@@ -314,8 +313,7 @@ def create_rsa_signature(private_key, data):
       raise tuf.CryptoError('Missing required RSA private key.')
    
     except IndexError: # pragma: no cover
-      message = 'An RSA signature cannot be generated: ' + str(e)
-      raise tuf.CryptoError(message)
+      raise tuf.CryptoError('An RSA signature cannot be generated: ' + str(e))
   
   else:
     raise TypeError('The required private key is unset.')
@@ -400,8 +398,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       valid_signature = pkcs1_pss_verifier.verify(sha256_object, signature)
     
     except (ValueError, IndexError, TypeError) as e:
-      message = 'The RSA signature could not be verified.'
-      raise tuf.CryptoError(message)
+      raise tuf.CryptoError('The RSA signature could not be verified.')
   
   else:
     raise tuf.UnknownMethodError(signature_method)
@@ -480,8 +477,8 @@ def create_rsa_encrypted_pem(private_key, passphrase):
                                                passphrase=passphrase) 
     
     except (ValueError, IndexError, TypeError) as e:
-      message = 'An encrypted RSA key in PEM format cannot be generated: ' + str(e)
-      raise tuf.CryptoError(message)
+      raise tuf.CryptoError('An encrypted RSA key in PEM format cannot'
+        ' be generated: ' + str(e))
   
   else:
     raise TypeError('The required private key is unset.')
@@ -576,11 +573,10 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # If the passphrase is incorrect, PyCrypto returns: "RSA key format is not
   # supported".
   except (ValueError, IndexError, TypeError) as e:
-    message = 'RSA (public, private) tuple cannot be generated from the' +\
-      ' encrypted PEM string: ' + str(e)
     # Raise 'tuf.CryptoError' and PyCrypto's exception message.  Avoid
     # propogating PyCrypto's exception trace to avoid revealing sensitive error.
-    raise tuf.CryptoError(message)
+    raise tuf.CryptoError('RSA (public, private) tuple cannot be generated'
+      ' from the encrypted PEM string: ' + str(e))
   
   # Export the public and private halves of the PyCrypto RSA key object.  The
   # (public, private) tuple returned contains the public and private RSA keys
@@ -594,8 +590,8 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # exported.  See 'Crypto.PublicKey.RSA'.  'ValueError' should not be raised
   # if the 'Crypto.PublicKey.RSA.importKey() call above passed.
   except (ValueError): #pragma: no cover
-    message = 'The public and private keys cannot be exported in PEM format.' 
-    raise tuf.CryptoError(message)
+    raise tuf.CryptoError('The public and private keys cannot be exported'
+      ' in PEM format.')
 
   return public.decode(), private.decode()
 
@@ -672,8 +668,7 @@ def encrypt_key(key_object, password):
 
   # Ensure the private portion of the key is included in 'key_object'.
   if not key_object['keyval']['private']:
-    message = 'Key object does not contain a private part.'
-    raise tuf.FormatError(message)
+    raise tuf.FormatError('Key object does not contain a private part.')
 
   # Derive a key (i.e., an appropriate encryption key and not the
   # user's password) from the given 'password'.  Strengthen 'password' with
@@ -868,8 +863,7 @@ def _encrypt(key_data, derived_key_information):
   # checking for exceptions.  Avoid propogating the exception trace and only
   # raise 'tuf.CryptoError', along with the cause of encryption failure.
   except (ValueError, IndexError, TypeError) as e:
-    message = 'The key data cannot be encrypted: ' + str(e)
-    raise tuf.CryptoError(message)
+    raise tuf.CryptoError('The key data cannot be encrypted: ' + str(e))
 
   # Generate the hmac of the ciphertext to ensure it has not been modified.
   # The decryption routine may verify a ciphertext without having to perform
