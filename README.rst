@@ -14,8 +14,8 @@ known attacks. TUF addresses
 this widespread problem by providing a comprehensive, flexible security
 framework that developers can integrate with any software update system.
 The framework can be easily integrated (or implemented in the native
-programming languages of these system) due to its concise, self-contained
-architecture and specification.
+programming languages of these update systems) due to its concise,
+self-contained architecture and specification.
 
 What Is a Software Update System?
 ---------------------------------
