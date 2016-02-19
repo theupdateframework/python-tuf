@@ -7,7 +7,7 @@ A Framework for Securing Software Update Systems
 .. image:: https://coveralls.io/repos/theupdateframework/tuf/badge.png?branch=develop
    :target: https://coveralls.io/r/theupdateframework/tuf?branch=develop
 
-.. image:: /docs/images/dolly_logo.png
+.. image:: /docs/images/banner_repository.JPG
 
 The Update Framework (TUF) helps developers to secure new or existing
 software update systems, which are often found to be vulnerable to many
