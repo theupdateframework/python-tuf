@@ -226,36 +226,30 @@ class Repository(object):
     tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
     tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
     
-    
     # At this point the tuf.keydb and tuf.roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.UnsignedMetadataError'
     # exception if any of the top-level roles are missing signatures, keys, etc.
 
-    # Write the metadata files of all the delegated roles.  Ensure target paths
-    # are allowed, metadata is valid and properly signed, and required files and
-    # directories are created. 
-    delegated_rolenames = tuf.roledb.get_delegated_rolenames('targets')
-    for delegated_rolename in delegated_rolenames:
-      delegated_filename = os.path.join(self._metadata_directory,
-                                        delegated_rolename + METADATA_EXTENSION)
-      roleinfo = tuf.roledb.get_roleinfo(delegated_rolename)
-      delegated_targets = list(roleinfo['paths'].keys())
-      parent_rolename = tuf.roledb.get_parent_rolename(delegated_rolename)
-      parent_roleinfo = tuf.roledb.get_roleinfo(parent_rolename) 
-      parent_delegations = parent_roleinfo['delegations']
+    # Write the metadata files of all the delegated roles.  Ensure target
+    # metadata is valid and properly signed, and required files are created. 
+    rolenames = tuf.roledb.get_rolenames()
+    for rolename in rolenames:
+      # Ignore top-level roles.  First write the metadata of the delegated
+      # roles before attempting to write the metadata for the top-level roles,
+      # since the top-level ones reference them. 
+      if rolename in ['root', 'targets', 'snapshot', 'timestamp']:
+        continue
       
-      # Raise exception if any of the targets of 'delegated_rolename' are not
-      # allowed.
-      tuf.util.ensure_all_targets_allowed(delegated_rolename, delegated_targets,
-                                          parent_delegations)
-
-      # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
-      # IO exception is raised if 'metadata_filepath' is written to a
-      # sub-directory.
-      tuf.util.ensure_parent_dir(delegated_filename)
-   
-      repo_lib._generate_and_write_metadata(delegated_rolename,
-                                            delegated_filename,
+      role_filename = os.path.join(self._metadata_directory,
+                                   rolename + METADATA_EXTENSION)
+      
+      # Previously, the files/paths provided by 'rolename' were validated
+      # against the paths allowed by its parent (when delegations resembled a
+      # tree).  Now that delegations resemble a graph, paths shouldn't be
+      # validated, since any and multiple roles can potentially vouch for the
+      # paths provided by 'rolename'.
+      repo_lib._generate_and_write_metadata(rolename,
+                                            role_filename,
                                             write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
@@ -310,8 +304,8 @@ class Repository(object):
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked and should no longer have their metadata files
-    # available on disk, otherwise loading a repository may unintentionally load
-    # them.
+    # available on disk, otherwise loading a repository may unintentionally
+    # load them.
     repo_lib._delete_obsolete_metadata(self._metadata_directory,
                                        snapshot_signable['signed'],
                                        consistent_snapshot)
@@ -2689,28 +2683,21 @@ def load_repository(repository_directory):
   repository, consistent_snapshot = repo_lib._load_top_level_metadata(repository,
                                                                       filenames)
  
-  # Load delegated targets metadata.
-  # Walk the 'targets/' directory and generate the fileinfo of all the files
-  # listed.  This information is stored in the 'meta' field of the snapshot
-  # metadata object.
+  # Load the delegated metadata found in the metadata directory, and extract
+  # their fileinfo.  This information is stored in the 'meta' field of the
+  # snapshot metadata.
   targets_objects = {}
   loaded_metadata = []
   targets_objects['targets'] = repository.targets
-  targets_metadata_directory = os.path.join(metadata_directory,
-                                            TARGETS_DIRECTORY_NAME)
-  if os.path.exists(targets_metadata_directory) and \
-                    os.path.isdir(targets_metadata_directory):
-    for root, directories, files in os.walk(targets_metadata_directory):
-      
-      # 'files' here is a list of target file names.
-      for basename in files:
-        metadata_path = os.path.join(root, basename)
-        metadata_name = \
-          metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+  
+  if os.path.exists(metadata_directory):
+    for role_metadata in os.listdir(metadata_directory):
+      metadata_path = os.path.join(root, basename)
+      metadata_name = \
+        metadata_path[len(metadata_directory):].lstrip(os.path.sep)
 
-        # Strip the version number if 'consistent_snapshot' is True.
-        # Example:  'targets/unclaimed/10.django.json' -->
-        # 'targets/unclaimed/django.json'
+        # Strip the version number if 'consistent_snapshot' is True.  Example:
+        # '10.django.json' --> 'django.json'
         metadata_name, version_number_junk = \
           repo_lib._strip_consistent_snapshot_version_number(metadata_name,
                                                      consistent_snapshot)
