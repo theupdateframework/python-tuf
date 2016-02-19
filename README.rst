@@ -178,9 +178,10 @@ verify ed25519 signatures and is intended for sofware updater clients,
 ``tuf[tools]`` provides repository maintainers secure ed25519 key and
 signature generation with PyNaCl / libsodium.
 
-TUF tools also enable general-purpose cryptography with PyCrypto.
-Software updaters that want to support verification of RSASSA-PSS
-signatures should require their clients to install ``tuf[tools]``.
+TUF tools also enable general-purpose cryptography with PyCrypto
+and/or PyCA's Cryptography.  Software updaters that want to support
+verification of RSASSA-PSS signatures should require their clients
+to install ``tuf[tools]``.
 
 Installing extras does not work if minimal install was a wheel (pip <= 1.5.6.)
 `https://github.com/pypa/pip/issues/1885 <https://github.com/pypa/pip/issues/1885>`_
