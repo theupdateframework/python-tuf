@@ -39,11 +39,11 @@ file.
 the software update system.
 
 
-If at any point in the above procedure there is a problem (e.g., only
-expired metadata can be retrieved), the Root file is downloaded and the process
-starts over (and only once to avoid an infinite loop). Optionally, the software
-update system using the framework can decide how to proceed rather than
-automatically downloading a new Root file.
+If at any point in the above procedure there is a problem (i.e., if unexpired,
+signed, valid metadata cannot be retrieved from the repository), the Root file
+is downloaded and the process is retried once more (and only once to avoid an
+infinite loop).  Optionally, the software update system using the framework
+can decide how to proceed rather than automatically downloading a new Root file.
 
 
 ## Example Client
