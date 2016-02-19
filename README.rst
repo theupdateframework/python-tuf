@@ -104,6 +104,9 @@ The following papers provide detailed information on securing software
 updater systems, TUF's design and implementation details, attacks on
 package managers, and package management security:
 
+-  `Diplomat: Using Delegations to Protect Community Repositories
+   <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/survivable-key-compromise-ccs2010.pdf?raw=true>`_
+
 -  `Survivable Key Compromise in Software Update
    Systems <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/survivable-key-compromise-ccs2010.pdf?raw=true>`_
 
