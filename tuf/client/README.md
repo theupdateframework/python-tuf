@@ -18,11 +18,6 @@ for more information on interposing Python urllib calls with TUF.
 
 ## Overview of the Update Process
 
-If at any point in the following process there is a problem (e.g., only
-expired metadata can be retrieved), the Root file is downloaded and the process
-starts over. Optionally, the software update system using the framework can
-decide how to proceed rather than automatically downloading a new Root file.
-
 1. The software update system instructs TUF to check for updates.
 
 2. TUF downloads and verifies timestamp.json.
@@ -42,6 +37,13 @@ file.
 
 7. TUF downloads and verifies the file and then makes the file available to
 the software update system.
+
+
+If at any point in the above procedure there is a problem (e.g., only
+expired metadata can be retrieved), the Root file is downloaded and the process
+starts over (and only once to avoid an infinite loop). Optionally, the software
+update system using the framework can decide how to proceed rather than
+automatically downloading a new Root file.
 
 
 ## Example Client
