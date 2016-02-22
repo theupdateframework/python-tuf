@@ -1051,9 +1051,14 @@ def make_versioninfo(version_number):
   versioninfo = {'version' : version_number}
 
   # Raise 'tuf.FormatError' if 'versioninfo' is improperly formatted.
-  VERSIONINFO_SCHEMA.check_match(versioninfo)
-
-  return versioninfo
+  try: 
+    VERSIONINFO_SCHEMA.check_match(versioninfo)
+  
+  except:
+    raise
+  
+  else:
+    return versioninfo
 
 
 
