@@ -1766,9 +1766,10 @@ class Updater(object):
         self.metadata['current']['timestamp']['version']
 
     # When updating snapshot.json, the client either (1) has a copy of
-    # snapshot.json, or (2) in the process of obtaining it by first downloading
-    # timestamp.json.  Note: Clients may have only root.json and perform a
-    # refresh of top-level metadata to obtain the remaining roles.
+    # snapshot.json, or (2) is in the process of obtaining it by first
+    # downloading timestamp.json.  Note: Clients are allowed to have only
+    # root.json initially, and perform a refresh of top-level metadata to
+    # obtain the remaining roles.
     elif metadata_filename == 'snapshot.json':
       
       # Verify the version number of the currently trusted snapshot.json in
