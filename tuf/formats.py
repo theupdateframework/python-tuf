@@ -1041,9 +1041,7 @@ def make_versioninfo(version_number):
     does not have the correct format.
 
   <Side Effects>
-    If any of the arguments are incorrectly formatted, the dict
-    returned will be checked for formatting errors, and if found,
-    will raise a 'tuf.FormatError' exception.
+    None.
 
   <Returns>
     A dictionary conformant to 'VERSIONINFO_SCHEMA', containing the version
