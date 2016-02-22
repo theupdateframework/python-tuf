@@ -522,10 +522,10 @@ def _strip_consistent_snapshot_version_number(metadata_filename,
     # Ensure the version number, including the period, is stripped.
     basename = basename[basename.find('.') + 1:]
     
-    metadata_filename = os.path.join(dirname, basename)
+    stripped_metadata_filename = os.path.join(dirname, basename)
   
 
-  return metadata_filename, embedded_version_number
+  return stripped_metadata_filename, embedded_version_number
 
 
 
