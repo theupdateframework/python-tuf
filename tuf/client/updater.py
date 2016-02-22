@@ -1603,9 +1603,11 @@ class Updater(object):
         logger.debug('Compressed version of ' + \
                      repr(uncompressed_metadata_filename) + ' not available.')
 
-    # Simply return if the file has not changed, according to the metadata
-    # about the uncompressed file provided by the referenced metadata.
-    if not self._versioninfo_has_changed(uncompressed_metadata_filename,
+    # Simply return if the metadata for 'metadata_role' has been updated,
+    # according to the uncompressed metadata provided by the referenced
+    # metadata.  The metadata is considered updated if its version number is
+    # strictly greater than its currently trusted version number.
+    if not self._versioninfo_has_been_updated(uncompressed_metadata_filename,
                                          expected_versioninfo):
       logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
       
@@ -1659,14 +1661,15 @@ class Updater(object):
 
 
 
-  def _versioninfo_has_changed(self, metadata_filename, new_versioninfo):
+  def _versioninfo_has_been_updated(self, metadata_filename, new_versioninfo):
     """
     <Purpose>
       Non-public method that determines whether the current versioninfo of
-      'metadata_filename' differs from 'new_versioninfo'.  The 'new_versioninfo'
-      argument should be extracted from the latest copy of the metadata that
-      references 'metadata_filename'.  Example: 'root.json' would be referenced
-      by 'snapshot.json'.
+      'metadata_filename' is less than 'new_versioninfo' (i.e., the version
+      number has been incremented).  The 'new_versioninfo' argument should be
+      extracted from the latest copy of the metadata that references
+      'metadata_filename'.  Example: 'root.json' would be referenced by
+      'snapshot.json'.
         
       'new_versioninfo' should only be 'None' if this is for updating
       'root.json' without having 'snapshot.json' available.
@@ -1689,11 +1692,11 @@ class Updater(object):
       None.
 
     <Side Effects>
-      If there is no versioninfo currently loaded for 'metada_filename',
-      try to load it.
+      If there is no versioninfo currently loaded for 'metada_filename', try to
+      load it.
 
     <Returns>
-      Boolean.  True if the versioninfo has changed, false otherwise.
+      Boolean.  True if the versioninfo has changed, False otherwise.
     """
    
     # If there is no versioninfo currently stored for 'metadata_filename',
