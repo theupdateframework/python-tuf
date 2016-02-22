@@ -2795,8 +2795,9 @@ class Updater(object):
     <Purpose>
       Download 'target' and verify it is trusted.
         
-      This will only store the file at 'destination_directory' if the downloaded
-      file matches the description of the file in the trusted metadata.
+      This will only store the file at 'destination_directory' if the
+      downloaded file matches the description of the file in the trusted
+      metadata.
     
     <Arguments>
       target:
@@ -2812,6 +2813,10 @@ class Updater(object):
 
       tuf.NoWorkingMirrorError:
         If a target could not be downloaded from any of the mirrors.
+
+      Although expected to be rare, there might be OSError exceptions (except
+      errno.EEXIST) raised when creating the destination directory (if it
+      doesn't exist). 
 
     <Side Effects>
       A target file is saved to the local system.
@@ -2838,15 +2843,17 @@ class Updater(object):
     target_file_object = self._get_target_file(target_filepath, trusted_length,
                                                trusted_hashes)
    
-    # We acquired a target file object from a mirror.  Move the file into
-    # place (i.e., locally to 'destination_directory').  Note: join() discards
-    # 'destination_directory' if 'target_path' contains a leading path separator
-    # (i.e., is treated as an absolute path).
+    # We acquired a target file object from a mirror.  Move the file into place
+    # (i.e., locally to 'destination_directory').  Note: join() discards
+    # 'destination_directory' if 'target_path' contains a leading path
+    # separator (i.e., is treated as an absolute path).
     destination = os.path.join(destination_directory,
                                target_filepath.lstrip(os.sep))
     destination = os.path.abspath(destination)
     target_dirpath = os.path.dirname(destination)
-    
+   
+    # When attempting to create the root directory of 'target_dirpath', pass on
+    # all OSError exceptions except if the root directory already exists.
     try:
       os.makedirs(target_dirpath)
     
