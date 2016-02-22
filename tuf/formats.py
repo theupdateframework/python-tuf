@@ -1037,8 +1037,8 @@ def make_versioninfo(version_number):
       in Snapshot metadata.
 
   <Exceptions>
-    tuf.FormatError, if the 'VERSIONINFO_SCHEMA' to be returned
-    does not have the correct format.
+    tuf.FormatError, if the dict to be returned does not have the correct
+    format (i.e., VERSIONINFO_SCHEMA).
 
   <Side Effects>
     None.
