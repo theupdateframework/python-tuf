@@ -933,10 +933,12 @@ Version 0.9
    7. TUF downloads and verifies the file and then makes the file available to the
       software update system.
 
-   Note: If at any point in the above procedure there is a problem (i.e., if unexpired, signed, valid
-   metadata cannot be retrieved from the repository), the Root file is downloaded and the process is
-   retried once more (and only once to avoid an infinite loop). Optionally, the software update system
-   using the framework can decide how to proceed rather than automatically downloading a new Root file.
+   Note: If at any point in the above procedure there is a problem (i.e., if
+   unexpired, signed, valid metadata cannot be retrieved from the repository),
+   the Root file is downloaded and the process is retried once more (and only
+   once to avoid an infinite loop). Optionally, the software update system
+   using the framework can decide how to proceed rather than automatically
+   downloading a new Root file.
 
 
    The client code instructs the framework to check for updates.  The framework
