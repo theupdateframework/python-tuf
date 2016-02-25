@@ -914,10 +914,30 @@ Version 0.9
 
 5.1. The client application
 
-   Note: If at any point in the following process there is a problem (e.g., only
-   expired metadata can be retrieved), the Root file is downloaded and the process
-   starts over.  Optionally, the software update system using the framework can
-   decide how to proceed rather than automatically downloading a new Root file.
+   1. The client application first instructs TUF to check for updates.
+
+   2. TUF downloads and verifies timestamp.json.
+
+   3. If timestamp.json indicates that snapshot.json has changed, TUF downloads
+      and verifies snapshot.json.
+
+   4. TUF determines which metadata files listed in snapshot.json differ from
+      those described in the last snapshot.json that TUF has seen. If root.json
+      has changed, the update process starts over using the new root.json.
+
+   5. TUF provides the software update system with a list of available files
+      according to targets.json.
+
+   6. The software update system instructs TUF to download a specific target file.
+
+   7. TUF downloads and verifies the file and then makes the file available to the
+      software update system.
+
+   Note: If at any point in the above procedure there is a problem (i.e., if unexpired, signed, valid
+   metadata cannot be retrieved from the repository), the Root file is downloaded and the process is
+   retried once more (and only once to avoid an infinite loop). Optionally, the software update system
+   using the framework can decide how to proceed rather than automatically downloading a new Root file.
+
 
    The client code instructs the framework to check for updates.  The framework
    downloads the timestamp.json file from a mirror and checks that the file is
