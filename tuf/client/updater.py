@@ -1555,17 +1555,28 @@ class Updater(object):
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.  
     if referenced_metadata not in self.metadata['current']:
-      message = 'Cannot update ' + repr(metadata_role) + ' because ' \
-                + referenced_metadata + ' is missing.'
-      raise tuf.RepositoryError(message)
+      raise tuf.RepositoryError('Cannot update ' + repr(metadata_role) +
+        ' because ' + referenced_metadata + ' is missing.')
     
     # The referenced metadata has been loaded.  Extract the new versioninfo for
     # 'metadata_role' from it. 
     else:
-      message = repr(metadata_role) + ' referenced in ' +\
-        repr(referenced_metadata)+ '.  ' + repr(metadata_role)+' may be updated.'
-      logger.debug(message)
+      logger.debug(repr(metadata_role) + ' referenced in ' +
+        repr(referenced_metadata)+ '.  ' + repr(metadata_role) +
+        ' may be updated.')
+
+    # Simply return if the metadata for 'metadata_role' has not been updated,
+    # according to the uncompressed metadata provided by the referenced
+    # metadata.  The metadata is considered updated if its version number is
+    # strictly greater than its currently trusted version number.
+    if not self._versioninfo_has_been_updated(uncompressed_metadata_filename,
+                                         expected_versioninfo):
+      logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
+      
+      return
     
+    logger.debug('Metadata ' + repr(uncompressed_metadata_filename) + ' has changed.')
+
     # There might be a compressed version of 'snapshot.json' or Targets
     # metadata available for download.  Check the 'meta' field of
     # 'referenced_metadata' to see if it is listed when 'metadata_role'
@@ -1602,19 +1613,6 @@ class Updater(object):
       else:
         logger.debug('Compressed version of ' +
           repr(uncompressed_metadata_filename) + ' not available.')
-
-    # Simply return if the metadata for 'metadata_role' has not been updated,
-    # according to the uncompressed metadata provided by the referenced
-    # metadata.  The metadata is considered updated if its version number is
-    # strictly greater than its currently trusted version number.
-    if not self._versioninfo_has_been_updated(uncompressed_metadata_filename,
-                                         expected_versioninfo):
-      logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
-      
-      return
-
-    logger.debug('Metadata ' + repr(uncompressed_metadata_filename) + \
-                 ' has changed.')
 
     # The file lengths of metadata are unknown, only their version numbers are
     # known.  Set an upper limit for the length of the downloaded file for each
