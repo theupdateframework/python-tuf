@@ -1609,6 +1609,13 @@ class Updater(object):
                                          expected_versioninfo):
       logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
       
+      # Since we have not downloaded a new version of this metadata, we
+      # should check to see if our version is stale and notify the user
+      # if so. This raises tuf.ExpiredMetadataError if the metadata we
+      # have is expired. Resolves issue #322.
+      self._ensure_not_expired(self.metadata['current'][metadata_role],
+                               metadata_role)
+      
       return
 
     logger.debug('Metadata ' + repr(uncompressed_metadata_filename) + \
