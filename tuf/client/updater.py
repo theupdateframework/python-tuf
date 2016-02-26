@@ -1692,8 +1692,8 @@ class Updater(object):
       None.
 
     <Side Effects>
-      If there is no versioninfo currently loaded for 'metada_filename', try to
-      load it.
+      If there is no versioninfo currently loaded for 'metadata_filename', try
+      to load it.
 
     <Returns>
       Boolean.  True if the versioninfo has changed, False otherwise.
