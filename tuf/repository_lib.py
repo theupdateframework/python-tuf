@@ -508,6 +508,8 @@ def _strip_consistent_snapshot_version_number(metadata_filename,
   Strip from 'metadata_filename' any version data (in the expected
   '{dirname}/version_number.filename' format) that it may contain, and return
   the stripped filename and its version number as a tuple.
+  'consistent_snapshot' is a boolean indicating if 'metadata_filename' contains
+  prepended version number.
   """
  
   embedded_version_number = ''
@@ -517,15 +519,13 @@ def _strip_consistent_snapshot_version_number(metadata_filename,
   # 'targets/unclaimed/django.json'
   if consistent_snapshot:
     dirname, basename = os.path.split(metadata_filename)
-    embedded_version_number = basename[:basename.find('.')]
-    
-    # Ensure the version number, including the period, is stripped.
-    basename = basename[basename.find('.') + 1:]
-    
+    embedded_version_number, basename = basename.split('.', 1)
     stripped_metadata_filename = os.path.join(dirname, basename)
+    
+    return stripped_metadata_filename, embedded_version_number
   
-
-  return stripped_metadata_filename, embedded_version_number
+  else:
+    return metadata_filename, ''
 
 
 
