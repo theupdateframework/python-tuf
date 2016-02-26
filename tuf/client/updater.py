@@ -1565,6 +1565,11 @@ class Updater(object):
         repr(referenced_metadata)+ '.  ' + repr(metadata_role) +
         ' may be updated.')
 
+    # Extract the versioninfo of the uncompressed version of 'metadata_role'.
+    expected_versioninfo = self.metadata['current'][referenced_metadata] \
+                                        ['meta'] \
+                                        [uncompressed_metadata_filename]
+
     # Simply return if the metadata for 'metadata_role' has not been updated,
     # according to the uncompressed metadata provided by the referenced
     # metadata.  The metadata is considered updated if its version number is
@@ -1592,10 +1597,6 @@ class Updater(object):
     # decompressing a file that may be invalid or partially intact.
     compression = None
 
-    # Extract the versioninfo of the uncompressed version of 'metadata_role'.
-    expected_versioninfo = self.metadata['current'][referenced_metadata] \
-                                        ['meta'] \
-                                        [uncompressed_metadata_filename]
 
     # Check for the availability of compressed versions of 'snapshot.json',
     # 'targets.json', and delegated Targets (that also start with 'targets').
