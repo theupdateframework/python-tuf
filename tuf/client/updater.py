@@ -2814,9 +2814,9 @@ class Updater(object):
       tuf.NoWorkingMirrorError:
         If a target could not be downloaded from any of the mirrors.
 
-      Although expected to be rare, there might be OSError exceptions (except
-      errno.EEXIST) raised when creating the destination directory (if it
-      doesn't exist). 
+        Although expected to be rare, there might be OSError exceptions (except
+        errno.EEXIST) raised when creating the destination directory (if it
+        doesn't exist). 
 
     <Side Effects>
       A target file is saved to the local system.
@@ -2852,9 +2852,11 @@ class Updater(object):
     destination = os.path.abspath(destination)
     target_dirpath = os.path.dirname(destination)
    
-    # When attempting to create the root directory of 'target_dirpath', ignore
+    # When attempting to create the leaf directory of 'target_dirpath', ignore
     # any exceptions raised if the root directory already exists.  All other
-    # exceptions potentially thrown by os.makedirs() are re-raised.  
+    # exceptions potentially thrown by os.makedirs() are re-raised.
+    # Note: os.makedirs can raise OSError if the leaf directory already exists
+    # or cannot be created.
     try:
       os.makedirs(target_dirpath)
     
