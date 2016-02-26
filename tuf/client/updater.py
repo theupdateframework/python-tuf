@@ -2852,8 +2852,9 @@ class Updater(object):
     destination = os.path.abspath(destination)
     target_dirpath = os.path.dirname(destination)
    
-    # When attempting to create the root directory of 'target_dirpath', pass on
-    # all OSError exceptions except if the root directory already exists.
+    # When attempting to create the root directory of 'target_dirpath', ignore
+    # any exceptions raised if the root directory already exists.  All other
+    # exceptions potentially thrown by os.makedirs() are re-raised.  
     try:
       os.makedirs(target_dirpath)
     
