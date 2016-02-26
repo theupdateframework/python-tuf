@@ -465,18 +465,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
 
 
-  def test_2__versioninfo_has_changed(self):
+  def test_2__versioninfo_has_been_updated(self):
     # Verify that the method returns 'False' if a versioninfo was not changed.
     snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
     snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
     root_versioninfo = snapshot_signable['signed']['meta']['root.json'] 
     
-    self.assertFalse(self.repository_updater._versioninfo_has_changed('root.json',
+    self.assertFalse(self.repository_updater._versioninfo_has_been_updated('root.json',
                                                            root_versioninfo))
 
     # Verify that the method returns 'True' if Root's version number changes.
     root_versioninfo['version'] = 8 
-    self.assertTrue(self.repository_updater._versioninfo_has_changed('root.json',
+    self.assertTrue(self.repository_updater._versioninfo_has_been_updated('root.json',
                                                            root_versioninfo))
 
 
