@@ -1559,8 +1559,8 @@ class Updater(object):
                 + referenced_metadata + ' is missing.'
       raise tuf.RepositoryError(message)
     
-    # The referenced metadata has been loaded.  Extract the new
-    # versioninfo for 'metadata_role' from it. 
+    # The referenced metadata has been loaded.  Extract the new versioninfo for
+    # 'metadata_role' from it. 
     else:
       message = repr(metadata_role) + ' referenced in ' +\
         repr(referenced_metadata)+ '.  ' + repr(metadata_role)+' may be updated.'
@@ -1592,16 +1592,16 @@ class Updater(object):
     # should always be 'snapshot'.  'snapshot.json' specifies all roles
     # provided by a repository, including their version numbers.
     if metadata_role == 'snapshot' or metadata_role.startswith('targets'):
-      gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
       if 'gzip' in self.metadata['current']['root']['compression_algorithms']:
         compression = 'gzip'
-        
-        logger.debug('Compressed version of ' + \
-                repr(uncompressed_metadata_filename) + ' is available at ' + \
-                repr(gzip_metadata_filename) + '.')
+        gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
+        logger.debug('Compressed version of ' +
+          repr(uncompressed_metadata_filename) + ' is available at ' +
+          repr(gzip_metadata_filename) + '.')
+      
       else:
-        logger.debug('Compressed version of ' + \
-                     repr(uncompressed_metadata_filename) + ' not available.')
+        logger.debug('Compressed version of ' +
+          repr(uncompressed_metadata_filename) + ' not available.')
 
     # Simply return if the metadata for 'metadata_role' has been updated,
     # according to the uncompressed metadata provided by the referenced
