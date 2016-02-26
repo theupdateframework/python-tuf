@@ -1603,7 +1603,7 @@ class Updater(object):
         logger.debug('Compressed version of ' +
           repr(uncompressed_metadata_filename) + ' not available.')
 
-    # Simply return if the metadata for 'metadata_role' has been updated,
+    # Simply return if the metadata for 'metadata_role' has not been updated,
     # according to the uncompressed metadata provided by the referenced
     # metadata.  The metadata is considered updated if its version number is
     # strictly greater than its currently trusted version number.
