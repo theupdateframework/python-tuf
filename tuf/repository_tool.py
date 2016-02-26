@@ -2005,11 +2005,8 @@ class Targets(Metadata):
       tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
    
 
-    # Check if 'rolename' is not already a delegation.  'tuf.roledb' expects the
-    # full rolename. 
-    full_rolename = self._rolename + '/' + rolename
-
-    if tuf.roledb.role_exists(full_rolename):
+    # Check if 'rolename' is not already a delegation.
+    if tuf.roledb.role_exists(rolename):
       raise tuf.Error(repr(rolename) + ' already delegated.')
 
     # Keep track of the valid keyids (added to the new Targets object) and their
@@ -2061,7 +2058,7 @@ class Targets(Metadata):
       tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
     
-    roleinfo = {'name': full_rolename, 'keyids': keyids, 'signing_keyids': [],
+    roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
                 'threshold': threshold, 'version': 0, 'compressions': [''],
                 'expires': expiration, 'signatures': [], 'partial_loaded': False,
                 'paths': relative_targetpaths, 'delegations': {'keys': {},
