@@ -1597,7 +1597,6 @@ class Updater(object):
     # decompressing a file that may be invalid or partially intact.
     compression = None
 
-
     # Check for the availability of compressed versions of 'snapshot.json',
     # 'targets.json', and delegated Targets (that also start with 'targets').
     # For 'targets.json' and delegated metadata, 'referenced_metata'
