@@ -451,9 +451,9 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         # metadata might co-exist if write() and
         # write(consistent_snapshot=True) are mixed, so ensure only
         # '<version_number>.filename' metadata is stripped.
-        embeded_version_number = None
+        embedded_version_number = None
         if metadata_name not in snapshot_metadata['meta']: 
-          metadata_name, embeded_version_number = \
+          metadata_name, embedded_version_number = \
             _strip_consistent_snapshot_version_number(metadata_name, consistent_snapshot)
         
         # Strip filename extensions.  The role database does not include the
@@ -474,10 +474,10 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         # file extension of roles.  TODO: Should we leave it up to integrators
         # to remove outdated consistent snapshots?
         """ 
-        if consistent_snapshot and embeded_version_number is not None:
+        if consistent_snapshot and embedded_version_number is not None:
           file_hashes = list(snapshot_metadata['meta'][metadata_name_extension] \
                                         ['hashes'].values())
-          if embeded_digest not in file_hashes:
+          if embedded_digest not in file_hashes:
             logger.info('Removing outdated metadata: ' + repr(metadata_path))
             os.remove(metadata_path)
         """
@@ -508,24 +508,24 @@ def _strip_consistent_snapshot_version_number(metadata_filename,
   Strip from 'metadata_filename' any version data (in the expected
   '{dirname}/version_number.filename' format) that it may contain, and return
   the stripped filename and its version number as a tuple.
+  'consistent_snapshot' is a boolean indicating if 'metadata_filename' contains
+  prepended version number.
   """
  
-  embeded_version_number = ''
+  embedded_version_number = ''
 
   # Strip the version number if 'consistent_snapshot' is True.
   # Example:  'targets/unclaimed/10.django.json'  -->
   # 'targets/unclaimed/django.json'
   if consistent_snapshot:
     dirname, basename = os.path.split(metadata_filename)
-    embeded_version_number = basename[:basename.find('.')]
+    embedded_version_number, basename = basename.split('.', 1)
+    stripped_metadata_filename = os.path.join(dirname, basename)
     
-    # Ensure the version number, including the period, is stripped.
-    basename = basename[basename.find('.') + 1:]
-    
-    metadata_filename = os.path.join(dirname, basename)
+    return stripped_metadata_filename, embedded_version_number
   
-
-  return metadata_filename, embeded_version_number
+  else:
+    return metadata_filename, ''
 
 
 

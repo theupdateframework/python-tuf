@@ -1037,13 +1037,11 @@ def make_versioninfo(version_number):
       in Snapshot metadata.
 
   <Exceptions>
-    tuf.FormatError, if the 'VERSIONINFO_SCHEMA' to be returned
-    does not have the correct format.
+    tuf.FormatError, if the dict to be returned does not have the correct
+    format (i.e., VERSIONINFO_SCHEMA).
 
   <Side Effects>
-    If any of the arguments are incorrectly formatted, the dict
-    returned will be checked for formatting errors, and if found,
-    will raise a 'tuf.FormatError' exception.
+    None.
 
   <Returns>
     A dictionary conformant to 'VERSIONINFO_SCHEMA', containing the version
@@ -1053,9 +1051,14 @@ def make_versioninfo(version_number):
   versioninfo = {'version' : version_number}
 
   # Raise 'tuf.FormatError' if 'versioninfo' is improperly formatted.
-  VERSIONINFO_SCHEMA.check_match(versioninfo)
-
-  return versioninfo
+  try: 
+    VERSIONINFO_SCHEMA.check_match(versioninfo)
+  
+  except:
+    raise
+  
+  else:
+    return versioninfo
 
 
 
