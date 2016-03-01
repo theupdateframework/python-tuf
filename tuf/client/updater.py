@@ -1555,17 +1555,33 @@ class Updater(object):
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.  
     if referenced_metadata not in self.metadata['current']:
-      message = 'Cannot update ' + repr(metadata_role) + ' because ' \
-                + referenced_metadata + ' is missing.'
-      raise tuf.RepositoryError(message)
+      raise tuf.RepositoryError('Cannot update ' + repr(metadata_role) +
+        ' because ' + referenced_metadata + ' is missing.')
     
-    # The referenced metadata has been loaded.  Extract the new
-    # versioninfo for 'metadata_role' from it. 
+    # The referenced metadata has been loaded.  Extract the new versioninfo for
+    # 'metadata_role' from it. 
     else:
-      message = repr(metadata_role) + ' referenced in ' +\
-        repr(referenced_metadata)+ '.  ' + repr(metadata_role)+' may be updated.'
-      logger.debug(message)
+      logger.debug(repr(metadata_role) + ' referenced in ' +
+        repr(referenced_metadata)+ '.  ' + repr(metadata_role) +
+        ' may be updated.')
+
+    # Extract the versioninfo of the uncompressed version of 'metadata_role'.
+    expected_versioninfo = self.metadata['current'][referenced_metadata] \
+                                        ['meta'] \
+                                        [uncompressed_metadata_filename]
+
+    # Simply return if the metadata for 'metadata_role' has not been updated,
+    # according to the uncompressed metadata provided by the referenced
+    # metadata.  The metadata is considered updated if its version number is
+    # strictly greater than its currently trusted version number.
+    if not self._versioninfo_has_been_updated(uncompressed_metadata_filename,
+                                         expected_versioninfo):
+      logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
+      
+      return
     
+    logger.debug('Metadata ' + repr(uncompressed_metadata_filename) + ' has changed.')
+
     # There might be a compressed version of 'snapshot.json' or Targets
     # metadata available for download.  Check the 'meta' field of
     # 'referenced_metadata' to see if it is listed when 'metadata_role'
@@ -1581,38 +1597,22 @@ class Updater(object):
     # decompressing a file that may be invalid or partially intact.
     compression = None
 
-    # Extract the versioninfo of the uncompressed version of 'metadata_role'.
-    expected_versioninfo = self.metadata['current'][referenced_metadata] \
-                                        ['meta'] \
-                                        [uncompressed_metadata_filename]
-
     # Check for the availability of compressed versions of 'snapshot.json',
     # 'targets.json', and delegated Targets (that also start with 'targets').
     # For 'targets.json' and delegated metadata, 'referenced_metata'
     # should always be 'snapshot'.  'snapshot.json' specifies all roles
     # provided by a repository, including their version numbers.
     if metadata_role == 'snapshot' or metadata_role.startswith('targets'):
-      gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
       if 'gzip' in self.metadata['current']['root']['compression_algorithms']:
         compression = 'gzip'
-        
-        logger.debug('Compressed version of ' + \
-                repr(uncompressed_metadata_filename) + ' is available at ' + \
-                repr(gzip_metadata_filename) + '.')
-      else:
-        logger.debug('Compressed version of ' + \
-                     repr(uncompressed_metadata_filename) + ' not available.')
-
-    # Simply return if the file has not changed, according to the metadata
-    # about the uncompressed file provided by the referenced metadata.
-    if not self._versioninfo_has_changed(uncompressed_metadata_filename,
-                                         expected_versioninfo):
-      logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
+        gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
+        logger.debug('Compressed version of ' +
+          repr(uncompressed_metadata_filename) + ' is available at ' +
+          repr(gzip_metadata_filename) + '.')
       
-      return
-
-    logger.debug('Metadata ' + repr(uncompressed_metadata_filename) + \
-                 ' has changed.')
+      else:
+        logger.debug('Compressed version of ' +
+          repr(uncompressed_metadata_filename) + ' not available.')
 
     # The file lengths of metadata are unknown, only their version numbers are
     # known.  Set an upper limit for the length of the downloaded file for each
@@ -1659,14 +1659,15 @@ class Updater(object):
 
 
 
-  def _versioninfo_has_changed(self, metadata_filename, new_versioninfo):
+  def _versioninfo_has_been_updated(self, metadata_filename, new_versioninfo):
     """
     <Purpose>
       Non-public method that determines whether the current versioninfo of
-      'metadata_filename' differs from 'new_versioninfo'.  The 'new_versioninfo'
-      argument should be extracted from the latest copy of the metadata that
-      references 'metadata_filename'.  Example: 'root.json' would be referenced
-      by 'snapshot.json'.
+      'metadata_filename' is less than 'new_versioninfo' (i.e., the version
+      number has been incremented).  The 'new_versioninfo' argument should be
+      extracted from the latest copy of the metadata that references
+      'metadata_filename'.  Example: 'root.json' would be referenced by
+      'snapshot.json'.
         
       'new_versioninfo' should only be 'None' if this is for updating
       'root.json' without having 'snapshot.json' available.
@@ -1689,11 +1690,11 @@ class Updater(object):
       None.
 
     <Side Effects>
-      If there is no versioninfo currently loaded for 'metada_filename',
-      try to load it.
+      If there is no versioninfo currently loaded for 'metadata_filename', try
+      to load it.
 
     <Returns>
-      Boolean.  True if the versioninfo has changed, false otherwise.
+      Boolean.  True if the versioninfo has changed, False otherwise.
     """
    
     # If there is no versioninfo currently stored for 'metadata_filename',
@@ -1763,9 +1764,10 @@ class Updater(object):
         self.metadata['current']['timestamp']['version']
 
     # When updating snapshot.json, the client either (1) has a copy of
-    # snapshot.json, or (2) in the process of obtaining it by first downloading
-    # timestamp.json.  Note: Clients may have only root.json and perform a
-    # refresh of top-level metadata to obtain the remaining roles.
+    # snapshot.json, or (2) is in the process of obtaining it by first
+    # downloading timestamp.json.  Note: Clients are allowed to have only
+    # root.json initially, and perform a refresh of top-level metadata to
+    # obtain the remaining roles.
     elif metadata_filename == 'snapshot.json':
       
       # Verify the version number of the currently trusted snapshot.json in
@@ -2791,8 +2793,9 @@ class Updater(object):
     <Purpose>
       Download 'target' and verify it is trusted.
         
-      This will only store the file at 'destination_directory' if the downloaded
-      file matches the description of the file in the trusted metadata.
+      This will only store the file at 'destination_directory' if the
+      downloaded file matches the description of the file in the trusted
+      metadata.
     
     <Arguments>
       target:
@@ -2808,6 +2811,10 @@ class Updater(object):
 
       tuf.NoWorkingMirrorError:
         If a target could not be downloaded from any of the mirrors.
+
+        Although expected to be rare, there might be OSError exceptions (except
+        errno.EEXIST) raised when creating the destination directory (if it
+        doesn't exist). 
 
     <Side Effects>
       A target file is saved to the local system.
@@ -2834,15 +2841,20 @@ class Updater(object):
     target_file_object = self._get_target_file(target_filepath, trusted_length,
                                                trusted_hashes)
    
-    # We acquired a target file object from a mirror.  Move the file into
-    # place (i.e., locally to 'destination_directory').  Note: join() discards
-    # 'destination_directory' if 'target_path' contains a leading path separator
-    # (i.e., is treated as an absolute path).
+    # We acquired a target file object from a mirror.  Move the file into place
+    # (i.e., locally to 'destination_directory').  Note: join() discards
+    # 'destination_directory' if 'target_path' contains a leading path
+    # separator (i.e., is treated as an absolute path).
     destination = os.path.join(destination_directory,
                                target_filepath.lstrip(os.sep))
     destination = os.path.abspath(destination)
     target_dirpath = os.path.dirname(destination)
-    
+   
+    # When attempting to create the leaf directory of 'target_dirpath', ignore
+    # any exceptions raised if the root directory already exists.  All other
+    # exceptions potentially thrown by os.makedirs() are re-raised.
+    # Note: os.makedirs can raise OSError if the leaf directory already exists
+    # or cannot be created.
     try:
       os.makedirs(target_dirpath)
     
