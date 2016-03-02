@@ -140,9 +140,6 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['delegations'],
                                          consistent_snapshot)
 
-    if rolename == 'targets':    
-      _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
-                                   TARGETS_EXPIRES_WARN_SECONDS)
   
   elif rolename == 'snapshot':
     root_filename = ROOT_FILENAME[:-len(METADATA_EXTENSION)]
@@ -165,9 +162,23 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
+  
+  # All other roles are assumed are either the top-level 'targets' role, or
+  # a delegated role.
   else:
-    raise tuf.Error('Invalid rolename') 
+    # Only print a warning if the top-level 'targets' role expires soon.
+    if rolename == 'targets':    
+      _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
+                                   TARGETS_EXPIRES_WARN_SECONDS)
+    
+    metadata = generate_targets_metadata(targets_directory,
+                                         roleinfo['paths'],
+                                         roleinfo['version'],
+                                         roleinfo['expires'],
+                                         roleinfo['delegations'],
+                                         consistent_snapshot)
 
+  
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
  

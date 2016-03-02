@@ -233,6 +233,9 @@ class Repository(object):
     # Write the metadata files of all the delegated roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
     for delegated_rolename in tuf.roledb.get_dirty_roles():
+      if delegated_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
+        continue
+      print('writing... ' + delegated_rolename)
       delegated_filename = os.path.join(self._metadata_directory,
                                         delegated_rolename + METADATA_EXTENSION)
    
@@ -1477,7 +1480,7 @@ class Targets(Metadata):
     self._rolename = rolename 
     self._target_files = []
     self._delegated_roles = {}
-    self._parent_targets_object = None
+    self._parent_targets_object = self 
 
     # Keep a reference to the top-level 'targets' object.  Any delegated roles
     # that may be created, can be added to and accessed via the top-level
@@ -1550,7 +1553,7 @@ class Targets(Metadata):
 
 
 
-  def add_delegated_role(rolename, targets_object):
+  def add_delegated_role(self, rolename, targets_object):
     """ 
     <Purpose>
       Add 'targets_object' to this Targets object's list of known delegated
@@ -1585,7 +1588,7 @@ class Targets(Metadata):
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
   
-    if not isinstance(targets_objet, Targets):
+    if not isinstance(targets_object, Targets):
       raise tuf.FormatError(repr(targets_object) + ' is not a Targets object.')
    
 
@@ -1965,6 +1968,9 @@ class Targets(Metadata):
     return tuf.roledb.get_delegated_rolenames(self.rolename)
 
 
+
+
+
   def delegate(self, rolename, public_keys, list_of_targets, threshold=1,
                backtrack=True, restricted_paths=None, path_hash_prefixes=None):
     """
@@ -2109,7 +2115,7 @@ class Targets(Metadata):
 
     # The new targets object is added as an attribute to this Targets object. 
     new_targets_object = Targets(self._targets_directory, rolename,
-                                 roleinfo, self)
+                                 roleinfo, parent_targets_object=self)
     
     # Update the 'delegations' field of the current role.
     current_roleinfo = tuf.roledb.get_roleinfo(self.rolename) 
@@ -2142,7 +2148,13 @@ class Targets(Metadata):
     # Add the new delegation to the top-level 'targets' role object (i.e.,
     # 'repository.targets()').  For example, 'django', which was delegated by
     # repository.target('claimed'), is added to 'repository.targets('django')).
-    self._parent_targets_object.add_delegated_role(rolename, new_targets_object) 
+    
+    # Add 'new_targets_object' to the 'targets' role object (this object).
+    if self.rolename == 'targets':
+      self.add_delegated_role(rolename, new_targets_object)
+   
+    else:
+      self._parent_targets_object.add_delegated_role(rolename, new_targets_object)
 
 
 
