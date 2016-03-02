@@ -1945,6 +1945,8 @@ class Targets(Metadata):
 
 
 
+
+
   def get_delegated_rolenames(self):
     """
     <Purpose>
