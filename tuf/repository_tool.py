@@ -1705,7 +1705,7 @@ class Targets(Metadata):
    
     # Update the restricted paths of 'child_rolename'. 
     for role in roleinfo['delegations']['roles']:
-      if role['name'] == full_child_rolename:
+      if role['name'] == child_rolename:
         restricted_paths = role['paths'] 
     
     for directory_path in directory_paths:
@@ -1948,10 +1948,10 @@ class Targets(Metadata):
   def get_delegated_rolenames(self):
     """
     <Purpose>
-      Return all delegations of a role, including any made by child delegations.
-      If ['a/b/', 'a/b/c/', 'a/b/c/d'] have been delegated,
-      repository.a.get_delegated_rolenames() returns:
-      ['a/b', 'a/b/c', 'a/b/c/d'].
+      Return all delegations of a role.  If ['a/b/', 'a/b/c/', 'a/b/c/d'] have
+      been delegated by the delegated role 'django',
+      repository.targets('django').get_delegated_rolenames() returns: ['a/b',
+      'a/b/c', 'a/b/c/d'].
 
     <Arguments>
       None.

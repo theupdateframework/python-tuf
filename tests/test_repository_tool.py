@@ -347,7 +347,8 @@ class TestRepository(unittest.TestCase):
     metadata_files = repo.get_filepaths_in_directory(metadata_directory) 
     expected_files = ['root.json', 'root.json.gz', 'targets.json',
                       'targets.json.gz', 'snapshot.json', 'snapshot.json.gz',
-                      'timestamp.json', 'timestamp.json.gz']
+                      'timestamp.json', 'timestamp.json.gz', 'role1.json',
+                      'role1.json.gz']
     basenames = [] 
     for filepath in metadata_files:
       basenames.append(os.path.basename(filepath))
@@ -1096,7 +1097,7 @@ class TestTargets(unittest.TestCase):
                                  path_hash_prefixes=path_hash_prefixes)
 
     self.assertEqual(self.targets_object.get_delegated_rolenames(),
-                     ['targets/tuf'])
+                     ['tuf'])
     
     # Try to delegate to a role that has already been delegated.
     self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,

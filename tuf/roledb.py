@@ -27,7 +27,7 @@
   {'rolename': {'keyids': ['34345df32093bd12...'],
                 'threshold': 1
                 'signatures': ['abcd3452...'],
-                'paths': ['path/to/role.json'],
+                'paths': ['role.json'],
                 'path_hash_prefixes': ['ab34df13'],
                 'delegations': {'keys': {}, 'roles': {}}}
   
@@ -686,9 +686,9 @@ def get_role_paths(rolename):
 def get_delegated_rolenames(rolename):
   """
   <Purpose>
-    Return the delegations of a role.  If 'rolename' is 'a/b/c'
-    and the role database contains ['a/b/c/d', 'a/b/c/d/e', 'a/b/c'], 
-    return ['a/b/c/d', 'a/b/c/d/e']
+    Return the delegations of a role.  If 'rolename' is 'tuf'
+    and the role database contains ['django', 'requests', 'cryptography'], 
+    in 'tuf's delegations field, return ['django', 'requests', 'cryptography']
 
   <Arguments>
     rolename:
@@ -713,15 +713,12 @@ def get_delegated_rolenames(rolename):
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename)
 
-  # The list of delegated roles to be returned. 
+  roleinfo = get_roleinfo(rolename)
   delegated_roles = []
-
-  # Ensure that we only care about delegated roles!
-  rolename_with_slash = rolename + '/'
-  for name in get_rolenames():
-    if name.startswith(rolename_with_slash):
-      delegated_roles.append(name)
   
+  for delegated_role in roleinfo['delegations']['roles']:
+    delegated_roles.append(delegated_role['name'])
+
   return delegated_roles
 
 
