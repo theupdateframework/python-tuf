@@ -233,9 +233,10 @@ class Repository(object):
     # Write the metadata files of all the delegated roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
     for delegated_rolename in tuf.roledb.get_dirty_roles():
+      # Ignore top-level roles, they will be generated later on in this method. 
       if delegated_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
         continue
-      print('writing... ' + delegated_rolename)
+      
       delegated_filename = os.path.join(self._metadata_directory,
                                         delegated_rolename + METADATA_EXTENSION)
    
