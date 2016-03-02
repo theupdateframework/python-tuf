@@ -1,0 +1,26 @@
+{
+ "signatures": [
+  {
+   "keyid": "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f",
+   "method": "RSASSA-PSS",
+   "sig": "9223da26f87a8bbda1a5b12e0ed7a29a3918b44f75e27ff710bf1b8f5ea6e9eac53f61712fc858459a8486ad2c6d83c3db3653722b309ee1b1992d971671138b79dba9b593e5495f48d4ee353c99dbacf3b04b923b688abe347a89c1224690173de66603ce21c7cd63dc59e8594b9542837247734ccb12dcc2ea8c6cc10d89dc3808e74c934a0ea6ca021592eeee2a77f1614691bff5d8d56de42dd5f58281b2651de755d510856bf40b46da34d957c3c17a41265e2e0d38b8aa5369afb2907d76ada5f723e139d719811131edbddc0bde97d6d8c441ccc91e2556ca797c42ebb1019b7d456fe53540815f796750721b4a96a9fc0ad70b5d31c1b44ed448ce19"
+  }
+ ],
+ "signed": {
+  "_type": "Targets",
+  "delegations": {
+   "keys": {},
+   "roles": []
+  },
+  "expires": "2030-01-01T00:00:00Z",
+  "targets": {
+   "/file3.txt": {
+    "hashes": {
+     "sha256": "141f740f53781d1ca54b8a50af22cbf74e44c21a998fa2a8a05aaac2c002886b"
+    },
+    "length": 28
+   }
+  },
+  "version": 2
+ }
+}
