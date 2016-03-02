@@ -57,6 +57,10 @@ logger = logging.getLogger('tuf.roledb')
 # The role database.
 _roledb_dict = {}
 
+# A list of roles that have been modified (e.g., via update_roleinfo()) and
+# should be written to disk.
+_dirty_roles = []
+
 
 def create_roledb_from_root_metadata(root_metadata):
   """
@@ -182,7 +186,7 @@ def add_role(rolename, roleinfo, require_parent=True):
   _validate_rolename(rolename)
 
   if rolename in _roledb_dict:
-    raise tuf.RoleAlreadyExistsError('Role already exists: '+rolename)
+    raise tuf.RoleAlreadyExistsError('Role already exists: ' + rolename)
 
   # Make sure that the delegating role exists. This should be just a
   # sanity check and not a security measure.
@@ -191,7 +195,7 @@ def add_role(rolename, roleinfo, require_parent=True):
     parent_role = '/'.join(rolename.split('/')[:-1])
 
     if parent_role not in _roledb_dict:
-      raise tuf.Error('Parent role does not exist: '+parent_role)
+      raise tuf.Error('Parent role does not exist: ' + parent_role)
 
   _roledb_dict[rolename] = copy.deepcopy(roleinfo)
 
@@ -202,6 +206,10 @@ def add_role(rolename, roleinfo, require_parent=True):
 def update_roleinfo(rolename, roleinfo):
   """
   <Purpose>
+    Modify 'rolename's _roledb_dict entry to include the new 'roleinfo'.
+    'rolename' is also added to the _dirty_roles list.  Roles added to
+    '_dirty_roles' are marked as modified and can be used by the repository
+    tools to determine which roles need to be written to disk.
 
   <Arguments>
     rolename:
@@ -249,11 +257,40 @@ def update_roleinfo(rolename, roleinfo):
   _validate_rolename(rolename)
 
   if rolename not in _roledb_dict:
-    raise tuf.UnknownRoleError('Role does not exist: '+rolename)
+    raise tuf.UnknownRoleError('Role does not exist: ' + rolename)
 
+  # Update the global _roledb_dict and _dirty_roles structures so that
+  # the latest 'roleinfo' is available to other modules, and the repository
+  # tools know which roles should be saved to disk.
   _roledb_dict[rolename] = copy.deepcopy(roleinfo)
+  _dirty_roles.append(rolename)
 
-  
+
+
+
+
+def get_dirty_roles():
+  """
+  <Purpose>
+    A function that returns a list of the role have modified.  Tools that
+    write metadata to disk can use the list returned to determine which roles
+    should be written.
+
+  <Arguments>
+    None.
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    A list of the roles that have been modified.
+  """
+
+  return list(_dirty_roles)
+
 
 
 
@@ -732,7 +769,7 @@ def _check_rolename(rolename):
   _validate_rolename(rolename)
   
   if rolename not in _roledb_dict:
-    raise tuf.UnknownRoleError('Role name does not exist: '+rolename)
+    raise tuf.UnknownRoleError('Role name does not exist: ' + rolename)
 
 
 

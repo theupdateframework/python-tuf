@@ -227,30 +227,17 @@ class Repository(object):
     tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
     
     # At this point the tuf.keydb and tuf.roledb stores must be fully
-    # populated, otherwise write() throwns a 'tuf.UnsignedMetadataError'
-    # exception if any of the top-level roles are missing signatures, keys,
-    # etc.
+    # populated, otherwise write() throws a 'tuf.UnsignedMetadataError'
+    # exception if any of the top-level roles are missing signatures, keys, etc.
 
-    # Write the metadata files of all the delegated roles.  Ensure target
-    # metadata is valid and properly signed, and required files are created. 
-    rolenames = tuf.roledb.get_rolenames()
-    for rolename in rolenames:
-      # Ignore top-level roles.  First write the metadata of the delegated
-      # roles before attempting to write the metadata for the top-level roles,
-      # since the top-level ones reference them.
-      if rolename in ['root', 'snapshot', 'targets', 'timestamp']:
-        continue
-
-      role_filename = os.path.join(self._metadata_directory,
-                                   rolename + METADATA_EXTENSION)
-     
-      # The file / paths provided  by 'rolename' were previously validated
-      # against the paths allowed by its parent (when the delegations resembled
-      # a tree structure).  Now that delegations resemble a graph, paths
-      # shouldn't be validated, since any / multiple roles can potentially
-      # vouch for the paths provided by 'rolename'.
-      repo_lib._generate_and_write_metadata(rolename,
-                                            role_filename,
+    # Write the metadata files of all the delegated roles that are dirty (i.e.,
+    # have been modified via roledb.update_roleinfo()).
+    for delegated_rolename in tuf.roledb.get_dirty_roles():
+      delegated_filename = os.path.join(self._metadata_directory,
+                                        delegated_rolename + METADATA_EXTENSION)
+   
+      repo_lib._generate_and_write_metadata(delegated_rolename,
+                                            delegated_filename,
                                             write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
@@ -305,8 +292,8 @@ class Repository(object):
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked and should no longer have their metadata files
-    # available on disk, otherwise loading a repository may unintentionally
-    # load them.
+    # available on disk, otherwise loading a repository may unintentionally load
+    # them.
     repo_lib._delete_obsolete_metadata(self._metadata_directory,
                                        snapshot_signable['signed'],
                                        consistent_snapshot)
@@ -1472,7 +1459,8 @@ class Targets(Metadata):
     None.
   """
   
-  def __init__(self, targets_directory, rolename='targets', roleinfo=None):
+  def __init__(self, targets_directory, rolename='targets', roleinfo=None,
+               parent_targets_object=None):
    
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -1489,6 +1477,13 @@ class Targets(Metadata):
     self._rolename = rolename 
     self._target_files = []
     self._delegated_roles = {}
+    self._parent_targets_object = None
+
+    # Keep a reference to the top-level 'targets' object.  Any delegated roles
+    # that may be created, can be added to and accessed via the top-level
+    # 'targets' object.
+    if parent_targets_object is not None:
+      self._parent_targets_object = parent_targets_object
   
     # By default, Targets objects are set to expire 3 months from the current
     # time.  May be later modified.
@@ -1553,6 +1548,57 @@ class Targets(Metadata):
 
 
 
+
+
+  def add_delegated_role(rolename, targets_object):
+    """ 
+    <Purpose>
+      Add 'targets_object' to this Targets object's list of known delegated
+      roles.  Specifically, delegated Targets roles should call 'super(Targets,
+      self).add_delegated_role(...)' so that the top-level 'targets' role
+      contains a dictionary of all the available roles on the repository.
+    
+    <Arguments>
+      rolename:
+        The rolename of the delegated role.  'rolename' must be a role
+        previously delegated by this Targets role.
+
+      targets_object:
+        A Targets() object. 
+
+    <Exceptions>
+      tuf.FormatError, if the arguments are improperly formatted.
+
+      tuf.RoleAlreadyExistsError, if 'rolename' has already been delegated by
+      this Targets object.
+
+    <Side Effects>
+      Updates the Target object's dictionary of delegated targets.
+    
+    <Returns>
+      The Targets object of 'rolename'.
+    """
+    
+    # Do the arguments have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
+    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  
+    if not isinstance(targets_objet, Targets):
+      raise tuf.FormatError(repr(targets_object) + ' is not a Targets object.')
+   
+
+    if rolename in self._delegated_roles:
+      raise tuf.RoleAlreadyExistsError(repr(rolename) + ' already exists.')
+    
+    else:
+      self._delegated_roles[rolename] = targets_object
+
+
+
+
+
   @property
   def target_files(self):
     """
@@ -1603,7 +1649,7 @@ class Targets(Metadata):
       child_rolename:
         The child delegation that requires an update to its restricted paths,
         as listed in the parent role's delegations (e.g., 'Django' in
-        'targets/unclaimed/Django').
+        'unclaimed').
 
     <Exceptions>
       tuf.Error, if a directory path in 'list_of_directory_paths' is not a
@@ -1630,9 +1676,8 @@ class Targets(Metadata):
    
     # Ensure the 'child_rolename' has been delegated, otherwise it will not
     # have an entry in the parent role's delegations field.
-    full_child_rolename = self._rolename + '/' + child_rolename 
-    if not tuf.roledb.role_exists(full_child_rolename):
-      raise tuf.Error(repr(full_child_rolename) + ' has not been delegated.')
+    if not tuf.roledb.role_exists(child_rolename):
+      raise tuf.Error(repr(child_rolename) + ' has not been delegated.')
 
     # Are the paths in 'list_of_directory_paths' valid?
     for directory_path in list_of_directory_paths:
@@ -1927,9 +1972,9 @@ class Targets(Metadata):
       Create a new delegation, where 'rolename' is a child delegation of this
       Targets object.  The keys and roles database is updated, including the
       delegations field of this Targets.  The delegation of 'rolename' is added
-      and accessible (e.g., 'repository.targets(rolename).
+      and accessible (i.e., repository.targets(rolename)).
       
-      Actual metadata files are not updated, only when repository.write() or
+      Actual metadata files are not create, only when repository.write() or
       repository.write_partial() is called.
 
       >>> 
@@ -1938,8 +1983,7 @@ class Targets(Metadata):
 
     <Arguments>
       rolename:
-        The name of the delegated role, as in 'django' (i.e., not the full
-        rolename).
+        The name of the delegated role, as in 'django' or 'unclaimed'.
 
       public_keys:
         A list of TUF key objects in 'ANYKEYLIST_SCHEMA' format.  The list
@@ -1981,7 +2025,7 @@ class Targets(Metadata):
 
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
-      caller (i.e., targets.unclaimed.<rolename>).  The 'tuf.keydb.py' and
+      caller (i.e., targets.<rolename>).  The 'tuf.keydb.py' and
       'tuf.roledb.py' stores are updated with 'public_keys'.
 
     <Returns>
@@ -2003,14 +2047,13 @@ class Targets(Metadata):
     
     if path_hash_prefixes is not None:
       tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
-   
 
     # Check if 'rolename' is not already a delegation.
     if tuf.roledb.role_exists(rolename):
       raise tuf.Error(repr(rolename) + ' already delegated.')
 
-    # Keep track of the valid keyids (added to the new Targets object) and their
-    # keydicts (added to this Targets delegations). 
+    # Keep track of the valid keyids (added to the new Targets object) and
+    # their keydicts (added to this Targets delegations). 
     keyids = [] 
     keydict = {}
 
@@ -2065,8 +2108,8 @@ class Targets(Metadata):
                 'roles': []}}
 
     # The new targets object is added as an attribute to this Targets object. 
-    new_targets_object = Targets(self._targets_directory, full_rolename,
-                                 roleinfo)
+    new_targets_object = Targets(self._targets_directory, rolename,
+                                 roleinfo, self)
     
     # Update the 'delegations' field of the current role.
     current_roleinfo = tuf.roledb.get_roleinfo(self.rolename) 
@@ -2074,7 +2117,7 @@ class Targets(Metadata):
 
     # Update the roleinfo of this role.  A ROLE_SCHEMA object requires only
     # 'keyids', 'threshold', and 'paths'.
-    roleinfo = {'name': full_rolename,
+    roleinfo = {'name': rolename,
                 'keyids': roleinfo['keyids'],
                 'threshold': roleinfo['threshold'],
                 'backtrack': backtrack,
@@ -2096,9 +2139,12 @@ class Targets(Metadata):
     for key in public_keys:
       new_targets_object.add_verification_key(key)
 
-    # Add the new delegation to this Targets object.  For example, 'django' is
-    # added to 'repository.targets' (i.e., repository.targets('django')).
-    self._delegated_roles[rolename] = new_targets_object
+    # Add the new delegation to the top-level 'targets' role object (i.e.,
+    # 'repository.targets()').  For example, 'django', which was delegated by
+    # repository.target('claimed'), is added to 'repository.targets('django')).
+    self._parent_targets_object.add_delegated_role(rolename, new_targets_object) 
+
+
 
 
 
@@ -2118,8 +2164,8 @@ class Targets(Metadata):
 
     <Arguments>
       rolename:
-        The rolename (e.g., 'Django' in 'targets/unclaimed/Django') of
-        the child delegation the parent role (this role) wants to revoke.
+        The rolename (e.g., 'Django' in 'django') of the child delegation the
+        parent role (this role) wants to revoke.
 
     <Exceptions>
       tuf.FormatError, if 'rolename' is improperly formatted.
@@ -2140,23 +2186,19 @@ class Targets(Metadata):
     tuf.formats.ROLENAME_SCHEMA.check_match(rolename) 
 
     # Remove 'rolename' from this Target's delegations dict.  
-    # The child delegation's full rolename is required to locate in the parent's
-    # delegations list.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
-    full_rolename = self.rolename + '/' + rolename
     
     for role in roleinfo['delegations']['roles']:
-      if role['name'] == full_rolename:
+      if role['name'] == rolename:
         roleinfo['delegations']['roles'].remove(role)
 
     tuf.roledb.update_roleinfo(self.rolename, roleinfo) 
     
-    # Remove 'rolename' from 'tuf.roledb.py'.  The delegations of 'rolename' are
-    # also removed.
-    tuf.roledb.remove_role(full_rolename)
+    # Remove 'rolename' from 'tuf.roledb.py'.
+    tuf.roledb.remove_role(rolename)
    
     # Remove the rolename delegation from the current role.  For example, the
-    # 'django' role is removed from 'repository.targets('unclaimed')('django').
+    # 'django' role is removed from repository.targets('django').
     del self._delegated_roles[rolename]
 
 
@@ -2166,16 +2208,17 @@ class Targets(Metadata):
     """
     <Purpose>
       Distribute a large number of target files over multiple delegated roles
-      (hashed bins).  The metadata files of delegated roles will be nearly equal
-      in size (i.e., 'list_of_targets' is uniformly distributed by calculating
-      the target filepath's hash and determing which bin it should reside in.
-      The updater client will use "lazy bin walk" to find a target file's hashed
-      bin destination.  The parent role lists a range of path hash prefixes each
-      hashed bin contains.  This method is intended for repositories with a
-      large number of target files, a way of easily distributing and managing
-      the metadata that lists the targets, and minimizing the number of metadata
-      files (and their size) downloaded by the client.  See tuf-spec.txt and the
-      following link for more information:
+      (hashed bins).  The metadata files of delegated roles will be nearly
+      equal in size (i.e., 'list_of_targets' is uniformly distributed by
+      calculating the target filepath's hash and determing which bin it should
+      reside in.  The updater client will use "lazy bin walk" to find a target
+      file's hashed bin destination.  The parent role lists a range of path
+      hash prefixes each hashed bin contains.  This method is intended for
+      repositories with a large number of target files, a way of easily
+      distributing and managing the metadata that lists the targets, and
+      minimizing the number of metadata files (and their size) downloaded by
+      the client.  See tuf-spec.txt and the following link for more
+      information:
       http://www.python.org/dev/peps/pep-0458/#metadata-scalability
       
       >>>
@@ -2193,7 +2236,7 @@ class Targets(Metadata):
         The initial public keys of the delegated roles.  Public keys may be
         later added or removed by calling the usual methods of the delegated
         Targets object.  For example:
-        repository.targets('unclaimed')('000-003').add_verification_key()
+        repository.targets('000-003').add_verification_key()
       
       number_of_bins:
         The number of delegated roles, or hashed bins, that should be generated
@@ -2226,14 +2269,14 @@ class Targets(Metadata):
     tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
     
     # Convert 'number_of_bins' to hexadecimal and determine the number of
-    # hexadecimal digits needed by each hash prefix.  Calculate the total number
-    # of hash prefixes (e.g., 000 - FFF total values) to be spread over
+    # hexadecimal digits needed by each hash prefix.  Calculate the total
+    # number of hash prefixes (e.g., 000 - FFF total values) to be spread over
     # 'number_of_bins' and strip the first two characters ('0x') from Python's
-    # representation of hexadecimal values (so that they are not used in
-    # the calculation of the prefix length.)
-    # Example: number_of_bins = 32, total_hash_prefixes = 256, and each hashed
-    # bin is responsible for 8 hash prefixes.
-    # Hashed bin roles created = 00-07.json, 08-0f.json, ..., f8-ff.json.
+    # representation of hexadecimal values (so that they are not used in the
+    # calculation of the prefix length.) Example: number_of_bins = 32,
+    # total_hash_prefixes = 256, and each hashed bin is responsible for 8 hash
+    # prefixes.  Hashed bin roles created = 00-07.json, 08-0f.json, ...,
+    # f8-ff.json.
     prefix_length =  len(hex(number_of_bins - 1)[2:])
     total_hash_prefixes = 16 ** prefix_length
 
@@ -2250,7 +2293,7 @@ class Targets(Metadata):
 
     # Store the target paths that fall into each bin.  The digest of the
     # target path, reduced to the first 'prefix_length' hex digits, is
-    # calculated to determine which 'bin_index' is should go. 
+    # calculated to determine which 'bin_index' it should go. 
     target_paths_in_bin = {}
     for bin_index in six.moves.xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
@@ -2291,15 +2334,16 @@ class Targets(Metadata):
 
     # The parent roles will list bin roles starting from "0" to
     # 'total_hash_prefixes' in 'bin_offset' increments.  The skipped bin roles
-    # are listed in 'path_hash_prefixes' of 'outer_bin_index.
+    # are listed in 'path_hash_prefixes' of 'outer_bin_index'.
     for outer_bin_index in six.moves.xrange(0, total_hash_prefixes, bin_offset):
       # The bin index is hex padded from the left with zeroes for up to the
-      # 'prefix_length' (e.g., 'targets/unclaimed/000-003').  Ensure the correct
-      # hash bin name is generated if a prefix range is unneeded.
+      # 'prefix_length' (e.g., '000-003').  Ensure the correct hash bin name is
+      # generated if a prefix range is unneeded.
       start_bin = hex(outer_bin_index)[2:].zfill(prefix_length)
       end_bin = hex(outer_bin_index+bin_offset-1)[2:].zfill(prefix_length)
       if start_bin == end_bin:
         bin_rolename = start_bin
+      
       else:
         bin_rolename = start_bin + '-' + end_bin 
       
@@ -2374,7 +2418,7 @@ class Targets(Metadata):
       falls under the repository's targets directory, determine the filepath's
       hash prefix, locate the expected bin (if any), and then remove the
       fileinfo from the expected bin.  Example:  'targets/foo.tar.gz' may be
-      removed from the 'targets/unclaimed/58-5f.json' role's list of targets by
+      removed from the '58-5f.json' role's list of targets by
       calling this method.
 
     <Arguments>
@@ -2425,8 +2469,8 @@ class Targets(Metadata):
         example, 'add_target' and 'remove_target'.  If 'target_filepath' were 
         to be manually added or removed from a bin: 
         
-        repository.targets('unclaimed')('58-f7).add_target(target_filepath)
-        repository.targets('unclaimed')('000-007).remove_target(target_filepath)
+        repository.targets('58-f7').add_target(target_filepath)
+        repository.targets('000-007').remove_target(target_filepath)
 
     <Exceptions>
       tuf.Error, if 'target_filepath' cannot be updated (e.g., an invalid target
@@ -2581,6 +2625,7 @@ def create_new_repository(repository_directory):
   except OSError as e:
     if e.errno == errno.EEXIST:
       pass 
+    
     else:
       raise
   
@@ -2603,6 +2648,7 @@ def create_new_repository(repository_directory):
   except OSError as e:
     if e.errno == errno.EEXIST:
       pass
+    
     else:
       raise
   
@@ -2614,6 +2660,7 @@ def create_new_repository(repository_directory):
   except OSError as e:
     if e.errno == errno.EEXIST:
       pass
+    
     else:
       raise
  
@@ -2681,22 +2728,28 @@ def load_repository(repository_directory):
   repository, consistent_snapshot = repo_lib._load_top_level_metadata(repository,
                                                                       filenames)
  
-  # Load the delegated roles found in the metadata directory, and extract their
-  # fileinfo.  This information is stored in the "meta" field of the snapshot
-  # metadata.
+  # Load delegated targets metadata.
+  # Walk the 'targets/' directory and generate the fileinfo of all the files
+  # listed.  This information is stored in the 'meta' field of the snapshot
+  # metadata object.
   targets_objects = {}
   loaded_metadata = []
   targets_objects['targets'] = repository.targets
   targets_metadata_directory = os.path.join(metadata_directory,
                                             TARGETS_DIRECTORY_NAME)
-  if os.path.exists(metadata_directory):
-    for role_metadata in os.listdir(metadata_directory):
-        metadata_path = os.path.join(metadata_directory, role_metadata)
+  if os.path.exists(targets_metadata_directory) and \
+                    os.path.isdir(targets_metadata_directory):
+    for root, directories, files in os.walk(targets_metadata_directory):
+      
+      # 'files' here is a list of target file names.
+      for basename in files:
+        metadata_path = os.path.join(root, basename)
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
 
-        # Strip the version number if 'consistent_snapshot' is True.  Example:
-        # '10.django.json' --> django.json'
+        # Strip the version number if 'consistent_snapshot' is True.
+        # Example:  'targets/unclaimed/10.django.json' -->
+        # 'targets/unclaimed/django.json'
         metadata_name, version_number_junk = \
           repo_lib._strip_consistent_snapshot_version_number(metadata_name,
                                                      consistent_snapshot)
