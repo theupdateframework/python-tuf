@@ -15,6 +15,14 @@
     than verifying text output), use pre-generated repository files, and
     discontinue use of the old repository tools. -vladimir.v.diaz
 
+  March 9, 2016.
+    Additional test added relating to issue:
+    https://github.com/theupdateframework/tuf/issues/322
+    If a metadata file is not downloaded (no indication of a new version
+    available), its expiration must still be detected. This add'l test
+    complains if such does not occur, and accompanies code to detect it.
+    -sebastien.awwad
+
 <Copyright>
   See LICENSE for licensing information.
 
@@ -171,6 +179,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
 
   def test_without_tuf(self):
+    # Test 1:
     # Scenario:
     # 'timestamp.json' specifies the latest version of the repository files.
     # A client should only accept the same version of this file up to a certain
@@ -215,13 +224,23 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # Verify 'download_fileinfo' is equal to the current local file.
     self.assertEqual(download_fileinfo, fileinfo)
 
+    
+    # Test 2:
+    # See description of scenario in Test 2 in the test_with_tuf method.
+    # Without TUF, Test 2 is tantamount to Test 1, and so it is not tested
+    # again here.
+
 
 
   def test_with_tuf(self):
-
-
-    # Part 2: <~>
-    # For https://github.com/theupdateframework/tuf/issues/322
+    # Two tests are conducted here.
+    # Test 1: If an expired timestamp is downloaded, is it recognized as such?
+    # Test 2: If we find that the timestamp acquired from a mirror indicates
+    #         that there is no new snapshot file, and our current snapshot
+    #         file is expired, is it recognized as such?
+    #
+    # Test 2 addresses this issue:
+    #   https://github.com/theupdateframework/tuf/issues/322
     #
     # If time has passed and our snapshot (or any targets role) is expired, and
     # the mirror whose timestamp we fetched doesn't indicate the existence of a
@@ -251,7 +270,6 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                                                                   'password')
 
     repository.timestamp.load_signing_key(timestamp_private)
-    time.sleep(0.3)
 
     # Load snapshot keys.
     key_file = os.path.join(self.keystore_directory, 'snapshot_key') 
@@ -265,28 +283,29 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                                                                   'password')
     repository.root.load_signing_key(root_private)
 
-    time.sleep(0.3)
+    time.sleep(0.1)
 
-    # Expire snapshot in 8s
-    datetime_object = tuf.formats.unix_timestamp_to_datetime(int(time.time() + 8))
+    # Expire snapshot in 7s
+    datetime_object = tuf.formats.unix_timestamp_to_datetime(int(time.time() + 7))
     repository.snapshot.expiration = datetime_object
 
     # Now write to the repository
     repository.write()
     # And move the staged metadata to the "live" metadata.
+    time.sleep(0.1)
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
     # Refresh metadata on the client. For this refresh, all data is not expired.
-    time.sleep(0.2)
+    time.sleep(0.1)
     logger.info('Test: Refreshing #1 - Initial metadata refresh occurring.')
     self.repository_updater.refresh()
     logger.info("Test: Refreshed #1 - Initial metadata refresh occurred. Now sleeping 6s.")
 
-    # Sleep for at least 10 seconds to ensure 'repository.snapshot.expiration'
+    # Sleep for at least 7 seconds to ensure 'repository.snapshot.expiration'
     # is reached.
-    time.sleep(8)
+    time.sleep(7)
     logger.info("Test: Refreshing #2 - Now trying to refresh again after snapshot"
       " expiry.")
     try:
@@ -299,18 +318,6 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     #I think that I only expect tuf.ExpiredMetadata error here. A NoWorkingMirrorError indicates something else in this case - unavailable repo, for example.
     else:
       self.fail("TUF failed to detect expired stale snapshot metadata. Freeze.")
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -334,14 +341,13 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                                                                   'password')
 
     repository.timestamp.load_signing_key(timestamp_private)
-    time.sleep(1)
     
-    # expire in 8 seconds.
+    # expire in 6 seconds.
     datetime_object = tuf.formats.unix_timestamp_to_datetime(int(time.time() + 6))
     repository.timestamp.expiration = datetime_object
     time.sleep(0.1)
     repository.write()
-    time.sleep(0.2)
+    time.sleep(0.1)
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -362,15 +368,6 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     else:
       self.fail("TUF failed to detect expired stale timestamp metadata. "
         "Freeze attack successful.")
-
-    time.sleep(0.1)
-
-
-
-
-
-
-
 
 
 
