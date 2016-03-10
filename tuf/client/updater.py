@@ -643,6 +643,13 @@ class Updater(object):
         logger.info('An expired Root metadata was loaded and must be updated.')
         raise
 
+    # If an exception is raised during the metadata update attempts, we will
+    # attempt to update root metadata once by recursing with a special argument
+    # to avoid further recursion. We use this bool and pull the recursion out
+    # of the except block so as to avoid unprintable nested NoWorkingMirrorError
+    # exceptions.
+    retry_once = False
+
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
     try: 
@@ -652,19 +659,53 @@ class Updater(object):
       self._update_metadata_if_changed('root')
       self._update_metadata_if_changed('targets')
     
+    # There are two distinct error scenarios that can rise from the
+    # _update_metadata_if_changed calls in the try block above:
+    #
+    #   - tuf.NoWorkingMirrorError:
+    #
+    #      If a change to a metadata file IS detected in an
+    #      _update_metadata_if_changed call, but we are unable to download a
+    #      valid (not expired, properly signed, valid) version of that metadata
+    #      file, and unexpired version of that metadata file, a
+    #      tuf.NoWorkingMirrorError rises to this point.
+    # 
+    #   - tuf.ExpiredMetadataError:
+    #
+    #      If, on the other hand, a change to a metadata file IS NOT detected in
+    #      a given _update_metadata_if_changed call, but we observe that the
+    #      version of the metadata file we have on hand is now expired, a
+    #      tuf.ExpiredMetadataError exception rises to this point.
+    #
     except tuf.NoWorkingMirrorError as e:
       if unsafely_update_root_if_necessary:
-        message = 'Valid top-level metadata cannot be downloaded.  Unsafely '+\
-          'update the Root metadata.'
-        logger.info(message)
-        
-        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
-        self.refresh(unsafely_update_root_if_necessary=False)
-      
+        logger.info('Valid top-level metadata cannot be downloaded.  Unsafely '
+          'update the Root metadata.')
+        retry_once = True
+
       else:
         raise
 
+    except tuf.ExpiredMetadataError as e:
+      if unsafely_update_root_if_necessary:
+        logger.info('No changes were detected from the mirrors for a given role'
+          ', and that metadata that is available on disk has been found to be '
+          'expired. Trying to update root in case of foul play.')
+        retry_once = True
+      
+      # The caller explicitly requested not to unsafely fetch an expired Root.
+      else:
+        logger.info('No changes were detected from the mirrors for a given role'
+          ', and that metadata that is available on disk has been found to be '
+          'expired. Your metadata is out of date.')
+        raise
 
+    # Update failed and we aren't already in a retry. Try once more after
+    # updating root.
+    if retry_once:
+        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
+        self.refresh(unsafely_update_root_if_necessary=False)
+      
 
 
 
@@ -1578,6 +1619,13 @@ class Updater(object):
                                          expected_versioninfo):
       logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
       
+      # Since we have not downloaded a new version of this metadata, we
+      # should check to see if our version is stale and notify the user
+      # if so. This raises tuf.ExpiredMetadataError if the metadata we
+      # have is expired. Resolves issue #322.
+      self._ensure_not_expired(self.metadata['current'][metadata_role],
+                               metadata_role)
+
       return
     
     logger.debug('Metadata ' + repr(uncompressed_metadata_filename) + ' has changed.')
