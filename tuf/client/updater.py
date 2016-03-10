@@ -644,6 +644,7 @@ class Updater(object):
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
+    retry_once = False
     try: 
       self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
       self._update_metadata_if_changed('snapshot',
@@ -673,9 +674,7 @@ class Updater(object):
       if unsafely_update_root_if_necessary:
         logger.info('Valid top-level metadata cannot be downloaded.  Unsafely '
           'update the Root metadata.')
-        
-        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
-        self.refresh(unsafely_update_root_if_necessary=False)
+        retry_once = True
 
       else:
         raise
@@ -685,8 +684,7 @@ class Updater(object):
         logger.info('No changes were detected from the mirrors for a given role'
           ', and that metadata that is available on disk has been found to be '
           'expired. Trying to update root in case of foul play.')
-        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
-        self.refresh(unsafely_update_root_if_necessary=False)
+        retry_once = True
       
       # The caller explicitly requested not to unsafely fetch an expired Root.
       else:
@@ -694,6 +692,11 @@ class Updater(object):
           ', and that metadata that is available on disk has been found to be '
           'expired. Your metadata is out of date.')
         raise
+
+
+    if retry_once:
+        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
+        self.refresh(unsafely_update_root_if_necessary=False)
 
 
 
