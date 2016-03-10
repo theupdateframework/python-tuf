@@ -642,9 +642,15 @@ class Updater(object):
         logger.info('An expired Root metadata was loaded and must be updated.')
         raise
 
+    # If an exception is raised during the metadata update attempts, we will
+    # attempt to update root metadata once by recursing with a special argument
+    # to avoid further recursion. We use this bool and pull the recursion out
+    # of the except block so as to avoid unprintable nested NoWorkingMirrorError
+    # exceptions.
+    retry_once = False
+
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
-    retry_once = False
     try: 
       self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
       self._update_metadata_if_changed('snapshot',
@@ -693,7 +699,8 @@ class Updater(object):
           'expired. Your metadata is out of date.')
         raise
 
-
+    # Update failed and we aren't already in a retry. Try once more after
+    # updating root.
     if retry_once:
         self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
         self.refresh(unsafely_update_root_if_necessary=False)
