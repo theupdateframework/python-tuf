@@ -18,9 +18,10 @@
   March 9, 2016.
     Additional test added relating to issue:
     https://github.com/theupdateframework/tuf/issues/322
-    If a metadata file is not downloaded (no indication of a new version
-    available), its expiration must still be detected. This add'l test
-    complains if such does not occur, and accompanies code to detect it.
+    If a metadata file is not updated (no indication of a new version
+    available), the expiration of the pre-existing, locally trusted metadata
+    must still be detected. This additional test complains if such does not
+    occur, and accompanies code in tuf.client.updater:refresh() to detect it.
     -sebastien.awwad
 
 <Copyright>
