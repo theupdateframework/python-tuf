@@ -658,7 +658,7 @@ class Updater(object):
     # to avoid further recursion. We use this bool and pull the recursion out
     # of the except block so as to avoid unprintable nested NoWorkingMirrorError
     # exceptions.
-    retry_once = False
+#    retry_once = False
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
@@ -691,7 +691,9 @@ class Updater(object):
       if unsafely_update_root_if_necessary:
         logger.info('Valid top-level metadata cannot be downloaded.  Unsafely '
           'update the Root metadata.')
-        retry_once = True
+#        retry_once = True
+        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
+        self.refresh(unsafely_update_root_if_necessary=False)
 
       else:
         raise
@@ -701,7 +703,10 @@ class Updater(object):
         logger.info('No changes were detected from the mirrors for a given role'
           ', and that metadata that is available on disk has been found to be '
           'expired. Trying to update root in case of foul play.')
-        retry_once = True
+#        retry_once = True
+        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
+        self.refresh(unsafely_update_root_if_necessary=False)
+
       
       # The caller explicitly requested not to unsafely fetch an expired Root.
       else:
@@ -712,9 +717,9 @@ class Updater(object):
 
     # Update failed and we aren't already in a retry. Try once more after
     # updating root.
-    if retry_once:
-        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
-        self.refresh(unsafely_update_root_if_necessary=False)
+#    if retry_once:
+#        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
+#        self.refresh(unsafely_update_root_if_necessary=False)
       
 
 

@@ -295,9 +295,9 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
     time.sleep(0.1)
 
-    # Expire snapshot in 7s
+    # Expire snapshot in 3s
     datetime_object = tuf.formats.unix_timestamp_to_datetime(int(time.time() +
-                                                                 7))
+                                                                 3))
     repository.snapshot.expiration = datetime_object
 
     # Now write to the repository
@@ -313,11 +313,11 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     logger.info('Test: Refreshing #1 - Initial metadata refresh occurring.')
     self.repository_updater.refresh()
     logger.info("Test: Refreshed #1 - Initial metadata refresh completed "
-                "successfully. Now sleeping 7s so snapshot metadata expires.")
+                "successfully. Now sleeping 3s so snapshot metadata expires.")
 
     # Sleep for at least 7 seconds to ensure 'repository.snapshot.expiration'
     # is reached.
-    time.sleep(7)
+    time.sleep(3)
     logger.info("Test: Refreshing #2 - Now trying to refresh again after local "
       "snapshot expiry.")
     try:
@@ -361,8 +361,8 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
     repository.timestamp.load_signing_key(timestamp_private)
     
-    # expire in 4 seconds.
-    datetime_object = tuf.formats.unix_timestamp_to_datetime(int(time.time() + 4))
+    # expire in 3 seconds.
+    datetime_object = tuf.formats.unix_timestamp_to_datetime(int(time.time() + 3))
     repository.timestamp.expiration = datetime_object
     repository.write()
     
@@ -372,9 +372,9 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                     os.path.join(self.repository_directory, 'metadata'))
     
     # Verify that the TUF client detects outdated metadata and refuses to
-    # continue the update process.  Sleep for at least 4 seconds to ensure
+    # continue the update process.  Sleep for at least 3 seconds to ensure
     # 'repository.timestamp.expiration' is reached.
-    time.sleep(4)
+    time.sleep(3)
     try:
       self.repository_updater.refresh()
     
