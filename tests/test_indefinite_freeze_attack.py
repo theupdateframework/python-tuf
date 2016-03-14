@@ -312,26 +312,27 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     time.sleep(0.1)
     logger.info('Test: Refreshing #1 - Initial metadata refresh occurring.')
     self.repository_updater.refresh()
-    logger.info("Test: Refreshed #1 - Initial metadata refresh occurred. Now "
-                "sleeping 6s.")
+    logger.info("Test: Refreshed #1 - Initial metadata refresh completed "
+                "successfully. Now sleeping 7s so snapshot metadata expires.")
 
     # Sleep for at least 7 seconds to ensure 'repository.snapshot.expiration'
     # is reached.
     time.sleep(7)
-    logger.info("Test: Refreshing #2 - Now trying to refresh again after "
-      " snapshot expiry.")
+    logger.info("Test: Refreshing #2 - Now trying to refresh again after local "
+      "snapshot expiry.")
     try:
       self.repository_updater.refresh() # We expect this to fail!
 
     except tuf.ExpiredMetadataError as e:
-      logger.info("Test: Refresh #2 - failed as expected. Stale-expired "
+      logger.info("Test: Refresh #2 - failed as expected. Expired local "
                   "snapshot case generated a tuf.ExpiredMetadataError exception"
-                  ". Test pass.")
-    #I think that I only expect tuf.ExpiredMetadata error here. A
+                  " as expected. Test pass.")
+    # I think that I only expect tuf.ExpiredMetadata error here. A
     # NoWorkingMirrorError indicates something else in this case - unavailable
     # repo, for example.
     else:
-      self.fail("TUF failed to detect expired stale snapshot metadata. Freeze.")
+      self.fail("TUF failed to detect expired stale snapshot metadata. Freeze "
+        "attack successful.")
 
 
 
