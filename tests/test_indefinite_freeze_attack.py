@@ -180,13 +180,26 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
 
   def test_without_tuf(self):
-    # Test 1:
-    # Scenario:
+    # Two tests are conducted here.
+    # Test 1: If an expired timestamp is downloaded, is it recognized as such?
+    # Test 2: If we find that the timestamp acquired from a mirror indicates
+    #         that there is no new snapshot file, and our current snapshot
+    #         file is expired, is it recognized as such?
+
+    # Test 2 Begin:
+    #
+    # See description of scenario in Test 2 in the test_with_tuf method.
+    # Without TUF, Test 2 is tantamount to Test 1, and so we skip this test.
+
+
+    # Test 1 Begin:
+    #
     # 'timestamp.json' specifies the latest version of the repository files.
     # A client should only accept the same version of this file up to a certain
     # point, or else it cannot detect that new files are available for download.
     # Modify the repository's timestamp.json' so that it expires soon, copy it
     # over the to client, and attempt to re-fetch the same expired version. 
+    #
     # A non-TUF client (without a way to detect when metadata has expired) is
     # expected to download the same version, and thus the same outdated files.
     # Verify that the same file size and hash of 'timestamp.json' is downloaded.
@@ -225,11 +238,6 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # Verify 'download_fileinfo' is equal to the current local file.
     self.assertEqual(download_fileinfo, fileinfo)
 
-    # Test 2:
-    # See description of scenario in Test 2 in the test_with_tuf method.
-    # Without TUF, Test 2 is tantamount to Test 1, and so it is not tested
-    # again here.
-
 
   def test_with_tuf(self):
     # Two tests are conducted here.
@@ -237,9 +245,11 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # Test 2: If we find that the timestamp acquired from a mirror indicates
     #         that there is no new snapshot file, and our current snapshot
     #         file is expired, is it recognized as such?
+
+
+    # Test 2 Begin:
     #
-    # Test 2 addresses this issue:
-    #   https://github.com/theupdateframework/tuf/issues/322
+    # Addresses this issue: https://github.com/theupdateframework/tuf/issues/322
     #
     # If time has passed and our snapshot (or any targets role) is expired, and
     # the mirror whose timestamp we fetched doesn't indicate the existence of a
@@ -247,13 +257,14 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # the software update system / application / user. This test creates that
     # scenario. The correct behavior is to raise an exception.
     #
-    # Background: Expiration checks were previously conducted
-    # (ensure_not_expired) when the metadata file was downloaded. If no new
-    # metadata file was downloaded, no expiry check would occurs. (Exception:
-    # root was checked for expiration at the beginning of each refresh() cycle,
-    # and timestamp was always checked because it was always fetched.) Snapshot
-    # and targets were never checked if the user does not have evidence that
-    # they have changed.
+    # Background: Expiration checks (updater._ensure_not_expired) were
+    # previously conducted when the metadata file was downloaded. If no new
+    # metadata file was downloaded, no expiry check would occur. In particular, 
+    # while root was checked for expiration at the beginning of each
+    # updater.refresh() cycle, and timestamp was always checked because it was
+    # always fetched, snapshot and targets were never checked if the user did 
+    # not receive evidence that they had changed.
+    # That bug was fixed and this test tests that fix going forward.
 
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
                                   'timestamp.json')
@@ -325,11 +336,17 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
 
 
-    # Part 1:
+    # Test 1 Begin:
+    #
+    # 'timestamp.json' specifies the latest version of the repository files.
+    # A client should only accept the same version of this file up to a certain
+    # point, or else it cannot detect that new files are available for download.
+    # Modify the repository's timestamp.json' so that it expires soon, copy it
+    # over the to client, and attempt to re-fetch the same expired version.
 
-    # The same scenario outlined in test_without_tuf() is followed here, except
-    # with a TUF client.  The TUF client performs a refresh of top-level
-    # metadata, which also includes 'timestamp.json'.
+    # The same scenario as in test_without_tuf() is followed here, except with a
+    # TUF client. The TUF client performs a refresh of top-level metadata, which
+    # includes 'timestamp.json'.
     
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
                                   'timestamp.json')
