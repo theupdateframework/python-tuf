@@ -12,3 +12,4 @@ build/*
 .coverage
 .tox/*
 tests/htmlcov/*
+.DS_Store
