@@ -181,18 +181,18 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
   def test_without_tuf(self):
     # Two tests are conducted here.
-    # Test 1: If an expired timestamp is downloaded, is it recognized as such?
-    # Test 2: If we find that the timestamp acquired from a mirror indicates
+    # Test 1: If we find that the timestamp acquired from a mirror indicates
     #         that there is no new snapshot file, and our current snapshot
     #         file is expired, is it recognized as such?
+    # Test 2: If an expired timestamp is downloaded, is it recognized as such?
 
-    # Test 2 Begin:
+    # Test 1 Begin:
     #
     # See description of scenario in Test 2 in the test_with_tuf method.
     # Without TUF, Test 2 is tantamount to Test 1, and so we skip this test.
 
 
-    # Test 1 Begin:
+    # Test 2 Begin:
     #
     # 'timestamp.json' specifies the latest version of the repository files.
     # A client should only accept the same version of this file up to a certain
@@ -241,13 +241,13 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
   def test_with_tuf(self):
     # Two tests are conducted here.
-    # Test 1: If an expired timestamp is downloaded, is it recognized as such?
-    # Test 2: If we find that the timestamp acquired from a mirror indicates
+    # Test 1: If we find that the timestamp acquired from a mirror indicates
     #         that there is no new snapshot file, and our current snapshot
     #         file is expired, is it recognized as such?
+    # Test 2: If an expired timestamp is downloaded, is it recognized as such?
 
 
-    # Test 2 Begin:
+    # Test 1 Begin:
     #
     # Addresses this issue: https://github.com/theupdateframework/tuf/issues/322
     #
@@ -337,7 +337,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
 
 
-    # Test 1 Begin:
+    # Test 2 Begin:
     #
     # 'timestamp.json' specifies the latest version of the repository files.
     # A client should only accept the same version of this file up to a certain
@@ -349,16 +349,13 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # TUF client. The TUF client performs a refresh of top-level metadata, which
     # includes 'timestamp.json'.
     
-    timestamp_path = os.path.join(self.repository_directory, 'metadata',
-                                  'timestamp.json')
-    
     # Modify the timestamp file on the remote repository.  'timestamp.json'
     # must be properly updated and signed with 'repository_tool.py', otherwise
     # the client will reject it as invalid metadata.  The resulting
     # 'timestamp.json' should be valid metadata, but expired (as intended).
     repository = repo_tool.load_repository(self.repository_directory)
  
-    key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
+    key_file = os.path.join(self.keystore_directory, 'timestamp_key')
     timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
                                                                   'password')
 
