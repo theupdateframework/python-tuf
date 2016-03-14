@@ -295,9 +295,9 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
     time.sleep(0.1)
 
-    # Expire snapshot in 3s
+    # Expire snapshot in 0s
     datetime_object = tuf.formats.unix_timestamp_to_datetime(int(time.time() +
-                                                                 3))
+                                                                 0))
     repository.snapshot.expiration = datetime_object
 
     # Now write to the repository
@@ -313,11 +313,11 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     logger.info('Test: Refreshing #1 - Initial metadata refresh occurring.')
     self.repository_updater.refresh()
     logger.info("Test: Refreshed #1 - Initial metadata refresh completed "
-                "successfully. Now sleeping 3s so snapshot metadata expires.")
+                "successfully. Now sleeping 6s so snapshot metadata expires.")
 
-    # Sleep for at least 7 seconds to ensure 'repository.snapshot.expiration'
+    # Sleep for at least 2 seconds to ensure 'repository.snapshot.expiration'
     # is reached.
-    time.sleep(3)
+    time.sleep(2)
     logger.info("Test: Refreshing #2 - Now trying to refresh again after local "
       "snapshot expiry.")
     try:
@@ -361,8 +361,8 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
     repository.timestamp.load_signing_key(timestamp_private)
     
-    # expire in 3 seconds.
-    datetime_object = tuf.formats.unix_timestamp_to_datetime(int(time.time() + 3))
+    # expire in 2 seconds.
+    datetime_object = tuf.formats.unix_timestamp_to_datetime(int(time.time() + 2))
     repository.timestamp.expiration = datetime_object
     repository.write()
     
@@ -374,7 +374,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # Verify that the TUF client detects outdated metadata and refuses to
     # continue the update process.  Sleep for at least 3 seconds to ensure
     # 'repository.timestamp.expiration' is reached.
-    time.sleep(3)
+    time.sleep(2)
     try:
       self.repository_updater.refresh()
     
