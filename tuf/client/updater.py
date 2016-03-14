@@ -563,15 +563,23 @@ class Updater(object):
   def refresh(self, unsafely_update_root_if_necessary=True):
     """
     <Purpose>
-      Update the latest copies of the metadata for the top-level roles.
-      The update request process follows a specific order to ensure the
-      metadata files are securely updated.
-        
-      The client would call refresh() prior to requesting target file
-      information.  Calling refresh() ensures target methods, like
-      all_targets() and target(), refer to the latest available content.
-      The latest copies, according to the currently trusted top-level metadata,
-      of delegated metadata are downloaded and updated by the target methods.
+      Update the latest copies of the metadata for the top-level roles. The
+      update request process follows a specific order to ensure the metadata
+      files are securely updated: timestamp -> snapshot -> root -> targets.
+      
+      Delegated metadata is not refreshed by this method. After this method is
+      called, the use of target methods (e.g., all_targets(), targets_of_role(),
+      or target()) will update delegated metadata.
+      Calling refresh() ensures that top-level metadata is up-to-date, so that
+      the target methods can refer to the latest available content. Thus,
+      refresh() should always be called by the client before any requests of
+      target file information.
+
+      The expiration time for downloaded metadata is also verified.
+
+      If the refresh fails for any reason, it will be retried once after first
+      attempting to update the root metadata file. Only then will the exceptions
+      listed here potentially be raised.
 
     <Arguments>
       unsafely_update_root_if_necessary:
@@ -584,7 +592,9 @@ class Updater(object):
         If the metadata for any of the top-level roles cannot be updated.
 
       tuf.ExpiredMetadataError:
-        If any metadata has expired.
+         If any of the top-level metadata is expired (whether a new version was
+         downloaded expired or no new version was found and the existing
+         version is now expired). 
         
     <Side Effects>
       Updates the metadata files of the top-level roles with the latest
