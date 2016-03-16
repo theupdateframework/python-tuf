@@ -302,13 +302,11 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # Now write to the repository
     repository.write()
     # And move the staged metadata to the "live" metadata.
-    time.sleep(0.1) # superstitious move to allow write to finish?
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
     # Refresh metadata on the client. For this refresh, all data is not expired.
-    time.sleep(0.1) # superstitious move to allow copy to finish?
     logger.info('Test: Refreshing #1 - Initial metadata refresh occurring.')
     self.repository_updater.refresh()
     logger.info("Test: Refreshed #1 - Initial metadata refresh completed "
