@@ -269,15 +269,16 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # Modify the timestamp file on the remote repository.  'timestamp.json'
     # must be properly updated and signed with 'repository_tool.py', otherwise
     # the client will reject it as invalid metadata.
+
+    # Load the repository
     repository = repo_tool.load_repository(self.repository_directory)
- 
+
+    # Load the timestamp and snapshot keys, since we will be signing a new
+    # timestamp and a new snapshot file.
     key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
     timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
                                                                   'password')
-
     repository.timestamp.load_signing_key(timestamp_private)
-
-    # Load snapshot keys.
     key_file = os.path.join(self.keystore_directory, 'snapshot_key') 
     snapshot_private = repo_tool.import_rsa_privatekey_from_file(key_file,
                                                                   'password')
