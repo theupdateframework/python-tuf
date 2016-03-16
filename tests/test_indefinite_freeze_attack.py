@@ -180,18 +180,13 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
 
   def test_without_tuf(self):
-    # Two tests are conducted here.
+    # Without TUF, Test 1 and Test 2 are functionally equivalent, so we skip
+    # Test 1 and only perform Test 2.
     #
     # Test 1: If we find that the timestamp acquired from a mirror indicates
     #         that there is no new snapshot file, and our current snapshot
     #         file is expired, is it recognized as such?
     # Test 2: If an expired timestamp is downloaded, is it recognized as such?
-
-    # Test 1 Begin:
-    #
-    # See description of scenario in Test 2 in the test_with_tuf method.
-    # Without TUF, Test 2 and Test 1 are functionally equivalent, and so we skip
-    # Test 1.
 
 
     # Test 2 Begin:
