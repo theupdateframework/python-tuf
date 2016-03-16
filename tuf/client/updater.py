@@ -577,9 +577,10 @@ class Updater(object):
 
       The expiration time for downloaded metadata is also verified.
 
-      If the refresh fails for any reason, it will be retried once after first
-      attempting to update the root metadata file. Only then will the exceptions
-      listed here potentially be raised.
+      If the refresh fails for any reason, then unless
+      unsafely_update_root_if_necessary is set, refresh will be retried once
+      after first attempting to update the root metadata file. Only after this
+      check will the exceptions listed here potentially be raised.
 
     <Arguments>
       unsafely_update_root_if_necessary:
@@ -655,10 +656,7 @@ class Updater(object):
 
     # If an exception is raised during the metadata update attempts, we will
     # attempt to update root metadata once by recursing with a special argument
-    # to avoid further recursion. We use this bool and pull the recursion out
-    # of the except block so as to avoid unprintable nested NoWorkingMirrorError
-    # exceptions.
-#    retry_once = False
+    # to avoid further recursion.
 
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
@@ -691,7 +689,6 @@ class Updater(object):
       if unsafely_update_root_if_necessary:
         logger.info('Valid top-level metadata cannot be downloaded.  Unsafely '
           'update the Root metadata.')
-#        retry_once = True
         self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
         self.refresh(unsafely_update_root_if_necessary=False)
 
@@ -703,7 +700,6 @@ class Updater(object):
         logger.info('No changes were detected from the mirrors for a given role'
           ', and that metadata that is available on disk has been found to be '
           'expired. Trying to update root in case of foul play.')
-#        retry_once = True
         self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
         self.refresh(unsafely_update_root_if_necessary=False)
 
@@ -714,13 +710,6 @@ class Updater(object):
           ', and that metadata that is available on disk has been found to be '
           'expired. Your metadata is out of date.')
         raise
-
-    # Update failed and we aren't already in a retry. Try once more after
-    # updating root.
-#    if retry_once:
-#        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
-#        self.refresh(unsafely_update_root_if_necessary=False)
-      
 
 
 
