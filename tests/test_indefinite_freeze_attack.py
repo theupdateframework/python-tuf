@@ -283,12 +283,6 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                                                                   'password')
     repository.snapshot.load_signing_key(snapshot_private)
 
-    # Load root keys.
-    key_file = os.path.join(self.keystore_directory, 'root_key')
-    root_private = repo_tool.import_rsa_privatekey_from_file(key_file,
-                                                                  'password')
-    repository.root.load_signing_key(root_private)
-
     # Expire snapshot in 8s. This should be far enough into the future that we
     # haven't reached it before the first refresh validates timestamp expiry. We
     # want a successful refresh before expiry, then a second refresh after
