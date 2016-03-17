@@ -30,6 +30,9 @@ from __future__ import unicode_literals
 
 import six
 
+import logging
+logger = logging.getLogger('tuf.__init__')
+
 # Import 'tuf.formats' if a module tries to import the
 # entire tuf package (i.e., from tuf import *). 
 __all__ = ['formats']
@@ -332,13 +335,13 @@ class NoWorkingMirrorError(Error):
   def __str__(self):
     all_errors = 'No working mirror was found:'
 
-    for mirror_url, mirror_error in self.mirror_errors.iteritems():
+    for mirror_url, mirror_error in six.iteritems(self.mirror_errors):
       try:
         # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
         mirror_url_tokens = six.moves.urllib.parse.urlparse(mirror_url)
       
       except:
-        logging.exception('Failed to parse mirror URL: ' + repr(mirror_url))
+        logger.exception('Failed to parse mirror URL: ' + repr(mirror_url))
         mirror_netloc = mirror_url
       
       else:
