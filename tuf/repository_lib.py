@@ -155,14 +155,14 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
   
-  # All other roles are assumed are either the top-level 'targets' role, or
+  # All other roles are either the top-level 'targets' role, or
   # a delegated role.
   else:
     # Only print a warning if the top-level 'targets' role expires soon.
     if rolename == 'targets':    
       _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
                                    TARGETS_EXPIRES_WARN_SECONDS)
-    
+   
     metadata = generate_targets_metadata(targets_directory,
                                          roleinfo['paths'],
                                          roleinfo['version'],

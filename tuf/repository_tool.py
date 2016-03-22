@@ -239,7 +239,6 @@ class Repository(object):
       
       delegated_filename = os.path.join(self._metadata_directory,
                                         delegated_rolename + METADATA_EXTENSION)
-  
       repo_lib._generate_and_write_metadata(delegated_rolename,
                                             delegated_filename,
                                             write_partial,
@@ -2743,114 +2742,112 @@ def load_repository(repository_directory):
   repository, consistent_snapshot = repo_lib._load_top_level_metadata(repository,
                                                                       filenames)
  
-  # Load delegated targets metadata.
-  # Walk the 'targets/' directory and generate the fileinfo of all the files
-  # listed.  This information is stored in the 'meta' field of the snapshot
-  # metadata object.
+  # Load the delegated targets metadata and generate their fileinfo.  The
+  # extracted fileinfo is stored in the 'meta' field of the snapshot metadata
+  # object.
   targets_objects = {}
   loaded_metadata = []
   targets_objects['targets'] = repository.targets
-  targets_metadata_directory = os.path.join(metadata_directory,
-                                            TARGETS_DIRECTORY_NAME)
-  if os.path.exists(targets_metadata_directory) and \
-                    os.path.isdir(targets_metadata_directory):
-    for root, directories, files in os.walk(targets_metadata_directory):
+  
+  for metadata_role in os.listdir(metadata_directory):
+    
+    metadata_path = os.path.join(metadata_directory, metadata_role)
+    metadata_name = \
+      metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+
+    # Strip the version number if 'consistent_snapshot' is True.
+    # Example:  '10.django.json' --> 'django.json'
+    metadata_name, version_number_junk = \
+      repo_lib._strip_consistent_snapshot_version_number(metadata_name,
+                                                 consistent_snapshot)
+
+    if metadata_name.endswith(METADATA_EXTENSION): 
+      extension_length = len(METADATA_EXTENSION)
+      metadata_name = metadata_name[:-extension_length]
+    
+    else:
+      continue
+   
+    # Skip top-level roles, only interested in delegated roles. 
+    if metadata_name in ['root', 'snapshot', 'targets', 'timestamp']:
+      continue
+   
+    # Keep a store metadata previously loaded metadata to prevent
+    # re-loading duplicate versions.  Duplicate versions may occur with
+    # 'consistent_snapshot', where the same metadata may be available in
+    # multiples files (the different hash is included in each filename.
+    if metadata_name in loaded_metadata:
+      continue
+
+    signable = None
+    try:
+      signable = tuf.util.load_json_file(metadata_path)
+    
+    except (ValueError, IOError):
+      continue
+    
+    metadata_object = signable['signed']
+ 
+    # Extract the metadata attributes of 'metadata_name' and update its
+    # corresponding roleinfo.
+    roleinfo = tuf.roledb.get_roleinfo(metadata_name)
+    roleinfo['signatures'].extend(signable['signatures'])
+    roleinfo['version'] = metadata_object['version']
+    roleinfo['expires'] = metadata_object['expires']
+    
+    for filepath, fileinfo in six.iteritems(metadata_object['targets']):
+      roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
+    roleinfo['delegations'] = metadata_object['delegations']
+
+    if os.path.exists(metadata_path + '.gz'):
+      roleinfo['compressions'].append('gz')
+   
+    # The roleinfo of 'metadata_name' should have been initialized with
+    # defaults when it was loaded from its parent role.
+    if repo_lib._metadata_is_partially_loaded(metadata_name, signable, roleinfo):
+      roleinfo['partial_loaded'] = True
+    
+    tuf.roledb.update_roleinfo(metadata_name, roleinfo)
+    loaded_metadata.append(metadata_name)
+
+    # Generate the Targets objects of the delegated roles of
+    # 'metadata_name' and update the parent role Targets object.
+    new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
+    targets_object = \
+      targets_objects[tuf.roledb.get_parent_rolename(metadata_name)]
+    targets_objects[metadata_name] = new_targets_object
+    
+    targets_object._delegated_roles[(os.path.basename(metadata_name))] = \
+                          new_targets_object
+
+    # Extract the keys specified in the delegations field of the Targets
+    # role.  Add 'key_object' to the list of recognized keys.  Keys may be
+    # shared, so do not raise an exception if 'key_object' has already been
+    # added.  In contrast to the methods that may add duplicate keys, do not
+    # log a warning here as there may be many such duplicate key warnings.
+    # The repository maintainer should have also been made aware of the
+    # duplicate key when it was added.
+    for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
+      key_object = tuf.keys.format_metadata_to_key(key_metadata)
+      try: 
+        tuf.keydb.add_key(key_object)
       
-      # 'files' here is a list of target file names.
-      for basename in files:
-        metadata_path = os.path.join(root, basename)
-        metadata_name = \
-          metadata_path[len(metadata_directory):].lstrip(os.path.sep)
-
-        # Strip the version number if 'consistent_snapshot' is True.
-        # Example:  'targets/unclaimed/10.django.json' -->
-        # 'targets/unclaimed/django.json'
-        metadata_name, version_number_junk = \
-          repo_lib._strip_consistent_snapshot_version_number(metadata_name,
-                                                     consistent_snapshot)
-
-        if metadata_name.endswith(METADATA_EXTENSION): 
-          extension_length = len(METADATA_EXTENSION)
-          metadata_name = metadata_name[:-extension_length]
-        
-        else:
-          continue
-       
-        # Keep a store metadata previously loaded metadata to prevent
-        # re-loading duplicate versions.  Duplicate versions may occur with
-        # 'consistent_snapshot', where the same metadata may be available in
-        # multiples files (the different hash is included in each filename.
-        if metadata_name in loaded_metadata:
-          continue
-
-        signable = None
-        try:
-          signable = tuf.util.load_json_file(metadata_path)
-        
-        except (ValueError, IOError):
-          continue
-        
-        metadata_object = signable['signed']
-     
-        # Extract the metadata attributes 'metadata_name' and update its
-        # corresponding roleinfo.
-        roleinfo = tuf.roledb.get_roleinfo(metadata_name)
-        roleinfo['signatures'].extend(signable['signatures'])
-        roleinfo['version'] = metadata_object['version']
-        roleinfo['expires'] = metadata_object['expires']
-        for filepath, fileinfo in six.iteritems(metadata_object['targets']):
-          roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
-        roleinfo['delegations'] = metadata_object['delegations']
-
-        if os.path.exists(metadata_path + '.gz'):
-          roleinfo['compressions'].append('gz')
-       
-        # The roleinfo of 'metadata_name' should have been initialized with
-        # defaults when it was loaded from its parent role.
-        if repo_lib._metadata_is_partially_loaded(metadata_name, signable, roleinfo):
-          roleinfo['partial_loaded'] = True
-        
-        tuf.roledb.update_roleinfo(metadata_name, roleinfo)
-        loaded_metadata.append(metadata_name)
-
-        # Generate the Targets objects of the delegated roles of
-        # 'metadata_name' and update the parent role Targets object.
-        new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
-        targets_object = \
-          targets_objects[tuf.roledb.get_parent_rolename(metadata_name)]
-        targets_objects[metadata_name] = new_targets_object
-        
-        targets_object._delegated_roles[(os.path.basename(metadata_name))] = \
-                              new_targets_object
-
-        # Extract the keys specified in the delegations field of the Targets
-        # role.  Add 'key_object' to the list of recognized keys.  Keys may be
-        # shared, so do not raise an exception if 'key_object' has already been
-        # added.  In contrast to the methods that may add duplicate keys, do not
-        # log a warning here as there may be many such duplicate key warnings.
-        # The repository maintainer should have also been made aware of the
-        # duplicate key when it was added.
-        for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
-          key_object = tuf.keys.format_metadata_to_key(key_metadata)
-          try: 
-            tuf.keydb.add_key(key_object)
-          
-          except tuf.KeyAlreadyExistsError:
-            pass
-       
-        # Add the delegated role's initial roleinfo, to be fully populated
-        # when its metadata file is next loaded in the os.walk() iteration.
-        for role in metadata_object['delegations']['roles']:
-          rolename = role['name'] 
-          roleinfo = {'name': role['name'], 'keyids': role['keyids'],
-                      'threshold': role['threshold'],
-                      'compressions': [''], 'signing_keyids': [],
-                      'signatures': [],
-                      'paths': {},
-                      'partial_loaded': False,
-                      'delegations': {'keys': {},
-                                      'roles': []}}
-          tuf.roledb.add_role(rolename, roleinfo)
+      except tuf.KeyAlreadyExistsError:
+        pass
+   
+    # Add the delegated role's initial roleinfo, to be fully populated
+    # when its metadata file is next loaded in the os.walk() iteration.
+    for role in metadata_object['delegations']['roles']:
+      rolename = role['name'] 
+      roleinfo = {'name': role['name'], 'keyids': role['keyids'],
+                  'threshold': role['threshold'],
+                  'compressions': [''], 'signing_keyids': [],
+                  'signatures': [],
+                  'paths': {},
+                  'partial_loaded': False,
+                  'delegations': {'keys': {},
+                                  'roles': []}}
+      tuf.roledb.add_role(rolename, roleinfo)
 
   return repository
 
