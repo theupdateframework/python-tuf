@@ -235,7 +235,7 @@ class TestRepository(unittest.TestCase):
         self.assertTrue(os.path.exists(compressed_filepath))
        
     # Verify the 'role1.json' delegation is also written.
-    role1_filepath = os.path.join(metadata_directory, 'targets', 'role1.json')
+    role1_filepath = os.path.join(metadata_directory, 'role1.json')
     role1_signable = tuf.util.load_json_file(role1_filepath)
     tuf.formats.check_signable_object_format(role1_signable)
 
@@ -246,26 +246,26 @@ class TestRepository(unittest.TestCase):
     repository.status()
     
     # Verify status() does not raise 'tuf.InsufficientKeysError' if a top-level
-    # role does and 'targets/role1' do not contain a threshold of keys.
+    # role does and 'role1' do not contain a threshold of keys.
     root_roleinfo = tuf.roledb.get_roleinfo('root')
     old_threshold = root_roleinfo['threshold']
     root_roleinfo['threshold'] = 10
-    role1_roleinfo = tuf.roledb.get_roleinfo('targets/role1')
+    role1_roleinfo = tuf.roledb.get_roleinfo('role1')
     old_role1_threshold = role1_roleinfo['threshold']
     role1_roleinfo['threshold'] = 10
     tuf.roledb.update_roleinfo('root', root_roleinfo)
-    tuf.roledb.update_roleinfo('targets/role1', role1_roleinfo)
+    tuf.roledb.update_roleinfo('role1', role1_roleinfo)
     repository.status()
    
     # Restore the original threshold values.
     root_roleinfo['threshold'] = old_threshold
     tuf.roledb.update_roleinfo('root', root_roleinfo)
     role1_roleinfo['threshold'] = old_role1_threshold
-    tuf.roledb.update_roleinfo('targets/role1', role1_roleinfo)
+    tuf.roledb.update_roleinfo('role1', role1_roleinfo)
 
 
     # Verify status() does not raise 'tuf.UnsignedMetadataError' if any of the
-    # the top-level roles and 'targets/role1' are improperly signed.
+    # the top-level roles and 'role1' are improperly signed.
     repository.root.unload_signing_key(root_privkey)
     repository.root.load_signing_key(targets_privkey)
     repository.targets('role1').unload_signing_key(role1_privkey)
@@ -1175,15 +1175,8 @@ class TestTargets(unittest.TestCase):
     delegated_rolenames = ['0', '1', '2', '3', '4', '5', '6', '7',
                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
 
-    # Prepend the parent's rolename.
-    expected_delegated_rolenames = []
-    for rolename in delegated_rolenames:
-      rolename = self.targets_object.rolename + '/' + rolename
-      expected_delegated_rolenames.append(rolename)
-
     self.assertEqual(sorted(self.targets_object.get_delegated_rolenames()),
-                     sorted(expected_delegated_rolenames))
-
+                     sorted(delegated_rolenames))
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError,
@@ -1502,7 +1495,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Verify the expected roles have been loaded.  See
     # 'tuf/tests/repository_data/repository/'.
     expected_roles = \
-      ['root', 'targets', 'snapshot', 'timestamp', 'targets/role1']
+      ['root', 'targets', 'snapshot', 'timestamp', 'role1']
     for role in tuf.roledb.get_rolenames():
       self.assertTrue(role in expected_roles)
     

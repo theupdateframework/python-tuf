@@ -284,21 +284,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Get the 'role1.json' filepath.  Manually load the role metadata, and
     # compare it against the loaded metadata by '_load_metadata_from_file()'.
     role1_filepath = \
-      os.path.join(self.client_metadata_current, 'targets', 'role1.json')
+      os.path.join(self.client_metadata_current, 'role1.json')
     role1_meta = tuf.util.load_json_file(role1_filepath)
  
     # Load the 'role1.json' file with _load_metadata_from_file, which should
     # store the loaded metadata in the 'self.repository_updater.metadata'
     # store.
     self.assertEqual(len(self.repository_updater.metadata['current']), 4)
-    self.repository_updater._load_metadata_from_file('current', 'targets/role1')
+    self.repository_updater._load_metadata_from_file('current', 'role1')
     
     # Verify that the correct number of metadata objects has been loaded
     # (i.e., only the 'root.json' file should have been loaded.
     self.assertEqual(len(self.repository_updater.metadata['current']), 5)
 
     # Verify that the content of root metadata is valid.
-    self.assertEqual(self.repository_updater.metadata['current']['targets/role1'],
+    self.assertEqual(self.repository_updater.metadata['current']['role1'],
                      role1_meta['signed'])
 
     # Test invalid metadata set argument (must be either
@@ -420,12 +420,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(tuf.keydb._keydb_dict), 5)
 
     # Verify that roledb dictionary was added.
-    self.assertTrue('targets/role1' in tuf.roledb._roledb_dict)
+    self.assertTrue('role1' in tuf.roledb._roledb_dict)
     
     # Verify that keydb dictionary was updated.
     role1_signable = \
       tuf.util.load_json_file(os.path.join(self.client_metadata_current,
-                                           'targets', 'role1.json'))
+                                           'role1.json'))
     keyids = []
     for signature in role1_signable['signatures']:
       keyids.append(signature['keyid'])
@@ -855,20 +855,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Extract the target files specified by the delegated role, 'role1.json',
     # as available on the server-side version of the role. 
     role1_filepath = os.path.join(self.repository_directory, 'metadata',
-                                    'targets', 'role1.json')
+                                  'role1.json')
     role1_signable = tuf.util.load_json_file(role1_filepath)
     expected_targets = role1_signable['signed']['targets']
 
 
     # Test: normal case.
-    targets_list = self.repository_updater.targets_of_role('targets/role1')
+    targets_list = self.repository_updater.targets_of_role('role1')
 
     # Verify that the expected role files were downloaded and installed.
     os.path.exists(os.path.join(self.client_metadata_current, 'targets.json'))
     os.path.exists(os.path.join(self.client_metadata_current, 'targets',
-                                'role1.json'))
+                   'role1.json'))
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
-    self.assertTrue('targets/role1' in self.repository_updater.metadata['current'])
+    self.assertTrue('role1' in self.repository_updater.metadata['current'])
 
     #  Verify that list of targets was returned and that it contains valid
     # target files.

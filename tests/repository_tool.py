@@ -233,13 +233,14 @@ class Repository(object):
     # Write the metadata files of all the delegated roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
     for delegated_rolename in tuf.roledb.get_dirty_roles():
+      
       # Ignore top-level roles, they will be generated later on in this method. 
       if delegated_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
         continue
       
       delegated_filename = os.path.join(self._metadata_directory,
                                         delegated_rolename + METADATA_EXTENSION)
-  
+   
       repo_lib._generate_and_write_metadata(delegated_rolename,
                                             delegated_filename,
                                             write_partial,
@@ -2744,8 +2745,8 @@ def load_repository(repository_directory):
                                                                       filenames)
  
   # Load delegated targets metadata.
-  # Walk the 'targets/' directory and generate the fileinfo of all the files
-  # listed.  This information is stored in the 'meta' field of the snapshot
+  # Extract the fileinfo of all the role files found in the metadata directory.
+  # This information is stored in the 'meta' field of the snapshot
   # metadata object.
   targets_objects = {}
   loaded_metadata = []
@@ -2763,8 +2764,7 @@ def load_repository(repository_directory):
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
 
         # Strip the version number if 'consistent_snapshot' is True.
-        # Example:  'targets/unclaimed/10.django.json' -->
-        # 'targets/unclaimed/django.json'
+        # Example:  '10.django.json' --> 'django.json'
         metadata_name, version_number_junk = \
           repo_lib._strip_consistent_snapshot_version_number(metadata_name,
                                                      consistent_snapshot)
@@ -2792,8 +2792,8 @@ def load_repository(repository_directory):
         
         metadata_object = signable['signed']
      
-        # Extract the metadata attributes 'metadata_name' and update its
-        # corresponding roleinfo.
+        # Extract the metadata attributes of 'metadata_name' and update its
+        # corresponding roleinfo.  
         roleinfo = tuf.roledb.get_roleinfo(metadata_name)
         roleinfo['signatures'].extend(signable['signatures'])
         roleinfo['version'] = metadata_object['version']

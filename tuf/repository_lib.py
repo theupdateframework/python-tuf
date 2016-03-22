@@ -131,14 +131,6 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
                                  ROOT_EXPIRES_WARN_SECONDS)
  
-  # Check for the Targets role, including delegated roles.
-  elif rolename.startswith('targets'):
-    metadata = generate_targets_metadata(targets_directory,
-                                         roleinfo['paths'],
-                                         roleinfo['version'],
-                                         roleinfo['expires'],
-                                         roleinfo['delegations'],
-                                         consistent_snapshot)
 
   
   elif rolename == 'snapshot':
@@ -177,7 +169,6 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['expires'],
                                          roleinfo['delegations'],
                                          consistent_snapshot)
-
   
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)

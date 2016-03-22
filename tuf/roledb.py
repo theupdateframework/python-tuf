@@ -744,6 +744,7 @@ def clear_roledb():
   """
 
   _roledb_dict.clear()
+  _dirty_roles[:] = []
 
 
 
