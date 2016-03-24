@@ -450,7 +450,7 @@ Enter a password for the encrypted RSA key:
 # Create a delegated role that will be revoked in the next step.
 >>> repository.targets('unclaimed').delegate("flask", [public_unclaimed_key], [])
 
-# Revoke "targets/unclaimed/flask" and write the metadata of all remaining roles.
+# Revoke "flask" and write the metadata of all remaining roles.
 >>> repository.targets('unclaimed').revoke("flask")
 >>> repository.write()
 ```
@@ -460,14 +460,14 @@ Enter a password for the encrypted RSA key:
 In summary, the five steps a repository maintainer follows to create a basic TUF
 repository are:
 
-1.  Generate repository directory that contains TUF metadata and the target files.
+1.  Generate a repository directory that contains TUF metadata and the target files.
 2.  Create top-level roles (`root.json`, `snapshot.json`, `targets.json`, and `timestamp.json`.) 
 3.  Add target files to the `targets` role.
 4.  Optionally, create delegated roles to distribute target files.
 5.  Write the changes.
 
 The repository tool saves repository changes to a `metadata.staged` directory.
-Repository maintainers may push the final changes to the "live" repository by
+Repository maintainers may push final changes to the "live" repository by
 copying the staged directory to its destination. 
 ```Bash
 # Copy the staged metadata directory changes to the live repository.
@@ -486,13 +486,15 @@ is availabe to integrators that rather not deal with the answers to these
 questions.
 
 A large number of target files may be distributed to multiple hashed bins with
-`delegate_hashed_bins()`.  The metadata files of delegated roles will be nearly equal in size
-(i.e., target file paths are uniformly distributed by calculating the target filepath's
-digest and determining which bin it should reside in.)  The updater client will use
-"lazy bin walk" to find a target file's hashed bin destination.  This method is intended
-for repositories with a large number of target files, a way of easily distributing and
-managing the metadata that lists the targets, and minimizing the number of metadata files
-(and size) downloaded by the client.
+`delegate_hashed_bins()`.  The metadata files of delegated roles will be nearly
+equal in size (i.e., target file paths are uniformly distributed by calculating
+the target filepath's digest and determining which bin it should reside in.)
+The updater client will use "lazy bin walk" (visit and download the minimum
+metadata required to find a target) to find a target file's hashed bin
+destination.  This method is intended for repositories with a large number of
+target files, a way of easily distributing and managing the metadata that lists
+the targets, and minimizing the number of metadata files (and size) downloaded
+by the client.
 
 The `delegate_hashed_bins()` method has the following form:
 ```Python
@@ -506,11 +508,11 @@ restricted paths for some role is provided next.
 # Get a list of target paths for the hashed bins.
 >>> targets = \
   repository.get_filepaths_in_directory('/path/to/repository/targets/django', recursive_walk=True)
->>> repository.targets('unclaimed')('django').delegate_hashed_bins(targets, [public_unclaimed_key], 32)
+>>> repository.targets('django').delegate_hashed_bins(targets, [public_unclaimed_key], 32)
 
-# delegated_hashed_bins() only assigns the public key(s) of the hashed bins, so the private keys may
-# be manually loaded as follows:
->>> for delegation in repository.targets('unclaimed')('django').delegations:
+# delegated_hashed_bins() only assigns the public key(s) of the hashed bins, so
+# the private keys may be manually loaded as follows:
+>>> for delegation in repository.targets('django').delegations:
 ...   delegation.load_signing_key(private_unclaimed_key)
 
 # Delegated roles can be restricted to particular paths with add_restricted_paths().
@@ -526,13 +528,14 @@ by multiple maintainers and software authors uploading their packages, increasin
 the likelihood that a client downloading version X of a release unexpectedly
 requests the target files of a version Y just released.
 
-To guarantee consistency of metadata and target files, a repository may optionally
-support multiple versions of `snapshot.json` simultaneously, where a client with
-version 1 of `snapshot.json` can download `target_file.zip` and another client with
-version 2 of `snapshot.json` can also download a different `target_file.zip` (same file
-name, but different file digest.)  If the `consistent_snapshot` parameter of write() is `True`,
-metadata and target file names on the file system have their digests prepended (note: target file
-names specified in metadata do not have digests included in their names.)
+To guarantee consistency of metadata and target files, a repository may
+optionally support multiple versions of `snapshot.json` simultaneously, where a
+client with version 1 of `snapshot.json` can download `target_file.zip` and
+another client with version 2 of `snapshot.json` can also download a different
+`target_file.zip` (same file name, but different file digest.)  If the
+`consistent_snapshot` parameter of write() is `True`, metadata and target file
+names on the file system have their digests prepended (note: target file names
+specified in metadata do not contain digests in their names.)
 
 The repository maintainer is responsible for the duration of multiple versions
 of metadata and target files available on a repository.  Generating consistent
