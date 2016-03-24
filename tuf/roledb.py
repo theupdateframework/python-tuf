@@ -754,8 +754,8 @@ def _check_rolename(rolename):
   """
   Raise tuf.FormatError if 'rolename' does not match
   'tuf.formats.ROLENAME_SCHEMA', tuf.UnknownRoleError if 'rolename' is not
-  found in the role database, or tuf.InvalidNameError if 'rolename' is
-  not formatted correctly.
+  found in the role database, or tuf.InvalidNameError if 'rolename' is not
+  formatted correctly.
   """
   
   # Does 'rolename' have the correct object format?
