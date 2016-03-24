@@ -2810,11 +2810,10 @@ def load_repository(repository_directory):
     tuf.roledb.update_roleinfo(metadata_name, roleinfo)
     loaded_metadata.append(metadata_name)
 
-    # Generate the Targets objects of the delegated roles of
-    # 'metadata_name' and update the parent role Targets object.
+    # Generate the Targets objects of the delegated roles of 'metadata_name'
+    # and add it to the top-level 'targets' object.
     new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
-    targets_object = \
-      targets_objects[tuf.roledb.get_parent_rolename(metadata_name)]
+    targets_object = targets_objects['targets']
     targets_objects[metadata_name] = new_targets_object
     
     targets_object._delegated_roles[(os.path.basename(metadata_name))] = \
@@ -2836,7 +2835,7 @@ def load_repository(repository_directory):
         pass
    
     # Add the delegated role's initial roleinfo, to be fully populated
-    # when its metadata file is next loaded in the os.walk() iteration.
+    # when its metadata file is next loaded in one of the next iterations.
     for role in metadata_object['delegations']['roles']:
       rolename = role['name'] 
       roleinfo = {'name': role['name'], 'keyids': role['keyids'],
