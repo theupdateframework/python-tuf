@@ -2550,8 +2550,7 @@ class Targets(Metadata):
     # 'self._delegated_roles' is keyed by relative rolenames, so update
     # 'hashed_bin_name'.
     if hashed_bin_name is not None:
-      hashed_bin_name = hashed_bin_name[len(self.rolename) + 1:]
-
+      
       # 'method_name' should be one of the supported methods of the Targets()
       # class.
       getattr(self._delegated_roles[hashed_bin_name], method_name)(target_filepath)
