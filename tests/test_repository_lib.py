@@ -804,14 +804,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.util.ensure_parent_dir(obsolete_metadata)
     shutil.copyfile(targets_metadata, obsolete_metadata)
     
-    # Test for an invalid, or unsupported, rolename. 
-    roleinfo = {'keyids': ['123'], 'threshold': 1} 
-    tuf.roledb.add_role('bad_rolename', roleinfo) 
-    self.assertRaises(tuf.Error,
-                      tuf.repository_lib._generate_and_write_metadata,
-                      'bad_rolename', 'bad_rolename.json', False,
-                      targets_directory, metadata_directory)
-
     # Verify that obsolete metadata (a metadata file exists on disk, but the
     # role is unavailable in 'tuf.roledb').  First add the obsolete
     # role to 'tuf.roledb' so that its metadata file can be written to disk.

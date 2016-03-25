@@ -1595,10 +1595,10 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
                                consistent_snapshot=False):
   """
   <Purpose>
-    Create the snapshot metadata.  The minimum metadata must exist
-    (i.e., 'root.json' and 'targets.json'). This will also look through
-    the 'targets/' directory in 'metadata_directory' and the resulting
-    snapshot file will list all the delegated roles.
+    Create the snapshot metadata.  The minimum metadata must exist (i.e.,
+    'root.json' and 'targets.json'). This function searches
+    'metadata_directory' and the resulting snapshot file will list all the
+    delegated roles found there.
 
   <Arguments>
     metadata_directory:
@@ -1653,45 +1653,36 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
   metadata_directory = _check_directory(metadata_directory)
 
-  # Retrieve the versioninfo of 'root.json' and 'targets.json'.  The
-  # versioninfo contains the version number of these roles.
+  # Retrieve the versioninfo of 'root.json' and 'targets.json'.  'versiondict'
+  # shall contain the version number of all roles available on the repository.
   versiondict = {}
   versiondict[ROOT_FILENAME] = get_metadata_versioninfo(root_filename)
   versiondict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename)
 
   # We previously also stored the compressed versions of roles in
   # snapshot.json, however, this is no longer needed as their hashes and
-  # lengths are no longer used and their version numbers match the uncompressed
-  # role files. 
+  # lengths are not used and their version numbers match the uncompressed role
+  # files. 
 
-  # Walk the 'targets/' directory and generate the versioninfo of all the role
-  # files found.  This information is stored in the 'meta' field of the
-  # snapshot metadata object.
-  targets_metadata = os.path.join(metadata_directory, 'targets')
-  if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
-    for directory_path, junk_directories, files in os.walk(targets_metadata):
-      
-      # 'files' here is a list of file names.
-      for basename in files:
-        metadata_path = os.path.join(directory_path, basename)
-        metadata_name = \
-          metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+  # Search the metadata directory and generate the versioninfo of all the role
+  # files found there.  This information is stored in the 'meta' field of
+  # 'snapshot.json'.
+  
+  for metadata_filename in os.listdir(metadata_directory):
+    # Strip the version number if 'consistent_snapshot' is True.
+    # Example:  '10.django.json'  --> 'django.json'
+    metadata_name, version_number_junk = \
+      _strip_consistent_snapshot_version_number(metadata_filename, consistent_snapshot)
+    
+    # All delegated roles are added to the snapshot file.
+    for metadata_extension in METADATA_EXTENSIONS: 
+      if metadata_filename.endswith(metadata_extension):
+        rolename = metadata_filename[:-len(metadata_extension)]
         
-        # Strip the version number if 'consistent_snapshot' is True.
-        # Example:  'targets/unclaimed/10.django.json'  -->
-        # 'targets/unclaimed/django.json'
-        metadata_name, version_number_junk = \
-          _strip_consistent_snapshot_version_number(metadata_name, consistent_snapshot)
-        
-        # All delegated roles are added to the snapshot file.
-        for metadata_extension in METADATA_EXTENSIONS: 
-          if metadata_name.endswith(metadata_extension):
-            rolename = metadata_name[:-len(metadata_extension)]
-            
-            # Obsolete role files may still be found.  Ensure only roles loaded
-            # in the roledb are included in the Snapshot metadata.
-            if tuf.roledb.role_exists(rolename):
-              versiondict[metadata_name] = get_metadata_versioninfo(rolename)
+        # Obsolete role files may still be found.  Ensure only roles loaded
+        # in the roledb are included in the Snapshot metadata.
+        if tuf.roledb.role_exists(rolename):
+          versiondict[metadata_name] = get_metadata_versioninfo(rolename)
 
   # Generate the Snapshot metadata object.
   snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,

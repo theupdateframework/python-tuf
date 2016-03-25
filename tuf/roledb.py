@@ -715,7 +715,9 @@ def get_delegated_rolenames(rolename):
 
   roleinfo = get_roleinfo(rolename)
   delegated_roles = []
-  
+ 
+  print('getting delegated rolenames../n')
+  print(repr(roleinfo['delegations']['roles']))
   for delegated_role in roleinfo['delegations']['roles']:
     delegated_roles.append(delegated_role['name'])
 

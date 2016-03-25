@@ -892,7 +892,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Remove the metadata of the delegated roles.
     os.remove(os.path.join(self.client_metadata_current, 'targets.json'))
-    os.remove(os.path.join(self.client_metadata_current, 'targets', 'role1.json'))
+    os.remove(os.path.join(self.client_metadata_current, 'role1.json'))
   
     # Test: normal case.
     metadata_list = \
@@ -1132,7 +1132,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     all_targets = self.repository_updater.all_targets()
     
     # Assumed the pre-generated repository specifies two target files in
-    # 'targets.json' and one delegated target file in 'targets/role1.json'. 
+    # 'targets.json' and one delegated target file in 'role1.json'.
+    print('updated_targets: ' + repr(updated_targets))
     self.assertEqual(len(updated_targets), 3)
     
     # Test: download one of the targets.
