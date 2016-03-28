@@ -2771,7 +2771,8 @@ def load_repository(repository_directory):
     else:
       continue
    
-    # Skip top-level roles, only interested in delegated roles. 
+    # Skip top-level roles, only interested in delegated roles now that the
+    # top-level roles have already been loaded.
     if metadata_name in ['root', 'snapshot', 'targets', 'timestamp']:
       continue
    
@@ -2810,7 +2811,7 @@ def load_repository(repository_directory):
     if repo_lib._metadata_is_partially_loaded(metadata_name, signable, roleinfo):
       roleinfo['partial_loaded'] = True
     
-    tuf.roledb.update_roleinfo(metadata_name, roleinfo)
+    tuf.roledb.update_roleinfo(metadata_name, roleinfo, mark_role_as_dirty=False)
     loaded_metadata.append(metadata_name)
 
     # Generate the Targets objects of the delegated roles of 'metadata_name'
@@ -2849,7 +2850,7 @@ def load_repository(repository_directory):
                   'partial_loaded': False,
                   'delegations': {'keys': {},
                                   'roles': []}}
-      tuf.roledb.add_role(rolename, roleinfo)
+      tuf.roledb.add_role(rolename, roleinfo, mark_role_as_dirty=False)
 
   return repository
 

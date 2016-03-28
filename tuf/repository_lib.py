@@ -578,7 +578,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
                                  ROOT_EXPIRES_WARN_SECONDS)
     
-    tuf.roledb.update_roleinfo('root', roleinfo)
+    tuf.roledb.update_roleinfo('root', roleinfo, mark_role_as_dirty=False)
 
     # Ensure the 'consistent_snapshot' field is extracted.
     consistent_snapshot = root_metadata['consistent_snapshot']
@@ -608,7 +608,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
     
-    tuf.roledb.update_roleinfo('timestamp', roleinfo)
+    tuf.roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False)
   
   else:
     pass
@@ -640,7 +640,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
                                  SNAPSHOT_EXPIRES_WARN_SECONDS)
     
-    tuf.roledb.update_roleinfo('snapshot', roleinfo)
+    tuf.roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False)
   
   else:
     pass 
@@ -676,7 +676,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
                                  TARGETS_EXPIRES_WARN_SECONDS)
    
-    tuf.roledb.update_roleinfo('targets', roleinfo)
+    tuf.roledb.update_roleinfo('targets', roleinfo, mark_role_as_dirty=False)
 
     # Add the keys specified in the delegations field of the Targets role.
     for key_metadata in six.itervalues(targets_metadata['delegations']['keys']):

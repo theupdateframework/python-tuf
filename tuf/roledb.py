@@ -155,7 +155,7 @@ def add_role(rolename, roleinfo, require_parent=True):
     require_parent:
       A boolean indicating whether to check for a delegating role.  add_role()
       will raise an exception if this parent role does not exist.
-
+  
   <Exceptions>
     tuf.FormatError, if 'rolename' or 'roleinfo' does not have the correct
     object format.
@@ -203,7 +203,7 @@ def add_role(rolename, roleinfo, require_parent=True):
 
 
 
-def update_roleinfo(rolename, roleinfo):
+def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True):
   """
   <Purpose>
     Modify 'rolename's _roledb_dict entry to include the new 'roleinfo'.
@@ -229,6 +229,14 @@ def update_roleinfo(rolename, roleinfo):
 
       The 'target' role has an additional 'paths' key.  Its value is a list of
       strings representing the path of the target file(s).
+    
+    mark_role_as_dirty:
+      A boolean indicating whether the updated 'roleinfo' for 'rolename' should
+      be marked as dirty.  The caller might not want to mark 'rolename' as
+      dirty if it is loading metadata from disk and only wants to populate
+      roledb.py.  Likewise, add_role() would support a similar boolean to allow
+      the repository tools to successfully load roles via load_repository()
+      without needing to mark these roles as dirty (default behavior).
 
   <Exceptions>
     tuf.FormatError, if 'rolename' or 'roleinfo' does not have the correct
@@ -263,7 +271,9 @@ def update_roleinfo(rolename, roleinfo):
   # the latest 'roleinfo' is available to other modules, and the repository
   # tools know which roles should be saved to disk.
   _roledb_dict[rolename] = copy.deepcopy(roleinfo)
-  _dirty_roles.add(rolename)
+  
+  if mark_role_as_dirty: 
+    _dirty_roles.add(rolename)
 
 
 
@@ -272,9 +282,9 @@ def update_roleinfo(rolename, roleinfo):
 def get_dirty_roles():
   """
   <Purpose>
-    A function that returns a list of the role have modified.  Tools that
-    write metadata to disk can use the list returned to determine which roles
-    should be written.
+    A function that returns a list of the roles that have been modified.  Tools
+    that write metadata to disk can use the list returned to determine which
+    roles should be written.
 
   <Arguments>
     None.

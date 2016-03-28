@@ -403,7 +403,7 @@ class TestRoledb(unittest.TestCase):
                       tuf.roledb.create_roledb_from_root_metadata, root_metadata)
     # Remove the invalid role and re-generate 'root_metadata' to test for the
     # other two roles.
-    del roledict['targets/role1']
+    del roledict['role1']
     root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
