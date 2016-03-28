@@ -296,18 +296,41 @@ class TestRoledb(unittest.TestCase):
 
   def test_get_delegated_rolenames(self):
     # Test conditions where the arguments are valid. 
-    rolename = 'a'
-    rolename2 = 'a/b'
-    rolename3 = 'a/b/c'
-    rolename4 = 'a/b/c/d'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
+    rolename = 'unclaimed'
+    rolename2 = 'django'
+    rolename3 = 'release'
+    rolename4 = 'tuf'
+   
+    # unclaimed's roleinfo.
+    roleinfo = {'keyids': ['123'], 'threshold': 1, 'delegations':
+      {'roles': [{'name': 'django', 'keyids': ['123'], 'threshold': 1}],
+      'keys': {'123': {'keytype': 'rsa', 'keyval': {'public': '123'}},
+      }}}
+    
+    # django's roleinfo.
+    roleinfo2 = {'keyids': ['123'], 'threshold': 1, 'delegations':
+      {'roles': [{'name': 'release', 'keyids': ['123'], 'threshold': 1}],
+      'keys': {'123': {'keytype': 'rsa', 'keyval': {'public': '123'}},
+      }}}
+
+    # release's roleinfo.
+    roleinfo3 = {'keyids': ['123'], 'threshold': 1, 'delegations':
+      {'roles': [{'name': 'tuf', 'keyids': ['123'], 'threshold': 1}],
+      'keys': {'123': {'keytype': 'rsa', 'keyval': {'public': '123'}},
+      }}}
+
+    # tuf's roleinfo.
+    roleinfo4 = {'keyids': ['123'], 'threshold': 1, 'delegations':
+      {'roles': [],
+      'keys': {}}}
+
     self.assertRaises(tuf.UnknownRoleError, tuf.roledb.get_delegated_rolenames,
                       rolename)
     tuf.roledb.add_role(rolename, roleinfo)
-    tuf.roledb.add_role(rolename2, roleinfo)
-    tuf.roledb.add_role(rolename3, roleinfo)
-    tuf.roledb.add_role(rolename4, roleinfo)
-    self.assertEqual(set(['a/b/c', 'a/b/c/d']),
+    tuf.roledb.add_role(rolename2, roleinfo2)
+    tuf.roledb.add_role(rolename3, roleinfo3)
+    tuf.roledb.add_role(rolename4, roleinfo4)
+    self.assertEqual(set(['release']),
                      set(tuf.roledb.get_delegated_rolenames(rolename2)))
   
     # Test conditions where the arguments are improperly formatted,

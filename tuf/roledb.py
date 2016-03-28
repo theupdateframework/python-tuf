@@ -57,9 +57,9 @@ logger = logging.getLogger('tuf.roledb')
 # The role database.
 _roledb_dict = {}
 
-# A list of roles that have been modified (e.g., via update_roleinfo()) and
+# A set of roles that have been modified (e.g., via update_roleinfo()) and
 # should be written to disk.
-_dirty_roles = []
+_dirty_roles = set() 
 
 
 def create_roledb_from_root_metadata(root_metadata):
@@ -207,7 +207,7 @@ def update_roleinfo(rolename, roleinfo):
   """
   <Purpose>
     Modify 'rolename's _roledb_dict entry to include the new 'roleinfo'.
-    'rolename' is also added to the _dirty_roles list.  Roles added to
+    'rolename' is also added to the _dirty_roles set.  Roles added to
     '_dirty_roles' are marked as modified and can be used by the repository
     tools to determine which roles need to be written to disk.
 
@@ -263,7 +263,7 @@ def update_roleinfo(rolename, roleinfo):
   # the latest 'roleinfo' is available to other modules, and the repository
   # tools know which roles should be saved to disk.
   _roledb_dict[rolename] = copy.deepcopy(roleinfo)
-  _dirty_roles.append(rolename)
+  _dirty_roles.add(rolename)
 
 
 
@@ -716,8 +716,6 @@ def get_delegated_rolenames(rolename):
   roleinfo = get_roleinfo(rolename)
   delegated_roles = []
  
-  print('getting delegated rolenames../n')
-  print(repr(roleinfo['delegations']['roles']))
   for delegated_role in roleinfo['delegations']['roles']:
     delegated_roles.append(delegated_role['name'])
 
@@ -746,7 +744,7 @@ def clear_roledb():
   """
 
   _roledb_dict.clear()
-  _dirty_roles[:] = []
+  _dirty_roles.clear()
 
 
 
