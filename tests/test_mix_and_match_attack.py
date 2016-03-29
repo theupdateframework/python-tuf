@@ -183,8 +183,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     # the repository after modifying a target file of 'role1.json'.
     # Backup 'role1.json' (the delegated role to be updated, and then inserted
     # again for the mix-and-match attack.)
-    role1_path = os.path.join(self.repository_directory, 'metadata', 'targets',
-                                  'role1.json')
+    role1_path = os.path.join(self.repository_directory, 'metadata', 'role1.json')
     backup_role1 = os.path.join(self.repository_directory, 'role1.json.backup') 
     shutil.copy(role1_path, backup_role1)
 
@@ -237,14 +236,14 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
 
     try:
-      self.repository_updater.targets_of_role('targets/role1')
+      self.repository_updater.targets_of_role('role1')
    
     # Verify that the specific 'tuf.BadVersionNumberError' exception is raised
     # by each mirror.
     except tuf.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-        url_file = os.path.join(url_prefix, 'metadata', 'targets', 'role1.json')
+        url_file = os.path.join(url_prefix, 'metadata', 'role1.json')
        
         # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file, mirror_url)
