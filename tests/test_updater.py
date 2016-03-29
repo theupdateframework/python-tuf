@@ -1133,7 +1133,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Assumed the pre-generated repository specifies two target files in
     # 'targets.json' and one delegated target file in 'role1.json'.
-    print('updated_targets: ' + repr(updated_targets))
     self.assertEqual(len(updated_targets), 3)
     
     # Test: download one of the targets.

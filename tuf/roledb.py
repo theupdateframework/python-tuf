@@ -253,10 +253,11 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True):
     None.
   """
 
-  # Does 'rolename' have the correct object format?
-  # This check will ensure 'rolename' has the appropriate number of objects 
+  # Does the arguments have the correct object format?
+  # This check will ensure arguments have the appropriate number of objects 
   # and object types, and that all dict keys are properly named.
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
 
   # Does 'roleinfo' have the correct object format?
   tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)

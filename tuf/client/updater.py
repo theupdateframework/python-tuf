@@ -2032,10 +2032,8 @@ class Updater(object):
     # Fetch the targets for the 'targets' role.
     all_targets = self._targets_of_role('targets', skip_refresh=True)
 
-    print('entering fetch of delegated roles...\n')
     # Fetch the targets of the delegated roles. 
     for delegated_role in sorted(tuf.roledb.get_delegated_rolenames('targets')):
-      print('delegated_role found in targets: ' + repr(delegated_role)) 
       all_targets = self._targets_of_role(delegated_role, all_targets,
                                           skip_refresh=True)
     

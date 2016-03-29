@@ -216,7 +216,6 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     if rolename == 'root' or rolename == 'timestamp':
       write_metadata_file(signable, metadata_filename, metadata['version'],
                           compression_algorithms, consistent_snapshot=False)
-    
   
   # 'signable' contains an invalid threshold of signatures. 
   else:
@@ -591,9 +590,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
   # always written. 
   if os.path.exists(timestamp_filename):
     signable = tuf.util.load_json_file(timestamp_filename)
-    timestamp_metadata = signable['signed']  
+    timestamp_metadata = signable['signed']
     for signature in signable['signatures']:
-      repository.timestamp.add_signature(signature)
+      repository.timestamp.add_signature(signature, mark_role_as_dirty=False)
 
     # Load Timestamp's roleinfo and update 'tuf.roledb'.
     roleinfo = tuf.roledb.get_roleinfo('timestamp')
@@ -607,9 +606,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
     
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
-    
+   
     tuf.roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False)
-  
+    
   else:
     pass
   
@@ -625,7 +624,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     tuf.formats.check_signable_object_format(signable)
     snapshot_metadata = signable['signed']  
     for signature in signable['signatures']:
-      repository.snapshot.add_signature(signature)
+      repository.snapshot.add_signature(signature, mark_role_as_dirty=False)
 
     # Load Snapshot's roleinfo and update 'tuf.roledb'.
     roleinfo = tuf.roledb.get_roleinfo('snapshot')
@@ -658,7 +657,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     targets_metadata = signable['signed']
 
     for signature in signable['signatures']:
-      repository.targets.add_signature(signature)
+      repository.targets.add_signature(signature, mark_role_as_dirty=False)
    
     # Update 'targets.json' in 'tuf.roledb.py' 
     roleinfo = tuf.roledb.get_roleinfo('targets')
@@ -1679,9 +1678,12 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       if metadata_filename.endswith(metadata_extension):
         rolename = metadata_filename[:-len(metadata_extension)]
         
+
         # Obsolete role files may still be found.  Ensure only roles loaded
-        # in the roledb are included in the Snapshot metadata.
-        if tuf.roledb.role_exists(rolename):
+        # in the roledb are included in the Snapshot metadata.  Since the
+        # snapshot and timestamp roles are not listed in snapshot.json, do not
+        # list these roles found in the metadata directory.
+        if tuf.roledb.role_exists(rolename) and rolename not in ['snapshot', 'timestamp']:
           versiondict[metadata_name] = get_metadata_versioninfo(rolename)
 
   # Generate the Snapshot metadata object.

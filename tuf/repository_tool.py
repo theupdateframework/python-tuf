@@ -232,14 +232,12 @@ class Repository(object):
 
     # Write the metadata files of all the delegated roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
-    print('write called!\n')
     dirty_roles = tuf.roledb.get_dirty_roles()
-    print('dirty roles: ' + repr(dirty_roles))
     for delegated_rolename in tuf.roledb.get_dirty_roles():
+      
       # Ignore top-level roles, they will be generated later on in this method. 
       if delegated_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
         continue
-      print('generating a new role: ' + repr(delegated_rolename))
       
       delegated_filename = os.path.join(self._metadata_directory,
                                         delegated_rolename + METADATA_EXTENSION)
@@ -725,7 +723,7 @@ class Metadata(object):
       
 
 
-  def add_signature(self, signature):
+  def add_signature(self, signature, mark_role_as_dirty=True):
     """
     <Purpose>
       Add a signature to the role.  A role is considered fully signed if it
@@ -741,6 +739,16 @@ class Metadata(object):
       signature:
         The signature to be added to the role, conformant to
         'tuf.formats.SIGNATURE_SCHEMA'.
+
+      mark_role_as_dirty:
+        A boolean indicating whether the updated 'roleinfo' for 'rolename'
+        should be marked as dirty.  The caller might not want to mark
+        'rolename' as dirty if it is loading metadata from disk and only wants
+        to populate roledb.py.  Likewise, add_role() would support a similar
+        boolean to allow the repository tools to successfully load roles via
+        load_repository() without needing to mark these roles as dirty (default
+        behavior).
+
 
     <Exceptions>
       tuf.FormatError, if the 'signature' argument is improperly formatted.
@@ -758,7 +766,8 @@ class Metadata(object):
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
-  
+    tuf.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty) 
+
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     
     # Ensure the roleinfo contains a 'signatures' field.
@@ -769,7 +778,7 @@ class Metadata(object):
     # added.
     if signature not in roleinfo['signatures']:
       roleinfo['signatures'].append(signature)
-      tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+      tuf.roledb.update_roleinfo(self.rolename, roleinfo, mark_role_as_dirty)
 
 
 
@@ -2850,7 +2859,7 @@ def load_repository(repository_directory):
                   'partial_loaded': False,
                   'delegations': {'keys': {},
                                   'roles': []}}
-      tuf.roledb.add_role(rolename, roleinfo, mark_role_as_dirty=False)
+      tuf.roledb.add_role(rolename, roleinfo) 
 
   return repository
 
