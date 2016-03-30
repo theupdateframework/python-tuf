@@ -387,7 +387,7 @@ class Updater(object):
 
       tuf.Error:
         If there was an error importing a delegated role of 'metadata_role'
-        or the metadata set is not one currently supported.
+        or the 'metadata_set' is not one currently supported.
     
     <Side Effects>
       If the metadata is loaded successfully, it is saved to the metadata
@@ -498,8 +498,8 @@ class Updater(object):
         If the signing key of a delegated role cannot not be loaded.
 
     <Side Effects>
-      The key and role database is modified to include the newly
-      loaded roles delegated by 'parent_role'.
+      The key and role databases are modified to include the newly loaded roles
+      delegated by 'parent_role'.
 
     <Returns>
       None.
@@ -510,14 +510,13 @@ class Updater(object):
     if 'delegations' not in current_parent_metadata:
       return
 
-    # This could be quite slow with a huge number of delegations.
+    # This could be quite slow with a large number of delegations.
     keys_info = current_parent_metadata['delegations'].get('keys', {})
     roles_info = current_parent_metadata['delegations'].get('roles', [])
 
     logger.debug('Adding roles delegated from ' + repr(parent_role) + '.')
    
-    # Iterate through the keys of the delegated roles of 'parent_role'
-    # and load them.
+    # Iterate the keys of the delegated roles of 'parent_role' and load them.
     for keyid, keyinfo in six.iteritems(keys_info):
       if keyinfo['keytype'] in ['rsa', 'ed25519']:
         key = tuf.keys.format_metadata_to_key(keyinfo)
@@ -1698,14 +1697,11 @@ class Updater(object):
       raise
     
     else:
-      # We need to remove delegated roles because the delegated roles may not
-      # be trusted anymore.
-      if metadata_role == 'targets' or metadata_role.startswith('targets/'):
-        logger.debug('Removing delegated roles of ' + repr(metadata_role) + '.')
-        
-        # TODO: Should we also remove the keys of the delegated roles?
-        tuf.roledb.remove_delegated_roles(metadata_role)
-        self._import_delegations(metadata_role)
+      # We need to import the delegated roles of 'metadata_role', since its
+      # list of delegations might have changed from what was previously
+      # loaded..
+      # TODO: Should we remove the keys of the delegated roles?
+      self._import_delegations(metadata_role)
 
 
 
