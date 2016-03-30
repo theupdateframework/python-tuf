@@ -74,11 +74,11 @@ class TestRoledb(unittest.TestCase):
     self.assertEqual(0, len(tuf.roledb._roledb_dict)) 
     rolename = 'targets'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
-    rolename2 = 'targets/role1'
+    rolename2 = 'role1'
     self.assertEqual(None, tuf.roledb.add_role(rolename, roleinfo))
     self.assertEqual(1, len(tuf.roledb._roledb_dict))
     tuf.roledb.clear_roledb()
-    self.assertEqual(None, tuf.roledb.add_role(rolename, roleinfo, True))
+    self.assertEqual(None, tuf.roledb.add_role(rolename, roleinfo))
     self.assertEqual(1, len(tuf.roledb._roledb_dict))
 
     # Test conditions where the arguments are improperly formatted.
@@ -88,19 +88,17 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(tuf.FormatError, tuf.roledb.add_role, rolename, None) 
     self.assertRaises(tuf.FormatError, tuf.roledb.add_role, rolename, 123)
     self.assertRaises(tuf.FormatError, tuf.roledb.add_role, rolename, [''])
-    self.assertRaises(tuf.FormatError, tuf.roledb.add_role,
-                      rolename, roleinfo, 123)
-    self.assertRaises(tuf.FormatError, tuf.roledb.add_role, rolename,
-                      roleinfo, None)
 
     # Test condition where the role already exists in the role database.
     self.assertRaises(tuf.RoleAlreadyExistsError, tuf.roledb.add_role,
                       rolename, roleinfo)
 
+    """
     # Test condition where the parent role does not exist.
     tuf.roledb.clear_roledb()
     self.assertRaises(tuf.Error, tuf.roledb.add_role, rolename2, roleinfo)
-
+    """
+    
     # Test conditions for invalid rolenames.
     self.assertRaises(tuf.InvalidNameError, tuf.roledb.add_role, ' badrole ',
                       roleinfo)
@@ -113,11 +111,13 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid. 
     rolename = 'targets'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
-    rolename2 = 'targets/role1'
-    rolename3 = 'targets/role1/role2'
+    rolename2 = 'role1'
+    rolename3 = 'role2'
+    
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo)
     tuf.roledb.add_role(rolename3, roleinfo)
+    
     self.assertEqual(rolename, tuf.roledb.get_parent_rolename(rolename2))
     self.assertEqual(rolename2, tuf.roledb.get_parent_rolename(rolename3))
     self.assertEqual('', tuf.roledb.get_parent_rolename(rolename))
@@ -132,7 +132,7 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid. 
     rolename = 'targets'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
-    rolename2 = 'targets/role1'
+    rolename2 = 'role1'
     self.assertEqual(False, tuf.roledb.role_exists(rolename))
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo)
@@ -154,10 +154,10 @@ class TestRoledb(unittest.TestCase):
   def test_get_all_parent_roles(self):
     # Test conditions where the arguments are valid. 
     rolename = 'targets'
-    rolename2 = 'targets/role1'
-    rolename3 = 'targets/role1/role2'
+    rolename2 = 'role1'
+    rolename3 = 'role2'
     rolename4 = 'root'
-    rolename5 = 'root/targets'
+    rolename5 = 'targets2'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     tuf.roledb.add_role(rolename, roleinfo)
     self.assertEqual(set(['targets']),
@@ -167,7 +167,7 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.add_role(rolename4, roleinfo)
     tuf.roledb.add_role(rolename5, roleinfo)
     
-    self.assertEqual(set(['targets', 'targets/role1']),
+    self.assertEqual(set(['targets', 'role1']),
                      set(tuf.roledb.get_all_parent_roles(rolename3)))
     self.assertEqual(set(['root']),
                      set(tuf.roledb.get_all_parent_roles(rolename5)))
@@ -258,7 +258,7 @@ class TestRoledb(unittest.TestCase):
   def test_get_role_threshold(self):
     # Test conditions where the arguments are valid. 
     rolename = 'targets'
-    rolename2 = 'targets/role1'
+    rolename2 = 'role1'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
     self.assertRaises(tuf.UnknownRoleError, tuf.roledb.get_role_threshold, rolename)
@@ -277,7 +277,7 @@ class TestRoledb(unittest.TestCase):
   def test_get_role_paths(self):
     # Test conditions where the arguments are valid. 
     rolename = 'targets'
-    rolename2 = 'targets/role1'
+    rolename2 = 'role1'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     paths = ['a/b', 'c/d']
     roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2, 'paths': paths}
@@ -303,35 +303,46 @@ class TestRoledb(unittest.TestCase):
    
     # unclaimed's roleinfo.
     roleinfo = {'keyids': ['123'], 'threshold': 1, 'delegations':
-      {'roles': [{'name': 'django', 'keyids': ['123'], 'threshold': 1}],
-      'keys': {'123': {'keytype': 'rsa', 'keyval': {'public': '123'}},
+      {'roles': [{'name': 'django', 'keyids': ['456'], 'threshold': 1},
+                 {'name': 'tuf', 'keyids': ['888'], 'threshold': 1}],
+      'keys': {'456': {'keytype': 'rsa', 'keyval': {'public': '456'}},
       }}}
     
     # django's roleinfo.
-    roleinfo2 = {'keyids': ['123'], 'threshold': 1, 'delegations':
-      {'roles': [{'name': 'release', 'keyids': ['123'], 'threshold': 1}],
-      'keys': {'123': {'keytype': 'rsa', 'keyval': {'public': '123'}},
+    roleinfo2 = {'keyids': ['456'], 'threshold': 1, 'delegations':
+      {'roles': [{'name': 'release', 'keyids': ['789'], 'threshold': 1}],
+      'keys': {'789': {'keytype': 'rsa', 'keyval': {'public': '789'}},
       }}}
 
     # release's roleinfo.
-    roleinfo3 = {'keyids': ['123'], 'threshold': 1, 'delegations':
-      {'roles': [{'name': 'tuf', 'keyids': ['123'], 'threshold': 1}],
-      'keys': {'123': {'keytype': 'rsa', 'keyval': {'public': '123'}},
-      }}}
+    roleinfo3 = {'keyids': ['789'], 'threshold': 1, 'delegations':
+      {'roles': [],
+      'keys': {}}}
 
     # tuf's roleinfo.
-    roleinfo4 = {'keyids': ['123'], 'threshold': 1, 'delegations':
+    roleinfo4 = {'keyids': ['888'], 'threshold': 1, 'delegations':
       {'roles': [],
       'keys': {}}}
 
     self.assertRaises(tuf.UnknownRoleError, tuf.roledb.get_delegated_rolenames,
                       rolename)
+    
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
     tuf.roledb.add_role(rolename3, roleinfo3)
     tuf.roledb.add_role(rolename4, roleinfo4)
+    
+    self.assertEqual(set(['django', 'tuf']),
+                     set(tuf.roledb.get_delegated_rolenames(rolename)))
+    
     self.assertEqual(set(['release']),
                      set(tuf.roledb.get_delegated_rolenames(rolename2)))
+    
+    self.assertEqual(set([]),
+                     set(tuf.roledb.get_delegated_rolenames(rolename3)))
+    
+    self.assertEqual(set([]),
+                     set(tuf.roledb.get_delegated_rolenames(rolename4)))
   
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
@@ -378,32 +389,17 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(tuf.FormatError,
                       tuf.roledb.create_roledb_from_root_metadata, {'bad': '123'})
 
-    # Test conditions for correctly formatted 'root_metadata' arguments but
-    # containing incorrect role delegations (i.e., a missing parent role).
-    # In these conditions, the roles should not be added to the role database
-    # and a message logged by the logger.
+    # Verify that the expected roles of a Root file are properly loaded.
     tuf.roledb.clear_roledb()
-    
-    # 'roledict' is missing a parent role and also contains duplicate roles.
-    # These invalid roles should not be added to the role database.
     roledict = {'root': {'keyids': [keyid], 'threshold': 1},
-                'targets/role1': {'keyids': [keyid2], 'threshold': 1},
                 'release': {'keyids': [keyid3], 'threshold': 1}}
     version = 8
     
     # Add a third key for 'release'.
     keydict[keyid3] = rsakey3
     
-    root_metadata = tuf.formats.RootFile.make_metadata(version,
-                                                       expires,
-                                                       keydict, roledict,
-                                                       consistent_snapshot,
-                                                       compression_algorithms)
-    self.assertRaises(tuf.Error,
-                      tuf.roledb.create_roledb_from_root_metadata, root_metadata)
-    # Remove the invalid role and re-generate 'root_metadata' to test for the
-    # other two roles.
-    del roledict['role1']
+    # Generate 'root_metadata' to verify that 'release' and 'root' are added
+    # to the role database.
     root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,

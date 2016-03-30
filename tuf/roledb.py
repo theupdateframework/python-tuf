@@ -12,14 +12,14 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Represent a collection of roles and their organization.  The caller may create
-  a collection of roles from those found in the 'root.json' metadata file by
-  calling 'create_roledb_from_rootmeta()', or individually by adding roles with
-  'add_role()'.  There are many supplemental functions included here that yield
-  useful information about the roles contained in the database, such as
-  extracting all the parent rolenames for a specified rolename, deleting all the
-  delegated roles, retrieving role paths, etc.  The Update Framework process
-  maintains a single roledb.
+  Represent a collection of roles and their organization.  The caller may
+  create a collection of roles from those found in the 'root.json' metadata
+  file by calling 'create_roledb_from_root_metadata()', or individually by
+  adding roles with 'add_role()'.  There are many supplemental functions
+  included here that yield useful information about the roles contained in the
+  database, such as extracting all the parent rolenames for a specified
+  rolename, deleting all the delegated roles, retrieving role paths, etc.  The
+  Update Framework process maintains a single roledb.
 
   The role database is a dictionary conformant to 'tuf.formats.ROLEDICT_SCHEMA'
   and has the form:
@@ -114,19 +114,14 @@ def create_roledb_from_root_metadata(root_metadata):
     if rolename.startswith('targets'):
       roleinfo['paths'] = {}
       roleinfo['delegations'] = {'keys': {}, 'roles': []}
-    
-    try:
-      add_role(rolename, roleinfo)
-    # tuf.Error raised if the parent role of 'rolename' does not exist.  
-    except tuf.Error as e:
-      logger.error(e)
-      raise
+  
+    add_role(rolename, roleinfo)
 
 
 
 
 
-def add_role(rolename, roleinfo, require_parent=True):
+def add_role(rolename, roleinfo):
   """
   <Purpose>
     Add to the role database the 'roleinfo' associated with 'rolename'.
@@ -151,10 +146,6 @@ def add_role(rolename, roleinfo, require_parent=True):
       
       The 'target' role has an additional 'paths' key.  Its value is a list of
       strings representing the path of the target file(s).
-
-    require_parent:
-      A boolean indicating whether to check for a delegating role.  add_role()
-      will raise an exception if this parent role does not exist.
   
   <Exceptions>
     tuf.FormatError, if 'rolename' or 'roleinfo' does not have the correct
@@ -179,23 +170,11 @@ def add_role(rolename, roleinfo, require_parent=True):
   # Does 'roleinfo' have the correct object format?
   tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
-  # Does 'require_parent' have the correct format?
-  tuf.formats.BOOLEAN_SCHEMA.check_match(require_parent)
-
   # Raises tuf.InvalidNameError.
   _validate_rolename(rolename)
 
   if rolename in _roledb_dict:
     raise tuf.RoleAlreadyExistsError('Role already exists: ' + rolename)
-
-  # Make sure that the delegating role exists. This should be just a
-  # sanity check and not a security measure.
-  if require_parent and '/' in rolename:
-    # Get parent role.  'a/b/c/d' --> 'a/b/c'. 
-    parent_role = '/'.join(rolename.split('/')[:-1])
-
-    if parent_role not in _roledb_dict:
-      raise tuf.Error('Parent role does not exist: ' + parent_role)
 
   _roledb_dict[rolename] = copy.deepcopy(roleinfo)
 
@@ -439,7 +418,12 @@ def role_exists(rolename):
 def remove_role(rolename):
   """
   <Purpose>
-    Remove 'rolename', including its delegations.
+    Remove 'rolename'.  Delegated roles were previously removed as well,
+    but this step is longer supported since the repository can resemble
+    a graph of delegations.  That is, we shouldn't delete rolename's
+    delegations because another role may have a valid delegation
+    to it, whereas before the only valid delegation to it must be from
+    'rolename' (repository resembles a tree of delegations).
 
   <Arguments>
     rolename:
@@ -454,7 +438,7 @@ def remove_role(rolename):
     tuf.InvalidNameError, if 'rolename' is incorrectly formatted.
 
   <Side Effects>
-    A role, or roles, may be removed from the role database.
+    A role may be removed from the role database.
 
   <Returns>
     None.
@@ -463,53 +447,9 @@ def remove_role(rolename):
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename)
   
-  remove_delegated_roles(rolename)
- 
-  # remove_delegated_roles() should have left 'rolename' in the database, and
   # 'rolename' was verified to exist by _check_rolename().
   # Remove 'rolename'.
   del _roledb_dict[rolename]
-
-
-
-
-
-def remove_delegated_roles(rolename):
-  """
-  <Purpose>
-    Remove a role's delegations (leaving the rest of the role alone).
-    All levels of delegation are removed, not just the directly delegated roles.
-    If 'rolename' is 'a/b/c' and the role database contains
-    ['a/b/c/d/e', 'a/b/c/d', 'a/b/c', 'a/b', 'a'], return
-    ['a/b/c', 'a/b', 'a'].
-
-  <Arguments>
-    rolename:
-      An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'snapshot', 'timestamp').
-
-  <Exceptions>
-    tuf.FormatError, if 'rolename' does not have the correct object format. 
-   
-    tuf.UnknownRoleError, if 'rolename' cannot be found in the role database.
-
-    tuf.InvalidNameError, if 'rolename' is incorrectly formatted.
-
-  <Side Effects>
-    Role(s) from the role database may be deleted.
-
-  <Returns>
-    None.
-  """
-  
-  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
-  _check_rolename(rolename)
-
-  # Ensure that we only care about delegated roles!
-  rolename_with_slash = rolename + '/'
-  for name in get_rolenames():
-    if name.startswith(rolename_with_slash):
-      del _roledb_dict[name]
 
 
 

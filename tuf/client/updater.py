@@ -379,12 +379,11 @@ class Updater(object):
             
       metadata_role:
         The name of the metadata. This is a role name and should
-        not end in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
+        not end in '.json'.  Examples: 'root', 'targets', 'unclaimed'.
 
     <Exceptions>
       tuf.FormatError:
-        If role information belonging to a delegated role of 'metadata_role'
-        is improperly formatted.
+        If the role object loaded for 'metadata_role' is improperly formatted.
 
       tuf.Error:
         If there was an error importing a delegated role of 'metadata_role'
