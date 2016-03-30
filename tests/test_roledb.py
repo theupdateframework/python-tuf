@@ -182,43 +182,32 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are valid. 
     rolename = 'targets'
     rolename2 = 'release'
-    rolename3 = 'release/role1'
+    rolename3 = 'django'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
+    roleinfo2 = {'keyids': ['123'], 'threshold': 1, 'delegations':
+      {'roles': [{'name': 'django', 'keyids': ['456'], 'threshold': 1}],
+       'keys': {'456': {'keytype': 'rsa', 'keyval': {'public': '456'}},
+      }}}
+    
     tuf.roledb.add_role(rolename, roleinfo)
-    tuf.roledb.add_role(rolename2, roleinfo)
+    tuf.roledb.add_role(rolename2, roleinfo2)
     tuf.roledb.add_role(rolename3, roleinfo)
 
     self.assertEqual(None, tuf.roledb.remove_role(rolename))
     self.assertEqual(True, rolename not in tuf.roledb._roledb_dict)
 
-    # Test conditions where removing a role causes the removal of its
-    # delegated roles.
+    # Test conditions where removing a role does not cause the removal of its
+    # delegated roles.  The 'django' role should now only exist (after the
+    # removal of 'targets' in the previous test condition, and the removal
+    # of 'release' in the remove_role() call next.
     self.assertEqual(None, tuf.roledb.remove_role(rolename2))
-    self.assertEqual(0, len(tuf.roledb._roledb_dict))
+    self.assertEqual(1, len(tuf.roledb._roledb_dict))
  
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
     self._test_rolename(tuf.roledb.remove_role) 
 
 
-
-  def test_remove_delegated_roles(self):
-    # Test conditions where the arguments are valid. 
-    rolename = 'targets'
-    rolename2 = 'targets/role1'
-    rolename3 = 'targets/role1/role2'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
-    tuf.roledb.add_role(rolename, roleinfo)
-    tuf.roledb.add_role(rolename2, roleinfo)
-    tuf.roledb.add_role(rolename3, roleinfo)
-    self.assertEqual(None, tuf.roledb.remove_delegated_roles(rolename3))
-    self.assertEqual(3, len(tuf.roledb._roledb_dict))
-    self.assertEqual(None, tuf.roledb.remove_delegated_roles(rolename))
-    self.assertEqual(1, len(tuf.roledb._roledb_dict))
-
-    # Test conditions where the arguments are improperly formatted,
-    # contain invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.remove_delegated_roles) 
 
 
 
