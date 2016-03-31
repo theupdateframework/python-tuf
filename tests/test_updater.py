@@ -1327,18 +1327,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     child_role = targets_role['delegations']['roles'][0]
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
-                     '/file3.txt'), child_role['name'])
+                     '/file3.txt', targets_role['delegations']), child_role['name'])
 
     # Test path hash prefixes.
     child_role['path_hash_prefixes'] = ['8baf', '0000']
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
-                     '/file3.txt'), child_role['name'])
+                     '/file3.txt', targets_role['delegations']), child_role['name'])
   
     # Test if both 'path' and 'path_hash_prefixes' is missing.
     del child_role['paths']
     del child_role['path_hash_prefixes']
     self.assertRaises(tuf.FormatError, self.repository_updater._visit_child_role,
-                      child_role, child_role['name'])
+                      child_role, targets_role['delegations'], child_role['name'])
 
     
 
