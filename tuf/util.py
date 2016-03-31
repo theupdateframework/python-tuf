@@ -601,7 +601,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
     rolename:
       The name of the role whose targets must be verified. This is a
       role name and should not end in '.json'.  Examples: 'root', 'targets',
-      'targets/linux/x86'.
+      'unclaimed'.
 
     list_of_targets:
       The targets of 'rolename', as listed in targets field of the 'rolename'

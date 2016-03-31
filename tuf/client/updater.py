@@ -432,7 +432,6 @@ class Updater(object):
         
         elif metadata_object['_type'] == 'Targets':
           # TODO: Should we also remove the keys of the delegated roles?
-          tuf.roledb.remove_delegated_roles(metadata_role)
           self._import_delegations(metadata_role)
 
 
@@ -914,7 +913,7 @@ class Updater(object):
     """
     <Purpose>
       Non-public method that verifies an uncompressed metadata file.  An
-      exception is raised if 'metadata_file_object is invalid, and there is no
+      exception is raised if 'metadata_file_object is invalid.  There is no
       return value.
 
     <Arguments>
@@ -924,12 +923,9 @@ class Updater(object):
 
       metadata_role:
         The role name of the metadata (e.g., 'root', 'targets',
-        'targets/linux/x86').
+        'unclaimed').
 
     <Exceptions>
-      tuf.ForbiddenTargetError:
-        In case a targets role has signed for a target it was not delegated to.
-
       tuf.FormatError:
         In case the metadata file is valid JSON, but not valid TUF metadata.
 
@@ -972,18 +968,6 @@ class Updater(object):
     # We previously verified version numbers in this function, but have since
     # moved version number verification to the functions that retrieve
     # metadata.
-
-    # Reject the metadata if any specified targets are not allowed.
-    # 'tuf.ForbiddenTargetError' raised if any of the targets of 'metadata_role'
-    # are not allowed.
-    if metadata_signable['signed']['_type'] == 'Targets':
-      if metadata_role != 'targets':
-        metadata_targets = list(metadata_signable['signed']['targets'].keys())
-        parent_rolename = tuf.roledb.get_parent_rolename(metadata_role)
-        parent_role_metadata = self.metadata['current'][parent_rolename]
-        parent_delegations = parent_role_metadata['delegations']
-        tuf.util.ensure_all_targets_allowed(metadata_role, metadata_targets,
-                                            parent_delegations)
 
     # Verify the signature on the downloaded metadata object.
     valid = tuf.sig.verify(metadata_signable, metadata_role)
@@ -1358,11 +1342,11 @@ class Updater(object):
         if compression is not None:
           if verify_compressed_file_function is not None: 
             verify_compressed_file_function(file_object)  
-          logger.info('Decompressing '+str(file_mirror))
+          logger.info('Decompressing ' + str(file_mirror))
           file_object.decompress_temp_file_object(compression)
         
         else:
-          logger.info('Not decompressing '+str(file_mirror))
+          logger.info('Not decompressing ' + str(file_mirror))
         
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
@@ -1371,7 +1355,7 @@ class Updater(object):
 
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
-        logger.exception('Update failed from '+file_mirror+'.')
+        logger.exception('Update failed from ' + file_mirror + '.')
         file_mirror_errors[file_mirror] = exception
         file_object = None
       
@@ -2053,7 +2037,7 @@ class Updater(object):
     <Arguments>
       rolename:
         This is a delegated role name and should not end in '.json'.  Example:
-        targets/linux/x86'.
+        'unclaimed'.
       
       include_delegations:
          Boolean indicating if the delegated roles set by 'rolename' should be
@@ -2078,6 +2062,7 @@ class Updater(object):
     # See if this role provides metadata and, if we're including delegations,
     # look for metadata from delegated roles.
     role_prefix = rolename + '/'
+    
     for metadata_path in six.iterkeys(self.metadata['current']['snapshot']['meta']):
       if metadata_path == rolename + '.json':
         roles_to_update.append(metadata_path[:-len('.json')])
@@ -2106,7 +2091,7 @@ class Updater(object):
 
     # Sort the roles so that parent roles always come first.
     roles_to_update.sort()
-    logger.debug('Roles to update: '+repr(roles_to_update)+'.')
+    logger.debug('Roles to update: ' + repr(roles_to_update) + '.')
 
     # Iterate 'roles_to_update', load its metadata file, and update it if 
     # changed.
@@ -2408,8 +2393,8 @@ class Updater(object):
 
     # Raise an exception if the target information could not be retrieved.
     if target is None:
-      message = target_filepath+' not found.'
-      logger.error(message)
+      message = target_filepath + ' not found.'
+      logger.error(target_filepath + ' not found.')
       raise tuf.UnknownTargetError(message)
     
     # Otherwise, return the found target.
@@ -2424,7 +2409,7 @@ class Updater(object):
     """
     <Purpose>
       Non-public method that interrogates the tree of target delegations in
-      order of appearance (which implicitly order trustworthiness), and return
+      order of appearance (which implicitly order trustworthiness), and returns
       the matching target found in the most trusted role.
 
     <Arguments>    
@@ -2437,7 +2422,7 @@ class Updater(object):
         If 'target_filepath' is improperly formatted.
 
       tuf.RepositoryError:
-        If 'target_filepath' was not found.
+        If 'target_filepath' is not found.
    
     <Side Effects>
       The metadata for updated delegated roles are downloaded and stored.
@@ -2484,19 +2469,20 @@ class Updater(object):
         child_roles_to_visit = []
         # NOTE: This may be a slow operation if there are many delegated roles.
         for child_role in child_roles:
-          child_role_name = self._visit_child_role(child_role, target_filepath)
+          child_role_name = self._visit_child_role(child_role, target_filepath,
+                                                   delegations)
           if not child_role['backtrack'] and child_role_name is not None:
-            logger.debug('Adding child role '+repr(child_role_name))
+            logger.debug('Adding child role ' + repr(child_role_name))
             logger.debug('Not backtracking to other roles.')
             role_names = []
             child_roles_to_visit.append(child_role_name)
             break
           
           elif child_role_name is None:
-            logger.debug('Skipping child role '+repr(child_role_name))
+            logger.debug('Skipping child role ' + repr(child_role_name))
           
           else:
-            logger.debug('Adding child role '+repr(child_role_name))
+            logger.debug('Adding child role ' + repr(child_role_name))
             child_roles_to_visit.append(child_role_name)
 
         # Push 'child_roles_to_visit' in reverse order of appearance onto
@@ -2505,7 +2491,7 @@ class Updater(object):
         role_names.extend(child_roles_to_visit)
 
       else:
-        logger.debug('Found target in current role '+repr(role_name))
+        logger.debug('Found target in current role ' + repr(role_name))
 
     return target
 
@@ -2544,7 +2530,7 @@ class Updater(object):
     target = None
 
     # Does the current role name have our target?
-    logger.debug('Asking role ' + repr(role_name) + ' about target '+\
+    logger.debug('Asking role ' + repr(role_name) + ' about target ' +\
       repr(target_filepath))
     
     for filepath, fileinfo in six.iteritems(targets):
@@ -2554,7 +2540,7 @@ class Updater(object):
         break
       
       else:
-        logger.debug('No target '+target_filepath+' in role '+role_name)
+        logger.debug('No target ' + target_filepath + ' in role ' + role_name)
 
     return target
 
@@ -2563,19 +2549,19 @@ class Updater(object):
 
 
 
-  def _visit_child_role(self, child_role, target_filepath):
+  def _visit_child_role(self, child_role, target_filepath, parent_delegations):
     """
     <Purpose>
       Non-public method that determines whether the given 'child_role' has been
       delegated the target with the name 'target_filepath'.
 
-      Ensure that we explore only delegated roles trusted with the target. We
-      assume conservation of delegated paths in the complete tree of
-      delegations. Note that the call to tuf.util.ensure_all_targets_allowed in
-      _verify_uncompressed_metadata_file should already verify that all
-      targets metadata is valid; i.e. that the targets signed by a delegatee is
-      a proper subset of the targets delegated to it by the delegator.
-      Nevertheless, we check it again here for performance and safety reasons.
+      Ensure that we explore only delegated roles trusted with the target.  The
+      metadata for 'child_role' should have been refreshed prior to this point,
+      however, the paths/targets that 'child_role' signs for have not been
+      verified (as intended).  The paths/targets that 'child_role' is allowed
+      to specify in its metadata depends on the delegating role, and thus is
+      left to the caller to verify.  We verify here that 'target_filepath'
+      is an allowed path according to its parent role ('parent_delegations').
 
       TODO: Should the TUF spec restrict the repository to one particular
       algorithm?  Should we allow the repository to specify in the role
@@ -2589,6 +2575,10 @@ class Updater(object):
       target_filepath:
         The path to the target file on the repository. This will be relative to
         the 'targets' (or equivalent) directory on a given mirror.
+
+      parent_delegations:
+        The 'delegations' entry of 'child_role's delegating role.  A delegating
+        role specifies the paths/targets that a child role is trusted to sign.
 
     <Exceptions>
       None.
@@ -2606,6 +2596,7 @@ class Updater(object):
     child_role_name = child_role['name']
     child_role_paths = child_role.get('paths')
     child_role_path_hash_prefixes = child_role.get('path_hash_prefixes')
+
     # A boolean indicator that tell us whether 'child_role' has been delegated
     # the target with the name 'target_filepath'.
     child_role_is_relevant = False
@@ -2632,13 +2623,26 @@ class Updater(object):
       # 'role_name' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
-      raise tuf.FormatError(repr(child_role_name) + ' has neither ' \
+      raise tuf.FormatError(repr(child_role_name) + ' has neither '
                                 '"paths" nor "path_hash_prefixes".')
 
     if child_role_is_relevant:
-      logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
-                   repr(target_filepath))
-      return child_role_name
+      # Is the child role allowed by its parent role to specify this path
+      # in its metadata?
+      try: 
+        tuf.util.ensure_all_targets_allowed(child_role_name, [target_filepath],
+                                            parent_delegations)
+      
+      except tuf.ForbiddenTargetError:
+        logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
+                     repr(target_filepath) + ', but is not allowed to sign for'
+                     ' it according to its delegating role.')
+        return None
+      
+      else:
+        logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
+                     repr(target_filepath))
+        return child_role_name
     
     else:
       logger.debug('Child role ' + repr(child_role_name) + \
