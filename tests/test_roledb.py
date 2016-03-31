@@ -106,25 +106,6 @@ class TestRoledb(unittest.TestCase):
                       roleinfo)
 
 
-
-  def test_get_parent_rolename(self):
-    # Test conditions where the arguments are valid. 
-    rolename = 'targets'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
-    rolename2 = 'role1'
-    rolename3 = 'role2'
-    
-    tuf.roledb.add_role(rolename, roleinfo)
-    tuf.roledb.add_role(rolename2, roleinfo)
-    tuf.roledb.add_role(rolename3, roleinfo)
-    
-    self.assertEqual(rolename, tuf.roledb.get_parent_rolename(rolename2))
-    self.assertEqual(rolename2, tuf.roledb.get_parent_rolename(rolename3))
-    self.assertEqual('', tuf.roledb.get_parent_rolename(rolename))
-
-    # Test conditions where the arguments are improperly formatted,
-    # contain invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.get_parent_rolename) 
   
 
 
@@ -150,31 +131,6 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(tuf.InvalidNameError, tuf.roledb.role_exists, '/badrole/')
 
 
-
-  def test_get_all_parent_roles(self):
-    # Test conditions where the arguments are valid. 
-    rolename = 'targets'
-    rolename2 = 'role1'
-    rolename3 = 'role2'
-    rolename4 = 'root'
-    rolename5 = 'targets2'
-    roleinfo = {'keyids': ['123'], 'threshold': 1}
-    tuf.roledb.add_role(rolename, roleinfo)
-    self.assertEqual(set(['targets']),
-                     set(tuf.roledb.get_all_parent_roles(rolename)))
-    tuf.roledb.add_role(rolename2, roleinfo)
-    tuf.roledb.add_role(rolename3, roleinfo)
-    tuf.roledb.add_role(rolename4, roleinfo)
-    tuf.roledb.add_role(rolename5, roleinfo)
-    
-    self.assertEqual(set(['targets', 'role1']),
-                     set(tuf.roledb.get_all_parent_roles(rolename3)))
-    self.assertEqual(set(['root']),
-                     set(tuf.roledb.get_all_parent_roles(rolename5)))
-  
-    # Test conditions where the arguments are improperly formatted,
-    # contain invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.get_all_parent_roles) 
 
 
 
