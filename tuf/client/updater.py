@@ -2240,7 +2240,7 @@ class Updater(object):
     <Arguments>
       rolename:
         This is a role name and should not end in '.json'.  Examples: 'targets',
-        'targets/linux/x86'.
+        'unclaimed'.
       
       targets:
         A list of targets containing target information, conformant to
@@ -2277,8 +2277,8 @@ class Updater(object):
   
     # Do we have metadata for 'rolename'?
     if rolename not in self.metadata['current']:
-      message = 'No metadata for '+repr(rolename)+'. Unable to determine targets.'
-      logger.debug(message)
+      logger.debug('No metadata for ' + repr(rolename) + '.'
+        '  Unable to determine targets.')
       return targets
 
     # Get the targets specified by the role itself.
