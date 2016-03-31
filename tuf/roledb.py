@@ -285,100 +285,6 @@ def get_dirty_roles():
 
 
 
-def get_parent_rolename(rolename):
-  """
-  <Purpose>
-    Return the name of the parent role for 'rolename'.
-    Given the rolename 'a/b/c/d', return 'a/b/c'.
-    Given 'a', return ''.
-
-  <Arguments>
-    rolename:
-      An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'snapshot', 'timestamp').
-
-  <Exceptions>
-    tuf.FormatError, if 'rolename' does not have the correct object format.
-
-    tuf.UnknownRoleError, if 'rolename' cannot be found in the role database.
-
-    tuf.InvalidNameError, if 'rolename' is incorrectly formatted.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    A string representing the name of the parent role.
-  """
-
-  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
-  _check_rolename(rolename)
-
-  parts = rolename.split('/')
-  parent_rolename = '/'.join(parts[:-1])
-
-  return parent_rolename
-
-
-
-
-
-def get_all_parent_roles(rolename):
-  """
-  <Purpose>
-    Return a list of roles that are parents of 'rolename'.
-    Given the rolename 'a/b/c/d', return the list:
-    ['a', 'a/b', 'a/b/c'].
-
-    Given 'a', return ['a'].
-  
-  <Arguments>
-    rolename:
-      An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'snapshot', 'timestamp').
-
-  <Exceptions>
-    tuf.FormatError, if 'rolename' does not have the correct object format. 
-
-    tuf.UnknownRoleError, if 'rolename' cannot be found in the role database.
-
-    tuf.InvalidNameError, if 'rolename' is improperly formatted.
-
-  <Side Effects>
-    None.
-
-  <Returns>
-    A list containing all the parent roles.
-  """
-    
-  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
-  _check_rolename(rolename)
-
-  # List of parent roles returned.
-  parent_roles = []
-
-  parts = rolename.split('/')
-
-  # Append the first role to the list.
-  parent_roles.append(parts[0])
-
-  # The 'roles_added' string contains the roles already added.  If 'a' and 'a/b'
-  # have been added to 'parent_roles', 'roles_added' would contain 'a/b'
-  roles_added = parts[0]
-
-  # Add each subsequent role to the previous string (with a '/' separator).
-  # This only goes to -1 because we only want to return the parents (so we
-  # ignore the last element).
-  for next_role in parts[1:-1]:
-    parent_roles.append(roles_added+'/'+next_role)
-    roles_added = roles_added+'/'+next_role
-
-  return parent_roles
-
-
-
-
-
 def role_exists(rolename):
   """
   <Purpose>
@@ -450,6 +356,7 @@ def remove_role(rolename):
   # 'rolename' was verified to exist by _check_rolename().
   # Remove 'rolename'.
   del _roledb_dict[rolename]
+
 
 
 
