@@ -176,10 +176,10 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     # An attacker tries to trick a client into installing an extraneous target
     # file (a valid file on the repository, in this case) by listing it in the
     # project's metadata file.  For the purposes of test_with_tuf(),
-    # 'targets/role1.json' is treated as the metadata file that indicates all
+    # 'role1.json' is treated as the metadata file that indicates all
     # the files needed to install/update the 'role1' project.  The attacker
     # simply adds the extraneous target file to 'role1.json', which the TUF
-    # client should reject as untrusted.
+    # client should reject as improperly signed.
     role1_filepath = os.path.join(self.repository_directory, 'metadata',
                                   'role1.json')
     file1_filepath = os.path.join(self.repository_directory, 'targets',
@@ -210,7 +210,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     # Verify that the TUF client rejects the invalid metadata and refuses to
     # continue the update process.
     self.repository_updater.refresh()
-    
+   
     try:
       self.repository_updater.targets_of_role('role1')
    
@@ -223,7 +223,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.ForbiddenTargetError))
+        self.assertTrue(isinstance(mirror_error, tuf.BadSignatureError))
 
     else:
       self.fail('TUF did not prevent an extraneous dependencies attack.')
