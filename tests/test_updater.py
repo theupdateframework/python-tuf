@@ -191,6 +191,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
+    tuf.roledb.clear_roledb()
     
 
 
@@ -786,12 +787,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_4__refresh_targets_metadata(self):
     # Setup.
-    # Assumed the client repository has only loaded the top-level metadata.
-    # refresh the 'targets.json' metadata, including delegations. 
+    # It is assumed that the client repository has only loaded the top-level
+    # metadata.  Refresh the 'targets.json' metadata, including all delegated
+    # roles (i.e., the client should add the missing 'role1.json' metadata. 
     self.assertEqual(len(self.repository_updater.metadata['current']), 4)
 
     # Test: normal case.
-    self.repository_updater._refresh_targets_metadata(include_delegations=True)
+    self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
     # Verify that client's metadata files were refreshed successfully.
     self.assertEqual(len(self.repository_updater.metadata['current']), 5)
@@ -799,14 +801,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test for compressed metadata roles.
     self.repository_updater.metadata['current']['snapshot']['meta']['targets.json.gz'] = \
       self.repository_updater.metadata['current']['snapshot']['meta']['targets.json']
-    self.repository_updater._refresh_targets_metadata(include_delegations=True)
-    
-    # Test for repository error if the 'targets' role is not specified
-    # in 'snapshot'.
-    del self.repository_updater.metadata['current']['snapshot']['meta']['targets.json']
-    self.assertRaises(tuf.RepositoryError,
-                      self.repository_updater._refresh_targets_metadata,
-                      'targets', True)
+    self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
+
+
+
 
 
   def test_5_all_targets(self):
@@ -827,10 +825,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    # Verify that there is a correct number of records in 'all_targets' list,
    # and the expected filepaths specified in the metadata.  On the targets
    # directory of the repository, there should be 3 target files (2 of
-   # which are specified by 'targets.json'.)  The delegated role 'targets/role1'
+   # which are specified by 'targets.json'.)  The delegated role 'role1'
    # specifies 1 target file.  The expected total number targets in
    # 'all_targets' should be 3.
    self.assertEqual(len(all_targets), 3)
+   
    target_filepaths = []
    for target in all_targets:
     target_filepaths.append(target['filepath'])
@@ -972,15 +971,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
-    # updater.target() should find 'foo1.1.tar.gz' by backtracking to
-    # 'targets/role3'.  'targets/role2' allows backtracking.
+    
+    # updater.target() should find 'foo1.1.tar.gz' by backtracking to 'role3'.
+    # 'role2' allows backtracking.
     self.repository_updater.refresh()
     self.repository_updater.target('foo/foo1.1.tar.gz')
 
 
-    # Test when 'targets/role2' does *not* allow backtracking.  If
-    # 'foo/foo1.1.tar.gz' is not provided by the authoritative 'target/role2',
-    # updater.target() should return a 'tuf.UnknownTargetError' exception.
+    # Test when 'role2' does *not* allow backtracking.  If 'foo/foo1.1.tar.gz'
+    # is not provided by the authoritative 'role2', updater.target() should
+    # return a 'tuf.UnknownTargetError' exception.
     repository = repo_tool.load_repository(self.repository_directory)
     
     repository.targets.revoke('role2')
@@ -1315,8 +1315,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Test for role that hasn't been loaded yet.
     del self.repository_updater.metadata['current']['targets']
+    self.assertEqual(len(self.repository_updater._targets_of_role('targets',
+                                                        skip_refresh=True)), 0)
+
+    # 'targets.json' tracks two targets.
     self.assertEqual(len(self.repository_updater._targets_of_role('targets')),
-                     0)
+                     2)
 
 
   def test_10__visit_child_role(self):

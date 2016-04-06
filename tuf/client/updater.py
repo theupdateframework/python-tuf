@@ -2004,7 +2004,7 @@ class Updater(object):
     
     # Load the most up-to-date targets of the 'targets' role and all
     # delegated roles.
-    self._refresh_targets_metadata(include_delegations=True)
+    self._refresh_targets_metadata(refresh_all_delegated_roles=True)
  
     all_targets = []
     
@@ -2012,9 +2012,13 @@ class Updater(object):
     all_targets = self._targets_of_role('targets', skip_refresh=True)
 
     # Fetch the targets of the delegated roles. 
-    for delegated_role in sorted(tuf.roledb.get_delegated_rolenames('targets')):
-      all_targets = self._targets_of_role(delegated_role, all_targets,
-                                          skip_refresh=True)
+    for role in tuf.roledb.get_rolenames():
+      if role in ['root', 'snapshot', 'targets', 'timestamp']:
+        continue
+      
+      else: 
+        all_targets = self._targets_of_role(role, all_targets,
+                                            skip_refresh=True)
     
     return all_targets
 
@@ -2022,26 +2026,27 @@ class Updater(object):
 
 
 
-  def _refresh_targets_metadata(self, rolename='targets', include_delegations=False):
+  def _refresh_targets_metadata(self, rolename='targets',
+                                refresh_all_delegated_roles=False):
     """
     <Purpose>
       Non-public method that refreshes the targets metadata of 'rolename'.  If
-      'include_delegations' is True, include all the delegations that follow
-      'rolename'.  The metadata for the 'targets' role is updated in refresh()
-      by the _update_metadata_if_changed('targets') call, not here.  Delegated
-      roles are not loaded when the repository is first initialized.  They are
-      loaded from disk, updated if they have changed, and stored to the
-      'self.metadata' store by this method.  This method is called by the target
-      methods, like all_targets() and targets_of_role().
+      'refresh_all_delegated_roles' is True, include all the delegations that
+      follow 'rolename'.  The metadata for the 'targets' role is updated in
+      refresh() by the _update_metadata_if_changed('targets') call, not here.
+      Delegated roles are not loaded when the repository is first initialized.
+      They are loaded from disk, updated if they have changed, and stored to
+      the 'self.metadata' store by this method.  This method is called by the
+      target methods, like all_targets() and targets_of_role().
 
     <Arguments>
       rolename:
         This is a delegated role name and should not end in '.json'.  Example:
         'unclaimed'.
       
-      include_delegations:
-         Boolean indicating if the delegated roles set by 'rolename' should be
-         refreshed.
+      refresh_all_delegated_roles:
+         Boolean indicating if all the delegated roles available in the
+         repository (via snapshot.json) should be refreshed. 
 
     <Exceptions>
       tuf.RepositoryError:
@@ -2058,43 +2063,33 @@ class Updater(object):
     """
 
     roles_to_update = []
-
-    # See if this role provides metadata and, if we're including delegations,
-    # look for metadata from delegated roles.
-    role_prefix = rolename + '/'
+   
+    if rolename + '.json' in self.metadata['current']['snapshot']['meta']:
+      roles_to_update.append(rolename)
     
-    for metadata_path in six.iterkeys(self.metadata['current']['snapshot']['meta']):
-      if metadata_path == rolename + '.json':
-        roles_to_update.append(metadata_path[:-len('.json')])
-      elif include_delegations and metadata_path.startswith(role_prefix):
-        # Add delegated roles.  Skip roles names containing compression
-        # extensions.
-        if metadata_path.endswith('.json'): 
-          roles_to_update.append(metadata_path[:-len('.json')])
+    if refresh_all_delegated_roles:
+      
+      for role in six.iterkeys(self.metadata['current']['snapshot']['meta']):
+        # snapshot.json keeps track of root.json, targets.json, and delegated
+        # roles (e.g., django.json, unclaimed.json).
+        # Remove the 'targets' role because it gets updated when the targets.json
+        # file is updated in _update_metadata_if_changed('targets') and root.
+        if role.endswith('.json'):
+          role = role[:-len('.json')] 
+          if role not in ['root', 'targets', rolename]:
+            roles_to_update.append(role)
         
         else:
           continue
-
-    # Remove the 'targets' role because it gets updated when the targets.json
-    # file is updated in _update_metadata_if_changed('targets').
-    if rolename == 'targets':
-      try:
-        roles_to_update.remove('targets')
-      
-      except ValueError:
-        message = 'The snapshot metadata file is missing the targets.json entry.'
-        raise tuf.RepositoryError(message)
-  
+    
     # If there is nothing to refresh, we are done.
     if not roles_to_update:
       return
 
-    # Sort the roles so that parent roles always come first.
-    roles_to_update.sort()
     logger.debug('Roles to update: ' + repr(roles_to_update) + '.')
 
-    # Iterate 'roles_to_update', load its metadata file, and update it if 
-    # changed.
+    # Iterate 'roles_to_update', and load and update its metadata file if it
+    # has changed.
     for rolename in roles_to_update:
       self._load_metadata_from_file('previous', rolename)
       self._load_metadata_from_file('current', rolename)
@@ -2455,7 +2450,7 @@ class Updater(object):
       # _refresh_targets_metadata() does not refresh 'targets.json', it
       # expects _update_metadata_if_changed() to have already refreshed it,
       # which this function has checked above.
-      self._refresh_targets_metadata(role_name, include_delegations=False)
+      self._refresh_targets_metadata(role_name, refresh_all_delegated_roles=False)
 
       role_metadata = current_metadata[role_name]
       targets = role_metadata['targets']
