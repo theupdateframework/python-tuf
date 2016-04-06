@@ -2793,6 +2793,7 @@ def load_repository(repository_directory):
       continue
 
     signable = None
+    
     try:
       signable = tuf.util.load_json_file(metadata_path)
     

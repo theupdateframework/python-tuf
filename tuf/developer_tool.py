@@ -824,7 +824,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
     project_configuration = tuf.util.load_json_file(config_filename)
     tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration) 
   
-  except (OSError, IOError) as e:
+  except (OSError, IOError):
     raise
  
   targets_directory = os.path.join(project_directory,

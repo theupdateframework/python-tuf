@@ -256,10 +256,8 @@ class TestProject(unittest.TestCase):
 
     # Add another delegation of the delegation.
     project('somedelegation').delegate('somesubdelegation', [], [])
-    project('somedelegation')('somesubdelegation').add_verification_key(
-        first_verification_key)
-    project('somedelegation')('somesubdelegation').add_verification_key(
-        second_verification_key)
+    project('somesubdelegation').add_verification_key(first_verification_key)
+    project('somesubdelegation').add_verification_key(second_verification_key)
 
 
   def test_write(self):
@@ -369,7 +367,9 @@ class TestProject(unittest.TestCase):
     self.assertEqual(new_delegations, delegations_backup)
     self.assertEqual(project.layout_type, layout_type_backup)
     self.assertEqual(project.keys, keys_backup)
+    
     self.assertEqual(project('delegation').keys, delegation_keys_backup)
+    
     self.assertEqual(project._prefix, prefix_backup)
     self.assertEqual(project._project_name, name_backup)
 
