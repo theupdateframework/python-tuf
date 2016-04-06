@@ -2100,126 +2100,6 @@ class Updater(object):
 
 
 
-  def refresh_targets_metadata_chain(self, rolename):
-    """
-    <Purpose>
-      Refresh the minimum targets metadata of 'rolename'.  If 'rolename' is
-      'targets/claimed/3.3/django', refresh the metadata of the following roles:
-      
-      targets.json
-      targets/claimed.json
-      targets/claimed/3.3.json
-
-      Note that 'targets/claimed/3.3/django.json' is not refreshed here.
-      
-      The metadata of the 'targets' role is updated in refresh() by the 
-      _update_metadata_if_changed('targets') call, not here.  Delegated roles
-      are not loaded when the repository is first initialized; they can be
-      loaded from disk, updated if they have changed, and stored to the
-      'self.metadata' store by this method.  This method may be called
-      before targets_of_role('rolename') so that the most up-to-date metadata is
-      available to verify the target files of 'rolename', including the metadata 
-      of 'rolename'.
-
-    <Arguments>
-      rolename:
-        This is a full delegated rolename and should not end in '.json'.
-        Example: 'targets/linux/x86'.
-      
-    <Exceptions>
-      tuf.FormatError:
-        If any of the arguments are improperly formatted.
-
-      tuf.RepositoryError:
-        If the metadata of any of the parent roles of 'rolename' is missing
-        from the 'snapshot.json' metadata file.
-
-    <Side Effects>
-      The metadata of the parent roles of 'rolename' are loaded from disk and
-      updated if they have changed.  Metadata is removed from the role database
-      if it has expired.
-
-    <Returns>
-      A list of the roles that have been updated, loaded, and are valid.
-    """
-    
-    # Do the arguments have the correct format? 
-    # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.FormatError' if the check fail.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
-    
-    # List of parent roles to update.
-    parent_roles = []
-
-    # Separate each rolename (i.e., each rolename should exclude parent and
-    # child rolenames).  'rolename' should be the full rolename, as in
-    # 'targets/linux/x86'.
-    parts = rolename.split('/')
-
-    # Append the first role to the list.
-    parent_roles.append(parts[0])
-
-    # The 'roles_added' string contains the roles (full rolename) already added.
-    # If 'a' and 'a/b' have been added to 'parent_roles', 'roles_added' would
-    # contain 'a/b'.
-    roles_added = parts[0]
-
-    # Add each subsequent role to the previous string (with a '/' separator).
-    # This only goes to -1 because we only want to store the parents (so we
-    # ignore the last element).
-    for next_role in parts[1:-1]:
-      parent_roles.append(roles_added + '/' + next_role)
-      roles_added = roles_added + '/' + next_role
-
-    message = 'Minimum metadata to download and set the chain of trust: '+\
-      repr(parent_roles)+'.'
-    logger.info(message)
-
-    # Check if 'snapshot.json' provides metadata for each of the roles in
-    # 'parent_roles'.  All the available roles on the repository are specified
-    # in the 'snapshot.json' metadata.
-    targets_metadata_allowed = list(self.metadata['current']['snapshot']['meta'].keys())
-    for parent_role in parent_roles:
-      parent_role = parent_role + '.json'
-
-      if parent_role not in targets_metadata_allowed:
-        message = '"snapshot.json" does not provide all the parent roles '+\
-          'of ' + repr(rolename) + '.'
-        raise tuf.RepositoryError(message)
-
-    # Remove the 'targets' role because it gets updated when the targets.json
-    # file is updated in _update_metadata_if_changed('targets').
-    if rolename == 'targets':
-      try:
-        parent_roles.remove('targets')
-      except ValueError:
-        message = 'The snapshot metadata file is missing the "targets.json" entry.'
-        raise tuf.RepositoryError(message)
-  
-    # If there is nothing to refresh, we are done.
-    if not parent_roles:
-      return
-
-    # Sort the roles so that parent roles always come first.
-    parent_roles.sort()
-    logger.debug('Roles to update: ' + repr(parent_roles) + '.')
-
-    # Iterate 'parent_roles', load each role's metadata file from disk, and
-    # update it if it has changed.  
-    refreshed_chain = []
-    for rolename in parent_roles:
-      self._load_metadata_from_file('previous', rolename)
-      self._load_metadata_from_file('current', rolename)
-
-      self._update_metadata_if_changed(rolename)
-
-    return refreshed_chain
-
-
-
-
-
   def _targets_of_role(self, rolename, targets=None, skip_refresh=False):
     """
     <Purpose>
@@ -2335,7 +2215,6 @@ class Updater(object):
     if not tuf.roledb.role_exists(rolename):
       raise tuf.UnknownRoleError(rolename)
     
-    self.refresh_targets_metadata_chain(rolename) 
     self._refresh_targets_metadata(rolename)
 
     return self._targets_of_role(rolename, skip_refresh=True)

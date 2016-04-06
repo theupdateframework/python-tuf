@@ -885,38 +885,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_6_refresh_tagets_metadata_chain(self):
-    # NOTE: This function does not refresh the role specified in the argument,
-    # only its parent roles.
-    
-    # Remove the metadata of the delegated roles.
-    os.remove(os.path.join(self.client_metadata_current, 'targets.json'))
-    os.remove(os.path.join(self.client_metadata_current, 'role1.json'))
-  
-    # Test: normal case.
-    metadata_list = \
-      self.repository_updater.refresh_targets_metadata_chain('targets')
-
-    """
-    print(repr(metadata_list))
-    self.assertEqual(len(metadata_list), 0)
-    self.assertTrue('targets' in metadata_list)
-
-    # Verify that the expected role files were downloaded and installed.
-    os.path.exists(os.path.join(self.client_metadata_current, 'targets.json'))
-    
-    self.assertTrue('targets' in self.repository_updater.metadata['current'])
-    self.assertFalse('targets/role1' in self.repository_updater.metadata['current'])
-    """
-    # Test: Invalid arguments.
-    # refresh_targets_metadata_chain() expects a string rolename.
-    self.assertRaises(tuf.FormatError,
-                      self.repository_updater.refresh_targets_metadata_chain,
-                      8)
-    self.assertRaises(tuf.RepositoryError,
-                      self.repository_updater.refresh_targets_metadata_chain,
-                      'unknown_rolename')
-
 
 
   def test_6_target(self):
