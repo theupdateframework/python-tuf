@@ -383,7 +383,60 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # requested, and has its versioninfo entry set to 'None'.
     self.repository_updater._update_versioninfo('bad_role.json')
     self.assertEqual(len(versioninfo_dict), 3)
-    self.assertEqual(versioninfo_dict['bad_role.json'], None) 
+    self.assertEqual(versioninfo_dict['bad_role.json'], None)
+
+
+
+
+  def test_1__update_fileinfo(self):
+      # Tests
+      # Verify that the 'self.fileinfo' dictionary is empty (its starts off empty
+      # and is only populated if _update_fileinfo() is called.
+      fileinfo_dict = self.repository_updater.fileinfo
+      self.assertEqual(len(fileinfo_dict), 0)
+
+      # Load the fileinfo of the top-level root role.  This populates the
+      # 'self.fileinfo' dictionary.
+      self.repository_updater._update_fileinfo('root.json')
+      self.assertEqual(len(fileinfo_dict), 1)
+      self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
+      root_filepath = os.path.join(self.client_metadata_current, 'root.json')
+      length, hashes = tuf.util.get_file_details(root_filepath)
+      root_fileinfo = tuf.formats.make_fileinfo(length, hashes) 
+      self.assertTrue('root.json' in fileinfo_dict)
+      self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
+
+      # Verify that 'self.fileinfo' is incremented if another role is updated.
+      self.repository_updater._update_fileinfo('targets.json')
+      self.assertEqual(len(fileinfo_dict), 2)
+
+      # Verify that 'self.fileinfo' is inremented if a non-existent role is
+      # requested, and has its fileinfo entry set to 'None'.
+      self.repository_updater._update_fileinfo('bad_role.json')
+      self.assertEqual(len(fileinfo_dict), 3)
+      self.assertEqual(fileinfo_dict['bad_role.json'], None)
+
+
+
+
+  def test_2__fileinfo_has_changed(self):
+      #  Verify that the method returns 'False' if file info was not changed.
+      root_filepath = os.path.join(self.client_metadata_current, 'root.json')
+      length, hashes = tuf.util.get_file_details(root_filepath)
+      root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+      self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
+                                                             root_fileinfo))
+
+      # Verify that the method returns 'True' if length or hashes were changed.
+      new_length = 8
+      new_root_fileinfo = tuf.formats.make_fileinfo(new_length, hashes)
+      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+                                                             new_root_fileinfo))
+      # Hashes were changed.
+      new_hashes = {'sha256': self.random_string()}
+      new_root_fileinfo = tuf.formats.make_fileinfo(length, new_hashes)
+      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+                                                             new_root_fileinfo))
 
 
 

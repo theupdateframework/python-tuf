@@ -235,7 +235,7 @@ class Repository(object):
     dirty_roles = tuf.roledb.get_dirty_roles()
     for delegated_rolename in tuf.roledb.get_dirty_roles():
       
-      # Ignore top-level roles, they will be generated later on in this method. 
+      # Ignore top-level roles, they will be generated later in this method. 
       if delegated_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
         continue
       
