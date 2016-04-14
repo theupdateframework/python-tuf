@@ -2026,7 +2026,7 @@ class Updater(object):
       
       except KeyError:
         trusted_versioninfo = \
-          self.metadata['current']['snapshot']['meta'][metadata_filenamed]
+          self.metadata['current']['snapshot']['meta'][metadata_filename]
 
     self.versioninfo[metadata_filename] = trusted_versioninfo
 
