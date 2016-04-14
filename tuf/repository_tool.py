@@ -2785,8 +2785,8 @@ def load_repository(repository_directory):
     if metadata_name in ['root', 'snapshot', 'targets', 'timestamp']:
       continue
    
-    # Keep a store metadata previously loaded metadata to prevent
-    # re-loading duplicate versions.  Duplicate versions may occur with
+    # Keep a store of metadata previously loaded metadata to prevent re-loading
+    # duplicate versions.  Duplicate versions may occur with
     # 'consistent_snapshot', where the same metadata may be available in
     # multiples files (the different hash is included in each filename.
     if metadata_name in loaded_metadata:

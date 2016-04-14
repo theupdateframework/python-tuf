@@ -325,7 +325,7 @@ class TestRepository(unittest.TestCase):
     repository.root.load_signing_key(root_privkey)
     repository.snapshot.load_signing_key(snapshot_privkey)
    
-    # Verify that consistent snapshot can be written and loaded. 
+    # Verify that a consistent snapshot can be written and loaded. 
     repository.write(consistent_snapshot=True)
     repo_tool.load_repository(repository_directory)
 

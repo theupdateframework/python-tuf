@@ -991,7 +991,7 @@ class Updater(object):
     <Arguments>
       metadata_role:
         The role name of the metadata (e.g., 'root', 'targets',
-        'targets/linux/x86').
+        'claimed').
 
       metadata_filepath:
         The metadata filepath (i.e., relative to the repository metadata

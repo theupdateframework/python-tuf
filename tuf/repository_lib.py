@@ -612,17 +612,21 @@ def _load_top_level_metadata(repository, top_level_filenames):
   else:
     pass
   
-  # Load 'snapshot.json'.  A consistent snapshot of Snapshot must be calculated
-  # if 'consistent_snapshot' is True.
+  # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
+  # 'consistent_snapshot' is True.
+  # The Snapshot and Root roles are both accessed by their hashes.
   if consistent_snapshot:
-    snapshot_version = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['version']
+    snapshot_hashes = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['hashes']
+    snapshot_hash = random.choice(list(snapshot_hashes.values()))
+    
     dirname, basename = os.path.split(snapshot_filename)
-    snapshot_filename = os.path.join(dirname, str(snapshot_version) + '.' + basename)
-  
+    snapshot_filename = os.path.join(dirname, str(snapshot_hash) + '.' + basename)
+ 
   if os.path.exists(snapshot_filename):
     signable = tuf.util.load_json_file(snapshot_filename)
     tuf.formats.check_signable_object_format(signable)
     snapshot_metadata = signable['signed']  
+    
     for signature in signable['signatures']:
       repository.snapshot.add_signature(signature, mark_role_as_dirty=False)
 
@@ -1652,11 +1656,14 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
   metadata_directory = _check_directory(metadata_directory)
 
-  # Retrieve the versioninfo of 'root.json' and 'targets.json'.  'versiondict'
-  # shall contain the version number of all roles available on the repository.
-  versiondict = {}
-  versiondict[ROOT_FILENAME] = get_metadata_versioninfo(root_filename)
-  versiondict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename)
+  # Set the fileinfo of 'root.json', and the versioninfo of
+  # 'targets.json'.  'fileinfodict' shall contain the version number of all
+  # available delegated roles on the repository.
+  fileinfodict = {}
+  root_path = os.path.join(metadata_directory, root_filename + '.json')
+  length, hashes = tuf.util.get_file_details(root_path)
+  fileinfodict[ROOT_FILENAME] = tuf.formats.make_fileinfo(length, hashes) 
+  fileinfodict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename)
 
   # We previously also stored the compressed versions of roles in
   # snapshot.json, however, this is no longer needed as their hashes and
@@ -1678,18 +1685,18 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       if metadata_filename.endswith(metadata_extension):
         rolename = metadata_filename[:-len(metadata_extension)]
         
-
         # Obsolete role files may still be found.  Ensure only roles loaded
         # in the roledb are included in the Snapshot metadata.  Since the
         # snapshot and timestamp roles are not listed in snapshot.json, do not
         # list these roles found in the metadata directory.
-        if tuf.roledb.role_exists(rolename) and rolename not in ['snapshot', 'timestamp']:
-          versiondict[metadata_name] = get_metadata_versioninfo(rolename)
+        if tuf.roledb.role_exists(rolename) and \
+            rolename not in ['root', 'snapshot', 'timestamp', 'targets']:
+          fileinfodict[metadata_name] = get_metadata_versioninfo(rolename)
 
   # Generate the Snapshot metadata object.
   snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,
                                                              expiration_date,
-                                                             versiondict)
+                                                             fileinfodict)
 
   return snapshot_metadata
 
@@ -1737,8 +1744,9 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date):
   tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
 
   # Retrieve the versioninfo of the Snapshot metadata file.
-  versioninfo = {}
-  versioninfo[SNAPSHOT_FILENAME] = get_metadata_versioninfo('snapshot')
+  snapshot_fileinfo = {}
+  length, hashes = tuf.util.get_file_details(snapshot_filename)
+  snapshot_fileinfo[SNAPSHOT_FILENAME] = tuf.formats.make_fileinfo(length, hashes) 
 
   # We previously saved the versioninfo of the compressed versions of
   # 'snapshot.json' in 'versioninfo'.  Since version numbers are now stored,
@@ -1748,7 +1756,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date):
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
                                                                expiration_date,
-                                                               versioninfo)
+                                                               snapshot_fileinfo)
 
   return timestamp_metadata
 
@@ -1907,7 +1915,6 @@ def write_metadata_file(metadata, filename, version_number,
   # path so that temporary files are moved to their expected destinations.
   filename = os.path.abspath(filename)
   written_filename = filename
-  written_consistent_filename = None
   _check_directory(os.path.dirname(filename))
 
   # Generate the actual metadata file content of 'metadata'.  Metadata is
@@ -1915,11 +1922,6 @@ def write_metadata_file(metadata, filename, version_number,
   # objects.  The new digest of 'metadata' is also calculated to help determine
   # if re-saving is required.
   file_content = _get_written_metadata(metadata)
- 
-  if consistent_snapshot:
-    dirname, basename = os.path.split(filename)
-    version_and_filename = str(version_number) + '.' + basename
-    written_consistent_filename = os.path.join(dirname, version_and_filename)
  
   # Verify whether new metadata needs to be written (i.e., has not been
   # previously written or has changed.
@@ -1930,8 +1932,7 @@ def write_metadata_file(metadata, filename, version_number,
   # Compressed metadata should only be written if it does not exist or the
   # uncompressed version has changed).
   new_digests = {}
-  hash_algorithms = tuf.conf.REPOSITORY_HASH_ALGORITHMS
-  for hash_algorithm in hash_algorithms: 
+  for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
     digest_object = tuf.hash.digest(hash_algorithm)
     digest_object.update(file_content)
     new_digests.update({hash_algorithm: digest_object.hexdigest()})
@@ -1942,14 +1943,14 @@ def write_metadata_file(metadata, filename, version_number,
       write_new_metadata = True
   
   # 'tuf.Error' raised if 'filename' does not exist.
-  except tuf.Error as e:
+  except tuf.Error:
     write_new_metadata = True
 
   if write_new_metadata:
     # The 'metadata' object is written to 'file_object', including compressed
     # versions.  To avoid partial metadata from being written, 'metadata' is
-    # first written to a temporary location (i.e., 'file_object') and then moved
-    # to 'filename'.
+    # first written to a temporary location (i.e., 'file_object') and then
+    # moved to 'filename'.
     file_object = tuf.util.TempFile()
     
     # Serialize 'metadata' to the file-like object and then write
@@ -1960,7 +1961,22 @@ def write_metadata_file(metadata, filename, version_number,
     logger.debug('Saving ' + repr(written_filename))
     file_object.move(written_filename)
    
-    if consistent_snapshot: 
+    if consistent_snapshot:
+      dirname, basename = os.path.split(written_filename)
+      
+      if basename in ['root.json', 'snapshot.json']:
+        hash_algorithms = tuf.conf.REPOSITORY_HASH_ALGORITHMS
+        file_length_junk, digests = \
+          tuf.util.get_file_details(written_filename, hash_algorithms)
+        
+        for digest in digests.values():
+          digest_and_filename = str(digest) + '.' + basename
+          written_consistent_filename = os.path.join(dirname, digest_and_filename)
+      
+      else:
+        version_and_filename = str(version_number) + '.' + basename
+        written_consistent_filename = os.path.join(dirname, version_and_filename)
+
       logger.info('Linking ' + repr(written_consistent_filename))
       os.link(written_filename, written_consistent_filename)
    
@@ -1994,8 +2010,9 @@ def write_metadata_file(metadata, filename, version_number,
       raise tuf.FormatError('Unknown compression algorithm: ' + repr(compressio_algorithm))
    
     # Save the compressed version, ensuring an unchanged file is not re-saved.
-    # Re-saving the same compressed version may cause its digest to unexpectedly
-    # change (gzip includes a timestamp) even though content has not changed.
+    # Re-saving the same compressed version may cause its digest to
+    # unexpectedly change (gzip includes a timestamp) even though content has
+    # not changed.
     _write_compressed_metadata(file_object, compressed_filename,
                                write_new_metadata, consistent_snapshot)
   return written_filename

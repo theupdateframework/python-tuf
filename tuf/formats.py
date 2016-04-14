@@ -281,12 +281,12 @@ VERSIONINFO_SCHEMA = SCHEMA.Object(
   object_name = 'VERSIONINFO_SCHEMA',
   version = METADATAVERSION_SCHEMA)
 
-# A dict holding the version information for a particular metadata role.  The
-# dict keys hold the relative file paths, and the dict values the corresponding
-# version numbers.
-VERSIONDICT_SCHEMA = SCHEMA.DictOf(
+# A dict holding the version or file information for a particular metadata
+# role.  The dict keys hold the relative file paths, and the dict values the
+# corresponding version numbers or file information.
+FILEINFODICT_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
-  value_schema = VERSIONINFO_SCHEMA)
+  value_schema = SCHEMA.OneOf([VERSIONINFO_SCHEMA, FILEINFO_SCHEMA]))
 
 # A dict holding the information for a particular target / file.  The dict keys
 # hold the relative file paths, and the dict values the corresponding file
@@ -477,7 +477,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Snapshot'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
-  meta = VERSIONDICT_SCHEMA)
+  meta = FILEINFODICT_SCHEMA)
 
 # Timestamp role: indicates the latest version of the snapshot file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
@@ -485,7 +485,7 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Timestamp'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
-  meta = VERSIONDICT_SCHEMA)
+  meta = FILEDICT_SCHEMA)
 
 # project.cfg file: stores information about the project in a json dictionary
 PROJECT_CFG_SCHEMA = SCHEMA.Object(
@@ -573,11 +573,11 @@ class MetaFile(object):
 
 
 class TimestampFile(MetaFile):
-  def __init__(self, version, expires, versiondict):
+  def __init__(self, version, expires, filedict):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
-    self.info['meta'] = versiondict
+    self.info['meta'] = filedict
 
 
   @staticmethod
@@ -588,17 +588,17 @@ class TimestampFile(MetaFile):
 
     version = object['version']
     expires = object['expires']
-    versiondict = object['meta']
+    filedict = object['meta']
     
-    return TimestampFile(version, expires, versiondict)
+    return TimestampFile(version, expires, filedict)
     
     
   @staticmethod
-  def make_metadata(version, expiration_date, versiondict):
+  def make_metadata(version, expiration_date, filedict):
     result = {'_type' : 'Timestamp'}
     result['version'] = version 
     result['expires'] = expiration_date
-    result['meta'] = versiondict
+    result['meta'] = filedict
 
     # Is 'result' a Timestamp metadata file?
     # Raise 'tuf.FormatError' if not.
@@ -1048,7 +1048,7 @@ def make_versioninfo(version_number):
     information of a metadata role.
   """
 
-  versioninfo = {'version' : version_number}
+  versioninfo = {'version': version_number}
 
   # Raise 'tuf.FormatError' if 'versioninfo' is improperly formatted.
   try: 
