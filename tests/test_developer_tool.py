@@ -193,28 +193,22 @@ class TestProject(unittest.TestCase):
     shutil.copytree('repository_data/project', target_project_data_filepath)
 
     # Properly load a project.
-    repo_filepath = os.path.join(local_tmp, 'project', 'test-repo')
-    project = developer_tool.load_project(repo_filepath)
-    
-    self.assertTrue(project.layout_type == 'repo-like')
-
     repo_filepath = os.path.join(local_tmp, 'project', 'test-flat')
     new_targets_path = os.path.join(local_tmp, 'project', 'targets')
     project = developer_tool.load_project(repo_filepath,
         new_targets_location = new_targets_path)
     self.assertTrue(project._targets_directory == new_targets_path)
     self.assertTrue(project.layout_type == 'flat')
-
     
     # Load a project overwriting the prefix.
     project = developer_tool.load_project(repo_filepath, prefix='new')
     self.assertTrue(project._prefix == 'new')
 
     # Load a project with a file missing.
-    file_to_corrupt = os.path.join(repo_filepath, 'test-flat', 'role1.json')
+    file_to_corrupt = os.path.join(repo_filepath, 'test-flat.json')
     with open(file_to_corrupt, 'wt') as fp:
       fp.write('this is not a json file')
-    
+   
     self.assertRaises(tuf.Error, developer_tool.load_project, repo_filepath)
 
     
@@ -230,7 +224,7 @@ class TestProject(unittest.TestCase):
 
     # Add verification key.
     #  - load it first 
-    keystore_path = os.path.join('repository_data','keystore')
+    keystore_path = os.path.join('repository_data', 'keystore')
     first_verification_key_path = os.path.join(keystore_path,'root_key.pub')
     first_verification_key = \
       developer_tool.import_rsa_publickey_from_file(first_verification_key_path)
@@ -239,7 +233,7 @@ class TestProject(unittest.TestCase):
 
 
     # Add another verification key (should expect exception.)
-    second_verification_key_path = os.path.join(keystore_path,'snapshot_key.pub')
+    second_verification_key_path = os.path.join(keystore_path, 'snapshot_key.pub')
     second_verification_key = \
       developer_tool.import_rsa_publickey_from_file(second_verification_key_path)
     
@@ -266,7 +260,7 @@ class TestProject(unittest.TestCase):
     local_tmp = tempfile.mkdtemp(dir=self.tmp_dir)
 
     # Create new project inside tmp directory.
-    project = developer_tool.create_new_project('test_write', local_tmp, 
+    project = developer_tool.create_new_project('new_project', local_tmp, 
         'prefix');
 
     # Create some target files inside the tmp directory.
@@ -373,8 +367,6 @@ class TestProject(unittest.TestCase):
     self.assertEqual(project._prefix, prefix_backup)
     self.assertEqual(project._project_name, name_backup)
 
-    
-
     roleinfo = tuf.roledb.get_roleinfo(project._project_name)
 
     self.assertEqual(roleinfo['partial_loaded'], True)
@@ -383,11 +375,6 @@ class TestProject(unittest.TestCase):
 
     # Load_signing_keys.
     project('delegation').load_signing_key(delegation_private_key)
-
-    project.status()
-
-    project('delegation')('subdelegation').load_signing_key(
-        subdelegation_private_key)
 
     project.status()
 
