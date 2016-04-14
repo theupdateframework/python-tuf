@@ -357,26 +357,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     versioninfo_dict = self.repository_updater.versioninfo
     self.assertEqual(len(versioninfo_dict), 0)
 
-    # Load the versioninfo of the top-level Root role.  This action populates
-    # the 'self.versioninfo' dictionary.
-    self.repository_updater._update_versioninfo('root.json')
+    # Load the versioninfo of the top-level Targets role.  This action
+    # populates the 'self.versioninfo' dictionary.
+    self.repository_updater._update_versioninfo('targets.json')
     self.assertEqual(len(versioninfo_dict), 1)
-    self.assertTrue(tuf.formats.VERSIONDICT_SCHEMA.matches(versioninfo_dict))
+    self.assertTrue(tuf.formats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
    
     # The Snapshot role stores the version numbers of all the roles available
     # on the repository.  Load Snapshot to extract Root's version number
     # and compare it against the one loaded by 'self.repository_updater'.
     snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
     snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
-    root_versioninfo = snapshot_signable['signed']['meta']['root.json'] 
+    targets_versioninfo = snapshot_signable['signed']['meta']['targets.json'] 
    
     # Verify that the manually loaded version number of root.json matches
     # the one loaded by the updater object.
-    self.assertTrue('root.json' in versioninfo_dict)
-    self.assertEqual(versioninfo_dict['root.json'], root_versioninfo)
+    self.assertTrue('targets.json' in versioninfo_dict)
+    self.assertEqual(versioninfo_dict['targets.json'], targets_versioninfo)
 
     # Verify that 'self.versioninfo' is incremented if another role is updated.
-    self.repository_updater._update_versioninfo('targets.json')
+    self.repository_updater._update_versioninfo('role1.json')
     self.assertEqual(len(versioninfo_dict), 2)
 
     # Verify that 'self.versioninfo' is incremented if a non-existent role is
@@ -523,15 +523,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify that the method returns 'False' if a versioninfo was not changed.
     snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
     snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
-    root_versioninfo = snapshot_signable['signed']['meta']['root.json'] 
+    targets_versioninfo = snapshot_signable['signed']['meta']['targets.json'] 
     
-    self.assertFalse(self.repository_updater._versioninfo_has_been_updated('root.json',
-                                                           root_versioninfo))
+    self.assertFalse(self.repository_updater._versioninfo_has_been_updated('targets.json',
+                                                           targets_versioninfo))
 
     # Verify that the method returns 'True' if Root's version number changes.
-    root_versioninfo['version'] = 8 
-    self.assertTrue(self.repository_updater._versioninfo_has_been_updated('root.json',
-                                                           root_versioninfo))
+    targets_versioninfo['version'] = 8 
+    self.assertTrue(self.repository_updater._versioninfo_has_been_updated('targets.json',
+                                                           targets_versioninfo))
 
 
 
