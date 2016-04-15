@@ -447,11 +447,10 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
       
         # Strip the version number if 'consistent_snapshot' is True.  Example:
-        # 'targets/unclaimed/10.django.json'  -->
-        # 'targets/unclaimed/django.json'.  Consistent and non-consistent
-        # metadata might co-exist if write() and
-        # write(consistent_snapshot=True) are mixed, so ensure only
-        # '<version_number>.filename' metadata is stripped.
+        # '10.django.json'  --> 'django.json', or '123456789abcdef.root.json'
+        # --> 'root.json' .  Consistent and non-consistent metadata might
+        # co-exist if write() and write(consistent_snapshot=True) are mixed, so
+        # ensure only '<version_number or hash>.filename' metadata is stripped.
         embedded_version_number = None
         if metadata_name not in snapshot_metadata['meta']: 
           metadata_name, embedded_version_number = \
@@ -507,23 +506,21 @@ def _strip_consistent_snapshot_version_number(metadata_filename,
                                               consistent_snapshot):
   """
   Strip from 'metadata_filename' any version data (in the expected
-  '{dirname}/version_number.filename' format) that it may contain, and return
-  the stripped filename and its version number as a tuple.
-  'consistent_snapshot' is a boolean indicating if 'metadata_filename' contains
-  prepended version number.
+  '{dirname}/rolename.<version_number_or_digest>.<ext>' format) that it may
+  contain, and return the stripped filename and consistent attachment, as a
+  tuple.  'consistent_snapshot' is a boolean indicating if a version number or
+  digest is appended to 'metadata_filename'.
   """
  
-  embedded_version_number = ''
-
-  # Strip the version number if 'consistent_snapshot' is True.
-  # Example:  'targets/unclaimed/10.django.json'  -->
-  # 'targets/unclaimed/django.json'
+  # Strip the version number if 'consistent_snapshot' is True.  Example:
+  # '10.django.json'  --> 'django.json', or '123456789abcdef.root.json' -->
+  # 'root.json'.
   if consistent_snapshot:
-    dirname, basename = os.path.split(metadata_filename)
-    embedded_version_number, basename = basename.split('.', 1)
-    stripped_metadata_filename = os.path.join(dirname, basename)
+    rolename_and_attachment = metadata_filename.split(METADATA_EXTENSION, 1)[0].split('.', 1)
+    rolename = rolename_and_attachment[0]
+    consistent_attachment = rolename_and_attachment[1]
     
-    return stripped_metadata_filename, embedded_version_number
+    return rolename, consistent_attachment
   
   else:
     return metadata_filename, ''
@@ -1970,11 +1967,13 @@ def write_metadata_file(metadata, filename, version_number,
           tuf.util.get_file_details(written_filename, hash_algorithms)
         
         for digest in digests.values():
-          digest_and_filename = str(digest) + '.' + basename
+          basename, file_extension = basename.split(METADATA_EXTENSION, 1)
+          digest_and_filename = basename + '.' + str(digest) + '.' + file_extension
           written_consistent_filename = os.path.join(dirname, digest_and_filename)
       
       else:
-        version_and_filename = str(version_number) + '.' + basename
+        basename, file_extension = basename.split(METADATA_EXTENSION, 1)
+        version_and_filename = basename + '.' + str(version_number) + '.' + file_extension 
         written_consistent_filename = os.path.join(dirname, version_and_filename)
 
       logger.info('Linking ' + repr(written_consistent_filename))
