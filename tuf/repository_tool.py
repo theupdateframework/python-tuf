@@ -2760,9 +2760,9 @@ def load_repository(repository_directory):
   targets_objects = {}
   loaded_metadata = []
   targets_objects['targets'] = repository.targets
-  
+ 
   for metadata_role in os.listdir(metadata_directory):
-    
+
     metadata_path = os.path.join(metadata_directory, metadata_role)
     metadata_name = \
       metadata_path[len(metadata_directory):].lstrip(os.path.sep)

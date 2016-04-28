@@ -263,7 +263,6 @@ class TestRepository(unittest.TestCase):
     role1_roleinfo['threshold'] = old_role1_threshold
     tuf.roledb.update_roleinfo('role1', role1_roleinfo)
 
-
     # Verify status() does not raise 'tuf.UnsignedMetadataError' if any of the
     # the top-level roles and 'role1' are improperly signed.
     repository.root.unload_signing_key(root_privkey)
@@ -272,7 +271,7 @@ class TestRepository(unittest.TestCase):
     repository.targets('role1').load_signing_key(targets_privkey)
     repository.status()
 
-    # Reset Root and 'targets/role1', and verify Targets.
+    # Reset Root and 'role1', and verify Targets.
     repository.root.unload_signing_key(targets_privkey)
     repository.root.load_signing_key(root_privkey)
     repository.targets('role1').unload_signing_key(targets_privkey)

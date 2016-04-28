@@ -513,10 +513,22 @@ def _strip_consistent_snapshot_version_number(metadata_filename,
   """
  
   # Strip the version number if 'consistent_snapshot' is True.  Example:
-  # '10.django.json'  --> 'django.json', or '123456789abcdef.root.json' -->
+  # 'django.10.json'  --> 'django.json', or 'root.123456789abcdef.json' -->
   # 'root.json'.
   if consistent_snapshot:
-    rolename_and_attachment = metadata_filename.split(METADATA_EXTENSION, 1)[0].split('.', 1)
+    expected_extensions = SUPPORTED_COMPRESSION_EXTENSIONS + METADATA_EXTENSIONS 
+    for expected_extension in expected_extensions:
+      if metadata_filename.endswith(expected_extension):
+        metadata_extension = expected_extension
+        break
+      
+      else:
+        continue
+    
+    rolename_and_attachment = metadata_filename.split(metadata_extension, 1)[0].split('.', 1)
+    if len(rolename_and_attachment) != 2:
+      return metadata_filename, ''
+
     rolename = rolename_and_attachment[0]
     consistent_attachment = rolename_and_attachment[1]
     
@@ -617,8 +629,9 @@ def _load_top_level_metadata(repository, top_level_filenames):
     snapshot_hash = random.choice(list(snapshot_hashes.values()))
     
     dirname, basename = os.path.split(snapshot_filename)
-    snapshot_filename = os.path.join(dirname, str(snapshot_hash) + '.' + basename)
- 
+    basename = basename.split(METADATA_EXTENSION, 1)[0]
+    snapshot_filename = os.path.join(dirname, basename + '.' + str(snapshot_hash) + METADATA_EXTENSION)
+
   if os.path.exists(snapshot_filename):
     signable = tuf.util.load_json_file(snapshot_filename)
     tuf.formats.check_signable_object_format(signable)
@@ -1956,6 +1969,7 @@ def write_metadata_file(metadata, filename, version_number,
     # automically closed after the final move.
     file_object.write(file_content)
     logger.debug('Saving ' + repr(written_filename))
+    
     file_object.move(written_filename)
    
     if consistent_snapshot:
@@ -1967,13 +1981,13 @@ def write_metadata_file(metadata, filename, version_number,
           tuf.util.get_file_details(written_filename, hash_algorithms)
         
         for digest in digests.values():
-          basename, file_extension = basename.split(METADATA_EXTENSION, 1)
-          digest_and_filename = basename + '.' + str(digest) + '.' + file_extension
+          basename= basename.split(METADATA_EXTENSION, 1)[0]
+          digest_and_filename = basename + '.' + str(digest) + METADATA_EXTENSION 
           written_consistent_filename = os.path.join(dirname, digest_and_filename)
       
       else:
-        basename, file_extension = basename.split(METADATA_EXTENSION, 1)
-        version_and_filename = basename + '.' + str(version_number) + '.' + file_extension 
+        basename = basename.split(METADATA_EXTENSION, 1)[0]
+        version_and_filename = basename + '.' + str(version_number) + METADATA_EXTENSION 
         written_consistent_filename = os.path.join(dirname, version_and_filename)
 
       logger.info('Linking ' + repr(written_consistent_filename))
@@ -2059,7 +2073,11 @@ def _write_compressed_metadata(file_object, compressed_filename,
     # Attach each digest to the compressed consistent snapshot filename.
     for new_digest in new_digests:
       dirname, basename = os.path.split(compressed_filename)
-      digest_and_filename = new_digest + '.' + basename
+      for compression_extension in SUPPORTED_COMPRESSION_EXTENSIONS:
+        if basename.endswith(compression_extension):
+          basename = basename.split(compression_extension, 1)[0]   
+          digest_and_filename = basename + '.' + new_digest + compression_extension
+      
       consistent_filenames.append(os.path.join(dirname, digest_and_filename))
    
     # Move the 'tuf.util.TempFile' object to one of the filenames so that it is
