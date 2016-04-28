@@ -14,11 +14,11 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Integration test that verifies how a top-level role like Root is updated
-  after all of its keys have been revoked. There are unit tests in
-  'test_repository_tool.py' that verify key and role revocation of specific
-  roles, but these should be expanded to verify key revocations over the span
-  of multiple snapshots of the repository.   
+  Integration test that verifies top-level roles are updated after all of their
+  keys have been revoked. There are unit tests in 'test_repository_tool.py'
+  that verify key and role revocation of specific roles, but these should be
+  expanded to verify key revocations over the span of multiple snapshots of the
+  repository.   
   
   The 'unittest_toolbox.py' module was created to provide additional testing
   tools, such as automatically deleting temporary files created in test cases. 
@@ -54,6 +54,7 @@ import tuf
 import tuf.log
 import tuf.conf
 import tuf.roledb
+import tuf.keydb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
@@ -63,7 +64,7 @@ logger = logging.getLogger('tuf.test_key_revocation')
 repo_tool.disable_console_log_messages()
 
 
-class TestUpdater(unittest_toolbox.Modified_TestCase):
+class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
   @classmethod
   def setUpClass(cls):
@@ -183,44 +184,208 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   # UNIT TESTS.
   def test_timestamp_key_revocation(self):
-    # First verify that the Timestamp role is properly signed.
+    # First verify that the Timestamp role is properly signed.  Calling
+    # refresh() should not raise an exception.
     self.repository_updater.refresh()
-    
 
-    # Verify that the client is able to recognize that a new set of keys have
-    # added to the Timestamp role.
-    
+    # There should only be one key for Timestamp.  Store the keyid to later
+    # verify that it has been revoked.
+    timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp') 
+    timestamp_keyid = timestamp_roleinfo['keyids']
+    self.assertEqual(len(timestamp_keyid), 1)
 
+
+    # Remove 'timestamp_keyid' and add a new key.  Verify that the client
+    # detects removal and addition of keys to the Timestamp role.
     repository = repo_tool.load_repository(self.repository_directory)
+    repository.timestamp.remove_verification_key(self.role_keys['timestamp']['public'])
+    repository.timestamp.add_verification_key(self.role_keys['snapshot']['public'])
     
-    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    # Root, Snapshot, and Timestamp must be rewritten.  Root must be written
+    # because the timestamp key is changed; Snapshot, because  Root has
+    # changed, and ...
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['snapshot']['private'])
     repository.write()
-    
+   
+
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
-  
+    # The client performs a refresh of top-level metadata to get the latest
+    # changes.
+    self.repository_updater.refresh()
+    
+    # Verify that the client is able to recognize that a new set of keys have
+    # been added to the Timestamp role.
+    # First, has 'timestamp_keyid' been removed?
+    timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp') 
+    self.assertTrue(timestamp_keyid not in timestamp_roleinfo['keyids'])
+
+    # Second, is Timestamp's new key correct?  The new key should be Snapshot's.
+
+    self.assertEqual(len(timestamp_roleinfo['keyids']), 1)
+    snapshot_roleinfo = tuf.roledb.get_roleinfo('snapshot')
+    self.assertEqual(timestamp_roleinfo['keyids'], snapshot_roleinfo['keyids']) 
   
   
   
   def test_snapshot_key_revocation(self):
-    pass
+    # First verify that the Snapshot role is properly signed.  Calling
+    # refresh() should not raise an exception.
+    self.repository_updater.refresh()
+
+    # There should only be one key for Snapshot.  Store the keyid to later
+    # verify that it has been revoked.
+    snapshot_roleinfo = tuf.roledb.get_roleinfo('snapshot') 
+    snapshot_keyid = snapshot_roleinfo['keyids']
+    self.assertEqual(len(snapshot_keyid), 1)
+
+
+    # Remove 'snapshot_keyid' and add a new key.  Verify that the client
+    # detects removal and addition of keys to the Snapshot role.
+    repository = repo_tool.load_repository(self.repository_directory)
+    repository.snapshot.remove_verification_key(self.role_keys['snapshot']['public'])
+    repository.snapshot.add_verification_key(self.role_keys['timestamp']['public'])
+    
+    # Root, Snapshot, and Timestamp must be rewritten.  Root must be written
+    # because the timestamp key is changed; Snapshot, because  Root has
+    # changed, and Timesamp, because it must sign its metadata with a new key.
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+    # Note: we added Timetamp's key to the Snapshot role.
+    repository.snapshot.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.write()
+   
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # The client performs a refresh of top-level metadata to get the latest
+    # changes.
+    self.repository_updater.refresh()
+    
+    # Verify that the client is able to recognize that a new set of keys have
+    # been added to the Snapshot role.
+    # First, has 'snapshot_keyid' been removed?
+    snapshot_roleinfo = tuf.roledb.get_roleinfo('snapshot') 
+    self.assertTrue(snapshot_keyid not in snapshot_roleinfo['keyids'])
+
+    # Second, is Snapshot's new key correct?  The new key should be
+    # Timestamp's.
+    self.assertEqual(len(snapshot_roleinfo['keyids']), 1)
+    timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp')
+    self.assertEqual(snapshot_roleinfo['keyids'], timestamp_roleinfo['keyids']) 
 
 
 
 
 
   def test_targets_key_revocation(self):
-    pass
+    # First verify that the Targets role is properly signed.  Calling
+    # refresh() should not raise an exception.
+    self.repository_updater.refresh()
+
+    # There should only be one key for Targets.  Store the keyid to later
+    # verify that it has been revoked.
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets') 
+    targets_keyid = targets_roleinfo['keyids']
+    self.assertEqual(len(targets_keyid), 1)
+
+    # Remove 'targets_keyid' and add a new key.  Verify that the client
+    # detects removal and addition of keys to the Targets role.
+    repository = repo_tool.load_repository(self.repository_directory)
+    repository.targets.remove_verification_key(self.role_keys['targets']['public'])
+    repository.targets.add_verification_key(self.role_keys['timestamp']['public'])
+    
+    # Root, Snapshot, and Timestamp must be rewritten.  Root must be written
+    # because the timestamp key is changed; Snapshot, because  Root has
+    # changed, and Timestamp because it must sign its metadata with a new key.
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+    # Note: we added Timetamp's key to the Targets role.
+    repository.targets.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.write()
+   
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # The client performs a refresh of top-level metadata to get the latest
+    # changes.
+    self.repository_updater.refresh()
+    
+    # Verify that the client is able to recognize that a new set of keys have
+    # been added to the Targets role.
+    # First, has 'targets_keyid' been removed?
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets') 
+    self.assertTrue(targets_keyid not in targets_roleinfo['keyids'])
+
+    # Second, is Targets's new key correct?  The new key should be
+    # Timestamp's.
+    self.assertEqual(len(targets_roleinfo['keyids']), 1)
+    timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp')
+    self.assertEqual(targets_roleinfo['keyids'], timestamp_roleinfo['keyids']) 
   
   
   
  
 
   def test_root_key_revocation(self):
-    pass
+    # First verify that the Root role is properly signed.  Calling
+    # refresh() should not raise an exception.
+    self.repository_updater.refresh()
+
+    # There should only be one key for Root.  Store the keyid to later
+    # verify that it has been revoked.
+    root_roleinfo = tuf.roledb.get_roleinfo('root') 
+    root_keyid = root_roleinfo['keyids']
+    self.assertEqual(len(root_keyid), 1)
+
+    # Remove 'root_keyid' and add a new key.  Verify that the client
+    # detects removal and addition of keys to the Root role.
+    repository = repo_tool.load_repository(self.repository_directory)
+    repository.root.remove_verification_key(self.role_keys['root']['public'])
+    repository.root.add_verification_key(self.role_keys['timestamp']['public'])
+    
+    # Root, Snapshot, and Timestamp must be rewritten.  Root must be written
+    # because the timestamp key is changed; Snapshot, because  Root has
+    # changed, and Timestamp because it must sign its metadata with a new key.
+    repository.root.load_signing_key(self.role_keys['timestamp']['private'])
+    # Note: we added Timetamp's key to the Root role.
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.write()
+   
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # The client performs a refresh of top-level metadata to get the latest
+    # changes.
+    self.repository_updater.refresh()
+    
+    # Verify that the client is able to recognize that a new set of keys have
+    # been added to the Root role.
+    # First, has 'root`_keyid' been removed?
+    root_roleinfo = tuf.roledb.get_roleinfo('root') 
+    self.assertTrue(root_keyid not in root_roleinfo['keyids'])
+
+    # Second, is Root's new key correct?  The new key should be
+    # Timestamp's.
+    self.assertEqual(len(root_roleinfo['keyids']), 1)
+    timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp')
+    self.assertEqual(root_roleinfo['keyids'], timestamp_roleinfo['keyids']) 
  
 
 
