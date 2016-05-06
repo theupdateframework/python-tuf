@@ -1,7 +1,7 @@
                       The Update Framework Specification
 
-14 May 2015
-Version 0.9
+28 April 2016
+Version 1.0
 
 1. Introduction
 
@@ -389,13 +389,16 @@ Version 0.9
    When the targets role delegates trust to other roles, each delegated role
    provides one signed metadata file.  This file is located at:
 
-    /targets/DELEGATED_ROLE.json
+    {repository directory}/DELEGATED_ROLE.json
 
    where DELEGATED_ROLE is the name of the delegated role that has been
    specified in targets.json.  If this role further delegates trust to a role
    named ANOTHER_ROLE, that role's signed metadata file is made available at:
 
-    /targets/DELEGATED_ROLE/ANOTHER_ROLE.json
+    {repository directory}/ANOTHER_ROLE.json
+
+    All metadata that is available on the repository is stored in a flat
+    directory.
 
 4. Document formats
 
@@ -996,6 +999,24 @@ Version 0.9
    To replace a delegated developer key, the role that delegated to that key
    just replaces that key with another in the signed metadata where the
    delegation is done.
+
+6.2. Key revocation and replacement
+   The root role key is critical for security and should very rarely be used.
+   It is primarily used for key revocation, and it is the locus of trust for
+   the repository.  The root role signs for the keys that are authorized for
+   each of the top-level roles (including its own). Keys belonging to the root
+   role are intended to be very well-protected and used with the least
+   frequency of all keys.
+
+   TODO:
+   How does the Root role revoke a key?
+
+   How does the Root role add a new key?
+
+   How does a client recognize that a key has been revoked or added?
+
+   Examples?
+
 
 7. Consistent Snapshots
 

@@ -976,7 +976,11 @@ class Updater(object):
     # metadata.
 
     # Verify the signature on the downloaded metadata object.
+    if metadata_role == 'Root': print('\n' + repr(metadata_signable)) 
+    print('verifying the signatures of: ' + repr(metadata_role))
+    print('Root\'s trusted keyids: ' + repr(tuf.roledb.get_roleinfo('root')['keyids']))
     valid = tuf.sig.verify(metadata_signable, metadata_role)
+    
     if not valid:
       raise tuf.BadSignatureError(metadata_role)
 

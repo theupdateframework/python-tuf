@@ -214,6 +214,7 @@ def get_key(keyid):
   # Return the key belonging to 'keyid', if found in the key database.
   try:
     return copy.deepcopy(_keydb_dict[keyid])
+  
   except KeyError:
     raise tuf.UnknownKeyError('Key: '+keyid)
 

@@ -412,6 +412,14 @@ ROLEDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = ROLENAME_SCHEMA,
   value_schema = ROLE_SCHEMA)
 
+# A dictionary of ROLEDICT, where dictionary keys can be repository names, and
+# dictionary values containing information for each role available on the
+# repository (corresponding to the repository belonging to named repository in
+# the dictionary key)
+ROLEDICTDB_SCHEMA = SCHEMA.DictOf(
+  key_schema = NAME_SCHEMA,
+  value_schema = ROLEDICT_SCHEMA)
+
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 

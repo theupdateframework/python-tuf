@@ -181,7 +181,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
 
 
-
+  """
   # UNIT TESTS.
   def test_timestamp_key_revocation(self):
     # First verify that the Timestamp role is properly signed.  Calling
@@ -196,13 +196,13 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
 
     # Remove 'timestamp_keyid' and add a new key.  Verify that the client
-    # detects removal and addition of keys to the Timestamp role.
+    # detects the removal and addition of keys to the Timestamp role.
     repository = repo_tool.load_repository(self.repository_directory)
     repository.timestamp.remove_verification_key(self.role_keys['timestamp']['public'])
     repository.timestamp.add_verification_key(self.role_keys['snapshot']['public'])
     
     # Root, Snapshot, and Timestamp must be rewritten.  Root must be written
-    # because the timestamp key is changed; Snapshot, because  Root has
+    # because the timestamp key has changed; Snapshot, because  Root has
     # changed, and ...
     repository.root.load_signing_key(self.role_keys['root']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
@@ -246,13 +246,13 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
 
     # Remove 'snapshot_keyid' and add a new key.  Verify that the client
-    # detects removal and addition of keys to the Snapshot role.
+    # detects the removal and addition of keys to the Snapshot role.
     repository = repo_tool.load_repository(self.repository_directory)
     repository.snapshot.remove_verification_key(self.role_keys['snapshot']['public'])
     repository.snapshot.add_verification_key(self.role_keys['timestamp']['public'])
     
     # Root, Snapshot, and Timestamp must be rewritten.  Root must be written
-    # because the timestamp key is changed; Snapshot, because  Root has
+    # because the timestamp key has changed; Snapshot, because  Root has
     # changed, and Timesamp, because it must sign its metadata with a new key.
     repository.root.load_signing_key(self.role_keys['root']['private'])
     # Note: we added Timetamp's key to the Snapshot role.
@@ -298,13 +298,13 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(targets_keyid), 1)
 
     # Remove 'targets_keyid' and add a new key.  Verify that the client
-    # detects removal and addition of keys to the Targets role.
+    # detects the removal and addition of keys to the Targets role.
     repository = repo_tool.load_repository(self.repository_directory)
     repository.targets.remove_verification_key(self.role_keys['targets']['public'])
     repository.targets.add_verification_key(self.role_keys['timestamp']['public'])
     
     # Root, Snapshot, and Timestamp must be rewritten.  Root must be written
-    # because the timestamp key is changed; Snapshot, because  Root has
+    # because the timestamp key has changed; Snapshot, because  Root has
     # changed, and Timestamp because it must sign its metadata with a new key.
     repository.root.load_signing_key(self.role_keys['root']['private'])
     # Note: we added Timetamp's key to the Targets role.
@@ -334,37 +334,72 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(targets_roleinfo['keyids']), 1)
     timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp')
     self.assertEqual(targets_roleinfo['keyids'], timestamp_roleinfo['keyids']) 
-  
-  
+  """ 
   
  
 
   def test_root_key_revocation(self):
     # First verify that the Root role is properly signed.  Calling
     # refresh() should not raise an exception.
-    self.repository_updater.refresh()
-
-    # There should only be one key for Root.  Store the keyid to later
-    # verify that it has been revoked.
-    root_roleinfo = tuf.roledb.get_roleinfo('root') 
+    #print('test_root_key!!')
+    #self.repository_updater.refresh()
+    
+    # There should only be one key for Root.  Store the keyid to later verify
+    # that it has been revoked.
+    rootG_roleinfo = tuf.roledb.get_roleinfo('root') 
+    print('root roleinfo: ' + repr(root_roleinfo))
     root_keyid = root_roleinfo['keyids']
     self.assertEqual(len(root_keyid), 1)
 
-    # Remove 'root_keyid' and add a new key.  Verify that the client
-    # detects removal and addition of keys to the Root role.
+    # Remove 'root_keyid' and add a new key.  Verify that the client detects
+    # the removal and addition of keys to the Root role.
     repository = repo_tool.load_repository(self.repository_directory)
     repository.root.remove_verification_key(self.role_keys['root']['public'])
+    
+    ##repository.root.add_verification_key(self.role_keys['snapshot']['public'])
+    ##repository.root.add_verification_key(self.role_keys['targets']['public'])
     repository.root.add_verification_key(self.role_keys['timestamp']['public'])
     
     # Root, Snapshot, and Timestamp must be rewritten.  Root must be written
-    # because the timestamp key is changed; Snapshot, because  Root has
+    # because the timestamp key has changed; Snapshot, because  Root has
     # changed, and Timestamp because it must sign its metadata with a new key.
+    
+    ##repository.root.load_signing_key(self.role_keys['snapshot']['private'])
+    ##repository.root.load_signing_key(self.role_keys['targets']['private'])
     repository.root.load_signing_key(self.role_keys['timestamp']['private'])
     # Note: we added Timetamp's key to the Root role.
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+ 
+    # Root's version number = 2 after the following write().
     repository.write()
-   
+    print('new repository has been written.')
+    
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+    
+    print('refreshing root..')
+    logger.info('refreshing root....')
+    tuf.
+    self.repository_updater.refresh()
+    print('ending of root refresh...')
+ 
+    """
+    # Revoke the snapshot and targets keys (added to root) so that multiple
+    # snapshots are created.  
+    repository.root.remove_verification_key(self.role_keys['snapshot']['public'])
+    repository.root.unload_signing_key(self.role_keys['snapshot']['private'])
+    
+    # Root's version number = 3...
+    repository.write()
+
+    repository.root.remove_verification_key(self.role_keys['targets']['public'])
+    repository.root.unload_signing_key(self.role_keys['targets']['private'])
+    # Root's version number = 4... 
+    repository.write()
+
 
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -373,12 +408,17 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
     # The client performs a refresh of top-level metadata to get the latest
     # changes.
+    self.assertEqual(self.repository_updater.metadata['current']['root']['version'], 1)
+   
+    logger.info('UPDATING ROOT TO VERSION 4')
     self.repository_updater.refresh()
+    self.assertEqual(self.repository_updater.metadata['current']['root']['version'], 4)
     
     # Verify that the client is able to recognize that a new set of keys have
     # been added to the Root role.
     # First, has 'root`_keyid' been removed?
-    root_roleinfo = tuf.roledb.get_roleinfo('root') 
+    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    print('root roleinfo: ' + repr(root_roleinfo))
     self.assertTrue(root_keyid not in root_roleinfo['keyids'])
 
     # Second, is Root's new key correct?  The new key should be
@@ -386,7 +426,8 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(root_roleinfo['keyids']), 1)
     timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp')
     self.assertEqual(root_roleinfo['keyids'], timestamp_roleinfo['keyids']) 
- 
+    print('end of test root!!')
+    """ 
 
 
 def _load_role_keys(keystore_directory):

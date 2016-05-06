@@ -212,7 +212,7 @@ def verify(signable, role):
     False otherwise.
   """
 
-  # Retrieve the signature status.  tuf.sig.get_signature_status() raises
+  # Retrieve the signature status.  tuf.sig.get_signature_status() raises:
   # tuf.UnknownRoleError
   # tuf.FormatError
   status = get_signature_status(signable, role)
@@ -226,6 +226,7 @@ def verify(signable, role):
   if threshold is None or threshold <= 0:
       raise tuf.Error("Invalid threshold: " + str(threshold))
 
+  if role == 'root': print('\nsignature status for root: ' + repr(status) + '\n') 
   return len(good_sigs) >= threshold
 
 
