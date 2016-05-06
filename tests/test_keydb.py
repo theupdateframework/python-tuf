@@ -58,16 +58,16 @@ class TestKeydb(unittest.TestCase):
   def test_clear_keydb(self):
     # Test condition ensuring 'clear_keydb()' clears the keydb database.
     # Test the length of the keydb before and after adding a key.
-    self.assertEqual(0, len(tuf.keydb._keydb_dict))
+    self.assertEqual(0, len(tuf.keydb._keydb_dict['default']))
     rsakey = KEYS[0]
     keyid = KEYS[0]['keyid']
-    tuf.keydb._keydb_dict[keyid] = rsakey
-    self.assertEqual(1, len(tuf.keydb._keydb_dict))
+    tuf.keydb._keydb_dict['default'][keyid] = rsakey
+    self.assertEqual(1, len(tuf.keydb._keydb_dict['default']))
     tuf.keydb.clear_keydb()
-    self.assertEqual(0, len(tuf.keydb._keydb_dict))
+    self.assertEqual(0, len(tuf.keydb._keydb_dict['default']))
 
     # Test condition for unexpected argument.
-    self.assertRaises(TypeError, tuf.keydb.clear_keydb, 'unexpected_argument')
+    self.assertRaises(TypeError, tuf.keydb.clear_keydb, 'default', 'unexpected_argument')
 
 
 
@@ -75,10 +75,10 @@ class TestKeydb(unittest.TestCase):
     # Test conditions using valid 'keyid' arguments.
     rsakey = KEYS[0]
     keyid = KEYS[0]['keyid']
-    tuf.keydb._keydb_dict[keyid] = rsakey
+    tuf.keydb._keydb_dict['default'][keyid] = rsakey
     rsakey2 = KEYS[1]
     keyid2 = KEYS[1]['keyid']
-    tuf.keydb._keydb_dict[keyid2] = rsakey2
+    tuf.keydb._keydb_dict['default'][keyid2] = rsakey2
     
     self.assertEqual(rsakey, tuf.keydb.get_key(keyid))
     self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))

@@ -15,16 +15,17 @@
   Represent a collection of keys and their organization.  This module ensures
   the layout of the collection remain consistent and easily verifiable.
   Provided are functions to add and delete keys from the database, retrieve a
-  single key, and assemble a collection from keys stored in TUF 'Root' Metadata
-  files. The Update Framework process maintains a single keydb. 
+  single key, and assemble a collection from keys stored in TUF 'Root' Metadata.  
+  The Update Framework process maintains a set of role info for multiple
+  repositories. 
   
-  RSA keys are currently supported and a collection of keys is organized as a 
-  dictionary indexed by key ID.  Key IDs are used as identifiers for keys (e.g.,
-  RSA key).  They are the hexadecimal representations of the hash of key objects
-  (specifically, the key object containing only the public key).  See 'rsa_key.py'
-  and the '_get_keyid()' function to learn precisely how keyids are generated.
-  One may get the keyid of a key object by simply accessing the dictionary's
-  'keyid' key (i.e., rsakey['keyid']).
+  RSA keys are currently supported and a collection of keys is organized as a
+  dictionary indexed by key ID.  Key IDs are used as identifiers for keys
+  (e.g., RSA key).  They are the hexadecimal representations of the hash of key
+  objects (specifically, the key object containing only the public key).  See
+  'rsa_key.py' and the '_get_keyid()' function to learn precisely how keyids
+  are generated.  One may get the keyid of a key object by simply accessing the
+  dictionary's 'keyid' key (i.e., rsakey['keyid']).
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -51,9 +52,10 @@ logger = logging.getLogger('tuf.keydb')
 
 # The key database.
 _keydb_dict = {}
+_keydb_dict['default'] = {}
 
 
-def create_keydb_from_root_metadata(root_metadata):
+def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   """
   <Purpose>
     Populate the key database with the unique keys found in 'root_metadata'.
@@ -68,8 +70,15 @@ def create_keydb_from_root_metadata(root_metadata):
       A dictionary conformant to 'tuf.formats.ROOT_SCHEMA'.  The keys found
       in the 'keys' field of 'root_metadata' are needed by this function.
 
+    repository_name:
+      The name of the repository to store the key information.  If not supplied,
+      the key database is populated for the 'default' repository.
+
   <Exceptions>
     tuf.FormatError, if 'root_metadata' does not have the correct format.
+
+    tuf.InvalidNameError, if 'repository_name' does not exist in the key
+    database.
 
   <Side Effects>
     A function to add the key to the database is called.  In the case of RSA
@@ -86,9 +95,13 @@ def create_keydb_from_root_metadata(root_metadata):
   # and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
   tuf.formats.ROOT_SCHEMA.check_match(root_metadata)
+  
+  # Does 'repository_name' have the correct format?
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Clear the key database.
-  _keydb_dict.clear()
+  if repository_name in _keydb_dict:
+    _keydb_dict[repository_name].clear()
 
   # Iterate the keys found in 'root_metadata' by converting them to
   # 'RSAKEY_SCHEMA' if their type is 'rsa', and then adding them to the
@@ -100,7 +113,7 @@ def create_keydb_from_root_metadata(root_metadata):
       # format, which is the format expected by 'add_key()'.
       key_dict = tuf.keys.format_metadata_to_key(key_metadata)
       try:
-        add_key(key_dict, keyid)
+        add_key(key_dict, keyid, repository_name)
       
       # Although keyid duplicates should *not* occur (unique dict keys), log a
       # warning and continue.
@@ -120,7 +133,7 @@ def create_keydb_from_root_metadata(root_metadata):
 
 
 
-def add_key(key_dict, keyid=None):
+def add_key(key_dict, keyid=None, repository_name='default'):
   """
   <Purpose>
     Add 'rsakey_dict' to the key database while avoiding duplicates.
@@ -140,13 +153,19 @@ def add_key(key_dict, keyid=None):
       An object conformant to 'KEYID_SCHEMA'.  It is used as an identifier
       for RSA keys.
 
+    repository_name:
+      The name of the repository to add the key.  If not supplied, the key is
+      added to the 'default' repository.
+
   <Exceptions>
-    tuf.FormatError, if 'rsakey_dict' or 'keyid' does not have the 
-    correct format.
+    tuf.FormatError, if the arguments do not have the correct format.
 
     tuf.Error, if 'keyid' does not match the keyid for 'rsakey_dict'.
 
     tuf.KeyAlreadyExistsError, if 'rsakey_dict' is found in the key database.
+
+    tuf.InvalidNameError, if 'repository_name' does not exist in the key
+    database.
 
   <Side Effects>
     The keydb key database is modified.
@@ -155,34 +174,42 @@ def add_key(key_dict, keyid=None):
     None.
   """
 
-  # Does 'rsakey_dict' have the correct format?
-  # This check will ensure 'rsakey_dict' has the appropriate number of objects
+  # Does 'key_dict' have the correct format?
+  # This check will ensure 'key_dict' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError if the check fails.
   tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
+
+  # Does 'repository_name' have the correct format?
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'keyid' have the correct format?
   if keyid is not None:
     # Raise 'tuf.FormatError' if the check fails. 
     tuf.formats.KEYID_SCHEMA.check_match(keyid)
 
-    # Check if the keyid found in 'key_dict' matches 'keyid'.
+    # Check if each keyid found in 'key_dict' matches 'keyid'.
     if keyid != key_dict['keyid']:
       raise tuf.Error('Incorrect keyid ' + key_dict['keyid'] + ' expected ' + keyid)
- 
-  # Check if the keyid belonging to 'rsakey_dict' is not already
+
+  # Ensure 'repository_name' is actually set in the key database.
+  if repository_name not in _keydb_dict:
+    raise tuf.InvalidNameError('Repository name does not exist:'
+      ' ' + repr(repository_name))
+
+  # Check if the keyid belonging to 'key_dict' is not already
   # available in the key database before returning.
   keyid = key_dict['keyid']
-  if keyid in _keydb_dict:
+  if keyid in _keydb_dict[repository_name]:
     raise tuf.KeyAlreadyExistsError('Key: '+keyid)
  
-  _keydb_dict[keyid] = copy.deepcopy(key_dict)
+  _keydb_dict[repository_name][keyid] = copy.deepcopy(key_dict)
 
 
 
 
 
-def get_key(keyid):
+def get_key(keyid, repository_name='default'):
   """ 
   <Purpose>
     Return the key belonging to 'keyid'.
@@ -192,10 +219,17 @@ def get_key(keyid):
       An object conformant to 'tuf.formats.KEYID_SCHEMA'.  It is used as an
       identifier for keys.
 
+    repository_name:
+      The name of the repository to get the key.  If not supplied, the key is
+      retrieved from the 'default' repository.
+
   <Exceptions>
-    tuf.FormatError, if 'keyid' does not have the correct format.
+    tuf.FormatError, if the arguments do not have the correct format.
 
     tuf.UnknownKeyError, if 'keyid' is not found in the keydb database.
+
+    tuf.InvalidNameError, if 'repository_name' does not exist in the key
+    database.
 
   <Side Effects>
     None.
@@ -211,18 +245,25 @@ def get_key(keyid):
   # Raise 'tuf.FormatError' is the match fails.
   tuf.formats.KEYID_SCHEMA.check_match(keyid)
 
+  # Does 'repository_name' have the correct format?
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
+  if repository_name not in _keydb_dict:
+    raise tuf.InvalidNameError('Repository name does not exist:'
+      ' ' + repr(repository_name))
+  
   # Return the key belonging to 'keyid', if found in the key database.
   try:
-    return copy.deepcopy(_keydb_dict[keyid])
+    return copy.deepcopy(_keydb_dict[repository_name][keyid])
   
   except KeyError:
-    raise tuf.UnknownKeyError('Key: '+keyid)
+    raise tuf.UnknownKeyError('Key: ' + keyid)
 
 
 
 
 
-def remove_key(keyid):
+def remove_key(keyid, repository_name='default'):
   """ 
   <Purpose>
     Remove the key belonging to 'keyid'.
@@ -232,10 +273,17 @@ def remove_key(keyid):
       An object conformant to 'tuf.formats.KEYID_SCHEMA'.  It is used as an
       identifier for keys.
 
+    repository_name:
+      The name of the repository to remove the key.  If not supplied, the key
+      is removed from the 'default' repository.
+
   <Exceptions>
-    tuf.FormatError, if 'keyid' does not have the correct format.
+    tuf.FormatError, if the arguments do not have the correct format.
 
     tuf.UnknownKeyError, if 'keyid' is not found in key database.
+
+    tuf.InvalidNameError, if 'repository_name' does not exist in the key
+    database.
 
   <Side Effects>
     The key, identified by 'keyid', is deleted from the key database.
@@ -250,26 +298,39 @@ def remove_key(keyid):
   # Raise 'tuf.FormatError' is the match fails.
   tuf.formats.KEYID_SCHEMA.check_match(keyid)
 
+  # Does 'repository_name' have the correct format?
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
+  if repository_name not in _keydb_dict:
+    raise tuf.InvalidNameError('Repository name does not exist:'
+      ' ' + repr(repository_name))
+
   # Remove the key belonging to 'keyid' if found in the key database.
-  if keyid in _keydb_dict: 
-    del _keydb_dict[keyid]
+  if keyid in _keydb_dict[repository_name]: 
+    del _keydb_dict[repository_name][keyid]
+  
   else:
-    raise tuf.UnknownKeyError('Key: '+keyid)
+    raise tuf.UnknownKeyError('Key: ' + keyid)
 
 
 
 
 
-def clear_keydb():
+def clear_keydb(repository_name='default'):
   """
   <Purpose>
     Clear the keydb key database.
 
   <Arguments>
-    None.
+    repository_name:
+      The name of the repository to clear the key database.  If not supplied,
+      the key database is cleared for the 'default' repository.
 
   <Exceptions>
-    None.
+    tuf.FormatError, if 'repository_name' is improperly formatted.
+
+    tuf.InvalidNameError, if 'repository_name' does not exist in the key
+    database.
 
   <Side Effects>
     The keydb key database is reset.
@@ -277,5 +338,13 @@ def clear_keydb():
   <Returns>
     None.
   """
-  
-  _keydb_dict.clear()
+
+  # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError' if
+  # 'repository_name' is improperly formatted.
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+ 
+  if repository_name not in _keydb_dict:
+    raise tuf.InvalidNameError('Repository name does not exist:'
+      ' ' + repr(repository_name))
+
+  _keydb_dict[repository_name] = {}
