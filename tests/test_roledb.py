@@ -58,28 +58,28 @@ class TestRoledb(unittest.TestCase):
   def test_clear_roledb(self):
     # Test for an empty roledb, a length of 1 after adding a key, and finally
     # an empty roledb after calling 'clear_roledb()'.
-    self.assertEqual(0, len(tuf.roledb._roledb_dict))
-    tuf.roledb._roledb_dict['Root'] = {'keyids': ['123'], 'threshold': 1}
-    self.assertEqual(1, len(tuf.roledb._roledb_dict))
+    self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
+    tuf.roledb._roledb_dict['default']['Root'] = {'keyids': ['123'], 'threshold': 1}
+    self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
     tuf.roledb.clear_roledb()
-    self.assertEqual(0, len(tuf.roledb._roledb_dict))
+    self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
 
     # Test condition for unexpected argument.
-    self.assertRaises(TypeError, tuf.roledb.clear_roledb, 'unexpected_argument')
+    self.assertRaises(TypeError, tuf.roledb.clear_roledb, 'default', 'unexpected_argument')
 
 
 
   def test_add_role(self):
     # Test conditions where the arguments are valid.
-    self.assertEqual(0, len(tuf.roledb._roledb_dict)) 
+    self.assertEqual(0, len(tuf.roledb._roledb_dict['default'])) 
     rolename = 'targets'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     rolename2 = 'role1'
     self.assertEqual(None, tuf.roledb.add_role(rolename, roleinfo))
-    self.assertEqual(1, len(tuf.roledb._roledb_dict))
+    self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
     tuf.roledb.clear_roledb()
     self.assertEqual(None, tuf.roledb.add_role(rolename, roleinfo))
-    self.assertEqual(1, len(tuf.roledb._roledb_dict))
+    self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
 
     # Test conditions where the arguments are improperly formatted.
     self.assertRaises(tuf.FormatError, tuf.roledb.add_role, None, roleinfo) 
@@ -354,7 +354,7 @@ class TestRoledb(unittest.TestCase):
                      tuf.roledb.create_roledb_from_root_metadata(root_metadata))
 
     # Ensure only 'root' and 'release' were added to the role database.
-    self.assertEqual(2, len(tuf.roledb._roledb_dict))
+    self.assertEqual(2, len(tuf.roledb._roledb_dict['default']))
     self.assertEqual(True, tuf.roledb.role_exists('root'))
     self.assertEqual(True, tuf.roledb.role_exists('release'))
 
