@@ -200,7 +200,7 @@ def remove_keydb(repository_name):
   if repository_name == 'default':
     raise tuf.InvalidNameError('Cannot remove the default repository:'
       ' ' + repr(repository_name))
-  
+ 
   del _keydb_dict[repository_name]
 
 

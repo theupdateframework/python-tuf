@@ -65,6 +65,10 @@ class TestKeydb(unittest.TestCase):
     tuf.keydb.create_keydb(repository_name)
     self.assertEqual(2, len(tuf.keydb._keydb_dict))
 
+    # Ensure that the key database for 'example_repository' is deleted so that
+    # the key database is returned to its original, default state.
+    tuf.keydb.remove_keydb(repository_name)
+
 
 
   def test_clear_keydb(self):
@@ -125,12 +129,24 @@ class TestKeydb(unittest.TestCase):
     self.assertRaises(tuf.FormatError, tuf.keydb.get_key, ['123'])
     self.assertRaises(tuf.FormatError, tuf.keydb.get_key, {'keyid': '123'})
     self.assertRaises(tuf.FormatError, tuf.keydb.get_key, '')
+    self.assertRaises(tuf.FormatError, tuf.keydb.get_key, keyid, 123)
 
     # Test condition using a 'keyid' that has not been added yet.
     keyid3 = KEYS[2]['keyid']
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3)
 
-    
+    # Test condition for a key added to a non-default repository.
+    repository_name = 'example_repository'
+    rsakey3 = KEYS[2]
+    tuf.keydb.create_keydb(repository_name)
+    tuf.keydb.add_key(rsakey3, keyid3, repository_name)
+
+    # Verify that 'rsakey3' is added to the expected repository name.
+    # If not supplied, the 'default' repository name is searched.
+    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3)
+    self.assertEqual(rsakey3, tuf.keydb.get_key(keyid3, repository_name)) 
+
+
 
   def test_add_key(self):
     # Test conditions using valid 'keyid' arguments.
