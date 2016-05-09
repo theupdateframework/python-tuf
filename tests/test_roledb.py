@@ -55,6 +55,47 @@ class TestRoledb(unittest.TestCase):
 
 
 
+  def test_create_roledb(self):
+    # Verify that a roledb is created for a named repository.
+    self.assertEqual(1, len(tuf.roledb._roledb_dict))
+    self.assertTrue('default' in tuf.roledb._roledb_dict)
+
+    repository_name = 'example_repository'
+    tuf.roledb.create_roledb(repository_name)
+    self.assertEqual(2, len(tuf.roledb._roledb_dict))
+    self.assertTrue(repository_name in tuf.roledb._roledb_dict)
+   
+    # Test for invalid and improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, tuf.roledb.create_roledb, 123)
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.create_roledb, 'default')
+
+    # Reset the roledb so that subsequent test functions have access to the
+    # original, default roledb.
+    tuf.roledb.remove_roledb(repository_name)
+
+
+  def test_remove_roledb(self):
+    # Verify that the named repository is removed from the roledb.
+    repository_name = 'example_repository'
+    
+    rolename = 'targets'
+    roleinfo = {'keyids': ['123'], 'threshold': 1}
+    
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.remove_roledb, 'default') 
+    tuf.roledb.create_roledb(repository_name)
+
+    tuf.roledb.remove_roledb(repository_name)
+    
+    # remove_roledb() should not raise an excepion if a non-existent
+    # 'repository_name' is specified.
+    tuf.roledb.remove_roledb(repository_name) 
+
+    # Ensure the roledb is reset to its original, default state.  Subsequent
+    # test functions expect only the 'default' repository to exist in the roledb.
+    tuf.roledb.remove_roledb(repository_name)
+
+
+
   def test_clear_roledb(self):
     # Test for an empty roledb, a length of 1 after adding a key, and finally
     # an empty roledb after calling 'clear_roledb()'.

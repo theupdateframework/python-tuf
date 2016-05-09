@@ -178,7 +178,7 @@ def create_roledb(repository_name):
 def remove_roledb(repository_name):
   """
   <Purspose>
-    Remove the roledb belong to 'repository_name'.
+    Remove the roledb belonging to 'repository_name'.
 
   <Arguments>
     repository_name:
@@ -201,7 +201,7 @@ def remove_roledb(repository_name):
   # Is 'repository_name' properly formatted?  If not, raise 'tuf.FormatError'.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
 
-  if repository_name not in _roledb_dict:
+  if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     logger.warn('Repository name does not exist:'
       ' ' + repr(repository_name))
     return
@@ -211,8 +211,7 @@ def remove_roledb(repository_name):
       ' ' + repr(repository_name))
 
   del _roledb_dict[repository_name]
-
-
+  del _dirty_roles[repository_name]
 
 
 
