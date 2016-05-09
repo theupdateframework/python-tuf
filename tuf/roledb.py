@@ -137,6 +137,85 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
 
 
 
+def create_roledb(repository_name):
+  """
+  <Purspose>
+    Create a roledb for the repository named 'repository_name'.  This function
+    is intended for creation of a non-default roledb.
+
+  <Arguments>
+    repository_name:
+      The name of the repository to create. An empty roledb is created, and 
+      roles may be added via add_role(rolename, roleinfo, repository_name) or
+      create_roledb_from_root_metadata(root_metadata, repository_name).
+
+  <Exceptions>
+    tuf.FormatError, if 'repository_name' is improperly formatted.
+
+    tuf.InvalidNameError, if 'repository_name' already exists in the roledb.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
+
+  # Is 'repository_name' properly formatted?  If not, raise 'tuf.FormatError'.
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  
+  if repository_name in _roledb_dict or repository_name in _dirty_roles:
+    raise tuf.InvalidNameError('Repository name already exists:'
+      ' ' + repr(repository_name))
+
+  _roledb_dict[repository_name] = {}
+  _dirty_roles[repository_name] = set()
+
+
+
+
+
+def remove_roledb(repository_name):
+  """
+  <Purspose>
+    Remove the roledb belong to 'repository_name'.
+
+  <Arguments>
+    repository_name:
+      The name of the repository to remove.  'repository_name' cannot be
+      'default' because the default repository is expected to always exist.
+
+  <Exceptions>
+    tuf.FormatError, if 'repository_name' is improperly formatted.
+
+    tuf.InvalidNameError, if 'repository_name' is the 'default' repository
+    name.  The 'default' repository name should always exist.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
+
+  # Is 'repository_name' properly formatted?  If not, raise 'tuf.FormatError'.
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
+  if repository_name not in _roledb_dict:
+    logger.warn('Repository name does not exist:'
+      ' ' + repr(repository_name))
+    return
+
+  if repository_name == 'default':
+    raise tuf.InvalidNameError('Cannot remove the default repository:'
+      ' ' + repr(repository_name))
+
+  del _roledb_dict[repository_name]
+
+
+
+
+
 def add_role(rolename, roleinfo, repository_name='default'):
   """
   <Purpose>
