@@ -133,6 +133,79 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
 
 
 
+def create_keydb(repository_name):
+  """
+  <Purpose>
+    Create a key database for a non-default repository named 'repository_name'.
+  
+  <Arguments>
+    repository_name:
+      The name of the repository.  An empty key database is created, and keys
+      may be added to via add_key(keyid, repository_name).
+
+  <Exceptions>
+    tuf.FormatError, if 'repository_name' is improperly formatted.
+    
+    tuf.InvalidNameError, if 'repository_name' already exists.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None. 
+  """
+
+  # Is 'repository_name' properly formatted?  Raise 'tuf.FormatError' if not.
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
+  if repository_name in _keydb_dict:
+    raise tuf.InvalidNameError('Repository name already exists:'
+      ' ' + repr(repository_name))
+  
+  _keydb_dict[repository_name] = {}
+
+
+
+
+
+def remove_keydb(repository_name):
+  """
+  <Purpose>
+    Remove a key database for a non-default repository named 'repository_name'.
+    The 'default' repository cannot be removed.
+  
+  <Arguments>
+    repository_name:
+      The name of the repository to remove.  The 'default' repository should 
+      not be removed, so 'repository_name' cannot be 'default'.
+
+  <Exceptions>
+    tuf.FormatError, if 'repository_name' is improperly formatted.
+
+    tuf.InvalidNameError, if 'repository_name' is 'default'.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None. 
+  """
+
+  # Is 'repository_name' properly formatted?  Raise 'tuf.FormatError' if not.
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
+  if repository_name not in _keydb_dict:
+    logger.warn('Repository name does not exist: ' + repr(repository_name))
+
+  if repository_name == 'default':
+    raise tuf.InvalidNameError('Cannot remove the default repository:'
+      ' ' + repr(repository_name))
+  
+  del _keydb_dict[repository_name]
+
+
+
+
 def add_key(key_dict, keyid=None, repository_name='default'):
   """
   <Purpose>
@@ -317,6 +390,7 @@ def remove_key(keyid, repository_name='default'):
 
 
 def clear_keydb(repository_name='default'):
+
   """
   <Purpose>
     Clear the keydb key database.
