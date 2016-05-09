@@ -71,6 +71,27 @@ class TestKeydb(unittest.TestCase):
 
 
 
+  def test_remove_keydb(self):
+    # Test condition for expected behaviour.
+    rsakey = KEYS[0]
+    keyid = KEYS[0]['keyid']
+    
+    repository_name = 'example_repository'
+    self.assertRaises(tuf.InvalidNameError, tuf.keydb.remove_keydb, 'default')
+   
+    tuf.keydb.create_keydb(repository_name)
+    tuf.keydb.remove_keydb(repository_name)
+
+    # tuf.keydb.remove_keydb() logs a warning if a keydb for a non-existent
+    # repository is specified.
+    tuf.keydb.remove_keydb(repository_name)
+
+    # Test condition for improperly formatted argument, and unexpected argument.
+    self.assertRaises(tuf.FormatError, tuf.keydb.remove_keydb, 123)
+    self.assertRaises(TypeError, tuf.keydb.remove_keydb, rsakey, 123)
+
+
+
   def test_clear_keydb(self):
     # Test condition ensuring 'clear_keydb()' clears the keydb database.
     # Test the length of the keydb before and after adding a key.
@@ -146,6 +167,10 @@ class TestKeydb(unittest.TestCase):
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3)
     self.assertEqual(rsakey3, tuf.keydb.get_key(keyid3, repository_name)) 
 
+    # Remove the 'example_repository' so that other test functions have access
+    # to a default state of the keydb.
+    tuf.keydb.remove_keydb(repository_name)
+
 
 
   def test_add_key(self):
@@ -177,7 +202,8 @@ class TestKeydb(unittest.TestCase):
     self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey, False)
     self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey, ['keyid'])
     self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey3, keyid3)
-    rsakey3['keytype'] = 'rsa' 
+    rsakey3['keytype'] = 'rsa'
+    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey3, keyid3, 123)
     
     # Test conditions where keyid does not match the rsakey.
     self.assertRaises(tuf.Error, tuf.keydb.add_key, rsakey, keyid2)
@@ -188,6 +214,18 @@ class TestKeydb(unittest.TestCase):
     tuf.keydb.add_key(rsakey2, keyid2)
     self.assertRaises(tuf.KeyAlreadyExistsError, tuf.keydb.add_key, rsakey)
     self.assertRaises(tuf.KeyAlreadyExistsError, tuf.keydb.add_key, rsakey2)
+
+    # Test condition for key added to the keydb of a non-default repository.
+    repository_name = 'example_repository'
+    tuf.keydb.create_keydb(repository_name)
+    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3, repository_name)
+    tuf.keydb.add_key(rsakey3, keyid3, repository_name)
+    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3)
+    self.assertEqual(rsakey3, tuf.keydb.get_key(keyid3, repository_name))
+    
+    # Reset the keydb to its original, default state.  Other test functions
+    # expect only the 'default' repository to exist.
+    tuf.keydb.remove_keydb(repository_name)
 
 
   
@@ -216,13 +254,26 @@ class TestKeydb(unittest.TestCase):
     # Test condition for unknown key argument.
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, '1')
 
+    # Test condition for removal of keys from a non-default repository.
+    repository_name = 'example_repository'
+    tuf.keydb.create_keydb(repository_name)
+    tuf.keydb.add_key(rsakey, keyid, repository_name)
+    self.assertRaises(tuf.InvalidNameError, tuf.keydb.remove_key, keyid, 'non-existent')
+    tuf.keydb.remove_key(keyid, repository_name)
+    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, keyid, repository_name)
+    
+    # Reset the keydb so that subsequent test functions use an original, default
+    # keydb.
+    tuf.keydb.remove_keydb(repository_name)
+
     # Test conditions for arguments with invalid formats.
     self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, None)
     self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, '')
     self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, 123)
     self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, ['123'])
+    self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, keyid, 123)
     self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, {'bad': '123'})
-    self.assertRaises(tuf.Error, tuf.keydb.remove_key, rsakey3) 
+    self.assertRaises(tuf.Error, tuf.keydb.remove_key, rsakey3)
 
 
 
@@ -254,6 +305,10 @@ class TestKeydb(unittest.TestCase):
     # Ensure 'keyid' and 'keyid2' were added to the keydb database.
     self.assertEqual(rsakey, tuf.keydb.get_key(keyid))
     self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))
+    
+    # Verify that the keydb is populated for a non-default repository.
+    repository_name = 'example_repository'
+    tuf.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
 
     # Test conditions for arguments with invalid formats.
     self.assertRaises(tuf.FormatError,
@@ -266,6 +321,17 @@ class TestKeydb(unittest.TestCase):
                       tuf.keydb.create_keydb_from_root_metadata, ['123'])
     self.assertRaises(tuf.FormatError,
                       tuf.keydb.create_keydb_from_root_metadata, {'bad': '123'})
+    self.assertRaises(tuf.FormatError,
+                      tuf.keydb.create_keydb_from_root_metadata, root_metadata, 123)
+
+    # Verify that a keydb cannot be created for a non-existent repository name.
+    tuf.keydb.create_keydb_from_root_metadata(root_metadata, 'non-existent')
+
+    # Remove the 'non-existent' and 'example_repository' key database so that
+    # subsequent test functions have access to a default keydb.
+    tuf.keydb.remove_keydb(repository_name)
+    tuf.keydb.remove_keydb('non-existent')
+
 
     # Test conditions for correctly formatted 'root_metadata' arguments but
     # containing incorrect keyids or key types.  In these conditions, the keys

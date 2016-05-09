@@ -99,9 +99,12 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   # Does 'repository_name' have the correct format?
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
 
-  # Clear the key database.
+  # Clear the key database for 'repository_name', or create it if non-existent.
   if repository_name in _keydb_dict:
     _keydb_dict[repository_name].clear()
+
+  else:
+    create_keydb(repository_name)
 
   # Iterate the keys found in 'root_metadata' by converting them to
   # 'RSAKEY_SCHEMA' if their type is 'rsa', and then adding them to the
@@ -196,6 +199,7 @@ def remove_keydb(repository_name):
 
   if repository_name not in _keydb_dict:
     logger.warn('Repository name does not exist: ' + repr(repository_name))
+    return
 
   if repository_name == 'default':
     raise tuf.InvalidNameError('Cannot remove the default repository:'
