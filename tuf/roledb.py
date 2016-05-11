@@ -726,11 +726,11 @@ def get_role_paths(rolename, repository_name='default'):
     A list of paths.
   """
 
-  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
-  _check_rolename(rolename)
-
   # Raise 'tuf.FormatError' if 'repository_name' is improperly formatted.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  
+  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
+  _check_rolename(rolename)
  
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +

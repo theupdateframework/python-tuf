@@ -106,8 +106,25 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.clear_roledb()
     self.assertEqual(0, len(tuf.roledb._roledb_dict['default']))
 
-    # Test condition for unexpected argument.
+    # Verify that the roledb can be cleared for a non-default repository.
+    rolename = 'targets'
+    roleinfo = {'keyids': ['123'], 'threshold': 1}
+    
+    repository_name = 'example_repository'
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
+    tuf.roledb.create_roledb(repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename, repository_name))
+    tuf.roledb.clear_roledb(repository_name)
+    self.assertFalse(tuf.roledb.role_exists(rolename, repository_name))
+
+    # Reset the roledb so that subsequent tests have access to the original, 
+    # default roledb.
+    tuf.roledb.remove_roledb(repository_name)
+
+    # Test condition for invalid and unexpected arguments.
     self.assertRaises(TypeError, tuf.roledb.clear_roledb, 'default', 'unexpected_argument')
+    self.assertRaises(tuf.FormatError, tuf.roledb.clear_roledb, 123)
 
 
 
@@ -250,20 +267,38 @@ class TestRoledb(unittest.TestCase):
   def test_get_rolenames(self):
     # Test conditions where the arguments are valid. 
     rolename = 'targets'
-    rolename2 = 'targets/role1'
+    rolename2 = 'role1'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     self.assertEqual([], tuf.roledb.get_rolenames())
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo)
-    self.assertEqual(set(['targets', 'targets/role1']),
+    self.assertEqual(set(['targets', 'role1']),
                      set(tuf.roledb.get_rolenames()))
+
+    # Verify that rolenames can be retrieved for a role in a non-default
+    # repository.
+    repository_name = 'example_repository'
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_rolenames, repository_name)
+    tuf.roledb.create_roledb(repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    tuf.roledb.add_role(rolename2, roleinfo, repository_name)
+    
+    self.assertEqual(set(['targets', 'role1']),
+                     set(tuf.roledb.get_rolenames()))
+
+    # Reset the roledb so that subsequent tests have access to the original,
+    # default repository.
+    tuf.roledb.remove_roledb(repository_name)
+   
+    # Test for invalid or improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, tuf.roledb.get_rolenames, 123)
 
     
 
   def test_get_role_keyids(self):
     # Test conditions where the arguments are valid. 
     rolename = 'targets'
-    rolename2 = 'targets/role1'
+    rolename2 = 'role1'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
     self.assertRaises(tuf.UnknownRoleError, tuf.roledb.get_role_keyids, rolename)
@@ -274,9 +309,23 @@ class TestRoledb(unittest.TestCase):
     self.assertEqual(set(['456', '789']),
                      set(tuf.roledb.get_role_keyids(rolename2)))
 
+    # Verify that the role keyids can be retrieved for a role in a non-default
+    # repository.
+    repository_name = 'example_repository'
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_role_keyids, 
+                                            rolename, repository_name)
+    tuf.roledb.create_roledb(repository_name) 
+    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    self.assertEqual(['123'], tuf.roledb.get_role_keyids(rolename, repository_name))
+
+    # Reset the roledb so that subsequent tests have access to the original,
+    # default roledb
+    tuf.roledb.remove_roledb(repository_name)
+
     # Test conditions where the arguments are improperly formatted, contain
     # invalid names, or haven't been added to the role database.
-    self._test_rolename(tuf.roledb.get_role_keyids) 
+    self._test_rolename(tuf.roledb.get_role_keyids)
+    self.assertRaises(tuf.FormatError, tuf.roledb.get_role_keyids, rolename, 123)
     
 
 
@@ -326,9 +375,25 @@ class TestRoledb(unittest.TestCase):
     self.assertEqual({}, tuf.roledb.get_role_paths(rolename))
     self.assertEqual(paths, tuf.roledb.get_role_paths(rolename2))
 
+    # Verify that role paths can be queried for roles in non-default
+    # repositories.
+    repository_name = 'example_repository'
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_role_paths,
+                                            rolename, repository_name)
+
+    tuf.roledb.create_roledb(repository_name)
+    tuf.roledb.add_role(rolename2, roleinfo2, repository_name)
+    self.assertEqual(roleinfo2['paths'], tuf.roledb.get_role_paths(rolename2,
+                                         repository_name))
+
+    # Reset the roledb so that subsequent roles have access to the original,
+    # default roledb.
+    tuf.roledb.remove_roledb(repository_name)
+
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
     self._test_rolename(tuf.roledb.get_role_paths)
+    self.assertRaises(tuf.FormatError, tuf.roledb.get_role_paths, rolename, 123)
 
 
 
@@ -381,11 +446,26 @@ class TestRoledb(unittest.TestCase):
     
     self.assertEqual(set([]),
                      set(tuf.roledb.get_delegated_rolenames(rolename4)))
+
+    # Verify that the delegated rolenames of a role in a non-default
+    # repository can be accessed.
+    repository_name = 'example_repository'
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_delegated_rolenames,
+                                           rolename, repository_name)
+    tuf.roledb.create_roledb(repository_name)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    self.assertEqual(set(['django', 'tuf']),
+                     set(tuf.roledb.get_delegated_rolenames(rolename, repository_name)))
+
+    # Reset the roledb so that subsequent tests have access to the original,
+    # default roledb.
+    tuf.roledb.remove_roledb(repository_name)
   
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
     self._test_rolename(tuf.roledb.get_delegated_rolenames)
- 
+    self.assertRaises(tuf.FormatError, tuf.roledb.get_delegated_rolenames, rolename, 123)
+
 
 
   def test_create_roledb_from_root_metadata(self):
