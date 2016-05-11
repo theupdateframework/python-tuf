@@ -262,8 +262,8 @@ class TestKeydb(unittest.TestCase):
     tuf.keydb.remove_key(keyid, repository_name)
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, keyid, repository_name)
     
-    # Reset the keydb so that subsequent test functions use an original, default
-    # keydb.
+    # Reset the keydb so that subsequent tests have access to the original,
+    # default keydb.
     tuf.keydb.remove_keydb(repository_name)
 
     # Test conditions for arguments with invalid formats.
