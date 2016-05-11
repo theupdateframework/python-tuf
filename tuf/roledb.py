@@ -489,13 +489,13 @@ def remove_role(rolename, repository_name='default'):
   <Returns>
     None.
   """
- 
-  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
-  _check_rolename(rolename)
- 
+  
   # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError'
   # if it is improperly formatted.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
+ 
+  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
+  _check_rolename(rolename, repository_name)
   
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
@@ -632,11 +632,11 @@ def get_role_keyids(rolename, repository_name='default'):
     A list of keyids.
   """
   
-  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
-  _check_rolename(rolename)
-
   # Raise 'tuf.FormatError' if 'repository_name' is improperly formatted.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  
+  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
+  _check_rolename(rolename, repository_name)
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
@@ -679,12 +679,11 @@ def get_role_threshold(rolename, repository_name='default'):
   <Returns>
     A threshold integer value.
   """
-
-  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
-  _check_rolename(rolename)
-
   # Raise 'tuf.FormatError' if 'repository_name' is improperly formatted.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
+  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
+  _check_rolename(rolename, repository_name)
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
