@@ -169,7 +169,7 @@ class Updater(object):
       The repository mirrors from which metadata and targets are available.
       Conformant to 'tuf.formats.MIRRORDICT_SCHEMA'.
     
-    self.name:
+    self.updater_name:
       The name of the updater instance.
  
   <Updater Methods>
@@ -285,7 +285,7 @@ class Updater(object):
     tuf.formats.MIRRORDICT_SCHEMA.check_match(repository_mirrors)
    
     # Save the validated arguments.
-    self.name = updater_name
+    self.updater_name = updater_name
     self.mirrors = repository_mirrors
 
     # Store the trusted metadata read from disk.
@@ -319,10 +319,9 @@ class Updater(object):
     
     # Ensure the repository metadata directory has been set.
     if tuf.conf.repository_directory is None:
-      message = 'The TUF update client module must specify the directory' \
-                ' containing the local repository files.' \
-                '  "tuf.conf.repository_directory" MUST be set.'
-      raise tuf.RepositoryError(message)
+      raise tuf.RepositoryError('The TUF update client module must specify the'
+        ' directory containing the local repository files.'
+        '  "tuf.conf.repository_directory" MUST be set.')
 
     # Set the path for the current set of metadata files.  
     repository_directory = tuf.conf.repository_directory
@@ -330,9 +329,10 @@ class Updater(object):
     
     # Ensure the current path is valid/exists before saving it.
     if not os.path.exists(current_path):
-      message = 'Missing ' + repr(current_path) + '.  This path must exist and, ' \
-                'at a minimum, contain the root metadata file.' 
-      raise tuf.RepositoryError(message)
+      raise tuf.RepositoryError('Missing ' + repr(current_path) + '.'
+        '  This path must exist and, at a minimum, contain the Root'
+        ' metadata file.')
+
     self.metadata_directory['current'] = current_path
     
     # Set the path for the previous set of metadata files. 
@@ -340,8 +340,9 @@ class Updater(object):
    
     # Ensure the previous path is valid/exists.
     if not os.path.exists(previous_path):
-      message = 'Missing ' + repr(previous_path) + '.  This path must exist.'
-      raise tuf.RepositoryError(message)
+      raise tuf.RepositoryError('Missing ' + repr(previous_path) + '.'
+        '  This path MUST exist.')
+
     self.metadata_directory['previous'] = previous_path
     
     # Load current and previous metadata.
@@ -352,8 +353,9 @@ class Updater(object):
     # Raise an exception if the repository is missing the required 'root'
     # metadata.
     if 'root' not in self.metadata['current']:
-      message = 'No root of trust! Could not find the "root.json" file.'
-      raise tuf.RepositoryError(message)
+      raise tuf.RepositoryError('No root of trust! Could not find the'
+        ' "root.json" file.')
+
 
 
 
@@ -363,7 +365,7 @@ class Updater(object):
       The string representation of an Updater object.
     """
     
-    return self.name
+    return self.updater_name
 
 
 
@@ -448,10 +450,10 @@ class Updater(object):
     """
     <Purpose>
       Non-public method that rebuilds the key and role databases from the
-      currently trusted 'root' metadata object extracted from 'root.json'.  This
-      private method is called when a new/updated 'root' metadata file is
-      loaded.  This method will only store the role information of the top-level
-      roles (i.e., 'root', 'targets', 'snapshot', 'timestamp').
+      currently trusted 'root' metadata object extracted from 'root.json'.
+      This private method is called when a new/updated 'root' metadata file is
+      loaded.  This method will only store the role information of the
+      top-level roles (i.e., 'root', 'targets', 'snapshot', 'timestamp').
 
     <Arguments>
       None.
@@ -478,8 +480,10 @@ class Updater(object):
     # The metadata files for delegated roles are also not loaded when the
     # repository is first instantiated.  Due to this setup, reloading delegated
     # roles is not required here.
-    tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'])
-    tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'])
+    tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
+                                              self.updater_name)
+    tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
+                                                self.updater_name)
 
 
 
@@ -529,12 +533,12 @@ class Updater(object):
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          tuf.keydb.add_key(key, keyid)
+          tuf.keydb.add_key(key, keyid, self.updater_name)
         
         except tuf.KeyAlreadyExistsError:
           pass
         
-        except (tuf.FormatError, tuf.Error) as e:
+        except (tuf.FormatError, tuf.Error):
           logger.exception('Invalid key for keyid: ' + repr(keyid) + '.')
           logger.error('Aborting role delegation for parent role ' + parent_role + '.')
           raise
@@ -550,9 +554,9 @@ class Updater(object):
         # is None.
         rolename = roleinfo.get('name')
         logger.debug('Adding delegated role: ' + str(rolename) + '.')
-        tuf.roledb.add_role(rolename, roleinfo)
+        tuf.roledb.add_role(rolename, roleinfo, self.updater_name)
       
-      except tuf.RoleAlreadyExistsError as e:
+      except tuf.RoleAlreadyExistsError:
         logger.warning('Role already exists: ' + rolename)
       
       except:
@@ -644,7 +648,7 @@ class Updater(object):
     try: 
       self._ensure_not_expired(root_metadata, 'root')
     
-    except tuf.ExpiredMetadataError as e:
+    except tuf.ExpiredMetadataError:
       # Raise 'tuf.NoWorkingMirrorError' if a valid (not expired, properly
       # signed, and valid metadata) 'root.json' cannot be installed.
       if unsafely_update_root_if_necessary:
@@ -976,10 +980,7 @@ class Updater(object):
     # metadata.
 
     # Verify the signature on the downloaded metadata object.
-    if metadata_role == 'Root': print('\n' + repr(metadata_signable)) 
-    print('verifying the signatures of: ' + repr(metadata_role))
-    print('Root\'s trusted keyids: ' + repr(tuf.roledb.get_roleinfo('root')['keyids']))
-    valid = tuf.sig.verify(metadata_signable, metadata_role)
+    valid = tuf.sig.verify(metadata_signable, metadata_role, self.updater_name)
     
     if not valid:
       raise tuf.BadSignatureError(metadata_role)
@@ -2235,7 +2236,7 @@ class Updater(object):
     # Remove knowledge of the role.
     if metadata_role in self.metadata['current']:
       del self.metadata['current'][metadata_role]
-    tuf.roledb.remove_role(metadata_role)
+    tuf.roledb.remove_role(metadata_role, self.updater_name)
 
 
 
@@ -2336,7 +2337,7 @@ class Updater(object):
     all_targets = self._targets_of_role('targets', skip_refresh=True)
 
     # Fetch the targets of the delegated roles. 
-    for role in tuf.roledb.get_rolenames():
+    for role in tuf.roledb.get_rolenames(self.updater_name):
       if role in ['root', 'snapshot', 'targets', 'timestamp']:
         continue
       
@@ -2466,7 +2467,7 @@ class Updater(object):
 
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
 
-    if not tuf.roledb.role_exists(rolename):
+    if not tuf.roledb.role_exists(rolename, self.updater_name):
       raise tuf.UnknownRoleError(rolename)
 
     # We do not need to worry about the target paths being trusted because
@@ -2536,7 +2537,7 @@ class Updater(object):
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(rolename)
 
-    if not tuf.roledb.role_exists(rolename):
+    if not tuf.roledb.role_exists(rolename, self.updater_name):
       raise tuf.UnknownRoleError(rolename)
     
     self._refresh_targets_metadata(rolename)
@@ -2926,7 +2927,7 @@ class Updater(object):
 
     # Iterate through the rolenames and verify whether the 'previous'
     # directory contains a target no longer found in 'current'.
-    for role in tuf.roledb.get_rolenames():
+    for role in tuf.roledb.get_rolenames(self.updater_name):
       if role.startswith('targets'):
         if role in self.metadata['previous'] and self.metadata['previous'][role] != None:
           for target in self.metadata['previous'][role]['targets']:

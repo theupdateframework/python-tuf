@@ -585,9 +585,12 @@ def get_roleinfo(rolename, repository_name='default'):
   <Returns>
     The roleinfo of 'rolename'.
   """
-  
+ 
+  # Is 'repository_name' properly formatted?  If not, raise 'tuf.FormatError'.
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
-  _check_rolename(rolename)
+  _check_rolename(rolename, repository_name)
   
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +

@@ -49,7 +49,7 @@ import tuf.keydb
 import tuf.roledb
 
 
-def get_signature_status(signable, role=None):
+def get_signature_status(signable, role=None, repository_name='default'):
   """
   <Purpose>
     Return a dictionary representing the status of the signatures listed
@@ -72,10 +72,17 @@ def get_signature_status(signable, role=None):
     role:
       TUF role (e.g., 'root', 'targets', 'snapshot').
 
+    repository_name:
+      The name of the repository to check the signature status.  The roledb
+      keeps a separate set of roles for each repository.  If not supplied, the
+      signature status is verified for the 'role' in the 'default' repository.
+
   <Exceptions>
     tuf.FormatError, if 'signable' does not have the correct format.
 
     tuf.UnknownRoleError, if 'role' is not recognized.
+
+    tuf.InvalidNameError, if 'repository_name' does not exist in the role db.
 
   <Side Effects>
     None.
@@ -85,11 +92,13 @@ def get_signature_status(signable, role=None):
     Conformant to tuf.formats.SIGNATURESTATUS_SCHEMA.
   """
 
-  # Does 'signable' have the correct format?
-  # This check will ensure 'signable' has the appropriate number of objects 
-  # and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Do the arguments have the correct format?  This check will ensure that
+  # arguments have the appropriate number of objects and object types, and that
+  # all dict keys are properly named.  Raise 'tuf.FormatError' if the check
+  # fails.
   tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+  tuf.formats.ROLENAME_SCHEMA.check_match(role)
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
 
   # The signature status dictionary returned.
   signature_status = {}
@@ -121,7 +130,7 @@ def get_signature_status(signable, role=None):
 
     # Identify unrecognized key.
     try:
-      key = tuf.keydb.get_key(keyid)
+      key = tuf.keydb.get_key(keyid, repository_name)
     
     except tuf.UnknownKeyError:
       unknown_sigs.append(keyid)
@@ -140,7 +149,7 @@ def get_signature_status(signable, role=None):
       if role is not None:
         try:
           # Identify unauthorized key. 
-          if keyid not in tuf.roledb.get_role_keyids(role):
+          if keyid not in tuf.roledb.get_role_keyids(role, repository_name):
             untrusted_sigs.append(keyid)
             continue
         
@@ -158,7 +167,7 @@ def get_signature_status(signable, role=None):
   # if we were given an invalid role.
   if role is not None:
     try:
-      threshold = tuf.roledb.get_role_threshold(role)
+      threshold = tuf.roledb.get_role_threshold(role, repository_name)
     
     except tuf.UnknownRoleError:
       raise
@@ -180,7 +189,7 @@ def get_signature_status(signable, role=None):
 
 
 
-def verify(signable, role):
+def verify(signable, role, repository_name='default'):
   """
   <Purpose> 
     Verify whether the authorized signatures of 'signable' meet the minimum
@@ -196,12 +205,21 @@ def verify(signable, role):
     role:
       TUF role (e.g., 'root', 'targets', 'snapshot').
 
+    repository_name:
+      The  name of the repository to verify 'signable'.  The role and key db
+      modules keep track of separate sets of roles and keys for each
+      repository.  If 'repository_name' is not supplied, the 'default'
+      repository is queried.
+
   <Exceptions>
     tuf.UnknownRoleError, if 'role' is not recognized.
 
     tuf.FormatError, if 'signable' is not formatted correctly.
 
     tuf.Error, if an invalid threshold is encountered.
+
+    tuf.InvalidNameError, if 'repository_name' does not exist in either the
+    role or key db.
 
   <Side Effects>
     tuf.sig.get_signature_status() called.  Any exceptions thrown by
@@ -212,10 +230,15 @@ def verify(signable, role):
     False otherwise.
   """
 
+  # Do the arguments have the correct format?  If not, raise 'tuf.FormatError'.
+  tuf.formats.SIGNABLE_SCHEMA.check_match(signable) 
+  tuf.formats.ROLENAME_SCHEMA.check_match(role)
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
   # Retrieve the signature status.  tuf.sig.get_signature_status() raises:
   # tuf.UnknownRoleError
   # tuf.FormatError
-  status = get_signature_status(signable, role)
+  status = get_signature_status(signable, role, repository_name)
   
   # Retrieve the role's threshold and the authorized keys of 'status'
   threshold = status['threshold']
@@ -226,7 +249,6 @@ def verify(signable, role):
   if threshold is None or threshold <= 0:
       raise tuf.Error("Invalid threshold: " + str(threshold))
 
-  if role == 'root': print('\nsignature status for root: ' + repr(status) + '\n') 
   return len(good_sigs) >= threshold
 
 

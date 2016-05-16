@@ -122,7 +122,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Kill the SimpleHTTPServer process.
     if cls.server_process.returncode is None:
-      logger.info('\tServer process '+str(cls.server_process.pid)+' terminated.')
+      logger.info('\tServer process ' + str(cls.server_process.pid) + ' terminated.')
       cls.server_process.kill()
 
 
@@ -178,7 +178,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Creating repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_updater = updater.Updater('test_repository',
+    self.repository_name = 'test_repository'
+    self.repository_updater = updater.Updater(self.repository_name,
                                               self.repository_mirrors)
 
     # Metadata role keys are needed by the test cases to make changes to the
@@ -306,7 +307,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # 'current' or 'previous'.)
     self.assertRaises(tuf.Error,
                       self.repository_updater._load_metadata_from_file,
-                      'bad_metadata_set', 'targets/role1')
+                      'bad_metadata_set', 'role1')
 
 
 
@@ -314,7 +315,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_1__rebuild_key_and_role_db(self):    
     # Setup
-    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     root_metadata = self.repository_updater.metadata['current']['root']
     root_threshold = root_metadata['roles']['root']['threshold']
     number_of_root_keys = len(root_metadata['keys'])
@@ -323,17 +324,17 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Ensure we add 1 to the number of root keys, to include the delegated
     # targets key.  The delegated roles of 'targets.json' are also loaded
     # when the repository object is instantiated.
-    self.assertEqual(number_of_root_keys + 1, len(tuf.keydb._keydb_dict))
+    self.assertEqual(number_of_root_keys + 1, len(tuf.keydb._keydb_dict[self.repository_name]))
 
     # Test: normal case.
     self.repository_updater._rebuild_key_and_role_db()
 
-    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], root_threshold)
     # _rebuild_key_and_role_db() will only rebuild the keys and roles specified
     # in the 'root.json' file, unlike __init__().  Instantiating an updater
     # object calls both _rebuild_key_and_role_db() and _import_delegations().
-    self.assertEqual(number_of_root_keys, len(tuf.keydb._keydb_dict))
+    self.assertEqual(number_of_root_keys, len(tuf.keydb._keydb_dict[self.repository_name]))
    
     # Test: properly updated roledb and keydb dicts if the Root role changes.
     root_metadata = self.repository_updater.metadata['current']['root']
@@ -342,9 +343,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     self.repository_updater._rebuild_key_and_role_db()
     
-    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], 8)
-    self.assertEqual(number_of_root_keys - 1, len(tuf.keydb._keydb_dict))
+    self.assertEqual(number_of_root_keys - 1, len(tuf.keydb._keydb_dict[self.repository_name]))
 
     
 
@@ -448,33 +449,34 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # has to be in Repository.metadata['current'], but it has to be inserted
     # there without using '_load_metadata_from_file()' since it calls
     # '_import_delegations()'.
-    tuf.keydb.clear_keydb()
-    tuf.roledb.clear_roledb()
+    repository_name = self.repository_updater.updater_name
+    tuf.keydb.clear_keydb(repository_name)
+    tuf.roledb.clear_roledb(repository_name)
 
-    self.assertEqual(len(tuf.roledb._roledb_dict), 0)
-    self.assertEqual(len(tuf.keydb._keydb_dict), 0)
+    self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 0)
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 0)
     
     self.repository_updater._rebuild_key_and_role_db()
     
-    self.assertEqual(len(tuf.roledb._roledb_dict), 4)
-    self.assertEqual(len(tuf.keydb._keydb_dict), 4)
+    self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4)
 
     # Test: pass a role without delegations.
     self.repository_updater._import_delegations('root')
 
     # Verify that there was no change in roledb and keydb dictionaries
     # by checking the number of elements in the dictionaries.
-    self.assertEqual(len(tuf.roledb._roledb_dict), 4)       
-    self.assertEqual(len(tuf.keydb._keydb_dict), 4)
+    self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4)
 
     # Test: normal case, first level delegation.
     self.repository_updater._import_delegations('targets')
 
-    self.assertEqual(len(tuf.roledb._roledb_dict), 5)
-    self.assertEqual(len(tuf.keydb._keydb_dict), 5)
+    self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 5)
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 5)
 
     # Verify that roledb dictionary was added.
-    self.assertTrue('role1' in tuf.roledb._roledb_dict)
+    self.assertTrue('role1' in tuf.roledb._roledb_dict[repository_name])
     
     # Verify that keydb dictionary was updated.
     role1_signable = \
@@ -485,7 +487,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       keyids.append(signature['keyid'])
       
     for keyid in keyids:
-      self.assertTrue(keyid in tuf.keydb._keydb_dict)
+      self.assertTrue(keyid in tuf.keydb._keydb_dict[repository_name])
 
     # Verify that _import_delegations() ignores invalid keytypes in the 'keys'
     # field of parent role's 'delegations'
@@ -499,8 +501,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       ['delegations']['keys'][existing_keyid]['keytype'] = 'rsa'
 
     # Verify that _import_delegations() raises an exception if any key in
-    # 'delegations' is improperly formatted (i.e., bad keyid.)
-    tuf.keydb.clear_keydb()
+    # 'delegations' is improperly formatted (i.e., bad keyid).
+    tuf.keydb.clear_keydb(repository_name)
     self.repository_updater.metadata['current']['targets']\
       ['delegations']['keys'][existing_keyid]['keyid'] = '123'
     
@@ -627,6 +629,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: normal case.
     # Verify 'timestamp.json' is properly installed.
     self.assertFalse('timestamp' in self.repository_updater.metadata)
+    
+    logger.info('\nroleinfo: ' + repr(tuf.roledb.get_rolenames(self.repository_name)))
     self.repository_updater._update_metadata('timestamp',
                                              DEFAULT_TIMESTAMP_FILELENGTH)
     self.assertTrue('timestamp' in self.repository_updater.metadata['current'])
