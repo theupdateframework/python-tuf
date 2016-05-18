@@ -528,13 +528,16 @@ class Updater(object):
     # Iterate the keys of the delegated roles of 'parent_role' and load them.
     for keyid, keyinfo in six.iteritems(keys_info):
       if keyinfo['keytype'] in ['rsa', 'ed25519']:
-        key = tuf.keys.format_metadata_to_key(keyinfo)
+        key, keyids = tuf.keys.format_metadata_to_key(keyinfo)
       
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
           tuf.keydb.add_key(key, keyid, self.updater_name)
-        
+          for keyid in keyids:
+            key['keyid'] = keyid
+            tuf.keydb.add_key(key, keyid=None, repository_name=self.updater_name)
+
         except tuf.KeyAlreadyExistsError:
           pass
         

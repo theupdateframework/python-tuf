@@ -229,6 +229,7 @@ ANYKEY_SCHEMA = SCHEMA.Object(
   object_name = 'ANYKEY_SCHEMA',
   keytype = KEYTYPE_SCHEMA,
   keyid = KEYID_SCHEMA,
+  keyid_hash_algorithms = SCHEMA.Optional(HASHALGORITHMS_SCHEMA),
   keyval = KEYVAL_SCHEMA)
 
 # A list of TUF key objects.
@@ -239,6 +240,7 @@ RSAKEY_SCHEMA = SCHEMA.Object(
   object_name = 'RSAKEY_SCHEMA',
   keytype = SCHEMA.String('rsa'),
   keyid = KEYID_SCHEMA,
+  keyid_hash_algorithms = SCHEMA.Optional(HASHALGORITHMS_SCHEMA),
   keyval = KEYVAL_SCHEMA)
 
 # An ED25519 raw public key, which must be 32 bytes.

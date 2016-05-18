@@ -693,7 +693,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
 
     # Add the keys specified in the delegations field of the Targets role.
     for key_metadata in six.itervalues(targets_metadata['delegations']['keys']):
-      key_object = tuf.keys.format_metadata_to_key(key_metadata)
+      key_object, keyids = tuf.keys.format_metadata_to_key(key_metadata)
      
       # Add 'key_object' to the list of recognized keys.  Keys may be shared,
       # so do not raise an exception if 'key_object' has already been loaded.
@@ -703,8 +703,11 @@ def _load_top_level_metadata(repository, top_level_filenames):
       # key when it was added.
       try: 
         tuf.keydb.add_key(key_object)
-      
-      except tuf.KeyAlreadyExistsError as e:
+        for keyid in keyids:
+          key_object['keyid'] = keyid
+          tuf.keydb.add_key(key_object, keyid=None)
+
+      except tuf.KeyAlreadyExistsError:
         pass
 
     for role in targets_metadata['delegations']['roles']:

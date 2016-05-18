@@ -120,9 +120,20 @@ ED25519_CRYPTO_LIBRARY = 'ed25519'
 # 'pyca-cryptography']
 GENERAL_CRYPTO_LIBRARY = 'pyca-cryptography'
 
+# The Root and Targets roles specify the public keys of either the top-level
+# roles (by Root) or roles that they delegate trust (by Targets roles).  By
+# default, a single key ID is generated for each public key, with the option of
+# supporting multiple hash algorithms via the REPOSITORY_HASH_ALGORITHM
+# configuration.  When multiple hash algorithms (and thus multiple key IDs)
+# are used, the "keys" field lists one single key ID
+# (generated with DEFAULT_HASH_ALGORITHM) for each unique key, and also lists 
+# the recognized hash algorithms.  For example:
+# {keyid: '1234abc', "keyid_multihash_algorithms": 'sha256', 'sha512', ...}
+DEFAULT_HASH_ALGORITHM = 'sha256'
+
 # The algorithm(s) in REPOSITORY_HASH_ALGORITHMS are chosen by the repository
-# tool to generate the digests listed in metadata and prepended to the
-# filenames of consistent snapshots.
+# tool to generate the digests listed in metadata, prepended to the
+# filenames of consistent snapshots, or used to generate key IDs.
 REPOSITORY_HASH_ALGORITHMS = ['sha256']
 
 # Software updaters that integrate the framework are required to specify

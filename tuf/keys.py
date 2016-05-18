@@ -43,7 +43,7 @@
   hexadecimal representation of the hash of the key object (specifically, the
   key object containing only the public key).  Review the '_get_keyid()'
   function of this module to see precisely how keyids are generated.  One may
-  get the keyid of a key object by simply accessing the dictionary's 'keyid'
+  get the key ID of a key object by simply accessing the dictionary's 'keyid'
   key (i.e., rsakey['keyid']).
  """
 
@@ -140,8 +140,9 @@ import tuf.hash
 # Perform format checks of argument objects.
 import tuf.formats
 
-# The hash algorithm to use in the generation of keyids.
-_KEY_ID_HASH_ALGORITHM = 'sha256'
+# The hash algorithm used in the generation of the key ID for each unique key.
+# If multiple  
+_KEY_ID_HASH_ALGORITHM = tuf.conf.DEFAULT_HASH_ALGORITHM 
 
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
@@ -466,7 +467,7 @@ def format_metadata_to_key(key_metadata):
     >>> keytype = ed25519_key['keytype']
     >>> ed25519_metadata = \
     format_keyval_to_metadata(keytype, key_val, private=True)
-    >>> ed25519_key_2 = format_metadata_to_key(ed25519_metadata)
+    >>> ed25519_key_2, junk = format_metadata_to_key(ed25519_metadata)
     >>> tuf.formats.ED25519KEY_SCHEMA.matches(ed25519_key_2)
     True
     >>> ed25519_key == ed25519_key_2
@@ -507,19 +508,27 @@ def format_metadata_to_key(key_metadata):
   # Convert 'key_value' to 'tuf.formats.KEY_SCHEMA' and generate its hash
   # The hash is in hexdigest form. 
   keyid = _get_keyid(keytype, key_value)
+  keyids = set()
+  keyids.add(keyid)
+  
+  for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
+    keyid = _get_keyid(keytype, key_value, hash_algorithm)
+    keyids.add(keyid)
 
   # All the required key values gathered.  Build 'key_dict'.
+  # 'keyid_hash_algorithms' 
   key_dict['keytype'] = keytype
   key_dict['keyid'] = keyid
+  key_dict['keyid_hash_algorithms'] = tuf.conf.REPOSITORY_HASH_ALGORITHMS
   key_dict['keyval'] = key_value
 
-  return key_dict
+  return key_dict, keyids
 
 
 
 
 
-def _get_keyid(keytype, key_value):
+def _get_keyid(keytype, key_value, hash_algorithm=_KEY_ID_HASH_ALGORITHM):
   """Return the keyid of 'key_value'."""
 
   # 'keyid' will be generated from an object conformant to KEY_SCHEMA,
@@ -531,9 +540,10 @@ def _get_keyid(keytype, key_value):
   # to digest objects.
   key_update_data = tuf.formats.encode_canonical(key_meta)
 
-  # Create a digest object and call update(), using the JSON 
-  # canonical format of 'rskey_meta' as the update data.
-  digest_object = tuf.hash.digest(_KEY_ID_HASH_ALGORITHM)
+  # Create a digest object and call update(), using the JSON canonical format
+  # of 'rskey_meta' as the update data.  _KEY_ID_HASH_ALGORITHM should be the
+  # default hash algorithm used to generate the key ID of a unique key. 
+  digest_object = tuf.hash.digest(hash_algorithm)
   digest_object.update(key_update_data.encode('utf-8'))
 
   # 'keyid' becomes the hexadecimal representation of the hash.  

@@ -133,7 +133,7 @@ class TestKeys(unittest.TestCase):
     keyid = self.rsakey_dict['keyid']
     del self.rsakey_dict['keyid']
 
-    rsakey_dict_from_meta = KEYS.format_metadata_to_key(self.rsakey_dict) 
+    rsakey_dict_from_meta, junk = KEYS.format_metadata_to_key(self.rsakey_dict) 
 
     # Check if the format of the object returned by this function corresponds
     # to RSAKEY_SCHEMA format.
