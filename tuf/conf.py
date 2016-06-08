@@ -134,7 +134,7 @@ DEFAULT_HASH_ALGORITHM = 'sha256'
 # The algorithm(s) in REPOSITORY_HASH_ALGORITHMS are chosen by the repository
 # tool to generate the digests listed in metadata, prepended to the
 # filenames of consistent snapshots, or used to generate key IDs.
-REPOSITORY_HASH_ALGORITHMS = ['sha256']
+REPOSITORY_HASH_ALGORITHMS = ['sha256', 'sha512']
 
 # Software updaters that integrate the framework are required to specify
 # the URL prefix for the mirrors that clients can contact to download updates.

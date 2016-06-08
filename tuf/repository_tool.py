@@ -308,8 +308,8 @@ class Repository(object):
   def write_partial(self):
     """
     <Purpose>
-      Write all the JSON Metadata objects to their corresponding files, but
-      allow metadata files to contain an invalid threshold of signatures.  
+      Write all the JSON metadata to their corresponding files, but allow
+      metadata files to contain an invalid threshold of signatures.  
     
     <Arguments>
       None.

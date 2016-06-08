@@ -222,9 +222,8 @@ KEY_SCHEMA = SCHEMA.Object(
   keytype = SCHEMA.AnyString(),
   keyval = KEYVAL_SCHEMA)
 
-# A TUF key object.  This schema simplifies validation of keys that may be
-# one of the supported key types.
-# Supported key types: 'rsa', 'ed25519'.
+# A TUF key object.  This schema simplifies validation of keys that may be one
+# of the supported key types.  Supported key types: 'rsa', 'ed25519'.
 ANYKEY_SCHEMA = SCHEMA.Object(
   object_name = 'ANYKEY_SCHEMA',
   keytype = KEYTYPE_SCHEMA,
@@ -343,7 +342,8 @@ SIGNABLE_SCHEMA = SCHEMA.Object(
   signed = SCHEMA.Any(),
   signatures = SCHEMA.ListOf(SIGNATURE_SCHEMA))
 
-# A dict where the dict keys hold a keyid and the dict values a key object.
+# A dictionary where the dict keys hold a keyid and the dict values a key
+# object.
 KEYDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = KEYID_SCHEMA,
   value_schema = KEY_SCHEMA)

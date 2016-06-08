@@ -56,32 +56,28 @@ if options.should_generate_keys and not options.dry_run:
   # Generate public and private key files for the top-level roles, and two
   # delegated roles (these number of keys should be sufficient for most of the
   # unit tests).  Unit tests may generate additional keys, if needed.
-  generate_and_write_rsa_keypair(root_key_file, bits=2048, password='password')
-  generate_and_write_rsa_keypair(targets_key_file, bits=2048,
-      password='password')
-  generate_and_write_rsa_keypair(snapshot_key_file, bits=2048,
-      password='password')
-  generate_and_write_rsa_keypair(timestamp_key_file, bits=2048,
-      password='password')
-  generate_and_write_rsa_keypair(delegation_key_file, bits=2048,
-      password='password')
+  generate_and_write_ed25519_keypair(root_key_file, password='password')
+  generate_and_write_ed25519_keypair(targets_key_file, password='password')
+  generate_and_write_ed25519_keypair(snapshot_key_file, password='password')
+  generate_and_write_ed25519_keypair(timestamp_key_file, password='password')
+  generate_and_write_ed25519_keypair(delegation_key_file, password='password')
 
 # Import the public keys.  These keys are needed so that metadata roles are
 # assigned verification keys, which clients use to verify the signatures created
 # by the corresponding private keys.
-root_public = import_rsa_publickey_from_file(root_key_file+'.pub')
-targets_public = import_rsa_publickey_from_file(targets_key_file+'.pub')
-snapshot_public = import_rsa_publickey_from_file(snapshot_key_file+'.pub')
-timestamp_public = import_rsa_publickey_from_file(timestamp_key_file+'.pub')
-delegation_public = import_rsa_publickey_from_file(delegation_key_file+'.pub')
+root_public = import_ed25519_publickey_from_file(root_key_file + '.pub')
+targets_public = import_ed25519_publickey_from_file(targets_key_file + '.pub')
+snapshot_public = import_ed25519_publickey_from_file(snapshot_key_file + '.pub')
+timestamp_public = import_ed25519_publickey_from_file(timestamp_key_file + '.pub')
+delegation_public = import_ed25519_publickey_from_file(delegation_key_file + '.pub')
 
 # Import the private keys.  These private keys are needed to generate the
 # signatures included in metadata.
-root_private = import_rsa_privatekey_from_file(root_key_file, 'password')
-targets_private = import_rsa_privatekey_from_file(targets_key_file, 'password')
-snapshot_private = import_rsa_privatekey_from_file(snapshot_key_file, 'password')
-timestamp_private = import_rsa_privatekey_from_file(timestamp_key_file, 'password')
-delegation_private = import_rsa_privatekey_from_file(delegation_key_file, 'password')
+root_private = import_ed25519_privatekey_from_file(root_key_file, 'password')
+targets_private = import_ed25519_privatekey_from_file(targets_key_file, 'password')
+snapshot_private = import_ed25519_privatekey_from_file(snapshot_key_file, 'password')
+timestamp_private = import_ed25519_privatekey_from_file(timestamp_key_file, 'password')
+delegation_private = import_ed25519_privatekey_from_file(delegation_key_file, 'password')
 
 # Add the verification keys to the top-level roles.
 repository.root.add_verification_key(root_public)
@@ -123,6 +119,11 @@ file_permissions = {'file_permissions': octal_file_permissions}
 repository.targets.add_target(target1_filepath, file_permissions)
 repository.targets.add_target(target2_filepath)
 
+print('delegation public: ' + repr(delegation_public['keyid']))
+print('targets public: ' + repr(targets_public['keyid']))
+print('root public: ' + repr(root_public['keyid']))
+print('timestamp public: ' + repr(timestamp_public['keyid']))
+print('snapshot public: ' + repr(snapshot_public['keyid']))
 repository.targets.delegate('role1', [delegation_public], [target3_filepath])
 repository.targets('role1').load_signing_key(delegation_private)
 
@@ -133,7 +134,7 @@ repository.root.expiration = datetime.datetime(2030, 1, 1, 0, 0)
 repository.targets.expiration = datetime.datetime(2030, 1, 1, 0, 0)
 repository.snapshot.expiration = datetime.datetime(2030, 1, 1, 0, 0)
 repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 0, 0)
-repository.targets('role1').expiration = datetime.datetime(2030, 1, 1, 0, 0)
+#repository.targets('role1').expiration = datetime.datetime(2030, 1, 1, 0, 0)
 
 # Compress the top-level role metadata so that the unit tests have a
 # pre-generated example of compressed metadata.
@@ -143,6 +144,7 @@ repository.snapshot.compressions = ['gz']
 repository.timestamp.compressions = ['gz']
 
 # Create the actual metadata files, which are saved to 'metadata.staged'. 
+repository.status()
 if not options.dry_run:
   repository.write()
 

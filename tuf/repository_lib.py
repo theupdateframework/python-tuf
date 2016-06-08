@@ -220,6 +220,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # 'signable' contains an invalid threshold of signatures. 
   else:
     message = 'Not enough signatures for ' + repr(metadata_filename)
+    print('role keyids:\n' + repr(tuf.roledb.get_role_keyids(rolename)))
+    #if rolename == 'role1': print('signable:\n' + repr(signable))
     raise tuf.UnsignedMetadataError(message, signable)
   
   return signable, filename
@@ -957,13 +959,13 @@ def import_rsa_publickey_from_file(filepath):
 def generate_and_write_ed25519_keypair(filepath, password=None):
   """
   <Purpose>
-    Generate an ED25519 key file, create an encrypted TUF key (using 'password'
+    Generate an Ed25519 key file, create an encrypted TUF key (using 'password'
     as the pass phrase), and store it in 'filepath'.  The public key portion of
     the generated ED25519 key is stored in <'filepath'>.pub.  Which cryptography
     library performs the cryptographic decryption is determined by the string
     set in 'tuf.conf.ED25519_CRYPTO_LIBRARY'.
     
-    PyCrypto currently supported.  The ED25519 private key is encrypted with
+    PyCrypto currently supported.  The Ed25519 private key is encrypted with
     AES-256 and CTR the mode of operation.  The password is strengthened with
     PBKDF2-HMAC-SHA256.
 
@@ -1019,6 +1021,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   keyval = ed25519_key['keyval']
   ed25519key_metadata_format = \
     tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
+  print('ed25519key_metadata_format: ' + repr(ed25519key_metadata_format))
   
   # Write the public key, conformant to 'tuf.formats.KEY_SCHEMA', to
   # '<filepath>.pub'.
@@ -1076,7 +1079,7 @@ def import_ed25519_publickey_from_file(filepath):
   # loaded key object in tuf.formats.ED25519KEY_SCHEMA' format that also
   # includes the keyid.
   ed25519_key_metadata = tuf.util.load_json_file(filepath)
-  ed25519_key = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
+  ed25519_key, junk = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
   
   # Raise an exception if an unexpected key type is imported.
   # Redundant validation of 'keytype'.  'tuf.keys.format_metadata_to_key()'
