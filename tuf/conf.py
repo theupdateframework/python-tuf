@@ -142,3 +142,7 @@ REPOSITORY_HASH_ALGORITHMS = ['sha256', 'sha512']
 # the ['http', 'https'] URI schemes are supported, but may be modified by
 # integrators to schemes that they wish to support for their integration.
 SUPPORTED_URI_SCHEMES = ['http', 'https']
+
+# By default, limit number of delegatees we visit for any target.
+MAX_NUMBER_OF_DELEGATIONS = 2**5
+

@@ -456,7 +456,7 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         embedded_version_number = None
         if metadata_name not in snapshot_metadata['meta']: 
           metadata_name, embedded_version_number = \
-            _strip_consistent_snapshot_version_number(metadata_name, consistent_snapshot)
+            _strip_version_number_or_digest(metadata_name, consistent_snapshot)
         
         # Strip filename extensions.  The role database does not include the
         # metadata extension.
@@ -504,41 +504,28 @@ def _get_written_metadata(metadata_signable):
 
 
 
-def _strip_consistent_snapshot_version_number(metadata_filename,
+def _strip_version_number_or_digest(metadata_filename,
                                               consistent_snapshot):
   """
-  Strip from 'metadata_filename' any version data (in the expected
-  '{dirname}/rolename.<version_number_or_digest>.<ext>' format) that it may
-  contain, and return the stripped filename and consistent attachment, as a
-  tuple.  'consistent_snapshot' is a boolean indicating if a version number or
-  digest is appended to 'metadata_filename'.
+  Strip from 'metadata_filename' any version / digest information (in the
+  expected '{dirname}/<version_number_or_digest>.rolename.<ext>' format) that
+  it may contain, and return the stripped filename and consistent attachment,
+  as a tuple.  'consistent_snapshot' is a boolean indicating if a version
+  number or digest is appended to 'metadata_filename'.
   """
  
-  # Strip the version number if 'consistent_snapshot' is True.  Example:
-  # 'django.10.json'  --> 'django.json', or 'root.123456789abcdef.json' -->
-  # 'root.json'.
+  # Strip the version number or digest if 'consistent_snapshot' is True.
+  # Example: '10.django.json'  --> 'django.json', or
+  # '123456789abcdef.root.json' --> 'root.json'.
   if consistent_snapshot:
-    expected_extensions = SUPPORTED_COMPRESSION_EXTENSIONS + METADATA_EXTENSIONS 
-    for expected_extension in expected_extensions:
-      if metadata_filename.endswith(expected_extension):
-        metadata_extension = expected_extension
-        break
-      
-      else:
-        continue
-    
-    rolename_and_attachment = metadata_filename.split(metadata_extension, 1)[0].split('.', 1)
-    if len(rolename_and_attachment) != 2:
-      return metadata_filename, ''
-
-    rolename = rolename_and_attachment[0]
-    consistent_attachment = rolename_and_attachment[1]
-    
-    return rolename, consistent_attachment
-  
+   dirname, basename = os.path.split(metadata_filename)
+   consistent_attachment, basename = basename.split('.', 1)
+   stripped_metadata_filename = os.path.join(dirname, basename)
+                 
+   return stripped_metadata_filename, embedded_version_number
+                       
   else:
-    return metadata_filename, ''
-
+   return metadata_filename, ''
 
 
 
@@ -1694,7 +1681,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
     # Strip the version number if 'consistent_snapshot' is True.
     # Example:  '10.django.json'  --> 'django.json'
     metadata_name, version_number_junk = \
-      _strip_consistent_snapshot_version_number(metadata_filename, consistent_snapshot)
+      _strip_version_number_or_digest(metadata_filename, consistent_snapshot)
     
     # All delegated roles are added to the snapshot file.
     for metadata_extension in METADATA_EXTENSIONS: 
