@@ -2644,14 +2644,15 @@ class Updater(object):
     # the top-level metadata have been refreshed (i.e., updater.refresh()).
     self._update_metadata_if_changed('targets')
 
-    # Preorder depth-first traversal of the tree of target delegations.
+    # Preorder depth-first traversal of the graph of target delegations.
     while target is None and number_of_delegations > 0 and len(role_names) > 0:
 
       # Pop the role name from the top of the stack.
       role_name = role_names.pop(-1)
-      # Skip any visited current role.
+      
+      # Skip any visited current role to prevent cycles.
       if role_name in visited_role_names:
-        logger.debug('Skipping visited current role '+repr(role_name))
+        logger.debug('Skipping visited current role ' + repr(role_name))
         continue
 
       # The metadata for 'role_name' must be downloaded/updated before its
@@ -2670,6 +2671,7 @@ class Updater(object):
                                                   target_filepath)
       # After preorder check, add current role to set of visited roles.
       visited_role_names.add(role_name)
+      
       # And also decrement number of visited roles.
       number_of_delegations -= 1
 
@@ -2704,9 +2706,9 @@ class Updater(object):
         logger.debug('Found target in current role ' + repr(role_name))
 
     if target is None and number_of_delegations == 0 and len(role_names) > 0:
-      logger.debug(repr(len(role_names))+' roles left to visit, '+
-                   'but allowed to visit at most '+
-                   repr(tuf.conf.MAX_NUMBER_OF_DELEGATIONS)+' delegations.')
+      logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
+                   'but allowed to visit at most ' +
+                   repr(tuf.conf.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
     return target
 
