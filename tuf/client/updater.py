@@ -2456,26 +2456,32 @@ class Updater(object):
     target = None
     current_metadata = self.metadata['current']
     role_names = ['targets']
+    visited_role_names = set()
+    number_of_delegations = tuf.conf.MAX_NUMBER_OF_DELEGATIONS
 
     # Ensure the client has the most up-to-date version of 'targets.json'.
     # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be
     # successfully downloaded and 'tuf.RepositoryError' if the referenced
-    # metadata is missing.  Target methods such as this one are called after the
-    # top-level metadata have been refreshed (i.e., updater.refresh()).
+    # metadata is missing.  Target methods such as this one are called after
+    # the top-level metadata have been refreshed (i.e., updater.refresh()).
     self._update_metadata_if_changed('targets')
 
     # Preorder depth-first traversal of the tree of target delegations.
-    while len(role_names) > 0 and target is None:
+    while target is None and number_of_delegations > 0 and len(role_names) > 0:
 
       # Pop the role name from the top of the stack.
       role_name = role_names.pop(-1)
+      # Skip any visited current role.
+      if role_name in visited_role_names:
+        logger.debug('Skipping visited current role '+repr(role_name))
+        continue
 
-      # The metadata for 'role_name' must be downloaded/updated before
-      # its targets, delegations, and child roles can be inspected.
+      # The metadata for 'role_name' must be downloaded/updated before its
+      # targets, delegations, and child roles can be inspected.
       # self.metadata['current'][role_name] is currently missing.
-      # _refresh_targets_metadata() does not refresh 'targets.json', it
-      # expects _update_metadata_if_changed() to have already refreshed it,
-      # which this function has checked above.
+      # _refresh_targets_metadata() does not refresh 'targets.json', it expects
+      # _update_metadata_if_changed() to have already refreshed it, which this
+      # function has checked above.
       self._refresh_targets_metadata(role_name, include_delegations=False)
 
       role_metadata = current_metadata[role_name]
@@ -2484,6 +2490,10 @@ class Updater(object):
       child_roles = delegations.get('roles', [])
       target = self._get_target_from_targets_role(role_name, targets,
                                                   target_filepath)
+      # After preorder check, add current role to set of visited roles.
+      visited_role_names.add(role_name)
+      # And also decrement number of visited roles.
+      number_of_delegations -= 1
 
       if target is None:
 
@@ -2506,12 +2516,18 @@ class Updater(object):
             child_roles_to_visit.append(child_role_name)
 
         # Push 'child_roles_to_visit' in reverse order of appearance onto
-        # 'role_names'.  Roles are popped from the end of the 'role_names' list.
+        # 'role_names'.  Roles are popped from the end of the 'role_names'
+        # list.
         child_roles_to_visit.reverse()
         role_names.extend(child_roles_to_visit)
 
       else:
         logger.debug('Found target in current role '+repr(role_name))
+
+    if target is None and number_of_delegations == 0 and len(role_names) > 0:
+      logger.debug(repr(len(role_names))+' roles left to visit, '+
+                   'but allowed to visit at most '+
+                   repr(tuf.conf.MAX_NUMBER_OF_DELEGATIONS)+' delegations.')
 
     return target
 
