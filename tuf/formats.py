@@ -220,16 +220,18 @@ KEYTYPE_SCHEMA = SCHEMA.OneOf(
 KEY_SCHEMA = SCHEMA.Object(
   object_name = 'KEY_SCHEMA',
   keytype = SCHEMA.AnyString(),
-  keyval = KEYVAL_SCHEMA)
+  keyval = KEYVAL_SCHEMA,
+  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA))
 
-# A TUF key object.  This schema simplifies validation of keys that may be
-# one of the supported key types.
-# Supported key types: 'rsa', 'ed25519'.
+# A TUF key object.  This schema simplifies validation of keys that may be one
+# of the supported key types.  Supported key types: 'rsa', 'ed25519'.
 ANYKEY_SCHEMA = SCHEMA.Object(
   object_name = 'ANYKEY_SCHEMA',
   keytype = KEYTYPE_SCHEMA,
   keyid = KEYID_SCHEMA,
-  keyval = KEYVAL_SCHEMA)
+  keyid_hash_algorithms = SCHEMA.Optional(HASHALGORITHMS_SCHEMA),
+  keyval = KEYVAL_SCHEMA,
+  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA))
 
 # A list of TUF key objects.
 ANYKEYLIST_SCHEMA = SCHEMA.ListOf(ANYKEY_SCHEMA)
@@ -239,6 +241,7 @@ RSAKEY_SCHEMA = SCHEMA.Object(
   object_name = 'RSAKEY_SCHEMA',
   keytype = SCHEMA.String('rsa'),
   keyid = KEYID_SCHEMA,
+  keyid_hash_algorithms = SCHEMA.Optional(HASHALGORITHMS_SCHEMA),
   keyval = KEYVAL_SCHEMA)
 
 # An ED25519 raw public key, which must be 32 bytes.
@@ -341,7 +344,8 @@ SIGNABLE_SCHEMA = SCHEMA.Object(
   signed = SCHEMA.Any(),
   signatures = SCHEMA.ListOf(SIGNATURE_SCHEMA))
 
-# A dict where the dict keys hold a keyid and the dict values a key object.
+# A dictionary where the dict keys hold a keyid and the dict values a key
+# object.
 KEYDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = KEYID_SCHEMA,
   value_schema = KEY_SCHEMA)
