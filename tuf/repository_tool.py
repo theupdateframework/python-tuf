@@ -514,14 +514,14 @@ class Metadata(object):
     
 
 
-  def add_verification_key(self, key):
+  def add_verification_key(self, key, expires=None):
     """
     <Purpose>
-      Add 'key' to the role.  Adding a key, which should contain only the public
-      portion, signifies the corresponding private key and signatures the role
-      is expected to provide.  A threshold of signatures is required for a role
-      to be considered properly signed.  If a metadata file contains an
-      insufficient threshold of signatures, it must not be accepted.
+      Add 'key' to the role.  Adding a key, which should contain only the
+      public portion, signifies the corresponding private key and signatures
+      the role is expected to provide.  A threshold of signatures is required
+      for a role to be considered properly signed.  If a metadata file contains
+      an insufficient threshold of signatures, it must not be accepted.
 
       >>> 
       >>> 
@@ -534,8 +534,15 @@ class Metadata(object):
         must generate and add its signature to the role.  A threshold number of
         signatures is required for a role to be fully signed.
 
+      expires:
+        The date in which 'key' expires.  'expires' is a datetime.datetime()
+        object.
+
     <Exceptions>
-      tuf.FormatError, if the 'key' argument is improperly formatted.    
+      tuf.FormatError, if any of the arguments are improperly formatted.
+
+      tuf.Error, if the 'expires' datetime has already expired or the current
+      role's rolename is not recognized.
 
     <Side Effects>
       The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated.
@@ -549,6 +556,52 @@ class Metadata(object):
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
     tuf.formats.ANYKEY_SCHEMA.check_match(key)
+
+    # If 'expires' is unset, choose a default expiration for 'key'.  By
+    # default, Root, Targets, Snapshot, and Timestamp keys are set to expire
+    # 1 year, 3 months, 1 week, and 1 day from the current time, respectively.
+    if expires is None:
+      if self.rolename == 'root':
+        expiration = \
+          tuf.formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
+      
+      elif self.rolename == 'Targets':
+        expiration = \
+          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+      
+      elif self.rolename == 'Snapshot':
+        expiration = \
+          tuf.formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
+  
+      elif self.rolename == 'Timestamp':
+        expiration = \
+          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+
+      else:
+        tuf.Error('The current role\'s rolename is not recognized.')
+    
+      expires = expiration.isoformat() + 'Z'
+     
+    # Is 'expires' a datetime.datetime() object?
+    # Raise 'tuf.FormatError' if not.
+    if not isinstance(expires, datetime.datetime):
+      raise tuf.FormatError(repr(expires) + ' is not a'
+        ' datetime.datetime() object.') 
+
+    # Truncate the microseconds value to produce a correct schema string 
+    # of the form 'yyyy-mm-ddThh:mm:ssZ'.
+    expires = expires.replace(microsecond = 0)
+    
+    # Ensure the expiration has not already passed.
+    current_datetime = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time()))
+    
+    if expires < current_datetime:
+      raise tuf.Error(repr(key) + ' has already expired.')
+   
+    # Update the key's 'expires' entry.
+    expires = datetime_object.isoformat() + 'Z'
+    key['expires'] = expires 
 
     # Ensure 'key', which should contain the public portion, is added to
     # 'tuf.keydb.py'.  Add 'key' to the list of recognized keys.  Keys may be
@@ -567,7 +620,7 @@ class Metadata(object):
       roleinfo['keyids'].append(keyid)
       
       tuf.roledb.update_roleinfo(self._rolename, roleinfo)
-   
+
 
 
   def remove_verification_key(self, key):
