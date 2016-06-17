@@ -220,8 +220,6 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # 'signable' contains an invalid threshold of signatures. 
   else:
     message = 'Not enough signatures for ' + repr(metadata_filename)
-    print('role keyids:\n' + repr(tuf.roledb.get_role_keyids(rolename)))
-    #if rolename == 'role1': print('signable:\n' + repr(signable))
     raise tuf.UnsignedMetadataError(message, signable)
   
   return signable, filename
@@ -935,7 +933,7 @@ def import_rsa_publickey_from_file(filepath):
     rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
   
   except tuf.FormatError as e:
-    raise tuf.Error('Cannot import improperly formatted PEM file.')
+    raise tuf.Error('Cannot import improperly formatted PEM file.' + repr(str(e)))
   
   return rsakey_dict
 
@@ -1008,7 +1006,6 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   keyval = ed25519_key['keyval']
   ed25519key_metadata_format = \
     tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
-  print('ed25519key_metadata_format: ' + repr(ed25519key_metadata_format))
   
   # Write the public key, conformant to 'tuf.formats.KEY_SCHEMA', to
   # '<filepath>.pub'.
@@ -1067,7 +1064,7 @@ def import_ed25519_publickey_from_file(filepath):
   # includes the keyid.
   ed25519_key_metadata = tuf.util.load_json_file(filepath)
   ed25519_key, junk = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
-  
+
   # Raise an exception if an unexpected key type is imported.
   # Redundant validation of 'keytype'.  'tuf.keys.format_metadata_to_key()'
   # should have fully validated 'ed25519_key_metadata'.

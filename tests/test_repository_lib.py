@@ -377,11 +377,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     with open(test_filepath, 'wt') as file_object:
       file_object.write('test file')
   
-    # Generate test fileinfo object.  It is assumed SHA256 hashes are computed
-    # by get_metadata_fileinfo().
+    # Generate test fileinfo object.  It is assumed SHA256 and SHA512 hashes
+    # are computed by get_metadata_fileinfo().
     file_length = os.path.getsize(test_filepath)
-    digest_object = tuf.hash.digest_filename(test_filepath)
-    file_hashes = {'sha256': digest_object.hexdigest()}
+    sha256_digest_object = tuf.hash.digest_filename(test_filepath)
+    sha512_digest_object = tuf.hash.digest_filename(test_filepath, algorithm='sha512')
+    file_hashes = {'sha256': sha256_digest_object.hexdigest(),
+                   'sha512': sha512_digest_object.hexdigest()}
     fileinfo = {'length': file_length, 'hashes': file_hashes}
     self.assertTrue(tuf.formats.FILEINFO_SCHEMA.matches(fileinfo))
     
@@ -653,12 +655,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     root_private_keypath = os.path.join(keystore_path, 'root_key')
     root_private_key = \
-      repo_lib.import_rsa_privatekey_from_file(root_private_keypath, 'password')
+      repo_lib.import_ed25519_privatekey_from_file(root_private_keypath, 'password')
     
     # Sign with a valid, but not a threshold, key.
     targets_private_keypath = os.path.join(keystore_path, 'targets_key')
     targets_private_key = \
-      repo_lib.import_rsa_privatekey_from_file(targets_private_keypath,
+      repo_lib.import_ed25519_privatekey_from_file(targets_private_keypath,
                                                'password')
 
     # sign_metadata() expects the private key 'root_metadata' to be in
@@ -835,7 +837,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                  'metadata', 'root.json')
     root_signable = tuf.util.load_json_file(root_filepath)
     key_filepath = os.path.join('repository_data', 'keystore', 'root_key')
-    root_rsa_key = repo_lib.import_rsa_privatekey_from_file(key_filepath,
+    root_rsa_key = repo_lib.import_ed25519_privatekey_from_file(key_filepath,
                                                             'password')
 
     # Append the new valid, but duplicate PSS signature, and test that
