@@ -541,8 +541,7 @@ class Metadata(object):
     <Exceptions>
       tuf.FormatError, if any of the arguments are improperly formatted.
 
-      tuf.Error, if the 'expires' datetime has already expired or the current
-      role's rolename is not recognized.
+      tuf.Error, if the 'expires' datetime has already expired.
 
     <Side Effects>
       The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated.
@@ -562,29 +561,30 @@ class Metadata(object):
     # 1 year, 3 months, 1 week, and 1 day from the current time, respectively.
     if expires is None:
       if self.rolename == 'root':
-        expiration = \
+        expires = \
           tuf.formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
       
       elif self.rolename == 'Targets':
-        expiration = \
+        expires = \
           tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
       
       elif self.rolename == 'Snapshot':
-        expiration = \
+        expires = \
           tuf.formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
   
       elif self.rolename == 'Timestamp':
-        expiration = \
+        expires = \
           tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
 
       else:
-        tuf.Error('The current role\'s rolename is not recognized.')
+        expires = \
+          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
     
-      expires = expiration.isoformat() + 'Z'
-     
     # Is 'expires' a datetime.datetime() object?
     # Raise 'tuf.FormatError' if not.
     if not isinstance(expires, datetime.datetime):
+      print('expires: ' + repr(expires))
+      print('rolename: ' + repr(self.rolename))
       raise tuf.FormatError(repr(expires) + ' is not a'
         ' datetime.datetime() object.') 
 
@@ -600,7 +600,7 @@ class Metadata(object):
       raise tuf.Error(repr(key) + ' has already expired.')
    
     # Update the key's 'expires' entry.
-    expires = datetime_object.isoformat() + 'Z'
+    expires = expires.isoformat() + 'Z'
     key['expires'] = expires 
 
     # Ensure 'key', which should contain the public portion, is added to

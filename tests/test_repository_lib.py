@@ -655,7 +655,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     root_private_keypath = os.path.join(keystore_path, 'root_key')
     root_private_key = \
-      repo_lib.import_ed25519_privatekey_from_file(root_private_keypath, 'password')
+      repo_lib.import_rsa_privatekey_from_file(root_private_keypath, 'password')
     
     # Sign with a valid, but not a threshold, key.
     targets_private_keypath = os.path.join(keystore_path, 'targets_key')
@@ -834,9 +834,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Remove duplicate PSS signatures (same key generates valid, but different
     # signatures).  First load a valid signable (in this case, the root role).
     root_filepath = os.path.join('repository_data', 'repository',
-                                 'metadata', 'root.json')
+                                 'metadata', 'snapshot.json')
     root_signable = tuf.util.load_json_file(root_filepath)
-    key_filepath = os.path.join('repository_data', 'keystore', 'root_key')
+    key_filepath = os.path.join('repository_data', 'keystore', 'snapshot_key')
     root_rsa_key = repo_lib.import_ed25519_privatekey_from_file(key_filepath,
                                                             'password')
 
