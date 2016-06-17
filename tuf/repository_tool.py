@@ -656,7 +656,7 @@ class Metadata(object):
   
     # Ensure the private portion of the key is available, otherwise signatures
     # cannot be generated when the metadata file is written to disk.
-    if not len(key['keyval']['private']):
+    if 'private' not in key['keyval'] or not len(key['keyval']['private']):
       raise tuf.Error('This is not a private key.')
 
     # Has the key, with the private portion included, been added to the keydb?
@@ -2078,7 +2078,7 @@ class Targets(Metadata):
     keyids = [] 
     keydict = {}
 
-    # Add all the keys of 'public_keys' to tuf.keydb.
+    # Add all the keys in 'public_keys' to tuf.keydb.
     for key in public_keys:
       keyid = key['keyid']
       key_metadata_format = tuf.keys.format_keyval_to_metadata(key['keytype'],
