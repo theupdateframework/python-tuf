@@ -261,6 +261,7 @@ ED25519KEY_SCHEMA = SCHEMA.Object(
   object_name = 'ED25519KEY_SCHEMA',
   keytype = SCHEMA.String('ed25519'),
   keyid = KEYID_SCHEMA,
+  keyid_hash_algorithms = SCHEMA.Optional(HASHALGORITHMS_SCHEMA),
   keyval = KEYVAL_SCHEMA)
 
 # Information about target files, like file length and file hash(es).  This

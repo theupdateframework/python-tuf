@@ -141,7 +141,8 @@ import tuf.hash
 import tuf.formats
 
 # The hash algorithm used in the generation of the key ID for each unique key.
-# If multiple  
+# If multiple hash algorithms is desired for the generation of key IDs,
+# 'tuf.conf.REPOSITORY_HASH_ALGORITHMS' can be used.
 _KEY_ID_HASH_ALGORITHM = tuf.conf.DEFAULT_HASH_ALGORITHM 
 
 # Recommended RSA key sizes:
@@ -435,7 +436,10 @@ def format_keyval_to_metadata(keytype, key_value, private=False):
   
   else:
     public_key_value = {'public': key_value['public']}
-    return {'keytype': keytype, 'keyval': public_key_value}
+    
+    return {'keytype': keytype,
+            'keyid_hash_algorithms': tuf.conf.REPOSITORY_HASH_ALGORITHMS,
+            'keyval': public_key_value}
 
 
 
@@ -507,9 +511,9 @@ def format_metadata_to_key(key_metadata):
 
   # Convert 'key_value' to 'tuf.formats.KEY_SCHEMA' and generate its hash
   # The hash is in hexdigest form. 
-  keyid = _get_keyid(keytype, key_value)
+  default_keyid = _get_keyid(keytype, key_value)
   keyids = set()
-  keyids.add(keyid)
+  keyids.add(default_keyid)
   
   for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
     keyid = _get_keyid(keytype, key_value, hash_algorithm)
@@ -518,7 +522,7 @@ def format_metadata_to_key(key_metadata):
   # All the required key values gathered.  Build 'key_dict'.
   # 'keyid_hash_algorithms' 
   key_dict['keytype'] = keytype
-  key_dict['keyid'] = keyid
+  key_dict['keyid'] = default_keyid
   key_dict['keyid_hash_algorithms'] = tuf.conf.REPOSITORY_HASH_ALGORITHMS
   key_dict['keyval'] = key_value
 
