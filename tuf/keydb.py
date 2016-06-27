@@ -272,7 +272,7 @@ def add_key(key_dict, keyid=None, repository_name='default'):
 
     # Check if each keyid found in 'key_dict' matches 'keyid'.
     if keyid != key_dict['keyid']:
-      raise tuf.Error('Incorrect keyid ' + key_dict['keyid'] + ' expected ' + keyid)
+      raise tuf.Error('Incorrect keyid.  Got ' + key_dict['keyid'] + ' but expected ' + keyid)
 
   # Ensure 'repository_name' is actually set in the key database.
   if repository_name not in _keydb_dict:

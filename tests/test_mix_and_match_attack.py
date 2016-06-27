@@ -202,11 +202,11 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     role1_keyfile = os.path.join(self.keystore_directory, 'delegation_key') 
     snapshot_keyfile = os.path.join(self.keystore_directory, 'snapshot_key') 
     timestamp_private = \
-      repo_tool.import_rsa_privatekey_from_file(timestamp_keyfile, 'password')
+      repo_tool.import_ed25519_privatekey_from_file(timestamp_keyfile, 'password')
     role1_private = \
-      repo_tool.import_rsa_privatekey_from_file(role1_keyfile, 'password')
+      repo_tool.import_ed25519_privatekey_from_file(role1_keyfile, 'password')
     snapshot_private = \
-      repo_tool.import_rsa_privatekey_from_file(snapshot_keyfile, 'password')
+      repo_tool.import_ed25519_privatekey_from_file(snapshot_keyfile, 'password')
 
     repository.targets('role1').load_signing_key(role1_private)
     repository.snapshot.load_signing_key(snapshot_private)

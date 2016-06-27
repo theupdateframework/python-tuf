@@ -472,29 +472,29 @@ def _load_role_keys(keystore_directory):
   role_keys['root']['public'] = \
     repo_tool.import_rsa_publickey_from_file(root_key_file+'.pub')
   role_keys['targets']['public'] = \
-    repo_tool.import_rsa_publickey_from_file(targets_key_file+'.pub')
+    repo_tool.import_ed25519_publickey_from_file(targets_key_file + '.pub')
   role_keys['snapshot']['public'] = \
-    repo_tool.import_rsa_publickey_from_file(snapshot_key_file+'.pub')
+    repo_tool.import_ed25519_publickey_from_file(snapshot_key_file + '.pub')
   role_keys['timestamp']['public'] = \
-      repo_tool.import_rsa_publickey_from_file(timestamp_key_file+'.pub')
+      repo_tool.import_ed25519_publickey_from_file(timestamp_key_file + '.pub')
   role_keys['role1']['public'] = \
-      repo_tool.import_rsa_publickey_from_file(delegation_key_file+'.pub')
+      repo_tool.import_ed25519_publickey_from_file(delegation_key_file + '.pub')
 
   # Import the private keys of the top-level and delegated roles.
   role_keys['root']['private'] = \
     repo_tool.import_rsa_privatekey_from_file(root_key_file, 
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['targets']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(targets_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(targets_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['snapshot']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(snapshot_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(snapshot_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['timestamp']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(timestamp_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(timestamp_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['role1']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(delegation_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(delegation_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
 
   return role_keys

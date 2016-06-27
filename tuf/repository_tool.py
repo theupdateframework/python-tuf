@@ -238,7 +238,7 @@ class Repository(object):
       # Ignore top-level roles, they will be generated later in this method. 
       if delegated_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
         continue
-      
+    
       delegated_filename = os.path.join(self._metadata_directory,
                                         delegated_rolename + METADATA_EXTENSION)
       repo_lib._generate_and_write_metadata(delegated_rolename,
@@ -583,8 +583,6 @@ class Metadata(object):
     # Is 'expires' a datetime.datetime() object?
     # Raise 'tuf.FormatError' if not.
     if not isinstance(expires, datetime.datetime):
-      print('expires: ' + repr(expires))
-      print('rolename: ' + repr(self.rolename))
       raise tuf.FormatError(repr(expires) + ' is not a'
         ' datetime.datetime() object.') 
 

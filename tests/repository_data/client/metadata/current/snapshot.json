@@ -3,7 +3,7 @@
   {
    "keyid": "182216b8800c50ddf000043b31ddf90d815c754ab4e0b31a5952a839b371bed9",
    "method": "ed25519",
-   "sig": "0effce32f3b2e4bcb8d272c1e2737ab409f2c67c9436849e091095a2ec69e3a888ff5de2a448f2f00ca2a21dcba3d36af33df7f275725c7be69f83ae290fcc0c"
+   "sig": "f2d87b9cc1ff5c6844609ac71e21f762583b242674a6d99ad104d8c1ad726a3b1d9743b1936087f25f1613ce674bafc4aba99c36a64bd9b26397e57ab4a16408"
   }
  ],
  "signed": {
@@ -11,18 +11,18 @@
   "expires": "2030-01-01T00:00:00Z",
   "meta": {
    "role1.json": {
-    "version": 2
+    "version": 1
    },
    "root.json": {
     "hashes": {
-     "sha256": "65b6f6f1fe9ee6afdd0b2d30f0a9b3fd92e7615302ad3ca8cd8485015e15aa69"
+     "sha256": "0eed914a024a504baeca947456fc8e164f83345df3b3d21cf807b2b606f703cf"
     },
     "length": 3329
    },
    "targets.json": {
-    "version": 2
+    "version": 1
    }
   },
-  "version": 2
+  "version": 1
  }
 }

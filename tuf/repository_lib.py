@@ -172,7 +172,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
- 
+
   # Check if the version number of 'rolename' may be automatically incremented,
   # depending on whether if partial metadata is loaded or if the metadata is
   # written with write() / write_partial(). 
@@ -201,7 +201,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
       signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                                metadata_filename)
   
-  # Write the metadata to file if contains a threshold of signatures. 
+  # Write the metadata to file if it contains a threshold of signatures. 
   signable['signatures'].extend(roleinfo['signatures']) 
   
   if tuf.sig.verify(signable, rolename) or write_partial:
@@ -1816,7 +1816,7 @@ def sign_metadata(metadata_object, keyids, filename):
     
     # Load the signing key.
     key = tuf.keydb.get_key(keyid)
-    logger.info('Signing ' + repr(filename) + ' with ' + key['keyid'])
+    # TODO logger.info('Signing ' + repr(filename) + ' with ' + key['keyid'])
 
     # Create a new signature list.  If 'keyid' is encountered, do not add it
     # to the new list.
@@ -1972,12 +1972,12 @@ def write_metadata_file(metadata, filename, version_number,
         
         for digest in digests.values():
           basename= basename.split(METADATA_EXTENSION, 1)[0]
-          digest_and_filename = basename + '.' + str(digest) + METADATA_EXTENSION 
+          digest_and_filename = str(digest) + '.' + basename + METADATA_EXTENSION 
           written_consistent_filename = os.path.join(dirname, digest_and_filename)
       
       else:
         basename = basename.split(METADATA_EXTENSION, 1)[0]
-        version_and_filename = basename + '.' + str(version_number) + METADATA_EXTENSION 
+        version_and_filename = str(version_number) + '.' + basename + METADATA_EXTENSION 
         written_consistent_filename = os.path.join(dirname, version_and_filename)
 
       logger.info('Linking ' + repr(written_consistent_filename))

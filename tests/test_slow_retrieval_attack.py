@@ -171,13 +171,13 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
       file_object.write(data.encode('utf-8'))
 
     key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
-    timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    timestamp_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
     key_file = os.path.join(self.keystore_directory, 'snapshot_key') 
-    snapshot_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    snapshot_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
     key_file = os.path.join(self.keystore_directory, 'targets_key') 
-    targets_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    targets_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
 
     repository.targets.load_signing_key(targets_private)

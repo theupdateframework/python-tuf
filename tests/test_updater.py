@@ -321,10 +321,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     number_of_root_keys = len(root_metadata['keys'])
 
     self.assertEqual(root_roleinfo['threshold'], root_threshold)
-    # Ensure we add 1 to the number of root keys, to include the delegated
-    # targets key.  The delegated roles of 'targets.json' are also loaded
-    # when the repository object is instantiated.
-    self.assertEqual(number_of_root_keys + 1, len(tuf.keydb._keydb_dict[self.repository_name]))
+    # Ensure we add 1 to the number of root keys (actually, the number of root
+    # keys multiplied by the number of keyid hash algorithms), to include the
+    # delegated targets key.  The delegated roles of 'targets.json' are also
+    # loaded when the repository object is instantiated.
+    self.assertEqual(number_of_root_keys * 2 + 1, len(tuf.keydb._keydb_dict[self.repository_name]))
 
     # Test: normal case.
     self.repository_updater._rebuild_key_and_role_db()
@@ -334,7 +335,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # _rebuild_key_and_role_db() will only rebuild the keys and roles specified
     # in the 'root.json' file, unlike __init__().  Instantiating an updater
     # object calls both _rebuild_key_and_role_db() and _import_delegations().
-    self.assertEqual(number_of_root_keys, len(tuf.keydb._keydb_dict[self.repository_name]))
+    self.assertEqual(number_of_root_keys * 2, len(tuf.keydb._keydb_dict[self.repository_name]))
    
     # Test: properly updated roledb and keydb dicts if the Root role changes.
     root_metadata = self.repository_updater.metadata['current']['root']
@@ -345,7 +346,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], 8)
-    self.assertEqual(number_of_root_keys - 1, len(tuf.keydb._keydb_dict[self.repository_name]))
+    self.assertEqual(number_of_root_keys * 2 - 2, len(tuf.keydb._keydb_dict[self.repository_name]))
 
     
 
@@ -459,21 +460,27 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._rebuild_key_and_role_db()
     
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4)
+    # Take into account the number of keyids algorithms supported by default,
+    # which this test condition expects to be two (sha256 and sha512).
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2)
 
     # Test: pass a role without delegations.
     self.repository_updater._import_delegations('root')
 
-    # Verify that there was no change in roledb and keydb dictionaries
-    # by checking the number of elements in the dictionaries.
+    # Verify that there was no change to the roledb and keydb dictionaries by
+    # checking the number of elements in the dictionaries.
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4)
+    # Take into account the number of keyid hash algorithms, which this
+    # test condition expects to be two (for sha256 and sha512).
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2)
 
     # Test: normal case, first level delegation.
     self.repository_updater._import_delegations('targets')
 
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 5)
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 5)
+    # The number of root keys (times the number of key hash algorithms) + 
+    # delegation's key.
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2 + 1)
 
     # Verify that roledb dictionary was added.
     self.assertTrue('role1' in tuf.roledb._roledb_dict[repository_name])
@@ -490,25 +497,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.assertTrue(keyid in tuf.keydb._keydb_dict[repository_name])
 
     # Verify that _import_delegations() ignores invalid keytypes in the 'keys'
-    # field of parent role's 'delegations'
+    # field of parent role's 'delegations'.
     existing_keyid = keyids[0]
-    
+   
     self.repository_updater.metadata['current']['targets']\
       ['delegations']['keys'][existing_keyid]['keytype'] = 'bad_keytype'
     self.repository_updater._import_delegations('targets')
+    
     # Restore the keytype of 'existing_keyid'.
     self.repository_updater.metadata['current']['targets']\
-      ['delegations']['keys'][existing_keyid]['keytype'] = 'rsa'
+      ['delegations']['keys'][existing_keyid]['keytype'] = 'ed25519'
 
     # Verify that _import_delegations() raises an exception if any key in
     # 'delegations' is improperly formatted (i.e., bad keyid).
     tuf.keydb.clear_keydb(repository_name)
-    self.repository_updater.metadata['current']['targets']\
-      ['delegations']['keys'][existing_keyid]['keyid'] = '123'
     
-    self.repository_updater._import_delegations('targets')
-    #self.assertRaises(tuf.Error, self.repository_updater._import_delegations,
-    #                  'targets')
+    self.repository_updater.metadata['current']['targets']['delegations']\
+      ['keys'].update({'123': self.repository_updater.metadata['current']\
+      ['targets']['delegations']['keys'][existing_keyid]})
+    self.assertRaises(tuf.Error, self.repository_updater._import_delegations,
+                      'targets')
 
     # Restore the keyid of 'existing_keyids2'.
     self.repository_updater.metadata['current']['targets']\
@@ -1060,13 +1068,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     download_filepath = \
       os.path.join(destination_directory, target_filepath1.lstrip('/'))
     self.assertTrue(os.path.exists(download_filepath))
-    length, hashes = tuf.util.get_file_details(download_filepath)
+    length, hashes = tuf.util.get_file_details(download_filepath, tuf.conf.REPOSITORY_HASH_ALGORITHMS)
     download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
    
     # Add any 'custom' data from the repository's target fileinfo to the
     # 'download_targetfileinfo' object being tested.
     if 'custom' in target_fileinfo['fileinfo']: 
       download_targetfileinfo['custom'] = target_fileinfo['fileinfo']['custom']
+    print('target_fileinfo: ' + repr(target_fileinfo['fileinfo']))
+    print('\ndownload_targetfileinfo: ' + repr(download_targetfileinfo))
+
     self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
 
     # Test when consistent snapshots is set.  First, create a valid
@@ -1399,29 +1410,29 @@ def _load_role_keys(keystore_directory):
   role_keys['root']['public'] = \
     repo_tool.import_rsa_publickey_from_file(root_key_file+'.pub')
   role_keys['targets']['public'] = \
-    repo_tool.import_rsa_publickey_from_file(targets_key_file+'.pub')
+    repo_tool.import_ed25519_publickey_from_file(targets_key_file+'.pub')
   role_keys['snapshot']['public'] = \
-    repo_tool.import_rsa_publickey_from_file(snapshot_key_file+'.pub')
+    repo_tool.import_ed25519_publickey_from_file(snapshot_key_file+'.pub')
   role_keys['timestamp']['public'] = \
-      repo_tool.import_rsa_publickey_from_file(timestamp_key_file+'.pub')
+      repo_tool.import_ed25519_publickey_from_file(timestamp_key_file+'.pub')
   role_keys['role1']['public'] = \
-      repo_tool.import_rsa_publickey_from_file(delegation_key_file+'.pub')
+      repo_tool.import_ed25519_publickey_from_file(delegation_key_file+'.pub')
 
   # Import the private keys of the top-level and delegated roles.
   role_keys['root']['private'] = \
     repo_tool.import_rsa_privatekey_from_file(root_key_file, 
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['targets']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(targets_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(targets_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['snapshot']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(snapshot_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(snapshot_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['timestamp']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(timestamp_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(timestamp_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['role1']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(delegation_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(delegation_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
 
   return role_keys

@@ -105,10 +105,10 @@ PBKDF2_ITERATIONS = 100000
 
 # Supported cryptography libraries that can be used to generate and verify RSA
 # keys and signatures:  ['pycrypto', 'pyca-cryptography']
-RSA_CRYPTO_LIBRARY = 'pyca-cryptography'
+RSA_CRYPTO_LIBRARY = 'pycrypto'
 
 # Supported Ed25519 cryptography libraries: ['pynacl', 'ed25519']
-ED25519_CRYPTO_LIBRARY = 'ed25519'
+ED25519_CRYPTO_LIBRARY = 'pynacl'
 
 # General purpose cryptography. Algorithms and functions that fall under
 # general purpose include AES, PBKDF2, cryptographically strong random number
@@ -118,7 +118,7 @@ ED25519_CRYPTO_LIBRARY = 'ed25519'
 # of the software updater.
 # Supported libraries for general-purpose cryptography:  ['pycrypto',
 # 'pyca-cryptography']
-GENERAL_CRYPTO_LIBRARY = 'pyca-cryptography'
+GENERAL_CRYPTO_LIBRARY = 'pycrypto'
 
 # The Root and Targets roles specify the public keys of either the top-level
 # roles (by Root) or roles that they delegate trust (by Targets roles).  By
