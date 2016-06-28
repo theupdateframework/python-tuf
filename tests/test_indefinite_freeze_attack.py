@@ -278,11 +278,11 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # Load the timestamp and snapshot keys, since we will be signing a new
     # timestamp and a new snapshot file.
     key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
-    timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    timestamp_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
     repository.timestamp.load_signing_key(timestamp_private)
     key_file = os.path.join(self.keystore_directory, 'snapshot_key') 
-    snapshot_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    snapshot_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
     repository.snapshot.load_signing_key(snapshot_private)
 
@@ -354,7 +354,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     repository = repo_tool.load_repository(self.repository_directory)
  
     key_file = os.path.join(self.keystore_directory, 'timestamp_key')
-    timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    timestamp_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
 
     repository.timestamp.load_signing_key(timestamp_private)
