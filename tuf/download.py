@@ -33,6 +33,7 @@ import socket
 import logging
 import timeit
 import ssl
+import time
 
 import tuf
 import tuf.conf
@@ -230,7 +231,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   # they might put back-slashes in place of forward-slashes.  This converts it
   # to the common format. 
   url = url.replace('\\', '/')
-  logger.info('Downloading: '+str(url))
+  logger.info('Downloading: ' + repr(url))
 
   # This is the temporary file that we will return to contain the contents of
   # the downloaded file.
@@ -259,7 +260,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   except:
     # Close 'temp_file'.  Any written data is lost.
     temp_file.close_temp_file()
-    logger.exception('Could not download URL: '+str(url))
+    logger.exception('Could not download URL: ' + repr(url))
     raise
 
   else:
@@ -317,11 +318,13 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
     while True:
       # We download a fixed chunk of data in every round. This is so that we
       # can defend against slow retrieval attacks. Furthermore, we do not wish
-      # to download an extremely large file in one shot.
+      # to download an extremely large file in one shot.  Before begining the
+      # round, sleep for a miniscule amount of time to prevent hogging the CPU
+      # in the while loop.
+      time.sleep(0.05)
       data = b'' 
       read_amount = min(tuf.conf.CHUNK_SIZE,
                         required_length - number_of_bytes_received)
-      #logger.debug('Reading next chunk...')
       
       try: 
         data = connection.read(read_amount)
@@ -342,8 +345,6 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       seconds_spent_receiving = stop_time - start_time
       
       if (seconds_spent_receiving + grace_period) < 0:
-        #logger.debug('Ignoring average download speed for another: '+\
-                     #str(-seconds_spent_receiving) + ' seconds')
         continue 
       
       # Measure the average download speed.
@@ -355,14 +356,13 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
         break
 
       else:
-        logger.debug('Good average download speed: '+\
-                     str(average_download_speed) + ' bytes per second')
+        logger.debug('Good average download speed: ' +
+                     repr(average_download_speed) + ' bytes per second')
       
       # We might have no more data to read. Check number of bytes downloaded. 
       if not data:
-        message = 'Downloaded '+str(number_of_bytes_received)+'/'+ \
-          str(required_length)+' bytes.'
-        logger.debug(message)
+        logger.debug('Downloaded ' + repr(number_of_bytes_received) + '/' +
+          repr(required_length) + ' bytes.')
 
         # Finally, we signal that the download is complete.
         break
