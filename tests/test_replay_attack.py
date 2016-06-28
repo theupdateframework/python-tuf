@@ -210,7 +210,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Modify the timestamp file on the remote repository.
     repository = repo_tool.load_repository(self.repository_directory)
     key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
-    timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    timestamp_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
     repository.timestamp.load_signing_key(timestamp_private)
     
@@ -281,7 +281,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Modify the timestamp file on the remote repository.
     repository = repo_tool.load_repository(self.repository_directory)
     key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
-    timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    timestamp_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
     repository.timestamp.load_signing_key(timestamp_private)
     
