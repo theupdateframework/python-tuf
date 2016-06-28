@@ -139,7 +139,6 @@ repository.snapshot.compressions = ['gz']
 repository.timestamp.compressions = ['gz']
 
 # Create the actual metadata files, which are saved to 'metadata.staged'. 
-repository.status()
 if not options.dry_run:
   repository.write()
 
