@@ -1075,8 +1075,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # 'download_targetfileinfo' object being tested.
     if 'custom' in target_fileinfo['fileinfo']: 
       download_targetfileinfo['custom'] = target_fileinfo['fileinfo']['custom']
-    print('target_fileinfo: ' + repr(target_fileinfo['fileinfo']))
-    print('\ndownload_targetfileinfo: ' + repr(download_targetfileinfo))
 
     self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
 

@@ -97,9 +97,11 @@ def get_signature_status(signable, role=None, repository_name='default'):
   # all dict keys are properly named.  Raise 'tuf.FormatError' if the check
   # fails.
   tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
-  tuf.formats.ROLENAME_SCHEMA.check_match(role)
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
 
+  if role is not None:
+    tuf.formats.ROLENAME_SCHEMA.check_match(role)
+  
   # The signature status dictionary returned.
   signature_status = {}
 

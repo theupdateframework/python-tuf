@@ -57,7 +57,6 @@ class TestRoledb(unittest.TestCase):
 
   def test_create_roledb(self):
     # Verify that a roledb is created for a named repository.
-    print('roledb: ' + repr(tuf.roledb._roledb_dict))
     self.assertEqual(1, len(tuf.roledb._roledb_dict))
     self.assertTrue('default' in tuf.roledb._roledb_dict)
 
