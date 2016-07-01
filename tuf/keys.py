@@ -494,8 +494,8 @@ def format_metadata_to_key(key_metadata):
     None.
 
   <Returns>
-    In the case of an RSA key, a dictionary conformant to
-    'tuf.formats.RSAKEY_SCHEMA'.
+    A tuple containing the key and its keyids.  In the case of an RSA key, a
+    dictionary conformant to 'tuf.formats.RSAKEY_SCHEMA'.
   """
 
   # Does 'key_metadata' have the correct format?

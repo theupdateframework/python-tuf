@@ -862,7 +862,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   keydict = project_configuration['public_keys']
   
   for keyid in keydict:
-    key = format_metadata_to_key(keydict[keyid]) 
+    key, junk = tuf.keys.format_metadata_to_key(keydict[keyid]) 
     project.add_verification_key(key)
  
   # Load the project's metadata.
@@ -895,7 +895,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
 
   
   for key_metadata in targets_metadata['delegations']['keys'].values():
-    key_object = tuf.keys.format_metadata_to_key(key_metadata)
+    key_object, junk = tuf.keys.format_metadata_to_key(key_metadata)
     tuf.keydb.add_key(key_object)
 
   for role in targets_metadata['delegations']['roles']:
@@ -977,7 +977,8 @@ def load_project(project_directory, prefix='', new_targets_location=None):
       
       # Add the keys specified in the delegations field of the Targets role.
       for key_metadata in metadata_object['delegations']['keys'].values():
-        key_object = tuf.keys.format_metadata_to_key(key_metadata)
+        key_object, junk = tuf.keys.format_metadata_to_key(key_metadata)
+        
         try: 
           tuf.keydb.add_key(key_object)
         

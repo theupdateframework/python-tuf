@@ -235,7 +235,7 @@ class TestProject(unittest.TestCase):
     # Add another verification key (should expect exception.)
     second_verification_key_path = os.path.join(keystore_path, 'snapshot_key.pub')
     second_verification_key = \
-      developer_tool.import_rsa_publickey_from_file(second_verification_key_path)
+      developer_tool.import_ed25519_publickey_from_file(second_verification_key_path)
     
     self.assertRaises(tuf.Error,
         project.add_verification_key,(second_verification_key))
@@ -289,12 +289,12 @@ class TestProject(unittest.TestCase):
     # Add another verification key (should expect exception.)
     delegation_key_path = os.path.join(keystore_path, 'snapshot_key.pub')
     delegation_key = \
-      developer_tool.import_rsa_publickey_from_file(delegation_key_path)
+      developer_tool.import_ed25519_publickey_from_file(delegation_key_path)
 
     # Add a subdelegation.
     subdelegation_key_path = os.path.join(keystore_path, 'timestamp_key.pub')
     subdelegation_key = \
-        developer_tool.import_rsa_publickey_from_file(subdelegation_key_path)
+        developer_tool.import_ed25519_publickey_from_file(subdelegation_key_path)
     
     # Add a delegation.
     project.delegate('delegation', [delegation_key], [])
@@ -314,13 +314,13 @@ class TestProject(unittest.TestCase):
 
     delegation_private_key_path = os.path.join(keystore_path, 'snapshot_key')
     delegation_private_key = \
-        developer_tool.import_rsa_privatekey_from_file(delegation_private_key_path,
+        developer_tool.import_ed25519_privatekey_from_file(delegation_private_key_path,
             'password')
 
     subdelegation_private_key_path =  \
         os.path.join(keystore_path, 'timestamp_key')
     subdelegation_private_key = \
-        developer_tool.import_rsa_privatekey_from_file(subdelegation_private_key_path,
+        developer_tool.import_ed25519_privatekey_from_file(subdelegation_private_key_path,
             'password')
 
     # Test partial write.
