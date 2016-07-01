@@ -40,7 +40,9 @@ logger = logging.getLogger('tuf.test_keydb')
 # Generate the three keys to use in our test cases.
 KEYS = []
 for junk in range(3):
-  KEYS.append(tuf.keys.generate_rsa_key(2048))
+  rsa_key = tuf.keys.generate_rsa_key(2048)
+  rsa_key['keyid_hash_algorithms'] = tuf.conf.REPOSITORY_HASH_ALGORITHMS
+  KEYS.append(rsa_key)
 
 
 
