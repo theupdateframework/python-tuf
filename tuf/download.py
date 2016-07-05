@@ -31,6 +31,7 @@ from __future__ import unicode_literals
 import os
 import socket
 import logging
+import time
 import timeit
 import ssl
 
@@ -317,7 +318,10 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
     while True:
       # We download a fixed chunk of data in every round. This is so that we
       # can defend against slow retrieval attacks. Furthermore, we do not wish
-      # to download an extremely large file in one shot.
+      # to download an extremely large file in one shot.  Before beginning the
+      # round, sleep for a short amount of time so that the CPU is not hogged
+      # in the while loop.
+      time.sleep(0.05)
       data = b'' 
       read_amount = min(tuf.conf.CHUNK_SIZE,
                         required_length - number_of_bytes_received)
