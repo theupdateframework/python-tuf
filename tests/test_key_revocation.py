@@ -55,6 +55,7 @@ import tuf
 import tuf.log
 import tuf.conf
 import tuf.roledb
+import tuf.keydb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
@@ -178,7 +179,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(self.repository_name)
-    
+    tuf.keydb.clear_keydb(self.repository_name) 
 
 
 

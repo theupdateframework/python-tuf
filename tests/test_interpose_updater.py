@@ -40,6 +40,9 @@ import tuf.log
 import tuf.interposition.updater as updater
 import tuf.interposition.configuration as configuration
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf.roledb
+import tuf.keydb
+
 
 if sys.version_info >= (2, 7):                                                  
   import unittest    
@@ -192,7 +195,8 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
   def tearDown(self): 
     # We are inheriting from custom class.                                      
     unittest_toolbox.Modified_TestCase.tearDown(self) 
-  
+    tuf.roledb.clear_roledb('localhost')
+    tuf.keydb.clear_keydb('localhost')
   
 
   # Unit Tests
@@ -412,6 +416,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     # We are inheriting from custom class.                                      
     unittest_toolbox.Modified_TestCase.tearDown(self) 
+    tuf.roledb.clear_roledb('localhost')
+    tuf.keydb.clear_keydb('localhost')
 
 
   # Unit Tests

@@ -269,8 +269,9 @@ class Updater(object):
         as a missing 'root.json' file.
 
     <Side Effects>
-      Th metadata files (e.g., 'root.json', 'targets.json') for the top-
-      level roles are read from disk and stored in dictionaries.
+      Th metadata files (e.g., 'root.json', 'targets.json') for the top- level
+      roles are read from disk and stored in dictionaries.  In addition, the
+      key and roledb modules are populated with 'repository_name' entries.
 
     <Returns>
       None.

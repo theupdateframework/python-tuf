@@ -62,6 +62,8 @@ import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
+import tuf.roledb
+import tuf.keydb
 
 import six
 
@@ -216,7 +218,8 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # Modified_TestCase.tearDown() automatically deletes temporary files and
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-
+    tuf.roledb.clear_roledb('test_repository')
+    tuf.keydb.clear_keydb('test_repository')
 
 
   def test_with_tuf_mode_1(self):

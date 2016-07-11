@@ -90,7 +90,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb() 
-    pass
+    tuf.keydb.clear_keydb() 
 
 
 

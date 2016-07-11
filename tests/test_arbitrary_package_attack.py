@@ -53,6 +53,7 @@ else:
 import tuf
 import tuf.formats
 import tuf.util
+import tuf.roledb
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
@@ -161,7 +162,8 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     # Modified_TestCase.tearDown() automatically deletes temporary files and
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-
+    # updater.Updater() populates the roledb with the name "test_repository" 
+    tuf.roledb.clear_roledb('test_repository')
 
 
   def test_without_tuf(self):

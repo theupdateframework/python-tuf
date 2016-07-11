@@ -48,7 +48,7 @@ for junk in range(3):
 
 class TestKeydb(unittest.TestCase):
   def setUp(self):
-    pass
+    tuf.keydb.clear_keydb()
 
 
 
@@ -61,9 +61,11 @@ class TestKeydb(unittest.TestCase):
     # Test condition for normal behaviour.
     repository_name = 'example_repository'
     # The keydb dictionary should contain only the 'default' repository entry.
-    self.assertEqual(1, len(tuf.keydb._keydb_dict))
-    
+    print('keydb: ' + repr(tuf.keydb._keydb_dict.keys()))
     self.assertTrue('default' in tuf.keydb._keydb_dict)
+    self.assertEqual(1, len(tuf.keydb._keydb_dict))
+
+    
     tuf.keydb.create_keydb(repository_name)
     self.assertEqual(2, len(tuf.keydb._keydb_dict))
 

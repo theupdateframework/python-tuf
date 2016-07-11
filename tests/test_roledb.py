@@ -57,8 +57,9 @@ class TestRoledb(unittest.TestCase):
 
   def test_create_roledb(self):
     # Verify that a roledb is created for a named repository.
-    self.assertEqual(1, len(tuf.roledb._roledb_dict))
     self.assertTrue('default' in tuf.roledb._roledb_dict)
+    print('roledb: ' + repr(tuf.roledb._roledb_dict)) 
+    self.assertEqual(1, len(tuf.roledb._roledb_dict))
 
     repository_name = 'example_repository'
     tuf.roledb.create_roledb(repository_name)
@@ -254,7 +255,7 @@ class TestRoledb(unittest.TestCase):
     # removal of 'targets' in the previous test condition, and the removal
     # of 'release' in the remove_role() call next.
     self.assertEqual(None, tuf.roledb.remove_role(rolename2))
-    self.assertEqual(1, len(tuf.roledb._roledb_dict))
+    self.assertEqual(1, len(tuf.roledb._roledb_dict['default']))
  
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.

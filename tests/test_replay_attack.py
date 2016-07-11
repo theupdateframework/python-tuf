@@ -172,7 +172,8 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Modified_TestCase.tearDown() automatically deletes temporary files and
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-    tuf.roledb.clear_roledb()
+    tuf.roledb.clear_roledb('test_repository')
+    tuf.keydb.clear_keydb('test_repository')
 
 
   def test_without_tuf(self):

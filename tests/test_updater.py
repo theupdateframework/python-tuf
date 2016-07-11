@@ -192,8 +192,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-    tuf.roledb.clear_roledb()
-    
+    tuf.roledb.clear_roledb('test_repository')
+    tuf.keydb.clear_keydb('test_repository') 
 
 
 
