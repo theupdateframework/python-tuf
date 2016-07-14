@@ -3,7 +3,7 @@
   {
    "keyid": "182216b8800c50ddf000043b31ddf90d815c754ab4e0b31a5952a839b371bed9",
    "method": "ed25519",
-   "sig": "f2d87b9cc1ff5c6844609ac71e21f762583b242674a6d99ad104d8c1ad726a3b1d9743b1936087f25f1613ce674bafc4aba99c36a64bd9b26397e57ab4a16408"
+   "sig": "1f81170dfee2f170f6814cb2f909f0ad0a283eb3f8b7924f41d14ea81efab2c43491aaedce30338fce483fcad32ba0bde729e9b6b44888c99401ee04a5e43302"
   }
  ],
  "signed": {
@@ -15,9 +15,10 @@
    },
    "root.json": {
     "hashes": {
-     "sha256": "0eed914a024a504baeca947456fc8e164f83345df3b3d21cf807b2b606f703cf"
+     "sha256": "9d0ed7fce4914cd97997c03def8c94b0aeb10aebc383e0d747a8e8257a84c8ff"
     },
-    "length": 3329
+    "length": 3329,
+    "version": 1
    },
    "targets.json": {
     "version": 1

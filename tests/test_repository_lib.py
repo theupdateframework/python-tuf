@@ -89,8 +89,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def tearDown(self):
-    tuf.roledb.clear_roledb() 
-    tuf.keydb.clear_keydb() 
+    tuf.roledb.clear_roledb()
+    tuf.keydb.clear_keydb()
 
 
 
@@ -615,17 +615,26 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     shutil.copytree(original_repository_path, repository_directory)
     metadata_directory = os.path.join(repository_directory,
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
+    targets_directory = os.path.join(repository_directory, repo_lib.TARGETS_DIRECTORY_NAME)
+
     snapshot_filename = os.path.join(metadata_directory,
                                      repo_lib.SNAPSHOT_FILENAME)
    
     # Set valid generate_timestamp_metadata() arguments.
     version = 1
     expiration_date = '1985-10-21T13:20:00Z'
+    
+    # Load a valid repository so that top-level roles exist in roledb and 
+    # generate_snapshot_metadata() has roles to specify in snapshot metadata. 
+    repository = repo_tool.Repository(repository_directory, metadata_directory,
+                                      targets_directory)
+   
+    repository_junk = repo_tool.load_repository(repository_directory)
 
-    snapshot_metadata = \
+    timestamp_metadata = \
       repo_lib.generate_timestamp_metadata(snapshot_filename, version,
                                            expiration_date)
-    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(snapshot_metadata))
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
     
 
     # Test improperly formatted arguments.

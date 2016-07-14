@@ -273,6 +273,7 @@ FILEINFO_SCHEMA = SCHEMA.Object(
   object_name = 'FILEINFO_SCHEMA',
   length = LENGTH_SCHEMA,
   hashes = HASHDICT_SCHEMA,
+  version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
   custom = SCHEMA.Optional(SCHEMA.Object()))
 
 # Version information specified in "snapshot.json" for each role available on
@@ -287,7 +288,7 @@ VERSIONINFO_SCHEMA = SCHEMA.Object(
 
 # A dict holding the version or file information for a particular metadata
 # role.  The dict keys hold the relative file paths, and the dict values the
-# corresponding version numbers or file information.
+# corresponding version numbers and/or file information.
 FILEINFODICT_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
   value_schema = SCHEMA.OneOf([VERSIONINFO_SCHEMA, FILEINFO_SCHEMA]))
@@ -993,7 +994,7 @@ def make_signable(object):
 
 
 
-def make_fileinfo(length, hashes, custom=None):
+def make_fileinfo(length, hashes, version=None, custom=None):
   """
   <Purpose>
     Create a dictionary conformant to 'FILEINFO_SCHEMA'.
@@ -1006,6 +1007,9 @@ def make_fileinfo(length, hashes, custom=None):
     hashes:
       A dict of hashes in 'HASHDICT_SCHEMA' format, which has the form:
        {'sha256': 123df8a9b12, 'sha512': 324324dfc121, ...}
+
+    version:
+      An optional integer representing the version of the file.
 
     custom:
       An optional object providing additional information about the file.
@@ -1025,6 +1029,10 @@ def make_fileinfo(length, hashes, custom=None):
   """
 
   fileinfo = {'length' : length, 'hashes' : hashes}
+
+  if version is not None:
+    fileinfo['version'] = version 
+
   if custom is not None:
     fileinfo['custom'] = custom
 

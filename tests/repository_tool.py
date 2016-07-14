@@ -2766,7 +2766,7 @@ def load_repository(repository_directory):
         # Strip the version number if 'consistent_snapshot' is True.
         # Example:  '10.django.json' --> 'django.json'
         metadata_name, version_number_junk = \
-          repo_lib._strip_consistent_snapshot_version_number(metadata_name,
+          repo_lib._strip_version_number(metadata_name,
                                                      consistent_snapshot)
 
         if metadata_name.endswith(METADATA_EXTENSION): 

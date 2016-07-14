@@ -577,11 +577,12 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid arguments. 
     length = 1024
     hashes = {'sha256': 'A4582BCF323BCEF', 'sha512': 'A4582BCF323BFEF'}
+    version = 8
     custom = {'type': 'paintjob'}
    
     FILEINFO_SCHEMA = tuf.formats.FILEINFO_SCHEMA
     make_fileinfo = tuf.formats.make_fileinfo
-    self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes, custom)))
+    self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes, version, custom)))
     self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes)))
 
     # Test conditions for invalid arguments.
