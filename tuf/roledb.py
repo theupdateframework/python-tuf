@@ -103,6 +103,9 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   # Is 'repository_name' formatted correctly?
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
 
+  global _roledb_dict
+  global _dirty_roles
+
   # Clear the role database.
   if repository_name in _roledb_dict: 
     _roledb_dict[repository_name].clear()
@@ -163,7 +166,10 @@ def create_roledb(repository_name):
 
   # Is 'repository_name' properly formatted?  If not, raise 'tuf.FormatError'.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
-  
+ 
+  global _roledb_dict
+  global _dirty_roles
+
   if repository_name in _roledb_dict or repository_name in _dirty_roles:
     raise tuf.InvalidNameError('Repository name already exists:'
       ' ' + repr(repository_name))
@@ -200,6 +206,9 @@ def remove_roledb(repository_name):
 
   # Is 'repository_name' properly formatted?  If not, raise 'tuf.FormatError'.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
+  global _roledb_dict
+  global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     logger.warn('Repository name does not exist:'
@@ -271,6 +280,8 @@ def add_role(rolename, roleinfo, repository_name='default'):
 
   # Is 'repository_name' correctly formatted?
   tuf.formats.NAME_SCHEMA.check_match(repository_name) 
+
+  global _roledb_dict
 
   # Raises tuf.InvalidNameError.
   _validate_rolename(rolename)
@@ -351,9 +362,12 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
 
   # Does 'roleinfo' have the correct object format?
   tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
-
+  
   # Raises tuf.InvalidNameError.
   _validate_rolename(rolename)
+
+  global _roledb_dict
+  global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
@@ -402,6 +416,9 @@ def get_dirty_roles(repository_name='default'):
   # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError'
   # if not.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  
+  global _roledb_dict
+  global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
@@ -440,7 +457,7 @@ def role_exists(rolename, repository_name='default'):
     Boolean.  True if 'rolename' is found in the role database, False otherwise.
   """
 
-  # Raise tuf.FormatError, tuf.InvalidNameError.
+  # Raise tuf.FormatError, tuf.InvalidNameError if the arguments are invalid.
   try: 
     _check_rolename(rolename, repository_name)
   
@@ -493,9 +510,12 @@ def remove_role(rolename, repository_name='default'):
   # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError'
   # if it is improperly formatted.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
- 
+
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename, repository_name)
+  
+  global _roledb_dict
+  global _dirty_roles
   
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
@@ -531,10 +551,13 @@ def get_rolenames(repository_name='default'):
   <Returns>
     A list of rolenames.
   """
-  
+ 
   # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError'
   # if it is improperly formatted.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
+  global _roledb_dict
+  global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
@@ -588,9 +611,12 @@ def get_roleinfo(rolename, repository_name='default'):
  
   # Is 'repository_name' properly formatted?  If not, raise 'tuf.FormatError'.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
-
+  
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename, repository_name)
+
+  global _roledb_dict
+  global _dirty_roles
   
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
@@ -640,6 +666,9 @@ def get_role_keyids(rolename, repository_name='default'):
   
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename, repository_name)
+  
+  global _roledb_dit
+  global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
@@ -687,6 +716,9 @@ def get_role_threshold(rolename, repository_name='default'):
 
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename, repository_name)
+  
+  global _roledb_dict
+  global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
@@ -734,6 +766,9 @@ def get_role_paths(rolename, repository_name='default'):
   
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename)
+ 
+  global _roledb_dict
+  global _dirty_roles
  
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
@@ -784,13 +819,17 @@ def get_delegated_rolenames(rolename, repository_name='default'):
     delegation.
   """
 
-  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
-  _check_rolename(rolename)
 
   # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError' if
   # it does not.
   tuf.formats.NAME_SCHEMA.check_match(repository_name) 
+ 
+  # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
+  _check_rolename(rolename)
 
+  global _roledb_dict
+  global _dirty_roles
+  
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not'
       ' exist: ' + repository_name)
@@ -809,7 +848,7 @@ def get_delegated_rolenames(rolename, repository_name='default'):
 
 
 
-def clear_roledb(repository_name='default'):
+def clear_roledb(repository_name='default', clear_all_except_default=False):
   """
   <Purpose>
     Reset the roledb database.
@@ -818,6 +857,9 @@ def clear_roledb(repository_name='default'):
     repository_name:
       The name of the repository to clear.  If not supplied, the 'default'
       repository is cleared.
+
+    clear_all_except_default:
+      Boolean indicating whether to clear the entire roledb, except 'default'.
 
   <Exceptions>
     tuf.FormatError, if 'repository_name' does not have the correct format.
@@ -832,13 +874,21 @@ def clear_roledb(repository_name='default'):
     None.
   """
 
-  # Does 'repository_name' have the correct format?  If not, raise
-  # 'tuf.FormatError'
+  # Do the arguments have the correct format?  If not, raise 'tuf.FormatError'
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(clear_all_except_default)
+
+  global _roledb_dict
+  global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not'
       ' exist: ' + repository_name)
+
+  if clear_all_except_default:
+    _roledb_dict = {}
+    _roledb_dict['default'] = {}
+    return
   
   _roledb_dict[repository_name] = {}
   _dirty_roles[repository_name] = set()
@@ -865,6 +915,9 @@ def _check_rolename(rolename, repository_name='default'):
 
   # Raises tuf.InvalidNameError.
   _validate_rolename(rolename)
+
+  global _roledb_dict
+  global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.InvalidNameError('Repository name does not'
