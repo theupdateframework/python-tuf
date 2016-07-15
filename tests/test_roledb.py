@@ -46,7 +46,7 @@ for junk in range(3):
 
 class TestRoledb(unittest.TestCase):
   def setUp(self):
-    pass 
+    tuf.roledb.clear_roledb()
 
 
 
@@ -58,7 +58,6 @@ class TestRoledb(unittest.TestCase):
   def test_create_roledb(self):
     # Verify that a roledb is created for a named repository.
     self.assertTrue('default' in tuf.roledb._roledb_dict)
-    print('roledb: ' + repr(tuf.roledb._roledb_dict)) 
     self.assertEqual(1, len(tuf.roledb._roledb_dict))
 
     repository_name = 'example_repository'
@@ -124,7 +123,7 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.remove_roledb(repository_name)
 
     # Test condition for invalid and unexpected arguments.
-    self.assertRaises(TypeError, tuf.roledb.clear_roledb, 'default', 'unexpected_argument')
+    self.assertRaises(TypeError, tuf.roledb.clear_roledb, 'default', False, 'unexpected_argument')
     self.assertRaises(tuf.FormatError, tuf.roledb.clear_roledb, 123)
 
 
