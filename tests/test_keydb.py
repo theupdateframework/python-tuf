@@ -60,8 +60,8 @@ class TestKeydb(unittest.TestCase):
   def test_create_keydb(self):
     # Test condition for normal behaviour.
     repository_name = 'example_repository'
+    
     # The keydb dictionary should contain only the 'default' repository entry.
-    print('keydb: ' + repr(tuf.keydb._keydb_dict.keys()))
     self.assertTrue('default' in tuf.keydb._keydb_dict)
     self.assertEqual(1, len(tuf.keydb._keydb_dict))
 
@@ -108,7 +108,7 @@ class TestKeydb(unittest.TestCase):
     self.assertEqual(0, len(tuf.keydb._keydb_dict['default']))
 
     # Test condition for unexpected argument.
-    self.assertRaises(TypeError, tuf.keydb.clear_keydb, 'default', 'unexpected_argument')
+    self.assertRaises(TypeError, tuf.keydb.clear_keydb, 'default', False, 'unexpected_argument')
 
     # Test condition for invalid repository name.
     self.assertRaises(tuf.FormatError, tuf.keydb.clear_keydb, 0)

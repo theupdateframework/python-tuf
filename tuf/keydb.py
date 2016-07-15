@@ -398,7 +398,7 @@ def remove_key(keyid, repository_name='default'):
 
 
 
-def clear_keydb(repository_name='default'):
+def clear_keydb(repository_name='default', clear_all=False):
 
   """
   <Purpose>
@@ -408,6 +408,9 @@ def clear_keydb(repository_name='default'):
     repository_name:
       The name of the repository to clear the key database.  If not supplied,
       the key database is cleared for the 'default' repository.
+
+    clear_all:
+      Boolean indicating whether to clear the entire keydb.
 
   <Exceptions>
     tuf.FormatError, if 'repository_name' is improperly formatted.
@@ -422,10 +425,17 @@ def clear_keydb(repository_name='default'):
     None.
   """
 
-  # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError' if
+  # Do the arguments have the correct format?  Raise 'tuf.FormatError' if
   # 'repository_name' is improperly formatted.
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
- 
+  tuf.formats.BOOLEAN_SCHEMA.check_match(clear_all)
+
+  global _keydb_dict
+
+  if clear_all:
+    _keydb_dict = {}
+    _keydb_dict['default'] = {}
+
   if repository_name not in _keydb_dict:
     raise tuf.InvalidNameError('Repository name does not exist:'
       ' ' + repr(repository_name))
