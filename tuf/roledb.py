@@ -848,7 +848,7 @@ def get_delegated_rolenames(rolename, repository_name='default'):
 
 
 
-def clear_roledb(repository_name='default', clear_all_except_default=False):
+def clear_roledb(repository_name='default', clear_all=False):
   """
   <Purpose>
     Reset the roledb database.
@@ -858,8 +858,8 @@ def clear_roledb(repository_name='default', clear_all_except_default=False):
       The name of the repository to clear.  If not supplied, the 'default'
       repository is cleared.
 
-    clear_all_except_default:
-      Boolean indicating whether to clear the entire roledb, except 'default'.
+    clear_all:
+      Boolean indicating whether to clear the entire roledb.
 
   <Exceptions>
     tuf.FormatError, if 'repository_name' does not have the correct format.
@@ -876,7 +876,7 @@ def clear_roledb(repository_name='default', clear_all_except_default=False):
 
   # Do the arguments have the correct format?  If not, raise 'tuf.FormatError'
   tuf.formats.NAME_SCHEMA.check_match(repository_name)
-  tuf.formats.BOOLEAN_SCHEMA.check_match(clear_all_except_default)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(clear_all)
 
   global _roledb_dict
   global _dirty_roles
@@ -885,7 +885,7 @@ def clear_roledb(repository_name='default', clear_all_except_default=False):
     raise tuf.InvalidNameError('Repository name does not'
       ' exist: ' + repository_name)
 
-  if clear_all_except_default:
+  if clear_all:
     _roledb_dict = {}
     _roledb_dict['default'] = {}
     return
