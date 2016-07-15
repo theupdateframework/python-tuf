@@ -178,8 +178,8 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-    tuf.roledb.clear_roledb(self.repository_name)
-    tuf.keydb.clear_keydb(self.repository_name) 
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True) 
 
 
 
