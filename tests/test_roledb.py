@@ -46,12 +46,12 @@ for junk in range(3):
 
 class TestRoledb(unittest.TestCase):
   def setUp(self):
-    tuf.roledb.clear_roledb()
+    tuf.roledb.clear_roledb(clear_all=True)
 
 
 
   def tearDown(self):
-    tuf.roledb.clear_roledb()
+    tuf.roledb.clear_roledb(clear_all=True)
 
 
 

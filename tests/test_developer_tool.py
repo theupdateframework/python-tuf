@@ -55,9 +55,9 @@ class TestProject(unittest.TestCase):
 
   def tearDown(self):
     # called after every test case
-    tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
-    pass
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
+
 
   def test_create_new_project(self):
     # Test cases for the create_new_project function. In this test we will

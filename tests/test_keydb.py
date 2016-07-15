@@ -48,12 +48,12 @@ for junk in range(3):
 
 class TestKeydb(unittest.TestCase):
   def setUp(self):
-    tuf.keydb.clear_keydb()
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
 
   def tearDown(self):
-    tuf.keydb.clear_keydb()
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
 
