@@ -283,7 +283,7 @@ def add_key(key_dict, keyid=None, repository_name='default'):
   # available in the key database before returning.
   keyid = key_dict['keyid']
   if keyid in _keydb_dict[repository_name]:
-    raise tuf.KeyAlreadyExistsError('Key: '+keyid)
+    raise tuf.KeyAlreadyExistsError('Key: ' + keyid)
  
   _keydb_dict[repository_name][keyid] = copy.deepcopy(key_dict)
 

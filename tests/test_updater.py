@@ -176,7 +176,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                            'targets_path': 'targets',
                                            'confined_target_dirs': ['']}}
 
-    # Creating repository instance.  The test cases will use this client
+    # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
     self.repository_name = 'test_repository'
     self.repository_updater = updater.Updater(self.repository_name,
@@ -318,6 +318,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     root_metadata = self.repository_updater.metadata['current']['root']
     root_threshold = root_metadata['roles']['root']['threshold']
+    print('\nnumber of root keys: ' + str(len(root_metadata['keys'].keys())))
+    print('\nKeys in root metadata: ' + repr(root_metadata['keys'].keys()))
     number_of_root_keys = len(root_metadata['keys'])
 
     self.assertEqual(root_roleinfo['threshold'], root_threshold)
@@ -325,6 +327,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # keys multiplied by the number of keyid hash algorithms), to include the
     # delegated targets key.  The delegated roles of 'targets.json' are also
     # loaded when the repository object is instantiated.
+    print('\ndifference: ' + repr(list(set(tuf.keydb._keydb_dict[self.repository_name].keys()) - set(root_metadata['keys'].keys()))))
     self.assertEqual(number_of_root_keys * 2 + 1, len(tuf.keydb._keydb_dict[self.repository_name]))
 
     # Test: normal case.
@@ -462,7 +465,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
     # Take into account the number of keyids algorithms supported by default,
     # which this test condition expects to be two (sha256 and sha512).
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2)
+    print('\nkeydb_dict len: ' + repr(len(tuf.keydb._keydb_dict[repository_name].keys())))
+    print('\nkeydb_dict: ' + repr(tuf.keydb._keydb_dict[repository_name].keys()))
+    self.assertEqual(4 * 2, len(tuf.keydb._keydb_dict[repository_name]))
 
     # Test: pass a role without delegations.
     self.repository_updater._import_delegations('root')

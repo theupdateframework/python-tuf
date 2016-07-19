@@ -69,6 +69,9 @@ class TestKeydb(unittest.TestCase):
     tuf.keydb.create_keydb(repository_name)
     self.assertEqual(2, len(tuf.keydb._keydb_dict))
 
+    # Verify that a keydb cannot be created for a name that already exists.
+    self.assertRaises(tuf.InvalidNameError, tuf.keydb.create_keydb, repository_name)
+
     # Ensure that the key database for 'example_repository' is deleted so that
     # the key database is returned to its original, default state.
     tuf.keydb.remove_keydb(repository_name)
@@ -110,8 +113,12 @@ class TestKeydb(unittest.TestCase):
     # Test condition for unexpected argument.
     self.assertRaises(TypeError, tuf.keydb.clear_keydb, 'default', False, 'unexpected_argument')
 
-    # Test condition for invalid repository name.
+    # Test condition for improperly formatted arguments.
     self.assertRaises(tuf.FormatError, tuf.keydb.clear_keydb, 0)
+    self.assertRaises(tuf.FormatError, tuf.keydb.clear_keydb, 'default', 0)
+
+    # Test condition for non-existent repository name.
+    self.assertRaises(tuf.InvalidNameError, tuf.keydb.clear_keydb, 'non-existent')
 
     # Test condition for keys added to a non-default key database.  Unlike the
     # test conditions above, this test makes use of the public functions
@@ -165,6 +172,10 @@ class TestKeydb(unittest.TestCase):
     rsakey3 = KEYS[2]
     tuf.keydb.create_keydb(repository_name)
     tuf.keydb.add_key(rsakey3, keyid3, repository_name)
+
+    # Test condition for a key added to a non-existent repository.
+    self.assertRaises(tuf.InvalidNameError, tuf.keydb.add_key,
+                      rsakey3, keyid3, 'non-existent')
 
     # Verify that 'rsakey3' is added to the expected repository name.
     # If not supplied, the 'default' repository name is searched.
@@ -226,6 +237,10 @@ class TestKeydb(unittest.TestCase):
     tuf.keydb.add_key(rsakey3, keyid3, repository_name)
     self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3)
     self.assertEqual(rsakey3, tuf.keydb.get_key(keyid3, repository_name))
+
+    # Test condition for key added to the keydb of a non-existent repository.
+    self.assertRaises(tuf.InvalidNameError, tuf.keydb.add_key,
+                      rsakey3, keyid3, 'non-existent')
     
     # Reset the keydb to its original, default state.  Other test functions
     # expect only the 'default' repository to exist.

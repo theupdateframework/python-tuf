@@ -940,9 +940,9 @@ def load_json_file(filepath):
   try:
     deserialized_object = json.load(fileobject)
   
-  except (ValueError, TypeError) as e:
-    message = 'Cannot deserialize to a Python object: ' + repr(filepath)
-    raise tuf.Error(message)
+  except (ValueError, TypeError):
+    raise tuf.Error('Cannot deserialize to a Python object: ' + repr(filepath))
+
   
   else:
     fileobject.close() 
