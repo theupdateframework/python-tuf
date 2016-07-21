@@ -248,7 +248,9 @@ def verify(signable, role, repository_name='default'):
 
   # Does 'status' have the required threshold of signatures?
   # First check for invalid threshold values before returning result.
-  if threshold is None or threshold <= 0:
+  # Note: get_signature_status() is expected to verify that 'threshold' is
+  # not None or <= 0.
+  if threshold is None or threshold <= 0: #pragma: no cover
       raise tuf.Error("Invalid threshold: " + str(threshold))
 
   return len(good_sigs) >= threshold

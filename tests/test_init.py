@@ -47,6 +47,11 @@ class TestInit(unittest.TestCase):
     slow_signature_error = tuf.SlowRetrievalError('bad_role')
     logger.error(slow_signature_error)
 
+
+  def test_bad_hash_error(self):
+    bad_hash_error = tuf.BadHashError('01234', '56789')
+    logger.error(bad_hash_error)
+
   
 # Run the unit tests.
 if __name__ == '__main__':

@@ -163,9 +163,13 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(tuf.FormatError, tuf.roledb.add_role, rolename, roleinfo, 123)
 
 
-    # Test condition where the role already exists in the role database.
+    # Test condition where the rolename already exists in the role database.
     self.assertRaises(tuf.RoleAlreadyExistsError, tuf.roledb.add_role,
                       rolename, roleinfo)
+   
+    # Test where the repository name does not exist in the role database.
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.add_role,
+                      'new_role', roleinfo, 'non-existent')
     
     # Test conditions for invalid rolenames.
     self.assertRaises(tuf.InvalidNameError, tuf.roledb.add_role, ' badrole ',
@@ -245,6 +249,9 @@ class TestRoledb(unittest.TestCase):
     self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename, repository_name))
     self.assertEqual(None, tuf.roledb.remove_role(rolename, repository_name))
 
+    # Verify that a role cannot be removed from a non-existent repository name.
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.remove_role, rolename, 'non-existent')
+
     # Reset the roledb so that subsequent test have access to the original,
     # default roledb.
     tuf.roledb.remove_roledb(repository_name)
@@ -293,6 +300,46 @@ class TestRoledb(unittest.TestCase):
     # Test for invalid or improperly formatted arguments.
     self.assertRaises(tuf.FormatError, tuf.roledb.get_rolenames, 123)
 
+
+
+  def test_get_role_info(self):
+    # Test conditions where the arguments are valid. 
+    rolename = 'targets'
+    rolename2 = 'role1'
+    roleinfo = {'keyids': ['123'], 'threshold': 1}
+    roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
+    self.assertRaises(tuf.UnknownRoleError, tuf.roledb.get_roleinfo, rolename)
+    tuf.roledb.add_role(rolename, roleinfo)
+    tuf.roledb.add_role(rolename2, roleinfo2)
+    
+    self.assertEqual(roleinfo, tuf.roledb.get_roleinfo(rolename))
+    self.assertEqual(roleinfo2, tuf.roledb.get_roleinfo(rolename2))
+    
+    # Verify that a roleinfo can be retrieved for a role in a non-default
+    # repository.
+    repository_name = 'example_repository'
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_roleinfo, 
+                                            rolename, repository_name)
+
+    tuf.roledb.create_roledb(repository_name) 
+    tuf.roledb.add_role(rolename, roleinfo, repository_name)
+    self.assertEqual(roleinfo, tuf.roledb.get_roleinfo(rolename, repository_name))
+    
+    # Verify that a roleinfo cannot be retrieved for a non-existent repository
+    # name.
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_roleinfo, rolename,
+                      'non-existent')
+
+    # Reset the roledb so that subsequent tests have access to the original,
+    # default roledb
+    tuf.roledb.remove_roledb(repository_name)
+
+    # Test conditions where the arguments are improperly formatted, contain
+    # invalid names, or haven't been added to the role database.
+    self._test_rolename(tuf.roledb.get_roleinfo)
+    self.assertRaises(tuf.FormatError, tuf.roledb.get_roleinfo, rolename, 123)
+    self.assertRaises(tuf.FormatError, tuf.roledb.get_roleinfo, 123)
+
     
 
   def test_get_role_keyids(self):
@@ -317,6 +364,11 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.create_roledb(repository_name) 
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
     self.assertEqual(['123'], tuf.roledb.get_role_keyids(rolename, repository_name))
+
+    # Verify that rolekeyids cannot be retrieved from a non-existent repository
+    # name.
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_role_keyids, rolename,
+                      'non-existent')
 
     # Reset the roledb so that subsequent tests have access to the original,
     # default roledb
@@ -350,6 +402,11 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
     self.assertEqual(roleinfo['threshold'], tuf.roledb.get_role_threshold(rolename, repository_name))
+
+    # Verify that a role's threshold cannot be retrieved from a non-existent
+    # repository name.
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_role_threshold,
+                      rolename, 'non-existent')
 
     # Reset the roledb so that subsequent tests have access to the original,
     # default roledb.
@@ -573,6 +630,11 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(tuf.UnknownRoleError, tuf.roledb.update_roleinfo,
                       'unknown_rolename', roleinfo)
 
+    # Verify that a roleinfo cannot be updated to a non-existent repository
+    # name.
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.update_roleinfo,
+                      'new_rolename', roleinfo, False, 'non-existent')
+      
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, tuf.roledb.update_roleinfo, 1, roleinfo)
     self.assertRaises(tuf.FormatError, tuf.roledb.update_roleinfo, rolename, 1)
@@ -605,7 +667,10 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.add_role(rolename, roleinfo1, repository_name)
     tuf.roledb.update_roleinfo(rolename, roleinfo2, mark_role_as_dirty, repository_name)
     self.assertEqual([rolename], tuf.roledb.get_dirty_roles(repository_name))
-    
+   
+    # Verify that dirty roles are not returned for a non-existent repository.
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_dirty_roles, 'non-existent')
+
     # Reset the roledb so that subsequent tests have access to a default
     # roledb.
     tuf.roledb.remove_roledb(repository_name)

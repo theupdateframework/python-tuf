@@ -597,6 +597,22 @@ class TestFormats(unittest.TestCase):
     self.assertRaises(tuf.FormatError, make_fileinfo, length, bad_hashes)
 
 
+  
+  def test_make_versioninfo(self):
+    # Test conditions for valid arguments. 
+    version_number = 8
+    versioninfo = {'version': version_number}
+
+    VERSIONINFO_SCHEMA = tuf.formats.VERSIONINFO_SCHEMA
+    make_versioninfo = tuf.formats.make_versioninfo
+    self.assertTrue(VERSIONINFO_SCHEMA.matches(make_versioninfo(version_number)))
+
+    # Test conditions for invalid arguments.
+    bad_version_number = '8'
+
+    self.assertRaises(tuf.FormatError, make_versioninfo, bad_version_number)
+    
+
 
   def test_make_role_metadata(self):
     # Test conditions for valid arguments. 

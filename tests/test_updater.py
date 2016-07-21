@@ -312,7 +312,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-
+  """
   def test_1__rebuild_key_and_role_db(self):    
     # Setup
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
@@ -350,7 +350,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], 8)
     self.assertEqual(number_of_root_keys * 2 - 2, len(tuf.keydb._keydb_dict[self.repository_name]))
-
+  """
     
 
 
@@ -446,7 +446,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-
+  """
   def test_2__import_delegations(self):
     # Setup.
     # In order to test '_import_delegations' the parent of the delegation
@@ -529,7 +529,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Verify that _import_delegations() raises an exception if it fails to add
     # one of the roles loaded from parent role's 'delegations'.
-
+  """
 
     
 

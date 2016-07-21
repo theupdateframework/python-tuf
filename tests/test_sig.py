@@ -293,6 +293,7 @@ class TestSig(unittest.TestCase):
     tuf.roledb.remove_role('Release')
 
 
+
   def test_check_signatures_no_role(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
@@ -311,6 +312,7 @@ class TestSig(unittest.TestCase):
     tuf.keydb.remove_key(KEYS[0]['keyid'])
 
 
+
   def test_verify_single_key(self):
     signable = {'signed' : 'test', 'signatures' : []}
     signable['signatures'].append(tuf.keys.create_signature(
@@ -325,6 +327,9 @@ class TestSig(unittest.TestCase):
     # This will call verify() and return True if 'signable' is valid,
     # False otherwise.
     self.assertTrue(tuf.sig.verify(signable, 'Root'))
+
+    # Verify that an exception is raised if an invalid threshold is provided.
+    self.assertRaises(tuf.sig.verify(signable, 'Root')) 
 
     # Done.  Let's remove the added key(s) from the key database.
     tuf.keydb.remove_key(KEYS[0]['keyid'])
@@ -357,6 +362,7 @@ class TestSig(unittest.TestCase):
 
     # Remove the roles.
     tuf.roledb.remove_role('Root')
+
 
 
   def test_generate_rsa_signature(self):

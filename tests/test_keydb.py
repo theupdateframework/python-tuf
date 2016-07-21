@@ -174,8 +174,8 @@ class TestKeydb(unittest.TestCase):
     tuf.keydb.add_key(rsakey3, keyid3, repository_name)
 
     # Test condition for a key added to a non-existent repository.
-    self.assertRaises(tuf.InvalidNameError, tuf.keydb.add_key,
-                      rsakey3, keyid3, 'non-existent')
+    self.assertRaises(tuf.InvalidNameError, tuf.keydb.get_key,
+                      keyid, 'non-existent')
 
     # Verify that 'rsakey3' is added to the expected repository name.
     # If not supplied, the 'default' repository name is searched.
