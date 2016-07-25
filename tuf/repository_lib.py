@@ -370,15 +370,15 @@ def _check_role_keys(rolename):
 
 def _remove_invalid_and_duplicate_signatures(signable):
   """
-    Non-public function that removes invalid signatures from 'signable'.
-    'signable' may contain signatures (invalid) from previous versions
-    of the metadata that were loaded with load_repository().  Invalid, or
-    duplicate signatures are removed from 'signable'.
+    Non-public function that removes invalid or duplicate signatures from
+    'signable'.  'signable' may contain signatures (invalid) from previous
+    versions of the metadata that were loaded with load_repository().  Invalid,
+    or duplicate signatures, are removed from 'signable'.
   """
   
-  # Store the keyids of valid signatures.  'signature_keyids' is checked
-  # for duplicates rather than comparing signature objects because PSS may
-  # generate duplicate valid signatures of the same data, yet contain different
+  # Store the keyids of valid signatures.  'signature_keyids' is checked for
+  # duplicates rather than comparing signature objects because PSS may generate
+  # duplicate valid signatures for the same data, yet contain different
   # signatures.
   signature_keyids = []
 
@@ -392,7 +392,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
     try:
       key = tuf.keydb.get_key(keyid)
     
-    except tuf.UnknownKeyError as e:
+    except tuf.UnknownKeyError:
       signable['signatures'].remove(signature)
       continue
     

@@ -844,17 +844,24 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Remove duplicate PSS signatures (same key generates valid, but different
     # signatures).  First load a valid signable (in this case, the root role).
     root_filepath = os.path.join('repository_data', 'repository',
-                                 'metadata', 'snapshot.json')
+                                 'metadata', 'root.json')
     root_signable = tuf.util.load_json_file(root_filepath)
-    key_filepath = os.path.join('repository_data', 'keystore', 'snapshot_key')
-    root_rsa_key = repo_lib.import_ed25519_privatekey_from_file(key_filepath,
+    key_filepath = os.path.join('repository_data', 'keystore', 'root_key')
+    root_rsa_key = repo_lib.import_rsa_privatekey_from_file(key_filepath,
                                                             'password')
+    
+    # Add 'root_rsa_key' to tuf.keydb, since
+    # _remove_invalid_and_duplicate_signatures() checks for unknown keys in
+    # tuf.keydb.
+    tuf.keydb.add_key(root_rsa_key)
 
     # Append the new valid, but duplicate PSS signature, and test that
-    # duplicates are removed.
+    # duplicates are removed.  create_signature() generates a key for the
+    # key type of the first argument (i.e., root_rsa_key).
     new_pss_signature = tuf.keys.create_signature(root_rsa_key,
                                                   root_signable['signed'])
     root_signable['signatures'].append(new_pss_signature)
+
     expected_number_of_signatures = len(root_signable['signatures'])
     tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
     self.assertEqual(len(root_signable), expected_number_of_signatures)
@@ -862,6 +869,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test that invalid keyid are ignored.
     root_signable['signatures'][0]['keyid'] = '404'
     tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
+
 
 
 # Run the test cases.

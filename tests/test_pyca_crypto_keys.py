@@ -119,10 +119,15 @@ class TestPyca_crypto_keys(unittest.TestCase):
                                                       'invalid_method',
                                                       public_rsa, data)
     
-    # Check for invalid 'signature' and 'data' arguments.
+    # Check for invalid 'signature', 'public_key', and 'data' arguments.
     self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature,
                       signature, method, public_rsa, 123)
-    
+  
+   
+
+    self.assertRaises(tuf.CryptoError, crypto_keys.verify_rsa_signature,
+                      signature, method, 'bad_key', data)
+  
     self.assertEqual(False, crypto_keys.verify_rsa_signature(signature, method,
                             public_rsa, b'mismatched data'))
 
