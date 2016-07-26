@@ -328,9 +328,6 @@ class TestSig(unittest.TestCase):
     # False otherwise.
     self.assertTrue(tuf.sig.verify(signable, 'Root'))
 
-    # Verify that an exception is raised if an invalid threshold is provided.
-    self.assertRaises(tuf.sig.verify(signable, 'Root')) 
-
     # Done.  Let's remove the added key(s) from the key database.
     tuf.keydb.remove_key(KEYS[0]['keyid'])
 
