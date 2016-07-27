@@ -356,11 +356,19 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     compressed_filepath = self._compress_existing_file(filepath)
     self.assertEqual(data, tuf.util.load_json_file(compressed_filepath))
 
-    Errors = (tuf.FormatError, IOError)
-    for bogus_arg in [b'a', 1, [b'a'], {'a':b'b'}]:
-      self.assertRaises(Errors, tuf.util.load_json_file, bogus_arg)
+    # Improperly formatted arguments.
+    for bogus_arg in [1, [b'a'], {'a':b'b'}]:
+      self.assertRaises(tuf.FormatError, tuf.util.load_json_file, bogus_arg)
 
-  
+    # Non-existent path. 
+    self.assertRaises(IOError, tuf.util.load_json_file, 'non-existent.json')
+
+    # Invalid JSON content.
+    with open(filepath, 'a') as filepath:
+      filepath.write('junk data')
+    self.assertRaises(tuf.Error, tuf.util.load_json_file, filepath)
+
+
   
   def test_C1_get_target_hash(self):
     # Test normal case. 

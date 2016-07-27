@@ -1,7 +1,7 @@
                       The Update Framework Specification
 
-14 May 2015
-Version 0.9
+14 July 2016
+Version 1.0
 
 1. Introduction
 
@@ -650,29 +650,18 @@ Version 0.9
       "hashes": {
        "sha256": "52bbb30f683d166fae5c366e4582cfe8212aacbe1b21ae2026dae58ec55d3701"
       }, 
-      "length": 1831
+      "length": 1831,
+      "version": 1
      }, 
      "targets.json": {
-      "hashes": {
-       "sha256": "f592d072e1193688a686267e8e10d7257b4ebfcf28133350dae88362d82a0c8a"
-      }, 
-      "length": 1184
+      "version": 1
      }, 
-     "targets.json.gz": {
-      "hashes": {
-       "sha256": "9f8aff5b55ee4b3140360d99b39fa755a3ea640462072b4fd74bdd72e6fe245a"
+     "project.json": {
+      "version": 1
       }, 
-      "length": 599
-     }, 
-     "targets/project.json": {
-      "hashes": {
-       "sha256": "1f812e378264c3085bb69ec5f6663ed21e5882bbece3c3f8a0e8479f205ffb91"
-      }, 
-      "length": 604
      }
     }, 
     "version": 1
-   }
    }
 
 4.5. File formats: targets.json and delegated target roles
@@ -865,7 +854,8 @@ Version 0.9
       "hashes": {
        "sha256": "c14aeb4ac9f4a8fc0d83d12482b9197452f6adf3eb710e3b1e2b79e8d14cb681"
       }, 
-      "length": 1007
+      "length": 1007,
+      "version": 1
      }
     }, 
     "version": 1
@@ -1019,27 +1009,29 @@ Version 0.9
     We now explain how a repository should write metadata and targets to
     produce self-contained consistent snapshots.
 
-    Simply put, TUF should write every metadata and target file as such: if the
+    Simply put, TUF should write every metadata file as such: if the
     file had the original name of filename.ext, then it should be written to
-    disk as digest.filename.ext, where digest is the hex digest of a
-    cryptographic hash of the file. This means that if the referrer metadata
-    lists N cryptographic hashes of the referred file, then there must be N
-    identical copies of the referred file, where each file will be
-    distinguished only by the value of the digest in its filename. The modified
-    filename need not include the name of the cryptographic hash function used
-    to produce the digest because, on a read, the choice of function follows
-    from the selection of a digest (which includes the name of the
-    cryptographic function) from all digests in the referred file.
+    disk as version_number.filename.ext, where version_number is an integer.
+     
+    On the other hand, consistent target files should be written to disk as
+    digest.filename.ext.  This means that if the referrer metadata lists N
+    cryptographic hashes of the referred file, then there must be N identical
+    copies of the referred file, where each file will be distinguished only by
+    the value of the digest in its filename. The modified filename need not
+    include the name of the cryptographic hash function used to produce the
+    digest because, on a read, the choice of function follows from the
+    selection of a digest (which includes the name of the cryptographic
+    function) from all digests in the referred file.
 
-    Additionally, the timestamp metadata (timestamp.json) should also be written
-    to disk whenever it is updated. It is optional for an implementation to
-    write identical copies at digest.timestamp.json for record-keeping purposes,
-    because a cryptographic hash of the timestamp metadata is usually not
-    known in advance. The same step applies to the root metadata (root.json),
-    although an implementation must write both root.json and digest.root.json
-    because it is possible to download root metadata both with and without
-    known hashes. These steps are required because these are the only metadata
-    files that may be requested without known hashes.
+    Additionally, the timestamp metadata (timestamp.json) should also be
+    written to disk whenever it is updated. It is optional for an
+    implementation to write identical copies at digest.timestamp.json for
+    record-keeping purposes, because a cryptographic hash of the timestamp
+    metadata is usually not known in advance. The same step applies to the root
+    metadata (root.json), although an implementation must write both root.json
+    and digest.root.json because it is possible to download root metadata both
+    with and without known hashes. These steps are required because these are
+    the only metadata files that may be requested without known hashes.
 
     Most importantly, no metadata file format must be updated to refer to the
     names of metadata or target files with their hashes included. In other

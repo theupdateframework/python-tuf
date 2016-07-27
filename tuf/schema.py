@@ -444,7 +444,7 @@ class Boolean(Schema):
 
   def check_match(self, object):
     if not isinstance(object, bool):
-      raise tuf.FormatError('Got '+repr(object)+' instead of a boolean.')
+      raise tuf.FormatError('Got ' + repr(object) + ' instead of a boolean.')
 
 
 

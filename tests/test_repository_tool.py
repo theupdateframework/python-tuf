@@ -87,8 +87,8 @@ class TestRepository(unittest.TestCase):
 
 
   def tearDown(self):
-    tuf.roledb.clear_roledb() 
-    tuf.keydb.clear_keydb()
+    tuf.roledb.clear_roledb(clear_all=True) 
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
   def test_init(self):
@@ -152,12 +152,12 @@ class TestRepository(unittest.TestCase):
     
     root_pubkey = repo_tool.import_rsa_publickey_from_file(root_pubkey_path)
     targets_pubkey = \
-      repo_tool.import_rsa_publickey_from_file(targets_pubkey_path)
+      repo_tool.import_ed25519_publickey_from_file(targets_pubkey_path)
     snapshot_pubkey = \
-      repo_tool.import_rsa_publickey_from_file(snapshot_pubkey_path)
+      repo_tool.import_ed25519_publickey_from_file(snapshot_pubkey_path)
     timestamp_pubkey = \
-      repo_tool.import_rsa_publickey_from_file(timestamp_pubkey_path)
-    role1_pubkey = repo_tool.import_rsa_publickey_from_file(role1_pubkey_path)
+      repo_tool.import_ed25519_publickey_from_file(timestamp_pubkey_path)
+    role1_pubkey = repo_tool.import_ed25519_publickey_from_file(role1_pubkey_path)
     
     # Load the private keys.
     root_privkey_path = os.path.join(keystore_directory, 'root_key')
@@ -169,16 +169,16 @@ class TestRepository(unittest.TestCase):
     root_privkey = \
       repo_tool.import_rsa_privatekey_from_file(root_privkey_path, 'password')
     targets_privkey = \
-      repo_tool.import_rsa_privatekey_from_file(targets_privkey_path,
+      repo_tool.import_ed25519_privatekey_from_file(targets_privkey_path,
                                                 'password')
     snapshot_privkey = \
-      repo_tool.import_rsa_privatekey_from_file(snapshot_privkey_path,
+      repo_tool.import_ed25519_privatekey_from_file(snapshot_privkey_path,
                                                 'password')
     timestamp_privkey = \
-      repo_tool.import_rsa_privatekey_from_file(timestamp_privkey_path,
+      repo_tool.import_ed25519_privatekey_from_file(timestamp_privkey_path,
                                                 'password')
     role1_privkey = \
-      repo_tool.import_rsa_privatekey_from_file(role1_privkey_path,
+      repo_tool.import_ed25519_privatekey_from_file(role1_privkey_path,
                                                 'password')
 
 
@@ -235,7 +235,7 @@ class TestRepository(unittest.TestCase):
         self.assertTrue(os.path.exists(compressed_filepath))
        
     # Verify the 'role1.json' delegation is also written.
-    role1_filepath = os.path.join(metadata_directory, 'targets', 'role1.json')
+    role1_filepath = os.path.join(metadata_directory, 'role1.json')
     role1_signable = tuf.util.load_json_file(role1_filepath)
     tuf.formats.check_signable_object_format(role1_signable)
 
@@ -246,33 +246,32 @@ class TestRepository(unittest.TestCase):
     repository.status()
     
     # Verify status() does not raise 'tuf.InsufficientKeysError' if a top-level
-    # role does and 'targets/role1' do not contain a threshold of keys.
+    # role does and 'role1' do not contain a threshold of keys.
     root_roleinfo = tuf.roledb.get_roleinfo('root')
     old_threshold = root_roleinfo['threshold']
     root_roleinfo['threshold'] = 10
-    role1_roleinfo = tuf.roledb.get_roleinfo('targets/role1')
+    role1_roleinfo = tuf.roledb.get_roleinfo('role1')
     old_role1_threshold = role1_roleinfo['threshold']
     role1_roleinfo['threshold'] = 10
     tuf.roledb.update_roleinfo('root', root_roleinfo)
-    tuf.roledb.update_roleinfo('targets/role1', role1_roleinfo)
+    tuf.roledb.update_roleinfo('role1', role1_roleinfo)
     repository.status()
    
     # Restore the original threshold values.
     root_roleinfo['threshold'] = old_threshold
     tuf.roledb.update_roleinfo('root', root_roleinfo)
     role1_roleinfo['threshold'] = old_role1_threshold
-    tuf.roledb.update_roleinfo('targets/role1', role1_roleinfo)
-
+    tuf.roledb.update_roleinfo('role1', role1_roleinfo)
 
     # Verify status() does not raise 'tuf.UnsignedMetadataError' if any of the
-    # the top-level roles and 'targets/role1' are improperly signed.
+    # the top-level roles and 'role1' are improperly signed.
     repository.root.unload_signing_key(root_privkey)
     repository.root.load_signing_key(targets_privkey)
     repository.targets('role1').unload_signing_key(role1_privkey)
     repository.targets('role1').load_signing_key(targets_privkey)
     repository.status()
 
-    # Reset Root and 'targets/role1', and verify Targets.
+    # Reset Root and 'role1', and verify Targets.
     repository.root.unload_signing_key(targets_privkey)
     repository.root.load_signing_key(root_privkey)
     repository.targets('role1').unload_signing_key(targets_privkey)
@@ -325,7 +324,7 @@ class TestRepository(unittest.TestCase):
     repository.root.load_signing_key(root_privkey)
     repository.snapshot.load_signing_key(snapshot_privkey)
    
-    # Verify that consistent snapshot can be written and loaded. 
+    # Verify that a consistent snapshot can be written and loaded. 
     repository.write(consistent_snapshot=True)
     repo_tool.load_repository(repository_directory)
 
@@ -347,7 +346,8 @@ class TestRepository(unittest.TestCase):
     metadata_files = repo.get_filepaths_in_directory(metadata_directory) 
     expected_files = ['root.json', 'root.json.gz', 'targets.json',
                       'targets.json.gz', 'snapshot.json', 'snapshot.json.gz',
-                      'timestamp.json', 'timestamp.json.gz']
+                      'timestamp.json', 'timestamp.json.gz', 'role1.json',
+                      'role1.json.gz']
     basenames = [] 
     for filepath in metadata_files:
       basenames.append(os.path.basename(filepath))
@@ -493,8 +493,8 @@ class TestMetadata(unittest.TestCase):
 
     # Test keys() getter after a verification key has been loaded.
     key_path = os.path.join('repository_data',
-                            'keystore', 'root_key.pub')
-    key_object = repo_tool.import_rsa_publickey_from_file(key_path)
+                            'keystore', 'snapshot_key.pub')
+    key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
     self.metadata.add_verification_key(key_object)
     
     keyid = key_object['keyid']
@@ -541,8 +541,8 @@ class TestMetadata(unittest.TestCase):
   def test_add_verification_key(self):
     # Add verification key and verify with keys() that it was added. 
     key_path = os.path.join('repository_data',
-                            'keystore', 'root_key.pub')
-    key_object = repo_tool.import_rsa_publickey_from_file(key_path)
+                            'keystore', 'snapshot_key.pub')
+    key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
     self.metadata.add_verification_key(key_object)
     
     keyid = key_object['keyid']
@@ -557,8 +557,8 @@ class TestMetadata(unittest.TestCase):
   def test_remove_verification_key(self):
     # Add verification key so that remove_verifiation_key() can be tested.
     key_path = os.path.join('repository_data',
-                            'keystore', 'root_key.pub')
-    key_object = repo_tool.import_rsa_publickey_from_file(key_path)
+                            'keystore', 'snapshot_key.pub')
+    key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
     self.metadata.add_verification_key(key_object)
     
     keyid = key_object['keyid']
@@ -577,7 +577,7 @@ class TestMetadata(unittest.TestCase):
     # Test non-existent public key argument.
     key_path = os.path.join('repository_data',
                             'keystore', 'targets_key.pub')
-    unused_key_object = repo_tool.import_rsa_publickey_from_file(key_path)
+    unused_key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
     
     self.assertRaises(tuf.Error, self.metadata.remove_verification_key,
                       unused_key_object)
@@ -587,8 +587,8 @@ class TestMetadata(unittest.TestCase):
   def test_load_signing_key(self):
     # Test normal case. 
     key_path = os.path.join('repository_data',
-                            'keystore', 'root_key')
-    key_object = repo_tool.import_rsa_privatekey_from_file(key_path, 'password')
+                            'keystore', 'snapshot_key')
+    key_object = repo_tool.import_ed25519_privatekey_from_file(key_path, 'password')
     self.metadata.load_signing_key(key_object)
     
     keyid = key_object['keyid']
@@ -601,8 +601,8 @@ class TestMetadata(unittest.TestCase):
     
     # Test non-private key.
     key_path = os.path.join('repository_data',
-                            'keystore', 'root_key.pub')
-    key_object = repo_tool.import_rsa_publickey_from_file(key_path)
+                            'keystore', 'snapshot_key.pub')
+    key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
     self.assertRaises(tuf.Error, self.metadata.load_signing_key, key_object)
 
 
@@ -610,8 +610,8 @@ class TestMetadata(unittest.TestCase):
   def test_unload_signing_key(self):
     # Load a signing key so that unload_signing_key() can have a key to unload.
     key_path = os.path.join('repository_data',
-                            'keystore', 'root_key')
-    key_object = repo_tool.import_rsa_privatekey_from_file(key_path, 'password')
+                            'keystore', 'snapshot_key')
+    key_object = repo_tool.import_ed25519_privatekey_from_file(key_path, 'password')
     self.metadata.load_signing_key(key_object)
     
     keyid = key_object['keyid']
@@ -629,7 +629,7 @@ class TestMetadata(unittest.TestCase):
     # Test non-existent key argument.
     key_path = os.path.join('repository_data',
                             'keystore', 'targets_key')
-    unused_key_object = repo_tool.import_rsa_privatekey_from_file(key_path,
+    unused_key_object = repo_tool.import_ed25519_privatekey_from_file(key_path,
                                                                   'password')
     
     self.assertRaises(tuf.Error, self.metadata.unload_signing_key,
@@ -857,8 +857,8 @@ class TestTargets(unittest.TestCase):
     # Perform a delegation so that a delegated role can be accessed and tested
     # through __call__().  Example: {targets_object}('role1').
     keystore_directory = os.path.join('repository_data', 'keystore')
-    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
-    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
+    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
    
     # Create Targets() object to be tested.
@@ -880,8 +880,8 @@ class TestTargets(unittest.TestCase):
     # Perform two delegations so that get_delegated_rolenames() has roles to 
     # return.
     keystore_directory = os.path.join('repository_data', 'keystore')
-    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
-    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
+    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
     target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
 
@@ -921,8 +921,8 @@ class TestTargets(unittest.TestCase):
     # Perform a delegation so that delegations() has a Targets() object to
     # return.
     keystore_directory = os.path.join('repository_data', 'keystore')
-    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
-    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
+    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate().
@@ -1076,8 +1076,8 @@ class TestTargets(unittest.TestCase):
     # Need at least one public key and valid target paths required by
     # delegate().
     keystore_directory = os.path.join('repository_data', 'keystore')
-    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
-    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
+    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
     target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
   
@@ -1096,7 +1096,7 @@ class TestTargets(unittest.TestCase):
                                  path_hash_prefixes=path_hash_prefixes)
 
     self.assertEqual(self.targets_object.get_delegated_rolenames(),
-                     ['targets/tuf'])
+                     ['tuf'])
     
     # Try to delegate to a role that has already been delegated.
     self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,
@@ -1157,8 +1157,8 @@ class TestTargets(unittest.TestCase):
   def test_delegate_hashed_bins(self):
     # Test normal case.
     keystore_directory = os.path.join('repository_data', 'keystore')
-    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
-    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
+    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate_hashed_bins().
@@ -1174,15 +1174,8 @@ class TestTargets(unittest.TestCase):
     delegated_rolenames = ['0', '1', '2', '3', '4', '5', '6', '7',
                            '8', '9', 'a', 'b', 'c', 'd', 'e', 'f']
 
-    # Prepend the parent's rolename.
-    expected_delegated_rolenames = []
-    for rolename in delegated_rolenames:
-      rolename = self.targets_object.rolename + '/' + rolename
-      expected_delegated_rolenames.append(rolename)
-
     self.assertEqual(sorted(self.targets_object.get_delegated_rolenames()),
-                     sorted(expected_delegated_rolenames))
-
+                     sorted(delegated_rolenames))
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError,
@@ -1214,7 +1207,7 @@ class TestTargets(unittest.TestCase):
     # Delegate the hashed bins so that add_target_to_bin() can be tested.
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
-    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate_hashed_bins().
@@ -1222,8 +1215,8 @@ class TestTargets(unittest.TestCase):
     list_of_targets = [target1_filepath] 
 
     # Delegate to hashed bins.  The target filepath to be tested is expected 
-    # to contain a hash prefix of 'e', so it should be added to the
-    # 'targets/e' role.
+    # to contain a hash prefix of 'e', and should be available at: 
+    # repository.targets('e').
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
                                              number_of_bins=16)
  
@@ -1234,8 +1227,9 @@ class TestTargets(unittest.TestCase):
     # Add 'target1_filepath' and verify that the relative path of
     # 'target1_filepath' is added to the correct bin.
     self.targets_object.add_target_to_bin(target1_filepath)
+    
     for delegation in self.targets_object.delegations:
-      if delegation.rolename == 'targets/e':
+      if delegation.rolename == 'e':
         self.assertTrue('/file1.txt' in delegation.target_files)
       
       else:
@@ -1244,11 +1238,6 @@ class TestTargets(unittest.TestCase):
     # Test for non-existent delegations and hashed bins.
     empty_targets_role = repo_tool.Targets(self.targets_directory, 'empty')
     
-    self.assertRaises(tuf.Error, empty_targets_role.add_target_to_bin,
-                      target1_filepath)
-    
-    # Non-bin delegation, although it has a correct hashed bin name.
-    empty_targets_role.delegate('e', [public_key], [target1_filepath])
     self.assertRaises(tuf.Error, empty_targets_role.add_target_to_bin,
                       target1_filepath)
 
@@ -1272,7 +1261,7 @@ class TestTargets(unittest.TestCase):
     # Delegate the hashed bins so that add_target_to_bin() can be tested.
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
-    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate_hashed_bins().
@@ -1280,8 +1269,8 @@ class TestTargets(unittest.TestCase):
     list_of_targets = [target1_filepath] 
 
     # Delegate to hashed bins.  The target filepath to be tested is expected 
-    # to contain a hash prefix of 'e', so it should be added to the
-    # 'targets/e' role.
+    # to contain a hash prefix of 'e', and can be accessed as:
+    # repository.targets('e').
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
                                              number_of_bins=16)
  
@@ -1294,7 +1283,7 @@ class TestTargets(unittest.TestCase):
     self.targets_object.add_target_to_bin(target1_filepath)
     
     for delegation in self.targets_object.delegations:
-      if delegation.rolename == 'targets/e':
+      if delegation.rolename == 'e':
         self.assertTrue('/file1.txt' in delegation.target_files)
       
       else:
@@ -1305,7 +1294,7 @@ class TestTargets(unittest.TestCase):
     self.targets_object.remove_target_from_bin(target1_filepath)
     
     for delegation in self.targets_object.delegations:
-      if delegation.rolename == 'targets/e':
+      if delegation.rolename == 'e':
         self.assertTrue('/file1.txt' not in delegation.target_files)
       
       else:
@@ -1327,8 +1316,8 @@ class TestTargets(unittest.TestCase):
     # Perform a delegation so that add_restricted_paths() has a child role
     # to restrict.
     keystore_directory = os.path.join('repository_data', 'keystore')
-    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
-    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
+    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
 
     # Set needed arguments by delegate().
     public_keys = [public_key]
@@ -1385,8 +1374,8 @@ class TestTargets(unittest.TestCase):
     # Test normal case.
     # Perform a delegation so that revoke() has a delegation to revoke.
     keystore_directory = os.path.join('repository_data', 'keystore')
-    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
-    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
+    public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
     target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
 
     # Set needed arguments by delegate().
@@ -1501,7 +1490,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Verify the expected roles have been loaded.  See
     # 'tuf/tests/repository_data/repository/'.
     expected_roles = \
-      ['root', 'targets', 'snapshot', 'timestamp', 'targets/role1']
+      ['root', 'targets', 'snapshot', 'timestamp', 'role1']
     for role in tuf.roledb.get_rolenames():
       self.assertTrue(role in expected_roles)
     

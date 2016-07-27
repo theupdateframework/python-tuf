@@ -293,6 +293,7 @@ class TestSig(unittest.TestCase):
     tuf.roledb.remove_role('Release')
 
 
+
   def test_check_signatures_no_role(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
@@ -309,6 +310,7 @@ class TestSig(unittest.TestCase):
 
     # Done.  Let's remove the added key(s) from the key database.
     tuf.keydb.remove_key(KEYS[0]['keyid'])
+
 
 
   def test_verify_single_key(self):
@@ -357,6 +359,7 @@ class TestSig(unittest.TestCase):
 
     # Remove the roles.
     tuf.roledb.remove_role('Root')
+
 
 
   def test_generate_rsa_signature(self):
