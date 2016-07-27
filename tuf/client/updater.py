@@ -2035,8 +2035,8 @@ class Updater(object):
 
     # Fetch the targets of the delegated roles. 
     for delegated_role in sorted(tuf.roledb.get_delegated_rolenames('targets')):
-      all_targets = self._targets_of_role(delegated_role, all_targets,
-                                          skip_refresh=True)
+      all_targets.append(self._targets_of_role(delegated_role, all_targets,
+                                          skip_refresh=True))
     
     return all_targets
 
@@ -2284,9 +2284,10 @@ class Updater(object):
     """
 
     if targets is None:
-      targets = []
+      targets_of_role = []
 
-    logger.debug('Getting targets of role: '+repr(rolename)+'.')
+    targets_of_role = list(targets)
+    logger.debug('Getting targets of role: ' + repr(rolename) + '.')
 
     if not tuf.roledb.role_exists(rolename):
       raise tuf.UnknownRoleError(rolename)
@@ -2298,8 +2299,9 @@ class Updater(object):
   
     # Do we have metadata for 'rolename'?
     if rolename not in self.metadata['current']:
-      message = 'No metadata for '+repr(rolename)+'. Unable to determine targets.'
-      logger.debug(message)
+      logger.debug('No metadata for ' + repr(rolename) + '.'
+        '  Unable to determine targets.')
+
       return targets
 
     # Get the targets specified by the role itself.
@@ -2308,9 +2310,9 @@ class Updater(object):
       new_target['filepath'] = filepath 
       new_target['fileinfo'] = fileinfo
       
-      targets.append(new_target)
+      targets_of_role.append(new_target)
 
-    return targets
+    return targets_of_role
 
 
 
