@@ -113,24 +113,22 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
     if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA'
-      # format, which is the format expected by 'add_key()'.
+      # format, which is the format expected by 'add_key()'.  Note:
+      # The 'keyids' returned by format_metadata_to_key() include keyids in
+      # addition to the default keyid listed in 'key_dict'.  The additional
+      # keyids are generated according to tuf.conf.REPOSITORY_HASH_ALGORITHMS.
       key_dict, keyids = tuf.keys.format_metadata_to_key(key_metadata)
-     
+      
       try:
-        add_key(key_dict, keyid_in_root_metadata, repository_name)
         for keyid in keyids:
           key_dict['keyid'] = keyid
           add_key(key_dict, keyid=None, repository_name=repository_name)
 
       # Although keyid duplicates should *not* occur (unique dict keys), log a
-      # warning and continue.
+      # warning and continue.  Howerver, 'key_dict' may have already been
+      # adding to the keydb elsewhere.
       except tuf.KeyAlreadyExistsError as e: # pragma: no cover
         logger.warning(e)
-        continue
-      
-      # 'tuf.Error' raised if keyid does not match the keyid of 'rsakey_dict'.
-      except tuf.Error as e:
-        logger.error(e)
         continue
     
     else:
