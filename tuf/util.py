@@ -601,7 +601,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
     rolename:
       The name of the role whose targets must be verified. This is a
       role name and should not end in '.json'.  Examples: 'root', 'targets',
-      'targets/linux/x86'.
+      'unclaimed'.
 
     list_of_targets:
       The targets of 'rolename', as listed in targets field of the 'rolename'
@@ -940,9 +940,9 @@ def load_json_file(filepath):
   try:
     deserialized_object = json.load(fileobject)
   
-  except (ValueError, TypeError) as e:
-    message = 'Cannot deserialize to a Python object: ' + repr(filepath)
-    raise tuf.Error(message)
+  except (ValueError, TypeError):
+    raise tuf.Error('Cannot deserialize to a Python object: ' + repr(filepath))
+
   
   else:
     fileobject.close() 

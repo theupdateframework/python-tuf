@@ -58,6 +58,8 @@ import tuf.log
 import tuf.client.updater as updater
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf.roledb
+import tuf.keydb
 
 import six
 
@@ -171,7 +173,8 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     # Modified_TestCase.tearDown() automatically deletes temporary files and
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
   def test_with_tuf(self):
@@ -183,8 +186,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     # the repository after modifying a target file of 'role1.json'.
     # Backup 'role1.json' (the delegated role to be updated, and then inserted
     # again for the mix-and-match attack.)
-    role1_path = os.path.join(self.repository_directory, 'metadata', 'targets',
-                                  'role1.json')
+    role1_path = os.path.join(self.repository_directory, 'metadata', 'role1.json')
     backup_role1 = os.path.join(self.repository_directory, 'role1.json.backup') 
     shutil.copy(role1_path, backup_role1)
 
@@ -203,11 +205,11 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     role1_keyfile = os.path.join(self.keystore_directory, 'delegation_key') 
     snapshot_keyfile = os.path.join(self.keystore_directory, 'snapshot_key') 
     timestamp_private = \
-      repo_tool.import_rsa_privatekey_from_file(timestamp_keyfile, 'password')
+      repo_tool.import_ed25519_privatekey_from_file(timestamp_keyfile, 'password')
     role1_private = \
-      repo_tool.import_rsa_privatekey_from_file(role1_keyfile, 'password')
+      repo_tool.import_ed25519_privatekey_from_file(role1_keyfile, 'password')
     snapshot_private = \
-      repo_tool.import_rsa_privatekey_from_file(snapshot_keyfile, 'password')
+      repo_tool.import_ed25519_privatekey_from_file(snapshot_keyfile, 'password')
 
     repository.targets('role1').load_signing_key(role1_private)
     repository.snapshot.load_signing_key(snapshot_private)
@@ -237,14 +239,14 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
 
     try:
-      self.repository_updater.targets_of_role('targets/role1')
+      self.repository_updater.targets_of_role('role1')
    
     # Verify that the specific 'tuf.BadVersionNumberError' exception is raised
     # by each mirror.
     except tuf.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-        url_file = os.path.join(url_prefix, 'metadata', 'targets', 'role1.json')
+        url_file = os.path.join(url_prefix, 'metadata', 'role1.json')
        
         # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file, mirror_url)

@@ -117,6 +117,7 @@ if tuf.conf.ENABLE_FILE_LOGGING:
   file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
   file_handler.setFormatter(formatter)
   logger.addHandler(file_handler)
+
 else:
   pass
 

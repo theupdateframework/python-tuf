@@ -131,18 +131,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
                                  ROOT_EXPIRES_WARN_SECONDS)
  
-  # Check for the Targets role, including delegated roles.
-  elif rolename.startswith('targets'):
-    metadata = generate_targets_metadata(targets_directory,
-                                         roleinfo['paths'],
-                                         roleinfo['version'],
-                                         roleinfo['expires'],
-                                         roleinfo['delegations'],
-                                         consistent_snapshot)
 
-    if rolename == 'targets':    
-      _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
-                                   TARGETS_EXPIRES_WARN_SECONDS)
   
   elif rolename == 'snapshot':
     root_filename = ROOT_FILENAME[:-len(METADATA_EXTENSION)]
@@ -165,12 +154,25 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
+  
+  # All other roles are either the top-level 'targets' role, or
+  # a delegated role.
   else:
-    raise tuf.Error('Invalid rolename') 
-
+    # Only print a warning if the top-level 'targets' role expires soon.
+    if rolename == 'targets':    
+      _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
+                                   TARGETS_EXPIRES_WARN_SECONDS)
+   
+    metadata = generate_targets_metadata(targets_directory,
+                                         roleinfo['paths'],
+                                         roleinfo['version'],
+                                         roleinfo['expires'],
+                                         roleinfo['delegations'],
+                                         consistent_snapshot)
+  
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                            metadata_filename)
- 
+
   # Check if the version number of 'rolename' may be automatically incremented,
   # depending on whether if partial metadata is loaded or if the metadata is
   # written with write() / write_partial(). 
@@ -199,7 +201,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
       signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                                metadata_filename)
   
-  # Write the metadata to file if contains a threshold of signatures. 
+  # Write the metadata to file if it contains a threshold of signatures. 
   signable['signatures'].extend(roleinfo['signatures']) 
   
   if tuf.sig.verify(signable, rolename) or write_partial:
@@ -214,7 +216,6 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     if rolename == 'root' or rolename == 'timestamp':
       write_metadata_file(signable, metadata_filename, metadata['version'],
                           compression_algorithms, consistent_snapshot=False)
-    
   
   # 'signable' contains an invalid threshold of signatures. 
   else:
@@ -369,15 +370,15 @@ def _check_role_keys(rolename):
 
 def _remove_invalid_and_duplicate_signatures(signable):
   """
-    Non-public function that removes invalid signatures from 'signable'.
-    'signable' may contain signatures (invalid) from previous versions
-    of the metadata that were loaded with load_repository().  Invalid, or
-    duplicate signatures are removed from 'signable'.
+    Non-public function that removes invalid or duplicate signatures from
+    'signable'.  'signable' may contain signatures (invalid) from previous
+    versions of the metadata that were loaded with load_repository().  Invalid,
+    or duplicate signatures, are removed from 'signable'.
   """
   
-  # Store the keyids of valid signatures.  'signature_keyids' is checked
-  # for duplicates rather than comparing signature objects because PSS may
-  # generate duplicate valid signatures of the same data, yet contain different
+  # Store the keyids of valid signatures.  'signature_keyids' is checked for
+  # duplicates rather than comparing signature objects because PSS may generate
+  # duplicate valid signatures for the same data, yet contain different
   # signatures.
   signature_keyids = []
 
@@ -391,7 +392,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
     try:
       key = tuf.keydb.get_key(keyid)
     
-    except tuf.UnknownKeyError as e:
+    except tuf.UnknownKeyError:
       signable['signatures'].remove(signature)
       continue
     
@@ -446,15 +447,15 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
       
         # Strip the version number if 'consistent_snapshot' is True.  Example:
-        # 'targets/unclaimed/10.django.json'  -->
-        # 'targets/unclaimed/django.json'.  Consistent and non-consistent
+        # '10.django.json'  --> 'django.json'.  Consistent and non-consistent
         # metadata might co-exist if write() and
         # write(consistent_snapshot=True) are mixed, so ensure only
         # '<version_number>.filename' metadata is stripped.
         embedded_version_number = None
+        
         if metadata_name not in snapshot_metadata['meta']: 
           metadata_name, embedded_version_number = \
-            _strip_consistent_snapshot_version_number(metadata_name, consistent_snapshot)
+            _strip_version_number(metadata_name, consistent_snapshot)
         
         # Strip filename extensions.  The role database does not include the
         # metadata extension.
@@ -502,31 +503,26 @@ def _get_written_metadata(metadata_signable):
 
 
 
-def _strip_consistent_snapshot_version_number(metadata_filename,
-                                              consistent_snapshot):
+def _strip_version_number(metadata_filename, consistent_snapshot):
   """
-  Strip from 'metadata_filename' any version data (in the expected
-  '{dirname}/version_number.filename' format) that it may contain, and return
-  the stripped filename and its version number as a tuple.
-  'consistent_snapshot' is a boolean indicating if 'metadata_filename' contains
-  prepended version number.
+  Strip from 'metadata_filename' any version number (in the
+  expected '{dirname}/<version_number>.rolename.<ext>' format) that
+  it may contain, and return the stripped filename and version number,
+  as a tuple.  'consistent_snapshot' is a boolean indicating if a version
+  number is prepended to 'metadata_filename'.
   """
  
-  embedded_version_number = ''
-
   # Strip the version number if 'consistent_snapshot' is True.
-  # Example:  'targets/unclaimed/10.django.json'  -->
-  # 'targets/unclaimed/django.json'
+  # Example: '10.django.json'  --> 'django.json'
   if consistent_snapshot:
-    dirname, basename = os.path.split(metadata_filename)
-    embedded_version_number, basename = basename.split('.', 1)
-    stripped_metadata_filename = os.path.join(dirname, basename)
-    
-    return stripped_metadata_filename, embedded_version_number
-  
+   dirname, basename = os.path.split(metadata_filename)
+   version_number, basename = basename.split('.', 1)
+   stripped_metadata_filename = os.path.join(dirname, basename)
+                 
+   return stripped_metadata_filename, version_number 
+                       
   else:
-    return metadata_filename, ''
-
+   return metadata_filename, ''
 
 
 
@@ -576,7 +572,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
                                  ROOT_EXPIRES_WARN_SECONDS)
     
-    tuf.roledb.update_roleinfo('root', roleinfo)
+    tuf.roledb.update_roleinfo('root', roleinfo, mark_role_as_dirty=False)
 
     # Ensure the 'consistent_snapshot' field is extracted.
     consistent_snapshot = root_metadata['consistent_snapshot']
@@ -589,15 +585,15 @@ def _load_top_level_metadata(repository, top_level_filenames):
   # always written. 
   if os.path.exists(timestamp_filename):
     signable = tuf.util.load_json_file(timestamp_filename)
-    timestamp_metadata = signable['signed']  
+    timestamp_metadata = signable['signed']
     for signature in signable['signatures']:
-      repository.timestamp.add_signature(signature)
+      repository.timestamp.add_signature(signature, mark_role_as_dirty=False)
 
     # Load Timestamp's roleinfo and update 'tuf.roledb'.
     roleinfo = tuf.roledb.get_roleinfo('timestamp')
     roleinfo['expires'] = timestamp_metadata['expires']
     roleinfo['version'] = timestamp_metadata['version']
-    if os.path.exists(timestamp_filename+'.gz'):
+    if os.path.exists(timestamp_filename + '.gz'):
       roleinfo['compressions'].append('gz')
     
     if _metadata_is_partially_loaded('timestamp', signable, roleinfo):
@@ -605,25 +601,31 @@ def _load_top_level_metadata(repository, top_level_filenames):
     
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
+   
+    tuf.roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False)
     
-    tuf.roledb.update_roleinfo('timestamp', roleinfo)
-  
   else:
     pass
   
-  # Load 'snapshot.json'.  A consistent snapshot of Snapshot must be calculated
-  # if 'consistent_snapshot' is True.
+  # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
+  # 'consistent_snapshot' is True.
+  # The Snapshot and Root roles are both accessed by their hashes.
   if consistent_snapshot:
+    snapshot_hashes = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['hashes']
+    snapshot_hash = random.choice(list(snapshot_hashes.values()))
     snapshot_version = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['version']
+    
     dirname, basename = os.path.split(snapshot_filename)
-    snapshot_filename = os.path.join(dirname, str(snapshot_version) + '.' + basename)
-  
+    basename = basename.split(METADATA_EXTENSION, 1)[0]
+    snapshot_filename = os.path.join(dirname, str(snapshot_version) + '.' + basename + METADATA_EXTENSION)
+
   if os.path.exists(snapshot_filename):
     signable = tuf.util.load_json_file(snapshot_filename)
     tuf.formats.check_signable_object_format(signable)
     snapshot_metadata = signable['signed']  
+    
     for signature in signable['signatures']:
-      repository.snapshot.add_signature(signature)
+      repository.snapshot.add_signature(signature, mark_role_as_dirty=False)
 
     # Load Snapshot's roleinfo and update 'tuf.roledb'.
     roleinfo = tuf.roledb.get_roleinfo('snapshot')
@@ -638,7 +640,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
                                  SNAPSHOT_EXPIRES_WARN_SECONDS)
     
-    tuf.roledb.update_roleinfo('snapshot', roleinfo)
+    tuf.roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False)
   
   else:
     pass 
@@ -656,7 +658,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     targets_metadata = signable['signed']
 
     for signature in signable['signatures']:
-      repository.targets.add_signature(signature)
+      repository.targets.add_signature(signature, mark_role_as_dirty=False)
    
     # Update 'targets.json' in 'tuf.roledb.py' 
     roleinfo = tuf.roledb.get_roleinfo('targets')
@@ -674,11 +676,11 @@ def _load_top_level_metadata(repository, top_level_filenames):
     _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
                                  TARGETS_EXPIRES_WARN_SECONDS)
    
-    tuf.roledb.update_roleinfo('targets', roleinfo)
+    tuf.roledb.update_roleinfo('targets', roleinfo, mark_role_as_dirty=False)
 
     # Add the keys specified in the delegations field of the Targets role.
     for key_metadata in six.itervalues(targets_metadata['delegations']['keys']):
-      key_object = tuf.keys.format_metadata_to_key(key_metadata)
+      key_object, keyids = tuf.keys.format_metadata_to_key(key_metadata)
      
       # Add 'key_object' to the list of recognized keys.  Keys may be shared,
       # so do not raise an exception if 'key_object' has already been loaded.
@@ -688,8 +690,11 @@ def _load_top_level_metadata(repository, top_level_filenames):
       # key when it was added.
       try: 
         tuf.keydb.add_key(key_object)
-      
-      except tuf.KeyAlreadyExistsError as e:
+        for keyid in keyids:
+          key_object['keyid'] = keyid
+          tuf.keydb.add_key(key_object, keyid=None)
+
+      except tuf.KeyAlreadyExistsError:
         pass
 
     for role in targets_metadata['delegations']['roles']:
@@ -928,7 +933,7 @@ def import_rsa_publickey_from_file(filepath):
     rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
   
   except tuf.FormatError as e:
-    raise tuf.Error('Cannot import improperly formatted PEM file.')
+    raise tuf.Error('Cannot import improperly formatted PEM file.' + repr(str(e)))
   
   return rsakey_dict
 
@@ -939,13 +944,13 @@ def import_rsa_publickey_from_file(filepath):
 def generate_and_write_ed25519_keypair(filepath, password=None):
   """
   <Purpose>
-    Generate an ED25519 key file, create an encrypted TUF key (using 'password'
+    Generate an Ed25519 key file, create an encrypted TUF key (using 'password'
     as the pass phrase), and store it in 'filepath'.  The public key portion of
     the generated ED25519 key is stored in <'filepath'>.pub.  Which cryptography
     library performs the cryptographic decryption is determined by the string
     set in 'tuf.conf.ED25519_CRYPTO_LIBRARY'.
     
-    PyCrypto currently supported.  The ED25519 private key is encrypted with
+    PyCrypto currently supported.  The Ed25519 private key is encrypted with
     AES-256 and CTR the mode of operation.  The password is strengthened with
     PBKDF2-HMAC-SHA256.
 
@@ -1058,8 +1063,8 @@ def import_ed25519_publickey_from_file(filepath):
   # loaded key object in tuf.formats.ED25519KEY_SCHEMA' format that also
   # includes the keyid.
   ed25519_key_metadata = tuf.util.load_json_file(filepath)
-  ed25519_key = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
-  
+  ed25519_key, junk = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
+
   # Raise an exception if an unexpected key type is imported.
   # Redundant validation of 'keytype'.  'tuf.keys.format_metadata_to_key()'
   # should have fully validated 'ed25519_key_metadata'.
@@ -1267,7 +1272,7 @@ def get_metadata_fileinfo(filename, custom=None):
   filesize, filehashes = \
     tuf.util.get_file_details(filename, tuf.conf.REPOSITORY_HASH_ALGORITHMS)
 
-  return tuf.formats.make_fileinfo(filesize, filehashes, custom)
+  return tuf.formats.make_fileinfo(filesize, filehashes, custom=custom)
 
 
 
@@ -1593,10 +1598,10 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
                                consistent_snapshot=False):
   """
   <Purpose>
-    Create the snapshot metadata.  The minimum metadata must exist
-    (i.e., 'root.json' and 'targets.json'). This will also look through
-    the 'targets/' directory in 'metadata_directory' and the resulting
-    snapshot file will list all the delegated roles.
+    Create the snapshot metadata.  The minimum metadata must exist (i.e.,
+    'root.json' and 'targets.json'). This function searches
+    'metadata_directory' and the resulting snapshot file will list all the
+    delegated roles found there.
 
   <Arguments>
     metadata_directory:
@@ -1651,50 +1656,48 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
   metadata_directory = _check_directory(metadata_directory)
 
-  # Retrieve the versioninfo of 'root.json' and 'targets.json'.  The
-  # versioninfo contains the version number of these roles.
-  versiondict = {}
-  versiondict[ROOT_FILENAME] = get_metadata_versioninfo(root_filename)
-  versiondict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename)
+  # Set the fileinfo of 'root.json', and the versioninfo of
+  # 'targets.json'.  'fileinfodict' shall contain the version number of all
+  # available delegated roles on the repository.
+  fileinfodict = {}
+  root_path = os.path.join(metadata_directory, root_filename + '.json')
+  length, hashes = tuf.util.get_file_details(root_path)
+  root_version = get_metadata_versioninfo('root')
+  fileinfodict[ROOT_FILENAME] = tuf.formats.make_fileinfo(length, hashes, version=root_version['version'])
+  fileinfodict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename)
 
   # We previously also stored the compressed versions of roles in
   # snapshot.json, however, this is no longer needed as their hashes and
-  # lengths are no longer used and their version numbers match the uncompressed
-  # role files. 
+  # lengths are not used and their version numbers match the uncompressed role
+  # files. 
 
-  # Walk the 'targets/' directory and generate the versioninfo of all the role
-  # files found.  This information is stored in the 'meta' field of the
-  # snapshot metadata object.
-  targets_metadata = os.path.join(metadata_directory, 'targets')
-  if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
-    for directory_path, junk_directories, files in os.walk(targets_metadata):
-      
-      # 'files' here is a list of file names.
-      for basename in files:
-        metadata_path = os.path.join(directory_path, basename)
-        metadata_name = \
-          metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+  # Search the metadata directory and generate the versioninfo of all the role
+  # files found there.  This information is stored in the 'meta' field of
+  # 'snapshot.json'.
+  
+  for metadata_filename in os.listdir(metadata_directory):
+    # Strip the version number if 'consistent_snapshot' is True.
+    # Example:  '10.django.json'  --> 'django.json'
+    metadata_name, version_number_junk = \
+      _strip_version_number(metadata_filename, consistent_snapshot)
+    
+    # All delegated roles are added to the snapshot file.
+    for metadata_extension in METADATA_EXTENSIONS: 
+      if metadata_filename.endswith(metadata_extension):
+        rolename = metadata_filename[:-len(metadata_extension)]
         
-        # Strip the version number if 'consistent_snapshot' is True.
-        # Example:  'targets/unclaimed/10.django.json'  -->
-        # 'targets/unclaimed/django.json'
-        metadata_name, version_number_junk = \
-          _strip_consistent_snapshot_version_number(metadata_name, consistent_snapshot)
-        
-        # All delegated roles are added to the snapshot file.
-        for metadata_extension in METADATA_EXTENSIONS: 
-          if metadata_name.endswith(metadata_extension):
-            rolename = metadata_name[:-len(metadata_extension)]
-            
-            # Obsolete role files may still be found.  Ensure only roles loaded
-            # in the roledb are included in the Snapshot metadata.
-            if tuf.roledb.role_exists(rolename):
-              versiondict[metadata_name] = get_metadata_versioninfo(rolename)
+        # Obsolete role files may still be found.  Ensure only roles loaded
+        # in the roledb are included in the Snapshot metadata.  Since the
+        # snapshot and timestamp roles are not listed in snapshot.json, do not
+        # list these roles found in the metadata directory.
+        if tuf.roledb.role_exists(rolename) and \
+            rolename not in ['root', 'snapshot', 'timestamp', 'targets']:
+          fileinfodict[metadata_name] = get_metadata_versioninfo(rolename)
 
   # Generate the Snapshot metadata object.
   snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,
                                                              expiration_date,
-                                                             versiondict)
+                                                             fileinfodict)
 
   return snapshot_metadata
 
@@ -1742,8 +1745,11 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date):
   tuf.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
 
   # Retrieve the versioninfo of the Snapshot metadata file.
-  versioninfo = {}
-  versioninfo[SNAPSHOT_FILENAME] = get_metadata_versioninfo('snapshot')
+  snapshot_fileinfo = {}
+  length, hashes = tuf.util.get_file_details(snapshot_filename)
+  snapshot_version = get_metadata_versioninfo('snapshot')
+  snapshot_fileinfo[SNAPSHOT_FILENAME] = \
+    tuf.formats.make_fileinfo(length, hashes, version=snapshot_version['version']) 
 
   # We previously saved the versioninfo of the compressed versions of
   # 'snapshot.json' in 'versioninfo'.  Since version numbers are now stored,
@@ -1753,7 +1759,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date):
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
                                                                expiration_date,
-                                                               versioninfo)
+                                                               snapshot_fileinfo)
 
   return timestamp_metadata
 
@@ -1813,7 +1819,7 @@ def sign_metadata(metadata_object, keyids, filename):
     
     # Load the signing key.
     key = tuf.keydb.get_key(keyid)
-    logger.info('Signing ' + repr(filename) + ' with ' + key['keyid'])
+    # TODO logger.info('Signing ' + repr(filename) + ' with ' + key['keyid'])
 
     # Create a new signature list.  If 'keyid' is encountered, do not add it
     # to the new list.
@@ -1912,7 +1918,6 @@ def write_metadata_file(metadata, filename, version_number,
   # path so that temporary files are moved to their expected destinations.
   filename = os.path.abspath(filename)
   written_filename = filename
-  written_consistent_filename = None
   _check_directory(os.path.dirname(filename))
 
   # Generate the actual metadata file content of 'metadata'.  Metadata is
@@ -1920,11 +1925,6 @@ def write_metadata_file(metadata, filename, version_number,
   # objects.  The new digest of 'metadata' is also calculated to help determine
   # if re-saving is required.
   file_content = _get_written_metadata(metadata)
- 
-  if consistent_snapshot:
-    dirname, basename = os.path.split(filename)
-    version_and_filename = str(version_number) + '.' + basename
-    written_consistent_filename = os.path.join(dirname, version_and_filename)
  
   # Verify whether new metadata needs to be written (i.e., has not been
   # previously written or has changed.
@@ -1935,8 +1935,7 @@ def write_metadata_file(metadata, filename, version_number,
   # Compressed metadata should only be written if it does not exist or the
   # uncompressed version has changed).
   new_digests = {}
-  hash_algorithms = tuf.conf.REPOSITORY_HASH_ALGORITHMS
-  for hash_algorithm in hash_algorithms: 
+  for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
     digest_object = tuf.hash.digest(hash_algorithm)
     digest_object.update(file_content)
     new_digests.update({hash_algorithm: digest_object.hexdigest()})
@@ -1947,14 +1946,14 @@ def write_metadata_file(metadata, filename, version_number,
       write_new_metadata = True
   
   # 'tuf.Error' raised if 'filename' does not exist.
-  except tuf.Error as e:
+  except tuf.Error:
     write_new_metadata = True
 
   if write_new_metadata:
     # The 'metadata' object is written to 'file_object', including compressed
     # versions.  To avoid partial metadata from being written, 'metadata' is
-    # first written to a temporary location (i.e., 'file_object') and then moved
-    # to 'filename'.
+    # first written to a temporary location (i.e., 'file_object') and then
+    # moved to 'filename'.
     file_object = tuf.util.TempFile()
     
     # Serialize 'metadata' to the file-like object and then write
@@ -1963,9 +1962,16 @@ def write_metadata_file(metadata, filename, version_number,
     # automically closed after the final move.
     file_object.write(file_content)
     logger.debug('Saving ' + repr(written_filename))
+    
     file_object.move(written_filename)
    
-    if consistent_snapshot: 
+    if consistent_snapshot:
+      dirname, basename = os.path.split(written_filename)
+      
+      basename = basename.split(METADATA_EXTENSION, 1)[0]
+      version_and_filename = str(version_number) + '.' + basename + METADATA_EXTENSION 
+      written_consistent_filename = os.path.join(dirname, version_and_filename)
+
       logger.info('Linking ' + repr(written_consistent_filename))
       os.link(written_filename, written_consistent_filename)
    
@@ -1999,10 +2005,11 @@ def write_metadata_file(metadata, filename, version_number,
       raise tuf.FormatError('Unknown compression algorithm: ' + repr(compressio_algorithm))
    
     # Save the compressed version, ensuring an unchanged file is not re-saved.
-    # Re-saving the same compressed version may cause its digest to unexpectedly
-    # change (gzip includes a timestamp) even though content has not changed.
+    # Re-saving the same compressed version may cause its digest to
+    # unexpectedly change (gzip includes a timestamp) even though content has
+    # not changed.
     _write_compressed_metadata(file_object, compressed_filename,
-                               write_new_metadata, consistent_snapshot)
+                               write_new_metadata, consistent_snapshot, version_number)
   return written_filename
 
 
@@ -2010,7 +2017,7 @@ def write_metadata_file(metadata, filename, version_number,
 
 
 def _write_compressed_metadata(file_object, compressed_filename,
-                               write_new_metadata, consistent_snapshot):
+                               write_new_metadata, consistent_snapshot, version_number):
   """
   Write compressed versions of metadata, ensuring compressed file that have
   not changed are not re-written, the digest of the compressed file is properly
@@ -2045,11 +2052,15 @@ def _write_compressed_metadata(file_object, compressed_filename,
       digest_object.update(compressed_content)
       new_digests.append(digest_object.hexdigest())
    
-    # Attach each digest to the compressed consistent snapshot filename.
+    # Attach each version nu to the compressed consistent snapshot filename.
     for new_digest in new_digests:
       dirname, basename = os.path.split(compressed_filename)
-      digest_and_filename = new_digest + '.' + basename
-      consistent_filenames.append(os.path.join(dirname, digest_and_filename))
+      for compression_extension in SUPPORTED_COMPRESSION_EXTENSIONS:
+        if basename.endswith(compression_extension):
+          basename = basename.split(compression_extension, 1)[0]   
+          version_and_filename = str(version_number) + '.' + basename + compression_extension
+      
+        consistent_filenames.append(os.path.join(dirname, version_and_filename))
    
     # Move the 'tuf.util.TempFile' object to one of the filenames so that it is
     # saved and the temporary file closed.  Any remaining consistent snapshots

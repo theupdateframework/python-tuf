@@ -18,9 +18,9 @@
   tests can use in their test cases.  The pre-generated files created by this
   script should be copied by the unit tests as needed.  The original versions
   should be preserved.  'tuf/tests/unit/repository_files/' will store the files
-  generated.  'generate.py' should not require re-execution if the pre-generated
-  repository files have already been created, unless they need to change in some
-  way.
+  generated.  'generate.py' should not require re-execution if the
+  pre-generated repository files have already been created, unless they need to
+  change in some way.
 """
 
 import shutil
@@ -56,32 +56,28 @@ if options.should_generate_keys and not options.dry_run:
   # Generate public and private key files for the top-level roles, and two
   # delegated roles (these number of keys should be sufficient for most of the
   # unit tests).  Unit tests may generate additional keys, if needed.
-  generate_and_write_rsa_keypair(root_key_file, bits=2048, password='password')
-  generate_and_write_rsa_keypair(targets_key_file, bits=2048,
-      password='password')
-  generate_and_write_rsa_keypair(snapshot_key_file, bits=2048,
-      password='password')
-  generate_and_write_rsa_keypair(timestamp_key_file, bits=2048,
-      password='password')
-  generate_and_write_rsa_keypair(delegation_key_file, bits=2048,
-      password='password')
+  generate_and_write_rsa_keypair(root_key_file, password='password')
+  generate_and_write_ed25519_keypair(targets_key_file, password='password')
+  generate_and_write_ed25519_keypair(snapshot_key_file, password='password')
+  generate_and_write_ed25519_keypair(timestamp_key_file, password='password')
+  generate_and_write_ed25519_keypair(delegation_key_file, password='password')
 
 # Import the public keys.  These keys are needed so that metadata roles are
 # assigned verification keys, which clients use to verify the signatures created
 # by the corresponding private keys.
-root_public = import_rsa_publickey_from_file(root_key_file+'.pub')
-targets_public = import_rsa_publickey_from_file(targets_key_file+'.pub')
-snapshot_public = import_rsa_publickey_from_file(snapshot_key_file+'.pub')
-timestamp_public = import_rsa_publickey_from_file(timestamp_key_file+'.pub')
-delegation_public = import_rsa_publickey_from_file(delegation_key_file+'.pub')
+root_public = import_rsa_publickey_from_file(root_key_file + '.pub')
+targets_public = import_ed25519_publickey_from_file(targets_key_file + '.pub')
+snapshot_public = import_ed25519_publickey_from_file(snapshot_key_file + '.pub')
+timestamp_public = import_ed25519_publickey_from_file(timestamp_key_file + '.pub')
+delegation_public = import_ed25519_publickey_from_file(delegation_key_file + '.pub')
 
 # Import the private keys.  These private keys are needed to generate the
 # signatures included in metadata.
 root_private = import_rsa_privatekey_from_file(root_key_file, 'password')
-targets_private = import_rsa_privatekey_from_file(targets_key_file, 'password')
-snapshot_private = import_rsa_privatekey_from_file(snapshot_key_file, 'password')
-timestamp_private = import_rsa_privatekey_from_file(timestamp_key_file, 'password')
-delegation_private = import_rsa_privatekey_from_file(delegation_key_file, 'password')
+targets_private = import_ed25519_privatekey_from_file(targets_key_file, 'password')
+snapshot_private = import_ed25519_privatekey_from_file(snapshot_key_file, 'password')
+timestamp_private = import_ed25519_privatekey_from_file(timestamp_key_file, 'password')
+delegation_private = import_ed25519_privatekey_from_file(delegation_key_file, 'password')
 
 # Add the verification keys to the top-level roles.
 repository.root.add_verification_key(root_public)

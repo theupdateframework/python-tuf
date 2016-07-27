@@ -105,10 +105,10 @@ PBKDF2_ITERATIONS = 100000
 
 # Supported cryptography libraries that can be used to generate and verify RSA
 # keys and signatures:  ['pycrypto', 'pyca-cryptography']
-RSA_CRYPTO_LIBRARY = 'pyca-cryptography'
+RSA_CRYPTO_LIBRARY = 'pycrypto'
 
 # Supported Ed25519 cryptography libraries: ['pynacl', 'ed25519']
-ED25519_CRYPTO_LIBRARY = 'ed25519'
+ED25519_CRYPTO_LIBRARY = 'pynacl'
 
 # General purpose cryptography. Algorithms and functions that fall under
 # general purpose include AES, PBKDF2, cryptographically strong random number
@@ -118,12 +118,23 @@ ED25519_CRYPTO_LIBRARY = 'ed25519'
 # of the software updater.
 # Supported libraries for general-purpose cryptography:  ['pycrypto',
 # 'pyca-cryptography']
-GENERAL_CRYPTO_LIBRARY = 'pyca-cryptography'
+GENERAL_CRYPTO_LIBRARY = 'pycrypto'
+
+# The Root and Targets roles specify the public keys of either the top-level
+# roles (by Root) or roles that they delegate trust (by Targets roles).  By
+# default, a single key ID is generated for each public key, with the option of
+# supporting multiple hash algorithms via the REPOSITORY_HASH_ALGORITHM
+# configuration.  When multiple hash algorithms (and thus multiple key IDs)
+# are used, the "keys" field lists one single key ID
+# (generated with DEFAULT_HASH_ALGORITHM) for each unique key, and also lists 
+# the recognized hash algorithms.  For example:
+# {keyid: '1234abc', "keyid_multihash_algorithms": 'sha256', 'sha512', ...}
+DEFAULT_HASH_ALGORITHM = 'sha256'
 
 # The algorithm(s) in REPOSITORY_HASH_ALGORITHMS are chosen by the repository
-# tool to generate the digests listed in metadata and prepended to the
-# filenames of consistent snapshots.
-REPOSITORY_HASH_ALGORITHMS = ['sha256']
+# tool to generate the digests listed in metadata, prepended to the
+# filenames of consistent snapshots, or used to generate key IDs.
+REPOSITORY_HASH_ALGORITHMS = ['sha256', 'sha512']
 
 # Software updaters that integrate the framework are required to specify
 # the URL prefix for the mirrors that clients can contact to download updates.
@@ -131,3 +142,6 @@ REPOSITORY_HASH_ALGORITHMS = ['sha256']
 # the ['http', 'https'] URI schemes are supported, but may be modified by
 # integrators to schemes that they wish to support for their integration.
 SUPPORTED_URI_SCHEMES = ['http', 'https']
+
+# By default, limit number of delegatees we visit for any target.
+MAX_NUMBER_OF_DELEGATIONS = 2**5

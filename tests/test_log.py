@@ -19,6 +19,7 @@
 
 import logging
 import unittest
+import imp
 
 import tuf
 import tuf.log
@@ -44,7 +45,7 @@ class TestLog(unittest.TestCase):
 
     tuf.log.set_log_level()
     self.assertTrue(logger.isEnabledFor(logging.DEBUG))
-    
+
     for level in log_levels:
       tuf.log.set_log_level(level)
       self.assertTrue(logger.isEnabledFor(level))
@@ -58,20 +59,24 @@ class TestLog(unittest.TestCase):
 
 
   def test_set_filehandler_log_level(self):
-    # Normal case.  Default log level. 
+    # Normal case.  Default log level.
     tuf.log.set_filehandler_log_level()
    
     # Expected log levels.
     for level in log_levels:
       tuf.log.set_log_level(level)
+   
+    # Test that the log level of the file handler cannot be set because
+    # file logging is disabled (via tuf.conf.ENABLE_FILE_LOGGING).
+    tuf.conf.ENABLE_FILE_LOGGING = False
+    imp.reload(tuf.log)
+    #self.assertRaises(tuf.Error, tuf.log.set_filehandler_log_level, logging.INFO)
     
     # Test for improperly formatted argument.
     self.assertRaises(tuf.FormatError, tuf.log.set_filehandler_log_level, '123')
 
     # Test for invalid argument.
     self.assertRaises(tuf.FormatError, tuf.log.set_filehandler_log_level, 51)
-
-
 
 
   def test_set_console_log_level(self):
@@ -92,6 +97,8 @@ class TestLog(unittest.TestCase):
 
     # Test for invalid argument.
     self.assertRaises(tuf.FormatError, tuf.log.set_console_log_level, 51)
+  
+  
 
 
 

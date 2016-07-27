@@ -64,6 +64,8 @@ import tuf.log
 import tuf.client.updater as updater
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf.roledb
+import tuf.keydb
 
 import six
 
@@ -176,7 +178,8 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # Modified_TestCase.tearDown() automatically deletes temporary files and
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
   def test_without_tuf(self):
@@ -278,11 +281,11 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # Load the timestamp and snapshot keys, since we will be signing a new
     # timestamp and a new snapshot file.
     key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
-    timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    timestamp_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
     repository.timestamp.load_signing_key(timestamp_private)
     key_file = os.path.join(self.keystore_directory, 'snapshot_key') 
-    snapshot_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    snapshot_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
     repository.snapshot.load_signing_key(snapshot_private)
 
@@ -354,7 +357,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     repository = repo_tool.load_repository(self.repository_directory)
  
     key_file = os.path.join(self.keystore_directory, 'timestamp_key')
-    timestamp_private = repo_tool.import_rsa_privatekey_from_file(key_file,
+    timestamp_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
 
     repository.timestamp.load_signing_key(timestamp_private)

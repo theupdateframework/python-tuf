@@ -1,19 +1,23 @@
 {
  "signatures": [
   {
-   "keyid": "a07d55ab2637afc97b2d2fff88001618b9d23ac4e16d049cffa18d59ae374c05",
-   "method": "RSASSA-PSS",
-   "sig": "82f842ad77bc35115349c493d6ff7fb36e4db338e14be6a7576479a4564815e1bf1b150f432ba9eddc4dbdb4070f59a3e8daac78cd0efdd2c7e104b366c6cf6bab4878ad0a862d766d7eccf87b35abef9a6d4cafb5e97b1588a1e0d33f4a0b96e5804f15348e352fe1020ba4eaafdfc26260d73c1ad6443742aed5fadd2c7ad99d9ba93911d9ed9f1c39ed341b060485c0dd4ca810c10934925c3c526d33c38df4649de3496157572f920ffea76abf57194e4d31a29732e7fc72d8138e4fadbbd1d08cec90ae65c4db13bd8d1c8536f852ec81cff8a04b45971971644b9522e4237ae901fd35dde0181366213727a9b2aabd78a868634bad1d48657528c1f1e3"
+   "keyid": "a0a0f0cf08daff7afd1eb6582756d43987aa73f028044836a5519259706ca19b",
+   "method": "ed25519",
+   "sig": "e96f9ca4425a37919dc91d5679c5319150b41f729389d70be7d8c8dc3dda647aa9fd11ca3c6a959c10819d652e516b375caf147721f96af329b54c0720373c06"
   }
  ],
  "signed": {
   "_type": "Targets",
   "delegations": {
    "keys": {
-    "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f": {
-     "keytype": "rsa",
+    "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9": {
+     "keyid_hash_algorithms": [
+      "sha256",
+      "sha512"
+     ],
+     "keytype": "ed25519",
      "keyval": {
-      "public": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqKdTRVn3mLQFUf02Rpug\nwVEU4yJtechILLb6nM7+urfwLe6f7EsNCDFhkiTP7vKuQywdLYrhwZKYZMDmaVnI\nq4d/tBLvb/jGY/IPFVvWbAOWtwWG7apiAFrcp3Idq6EKGaVVLn7tyv74+nisssYJ\ncVKodlkzpgX1Ibrdq73BUlAxhEQNDAUM5bzyJUW0BU4OSjUoFKCgc8BSkNcSLwXO\nRpyqAwDpPWiL68N1Dch7R9uD6GE9aREY9SKoYsNCvUOraIcme4fJZ3NmxpN3SVnX\ntepoiJo2iAtORtEI1yTCv/dOPap/iebveeCjn667HkMezJodSR8X3pMgMKMVyxhJ\ngwIDAQAB\n-----END PUBLIC KEY-----"
+      "public": "3b11296fe2dba14a2ef204e542e9e4195293bcf3042655e3d7e4ef5afe3cf36a"
      }
     }
    },
@@ -21,9 +25,9 @@
     {
      "backtrack": true,
      "keyids": [
-      "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f"
+      "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9"
      ],
-     "name": "targets/role1",
+     "name": "role1",
      "paths": [
       "/file3.txt"
      ],
@@ -38,13 +42,15 @@
      "file_permissions": "664"
     },
     "hashes": {
-     "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da"
+     "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da",
+     "sha512": "467430a68afae8e9f9c0771ea5d78bf0b3a0d79a2d3d3b40c69fde4dd42c461448aef76fcef4f5284931a1ffd0ac096d138ba3a0d6ca83fa8d7285a47a296f77"
     },
     "length": 31
    },
    "/file2.txt": {
     "hashes": {
-     "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99"
+     "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99",
+     "sha512": "052b49a21e03606b28942db69aa597530fe52d47ee3d748ba65afcd14b857738e36bc1714c4f4adde46c3e683548552fe5c96722e0e0da3acd9050c2524902d8"
     },
     "length": 39
    }
