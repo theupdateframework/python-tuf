@@ -121,6 +121,8 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       
       try:
         for keyid in keyids:
+          # Make sure to update key_dict['keyid'] to use one of the other valid
+          # keyids, otherwise add_key() will have no reference to it.
           key_dict['keyid'] = keyid
           add_key(key_dict, keyid=None, repository_name=repository_name)
 
