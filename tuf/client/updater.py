@@ -2470,10 +2470,7 @@ class Updater(object):
     if targets is None:
       targets_of_role = []
 
-<<<<<<< HEAD
     targets_of_role = list(targets)
-=======
->>>>>>> 4d2c302cce48bdc102569433934fe57236d0da1c
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
 
     if not tuf.roledb.role_exists(rolename, self.updater_name):
@@ -2488,12 +2485,7 @@ class Updater(object):
     if rolename not in self.metadata['current']:
       logger.debug('No metadata for ' + repr(rolename) + '.'
         '  Unable to determine targets.')
-<<<<<<< HEAD
-
-=======
->>>>>>> 4d2c302cce48bdc102569433934fe57236d0da1c
-      return targets
-
+      
     # Get the targets specified by the role itself.
     for filepath, fileinfo in six.iteritems(self.metadata['current'][rolename]['targets']):
       new_target = {} 
