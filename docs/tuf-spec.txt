@@ -1,7 +1,7 @@
                       The Update Framework Specification
 
 14 July 2016
-Version 1.0
+Version 1.0 (Draft)
 
 1. Introduction
 
