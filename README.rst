@@ -70,7 +70,7 @@ that they can do.
 
 TUF is designed to perform the first two steps of the above update procedure,
 while guarding against the majority of attacks that malicious actors have at
-their disposable; especially those attacks that are overlooked by security-conscious
+their disposal; especially those attacks that are overlooked by security-conscious
 developers.
  
 
