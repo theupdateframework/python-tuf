@@ -420,6 +420,35 @@ class Repository(object):
       shutil.rmtree(temp_repository_directory, ignore_errors=True)
 
 
+
+  def dirty_roles(self):
+    """
+    <Purpose>
+      Print/log the roles that have been modified.  For example,
+      if some role's version number is changed (repository.timestamp.version = 2),
+      it is considered dirty and will be included in the list of dirty
+      roles printed/logged here.  Unlike status(), signatures, public keys,
+      targets, etc. are not verified.  status() should be called instead if
+      the caller would like to verify if a valid role file is generated
+      if write() were to be called.
+      
+    <Arguments>
+      None.
+
+    <Exceptions>
+      None.
+    
+    <Side Effects>
+      None.
+
+    <Returns>
+      None.
+    """
+
+    logger.info('Dirty roles: ' + str(tuf.roledb.get_dirty_roles()))
+   
+
+
   @staticmethod
   def get_filepaths_in_directory(files_directory, recursive_walk=False,
                                  followlinks=True):
