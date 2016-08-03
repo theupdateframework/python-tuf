@@ -179,7 +179,8 @@ that need to generate TUF repository files, such as metadata,
 cryptographic keys, and signatures. Whereas the minimal install can only
 verify ed25519 signatures and is intended for sofware updater clients,
 ``tuf[tools]`` provides repository maintainers secure ed25519 key and
-signature generation with PyNaCl / libsodium.
+signature verification with `PyNaCl <https://pynacl.readthedocs.io/en/latest/>`_,
+a Python binding to the Networking and Cryptography (NaCl) library.
 
 TUF tools also enable general-purpose cryptography with PyCrypto
 and/or PyCA's Cryptography.  Software updaters that want to support
