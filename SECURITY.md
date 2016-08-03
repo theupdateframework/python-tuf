@@ -10,6 +10,12 @@ The following are some of the known attacks on software update systems, includin
 
 * **Rollback attacks**. An attacker presents a software update system with older files than those the client has already seen, causing the client to use files older than those the client knows about. 
 
+* **Fast-forward attacks**.  An attacker tricks a software update system into marking a file as newer (when in fact the
+latest version of the file is older than that indicated by the attacker, but newer than what the client has seen), and
+prevents the client from fetching the latest version of the file on the next update.  The client can be prevented from installing
+the latest version of the file in this case because it would refuse to install a file that is older than what it expects
+(i.e., to prevent a rollback attack).
+
 * **Indefinite freeze attacks**. An attacker continues to present a software update system with the same files the client has already seen. The result is that the client does not know that new files are available. 
 
 * **Endless data attacks**. An attacker responds to a file download request with an endless stream of data, causing harm to clients (e.g. a disk partition filling up or memory exhaustion). 

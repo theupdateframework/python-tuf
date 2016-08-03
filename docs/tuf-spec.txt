@@ -130,32 +130,55 @@ Version 1.0 (Draft)
    always be able to perform a denial of service.  The part we have control
    over is not allowing an inability to update to go unnoticed.
 
-   Rollback attacks.  Attackers should not be able to trick clients into
-   installing software that is older than that which the client previously knew
-   to be available.
-
-   Indefinite freeze attacks.  Attackers should not be able to respond to client
-   requests with the same, outdated metadata without the client being aware of
-   the problem.
-
+   Arbitrary installation attacks. An attacker installs anything they want on
+   the client system. That is, an attacker can provide arbitrary files in
+   response to download requests and the files will not be detected as
+   illegitimate.
+   
    Endless data attacks.  Attackers should not be able to respond to client
    requests with huge amounts of data (extremely large files) that interfere
    with the client's system.
-
-   Slow retrieval attacks.  Attackers should not be able to prevent clients
-   from being aware of interference with receiving updates by responding to
-   client requests so slowly that automated updates never complete.
-
+   
    Extraneous dependencies attacks.  Attackers should not be able to cause
    clients to download or install software dependencies that are not the
    intended dependencies.
-
+   
+   Fast-forward attacks. An attacker tricks a software update system into
+   marking a file as newer (when in fact the latest version of the file is
+   older than that indicated by the attacker, but newer than what the client
+   has seen), and prevents the client from fetching the latest version of the
+   file on the next update. The client can be prevented from installing the
+   latest version of the file in this case because it would refuse to install a
+   file that is older than what it expects (i.e., to prevent a rollback
+   attack).
+   
+   Indefinite freeze attacks.  Attackers should not be able to respond to
+   client requests with the same, outdated metadata without the client being
+   aware of the problem.
+   
+   Malicious mirrors preventing updates.  Repository mirrors should be unable
+   to prevent updates from good mirrors.
+   
    Mix-and-match attacks.  Attackers should not be able to trick clients into
    using a combination of metadata that never existed together on the
    repository at the same time.
 
-   Malicious repository mirrors should not be able to prevent updates from good
-   mirrors.
+   Rollback attacks.  Attackers should not be able to trick clients into
+   installing software that is older than that which the client previously knew
+   to be available.
+
+   Slow retrieval attacks.  Attackers should not be able to prevent clients
+   from being aware of interference with receiving updates by responding to
+   client requests so slowly that automated updates never complete.
+   
+   Vulnerability to key compromises. An attacker who is able to compromise a
+   single key or less than a given threshold of keys can compromise clients.
+   This includes relying on a single online key (such as only being protected
+   by SSL) or a single offline key (such as most software update systems use to
+   sign files).
+
+   Wrong software installation.  An attacker provides a client with a trusted
+   file that is not the one the client wanted.
 
 1.5.3. Goals for PKIs
 
