@@ -2160,8 +2160,8 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   # Verify the metadata of the Timestamp role.
   filenames = {'snapshot': snapshot_filename}
   try:
-    signable, snapshot_filename = \
-      _generate_and_write_metadata('timestamp', snapshot_filename, False,
+    signable, timestamp_filename = \
+      _generate_and_write_metadata('timestamp', timestamp_filename, False,
                                    targets_directory, metadata_directory,
                                    False, filenames)
     _log_status('timestamp', signable)
