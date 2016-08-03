@@ -230,19 +230,20 @@ class Repository(object):
     # populated, otherwise write() throws a 'tuf.UnsignedMetadataError'
     # exception if any of the top-level roles are missing signatures, keys, etc.
 
-    # Write the metadata files of all the delegated roles that are dirty (i.e.,
+    # Write the metadata files of all the Targets roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
     dirty_roles = tuf.roledb.get_dirty_roles()
-    for delegated_rolename in tuf.roledb.get_dirty_roles():
+    
+    for dirty_rolename in tuf.roledb.get_dirty_roles():
       
       # Ignore top-level roles, they will be generated later in this method. 
-      if delegated_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
+      if dirty_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
         continue
     
-      delegated_filename = os.path.join(self._metadata_directory,
-                                        delegated_rolename + METADATA_EXTENSION)
-      repo_lib._generate_and_write_metadata(delegated_rolename,
-                                            delegated_filename,
+      dirty_filename = os.path.join(self._metadata_directory,
+                                        dirty_rolename + METADATA_EXTENSION)
+      repo_lib._generate_and_write_metadata(dirty_rolename,
+                                            dirty_filename,
                                             write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
@@ -297,8 +298,8 @@ class Repository(object):
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked and should no longer have their metadata files
-    # available on disk, otherwise loading a repository may unintentionally load
-    # them.
+    # available on disk, otherwise loading a repository may unintentionally
+    # load them.
     repo_lib._delete_obsolete_metadata(self._metadata_directory,
                                        snapshot_signable['signed'],
                                        consistent_snapshot)
