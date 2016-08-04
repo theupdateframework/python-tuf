@@ -2335,20 +2335,20 @@ class Updater(object):
     # delegated roles.
     self._refresh_targets_metadata(refresh_all_delegated_roles=True)
  
-    all_targets = []
-    
     # Fetch the targets for the 'targets' role.
     all_targets = self._targets_of_role('targets', skip_refresh=True)
 
     # Fetch the targets of the delegated roles.  get_rolenames returns
     # all roles available on the repository.
+    delegated_targets = []
     for role in tuf.roledb.get_rolenames(self.updater_name):
       if role in ['root', 'snapshot', 'targets', 'timestamp']:
         continue
       
       else: 
-        all_targets.append(self._targets_of_role(role, all_targets,
-                                            skip_refresh=True))
+        delegated_targets.extend(self._targets_of_role(role, skip_refresh=True))
+    
+    all_targets.extend(delegated_targets)
     
     return all_targets
 
@@ -2468,8 +2468,8 @@ class Updater(object):
     """
 
     if targets is None:
-      targets_of_role = []
-
+      targets = []
+    
     targets_of_role = list(targets)
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
 
@@ -2485,7 +2485,8 @@ class Updater(object):
     if rolename not in self.metadata['current']:
       logger.debug('No metadata for ' + repr(rolename) + '.'
         '  Unable to determine targets.')
-      
+      return []
+    
     # Get the targets specified by the role itself.
     for filepath, fileinfo in six.iteritems(self.metadata['current'][rolename]['targets']):
       new_target = {} 
