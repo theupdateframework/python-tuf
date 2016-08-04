@@ -32,6 +32,7 @@ import gzip
 import shutil
 import logging
 import tempfile
+import fnmatch
 
 import tuf
 import tuf.hash
@@ -584,13 +585,12 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
     function does not raise an exception if 'rolename' is 'targets'.
  
     Targets allowed are either exlicitly listed under the 'paths' field, or
-    implicitly exist under a subdirectory of a parent directory listed
-    under 'paths'.  A parent role may delegate trust to all files under a 
-    particular directory, including files in subdirectories, by simply
-    listing the directory (e.g., '/packages/source/Django/', the equivalent
-    of '/packages/source/Django/*').  Targets listed in hashed bins are
-    also validated (i.e., its calculated path hash prefix must be delegated
-    by the parent role).
+    match one of the patterns (i.e., Unix shell-style wildcards) listed there.
+    A parent role may delegate trust to all files under a particular directory,
+    including files in subdirectories by using wildcards (e.g.,
+    '/packages/source/Django/*', '/packages/django*.tar.gzip).
+    Targets listed in hashed bins are also validated (i.e., its calculated path
+    hash prefix must be delegated by the parent role).
 
     TODO: Should the TUF spec restrict the repository to one particular
     algorithm when calcutating path hash prefixes (currently restricted to 
@@ -666,7 +666,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
     if allowed_child_path_hash_prefixes is not None:
       consistent = paths_are_consistent_with_hash_prefixes
       
-      # 'actual_child_tarets' (i.e., 'list_of_targets') should have lenth
+      # 'actual_child_targets' (i.e., 'list_of_targets') should have lenth
       # greater than zero due to the tuf.format check above.
       if not consistent(actual_child_targets,
                         allowed_child_path_hash_prefixes):
@@ -684,8 +684,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
       # different roles/developers.
       for child_target in actual_child_targets:
         for allowed_child_path in allowed_child_paths:
-          prefix = os.path.commonprefix([child_target, allowed_child_path])
-          if prefix == allowed_child_path:
+          if fnmatch.fnmatch(child_target, allowed_child_path):
             break
         
         else: 
@@ -707,7 +706,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
   # 'rolename' child role.
   else:
     raise tuf.RepositoryError('The parent role has not delegated to '+\
-                              repr(rolename)+'.')
+                              repr(rolename) + '.')
 
 
 

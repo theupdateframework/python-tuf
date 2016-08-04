@@ -982,6 +982,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test updater.target() backtracking behavior (enabled by default.)
     targets_directory = os.path.join(self.repository_directory, 'targets')
     foo_directory = os.path.join(targets_directory, 'foo')
+    foo_pattern = os.path.join(targets_directory, 'foo*.tar.gz')
     os.makedirs(foo_directory)
 
     foo_package = os.path.join(foo_directory, 'foo1.1.tar.gz')
@@ -993,10 +994,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   
      
     repository.targets.delegate('role2', [self.role_keys['targets']['public']],
-                                [], restricted_paths=[foo_directory])
+                                [], restricted_paths=[foo_pattern])
     
     repository.targets.delegate('role3', [self.role_keys['targets']['public']],
-                                [foo_package], restricted_paths=[foo_directory])
+                                [foo_package], restricted_paths=[foo_pattern])
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
     repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
@@ -1026,9 +1027,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    
     # Ensure we delegate in trusted order (i.e., 'role2' has higher priority.)
     repository.targets.delegate('role2', [self.role_keys['targets']['public']],
-                                [], backtrack=False, restricted_paths=[foo_directory])
+                                [], backtrack=False, restricted_paths=[foo_pattern])
     repository.targets.delegate('role3', [self.role_keys['targets']['public']],
-                                [foo_package], restricted_paths=[foo_directory])
+                                [foo_package], restricted_paths=[foo_pattern])
     
     repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
     repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
