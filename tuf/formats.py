@@ -415,10 +415,25 @@ ROLEDICT_SCHEMA = SCHEMA.DictOf(
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 
+MULTI_ROLE_DELEGATION_SCHEMA = SCHEMA.Object(
+# Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
+# 'paths':[filepaths..]} format.
+  object_name = 'MULTI_ROLE_DELEGATION_SCHEMA',
+  #name = SCHEMA.Optional(ROLENAME_SCHEMA), #MRDs don't have names.
+  #keyids = KEYIDS_SCHEMA,
+  required_roles = SCHEMA.ListOf(ROLENAME_SCHEMA),
+  #threshold = THRESHOLD_SCHEMA,
+  backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
+  paths = SCHEMA.Optional(RELPATHS_SCHEMA),
+  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA)) # probably?
+
+MULTI_ROLE_DELEGATION_LIST_SCHEMA = SCHEMA.ListOf(MULTI_ROLE_DELEGATION_SCHEMA)
+
 # The delegated roles of a Targets role (a parent).
 DELEGATIONS_SCHEMA = SCHEMA.Object(
   keys = KEYDICT_SCHEMA,
-  roles = ROLELIST_SCHEMA)
+  roles = ROLELIST_SCHEMA,
+  MultiRoleDelegations = SCHEMA.Optional(MULTI_ROLE_DELEGATION_LIST_SCHEMA))
 
 # Supported compression extension (e.g., 'gz').
 COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
