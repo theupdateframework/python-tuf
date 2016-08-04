@@ -2599,9 +2599,8 @@ class Updater(object):
 
     # Raise an exception if the target information could not be retrieved.
     if target is None:
-      message = target_filepath + ' not found.'
       logger.error(target_filepath + ' not found.')
-      raise tuf.UnknownTargetError(message)
+      raise tuf.UnknownTargetError(target_filepath + ' not found.')
     
     # Otherwise, return the found target.
     else:
@@ -2842,6 +2841,10 @@ class Updater(object):
         # filepaths are also added.
         if fnmatch.fnmatch(target_filepath, child_role_path):
           child_role_is_relevant = True
+
+        else:
+          logger.debug('Target path' + repr(target_filepath) + ' does not'
+            ' match child role path ' + repr(child_role_path))
 
     else:
       # 'role_name' should have been validated when it was downloaded.
