@@ -1901,7 +1901,7 @@ def write_metadata_file(metadata, filename, version_number,
     if it exists.
 
   <Returns>
-    None. 
+    The filename of the written file. 
   """
 
   # Do the arguments have the correct format?
@@ -2052,7 +2052,7 @@ def _write_compressed_metadata(file_object, compressed_filename,
       digest_object.update(compressed_content)
       new_digests.append(digest_object.hexdigest())
    
-    # Attach each version nu to the compressed consistent snapshot filename.
+    # Attach each version number to the compressed consistent snapshot filename.
     for new_digest in new_digests:
       dirname, basename = os.path.split(compressed_filename)
       for compression_extension in SUPPORTED_COMPRESSION_EXTENSIONS:

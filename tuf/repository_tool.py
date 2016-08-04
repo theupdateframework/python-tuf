@@ -199,8 +199,8 @@ class Repository(object):
         A boolean indicating whether written metadata and target files should
         include a version number in the filename (i.e.,
         <version_number>.root.json, <version_number>.targets.json.gz,
-        <version_number>.README.json, where <version_number> is the file's
-        SHA256 digest.  Example: 13.root.json'
+        <version_number>.README.json
+        Example: 13.root.json'
       
       compression_algorithms:
         A list of compression algorithms.  Each of these algorithms will be
@@ -230,78 +230,81 @@ class Repository(object):
     # populated, otherwise write() throws a 'tuf.UnsignedMetadataError'
     # exception if any of the top-level roles are missing signatures, keys, etc.
 
-    # Write the metadata files of all the delegated roles that are dirty (i.e.,
+    # Write the metadata files of all the Targets roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
     dirty_roles = tuf.roledb.get_dirty_roles()
-    for delegated_rolename in tuf.roledb.get_dirty_roles():
+    
+    filenames = {'root': os.path.join(self._metadata_directory, repo_lib.ROOT_FILENAME),
+                 'targets': os.path.join(self._metadata_directory, repo_lib.TARGETS_FILENAME),
+                 'snapshot': os.path.join(self._metadata_directory, repo_lib.SNAPSHOT_FILENAME),
+                 'timestamp': os.path.join(self._metadata_directory, repo_lib.TIMESTAMP_FILENAME)}
+
+    snapshot_signable = None
+   
+    dirty_rolenames = tuf.roledb.get_dirty_roles()
+
+    for dirty_rolename in dirty_rolenames:
       
       # Ignore top-level roles, they will be generated later in this method. 
-      if delegated_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
+      if dirty_rolename in ['root', 'targets', 'snapshot', 'timestamp']:
         continue
     
-      delegated_filename = os.path.join(self._metadata_directory,
-                                        delegated_rolename + METADATA_EXTENSION)
-      repo_lib._generate_and_write_metadata(delegated_rolename,
-                                            delegated_filename,
+      dirty_filename = os.path.join(self._metadata_directory,
+                                    dirty_rolename + METADATA_EXTENSION)
+      repo_lib._generate_and_write_metadata(dirty_rolename,
+                                            dirty_filename,
                                             write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
-                                            consistent_snapshot)
+                                            consistent_snapshot,
+                                            filenames)
     
-    # Generate the 'root.json' metadata file.
+    # Metadata should be written in (delegated targets -> root ->
+    # targets -> snapshot -> timestamp) order.
+    # Begin by generating the 'root.json' metadata file.
     # _generate_and_write_metadata() raises a 'tuf.Error' exception if the
     # metadata cannot be written.
-    root_filename = repo_lib.ROOT_FILENAME
-    root_filename = os.path.join(self._metadata_directory, root_filename)
-    
-    signable_junk, root_filename = \
-      repo_lib._generate_and_write_metadata('root', root_filename, write_partial,
+    if 'root' in dirty_rolenames or consistent_snapshot:
+      repo_lib._generate_and_write_metadata('root', filenames['root'],
+                                            write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
-                                            consistent_snapshot)
+                                            consistent_snapshot,
+                                            filenames)
 
     # Generate the 'targets.json' metadata file.
-    targets_filename = repo_lib.TARGETS_FILENAME
-    targets_filename = os.path.join(self._metadata_directory, targets_filename)
-    
-    signable_junk, targets_filename = \
-      repo_lib._generate_and_write_metadata('targets', targets_filename,
+    if 'targets' in dirty_rolenames:
+      repo_lib._generate_and_write_metadata('targets', filenames['targets'],
                                             write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
                                             consistent_snapshot)
     
     # Generate the 'snapshot.json' metadata file.
-    snapshot_filename = repo_lib.SNAPSHOT_FILENAME 
-    snapshot_filename = os.path.join(self._metadata_directory, snapshot_filename)
-    filenames = {'root': root_filename, 'targets': targets_filename}
-    snapshot_signable = None
-    
-    snapshot_signable, snapshot_filename = \
-      repo_lib._generate_and_write_metadata('snapshot', snapshot_filename,
+    if 'snapshot' in dirty_rolenames:
+      snapshot_signable, junk = \
+        repo_lib._generate_and_write_metadata('snapshot', filenames['snapshot'],
+                                              write_partial,
+                                              self._targets_directory,
+                                              self._metadata_directory,
+                                              consistent_snapshot, filenames)
+
+    # Generate the 'timestamp.json' metadata file.
+    if 'timestamp' in dirty_rolenames:
+      repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
                                             write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
                                             consistent_snapshot, filenames)
-
-    # Generate the 'timestamp.json' metadata file.
-    timestamp_filename = repo_lib.TIMESTAMP_FILENAME
-    timestamp_filename = os.path.join(self._metadata_directory, timestamp_filename)
-    filenames = {'snapshot': snapshot_filename}
-    
-    repo_lib._generate_and_write_metadata('timestamp', timestamp_filename,
-                                          write_partial,
-                                          self._targets_directory,
-                                          self._metadata_directory,
-                                          consistent_snapshot, filenames)
      
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked and should no longer have their metadata files
-    # available on disk, otherwise loading a repository may unintentionally load
-    # them.
-    repo_lib._delete_obsolete_metadata(self._metadata_directory,
-                                       snapshot_signable['signed'],
-                                       consistent_snapshot)
+    # available on disk, otherwise loading a repository may unintentionally
+    # load them.
+    if snapshot_signable is not None:
+      repo_lib._delete_obsolete_metadata(self._metadata_directory,
+                                         snapshot_signable['signed'],
+                                         consistent_snapshot)
 
 
   
@@ -418,6 +421,35 @@ class Repository(object):
     
     finally:
       shutil.rmtree(temp_repository_directory, ignore_errors=True)
+
+
+
+  def dirty_roles(self):
+    """
+    <Purpose>
+      Print/log the roles that have been modified.  For example,
+      if some role's version number is changed (repository.timestamp.version = 2),
+      it is considered dirty and will be included in the list of dirty
+      roles printed/logged here.  Unlike status(), signatures, public keys,
+      targets, etc. are not verified.  status() should be called instead if
+      the caller would like to verify if a valid role file is generated
+      if write() were to be called.
+      
+    <Arguments>
+      None.
+
+    <Exceptions>
+      None.
+    
+    <Side Effects>
+      None.
+
+    <Returns>
+      None.
+    """
+
+    logger.info('Dirty roles: ' + str(tuf.roledb.get_dirty_roles()))
+   
 
 
   @staticmethod
