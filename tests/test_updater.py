@@ -1092,7 +1092,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # The repository must be rewritten with 'consistent_snapshot' set.
     repository = repo_tool.load_repository(self.repository_directory)
-   
+ 
+    # Write metadata for all the top-level roles , since consistent snapshot
+    # is now being set to true (i.e., the pre-generated repository isn't set
+    # to support consistent snapshots.  A new version of targets.json is needed
+    # to ensure <digest>.filename target files are written to disk.
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.root.load_signing_key(self.role_keys['root']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
