@@ -1154,6 +1154,16 @@ class TestTargets(unittest.TestCase):
 
 
 
+
+
+  def test_multi_role_delegate(self):
+    raise NotImplementedError('Not yet written.')
+
+
+
+
+
+
   def test_delegate_hashed_bins(self):
     # Test normal case.
     keystore_directory = os.path.join('repository_data', 'keystore')

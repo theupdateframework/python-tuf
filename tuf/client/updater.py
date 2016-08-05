@@ -2409,8 +2409,24 @@ class Updater(object):
     if not target_filepath.startswith('/'):
       target_filepath = '/' + target_filepath
 
-    # Get target by looking at roles in order of priority tags.
-    target = self._preorder_depth_first_walk(target_filepath)
+    # THIS FUNCTION MUST refresh targets top level metadata.
+    # It must then also retain a list of already-refreshed target delegates
+    # and pass it around.
+    # NOTE that this includes all delegations, which can be time-consuming and
+    # is surely inefficient. The prior design updated roles as they were
+    # encountered. We can do that in the new design, too, and that should be
+    # considered.
+    # This may update every delegation for every target we try to validate.
+    self._update_metadata_if_changed('targets')
+    self._refresh_targets_metadata('targets', include_delegations=True)
+    # (Redundant? I could instead track every role file we update in this
+    # recursion and pass it down and up.... That way, we could check it and
+    # update it on each call, refreshing whatever metadata is necessary. Ugly,
+    # though. Find solution.)
+
+    # Get target by looking at roles in order of priority tags, starting with
+    # the targets role itself.
+    target = self._target('targets', target_filepath)
 
     # Raise an exception if the target information could not be retrieved.
     if target is None:
@@ -2421,6 +2437,178 @@ class Updater(object):
     # Otherwise, return the found target.
     else:
       return target
+
+
+
+
+
+  def is_delegation_relevant_to_target(self, delegation_info, target_filepath):
+    """
+    <Purpose>
+      Returns True if the given delegation includes restricted paths that match
+      the given target_filepath. That is, returns True if the given delegation
+      includes the given target_filepath.
+      Else False.
+    """
+    raise NotImplementedError('Not yet coded.')
+
+
+
+
+
+  def _target(rolename, target_filepath):
+    """
+    TODO: Docstring
+    A recursive function that returns the target info for a target to be
+    validated, based on rolename's metadata and any of its delegates' metadata.
+    Returns None if unable to find target info for the given target_filepath
+    under the given role.
+
+    Replaces _preorder_depth_first_walk and _visit_child_role.
+    Handles multi-role delegations correctly.
+    """
+
+    target = None
+    role_metadata = current_metadata[rolename]
+    targets = role_metadata['targets']
+    delegations = role_metadata.get('delegations', {})
+    child_roles = delegations.get('roles', [])
+    multi_role_delegations = delegations.get('MultiRoleDelegations', {})
+
+    target = self._get_target_from_targets_role(rolename, targets,
+        target_filepath)
+
+    # Base case of the recursion. If info for the target is in this role,
+    # return that.
+    target = _get_target_from_targets_role(rolename, targets, target_filepath)
+    if target is not None:
+      return target
+
+    # For each multi-role delegation
+    for mrdelegation in multi_role_delegations:
+      if self.is_delegation_relevant_to_target(d, target_filepath):
+        # Then process this multi-role delegation. Check every one of its
+        # required roles for the target. If target info is provided by all of
+        # the required roles (or their delegates), and the target info in each
+        # is all equal, return that info.
+        tentative_target = None
+        required_roles = mrdelegation.get('required_roles', [])
+        for role in required_roles:
+          new_tentative_target = _target(role, target_filepath)
+          if new_tentative_target is None:
+            # If any of the required roles don't yield target info, then this
+            # multi-role delegation cannot validate the file.
+            break
+          elif tentative_targets is None:
+            tentative_target = new_tentative_target
+          else:
+            raise NotImplementedError('Code to compare two targets and ' 
+                'establish equality is not yet written.')
+            if tentative_target != new_tentative_target: # write working test
+              # If any two of the required roles don't provide the same target
+              # info, then this multi-role delegation cannot validate the file.
+              break
+
+
+        if len(tentative_targets) == len(required_roles) and they are all equal:
+        return target = tentative_targets[0]
+      elif d is cutting:
+        return None
+      (else we discard tentative_targets by its exiting scope, target unchanged)
+
+    # For each normal delegation        
+    for r in child_roles
+      if d is a delegation with a path that matches target_filepath:
+        target = _target_rewrite(r, target_filepath)
+      if d is cutting: #if cutting, return what we have, even if None
+        return target
+      elif target is not None: #if found valid, stop looking
+        break
+
+    if target is not None:
+        return target
+    (else)
+
+
+
+
+
+
+
+
+
+
+  def _target_new(self, rolename, target_filepath,
+      list_of_already_updated_roles):
+    """
+    TODO: Docstring
+    Recursion for target_new
+
+    """
+    # Ensure the client has the most up-to-date version of 'targets.json'.
+    # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be
+    # successfully downloaded and 'tuf.RepositoryError' if the referenced
+    # metadata is missing.  Target methods such as this one are called after the
+    # top-level metadata have been refreshed (i.e., updater.refresh()).
+
+    # ...
+    # LOGIC TO DETERMINE WHETHER OR NOT IT IS NECESSARY TO UPDATE METADATA FOR
+    # THIS ROLE - a list of roles whose metadata has already been updated would
+    # be good, perhaps. (Touch it when we touch a role.)
+    if role not in list_of_already_updated_roles:
+      self._update_metadata_if_changed(role) # make sure that the format of this rolename is as expected (full vs relative...?)
+      list_of_already_updated_roles.append(role)
+      # Sensible code might also add parent roles? Doesn't matter right now.
+
+
+
+
+
+    target = None
+    tentative_target = None
+    current_metadata = self.metadata['current']
+
+    role_metadata = current_metadata[rolename]
+
+
+    # Step 1: Check my own targets.
+    # ...
+    # ...
+    # ...
+    print('Not implemented yet.')
+    if target is not None:
+      return target
+
+
+    # Step 2: Check my direct delegations.
+    child_roles_to_recurse_to = []
+    for child_role in child_roles:
+      if self.child_is_relevant_to_target(child_role, target_filepath):
+        #child_roles_to_recurse_to.append(child_role)
+        recursed_result_from_child = target_new(child_role, target_filepath)
+        if recursed_result_from_child is not None:
+          return recursed_result_from_child
+
+
+
+
+
+    for multiroledelegation in 
+
+
+
+      child_role_name = self._visit_child_role(child_role, target_filepath)
+
+
+    # Step 3: Check my multi-role delegations.
+
+
+
+
+
+
+
+
 
 
 
@@ -2491,15 +2679,16 @@ class Updater(object):
         # NOTE: This may be a slow operation if there are many delegated roles.
         for child_role in child_roles:
           child_role_name = self._visit_child_role(child_role, target_filepath)
-          if not child_role['backtrack'] and child_role_name is not None:
+          
+          if child_role_name is None:
+            logger.debug('Skipping child role '+repr(child_role_name))
+
+          elif not child_role['backtrack']:
             logger.debug('Adding child role '+repr(child_role_name))
             logger.debug('Not backtracking to other roles.')
             role_names = []
             child_roles_to_visit.append(child_role_name)
             break
-          
-          elif child_role_name is None:
-            logger.debug('Skipping child role '+repr(child_role_name))
           
           else:
             logger.debug('Adding child role '+repr(child_role_name))
@@ -2640,6 +2829,15 @@ class Updater(object):
       # so we raise a format error here in case they are both missing.
       raise tuf.FormatError(repr(child_role_name) + ' has neither ' \
                                 '"paths" nor "path_hash_prefixes".')
+
+    # If the child role is still marked as not relevant (cannot speak for the
+    # target we wish to validate), then we need to check multi-role delegations
+    # to see if it is relevant there.
+    # May be better to scatter this code above in the child_role_paths section?
+    # For now, we'll leave it here.
+    if not child_role_is_relevant:
+
+
 
     if child_role_is_relevant:
       logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \

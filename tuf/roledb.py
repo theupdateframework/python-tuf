@@ -199,6 +199,23 @@ def add_role(rolename, roleinfo, require_parent=True):
 
 
 
+def add_multiroledelegation(m_r_delegation_info):
+  """
+  TODO: Write docstring.
+  """
+  # Can implement MRD as flags on the paths. When we see a multi-role
+  # delegation, we add the paths associated with it to the required paths for
+  # those roles, linking it to the multi-role delegation.
+  # 
+
+  tuf.formats.MULTI_ROLE_DELEGATION_SCHEMA.check_match(m_r_delegation_info)
+
+  raise NotImplementedError('Not coded yet.')
+
+
+
+
+
 def update_roleinfo(rolename, roleinfo):
   """
   <Purpose>

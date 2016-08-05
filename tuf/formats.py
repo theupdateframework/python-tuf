@@ -415,17 +415,20 @@ ROLEDICT_SCHEMA = SCHEMA.DictOf(
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 
+# Simply a list of role names, to be used in MULTI_ROLE_DELEGATION_SCHEMA.
+ROLENAMELIST_SCHEMA = SCHEMA.ListOf(ROLENAME_SCHEMA)
+
 MULTI_ROLE_DELEGATION_SCHEMA = SCHEMA.Object(
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} format.
   object_name = 'MULTI_ROLE_DELEGATION_SCHEMA',
   #name = SCHEMA.Optional(ROLENAME_SCHEMA), #MRDs don't have names.
   #keyids = KEYIDS_SCHEMA,
-  required_roles = SCHEMA.ListOf(ROLENAME_SCHEMA),
+  required_roles = ROLENAMELIST_SCHEMA,
   #threshold = THRESHOLD_SCHEMA,
-  backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
-  paths = SCHEMA.Optional(RELPATHS_SCHEMA),
-  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA)) # probably?
+  #backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA), # TODO
+  paths = SCHEMA.Optional(RELPATHS_SCHEMA))
+  #path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA)) # TODO
 
 MULTI_ROLE_DELEGATION_LIST_SCHEMA = SCHEMA.ListOf(MULTI_ROLE_DELEGATION_SCHEMA)
 

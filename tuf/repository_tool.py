@@ -1971,6 +1971,8 @@ class Targets(Metadata):
       restricted_paths:
         A list of restricted directory or file paths of 'rolename'.  Any target
         files added to 'rolename' must fall under one of the restricted paths.
+        Consequently, empty restricted paths means the delegated role cannot
+        validate any targets.
       
       path_hash_prefixes:
         A list of hash prefixes in 'tuf.formats.PATH_HASH_PREFIXES_SCHEMA'
@@ -2046,18 +2048,19 @@ class Targets(Metadata):
     
     # Ensure the paths of 'restricted_paths' all fall under the repository's
     # targets.
-    relative_restricted_paths = [] 
+    relative_restricted_paths = relativize_and_validate_restricted_paths()
    
-    if restricted_paths is not None: 
-      for path in restricted_paths:
-        path = os.path.abspath(path) + os.sep
-        if not path.startswith(self._targets_directory + os.sep):
-          raise tuf.Error(repr(path) + ' is not under the Repository\'s'
-            ' targets directory: ' +repr(self._targets_directory))
+    # if restricted_paths is not None: 
+    #   for path in restricted_paths:
+    #     path = os.path.abspath(path) + os.sep
+    #     if not path.startswith(self._targets_directory + os.sep):
+    #       raise tuf.Error(repr(path) + ' is not under the Repository\'s'
+    #         ' targets directory: ' +repr(self._targets_directory))
         
-        # Append a trailing path separator with os.path.join(path, '').
-        path = os.path.join(path, '')
-        relative_restricted_paths.append(path[targets_directory_length:])
+    #     # Append a trailing path separator with os.path.join(path, '').
+    #     path = os.path.join(path, '')
+    #     relative_restricted_paths.append(path[targets_directory_length:])
+    
    
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
@@ -2106,6 +2109,86 @@ class Targets(Metadata):
     # Add the new delegation to this Targets object.  For example, 'django' is
     # added to 'repository.targets' (i.e., repository.targets('django')).
     self._delegated_roles[rolename] = new_targets_object
+
+
+
+
+
+  def multi_role_delegate(self, 
+      # Excluding backtrack. Not sure of the implications yet.
+      # Excluding path_hash_prefixes. Implement later.
+      restricted_paths, required_roles): # Consider default None later.
+    """
+    TODO: Docstring
+    TODO: Unit test
+    This is a new kind of delegation, mapping a set of required roles to a
+    set of paths.
+    """
+    # Check arguments against the defined schemata in formats.py.
+    tuf.formats.RELPATHS_SCHEMA.check_match(restricted_paths)
+    tuf.formats.ROLENAMELIST_SCHEMA.check_match(required_roles)
+
+    # Make sure the roles named actually exist already.
+    for role in required_roles:
+      if not tuf.roledb.role_exists(role):
+        raise tuf.Error(repr(role) + ' does not exist. Cannot include it in a '
+            'multi-role delegation.')
+
+    relative_restricted_paths = \
+        self.relativize_and_validate_restricted_paths(restricted_paths)
+
+    # Now we need to save this info somehow in the roledb.
+    # We need to modify the parent's roleinfo....
+    roleinfo = tuf.roledb.get_roleinfo(self.rolename) 
+    #roleinfo['delegations']['keys'].update(keydict) # What would this do?
+
+    # Create a new multi-role delegation object.
+    new_mrdelegation = {
+        'restricted_paths': relative_restricted_paths,
+        'required_roles': required_roles}
+
+    # Update the multi-role-delegations list of this role (the parent).
+    # Add a multiroledelegations field to our delegations if it's not there
+    # already.
+    if 'multiroledelegations' not in roleinfo['delegations']:
+      roleinfo['delegations']['multiroledelegations'] = []
+    
+    # Add this multi-role delegation to our delegations.
+    roleinfo['delegations']['multiroledelegations'].append(new_mrdelegation)
+
+    # Save the updated roleinfo in the roledb.
+    tuf.roledb.update_roleinfo(self.rolename, roleinfo)
+
+
+
+
+
+  def relativize_and_validate_restricted_paths(self, restricted_paths):
+    """
+    <Purpose>
+      Generates a list of relative paths from the given paths. These are
+      relative to repository's targets directory.
+      Raises an informative error if a restricted path from the given list of
+      restricted paths does not fall under the repository's targets directory.
+    """
+
+    targets_directory_length = len(self._targets_directory)
+
+    relative_restricted_paths = []
+   
+    for path in restricted_paths:
+      path = os.path.abspath(path) + os.sep
+      if not path.startswith(self._targets_directory + os.sep):
+        raise tuf.Error(repr(path) + ' is not under the Repository\'s'
+          ' targets directory: ' +repr(self._targets_directory))
+      
+      # Append a trailing path separator with os.path.join(path, '').
+      path = os.path.join(path, '')
+      relative_restricted_paths.append(path[targets_directory_length:])
+
+    return relative_restricted_paths
+
+
 
 
 
