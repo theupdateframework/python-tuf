@@ -506,7 +506,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
        ], 
        "name": "targets/warehouse", 
        "paths": [
-        "/file1.txt", "/README.txt", '/warehouse/'
+        "/file*.txt", "/README.txt", '/warehouse/*'
        ], 
        "threshold": 1
       }
@@ -540,7 +540,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
     # Test for target file that is not allowed by the parent role.
     self.assertRaises(tuf.ForbiddenTargetError, tuf.util.ensure_all_targets_allowed,
-                      'targets/warehouse', ['file8.txt'], parent_delegations)
+                      'targets/warehouse', ['file1.zip'], parent_delegations)
     
     self.assertRaises(tuf.ForbiddenTargetError, tuf.util.ensure_all_targets_allowed,
                       'targets/warehouse', ['file1.txt', 'bad-README.txt'],

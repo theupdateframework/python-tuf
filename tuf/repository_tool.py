@@ -1728,22 +1728,22 @@ class Targets(Metadata):
 
 
 
-  def add_restricted_paths(self, list_of_directory_paths, child_rolename):
+  def add_restricted_paths(self, restricted_paths, child_rolename):
     """
     <Purpose>
-      Add 'list_of_directory_paths' to the restricted paths of 'child_rolename'.
+      Add 'restricted_paths' to the restricted paths of 'child_rolename'.
       The updater client verifies the target paths specified by child roles, and
       searches for targets by visiting these restricted paths.  A child role may
       only provide targets specifically listed in the delegations field of the
-      parent, or a target that falls under a restricted path.
+      parent, or a target that matches a restricted path.
 
       >>> 
       >>>
       >>>
 
     <Arguments>
-      list_of_directory_paths:
-        A list of directory paths 'child_rolename' should also be restricted to.
+      restricted_paths:
+        A list of paths that 'child_rolename' should be restricted to.
 
       child_rolename:
         The child delegation that requires an update to its restricted paths,
@@ -1751,8 +1751,8 @@ class Targets(Metadata):
         'unclaimed').
 
     <Exceptions>
-      tuf.Error, if a directory path in 'list_of_directory_paths' is not a
-      directory, or not under the repository's targets directory.  If
+      tuf.Error, if a restricted path in 'restricted_paths' is not a string
+      path, doesn't live under the repository's targets directory, or if
       'child_rolename' has not been delegated yet. 
 
     <Side Effects>
@@ -1766,46 +1766,40 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.PATHS_SCHEMA.check_match(list_of_directory_paths)
+    tuf.formats.PATHS_SCHEMA.check_match(restricted_paths)
     tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
-    # A list of verified paths to be added to the child role's entry in the
-    # parent's delegations.
-    directory_paths = []
+    # A list of relative and verified paths to be added to the child role's
+    # entry in the parent's delegations.
+    relative_paths = []
    
     # Ensure the 'child_rolename' has been delegated, otherwise it will not
     # have an entry in the parent role's delegations field.
     if not tuf.roledb.role_exists(child_rolename):
       raise tuf.Error(repr(child_rolename) + ' has not been delegated.')
 
-    # Are the paths in 'list_of_directory_paths' valid?
-    for directory_path in list_of_directory_paths:
-      directory_path = os.path.abspath(directory_path)
-      if not os.path.isdir(directory_path):
-        raise tuf.Error(repr(directory_path) + ' is not a directory.')
-
-      # Are the paths in the repository's targets directory?  Append a trailing
-      # path separator with os.path.join(path, '').
+    for restricted_path in restricted_paths:
+      # Do the restricted paths fall under the repository's targets directory?
+      # Append a trailing path separator with os.path.join(path, '').
       targets_directory = os.path.join(self._targets_directory, '')
-      directory_path = os.path.join(directory_path, '')
-      if not directory_path.startswith(targets_directory):
-        raise tuf.Error(repr(directory_path) + ' is not under the'
+      if not restricted_path.startswith(targets_directory):
+        raise tuf.Error(repr(restricted_path) + ' does not live under the'
           ' Repository\'s targets directory: ' + repr(self._targets_directory))
 
-      directory_paths.append(directory_path[len(self._targets_directory):])
+      relative_paths.append(restricted_path[len(self._targets_directory):])
 
     # Get the current role's roleinfo, so that its delegations field can be
     # updated.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
    
-    # Update the restricted paths of 'child_rolename'. 
+    # Update the restricted paths of 'child_rolename' to add relative paths. 
     for role in roleinfo['delegations']['roles']:
       if role['name'] == child_rolename:
         restricted_paths = role['paths'] 
     
-    for directory_path in directory_paths:
-      if directory_path not in restricted_paths:
-        restricted_paths.append(directory_path)
+    for relative_path in relative_paths:
+      if relative_path not in restricted_paths:
+        restricted_paths.append(relative_path)
    
     tuf.roledb.update_roleinfo(self._rolename, roleinfo)
 
@@ -2178,7 +2172,7 @@ class Targets(Metadata):
     
     for target in list_of_targets:
       target = os.path.abspath(target)
-      if not target.startswith(self._targets_directory+os.sep):
+      if not target.startswith(self._targets_directory + os.sep):
         raise tuf.Error(repr(target) + ' is not under the Repository\'s'
           ' targets directory: ' + repr(self._targets_directory))
 
@@ -2190,13 +2184,11 @@ class Targets(Metadata):
    
     if restricted_paths is not None: 
       for path in restricted_paths:
-        path = os.path.abspath(path) + os.sep
         if not path.startswith(self._targets_directory + os.sep):
           raise tuf.Error(repr(path) + ' is not under the Repository\'s'
             ' targets directory: ' +repr(self._targets_directory))
         
         # Append a trailing path separator with os.path.join(path, '').
-        path = os.path.join(path, '')
         relative_restricted_paths.append(path[targets_directory_length:])
    
     # Create a new Targets object for the 'rolename' delegation.  An initial

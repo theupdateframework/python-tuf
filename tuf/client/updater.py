@@ -113,6 +113,7 @@ import os
 import shutil
 import time
 import random
+import fnmatch
 
 import tuf
 import tuf.conf
@@ -911,7 +912,7 @@ class Updater(object):
     if self.consistent_snapshot:
       target_digest = random.choice(list(file_hashes.values()))
       dirname, basename = os.path.split(target_filepath)
-      target_filepath = os.path.join(dirname, target_digest+'.'+basename)
+      target_filepath = os.path.join(dirname, target_digest + '.' + basename)
 
     return self._get_file(target_filepath, verify_target_file,
                           'target', file_length, compression=None,
@@ -2598,9 +2599,8 @@ class Updater(object):
 
     # Raise an exception if the target information could not be retrieved.
     if target is None:
-      message = target_filepath + ' not found.'
       logger.error(target_filepath + ' not found.')
-      raise tuf.UnknownTargetError(message)
+      raise tuf.UnknownTargetError(target_filepath + ' not found.')
     
     # Otherwise, return the found target.
     else:
@@ -2835,12 +2835,16 @@ class Updater(object):
 
     elif child_role_paths is not None:
       for child_role_path in child_role_paths:
-        # A child role path may be a filepath or directory.  The child
-        # role 'child_role_name' is added if 'target_filepath' is located
-        # under 'child_role_path'.  Explicit filepaths are also added.
-        prefix = os.path.commonprefix([target_filepath, child_role_path])
-        if prefix == child_role_path:
+        # A child role path may be an explicit path or pattern (Unix
+        # shell-style wildcards).  The child role 'child_role_name' is added if
+        # 'target_filepath' is equal or matches 'child_role_path'.  Explicit
+        # filepaths are also added.
+        if fnmatch.fnmatch(target_filepath, child_role_path):
           child_role_is_relevant = True
+
+        else:
+          logger.debug('Target path' + repr(target_filepath) + ' does not'
+            ' match child role path ' + repr(child_role_path))
 
     else:
       # 'role_name' should have been validated when it was downloaded.

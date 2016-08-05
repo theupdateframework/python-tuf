@@ -1087,7 +1087,7 @@ class TestTargets(unittest.TestCase):
     rolename = 'tuf'
     list_of_targets = [target1_filepath, target2_filepath] 
     threshold = 1
-    restricted_paths = [self.targets_directory]
+    restricted_paths = [self.targets_directory + '/*']
     path_hash_prefixes = ['e3a3', '8fae', 'd543']
 
     self.targets_object.delegate(rolename, public_keys, list_of_targets,
@@ -1334,7 +1334,7 @@ class TestTargets(unittest.TestCase):
 
     restricted_path = os.path.join(self.targets_directory, 'tuf_files')
     os.mkdir(restricted_path)
-    restricted_paths = [restricted_path]
+    restricted_paths = [restricted_path + '/*']
     self.targets_object.add_restricted_paths(restricted_paths, 'tuf')
     
     # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains
@@ -1344,7 +1344,7 @@ class TestTargets(unittest.TestCase):
     targets_object_roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
 
     delegated_role = targets_object_roleinfo['delegations']['roles'][0]
-    self.assertEqual(['/tuf_files/'], delegated_role['paths'])
+    self.assertEqual(['/tuf_files/*'], delegated_role['paths'])
 
 
     # Test improperly formatted arguments.
