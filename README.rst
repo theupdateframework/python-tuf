@@ -210,9 +210,9 @@ section <https://virtualenv.pypa.io/en/latest/installation.html>`_,
 and instructions for installing locally from source are provided here:
 ::
 
-    $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.11.6.tar.gz
-    $ tar xvfz virtualenv-1.11.6.tar.gz
-    $ cd virtualenv-1.11.6
+    $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-15.0.3.tar.gz
+    $ tar xvfz virtualenv-15.0.3.tar.gz
+    $ cd virtualenv-15.0.3
     $ python virtualenv.py myVE
 
 
