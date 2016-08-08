@@ -15,9 +15,10 @@
 # Client must also install PyCrypto to verify RSASSA-PSS signatures.  The
 # minimal install can only verify ed25519 signatures.  Pinned packages:
 # http://nvie.com/posts/pin-your-packages/
+cffi==1.7.0
 pycrypto==2.6.1
-pynacl==0.2.3
-cryptography==1.0
+pynacl==1.0.1
+cryptography==1.4.0
 
 # Testing requirements.  The rest of the testing dependencies available in
 # 'tox.ini'
