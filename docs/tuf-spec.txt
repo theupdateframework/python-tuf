@@ -43,7 +43,7 @@ Version 1.0 (Draft)
    updater for Tor (http://www.torproject.org/). Its design and this spec are
    also largely based on Thandy's, with many parts being directly borrowed
    from Thandy. The Thandy spec can be found here:
-   https://gitweb.torproject.org/thandy.git?a=blob_plain;f=specs/thandy-spec.txt;hb=HEAD
+   https://gitweb.torproject.org/thandy.git/tree/specs/thandy-spec.txt
 
    Whereas Thandy is an application updater for an individual software project,
    TUF aims to provide a way to secure any software update system. We're very
