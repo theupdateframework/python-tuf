@@ -36,11 +36,11 @@ Version 1.0 (Draft)
 
    The Global Environment for Network Innovations (GENI) and the National
    Science Foundation (NSF) have provided support for the development of TUF.
-   (http://www.geni.net/)
-   (http://www.nsf.gov/)
+   (https://www.geni.net/)
+   (https://www.nsf.gov/)
 
    TUF's reference implementation is based heavily on Thandy, the application
-   updater for Tor (http://www.torproject.org/). Its design and this spec are
+   updater for Tor (https://www.torproject.org/). Its design and this spec are
    also largely based on Thandy's, with many parts being directly borrowed
    from Thandy. The Thandy spec can be found here:
    https://gitweb.torproject.org/thandy.git/tree/specs/thandy-spec.txt
@@ -461,8 +461,8 @@ Version 1.0 (Draft)
        "ed25519" : Elliptic curve digital signature algorithm based on Twisted
                   Edwards curves.
        
-   RSASSA-PSS: http://tools.ietf.org/html/rfc3447#page-29 
-   ed25519: http://ed25519.cr.yp.to/
+   RSASSA-PSS: https://tools.ietf.org/html/rfc3447#page-29 
+   ed25519: https://ed25519.cr.yp.to/
    
    All keys have the format:
    
@@ -985,7 +985,7 @@ Version 1.0 (Draft)
 
 6. Usage
 
-   See http://www.theupdateframework.com/ for discussion of recommended usage
+   See https://www.theupdateframework.com/ for discussion of recommended usage
    in various situations.
 
 6.1. Key management and migration
