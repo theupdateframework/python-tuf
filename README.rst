@@ -36,7 +36,7 @@ Three major classes of software update systems are:
 -  **Library package managers** such as those offered by many
    programming languages for installing additional libraries. These are
    systems such as Python's pip/easy_install + PyPI, Perl's CPAN,
-   Ruby's RubyGems, and PHP's PEAR.
+   Ruby's RubyGems, and PHP's Composer.
 
 -  **System package managers** used by operating systems to update and
    install all of the software on a client system. Debian's APT, Red
