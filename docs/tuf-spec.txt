@@ -554,12 +554,16 @@ Version 1.0 (Draft)
    whose signatures are required in order to consider a file as being properly
    signed by that role.
 
-   PREVIOUS_HASH is a hash of the role's previous metadata.  A client can
-   verify that a role's trusted keys are correctly added or revoked by
-   requesting versions of metadata in order and comparing hashes.  Section 5.2
-   (pseudocode of client application) outlines how PREVIOUS_HASH can be used
-   to successfully update a role.  For example, update from 3.root.json to
-   8.root.json by requesting intermediate versions and verifying hashes.
+   PREVIOUS_HASH (optional entry) is a hash of the role's previous metadata.  A
+   client can verify that a role's trusted keys are correctly added or revoked
+   by requesting versions of metadata in order, and comparing the
+   "previous_hash" entry of the retrieved metadata with the hash of the locally
+   trusted copy of the metadata.  In effect, a hash-chained history of the role
+   is provided to clients for verification.  Section 5.2 (pseudocode of client
+   application) outlines how PREVIOUS_HASH can be used to successfully update a
+   role.  For example, updating from 3.root.json to 8.root.json by requesting
+   intermediate versions (4, 5, 6, 7) and verifying their hashes against
+   PREVIOUS_HASH entries.
 
    A signed root.json example file:
 
