@@ -412,13 +412,17 @@ Version 1.0 (Draft)
    When the targets role delegates trust to other roles, each delegated role
    provides one signed metadata file.  This file is located at:
 
-    /targets/DELEGATED_ROLE.json
+    /DELEGATED_ROLE.json
 
    where DELEGATED_ROLE is the name of the delegated role that has been
    specified in targets.json.  If this role further delegates trust to a role
    named ANOTHER_ROLE, that role's signed metadata file is made available at:
 
-    /targets/DELEGATED_ROLE/ANOTHER_ROLE.json
+    /ANOTHER_ROLE.json
+    
+    As is the case with the directory structure of top-level metadata, the
+    delegated files are relative to the base URL of metadata available from
+    a given repository mirror.
 
 4. Document formats
 
