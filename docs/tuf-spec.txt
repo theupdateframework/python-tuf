@@ -522,7 +522,6 @@ Version 1.0 (Draft)
      { "_type" : "Root",
        "version" : VERSION,
        "expires" : EXPIRES,
-       "previous_hash": PREVIOUS_HASH,
        "keys" : {
            KEYID : KEY
            , ... },
@@ -554,17 +553,6 @@ Version 1.0 (Draft)
    whose signatures are required in order to consider a file as being properly
    signed by that role.
 
-   PREVIOUS_HASH (optional entry) is a hash of the role's previous metadata.  A
-   client can verify that a role's trusted keys are correctly added or revoked
-   by requesting versions of metadata in order, and comparing the
-   "previous_hash" entry of the retrieved metadata with the hash of the locally
-   trusted copy of the metadata.  In effect, a hash-chained history of the role
-   is provided to clients for verification.  Section 5.2 (pseudocode of client
-   application) outlines how PREVIOUS_HASH can be used to successfully update a
-   role.  For example, updating from 3.root.json to 8.root.json by requesting
-   intermediate versions (4, 5, 6, 7) and verifying their hashes against
-   PREVIOUS_HASH entries.
-
    A signed root.json example file:
 
    {
@@ -580,7 +568,6 @@ Version 1.0 (Draft)
     "_type": "Root", 
     "consistent_snapshot": false, 
     "expires": "2030-01-01T00:00:00Z",
-    "previous_hash": "85ef4110927d4cba227262f614896179ff85ca1f1353a41b5224ac474ca71cb4"
     "keys": {
      "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4": {
       "keytype": "ed25519", 
@@ -864,9 +851,21 @@ Version 1.0 (Draft)
      { "_type" : "Timestamp",
        "version" : VERSION,
        "expires" : EXPIRES,
+       "previous_hash": HASH,
        "meta" : METAFILES
      }
 
+   PREVIOUS_HASH is a hash of the Timestamp's previous metadata.  A client can
+   verify that a role's trusted keys are correctly added or revoked by
+   requesting versions of timestamp.json in order, and comparing the
+   "previous_hash" entry of the retrieved metadata with the hash of the locally
+   trusted copy of the metadata.  In effect, a hash-chained history of the
+   repository is provided to clients for verification.  Section 5.2 (pseudocode
+   of client application) outlines how PREVIOUS_HASH can be used to
+   successfully update a role.  For example, updating from 3.timestamp.json to
+   8.timestamp.json by requesting intermediate versions (4, 5, 6, 7) and
+   verifying their hashes against PREVIOUS_HASH entries.
+   
    METAFILES is the same is described for the snapshot.json file.  In the case
    of the timestamp.json file, this will commonly only include a description of
    the snapshot.json file.
@@ -885,6 +884,7 @@ Version 1.0 (Draft)
    "signed": {
     "_type": "Timestamp", 
     "expires": "2030-01-01T00:00:00Z", 
+    "previous_hash": "85ef4110927d4cba227262f614896179ff85ca1f1353a41b5224ac474ca71cb4",
     "meta": {
      "snapshot.json": {
       "hashes": {
