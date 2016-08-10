@@ -2048,7 +2048,8 @@ class Targets(Metadata):
     
     # Ensure the paths of 'restricted_paths' all fall under the repository's
     # targets.
-    relative_restricted_paths = relativize_and_validate_restricted_paths()
+    relative_restricted_paths = self._relativize_and_validate_restricted_paths(
+        restricted_paths)
    
     # if restricted_paths is not None: 
     #   for path in restricted_paths:
@@ -2115,9 +2116,9 @@ class Targets(Metadata):
 
 
   def multi_role_delegate(self, 
-      # Excluding backtrack. Not sure of the implications yet.
-      # Excluding path_hash_prefixes. Implement later.
-      restricted_paths, required_roles): # Consider default None later.
+      # TODO: Excluding path_hash_prefixes. Implement later.
+      restricted_paths, required_roles, # Consider default None later.
+      backtrack=True, abort_on_disagreement=True):
     """
     TODO: Docstring
     TODO: Unit test
@@ -2127,6 +2128,7 @@ class Targets(Metadata):
     # Check arguments against the defined schemata in formats.py.
     tuf.formats.RELPATHS_SCHEMA.check_match(restricted_paths)
     tuf.formats.ROLENAMELIST_SCHEMA.check_match(required_roles)
+    tuf.formats.BOOLEAN_SCHEMA.check_match(backtrack)
 
     # Make sure the roles named actually exist already.
     for role in required_roles:
@@ -2135,17 +2137,19 @@ class Targets(Metadata):
             'multi-role delegation.')
 
     relative_restricted_paths = \
-        self.relativize_and_validate_restricted_paths(restricted_paths)
+        self._relativize_and_validate_restricted_paths(restricted_paths)
 
     # Now we need to save this info somehow in the roledb.
     # We need to modify the parent's roleinfo....
     roleinfo = tuf.roledb.get_roleinfo(self.rolename) 
-    #roleinfo['delegations']['keys'].update(keydict) # What would this do?
+    #roleinfo['delegations']['keys'].update(keydict) # TODO: What would this do?
 
     # Create a new multi-role delegation object.
     new_mrdelegation = {
         'restricted_paths': relative_restricted_paths,
-        'required_roles': required_roles}
+        'required_roles': required_roles,
+        'backtrack': backtrack,
+        'abort_on_disagreement': abort_on_disagreement}
 
     # Update the multi-role-delegations list of this role (the parent).
     # Add a multiroledelegations field to our delegations if it's not there
@@ -2163,7 +2167,7 @@ class Targets(Metadata):
 
 
 
-  def relativize_and_validate_restricted_paths(self, restricted_paths):
+  def _relativize_and_validate_restricted_paths(self, restricted_paths):
     """
     <Purpose>
       Generates a list of relative paths from the given paths. These are
@@ -2176,6 +2180,9 @@ class Targets(Metadata):
 
     relative_restricted_paths = []
    
+    if restricted_paths is None:
+      return []
+
     for path in restricted_paths:
       path = os.path.abspath(path) + os.sep
       if not path.startswith(self._targets_directory + os.sep):

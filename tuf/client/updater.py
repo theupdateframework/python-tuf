@@ -2409,6 +2409,11 @@ class Updater(object):
     if not target_filepath.startswith('/'):
       target_filepath = '/' + target_filepath
 
+    # Ensure the client has the most up-to-date version of 'targets.json'.
+    # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be
+    # successfully downloaded and 'tuf.RepositoryError' if the referenced
+    # metadata is missing.  Target methods such as this one are called after the
+    # top-level metadata have been refreshed (i.e., updater.refresh()).
     # THIS FUNCTION MUST refresh targets top level metadata.
     # It must then also retain a list of already-refreshed target delegates
     # and pass it around.
@@ -2422,7 +2427,9 @@ class Updater(object):
     # (Redundant? I could instead track every role file we update in this
     # recursion and pass it down and up.... That way, we could check it and
     # update it on each call, refreshing whatever metadata is necessary. Ugly,
-    # though. Find solution.)
+    # though. Find solution. Also, will this happen repeatedly if multiple
+    # targets are to be updated? Inefficient, if so. At the same time, the
+    # additional check would mitigate the impact of delaying attacks somewhat.)
 
     # Get target by looking at roles in order of priority tags, starting with
     # the targets role itself.
@@ -2442,265 +2449,215 @@ class Updater(object):
 
 
 
-  def is_delegation_relevant_to_target(self, delegation_info, target_filepath):
+  def _is_delegation_relevant_to_target(self, delegation_info,
+      target_filepath):
     """
     <Purpose>
-      Returns True if the given delegation includes restricted paths that match
-      the given target_filepath. That is, returns True if the given delegation
-      includes the given target_filepath.
+      Non-public method. Returns True if the given delegation includes
+      restricted paths that match the given target_filepath. That is, returns
+      True if the given delegation includes the given target_filepath.
       Else False.
-    """
-    raise NotImplementedError('Not yet coded.')
 
+      That is, determines whether the given 'child_role' has been
+      delegated the target with the name 'target_filepath'.
 
+      The delegation may be a normal delegation (delegation to a single role)
+      or a multi-role delegation.
 
+      Ensure that we explore only delegated roles trusted with the target. We
+      assume conservation of delegated paths in the complete tree of
+      delegations. Note that the call to tuf.util.ensure_all_targets_allowed in
+      _verify_uncompressed_metadata_file should already verify that all
+      targets metadata is valid; i.e. that the targets signed by a delegatee is
+      a proper subset of the targets delegated to it by the delegator.
+      Nevertheless, we check it again here for performance and safety reasons.
 
+      TODO: Should the TUF spec restrict the repository to one particular
+      algorithm?  Should we allow the repository to specify in the role
+      dictionary the algorithm used for these generated hashed paths?
 
-  def _target(rolename, target_filepath):
-    """
-    TODO: Docstring
-    A recursive function that returns the target info for a target to be
-    validated, based on rolename's metadata and any of its delegates' metadata.
-    Returns None if unable to find target info for the given target_filepath
-    under the given role.
+    <Arguments>
+      delegation_info:
+        An object matching either tuf.formats.ROLE_SCHEMA or
+        tuf.formats.MULTI_ROLE_DELEGATION_SCHEMA; that is, either a normal
+        delegation (i.e. a role) or a multi-role delegation.
 
-    Replaces _preorder_depth_first_walk and _visit_child_role.
-    Handles multi-role delegations correctly.
-    """
-
-    target = None
-    role_metadata = current_metadata[rolename]
-    targets = role_metadata['targets']
-    delegations = role_metadata.get('delegations', {})
-    child_roles = delegations.get('roles', [])
-    multi_role_delegations = delegations.get('MultiRoleDelegations', {})
-
-    target = self._get_target_from_targets_role(rolename, targets,
-        target_filepath)
-
-    # Base case of the recursion. If info for the target is in this role,
-    # return that.
-    target = _get_target_from_targets_role(rolename, targets, target_filepath)
-    if target is not None:
-      return target
-
-    # For each multi-role delegation
-    for mrdelegation in multi_role_delegations:
-      if self.is_delegation_relevant_to_target(d, target_filepath):
-        # Then process this multi-role delegation. Check every one of its
-        # required roles for the target. If target info is provided by all of
-        # the required roles (or their delegates), and the target info in each
-        # is all equal, return that info.
-        tentative_target = None
-        required_roles = mrdelegation.get('required_roles', [])
-        for role in required_roles:
-          new_tentative_target = _target(role, target_filepath)
-          if new_tentative_target is None:
-            # If any of the required roles don't yield target info, then this
-            # multi-role delegation cannot validate the file.
-            break
-          elif tentative_targets is None:
-            tentative_target = new_tentative_target
-          else:
-            raise NotImplementedError('Code to compare two targets and ' 
-                'establish equality is not yet written.')
-            if tentative_target != new_tentative_target: # write working test
-              # If any two of the required roles don't provide the same target
-              # info, then this multi-role delegation cannot validate the file.
-              break
-
-
-        if len(tentative_targets) == len(required_roles) and they are all equal:
-        return target = tentative_targets[0]
-      elif d is cutting:
-        return None
-      (else we discard tentative_targets by its exiting scope, target unchanged)
-
-    # For each normal delegation        
-    for r in child_roles
-      if d is a delegation with a path that matches target_filepath:
-        target = _target_rewrite(r, target_filepath)
-      if d is cutting: #if cutting, return what we have, even if None
-        return target
-      elif target is not None: #if found valid, stop looking
-        break
-
-    if target is not None:
-        return target
-    (else)
-
-
-
-
-
-
-
-
-
-
-  def _target_new(self, rolename, target_filepath,
-      list_of_already_updated_roles):
-    """
-    TODO: Docstring
-    Recursion for target_new
-
-    """
-    # Ensure the client has the most up-to-date version of 'targets.json'.
-    # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be
-    # successfully downloaded and 'tuf.RepositoryError' if the referenced
-    # metadata is missing.  Target methods such as this one are called after the
-    # top-level metadata have been refreshed (i.e., updater.refresh()).
-
-    # ...
-    # LOGIC TO DETERMINE WHETHER OR NOT IT IS NECESSARY TO UPDATE METADATA FOR
-    # THIS ROLE - a list of roles whose metadata has already been updated would
-    # be good, perhaps. (Touch it when we touch a role.)
-    if role not in list_of_already_updated_roles:
-      self._update_metadata_if_changed(role) # make sure that the format of this rolename is as expected (full vs relative...?)
-      list_of_already_updated_roles.append(role)
-      # Sensible code might also add parent roles? Doesn't matter right now.
-
-
-
-
-
-    target = None
-    tentative_target = None
-    current_metadata = self.metadata['current']
-
-    role_metadata = current_metadata[rolename]
-
-
-    # Step 1: Check my own targets.
-    # ...
-    # ...
-    # ...
-    print('Not implemented yet.')
-    if target is not None:
-      return target
-
-
-    # Step 2: Check my direct delegations.
-    child_roles_to_recurse_to = []
-    for child_role in child_roles:
-      if self.child_is_relevant_to_target(child_role, target_filepath):
-        #child_roles_to_recurse_to.append(child_role)
-        recursed_result_from_child = target_new(child_role, target_filepath)
-        if recursed_result_from_child is not None:
-          return recursed_result_from_child
-
-
-
-
-
-    for multiroledelegation in 
-
-
-
-      child_role_name = self._visit_child_role(child_role, target_filepath)
-
-
-    # Step 3: Check my multi-role delegations.
-
-
-
-
-
-
-
-
-
-
-
-
-
-  def _preorder_depth_first_walk(self, target_filepath):
-    """
-    <Purpose>
-      Non-public method that interrogates the tree of target delegations in
-      order of appearance (which implicitly order trustworthiness), and return
-      the matching target found in the most trusted role.
-
-    <Arguments>    
       target_filepath:
         The path to the target file on the repository. This will be relative to
         the 'targets' (or equivalent) directory on a given mirror.
 
     <Exceptions>
-      tuf.FormatError:
-        If 'target_filepath' is improperly formatted.
-
-      tuf.RepositoryError:
-        If 'target_filepath' was not found.
+      None.
    
     <Side Effects>
-      The metadata for updated delegated roles are downloaded and stored.
+      None.
     
     <Returns>
-      The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETFILE_SCHEMA'.
+      If the delegation whose info is provided includes the target with the
+      name 'target_filepath', then we return True. Otherwise, we return False.
+
+    """
+
+    # TODO: check argument delegation_info against tuf.formats.ROLE_SCHEMA or
+    # tuf.formats.MULTI_ROLE_DELEGATION_SCHEMA
+
+    delegation_paths = delegation_info.get('paths')
+    delegation_path_hash_prefixes = delegation_info.get('path_hash_prefixes')
+    # A boolean indicator that tell us whether this delegation includeas the
+    # target with the name 'target_filepath'.
+    delegation_is_relevant = False
+
+    if delegation_path_hash_prefixes is not None:
+      target_filepath_hash = self._get_target_hash(target_filepath)
+      for delegation_path_hash_prefix in delegation_path_hash_prefixes:
+        if target_filepath_hash.startswith(delegation_path_hash_prefix):
+          delegation_is_relevant = True
+        
+        else:
+          continue
+
+    elif delegation_paths is not None:
+      for delegation_path in delegation_paths:
+        # A child role path may be a filepath or directory.  The child
+        # role 'delegation_name' is added if 'target_filepath' is located
+        # under 'delegation_path'.  Explicit filepaths are also added.
+        prefix = os.path.commonprefix([target_filepath, delegation_path])
+        if prefix == delegation_path:
+          delegation_is_relevant = True
+
+    else:
+      # The 'paths' or 'path_hash_prefixes' fields should not be missing,
+      # so we raise a format error here in case they are both missing.
+      raise tuf.FormatError('Delegation has neither ' \
+                                '"paths" nor "path_hash_prefixes".')
+
+
+    if delegation_is_relevant:
+      logger.debug('Delegation has target ' + repr(target_filepath))
+    
+    else:
+      logger.debug('Delegation does not have target ' + repr(target_filepath))
+
+    return delegation_is_relevant
+
+
+
+
+
+  def _target(self, rolename, target_filepath):
+    """
+    TODO: Docstring
+    <Purpose>
+      Private funciton providing a recursion implementing the target()
+      function's requirements.
+      Returns the target info for a target, based on rolename's metadata and
+      any of its delegates' metadata.
+      Returns None if unable to find target info for the given target_filepath
+      under the given role.
+      (Replaces _preorder_depth_first_walk and _visit_child_role and handles
+      multi-role delegations correctly.)
     """
 
     target = None
-    current_metadata = self.metadata['current']
-    role_names = ['targets']
+    role_metadata = self.metadata['current'][rolename]
+    targets = role_metadata['targets']
+    delegations = role_metadata.get('delegations', {})
+    child_roles = delegations.get('roles', [])
+    multi_role_delegations = delegations.get('MultiRoleDelegations', {})
 
-    # Ensure the client has the most up-to-date version of 'targets.json'.
-    # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be
-    # successfully downloaded and 'tuf.RepositoryError' if the referenced
-    # metadata is missing.  Target methods such as this one are called after the
-    # top-level metadata have been refreshed (i.e., updater.refresh()).
-    self._update_metadata_if_changed('targets')
+    # Base case of the recursion. If info for the target is in this role,
+    # return that.
+    target = self._get_target_from_targets_role(rolename, targets,
+        target_filepath)
+    if target is not None:
+      logger.debug('Found target in current role '+repr(rolename))
+      return target
 
-    # Preorder depth-first traversal of the tree of target delegations.
-    while len(role_names) > 0 and target is None:
+    # Else, the current role did not have info on the target, so now we explore
+    # the current role's delegations, if there are any.
+    # We consider the multi-role delegations first: they take precedence per
+    # the spec. If a multi-role delegation is delegated a matching path, then
+    # we look there before looking at normal delegations that are delegated a
+    # matching path.
 
-      # Pop the role name from the top of the stack.
-      role_name = role_names.pop(-1)
+    # For each multi-role delegation from the parent delegation
+    for mrdelegation in multi_role_delegations:
 
-      # The metadata for 'role_name' must be downloaded/updated before
-      # its targets, delegations, and child roles can be inspected.
-      # self.metadata['current'][role_name] is currently missing.
-      # _refresh_targets_metadata() does not refresh 'targets.json', it
-      # expects _update_metadata_if_changed() to have already refreshed it,
-      # which this function has checked above.
-      self._refresh_targets_metadata(role_name, include_delegations=False)
+      if not self._is_delegation_relevant_to_target(mrdelegation,
+          target_filepath):
+        # Delegation does not include paths that match target_filepath.
+        logger.debug('Skipping delegation: '+repr(mrdelegation)) # check repr
+        continue
 
-      role_metadata = current_metadata[role_name]
-      targets = role_metadata['targets']
-      delegations = role_metadata.get('delegations', {})
-      child_roles = delegations.get('roles', [])
-      target = self._get_target_from_targets_role(role_name, targets,
-                                                  target_filepath)
+      # Else, delegation is relevant to this target. Process this multi-role
+      # delegation. Check every one of its required roles for the target. If
+      # target info is provided by all of the required roles (or their
+      # delegates), and the target info in each is all equal, return that info.
+      tentative_target = None
+      required_roles = mrdelegation.get('required_roles', [])
+      for child_role_name in required_roles:
+        logger.debug('Exploring child role '+repr(child_role_name))
+        new_tentative_target = _target(child_role_name, target_filepath)
 
-      if target is None:
+        if new_tentative_target is None:
+          # If any of the required roles don't yield target info, then this
+          # multi-role delegation cannot validate the file.
+          tentative_target = None
+          break
 
-        child_roles_to_visit = []
-        # NOTE: This may be a slow operation if there are many delegated roles.
-        for child_role in child_roles:
-          child_role_name = self._visit_child_role(child_role, target_filepath)
-          
-          if child_role_name is None:
-            logger.debug('Skipping child role '+repr(child_role_name))
+        elif tentative_targets is None:
+          tentative_target = new_tentative_target
 
-          elif not child_role['backtrack']:
-            logger.debug('Adding child role '+repr(child_role_name))
-            logger.debug('Not backtracking to other roles.')
-            role_names = []
-            child_roles_to_visit.append(child_role_name)
-            break
-          
-          else:
-            logger.debug('Adding child role '+repr(child_role_name))
-            child_roles_to_visit.append(child_role_name)
+        else:
 
-        # Push 'child_roles_to_visit' in reverse order of appearance onto
-        # 'role_names'.  Roles are popped from the end of the 'role_names' list.
-        child_roles_to_visit.reverse()
-        role_names.extend(child_roles_to_visit)
+          # TODO: Confirm that this equality check suffices. (Looks like)
+          if tentative_target != new_tentative_target:
+            # If any two of the required roles don't provide the same target
+            # info, then this multi-role delegation cannot validate the file.
+            if mrdelegation['abort_on_disagreement']:
+              # If the delegation is configured to raise an error in such a
+              # case, do so.
+              raise tuf.ContradictionInMultiRoleDelegation('Required roles for'
+                  ' multi-role delegation do not agree on target info. '
+                  'Unable to determine correct target info to use.')
+            else:
+              # If the delegation is not configured to raise an error in case
+              # of disagreement between required roles, then we simply act as
+              # if this multi-role delegation had not specified the target info
+              # (allowing the backtrack setting to determine whether or not to
+              # continue checking any further delegations).
+              logger.debug('A multi-role delegation had one or more of its '
+                  'required roles specifying the desired target, but at least '
+                  'two roles did not provide the same fileinfo. Skipping this '
+                  'multi-role delegation.')
+              tentative_target = None
+              break
 
-      else:
-        logger.debug('Found target in current role '+repr(role_name))
+      # Check result of looking for target info in the delegated-to roles.
+      if tentative_target is not None:
+        target = tentative_target
+        return target
+
+      if not mrdelegation['backtrack']: # if cutting, return what we have, even if None
+        logger.debug('Found no target info, but not backtracking: encountered '
+            'cutting (non-backtracking) delegation.')
+        return None
+      #(else we discard tentative_targets by its exiting scope, target unchanged)
+
+    # If we have neither found the target in this role nor in any multi-role
+    # delegation from this role, check the normal delegations.
+    for child_role in child_roles:
+      if not self._is_delegation_relevant_to_target(child_role,
+          target_filepath):
+        logger.debug('Skipping delegation: '+repr(child_role)) # kinda long
+        continue
+
+      target = self._target(child_role['name'], target_filepath)
+
+      if not child_role['backtrack']: # if cutting, return what we have, even if None
+        return target
+      elif target is not None: #if found valid, stop looking
+        break
 
     return target
 
@@ -2752,102 +2709,6 @@ class Updater(object):
         logger.debug('No target '+target_filepath+' in role '+role_name)
 
     return target
-
-
-
-
-
-
-  def _visit_child_role(self, child_role, target_filepath):
-    """
-    <Purpose>
-      Non-public method that determines whether the given 'child_role' has been
-      delegated the target with the name 'target_filepath'.
-
-      Ensure that we explore only delegated roles trusted with the target. We
-      assume conservation of delegated paths in the complete tree of
-      delegations. Note that the call to tuf.util.ensure_all_targets_allowed in
-      _verify_uncompressed_metadata_file should already verify that all
-      targets metadata is valid; i.e. that the targets signed by a delegatee is
-      a proper subset of the targets delegated to it by the delegator.
-      Nevertheless, we check it again here for performance and safety reasons.
-
-      TODO: Should the TUF spec restrict the repository to one particular
-      algorithm?  Should we allow the repository to specify in the role
-      dictionary the algorithm used for these generated hashed paths?
-
-    <Arguments>
-      child_role:
-        The delegation targets role object of 'child_role', containing its
-        paths, path_hash_prefixes, keys and so on.
-
-      target_filepath:
-        The path to the target file on the repository. This will be relative to
-        the 'targets' (or equivalent) directory on a given mirror.
-
-    <Exceptions>
-      None.
-   
-    <Side Effects>
-      None.
-    
-    <Returns>
-      If 'child_role' has been delegated the target with the name
-      'target_filepath', then we return the role name of 'child_role'.
-
-      Otherwise, we return None.
-    """
-
-    child_role_name = child_role['name']
-    child_role_paths = child_role.get('paths')
-    child_role_path_hash_prefixes = child_role.get('path_hash_prefixes')
-    # A boolean indicator that tell us whether 'child_role' has been delegated
-    # the target with the name 'target_filepath'.
-    child_role_is_relevant = False
-
-    if child_role_path_hash_prefixes is not None:
-      target_filepath_hash = self._get_target_hash(target_filepath)
-      for child_role_path_hash_prefix in child_role_path_hash_prefixes:
-        if target_filepath_hash.startswith(child_role_path_hash_prefix):
-          child_role_is_relevant = True
-        
-        else:
-          continue
-
-    elif child_role_paths is not None:
-      for child_role_path in child_role_paths:
-        # A child role path may be a filepath or directory.  The child
-        # role 'child_role_name' is added if 'target_filepath' is located
-        # under 'child_role_path'.  Explicit filepaths are also added.
-        prefix = os.path.commonprefix([target_filepath, child_role_path])
-        if prefix == child_role_path:
-          child_role_is_relevant = True
-
-    else:
-      # 'role_name' should have been validated when it was downloaded.
-      # The 'paths' or 'path_hash_prefixes' fields should not be missing,
-      # so we raise a format error here in case they are both missing.
-      raise tuf.FormatError(repr(child_role_name) + ' has neither ' \
-                                '"paths" nor "path_hash_prefixes".')
-
-    # If the child role is still marked as not relevant (cannot speak for the
-    # target we wish to validate), then we need to check multi-role delegations
-    # to see if it is relevant there.
-    # May be better to scatter this code above in the child_role_paths section?
-    # For now, we'll leave it here.
-    if not child_role_is_relevant:
-
-
-
-    if child_role_is_relevant:
-      logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
-                   repr(target_filepath))
-      return child_role_name
-    
-    else:
-      logger.debug('Child role ' + repr(child_role_name) + \
-                   ' does not have target ' + repr(target_filepath))
-      return None
 
 
 

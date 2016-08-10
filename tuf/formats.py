@@ -426,7 +426,10 @@ MULTI_ROLE_DELEGATION_SCHEMA = SCHEMA.Object(
   #keyids = KEYIDS_SCHEMA,
   required_roles = ROLENAMELIST_SCHEMA,
   #threshold = THRESHOLD_SCHEMA,
-  #backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA), # TODO
+  backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
+  # If target info differs among the required roles, throw error or allow
+  # backtracking?
+  abort_on_disagreement = SCHEMA.Optional(BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA))
   #path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA)) # TODO
 

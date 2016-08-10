@@ -920,7 +920,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_6_target(self):
+  def test_6_target(self): #TODO: Update this for multi-role.
     # Setup
     # Extract the file information of the targets specified in 'targets.json'.
     self.repository_updater.refresh()
@@ -1319,28 +1319,34 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                      0)
 
 
-  def test_10__visit_child_role(self):
-    # Call _visit_child_role and test the dict keys: 'paths',
+
+
+
+  def test_10___is_delegation_relevant_to_target(self):
+    # Call _is_delegation_relevant_to_target and test the dict keys: 'paths',
     # 'path_hash_prefixes', and if both are missing.
+    # TODO: Note that this test doesn't consider multi-role delegations.
 
     targets_role = self.repository_updater.metadata['current']['targets']
     
     child_role = targets_role['delegations']['roles'][0]
-    self.assertEqual(self.repository_updater._visit_child_role(child_role,
-                     '/file3.txt'), child_role['name'])
+    self.assertEqual(self.repository_updater._is_delegation_relevant_to_target(
+        child_role, '/file3.txt'), True)
 
     # Test path hash prefixes.
     child_role['path_hash_prefixes'] = ['8baf', '0000']
-    self.assertEqual(self.repository_updater._visit_child_role(child_role,
-                     '/file3.txt'), child_role['name'])
+    self.assertEqual(self.repository_updater._is_delegation_relevant_to_target(
+        child_role, '/file3.txt'), True)
   
     # Test if both 'path' and 'path_hash_prefixes' is missing.
     del child_role['paths']
     del child_role['path_hash_prefixes']
-    self.assertRaises(tuf.FormatError, self.repository_updater._visit_child_role,
-                      child_role, child_role['name'])
+    self.assertRaises(tuf.FormatError,
+        self.repository_updater._is_delegation_relevant_to_target, child_role,
+        '/file3.txt')
 
     
+
 
 
 def _load_role_keys(keystore_directory):
@@ -1355,7 +1361,7 @@ def _load_role_keys(keystore_directory):
 
   # Store and return the cryptography keys of the top-level roles, including 1
   # delegated role.
-  role_keys = {}
+  role_keys = {} # TODO: Remove line. Has no effect.
 
   root_key_file = os.path.join(keystore_directory, 'root_key')
   targets_key_file = os.path.join(keystore_directory, 'targets_key')

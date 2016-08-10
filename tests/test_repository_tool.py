@@ -1157,8 +1157,75 @@ class TestTargets(unittest.TestCase):
 
 
   def test_multi_role_delegate(self):
-    raise NotImplementedError('Not yet written.')
+    # TODO: This will need to be killed and reintegrated with the above when
+    # the new multi-role delegation design is adopted.
 
+    # Need at least one public key and valid target paths required by
+    # multi_role_delegate().
+    keystore_directory = os.path.join('repository_data', 'keystore')
+    public_keypath = os.path.join(keystore_directory, 'root_key.pub')
+    public_key = repo_tool.import_rsa_publickey_from_file(public_keypath)
+    target1_filepath = os.path.join(self.targets_directory, 'file1.txt')
+    target2_filepath = os.path.join(self.targets_directory, 'file2.txt')
+    target3_filepath = os.path.join(self.targets_directory, 'file3.txt')  
+
+    # Set needed arguments by multi_role_delegate().
+    public_keys = [public_key]
+    rolename = 'tuf'
+    list_of_targets = [target1_filepath, target3_filepath] 
+    threshold = 1
+    restricted_paths = [target1_filepath]
+
+    rolename2 = 'tuf2'
+    list_of_targets2 = [target2_filepath, target3_filepath]
+    threshold2 = 1
+    restricted_paths2 = [target2_filepath]
+
+
+    restricted_paths_multi = [target3_filepath]
+    list_of_roles_multi = ['targets/tuf', 'targets/tuf2']
+    
+    # Set up normal delegations first.
+    self.targets_object.delegate(rolename, public_keys, list_of_targets,
+                                 threshold, backtrack=True,
+                                 restricted_paths=restricted_paths)
+
+    self.targets_object.delegate(rolename2, public_keys, list_of_targets2,
+                                 threshold2, backtrack=True,
+                                 restricted_paths=restricted_paths2)
+
+    # Should this (before I added the set() calls, I mean) be returning the
+    # targets in the correct order? For some reason, I get [tuf2, tuf1] instead
+    # of the [tuf1, tuf2] I'd expect.... Shouldn't the first thing delegated
+    # be the first in the list of delegations?
+    self.assertEqual(set(self.targets_object.get_delegated_rolenames()),
+                     set(['targets/tuf', 'targets/tuf2']))
+
+    # Test normal case.    
+    self.targets_object.multi_role_delegate(restricted_paths_multi,
+        list_of_roles_multi)
+    
+    # Test improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, self.targets_object.multi_role_delegate,
+                      3, restricted_paths_multi, list_of_roles_multi)
+    self.assertRaises(tuf.FormatError, self.targets_object.multi_role_delegate,
+                      restricted_paths_multi, list_of_roles_multi, 5, 4)
+    self.assertRaises(tuf.FormatError, self.targets_object.multi_role_delegate,
+                      restricted_paths_multi, list_of_roles_multi, 3)
+    self.assertRaises(tuf.FormatError, self.targets_object.multi_role_delegate,
+                      restricted_paths_multi, 3, list_of_roles_multi)
+
+
+    # Test invalid arguments (e.g., already delegated 'rolename', non-existent
+    # files, etc.).
+
+    # Test for restricted paths that do not exist under the targets directory.
+    self.assertRaises(tuf.Error, self.targets_object.multi_role_delegate,
+        ['non-existent.txt'], ['targets/tuf', 'targets/tuf2'])
+
+    # Test for roles that do not exist.
+    self.assertRaises(tuf.Error, self.targets_object.multi_role_delegate,
+        restricted_paths_multi, ['targets/scuba', 'targets/tuf2'])
 
 
 
