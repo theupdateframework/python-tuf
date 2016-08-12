@@ -1013,6 +1013,98 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_6_target_mrd(self): #TODO: Update this for multi-role.
+    # This should be integrated into the test_6_target function above, but
+    # for now, doing it separately, since cleanup is strange.
+    # Setup
+    # Extract the file information of the targets specified in 'targets.json'.
+    self.repository_updater.refresh()
+    targets_metadata = self.repository_updater.metadata['current']['targets']
+   
+    target_files = targets_metadata['targets']
+    # Extract random target from 'target_files', which will be compared to what
+    # is returned by target().  Restore the popped target (dict value stored in
+    # the metadata store) so that it can be found later.
+    filepath, fileinfo = target_files.popitem()
+    target_files[filepath] = fileinfo
+
+    target_fileinfo = self.repository_updater.target(filepath)
+    self.assertTrue(tuf.formats.TARGETFILE_SCHEMA.matches(target_fileinfo))
+    self.assertEqual(target_fileinfo['filepath'], filepath)
+    self.assertEqual(target_fileinfo['fileinfo'], fileinfo)
+
+    # Trying new things.
+    # Create a new targets file.
+    targets_directory = os.path.join(self.repository_directory, 'targets')
+    foo_directory = os.path.join(targets_directory, 'foo')
+    os.makedirs(foo_directory)
+    foo_package = os.path.join(foo_directory, 'foo1.1.tar.gz')
+    foobar_package = os.path.join(foo_directory, 'foobar1.1.tar.gz')
+    with open(foo_package, 'wb') as file_object:
+      file_object.write(b'new release')
+    with open(foobar_package, 'wb') as file_object:
+      file_object.write(b'new release')
+
+    # Load repo and create some new normal delegations to work with.
+    # These have no paths assigned to them, and so cannot individually validate
+    # targets. Both specify the same target, foo_package.
+    repository = repo_tool.load_repository(self.repository_directory)
+    repository.targets.delegate('role2', [self.role_keys['targets']['public']],
+        [foo_package], restricted_paths=[]) # REMOVE DIR
+    repository.targets.delegate('role3', [self.role_keys['targets']['public']],
+        [foo_package], restricted_paths=[])
+    repository.targets.delegate('role4', [self.role_keys['targets']['public']],
+        [], restricted_paths=[])
+    repository.targets.delegate('role5', [self.role_keys['targets']['public']],
+        [foo_package], restricted_paths=[])
+
+
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets('role4').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets('role5').load_signing_key(self.role_keys['targets']['private']) 
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+
+    # TODO: Try to update foo_package file info here and expect it to fail.
+
+    # Let's multi-role delegate! role2 and role3 together can specify foo.
+    # So can role4 and role5 together.
+    repository.targets.multi_role_delegate([foo_directory], ['targets/role2',
+        'targets/role3'])
+    repository.targets.multi_role_delegate([foo_directory], ['targets/role4',
+        'targets/role5'])
+
+    # Write & sign the metadata, then copy it all from "staged" to "live".
+    repository.write()
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    # # BONUS COPY for human inspection
+    # shutil.rmtree(os.path.join('/Users/s/w/tuf/zorp', 'metadata'))
+    # shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+    #                 os.path.join('/Users/s/w/tuf/zorp', 'metadata'))
+
+
+    # Try updating target info for foo_package.
+    # updater.target() should find 'foo1.1.tar.gz' by backtracking to
+    # 'targets/role3'.  'targets/role2' allows backtracking.
+    self.repository_updater.refresh()
+    self.repository_updater.target('foo/foo1.1.tar.gz')
+
+    # Try for foobar_package, which should fail, since role4 doesn't actually
+    # specify it - only role5 does.
+    self.assertRaises(tuf.UnknownTargetError, self.repository_updater.target,
+      'foo/foobar1.1.tar.gz')
+
+
+
+
+
+
+
   def test_6_download_target(self):
     # Create temporary directory (destination directory of downloaded targets)
     # that will be passed as an argument to 'download_target()'.
@@ -1322,7 +1414,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_10___is_delegation_relevant_to_target(self):
+  def test_10__is_delegation_relevant_to_target(self):
     # Call _is_delegation_relevant_to_target and test the dict keys: 'paths',
     # 'path_hash_prefixes', and if both are missing.
     # TODO: Note that this test doesn't consider multi-role delegations.

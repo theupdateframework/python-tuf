@@ -243,10 +243,18 @@ class Repository(object):
       parent_roleinfo = tuf.roledb.get_roleinfo(parent_rolename) 
       parent_delegations = parent_roleinfo['delegations']
       
-      # Raise exception if any of the targets of 'delegated_rolename' are not
-      # allowed.
-      tuf.util.ensure_all_targets_allowed(delegated_rolename, delegated_targets,
-                                          parent_delegations)
+
+      # We are no longer interested in verifying during write that the
+      # targets a role specifies are allowed to be specified by that role.
+      # Verification of file info occurs during the updater.target() call, and
+      # only roles to which a target file has effectively been delegated will
+      # be involved in the verification. In other words, if a particular piece
+      # of role metadata presumes to specify a target that it doesn't have the
+      # ability to validate, that is simply ignored. It will still be written.
+      # # Raise exception if any of the targets of 'delegated_rolename' are not
+      # # allowed.
+      # tuf.util.ensure_all_targets_allowed(delegated_rolename, delegated_targets,
+      #                                     parent_delegations)
 
       # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
       # IO exception is raised if 'metadata_filepath' is written to a
@@ -2051,18 +2059,6 @@ class Targets(Metadata):
     relative_restricted_paths = self._relativize_and_validate_restricted_paths(
         restricted_paths)
    
-    # if restricted_paths is not None: 
-    #   for path in restricted_paths:
-    #     path = os.path.abspath(path) + os.sep
-    #     if not path.startswith(self._targets_directory + os.sep):
-    #       raise tuf.Error(repr(path) + ' is not under the Repository\'s'
-    #         ' targets directory: ' +repr(self._targets_directory))
-        
-    #     # Append a trailing path separator with os.path.join(path, '').
-    #     path = os.path.join(path, '')
-    #     relative_restricted_paths.append(path[targets_directory_length:])
-    
-   
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
     expiration = \
@@ -2146,7 +2142,7 @@ class Targets(Metadata):
 
     # Create a new multi-role delegation object.
     new_mrdelegation = {
-        'restricted_paths': relative_restricted_paths,
+        'paths': relative_restricted_paths,
         'required_roles': required_roles,
         'backtrack': backtrack,
         'abort_on_disagreement': abort_on_disagreement}

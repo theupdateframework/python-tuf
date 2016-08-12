@@ -976,18 +976,6 @@ class Updater(object):
     # moved version number verification to the functions that retrieve
     # metadata.
 
-    # Reject the metadata if any specified targets are not allowed.
-    # 'tuf.ForbiddenTargetError' raised if any of the targets of 'metadata_role'
-    # are not allowed.
-    if metadata_signable['signed']['_type'] == 'Targets':
-      if metadata_role != 'targets':
-        metadata_targets = list(metadata_signable['signed']['targets'].keys())
-        parent_rolename = tuf.roledb.get_parent_rolename(metadata_role)
-        parent_role_metadata = self.metadata['current'][parent_rolename]
-        parent_delegations = parent_role_metadata['delegations']
-        tuf.util.ensure_all_targets_allowed(metadata_role, metadata_targets,
-                                            parent_delegations)
-
     # Verify the signature on the downloaded metadata object.
     valid = tuf.sig.verify(metadata_signable, metadata_role)
     if not valid:
@@ -2464,13 +2452,8 @@ class Updater(object):
       The delegation may be a normal delegation (delegation to a single role)
       or a multi-role delegation.
 
-      Ensure that we explore only delegated roles trusted with the target. We
-      assume conservation of delegated paths in the complete tree of
-      delegations. Note that the call to tuf.util.ensure_all_targets_allowed in
-      _verify_uncompressed_metadata_file should already verify that all
-      targets metadata is valid; i.e. that the targets signed by a delegatee is
-      a proper subset of the targets delegated to it by the delegator.
-      Nevertheless, we check it again here for performance and safety reasons.
+      TODO: See if util.ensure_all_targets_allowed does anything clever and
+      incorporate that here instead.
 
       TODO: Should the TUF spec restrict the repository to one particular
       algorithm?  Should we allow the repository to specify in the role
@@ -2528,13 +2511,18 @@ class Updater(object):
     else:
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
-      raise tuf.FormatError('Delegation has neither ' \
-                                '"paths" nor "path_hash_prefixes".')
+      raise tuf.FormatError('Delegation has neither "paths" nor '
+          '"path_hash_prefixes". Delegation info: ' + repr(delegation_info))
 
 
     if delegation_is_relevant:
       logger.debug('Delegation has target ' + repr(target_filepath))
-    
+
+      # TODO: Additional level of verification, calling a new function that
+      # verifies that the delegation path was all OK.
+      # Pass it something like: "Here's the target, and here's the delegation
+      # path I used to validate it. Was that OK?" Else raise error.
+
     else:
       logger.debug('Delegation does not have target ' + repr(target_filepath))
 
@@ -2563,7 +2551,7 @@ class Updater(object):
     targets = role_metadata['targets']
     delegations = role_metadata.get('delegations', {})
     child_roles = delegations.get('roles', [])
-    multi_role_delegations = delegations.get('MultiRoleDelegations', {})
+    multi_role_delegations = delegations.get('multiroledelegations', {})
 
     # Base case of the recursion. If info for the target is in this role,
     # return that.
@@ -2597,7 +2585,7 @@ class Updater(object):
       required_roles = mrdelegation.get('required_roles', [])
       for child_role_name in required_roles:
         logger.debug('Exploring child role '+repr(child_role_name))
-        new_tentative_target = _target(child_role_name, target_filepath)
+        new_tentative_target = self._target(child_role_name, target_filepath)
 
         if new_tentative_target is None:
           # If any of the required roles don't yield target info, then this
@@ -2605,7 +2593,7 @@ class Updater(object):
           tentative_target = None
           break
 
-        elif tentative_targets is None:
+        elif tentative_target is None:
           tentative_target = new_tentative_target
 
         else:
@@ -2642,7 +2630,7 @@ class Updater(object):
         logger.debug('Found no target info, but not backtracking: encountered '
             'cutting (non-backtracking) delegation.')
         return None
-      #(else we discard tentative_targets by its exiting scope, target unchanged)
+      #(else we discard tentative_target by exiting its scope, target unchanged)
 
     # If we have neither found the target in this role nor in any multi-role
     # delegation from this role, check the normal delegations.

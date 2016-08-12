@@ -666,7 +666,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
     if allowed_child_path_hash_prefixes is not None:
       consistent = paths_are_consistent_with_hash_prefixes
       
-      # 'actual_child_tarets' (i.e., 'list_of_targets') should have lenth
+      # 'actual_child_targets' (i.e., 'list_of_targets') should have length
       # greater than zero due to the tuf.format check above.
       if not consistent(actual_child_targets,
                         allowed_child_path_hash_prefixes):

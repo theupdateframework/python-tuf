@@ -439,7 +439,7 @@ MULTI_ROLE_DELEGATION_LIST_SCHEMA = SCHEMA.ListOf(MULTI_ROLE_DELEGATION_SCHEMA)
 DELEGATIONS_SCHEMA = SCHEMA.Object(
   keys = KEYDICT_SCHEMA,
   roles = ROLELIST_SCHEMA,
-  MultiRoleDelegations = SCHEMA.Optional(MULTI_ROLE_DELEGATION_LIST_SCHEMA))
+  multiroledelegations = SCHEMA.Optional(MULTI_ROLE_DELEGATION_LIST_SCHEMA))
 
 # Supported compression extension (e.g., 'gz').
 COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
