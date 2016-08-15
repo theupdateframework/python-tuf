@@ -743,7 +743,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # 'write_new_metadata' to False.
     file_object = tuf.util.TempFile()
     non_existent_filename = \
-      os.path.join(cls.temporary_directory, 'non-existent_compressed_filename')
+      os.path.join(self.temporary_directory, 'non-existent_compressed_filename')
     write_new_metadata = False
     repo_lib._write_compressed_metadata(file_object,
                                         compressed_filename=non_existent_filename,
