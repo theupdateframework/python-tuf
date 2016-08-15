@@ -1971,7 +1971,10 @@ def write_metadata_file(metadata, filename, version_number,
 
       logger.info('Linking ' + repr(written_consistent_filename))
       os.link(written_filename, written_consistent_filename)
-   
+  
+  else:
+    logger.debug('Not writing new metadata.')
+
   # Generate the compressed versions of 'metadata', if necessary.  A compressed
   # file may be written (without needing to write the uncompressed version) if
   # the repository maintainer adds compression after writing the uncompressed
@@ -1999,7 +2002,8 @@ def write_metadata_file(metadata, filename, version_number,
         gzip_object.close()
 
     else:
-      raise tuf.FormatError('Unknown compression algorithm: ' + repr(compressio_algorithm))
+      raise tuf.FormatError('Unknown compression algorithm:'
+        ' ' + repr(compression_algorithm))
    
     # Save the compressed version, ensuring an unchanged file is not re-saved.
     # Re-saving the same compressed version may cause its digest to
@@ -2026,7 +2030,7 @@ def _write_compressed_metadata(file_object, compressed_filename,
   # If a consistent snapshot is unneeded, 'file_object' may be simply moved
   # 'compressed_filename' if not already written. 
   if not consistent_snapshot:
-    if not os.path.exists(compressed_filename) or write_new_metadata:
+    if write_new_metadata or not os.path.exists(compressed_filename):
       file_object.move(compressed_filename)
     
     # The temporary file must be closed if 'file_object.move()' is not used.

@@ -721,6 +721,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(os.path.exists(output_filename))
     self.assertTrue(os.path.exists(output_filename + '.gz'))
 
+    # Test unknown compression algorithm.
+    self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
+                                       root_signable, output_filename,
+                                       version_number,
+                                       compression_algorithms=['bad_algo'],
+                                       consistent_snapshot=False)
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
@@ -742,15 +748,25 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test for invalid 'compressed_filename' argument and set
     # 'write_new_metadata' to False.
     file_object = tuf.util.TempFile()
-    non_existent_filename = \
-      os.path.join(self.temporary_directory, 'non-existent_compressed_filename')
-    write_new_metadata = False
+    existing_filename = os.path.join('repository_data', 'repository',
+                                     'metadata', 'root.json')
+
+    write_new_metadata = False 
     repo_lib._write_compressed_metadata(file_object,
-                                        compressed_filename=non_existent_filename,
+                                        compressed_filename=existing_filename,
                                         write_new_metadata=write_new_metadata,
                                         consistent_snapshot=False,
                                         version_number=8)
 
+    # Test for 
+    file_object = tuf.util.TempFile()
+    shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.gz'))
+    shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.bz2'))
+    repo_lib._write_compressed_metadata(file_object,
+                                        compressed_filename=existing_filename,
+                                        write_new_metadata=True,
+                                        consistent_snapshot=True,
+                                        version_number=8)
 
 
   def test_create_tuf_client_directory(self):
