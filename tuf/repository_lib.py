@@ -1439,11 +1439,11 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
         
         # This is not a recognized key.  Raise an exception.
         else:
-          raise tuf.Error('Unsupported keytype: '+keyid)
+          raise tuf.Error('Unsupported keytype: ' + keyid)
       
       # Do we have a duplicate?
       if keyid in keyids:
-        raise tuf.Error('Same keyid listed twice: '+keyid)
+        raise tuf.Error('Same keyid listed twice: ' + keyid)
       
       # Add the loaded keyid for the role being processed.
       keyids.append(keyid)
