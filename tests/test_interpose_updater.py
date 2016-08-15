@@ -452,8 +452,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     self.assertRaises(AttributeError, myUpdater.open, 8)
     
-    url = 'http://localhost:8001/targets/file1.txt' 
-    myUpdater.open(url, 'interposition.json')
+    url = 'http://localhost:8001/targets/file1.txt'
+    interposition_file = \
+      os.path.join(self.temporary_directory, 'interposition.json') 
+    myUpdater.open(url, interposition_file)
 
 
   def test_retrieve(self):
@@ -462,7 +464,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertRaises(AttributeError, myUpdater.retrieve, 8)
 
     test_source_url = 'http://localhost:8001/targets/file1.txt'
-    myUpdater.retrieve(test_source_url, 'interposition.json')
+    interposition_file = \
+      os.path.join(self.temporary_directory, 'interposition.json') 
+    myUpdater.retrieve(test_source_url, interposition_file)
 
     #self.assertRaises(tuf.NoWorkingMirrorError, myUpdater.retrieve, test_source_url)
 
