@@ -341,7 +341,6 @@ def _check_role_keys(rolename):
   """
   Non-public function that verifies the public and signing keys of 'rolename'.
   If either contain an invalid threshold of keys, raise an exception.
-  'rolename' is the full rolename (e.g., 'targets/unclaimed/django'). 
   """
 
   # Extract the total number of public and private keys of 'rolename' from its
@@ -354,15 +353,13 @@ def _check_role_keys(rolename):
  
   # Raise an exception for an invalid threshold of public keys.
   if total_keyids < threshold: 
-    message = repr(rolename) + ' role contains ' + \
-      repr(total_keyids) + ' / ' + repr(threshold) + ' public keys.'
-    raise tuf.InsufficientKeysError(message)
+    raise tuf.InsufficientKeysError(repr(rolename) + ' role contains'
+      ' ' + repr(total_keyids) + ' / ' + repr(threshold) + ' public keys.')
 
   # Raise an exception for an invalid threshold of signing keys.
   if total_signatures == 0 and total_signing_keys < threshold: 
-    message = repr(rolename) + ' role contains ' + \
-      repr(total_signing_keys) + ' / ' + repr(threshold) + ' signing keys.'
-    raise tuf.InsufficientKeysError(message)
+    raise tuf.InsufficientKeysError(repr(rolename) + ' role contains'
+      ' ' + repr(total_signing_keys) + ' / ' + repr(threshold) + ' signing keys.')
 
 
 
@@ -2059,7 +2056,10 @@ def _write_compressed_metadata(file_object, compressed_filename,
         if basename.endswith(compression_extension):
           basename = basename.split(compression_extension, 1)[0]   
           version_and_filename = str(version_number) + '.' + basename + compression_extension
-      
+        
+        else:
+          logger.debug('Skipping unsupported compressed file: ' + repr(basename))
+
         consistent_filenames.append(os.path.join(dirname, version_and_filename))
    
     # Move the 'tuf.util.TempFile' object to one of the filenames so that it is
@@ -2070,11 +2070,19 @@ def _write_compressed_metadata(file_object, compressed_filename,
       logger.info('Saving ' + repr(compressed_filename))
       file_object.move(compressed_filename)
 
+    else:
+      logger.debug('Skipping already written compressed file:'
+        ' ' + repr(compressed_filename))
+
     # Save any remaining compressed consistent snapshots.
     for consistent_filename in consistent_filenames:
       if not os.path.exists(consistent_filename):
         logger.info('Linking ' + repr(consistent_filename))
         os.link(compressed_filename, consistent_filename)
+
+      else:
+        logger.debug('Skipping linking of already written compressed file: '
+          ' ' + repr(consistent_filename))
 
 
 

@@ -735,6 +735,21 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
                       root_signable, output_filename, version_number,
                       compression_algorithms, 3)
+  
+
+
+  def test__write_compressed_metadata(self):
+    # Test for invalid 'compressed_filename' argument and set
+    # 'write_new_metadata' to False.
+    file_object = tuf.util.TempFile()
+    non_existent_filename = \
+      os.path.join(cls.temporary_directory, 'non-existent_compressed_filename')
+    write_new_metadata = False
+    repo_lib._write_compressed_metadata(file_object,
+                                        compressed_filename=non_existent_filename,
+                                        write_new_metadata=write_new_metadata,
+                                        consistent_snapshot=False,
+                                        version_number=8)
 
 
 
