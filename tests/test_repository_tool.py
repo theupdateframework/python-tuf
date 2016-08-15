@@ -53,7 +53,7 @@ import six
 
 logger = logging.getLogger('tuf.test_repository_tool')
 
-repo_tool.disable_console_log_messages()
+#repo_tool.disable_console_log_messages()
 
 
 class TestRepository(unittest.TestCase):
@@ -242,31 +242,41 @@ class TestRepository(unittest.TestCase):
     # Verify that an exception is *not* raised for multiple repository.write().
     repository.write()
 
-    # Verify the status() does not raise an exception.
+    # Verify that status() does not raise an exception.
     repository.status()
     
-    # Verify status() does not raise 'tuf.InsufficientKeysError' if a top-level
-    # role does and 'role1' do not contain a threshold of keys.
-    root_roleinfo = tuf.roledb.get_roleinfo('root')
-    old_threshold = root_roleinfo['threshold']
-    root_roleinfo['threshold'] = 10
+    # Verify that status() does not raise 'tuf.InsufficientKeysError' if a
+    # top-level role does not contain a threshold of keys.
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets')
+    old_threshold = targets_roleinfo['threshold']
+    targets_roleinfo['threshold'] = 10
+    tuf.roledb.update_roleinfo('targets', targets_roleinfo)
+    repository.status()
+    
+    # Restore the original threshold values.
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets')
+    targets_roleinfo['threshold'] = old_threshold
+    tuf.roledb.update_roleinfo('targets', targets_roleinfo)
+   
+    # Verify that status() does not raise 'tuf.InsufficientKeysError' if a
+    # delegated role does not contain a threshold of keys.
     role1_roleinfo = tuf.roledb.get_roleinfo('role1')
     old_role1_threshold = role1_roleinfo['threshold']
     role1_roleinfo['threshold'] = 10
-    tuf.roledb.update_roleinfo('root', root_roleinfo)
     tuf.roledb.update_roleinfo('role1', role1_roleinfo)
     repository.status()
-   
-    # Restore the original threshold values.
-    root_roleinfo['threshold'] = old_threshold
-    tuf.roledb.update_roleinfo('root', root_roleinfo)
-    role1_roleinfo['threshold'] = old_role1_threshold
+  
+    # Restore role1's threshold.
+    role1_roleinfo = tuf.roledb.get_roleinfo('role1')
+    role1_roleinfo['threshold'] = old_role1_threshold 
     tuf.roledb.update_roleinfo('role1', role1_roleinfo)
 
     # Verify status() does not raise 'tuf.UnsignedMetadataError' if any of the
-    # the top-level roles and 'role1' are improperly signed.
+    # the top-level roles. Test that 'root' is improperly signed.
     repository.root.unload_signing_key(root_privkey)
     repository.root.load_signing_key(targets_privkey)
+    repository.status()
+    
     repository.targets('role1').unload_signing_key(role1_privkey)
     repository.targets('role1').load_signing_key(targets_privkey)
     repository.status()
