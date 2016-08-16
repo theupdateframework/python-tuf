@@ -683,13 +683,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.keydb.add_key(targets_private_key)
    
     root_keyids.extend(tuf.roledb.get_role_keyids('targets'))
-    # Add the snapshot's public key (to test whether non-private keys are
-    # ignored by sign_metadata()).
-    root_keyids.extend(tuf.roledb.get_role_keyids('snapshot'))
+    
+    # Add the snapshot's public key (to test whether non-root keys are
+    # ignored by sign_metadata()).  Also add an invalid keyid to 'root_keyids',
+    # which sign_metadata() is expected to ignore.
+    root_keyids.extend(tuf.roledb.get_role_keyids('snapshot')) 
     root_signable = repo_lib.sign_metadata(root_metadata, root_keyids,
                                            root_filename) 
     self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(root_signable))
 
+    # Add an invalid keytype to one of the root keys.
+    root_keyid = root_keyids[0]
+    tuf.keydb._keydb_dict['default'][root_keyid]['keytype'] = 'bad_keytype'
+    self.assertRaises(tuf.Error, repo_lib.sign_metadata, root_metadata,
+                      root_keyids, root_filename)
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_lib.sign_metadata, 3, root_keyids,
