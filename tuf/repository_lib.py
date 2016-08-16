@@ -1938,7 +1938,9 @@ def write_metadata_file(metadata, filename, version_number,
     new_digests.update({hash_algorithm: digest_object.hexdigest()})
 
   try:
-    file_length_junk, old_digests = tuf.util.get_file_details(written_filename)
+    file_length_junk, old_digests = \
+      tuf.util.get_file_details(written_filename,
+                                hash_algorithms=tuf.conf.REPOSITORY_HASH_ALGORITHMS)
     if old_digests != new_digests:
       write_new_metadata = True
 
