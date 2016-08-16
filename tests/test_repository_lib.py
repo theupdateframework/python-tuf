@@ -720,6 +720,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                  consistent_snapshot=False)
     self.assertTrue(os.path.exists(output_filename))
     self.assertTrue(os.path.exists(output_filename + '.gz'))
+   
+    # Attempt to over-write the previously written metadata file.  An exception
+    # is not raised in this case, only a debug message is logged. 
+    repo_lib.write_metadata_file(root_signable, output_filename,
+                                 version_number,
+                                 compression_algorithms,
+                                 consistent_snapshot=False)
 
     # Test unknown compression algorithm.
     self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
@@ -760,14 +767,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test writing of compressed metadata when consistent snapshots is enabled. 
     file_object = tuf.util.TempFile()
-    shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.gz'))
-    shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.bz2'))
+    shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.json.gz'))
+    shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.json.zip'))
+    shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.zip'))
     compressed_filename = os.path.join(self.temporary_directory, 'root.json.gz')
+   
+    # For testing purposes, add additional compression algorithms to
+    # repo_lib.SUPPORTED_COMPRESSION_EXTENSIONS.
+    repo_lib.SUPPORTED_COMPRESSION_EXTENSIONS = ['gz', 'zip', 'bz2']
     repo_lib._write_compressed_metadata(file_object,
                                         compressed_filename=compressed_filename,
                                         write_new_metadata=True,
                                         consistent_snapshot=True,
                                         version_number=8)
+    repo_lib.SUPPORTED_COMPRESSION_EXTENSIONS = ['gz']
 
 
   def test_create_tuf_client_directory(self):

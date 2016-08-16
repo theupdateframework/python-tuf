@@ -1941,6 +1941,9 @@ def write_metadata_file(metadata, filename, version_number,
     file_length_junk, old_digests = tuf.util.get_file_details(written_filename)
     if old_digests != new_digests:
       write_new_metadata = True
+
+    else:
+      logger.debug(repr(written_filename) + ' has not changed.')
   
   # 'tuf.Error' raised if 'filename' does not exist.
   except tuf.Error:
@@ -2001,7 +2004,10 @@ def write_metadata_file(metadata, filename, version_number,
       finally:
         gzip_object.close()
 
-    else:
+    # This else clause should not be reached because the
+    # 'compression_algorithms' list is validated against the
+    # COMPRESSIONS_SCHEMA above.
+    else: # pragma: no cover
       raise tuf.FormatError('Unknown compression algorithm:'
         ' ' + repr(compression_algorithm))
    
@@ -2039,55 +2045,34 @@ def _write_compressed_metadata(file_object, compressed_filename,
     else:
       file_object.close_temp_file()
  
-  # Consistent snapshots = True.  Ensure the file's digest is included in the
+  # consistent snapshots = True.  Ensure the version number is included in the
   # compressed filename written, provided it does not already exist.
   else:
     compressed_content = file_object.read()
-    new_digests = []
-    consistent_filenames = []
+    consistent_filename = None 
     version_and_filename = None
-   
-    # Multiple snapshots may be written if the repository uses multiple
-    # hash algorithms.  Generate the digest of the compressed content.
-    for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
-      digest_object = tuf.hash.digest(hash_algorithm)
-      digest_object.update(compressed_content)
-      new_digests.append(digest_object.hexdigest())
-   
-    # Attach each version number to the compressed consistent snapshot filename.
-    for new_digest in new_digests:
-      dirname, basename = os.path.split(compressed_filename)
-      for compression_extension in SUPPORTED_COMPRESSION_EXTENSIONS:
-        if basename.endswith(compression_extension):
-          basename = basename.split(compression_extension, 1)[0]   
-          version_and_filename = str(version_number) + '.' + basename + compression_extension
-          consistent_filenames.append(os.path.join(dirname, version_and_filename))
-        
-        else:
-          logger.debug('Skipping unsupported compressed file: ' + repr(basename))
+    
+    # Attach the version number to the compressed, consistent snapshot filename.
+    dirname, basename = os.path.split(compressed_filename)
+    
+    for compression_extension in SUPPORTED_COMPRESSION_EXTENSIONS:
+      if basename.endswith(compression_extension):
+        basename = basename.split(compression_extension, 1)[0]   
+        version_and_filename = str(version_number) + '.' + basename + compression_extension
+        consistent_filename = os.path.join(dirname, version_and_filename)
+      
+      else:
+        logger.debug('Skipping compression extension: ' + repr(compression_extension))
    
     # Move the 'tuf.util.TempFile' object to one of the filenames so that it is
-    # saved and the temporary file closed.  Any remaining consistent snapshots
-    # may still need to be copied or linked. 
-    compressed_filename = consistent_filenames.pop()
-    
-    if not os.path.exists(compressed_filename):
-      logger.info('Saving ' + repr(compressed_filename))
-      file_object.move(compressed_filename)
+    # saved and the temporary file closed.
+    if not os.path.exists(consistent_filename):
+      logger.info('Saving ' + repr(consistent_filename))
+      file_object.move(consistent_filename)
 
     else:
       logger.debug('Skipping already written compressed file:'
-        ' ' + repr(compressed_filename))
-
-    # Save any remaining compressed consistent snapshots.
-    for consistent_filename in consistent_filenames:
-      if not os.path.exists(consistent_filename):
-        logger.info('Linking ' + repr(consistent_filename))
-        os.link(compressed_filename, consistent_filename)
-
-      else:
-        logger.debug('Skipping linking of already written compressed file: '
-          ' ' + repr(consistent_filename))
+        ' ' + repr(consistent_filename))
 
 
 
