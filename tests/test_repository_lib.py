@@ -758,12 +758,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                         consistent_snapshot=False,
                                         version_number=8)
 
-    # Test for 
+    # Test writing of compressed metadata when consistent snapshots is enabled. 
     file_object = tuf.util.TempFile()
     shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.gz'))
     shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.bz2'))
+    compressed_filename = os.path.join(self.temporary_directory, 'root.json.gz')
     repo_lib._write_compressed_metadata(file_object,
-                                        compressed_filename=existing_filename,
+                                        compressed_filename=compressed_filename,
                                         write_new_metadata=True,
                                         consistent_snapshot=True,
                                         version_number=8)

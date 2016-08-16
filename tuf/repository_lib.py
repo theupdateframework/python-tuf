@@ -2045,6 +2045,7 @@ def _write_compressed_metadata(file_object, compressed_filename,
     compressed_content = file_object.read()
     new_digests = []
     consistent_filenames = []
+    version_and_filename = None
    
     # Multiple snapshots may be written if the repository uses multiple
     # hash algorithms.  Generate the digest of the compressed content.
@@ -2060,16 +2061,16 @@ def _write_compressed_metadata(file_object, compressed_filename,
         if basename.endswith(compression_extension):
           basename = basename.split(compression_extension, 1)[0]   
           version_and_filename = str(version_number) + '.' + basename + compression_extension
+          consistent_filenames.append(os.path.join(dirname, version_and_filename))
         
         else:
           logger.debug('Skipping unsupported compressed file: ' + repr(basename))
-
-        consistent_filenames.append(os.path.join(dirname, version_and_filename))
    
     # Move the 'tuf.util.TempFile' object to one of the filenames so that it is
     # saved and the temporary file closed.  Any remaining consistent snapshots
     # may still need to be copied or linked. 
     compressed_filename = consistent_filenames.pop()
+    
     if not os.path.exists(compressed_filename):
       logger.info('Saving ' + repr(compressed_filename))
       file_object.move(compressed_filename)
