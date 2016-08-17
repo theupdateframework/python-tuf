@@ -986,7 +986,8 @@ def make_signable(object):
   """
 
   if not isinstance(object, dict) or 'signed' not in object:
-    return { 'signed' : object, 'signatures' : [] }
+    return {'signed': object, 'signatures': []}
+  
   else:
     return object
 

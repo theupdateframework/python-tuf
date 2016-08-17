@@ -1553,9 +1553,9 @@ def generate_targets_metadata(targets_directory, target_files, version,
     # Ensure all target files listed in 'target_files' exist.  If just one of
     # these files does not exist, raise an exception.
     if not os.path.exists(target_path):
-      message = repr(target_path) + ' cannot be read.  Unable to generate ' +\
-        'targets metadata.'
-      raise tuf.Error(message)
+      raise tuf.Error(repr(target_path) + ' cannot be read.'
+        '  Unable to generate targets metadata.')
+
 
     # Add 'custom' if it has been provided.  Custom data about the target is
     # optional and will only be included in metadata (i.e., a 'custom' field in
@@ -1577,7 +1577,10 @@ def generate_targets_metadata(targets_directory, target_files, version,
         if not os.path.exists(digest_target):
           logger.warning('Hard linking target file to ' + repr(digest_target))
           os.link(target_path, digest_target)
-  
+        
+        else:
+          logger.debug(repr(digest_target) + ' already exists.')
+
   # Generate the targets metadata object.
   targets_metadata = tuf.formats.TargetsFile.make_metadata(version,
                                                            expiration_date,
@@ -1811,23 +1814,12 @@ def sign_metadata(metadata_object, keyids, filename):
   # keyid of 'keyids'.
   signable = tuf.formats.make_signable(metadata_object)
 
-  # Sign the metadata with each keyid in 'keyids'.
+  # Sign the metadata with each keyid in 'keyids'.  'signable' should have
+  # zero signatures (metadata_object contained none).
   for keyid in keyids:
     
     # Load the signing key.
     key = tuf.keydb.get_key(keyid)
-    # TODO logger.info('Signing ' + repr(filename) + ' with ' + key['keyid'])
-
-    # Create a new signature list.  If 'keyid' is encountered, do not add it
-    # to the new list.
-    signatures = []
-    for signature in signable['signatures']:
-      if not keyid == signature['keyid']:
-        signatures.append(signature)
-      
-      else:
-        continue
-    signable['signatures'] = signatures
 
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:

@@ -519,6 +519,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(len(list_targets_directory) + 1,
                     len(new_list_targets_directory))
 
+    # Verify that an exception is not raised if the target files already exist.
+    repo_lib.generate_targets_metadata(targets_directory, target_files,
+                                       version, expiration_date, delegations,
+                                       write_consistent_targets=True)
+
+
     # Verify that 'targets_metadata' contains a 'custom' entry (optional)
     # for 'file.txt'.
     self.assertTrue('custom' in targets_metadata['targets']['file.txt'])
@@ -658,20 +664,22 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                  'keystore')
     root_filename = os.path.join(metadata_path, 'root.json')
     root_metadata = tuf.util.load_json_file(root_filename)['signed']
+    targets_filename = os.path.join(metadata_path, 'targets.json')
+    targets_metadata = tuf.util.load_json_file(targets_filename)['signed']
     
     tuf.keydb.create_keydb_from_root_metadata(root_metadata)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata)
     root_keyids = tuf.roledb.get_role_keyids('root')
+    targets_keyids = tuf.roledb.get_role_keyids('targets')
 
     root_private_keypath = os.path.join(keystore_path, 'root_key')
     root_private_key = \
       repo_lib.import_rsa_privatekey_from_file(root_private_keypath, 'password')
     
     # Sign with a valid, but not a threshold, key.
-    targets_private_keypath = os.path.join(keystore_path, 'targets_key')
-    targets_private_key = \
-      repo_lib.import_ed25519_privatekey_from_file(targets_private_keypath,
-                                               'password')
+    targets_public_keypath = os.path.join(keystore_path, 'targets_key.pub')
+    targets_public_key = \
+      repo_lib.import_ed25519_publickey_from_file(targets_public_keypath)
 
     # sign_metadata() expects the private key 'root_metadata' to be in
     # 'tuf.keydb'.  Remove any public keys that may be loaded before
@@ -679,18 +687,17 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # raised.
     tuf.keydb.remove_key(root_private_key['keyid'])
     tuf.keydb.add_key(root_private_key)
-    tuf.keydb.remove_key(targets_private_key['keyid'])
-    tuf.keydb.add_key(targets_private_key)
+    tuf.keydb.remove_key(targets_public_key['keyid'])
+    tuf.keydb.add_key(targets_public_key)
    
-    root_keyids.extend(tuf.roledb.get_role_keyids('targets'))
-    
-    # Add the snapshot's public key (to test whether non-root keys are
-    # ignored by sign_metadata()).  Also add an invalid keyid to 'root_keyids',
-    # which sign_metadata() is expected to ignore.
-    root_keyids.extend(tuf.roledb.get_role_keyids('snapshot')) 
+    # Verify that a valid root signable is generated.
     root_signable = repo_lib.sign_metadata(root_metadata, root_keyids,
                                            root_filename) 
     self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(root_signable))
+
+    # Test for an unset private key (in this case, target's).
+    repo_lib.sign_metadata(targets_metadata, targets_keyids,
+                           targets_filename)
 
     # Add an invalid keytype to one of the root keys.
     root_keyid = root_keyids[0]
