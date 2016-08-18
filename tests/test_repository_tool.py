@@ -53,7 +53,7 @@ import six
 
 logger = logging.getLogger('tuf.test_repository_tool')
 
-#repo_tool.disable_console_log_messages()
+repo_tool.disable_console_log_messages()
 
 
 class TestRepository(unittest.TestCase):
@@ -137,7 +137,6 @@ class TestRepository(unittest.TestCase):
     metadata_directory = os.path.join(repository_directory,
                                       repo_tool.METADATA_STAGED_DIRECTORY_NAME)
     repository = repo_tool.create_new_repository(repository_directory)
-
     
     # (1) Load the public and private keys of the top-level roles, and one
     # delegated role.
@@ -220,7 +219,6 @@ class TestRepository(unittest.TestCase):
     # (6) Write repository.
     repository.targets.compressions = ['gz']
     repository.write()
-
     
     # Verify that the expected metadata is written.
     for role in ['root.json', 'targets.json', 'snapshot.json', 'timestamp.json']:
@@ -229,6 +227,8 @@ class TestRepository(unittest.TestCase):
       
       # Raise 'tuf.FormatError' if 'role_signable' is an invalid signable.
       tuf.formats.check_signable_object_format(role_signable)
+        
+      self.assertTrue(os.path.exists(role_filepath))
 
       if role == 'targets.json':
         compressed_filepath = role_filepath + '.gz'

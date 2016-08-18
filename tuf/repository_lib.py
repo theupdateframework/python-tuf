@@ -424,22 +424,21 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
   metadata that have not been written yet.
   """
  
-  # Walk the repository's metadata 'targets' sub-directory, where all the
-  # metadata of delegated roles is stored.
-  targets_metadata = os.path.join(metadata_directory, 'targets')
+  # Walk the repository's metadata sub-directory, which is where all metadata
+  # is stored (including delegated roles).  The 'django.json' role (e.g.,
+  # delegated by Targets) would be located in the
+  # '{repository_directory}/metadata/' directory.
 
-  # The 'targets.json' metadata is not visited, only its child delegations.
-  # The 'targets/unclaimed/django.json' role would be located in the
-  # '{repository_directory}/metadata/targets/unclaimed/' directory.
-  if os.path.exists(targets_metadata) and os.path.isdir(targets_metadata):
-    for directory_path, junk_directories, files in os.walk(targets_metadata):
+  # The 'targets.json' metadata is not visited, only delegated roles.
+  if os.path.exists(metadata_directory) and os.path.isdir(metadata_directory):
+    for directory_path, junk_directories, files in os.walk(metadata_directory):
       
       # 'files' here is a list of target file names.
       for basename in files:
         metadata_path = os.path.join(directory_path, basename)
         # Strip the metadata dirname and the leading path separator.
-        # '{repository_directory}/metadata/targets/unclaimed/django.json' -->
-        # 'targets/unclaimed/django.json'
+        # '{repository_directory}/metadata/django.json' -->
+        # 'django.json'
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
       
@@ -449,17 +448,28 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         # write(consistent_snapshot=True) are mixed, so ensure only
         # '<version_number>.filename' metadata is stripped.
         embedded_version_number = None
-        
-        if metadata_name not in snapshot_metadata['meta']: 
+      
+        # Should we check if 'consistent_snapshot' is True? It might have
+        # been previously, so we'll proceed with the assumption that
+        # 'metadata_name' might have a prepended version number.
+        if metadata_name not in snapshot_metadata['meta']:
           metadata_name, embedded_version_number = \
             _strip_version_number(metadata_name, consistent_snapshot)
+
+        else:
+          logger.debug(repr(metadata_name) + ' found in the snapshot role.')
         
         # Strip filename extensions.  The role database does not include the
         # metadata extension.
         metadata_name_extension = metadata_name
+        
         for metadata_extension in METADATA_EXTENSIONS: 
           if metadata_name.endswith(metadata_extension):
             metadata_name = metadata_name[:-len(metadata_extension)]
+
+          else:
+            logger.debug(repr(metadata_name) + ' does not match'
+              ' supported extension ' + repr(metadata_extension))
         
         # Delete the metadata file if it does not exist in 'tuf.roledb'.
         # 'repository_tool.py' might have removed 'metadata_name,'
@@ -468,17 +478,11 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
           logger.info('Removing outdated metadata: ' + repr(metadata_path))
           os.remove(metadata_path)
 
-        # Delete outdated consistent snapshots.  Snapshot metadata includes the
-        # file extension of roles.  TODO: Should we leave it up to integrators
-        # to remove outdated consistent snapshots?
-        """ 
-        if consistent_snapshot and embedded_version_number is not None:
-          file_hashes = list(snapshot_metadata['meta'][metadata_name_extension] \
-                                        ['hashes'].values())
-          if embedded_digest not in file_hashes:
-            logger.info('Removing outdated metadata: ' + repr(metadata_path))
-            os.remove(metadata_path)
-        """
+        else:
+          logger.debug('Not removing metadata: ' + repr(metadata_path))
+
+        # TODO: Should we delete outdated consistent snapshots, or does it make
+        # more sense for integrators to remove outdated consistent snapshots?
 
 
 

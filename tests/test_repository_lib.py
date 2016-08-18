@@ -436,6 +436,19 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                                     consistent_snapshot=False)
     self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
 
+    root_keyids = tuf.roledb.get_role_keyids('root')
+    tuf.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'bad_keytype'
+    self.assertRaises(tuf.Error, repo_lib.generate_root_metadata, 1,
+                      expires, consistent_snapshot=False)
+    
+    # Reset the root key's keytype, so that we can next verify that a different
+    # tuf.Error exception is raised for duplicate keyids.
+    tuf.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'rsa'
+    
+    # Add duplicate keyid to root's roleinfo.
+    tuf.roledb._roledb_dict['default']['root']['keyids'].append(root_keyids[0])
+    self.assertRaises(tuf.Error, repo_lib.generate_root_metadata, 1,
+                      expires, consistent_snapshot=False)
     
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
@@ -870,7 +883,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     targets_metadata = os.path.join('repository_data', 'repository', 'metadata',
                                     'targets.json')
-    obsolete_metadata = os.path.join(metadata_directory, 'targets',
+    obsolete_metadata = os.path.join(metadata_directory,
                                             'obsolete_role.json')
     tuf.util.ensure_parent_dir(obsolete_metadata)
     shutil.copyfile(targets_metadata, obsolete_metadata)
@@ -884,18 +897,27 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
     expiration = expiration.isoformat() + 'Z' 
     targets_roleinfo['expires'] = expiration 
-    tuf.roledb.add_role('targets/obsolete_role', targets_roleinfo)
+    tuf.roledb.add_role('obsolete_role', targets_roleinfo)
+
+    repo_lib._generate_and_write_metadata('obsolete_role', obsolete_metadata,
+                                          True,    
+                                          targets_directory, metadata_directory,         
+                                          consistent_snapshot=False,
+                                          filenames=None,     
+                                          compression_algorithms=['gz'])
 
     snapshot_filepath = os.path.join('repository_data', 'repository',
                                      'metadata', 'snapshot.json')
     snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
-    tuf.roledb.remove_role('targets/obsolete_role')
+    tuf.roledb.remove_role('obsolete_role')
     self.assertTrue(os.path.exists(os.path.join(metadata_directory,
-                                                'targets/obsolete_role.json')))
+                                                'obsolete_role.json')))
     tuf.repository_lib._delete_obsolete_metadata(metadata_directory,
                                                  snapshot_signable['signed'],
                                                  False)
-    self.assertFalse(os.path.exists(metadata_directory + 'targets/obsolete_role.json'))
+    self.assertFalse(os.path.exists(metadata_directory + 'obsolete_role.json'))
+    shutil.copyfile(targets_metadata, obsolete_metadata)
+
 
 
 
