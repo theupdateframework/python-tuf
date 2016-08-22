@@ -226,6 +226,12 @@ libraries with apt (Advanced Package Tool.)
     $ apt-get install python-dev
     $ apt-get install libffi-dev
 
+OS X users can install these header libraries using the `Homebrew <http://brew.sh/>`_ package manager.
+::
+
+    $ brew install python
+    $ brew install libffi
+
 Installation of minimal, optional, development, and testing requirements
 can then be accomplished with one command:
 ::
