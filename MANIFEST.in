@@ -15,6 +15,7 @@ include tuf/_vendor/ed25519/LICENSE
 recursive-include docs *.txt
 recursive-include docs/papers *.pdf
 recursive-include docs/images *.png
+recursive-include tuf/scripts *.py
 recursive-include examples *
 recursive-include tests *.py
 recursive-include tests *.pem
