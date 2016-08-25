@@ -80,22 +80,16 @@ logger = logging.getLogger('tuf.tuf')
 def update_repository(repository_path, command, command_arguments):
   """
   <Purpose>
-    Perform an update of the metadata and target files located at
-    'repository_mirror'.  Target files are saved to the 'targets' directory
-    in the current working directory.  The current directory must already
-    include a 'metadata' directory, which in turn must contain the 'current'
-    and 'previous' directories.  At a minimum, these two directories require
-    the 'root.json' metadata file.
+    Update or create the repository found in 'repository_path'.  What to
+    update is determined by the 'command,' which can correspond to one of the
+    supported repository tool functions.
 
   <Arguments>
     repository_path:
-      The URL to the repository mirror hosting the metadata and target
-      files.  E.g., 'http://localhost:8001'
 
     command:
 
     command_arguments:
-
 
   <Exceptions>
     tuf.FormatError, if any of the arugments are improperly formatted.
@@ -110,11 +104,25 @@ def update_repository(repository_path, command, command_arguments):
   # Do the arguments have the correct format?
   tuf.formats.URL_SCHEMA.check_match(repository_path)
   tuf.formats.NAME_SCHEMA.check_match(command)
-  tuf.formats.NAMES_SCHEMA.check_match(command_arguments)
+  tuf.formats.COMMAND_SCHEMA.check_match(command_arguments)
   
   # Set the local repository directory containing all of the metadata files.
   tuf.conf.repository_directory = repository_path 
 
+  if command == 'init':
+    repository = create_new_repository(repository_path)
+
+    # Import the root key(s).
+    try: 
+      if command_arguments['keytype'] == 'ed25519':
+        repository.root.load_signing_key
+    
+    # Write the changes to the staged repository directory.
+    repository.write(consistent_snapshot=command_arguments['consistent_snapshot'])
+
+
+  elif command = 'gen-key':
+    command_arguments 
 
 
 def parse_options():
@@ -141,7 +149,7 @@ def parse_options():
 
   <Returns>
     A tuple ('options.REPOSITORY_PATH', command, command_arguments).  'command'
-    'command_arguments' corresponds to a repository tool fuction.
+    'command_arguments' correspond to a repository tool fuction.
 
   """
 

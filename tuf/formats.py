@@ -450,6 +450,12 @@ PATH_FILEINFO_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
   value_schema = CUSTOM_SCHEMA)
 
+# Command argument list, as used by the CLI tool.
+# Example: {'keytype': ed25519, 'expires': 365,}
+COMMAND_SCHEMA = SCHEMA.DictOf(
+  key_schema = NAME_SCHEMA,
+  value_schema = SCHEMA.Any()) 
+
 # tuf.roledb
 ROLEDB_SCHEMA = SCHEMA.Object(
   object_name = 'ROLEDB_SCHEMA',

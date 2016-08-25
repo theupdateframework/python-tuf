@@ -112,6 +112,7 @@ setup(
   packages = find_packages(exclude=['tests']),
   extras_require = extras,
   scripts = [
-    'tuf/client/basic_client.py'
+    'tuf/scripts/basic_client.py'
+    'tuf/scripts/tuf.py'
   ]
 )
