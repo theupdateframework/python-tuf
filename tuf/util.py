@@ -232,6 +232,8 @@ class TempFile(object):
     self.seek(0)
     destination_file = open(destination_path, 'wb')
     shutil.copyfileobj(self.temporary_file, destination_file)
+    destination_file.flush()
+    os.fsync(destination_file.fileno())
     destination_file.close()
     
     # 'self.close()' closes temporary file which destroys itself.
