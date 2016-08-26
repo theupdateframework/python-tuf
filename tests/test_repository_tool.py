@@ -334,8 +334,14 @@ class TestRepository(unittest.TestCase):
     repository.root.load_signing_key(root_privkey)
     repository.snapshot.load_signing_key(snapshot_privkey)
    
-    # Verify that a consistent snapshot can be written and loaded. 
+    # Verify that a consistent snapshot can be written and loaded.  The
+    # 'targets' and 'role1' roles must be be marked as dirty, otherwise
+    # write() will not create consistent snapshots for them.
+    repository.mark_dirty(['targets', 'role1'])
     repository.write(consistent_snapshot=True)
+
+    # Verify that the newly written consistent snapshot can be loaded
+    # successfully.
     repo_tool.load_repository(repository_directory)
 
     # Test improperly formatted arguments.

@@ -240,7 +240,6 @@ class Repository(object):
                  'timestamp': os.path.join(self._metadata_directory, repo_lib.TIMESTAMP_FILENAME)}
 
     snapshot_signable = None
-   
     dirty_rolenames = tuf.roledb.get_dirty_roles()
 
     for dirty_rolename in dirty_rolenames:
@@ -449,7 +448,31 @@ class Repository(object):
     """
 
     logger.info('Dirty roles: ' + str(tuf.roledb.get_dirty_roles()))
-   
+
+
+
+  def mark_dirty(self, roles):
+    """
+    <Purpose>
+      Mark the list of 'roles' as dirty.
+
+    <Arguments>
+      roles:
+        A list of roles to mark as dirty.  on the next write, these roles
+        will be written to disk.
+
+    <Exceptions>
+      None.
+    
+    <Side Effects>
+      None.
+
+    <Returns>
+      None.
+    """
+  
+    tuf.roledb.mark_dirty(roles)
+
 
 
   @staticmethod
@@ -2835,7 +2858,7 @@ def load_repository(repository_directory):
   targets_objects = {}
   loaded_metadata = []
   targets_objects['targets'] = repository.targets
- 
+
   for metadata_role in os.listdir(metadata_directory):
 
     metadata_path = os.path.join(metadata_directory, metadata_role)

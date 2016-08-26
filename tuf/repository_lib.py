@@ -99,7 +99,7 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
 
 # The full list of supported TUF metadata extensions.
-METADATA_EXTENSIONS = ['.json']
+METADATA_EXTENSIONS = ['.json', '.json.gz']
 
 
 def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
@@ -209,7 +209,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     filename = write_metadata_file(signable, metadata_filename,
                                    metadata['version'], compression_algorithms,
                                    consistent_snapshot)
-    
+   
     # The root and timestamp files should also be written without a version
     # number prepended if 'consistent_snaptshot' is True.  Clients may request
     # a timestamp and root file without knowing their version numbers.
@@ -419,6 +419,7 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
   'repository_tool.py'.  Revoked metadata files are not actually deleted until
   this function is called.  Obsolete metadata should *not* be retained in
   "metadata.staged", otherwise they may be re-loaded by 'load_repository()'. 
+  
   Note: Obsolete metadata may not always be easily detected (by inspecting
   top-level metadata during loading) due to partial metadata and top-level
   metadata that have not been written yet.
@@ -428,8 +429,6 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
   # is stored (including delegated roles).  The 'django.json' role (e.g.,
   # delegated by Targets) would be located in the
   # '{repository_directory}/metadata/' directory.
-
-  # The 'targets.json' metadata is not visited, only delegated roles.
   if os.path.exists(metadata_directory) and os.path.isdir(metadata_directory):
     for directory_path, junk_directories, files in os.walk(metadata_directory):
       
@@ -441,17 +440,19 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         # 'django.json'
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
-      
+        
         # Strip the version number if 'consistent_snapshot' is True.  Example:
-        # '10.django.json'  --> 'django.json'.  Consistent and non-consistent
+        # '10.django.json' --> 'django.json'.  Consistent and non-consistent
         # metadata might co-exist if write() and
         # write(consistent_snapshot=True) are mixed, so ensure only
         # '<version_number>.filename' metadata is stripped.
         embedded_version_number = None
       
-        # Should we check if 'consistent_snapshot' is True? It might have
-        # been previously, so we'll proceed with the assumption that
-        # 'metadata_name' might have a prepended version number.
+        # Should we check if 'consistent_snapshot' is True? It might have been
+        # set previously, but 'consistent_snapshot' can potentially be False
+        # now.  We'll proceed with the understanding that 'metadata_name' can  
+        # have a prepended version number even though the repository is now
+        # a non-consistent one.
         if metadata_name not in snapshot_metadata['meta']:
           metadata_name, embedded_version_number = \
             _strip_version_number(metadata_name, consistent_snapshot)
@@ -466,11 +467,15 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         for metadata_extension in METADATA_EXTENSIONS: 
           if metadata_name.endswith(metadata_extension):
             metadata_name = metadata_name[:-len(metadata_extension)]
+            break
 
           else:
             logger.debug(repr(metadata_name) + ' does not match'
               ' supported extension ' + repr(metadata_extension))
-        
+      
+        if metadata_name in ['root', 'targets', 'snapshot', 'timestamp']:
+          return
+
         # Delete the metadata file if it does not exist in 'tuf.roledb'.
         # 'repository_tool.py' might have removed 'metadata_name,'
         # but its metadata file is not actually deleted yet.  Do it now.
@@ -519,8 +524,12 @@ def _strip_version_number(metadata_filename, consistent_snapshot):
    dirname, basename = os.path.split(metadata_filename)
    version_number, basename = basename.split('.', 1)
    stripped_metadata_filename = os.path.join(dirname, basename)
-                 
-   return stripped_metadata_filename, version_number 
+   
+   if not version_number.isdigit():
+    return metadata_filename, ''
+   
+   else: 
+    return stripped_metadata_filename, version_number 
                        
   else:
    return metadata_filename, ''
@@ -547,6 +556,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   # Load 'root.json'.  A Root role file without a version number is always
   # written. 
   if os.path.exists(root_filename):
+    
     # Initialize the key and role metadata of the top-level roles.
     signable = tuf.util.load_json_file(root_filename)
     tuf.formats.check_signable_object_format(signable)
@@ -708,7 +718,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
       tuf.roledb.add_role(rolename, roleinfo)
   
   else:
-    pass 
+    pass
   
   return repository, consistent_snapshot
 
@@ -1919,62 +1929,37 @@ def write_metadata_file(metadata, filename, version_number,
   # if re-saving is required.
   file_content = _get_written_metadata(metadata)
  
-  # Verify whether new metadata needs to be written (i.e., has not been
-  # previously written or has changed.
-  write_new_metadata = False
+  # We previously verified whether new metadata needed to be written (i.e., has
+  # not been previously written or has changed).  It is now assumed that the
+  # caller intends to write changes that have been marked as dirty.
 
-  # Has the uncompressed metadata changed?  Does it exist?  If so, set
-  # 'write_compressed_version' to 'True' so that it is written.
-  # Compressed metadata should only be written if it does not exist or the
-  # uncompressed version has changed).
-  new_digests = {}
-  for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
-    digest_object = tuf.hash.digest(hash_algorithm)
-    digest_object.update(file_content)
-    new_digests.update({hash_algorithm: digest_object.hexdigest()})
-
-  try:
-    file_length_junk, old_digests = \
-      tuf.util.get_file_details(written_filename,
-                                hash_algorithms=tuf.conf.REPOSITORY_HASH_ALGORITHMS)
-    if old_digests != new_digests:
-      write_new_metadata = True
-
-    else:
-      logger.debug(repr(written_filename) + ' has not changed.')
+  # The 'metadata' object is written to 'file_object', including compressed
+  # versions.  To avoid partial metadata from being written, 'metadata' is
+  # first written to a temporary location (i.e., 'file_object') and then
+  # moved to 'filename'.
+  file_object = tuf.util.TempFile()
   
-  # 'tuf.Error' raised if 'filename' does not exist.
-  except tuf.Error:
-    write_new_metadata = True
-
-  if write_new_metadata:
-    # The 'metadata' object is written to 'file_object', including compressed
-    # versions.  To avoid partial metadata from being written, 'metadata' is
-    # first written to a temporary location (i.e., 'file_object') and then
-    # moved to 'filename'.
-    file_object = tuf.util.TempFile()
-    
-    # Serialize 'metadata' to the file-like object and then write
-    # 'file_object' to disk.  The dictionary keys of 'metadata' are sorted
-    # and indentation is used.  The 'tuf.util.TempFile' file-like object is
-    # automically closed after the final move.
-    file_object.write(file_content)
-    logger.debug('Saving ' + repr(written_filename))
-    
-    file_object.move(written_filename)
-   
-    if consistent_snapshot:
-      dirname, basename = os.path.split(written_filename)
-      
-      basename = basename.split(METADATA_EXTENSION, 1)[0]
-      version_and_filename = str(version_number) + '.' + basename + METADATA_EXTENSION 
-      written_consistent_filename = os.path.join(dirname, version_and_filename)
-
-      logger.info('Linking ' + repr(written_consistent_filename))
-      os.link(written_filename, written_consistent_filename)
+  # Serialize 'metadata' to the file-like object and then write
+  # 'file_object' to disk.  The dictionary keys of 'metadata' are sorted
+  # and indentation is used.  The 'tuf.util.TempFile' file-like object is
+  # automically closed after the final move.
+  file_object.write(file_content)
+  logger.debug('Saving ' + repr(written_filename))
   
+  file_object.move(written_filename)
+ 
+  if consistent_snapshot:
+    dirname, basename = os.path.split(written_filename)
+    
+    basename = basename.split(METADATA_EXTENSION, 1)[0]
+    version_and_filename = str(version_number) + '.' + basename + METADATA_EXTENSION 
+    written_consistent_filename = os.path.join(dirname, version_and_filename)
+
+    logger.info('Linking ' + repr(written_consistent_filename))
+    os.link(written_filename, written_consistent_filename)
+
   else:
-    logger.debug('Not writing new metadata.')
+    logger.info('Not linking a consistent filename for: ' + repr(written_filename))
 
   # Generate the compressed versions of 'metadata', if necessary.  A compressed
   # file may be written (without needing to write the uncompressed version) if
@@ -2014,7 +1999,8 @@ def write_metadata_file(metadata, filename, version_number,
     # unexpectedly change (gzip includes a timestamp) even though content has
     # not changed.
     _write_compressed_metadata(file_object, compressed_filename,
-                               write_new_metadata, consistent_snapshot, version_number)
+                               True, consistent_snapshot,
+                               version_number)
   return written_filename
 
 

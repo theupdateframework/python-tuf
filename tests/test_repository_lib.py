@@ -920,6 +920,26 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
 
+  def test__delete_obsolete_metadata(self):
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    repository_directory = os.path.join(temporary_directory, 'repository') 
+    metadata_directory = os.path.join(repository_directory,
+                                      repo_lib.METADATA_STAGED_DIRECTORY_NAME)
+    os.makedirs(metadata_directory)
+    snapshot_filepath = os.path.join('repository_data', 'repository',
+                                     'metadata', 'snapshot.json')
+    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+ 
+    # Create role metadata that should not exist in snapshot.json.
+    role1_filepath = os.path.join('repository_data', 'repository',
+                                  'metadata', 'role1.json')
+    shutil.copyfile(role1_filepath, os.path.join(metadata_directory, 'role2.json'))
+
+    repo_lib._delete_obsolete_metadata(metadata_directory,
+                                       snapshot_signable['signed'],
+                                       True)
+
+
 
   def test__remove_invalid_and_duplicate_signatures(self):
     # Remove duplicate PSS signatures (same key generates valid, but different
