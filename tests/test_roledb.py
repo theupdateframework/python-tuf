@@ -677,7 +677,30 @@ class TestRoledb(unittest.TestCase):
 
     # Test for improperly formatted argument.
     self.assertRaises(tuf.FormatError, tuf.roledb.get_dirty_roles, 123)
+   
+
+
+  def test_mark_dirty(self):
+    # Add a dirty role to roledb.
+    rolename = 'targets'
+    roleinfo1 = {'keyids': ['123'], 'threshold': 1}
+    tuf.roledb.add_role(rolename, roleinfo1)
+    rolename2 = 'dirty_role'
+    roleinfo2 = {'keyids': ['123'], 'threshold': 2}
+    mark_role_as_dirty = True
+    tuf.roledb.update_roleinfo(rolename, roleinfo1, mark_role_as_dirty)
+    # Note: The 'default' repository is searched if the repository name is
+    # not given to get_dirty_roles().
+    self.assertEqual([rolename], tuf.roledb.get_dirty_roles())
     
+    tuf.roledb.mark_dirty(['dirty_role'])
+    self.assertEqual([rolename2, rolename], sorted(tuf.roledb.get_dirty_roles()))
+
+    # Verify that a role cannot be marked as dirty for a non-existent
+    # repository.
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.mark_dirty,
+                      ['dirty_role'], 'non-existent')
+
 
 
   def _test_rolename(self, test_function):
