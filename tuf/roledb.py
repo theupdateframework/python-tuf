@@ -911,6 +911,8 @@ def clear_roledb(repository_name='default', clear_all=False):
   if clear_all:
     _roledb_dict = {}
     _roledb_dict['default'] = {}
+    _dirty_roles = {}
+    _dirty_roles['default'] = set()
     return
   
   _roledb_dict[repository_name] = {}

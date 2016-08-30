@@ -542,7 +542,7 @@ def _strip_version_number(metadata_filename, consistent_snapshot):
 def _load_top_level_metadata(repository, top_level_filenames):
   """
   Load the metadata of the Root, Timestamp, Targets, and Snapshot roles.  At a
-  minimum, the Root role must exist and successfully load.
+  minimum, the Root role must exist and load successfully.
   """
 
   root_filename = top_level_filenames[ROOT_FILENAME] 
@@ -574,7 +574,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
         roleinfo['signatures'].append(signature)
       
       else:
-        logger.debug('Found a root signature that is already loaded:'
+        logger.debug('Found a Root signature that is already loaded:'
           ' ' + repr(signature))
 
     if os.path.exists(root_filename + '.gz'):
@@ -601,8 +601,8 @@ def _load_top_level_metadata(repository, top_level_filenames):
     consistent_snapshot = root_metadata['consistent_snapshot']
   
   else:
-    message = 'Cannot load the required root file: ' + repr(root_filename)
-    raise tuf.RepositoryError(message)
+    raise tuf.RepositoryError('Cannot load the required root file:'
+      ' ' + repr(root_filename))
   
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
   # always written. 
@@ -704,9 +704,15 @@ def _load_top_level_metadata(repository, top_level_filenames):
     roleinfo['delegations'] = targets_metadata['delegations']
     if os.path.exists(targets_filename + '.gz'):
       roleinfo['compressions'].append('gz')
+
+    else:
+      logger.debug('Compressed Targets file cannot be loaded.')
    
     if _metadata_is_partially_loaded('targets', signable, roleinfo):
       roleinfo['partial_loaded'] = True
+
+    else:
+      logger.debug('Targets file was not partially loaded.')
    
     _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
                                  TARGETS_EXPIRES_WARN_SECONDS)
@@ -742,7 +748,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
       tuf.roledb.add_role(rolename, roleinfo)
   
   else:
-    pass
+    logger.debug('The Targets file cannot be loaded: ' + repr(targets_filename))
   
   return repository, consistent_snapshot
 

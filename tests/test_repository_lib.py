@@ -946,6 +946,61 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                        True)
 
 
+  def test__load_top_level_metadata(self):
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
+
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    repository_directory = os.path.join(temporary_directory, 'repository') 
+    metadata_directory = os.path.join(repository_directory,
+                                      repo_lib.METADATA_STAGED_DIRECTORY_NAME)
+    targets_directory = os.path.join(repository_directory,
+                                     repo_lib.TARGETS_DIRECTORY_NAME)
+    shutil.copytree(os.path.join('repository_data', 'repository', 'metadata'),
+                    metadata_directory)
+    shutil.copytree(os.path.join('repository_data', 'repository', 'targets'),
+                    targets_directory)
+
+    # Remove compressed metadata so that we can test for loading of a
+    # repository with no compression enabled.
+    for role_file in os.listdir(metadata_directory):
+      if role_file.endswith('.json.gz'):
+        role_filename = os.path.join(metadata_directory, role_file)
+        os.remove(role_filename)
+
+    filenames = repo_lib.get_metadata_filenames(metadata_directory)
+    repository = repo_tool.create_new_repository(repository_directory)
+    repo_lib._load_top_level_metadata(repository, filenames)
+
+    # We partially loaded 'role1' via the top-level Targets role.  For the
+    # purposes of this test case (which only loads top-level metadata and no
+    # delegated metadata), remove this role to avoid issues with partially
+    # loaded information (e.g., missing 'version' info, signatures, etc.)
+    tuf.roledb.remove_role('role1')
+
+    # Partially write all top-level roles (we increase the threshold of each
+    # top-level role so that they are flagged as partially written.
+    repository.root.threshold = repository.root.threshold + 1
+    repository.snapshot.threshold = repository.snapshot.threshold + 1
+    repository.targets.threshold = repository.targets.threshold + 1
+    repository.timestamp.threshold = repository.timestamp.threshold + 1
+    repository.write(write_partial=True)
+    
+    repo_lib._load_top_level_metadata(repository, filenames)
+
+    # Attempt to load a repository with missing top-level metadata.
+    for role_file in os.listdir(metadata_directory):
+      if role_file.endswith('.json') and not role_file.startswith('root'):
+        role_filename = os.path.join(metadata_directory, role_file)
+        os.remove(role_filename)
+    repo_lib._load_top_level_metadata(repository, filenames)
+
+    # Remove the required Root file and verify that an exception is raised.
+    os.remove(os.path.join(metadata_directory, 'root.json'))
+    self.assertRaises(tuf.RepositoryError, repo_lib._load_top_level_metadata,
+                      repository, filenames)
+
+
 
   def test__remove_invalid_and_duplicate_signatures(self):
     # Remove duplicate PSS signatures (same key generates valid, but different
