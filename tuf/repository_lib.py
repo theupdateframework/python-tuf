@@ -99,7 +99,7 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
 
 # The full list of supported TUF metadata extensions.
-METADATA_EXTENSIONS = ['.json', '.json.gz']
+METADATA_EXTENSIONS = ['.json.gz', '.json']
 
 
 def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
@@ -488,7 +488,9 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
 
         # TODO: Should we delete outdated consistent snapshots, or does it make
         # more sense for integrators to remove outdated consistent snapshots?
-
+  
+  else:
+    logger.debug('Metadata directory does not exist: ' + repr(metadata_directory))
 
 
 
@@ -570,15 +572,25 @@ def _load_top_level_metadata(repository, top_level_filenames):
     for signature in signable['signatures']:
       if signature not in roleinfo['signatures']: 
         roleinfo['signatures'].append(signature)
+      
+      else:
+        logger.debug('Found a root signature that is already loaded:'
+          ' ' + repr(signature))
 
     if os.path.exists(root_filename + '.gz'):
       roleinfo['compressions'].append('gz')
+
+    else:
+      logger.debug('A compressed Root file was not found.')
    
     # By default, roleinfo['partial_loaded'] of top-level roles should be set
     # to False in 'create_roledb_from_root_metadata()'.  Update this field, if
     # necessary, now that we have its signable object.
     if _metadata_is_partially_loaded('root', signable, roleinfo):
       roleinfo['partial_loaded'] = True
+    
+    else:
+      logger.debug('Root was not partially loaded.')
     
     _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
                                  ROOT_EXPIRES_WARN_SECONDS)
@@ -606,9 +618,15 @@ def _load_top_level_metadata(repository, top_level_filenames):
     roleinfo['version'] = timestamp_metadata['version']
     if os.path.exists(timestamp_filename + '.gz'):
       roleinfo['compressions'].append('gz')
+
+    else:
+      logger.debug('A compressed Timestamp file was not found.') 
     
     if _metadata_is_partially_loaded('timestamp', signable, roleinfo):
       roleinfo['partial_loaded'] = True
+
+    else:
+      logger.debug('The Timestamp role was not partially loaded.') 
     
     _log_warning_if_expires_soon(TIMESTAMP_FILENAME, roleinfo['expires'],
                                  TIMESTAMP_EXPIRES_WARN_SECONDS)
@@ -616,7 +634,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     tuf.roledb.update_roleinfo('timestamp', roleinfo, mark_role_as_dirty=False)
     
   else:
-    pass
+    logger.debug('Cannot load the Timestamp  file: ' + repr(timestamp_filename))
   
   # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
   # 'consistent_snapshot' is True.
@@ -644,9 +662,15 @@ def _load_top_level_metadata(repository, top_level_filenames):
     roleinfo['version'] = snapshot_metadata['version']
     if os.path.exists(snapshot_filename + '.gz'):
       roleinfo['compressions'].append('gz')
+
+    else:
+      logger.debug('A compressed Snapshot file was not loaded.')
     
     if _metadata_is_partially_loaded('snapshot', signable, roleinfo):
       roleinfo['partial_loaded'] = True
+
+    else:
+      logger.debug('Snapshot was not partially loaded.')
     
     _log_warning_if_expires_soon(SNAPSHOT_FILENAME, roleinfo['expires'],
                                  SNAPSHOT_EXPIRES_WARN_SECONDS)
@@ -654,7 +678,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     tuf.roledb.update_roleinfo('snapshot', roleinfo, mark_role_as_dirty=False)
   
   else:
-    pass 
+    logger.debug('The Snapshot file cannot be loaded: ' + repr(snapshot_filename))
 
   # Load 'targets.json'.  A consistent snapshot of the Targets role must be
   # calculated if 'consistent_snapshot' is True.

@@ -939,6 +939,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                        snapshot_signable['signed'],
                                        True)
 
+    # Verify what happens for a non-existent metadata directory (a debug message
+    # is logged).
+    repo_lib._delete_obsolete_metadata('non-existent',
+                                       snapshot_signable['signed'],
+                                       True)
+
 
 
   def test__remove_invalid_and_duplicate_signatures(self):
