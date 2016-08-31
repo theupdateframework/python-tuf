@@ -137,6 +137,21 @@ class TestPyca_crypto_keys(unittest.TestCase):
     self.assertEqual(False, crypto_keys.verify_rsa_signature(mismatched_signature,
                             method, public_rsa, data))
 
+  def test__decrypt(self):
+    # Verify that invalid encrypted file is detected. 
+    self.assertRaises(tuf.CryptoError, crypto_keys._decrypt,
+                      'bad encrypted file', 'password')
+
+
+
+  def test_encrypt_key(self):
+    # Verify that a key argument with a missing private key is rejected.
+    global public_rsa
+
+    self.assertRaises(tuf.FormatError, crypto_keys.encrypt_key,
+                      public_rsa, 'password')
+
+
 
 # Run the unit tests.
 if __name__ == '__main__':
