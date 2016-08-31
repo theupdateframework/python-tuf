@@ -283,26 +283,31 @@ class TestKeys(unittest.TestCase):
   
   
   def test_decrypt_key(self):
-    # Test valid arguments.
-    passphrase = 'secret'
-    encrypted_key = KEYS.encrypt_key(self.rsakey_dict, passphrase).encode('utf-8')
-    decrypted_key = KEYS.decrypt_key(encrypted_key, passphrase)
-
-    self.assertTrue(tuf.formats.ANYKEY_SCHEMA.matches(decrypted_key))
+    default_general_library = KEYS._GENERAL_CRYPTO_LIBRARY
+    for general_crypto_library in ['pycrypto', 'pyca-cryptography']:
+      KEYS._GENERAL_CRYPTO_LIBRARY = general_crypto_library 
     
-    # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
-                      8, passphrase)
-    
-    self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
-                      encrypted_key, 8)
+      # Test valid arguments.
+      passphrase = 'secret'
+      encrypted_key = KEYS.encrypt_key(self.rsakey_dict, passphrase).encode('utf-8')
+      decrypted_key = KEYS.decrypt_key(encrypted_key, passphrase)
 
-    # Test for missing required library.
-    KEYS._GENERAL_CRYPTO_LIBRARY = 'invalid'
-    self.assertRaises(tuf.UnsupportedLibraryError, KEYS.decrypt_key,
-                      encrypted_key, passphrase)
-    KEYS._GENERAL_CRYPTO_LIBRARY = 'pycrypto' 
+      self.assertTrue(tuf.formats.ANYKEY_SCHEMA.matches(decrypted_key))
+      
+      # Test improperly formatted arguments.
+      self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
+                        8, passphrase)
+      
+      self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
+                        encrypted_key, 8)
 
+      # Test for missing required library.
+      KEYS._GENERAL_CRYPTO_LIBRARY = 'invalid'
+      self.assertRaises(tuf.UnsupportedLibraryError, KEYS.decrypt_key,
+                        encrypted_key, passphrase)
+      KEYS._GENERAL_CRYPTO_LIBRARY = 'pycrypto' 
+
+    KEYS._GENERAL_CRYPTO_LIBRARY = default_general_library
 
 
 # Run the unit tests.
