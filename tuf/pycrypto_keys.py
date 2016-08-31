@@ -253,7 +253,7 @@ def create_rsa_signature(private_key, data):
   <Exceptions>
     tuf.FormatError, if 'private_key' is improperly formatted.
     
-    TypeError, if 'private_key' is unset.
+    ValueError, if 'private_key' is unset.
 
     tuf.CryptoError, if the signature cannot be generated. 
 
@@ -316,7 +316,7 @@ def create_rsa_signature(private_key, data):
       raise tuf.CryptoError('An RSA signature cannot be generated: ' + str(e))
   
   else:
-    raise TypeError('The required private key is unset.')
+    raise ValueError('The required private key is unset.')
 
   return signature, method
 

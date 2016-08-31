@@ -81,7 +81,7 @@ class TestPycrypto_keys(unittest.TestCase):
     self.assertRaises(tuf.FormatError,
                       pycrypto.create_rsa_signature, 123, data)
     
-    self.assertRaises(TypeError,
+    self.assertRaises(ValueError,
                       pycrypto.create_rsa_signature, '', data)
    
     # Check for invalid 'data'.

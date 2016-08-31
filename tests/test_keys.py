@@ -51,25 +51,31 @@ class TestKeys(unittest.TestCase):
 
 
   def test_generate_rsa_key(self):
-    _rsakey_dict = KEYS.generate_rsa_key()
+    default_rsa_library = KEYS._RSA_CRYPTO_LIBRARY
+    for rsa_crypto_library in ['pycrypto', 'pyca-cryptography']:
+      KEYS._RSA_CRYPTO_LIBRARY = rsa_crypto_library 
+      
+      _rsakey_dict = KEYS.generate_rsa_key()
 
-    # Check if the format of the object returned by generate() corresponds
-    # to RSAKEY_SCHEMA format.
-    self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(_rsakey_dict),
-                     FORMAT_ERROR_MSG)
+      # Check if the format of the object returned by generate() corresponds
+      # to RSAKEY_SCHEMA format.
+      self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(_rsakey_dict),
+                       FORMAT_ERROR_MSG)
 
-    # Passing a bit value that is <2048 to generate() - should raise 
-    # 'tuf.FormatError'.
-    self.assertRaises(tuf.FormatError, KEYS.generate_rsa_key, 555)
+      # Passing a bit value that is <2048 to generate() - should raise 
+      # 'tuf.FormatError'.
+      self.assertRaises(tuf.FormatError, KEYS.generate_rsa_key, 555)
 
-    # Passing a string instead of integer for a bit value.
-    self.assertRaises(tuf.FormatError, KEYS.generate_rsa_key, 'bits')
+      # Passing a string instead of integer for a bit value.
+      self.assertRaises(tuf.FormatError, KEYS.generate_rsa_key, 'bits')
 
-    # NOTE if random bit value >=2048 (not 4096) is passed generate(bits) 
-    # does not raise any errors and returns a valid key.
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(2048)))
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(4096)))
+      # NOTE if random bit value >=2048 (not 4096) is passed generate(bits) 
+      # does not raise any errors and returns a valid key.
+      self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(2048)))
+      self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(4096)))
 
+    # Reset to originally set RSA crypto library.
+    KEYS._RSA_CRYPTO_LIBRARY = default_rsa_library
 
 
   def test_format_keyval_to_metadata(self):
@@ -176,29 +182,34 @@ class TestKeys(unittest.TestCase):
 
 
   def test_create_signature(self):
-    # Creating a signature for 'DATA'.
-    rsa_signature = KEYS.create_signature(self.rsakey_dict, DATA)
-    ed25519_signature = KEYS.create_signature(self.ed25519key_dict, DATA) 
+    default_rsa_library = KEYS._RSA_CRYPTO_LIBRARY
+    for rsa_crypto_library in ['pycrypto', 'pyca-cryptography']:
+      KEYS._RSA_CRYPTO_LIBRARY = rsa_crypto_library 
     
-    # Check format of output.
-    self.assertEqual(None, 
-                     tuf.formats.SIGNATURE_SCHEMA.check_match(rsa_signature),
-                     FORMAT_ERROR_MSG)
-    self.assertEqual(None, 
-                     tuf.formats.SIGNATURE_SCHEMA.check_match(ed25519_signature),
-                     FORMAT_ERROR_MSG)
+      # Creating a signature for 'DATA'.
+      rsa_signature = KEYS.create_signature(self.rsakey_dict, DATA)
+      ed25519_signature = KEYS.create_signature(self.ed25519key_dict, DATA) 
+      
+      # Check format of output.
+      self.assertEqual(None, 
+                       tuf.formats.SIGNATURE_SCHEMA.check_match(rsa_signature),
+                       FORMAT_ERROR_MSG)
+      self.assertEqual(None, 
+                       tuf.formats.SIGNATURE_SCHEMA.check_match(ed25519_signature),
+                       FORMAT_ERROR_MSG)
 
-    # Removing private key from 'rsakey_dict' - should raise a TypeError.
-    private = self.rsakey_dict['keyval']['private'] 
-    self.rsakey_dict['keyval']['private'] = ''
-    
-    args = (self.rsakey_dict, DATA)
-    self.assertRaises(TypeError, KEYS.create_signature, *args)
+      # Removing private key from 'rsakey_dict' - should raise a TypeError.
+      private = self.rsakey_dict['keyval']['private'] 
+      self.rsakey_dict['keyval']['private'] = ''
+      
+      args = (self.rsakey_dict, DATA)
+      self.assertRaises(ValueError, KEYS.create_signature, *args)
 
-    # Supplying an incorrect number of arguments.
-    self.assertRaises(TypeError, KEYS.create_signature)
-    self.rsakey_dict['keyval']['private'] = private
+      # Supplying an incorrect number of arguments.
+      self.assertRaises(TypeError, KEYS.create_signature)
+      self.rsakey_dict['keyval']['private'] = private
 
+    KEYS._RSA_CRYPTO_LIBRARY = default_rsa_library
 
 
   def test_verify_signature(self):
