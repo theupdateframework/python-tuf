@@ -55,9 +55,9 @@ class TestProject(unittest.TestCase):
 
   def tearDown(self):
     # called after every test case
-    tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
-    pass
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
+
 
   def test_create_new_project(self):
     # Test cases for the create_new_project function. In this test we will
@@ -193,28 +193,22 @@ class TestProject(unittest.TestCase):
     shutil.copytree('repository_data/project', target_project_data_filepath)
 
     # Properly load a project.
-    repo_filepath = os.path.join(local_tmp, 'project', 'test-repo')
-    project = developer_tool.load_project(repo_filepath)
-    
-    self.assertTrue(project.layout_type == 'repo-like')
-
     repo_filepath = os.path.join(local_tmp, 'project', 'test-flat')
     new_targets_path = os.path.join(local_tmp, 'project', 'targets')
     project = developer_tool.load_project(repo_filepath,
         new_targets_location = new_targets_path)
     self.assertTrue(project._targets_directory == new_targets_path)
     self.assertTrue(project.layout_type == 'flat')
-
     
     # Load a project overwriting the prefix.
     project = developer_tool.load_project(repo_filepath, prefix='new')
     self.assertTrue(project._prefix == 'new')
 
     # Load a project with a file missing.
-    file_to_corrupt = os.path.join(repo_filepath, 'test-flat', 'role1.json')
+    file_to_corrupt = os.path.join(repo_filepath, 'test-flat.json')
     with open(file_to_corrupt, 'wt') as fp:
       fp.write('this is not a json file')
-    
+   
     self.assertRaises(tuf.Error, developer_tool.load_project, repo_filepath)
 
     
@@ -230,7 +224,7 @@ class TestProject(unittest.TestCase):
 
     # Add verification key.
     #  - load it first 
-    keystore_path = os.path.join('repository_data','keystore')
+    keystore_path = os.path.join('repository_data', 'keystore')
     first_verification_key_path = os.path.join(keystore_path,'root_key.pub')
     first_verification_key = \
       developer_tool.import_rsa_publickey_from_file(first_verification_key_path)
@@ -239,9 +233,9 @@ class TestProject(unittest.TestCase):
 
 
     # Add another verification key (should expect exception.)
-    second_verification_key_path = os.path.join(keystore_path,'snapshot_key.pub')
+    second_verification_key_path = os.path.join(keystore_path, 'snapshot_key.pub')
     second_verification_key = \
-      developer_tool.import_rsa_publickey_from_file(second_verification_key_path)
+      developer_tool.import_ed25519_publickey_from_file(second_verification_key_path)
     
     self.assertRaises(tuf.Error,
         project.add_verification_key,(second_verification_key))
@@ -256,10 +250,8 @@ class TestProject(unittest.TestCase):
 
     # Add another delegation of the delegation.
     project('somedelegation').delegate('somesubdelegation', [], [])
-    project('somedelegation')('somesubdelegation').add_verification_key(
-        first_verification_key)
-    project('somedelegation')('somesubdelegation').add_verification_key(
-        second_verification_key)
+    project('somesubdelegation').add_verification_key(first_verification_key)
+    project('somesubdelegation').add_verification_key(second_verification_key)
 
 
   def test_write(self):
@@ -268,7 +260,7 @@ class TestProject(unittest.TestCase):
     local_tmp = tempfile.mkdtemp(dir=self.tmp_dir)
 
     # Create new project inside tmp directory.
-    project = developer_tool.create_new_project('test_write', local_tmp, 
+    project = developer_tool.create_new_project('new_project', local_tmp, 
         'prefix');
 
     # Create some target files inside the tmp directory.
@@ -297,12 +289,12 @@ class TestProject(unittest.TestCase):
     # Add another verification key (should expect exception.)
     delegation_key_path = os.path.join(keystore_path, 'snapshot_key.pub')
     delegation_key = \
-      developer_tool.import_rsa_publickey_from_file(delegation_key_path)
+      developer_tool.import_ed25519_publickey_from_file(delegation_key_path)
 
     # Add a subdelegation.
     subdelegation_key_path = os.path.join(keystore_path, 'timestamp_key.pub')
     subdelegation_key = \
-        developer_tool.import_rsa_publickey_from_file(subdelegation_key_path)
+        developer_tool.import_ed25519_publickey_from_file(subdelegation_key_path)
     
     # Add a delegation.
     project.delegate('delegation', [delegation_key], [])
@@ -322,13 +314,13 @@ class TestProject(unittest.TestCase):
 
     delegation_private_key_path = os.path.join(keystore_path, 'snapshot_key')
     delegation_private_key = \
-        developer_tool.import_rsa_privatekey_from_file(delegation_private_key_path,
+        developer_tool.import_ed25519_privatekey_from_file(delegation_private_key_path,
             'password')
 
     subdelegation_private_key_path =  \
         os.path.join(keystore_path, 'timestamp_key')
     subdelegation_private_key = \
-        developer_tool.import_rsa_privatekey_from_file(subdelegation_private_key_path,
+        developer_tool.import_ed25519_privatekey_from_file(subdelegation_private_key_path,
             'password')
 
     # Test partial write.
@@ -369,11 +361,11 @@ class TestProject(unittest.TestCase):
     self.assertEqual(new_delegations, delegations_backup)
     self.assertEqual(project.layout_type, layout_type_backup)
     self.assertEqual(project.keys, keys_backup)
+    
     self.assertEqual(project('delegation').keys, delegation_keys_backup)
+    
     self.assertEqual(project._prefix, prefix_backup)
     self.assertEqual(project._project_name, name_backup)
-
-    
 
     roleinfo = tuf.roledb.get_roleinfo(project._project_name)
 
@@ -383,11 +375,6 @@ class TestProject(unittest.TestCase):
 
     # Load_signing_keys.
     project('delegation').load_signing_key(delegation_private_key)
-
-    project.status()
-
-    project('delegation')('subdelegation').load_signing_key(
-        subdelegation_private_key)
 
     project.status()
 

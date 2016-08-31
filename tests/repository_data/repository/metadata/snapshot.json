@@ -1,22 +1,26 @@
 {
  "signatures": [
   {
-   "keyid": "5cf100388585b33a11b42e11bb008350c2afc508f9aff248a1dc49cc787c1eb7",
-   "method": "RSASSA-PSS",
-   "sig": "d3c4b800f108f80e053eda38ae9ba40830970e6e85e01421c4010b43e8d316835834cf2a0a456d6cbc25f1e4cda67978f31b5bc403aed663f41684a15ff90dede5cb57672a34c212d8b7e6e5834c77a43a7ae99a452452824d63e4503543e3d6794a42d04ed8a3607e920b6d562c45736a9b85b4e2f1e4433cb2667d0ced05215ba74018a47ebc0bea7c86f6385d78175ed0d8b4bc41b86c3c4187aeb6a424dba4c7fdb743b006dca30f94cb7f67d8952fbbb5ef7f3a8c0d1922eea91614aa25b8af9ccd85768f2931fff75c59252139d452ec67bee10c84f80ea0dcb090771ea0a14a1dbbc1c56e2a055e45fb08f8b16e13647430a38a11bd55666b5c6eec50"
+   "keyid": "182216b8800c50ddf000043b31ddf90d815c754ab4e0b31a5952a839b371bed9",
+   "method": "ed25519",
+   "sig": "1f81170dfee2f170f6814cb2f909f0ad0a283eb3f8b7924f41d14ea81efab2c43491aaedce30338fce483fcad32ba0bde729e9b6b44888c99401ee04a5e43302"
   }
  ],
  "signed": {
   "_type": "Snapshot",
   "expires": "2030-01-01T00:00:00Z",
   "meta": {
+   "role1.json": {
+    "version": 1
+   },
    "root.json": {
+    "hashes": {
+     "sha256": "9d0ed7fce4914cd97997c03def8c94b0aeb10aebc383e0d747a8e8257a84c8ff"
+    },
+    "length": 3329,
     "version": 1
    },
    "targets.json": {
-    "version": 1
-   },
-   "targets/role1.json": {
     "version": 1
    }
   },

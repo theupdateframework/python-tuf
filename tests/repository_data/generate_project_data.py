@@ -76,8 +76,7 @@ if not options.dry_run:
     file_object.write('This is role1\'s target file.')
 
 
-project = create_new_project("test-flat", 'project/test-flat', 'prefix', 
-    'project/targets')
+project = create_new_project("test-flat", 'project/test-flat', 'prefix', 'project/targets')
 
 # Add target files to the top-level projects role.  These target files should
 # already exist.

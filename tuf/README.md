@@ -291,7 +291,7 @@ and listed in `targets.json` metadata.
 #### Add Target Files ####
 
 The repository maintainer adds target files to roles (e.g., `targets`,
-`targets/unclaimed`) by specifying target paths.  Files at these target paths
+`unclaimed`) by specifying target paths.  Files at these target paths
 must exist before the repository tool can generate and add their (hash(es),
 length, filepath) to metadata.
 
@@ -316,8 +316,8 @@ metadata.
 >>> import os
 
 # Load the repository created in the previous section.  This repository so far
-# contains metadata for the top-level roles, but no targets are yet listed in
-# the metadata.
+# contains metadata for the top-level roles, but no target paths are yet listed
+# in targets metadata.
 >>> repository = load_repository("/path/to/repository/")
 
 # get_filepaths_in_directory() returns a list of file paths in a directory.  It can also return
@@ -325,16 +325,18 @@ metadata.
 >>> list_of_targets = repository.get_filepaths_in_directory("/path/to/repository/targets/",
                                                         recursive_walk=False, followlinks=True) 
 
-# Add the list of target paths to the metadata of the Targets role.  Any target file paths
-# that may already exist are NOT replaced.  add_targets() does not create or move
-# target files on the file system.  Any target paths added to a role must be
-# relative to the targets directory, otherwise an exception is raised.
+# Add the list of target paths to the metadata of the top-level Targets role.
+# Any target file paths that might already exist are NOT replaced.
+# add_targets() does not create or move target files on the file system.  Any
+# target paths added to a role must be relative to the targets directory,
+# otherwise an exception is raised.
 >>> repository.targets.add_targets(list_of_targets)
 
-# Individual target files may also be added to roles, including custom data about the target.
-# In the example below, file permissions of the target (octal number specifying file
-# access for owner, group, others (e.g., 0755) is added alongside the default fileinfo.
-# All target objects in metadata include the target's filepath, hash, and length.
+# Individual target files may also be added to roles, including custom data
+# about the target.  In the example below, file permissions of the target
+# (octal number specifying file access for owner, group, others (e.g., 0755) is
+# added alongside the default fileinfo.  All target objects in metadata include
+# the target's filepath, hash, and length.
 >>> target3_filepath = "/path/to/repository/targets/file3.txt"
 >>> octal_file_permissions = oct(os.stat(target3_filepath).st_mode)[4:]
 >>> custom_file_permissions = {'file_permissions': octal_file_permissions}
@@ -348,8 +350,8 @@ metadata.  `snapshot.json` keys must be loaded and its metadata signed because
 `timestamp.json` role must also be signed.
 
 ```Python
-# The private key of the updated targets metadata must be loaded before it can be signed and
-# written (Note the load_repository() call above).
+# The private key of the updated targets metadata must be loaded before it can
+# be signed and written (Note the load_repository() call above).
 >>> private_targets_key =  import_rsa_privatekey_from_file("/path/to/targets_key")
 Enter a password for the encrypted RSA key:
 
@@ -365,7 +367,8 @@ Enter a password for the encrypted RSA key:
 Enter a password for the encrypted RSA key:
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 
-# Generate new versions of all the top-level metadata.
+# Generate new versions of the modified top-level metadata (targets, snapshot,
+# and timestamp).
 >>> repository.write()
 ```
 
@@ -377,27 +380,30 @@ new metadata to disk.
 ```python
 # Continuing from the previous section . . .
 
-# Remove a target file listed in the "targets" metadata.  The target file is not actually deleted
-# from the file system.
+# Remove a target file listed in the "targets" metadata.  The target file is
+# not actually deleted from the file system.
 >>> repository.targets.remove_target("/path/to/repository/targets/file3.txt")
 
-# repository.write() creates any new metadata files, updates those that have changed, and any that
-# need updating to make a new "snapshot" (new snapshot.json and timestamp.json).
+# repository.write() creates any new metadata files, updates those that have
+# changed, and any that need updating to make a new "snapshot" (new
+# snapshot.json and timestamp.json).
 >>> repository.write()
 ```
 
 ### Delegations ###
-All of the target files available on the repository created so far have been added to one role.
-But, what if multiple developers are responsible for the files of a project?  What if
-responsiblity separation is desired?  Performing a delegation, where one parent role delegates
-trust to a child, is an option for integrators that require custom roles in addition to the
-top-level roles required by default.
+All of the target files available on the repository created so far have been
+added to one role.  But, what if multiple developers are responsible for the
+files of a project?  What if responsiblity separation is desired?  Performing a
+delegation, where one parent role delegates trust of some paths to another
+role, is an option for integrators that require custom roles in addition to the
+top-level roles available by default.
 
-In the next sub-section, a `targets/unclaimed` child role is delegated from the top-level `targets` role.
-The `targets` role specifies the delegated role's public keys, the paths it is trusted to provide, and
-its role name.  Futhermore, the example below demonstrates a nested delegation from `targets/unclaimed`
-to `targets/unclaimed/django`.  Once a parent role has delegated trust, child roles may add targets
-and generate signed metadata, according to the keys and paths allowed by the parent.
+In the next sub-section, a delegated `unclaimed` role is delegated from the
+top-level `targets` role.  The `targets` role specifies the delegated role's
+public keys, the paths it is trusted to provide, and its role name.
+Futhermore, the example below demonstrates a nested delegation from `unclaimed`
+to `django`.  Once a parent role has delegated trust, delegated roles may add
+targets and generate signed metadata.
 
 
 ```python
@@ -407,14 +413,14 @@ and generate signed metadata, according to the keys and paths allowed by the par
 >>> generate_and_write_rsa_keypair("/path/to/unclaimed_key", bits=2048, password="password")
 >>> public_unclaimed_key = import_rsa_publickey_from_file("/path/to/unclaimed_key.pub")
 
-# Make a delegation from "targets" to "targets/unclaimed", initially containing zero targets.
-# The delegated role’s full name is not expected.
+# Make a delegation from "targets" to "unclaimed", initially containing zero
+# targets.
 # delegate(rolename, list_of_public_keys, list_of_file_paths, threshold,
 #          restricted_paths, path_hash_prefixes)
 >>> repository.targets.delegate("unclaimed", [public_unclaimed_key], [])
 
-# Load the private key of "targets/unclaimed" so that signatures are later added and valid
-# metadata is created.
+# Load the private key of "unclaimed" so that signatures are later added and
+# valid metadata is created.
 >>> private_unclaimed_key = import_rsa_privatekey_from_file("/path/to/unclaimed_key")
 Enter a password for the encrypted RSA key:
 
@@ -423,17 +429,17 @@ Enter a password for the encrypted RSA key:
 # Update an attribute of the unclaimed role.
 >>> repository.targets("unclaimed").version = 2
 
-# Delegations may also be nested.  Create the delegated role "targets/unclaimed/django",
-# where it initially contains zero targets and future targets are restricted to a
-# particular directory.
+# Delegations may also be nested.  Create the delegated role "django"
+# (delegated from "unclaimed"), where it initially contains zero targets and
+# future targets are restricted to a particular directory.
 >>> repository.targets("unclaimed").delegate("django", [public_unclaimed_key], [],
                                          restricted_paths=["/path/to/repository/targets/django/"])
->>> repository.targets("unclaimed")("django").load_signing_key(private_unclaimed_key)
->>> repository.targets("unclaimed")("django").add_target("/path/to/repository/targets/django/file4.txt")
->>> repository.targets("unclaimed")("django").compressions = ["gz"]
+>>> repository.targets("django").load_signing_key(private_unclaimed_key)
+>>> repository.targets("django").add_target("/path/to/repository/targets/django/file4.txt")
+>>> repository.targets("django").compressions = ["gz"]
 
-#  Write the metadata of "targets/unclaimed", "targets/unclaimed/django", root, targets, snapshot,
-# and timestamp.
+#  Write the metadata of "unclaimed", "django", "root", "targets", "snapshot,
+# and "timestamp".
 >>> repository.write()
 ```
 
@@ -444,7 +450,7 @@ Enter a password for the encrypted RSA key:
 # Create a delegated role that will be revoked in the next step.
 >>> repository.targets('unclaimed').delegate("flask", [public_unclaimed_key], [])
 
-# Revoke "targets/unclaimed/flask" and write the metadata of all remaining roles.
+# Revoke "flask" and write the metadata of all remaining roles.
 >>> repository.targets('unclaimed').revoke("flask")
 >>> repository.write()
 ```
@@ -454,14 +460,14 @@ Enter a password for the encrypted RSA key:
 In summary, the five steps a repository maintainer follows to create a basic TUF
 repository are:
 
-1.  Generate repository directory that contains TUF metadata and the target files.
+1.  Generate a repository directory that contains TUF metadata and the target files.
 2.  Create top-level roles (`root.json`, `snapshot.json`, `targets.json`, and `timestamp.json`.) 
 3.  Add target files to the `targets` role.
 4.  Optionally, create delegated roles to distribute target files.
 5.  Write the changes.
 
 The repository tool saves repository changes to a `metadata.staged` directory.
-Repository maintainers may push the final changes to the "live" repository by
+Repository maintainers may push final changes to the "live" repository by
 copying the staged directory to its destination. 
 ```Bash
 # Copy the staged metadata directory changes to the live repository.
@@ -480,13 +486,15 @@ is availabe to integrators that rather not deal with the answers to these
 questions.
 
 A large number of target files may be distributed to multiple hashed bins with
-`delegate_hashed_bins()`.  The metadata files of delegated roles will be nearly equal in size
-(i.e., target file paths are uniformly distributed by calculating the target filepath's
-digest and determining which bin it should reside in.)  The updater client will use
-"lazy bin walk" to find a target file's hashed bin destination.  This method is intended
-for repositories with a large number of target files, a way of easily distributing and
-managing the metadata that lists the targets, and minimizing the number of metadata files
-(and size) downloaded by the client.
+`delegate_hashed_bins()`.  The metadata files of delegated roles will be nearly
+equal in size (i.e., target file paths are uniformly distributed by calculating
+the target filepath's digest and determining which bin it should reside in.)
+The updater client will use "lazy bin walk" (visit and download the minimum
+metadata required to find a target) to find a target file's hashed bin
+destination.  This method is intended for repositories with a large number of
+target files, a way of easily distributing and managing the metadata that lists
+the targets, and minimizing the number of metadata files (and size) downloaded
+by the client.
 
 The `delegate_hashed_bins()` method has the following form:
 ```Python
@@ -500,11 +508,11 @@ restricted paths for some role is provided next.
 # Get a list of target paths for the hashed bins.
 >>> targets = \
   repository.get_filepaths_in_directory('/path/to/repository/targets/django', recursive_walk=True)
->>> repository.targets('unclaimed')('django').delegate_hashed_bins(targets, [public_unclaimed_key], 32)
+>>> repository.targets('django').delegate_hashed_bins(targets, [public_unclaimed_key], 32)
 
-# delegated_hashed_bins() only assigns the public key(s) of the hashed bins, so the private keys may
-# be manually loaded as follows:
->>> for delegation in repository.targets('unclaimed')('django').delegations:
+# delegated_hashed_bins() only assigns the public key(s) of the hashed bins, so
+# the private keys may be manually loaded as follows:
+>>> for delegation in repository.targets('django').delegations:
 ...   delegation.load_signing_key(private_unclaimed_key)
 
 # Delegated roles can be restricted to particular paths with add_restricted_paths().
@@ -520,13 +528,14 @@ by multiple maintainers and software authors uploading their packages, increasin
 the likelihood that a client downloading version X of a release unexpectedly
 requests the target files of a version Y just released.
 
-To guarantee consistency of metadata and target files, a repository may optionally
-support multiple versions of `snapshot.json` simultaneously, where a client with
-version 1 of `snapshot.json` can download `target_file.zip` and another client with
-version 2 of `snapshot.json` can also download a different `target_file.zip` (same file
-name, but different file digest.)  If the `consistent_snapshot` parameter of write() is `True`,
-metadata and target file names on the file system have their digests prepended (note: target file
-names specified in metadata do not have digests included in their names.)
+To guarantee consistency of metadata and target files, a repository may
+optionally support multiple versions of `snapshot.json` simultaneously, where a
+client with version 1 of `snapshot.json` can download `target_file.zip` and
+another client with version 2 of `snapshot.json` can also download a different
+`target_file.zip` (same file name, but different file digest.)  If the
+`consistent_snapshot` parameter of write() is `True`, metadata and target file
+names on the file system have their digests prepended (note: target file names
+specified in metadata do not contain digests in their names.)
 
 The repository maintainer is responsible for the duration of multiple versions
 of metadata and target files available on a repository.  Generating consistent

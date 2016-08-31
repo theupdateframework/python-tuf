@@ -1,6 +1,6 @@
 # Metadata
 
-Metadata files provide information that clients can use to make update decisions. Different metadata files provide different information. The various metadata files are signed by different roles as are indicated by the root role. The concept of roles allows TUF to only trust information that a role is trusted to provide.
+Metadata files provide information that clients can use to make update decisions. Different metadata files provide different information. The various metadata files are signed by different keys as are indicated by the root role. The concept of roles allows TUF to only trust information that a role is trusted to provide.
 
 The signed metadata files always include the time they were created and their expiration dates. This ensures that outdated metadata will be detected and that clients can refuse to accept metadata older than that which they've already seen.
 

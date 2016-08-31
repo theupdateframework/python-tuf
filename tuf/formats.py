@@ -220,16 +220,18 @@ KEYTYPE_SCHEMA = SCHEMA.OneOf(
 KEY_SCHEMA = SCHEMA.Object(
   object_name = 'KEY_SCHEMA',
   keytype = SCHEMA.AnyString(),
-  keyval = KEYVAL_SCHEMA)
+  keyval = KEYVAL_SCHEMA,
+  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA))
 
-# A TUF key object.  This schema simplifies validation of keys that may be
-# one of the supported key types.
-# Supported key types: 'rsa', 'ed25519'.
+# A TUF key object.  This schema simplifies validation of keys that may be one
+# of the supported key types.  Supported key types: 'rsa', 'ed25519'.
 ANYKEY_SCHEMA = SCHEMA.Object(
   object_name = 'ANYKEY_SCHEMA',
   keytype = KEYTYPE_SCHEMA,
   keyid = KEYID_SCHEMA,
-  keyval = KEYVAL_SCHEMA)
+  keyid_hash_algorithms = SCHEMA.Optional(HASHALGORITHMS_SCHEMA),
+  keyval = KEYVAL_SCHEMA,
+  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA))
 
 # A list of TUF key objects.
 ANYKEYLIST_SCHEMA = SCHEMA.ListOf(ANYKEY_SCHEMA)
@@ -239,6 +241,7 @@ RSAKEY_SCHEMA = SCHEMA.Object(
   object_name = 'RSAKEY_SCHEMA',
   keytype = SCHEMA.String('rsa'),
   keyid = KEYID_SCHEMA,
+  keyid_hash_algorithms = SCHEMA.Optional(HASHALGORITHMS_SCHEMA),
   keyval = KEYVAL_SCHEMA)
 
 # An ED25519 raw public key, which must be 32 bytes.
@@ -260,6 +263,7 @@ ED25519KEY_SCHEMA = SCHEMA.Object(
   object_name = 'ED25519KEY_SCHEMA',
   keytype = SCHEMA.String('ed25519'),
   keyid = KEYID_SCHEMA,
+  keyid_hash_algorithms = SCHEMA.Optional(HASHALGORITHMS_SCHEMA),
   keyval = KEYVAL_SCHEMA)
 
 # Information about target files, like file length and file hash(es).  This
@@ -269,6 +273,7 @@ FILEINFO_SCHEMA = SCHEMA.Object(
   object_name = 'FILEINFO_SCHEMA',
   length = LENGTH_SCHEMA,
   hashes = HASHDICT_SCHEMA,
+  version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
   custom = SCHEMA.Optional(SCHEMA.Object()))
 
 # Version information specified in "snapshot.json" for each role available on
@@ -281,12 +286,12 @@ VERSIONINFO_SCHEMA = SCHEMA.Object(
   object_name = 'VERSIONINFO_SCHEMA',
   version = METADATAVERSION_SCHEMA)
 
-# A dict holding the version information for a particular metadata role.  The
-# dict keys hold the relative file paths, and the dict values the corresponding
-# version numbers.
-VERSIONDICT_SCHEMA = SCHEMA.DictOf(
+# A dict holding the version or file information for a particular metadata
+# role.  The dict keys hold the relative file paths, and the dict values the
+# corresponding version numbers and/or file information.
+FILEINFODICT_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
-  value_schema = VERSIONINFO_SCHEMA)
+  value_schema = SCHEMA.OneOf([VERSIONINFO_SCHEMA, FILEINFO_SCHEMA]))
 
 # A dict holding the information for a particular target / file.  The dict keys
 # hold the relative file paths, and the dict values the corresponding file
@@ -341,7 +346,8 @@ SIGNABLE_SCHEMA = SCHEMA.Object(
   signed = SCHEMA.Any(),
   signatures = SCHEMA.ListOf(SIGNATURE_SCHEMA))
 
-# A dict where the dict keys hold a keyid and the dict values a key object.
+# A dictionary where the dict keys hold a keyid and the dict values a key
+# object.
 KEYDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = KEYID_SCHEMA,
   value_schema = KEY_SCHEMA)
@@ -411,6 +417,14 @@ ROLE_SCHEMA = SCHEMA.Object(
 ROLEDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = ROLENAME_SCHEMA,
   value_schema = ROLE_SCHEMA)
+
+# A dictionary of ROLEDICT, where dictionary keys can be repository names, and
+# dictionary values containing information for each role available on the
+# repository (corresponding to the repository belonging to named repository in
+# the dictionary key)
+ROLEDICTDB_SCHEMA = SCHEMA.DictOf(
+  key_schema = NAME_SCHEMA,
+  value_schema = ROLEDICT_SCHEMA)
 
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
@@ -498,7 +512,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Snapshot'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
-  meta = VERSIONDICT_SCHEMA)
+  meta = FILEINFODICT_SCHEMA)
 
 # Timestamp role: indicates the latest version of the snapshot file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
@@ -506,7 +520,7 @@ TIMESTAMP_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('Timestamp'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
-  meta = VERSIONDICT_SCHEMA)
+  meta = FILEDICT_SCHEMA)
 
 # project.cfg file: stores information about the project in a json dictionary
 PROJECT_CFG_SCHEMA = SCHEMA.Object(
@@ -594,11 +608,11 @@ class MetaFile(object):
 
 
 class TimestampFile(MetaFile):
-  def __init__(self, version, expires, versiondict):
+  def __init__(self, version, expires, filedict):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
-    self.info['meta'] = versiondict
+    self.info['meta'] = filedict
 
 
   @staticmethod
@@ -609,17 +623,17 @@ class TimestampFile(MetaFile):
 
     version = object['version']
     expires = object['expires']
-    versiondict = object['meta']
+    filedict = object['meta']
     
-    return TimestampFile(version, expires, versiondict)
+    return TimestampFile(version, expires, filedict)
     
     
   @staticmethod
-  def make_metadata(version, expiration_date, versiondict):
+  def make_metadata(version, expiration_date, filedict):
     result = {'_type' : 'Timestamp'}
     result['version'] = version 
     result['expires'] = expiration_date
-    result['meta'] = versiondict
+    result['meta'] = filedict
 
     # Is 'result' a Timestamp metadata file?
     # Raise 'tuf.FormatError' if not.
@@ -1001,7 +1015,7 @@ def make_signable(object):
 
 
 
-def make_fileinfo(length, hashes, custom=None):
+def make_fileinfo(length, hashes, version=None, custom=None):
   """
   <Purpose>
     Create a dictionary conformant to 'FILEINFO_SCHEMA'.
@@ -1014,6 +1028,9 @@ def make_fileinfo(length, hashes, custom=None):
     hashes:
       A dict of hashes in 'HASHDICT_SCHEMA' format, which has the form:
        {'sha256': 123df8a9b12, 'sha512': 324324dfc121, ...}
+
+    version:
+      An optional integer representing the version of the file.
 
     custom:
       An optional object providing additional information about the file.
@@ -1033,6 +1050,10 @@ def make_fileinfo(length, hashes, custom=None):
   """
 
   fileinfo = {'length' : length, 'hashes' : hashes}
+
+  if version is not None:
+    fileinfo['version'] = version 
+
   if custom is not None:
     fileinfo['custom'] = custom
 
@@ -1069,7 +1090,7 @@ def make_versioninfo(version_number):
     information of a metadata role.
   """
 
-  versioninfo = {'version' : version_number}
+  versioninfo = {'version': version_number}
 
   # Raise 'tuf.FormatError' if 'versioninfo' is improperly formatted.
   try: 

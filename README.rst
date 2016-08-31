@@ -36,7 +36,7 @@ Three major classes of software update systems are:
 -  **Library package managers** such as those offered by many
    programming languages for installing additional libraries. These are
    systems such as Python's pip/easy_install + PyPI, Perl's CPAN,
-   Ruby's RubyGems, and PHP's PEAR.
+   Ruby's RubyGems, and PHP's Composer.
 
 -  **System package managers** used by operating systems to update and
    install all of the software on a client system. Debian's APT, Red
@@ -70,7 +70,7 @@ that they can do.
 
 TUF is designed to perform the first two steps of the above update procedure,
 while guarding against the majority of attacks that malicious actors have at
-their disposable; especially those attacks that are overlooked by security-conscious
+their disposal; especially those attacks that are overlooked by security-conscious
 developers.
  
 
@@ -179,7 +179,8 @@ that need to generate TUF repository files, such as metadata,
 cryptographic keys, and signatures. Whereas the minimal install can only
 verify ed25519 signatures and is intended for sofware updater clients,
 ``tuf[tools]`` provides repository maintainers secure ed25519 key and
-signature generation with PyNaCl / libsodium.
+signature verification with `PyNaCl <https://pynacl.readthedocs.io/en/latest/>`_,
+a Python binding to the Networking and Cryptography (NaCl) library.
 
 TUF tools also enable general-purpose cryptography with PyCrypto
 and/or PyCA's Cryptography.  Software updaters that want to support
@@ -209,9 +210,9 @@ section <https://virtualenv.pypa.io/en/latest/installation.html>`_,
 and instructions for installing locally from source are provided here:
 ::
 
-    $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.11.6.tar.gz
-    $ tar xvfz virtualenv-1.11.6.tar.gz
-    $ cd virtualenv-1.11.6
+    $ curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-15.0.3.tar.gz
+    $ tar xvfz virtualenv-15.0.3.tar.gz
+    $ cd virtualenv-15.0.3
     $ python virtualenv.py myVE
 
 
@@ -224,6 +225,12 @@ libraries with apt (Advanced Package Tool.)
 
     $ apt-get install python-dev
     $ apt-get install libffi-dev
+
+OS X users can install these header libraries with the `Homebrew <http://brew.sh/>`_ package manager.
+::
+
+    $ brew install python
+    $ brew install libffi
 
 Installation of minimal, optional, development, and testing requirements
 can then be accomplished with one command:

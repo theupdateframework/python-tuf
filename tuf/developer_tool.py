@@ -556,7 +556,7 @@ def create_new_project(project_name, metadata_directory,
 
   <Arguments>
     project_name:
-      The name of the project as it should be called in upstream. For example
+      The name of the project as it should be called in upstream. For example,
       targets/unclaimed/django should have its project_name set to "django"
 
     metadata_directory:
@@ -800,7 +800,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
     stored in a libtuf.Repository object.
 
   <Returns>
-    A  tuf.developer_tool.Project object.
+    A tuf.developer_tool.Project object.
   """
   
   # Does 'repository_directory' have the correct format?
@@ -818,13 +818,13 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   project_directory = os.path.abspath(project_directory)
   
   # Load the cfg file and the project.
-  config_filename = os.path.join(project_directory,PROJECT_FILENAME)
+  config_filename = os.path.join(project_directory, PROJECT_FILENAME)
   
   try:
     project_configuration = tuf.util.load_json_file(config_filename)
     tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration) 
   
-  except (OSError, IOError) as e:
+  except (OSError, IOError, tuf.FormatError):
     raise
  
   targets_directory = os.path.join(project_directory,
@@ -833,6 +833,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   if project_configuration['layout_type'] == 'flat':
     project_directory, relative_junk = os.path.split(project_directory)
     targets_directory = project_configuration['targets_location']
+    
     if new_targets_location is not None:
       targets_directory = new_targets_location
 
@@ -840,6 +841,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
       project_configuration['metadata_location'])
 
   new_prefix = None
+  
   if prefix != '':
     new_prefix = prefix
     
@@ -858,8 +860,9 @@ def load_project(project_directory, prefix='', new_targets_location=None):
 
   # Traverse the public keys and add them to the project.
   keydict = project_configuration['public_keys']
+  
   for keyid in keydict:
-    key = format_metadata_to_key(keydict[keyid]) 
+    key, junk = tuf.keys.format_metadata_to_key(keydict[keyid]) 
     project.add_verification_key(key)
  
   # Load the project's metadata.
@@ -883,17 +886,16 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   roleinfo['delegations'] = targets_metadata['delegations']
   roleinfo['partial_loaded'] = False
   
-
   # Check if the loaded metadata was partially written and update the 
   # flag in 'roledb.py'.
   if _metadata_is_partially_loaded(project_name, signable, roleinfo):
     roleinfo['partial_loaded'] = True
 
-  tuf.roledb.update_roleinfo(project_name, roleinfo)
+  tuf.roledb.update_roleinfo(project_name, roleinfo, mark_role_as_dirty=False)
 
   
   for key_metadata in targets_metadata['delegations']['keys'].values():
-    key_object = tuf.keys.format_metadata_to_key(key_metadata)
+    key_object, junk = tuf.keys.format_metadata_to_key(key_metadata)
     tuf.keydb.add_key(key_object)
 
   for role in targets_metadata['delegations']['roles']:
@@ -905,98 +907,94 @@ def load_project(project_directory, prefix='', new_targets_location=None):
                 }
     tuf.roledb.add_role(rolename, roleinfo)
                                                         
-  # Load delegated targets metadata.
-  # Walk the 'targets/' directory and generate the fileinfo of all the files
-  # listed.  This information is stored in the 'meta' field of the release
-  # metadata object.
+  # Load the delegated metadata and generate their fileinfo. 
   targets_objects = {}
-  loaded_metadata = []
+  loaded_metadata = [project_name]
   targets_objects[project_name] = project
   metadata_directory = os.path.join(project_directory, metadata_directory)
-  targets_metadata_directory = os.path.join(metadata_directory, project_name)
-  if os.path.exists(targets_metadata_directory) and \
-                    os.path.isdir(targets_metadata_directory):
-    for root, directories, files in os.walk(targets_metadata_directory):
+ 
+  if os.path.exists(metadata_directory) and \
+                    os.path.isdir(metadata_directory):
+    for metadata_role in os.listdir(metadata_directory):
+      metadata_path = os.path.join(metadata_directory, metadata_role)
+      metadata_name = \
+        metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+
+      # Strip the extension.  The roledb does not include an appended '.json'
+      # extension for each role.
+      if metadata_name.endswith(METADATA_EXTENSION): 
+        extension_length = len(METADATA_EXTENSION)
+        metadata_name = metadata_name[:-extension_length]
       
-      # 'files' here is a list of target file names.
-      for basename in files:
-        metadata_path = os.path.join(root, basename)
-        metadata_name = \
-          metadata_path[len(metadata_directory):].lstrip(os.path.sep)
+      else:
+        continue
 
-        # Strip the extension.  The roledb does not include an appended '.json'
-        # extensions for each role.
-        if metadata_name.endswith(METADATA_EXTENSION): 
-          extension_length = len(METADATA_EXTENSION)
-          metadata_name = metadata_name[:-extension_length]
-        
-        else:
-          continue
+      if metadata_name in loaded_metadata:
+        continue
 
-        signable = None
-        try:
-          signable = tuf.util.load_json_file(metadata_path)
-        
-        except (ValueError, IOError, tuf.Error):
-          raise
-        
-        # Strip the prefix from the local working copy, it will be added again
-        # when the targets metadata is written to disk.
-        metadata_object = signable['signed']
-        metadata_object = _strip_prefix_from_targets_metadata(metadata_object,
-                                             prefix) 
-  
-        roleinfo = tuf.roledb.get_roleinfo(metadata_name)
-        roleinfo['signatures'].extend(signable['signatures'])
-        roleinfo['version'] = metadata_object['version']
-        roleinfo['expires'] = metadata_object['expires']
-        roleinfo['paths'] = {}
-        for filepath, fileinfo in six.iteritems(metadata_object['targets']):
-          roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
-        roleinfo['delegations'] = metadata_object['delegations']
-        roleinfo['partial_loaded'] = False
+      signable = None
+      try:
+        signable = tuf.util.load_json_file(metadata_path)
       
-        if os.path.exists(metadata_path+'.gz'):
-          roleinfo['compressions'].append('gz')
+      except (ValueError, IOError, tuf.Error):
+        raise
+      
+      # Strip the prefix from the local working copy, it will be added again
+      # when the targets metadata is written to disk.
+      metadata_object = signable['signed']
+      metadata_object = _strip_prefix_from_targets_metadata(metadata_object,
+                                           prefix) 
 
-        # If the metadata was partially loaded, update the roleinfo flag.
-        if _metadata_is_partially_loaded(metadata_name, signable, roleinfo):
-          roleinfo['partial_loaded'] = True
+      roleinfo = tuf.roledb.get_roleinfo(metadata_name)
+      roleinfo['signatures'].extend(signable['signatures'])
+      roleinfo['version'] = metadata_object['version']
+      roleinfo['expires'] = metadata_object['expires']
+      roleinfo['paths'] = {}
+      
+      for filepath, fileinfo in six.iteritems(metadata_object['targets']):
+        roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
+      roleinfo['delegations'] = metadata_object['delegations']
+      roleinfo['partial_loaded'] = False
+    
+      if os.path.exists(metadata_path+'.gz'):
+        roleinfo['compressions'].append('gz')
+
+      # If the metadata was partially loaded, update the roleinfo flag.
+      if _metadata_is_partially_loaded(metadata_name, signable, roleinfo):
+        roleinfo['partial_loaded'] = True
 
 
-        tuf.roledb.update_roleinfo(metadata_name, roleinfo)
+      tuf.roledb.update_roleinfo(metadata_name, roleinfo, mark_role_as_dirty=False)
 
-        # Append to list of elements to avoid reloading repeated metadata.
-        loaded_metadata.append(metadata_name)
+      # Append to list of elements to avoid reloading repeated metadata.
+      loaded_metadata.append(metadata_name)
 
-        # Add the delegation.
-        new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
-        targets_object = \
-          targets_objects[tuf.roledb.get_parent_rolename(metadata_name)]
-        targets_objects[metadata_name] = new_targets_object
+      # Generate the Targets objects of the delegated roles.
+      new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
+      targets_object = targets_objects[project_name] 
+     
+      targets_object._delegated_roles[metadata_name] = new_targets_object
+      
+      # Add the keys specified in the delegations field of the Targets role.
+      for key_metadata in metadata_object['delegations']['keys'].values():
+        key_object, junk = tuf.keys.format_metadata_to_key(key_metadata)
         
-        targets_object._delegated_roles[(os.path.basename(metadata_name))] = \
-                              new_targets_object
-
-        # Add the keys specified in the delegations field of the Targets role.
-        for key_metadata in metadata_object['delegations']['keys'].values():
-          key_object = tuf.keys.format_metadata_to_key(key_metadata)
-          try: 
-            tuf.keydb.add_key(key_object)
-          
-          except tuf.KeyAlreadyExistsError:
-            pass
+        try: 
+          tuf.keydb.add_key(key_object)
         
-        for role in metadata_object['delegations']['roles']:
-          rolename = role['name'] 
-          roleinfo = {'name': role['name'], 'keyids': role['keyids'],
-                      'threshold': role['threshold'],
-                      'compressions': [''], 'signing_keyids': [],
-                      'signatures': [],
-                      'partial_loaded': False,
-                      'delegations': {'keys': {},
-                                      'roles': []}}
-          tuf.roledb.add_role(rolename, roleinfo)
+        except tuf.KeyAlreadyExistsError:
+          pass
+      
+      for role in metadata_object['delegations']['roles']:
+        rolename = role['name'] 
+        roleinfo = {'name': role['name'], 'keyids': role['keyids'],
+                    'threshold': role['threshold'],
+                    'compressions': [''], 'signing_keyids': [],
+                    'signatures': [],
+                    'partial_loaded': False,
+                    'delegations': {'keys': {},
+                                    'roles': []}}
+        tuf.roledb.add_role(rolename, roleinfo)
 
   if new_prefix:
     project._prefix = new_prefix
