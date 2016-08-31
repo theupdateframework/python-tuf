@@ -261,26 +261,36 @@ class TestKeys(unittest.TestCase):
 
   
   def test_create_rsa_encrypted_pem(self):
-    # Test valid arguments.
-    private = self.rsakey_dict['keyval']['private']
-    passphrase = 'secret'
-    encrypted_pem = KEYS.create_rsa_encrypted_pem(private, passphrase)
-    self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
-
-    # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
-                      8, passphrase)
+    default_rsa_library = KEYS._RSA_CRYPTO_LIBRARY
+    for rsa_crypto_library in ['pycrypto', 'pyca-cryptography']:
+      KEYS._RSA_CRYPTO_LIBRARY = rsa_crypto_library 
     
-    self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
-                      private, 8)
+      # Test valid arguments.
+      private = self.rsakey_dict['keyval']['private']
+      passphrase = 'secret'
+      encrypted_pem = KEYS.create_rsa_encrypted_pem(private, passphrase)
+      self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
 
-    # Test for missing required library.
-    KEYS._RSA_CRYPTO_LIBRARY = 'invalid'
-    self.assertRaises(tuf.UnsupportedLibraryError, KEYS.create_rsa_encrypted_pem,
-                      private, passphrase)
-    KEYS._RSA_CRYPTO_LIBRARY = 'pycrypto'
+      # Try to import the encryped PEM file.
+      rsakey = KEYS.import_rsakey_from_encrypted_pem(encrypted_pem, passphrase)
+      self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(rsakey))
+
+      # Test improperly formatted arguments.
+      self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
+                        8, passphrase)
+      
+      self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
+                        private, 8)
+
+      # Test for missing required library.
+      KEYS._RSA_CRYPTO_LIBRARY = 'invalid'
+      self.assertRaises(tuf.UnsupportedLibraryError, KEYS.create_rsa_encrypted_pem,
+                        private, passphrase)
+      KEYS._RSA_CRYPTO_LIBRARY = 'pycrypto'
   
-  
+    KEYS._RSA_CRYPTO_LIBRARY = default_rsa_library
+ 
+
   
   def test_decrypt_key(self):
     default_general_library = KEYS._GENERAL_CRYPTO_LIBRARY
