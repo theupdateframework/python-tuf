@@ -122,7 +122,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Kill the SimpleHTTPServer process.
     if cls.server_process.returncode is None:
-      logger.info('\tServer process '+str(cls.server_process.pid)+' terminated.')
+      logger.info('\tServer process ' + str(cls.server_process.pid) + ' terminated.')
       cls.server_process.kill()
 
 
@@ -176,9 +176,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                            'targets_path': 'targets',
                                            'confined_target_dirs': ['']}}
 
-    # Creating repository instance.  The test cases will use this client
+    # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_updater = updater.Updater('test_repository',
+    self.repository_name = 'test_repository'
+    self.repository_updater = updater.Updater(self.repository_name,
                                               self.repository_mirrors)
 
     # Metadata role keys are needed by the test cases to make changes to the
@@ -191,7 +192,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def tearDown(self):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-    
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True) 
 
 
 
@@ -284,55 +286,59 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Get the 'role1.json' filepath.  Manually load the role metadata, and
     # compare it against the loaded metadata by '_load_metadata_from_file()'.
     role1_filepath = \
-      os.path.join(self.client_metadata_current, 'targets', 'role1.json')
+      os.path.join(self.client_metadata_current, 'role1.json')
     role1_meta = tuf.util.load_json_file(role1_filepath)
  
     # Load the 'role1.json' file with _load_metadata_from_file, which should
     # store the loaded metadata in the 'self.repository_updater.metadata'
     # store.
     self.assertEqual(len(self.repository_updater.metadata['current']), 4)
-    self.repository_updater._load_metadata_from_file('current', 'targets/role1')
+    self.repository_updater._load_metadata_from_file('current', 'role1')
     
     # Verify that the correct number of metadata objects has been loaded
     # (i.e., only the 'root.json' file should have been loaded.
     self.assertEqual(len(self.repository_updater.metadata['current']), 5)
 
     # Verify that the content of root metadata is valid.
-    self.assertEqual(self.repository_updater.metadata['current']['targets/role1'],
+    self.assertEqual(self.repository_updater.metadata['current']['role1'],
                      role1_meta['signed'])
 
     # Test invalid metadata set argument (must be either
     # 'current' or 'previous'.)
     self.assertRaises(tuf.Error,
                       self.repository_updater._load_metadata_from_file,
-                      'bad_metadata_set', 'targets/role1')
+                      'bad_metadata_set', 'role1')
 
 
 
 
-
+  """
   def test_1__rebuild_key_and_role_db(self):    
     # Setup
-    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     root_metadata = self.repository_updater.metadata['current']['root']
     root_threshold = root_metadata['roles']['root']['threshold']
+    print('\nnumber of root keys: ' + str(len(root_metadata['keys'].keys())))
+    print('\nKeys in root metadata: ' + repr(root_metadata['keys'].keys()))
     number_of_root_keys = len(root_metadata['keys'])
 
     self.assertEqual(root_roleinfo['threshold'], root_threshold)
-    # Ensure we add 1 to the number of root keys, to include the delegated
-    # targets key.  The delegated roles of 'targets.json' are also loaded
-    # when the repository object is instantiated.
-    self.assertEqual(number_of_root_keys + 1, len(tuf.keydb._keydb_dict))
+    # Ensure we add 1 to the number of root keys (actually, the number of root
+    # keys multiplied by the number of keyid hash algorithms), to include the
+    # delegated targets key.  The delegated roles of 'targets.json' are also
+    # loaded when the repository object is instantiated.
+    print('\ndifference: ' + repr(list(set(tuf.keydb._keydb_dict[self.repository_name].keys()) - set(root_metadata['keys'].keys()))))
+    self.assertEqual(number_of_root_keys * 2 + 1, len(tuf.keydb._keydb_dict[self.repository_name]))
 
     # Test: normal case.
     self.repository_updater._rebuild_key_and_role_db()
 
-    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], root_threshold)
     # _rebuild_key_and_role_db() will only rebuild the keys and roles specified
     # in the 'root.json' file, unlike __init__().  Instantiating an updater
     # object calls both _rebuild_key_and_role_db() and _import_delegations().
-    self.assertEqual(number_of_root_keys, len(tuf.keydb._keydb_dict))
+    self.assertEqual(number_of_root_keys * 2, len(tuf.keydb._keydb_dict[self.repository_name]))
    
     # Test: properly updated roledb and keydb dicts if the Root role changes.
     root_metadata = self.repository_updater.metadata['current']['root']
@@ -341,10 +347,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     self.repository_updater._rebuild_key_and_role_db()
     
-    root_roleinfo = tuf.roledb.get_roleinfo('root')
+    root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], 8)
-    self.assertEqual(number_of_root_keys - 1, len(tuf.keydb._keydb_dict))
-
+    self.assertEqual(number_of_root_keys * 2 - 2, len(tuf.keydb._keydb_dict[self.repository_name]))
+  """
     
 
 
@@ -356,103 +362,166 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     versioninfo_dict = self.repository_updater.versioninfo
     self.assertEqual(len(versioninfo_dict), 0)
 
-    # Load the versioninfo of the top-level Root role.  This action populates
-    # the 'self.versioninfo' dictionary.
-    self.repository_updater._update_versioninfo('root.json')
+    # Load the versioninfo of the top-level Targets role.  This action
+    # populates the 'self.versioninfo' dictionary.
+    self.repository_updater._update_versioninfo('targets.json')
     self.assertEqual(len(versioninfo_dict), 1)
-    self.assertTrue(tuf.formats.VERSIONDICT_SCHEMA.matches(versioninfo_dict))
+    self.assertTrue(tuf.formats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
    
     # The Snapshot role stores the version numbers of all the roles available
     # on the repository.  Load Snapshot to extract Root's version number
     # and compare it against the one loaded by 'self.repository_updater'.
     snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
     snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
-    root_versioninfo = snapshot_signable['signed']['meta']['root.json'] 
+    targets_versioninfo = snapshot_signable['signed']['meta']['targets.json'] 
    
     # Verify that the manually loaded version number of root.json matches
     # the one loaded by the updater object.
-    self.assertTrue('root.json' in versioninfo_dict)
-    self.assertEqual(versioninfo_dict['root.json'], root_versioninfo)
+    self.assertTrue('targets.json' in versioninfo_dict)
+    self.assertEqual(versioninfo_dict['targets.json'], targets_versioninfo)
 
     # Verify that 'self.versioninfo' is incremented if another role is updated.
-    self.repository_updater._update_versioninfo('targets.json')
+    self.repository_updater._update_versioninfo('role1.json')
     self.assertEqual(len(versioninfo_dict), 2)
 
     # Verify that 'self.versioninfo' is incremented if a non-existent role is
     # requested, and has its versioninfo entry set to 'None'.
     self.repository_updater._update_versioninfo('bad_role.json')
     self.assertEqual(len(versioninfo_dict), 3)
-    self.assertEqual(versioninfo_dict['bad_role.json'], None) 
+    self.assertEqual(versioninfo_dict['bad_role.json'], None)
 
 
 
 
+  def test_1__update_fileinfo(self):
+      # Tests
+      # Verify that the 'self.fileinfo' dictionary is empty (its starts off empty
+      # and is only populated if _update_fileinfo() is called.
+      fileinfo_dict = self.repository_updater.fileinfo
+      self.assertEqual(len(fileinfo_dict), 0)
 
+      # Load the fileinfo of the top-level root role.  This populates the
+      # 'self.fileinfo' dictionary.
+      self.repository_updater._update_fileinfo('root.json')
+      self.assertEqual(len(fileinfo_dict), 1)
+      self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
+      root_filepath = os.path.join(self.client_metadata_current, 'root.json')
+      length, hashes = tuf.util.get_file_details(root_filepath)
+      root_fileinfo = tuf.formats.make_fileinfo(length, hashes) 
+      self.assertTrue('root.json' in fileinfo_dict)
+      self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
+
+      # Verify that 'self.fileinfo' is incremented if another role is updated.
+      self.repository_updater._update_fileinfo('targets.json')
+      self.assertEqual(len(fileinfo_dict), 2)
+
+      # Verify that 'self.fileinfo' is inremented if a non-existent role is
+      # requested, and has its fileinfo entry set to 'None'.
+      self.repository_updater._update_fileinfo('bad_role.json')
+      self.assertEqual(len(fileinfo_dict), 3)
+      self.assertEqual(fileinfo_dict['bad_role.json'], None)
+
+
+
+
+  def test_2__fileinfo_has_changed(self):
+      #  Verify that the method returns 'False' if file info was not changed.
+      root_filepath = os.path.join(self.client_metadata_current, 'root.json')
+      length, hashes = tuf.util.get_file_details(root_filepath)
+      root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+      self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
+                                                             root_fileinfo))
+
+      # Verify that the method returns 'True' if length or hashes were changed.
+      new_length = 8
+      new_root_fileinfo = tuf.formats.make_fileinfo(new_length, hashes)
+      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+                                                             new_root_fileinfo))
+      # Hashes were changed.
+      new_hashes = {'sha256': self.random_string()}
+      new_root_fileinfo = tuf.formats.make_fileinfo(length, new_hashes)
+      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+                                                             new_root_fileinfo))
+
+
+
+
+  """
   def test_2__import_delegations(self):
     # Setup.
     # In order to test '_import_delegations' the parent of the delegation
     # has to be in Repository.metadata['current'], but it has to be inserted
     # there without using '_load_metadata_from_file()' since it calls
     # '_import_delegations()'.
-    tuf.keydb.clear_keydb()
-    tuf.roledb.clear_roledb()
+    repository_name = self.repository_updater.updater_name
+    tuf.keydb.clear_keydb(repository_name)
+    tuf.roledb.clear_roledb(repository_name)
 
-    self.assertEqual(len(tuf.roledb._roledb_dict), 0)
-    self.assertEqual(len(tuf.keydb._keydb_dict), 0)
+    self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 0)
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 0)
     
     self.repository_updater._rebuild_key_and_role_db()
     
-    self.assertEqual(len(tuf.roledb._roledb_dict), 4)
-    self.assertEqual(len(tuf.keydb._keydb_dict), 4)
+    self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
+    # Take into account the number of keyids algorithms supported by default,
+    # which this test condition expects to be two (sha256 and sha512).
+    print('\nkeydb_dict len: ' + repr(len(tuf.keydb._keydb_dict[repository_name].keys())))
+    print('\nkeydb_dict: ' + repr(tuf.keydb._keydb_dict[repository_name].keys()))
+    self.assertEqual(4 * 2, len(tuf.keydb._keydb_dict[repository_name]))
 
     # Test: pass a role without delegations.
     self.repository_updater._import_delegations('root')
 
-    # Verify that there was no change in roledb and keydb dictionaries
-    # by checking the number of elements in the dictionaries.
-    self.assertEqual(len(tuf.roledb._roledb_dict), 4)       
-    self.assertEqual(len(tuf.keydb._keydb_dict), 4)
+    # Verify that there was no change to the roledb and keydb dictionaries by
+    # checking the number of elements in the dictionaries.
+    self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
+    # Take into account the number of keyid hash algorithms, which this
+    # test condition expects to be two (for sha256 and sha512).
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2)
 
     # Test: normal case, first level delegation.
     self.repository_updater._import_delegations('targets')
 
-    self.assertEqual(len(tuf.roledb._roledb_dict), 5)
-    self.assertEqual(len(tuf.keydb._keydb_dict), 5)
+    self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 5)
+    # The number of root keys (times the number of key hash algorithms) + 
+    # delegation's key.
+    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2 + 1)
 
     # Verify that roledb dictionary was added.
-    self.assertTrue('targets/role1' in tuf.roledb._roledb_dict)
+    self.assertTrue('role1' in tuf.roledb._roledb_dict[repository_name])
     
     # Verify that keydb dictionary was updated.
     role1_signable = \
       tuf.util.load_json_file(os.path.join(self.client_metadata_current,
-                                           'targets', 'role1.json'))
+                                           'role1.json'))
     keyids = []
     for signature in role1_signable['signatures']:
       keyids.append(signature['keyid'])
       
     for keyid in keyids:
-      self.assertTrue(keyid in tuf.keydb._keydb_dict)
+      self.assertTrue(keyid in tuf.keydb._keydb_dict[repository_name])
 
     # Verify that _import_delegations() ignores invalid keytypes in the 'keys'
-    # field of parent role's 'delegations'
+    # field of parent role's 'delegations'.
     existing_keyid = keyids[0]
-    
+   
     self.repository_updater.metadata['current']['targets']\
       ['delegations']['keys'][existing_keyid]['keytype'] = 'bad_keytype'
     self.repository_updater._import_delegations('targets')
+    
     # Restore the keytype of 'existing_keyid'.
     self.repository_updater.metadata['current']['targets']\
-      ['delegations']['keys'][existing_keyid]['keytype'] = 'rsa'
+      ['delegations']['keys'][existing_keyid]['keytype'] = 'ed25519'
 
     # Verify that _import_delegations() raises an exception if any key in
-    # 'delegations' is improperly formatted (i.e., bad keyid.)
-    tuf.keydb.clear_keydb()
-    self.repository_updater.metadata['current']['targets']\
-      ['delegations']['keys'][existing_keyid]['keyid'] = '123'
+    # 'delegations' is improperly formatted (i.e., bad keyid).
+    tuf.keydb.clear_keydb(repository_name)
     
-    self.repository_updater._import_delegations('targets')
-    #self.assertRaises(tuf.Error, self.repository_updater._import_delegations,
-    #                  'targets')
+    self.repository_updater.metadata['current']['targets']['delegations']\
+      ['keys'].update({'123': self.repository_updater.metadata['current']\
+      ['targets']['delegations']['keys'][existing_keyid]})
+    self.assertRaises(tuf.Error, self.repository_updater._import_delegations,
+                      'targets')
 
     # Restore the keyid of 'existing_keyids2'.
     self.repository_updater.metadata['current']['targets']\
@@ -460,7 +529,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Verify that _import_delegations() raises an exception if it fails to add
     # one of the roles loaded from parent role's 'delegations'.
-
+  """
 
     
 
@@ -469,15 +538,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify that the method returns 'False' if a versioninfo was not changed.
     snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
     snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
-    root_versioninfo = snapshot_signable['signed']['meta']['root.json'] 
+    targets_versioninfo = snapshot_signable['signed']['meta']['targets.json'] 
     
-    self.assertFalse(self.repository_updater._versioninfo_has_been_updated('root.json',
-                                                           root_versioninfo))
+    self.assertFalse(self.repository_updater._versioninfo_has_been_updated('targets.json',
+                                                           targets_versioninfo))
 
     # Verify that the method returns 'True' if Root's version number changes.
-    root_versioninfo['version'] = 8 
-    self.assertTrue(self.repository_updater._versioninfo_has_been_updated('root.json',
-                                                           root_versioninfo))
+    targets_versioninfo['version'] = 8 
+    self.assertTrue(self.repository_updater._versioninfo_has_been_updated('targets.json',
+                                                           targets_versioninfo))
 
 
 
@@ -573,6 +642,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: normal case.
     # Verify 'timestamp.json' is properly installed.
     self.assertFalse('timestamp' in self.repository_updater.metadata)
+    
+    logger.info('\nroleinfo: ' + repr(tuf.roledb.get_rolenames(self.repository_name)))
     self.repository_updater._update_metadata('timestamp',
                                              DEFAULT_TIMESTAMP_FILELENGTH)
     self.assertTrue('timestamp' in self.repository_updater.metadata['current'])
@@ -786,12 +857,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_4__refresh_targets_metadata(self):
     # Setup.
-    # Assumed the client repository has only loaded the top-level metadata.
-    # refresh the 'targets.json' metadata, including delegations. 
+    # It is assumed that the client repository has only loaded the top-level
+    # metadata.  Refresh the 'targets.json' metadata, including all delegated
+    # roles (i.e., the client should add the missing 'role1.json' metadata. 
     self.assertEqual(len(self.repository_updater.metadata['current']), 4)
 
     # Test: normal case.
-    self.repository_updater._refresh_targets_metadata(include_delegations=True)
+    self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
     # Verify that client's metadata files were refreshed successfully.
     self.assertEqual(len(self.repository_updater.metadata['current']), 5)
@@ -799,14 +871,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test for compressed metadata roles.
     self.repository_updater.metadata['current']['snapshot']['meta']['targets.json.gz'] = \
       self.repository_updater.metadata['current']['snapshot']['meta']['targets.json']
-    self.repository_updater._refresh_targets_metadata(include_delegations=True)
-    
-    # Test for repository error if the 'targets' role is not specified
-    # in 'snapshot'.
-    del self.repository_updater.metadata['current']['snapshot']['meta']['targets.json']
-    self.assertRaises(tuf.RepositoryError,
-                      self.repository_updater._refresh_targets_metadata,
-                      'targets', True)
+    self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
+
+
+
 
 
   def test_5_all_targets(self):
@@ -827,10 +895,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    # Verify that there is a correct number of records in 'all_targets' list,
    # and the expected filepaths specified in the metadata.  On the targets
    # directory of the repository, there should be 3 target files (2 of
-   # which are specified by 'targets.json'.)  The delegated role 'targets/role1'
+   # which are specified by 'targets.json'.)  The delegated role 'role1'
    # specifies 1 target file.  The expected total number targets in
    # 'all_targets' should be 3.
    self.assertEqual(len(all_targets), 3)
+   
    target_filepaths = []
    for target in all_targets:
     target_filepaths.append(target['filepath'])
@@ -855,20 +924,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Extract the target files specified by the delegated role, 'role1.json',
     # as available on the server-side version of the role. 
     role1_filepath = os.path.join(self.repository_directory, 'metadata',
-                                    'targets', 'role1.json')
+                                  'role1.json')
     role1_signable = tuf.util.load_json_file(role1_filepath)
     expected_targets = role1_signable['signed']['targets']
 
 
     # Test: normal case.
-    targets_list = self.repository_updater.targets_of_role('targets/role1')
+    targets_list = self.repository_updater.targets_of_role('role1')
 
     # Verify that the expected role files were downloaded and installed.
     os.path.exists(os.path.join(self.client_metadata_current, 'targets.json'))
     os.path.exists(os.path.join(self.client_metadata_current, 'targets',
-                                'role1.json'))
+                   'role1.json'))
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
-    self.assertTrue('targets/role1' in self.repository_updater.metadata['current'])
+    self.assertTrue('role1' in self.repository_updater.metadata['current'])
 
     #  Verify that list of targets was returned and that it contains valid
     # target files.
@@ -885,38 +954,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                       'unknown_rolename')
 
 
-
-  def test_6_refresh_tagets_metadata_chain(self):
-    # NOTE: This function does not refresh the role specified in the argument,
-    # only its parent roles.
-    
-    # Remove the metadata of the delegated roles.
-    os.remove(os.path.join(self.client_metadata_current, 'targets.json'))
-    os.remove(os.path.join(self.client_metadata_current, 'targets', 'role1.json'))
-  
-    # Test: normal case.
-    metadata_list = \
-      self.repository_updater.refresh_targets_metadata_chain('targets')
-
-    """
-    print(repr(metadata_list))
-    self.assertEqual(len(metadata_list), 0)
-    self.assertTrue('targets' in metadata_list)
-
-    # Verify that the expected role files were downloaded and installed.
-    os.path.exists(os.path.join(self.client_metadata_current, 'targets.json'))
-    
-    self.assertTrue('targets' in self.repository_updater.metadata['current'])
-    self.assertFalse('targets/role1' in self.repository_updater.metadata['current'])
-    """
-    # Test: Invalid arguments.
-    # refresh_targets_metadata_chain() expects a string rolename.
-    self.assertRaises(tuf.FormatError,
-                      self.repository_updater.refresh_targets_metadata_chain,
-                      8)
-    self.assertRaises(tuf.RepositoryError,
-                      self.repository_updater.refresh_targets_metadata_chain,
-                      'unknown_rolename')
 
 
 
@@ -945,6 +982,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test updater.target() backtracking behavior (enabled by default.)
     targets_directory = os.path.join(self.repository_directory, 'targets')
     foo_directory = os.path.join(targets_directory, 'foo')
+    foo_pattern = os.path.join(foo_directory, 'foo*.tar.gz')
     os.makedirs(foo_directory)
 
     foo_package = os.path.join(foo_directory, 'foo1.1.tar.gz')
@@ -956,10 +994,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   
      
     repository.targets.delegate('role2', [self.role_keys['targets']['public']],
-                                [], restricted_paths=[foo_directory])
+                                [], restricted_paths=[foo_pattern])
     
     repository.targets.delegate('role3', [self.role_keys['targets']['public']],
-                                [foo_package], restricted_paths=[foo_directory])
+                                [foo_package], restricted_paths=[foo_pattern])
+    
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
     repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
@@ -972,15 +1011,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
-    # updater.target() should find 'foo1.1.tar.gz' by backtracking to
-    # 'targets/role3'.  'targets/role2' allows backtracking.
+    
+    # updater.target() should find 'foo1.1.tar.gz' by backtracking to 'role3'.
+    # 'role2' allows backtracking.
     self.repository_updater.refresh()
     self.repository_updater.target('foo/foo1.1.tar.gz')
 
 
-    # Test when 'targets/role2' does *not* allow backtracking.  If
-    # 'foo/foo1.1.tar.gz' is not provided by the authoritative 'target/role2',
-    # updater.target() should return a 'tuf.UnknownTargetError' exception.
+    # Test when 'role2' does *not* allow backtracking.  If 'foo/foo1.1.tar.gz'
+    # is not provided by the authoritative 'role2', updater.target() should
+    # return a 'tuf.UnknownTargetError' exception.
     repository = repo_tool.load_repository(self.repository_directory)
     
     repository.targets.revoke('role2')
@@ -988,9 +1028,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    
     # Ensure we delegate in trusted order (i.e., 'role2' has higher priority.)
     repository.targets.delegate('role2', [self.role_keys['targets']['public']],
-                                [], backtrack=False, restricted_paths=[foo_directory])
+                                [], backtrack=False, restricted_paths=[foo_pattern])
     repository.targets.delegate('role3', [self.role_keys['targets']['public']],
-                                [foo_package], restricted_paths=[foo_directory])
+                                [foo_package], restricted_paths=[foo_pattern])
     
     repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
     repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
@@ -1013,7 +1053,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_6_target_mrd(self): #TODO: Update this for multi-role.
+  def test_6_target_mrd(self):
     # This should be integrated into the test_6_target function above, but
     # for now, doing it separately, since cleanup is strange.
     # Setup
@@ -1127,13 +1167,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     download_filepath = \
       os.path.join(destination_directory, target_filepath1.lstrip('/'))
     self.assertTrue(os.path.exists(download_filepath))
-    length, hashes = tuf.util.get_file_details(download_filepath)
+    length, hashes = tuf.util.get_file_details(download_filepath, tuf.conf.REPOSITORY_HASH_ALGORITHMS)
     download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
    
     # Add any 'custom' data from the repository's target fileinfo to the
     # 'download_targetfileinfo' object being tested.
     if 'custom' in target_fileinfo['fileinfo']: 
       download_targetfileinfo['custom'] = target_fileinfo['fileinfo']['custom']
+
     self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
 
     # Test when consistent snapshots is set.  First, create a valid
@@ -1145,7 +1186,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # The repository must be rewritten with 'consistent_snapshot' set.
     repository = repo_tool.load_repository(self.repository_directory)
-   
+ 
+    # Write metadata for all the top-level roles , since consistent snapshot
+    # is now being set to true (i.e., the pre-generated repository isn't set
+    # to support consistent snapshots.  A new version of targets.json is needed
+    # to ensure <digest>.filename target files are written to disk.
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.root.load_signing_key(self.role_keys['root']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -1224,7 +1270,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     all_targets = self.repository_updater.all_targets()
     
     # Assumed the pre-generated repository specifies two target files in
-    # 'targets.json' and one delegated target file in 'targets/role1.json'. 
+    # 'targets.json' and one delegated target file in 'role1.json'.
     self.assertEqual(len(updated_targets), 3)
     
     # Test: download one of the targets.
@@ -1407,8 +1453,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Test for role that hasn't been loaded yet.
     del self.repository_updater.metadata['current']['targets']
+    self.assertEqual(len(self.repository_updater._targets_of_role('targets',
+                                                        skip_refresh=True)), 0)
+
+    # 'targets.json' tracks two targets.
     self.assertEqual(len(self.repository_updater._targets_of_role('targets')),
-                     0)
+                     2)
 
 
 
@@ -1468,29 +1518,29 @@ def _load_role_keys(keystore_directory):
   role_keys['root']['public'] = \
     repo_tool.import_rsa_publickey_from_file(root_key_file+'.pub')
   role_keys['targets']['public'] = \
-    repo_tool.import_rsa_publickey_from_file(targets_key_file+'.pub')
+    repo_tool.import_ed25519_publickey_from_file(targets_key_file+'.pub')
   role_keys['snapshot']['public'] = \
-    repo_tool.import_rsa_publickey_from_file(snapshot_key_file+'.pub')
+    repo_tool.import_ed25519_publickey_from_file(snapshot_key_file+'.pub')
   role_keys['timestamp']['public'] = \
-      repo_tool.import_rsa_publickey_from_file(timestamp_key_file+'.pub')
+      repo_tool.import_ed25519_publickey_from_file(timestamp_key_file+'.pub')
   role_keys['role1']['public'] = \
-      repo_tool.import_rsa_publickey_from_file(delegation_key_file+'.pub')
+      repo_tool.import_ed25519_publickey_from_file(delegation_key_file+'.pub')
 
   # Import the private keys of the top-level and delegated roles.
   role_keys['root']['private'] = \
     repo_tool.import_rsa_privatekey_from_file(root_key_file, 
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['targets']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(targets_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(targets_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['snapshot']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(snapshot_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(snapshot_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['timestamp']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(timestamp_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(timestamp_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
   role_keys['role1']['private'] = \
-    repo_tool.import_rsa_privatekey_from_file(delegation_key_file,
+    repo_tool.import_ed25519_privatekey_from_file(delegation_key_file,
                                               EXPECTED_KEYFILE_PASSWORD)
 
   return role_keys
