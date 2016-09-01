@@ -422,8 +422,16 @@ class Updater(object):
     if os.path.exists(metadata_filepath):
       # Load the file.  The loaded object should conform to
       # 'tuf.formats.SIGNABLE_SCHEMA'.
-      metadata_signable = tuf.util.load_json_file(metadata_filepath)
-
+      try:
+        metadata_signable = tuf.util.load_json_file(metadata_filepath)
+      
+      # Although the metadata file may exist locally, it may not
+      # be a valid json file.  On the next refresh cycle, it will be
+      # updated as required.  If Root if cannot be loaded from disk
+      # successfully, an exception should be raised by the caller.
+      except tuf.Error:
+        return
+      
       tuf.formats.check_signable_object_format(metadata_signable)
 
       # Extract the 'signed' role object from 'metadata_signable'.
@@ -633,6 +641,7 @@ class Updater(object):
 
     # The Root role may be updated without knowing its version number if
     # top-level metadata cannot be safely downloaded (e.g., keys may have been
+    # revoked, thus requiring a new Root file that includes the updated keys)
     # and 'unsafely_update_root_if_necessary' is True.
     # We use some default, but sane, upper file length for its metadata.
     DEFAULT_ROOT_UPPERLENGTH = tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH

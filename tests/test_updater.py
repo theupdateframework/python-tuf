@@ -303,6 +303,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(self.repository_updater.metadata['current']['role1'],
                      role1_meta['signed'])
 
+    # Test if we fail gracefully if we can't deserialize a meta file
+    self.repository_updater._load_metadata_from_file('current', 'empty_file')
+    self.assertFalse('empty_file' in self.repository_updater.metadata['current'])
+
     # Test invalid metadata set argument (must be either
     # 'current' or 'previous'.)
     self.assertRaises(tuf.Error,
