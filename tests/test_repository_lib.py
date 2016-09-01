@@ -961,6 +961,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     shutil.copytree(os.path.join('repository_data', 'repository', 'targets'),
                     targets_directory)
 
+    # Add a duplicate signature to the Root file for testing purposes).
+    root_file = os.path.join(metadata_directory, 'root.json')
+    signable = tuf.util.load_json_file(os.path.join(metadata_directory, 'root.json'))
+    signable['signatures'].append(signable['signatures'][0])
+
+    repo_lib.write_metadata_file(signable, root_file, 8, ['gz'], False)
+
     # Remove compressed metadata so that we can test for loading of a
     # repository with no compression enabled.
     for role_file in os.listdir(metadata_directory):

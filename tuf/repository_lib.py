@@ -464,7 +464,7 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         # metadata extension.
         metadata_name_extension = metadata_name
         
-        for metadata_extension in METADATA_EXTENSIONS: 
+        for metadata_extension in METADATA_EXTENSIONS: #pragma: no branch
           if metadata_name.endswith(metadata_extension):
             metadata_name = metadata_name[:-len(metadata_extension)]
             break
@@ -731,7 +731,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
       # key when it was added.
       try: 
         tuf.keydb.add_key(key_object)
-        for keyid in keyids:
+        for keyid in keyids: #pragma: no branch
           key_object['keyid'] = keyid
           tuf.keydb.add_key(key_object, keyid=None)
 
