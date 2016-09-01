@@ -424,8 +424,14 @@ class Updater(object):
       # 'tuf.formats.SIGNABLE_SCHEMA'.
       try:
         metadata_signable = tuf.util.load_json_file(metadata_filepath)
+      
+      # Although the metadata file may exist locally, it may not
+      # be a valid json file.  On the next refresh cycle, it will be
+      # updated as required.  If Root if cannot be loaded from disk
+      # successfully, an exception should be raised by the caller.
       except tuf.Error:
         return
+      
       tuf.formats.check_signable_object_format(metadata_signable)
 
       # Extract the 'signed' role object from 'metadata_signable'.
