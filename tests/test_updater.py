@@ -95,7 +95,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # pre-generated in 'tuf/tests/repository_data', which will be served
     # by the SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
     # assume the pre-generated metadata files have a specific structure, such
-    # as a delegated role 'targets/role1', three target files, five key files,
+    # as a delegated role 'role1', three target files, five key files,
     # etc.
     cls.SERVER_PORT = random.randint(30000, 45000)
     command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
@@ -989,7 +989,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     with open(foo_package, 'wb') as file_object:
       file_object.write(b'new release')
     
-    # Modify delegations on the remote repository to test backtracking behavior.
+    # Modify delegations on the remote repository to test backtracking behavior
+    # and glob (*) filename pattern matching in restricted paths.
     repository = repo_tool.load_repository(self.repository_directory)
   
      
@@ -1111,10 +1112,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Let's multi-role delegate! role2 and role3 together can specify foo.
     # So can role4 and role5 together.
-    repository.targets.multi_role_delegate([foo_directory], ['targets/role2',
-        'targets/role3'])
-    repository.targets.multi_role_delegate([foo_directory], ['targets/role4',
-        'targets/role5'])
+    repository.targets.multi_role_delegate([foo_directory], ['role2',
+        'role3'])
+    repository.targets.multi_role_delegate([foo_directory], ['role4',
+        'role5'])
 
     # Write & sign the metadata, then copy it all from "staged" to "live".
     repository.write()
@@ -1130,7 +1131,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Try updating target info for foo_package.
     # updater.target() should find 'foo1.1.tar.gz' by backtracking to
-    # 'targets/role3'.  'targets/role2' allows backtracking.
+    # 'role3'.  'role2' allows backtracking.
     self.repository_updater.refresh()
     self.repository_updater.target('foo/foo1.1.tar.gz')
 

@@ -2609,7 +2609,7 @@ class Updater(object):
     # considered.
     # This may update every delegation for every target we try to validate.
     self._update_metadata_if_changed('targets')
-    self._refresh_targets_metadata('targets', include_delegations=True)
+    self._refresh_targets_metadata('targets', refresh_all_delegated_roles=True)
     # (Redundant? I could instead track every role file we update in this
     # recursion and pass it down and up.... That way, we could check it and
     # update it on each call, refreshing whatever metadata is necessary. Ugly,
@@ -2698,11 +2698,11 @@ class Updater(object):
 
     elif delegation_paths is not None:
       for delegation_path in delegation_paths:
-        # A child role path may be a filepath or directory.  The child
-        # role 'delegation_name' is added if 'target_filepath' is located
-        # under 'delegation_path'.  Explicit filepaths are also added.
-        prefix = os.path.commonprefix([target_filepath, delegation_path])
-        if prefix == delegation_path:
+        # A child role path may be an explicit path or pattern (Unix
+        # shell-style wildcards).  The child role 'delegation_name' is added if
+        # 'target_filepath' is equal or matches 'delegation_path'.  Explicit
+        # filepaths are also added.
+        if fnmatch.fnmatch(target_filepath, delegation_path):
           delegation_is_relevant = True
 
     else:
@@ -2713,7 +2713,8 @@ class Updater(object):
 
 
     if delegation_is_relevant:
-      logger.debug('Delegation has target ' + repr(target_filepath))
+      logger.debug('Delegation has restricted path matching target filepath: '
+          + repr(target_filepath))
 
       # TODO: Additional level of verification, calling a new function that
       # verifies that the delegation path was all OK.
@@ -2721,7 +2722,9 @@ class Updater(object):
       # path I used to validate it. Was that OK?" Else raise error.
 
     else:
-      logger.debug('Delegation does not have target ' + repr(target_filepath))
+      logger.debug('Delegation does not have restricted path matching the ' +
+          'target filepath: ' + repr(target_filepath) +
+          '; delegation info follows: ' + str(delegation_info))
 
     return delegation_is_relevant
 

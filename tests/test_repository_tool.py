@@ -1183,7 +1183,7 @@ class TestTargets(unittest.TestCase):
 
 
     restricted_paths_multi = [target3_filepath]
-    list_of_roles_multi = ['targets/tuf', 'targets/tuf2']
+    list_of_roles_multi = ['tuf', 'tuf2']
     
     # Set up normal delegations first.
     self.targets_object.delegate(rolename, public_keys, list_of_targets,
@@ -1199,7 +1199,7 @@ class TestTargets(unittest.TestCase):
     # of the [tuf1, tuf2] I'd expect.... Shouldn't the first thing delegated
     # be the first in the list of delegations?
     self.assertEqual(set(self.targets_object.get_delegated_rolenames()),
-                     set(['targets/tuf', 'targets/tuf2']))
+                     set(['tuf', 'tuf2']))
 
     # Test normal case.    
     self.targets_object.multi_role_delegate(restricted_paths_multi,
@@ -1221,11 +1221,11 @@ class TestTargets(unittest.TestCase):
 
     # Test for restricted paths that do not exist under the targets directory.
     self.assertRaises(tuf.Error, self.targets_object.multi_role_delegate,
-        ['non-existent.txt'], ['targets/tuf', 'targets/tuf2'])
+        ['non-existent.txt'], ['tuf', 'tuf2'])
 
     # Test for roles that do not exist.
     self.assertRaises(tuf.Error, self.targets_object.multi_role_delegate,
-        restricted_paths_multi, ['targets/scuba', 'targets/tuf2'])
+        restricted_paths_multi, ['scuba', 'tuf2'])
 
 
 
