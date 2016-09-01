@@ -224,13 +224,14 @@ class TestFormats(unittest.TestCase):
         {'_type': 'Snapshot',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
-         'meta': {'metadata/snapshot.json': {'version': 1024}}}),
+         'meta': {'snapshot.json': {'version': 1024}}}),
 
       'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
         {'_type': 'Timestamp',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
-         'meta': {'metadata/timestamp.json': {'version': 1024}}}),
+         'meta': {'metadattimestamp.json': {'length': 1024,
+                                            'hashes': {'sha256': 'AB1245'}}}}),
 
       'MIRROR_SCHEMA': (tuf.formats.MIRROR_SCHEMA,
         {'url_prefix': 'http://localhost:8001',
@@ -298,29 +299,31 @@ class TestFormats(unittest.TestCase):
 
   def test_TimestampFile(self):
     # Test conditions for valid instances of 'tuf.formats.TimestampFile'.
-    version = 8
+    version = 8 
+    length = 88
+    hashes = {'sha256': '3c7fe3eeded4a34'}
     expires = '1985-10-21T13:20:00Z'
-    versiondict = {'targets.json': {'version': version}}
+    filedict = {'snapshot.json': {'length': length, 'hashes': hashes}}
 
     make_metadata = tuf.formats.TimestampFile.make_metadata
     from_metadata = tuf.formats.TimestampFile.from_metadata
     TIMESTAMP_SCHEMA = tuf.formats.TIMESTAMP_SCHEMA
 
     self.assertTrue(TIMESTAMP_SCHEMA.matches(make_metadata(version, expires,
-                                                           versiondict)))
-    metadata = make_metadata(version, expires, versiondict)
+                                                           filedict)))
+    metadata = make_metadata(version, expires, filedict)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TimestampFile))
 
     # Test conditions for invalid arguments.
     bad_version = 'eight'
     bad_expires = '2000'
-    bad_versiondict = 123
+    bad_filedict = 123
     self.assertRaises(tuf.FormatError, make_metadata, bad_version,
-                                                      expires, versiondict)
+                                                      expires, filedict)
     self.assertRaises(tuf.FormatError, make_metadata, version,
-                                                      bad_expires, versiondict)
+                                                      bad_expires, filedict)
     self.assertRaises(tuf.FormatError, make_metadata, version,
-                                                      expires, bad_versiondict)
+                                                      expires, bad_filedict)
     
     self.assertRaises(tuf.FormatError, from_metadata, 123)
 
@@ -574,11 +577,12 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid arguments. 
     length = 1024
     hashes = {'sha256': 'A4582BCF323BCEF', 'sha512': 'A4582BCF323BFEF'}
+    version = 8
     custom = {'type': 'paintjob'}
    
     FILEINFO_SCHEMA = tuf.formats.FILEINFO_SCHEMA
     make_fileinfo = tuf.formats.make_fileinfo
-    self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes, custom)))
+    self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes, version, custom)))
     self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes)))
 
     # Test conditions for invalid arguments.
@@ -592,6 +596,22 @@ class TestFormats(unittest.TestCase):
     self.assertRaises(tuf.FormatError, make_fileinfo, bad_length, hashes)
     self.assertRaises(tuf.FormatError, make_fileinfo, length, bad_hashes)
 
+
+  
+  def test_make_versioninfo(self):
+    # Test conditions for valid arguments. 
+    version_number = 8
+    versioninfo = {'version': version_number}
+
+    VERSIONINFO_SCHEMA = tuf.formats.VERSIONINFO_SCHEMA
+    make_versioninfo = tuf.formats.make_versioninfo
+    self.assertTrue(VERSIONINFO_SCHEMA.matches(make_versioninfo(version_number)))
+
+    # Test conditions for invalid arguments.
+    bad_version_number = '8'
+
+    self.assertRaises(tuf.FormatError, make_versioninfo, bad_version_number)
+    
 
 
   def test_make_role_metadata(self):

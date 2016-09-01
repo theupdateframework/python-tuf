@@ -59,6 +59,8 @@ import tuf.formats
 import tuf.util
 import tuf.log
 import tuf.client.updater as updater
+import tuf.roledb
+import tuf.keydb
 import tuf.unittest_toolbox as unittest_toolbox
 
 import six
@@ -169,6 +171,9 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     # Modified_TestCase.tearDown() automatically deletes temporary files and
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
+    
 
 
 
@@ -176,12 +181,12 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     # An attacker tries to trick a client into installing an extraneous target
     # file (a valid file on the repository, in this case) by listing it in the
     # project's metadata file.  For the purposes of test_with_tuf(),
-    # 'targets/role1.json' is treated as the metadata file that indicates all
+    # 'role1.json' is treated as the metadata file that indicates all
     # the files needed to install/update the 'role1' project.  The attacker
     # simply adds the extraneous target file to 'role1.json', which the TUF
-    # client should reject as untrusted.
+    # client should reject as improperly signed.
     role1_filepath = os.path.join(self.repository_directory, 'metadata',
-                                  'targets', 'role1.json')
+                                  'role1.json')
     file1_filepath = os.path.join(self.repository_directory, 'targets',
                                   'file1.txt')
     length, hashes = tuf.util.get_file_details(file1_filepath)
@@ -205,25 +210,25 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     os.remove(os.path.join(self.client_directory, 'metadata', 'current',
                            'timestamp.json'))
     os.remove(os.path.join(self.client_directory, 'metadata', 'current', 
-                           'targets', 'role1.json'))
+                           'role1.json'))
     
     # Verify that the TUF client rejects the invalid metadata and refuses to
     # continue the update process.
     self.repository_updater.refresh()
-    
+   
     try:
-      self.repository_updater.targets_of_role('targets/role1')
+      self.repository_updater.targets_of_role('role1')
    
     # Verify that the specific 'tuf.ForbiddenTargetError' exception is raised
     # by each mirror.
     except tuf.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-        url_file = os.path.join(url_prefix, 'metadata', 'targets', 'role1.json')
+        url_file = os.path.join(url_prefix, 'metadata', 'role1.json')
        
         # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.ForbiddenTargetError))
+        self.assertTrue(isinstance(mirror_error, tuf.BadSignatureError))
 
     else:
       self.fail('TUF did not prevent an extraneous dependencies attack.')

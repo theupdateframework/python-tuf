@@ -150,6 +150,15 @@ class ForbiddenTargetError(RepositoryError):
 
 
 
+class ContradictionInMultiRoleDelegation(RepositoryError):
+  """Indicate that differing file info was specified for the same file by two
+  or more required roles in a multi-role delegation."""
+  pass
+
+
+
+
+
 class ExpiredMetadataError(Error):
   """Indicate that a TUF Metadata file has expired."""
   pass
