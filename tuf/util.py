@@ -232,6 +232,9 @@ class TempFile(object):
     self.seek(0)
     destination_file = open(destination_path, 'wb')
     shutil.copyfileobj(self.temporary_file, destination_file)
+    
+    # Force the destination file to be written to disk from Python's internal and
+    # the operation system's buffers.  os.fsync() should follow flush(). 
     destination_file.flush()
     os.fsync(destination_file.fileno())
     destination_file.close()
