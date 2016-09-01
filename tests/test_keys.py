@@ -99,14 +99,22 @@ class TestKeys(unittest.TestCase):
     self.assertRaises(tuf.FormatError, KEYS.format_keyval_to_metadata,
                       'bad_keytype', keyvalue)
 
+    # Test for missing 'public' entry.
     public = keyvalue['public']
     del keyvalue['public']
     self.assertRaises(tuf.FormatError, KEYS.format_keyval_to_metadata,
                       keytype, keyvalue)
     keyvalue['public'] = public
-  
-  
-  
+
+    # Test for missing 'private' entry.
+    private = keyvalue['private']
+    del keyvalue['private']
+    self.assertRaises(tuf.FormatError, KEYS.format_keyval_to_metadata,
+                      keytype, keyvalue, private=True)
+    keyvalue['private'] = private
+
+
+
   def test_format_rsakey_from_pem(self):
     pem = self.rsakey_dict['keyval']['public']
     rsa_key = KEYS.format_rsakey_from_pem(pem)
@@ -325,6 +333,36 @@ class TestKeys(unittest.TestCase):
       KEYS._GENERAL_CRYPTO_LIBRARY = 'pycrypto' 
 
     KEYS._GENERAL_CRYPTO_LIBRARY = default_general_library
+
+
+
+  def test_extract_pem(self):
+    # Normal case.
+    private_pem = KEYS.extract_pem(self.rsakey_dict['keyval']['private'],
+                                   private_pem=True) 
+    self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(private_pem))
+    
+    # Test for an invalid PEM.
+    pem_header = '-----BEGIN RSA PRIVATE KEY-----' 
+    pem_footer = '-----END RSA PRIVATE KEY-----' 
+    
+    header_start = private_pem.index(pem_header)
+    footer_start = private_pem.index(pem_footer, header_start + len(pem_header))
+
+    missing_header = private_pem[header_start + len(pem_header):footer_start + len(pem_footer)]
+    missing_footer = private_pem[header_start:footer_start]
+    #print('missing header: ' + repr(missing_header))
+    #print('missing footer: ' + repr(missing_footer))
+
+    self.assertRaises(tuf.FormatError, KEYS.extract_pem,
+                      'invalid_pem', private_pem=True) 
+    
+    self.assertRaises(tuf.FormatError, KEYS.extract_pem,
+                      missing_header, private_pem=True) 
+    
+    self.assertRaises(tuf.FormatError, KEYS.extract_pem,
+                      missing_footer, private_pem=True) 
+
 
 
 # Run the unit tests.
