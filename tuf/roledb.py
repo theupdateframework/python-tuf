@@ -428,6 +428,45 @@ def get_dirty_roles(repository_name='default'):
 
 
 
+def mark_dirty(roles, repository_name='default'):
+  """
+  <Purpose>
+    Mark the list of 'roles' as dirty.
+
+  <Arguments>
+    repository_name:
+      The name of the repository to get the dirty roles.  If not supplied, the
+      'default' repository is searched.
+
+    roles:
+      A list of roles that should be marked as dirty.
+
+  <Exceptions>
+    tuf.FormatError, if the arguments are improperly formatted.
+
+    tuf.InvalidNameError, if 'repository_name' does not exist in the role
+    database.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
+
+  # Are the arguments properly formatted?  If not, raise tuf.FormatError.
+  tuf.formats.NAMES_SCHEMA.check_match(roles)
+  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  
+  global _roledb_dict
+  global _dirty_roles
+
+  if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
+    raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
+      repository_name)
+
+  _dirty_roles[repository_name].update(roles)
+
 
 
 def role_exists(rolename, repository_name='default'):
@@ -872,6 +911,8 @@ def clear_roledb(repository_name='default', clear_all=False):
   if clear_all:
     _roledb_dict = {}
     _roledb_dict['default'] = {}
+    _dirty_roles = {}
+    _dirty_roles['default'] = set()
     return
   
   _roledb_dict[repository_name] = {}

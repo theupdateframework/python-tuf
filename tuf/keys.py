@@ -1444,8 +1444,8 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   # Does 'passphrase' have the correct format?
   tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
   
-  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified in
-  # 'tuf.conf', are unsupported or unavailable:
+  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified
+  # in 'tuf.conf', are unsupported or unavailable:
   # 'tuf.conf.GENERAL_CRYPTO_LIBRARY' and 'tuf.conf.RSA_CRYPTO_LIBRARY'.
   check_crypto_libraries(['rsa', 'general'])
 

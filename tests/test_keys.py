@@ -51,25 +51,31 @@ class TestKeys(unittest.TestCase):
 
 
   def test_generate_rsa_key(self):
-    _rsakey_dict = KEYS.generate_rsa_key()
+    default_rsa_library = KEYS._RSA_CRYPTO_LIBRARY
+    for rsa_crypto_library in ['pycrypto', 'pyca-cryptography']:
+      KEYS._RSA_CRYPTO_LIBRARY = rsa_crypto_library 
+      
+      _rsakey_dict = KEYS.generate_rsa_key()
 
-    # Check if the format of the object returned by generate() corresponds
-    # to RSAKEY_SCHEMA format.
-    self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(_rsakey_dict),
-                     FORMAT_ERROR_MSG)
+      # Check if the format of the object returned by generate() corresponds
+      # to RSAKEY_SCHEMA format.
+      self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(_rsakey_dict),
+                       FORMAT_ERROR_MSG)
 
-    # Passing a bit value that is <2048 to generate() - should raise 
-    # 'tuf.FormatError'.
-    self.assertRaises(tuf.FormatError, KEYS.generate_rsa_key, 555)
+      # Passing a bit value that is <2048 to generate() - should raise 
+      # 'tuf.FormatError'.
+      self.assertRaises(tuf.FormatError, KEYS.generate_rsa_key, 555)
 
-    # Passing a string instead of integer for a bit value.
-    self.assertRaises(tuf.FormatError, KEYS.generate_rsa_key, 'bits')
+      # Passing a string instead of integer for a bit value.
+      self.assertRaises(tuf.FormatError, KEYS.generate_rsa_key, 'bits')
 
-    # NOTE if random bit value >=2048 (not 4096) is passed generate(bits) 
-    # does not raise any errors and returns a valid key.
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(2048)))
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(4096)))
+      # NOTE if random bit value >=2048 (not 4096) is passed generate(bits) 
+      # does not raise any errors and returns a valid key.
+      self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(2048)))
+      self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(4096)))
 
+    # Reset to originally set RSA crypto library.
+    KEYS._RSA_CRYPTO_LIBRARY = default_rsa_library
 
 
   def test_format_keyval_to_metadata(self):
@@ -176,122 +182,149 @@ class TestKeys(unittest.TestCase):
 
 
   def test_create_signature(self):
-    # Creating a signature for 'DATA'.
-    rsa_signature = KEYS.create_signature(self.rsakey_dict, DATA)
-    ed25519_signature = KEYS.create_signature(self.ed25519key_dict, DATA) 
+    default_rsa_library = KEYS._RSA_CRYPTO_LIBRARY
+    for rsa_crypto_library in ['pycrypto', 'pyca-cryptography']:
+      KEYS._RSA_CRYPTO_LIBRARY = rsa_crypto_library 
     
-    # Check format of output.
-    self.assertEqual(None, 
-                     tuf.formats.SIGNATURE_SCHEMA.check_match(rsa_signature),
-                     FORMAT_ERROR_MSG)
-    self.assertEqual(None, 
-                     tuf.formats.SIGNATURE_SCHEMA.check_match(ed25519_signature),
-                     FORMAT_ERROR_MSG)
+      # Creating a signature for 'DATA'.
+      rsa_signature = KEYS.create_signature(self.rsakey_dict, DATA)
+      ed25519_signature = KEYS.create_signature(self.ed25519key_dict, DATA) 
+      
+      # Check format of output.
+      self.assertEqual(None, 
+                       tuf.formats.SIGNATURE_SCHEMA.check_match(rsa_signature),
+                       FORMAT_ERROR_MSG)
+      self.assertEqual(None, 
+                       tuf.formats.SIGNATURE_SCHEMA.check_match(ed25519_signature),
+                       FORMAT_ERROR_MSG)
 
-    # Removing private key from 'rsakey_dict' - should raise a TypeError.
-    private = self.rsakey_dict['keyval']['private'] 
-    self.rsakey_dict['keyval']['private'] = ''
-    
-    args = (self.rsakey_dict, DATA)
-    self.assertRaises(TypeError, KEYS.create_signature, *args)
+      # Removing private key from 'rsakey_dict' - should raise a TypeError.
+      private = self.rsakey_dict['keyval']['private'] 
+      self.rsakey_dict['keyval']['private'] = ''
+      
+      args = (self.rsakey_dict, DATA)
+      self.assertRaises(ValueError, KEYS.create_signature, *args)
 
-    # Supplying an incorrect number of arguments.
-    self.assertRaises(TypeError, KEYS.create_signature)
-    self.rsakey_dict['keyval']['private'] = private
+      # Supplying an incorrect number of arguments.
+      self.assertRaises(TypeError, KEYS.create_signature)
+      self.rsakey_dict['keyval']['private'] = private
 
+    KEYS._RSA_CRYPTO_LIBRARY = default_rsa_library
 
 
   def test_verify_signature(self):
-    # Creating a signature of 'DATA' to be verified.
-    rsa_signature = KEYS.create_signature(self.rsakey_dict, DATA)
-    ed25519_signature = KEYS.create_signature(self.ed25519key_dict, DATA)
-
-    # Verifying the 'signature' of 'DATA'.
-    verified = KEYS.verify_signature(self.rsakey_dict, rsa_signature, DATA)
-    self.assertTrue(verified, "Incorrect signature.")
+    default_rsa_library = KEYS._RSA_CRYPTO_LIBRARY
+    default_available_libraries = KEYS._available_crypto_libraries
+    for rsa_crypto_library in ['pycrypto', 'pyca-cryptography']:
+      KEYS._RSA_CRYPTO_LIBRARY = rsa_crypto_library 
     
-    # Verifying the 'ed25519_signature' of 'DATA'.
-    verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
-    self.assertTrue(verified, "Incorrect signature.")
+      # Creating a signature of 'DATA' to be verified.
+      rsa_signature = KEYS.create_signature(self.rsakey_dict, DATA)
+      ed25519_signature = KEYS.create_signature(self.ed25519key_dict, DATA)
 
-    # Testing an invalid 'rsa_signature'. Same 'rsa_signature' is passed, with 
-    # 'DATA' different than the original 'DATA' that was used 
-    # in creating the 'rsa_signature'. Function should return 'False'.
+      # Verifying the 'signature' of 'DATA'.
+      verified = KEYS.verify_signature(self.rsakey_dict, rsa_signature, DATA)
+      self.assertTrue(verified, "Incorrect signature.")
+      
+      # Verifying the 'ed25519_signature' of 'DATA'.
+      verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
+      self.assertTrue(verified, "Incorrect signature.")
+
+      # Testing an invalid 'rsa_signature'. Same 'rsa_signature' is passed, with 
+      # 'DATA' different than the original 'DATA' that was used 
+      # in creating the 'rsa_signature'. Function should return 'False'.
+      
+      # Modifying 'DATA'.
+      _DATA = '1111' + DATA + '1111'
     
-    # Modifying 'DATA'.
-    _DATA = '1111' + DATA + '1111'
-  
-    # Verifying the 'signature' of modified '_DATA'.
-    verified = KEYS.verify_signature(self.rsakey_dict, rsa_signature, _DATA)
-    self.assertFalse(verified, 
-                     'Returned \'True\' on an incorrect signature.')
+      # Verifying the 'signature' of modified '_DATA'.
+      verified = KEYS.verify_signature(self.rsakey_dict, rsa_signature, _DATA)
+      self.assertFalse(verified, 
+                       'Returned \'True\' on an incorrect signature.')
 
-    # Modifying 'signature' to pass an incorrect method since only
-    # 'PyCrypto-PKCS#1 PSS' is accepted.
-    rsa_signature['method'] = 'Biff'
+      # Modifying 'signature' to pass an incorrect method since only
+      # 'PyCrypto-PKCS#1 PSS' is accepted.
+      rsa_signature['method'] = 'Biff'
 
-    args = (self.rsakey_dict, rsa_signature, DATA)
-    self.assertRaises(tuf.UnknownMethodError, KEYS.verify_signature, *args) 
+      args = (self.rsakey_dict, rsa_signature, DATA)
+      self.assertRaises(tuf.UnknownMethodError, KEYS.verify_signature, *args) 
 
-    # Passing incorrect number of arguments.
-    self.assertRaises(TypeError, KEYS.verify_signature)
- 
-    # Verify that the pure python 'ed25519' base case (triggered if 'pynacl' is
-    # unavailable) is executed in tuf.keys.verify_signature().
-    KEYS._ED25519_CRYPTO_LIBRARY = 'invalid'
-    KEYS._available_crypto_libraries = ['invalid']
-    verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
-    self.assertTrue(verified, "Incorrect signature.")
+      # Passing incorrect number of arguments.
+      self.assertRaises(TypeError, KEYS.verify_signature)
    
-    # Reset to the expected available crypto libraries.
-    KEYS._ED25519_CRYPTO_LIBRARY = 'pynacl'
-    KEYS._available_crypto_libraries = ['ed25519', 'pycrypto', 'pynacl']
+      # Verify that the pure python 'ed25519' base case (triggered if 'pynacl' is
+      # unavailable) is executed in tuf.keys.verify_signature().
+      KEYS._ED25519_CRYPTO_LIBRARY = 'invalid'
+      KEYS._available_crypto_libraries = ['invalid']
+      verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
+      self.assertTrue(verified, "Incorrect signature.")
+     
+      # Reset to the expected available crypto libraries.
+      KEYS._ED25519_CRYPTO_LIBRARY = 'pynacl'
+      KEYS._available_crypto_libraries = default_available_libraries 
  
+    KEYS._RSA_CRYPTO_LIBRARY = default_rsa_library
+
 
   
   def test_create_rsa_encrypted_pem(self):
-    # Test valid arguments.
-    private = self.rsakey_dict['keyval']['private']
-    passphrase = 'secret'
-    encrypted_pem = KEYS.create_rsa_encrypted_pem(private, passphrase)
-    self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
-
-    # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
-                      8, passphrase)
+    default_rsa_library = KEYS._RSA_CRYPTO_LIBRARY
+    for rsa_crypto_library in ['pycrypto', 'pyca-cryptography']:
+      KEYS._RSA_CRYPTO_LIBRARY = rsa_crypto_library 
     
-    self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
-                      private, 8)
+      # Test valid arguments.
+      private = self.rsakey_dict['keyval']['private']
+      passphrase = 'secret'
+      encrypted_pem = KEYS.create_rsa_encrypted_pem(private, passphrase)
+      self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
 
-    # Test for missing required library.
-    KEYS._RSA_CRYPTO_LIBRARY = 'invalid'
-    self.assertRaises(tuf.UnsupportedLibraryError, KEYS.create_rsa_encrypted_pem,
-                      private, passphrase)
-    KEYS._RSA_CRYPTO_LIBRARY = 'pycrypto'
+      # Try to import the encryped PEM file.
+      rsakey = KEYS.import_rsakey_from_encrypted_pem(encrypted_pem, passphrase)
+      self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(rsakey))
+
+      # Test improperly formatted arguments.
+      self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
+                        8, passphrase)
+      
+      self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
+                        private, 8)
+
+      # Test for missing required library.
+      KEYS._RSA_CRYPTO_LIBRARY = 'invalid'
+      self.assertRaises(tuf.UnsupportedLibraryError, KEYS.create_rsa_encrypted_pem,
+                        private, passphrase)
+      KEYS._RSA_CRYPTO_LIBRARY = 'pycrypto'
   
-  
+    KEYS._RSA_CRYPTO_LIBRARY = default_rsa_library
+ 
+
   
   def test_decrypt_key(self):
-    # Test valid arguments.
-    passphrase = 'secret'
-    encrypted_key = KEYS.encrypt_key(self.rsakey_dict, passphrase).encode('utf-8')
-    decrypted_key = KEYS.decrypt_key(encrypted_key, passphrase)
-
-    self.assertTrue(tuf.formats.ANYKEY_SCHEMA.matches(decrypted_key))
+    default_general_library = KEYS._GENERAL_CRYPTO_LIBRARY
+    for general_crypto_library in ['pycrypto', 'pyca-cryptography']:
+      KEYS._GENERAL_CRYPTO_LIBRARY = general_crypto_library 
     
-    # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
-                      8, passphrase)
-    
-    self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
-                      encrypted_key, 8)
+      # Test valid arguments.
+      passphrase = 'secret'
+      encrypted_key = KEYS.encrypt_key(self.rsakey_dict, passphrase).encode('utf-8')
+      decrypted_key = KEYS.decrypt_key(encrypted_key, passphrase)
 
-    # Test for missing required library.
-    KEYS._GENERAL_CRYPTO_LIBRARY = 'invalid'
-    self.assertRaises(tuf.UnsupportedLibraryError, KEYS.decrypt_key,
-                      encrypted_key, passphrase)
-    KEYS._GENERAL_CRYPTO_LIBRARY = 'pycrypto' 
+      self.assertTrue(tuf.formats.ANYKEY_SCHEMA.matches(decrypted_key))
+      
+      # Test improperly formatted arguments.
+      self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
+                        8, passphrase)
+      
+      self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
+                        encrypted_key, 8)
 
+      # Test for missing required library.
+      KEYS._GENERAL_CRYPTO_LIBRARY = 'invalid'
+      self.assertRaises(tuf.UnsupportedLibraryError, KEYS.decrypt_key,
+                        encrypted_key, passphrase)
+      KEYS._GENERAL_CRYPTO_LIBRARY = 'pycrypto' 
+
+    KEYS._GENERAL_CRYPTO_LIBRARY = default_general_library
 
 
 # Run the unit tests.

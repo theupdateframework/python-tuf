@@ -287,11 +287,6 @@ class Project(Targets):
                                 self._targets_directory, self.keys, self._prefix,
                                 self.threshold, self.layout_type,
                                 self._project_name)
-    
-    # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
-    # may have been revoked.
-    _delete_obsolete_metadata(self._metadata_directory,
-                              project_signable['signed'], False)
 
 
 
