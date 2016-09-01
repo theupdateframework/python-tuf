@@ -1112,22 +1112,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Let's multi-role delegate! role2 and role3 together can specify foo.
     # So can role4 and role5 together.
-    repository.targets.multi_role_delegate([foo_directory], ['role2',
-        'role3'])
-    repository.targets.multi_role_delegate([foo_directory], ['role4',
-        'role5'])
+    repository.targets.multi_role_delegate([os.path.join(foo_directory, '*')],
+        ['role2', 'role3'])
+    repository.targets.multi_role_delegate([os.path.join(foo_directory, '*')],
+        ['role4', 'role5'])
 
     # Write & sign the metadata, then copy it all from "staged" to "live".
     repository.write()
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
-
-    # # BONUS COPY for human inspection
-    # shutil.rmtree(os.path.join('/Users/s/w/tuf/zorp', 'metadata'))
-    # shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
-    #                 os.path.join('/Users/s/w/tuf/zorp', 'metadata'))
-
 
     # Try updating target info for foo_package.
     # updater.target() should find 'foo1.1.tar.gz' by backtracking to
