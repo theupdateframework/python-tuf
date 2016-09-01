@@ -433,7 +433,7 @@ Enter a password for the encrypted RSA key:
 # (delegated from "unclaimed"), where it initially contains zero targets and
 # future targets are restricted to a particular directory.
 >>> repository.targets("unclaimed").delegate("django", [public_unclaimed_key], [],
-                                         restricted_paths=["/path/to/repository/targets/django/"])
+                                         restricted_paths=["/path/to/repository/targets/django/*"])
 >>> repository.targets("django").load_signing_key(private_unclaimed_key)
 >>> repository.targets("django").add_target("/path/to/repository/targets/django/file4.txt")
 >>> repository.targets("django").compressions = ["gz"]
@@ -516,7 +516,7 @@ restricted paths for some role is provided next.
 ...   delegation.load_signing_key(private_unclaimed_key)
 
 # Delegated roles can be restricted to particular paths with add_restricted_paths().
->>> repository.targets('unclaimed').add_restricted_paths('/path/to/repository/targets/django', 'django')
+>>> repository.targets('unclaimed').add_restricted_paths('/path/to/repository/targets/django/*', 'django')
 ```
 
 ## Consistent Snapshots ##
