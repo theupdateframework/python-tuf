@@ -422,8 +422,10 @@ class Updater(object):
     if os.path.exists(metadata_filepath):
       # Load the file.  The loaded object should conform to
       # 'tuf.formats.SIGNABLE_SCHEMA'.
-      metadata_signable = tuf.util.load_json_file(metadata_filepath)
-
+      try:
+        metadata_signable = tuf.util.load_json_file(metadata_filepath)
+      except tuf.Error:
+        return
       tuf.formats.check_signable_object_format(metadata_signable)
 
       # Extract the 'signed' role object from 'metadata_signable'.
