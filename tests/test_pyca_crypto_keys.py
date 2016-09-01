@@ -145,11 +145,43 @@ class TestPyca_crypto_keys(unittest.TestCase):
 
 
   def test_encrypt_key(self):
-    # Verify that a key argument with a missing private key is rejected.
-    global public_rsa
-
+    # Normal case. 
+    ed25519_key = {'keytype': 'ed25519',
+      'keyid': 'd62247f817883f593cf6c66a5a55292488d457bcf638ae03207dbbba9dbe457d',
+      'keyval': {'public': '74addb5ad544a4306b34741bc1175a3613a8d7dc69ff64724243efdec0e301ad',
+      'private': '1f26964cc8d4f7ee5f3c5da2fbb7ab35811169573ac367b860a537e47789f8c4'}} 
+      
+    crypto_keys.encrypt_key(ed25519_key, 'password')
+    
+    # Verify that a key with a missing 'private' key is rejected.
+    del ed25519_key['keyval']['private']
     self.assertRaises(tuf.FormatError, crypto_keys.encrypt_key,
-                      public_rsa, 'password')
+                      ed25519_key, 'password')
+
+
+  def test__decrypt_key(self):
+    ed25519_key = {'keytype': 'ed25519',
+      'keyid': 'd62247f817883f593cf6c66a5a55292488d457bcf638ae03207dbbba9dbe457d',
+      'keyval': {'public': '74addb5ad544a4306b34741bc1175a3613a8d7dc69ff64724243efdec0e301ad',
+      'private': '1f26964cc8d4f7ee5f3c5da2fbb7ab35811169573ac367b860a537e47789f8c4'}} 
+   
+    encrypted_key = crypto_keys.encrypt_key(ed25519_key, 'password')
+    crypto_keys.encrypt_key(ed25519_key, 'password')
+
+    salt, iterations, hmac, iv, ciphertext = \
+      encrypted_key.split(crypto_keys._ENCRYPTION_DELIMITER)
+
+    encrypted_key_invalid_hmac = encrypted_key.replace(hmac, '123abc')
+
+    self.assertRaises(tuf.CryptoError, crypto_keys._decrypt,
+                      encrypted_key_invalid_hmac, 'password')
+
+
+
+  def test_create_rsa_public_and_private_from_encrypted_pem(self):
+    self.assertRaises(tuf.CryptoError,
+              crypto_keys.create_rsa_public_and_private_from_encrypted_pem,
+              'bad_encrypted_key', 'password')
 
 
 

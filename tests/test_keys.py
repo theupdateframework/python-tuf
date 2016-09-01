@@ -15,7 +15,6 @@
 
 <Purpose>
   Test cases for test_keys.py.
-  TODO: test case for ed25519 key generation and refactor.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an

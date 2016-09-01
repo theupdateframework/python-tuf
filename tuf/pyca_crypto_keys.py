@@ -738,7 +738,7 @@ def encrypt_key(key_object, password):
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
 
   # Ensure the private portion of the key is included in 'key_object'.
-  if not key_object['keyval']['private']:
+  if 'private' not in key_object['keyval'] or not key_object['keyval']['private']:
     raise tuf.FormatError('Key object does not contain a private part.')
 
   # Derive a key (i.e., an appropriate encryption key and not the
