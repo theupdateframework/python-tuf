@@ -213,51 +213,58 @@ class TestKeys(unittest.TestCase):
 
 
   def test_verify_signature(self):
-    # Creating a signature of 'DATA' to be verified.
-    rsa_signature = KEYS.create_signature(self.rsakey_dict, DATA)
-    ed25519_signature = KEYS.create_signature(self.ed25519key_dict, DATA)
-
-    # Verifying the 'signature' of 'DATA'.
-    verified = KEYS.verify_signature(self.rsakey_dict, rsa_signature, DATA)
-    self.assertTrue(verified, "Incorrect signature.")
+    default_rsa_library = KEYS._RSA_CRYPTO_LIBRARY
+    default_available_libraries = KEYS._available_crypto_libraries
+    for rsa_crypto_library in ['pycrypto', 'pyca-cryptography']:
+      KEYS._RSA_CRYPTO_LIBRARY = rsa_crypto_library 
     
-    # Verifying the 'ed25519_signature' of 'DATA'.
-    verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
-    self.assertTrue(verified, "Incorrect signature.")
+      # Creating a signature of 'DATA' to be verified.
+      rsa_signature = KEYS.create_signature(self.rsakey_dict, DATA)
+      ed25519_signature = KEYS.create_signature(self.ed25519key_dict, DATA)
 
-    # Testing an invalid 'rsa_signature'. Same 'rsa_signature' is passed, with 
-    # 'DATA' different than the original 'DATA' that was used 
-    # in creating the 'rsa_signature'. Function should return 'False'.
+      # Verifying the 'signature' of 'DATA'.
+      verified = KEYS.verify_signature(self.rsakey_dict, rsa_signature, DATA)
+      self.assertTrue(verified, "Incorrect signature.")
+      
+      # Verifying the 'ed25519_signature' of 'DATA'.
+      verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
+      self.assertTrue(verified, "Incorrect signature.")
+
+      # Testing an invalid 'rsa_signature'. Same 'rsa_signature' is passed, with 
+      # 'DATA' different than the original 'DATA' that was used 
+      # in creating the 'rsa_signature'. Function should return 'False'.
+      
+      # Modifying 'DATA'.
+      _DATA = '1111' + DATA + '1111'
     
-    # Modifying 'DATA'.
-    _DATA = '1111' + DATA + '1111'
-  
-    # Verifying the 'signature' of modified '_DATA'.
-    verified = KEYS.verify_signature(self.rsakey_dict, rsa_signature, _DATA)
-    self.assertFalse(verified, 
-                     'Returned \'True\' on an incorrect signature.')
+      # Verifying the 'signature' of modified '_DATA'.
+      verified = KEYS.verify_signature(self.rsakey_dict, rsa_signature, _DATA)
+      self.assertFalse(verified, 
+                       'Returned \'True\' on an incorrect signature.')
 
-    # Modifying 'signature' to pass an incorrect method since only
-    # 'PyCrypto-PKCS#1 PSS' is accepted.
-    rsa_signature['method'] = 'Biff'
+      # Modifying 'signature' to pass an incorrect method since only
+      # 'PyCrypto-PKCS#1 PSS' is accepted.
+      rsa_signature['method'] = 'Biff'
 
-    args = (self.rsakey_dict, rsa_signature, DATA)
-    self.assertRaises(tuf.UnknownMethodError, KEYS.verify_signature, *args) 
+      args = (self.rsakey_dict, rsa_signature, DATA)
+      self.assertRaises(tuf.UnknownMethodError, KEYS.verify_signature, *args) 
 
-    # Passing incorrect number of arguments.
-    self.assertRaises(TypeError, KEYS.verify_signature)
- 
-    # Verify that the pure python 'ed25519' base case (triggered if 'pynacl' is
-    # unavailable) is executed in tuf.keys.verify_signature().
-    KEYS._ED25519_CRYPTO_LIBRARY = 'invalid'
-    KEYS._available_crypto_libraries = ['invalid']
-    verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
-    self.assertTrue(verified, "Incorrect signature.")
+      # Passing incorrect number of arguments.
+      self.assertRaises(TypeError, KEYS.verify_signature)
    
-    # Reset to the expected available crypto libraries.
-    KEYS._ED25519_CRYPTO_LIBRARY = 'pynacl'
-    KEYS._available_crypto_libraries = ['ed25519', 'pycrypto', 'pynacl']
+      # Verify that the pure python 'ed25519' base case (triggered if 'pynacl' is
+      # unavailable) is executed in tuf.keys.verify_signature().
+      KEYS._ED25519_CRYPTO_LIBRARY = 'invalid'
+      KEYS._available_crypto_libraries = ['invalid']
+      verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
+      self.assertTrue(verified, "Incorrect signature.")
+     
+      # Reset to the expected available crypto libraries.
+      KEYS._ED25519_CRYPTO_LIBRARY = 'pynacl'
+      KEYS._available_crypto_libraries = default_available_libraries 
  
+    KEYS._RSA_CRYPTO_LIBRARY = default_rsa_library
+
 
   
   def test_create_rsa_encrypted_pem(self):
