@@ -121,11 +121,18 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
   roleinfo = tuf.roledb.get_roleinfo(rolename) 
-
+  previous_keyids = roleinfo.get('previous_keyids', [])
+  previous_threshold = roleinfo.get('previous_threshold', 1)
+  
   # Generate the appropriate role metadata for 'rolename'. 
-  if rolename == 'root':
+  if rolename == 'root': 
+    tuf.roledb.update_roleinfo(rolename, roleinfo)
+
     metadata = generate_root_metadata(roleinfo['version'],
-                                      roleinfo['expires'], consistent_snapshot,
+                                      roleinfo['expires'], 
+                                      previous_keyids,
+                                      previous_threshold,
+                                      consistent_snapshot,
                                       compression_algorithms)
     
     _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
@@ -169,9 +176,11 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['expires'],
                                          roleinfo['delegations'],
                                          consistent_snapshot)
+
+
+  signing_keyids = list(set(roleinfo['signing_keyids'] + previous_keyids))
+  signable = sign_metadata(metadata, signing_keyids, metadata_filename)
   
-  signable = sign_metadata(metadata, roleinfo['signing_keyids'],
-                           metadata_filename)
 
   # Check if the version number of 'rolename' may be automatically incremented,
   # depending on whether if partial metadata is loaded or if the metadata is
@@ -186,8 +195,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
       roleinfo = tuf.roledb.get_roleinfo(rolename)
       roleinfo['version'] = roleinfo['version'] + 1
       tuf.roledb.update_roleinfo(rolename, roleinfo)
-      signable = sign_metadata(metadata, roleinfo['signing_keyids'],
-                               metadata_filename)
+      signable = sign_metadata(metadata, signing_keyids, metadata_filename)
   # non-partial write()
   else:
     # If writing a new version of 'rolename,' increment its version number in
@@ -198,13 +206,28 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
       roleinfo = tuf.roledb.get_roleinfo(rolename)
       roleinfo['version'] = roleinfo['version'] + 1
       tuf.roledb.update_roleinfo(rolename, roleinfo) 
-      signable = sign_metadata(metadata, roleinfo['signing_keyids'],
-                               metadata_filename)
+      signable = sign_metadata(metadata, signing_keyids, metadata_filename)
   
   # Write the metadata to file if it contains a threshold of signatures. 
   signable['signatures'].extend(roleinfo['signatures']) 
+
   
-  if tuf.sig.verify(signable, rolename) or write_partial:
+  def should_write():
+    # Always write if partial writing
+    if write_partial:
+      return True
+    
+    # In the normal case, we should write metadata if the threshold is meet
+    write = tuf.sig.verify_threshold(signable, roleinfo['threshold'], roleinfo['signing_keyids'], rolename)
+    
+    # The root must also be signed by previous root keys and threshold
+    if rolename == 'root' and len(previous_keyids) > 0 and previous_threshold is not None:
+      write = write and tuf.sig.verify_threshold(signable, previous_threshold, previous_keyids, rolename)
+    
+    return write
+
+  
+  if should_write():
     _remove_invalid_and_duplicate_signatures(signable)
     filename = write_metadata_file(signable, metadata_filename,
                                    metadata['version'], compression_algorithms,
@@ -216,7 +239,13 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
     if rolename == 'root' or rolename == 'timestamp':
       write_metadata_file(signable, metadata_filename, metadata['version'],
                           compression_algorithms, consistent_snapshot=False)
-  
+      
+    # The root role should also be accessible by version number, so that clients
+    # can walk through root history to update keys
+    if rolename == 'root':
+       write_metadata_file(signable, metadata_filename, metadata['version'],
+                          compression_algorithms, consistent_snapshot=True)
+    
   # 'signable' contains an invalid threshold of signatures. 
   else:
     message = 'Not enough signatures for ' + repr(metadata_filename)
@@ -434,20 +463,25 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
       
       # 'files' here is a list of target file names.
       for basename in files:
+        
+        # don't delete previous root files
+        if basename.endswith('root.json'):
+          return
+        
         metadata_path = os.path.join(directory_path, basename)
         # Strip the metadata dirname and the leading path separator.
         # '{repository_directory}/metadata/django.json' -->
         # 'django.json'
         metadata_name = \
           metadata_path[len(metadata_directory):].lstrip(os.path.sep)
-        
+
         # Strip the version number if 'consistent_snapshot' is True.  Example:
         # '10.django.json' --> 'django.json'.  Consistent and non-consistent
         # metadata might co-exist if write() and
         # write(consistent_snapshot=True) are mixed, so ensure only
         # '<version_number>.filename' metadata is stripped.
         embedded_version_number = None
-      
+              
         # Should we check if 'consistent_snapshot' is True? It might have been
         # set previously, but 'consistent_snapshot' can potentially be False
         # now.  We'll proceed with the understanding that 'metadata_name' can  
@@ -459,6 +493,8 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
 
         else:
           logger.debug(repr(metadata_name) + ' found in the snapshot role.')
+          
+        
         
         # Strip filename extensions.  The role database does not include the
         # metadata extension.
@@ -472,7 +508,7 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
           else:
             logger.debug(repr(metadata_name) + ' does not match'
               ' supported extension ' + repr(metadata_extension))
-      
+            
         if metadata_name in ['root', 'targets', 'snapshot', 'timestamp']:
           return
 
@@ -532,7 +568,7 @@ def _strip_version_number(metadata_filename, consistent_snapshot):
    
    else: 
     return stripped_metadata_filename, version_number 
-                       
+                  
   else:
    return metadata_filename, ''
 
@@ -1393,7 +1429,7 @@ def get_target_hash(target_filepath):
 
 
 
-def generate_root_metadata(version, expiration_date, consistent_snapshot,
+def generate_root_metadata(version, expiration_date, previous_keyids, previous_threshold, consistent_snapshot,
                            compression_algorithms=['gz']):
   """
   <Purpose>
@@ -1869,8 +1905,11 @@ def sign_metadata(metadata_object, keyids, filename):
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
         signed = signable['signed']
-        signature = tuf.keys.create_signature(key, signed)
-        signable['signatures'].append(signature)
+        try:
+          signature = tuf.keys.create_signature(key, signed)
+          signable['signatures'].append(signature)
+        except:
+          logger.warning('Unable to create signature for keyid: ' + repr(keyid))
       
       else:
         logger.warning('Private key unset.  Skipping: ' + repr(keyid))
@@ -1980,14 +2019,15 @@ def write_metadata_file(metadata, filename, version_number,
  
   if consistent_snapshot:
     dirname, basename = os.path.split(written_filename)
-    
     basename = basename.split(METADATA_EXTENSION, 1)[0]
     version_and_filename = str(version_number) + '.' + basename + METADATA_EXTENSION 
     written_consistent_filename = os.path.join(dirname, version_and_filename)
 
-    logger.info('Linking ' + repr(written_consistent_filename))
-    os.link(written_filename, written_consistent_filename)
+    #logger.info('Linking ' + repr(written_consistent_filename))
+    #os.link(written_filename, written_consistent_filename)
 
+    logger.info('Copying ' + repr(written_consistent_filename))
+    shutil.copyfile(written_filename, written_consistent_filename)
   else:
     logger.info('Not linking a consistent filename for: ' + repr(written_filename))
 

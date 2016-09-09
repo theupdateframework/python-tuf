@@ -432,14 +432,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.keydb.create_keydb_from_root_metadata(root_signable['signed'])
     expires = '1985-10-21T01:22:00Z'
 
-    root_metadata = repo_lib.generate_root_metadata(1, expires,
+    root_metadata = repo_lib.generate_root_metadata(1, expires, [], 1,
                                                     consistent_snapshot=False)
     self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
 
     root_keyids = tuf.roledb.get_role_keyids('root')
     tuf.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'bad_keytype'
     self.assertRaises(tuf.Error, repo_lib.generate_root_metadata, 1,
-                      expires, consistent_snapshot=False)
+                      expires, [], 1, consistent_snapshot=False)
     
     # Reset the root key's keytype, so that we can next verify that a different
     # tuf.Error exception is raised for duplicate keyids.
@@ -448,21 +448,21 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Add duplicate keyid to root's roleinfo.
     tuf.roledb._roledb_dict['default']['root']['keyids'].append(root_keyids[0])
     self.assertRaises(tuf.Error, repo_lib.generate_root_metadata, 1,
-                      expires, consistent_snapshot=False)
+                      expires, [], 1, consistent_snapshot=False)
     
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
-                      '3', expires, False) 
+                      '3', expires, [], 1, False) 
     self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
-                      1, '3', False) 
+                      1, '3', [], 1, False) 
     self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
-                      1, expires, 3) 
+                      1, expires, [], 1,  3) 
 
     # Test for missing required roles and keys.
     tuf.roledb.clear_roledb()
     tuf.keydb.clear_keydb()
     self.assertRaises(tuf.Error, repo_lib.generate_root_metadata,
-                      1, expires, False)
+                      1, expires, [], 1, False)
 
 
 

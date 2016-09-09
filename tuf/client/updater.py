@@ -2498,7 +2498,7 @@ class Updater(object):
       return []
     
     # Get the targets specified by the role itself.
-    for filepath, fileinfo in six.iteritems(self.metadata['current'][rolename]['targets']):
+    for filepath, fileinfo in six.iteritems(self.metadata['current'][rolename].get('targets', [])):
       new_target = {} 
       new_target['filepath'] = filepath 
       new_target['fileinfo'] = fileinfo

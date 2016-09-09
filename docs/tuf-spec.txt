@@ -1008,12 +1008,14 @@ Version 1.0 (Draft)
    To replace a compromised root key or any other top-level role key, the root
    role signs a new root.json file that lists the updated trusted keys for the
    role.  When replacing root keys, an application will sign the new root.json
-   file with both the new and old root keys until all clients are known to have
-   obtained the new root.json file (a safe assumption is that this will be a
-   very long time or never).  There is no risk posed by continuing to sign the
-   root.json file with revoked keys as once clients have updated they no longer
-   trust the revoked key.  This is only to ensure outdated clients remain able
-   to update.
+   file with both the new and old root keys. Any time such a change is
+   required, the root.json file is versioned and accessible by version number,
+   e.g. 3.root.json. Clients update the set of trusted root keys by requesting
+   the current root.json and all previous root.json versions, until one is
+   found that has been signed by keys the client already trusts. This is to 
+   ensure that outdated clients remain able to update, without requiring all 
+   previous root keys to be kept to sign new root.json metadata.
+
 
    To replace a delegated developer key, the role that delegated to that key
    just replaces that key with another in the signed metadata where the

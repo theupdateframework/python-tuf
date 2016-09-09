@@ -338,6 +338,8 @@ class TestRepository(unittest.TestCase):
     # 'targets' and 'role1' roles must be be marked as dirty, otherwise
     # write() will not create consistent snapshots for them.
     repository.mark_dirty(['targets', 'role1'])
+    repository.targets('role1').load_signing_key(role1_privkey)
+    repository.targets.load_signing_key(targets_privkey)
     repository.write(consistent_snapshot=True)
 
     # Verify that the newly written consistent snapshot can be loaded

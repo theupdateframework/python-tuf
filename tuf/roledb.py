@@ -124,6 +124,8 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
     if rolename == 'root':
       roleinfo['version'] = root_metadata['version']
       roleinfo['expires'] = root_metadata['expires']
+      roleinfo['previous_keyids'] = root_metadata.get('signing_keyids', [])
+      roleinfo['previous_threshold'] = root_metadata.get('threshold', 1)
     
     roleinfo['signatures'] = []
     roleinfo['signing_keyids'] = []

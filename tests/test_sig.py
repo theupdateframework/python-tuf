@@ -59,8 +59,7 @@ class TestSig(unittest.TestCase):
     signable = {'signed' : 'test', 'signatures' : []}
 
     # A valid, but empty signature status
-    sig_status = tuf.sig.get_signature_status(signable)
-    self.assertTrue(tuf.formats.SIGNATURESTATUS_SCHEMA.matches(sig_status))
+    self.assertRaises(tuf.FormatError, tuf.sig.get_signature_status, signable)
 
     # A valid signable, but non-existent role argument.
     self.assertRaises(tuf.UnknownRoleError, tuf.sig.get_signature_status,
@@ -74,19 +73,10 @@ class TestSig(unittest.TestCase):
 
     tuf.keydb.add_key(KEYS[0]) 
 
-    # No specific role we're considering.
-    sig_status = tuf.sig.get_signature_status(signable, None)
-
     # Non-existent role.
-    self.assertRaises(tuf.UnknownRoleError, tuf.sig.get_signature_status,
-                      signable, 'unknown_role')
+    self.assertRaises(tuf.FormatError, tuf.sig.get_signature_status,
+                      signable, None)
 
-    self.assertEqual(0, sig_status['threshold'])
-    self.assertEqual([KEYS[0]['keyid']], sig_status['good_sigs'])
-    self.assertEqual([], sig_status['bad_sigs'])
-    self.assertEqual([], sig_status['unknown_sigs'])
-    self.assertEqual([], sig_status['untrusted_sigs'])
-    self.assertEqual([], sig_status['unknown_method_sigs'])
 
     # Not allowed to call verify() without having specified a role.
     args = (signable, None)
@@ -163,11 +153,11 @@ class TestSig(unittest.TestCase):
     signable['signatures'].append(tuf.keys.create_signature(
                                   KEYS[0], signable['signed']))
 
-    tuf.keydb.add_key(KEYS[0])
     threshold = 1
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
+    tuf.keydb.add_key(KEYS[0])
 
     sig_status = tuf.sig.get_signature_status(signable, 'Root')
 
