@@ -367,6 +367,9 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # Note: we added Timetamp's key to the Root role.
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    # Load the previous Root signing key so that the the client can update
+    # successfully.
+    repository.root.load_signing_key(self.role_keys['root']['private'])
  
     # Root's version number = 2 after the following write().
     repository.write()
@@ -385,9 +388,6 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
       for mirror_exception in exception.mirror_errors.values():
         self.assertTrue(isinstance(mirror_exception, tuf.BadSignatureError))
 
-    # Load the previous Root signing key so that the the client can update
-    # successfully.
-    repository.root.load_signing_key(self.role_keys['root']['private'])
     repository.write() 
 
     # Move the staged metadata to the "live" metadata.

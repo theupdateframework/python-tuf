@@ -650,18 +650,10 @@ class Updater(object):
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
     # Raise 'tuf.NoWorkingMirrorError' if an update fails.
-
-    # Is the Root role expired?  When the top-level roles are initially loaded
-    # from disk, their expiration is not checked to allow their updating when
-    # requested (and give the updater the chance to continue, rather than always
-    # failing with an expired metadata error.)  If
-    # 'unsafely_update_root_if_necessary' is True, update an expired Root role
-    # now.  Updating the other top-level roles, regardless of their validity,
-    # should only occur if the root of trust is up-to-date.
     root_metadata = self.metadata['current']['root']
+    
     try: 
       self._ensure_not_expired(root_metadata, 'root')
-    
     except tuf.ExpiredMetadataError:
       # Raise 'tuf.NoWorkingMirrorError' if a valid (not expired, properly
       # signed, and valid metadata) 'root.json' cannot be installed.
@@ -669,70 +661,62 @@ class Updater(object):
         message = \
           'Expired Root metadata was loaded from disk.  Try to update it now.' 
         logger.info(message)
-        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
      
       # The caller explicitly requested not to unsafely fetch an expired Root.
       else:
         logger.info('An expired Root metadata was loaded and must be updated.')
         raise
 
-    # If an exception is raised during the metadata update attempts, we will
-    # attempt to update root metadata once by recursing with a special argument
-    # (unsafely_update_root_if_necessary) to avoid further recursion.
 
+    self._update_root_metadata(root_metadata)
+    
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
-    try: 
-      self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
-      self._update_metadata_if_changed('snapshot',
-                                       referenced_metadata='timestamp')
-      self._update_metadata_if_changed('root')
-      self._update_metadata_if_changed('targets')
+    self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
+    self._update_metadata_if_changed('snapshot',
+                                     referenced_metadata='timestamp')
+    self._update_metadata_if_changed('targets')
     
-    # There are two distinct error scenarios that can rise from the
-    # _update_metadata_if_changed calls in the try block above:
-    #
-    #   - tuf.NoWorkingMirrorError:
-    #
-    #      If a change to a metadata file IS detected in an
-    #      _update_metadata_if_changed call, but we are unable to download a
-    #      valid (not expired, properly signed, valid) version of that metadata
-    #      file, a tuf.NoWorkingMirrorError rises to this point.
-    # 
-    #   - tuf.ExpiredMetadataError:
-    #
-    #      If, on the other hand, a change to a metadata file IS NOT detected
-    #      in a given _update_metadata_if_changed call, but we observe that the
-    #      version of the metadata file we have on hand is now expired, a
-    #      tuf.ExpiredMetadataError exception rises to this point.
-    #
-    except tuf.NoWorkingMirrorError:
-      if unsafely_update_root_if_necessary:
-        logger.info('Valid top-level metadata cannot be downloaded.  Unsafely'
-          ' update the Root metadata.')
-        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
-        self.refresh(unsafely_update_root_if_necessary=False)
 
-      else:
-        raise
-
-    except tuf.ExpiredMetadataError:
-      if unsafely_update_root_if_necessary:
-        logger.info('No changes were detected from the mirrors for a given role'
-          ', and that metadata that is available on disk has been found to be'
-          ' expired. Trying to update root in case of foul play.')
-        self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH)
-        self.refresh(unsafely_update_root_if_necessary=False)
-
-      # The caller explicitly requested not to unsafely fetch an expired Root.
-      else:
-        logger.info('No changes were detected from the mirrors for a given role'
-          ', and that metadata that is available on disk has been found to be '
-          'expired. Your metadata is out of date.')
-        raise
-
-
-
+  def _update_root_metadata(self, current_root_metadata, compression_algorithm=None):
+    """
+      <Purpose>
+        The root file must be signed by the current root threshold and keys as well
+        as the previous root threshold and keys. The update process for root files 
+        means that each intermediate root file must be downloaded, to build a chain 
+        of trusted root keys from keys already trusted by the client:
+        
+          1.root -> 2.root -> 3.root
+         
+        3.root must be signed by the threshold and keys of 2.root, and 2.root must
+        be signed by the threshold and keys of 1.root.
+    
+      <Arguments>
+        current_root_metadata:
+          The currently held version of metadata.
+           
+        compresison_algorithm:
+          The compression algorithm used to compress remote files.
+    
+      <Side Effects>
+        Updates the root metadata files with the latest information.
+    
+      <Returns>
+        None.
+    """
+    next_version = current_root_metadata['version'] + 1
+    new_root_metadata_file = self._get_metadata_file('root', 'root.json', tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH, None, 
+                                                     compression_algorithm=compression_algorithm)
+    new_root_metadata = \
+      tuf.util.load_json_string(new_root_metadata_file.read().decode('utf-8'))
+    new_version = new_root_metadata['signed']['version'] + 1
+    
+    for version in range(next_version, new_version):
+      # Temporarily set consistent snapshot. Will be updated to whatever is set in the latests root.json after 
+      # running through the intermediates with `_update_metadata`
+      self.consistent_snapshot = True
+      self._update_metadata('root', tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH, version=version, 
+                            compression_algorithm=compression_algorithm)
 
 
   def _check_hashes(self, file_object, trusted_hashes):
@@ -1188,7 +1172,7 @@ class Updater(object):
             logger.info(metadata_role + ' not available locally.')
 
         self._verify_uncompressed_metadata_file(file_object, metadata_role)
-
+        
       except Exception as exception:
         # Remember the error from this mirror, and "reset" the target file.
         logger.exception('Update failed from ' + file_mirror + '.')
@@ -1205,6 +1189,19 @@ class Updater(object):
       logger.error('Failed to update {0} from all mirrors: {1}'.format(
                        remote_filename, file_mirror_errors))
       raise tuf.NoWorkingMirrorError(file_mirror_errors)
+    
+    
+  def _verify_root_chain(self, role, current, next):
+    if role != 'root':
+      return True
+    
+    current_role = current['roles'][role]
+    
+    # Verify next metadata with current keys/threshold
+    valid = tuf.sig.verify_threshold(next, current_role['threshold'], current_role['keyids'], role=role)
+    
+    if not valid:
+      raise tuf.BadSignatureError('Root not signed by previous threshold/keys.')
 
 
 
@@ -1474,7 +1471,7 @@ class Updater(object):
     remote_filename = metadata_filename
     filename_version = ''
 
-    if self.consistent_snapshot:
+    if self.consistent_snapshot and version:
       filename_version = version
       dirname, basename = os.path.split(remote_filename)
       remote_filename = os.path.join(dirname, str(filename_version) + '.' + basename)
@@ -1523,6 +1520,8 @@ class Updater(object):
     # stored for 'metadata_role'.
     updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
+    
+    self._verify_root_chain(metadata_role, current_metadata_object, metadata_signable)
 
     # Finally, update the metadata and fileinfo stores, and rebuild the
     # key and role info for the top-level roles if 'metadata_role' is root.
@@ -1648,7 +1647,7 @@ class Updater(object):
             filename_digest = \
               random.choice(list(uncompressed_fileinfo['hashes'].values()))
           dirname, basename = os.path.split(remote_filename)
-          remote_filename = os.path.join(dirname, filename_digesti + '.' + basename)
+          remote_filename = os.path.join(dirname, filename_digest + '.' + basename)
 
         metadata_file_object = \
           self._safely_get_metadata_file(metadata_role, remote_filename,
