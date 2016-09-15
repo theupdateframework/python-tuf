@@ -102,18 +102,15 @@ SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
 METADATA_EXTENSIONS = ['.json.gz', '.json']
 
 
-def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
+def _generate_and_write_metadata(rolename, metadata_filename,
                                  targets_directory, metadata_directory,
                                  consistent_snapshot=False, filenames=None,
-                                 compression_algorithms=['gz']):
+                                 compression_algorithms=['gz'],
+                                 allow_partially_signed=False):
   """
-  Non-public function that can generate and write the metadata of the specified
-  top-level 'rolename'.  It also increments version numbers if:
-  
-  1.  write_partial==True and the metadata is the first to be written.
-  
-  2.  write_partial=False (i.e., write()), the metadata was not loaded as
-      partially written, and a write_partial is not needed.
+  Non-public function that can generate and write the metadata for the
+  specified 'rolename'.  It also increments the version number of 'rolename' if
+  it is a top-level role.
   """
 
   metadata = None 
@@ -169,58 +166,54 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
                                          roleinfo['expires'],
                                          roleinfo['delegations'],
                                          consistent_snapshot)
+ 
+  if rolename in ['root', 'targets', 'snapshot', 'timestamp'] and not allow_partially_signed: 
+    # Before writing 'rolename' to disk, increment its version number and
+    # verify that it is fully signed.  Only delegated roles should not be
+    # written to disk without full verification of its signatures, since they
+    # can only be considered fully signed depending on the delegating role.
+    roleinfo = tuf.roledb.get_roleinfo(rolename)
+    metadata['version'] = metadata['version'] + 1
+    roleinfo['version'] = roleinfo['version'] + 1
+    tuf.roledb.update_roleinfo(rolename, roleinfo)
+    signable = \
+      sign_metadata(metadata, roleinfo['signing_keyids'], metadata_filename)
   
-  signable = sign_metadata(metadata, roleinfo['signing_keyids'],
-                           metadata_filename)
-
-  # Check if the version number of 'rolename' may be automatically incremented,
-  # depending on whether if partial metadata is loaded or if the metadata is
-  # written with write() / write_partial(). 
-  # Increment the version number if this is the first partial write.
-  if write_partial:
-    temp_signable = sign_metadata(metadata, [], metadata_filename)
-    temp_signable['signatures'].extend(roleinfo['signatures'])
-    status = tuf.sig.get_signature_status(temp_signable, rolename)
-    if len(status['good_sigs']) == 0:
-      metadata['version'] = metadata['version'] + 1
-      roleinfo = tuf.roledb.get_roleinfo(rolename)
-      roleinfo['version'] = roleinfo['version'] + 1
-      tuf.roledb.update_roleinfo(rolename, roleinfo)
-      signable = sign_metadata(metadata, roleinfo['signing_keyids'],
-                               metadata_filename)
-  # non-partial write()
+    if tuf.sig.verify(signable, rolename):
+      _remove_invalid_and_duplicate_signatures(signable)
+      filename = write_metadata_file(signable, metadata_filename,
+                                     metadata['version'], compression_algorithms,
+                                     consistent_snapshot)
+   
+      # The root and timestamp files should also be written without a version
+      # number prepended if 'consistent_snaptshot' is True.  Clients may request
+      # a timestamp and root file without knowing their version numbers.
+      if rolename == 'root' or rolename == 'timestamp':
+        write_metadata_file(signable, metadata_filename, metadata['version'],
+                            compression_algorithms, consistent_snapshot=False)
+  
+    # 'signable' contains an invalid threshold of signatures. 
+    else:
+      message = 'Not enough signatures for ' + repr(metadata_filename)
+      raise tuf.UnsignedMetadataError(message, signable)
+  
+  # 'rolename' is a delegated role or a top-level role that is  partially
+  # signed, and thus its signatures shouldn't be verified.  Its version number
+  # is also not automatically incremented.
   else:
     # If writing a new version of 'rolename,' increment its version number in
     # both the metadata file and roledb (required so that snapshot references
     # the latest version).
-    if tuf.sig.verify(signable, rolename) and not roleinfo['partial_loaded']:
-      metadata['version'] = metadata['version'] + 1
-      roleinfo = tuf.roledb.get_roleinfo(rolename)
-      roleinfo['version'] = roleinfo['version'] + 1
-      tuf.roledb.update_roleinfo(rolename, roleinfo) 
-      signable = sign_metadata(metadata, roleinfo['signing_keyids'],
+    roleinfo = tuf.roledb.get_roleinfo(rolename)
+    metadata['version'] = metadata['version'] + 1
+    roleinfo['version'] = roleinfo['version'] + 1
+    tuf.roledb.update_roleinfo(rolename, roleinfo)
+    signable = sign_metadata(metadata, roleinfo['signing_keyids'],
                                metadata_filename)
-  
-  # Write the metadata to file if it contains a threshold of signatures. 
-  signable['signatures'].extend(roleinfo['signatures']) 
-  
-  if tuf.sig.verify(signable, rolename) or write_partial:
     _remove_invalid_and_duplicate_signatures(signable)
     filename = write_metadata_file(signable, metadata_filename,
                                    metadata['version'], compression_algorithms,
                                    consistent_snapshot)
-   
-    # The root and timestamp files should also be written without a version
-    # number prepended if 'consistent_snaptshot' is True.  Clients may request
-    # a timestamp and root file without knowing their version numbers.
-    if rolename == 'root' or rolename == 'timestamp':
-      write_metadata_file(signable, metadata_filename, metadata['version'],
-                          compression_algorithms, consistent_snapshot=False)
-  
-  # 'signable' contains an invalid threshold of signatures. 
-  else:
-    message = 'Not enough signatures for ' + repr(metadata_filename)
-    raise tuf.UnsignedMetadataError(message, signable)
   
   return signable, filename
 
@@ -737,16 +730,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
 
       except tuf.KeyAlreadyExistsError:
         pass
-
-    for role in targets_metadata['delegations']['roles']:
-      rolename = role['name'] 
-      roleinfo = {'name': role['name'], 'keyids': role['keyids'],
-                  'threshold': role['threshold'], 'compressions': [''],
-                  'signing_keyids': [], 'partial_loaded': False, 'paths': {},
-                  'signatures': [], 'delegations': {'keys': {},
-                                                    'roles': []}}
-      tuf.roledb.add_role(rolename, roleinfo)
-  
+      
   else:
     logger.debug('The Targets file cannot be loaded: ' + repr(targets_filename))
   
@@ -1515,8 +1499,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
   """
   <Purpose>
     Generate the targets metadata object. The targets in 'target_files' must
-    exist at the same path they should on the repo.  'target_files' is a list of
-    targets.  The 'custom' field of the targets metadata is not currently
+    exist at the same path they should on the repo.  'target_files' is a list
+    of targets.  The 'custom' field of the targets metadata is not currently
     supported.
 
   <Arguments>
@@ -1555,6 +1539,10 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
   <Side Effects>
     The target files are read and file information generated about them.
+    If 'write_consistent_targets' is True, hard links are created for
+    the targets in 'target_files'.  For example, if 'some_file.txt' is one
+    of the targets of 'target_files', consistent targets
+    <sha-2 hash>.some_file.txt, <sha-3 hash>.some_file.txt, etc., are created.
 
   <Returns>
     A targets metadata object, conformant to 'tuf.formats.TARGETS_SCHEMA'.
@@ -1599,7 +1587,6 @@ def generate_targets_metadata(targets_directory, target_files, version,
     if not os.path.exists(target_path):
       raise tuf.Error(repr(target_path) + ' cannot be read.'
         '  Unable to generate targets metadata.')
-
 
     # Add 'custom' if it has been provided.  Custom data about the target is
     # optional and will only be included in metadata (i.e., a 'custom' field in
@@ -2135,7 +2122,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   # Verify the metadata of the Root role.
   try:
     signable, root_filename = \
-      _generate_and_write_metadata('root', root_filename, False,
+      _generate_and_write_metadata('root', root_filename,
                                    targets_directory, metadata_directory)
     _log_status('root', signable)
  
@@ -2148,7 +2135,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   # Verify the metadata of the Targets role.
   try:
     signable, targets_filename = \
-      _generate_and_write_metadata('targets', targets_filename, False,
+      _generate_and_write_metadata('targets', targets_filename,
                                    targets_directory, metadata_directory)
     _log_status('targets', signable)
   
@@ -2160,7 +2147,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   filenames = {'root': root_filename, 'targets': targets_filename} 
   try:
     signable, snapshot_filename = \
-      _generate_and_write_metadata('snapshot', snapshot_filename, False,
+      _generate_and_write_metadata('snapshot', snapshot_filename,
                                    targets_directory, metadata_directory,
                                    False, filenames)
     _log_status('snapshot', signable)
@@ -2173,7 +2160,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   filenames = {'snapshot': snapshot_filename}
   try:
     signable, timestamp_filename = \
-      _generate_and_write_metadata('timestamp', timestamp_filename, False,
+      _generate_and_write_metadata('timestamp', timestamp_filename,
                                    targets_directory, metadata_directory,
                                    False, filenames)
     _log_status('timestamp', signable)

@@ -178,23 +178,15 @@ class Repository(object):
 
 
 
-  def write(self, write_partial=False, consistent_snapshot=False,
-            compression_algorithms=['gz']):
+  def writeall(self, consistent_snapshot=False, compression_algorithms=['gz']):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files.
-      write() raises an exception if any of the role metadata to be written to
-      disk is invalid, such as an insufficient threshold of signatures, missing
-      private keys, etc.
+      writeall() raises an exception if any of the role metadata to be written
+      to disk is invalid, such as an insufficient threshold of signatures,
+      missing private keys, etc.
     
     <Arguments>
-      write_partial:
-        A boolean indicating whether partial metadata should be written to
-        disk.  Partial metadata may be written to allow multiple maintainters
-        to independently sign and update role metadata.  write() raises an
-        exception if a metadata role cannot be written due to not having enough
-        signatures.
-
       consistent_snapshot:
         A boolean indicating whether written metadata and target files should
         include a version number in the filename (i.e.,
@@ -218,17 +210,17 @@ class Repository(object):
       None.
     """
     
-    # Does 'write_partial' have the correct format?
+    # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.BOOLEAN_SCHEMA.check_match(write_partial)
     tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
     tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
     
-    # At this point the tuf.keydb and tuf.roledb stores must be fully
-    # populated, otherwise write() throws a 'tuf.UnsignedMetadataError'
-    # exception if any of the top-level roles are missing signatures, keys, etc.
+    # At this point, tuf.keydb and tuf.roledb must be fully populated,
+    # otherwise writeall() throws a 'tuf.UnsignedMetadataError' for the
+    # top-level roles.  exception if any of the top-level roles are missing
+    # signatures, keys, etc.
 
     # Write the metadata files of all the Targets roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
@@ -252,20 +244,17 @@ class Repository(object):
                                     dirty_rolename + METADATA_EXTENSION)
       repo_lib._generate_and_write_metadata(dirty_rolename,
                                             dirty_filename,
-                                            write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
                                             consistent_snapshot,
                                             filenames)
     
-    # Metadata should be written in (delegated targets -> root ->
-    # targets -> snapshot -> timestamp) order.
-    # Begin by generating the 'root.json' metadata file.
-    # _generate_and_write_metadata() raises a 'tuf.Error' exception if the
-    # metadata cannot be written.
+    # Metadata should be written in (delegated targets -> root -> targets ->
+    # snapshot -> timestamp) order.  Begin by generating the 'root.json'
+    # metadata file.  _generate_and_write_metadata() raises a 'tuf.Error'
+    # exception if the metadata cannot be written.
     if 'root' in dirty_rolenames or consistent_snapshot:
       repo_lib._generate_and_write_metadata('root', filenames['root'],
-                                            write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
                                             consistent_snapshot,
@@ -274,7 +263,6 @@ class Repository(object):
     # Generate the 'targets.json' metadata file.
     if 'targets' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('targets', filenames['targets'],
-                                            write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
                                             consistent_snapshot)
@@ -283,7 +271,6 @@ class Repository(object):
     if 'snapshot' in dirty_rolenames:
       snapshot_signable, junk = \
         repo_lib._generate_and_write_metadata('snapshot', filenames['snapshot'],
-                                              write_partial,
                                               self._targets_directory,
                                               self._metadata_directory,
                                               consistent_snapshot, filenames)
@@ -291,7 +278,6 @@ class Repository(object):
     # Generate the 'timestamp.json' metadata file.
     if 'timestamp' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
-                                            write_partial,
                                             self._targets_directory,
                                             self._metadata_directory,
                                             consistent_snapshot, filenames)
@@ -307,14 +293,23 @@ class Repository(object):
 
 
   
-  def write_partial(self):
+  def write(self, rolename, consistent_snapshot=False):
     """
     <Purpose>
-      Write all the JSON metadata to their corresponding files, but allow
-      metadata files to contain an invalid threshold of signatures.  
+      Write the JSON metadata for 'rolename' to its corresponding file on disk.
+      Unlike writeall(), write() allows the metadata file to contain an invalid
+      threshold of signatures.  
     
     <Arguments>
-      None.
+      rolename:
+        The name of the role to be written to disk.
+
+      consistent_snapshot:
+        A boolean indicating whether written metadata and target files should
+        include a version number in the filename (i.e.,
+        <version_number>.root.json, <version_number>.targets.json.gz,
+        <version_number>.README.json
+        Example: 13.root.json'
 
     <Exceptions>
       None.
@@ -326,17 +321,33 @@ class Repository(object):
       None.
     """
 
-    self.write(write_partial=True)
+    rolename_filename = os.path.join(self._metadata_directory,
+                                     rolename + METADATA_EXTENSION)
+    
+    filenames = {'root': os.path.join(self._metadata_directory, repo_lib.ROOT_FILENAME),
+                 'targets': os.path.join(self._metadata_directory, repo_lib.TARGETS_FILENAME),
+                 'snapshot': os.path.join(self._metadata_directory, repo_lib.SNAPSHOT_FILENAME),
+                 'timestamp': os.path.join(self._metadata_directory, repo_lib.TIMESTAMP_FILENAME)}
+    
+    repo_lib._generate_and_write_metadata(rolename,
+                                          rolename_filename,
+                                          self._targets_directory,
+                                          self._metadata_directory,
+                                          consistent_snapshot,
+                                          filenames=filenames,
+                                          allow_partially_signed=True)
   
   
   
+
+
   def status(self):
     """
     <Purpose>
       Determine the status of the top-level roles, including those delegated by
       the Targets role.  status() checks if each role provides sufficient public
       and private keys, signatures, and that a valid metadata file is generated
-      if write() were to be called.  Metadata files are temporarily written so
+      if writeall() were to be called.  Metadata files are temporarily written so
       that file hashes and lengths may be verified, determine if delegated role
       trust is fully obeyed, and target paths valid according to parent roles.
       status() does not do a simple check for number of threshold keys and
@@ -396,7 +407,7 @@ class Repository(object):
           continue
         
         try: 
-          repo_lib._generate_and_write_metadata(delegated_role, filename, False,
+          repo_lib._generate_and_write_metadata(delegated_role, filename,
                                                 targets_directory,
                                                 metadata_directory)
         except tuf.UnsignedMetadataError:
@@ -432,7 +443,7 @@ class Repository(object):
       roles printed/logged here.  Unlike status(), signatures, public keys,
       targets, etc. are not verified.  status() should be called instead if
       the caller would like to verify if a valid role file is generated
-      if write() were to be called.
+      if writeall() were to be called.
       
     <Arguments>
       None.
@@ -739,8 +750,8 @@ class Metadata(object):
       key:
         The role's key, conformant to 'tuf.formats.ANYKEY_SCHEMA'.  It must
         contain the private key, so that role signatures may be generated when
-        write() or write_partial() is eventually called to generate valid
-        metadata files.
+        writeall() or write() is eventually called to generate valid metadata
+        files.
 
     <Exceptions>
       tuf.FormatError, if 'key' is improperly formatted.
@@ -2087,7 +2098,7 @@ class Targets(Metadata):
 
 
   def delegate(self, rolename, public_keys, list_of_targets, threshold=1,
-               backtrack=True, restricted_paths=None, path_hash_prefixes=None):
+               terminating=False, restricted_paths=None, path_hash_prefixes=None):
     """
     <Purpose>
       Create a new delegation, where 'rolename' is a child delegation of this
@@ -2118,13 +2129,13 @@ class Targets(Metadata):
       threshold:
         The threshold number of keys of 'rolename'. 
       
-      backtrack:
+      terminating:
         Boolean that indicates whether this role allows the updater client
         to continue searching for targets (target files it is trusted to list
-        but has not yet specified) in other delegations.  If 'backtrack' is
-        False and 'updater.target()' does not find 'example_target.tar.gz' in
+        but has not yet specified) in other delegations.  If 'terminating' is
+        True and 'updater.target()' does not find 'example_target.tar.gz' in
         this role, a 'tuf.UnknownTargetError' exception should be raised.  If
-        'backtrack' is True (default), and 'target/other_role' is also trusted
+        'terminatin' is False (default), and 'target/other_role' is also trusted
         with 'example_target.tar.gz' and has listed it, updater.target()
         should backtrack and return the target file specified by
         'target/other_role'.
@@ -2161,7 +2172,7 @@ class Targets(Metadata):
     tuf.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
     tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
     tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
-    tuf.formats.BOOLEAN_SCHEMA.check_match(backtrack)
+    tuf.formats.BOOLEAN_SCHEMA.check_match(terminating)
     
     if restricted_paths is not None:
       tuf.formats.RELPATHS_SCHEMA.check_match(restricted_paths)
@@ -2239,7 +2250,7 @@ class Targets(Metadata):
     roleinfo = {'name': rolename,
                 'keyids': roleinfo['keyids'],
                 'threshold': roleinfo['threshold'],
-                'backtrack': backtrack,
+                'terminating': terminating,
                 'paths': list(roleinfo['paths'].keys())}
     
     if restricted_paths is not None:
@@ -2281,7 +2292,7 @@ class Targets(Metadata):
       'tuf.roledb'.
       
       Actual metadata files are not updated, only when repository.write() or
-      repository.write_partial() is called.
+      repository.write() is called.
       
       >>>
       >>>
@@ -2829,6 +2840,9 @@ def load_repository(repository_directory):
   tuf.formats.PATH_SCHEMA.check_match(repository_directory)
 
   # Load top-level metadata.
+  #tuf.roledb.clear_roledb(clear_all=True)
+  #tuf.keydb.clear_keydb(clear_all=True)
+
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,
                                     METADATA_STAGED_DIRECTORY_NAME)
@@ -2901,7 +2915,14 @@ def load_repository(repository_directory):
  
     # Extract the metadata attributes of 'metadata_name' and update its
     # corresponding roleinfo.
-    roleinfo = tuf.roledb.get_roleinfo(metadata_name)
+    roleinfo = {'name': metadata_name,
+                'signing_keyids': [],
+                'signatures': [],
+                'partial_loaded': False,
+                'compressions': [],
+                'paths': {},
+               }
+
     roleinfo['signatures'].extend(signable['signatures'])
     roleinfo['version'] = metadata_object['version']
     roleinfo['expires'] = metadata_object['expires']
@@ -2912,13 +2933,8 @@ def load_repository(repository_directory):
 
     if os.path.exists(metadata_path + '.gz'):
       roleinfo['compressions'].append('gz')
-   
-    # The roleinfo of 'metadata_name' should have been initialized with
-    # defaults when it was loaded from its parent role.
-    if repo_lib._metadata_is_partially_loaded(metadata_name, signable, roleinfo):
-      roleinfo['partial_loaded'] = True
-    
-    tuf.roledb.update_roleinfo(metadata_name, roleinfo, mark_role_as_dirty=False)
+  
+    tuf.roledb.add_role(metadata_name, roleinfo) 
     loaded_metadata.append(metadata_name)
 
     # Generate the Targets objects of the delegated roles of 'metadata_name'
@@ -2938,27 +2954,13 @@ def load_repository(repository_directory):
     # The repository maintainer should have also been made aware of the
     # duplicate key when it was added.
     for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
-      key_object = tuf.keys.format_metadata_to_key(key_metadata)
-      try: 
+      key_object, junk = tuf.keys.format_metadata_to_key(key_metadata)
+      try:
         tuf.keydb.add_key(key_object)
       
       except tuf.KeyAlreadyExistsError:
         pass
-   
-    # Add the delegated role's initial roleinfo, to be fully populated
-    # when its metadata file is next loaded in one of the next iterations.
-    for role in metadata_object['delegations']['roles']:
-      rolename = role['name'] 
-      roleinfo = {'name': role['name'], 'keyids': role['keyids'],
-                  'threshold': role['threshold'],
-                  'compressions': [''], 'signing_keyids': [],
-                  'signatures': [],
-                  'paths': {},
-                  'partial_loaded': False,
-                  'delegations': {'keys': {},
-                                  'roles': []}}
-      tuf.roledb.add_role(rolename, roleinfo) 
-
+  
   return repository
 
 

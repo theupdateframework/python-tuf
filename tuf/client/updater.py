@@ -2697,7 +2697,7 @@ class Updater(object):
         for child_role in child_roles:
           child_role_name = self._visit_child_role(child_role, target_filepath,
                                                    delegations)
-          if not child_role['backtrack'] and child_role_name is not None:
+          if child_role['terminating'] and child_role_name is not None:
             logger.debug('Adding child role ' + repr(child_role_name))
             logger.debug('Not backtracking to other roles.')
             role_names = []
