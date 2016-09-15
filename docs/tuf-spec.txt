@@ -484,30 +484,22 @@ Version 1.0 (Draft)
    The 'rsa' format is:
    
       { "keytype" : "rsa",
-        "keyval" : { "public" : PUBLIC,
-                     "private" : PRIVATE }
+        "keyval" : { "public" : PUBLIC}
       }
 
-   where PUBLIC and PRIVATE are in PEM format and are strings.  All RSA keys
+   where PUBLIC is in PEM format and a string.  All RSA keys
    must be at least 2048 bits.
 
    The 'ed25519' format is:
    
       { "keytype" : "ed25519",
-        "keyval" : { "public" : PUBLIC,
-                     "private" : PRIVATE }
-      }
-
-   where PUBLIC and PRIVATE are both 32-byte strings.
-
-   Metadata does not include the private portion of the key object:
-   
-      { "keytype" : "rsa",
         "keyval" : { "public" : PUBLIC}
       }
+
+   where PUBLIC is a 32-byte string.
    
    The KEYID of a key is the hexdigest of the SHA-256 hash of the
-   canonical JSON form of the key, where the "private" object key is excluded.
+   canonical JSON form of the key.
    
    Metadata date-time data follows the ISO 8601 standard.  The expected format
    of the combined date and time string is "YYYY-MM-DDTHH:MM:SSZ".  Time is
