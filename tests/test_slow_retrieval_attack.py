@@ -186,7 +186,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     repository.snapshot.load_signing_key(snapshot_private)
     repository.timestamp.load_signing_key(timestamp_private)
     
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))

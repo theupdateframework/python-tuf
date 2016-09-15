@@ -207,7 +207,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     repository.root.load_signing_key(self.role_keys['root']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['snapshot']['private'])
-    repository.write()
+    repository.writeall()
    
 
     # Move the staged metadata to the "live" metadata.
@@ -258,7 +258,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # Note: we added Timetamp's key to the Snapshot role.
     repository.snapshot.load_signing_key(self.role_keys['timestamp']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-    repository.write()
+    repository.writeall()
    
 
     # Move the staged metadata to the "live" metadata.
@@ -311,7 +311,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     repository.targets.load_signing_key(self.role_keys['timestamp']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-    repository.write()
+    repository.writeall()
    
 
     # Move the staged metadata to the "live" metadata.
@@ -368,8 +368,8 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
  
-    # Root's version number = 2 after the following write().
-    repository.write()
+    # Root's version number = 2 after the following writeall().
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -388,7 +388,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # Load the previous Root signing key so that the the client can update
     # successfully.
     repository.root.load_signing_key(self.role_keys['root']['private'])
-    repository.write() 
+    repository.writeall() 
 
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -409,7 +409,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     repository.root.unload_signing_key(self.role_keys['root']['private'])
     repository.root.remove_verification_key(self.role_keys['snapshot']['public'])
     repository.root.unload_signing_key(self.role_keys['snapshot']['private'])
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -421,7 +421,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     
     repository.root.remove_verification_key(self.role_keys['targets']['public'])
     repository.root.unload_signing_key(self.role_keys['targets']['private'])
-    repository.write()
+    repository.writeall()
 
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))

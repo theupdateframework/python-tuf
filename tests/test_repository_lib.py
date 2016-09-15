@@ -900,7 +900,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.roledb.add_role('obsolete_role', targets_roleinfo)
 
     repo_lib._generate_and_write_metadata('obsolete_role', obsolete_metadata,
-                                          True,    
                                           targets_directory, metadata_directory,         
                                           consistent_snapshot=False,
                                           filenames=None,     
@@ -979,19 +978,16 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     repository = repo_tool.create_new_repository(repository_directory)
     repo_lib._load_top_level_metadata(repository, filenames)
 
-    # We partially loaded 'role1' via the top-level Targets role.  For the
-    # purposes of this test case (which only loads top-level metadata and no
-    # delegated metadata), remove this role to avoid issues with partially
-    # loaded information (e.g., missing 'version' info, signatures, etc.)
-    tuf.roledb.remove_role('role1')
-
     # Partially write all top-level roles (we increase the threshold of each
     # top-level role so that they are flagged as partially written.
     repository.root.threshold = repository.root.threshold + 1
     repository.snapshot.threshold = repository.snapshot.threshold + 1
     repository.targets.threshold = repository.targets.threshold + 1
     repository.timestamp.threshold = repository.timestamp.threshold + 1
-    repository.write(write_partial=True)
+    repository.write('root', )
+    repository.write('snapshot')
+    repository.write('targets')
+    repository.write('timestamp')
     
     repo_lib._load_top_level_metadata(repository, filenames)
 

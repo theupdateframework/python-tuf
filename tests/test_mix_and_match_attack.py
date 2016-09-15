@@ -221,7 +221,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
       file_object.write('This is role2\'s target file.')
     repository.targets('role1').add_target(file3_path)
 
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))

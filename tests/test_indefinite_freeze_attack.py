@@ -300,7 +300,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     repository.snapshot.expiration = datetime_object
 
     # Now write to the repository.
-    repository.write()
+    repository.writeall()
 
     # And move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -369,7 +369,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     expiry_time = time.time() + 1
     datetime_object = tuf.formats.unix_timestamp_to_datetime(int(expiry_time))
     repository.timestamp.expiration = datetime_object
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))

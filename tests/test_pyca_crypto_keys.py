@@ -122,8 +122,6 @@ class TestPyca_crypto_keys(unittest.TestCase):
     # Check for invalid 'signature', 'public_key', and 'data' arguments.
     self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature,
                       signature, method, public_rsa, 123)
-  
-   
 
     self.assertRaises(tuf.CryptoError, crypto_keys.verify_rsa_signature,
                       signature, method, 'bad_key', data)
@@ -136,6 +134,8 @@ class TestPyca_crypto_keys(unittest.TestCase):
     
     self.assertEqual(False, crypto_keys.verify_rsa_signature(mismatched_signature,
                             method, public_rsa, data))
+
+
 
   def test__decrypt(self):
     # Verify that invalid encrypted file is detected. 
@@ -157,6 +157,7 @@ class TestPyca_crypto_keys(unittest.TestCase):
     del ed25519_key['keyval']['private']
     self.assertRaises(tuf.FormatError, crypto_keys.encrypt_key,
                       ed25519_key, 'password')
+
 
 
   def test__decrypt_key(self):
