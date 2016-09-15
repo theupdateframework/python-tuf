@@ -3,7 +3,7 @@
   {
    "keyid": "a0a0f0cf08daff7afd1eb6582756d43987aa73f028044836a5519259706ca19b",
    "method": "ed25519",
-   "sig": "e96f9ca4425a37919dc91d5679c5319150b41f729389d70be7d8c8dc3dda647aa9fd11ca3c6a959c10819d652e516b375caf147721f96af329b54c0720373c06"
+   "sig": "74ee9970ed709ab65586ef99c0005102676a92f11e2a448bb685875b641d2efe3fd2bdefaa90e1a050bfbb34163834aadb43d13ac0c7452aa7df27c454c34507"
   }
  ],
  "signed": {
@@ -23,7 +23,6 @@
    },
    "roles": [
     {
-     "backtrack": true,
      "keyids": [
       "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9"
      ],
@@ -31,6 +30,7 @@
      "paths": [
       "/file3.txt"
      ],
+     "terminating": false,
      "threshold": 1
     }
    ]

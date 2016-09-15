@@ -3,14 +3,35 @@
   {
    "keyid": "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9",
    "method": "ed25519",
-   "sig": "98c7634186f7a02b3a56d8204e62b3a1d25225935dc47c720426ef591d09931e071f96f8d47ef3ec814dd7278f05c01190e60386ad03e546869c7aeeb3249703"
+   "sig": "e8f6db97fcad5eb2ca1cf5fc6b6d4579d026811581b0d2061af90c7cb26d966e15a06e7c596f663b05aa061308929f96136167359fc9d44919a36383403abd09"
   }
  ],
  "signed": {
   "_type": "Targets",
   "delegations": {
-   "keys": {},
-   "roles": []
+   "keys": {
+    "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9": {
+     "keyid_hash_algorithms": [
+      "sha256",
+      "sha512"
+     ],
+     "keytype": "ed25519",
+     "keyval": {
+      "public": "3b11296fe2dba14a2ef204e542e9e4195293bcf3042655e3d7e4ef5afe3cf36a"
+     }
+    }
+   },
+   "roles": [
+    {
+     "keyids": [
+      "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9"
+     ],
+     "name": "role2",
+     "paths": [],
+     "terminating": false,
+     "threshold": 1
+    }
+   ]
   },
   "expires": "2030-01-01T00:00:00Z",
   "targets": {
