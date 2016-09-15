@@ -101,6 +101,8 @@ SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
 # The full list of supported TUF metadata extensions.
 METADATA_EXTENSIONS = ['.json.gz', '.json']
 
+# The supported extensions of roles listed in Snapshot metadata.
+SNAPSHOT_ROLE_EXTENSIONS = ['.json']
 
 def _generate_and_write_metadata(rolename, metadata_filename,
                                  targets_directory, metadata_directory,
@@ -1713,7 +1715,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       _strip_version_number(metadata_filename, consistent_snapshot)
     
     # All delegated roles are added to the snapshot file.
-    for metadata_extension in METADATA_EXTENSIONS: 
+    for metadata_extension in SNAPSHOT_ROLE_EXTENSIONS: 
       if metadata_filename.endswith(metadata_extension):
         rolename = metadata_filename[:-len(metadata_extension)]
         
