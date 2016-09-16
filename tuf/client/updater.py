@@ -277,7 +277,8 @@ class Updater(object):
 
     else:
       for repo_name in self.repositories:
-        self.repositories[repo_name].refresh()
+        self.repositories[repo_name].refresh(unsafely_update_root_if_necessary=
+          unsafely_update_root_if_necessary)
 
 
 
@@ -308,9 +309,21 @@ class Updater(object):
     Returns the output of targets_of_role(rolename) run on the updater for
     the given repository.
     """
-    self._validate_repo_name(repo_name)
+    if repo_name is not None:
+      self._validate_repo_name(repo_name)
+      return self.repositories[repo_name].targets_of_role(targets)
 
-    return self.repositories[repo_name].targets_of_role(rolename)
+    else:
+      # This case is only intended to handle a single default repository.
+      if len(self.repositories) != 1:
+        raise tuf.Error("There are multiple repositories known to this "
+          "updater, therefore a specific repo_name must be provided in a "
+          "targets_of_role call.")
+
+      # Else, run on the first and only repository in the list of known
+      # repositories.  TODO: This is clumsy. Improve.
+      return self.repositories[[i for i in self.repositories][0]].targets_of_role(
+          rolename)
 
 
 
@@ -433,7 +446,7 @@ class Updater(object):
     if repo_name not in self.repositories:
       raise tuf.Error('Unknown repository specified in attempt to load '
           'metadata from file. Repo name: ' + repr(repo_name) + '; only aware '
-          'of these repositories: ' + repr(self.known_repositories))
+          'of these repositories: ' + repr(self.repositories))
 
 
 

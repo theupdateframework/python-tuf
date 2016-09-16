@@ -645,7 +645,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify 'timestamp.json' is properly installed.
     self.assertFalse('timestamp' in self.repository_updater.repositories['defaultrepo'].metadata)
     
-    logger.info('\nroleinfo: ' + repr(tuf.roledb.get_rolenames(self.repository_name)))
+    logger.info('\nroleinfo: ' + repr(tuf.roledb.get_rolenames('defaultrepo')))#self.repository_name)))
     self.repository_updater.repositories['defaultrepo']._update_metadata('timestamp',
                                              DEFAULT_TIMESTAMP_FILELENGTH)
     self.assertTrue('timestamp' in self.repository_updater.get_metadata('defaultrepo', 'current'))
@@ -796,13 +796,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # First verify that an expired root metadata is updated.
     expired_date = '1960-01-01T12:00:00Z' 
-    self.repository_updater.get_metadata('defaultrepo', 'current')['root']['expires'] = expired_date
+    self.repository_updater.repositories['defaultrepo'].metadata['current']['root']['expires'] = expired_date
     self.repository_updater.refresh()
 
     # Second, verify that expired root metadata is not updated if
     # 'unsafely_update_root_if_necessary' is explictly set to 'False'.
     expired_date = '1960-01-01T12:00:00Z' 
-    self.repository_updater.get_metadata('defaultrepo', 'current')['root']['expires'] = expired_date
+    self.repository_updater.repositories['defaultrepo'].metadata['current']['root']['expires'] = expired_date
     self.assertRaises(tuf.ExpiredMetadataError,
                       self.repository_updater.refresh,
                       unsafely_update_root_if_necessary=False)
@@ -871,7 +871,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(self.repository_updater.get_metadata('defaultrepo', 'current')), 5)
 
     # Test for compressed metadata roles.
-    self.repository_updater.get_metadata('defaultrepo', 'current')['snapshot']['meta']['targets.json.gz'] = \
+    self.repository_updater.repositories['defaultrepo'].metadata['current']['snapshot']['meta']['targets.json.gz'] = \
       self.repository_updater.get_metadata('defaultrepo', 'current')['snapshot']['meta']['targets.json']
     self.repository_updater.repositories['defaultrepo']._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
@@ -1221,7 +1221,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # directories.  Adjust mirrors dictionary, so that 'confined_target_dirs'
     # field contains at least one confined target and excludes needed target
     # file.
-    mirrors = self.repository_updater.mirrors
+    mirrors = self.repository_updater.repositories['defaultrepo'].mirrors
     for mirror_name, mirror_info in six.iteritems(mirrors):
       mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
 
@@ -1439,25 +1439,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     temp_file_object.write(b'XXX')
     temp_file_object.seek(0)
     self.assertRaises(tuf.DownloadLengthMismatchError,
-                     self.repository_updater._soft_check_file_length,
-                     temp_file_object, 1)
+        self.repository_updater.repositories['defaultrepo'].
+        _soft_check_file_length, temp_file_object, 1)
 
 
 
   def test_10__targets_of_role(self):
     # Test for non-existent role. 
     self.assertRaises(tuf.UnknownRoleError,
-                      self.repository_updater.repositories['defaultrepo'].
-                      _targets_of_role, 'non-existent-role')
-    
+        self.repository_updater.repositories['defaultrepo']._targets_of_role,
+        'non-existent-role')
+
     # Test for role that hasn't been loaded yet.
     del self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
-    self.assertEqual(len(self.repository_updater._targets_of_role('targets',
-                                                        skip_refresh=True)), 0)
+    self.assertEqual(len(self.repository_updater.repositories['defaultrepo'].
+        _targets_of_role('targets', skip_refresh=True)), 0)
 
     # 'targets.json' tracks two targets.
-    self.assertEqual(len(self.repository_updater._targets_of_role('targets')),
-                     2)
+    self.assertEqual(len(self.repository_updater.repositories['defaultrepo'].
+        _targets_of_role('targets')), 2)
 
 
 
@@ -1471,19 +1471,19 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targets_role = self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
     
     child_role = targets_role['delegations']['roles'][0]
-    self.assertEqual(self.repository_updater._is_delegation_relevant_to_target(
+    self.assertEqual(self.repository_updater.repositories['defaultrepo']._is_delegation_relevant_to_target(
         child_role, '/file3.txt'), True)
 
     # Test path hash prefixes.
     child_role['path_hash_prefixes'] = ['8baf', '0000']
-    self.assertEqual(self.repository_updater._is_delegation_relevant_to_target(
+    self.assertEqual(self.repository_updater.repositories['defaultrepo']._is_delegation_relevant_to_target(
         child_role, '/file3.txt'), True)
   
     # Test if both 'path' and 'path_hash_prefixes' is missing.
     del child_role['paths']
     del child_role['path_hash_prefixes']
     self.assertRaises(tuf.FormatError,
-        self.repository_updater._is_delegation_relevant_to_target, child_role,
+        self.repository_updater.repositories['defaultrepo']._is_delegation_relevant_to_target, child_role,
         '/file3.txt')
 
     
