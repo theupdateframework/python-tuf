@@ -143,6 +143,319 @@ iso8601_logger.disabled = True
 class Updater(object):
   """
   <Purpose>
+
+  <Updater Attributes>
+    self.repositories:
+      Dictionary of SingleRepoUpdater objects, indexed by repository name.
+
+
+  <Updater Methods>
+
+
+  """
+
+
+  def __init__(self, updater_name, all_repository_mirrors):
+    """
+    <Purpose>
+
+      Constructor.  Instantiating an updater object instantiates a
+      SingleRepoUpdater object for each repository entry in the
+      all_repository_mirrors dict. This causes all the metadata files for the
+      files for the top-level roles to be read from disk, including the key and
+      role information for the delegated targets of 'targets'.  The actual
+      metadata for delegated roles is not loaded in __init__.  The metadata for
+      these delegated roles, including nested delegated roles, are loaded,
+      updated, and saved to the 'self.metadata' store by the target methods,
+      like all_targets() and targets_of_role().
+
+      The initial set of metadata files are provided by the software update
+      system utilizing TUF.
+
+      For each repository, the following directories must already exist
+      locally:
+
+        {tuf.conf.repository_directory}/metadata/<repository_name>/current
+        {tuf.conf.repository_directory}/metadata/<repository_name>/previous
+
+      and, at a minimum, the root metadata file must exist:
+
+        {tuf.conf.repository_directory}/metadata/<repository_name>/current/root.json
+
+    <Arguments>
+      updater_name:
+        A name to refer to this updater. TODO: Explain why we still need this
+        in this new class, if we do.
+
+      all_repository_mirrors:
+        A dictionary holding mirror information for each known repository. This
+        dictionary conforms to tuf.formats.MULTIREPO_MIRRORDICT_SCHEMA. It is
+        indexed by repository name, and the value held in each entry is in turn
+        conformant to 'tuf.formats.MIRRORDICT_SCHEMA'. Each of those
+        dictionaries holds information such as the directory containing the
+        metadata and target files, the server's URL prefix, and the target
+        content directories the client should be confined to.
+
+        all_repository_mirrors = {
+            'PyPI':
+                    {'pypi_mirror1': {'url_prefix': 'http://localhost:8001',
+                                      'metadata_path': 'metadata',
+                                      'targets_path': 'targets',
+                                      'confined_target_dirs': ['']},
+                     'pypi_mirror2': {'url_prefix': 'http://localhost:8002',
+                                      'metadata_path': 'metadata',
+                                      'targets_path': 'targets',
+                                      'confined_target_dirs': ['']}},
+            'PrivateRepo':
+                      {'foo_mirror': {'url_prefix': 'http://localhost:8001',
+                                      'metadata_path': 'metadata',
+                                      'targets_path': 'targets',
+                                      'confined_target_dirs': ['']}}}
+
+    <Exceptions>
+      tuf.FormatError:
+        If the arguments are improperly formatted.
+
+      tuf.RepositoryError:
+        If there is an error with the updater's repository files, such
+        as a missing 'root.json' file.
+
+    <Side Effects>
+
+      For each repository, the metadata files (e.g., 'root.json',
+      'targets.json') for the top- level roles are read from disk and stored in
+      dictionaries.  In addition, the key and roledb modules are populated with
+      'repository_name' entries.
+
+    <Returns>
+      None.
+    """
+
+    # Do the arguments have the correct format?
+    # These checks ensure the arguments have the appropriate
+    # number of objects and object types and that all dict
+    # keys are properly named.
+    # Raise 'tuf.FormatError' if there is a mistmatch.
+    tuf.formats.NAME_SCHEMA.check_match(updater_name)
+    tuf.formats.MULTIREPO_MIRRORDICT_SCHEMA.check_match(all_repository_mirrors)
+
+    # Save the validated arguments.
+    self.updater_name = updater_name
+    # self.mirrors = repository_mirrors
+
+    # This is where the SingleRepoUpdater objects are stored, indexed by
+    # repository name.
+    self.repositories = {}
+
+    # Create a SingleRepoUpdater object for each repository.
+    for repo_name in all_repository_mirrors:
+      self.repositories[repo_name] = SingleRepoUpdater(repo_name,
+          all_repository_mirrors[repo_name])
+
+
+
+  def __str__(self):
+    """
+      The string representation of an Updater object.
+    """
+
+    return self.updater_name
+
+
+
+  def refresh(self, unsafely_update_root_if_necessary=True, repo_name=None):
+    """
+    Runs refresh() on the SingleRepoUpdater corresponding to the given
+    repository name. If not provided a repository name, runs refresh() on every
+    SingleRepoUpdater (the updaters for every known repository).
+
+    TODO: Docstring this without reproducing the entire string from below. /:
+    """
+    if repo_name is not None:
+      self._validate_repo_name(repo_name)
+      self.repositories[repo_name].refresh()
+
+    else:
+      for repo_name in self.repositories:
+        self.repositories[repo_name].refresh()
+
+
+
+  def all_targets(self, repo_name=None):
+    """
+    Returns the output of all_targets() on the updater for the given repository
+    name. If not provided a repository name, returns the combined output of
+    all_targets() run on the updaters for all known repositories.
+
+    Across repositories, targets are not provided in any particular order.
+    """
+    if repo_name is not None:
+      self._validate_repo_name(repo_name)
+      return self.repositories[repo_name].all_targets()
+
+    else:
+      all_repos_targets = []
+
+      for repo_name in self.repositories:
+        all_repos_targets.extend(self.repositories[repo_name].all_targets())
+
+      return all_repos_targets
+
+
+
+  def targets_of_role(self, rolename='targets', repo_name=None):
+    """
+    Returns the output of targets_of_role(rolename) run on the updater for
+    the given repository.
+    """
+    self._validate_repo_name(repo_name)
+
+    return self.repositories[repo_name].targets_of_role(rolename)
+
+
+
+  def target(self, target_filepath, repo_name=None):
+    """
+    Returns the output of target(target_filepath) run on the updater for the
+    given repository.
+
+    If multiple repositories are known to this updater, a repo_name argument
+    must be provided. (If only one repository is listed in this updater, then
+    that repository is used.)
+    """
+    if repo_name is not None:
+      self._validate_repo_name(repo_name)
+      return self.repositories[repo_name].target(target_filepath)
+
+    else:
+      # This case is only intended to handle a single default repository.
+      if len(self.repositories) != 1:
+        raise tuf.Error("There are multiple repositories known to this "
+          "updater, therefore a specific repo_name must be provided in a "
+          "target call.")
+
+      # Else, run on the first and only repository in the list of known
+      # repositories.  TODO: This is clumsy. Improve.
+      return self.repositories[[i for i in self.repositories][0]].target(
+          target_filepath)
+
+
+
+  def remove_obsolete_targets(self, destination_directory, repo_name=None):
+    """
+    Run remove_obsolete_targets(destination_directory) on the updater for the
+    given repository.
+
+    If multiple repositories are known to this updater, a repo_name argument
+    must be provided. (If only one repository is listed in this updater, then
+    that repository is used.)
+    """
+    if repo_name is not None:
+      self._validate_repo_name(repo_name)
+      return self.repositories[repo_name].remove_obsolete_targets(
+          destination_directory)
+
+    else:
+      # This case is only intended to handle a single default repository.
+      if len(self.repositories) != 1:
+        raise tuf.Error("There are multiple repositories known to this "
+          "updater, therefore a specific repo_name must be provided in an "
+          "remove_obsolete_targets call.")
+
+      # Else, run on the first and only repository in the list of known
+      # repositories.  TODO: This is clumsy. Improve.
+      self.repositories[[i for i in self.repositories][0]].remove_obsolete_targets(
+          destination_directory)
+
+
+
+  def updated_targets(self, targets, destination_directory, repo_name=None):
+    """
+    Returns the output of updated_targets(targets, destination_directory) on
+    the updater for the given repository name.
+
+    If multiple repositories are known to this updater, a repo_name argument
+    must be provided. (If only one repository is listed in this updater, then
+    that repository is used.)
+    """
+    if repo_name is not None:
+      self._validate_repo_name(repo_name)
+      return self.repositories[repo_name].updated_targets(targets,
+          destination_directory)
+
+    else:
+      # This case is only intended to handle a single default repository.
+      if len(self.repositories) != 1:
+        raise tuf.Error("There are multiple repositories known to this "
+          "updater, therefore a specific repo_name must be provided in an "
+          "updated_targets call.")
+
+      # Run on the first and only repository in the list of known repositories.
+      # TODO: Clumsy.
+      return self.repositories[[i for i in self.repositories][0]].updated_targets(
+          targets, destination_directory)
+
+
+
+  def download_target(self, target, destination_directory, repo_name=None):
+    """
+    Returns the output of download_target(target, destination_directory) on
+    the updater for the given repository name.
+
+    If multiple repositories are known to this updater, a repo_name argument
+    must be provided. (If only one repository is listed in this updater, then
+    that repository is used.)
+    """
+    if repo_name is not None:
+      self._validate_repo_name(repo_name)
+      return self.repositories[repo_name].download_target(target,
+          destination_directory)
+
+    else:
+      # This case is only intended to handle a single default repository.
+      if len(self.repositories) != 1:
+        raise tuf.Error("There are multiple repositories known to this "
+          "updater, therefore a specific repo_name must be provided in a "
+          "download_target call.")
+
+      # Run on the first and only repository in the list of known repositories.
+      # TODO: Clumsy.
+      self.repositories[[i for i in self.repositories][0]].download_target(
+          target, destination_directory)
+
+
+
+  def _validate_repo_name(self, repo_name):
+    """
+    Throws tuf.FormatError if the given repo_name is not of the right type.
+    Throws tuf.Error if the given repo_name is not that of a known repository.
+    """
+    if repo_name not in self.repositories:
+      raise tuf.Error('Unknown repository specified in attempt to load '
+          'metadata from file. Repo name: ' + repr(repo_name) + '; only aware '
+          'of these repositories: ' + repr(self.known_repositories))
+
+
+
+  def get_metadata(self, repo_name, metadata_set):
+    """
+    TODO: Docstring
+
+    repo_name is from self.repositories
+    metadata_set is either 'current' or 'previous'
+    """
+    self._validate_repo_name(repo_name)
+    _validate_metadata_set(metadata_set)
+
+    return self.repositories[repo_name].metadata[metadata_set]
+
+
+
+
+
+class SingleRepoUpdater(object):
+  """
+  <Purpose>
     Provide a class that can download target files securely.  The updater
     keeps track of currently and previously trusted metadata, target files
     available to the client, target file attributes such as file size and 
@@ -238,17 +551,18 @@ class Updater(object):
       In order to use an updater, the following directories must already
       exist locally:
             
-            {tuf.conf.repository_directory}/metadata/current
-            {tuf.conf.repository_directory}/metadata/previous
+        {tuf.conf.repository_directory}/metadata/<repository_name>/current
+        {tuf.conf.repository_directory}/metadata/<repository_name>previous
       
       and, at a minimum, the root metadata file must exist:
 
-            {tuf.conf.repository_directory}/metadata/current/root.json
+        {tuf.conf.repository_directory}/metadata/<repository_name>/current/root.json
     
     <Arguments>
       updater_name:
-        The name of the updater.
-      
+        The name that this single-repository updater will use. Preferably the
+        name of the repository.
+
       repository_mirrors:
         A dictionary holding repository mirror information, conformant to
         'tuf.formats.MIRRORDICT_SCHEMA'.  This dictionary holds information
@@ -410,8 +724,7 @@ class Updater(object):
     """
 
     # Ensure we have a valid metadata set.
-    if metadata_set not in ['current', 'previous']:
-      raise tuf.Error('Invalid metadata set: ' + repr(metadata_set))
+    _validate_metadata_set(metadata_set)
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
@@ -3168,3 +3481,19 @@ class Updater(object):
         raise
 
     target_file_object.move(destination)
+
+
+
+
+
+
+
+def _validate_metadata_set(metadata_set):
+  """
+  TODO: Docstring.
+  Raises a tuf.Error if metadata_set is not 'current' or 'previous'.
+  The metadata dictionary that stores metadata information for the repository
+  is separated into 'current' and 'previous' dictionaries. 
+  """
+  if metadata_set not in ['current', 'previous']:
+    raise tuf.Error('Invalid metadata set: ' + repr(metadata_set))

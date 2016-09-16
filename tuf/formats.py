@@ -546,11 +546,18 @@ MIRROR_SCHEMA = SCHEMA.Object(
 
 # A dictionary of mirrors where the dict keys hold the mirror's name and
 # and the dict values the mirror's data (i.e., 'MIRROR_SCHEMA').
-# The repository class of 'updater.py' accepts dictionaries
-# of this type provided by the TUF client.
+# The SingleRepoUpdater class of 'updater.py' accepts dictionaries of this
+# type.
 MIRRORDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = SCHEMA.AnyString(),
   value_schema = MIRROR_SCHEMA)
+
+# A dictionary of mirror dictionaries, one mirror dictionary per repository.
+# The Updater class of 'updater.py' accepts dictionaries of this type.
+MULTIREPO_MIRRORDICT_SCHEMA = SCHEMA.DictOf(
+  key_schema = SCHEMA.AnyString(), # Repository name
+  value_schema = MIRRORDICT_SCHEMA)
+
 
 # A Mirrorlist: indicates all the live mirrors, and what documents they
 # serve.

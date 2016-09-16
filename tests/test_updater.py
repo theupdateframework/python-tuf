@@ -171,10 +171,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # directory copied from the original repository files.
     tuf.conf.repository_directory = self.client_directory 
     
-    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
-                                           'metadata_path': 'metadata',
-                                           'targets_path': 'targets',
-                                           'confined_target_dirs': ['']}}
+    self.repository_mirrors = {'defaultrepo': {
+         'mirror1': {'url_prefix': url_prefix,
+         'metadata_path': 'metadata',
+         'targets_path': 'targets',
+         'confined_target_dirs': ['']}}}
 
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
@@ -290,23 +291,24 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     role1_meta = tuf.util.load_json_file(role1_filepath)
  
     # Load the 'role1.json' file with _load_metadata_from_file, which should
-    # store the loaded metadata in the 'self.repository_updater.metadata'
-    # store.
-    self.assertEqual(len(self.repository_updater.metadata['current']), 4)
-    self.repository_updater._load_metadata_from_file('current', 'role1')
+    # store the loaded metadata in the
+    # 'self.repository_updater.repositories['defaultrepo'].metadata' store.
+    self.assertEqual(len(self.repository_updater.get_metadata('defaultrepo',
+        'current')), 4)
+    self.repository_updater.repositories['defaultrepo']._load_metadata_from_file('current', 'role1')
     
     # Verify that the correct number of metadata objects has been loaded
     # (i.e., only the 'root.json' file should have been loaded.
-    self.assertEqual(len(self.repository_updater.metadata['current']), 5)
+    self.assertEqual(len(self.repository_updater.get_metadata('defaultrepo', 'current')), 5)
 
     # Verify that the content of root metadata is valid.
-    self.assertEqual(self.repository_updater.metadata['current']['role1'],
+    self.assertEqual(self.repository_updater.get_metadata('defaultrepo', 'current')['role1'],
                      role1_meta['signed'])
 
     # Test invalid metadata set argument (must be either
     # 'current' or 'previous'.)
     self.assertRaises(tuf.Error,
-                      self.repository_updater._load_metadata_from_file,
+                      self.repository_updater.repositories['defaultrepo']._load_metadata_from_file,
                       'bad_metadata_set', 'role1')
 
 
@@ -316,7 +318,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_1__rebuild_key_and_role_db(self):    
     # Setup
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
-    root_metadata = self.repository_updater.metadata['current']['root']
+    root_metadata = self.repository_updater.get_metadata('defaultrepo', 'current')['root']
     root_threshold = root_metadata['roles']['root']['threshold']
     print('\nnumber of root keys: ' + str(len(root_metadata['keys'].keys())))
     print('\nKeys in root metadata: ' + repr(root_metadata['keys'].keys()))
@@ -331,7 +333,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(number_of_root_keys * 2 + 1, len(tuf.keydb._keydb_dict[self.repository_name]))
 
     # Test: normal case.
-    self.repository_updater._rebuild_key_and_role_db()
+    self.repository_updater.repositories['defaultrepo']._rebuild_key_and_role_db()
 
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], root_threshold)
@@ -341,11 +343,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(number_of_root_keys * 2, len(tuf.keydb._keydb_dict[self.repository_name]))
    
     # Test: properly updated roledb and keydb dicts if the Root role changes.
-    root_metadata = self.repository_updater.metadata['current']['root']
+    root_metadata = self.repository_updater.get_metadata('defaultrepo', 'current')['root']
     root_metadata['roles']['root']['threshold'] = 8
     root_metadata['keys'].popitem()
 
-    self.repository_updater._rebuild_key_and_role_db()
+    self.repository_updater.repositories['defaultrepo']._rebuild_key_and_role_db()
     
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], 8)
@@ -359,12 +361,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Tests
     # Verify that the 'self.versioninfo' dictionary is empty (it starts off
     # empty and is only populated if _update_versioninfo() is called.
-    versioninfo_dict = self.repository_updater.versioninfo
+    versioninfo_dict = self.repository_updater.repositories['defaultrepo'].versioninfo
     self.assertEqual(len(versioninfo_dict), 0)
 
     # Load the versioninfo of the top-level Targets role.  This action
     # populates the 'self.versioninfo' dictionary.
-    self.repository_updater._update_versioninfo('targets.json')
+    self.repository_updater.repositories['defaultrepo']._update_versioninfo('targets.json')
     self.assertEqual(len(versioninfo_dict), 1)
     self.assertTrue(tuf.formats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
    
@@ -381,12 +383,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(versioninfo_dict['targets.json'], targets_versioninfo)
 
     # Verify that 'self.versioninfo' is incremented if another role is updated.
-    self.repository_updater._update_versioninfo('role1.json')
+    self.repository_updater.repositories['defaultrepo']._update_versioninfo('role1.json')
     self.assertEqual(len(versioninfo_dict), 2)
 
     # Verify that 'self.versioninfo' is incremented if a non-existent role is
     # requested, and has its versioninfo entry set to 'None'.
-    self.repository_updater._update_versioninfo('bad_role.json')
+    self.repository_updater.repositories['defaultrepo']._update_versioninfo('bad_role.json')
     self.assertEqual(len(versioninfo_dict), 3)
     self.assertEqual(versioninfo_dict['bad_role.json'], None)
 
@@ -397,12 +399,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # Tests
       # Verify that the 'self.fileinfo' dictionary is empty (its starts off empty
       # and is only populated if _update_fileinfo() is called.
-      fileinfo_dict = self.repository_updater.fileinfo
+      fileinfo_dict = self.repository_updater.repositories['defaultrepo'].fileinfo
       self.assertEqual(len(fileinfo_dict), 0)
 
       # Load the fileinfo of the top-level root role.  This populates the
       # 'self.fileinfo' dictionary.
-      self.repository_updater._update_fileinfo('root.json')
+      self.repository_updater.repositories['defaultrepo']._update_fileinfo('root.json')
       self.assertEqual(len(fileinfo_dict), 1)
       self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
@@ -412,12 +414,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
 
       # Verify that 'self.fileinfo' is incremented if another role is updated.
-      self.repository_updater._update_fileinfo('targets.json')
+      self.repository_updater.repositories['defaultrepo']._update_fileinfo('targets.json')
       self.assertEqual(len(fileinfo_dict), 2)
 
       # Verify that 'self.fileinfo' is inremented if a non-existent role is
       # requested, and has its fileinfo entry set to 'None'.
-      self.repository_updater._update_fileinfo('bad_role.json')
+      self.repository_updater.repositories['defaultrepo']._update_fileinfo('bad_role.json')
       self.assertEqual(len(fileinfo_dict), 3)
       self.assertEqual(fileinfo_dict['bad_role.json'], None)
 
@@ -429,18 +431,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
       length, hashes = tuf.util.get_file_details(root_filepath)
       root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
-      self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
+      self.assertFalse(self.repository_updater.repositories['defaultrepo']._fileinfo_has_changed('root.json',
                                                              root_fileinfo))
 
       # Verify that the method returns 'True' if length or hashes were changed.
       new_length = 8
       new_root_fileinfo = tuf.formats.make_fileinfo(new_length, hashes)
-      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+      self.assertTrue(self.repository_updater.repositories['defaultrepo']._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
       # Hashes were changed.
       new_hashes = {'sha256': self.random_string()}
       new_root_fileinfo = tuf.formats.make_fileinfo(length, new_hashes)
-      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+      self.assertTrue(self.repository_updater.repositories['defaultrepo']._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
 
 
@@ -470,7 +472,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(4 * 2, len(tuf.keydb._keydb_dict[repository_name]))
 
     # Test: pass a role without delegations.
-    self.repository_updater._import_delegations('root')
+    self.repository_updater.repositories['defaultrepo']._import_delegations('root')
 
     # Verify that there was no change to the roledb and keydb dictionaries by
     # checking the number of elements in the dictionaries.
@@ -480,7 +482,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2)
 
     # Test: normal case, first level delegation.
-    self.repository_updater._import_delegations('targets')
+    self.repository_updater.repositories['defaultrepo']._import_delegations('targets')
 
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 5)
     # The number of root keys (times the number of key hash algorithms) + 
@@ -505,26 +507,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # field of parent role's 'delegations'.
     existing_keyid = keyids[0]
    
-    self.repository_updater.metadata['current']['targets']\
+    self.repository_updater.get_metadata('defaultrepo', 'current')['targets']\
       ['delegations']['keys'][existing_keyid]['keytype'] = 'bad_keytype'
-    self.repository_updater._import_delegations('targets')
+    self.repository_updater.repositories['defaultrepo']._import_delegations('targets')
     
     # Restore the keytype of 'existing_keyid'.
-    self.repository_updater.metadata['current']['targets']\
+    self.repository_updater.get_metadata('defaultrepo', 'current')['targets']\
       ['delegations']['keys'][existing_keyid]['keytype'] = 'ed25519'
 
     # Verify that _import_delegations() raises an exception if any key in
     # 'delegations' is improperly formatted (i.e., bad keyid).
     tuf.keydb.clear_keydb(repository_name)
     
-    self.repository_updater.metadata['current']['targets']['delegations']\
-      ['keys'].update({'123': self.repository_updater.metadata['current']\
+    self.repository_updater.get_metadata('defaultrepo', 'current')['targets']['delegations']\
+      ['keys'].update({'123': self.repository_updater.get_metadata('defaultrepo', 'current')\
       ['targets']['delegations']['keys'][existing_keyid]})
-    self.assertRaises(tuf.Error, self.repository_updater._import_delegations,
+    self.assertRaises(tuf.Error, self.repository_updater.repositories['defaultrepo']._import_delegations,
                       'targets')
 
     # Restore the keyid of 'existing_keyids2'.
-    self.repository_updater.metadata['current']['targets']\
+    self.repository_updater.get_metadata('defaultrepo', 'current')['targets']\
       ['delegations']['keys'][existing_keyid]['keyid'] = existing_keyid
 
     # Verify that _import_delegations() raises an exception if it fails to add
@@ -540,12 +542,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
     targets_versioninfo = snapshot_signable['signed']['meta']['targets.json'] 
     
-    self.assertFalse(self.repository_updater._versioninfo_has_been_updated('targets.json',
-                                                           targets_versioninfo))
+    self.assertFalse(self.repository_updater.repositories['defaultrepo'].
+        _versioninfo_has_been_updated('targets.json', targets_versioninfo))
 
     # Verify that the method returns 'True' if Root's version number changes.
     targets_versioninfo['version'] = 8 
-    self.assertTrue(self.repository_updater._versioninfo_has_been_updated('targets.json',
+    self.assertTrue(self.repository_updater.repositories['defaultrepo']._versioninfo_has_been_updated('targets.json',
                                                            targets_versioninfo))
 
 
@@ -563,7 +565,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertFalse(os.path.exists(previous_snapshot_filepath))
    
     # Verify that the current 'snapshot.json' is moved to the previous directory.
-    self.repository_updater._move_current_to_previous('snapshot')
+    self.repository_updater.repositories['defaultrepo']._move_current_to_previous('snapshot')
     self.assertTrue(os.path.exists(previous_snapshot_filepath))
 
 
@@ -573,12 +575,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_2__delete_metadata(self):
     # This test will verify that 'root' metadata is never deleted.  When a role
     # is deleted verify that the file is not present in the 
-    # 'self.repository_updater.metadata' dictionary.
-    self.repository_updater._delete_metadata('root')
-    self.assertTrue('root' in self.repository_updater.metadata['current'])
+    # 'self.repository_updater.repositories['defaultrepo'].metadata' dictionary.
+    self.repository_updater.repositories['defaultrepo']._delete_metadata('root')
+    self.assertTrue('root' in self.repository_updater.get_metadata('defaultrepo', 'current'))
     
-    self.repository_updater._delete_metadata('timestamp')
-    self.assertFalse('timestamp' in self.repository_updater.metadata['current'])
+    self.repository_updater.repositories['defaultrepo']._delete_metadata('timestamp')
+    self.assertFalse('timestamp' in self.repository_updater.get_metadata('defaultrepo', 'current'))
 
 
 
@@ -587,8 +589,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_2__ensure_not_expired(self):
     # This test condition will verify that nothing is raised when a metadata
     # file has a future expiration date.
-    root_metadata = self.repository_updater.metadata['current']['root']
-    self.repository_updater._ensure_not_expired(root_metadata, 'root')
+    root_metadata = self.repository_updater.get_metadata('defaultrepo', 'current')['root']
+    self.repository_updater.repositories['defaultrepo']._ensure_not_expired(root_metadata, 'root')
     
     # 'tuf.ExpiredMetadataError' should be raised in this next test condition,
     # because the expiration_date has expired by 10 seconds.
@@ -600,7 +602,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # the formats of the 'root.json' object.
     self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
     self.assertRaises(tuf.ExpiredMetadataError,
-                      self.repository_updater._ensure_not_expired,
+                      self.repository_updater.repositories['defaultrepo']._ensure_not_expired,
                       root_metadata, 'root')
 
 
@@ -623,14 +625,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Save the versioninfo of 'targets.json,' needed later when re-installing
     # with _update_metadata().
     targets_versioninfo = \
-      self.repository_updater.metadata['current']['snapshot']['meta']\
+      self.repository_updater.get_metadata('defaultrepo', 'current')['snapshot']['meta']\
                                       ['targets.json']
    
     # Remove the currently installed metadata from the store and disk.  Verify
     # that the metadata dictionary is re-populated after calling
     # _update_metadata().
-    del self.repository_updater.metadata['current']['timestamp']
-    del self.repository_updater.metadata['current']['targets']
+    del self.repository_updater.get_metadata('defaultrepo', 'current')['timestamp']
+    del self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
     
     timestamp_filepath = \
       os.path.join(self.client_metadata_current, 'timestamp.json')
@@ -641,20 +643,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: normal case.
     # Verify 'timestamp.json' is properly installed.
-    self.assertFalse('timestamp' in self.repository_updater.metadata)
+    self.assertFalse('timestamp' in self.repository_updater.repositories['defaultrepo'].metadata)
     
     logger.info('\nroleinfo: ' + repr(tuf.roledb.get_rolenames(self.repository_name)))
-    self.repository_updater._update_metadata('timestamp',
+    self.repository_updater.repositories['defaultrepo']._update_metadata('timestamp',
                                              DEFAULT_TIMESTAMP_FILELENGTH)
-    self.assertTrue('timestamp' in self.repository_updater.metadata['current'])
+    self.assertTrue('timestamp' in self.repository_updater.get_metadata('defaultrepo', 'current'))
     os.path.exists(timestamp_filepath)
   
     # Verify 'targets.json' is properly installed.
-    self.assertFalse('targets' in self.repository_updater.metadata['current'])
-    self.repository_updater._update_metadata('targets',
+    self.assertFalse('targets' in self.repository_updater.get_metadata('defaultrepo', 'current'))
+    self.repository_updater.repositories['defaultrepo']._update_metadata('targets',
                                 DEFAULT_TARGETS_FILELENGTH,
                                 targets_versioninfo['version'])
-    self.assertTrue('targets' in self.repository_updater.metadata['current'])
+    self.assertTrue('targets' in self.repository_updater.get_metadata('defaultrepo', 'current'))
    
     targets_signable = tuf.util.load_json_file(targets_filepath)
     loaded_targets_version = targets_signable['signed']['version']
@@ -662,30 +664,30 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Remove the 'targets.json' metadata so that the compressed version may be
     # tested next.
-    del self.repository_updater.metadata['current']['targets']
+    del self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
     os.remove(targets_filepath)
 
     # Verify 'targets.json.gz' is properly intalled.  Note: The uncompressed
     # version is installed if the compressed one is downloaded.
-    self.assertFalse('targets' in self.repository_updater.metadata['current'])
-    self.repository_updater._update_metadata('targets',
+    self.assertFalse('targets' in self.repository_updater.get_metadata('defaultrepo', 'current'))
+    self.repository_updater.repositories['defaultrepo']._update_metadata('targets',
                                              DEFAULT_TARGETS_FILELENGTH,
                                              targets_versioninfo['version'],                                          
                                              'gzip')
-    self.assertTrue('targets' in self.repository_updater.metadata['current'])
+    self.assertTrue('targets' in self.repository_updater.get_metadata('defaultrepo', 'current'))
     self.assertEqual(targets_versioninfo['version'],
-              self.repository_updater.metadata['current']['targets']['version'])
+              self.repository_updater.get_metadata('defaultrepo', 'current')['targets']['version'])
     
     # Test: Invalid / untrusted version numbers.
     # Invalid version number for the uncompressed version of 'targets.json'.
     self.assertRaises(tuf.NoWorkingMirrorError,
-                      self.repository_updater._update_metadata,
+                      self.repository_updater.repositories['defaultrepo']._update_metadata,
                       'targets', DEFAULT_TARGETS_FILELENGTH, 88)
     
     # Verify that the specific exception raised is correct for the previous
     # case.
     try:
-      self.repository_updater._update_metadata('targets',
+      self.repository_updater.repositories['defaultrepo']._update_metadata('targets',
                                                DEFAULT_TARGETS_FILELENGTH, 88)
     
     except tuf.NoWorkingMirrorError as e:
@@ -694,7 +696,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Invalid version number for the compressed version of 'targets.json' 
     self.assertRaises(tuf.NoWorkingMirrorError,
-                      self.repository_updater._update_metadata,
+                      self.repository_updater.repositories['defaultrepo']._update_metadata,
                       'targets', DEFAULT_TARGETS_FILELENGTH, 88,
                       'gzip')
     
@@ -702,7 +704,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # case.  The version number is checked, so the specific error in
     # this case should be 'tuf.BadVersionNumberError'.
     try:
-      self.repository_updater._update_metadata('targets',
+      self.repository_updater.repositories['defaultrepo']._update_metadata('targets',
                                                DEFAULT_TARGETS_FILELENGTH,
                                                88, 'gzip')
     
@@ -719,18 +721,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # The client repository is initially loaded with only four top-level roles.
     # Verify that the metadata store contains the metadata of only these four
     # roles before updating the metadata of 'targets.json'.
-    self.assertEqual(len(self.repository_updater.metadata['current']), 4)
-    self.assertTrue('targets' in self.repository_updater.metadata['current'])
+    self.assertEqual(len(self.repository_updater.get_metadata('defaultrepo', 'current')), 4)
+    self.assertTrue('targets' in self.repository_updater.get_metadata('defaultrepo', 'current'))
     targets_path = os.path.join(self.client_metadata_current, 'targets.json')
     self.assertTrue(os.path.exists(targets_path))
-    self.assertEqual(self.repository_updater.metadata['current']['targets']['version'], 1)
+    self.assertEqual(self.repository_updater.get_metadata('defaultrepo', 'current')['targets']['version'], 1)
     
     # Test: normal case.  Update 'targets.json'.  The version number should not
     # change.
-    self.repository_updater._update_metadata_if_changed('targets')
+    self.repository_updater.repositories['defaultrepo']._update_metadata_if_changed('targets')
     
     # Verify the current version of 'targets.json' has not changed.
-    self.assertEqual(self.repository_updater.metadata['current']['targets']['version'], 1)
+    self.assertEqual(self.repository_updater.get_metadata('defaultrepo', 'current')['targets']['version'], 1)
 
     # Modify one target file on the remote repository.
     repository = repo_tool.load_repository(self.repository_directory)
@@ -752,17 +754,17 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # so that new 'targets' can be recognized.
     DEFAULT_TIMESTAMP_FILELENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
-    self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILELENGTH)
-    self.repository_updater._update_metadata_if_changed('snapshot', 'timestamp')
-    self.repository_updater._update_metadata_if_changed('targets')
+    self.repository_updater.repositories['defaultrepo']._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILELENGTH)
+    self.repository_updater.repositories['defaultrepo']._update_metadata_if_changed('snapshot', 'timestamp')
+    self.repository_updater.repositories['defaultrepo']._update_metadata_if_changed('targets')
     targets_path = os.path.join(self.client_metadata_current, 'targets.json')
     self.assertTrue(os.path.exists(targets_path))
-    self.assertTrue(self.repository_updater.metadata['current']['targets'])
-    self.assertEqual(self.repository_updater.metadata['current']['targets']['version'], 2)
+    self.assertTrue(self.repository_updater.get_metadata('defaultrepo', 'current')['targets'])
+    self.assertEqual(self.repository_updater.get_metadata('defaultrepo', 'current')['targets']['version'], 2)
 
     # Test for an invalid 'referenced_metadata' argument.
     self.assertRaises(tuf.RepositoryError,
-                      self.repository_updater._update_metadata_if_changed,
+                      self.repository_updater.repositories['defaultrepo']._update_metadata_if_changed,
                       'snapshot', 'bad_role')
     
 
@@ -772,10 +774,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Extract the list of targets from 'targets.json', to be compared to what
     # is returned by _targets_of_role('targets').
     targets_in_metadata = \
-      self.repository_updater.metadata['current']['targets']['targets']
+      self.repository_updater.get_metadata('defaultrepo', 'current')['targets']['targets']
     
     # Test: normal case.
-    targets_list = self.repository_updater._targets_of_role('targets')
+    targets_list = self.repository_updater.repositories['defaultrepo']._targets_of_role('targets')
     
     # Verify that the list of targets was returned, and that it contains valid
     # target files.
@@ -794,13 +796,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # First verify that an expired root metadata is updated.
     expired_date = '1960-01-01T12:00:00Z' 
-    self.repository_updater.metadata['current']['root']['expires'] = expired_date
+    self.repository_updater.get_metadata('defaultrepo', 'current')['root']['expires'] = expired_date
     self.repository_updater.refresh()
 
     # Second, verify that expired root metadata is not updated if
     # 'unsafely_update_root_if_necessary' is explictly set to 'False'.
     expired_date = '1960-01-01T12:00:00Z' 
-    self.repository_updater.metadata['current']['root']['expires'] = expired_date
+    self.repository_updater.get_metadata('defaultrepo', 'current')['root']['expires'] = expired_date
     self.assertRaises(tuf.ExpiredMetadataError,
                       self.repository_updater.refresh,
                       unsafely_update_root_if_necessary=False)
@@ -821,15 +823,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Reference 'self.Repository.metadata['current']['targets']'.  Ensure
     # 'target3' is not already specified.
-    targets_metadata = self.repository_updater.metadata['current']['targets']
+    targets_metadata = self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
     self.assertFalse(target3 in targets_metadata['targets'])
 
     # Verify the expected version numbers of the roles to be modified.
-    self.assertEqual(self.repository_updater.metadata['current']['targets']\
+    self.assertEqual(self.repository_updater.get_metadata('defaultrepo', 'current')['targets']\
                                                     ['version'], 1)
-    self.assertEqual(self.repository_updater.metadata['current']['snapshot']\
+    self.assertEqual(self.repository_updater.get_metadata('defaultrepo', 'current')['snapshot']\
                                                     ['version'], 1)
-    self.assertEqual(self.repository_updater.metadata['current']['timestamp']\
+    self.assertEqual(self.repository_updater.get_metadata('defaultrepo', 'current')['timestamp']\
                                                     ['version'], 1)
 
     # Test: normal case.  'targes.json' should now specify 'target3', and the
@@ -838,17 +840,17 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
 
     # Verify that the client's metadata was updated. 
-    targets_metadata = self.repository_updater.metadata['current']['targets']
+    targets_metadata = self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
     targets_directory = os.path.join(self.repository_directory, 'targets') 
     target3 = target3[len(targets_directory):]
     self.assertTrue(target3 in targets_metadata['targets'])
 
     # Verify the expected version numbers of the updated roles.
-    self.assertEqual(self.repository_updater.metadata['current']['targets']\
+    self.assertEqual(self.repository_updater.get_metadata('defaultrepo', 'current')['targets']\
                                                     ['version'], 2)
-    self.assertEqual(self.repository_updater.metadata['current']['snapshot']\
+    self.assertEqual(self.repository_updater.get_metadata('defaultrepo', 'current')['snapshot']\
                                                     ['version'], 2)
-    self.assertEqual(self.repository_updater.metadata['current']['timestamp']\
+    self.assertEqual(self.repository_updater.get_metadata('defaultrepo', 'current')['timestamp']\
                                                     ['version'], 2)
 
 
@@ -860,18 +862,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # It is assumed that the client repository has only loaded the top-level
     # metadata.  Refresh the 'targets.json' metadata, including all delegated
     # roles (i.e., the client should add the missing 'role1.json' metadata. 
-    self.assertEqual(len(self.repository_updater.metadata['current']), 4)
+    self.assertEqual(len(self.repository_updater.get_metadata('defaultrepo', 'current')), 4)
 
     # Test: normal case.
-    self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
+    self.repository_updater.repositories['defaultrepo']._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
     # Verify that client's metadata files were refreshed successfully.
-    self.assertEqual(len(self.repository_updater.metadata['current']), 5)
+    self.assertEqual(len(self.repository_updater.get_metadata('defaultrepo', 'current')), 5)
 
     # Test for compressed metadata roles.
-    self.repository_updater.metadata['current']['snapshot']['meta']['targets.json.gz'] = \
-      self.repository_updater.metadata['current']['snapshot']['meta']['targets.json']
-    self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
+    self.repository_updater.get_metadata('defaultrepo', 'current')['snapshot']['meta']['targets.json.gz'] = \
+      self.repository_updater.get_metadata('defaultrepo', 'current')['snapshot']['meta']['targets.json']
+    self.repository_updater.repositories['defaultrepo']._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
 
 
@@ -915,7 +917,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_5_targets_of_role(self):
     # Setup
     # Remove knowledge of 'targets.json' from the metadata store.
-    self.repository_updater.metadata['current']['targets']
+    self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
     
     # Remove the metadata of the delegated roles.
     #shutil.rmtree(os.path.join(self.client_metadata, 'targets'))
@@ -936,8 +938,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     os.path.exists(os.path.join(self.client_metadata_current, 'targets.json'))
     os.path.exists(os.path.join(self.client_metadata_current, 'targets',
                    'role1.json'))
-    self.assertTrue('targets' in self.repository_updater.metadata['current'])
-    self.assertTrue('role1' in self.repository_updater.metadata['current'])
+    self.assertTrue('targets' in self.repository_updater.get_metadata('defaultrepo', 'current'))
+    self.assertTrue('role1' in self.repository_updater.get_metadata('defaultrepo', 'current'))
 
     #  Verify that list of targets was returned and that it contains valid
     # target files.
@@ -961,7 +963,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Setup
     # Extract the file information of the targets specified in 'targets.json'.
     self.repository_updater.refresh()
-    targets_metadata = self.repository_updater.metadata['current']['targets']
+    targets_metadata = self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
    
     target_files = targets_metadata['targets']
     # Extract random target from 'target_files', which will be compared to what
@@ -1060,7 +1062,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Setup
     # Extract the file information of the targets specified in 'targets.json'.
     self.repository_updater.refresh()
-    targets_metadata = self.repository_updater.metadata['current']['targets']
+    targets_metadata = self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
    
     target_files = targets_metadata['targets']
     # Extract random target from 'target_files', which will be compared to what
@@ -1145,7 +1147,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # that will be passed as an argument to 'download_target()'.
     destination_directory = self.make_temp_directory()
     target_filepaths = \
-      list(self.repository_updater.metadata['current']['targets']['targets'].keys())
+      list(self.repository_updater.get_metadata('defaultrepo', 'current')['targets']['targets'].keys())
 
     # Test: normal case.
     # Get the target info, which is an argument to 'download_target()'.
@@ -1408,7 +1410,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     for filepath, target_hash in six.iteritems(expected_target_hashes):
       self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
       self.assertTrue(tuf.formats.HASH_SCHEMA.matches(target_hash))
-      self.assertEqual(self.repository_updater._get_target_hash(filepath), target_hash)
+      self.assertEqual(
+          self.repository_updater.repositories['defaultrepo']._get_target_hash(
+          filepath), target_hash)
    
     # Test for improperly formatted argument.
     #self.assertRaises(tuf.FormatError, self.repository_updater._get_target_hash, 8)
@@ -1422,8 +1426,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     temp_file_object.write(b'X')
     temp_file_object.seek(0)
     self.assertRaises(tuf.DownloadLengthMismatchError,
-                     self.repository_updater._hard_check_file_length,
-                     temp_file_object, 10) 
+                     self.repository_updater.repositories['defaultrepo'].
+                     _hard_check_file_length, temp_file_object, 10) 
 
 
 
@@ -1443,11 +1447,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_10__targets_of_role(self):
     # Test for non-existent role. 
     self.assertRaises(tuf.UnknownRoleError,
-                      self.repository_updater._targets_of_role,
-                      'non-existent-role')
+                      self.repository_updater.repositories['defaultrepo'].
+                      _targets_of_role, 'non-existent-role')
     
     # Test for role that hasn't been loaded yet.
-    del self.repository_updater.metadata['current']['targets']
+    del self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
     self.assertEqual(len(self.repository_updater._targets_of_role('targets',
                                                         skip_refresh=True)), 0)
 
@@ -1464,7 +1468,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # 'path_hash_prefixes', and if both are missing.
     # TODO: Note that this test doesn't consider multi-role delegations.
 
-    targets_role = self.repository_updater.metadata['current']['targets']
+    targets_role = self.repository_updater.get_metadata('defaultrepo', 'current')['targets']
     
     child_role = targets_role['delegations']['roles'][0]
     self.assertEqual(self.repository_updater._is_delegation_relevant_to_target(
