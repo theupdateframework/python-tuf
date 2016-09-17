@@ -1,0 +1,24 @@
+MetadataModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+  IMPORTS Positive, RoleType, Signatures  FROM CommonModule;
+  IMPORTS RootMetadata                    FROM RootModule;
+  IMPORTS TargetsMetadata                 FROM TargetsModule;
+  IMPORTS SnapshotMetadata                FROM SnapshotModule;
+  IMPORTS TimestampMetadata               FROM TimestampModule;
+
+  -- My understanding of how to specify UTC DateTime according to X.680 (08/15)
+  UTCDateTime   ::= TIME (SETTINGS "Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=Z")
+
+  Metadata      ::= SEQUENCE {
+    signed      Signed,
+    signatures  Signatures
+  }
+  Signed        ::= SEQUENCE {
+    type        RoleType,
+    expires     UTCDateTime,
+    version     Positive,
+    body        CHOICE {RootMetadata, TargetsMetadata,
+                        SnapshotMetadata, TimestampMetadata}
+  }
+
+END

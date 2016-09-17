@@ -1,0 +1,18 @@
+RootModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+  IMPORTS Keyids, PublicKeys, RoleType, Threshold FROM CommonModule;
+
+  RootMetadata ::= SEQUENCE {
+    keys        PublicKeys,
+    roles       Roles,
+    -- https://tools.ietf.org/html/rfc6025#section-2.4.2
+    ...
+  }
+  Roles ::= SEQUENCE {
+    role      RoleType,
+    keyids    Keyids,
+    threshold Threshold,
+    ...
+  }
+
+END

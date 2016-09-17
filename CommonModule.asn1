@@ -1,0 +1,38 @@
+CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+  EXPORTS ALL;
+
+  RoleType    ::= ENUMERATED {root, targets, snapshot, timestamp}
+
+  Filename    ::= UTF8String
+  Keyids      ::= SEQUENCE Keyid
+  Keyid       ::= VisibleString
+
+  Natural     ::= Integer (0..MAX)
+  Positive    ::= Integer (1..MAX)
+  Length      ::= Positive
+  Threshold   ::= Positive
+
+  Hashes      ::= SEQUENCE Hash
+  Hash        ::= SEQUENCE {
+    function  ENUMERATED {sha224, sha256, sha384, sha512, ...},
+    digest    VisibleString
+  }
+
+  Signatures  ::= SEQUENCE Signature
+  Signature   ::= SEQUENCE {
+    keyid     Keyid,
+    method    ENUMERATED {rsassapss, ed25519, ...},
+    -- For efficient checking, sign the hash of the message.
+    hash      Hash,
+    sig       VisibleString
+  }
+
+  PublicKeys  ::= SEQUENCE PublicKey
+  PublicKey   ::= SEQUENCE {
+    keyid     Keyid,
+    keytype   ENUMERATED {rsa, ed25519, ...},
+    keyval    VisibleString
+  }
+
+END
