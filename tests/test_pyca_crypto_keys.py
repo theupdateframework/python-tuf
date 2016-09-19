@@ -105,14 +105,15 @@ class TestPyca_crypto_keys(unittest.TestCase):
     self.assertEqual(True, valid_signature)
 
     # Check for improperly formatted arguments.
+    self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature, 123, method,
+                                       public_rsa, data)
+    
     self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature, signature,
                                        123, public_rsa, data)
     
     self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature, signature,
                                        method, 123, data)
     
-    self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature, 123, method,
-                                       public_rsa, data)
     
     self.assertRaises(tuf.UnknownMethodError, crypto_keys.verify_rsa_signature,
                                                       signature,
@@ -183,6 +184,30 @@ class TestPyca_crypto_keys(unittest.TestCase):
     self.assertRaises(tuf.CryptoError,
               crypto_keys.create_rsa_public_and_private_from_encrypted_pem,
               'bad_encrypted_key', 'password')
+
+
+
+  def test_create_rsa_encrypted_pem(self):
+    global private_rsa
+    passphrase = 'password'
+
+    # Verify normal case.
+    encrypted_pem = crypto_keys.create_rsa_encrypted_pem(private_rsa, passphrase)
+   
+    self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
+
+    # Test for invalid arguments.
+    self.assertRaises(tuf.FormatError, crypto_keys.create_rsa_encrypted_pem,
+                      1, passphrase)
+    self.assertRaises(tuf.FormatError, crypto_keys.create_rsa_encrypted_pem,
+                      private_rsa, 2)
+
+    self.assertRaises(TypeError, crypto_keys.create_rsa_encrypted_pem,
+                      '', passphrase)
+
+    self.assertRaises(tuf.CryptoError, crypto_keys.create_rsa_encrypted_pem,
+                      'bad_private_pem', passphrase)
+
 
 
 
