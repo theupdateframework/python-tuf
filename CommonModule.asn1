@@ -2,39 +2,40 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   EXPORTS ALL;
 
-  RoleType    ::= ENUMERATED {root, targets, snapshot, timestamp}
+  RoleType      ::= ENUMERATED {root, targets, snapshot, timestamp}
 
-  Filename    ::= VisibleString
-  Keyids      ::= SEQUENCE Keyid
+  Filename      ::= VisibleString
+  Keyids        ::= SEQUENCE Keyid
   -- Usually, a hash of a public key.
-  Keyid       ::= VisibleString
+  Keyid         ::= VisibleString
+  Base64String  ::= VisibleString (PATTERN "[0-9a-f]+")
 
-  Natural     ::= Integer (0..MAX)
-  Positive    ::= Integer (1..MAX)
-  Length      ::= Positive
-  Threshold   ::= Positive
+  Natural       ::= Integer (0..MAX)
+  Positive      ::= Integer (1..MAX)
+  Length        ::= Positive
+  Threshold     ::= Positive
 
-  Hashes      ::= SEQUENCE Hash
-  Hash        ::= SEQUENCE {
-    function  ENUMERATED {sha224, sha256, sha384, sha512, sha512-224,
-                          sha512-256 ...},
-    digest    VisibleString
+  Hashes        ::= SEQUENCE Hash
+  Hash          ::= SEQUENCE {
+    function    ENUMERATED {sha224, sha256, sha384, sha512, sha512-224,
+                            sha512-256 ...},
+    digest      CHOICE {BIT STRING, OCTET STRING, Base64String}
   }
 
-  Signatures  ::= SEQUENCE Signature
-  Signature   ::= SEQUENCE {
-    keyid     Keyid,
-    method    ENUMERATED {rsassa-pss, ed25519, ...},
+  Signatures    ::= SEQUENCE Signature
+  Signature     ::= SEQUENCE {
+    keyid       Keyid,
+    method      ENUMERATED {rsassa-pss, ed25519, ...},
     -- For efficient checking, sign the hash of the message.
-    hash      Hash,
-    sig       VisibleString
+    hash        Hash,
+    sig         CHOICE {BIT STRING, OCTET STRING, Base64String}
   }
 
-  PublicKeys  ::= SEQUENCE PublicKey
-  PublicKey   ::= SEQUENCE {
-    keyid     Keyid,
-    keytype   ENUMERATED {rsa, ed25519, ...},
-    keyval    VisibleString
+  PublicKeys    ::= SEQUENCE PublicKey
+  PublicKey     ::= SEQUENCE {
+    keyid       Keyid,
+    keytype     ENUMERATED {rsa, ed25519, ...},
+    keyval      CHOICE {BIT STRING, OCTET STRING, Base64String}
   }
 
 END
