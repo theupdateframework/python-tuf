@@ -4,7 +4,7 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   RoleType    ::= ENUMERATED {root, targets, snapshot, timestamp}
 
-  Filename    ::= UTF8String
+  Filename    ::= VisibleString
   Keyids      ::= SEQUENCE Keyid
   Keyid       ::= VisibleString
 

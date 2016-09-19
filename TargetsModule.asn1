@@ -1,0 +1,63 @@
+TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+  IMPORTS Filename, Hashes, Keyids, Length, PublicKeys,
+          Threshold FROM CommonModule;
+
+  TargetsMetadata ::= SEQUENCE {
+    targets     Targets,
+    keys        PublicKeys,
+    roles       Roles,
+    delegations Delegations,
+    -- https://tools.ietf.org/html/rfc6025#section-2.4.2
+    ...
+  }
+
+  Targets ::= SEQUENCE {
+    -- The filename, length, and hashes of unencrypted images on the supplier
+    -- file server.
+    filename  Filename,
+    length    Length,
+    hashes    Hashes,
+    custom    Custom
+  }
+  Custom ::= SEQUENCE {
+    ecuIdentifier         VisibleString,
+    -- Optional attributes: use only if director encrypts images for this ECU
+    -- these encrypted images are on the director file server.
+    encryptedFilename     Filename              OPTIONAL,
+    encryptedLength       Length                OPTIONAL,
+    encryptedHashes       Hashes                OPTIONAL,
+    -- Optional attributes: use only if ECU keys are asymmetric, and director
+    -- uses symmetric keys to encrypt the image decryption key.
+    encryptedSymmetricKey EncryptedSymmetricKey OPTIONAL,
+    ...
+  }
+  EncryptedSymmetricKey ::= SEQUENCE {
+    -- This is the symmetric key type.
+    keytype   ENUMERATED {aes128, aes256, ...},
+    -- This is the symmetric key encrypted using the asymmetric ECU key.
+    keyval    VisibleString
+  }
+
+  Roles ::= SEQUENCE {
+    -- The rolename ("supplierA-dev").
+    rolename  RoleName,
+    -- The filename of the role (e.g., "supplierA.ext").
+    -- Different rolenames MAY use the same filename.
+    filename  Filename,
+    keyids    Keyids,
+    threshold Threshold
+  }
+  RoleNames ::= SEQUENCE RoleName
+  RoleName  ::= VisibleString
+
+  Delegations ::= SEQUENCE {
+    paths       Paths,
+    roles       RoleNames,
+    terminating BOOLEAN DEFAULT FALSE
+  }
+  Paths ::= SEQUENCE Path
+  -- A path is any non-empty sequence of alphanumeric or asterisk characters.
+  Path  ::= VisibleString (PATTERN "[\w\*]+")
+
+END
