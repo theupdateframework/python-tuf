@@ -1,0 +1,14 @@
+SnapshotModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+  IMPORTS Filename, Hashes, Length, Version FROM CommonModule;
+
+  SnapshotMetadata ::= SEQUENCE {
+    filename  Filename,
+    version   Version,
+    length    Length OPTIONAL,
+    hashes    Hashes OPTIONAL,
+    -- https://tools.ietf.org/html/rfc6025#section-2.4.2
+    ...
+  }
+
+END

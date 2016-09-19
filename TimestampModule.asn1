@@ -1,0 +1,12 @@
+TimestampModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+  IMPORTS Filename, Hashes, Length, Version FROM CommonModule;
+
+  TimestampMetadata ::= SEQUENCE {
+    filename  Filename,
+    version   Version,
+    -- https://tools.ietf.org/html/rfc6025#section-2.4.2
+    ...
+  }
+
+END
