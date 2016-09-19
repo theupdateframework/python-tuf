@@ -6,8 +6,8 @@ MetadataModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   IMPORTS SnapshotMetadata                FROM SnapshotModule;
   IMPORTS TimestampMetadata               FROM TimestampModule;
 
-  -- My understanding of how to specify UTC DateTime according to X.680 (08/15)
-  UTCDateTime   ::= TIME (SETTINGS "Basic=Date-Time Date=YMD Year=Basic Time=HMS Local-or-UTC=Z")
+  -- UTC date and time in the ISO 8601 format ("YYYY-MM-DDTHH:MM:SSZ").
+  UTCDateTime   ::= VisibleString (PATTERN "\d(4)-\d(2)-\d(2)T\d(2):\d(2):\d(2)Z")
 
   Metadata      ::= SEQUENCE {
     signed      Signed,
