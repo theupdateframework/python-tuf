@@ -4,7 +4,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           Threshold FROM CommonModule;
 
   TargetsMetadata ::= SEQUENCE {
-    -- Metadata about unencrypted images on the supplier file server.
+    -- Metadata about unencrypted images on a file server.
     targets     Targets,
     -- These three attributes are optional, and for use only in case of
     -- image/target delegations. However, if delegations are used, all three
@@ -20,12 +20,14 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
 
   Targets ::= SEQUENCE {
-    -- The filename, length, and hashes of unencrypted images on the supplier
-    -- file server.
+    -- The filename, length, and hashes of unencrypted images on a file server.
     filename  Filename,
     length    Length,
     hashes    Hashes,
-    custom    Custom
+    -- This optional attribute is used by the director server to specify
+    -- additional information, such as which images should be installed by
+    -- which ECUs, and metadata about encrypted images.
+    custom    Custom OPTIONAL
   }
   Custom ::= SEQUENCE {
     -- Information, e.g., serial numbers, that ECUs may use to identify metadata
