@@ -4,10 +4,17 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           Threshold FROM CommonModule;
 
   TargetsMetadata ::= SEQUENCE {
+    -- Metadata about unencrypted images on the supplier file server.
     targets     Targets,
-    keys        PublicKeys,
-    roles       Roles,
-    delegations Delegations,
+    -- These three attributes are optional, and for use only in case of
+    -- image/target delegations. However, if delegations are used, all three
+    -- attributes must be defined.
+    -- The public keys of all delegatees.
+    keys        PublicKeys  OPTIONAL,
+    -- The role name, filename, public keys, and threshold of a delegatee.
+    roles       Roles       OPTIONAL,
+    -- Delegations of targets/images to roles listed in order of priority.
+    delegations Delegations OPTIONAL,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }
@@ -21,6 +28,8 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     custom    Custom
   }
   Custom ::= SEQUENCE {
+    -- Information, e.g., serial numbers, that ECUs may use to identify metadata
+    -- intended by the director for them.
     ecuIdentifier         VisibleString,
     -- Optional attributes: use only if director encrypts images for this ECU
     -- these encrypted images are on the director file server.
@@ -45,15 +54,21 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- The filename of the role (e.g., "supplierA.ext").
     -- Different rolenames MAY use the same filename.
     filename  Filename,
+    -- The public keys used by this role.
     keyids    Keyids,
+    -- The threshold number of these keys.
     threshold Threshold
   }
   RoleNames ::= SEQUENCE RoleName
   RoleName  ::= VisibleString
 
   Delegations ::= SEQUENCE {
+    -- A list of image/target paths entrusted to these roles.
     paths       Paths,
+    -- A list of roles required to sign the same metadata about the matching
+    -- targets/images.
     roles       RoleNames,
+    -- Whether or not this delegation is terminating.
     terminating BOOLEAN DEFAULT FALSE
   }
   Paths ::= SEQUENCE Path
