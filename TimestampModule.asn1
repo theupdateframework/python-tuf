@@ -1,6 +1,6 @@
 TimestampModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
-  IMPORTS Filename, Hashes, Length, Version FROM CommonModule;
+  IMPORTS Filename, Version FROM CommonModule;
 
   TimestampMetadata ::= SEQUENCE {
     filename  Filename,
