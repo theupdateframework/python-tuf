@@ -53,16 +53,19 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Roles ::= SEQUENCE {
     -- The rolename ("supplierA-dev").
     rolename  RoleName,
-    -- The filename of the role (e.g., "supplierA.ext").
+    -- An explicit filename for the role (e.g., "supplierA.json").
+    -- Otherwise, it is implicitly assumed to be ROLENAME.EXT (e.g.,
+    -- "supplierA-dev.json").
     -- Different rolenames MAY use the same filename.
-    filename  Filename,
+    filename  Filename OPTIONAL,
     -- The public keys used by this role.
     keyids    Keyids,
     -- The threshold number of these keys.
     threshold Threshold
   }
   RoleNames ::= SEQUENCE RoleName
-  RoleName  ::= VisibleString
+  -- No known path separator allowed in a rolename.
+  RoleName  ::= VisibleString (PATTERN "[^/\\]+")
 
   Delegations ::= SEQUENCE {
     -- A list of image/target paths entrusted to these roles.
@@ -74,7 +77,8 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     terminating BOOLEAN DEFAULT FALSE
   }
   Paths ::= SEQUENCE Path
-  -- A path is any non-empty sequence of alphanumeric or asterisk characters.
-  Path  ::= VisibleString (PATTERN "[\w\*]+")
+  -- A path is any non-empty sequence of alphanumeric, asterisk, or known path
+  -- separator characters.
+  Path  ::= VisibleString (PATTERN "[\w\*\\/]+")
 
 END
