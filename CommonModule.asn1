@@ -8,7 +8,8 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Keyids        ::= SEQUENCE Keyid
   -- Usually, a hash of a public key.
   Keyid         ::= VisibleString
-  Base64String  ::= VisibleString (PATTERN "[0-9a-f]+")
+  -- Table 1 of RFC 4648.
+  Base64String  ::= VisibleString (PATTERN "[A-Za-z0-9\+/=]+")
 
   Natural       ::= Integer (0..MAX)
   Positive      ::= Integer (1..MAX)
