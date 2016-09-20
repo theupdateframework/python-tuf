@@ -5,9 +5,7 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   RoleType      ::= ENUMERATED {root, targets, snapshot, timestamp}
 
   Filename      ::= VisibleString
-  Keyids        ::= SEQUENCE Keyid
-  -- Usually, a hash of a public key.
-  Keyid         ::= VisibleString
+  HexString     ::= VisibleString (PATTERN "[0-9a-f]+")
   -- Table 1 of RFC 4648.
   Base64String  ::= VisibleString (PATTERN "[A-Za-z0-9\+/=]+")
 
@@ -20,8 +18,12 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Hash          ::= SEQUENCE {
     function    ENUMERATED {sha224, sha256, sha384, sha512, sha512-224,
                             sha512-256 ...},
-    digest      CHOICE {BIT STRING, OCTET STRING, Base64String}
+    digest      CHOICE {BIT STRING, OCTET STRING, HexString, Base64String}
   }
+
+  Keyids        ::= SEQUENCE Keyid
+  -- Usually, a hash of a public key.
+  Keyid         ::= HexString
 
   Signatures    ::= SEQUENCE Signature
   Signature     ::= SEQUENCE {
@@ -29,14 +31,14 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     method      ENUMERATED {rsassa-pss, ed25519, ...},
     -- For efficient checking, sign the hash of the message.
     hash        Hash,
-    sig         CHOICE {BIT STRING, OCTET STRING, Base64String}
+    sig         CHOICE {BIT STRING, OCTET STRING, HexString, Base64String}
   }
 
   PublicKeys    ::= SEQUENCE PublicKey
   PublicKey     ::= SEQUENCE {
     keyid       Keyid,
     keytype     ENUMERATED {rsa, ed25519, ...},
-    keyval      CHOICE {BIT STRING, OCTET STRING, Base64String}
+    keyval      CHOICE {BIT STRING, OCTET STRING, HexString, Base64String}
   }
 
 END
