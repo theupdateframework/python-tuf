@@ -429,7 +429,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   # Verify the expected 'signature_method' value.
   if signature_method != 'RSASSA-PSS':
     raise tuf.UnknownMethodError(signature_method)
-  
+ 
   # Verify the RSASSA-PSS signature with pyca/cryptography.
   try:
     public_key_object = serialization.load_pem_public_key(public_key.encode('utf-8'),
@@ -454,12 +454,9 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       return False
 
   # Raised by load_pem_public_key(). 
-  except ValueError:
-    raise tuf.CryptoError('The PEM could not be decoded successfully.')
-
-  # Raised by load_pem_public_key().
-  except cryptography.exceptions.UnsupportedAlgorithm:
-    raise tuf.CryptoError('The private key type is not supported.')
+  except (ValueError, cryptography.exceptions.UnsupportedAlgorithm) as e:
+    raise tuf.CryptoError('The PEM could not be decoded successfully,'
+      ' or contained an unsupported key type: ' + str(e))
 
 
 
