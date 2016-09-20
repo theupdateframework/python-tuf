@@ -390,6 +390,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
     
     # Remove 'signature' from 'signable' if it is an invalid signature.
     if not tuf.keys.verify_signature(key, signature, signed):
+      logger.debug('Removing invalid signature for ' + repr(keyid)) 
       signable['signatures'].remove(signature)
     
     # Although valid, it may still need removal if it is a duplicate.  Check

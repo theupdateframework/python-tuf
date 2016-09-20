@@ -1031,9 +1031,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
     self.assertEqual(len(root_signable), expected_number_of_signatures)
 
-    # Test that invalid keyid are ignored.
-    root_signable['signatures'][0]['keyid'] = '404'
+    # Test that an exception is not raised if an invalid sig is present,
+    # and that the duplicate key is removed 'root_signable'.
+    root_signable['signatures'][0]['sig'] = '4040'
+    invalid_keyid = root_signable['signatures'][0]['keyid'] 
     tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
+
+    for signature in root_signable['signatures']:
+      self.assertFalse(invalid_keyid == signature['keyid'])
 
 
 
