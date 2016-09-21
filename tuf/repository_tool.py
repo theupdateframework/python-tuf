@@ -897,6 +897,9 @@ class Metadata(object):
       roleinfo['signatures'].append(signature)
       tuf.roledb.update_roleinfo(self.rolename, roleinfo, mark_role_as_dirty)
 
+    else:
+      logger.debug('Signature already exists for role: ' + repr(self.rolename))
+
 
 
   def remove_signature(self, signature):

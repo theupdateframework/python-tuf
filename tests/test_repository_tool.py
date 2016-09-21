@@ -554,7 +554,7 @@ class TestMetadata(unittest.TestCase):
 
 
   def test_add_verification_key(self):
-    # Add verification key and verify with keys() that it was added. 
+    # Add verification key and verify that it was added via (role).keys.
     key_path = os.path.join('repository_data',
                             'keystore', 'snapshot_key.pub')
     key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
@@ -562,10 +562,42 @@ class TestMetadata(unittest.TestCase):
     
     keyid = key_object['keyid']
     self.assertEqual([keyid], self.metadata.keys)
+    
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
+    expiration = expiration.isoformat() + 'Z' 
+    roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
+                'signatures': [], 'version': 0,
+                'consistent_snapshot': False,
+                'compressions': [''], 'expires': expiration,
+                'partial_loaded': False}
+    
+    tuf.roledb.add_role('Root', roleinfo)
+    tuf.roledb.add_role('Targets', roleinfo)
+    tuf.roledb.add_role('Snapshot', roleinfo)
+    tuf.roledb.add_role('Timestamp', roleinfo)
+  
+    # Test for different top-level role names.
+    self.metadata._rolename = 'Targets'
+    self.metadata.add_verification_key(key_object)
+    self.metadata._rolename = 'Snapshot'
+    self.metadata.add_verification_key(key_object)
+    self.metadata._rolename = 'Timestamp'
+    self.metadata.add_verification_key(key_object)
 
+    # Test for a given 'expires' argument.
+    expires = datetime.datetime(2030, 1, 1, 12, 0)
+    self.metadata.add_verification_key(key_object, expires)
 
+  
+    # Test for an expired 'expires'.
+    expired = datetime.datetime(1984, 1, 1, 12, 0)
+    self.assertRaises(tuf.Error,
+                      self.metadata.add_verification_key, key_object, expired)
+    
     # Test improperly formatted key argument.
     self.assertRaises(tuf.FormatError, self.metadata.add_verification_key, 3)
+    self.assertRaises(tuf.FormatError, self.metadata.add_verification_key, key_object, 3)
 
 
 
@@ -662,13 +694,22 @@ class TestMetadata(unittest.TestCase):
     root_signable = tuf.util.load_json_file(root_filepath)
     signatures = root_signable['signatures']
 
-    # Add the first signature from the list, as only need one is needed.
+    # Add the first signature from the list, as only one is needed.
     self.metadata.add_signature(signatures[0])
     self.assertEqual(signatures, self.metadata.signatures)
 
+    # Verify that a signature is added if a 'signatures' entry is not present.
+    tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'])
+    del tuf.roledb._roledb_dict['default']['root']['signatures']
+    self.metadata._rolename = 'root'
+    self.metadata.add_signature(signatures[0])
+
+    # Add a duplicate signature.
+    self.metadata.add_signature(signatures[0])
 
     # Test improperly formatted signature argument.
     self.assertRaises(tuf.FormatError, self.metadata.add_signature, 3)
+    self.assertRaises(tuf.FormatError, self.metadata.add_signature, signatures[0], 3)
 
 
 
@@ -1534,6 +1575,15 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(tuf.RepositoryError, repo_tool.load_repository,
                       repository_directory)
 
+
+
+  def test_dirty_roles(self):
+    original_repository_directory = os.path.join('repository_data',
+                                                 'repository')
+    repository = repo_tool.load_repository(original_repository_directory) 
+    
+    # dirty_roles() only logs the list of dirty roles.
+    repository.dirty_roles()
 
 
 # Run the test cases.
