@@ -1,0 +1,29 @@
+BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+  IMPORTS Filename, Signatures, Target, UTCDateTime FROM CommonModule;
+
+  ImageRequest ::= SEQUENCE {
+    filename Filename,
+    -- https://tools.ietf.org/html/rfc6025#section-2.4.2
+    ...
+  }
+
+  VersionReport ::= SEQUENCE {
+    nonceForTimeServer Integer,
+    ECUVersionManifest ECUVersionManifest,
+    ...
+  }
+  ECUVersionManifest ::= SEQUENCE {
+    signed      Signed,
+    signatures  Signatures
+  }
+  Signed ::= SEQUENCE {
+    ecuIdentifier         VisibleString,
+    previousTime          UTCDateTime,
+    currentTime           UTCDateTime,
+    freezeAttackDetected  BOOLEAN DEFAULT FALSE,
+    installedImage        Target,
+    ...
+  }
+
+END

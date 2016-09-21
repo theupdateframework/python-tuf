@@ -6,14 +6,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   TargetsMetadata ::= SEQUENCE {
     -- Metadata about unencrypted images on a file server.
     targets     Targets,
-    -- These three attributes are optional, and for use only in case of
-    -- image/target delegations. However, if delegations are used, all three
-    -- attributes must be defined.
-    -- The public keys of all delegatees.
-    keys        PublicKeys  OPTIONAL,
-    -- The role name, filename, public keys, and threshold of a delegatee.
-    roles       Roles       OPTIONAL,
-    -- Delegations of targets/images to roles listed in order of priority.
+    -- Delegations are optional.
     delegations Delegations OPTIONAL,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
@@ -21,24 +14,25 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   Targets ::= SEQUENCE {
     -- The filename, length, and hashes of unencrypted images on a file server.
-    filename  Filename,
-    length    Length,
-    hashes    Hashes,
+    target  Target,
     -- This optional attribute is used by the director server to specify
     -- additional information, such as which images should be installed by
     -- which ECUs, and metadata about encrypted images.
-    custom    Custom OPTIONAL
+    custom  Custom OPTIONAL
+  }
+  Target ::= SEQUENCE {
+    filename  Filename,
+    length    Length,
+    hashes    Hashes
   }
   Custom ::= SEQUENCE {
     -- Information, e.g., serial numbers, that ECUs may use to identify metadata
     -- intended by the director for them.
     ecuIdentifier         VisibleString,
-    -- Optional attributes: use only if director encrypts images for this ECU
+    -- Optional attribute: use only if director encrypts images for this ECU
     -- these encrypted images are on the director file server.
-    encryptedFilename     Filename              OPTIONAL,
-    encryptedLength       Length                OPTIONAL,
-    encryptedHashes       Hashes                OPTIONAL,
-    -- Optional attributes: use only if ECU keys are asymmetric, and director
+    encryptedTarget       Target OPTIONAL,
+    -- Optional attribute: use only if ECU keys are asymmetric, and director
     -- uses symmetric keys to encrypt the image decryption key.
     encryptedSymmetricKey EncryptedSymmetricKey OPTIONAL,
     ...
@@ -50,8 +44,19 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     keyval    VisibleString
   }
 
+  Delegations ::= SEQUENCE {
+    -- These three attributes are optional, and for use only in case of
+    -- image/target delegations. However, if delegations are used, all three
+    -- attributes must be defined.
+    -- The public keys of all delegatees.
+    keys          PublicKeys,
+    -- The role name, filename, public keys, and threshold of a delegatee.
+    roles         Roles,
+    -- A list paths to roles, listed in order of priority.
+    pathsToRoles  PathsToRoles
+  }
   Roles ::= SEQUENCE {
-    -- The rolename ("supplierA-dev").
+    -- The rolename (e.g., "supplierA-dev").
     rolename  RoleName,
     -- An explicit filename for the role (e.g., "supplierA.json").
     -- Otherwise, it is implicitly assumed to be ROLENAME.EXT (e.g.,
@@ -67,7 +72,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   -- No known path separator allowed in a rolename.
   RoleName  ::= VisibleString (PATTERN "[^/\\]+")
 
-  Delegations ::= SEQUENCE {
+  PathsToRoles ::= SEQUENCE {
     -- A list of image/target paths entrusted to these roles.
     paths       Paths,
     -- A list of roles required to sign the same metadata about the matching
