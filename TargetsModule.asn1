@@ -58,9 +58,9 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Roles ::= SEQUENCE {
     -- The rolename (e.g., "supplierA-dev").
     rolename  RoleName,
-    -- An explicit filename for the role (e.g., "supplierA.json").
+    -- An explicit filename for the role (e.g., "supplierA.ext").
     -- Otherwise, it is implicitly assumed to be ROLENAME.EXT (e.g.,
-    -- "supplierA-dev.json").
+    -- "supplierA-dev.ext").
     -- Different rolenames MAY use the same filename.
     filename  Filename OPTIONAL,
     -- The public keys used by this role.
