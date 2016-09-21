@@ -10,7 +10,7 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   VersionReport ::= SEQUENCE {
     nonceForTimeServer Integer,
-    ECUVersionManifest ECUVersionManifest,
+    ecuVersionManifest ECUVersionManifest,
     ...
   }
   ECUVersionManifest ::= SEQUENCE {
