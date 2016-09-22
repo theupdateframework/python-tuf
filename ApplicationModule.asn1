@@ -1,0 +1,61 @@
+ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+  IMPORTS Filename, Positive, Signatures  FROM CommonModule;
+  IMPORTS Metadata                        FROM MetadataModule;
+  IMPORTS ECUVersionManifest              FROM BootloaderModule;
+
+  -- What a primary sends the director file server.
+  VehicleVersionManifest ::= SEQUENCE {
+    signed      Signed,
+    signatures  Signatures
+  }
+  Signed ::= SEQUENCE {
+    -- A unique identifier for the vehicle.
+    vehicleIdentifier   VisibleString,
+    -- A unique identifier for the primary sending this manifest.
+    primaryIdentifier   VisibleString,
+    -- An ECU version manifest per secondary.
+    ecuVersionManifests ECUVersionManifests
+    -- https://tools.ietf.org/html/rfc6025#section-2.4.2
+    ...
+  }
+  ECUVersionManifests ::= SEQUENCE ECUVersionManifest
+
+  -- A signal from a primary to its secondaries that new metadata will be
+  -- broadcast.
+  MetadataBroadcast ::= SEQUENCE {
+    -- A globally unique identifier (e.g., a monotonically increasing counter)
+    -- for this broadcast session.
+    broadcastGUID Integer,
+    -- The number of metadata files that will be broadcast in this session.
+    numberOfMetadataFiles Positive
+  }
+  MetadataFile ::= SEQUENCE {
+    -- The broadcast session associated with this metadata file.
+    broadcastGUID Integer,
+    -- The file number in this broadcast.
+    fileNumber    Positive,
+    -- The metadata filename.
+    filename      Filename,
+    -- The metadata itself.
+    metadata      Metadata
+  }
+
+  ImageFile ::= SEQUENCE {
+    -- An image filename.
+    filename        Filename,
+    -- The number of blocks in this image file.
+    numberOfBlocks  Positive,
+    -- The size of each block.
+    blockSize       Positive
+  }
+  ImageBlock ::= SEQUENCE {
+    -- The filename of the image associated with this block.
+    filename    Filename,
+    -- The block number of the image file.
+    blockNumber Positive,
+    -- The image block itself.
+    block       CHOICE {BIT STRING, OCTET STRING}
+  }
+
+END
