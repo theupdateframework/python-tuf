@@ -146,15 +146,19 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files. 
+    self.repository_name = 'defaultrepo'
     self.repository_directory = \
       os.path.join(temporary_repository_root, 'repository')
     self.keystore_directory = \
       os.path.join(temporary_repository_root, 'keystore')
     self.client_directory = os.path.join(temporary_repository_root, 'client')
     self.client_metadata = os.path.join(self.client_directory, 'metadata')
-    self.client_metadata_current = os.path.join(self.client_metadata, 'current')
-    self.client_metadata_previous = \
-      os.path.join(self.client_metadata, 'previous')
+
+
+    self.client_metadata_current = os.path.join(
+        self.client_metadata, self.repository_name, 'current')
+    self.client_metadata_previous = os.path.join(
+        self.client_metadata, self.repository_name, 'previous')
 
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
@@ -179,9 +183,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_name = 'test_repository'
-    self.repository_updater = updater.Updater(self.repository_name,
-                                              self.repository_mirrors)
+    self.repository_updater = updater.Updater('testupdater',
+        self.repository_mirrors)
 
     # Metadata role keys are needed by the test cases to make changes to the
     # repository (e.g., adding a new target file to 'targets.json' and then
