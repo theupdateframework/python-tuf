@@ -1,13 +1,15 @@
 ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
-  IMPORTS Filename, Positive, Signatures  FROM CommonModule;
-  IMPORTS Metadata                        FROM MetadataModule;
-  IMPORTS ECUVersionManifest              FROM BootloaderModule;
+  IMPORTS Filename, Positive, Signature FROM CommonModule;
+  IMPORTS Metadata                      FROM MetadataModule;
+  IMPORTS ECUVersionManifest            FROM BootloaderModule;
 
   -- What a primary sends the director file server.
   VehicleVersionManifest ::= SEQUENCE {
+    -- The signed portion of the manifest.
     signed      Signed,
-    signatures  Signatures
+    -- The signature on the hash of the signed portion.
+    signature  Signature
   }
   Signed ::= SEQUENCE {
     -- A unique identifier for the vehicle.

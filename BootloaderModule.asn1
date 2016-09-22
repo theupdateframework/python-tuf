@@ -1,28 +1,40 @@
 BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
-  IMPORTS Filename, Signatures, Target, UTCDateTime FROM CommonModule;
+  IMPORTS Filename, Signature, Target, UTCDateTime FROM CommonModule;
 
+  -- What a secondary without additional stroage sends its primary to request an
+  -- image.
   ImageRequest ::= SEQUENCE {
     filename Filename,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }
 
+  -- What a secondary sends its primary after reboot.
   VersionReport ::= SEQUENCE {
+    -- Nonce for the time server.
     nonceForTimeServer Integer,
+    -- The ECU version manifest for the director.
     ecuVersionManifest ECUVersionManifest,
     ...
   }
   ECUVersionManifest ::= SEQUENCE {
+    -- The signed portion of the manifest.
     signed      Signed,
-    signatures  Signatures
+    -- The signature on the hash of the signed portion.
+    signature  Signature
   }
   Signed ::= SEQUENCE {
-    ecuIdentifier         VisibleString,
-    previousTime          UTCDateTime,
-    currentTime           UTCDateTime,
-    freezeAttackDetected  BOOLEAN DEFAULT FALSE,
-    installedImage        Target,
+    -- A unique identifier for the ECU.
+    ecuIdentifier   VisibleString,
+    -- The previous time seen on the time server.
+    previousTime    UTCDateTime,
+    -- The latest known time seen on the time server.
+    currentTime     UTCDateTime,
+    -- A message about a detected security attack, if any.
+    securityAttack  VisibleString OPTIONAL,
+    -- Metadata about the installed image.
+    installedImage  Target,
     ...
   }
 
