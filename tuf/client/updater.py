@@ -496,9 +496,12 @@ class SingleRepoUpdater(object):
       The repository mirrors from which metadata and targets are available.
       Conformant to 'tuf.formats.MIRRORDICT_SCHEMA'.
     
-    self.updater_name:
-      The name of the updater instance.
- 
+    self.repository_name:
+      This is the name of the repository that this updater object will use.
+      It is expected to be the name of the repository as you would see it in
+      pinned.json, and in the roledb and keydb dictionaries.
+
+
   <Updater Methods>
     refresh():
       This method downloads, verifies, and loads metadata for the top-level
@@ -547,7 +550,7 @@ class SingleRepoUpdater(object):
     http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
-  def __init__(self, updater_name, repository_mirrors):
+  def __init__(self, repository_name, repository_mirrors):
     """
     <Purpose>
       Constructor.  Instantiating an updater object causes all the metadata
@@ -572,9 +575,10 @@ class SingleRepoUpdater(object):
         {tuf.conf.repository_directory}/metadata/<repository_name>/current/root.json
     
     <Arguments>
-      updater_name:
-        The name that this single-repository updater will use. Preferably the
-        name of the repository.
+      repository_name:
+        This is the name of the repository that this updater object will use.
+        It is expected to be the name of the repository as you would see it in
+        pinned.json, and in the roledb and keydb dictionaries.
 
       repository_mirrors:
         A dictionary holding repository mirror information, conformant to
@@ -597,7 +601,7 @@ class SingleRepoUpdater(object):
         as a missing 'root.json' file.
 
     <Side Effects>
-      Th metadata files (e.g., 'root.json', 'targets.json') for the top- level
+      The metadata files (e.g., 'root.json', 'targets.json') for the top- level
       roles are read from disk and stored in dictionaries.  In addition, the
       key and roledb modules are populated with 'repository_name' entries.
 
@@ -610,11 +614,11 @@ class SingleRepoUpdater(object):
     # number of objects and object types and that all dict
     # keys are properly named.
     # Raise 'tuf.FormatError' if there is a mistmatch.
-    tuf.formats.NAME_SCHEMA.check_match(updater_name)
+    tuf.formats.NAME_SCHEMA.check_match(repository_name)
     tuf.formats.MIRRORDICT_SCHEMA.check_match(repository_mirrors)
    
     # Save the validated arguments.
-    self.updater_name = updater_name
+    self.repository_name = repository_name
     self.mirrors = repository_mirrors
 
     # Store the trusted metadata read from disk.
@@ -654,7 +658,8 @@ class SingleRepoUpdater(object):
 
     # Set the path for the current set of metadata files.  
     repository_directory = tuf.conf.repository_directory
-    current_path = os.path.join(repository_directory, 'metadata', 'current')
+    current_path = os.path.join(repository_directory, 'metadata',
+        repository_name, 'current')
     
     # Ensure the current path is valid/exists before saving it.
     if not os.path.exists(current_path):
@@ -665,7 +670,8 @@ class SingleRepoUpdater(object):
     self.metadata_directory['current'] = current_path
     
     # Set the path for the previous set of metadata files. 
-    previous_path = os.path.join(repository_directory, 'metadata', 'previous') 
+    previous_path = os.path.join(repository_directory, 'metadata',
+        repository_name, 'previous')
    
     # Ensure the previous path is valid/exists.
     if not os.path.exists(previous_path):
@@ -694,7 +700,7 @@ class SingleRepoUpdater(object):
       The string representation of an Updater object.
     """
     
-    return self.updater_name
+    return self.repository_name
 
 
 
@@ -809,9 +815,9 @@ class SingleRepoUpdater(object):
     # repository is first instantiated.  Due to this setup, reloading delegated
     # roles is not required here.
     tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
-                                              self.updater_name)
+                                              self.repository_name)
     tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
-                                                self.updater_name)
+                                                self.repository_name)
 
 
 
@@ -861,10 +867,10 @@ class SingleRepoUpdater(object):
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          tuf.keydb.add_key(key, keyid, self.updater_name)
+          tuf.keydb.add_key(key, keyid, self.repository_name)
           for keyid in keyids:
             key['keyid'] = keyid
-            tuf.keydb.add_key(key, keyid=None, repository_name=self.updater_name)
+            tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
 
         except tuf.KeyAlreadyExistsError:
           pass
@@ -885,7 +891,7 @@ class SingleRepoUpdater(object):
         # is None.
         rolename = roleinfo.get('name')
         logger.debug('Adding delegated role: ' + str(rolename) + '.')
-        tuf.roledb.add_role(rolename, roleinfo, self.updater_name)
+        tuf.roledb.add_role(rolename, roleinfo, self.repository_name)
       
       except tuf.RoleAlreadyExistsError:
         logger.warning('Role already exists: ' + rolename)
@@ -1312,7 +1318,7 @@ class SingleRepoUpdater(object):
     # metadata.
 
     # Verify the signature on the downloaded metadata object.
-    valid = tuf.sig.verify(metadata_signable, metadata_role, self.updater_name)
+    valid = tuf.sig.verify(metadata_signable, metadata_role, self.repository_name)
     
     if not valid:
       raise tuf.BadSignatureError(metadata_role)
@@ -2568,7 +2574,7 @@ class SingleRepoUpdater(object):
     # Remove knowledge of the role.
     if metadata_role in self.metadata['current']:
       del self.metadata['current'][metadata_role]
-    tuf.roledb.remove_role(metadata_role, self.updater_name)
+    tuf.roledb.remove_role(metadata_role, self.repository_name)
 
 
 
@@ -2669,7 +2675,7 @@ class SingleRepoUpdater(object):
     # Fetch the targets of the delegated roles.  get_rolenames returns
     # all roles available on the repository.
     delegated_targets = []
-    for role in tuf.roledb.get_rolenames(self.updater_name):
+    for role in tuf.roledb.get_rolenames(self.repository_name):
       if role in ['root', 'snapshot', 'targets', 'timestamp']:
         continue
       
@@ -2801,7 +2807,7 @@ class SingleRepoUpdater(object):
     targets_of_role = list(targets)
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
 
-    if not tuf.roledb.role_exists(rolename, self.updater_name):
+    if not tuf.roledb.role_exists(rolename, self.repository_name):
       raise tuf.UnknownRoleError(rolename)
 
     # We do not need to worry about the target paths being trusted because
@@ -2871,7 +2877,7 @@ class SingleRepoUpdater(object):
     # Raise 'tuf.FormatError' if there is a mismatch.
     tuf.formats.RELPATH_SCHEMA.check_match(rolename)
 
-    if not tuf.roledb.role_exists(rolename, self.updater_name):
+    if not tuf.roledb.role_exists(rolename, self.repository_name):
       raise tuf.UnknownRoleError(rolename)
     
     self._refresh_targets_metadata(rolename)
@@ -3304,7 +3310,7 @@ class SingleRepoUpdater(object):
 
     # Iterate through the rolenames and verify whether the 'previous'
     # directory contains a target no longer found in 'current'.
-    for role in tuf.roledb.get_rolenames(self.updater_name):
+    for role in tuf.roledb.get_rolenames(self.repository_name):
       if role.startswith('targets'):
         if role in self.metadata['previous'] and self.metadata['previous'][role] != None:
           for target in self.metadata['previous'][role]['targets']:
