@@ -1,5 +1,7 @@
 MetadataModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
+  EXPORTS Metadata;
+
   IMPORTS Positive, RoleType, Signatures, UTCDateTime FROM CommonModule;
   IMPORTS RootMetadata                                FROM RootModule;
   IMPORTS TargetsMetadata                             FROM TargetsModule;

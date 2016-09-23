@@ -1,5 +1,7 @@
 BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
+  EXPORTS ECUVersionManifest;
+
   IMPORTS Filename, Signature, Target, UTCDateTime FROM CommonModule;
 
   -- What a secondary without additional stroage sends its primary to request an

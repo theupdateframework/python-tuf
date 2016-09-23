@@ -1,5 +1,7 @@
 SnapshotModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
+  EXPORTS SnapshotMetadata;
+
   IMPORTS Filename, Hashes, Length, Version FROM CommonModule;
 
   SnapshotMetadata ::= SEQUENCE {

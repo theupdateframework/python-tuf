@@ -1,5 +1,7 @@
 RootModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
+  EXPORTS RootMetadata;
+
   IMPORTS Keyids, PublicKeys, RoleType, Threshold FROM CommonModule;
 
   RootMetadata ::= SEQUENCE {

@@ -1,5 +1,7 @@
 TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
+  EXPORTS TargetsMetadata;
+
   IMPORTS Filename, Hashes, Keyids, Length, PublicKeys,
           Threshold FROM CommonModule;
 
