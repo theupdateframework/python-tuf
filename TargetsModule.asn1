@@ -15,7 +15,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Targets ::= SEQUENCE {
     -- The filename, length, and hashes of unencrypted images on a repository.
     target  Target,
-    -- This optional attribute is used by the director server to specify
+    -- This optional attribute is used by the director repository to specify
     -- additional information, such as which images should be installed by
     -- which ECUs, and metadata about encrypted images.
     custom  Custom OPTIONAL
