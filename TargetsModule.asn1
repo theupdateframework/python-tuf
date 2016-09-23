@@ -4,7 +4,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           Threshold FROM CommonModule;
 
   TargetsMetadata ::= SEQUENCE {
-    -- Metadata about unencrypted images on a file server.
+    -- Metadata about unencrypted images on a repository.
     targets     Targets,
     -- Delegations are optional.
     delegations Delegations OPTIONAL,
@@ -13,7 +13,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
 
   Targets ::= SEQUENCE {
-    -- The filename, length, and hashes of unencrypted images on a file server.
+    -- The filename, length, and hashes of unencrypted images on a repository.
     target  Target,
     -- This optional attribute is used by the director server to specify
     -- additional information, such as which images should be installed by
@@ -30,7 +30,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- intended by the director for them.
     ecuIdentifier         VisibleString,
     -- Optional attribute: use only if director encrypts images for this ECU
-    -- these encrypted images are on the director file server.
+    -- these encrypted images are on the director repository.
     encryptedTarget       Target OPTIONAL,
     -- Optional attribute: use only if ECU keys are asymmetric, and director
     -- uses symmetric keys to encrypt the image decryption key.

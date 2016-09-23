@@ -4,7 +4,7 @@ ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   IMPORTS Metadata                      FROM MetadataModule;
   IMPORTS ECUVersionManifest            FROM BootloaderModule;
 
-  -- What a primary sends the director file server.
+  -- What a primary sends the director repository.
   VehicleVersionManifest ::= SEQUENCE {
     -- The signed portion of the manifest.
     signed      Signed,
