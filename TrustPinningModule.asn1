@@ -15,7 +15,8 @@ TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- A shorthand name for the repository.
     name              RepositoryName,
     -- The base URL to the repository.
-    url               VisibleString,
+    -- If the URL is not specified, then hard pinning is assumed.
+    url               VisibleString OPTIONAL,
     -- The name of the directory on the client which contains previous and
     -- current metadata.
     metadataDirectory VisibleString
