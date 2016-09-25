@@ -1,0 +1,36 @@
+TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+  IMPORTS Paths FROM CommonModule;
+
+  -- https://github.com/theupdateframework/taps/blob/master/tap4.md
+  TrustPinning ::= SEQUENCE {
+    -- A list of repositories.
+    repositories Repositories,
+    --A list of multi-repository delegations.
+    delegations Delegations
+  }
+
+  Repositories    ::= SEQUENCE Repository
+  Repository      ::= SEQUENCE {
+    -- A shorthand name for the repository.
+    name              RepositoryName,
+    -- The base URL to the repository.
+    url               VisibleString,
+    -- The name of the directory on the client which contains previous and
+    -- current metadata.
+    metadataDirectory VisibleString
+  }
+  RepositoryNames ::= SEQUENCE RepositoryName
+  RepositoryName  ::= VisibleString
+
+  Delegations ::= SEQUENCE Delegation
+  Delegation  ::= SEQUENCE {
+    -- The list of targets delegated to the following repositories.
+    paths         Paths,
+    -- The repositories which MUST all sign the preceeding targets.
+    repositories  RepositoryNames,
+    -- Whether or not this delegation is terminating.
+    terminating   BOOLEAN DEFAULT FALSE
+  }
+
+END

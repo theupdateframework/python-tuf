@@ -2,7 +2,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   EXPORTS TargetsMetadata;
 
-  IMPORTS Filename, Hashes, Keyids, Length, PublicKeys, StrictFilename,
+  IMPORTS Filename, Hashes, Keyids, Length, Paths, PublicKeys, StrictFilename,
           Threshold FROM CommonModule;
 
   TargetsMetadata ::= SEQUENCE {
@@ -83,9 +83,5 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- Whether or not this delegation is terminating.
     terminating BOOLEAN DEFAULT FALSE
   }
-  Paths ::= SEQUENCE Path
-  -- A path is any non-empty sequence of alphanumeric, asterisk, or known path
-  -- separator characters.
-  Path  ::= VisibleString (PATTERN "[\w\*\\/]+")
 
 END
