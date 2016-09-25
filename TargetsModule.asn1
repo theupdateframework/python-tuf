@@ -2,7 +2,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   EXPORTS TargetsMetadata;
 
-  IMPORTS Filename, Hashes, Keyids, Length, PublicKeys,
+  IMPORTS Filename, Hashes, Keyids, Length, PublicKeys, StrictFilename,
           Threshold FROM CommonModule;
 
   TargetsMetadata ::= SEQUENCE {
@@ -64,7 +64,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- Otherwise, it is implicitly assumed to be ROLENAME.EXT (e.g.,
     -- "supplierA-dev.ext").
     -- Different rolenames MAY use the same filename.
-    filename  Filename OPTIONAL,
+    filename  StrictFilename OPTIONAL,
     -- The public keys used by this role.
     keyids    Keyids,
     -- The threshold number of these keys.
@@ -72,7 +72,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
   RoleNames ::= SEQUENCE RoleName
   -- No known path separator allowed in a rolename.
-  RoleName  ::= VisibleString (PATTERN "[^/\\]+")
+  RoleName  ::= StrictFilename
 
   PathsToRoles ::= SEQUENCE {
     -- A list of image/target paths entrusted to these roles.
