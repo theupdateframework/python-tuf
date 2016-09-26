@@ -1,0 +1,14 @@
+{
+  "repositories": {
+    "defaultrepo": {
+      "url": "http://localhost:30300/",
+      "metadata_directory": "defaultrepo"
+    }
+  },
+  "delegations": [
+    {
+      "paths": ["*"],
+      "repositories": ["defaultrepo"]
+    }
+  ]
+}

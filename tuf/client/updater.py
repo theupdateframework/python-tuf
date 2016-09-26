@@ -148,6 +148,13 @@ class Updater(object):
     self.repositories:
       Dictionary of SingleRepoUpdater objects, indexed by repository name.
 
+    self.pinned_metadata_fname:
+      The full filename of pinned.json.
+
+    self.pinned_metadata:
+      The contents of pinned.json, delegating namespaces to different
+      repositories. This determines which repository/ies to use for which
+      target/s.
 
   <Updater Methods>
 
@@ -172,14 +179,16 @@ class Updater(object):
       The initial set of metadata files are provided by the software update
       system utilizing TUF.
 
-      For each repository, the following directories must already exist
-      locally:
+      There must be a pinned.json file (See TAP 4 at
+      github.com/theupdateframework/taps) at the following location:
+        {tuf.conf.repository_directory}/metadata/pinned.json
 
+      Additionally, for each repository, the following directories must already
+      exist locally:
         {tuf.conf.repository_directory}/metadata/<repository_name>/current
         {tuf.conf.repository_directory}/metadata/<repository_name>/previous
 
-      and, at a minimum, the root metadata file must exist:
-
+      And the "current" root metadata file must exist:
         {tuf.conf.repository_directory}/metadata/<repository_name>/current/root.json
 
     <Arguments>
@@ -243,6 +252,20 @@ class Updater(object):
     self.updater_name = updater_name
     # self.mirrors = repository_mirrors
 
+    # Ensure the repository metadata directory has been set.
+    if tuf.conf.repository_directory is None:
+      raise tuf.RepositoryError('The TUF update client module must specify the'
+        ' directory containing the local repository files.'
+        '  "tuf.conf.repository_directory" MUST be set.')
+
+    # Set the path for the current set of metadata files.
+    repository_directory = tuf.conf.repository_directory
+    self.pinned_metadata_fname = os.path.join(
+        repository_directory, 'metadata', 'pinned.json')
+
+    # pinned.json is required.
+    self._load_pinned_metadata()
+
     # This is where the SingleRepoUpdater objects are stored, indexed by
     # repository name.
     self.repositories = {}
@@ -251,6 +274,22 @@ class Updater(object):
     for repo_name in all_repository_mirrors:
       self.repositories[repo_name] = SingleRepoUpdater(repo_name,
           all_repository_mirrors[repo_name])
+
+
+
+
+
+  def _load_pinned_metadata(self):
+
+    if not os.path.exists(self.pinned_metadata_fname):
+      raise tuf.RepositoryError('Cannot find pinned.json at ' +
+          self.pinned_metadata_fname + '. This file is required for the '
+          'updater per TAP 4 (github.com/theupdateframework/taps).')
+
+    # Read in pinned.json.
+    self.pinned_metadata = tuf.util.load_json_file(self.pinned_metadata_fname)
+
+
 
 
 
@@ -335,22 +374,135 @@ class Updater(object):
     If multiple repositories are known to this updater, a repo_name argument
     must be provided. (If only one repository is listed in this updater, then
     that repository is used.)
+
+    <Exceptions>
+      tuf.FormatError if there is a pinning delegation that has no repositories
+      listed.
     """
     if repo_name is not None:
       self._validate_repo_name(repo_name)
       return self.repositories[repo_name].target(target_filepath)
 
-    else:
-      # This case is only intended to handle a single default repository.
-      if len(self.repositories) != 1:
-        raise tuf.Error("There are multiple repositories known to this "
-          "updater, therefore a specific repo_name must be provided in a "
-          "target call.")
+    # Else, no repo_name was specified.
+    # Employ metadata from pinned.json to determine which repository to use.
+    # For each pinning (repository delegation), check its delegated
+    # paths/patterns to see if the given target_filepath matches.
+    # e.g. if the filepath is targets/subpath/target.tgz, and the delegation
+    # lists paths ["targets/subpath/*"], then we will try using that
+    # repository.
+    target_info = None
 
-      # Else, run on the first and only repository in the list of known
-      # repositories.  TODO: This is clumsy. Improve.
-      return self.repositories[[i for i in self.repositories][0]].target(
-          target_filepath)
+    for this_pinning in self.pinned_metadata['delegations']:
+      pinning_is_relevant = False
+
+      for delegated_path in this_pinning['paths']:
+        if fnmatch.fnmatch(target_filepath, delegated_path):
+          pinning_is_relevant = True
+          break
+
+      if not pinning_is_relevant:
+        logger.debug('In search for target ' + repr(target_filepath) + ', '
+            'skipping a non-relevant pinning.')
+        continue
+
+      if 0 == len(this_pinning['repositories']):
+        raise tuf.FormatError('Format of pinned.json is wrong. A pinning '
+            'delegation has no repositories listed.')
+
+      elif 1 == len(this_pinning['repositories']):
+        repo_name = this_pinning['repositories'][0]
+        target_info = self.repositories[repo_name].target(target_filepath)
+
+      else:
+        # Else there are multiple repositories listed in this delegation.
+        # Determine the target info they all indicate. It must be available
+        # from all repositories, or we treat it as not specified and proceed to
+        # the next pinning based on the terminating/cutting/backtracking
+        # setting. If target info is specified by more than one of these
+        # repositories in a multi-repository delegation, but the specifications
+        # are not identical, then we proceed based on the abort_on_disagreement
+        # setting. If it is true, we raise an error. If it is false, we proceed
+        # as if the target file info was not specified.
+
+        tentative_target = None
+
+        for repo_name in this_pinning['repositories']:
+          logger.debug('Checking for target ' + repr(target_filepath) + ' in '
+              'repository (' + repr(repo_name) + '), listed in a relevant '
+              'pinning.')
+
+          try:
+            new_tentative_target = self.repositories[repo_name].target(
+                target_filepath)
+          except tuf.UnknownTargetError as e:
+            logger.debug('Checking for target ' + repr(target_filepath) + ' in'
+                ' repository (' + repr(repo_name) + ') yielded no target. '
+                ' Exception from attempt was: ' + repr(e))
+            new_tentative_target = None
+
+          if new_tentative_target is None:
+            # If any of the required roles don't yield target info, then this
+            # multi-repository pinning delegation cannot validate the file.
+            tentative_target = None
+            break
+
+          elif tentative_target is None:
+            tentative_target = new_tentative_target
+
+          elif not _target_info_is_equal(
+              tentative_target['fileinfo'], new_tentative_target['fileinfo']):
+
+            # If any two of the required roles don't provide the same target
+            # info, then this multi-repo delegation cannot validate the file.
+            # We proceed as if this multi-repo delegation had not specified the
+            # target info (allowing the backtrack setting to determine whether
+            # or not to continue checking any further delegations).
+            logger.debug('A multi-repository pinning delegation had multiple '
+                'different specified file infos for the same target. Because '
+                'all repositories must agree on file info for a target in a '
+                'multi-repository delegation, we proceed as if the delegation '
+                'has not provided target info for this file. Skipping this'
+                  'multi-repository pinning delegation.')
+            tentative_target = None
+            break
+
+          # Else, new tentative target and tentative target both are non-None
+          # and are identical, so we proceed happily to the next repository in
+          # the multi-repository pinning delegation.
+
+        # Check result of looking for target info in the delegated-to roles.
+        if tentative_target is not None:
+          target_info = tentative_target
+
+      # Getting here in the code means that this pinning is relevant to this
+      # target, and that we've now tried all means of fetching target info from
+      # this pinning. If we were successful, return what we got. If not,
+      # either proceed to the next pinning (if this pinning is not terminating)
+      # or (if this pinning is terminating), raise a not-found error.
+      if target_info is not None:
+        return target_info
+
+      else:
+        if this_pinning.get('terminating', False):
+          logger.debug('In search for target ' + repr(target_filepath) + ', '
+            'found nothing in relevant pinned repository. Pinning is '
+            'terminating, so not trying further pinnings.')
+          break
+        else:
+          if not this_pinning.get('terminating', False):
+            logger.debug('In search for target ' + repr(target_filepath) + ', '
+                'found nothing in a relevant pinned repository. Will try next '
+                'pinning.')
+            continue # Explicit as defensive practice, not necessary.
+
+    # We should only get here in the code if we have tried every pinning and
+    # have not successfully derived target info.
+    assert target_info is None, 'Programming error.'
+
+    raise tuf.UnknownTargetError(target_filepath + ' not found.')
+
+
+
 
 
 
@@ -3131,28 +3283,20 @@ class SingleRepoUpdater(object):
 
         else:
 
-          # TODO: Confirm that this equality check suffices. (Looks like)
-          if tentative_target != new_tentative_target:
+          if not _target_info_is_equal(
+              tentative_target['fileinfo'], new_tentative_target['fileinfo']):
             # If any two of the required roles don't provide the same target
             # info, then this multi-role delegation cannot validate the file.
-            if mrdelegation['abort_on_disagreement']:
-              # If the delegation is configured to raise an error in such a
-              # case, do so.
-              raise tuf.ContradictionInMultiRoleDelegation('Required roles for'
-                  ' multi-role delegation do not agree on target info. '
-                  'Unable to determine correct target info to use.')
-            else:
-              # If the delegation is not configured to raise an error in case
-              # of disagreement between required roles, then we simply act as
-              # if this multi-role delegation had not specified the target info
-              # (allowing the backtrack setting to determine whether or not to
-              # continue checking any further delegations).
-              logger.debug('A multi-role delegation had one or more of its '
+            # We proceed as if this multi-role delegation had not specified the
+            # target info (allowing the backtrack setting to determine whether
+            # or not to continue checking any further delegations).
+            logger.debug('A multi-role delegation had one or more of its '
                   'required roles specifying the desired target, but at least '
                   'two roles did not provide the same fileinfo. Skipping this '
                   'multi-role delegation.')
-              tentative_target = None
-              break
+            tentative_target = None
+            break
+
 
       # Check result of looking for target info in the delegated-to roles.
       if tentative_target is not None:
@@ -3516,3 +3660,50 @@ def _validate_metadata_set(metadata_set):
   """
   if metadata_set not in ['current', 'previous']:
     raise tuf.Error('Invalid metadata set: ' + repr(metadata_set))
+
+
+
+
+
+def _target_info_is_equal(info1, info2):
+  """
+  TODO: Docstring.
+
+  """
+  # Check arguments.
+
+  tuf.formats.FILEINFO_SCHEMA.check_match(info1)
+  tuf.formats.FILEINFO_SCHEMA.check_match(info2)
+
+  # TODO: Consider adding to schema class functionality the ability to query
+  # a schema for all its subfields so that we can check them all (except
+  # custom) here....
+
+  for field in ['version', 'length']:
+    if info1.get(field, False) != info2.get(field, False):
+      return False
+
+  # For each hash type listed in either of the two file info objects,
+  # ensure that that hash type is listed in the other and also equal to the
+  # other's.
+  # There's some defensive coding happening here to avoid making many
+  # assumptions about the structure of tuf.formats.FILEINFO_SCHEMA going
+  # forward.
+  if len(info1.get('hashes', [])) != len(info2.get('hashes', [])):
+    logger.debug('Target info objects not equal to each other because '
+        'a different number of hashes are listed.')
+    return False
+
+  for hashtype in info1.get('hashes', []):
+
+    if hashtype not in info2['hashes']:
+      logger.debug('Target info objects not equal to each other because hash '
+          'type ' + repr(hashtype) + ' exists in only one of the objects.')
+      return False
+
+    if info1['hashes'][hashtype] != info2['hashes'][hashtype]:
+      logger.debug('Target info objects not equal to each other because hash '
+          'type ' + repr(hashtype) + ' does not match.')
+      return False
+
+  return True
