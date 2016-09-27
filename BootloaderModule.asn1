@@ -4,7 +4,7 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   IMPORTS Filename, Signature, Target, UTCDateTime FROM CommonModule;
 
-  -- What a secondary without additional stroage sends its primary to request an
+  -- What a secondary without additional storage sends its primary to request an
   -- image.
   ImageRequest ::= SEQUENCE {
     filename Filename,
