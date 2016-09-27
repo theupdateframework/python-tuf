@@ -260,11 +260,11 @@ class Updater(object):
 
     # Set the path for the current set of metadata files.
     repository_directory = tuf.conf.repository_directory
-    self.pinned_metadata_fname = os.path.join(
-        repository_directory, 'metadata', 'pinned.json')
 
-    # pinned.json is required.
-    self._load_pinned_metadata()
+    # Load pinned.json, which is required per TAP #4 and determines which
+    # which targets should be sought from which repository(/ies).
+    self._load_pinned_metadata(os.path.join(
+        repository_directory, 'metadata', 'pinned.json'))
 
     # This is where the SingleRepoUpdater objects are stored, indexed by
     # repository name.
@@ -279,11 +279,11 @@ class Updater(object):
 
 
 
-  def _load_pinned_metadata(self):
+  def _load_pinned_metadata(self, pinned_metadata_fname):
 
-    if not os.path.exists(self.pinned_metadata_fname):
+    if not os.path.exists(pinned_metadata_fname):
       raise tuf.RepositoryError('Cannot find pinned.json at ' +
-          self.pinned_metadata_fname + '. This file is required for the '
+          pinned_metadata_fname + '. This file is required for the '
           'updater per TAP 4 (github.com/theupdateframework/taps).')
 
     # Read in pinned.json.
