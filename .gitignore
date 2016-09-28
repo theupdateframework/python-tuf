@@ -1,2 +1,5 @@
-*.swp
 vim.session
+Makefile.am.sample
+*.c
+*.h
+*.swp
