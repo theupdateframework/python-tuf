@@ -23,8 +23,13 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   Hashes          ::= SEQUENCE OF Hash
   Hash            ::= SEQUENCE {
-    function      ENUMERATED {sha224, sha256, sha384, sha512, sha512-224, sha512-256, ...}
-
+    function      ENUMERATED {sha224, sha256, sha384, sha512, sha512-224, sha512-256, ...},
+    digest        CHOICE {
+      bitString     BIT STRING,
+      octetString   OCTET STRING,
+      hexString     HexString,
+      base64String  Base64String
+    }
   }
 
   Keyids          ::= SEQUENCE OF Keyid
@@ -42,9 +47,13 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   PublicKeys      ::= SEQUENCE OF PublicKey
   PublicKey       ::= SEQUENCE {
     keyid         Keyid,
-    keytype       ENUMERATED {rsa, ed25519, ...}
-
+    keytype       ENUMERATED {rsa, ed25519, ...},
+    keyval        CHOICE {
+      bitString     BIT STRING,
+      octetString   OCTET STRING,
+      hexString     HexString,
+      base64String  Base64String
+    }
   }
 
 END
-
