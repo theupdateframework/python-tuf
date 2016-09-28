@@ -11,7 +11,8 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   -- Table 1 of RFC 4648.
   Base64String    ::= VisibleString (PATTERN "[A-Za-z0-9\+/=]+")
   -- UTC date and time in the ISO 8601 format ("YYYY-MM-DDTHH:MM:SSZ").
-  UTCDateTime     ::= VisibleString (PATTERN "\d(4)-\d(2)-\d(2)T\d(2):\d(2):\d(2)Z")
+  UTCDateTime     ::= VisibleString (PATTERN
+                                        "\d(4)-\d(2)-\d(2)T\d(2):\d(2):\d(2)Z")
   Paths           ::= SEQUENCE OF Path
 
   Path            ::= VisibleString (PATTERN "[\w\*\\/]+")
@@ -23,7 +24,8 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   Hashes          ::= SEQUENCE OF Hash
   Hash            ::= SEQUENCE {
-    function      ENUMERATED {sha224, sha256, sha384, sha512, sha512-224, sha512-256, ...},
+    function      ENUMERATED {sha224, sha256, sha384, sha512, sha512-224,
+                              sha512-256, ...},
     digest        CHOICE {
       bitString     BIT STRING,
       octetString   OCTET STRING,
