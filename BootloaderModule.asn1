@@ -15,7 +15,7 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   -- What a secondary sends its primary after reboot.
   VersionReport ::= SEQUENCE {
     -- Nonce for the time server.
-    nonceForTimeServer Integer,
+    nonceForTimeServer INTEGER,
     -- The ECU version manifest for the director.
     ecuVersionManifest ECUVersionManifest,
     ...

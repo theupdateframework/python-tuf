@@ -3,11 +3,11 @@ TimeServerModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   IMPORTS Signatures, UTCDateTime FROM CommonModule;
 
   -- What a primary sends the time server: a nonce from each of its secondaries.
-  Nonces ::= SEQUENCE Nonce
-  Nonce ::= Integer
+  Nonces ::= SEQUENCE OF Nonce
+  Nonce ::= INTEGER
 
   -- What the time server sends in response.
-  CurrentTimes ::= SEQUENCE CurrentTime
+  CurrentTimes ::= SEQUENCE OF CurrentTime
   CurrentTime ::= SEQUENCE {
     signed      Signed,
     signatures  Signatures

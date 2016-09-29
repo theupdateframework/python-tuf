@@ -10,7 +10,7 @@ TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     delegations Delegations
   }
 
-  Repositories    ::= SEQUENCE Repository
+  Repositories    ::= SEQUENCE OF Repository
   Repository      ::= SEQUENCE {
     -- A shorthand name for the repository.
     name              RepositoryName,
@@ -21,10 +21,10 @@ TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- current metadata.
     metadataDirectory VisibleString
   }
-  RepositoryNames ::= SEQUENCE RepositoryName
+  RepositoryNames ::= SEQUENCE OF RepositoryName
   RepositoryName  ::= VisibleString
 
-  Delegations ::= SEQUENCE Delegation
+  Delegations ::= SEQUENCE OF Delegation
   Delegation  ::= SEQUENCE {
     -- The list of targets delegated to the following repositories.
     paths         Paths,

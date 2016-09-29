@@ -70,7 +70,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- The threshold number of these keys.
     threshold Threshold
   }
-  RoleNames ::= SEQUENCE RoleName
+  RoleNames ::= SEQUENCE OF RoleName
   -- No known path separator allowed in a rolename.
   RoleName  ::= StrictFilename
 
