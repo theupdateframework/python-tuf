@@ -7,7 +7,7 @@ TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- A list of repositories.
     repositories Repositories,
     --A list of multi-repository delegations.
-    delegations Delegations
+    delegations RepositoryDelegations
   }
 
   Repositories    ::= SEQUENCE OF Repository
@@ -24,8 +24,8 @@ TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   RepositoryNames ::= SEQUENCE OF RepositoryName
   RepositoryName  ::= VisibleString
 
-  Delegations ::= SEQUENCE OF Delegation
-  Delegation  ::= SEQUENCE {
+  RepositoryDelegations ::= SEQUENCE OF RepositoryDelegation
+  RepositoryDelegation  ::= SEQUENCE {
     -- The list of targets delegated to the following repositories.
     paths         Paths,
     -- The repositories which MUST all sign the preceeding targets.

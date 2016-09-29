@@ -1,23 +1,25 @@
 ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
-  IMPORTS Filename, Positive, Signature FROM CommonModule;
-  IMPORTS Metadata                      FROM MetadataModule;
-  IMPORTS ECUVersionManifest            FROM BootloaderModule;
+  IMPORTS Filename,
+          Positive,
+          Signature           FROM CommonModule
+          Metadata            FROM MetadataModule
+          ECUVersionManifest  FROM BootloaderModule;
 
   -- What a primary sends the director repository.
   VehicleVersionManifest ::= SEQUENCE {
     -- The signed portion of the manifest.
-    signed      Signed,
+    signed    VehicleVersionManifestSigned,
     -- The signature on the hash of the signed portion.
-    signature  Signature
+    signature Signature
   }
-  Signed ::= SEQUENCE {
+  VehicleVersionManifestSigned ::= SEQUENCE {
     -- A unique identifier for the vehicle.
     vehicleIdentifier   VisibleString,
     -- A unique identifier for the primary sending this manifest.
     primaryIdentifier   VisibleString,
     -- An ECU version manifest per secondary.
-    ecuVersionManifests ECUVersionManifests
+    ecuVersionManifests ECUVersionManifests,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }

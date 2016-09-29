@@ -1,6 +1,6 @@
 TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
-  EXPORTS TargetsMetadata;
+  EXPORTS TargetsMetadata, Target;
 
   IMPORTS Filename, Hashes, Keyids, Length, Paths, PublicKeys, StrictFilename,
           Threshold FROM CommonModule;
@@ -9,7 +9,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- Metadata about unencrypted images on a repository.
     targets     Targets,
     -- Delegations are optional.
-    delegations Delegations OPTIONAL,
+    delegations TargetsDelegations OPTIONAL,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }
@@ -46,18 +46,18 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     keyval    VisibleString
   }
 
-  Delegations ::= SEQUENCE {
+  TargetsDelegations ::= SEQUENCE {
     -- These three attributes are optional, and for use only in case of
     -- image/target delegations. However, if delegations are used, all three
     -- attributes must be defined.
     -- The public keys of all delegatees.
     keys          PublicKeys,
     -- The role name, filename, public keys, and threshold of a delegatee.
-    roles         Roles,
+    roles         DelegatedTargetsRoles,
     -- A list paths to roles, listed in order of priority.
     pathsToRoles  PathsToRoles
   }
-  Roles ::= SEQUENCE {
+  DelegatedTargetsRoles ::= SEQUENCE {
     -- The rolename (e.g., "supplierA-dev").
     rolename  RoleName,
     -- An explicit filename for the role (e.g., "supplierA.ext").

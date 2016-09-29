@@ -6,11 +6,11 @@ RootModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   RootMetadata ::= SEQUENCE {
     keys        PublicKeys,
-    roles       Roles,
+    roles       TopLevelRoles,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }
-  Roles ::= SEQUENCE {
+  TopLevelRoles ::= SEQUENCE {
     role      RoleType,
     -- TAP 5: The URL pointing to the metadata file for this role.
     url       VisibleString,

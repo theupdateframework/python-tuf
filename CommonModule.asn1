@@ -21,6 +21,7 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Positive        ::= INTEGER (1..MAX)
   Length          ::= Positive
   Threshold       ::= Positive
+  Version         ::= Positive
 
   Hashes          ::= SEQUENCE OF Hash
   Hash            ::= SEQUENCE {

@@ -2,7 +2,10 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   EXPORTS ECUVersionManifest;
 
-  IMPORTS Filename, Signature, Target, UTCDateTime FROM CommonModule;
+  IMPORTS Filename,
+          Signature,
+          UTCDateTime FROM CommonModule
+          Target      FROM TargetsModule;
 
   -- What a secondary without additional storage sends its primary to request an
   -- image.
@@ -22,11 +25,11 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
   ECUVersionManifest ::= SEQUENCE {
     -- The signed portion of the manifest.
-    signed      Signed,
+    signed      ECUVersionManifestSigned,
     -- The signature on the hash of the signed portion.
     signature  Signature
   }
-  Signed ::= SEQUENCE {
+  ECUVersionManifestSigned ::= SEQUENCE {
     -- A unique identifier for the ECU.
     ecuIdentifier   VisibleString,
     -- The previous time seen on the time server.
