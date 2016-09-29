@@ -2,11 +2,15 @@ MetadataModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   EXPORTS Metadata;
 
-  IMPORTS Positive, RoleType, Signatures, UTCDateTime FROM CommonModule;
-  IMPORTS RootMetadata                                FROM RootModule;
-  IMPORTS TargetsMetadata                             FROM TargetsModule;
-  IMPORTS SnapshotMetadata                            FROM SnapshotModule;
-  IMPORTS TimestampMetadata                           FROM TimestampModule;
+  -- https://sourceforge.net/p/asn1c/discussion/357921/thread/aced2512/
+  IMPORTS Positive,
+          RoleType,
+          Signatures,
+          UTCDateTime       FROM CommonModule
+          RootMetadata      FROM RootModule
+          TargetsMetadata   FROM TargetsModule
+          SnapshotMetadata  FROM SnapshotModule
+          TimestampMetadata FROM TimestampModule;
 
   Metadata      ::= SEQUENCE {
     signed      Signed,
