@@ -223,8 +223,7 @@ development header files. Debian-based distributions can install these header
 libraries with apt (Advanced Package Tool.)
 ::
 
-    $ apt-get install python-dev
-    $ apt-get install libffi-dev
+    $ apt-get install build-essential libssl-dev libff-dev python-dev 
 
 OS X users can install these header libraries with the `Homebrew <http://brew.sh/>`_ package manager.
 ::
