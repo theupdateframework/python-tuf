@@ -541,7 +541,7 @@ MIRROR_SCHEMA = SCHEMA.Object(
   url_prefix = URL_SCHEMA,
   metadata_path = RELPATH_SCHEMA,
   targets_path = RELPATH_SCHEMA,
-  confined_target_dirs = RELPATHS_SCHEMA,
+  confined_target_dirs = SCHEMA.Optional(RELPATHS_SCHEMA), # should now default to ['']
   custom = SCHEMA.Optional(SCHEMA.Object()))
 
 # A dictionary of mirrors where the dict keys hold the mirror's name and
@@ -552,12 +552,11 @@ MIRRORDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = SCHEMA.AnyString(),
   value_schema = MIRROR_SCHEMA)
 
-# A dictionary of mirror dictionaries, one mirror dictionary per repository.
-# The Updater class of 'updater.py' accepts dictionaries of this type.
-MULTIREPO_MIRRORDICT_SCHEMA = SCHEMA.DictOf(
-  key_schema = SCHEMA.AnyString(), # Repository name
-  value_schema = MIRRORDICT_SCHEMA)
-
+# # A dictionary of mirror dictionaries, one mirror dictionary per repository.
+# # The Updater class of 'updater.py' accepts dictionaries of this type.
+# MULTIREPO_MIRRORDICT_SCHEMA = SCHEMA.DictOf(
+#   key_schema = SCHEMA.AnyString(), # Repository name
+#   value_schema = MIRRORDICT_SCHEMA)
 
 # A Mirrorlist: indicates all the live mirrors, and what documents they
 # serve.
@@ -567,6 +566,40 @@ MIRRORLIST_SCHEMA = SCHEMA.Object(
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   mirrors = SCHEMA.ListOf(MIRROR_SCHEMA))
+
+# Per tentative design for pinned.json. To replace MIRROR_SCHEMA et al. when
+# confirmed.
+ALT_MIRROR_SCHEMA = URL_SCHEMA
+
+ALT_MIRRORLIST_SCHEMA = SCHEMA.ListOf(ALT_MIRROR_SCHEMA)
+
+REPOSITORY_NAME_SCHEMA = SCHEMA.AnyString()
+
+# A repository listing inside pinned.json.
+PINNED_REPOSITORY_SCHEMA = SCHEMA.Object(
+  #local_metadata_directory = SCHEMA.AnyString(), # path to client's local metadata directory
+  #root_override_URLs = SCHEMA.Optional(ListOf(SCHEMA.AnyString())), # URLs for root files, optional
+  mirrors = ALT_MIRRORLIST_SCHEMA)
+
+# PINNED_REPOSITORIES_SCHEMA = SCHEMA.DictOf(
+#   key_schema = REPOSITORY_NAME_SCHEMA,
+#   value_schema = PINNED_REPOSITORY_SCHEMA)
+
+# A delegation inside pinned.json.
+PINNING_DELEGATION_SCHEMA = SCHEMA.Object(
+  paths = ListOf(AnyString()),
+  repositories = ListOf(AnyString()),
+  terminating = SCHEMA.Optional(SCHEMA.Boolean))
+
+# pinned.json: client-only file that determines which repository/repositories
+# to use for which targets.
+PINNING_FILE_SCHEMA = SCHEMA.Object(
+    #object_name = 'PINNINGS_FILE_SCHEMA',
+    repositories = DictOf(
+        key_schema = SCHEMA.AnyString(),
+        value_schema = PINNED_REPOSITORY_SCHEMA),
+    delegations = ListOf(PINNING_DELEGATION_SCHEMA))
+
 
 # Any of the role schemas (e.g., TIMESTAMP_SCHEMA, SNAPSHOT_SCHEMA, etc.)
 ANYROLE_SCHEMA = SCHEMA.OneOf([ROOT_SCHEMA, TARGETS_SCHEMA, SNAPSHOT_SCHEMA,

@@ -55,23 +55,24 @@
   # client accesses this module solely to set the repository directory.
   # This directory will hold the files downloaded from a remote repository.
   tuf.conf.repository_directory = 'local-repository'
- 
-  # Next, the client creates a dictionary object containing the repository
-  # mirrors.  The client may download content from any one of these mirrors.
-  # In the example below, a single mirror named 'mirror1' is defined.  The
-  # mirror is located at 'http://localhost:8001', and all of the metadata
-  # and targets files can be found in the 'metadata' and 'targets' directory,
-  # respectively.  If the client wishes to only download target files from
-  # specific directories on the mirror, the 'confined_target_dirs' field
-  # should be set.  In the example, the client has chosen '', which is
-  # interpreted as no confinement.  In other words, the client can download
-  # targets from any directory or subdirectories.  If the client had chosen
-  # 'targets1/', they would have been confined to the '/targets/targets1/'
-  # directory on the 'http://localhost:8001' mirror. 
-  repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
-                                    'metadata_path': 'metadata',
-                                    'targets_path': 'targets',
-                                    'confined_target_dirs': ['']}}
+
+  # OLD: repository_mirrors format has changed. REWRITE AFTER DESIGN CONFIRM:
+    # Next, the client creates a dictionary object containing the repository
+    # mirrors.  The client may download content from any one of these mirrors.
+    # In the example below, a single mirror named 'mirror1' is defined.  The
+    # mirror is located at 'http://localhost:8001', and all of the metadata
+    # and targets files can be found in the 'metadata' and 'targets' directory,
+    # respectively.  If the client wishes to only download target files from
+    # specific directories on the mirror, the 'confined_target_dirs' field
+    # should be set.  In the example, the client has chosen '', which is
+    # interpreted as no confinement.  In other words, the client can download
+    # targets from any directory or subdirectories.  If the client had chosen
+    # 'targets1/', they would have been confined to the '/targets/targets1/'
+    # directory on the 'http://localhost:8001' mirror. 
+    repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
+                                      'metadata_path': 'metadata',
+                                      'targets_path': 'targets',
+                                      'confined_target_dirs': ['']}}
 
   # The updater may now be instantiated.  The Updater class of 'updater.py'
   # is called with two arguments.  The first argument assigns a name to this
@@ -162,64 +163,41 @@ class Updater(object):
   """
 
 
-  def __init__(self, updater_name, all_repository_mirrors):
+  def __init__(self, updater_name):
     """
     <Purpose>
 
-      Constructor.  Instantiating an updater object instantiates a
-      SingleRepoUpdater object for each repository entry in the
-      all_repository_mirrors dict. This causes all the metadata files for the
-      files for the top-level roles to be read from disk, including the key and
-      role information for the delegated targets of 'targets'.  The actual
-      metadata for delegated roles is not loaded in __init__.  The metadata for
-      these delegated roles, including nested delegated roles, are loaded,
-      updated, and saved to the 'self.metadata' store by the target methods,
-      like all_targets() and targets_of_role().
+      Constructor.  Instantiating an updater object reads pinned.json into
+      memory and instantiates a SingleRepoUpdater object for each repository
+      entry in the pinned.json metadata. This causes all the metadata files for
+      the files for the top- level roles to be read from disk, including the
+      key and role information for the delegated targets of 'targets'.  The
+      actual metadata for delegated roles is not loaded in __init__.  The
+      metadata for these delegated roles, including nested delegated roles, are
+      loaded, updated, and saved to the 'self.metadata' store by the target
+      methods, like all_targets() and targets_of_role().
 
-      The initial set of metadata files are provided by the software update
-      system utilizing TUF.
+      The initial set of metadata files (critically, root.json) is provided by
+      the software update system utilizing TUF.
 
-      There must be a pinned.json file (See TAP 4 at
-      github.com/theupdateframework/taps) at the following location:
-        {tuf.conf.repository_directory}/metadata/pinned.json
+      There are several requirements to be able to instantiate an updater:
 
-      Additionally, for each repository, the following directories must already
-      exist locally:
-        {tuf.conf.repository_directory}/metadata/<repository_name>/current
-        {tuf.conf.repository_directory}/metadata/<repository_name>/previous
+      1.  The pinned.json file is expected to be in the following location:
+            {tuf.conf.repository_directory}/metadata/pinned.json
+          See TAP 4 at github.com/theupdateframework/taps for more information.
 
-      And the "current" root metadata file must exist:
-        {tuf.conf.repository_directory}/metadata/<repository_name>/current/root.json
+      2.  For each repository, the following directories must already exist
+          locally:
+            {tuf.conf.repository_directory}/metadata/<repository_name>/current
+            {tuf.conf.repository_directory}/metadata/<repository_name>/previous
+
+      3.  For each repository, the "current" root metadata file must exist:
+            {tuf.conf.repository_directory}/metadata/<repository_name>/current/root.json
 
     <Arguments>
       updater_name:
         A name to refer to this updater. TODO: Explain why we still need this
-        in this new class, if we do.
-
-      all_repository_mirrors:
-        A dictionary holding mirror information for each known repository. This
-        dictionary conforms to tuf.formats.MULTIREPO_MIRRORDICT_SCHEMA. It is
-        indexed by repository name, and the value held in each entry is in turn
-        conformant to 'tuf.formats.MIRRORDICT_SCHEMA'. Each of those
-        dictionaries holds information such as the directory containing the
-        metadata and target files, the server's URL prefix, and the target
-        content directories the client should be confined to.
-
-        all_repository_mirrors = {
-            'PyPI':
-                    {'pypi_mirror1': {'url_prefix': 'http://localhost:8001',
-                                      'metadata_path': 'metadata',
-                                      'targets_path': 'targets',
-                                      'confined_target_dirs': ['']},
-                     'pypi_mirror2': {'url_prefix': 'http://localhost:8002',
-                                      'metadata_path': 'metadata',
-                                      'targets_path': 'targets',
-                                      'confined_target_dirs': ['']}},
-            'PrivateRepo':
-                      {'foo_mirror': {'url_prefix': 'http://localhost:8001',
-                                      'metadata_path': 'metadata',
-                                      'targets_path': 'targets',
-                                      'confined_target_dirs': ['']}}}
+        in this new class, if we do. (Don't yet see a reason)
 
     <Exceptions>
       tuf.FormatError:
@@ -231,6 +209,7 @@ class Updater(object):
 
     <Side Effects>
 
+      pinned.json is read from disk and stored in this new object.
       For each repository, the metadata files (e.g., 'root.json',
       'targets.json') for the top- level roles are read from disk and stored in
       dictionaries.  In addition, the key and roledb modules are populated with
@@ -246,11 +225,9 @@ class Updater(object):
     # keys are properly named.
     # Raise 'tuf.FormatError' if there is a mistmatch.
     tuf.formats.NAME_SCHEMA.check_match(updater_name)
-    tuf.formats.MULTIREPO_MIRRORDICT_SCHEMA.check_match(all_repository_mirrors)
 
     # Save the validated arguments.
     self.updater_name = updater_name
-    # self.mirrors = repository_mirrors
 
     # Ensure the repository metadata directory has been set.
     if tuf.conf.repository_directory is None:
@@ -270,10 +247,14 @@ class Updater(object):
     # repository name.
     self.repositories = {}
 
-    # Create a SingleRepoUpdater object for each repository.
-    for repo_name in all_repository_mirrors:
-      self.repositories[repo_name] = SingleRepoUpdater(repo_name,
-          all_repository_mirrors[repo_name])
+    # Create a SingleRepoUpdater object for each repository using pinned.json's
+    # repository entry, including the mirrors info.
+    for repo_name in self.pinned_metadata['repositories']:
+      this_repo = self.pinned_metadata['repositories'][repo_name]
+      self.repositories[repo_name] = SingleRepoUpdater(
+          repo_name, this_repo['mirrors'],
+          local_metadata_dir=this_repo['local_metadata_directory'],
+          root_override_URLs=this_repo['root_override_URLs'])
 
 
 
@@ -287,7 +268,13 @@ class Updater(object):
           'updater per TAP 4 (github.com/theupdateframework/taps).')
 
     # Read in pinned.json.
-    self.pinned_metadata = tuf.util.load_json_file(self.pinned_metadata_fname)
+    pinned_metadata = tuf.util.load_json_file(self.pinned_metadata_fname)
+
+    # Make sure the pinned file matches format expectations.
+    tuf.formats.PINNING_FILE_SCHEMA.check_match(pinned_metadata)
+
+    self.pinned_metadata = pinned_metadata
+
 
 
 
@@ -366,6 +353,57 @@ class Updater(object):
 
 
 
+
+
+  def _get_pinnings_for_target(target_filepath):
+    """
+    TODO: Docstring
+
+    This function produces a list of the pinned repositories, in order of
+    priority in pinned.json, that are delegated this target file.
+
+    <Returns>
+      List of lists of repository names.
+      e.g. [ ['repo1'], ['repo2'], ['repo3a', 'repo3b'] ]
+      Each entry in the list corresponds to a pinning. If the pinning is a
+      single-repository pinning, it will be a one-length list. If, say, two
+      repositories are pinned in a multi-repository pinning, the list will be
+      of both repositories.
+    """
+    tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
+
+    pinnings_for_target = []
+    debug__terminating_pinning_encountered = False
+
+    for this_pinning in self.pinned_metadata['delegations']:
+      pinning_is_relevant = False
+
+      for delegated_path in this_pinning['paths']:
+        if fnmatch.fnmatch(target_filepath, delegated_path):
+          pinning_is_relevant = True
+          break
+
+      if pinning_is_relevant:
+
+        if 0 == len(this_pinning['repositories']):
+          raise tuf.FormatError('Format of pinned.json is wrong. A pinning '
+              'delegation has no repositories listed.')
+
+        pinnings_for_target.append(this_pinning['repositories'])
+        if this_pinning['terminating']:
+          debug__terminating_pinning_encountered = False
+          break
+
+    logger.debug('Found the following repository lists in pinnings relevant to'
+        ' target ' + repr(target_filepath) + ': ' + repr(pinnings_for_target) +
+        debug__terminating_pinning_encountered * 'The last pinning encountered'
+        ' was flagged as terminating, so no further pinnings were inspected.')
+    return pinnings_for_target
+
+
+
+
+
   def target(self, target_filepath, repo_name=None):
     """
     Returns the output of target(target_filepath) run on the updater for the
@@ -390,110 +428,83 @@ class Updater(object):
     # e.g. if the filepath is targets/subpath/target.tgz, and the delegation
     # lists paths ["targets/subpath/*"], then we will try using that
     # repository.
+    # Returned here is a list of lists of repository names.
+    relevant_pinnings = self._get_pinnings_for_target(target_filepath)
+
+    # Try to fetch target info from each of the relevant pinnings retrieved in
+    # the previous line until one succeeds.
     target_info = None
 
-    for this_pinning in self.pinned_metadata['delegations']:
-      pinning_is_relevant = False
+    for repo_list in relevant_pinnings:
+      # repo_list corresponds to a single pinning. It will be of length
+      # one if we're dealing with a single-repository pinning, and longer if
+      # we're dealing with a multi-repository pinning.
+      # Code below handles both cases together.
 
-      for delegated_path in this_pinning['paths']:
-        if fnmatch.fnmatch(target_filepath, delegated_path):
-          pinning_is_relevant = True
+      assert 0 != len(repo_list), 'Programming error. ' + \
+          '(Should be impossible due to _get_pinnings_for_target() checks'
+
+      tentative_target = None
+
+      for repo_name in repo_list:
+        logger.debug('Checking for target ' + repr(target_filepath) + ' in '
+            'repository (' + repr(repo_name) + '), listed in a relevant '
+            'pinning.')
+
+        new_tentative_target = None
+
+        try: # Try to get the target from this repository.
+          new_tentative_target = self.repositories[repo_name].target(
+              target_filepath)
+
+        except tuf.UnknownTargetError as e:
+          logger.debug('Checking for target ' + repr(target_filepath) + ' in'
+              ' repository (' + repr(repo_name) + ') yielded no target. '
+              ' Exception from attempt was: ' + repr(e))
+
+        if new_tentative_target is None:
+          # If any of the required repos don't yield target info, then this
+          # multi-repository pinning delegation cannot validate the file.
+          tentative_target = None
           break
 
-      if not pinning_is_relevant:
-        logger.debug('In search for target ' + repr(target_filepath) + ', '
-            'skipping a non-relevant pinning.')
-        continue
+        elif tentative_target is None:
+          # If we got target info, and we didn't already have target info from
+          # a previous repository, then this was the first repository in this
+          # pinning, and we save the target info.
+          tentative_target = new_tentative_target
 
-      if 0 == len(this_pinning['repositories']):
-        raise tuf.FormatError('Format of pinned.json is wrong. A pinning '
-            'delegation has no repositories listed.')
+        elif not _target_info_is_equal(
+            tentative_target['fileinfo'], new_tentative_target['fileinfo']):
 
-      elif 1 == len(this_pinning['repositories']):
-        repo_name = this_pinning['repositories'][0]
-        target_info = self.repositories[repo_name].target(target_filepath)
+          # If we already have target info from a previous repository and it's
+          # not equal to the target info we just fetched, then this multi-repo
+          # delegation cannot validate the file.
+          # We proceed as if this multi-repo delegation had not specified the
+          # target info (allowing the backtrack setting to determine whether
+          # or not to continue checking any further delegations).
+          logger.debug('A multi-repository pinning delegation had multiple '
+              'different specified file infos for the same target. Because '
+              'all repositories must agree on file info for a target in a '
+              'multi-repository delegation, we proceed as if the delegation '
+              'has not provided target info for this file. Skipping this'
+                'multi-repository pinning delegation.')
+          tentative_target = None
+          break # moves to the next pinning
 
-      else:
-        # Else there are multiple repositories listed in this delegation.
-        # Determine the target info they all indicate. It must be available
-        # from all repositories, or we treat it as not specified and proceed to
-        # the next pinning based on the terminating/cutting/backtracking
-        # setting. If target info is specified by more than one of these
-        # repositories in a multi-repository delegation, but the specifications
-        # are not identical, then we proceed based on the abort_on_disagreement
-        # setting. If it is true, we raise an error. If it is false, we proceed
-        # as if the target file info was not specified.
+        # Else, new tentative target and tentative target both are non-None
+        # and are identical, so we proceed happily to the next repository in
+        # the (potentially multi-repository) pinning delegation.
 
-        tentative_target = None
-
-        for repo_name in this_pinning['repositories']:
-          logger.debug('Checking for target ' + repr(target_filepath) + ' in '
-              'repository (' + repr(repo_name) + '), listed in a relevant '
-              'pinning.')
-
-          try:
-            new_tentative_target = self.repositories[repo_name].target(
-                target_filepath)
-          except tuf.UnknownTargetError as e:
-            logger.debug('Checking for target ' + repr(target_filepath) + ' in'
-                ' repository (' + repr(repo_name) + ') yielded no target. '
-                ' Exception from attempt was: ' + repr(e))
-            new_tentative_target = None
-
-          if new_tentative_target is None:
-            # If any of the required roles don't yield target info, then this
-            # multi-repository pinning delegation cannot validate the file.
-            tentative_target = None
-            break
-
-          elif tentative_target is None:
-            tentative_target = new_tentative_target
-
-          elif not _target_info_is_equal(
-              tentative_target['fileinfo'], new_tentative_target['fileinfo']):
-
-            # If any two of the required roles don't provide the same target
-            # info, then this multi-repo delegation cannot validate the file.
-            # We proceed as if this multi-repo delegation had not specified the
-            # target info (allowing the backtrack setting to determine whether
-            # or not to continue checking any further delegations).
-            logger.debug('A multi-repository pinning delegation had multiple '
-                'different specified file infos for the same target. Because '
-                'all repositories must agree on file info for a target in a '
-                'multi-repository delegation, we proceed as if the delegation '
-                'has not provided target info for this file. Skipping this'
-                  'multi-repository pinning delegation.')
-            tentative_target = None
-            break
-
-          # Else, new tentative target and tentative target both are non-None
-          # and are identical, so we proceed happily to the next repository in
-          # the multi-repository pinning delegation.
-
-        # Check result of looking for target info in the delegated-to roles.
-        if tentative_target is not None:
-          target_info = tentative_target
-
-      # Getting here in the code means that this pinning is relevant to this
-      # target, and that we've now tried all means of fetching target info from
-      # this pinning. If we were successful, return what we got. If not,
-      # either proceed to the next pinning (if this pinning is not terminating)
-      # or (if this pinning is terminating), raise a not-found error.
-      if target_info is not None:
-        return target_info
+      # We've now checked every repository in this particular pinning.
+      # Check result of looking for target info in the delegated-to roles.
+      if tentative_target is not None:
+        return tentative_target
 
       else:
-        if this_pinning.get('terminating', False):
-          logger.debug('In search for target ' + repr(target_filepath) + ', '
-            'found nothing in relevant pinned repository. Pinning is '
-            'terminating, so not trying further pinnings.')
-          break
-        else:
-          if not this_pinning.get('terminating', False):
-            logger.debug('In search for target ' + repr(target_filepath) + ', '
-                'found nothing in a relevant pinned repository. Will try next '
-                'pinning.')
-            continue # Explicit as defensive practice, not necessary.
+        logger.debug('Failed to find target ' + repr(target_filepath) + ' in '
+            'this pinning (repos: ' + repr(repo_list) + '). Moving on to next'
+            ' pinning.')
 
     # We should only get here in the code if we have tried every pinning and
     # have not successfully derived target info.
@@ -534,6 +545,8 @@ class Updater(object):
 
 
 
+
+
   def updated_targets(self, targets, destination_directory, repo_name=None):
     """
     Returns the output of updated_targets(targets, destination_directory) on
@@ -562,6 +575,8 @@ class Updater(object):
 
 
 
+
+
   def download_target(self, target, destination_directory, repo_name=None):
     """
     Returns the output of download_target(target, destination_directory) on
@@ -570,23 +585,63 @@ class Updater(object):
     If multiple repositories are known to this updater, a repo_name argument
     must be provided. (If only one repository is listed in this updater, then
     that repository is used.)
+
+
+    TODO: DESIGN CHECK! This function is a little weird in that it is willing
+    to download the target from any repository in any relevant pinning, even if
+    the target info came from a different repository. That target info will
+    still be used to validate this download, regardless of where the file ended
+    up coming from.
+
     """
+
+    # Check arguments.
+    tuf.formats.TARGETFILE_SCHEMA.check_match(target)
+    tuf.formats.PATH_SCHEMA.check_match(destination_directory)
+
     if repo_name is not None:
       self._validate_repo_name(repo_name)
       return self.repositories[repo_name].download_target(target,
           destination_directory)
 
-    else:
-      # This case is only intended to handle a single default repository.
-      if len(self.repositories) != 1:
-        raise tuf.Error("There are multiple repositories known to this "
-          "updater, therefore a specific repo_name must be provided in a "
-          "download_target call.")
+    # If we have not been specifically instructed by the client to use a
+    # particular repository, then we process pinned.json metadata in order to
+    # determine which repository to use.
 
-      # Run on the first and only repository in the list of known repositories.
-      # TODO: Clumsy.
-      self.repositories[[i for i in self.repositories][0]].download_target(
-          target, destination_directory)
+    relevant_pinnings = self._get_pinnings_for_target(target['filepath'])
+
+    for repo_list in relevant_pinnings:
+      # repo_list corresponds to a single pinning. It will be of length
+      # one if we're dealing with a single-repository pinning, and longer if
+      # we're dealing with a multi-repository pinning.
+      # Code below handles both cases together.
+
+      assert 0 != len(repo_list), 'Programming error. ' + \
+          '(Should be impossible due to _get_pinnings_for_target() checks'
+
+      # In case request fails against all repositories in all pinnings, save
+      # the list of exceptions to provide to the user.
+      list_of_noworkingmirror_exceptions = []
+
+      for repo_name in repo_list:
+        # This pinning may be a single-repo or multi-repo pinning. For each
+        # repository in this pinning, try downloading the target file.
+
+        list_of_noworkingmirror_exceptions = []
+
+        try:
+          self.repositories[repo_name].download_target(
+              target, destination_directory)
+
+        except tuf.NoWorkingMirrorError as e:
+          list_of_noworkingmirror_exceptions.append(e)
+
+        finally:
+          logger.debug('Succeeded in downloading target ' +
+              repr(target['filepath']) + ' from repo ' + repr(repo_name))
+          return
+
+
 
 
 
@@ -595,10 +650,15 @@ class Updater(object):
     Throws tuf.FormatError if the given repo_name is not of the right type.
     Throws tuf.Error if the given repo_name is not that of a known repository.
     """
+    tuf.formats.REPOSITORY_NAME_SCHEMA.check_match(repo_name)
+
     if repo_name not in self.repositories:
       raise tuf.Error('Unknown repository specified in attempt to load '
           'metadata from file. Repo name: ' + repr(repo_name) + '; only aware '
-          'of these repositories: ' + repr(self.repositories))
+          'of these repositories: ' +
+          repr([r.repository_name for r in self.repositories]))
+
+
 
 
 
@@ -646,12 +706,21 @@ class SingleRepoUpdater(object):
 
     self.mirrors:
       The repository mirrors from which metadata and targets are available.
-      Conformant to 'tuf.formats.MIRRORDICT_SCHEMA'.
+      Conformant to 'tuf.formats.ALT_MIRRORDICT_SCHEMA'.
     
     self.repository_name:
       This is the name of the repository that this updater object will use.
       It is expected to be the name of the repository as you would see it in
       pinned.json, and in the roledb and keydb dictionaries.
+
+    self.root_override_URLs:
+      This is an optional argument that allows us to specify the url from which
+      to retrieve root.json in particular. This is of use for key-pinning
+      configurations in which there is a custom (local, or separately remotely
+      hosted) root file, but the rest of the metadata is still available at
+      the expected location for the repository.
+
+
 
 
   <Updater Methods>
@@ -702,7 +771,8 @@ class SingleRepoUpdater(object):
     http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
-  def __init__(self, repository_name, repository_mirrors):
+  def __init__(self, repository_name, repository_mirrors,
+      root_override_URLs=None, local_metadata_dir=None):
     """
     <Purpose>
       Constructor.  Instantiating an updater object causes all the metadata
@@ -733,16 +803,21 @@ class SingleRepoUpdater(object):
         pinned.json, and in the roledb and keydb dictionaries.
 
       repository_mirrors:
-        A dictionary holding repository mirror information, conformant to
-        'tuf.formats.MIRRORDICT_SCHEMA'.  This dictionary holds information
-        such as the directory containing the metadata and target files, the
-        server's URL prefix, and the target content directories the client
-        should be confined to.
-            
-        repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
-                                          'metadata_path': 'metadata',
-                                          'targets_path': 'targets',
-                                          'confined_target_dirs': ['']}}
+        A list of URLs (each of type tuf.formats.URL_SCHEMA, which is
+        at the time of this writing a simple string).
+
+        Old:
+          # repository_mirrors:
+          #   A dictionary holding repository mirror information, conformant to
+          #   'tuf.formats.MIRRORDICT_SCHEMA'.  This dictionary holds information
+          #   such as the directory containing the metadata and target files, the
+          #   server's URL prefix, and the target content directories the client
+          #   should be confined to.
+
+          #   repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
+          #                                     'metadata_path': 'metadata',
+          #                                     'targets_path': 'targets',
+          #                                     'confined_target_dirs': ['']}}
     
     <Exceptions>
       tuf.FormatError:
@@ -767,7 +842,7 @@ class SingleRepoUpdater(object):
     # keys are properly named.
     # Raise 'tuf.FormatError' if there is a mistmatch.
     tuf.formats.NAME_SCHEMA.check_match(repository_name)
-    tuf.formats.MIRRORDICT_SCHEMA.check_match(repository_mirrors)
+    tuf.formats.ALT_MIRRORDICT_SCHEMA.check_match(repository_mirrors)
    
     # Save the validated arguments.
     self.repository_name = repository_name
@@ -823,7 +898,7 @@ class SingleRepoUpdater(object):
     
     # Set the path for the previous set of metadata files. 
     previous_path = os.path.join(repository_directory, 'metadata',
-        repository_name, 'previous')
+        local_metadata_dir, 'previous')
    
     # Ensure the previous path is valid/exists.
     if not os.path.exists(previous_path):
