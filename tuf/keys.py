@@ -1204,7 +1204,7 @@ def encrypt_key(key_object, password):
     performs the actual cryptographic operation on 'key_object'.  Whereas
     an encrypted PEM file uses the Triple Data Encryption Algorithm (3DES), the
     Cipher-block chaining (CBC) mode of operation, and the Password-Based Key
-    Derivation Function 1 (PBKF1) + MD5 to strengthen 'password', encrypted
+    Derivation Function 1 (PBKDF1) + MD5 to strengthen 'password', encrypted
     TUF keys use AES-256-CTR-Mode and passwords strengthened with
     PBKDF2-HMAC-SHA256 (100K iterations by default, but may be overriden in
     'tuf.conf.PBKDF2_ITERATIONS' by the user).
@@ -1298,7 +1298,7 @@ def decrypt_key(encrypted_key, passphrase):
     performs the actual cryptographic operation on 'key_object'.  Whereas
     an encrypted PEM file uses the Triple Data Encryption Algorithm (3DES), the
     Cipher-block chaining (CBC) mode of operation, and the Password-Based Key
-    Derivation Function 1 (PBKF1) + MD5 to strengthen 'password', encrypted
+    Derivation Function 1 (PBKDF1) + MD5 to strengthen 'password', encrypted
     TUF keys use AES-256-CTR-Mode and passwords strengthened with
     PBKDF2-HMAC-SHA256 (100K iterations be default, but may be overriden in
     'tuf.conf.py' by the user).
@@ -1397,7 +1397,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   Return a string in PEM format, where the private part of the RSA key is
   encrypted. The private part of the RSA key is encrypted by the Triple
   Data Encryption Algorithm (3DES) and Cipher-block chaining (CBC) for the
-  mode of operation. Password-Based Key Derivation Function 1 (PBKF1) + MD5
+  mode of operation. Password-Based Key Derivation Function 1 (PBKDF1) + MD5
   is used to strengthen 'passphrase'.
 
   https://en.wikipedia.org/wiki/Triple_DES
