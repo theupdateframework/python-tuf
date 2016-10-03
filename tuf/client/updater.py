@@ -236,12 +236,12 @@ class Updater(object):
         '  "tuf.conf.repository_directory" MUST be set.')
 
     # Set the path for the current set of metadata files.
-    repository_directory = tuf.conf.repository_directory
+    client_repositories_directory = tuf.conf.repository_directory
 
     # Load pinned.json, which is required per TAP #4 and determines which
     # which targets should be sought from which repository(/ies).
     self._load_pinned_metadata(os.path.join(
-        repository_directory, 'metadata', 'pinned.json'))
+        client_repositories_directory, 'metadata', 'pinned.json'))
 
     # This is where the SingleRepoUpdater objects are stored, indexed by
     # repository name.
@@ -252,29 +252,45 @@ class Updater(object):
     for repo_name in self.pinned_metadata['repositories']:
       this_repo = self.pinned_metadata['repositories'][repo_name]
       self.repositories[repo_name] = SingleRepoUpdater(
-          repo_name, this_repo['mirrors'],
-          local_metadata_dir=this_repo['local_metadata_directory'],
-          root_override_URLs=this_repo['root_override_URLs'])
+          repo_name, this_repo['mirrors'])
 
 
 
 
 
   def _load_pinned_metadata(self, pinned_metadata_fname):
-
+    """
+    Load pinned.json and add default values for unspecified properties
+    (currently just 'terminating')
+    """
     if not os.path.exists(pinned_metadata_fname):
       raise tuf.RepositoryError('Cannot find pinned.json at ' +
           pinned_metadata_fname + '. This file is required for the '
           'updater per TAP 4 (github.com/theupdateframework/taps).')
 
+    DEFAULT_VALUE_OF_TERMINATING_FLAG = False # TODO: see below, find better place for this
+
     # Read in pinned.json.
-    pinned_metadata = tuf.util.load_json_file(self.pinned_metadata_fname)
+    pinned_metadata = tuf.util.load_json_file(pinned_metadata_fname)
 
     # Make sure the pinned file matches format expectations.
     tuf.formats.PINNING_FILE_SCHEMA.check_match(pinned_metadata)
 
-    self.pinned_metadata = pinned_metadata
+    # Rebuild delegations dict to include 'terminating' default.
+    # TODO: Consult w/ Vlad about the proper way to handle default values in
+    # metadata. "backtrack" was previously treated as if it could be assumed
+    # to exist here. I'm not sure how that was filled in when it was missing,
+    # but the same mechanism should be employed for "terminating" in pinnings.
+    # Meanwhile, here's a hack.
+    pinned_metadata_w_defaults_added = {
+        'repositories': pinned_metadata['repositories'],
+        'delegations': []}
+    for this_delegation in pinned_metadata['delegations']:
+      if 'terminating' not in this_delegation:
+        this_delegation['terminating'] = DEFAULT_VALUE_OF_TERMINATING_FLAG
+      pinned_metadata_w_defaults_added['delegations'].append(this_delegation)
 
+    self.pinned_metadata = pinned_metadata_w_defaults_added
 
 
 
@@ -355,7 +371,7 @@ class Updater(object):
 
 
 
-  def _get_pinnings_for_target(target_filepath):
+  def _get_pinnings_for_target(self, target_filepath):
     """
     TODO: Docstring
 
@@ -390,7 +406,7 @@ class Updater(object):
               'delegation has no repositories listed.')
 
         pinnings_for_target.append(this_pinning['repositories'])
-        if this_pinning['terminating']:
+        if this_pinning.get('terminating', False):
           debug__terminating_pinning_encountered = False
           break
 
@@ -706,7 +722,7 @@ class SingleRepoUpdater(object):
 
     self.mirrors:
       The repository mirrors from which metadata and targets are available.
-      Conformant to 'tuf.formats.ALT_MIRRORDICT_SCHEMA'.
+      Conformant to 'tuf.formats.ALT_MIRRORLIST_SCHEMA'.
     
     self.repository_name:
       This is the name of the repository that this updater object will use.
@@ -771,8 +787,7 @@ class SingleRepoUpdater(object):
     http://www.python.org/dev/peps/pep-0008/#method-names-and-instance-variables
   """
 
-  def __init__(self, repository_name, repository_mirrors,
-      root_override_URLs=None, local_metadata_dir=None):
+  def __init__(self, repository_name, repository_mirrors):
     """
     <Purpose>
       Constructor.  Instantiating an updater object causes all the metadata
@@ -842,7 +857,7 @@ class SingleRepoUpdater(object):
     # keys are properly named.
     # Raise 'tuf.FormatError' if there is a mistmatch.
     tuf.formats.NAME_SCHEMA.check_match(repository_name)
-    tuf.formats.ALT_MIRRORDICT_SCHEMA.check_match(repository_mirrors)
+    tuf.formats.ALT_MIRRORLIST_SCHEMA.check_match(repository_mirrors)
    
     # Save the validated arguments.
     self.repository_name = repository_name
@@ -869,7 +884,8 @@ class SingleRepoUpdater(object):
     # re-downloaded.
     self.fileinfo = {}
     
-    # Store the location of the client's metadata directory.
+    # Prepare to store the location of the client's metadata directories,
+    # current and previous.
     self.metadata_directory = {}
 
     # Store the 'consistent_snapshot' of the Root role.  This setting
@@ -879,13 +895,13 @@ class SingleRepoUpdater(object):
     
     # Ensure the repository metadata directory has been set.
     if tuf.conf.repository_directory is None:
-      raise tuf.RepositoryError('The TUF update client module must specify the'
-        ' directory containing the local repository files.'
-        '  "tuf.conf.repository_directory" MUST be set.')
+      raise tuf.RepositoryError("The TUF update client module must specify the"
+        " directory containing the client's local repository files."
+        "  'tuf.conf.repository_directory' MUST be set.")
 
     # Set the path for the current set of metadata files.  
-    repository_directory = tuf.conf.repository_directory
-    current_path = os.path.join(repository_directory, 'metadata',
+    client_repositories_directory = tuf.conf.repository_directory
+    current_path = os.path.join(client_repositories_directory, 'metadata',
         repository_name, 'current')
     
     # Ensure the current path is valid/exists before saving it.
@@ -897,8 +913,8 @@ class SingleRepoUpdater(object):
     self.metadata_directory['current'] = current_path
     
     # Set the path for the previous set of metadata files. 
-    previous_path = os.path.join(repository_directory, 'metadata',
-        local_metadata_dir, 'previous')
+    previous_path = os.path.join(client_repositories_directory, 'metadata',
+        repository_name, 'previous')
    
     # Ensure the previous path is valid/exists.
     if not os.path.exists(previous_path):

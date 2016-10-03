@@ -1,8 +1,7 @@
 {
   "repositories": {
     "defaultrepo": {
-      "url": "http://localhost:30300/",
-      "metadata_directory": "defaultrepo"
+      "mirrors": ["<DETERMINED_IN_TEST_SETUP>"]
     }
   },
   "delegations": [

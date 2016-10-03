@@ -587,18 +587,18 @@ PINNED_REPOSITORY_SCHEMA = SCHEMA.Object(
 
 # A delegation inside pinned.json.
 PINNING_DELEGATION_SCHEMA = SCHEMA.Object(
-  paths = ListOf(AnyString()),
-  repositories = ListOf(AnyString()),
-  terminating = SCHEMA.Optional(SCHEMA.Boolean))
+  paths = SCHEMA.ListOf(SCHEMA.AnyString()),
+  repositories = SCHEMA.ListOf(SCHEMA.AnyString()),
+  terminating = SCHEMA.Optional(SCHEMA.Boolean()))
 
 # pinned.json: client-only file that determines which repository/repositories
 # to use for which targets.
 PINNING_FILE_SCHEMA = SCHEMA.Object(
     #object_name = 'PINNINGS_FILE_SCHEMA',
-    repositories = DictOf(
-        key_schema = SCHEMA.AnyString(),
+    repositories = SCHEMA.DictOf(
+        key_schema = REPOSITORY_NAME_SCHEMA,
         value_schema = PINNED_REPOSITORY_SCHEMA),
-    delegations = ListOf(PINNING_DELEGATION_SCHEMA))
+    delegations = SCHEMA.ListOf(PINNING_DELEGATION_SCHEMA))
 
 
 # Any of the role schemas (e.g., TIMESTAMP_SCHEMA, SNAPSHOT_SCHEMA, etc.)

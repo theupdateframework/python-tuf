@@ -57,6 +57,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_list):
 
     mirrors_list:
       An object that corresponds to ALT_MIRRORLIST_SCHEMA
+      Currently a simple list of URLs.
 
 
       OLD:
@@ -103,7 +104,15 @@ def get_list_of_mirrors(file_type, file_path, mirrors_list):
 
   list_of_mirrors = []
 
-  for url_prefix in mirror_list:
+  for url_prefix in mirrors_list:
+
+    if file_type == 'meta':
+      url_prefix += '/metadata'
+    elif file_type == 'target':
+      url_prefix += '/targets'
+    else:
+      raise Exception('file_type in call to mirrors:get_list_of_mirrors must '
+          'be either "meta" or "target".')
 
     # for mirror_name, mirror_info in six.iteritems(mirrors_dict):
     #   if file_type == 'meta':

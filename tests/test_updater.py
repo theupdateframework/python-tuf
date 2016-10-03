@@ -175,16 +175,31 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # directory copied from the original repository files.
     tuf.conf.repository_directory = self.client_directory 
     
-    self.repository_mirrors = {'defaultrepo': {
-         'mirror1': {'url_prefix': url_prefix,
-         'metadata_path': 'metadata',
-         'targets_path': 'targets',
-         'confined_target_dirs': ['']}}}
+    # self.repository_mirrors = {'defaultrepo': {
+    #      'mirror1': {'url_prefix': url_prefix,
+    #      'metadata_path': 'metadata',
+    #      'targets_path': 'targets',
+    #      'confined_target_dirs': ['']}}}
 
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_updater = updater.Updater('testupdater',
-        self.repository_mirrors)
+    self.repository_updater = updater.Updater('testupdater')
+
+
+    # Need to override pinned.json mirrors for testing. /:
+    # Point it to the right URL with the randomly selected port generated in
+    # this test setup.
+    mirrors = self.repository_updater.pinned_metadata['repositories'][
+        'defaultrepo']['mirrors']
+
+    for i in range(0, len(mirrors)):
+      if '<DETERMINED_IN_TEST_SETUP>' in mirrors[i]:
+        mirrors[i] = mirrors[i].replace(
+            '<DETERMINED_IN_TEST_SETUP>', str(url_prefix))
+
+    self.repository_updater.pinned_metadata['repositories']['defaultrepo'][
+        'mirrors'] = mirrors
+
 
     # Metadata role keys are needed by the test cases to make changes to the
     # repository (e.g., adding a new target file to 'targets.json' and then
@@ -203,6 +218,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
   # UNIT TESTS.
+  # TODO: Add testing that hits SingleRepositoryUpdater specifically.
   
   def test_1__init__exceptions(self):
     # The client's repository requires a metadata directory (and the 'current'
@@ -214,8 +230,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: Invalid arguments.
     # Invalid 'updater_name' argument.  String expected. 
-    self.assertRaises(tuf.FormatError, updater.Updater, 8,
-                      self.repository_mirrors)
+    self.assertRaises(tuf.FormatError, updater.Updater, 8)
    
     # Invalid 'repository_mirrors' argument.  'tuf.formats.MIRRORDICT_SCHEMA'
     # expected.
@@ -278,7 +293,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.move(backup_root_file, client_root_file)
 
     # Test: Normal 'tuf.client.updater.Updater' instantiation.
-    updater.Updater('test_repository', self.repository_mirrors)
+    updater.Updater('test_repository')#, self.repository_mirrors)
 
 
 
@@ -772,6 +787,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
 
 
+
+
   def test_3__targets_of_role(self):
     # Setup.
     # Extract the list of targets from 'targets.json', to be compared to what
@@ -1143,6 +1160,23 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_6_pinning(self):
+
+    # Copy into place a sequence of temporary pinned.json files that test the
+    # format of pinned.json files.
+    pass
+
+
+
+
+
+  def test_6_multi_repo_pinning(self):
+    # Override pinned.json to specify a delegation with a multi-repository
+    # pinning, and test performance.
+    pass
+
+
+
 
 
   def test_6_download_target(self):
@@ -1218,25 +1252,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.FormatError, self.repository_updater.download_target,
                       target_fileinfo, 8)
    
-    # Test:
-    # Attempt a file download of a valid target, however, a download exception
-    # occurs because the target is not within the mirror's confined target
-    # directories.  Adjust mirrors dictionary, so that 'confined_target_dirs'
-    # field contains at least one confined target and excludes needed target
-    # file.
-    mirrors = self.repository_updater.repositories['defaultrepo'].mirrors
-    for mirror_name, mirror_info in six.iteritems(mirrors):
-      mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
+    # Not currently supporting confined_target_dirs. ):
+    # # Test:
+    # # Attempt a file download of a valid target, however, a download exception
+    # # occurs because the target is not within the mirror's confined target
+    # # directories.  Adjust mirrors dictionary, so that 'confined_target_dirs'
+    # # field contains at least one confined target and excludes needed target
+    # # file.
+    # mirrors = self.repository_updater.repositories['defaultrepo'].mirrors
+    # for mirror_name, mirror_info in six.iteritems(mirrors):
+    #   mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
 
-    try:
-      self.repository_updater.download_target(target_fileinfo,
-                                              destination_directory)
+    # try:
+    #   self.repository_updater.download_target(target_fileinfo,
+    #                                           destination_directory)
     
-    except tuf.NoWorkingMirrorError as exception:
-      # Ensure that no mirrors were found due to mismatch in confined target
-      # directories.  get_list_of_mirrors() returns an empty list in this case,
-      # which does not generate specific exception errors.
-      self.assertEqual(len(exception.mirror_errors), 0)
+    # except tuf.NoWorkingMirrorError as exception:
+    #   # Ensure that no mirrors were found due to mismatch in confined target
+    #   # directories.  get_list_of_mirrors() returns an empty list in this case,
+    #   # which does not generate specific exception errors.
+    #   self.assertEqual(len(exception.mirror_errors), 0)
 
 
 
@@ -1423,6 +1458,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+
   def test_10__hard_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
     temp_file_object = tuf.util.TempFile()
@@ -1444,6 +1480,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.DownloadLengthMismatchError,
         self.repository_updater.repositories['defaultrepo'].
         _soft_check_file_length, temp_file_object, 1)
+
+
 
 
 
