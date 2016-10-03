@@ -49,9 +49,9 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   PublicKeys      ::= SEQUENCE OF PublicKey
   PublicKey       ::= SEQUENCE {
-    keyid         Keyid,
-    keytype       ENUMERATED {rsa, ed25519, ...},
-    keyval        CHOICE {
+    publicKeyid     Keyid,
+    publicKeyType   ENUMERATED {rsa, ed25519, ...},
+    publicKeyValue  CHOICE {
       bitString     BIT STRING,
       octetString   OCTET STRING,
       hexString     HexString,

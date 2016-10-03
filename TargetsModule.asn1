@@ -41,9 +41,9 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
   EncryptedSymmetricKey ::= SEQUENCE {
     -- This is the symmetric key type.
-    keytype   ENUMERATED {aes128, aes192, aes256, ...},
+    encryptedSymmetricKeyType   ENUMERATED {aes128, aes192, aes256, ...},
     -- This is the symmetric key encrypted using the asymmetric ECU key.
-    keyval    VisibleString
+    encryptedSymmetricKeyValue  VisibleString
   }
 
   TargetsDelegations ::= SEQUENCE {
