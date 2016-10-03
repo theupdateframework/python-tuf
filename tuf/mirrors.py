@@ -35,6 +35,7 @@ import six
 
 # The type of file to be downloaded from a repository.  The
 # 'get_list_of_mirrors' function supports these file types.
+# Note hard-coded behavior below.
 _SUPPORTED_FILE_TYPES = ['meta', 'target']
 
 
@@ -108,11 +109,8 @@ def get_list_of_mirrors(file_type, file_path, mirrors_list):
 
     if file_type == 'meta':
       url_prefix += '/metadata'
-    elif file_type == 'target':
-      url_prefix += '/targets'
     else:
-      raise Exception('file_type in call to mirrors:get_list_of_mirrors must '
-          'be either "meta" or "target".')
+      url_prefix += '/targets'
 
     # for mirror_name, mirror_info in six.iteritems(mirrors_dict):
     #   if file_type == 'meta':
