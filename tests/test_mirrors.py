@@ -41,21 +41,26 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
     
     unittest_toolbox.Modified_TestCase.setUp(self)
 
-    self.mirrors = \
-    {'mirror1': {'url_prefix' : 'http://mirror1.com',
-                 'metadata_path' : 'metadata',
-                 'targets_path' : 'targets',
-                 'confined_target_dirs' : ['']},
-     'mirror2': {'url_prefix' : 'http://mirror2.com',
-                 'metadata_path' : 'metadata',
-                 'targets_path' : 'targets',
-                 'confined_target_dirs' : ['targets/release/',
-                                            'targets/release/']},
-     'mirror3': {'url_prefix' : 'http://mirror3.com',
-                 'metadata_path' : 'metadata',
-                 'targets_path' : 'targets',
-                 'confined_target_dirs' : ['targets/release/',
-                                            'targets/release/']}}
+
+    self.mirrors = [
+        'http://mirror1.com', 'http://mirror2.com', 'http://mirror3.com']
+
+    # OLD:
+    # self.mirrors = \
+    # {'mirror1': {'url_prefix' : 'http://mirror1.com',
+    #              'metadata_path' : 'metadata',
+    #              'targets_path' : 'targets',
+    #              'confined_target_dirs' : ['']},
+    #  'mirror2': {'url_prefix' : 'http://mirror2.com',
+    #              'metadata_path' : 'metadata',
+    #              'targets_path' : 'targets',
+    #              'confined_target_dirs' : ['targets/release/',
+    #                                         'targets/release/']},
+    #  'mirror3': {'url_prefix' : 'http://mirror3.com',
+    #              'metadata_path' : 'metadata',
+    #              'targets_path' : 'targets',
+    #              'confined_target_dirs' : ['targets/release/',
+    #                                         'targets/release/']}}
 
 
 
@@ -63,25 +68,23 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
     # Test: Normal case.
     mirror_list = mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors) 
     self.assertEqual(len(mirror_list), 3)
-    for mirror, mirror_info in six.iteritems(self.mirrors):
-      url = mirror_info['url_prefix']+'/metadata/release.txt'
+    for mirror_info in self.mirrors:
+      url = mirror_info + '/metadata/release.txt'
       self.assertTrue(url in mirror_list)
 
-    mirror_list = mirrors.get_list_of_mirrors('target', 'a.txt', self.mirrors) 
-    self.assertEqual(len(mirror_list), 1)
-    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a.txt' in \
-                    mirror_list)
+    # mirror_list = mirrors.get_list_of_mirrors('target', 'a.txt', self.mirrors) 
+    # self.assertEqual(len(mirror_list), 1)
+    # self.assertTrue(self.mirrors[0] + '/targets/a.txt' in mirror_list)
 
     mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors) 
-    self.assertEqual(len(mirror_list), 1)
-    self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a/b' in \
-                    mirror_list)
+    self.assertEqual(len(mirror_list), 3)
+    self.assertTrue(self.mirrors[0] + '/targets/a/b' in mirror_list)
 
-    mirror1 = self.mirrors['mirror1']
-    del self.mirrors['mirror1']
+    mirror1 = self.mirrors[0]
+    del self.mirrors[0]
     mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors)
-    self.assertFalse(mirror_list)
-    self.mirrors['mirror1'] = mirror1 
+    self.assertEqual(len(mirror_list), 2)
+    self.mirrors[0] = mirror1 
 
     # Test: Invalid 'file_type'.
     self.assertRaises(tuf.Error, mirrors.get_list_of_mirrors,
@@ -98,12 +101,20 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 'a', 12345)
 
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
-                      'meta', 'a', ['a'])
+    # self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    #                   'meta', 'a', ['a'])
 
     self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 'a', {'a':'b'})
 
+    # Ensure that use of the old format raises an error.
+    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+      'meta',
+      'a',
+      {'mirror1': {'url_prefix' : 'http://mirror1.com',
+                  'metadata_path' : 'metadata',
+                  'targets_path' : 'targets',
+                  'confined_target_dirs' : ['']}})
 
 
 # Run the unittests

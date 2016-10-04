@@ -135,6 +135,8 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     original_client = os.path.join(original_repository_files, 'client')
     original_keystore = os.path.join(original_repository_files, 'keystore')
     
+    self.repository_name = 'defaultrepo' # the testrepo's name
+
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files. 
     self.repository_directory = \
@@ -157,15 +159,28 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Setting 'tuf.conf.repository_directory' with the temporary client
     # directory copied from the original repository files.
     tuf.conf.repository_directory = self.client_directory 
-    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
-                                           'metadata_path': 'metadata',
-                                           'targets_path': 'targets',
-                                           'confined_target_dirs': ['']}}
 
-    # Create the repository instance.  The test cases will use this client
+    # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_updater = updater.Updater('test_repository',
-                                              self.repository_mirrors)
+    self.repository_updater = updater.Updater('testupdater')
+
+
+    # Need to override pinned.json mirrors for testing. /:
+    # Point it to the right URL with the randomly selected port generated in
+    # this test setup.
+    mirrors = self.repository_updater.pinned_metadata['repositories'][
+        'defaultrepo']['mirrors']
+
+    for i in range(0, len(mirrors)):
+      if '<DETERMINED_IN_TEST_SETUP>' in mirrors[i]:
+        mirrors[i] = mirrors[i].replace(
+            '<DETERMINED_IN_TEST_SETUP>', str(url_prefix))
+
+    self.repository_updater.pinned_metadata['repositories']['defaultrepo'][
+        'mirrors'] = mirrors
+
+
+
 
 
   def tearDown(self):
@@ -230,10 +245,11 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     length, hashes = tuf.util.get_file_details(timestamp_path)
     new_fileinfo = tuf.formats.make_fileinfo(length, hashes)
 
-    url_prefix = self.repository_mirrors['mirror1']['url_prefix']
+    url_prefix = self.repository_updater.pinned_metadata['repositories'][
+        'defaultrepo']['mirrors'][0]
     url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
     client_timestamp_path = os.path.join(self.client_directory, 'metadata',
-                                         'current', 'timestamp.json')
+        self.repository_name, 'current', 'timestamp.json')
    
     six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
    
@@ -306,7 +322,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
 
     client_timestamp_path = os.path.join(self.client_directory, 'metadata',
-                                         'current', 'timestamp.json')
+        self.repository_name, 'current', 'timestamp.json')
     length, hashes = tuf.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
@@ -327,7 +343,8 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # mirror.
     except tuf.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
-        url_prefix = self.repository_mirrors['mirror1']['url_prefix']
+        url_prefix = self.repository_updater.pinned_metadata['repositories'][
+            'defaultrepo']['mirrors'][0]
         url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
        
         # Verify that 'timestamp.json' is the culprit.

@@ -130,6 +130,8 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     original_keystore = os.path.join(original_repository_files, 'keystore')
     original_client = os.path.join(original_repository_files, 'client')
 
+    self.repository_name = 'defaultrepo' # the testrepo's name
+
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files. 
     self.repository_directory = \
@@ -138,9 +140,10 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
       os.path.join(temporary_repository_root, 'keystore')
     self.client_directory = os.path.join(temporary_repository_root, 'client')
     self.client_metadata = os.path.join(self.client_directory, 'metadata')
-    self.client_metadata_current = os.path.join(self.client_metadata, 'current')
-    self.client_metadata_previous = \
-      os.path.join(self.client_metadata, 'previous')
+    self.client_metadata_current = os.path.join(
+        self.client_metadata, self.repository_name, 'current')
+    self.client_metadata_previous = os.path.join(
+        self.client_metadata, self.repository_name, 'previous')
 
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
@@ -157,16 +160,27 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # directory copied from the original repository files.
     tuf.conf.repository_directory = self.client_directory 
     
-    self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
-                                           'metadata_path': 'metadata',
-                                           'targets_path': 'targets',
-                                           'confined_target_dirs': ['']}}
 
-    # Creating repository instance.  The test cases will use this client
+
+    # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_name = 'test_repository'
-    self.repository_updater = updater.Updater(self.repository_name,
-                                              self.repository_mirrors)
+    self.repository_updater = updater.Updater('testupdater')
+
+
+    # Need to override pinned.json mirrors for testing. /:
+    # Point it to the right URL with the randomly selected port generated in
+    # this test setup.
+    mirrors = self.repository_updater.pinned_metadata['repositories'][
+        'defaultrepo']['mirrors']
+
+    for i in range(0, len(mirrors)):
+      if '<DETERMINED_IN_TEST_SETUP>' in mirrors[i]:
+        mirrors[i] = mirrors[i].replace(
+            '<DETERMINED_IN_TEST_SETUP>', str(url_prefix))
+
+    self.repository_updater.pinned_metadata['repositories']['defaultrepo'][
+        'mirrors'] = mirrors
+
 
     # Metadata role keys are needed by the test cases to make changes to the
     # repository (e.g., adding a new target file to 'targets.json' and then
@@ -399,7 +413,8 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # The client successfully performs a refresh of top-level metadata to get
     # the latest changes.
     self.repository_updater.refresh()
-    self.assertEqual(self.repository_updater.metadata['current']['root']['version'], 3)
+    self.assertEqual(self.repository_updater.repositories[
+        'defaultrepo'].metadata['current']['root']['version'], 3)
 
     # Revoke the snapshot and targets keys (added to root) so that multiple
     # snapshots are created.  Discontinue signing with the old root key now
@@ -430,7 +445,8 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
     # Root's version number = 5... 
     self.repository_updater.refresh()
-    self.assertEqual(self.repository_updater.metadata['current']['root']['version'], 5)
+    self.assertEqual(self.repository_updater.repositories[
+        'defaultrepo'].metadata['current']['root']['version'], 5)
     
     # Verify that the client is able to recognize that a new set of keys have
     # been added to the Root role.
