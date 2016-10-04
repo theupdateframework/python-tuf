@@ -1,6 +1,7 @@
 ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
-  IMPORTS Filename,
+  IMPORTS BinaryData,
+          Filename,
           Positive,
           Signature           FROM CommonModule
           Metadata            FROM MetadataModule
@@ -59,10 +60,7 @@ ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- The block number of the image file.
     blockNumber Positive,
     -- The image block itself.
-    block       CHOICE {
-      bitString   BIT STRING,
-      octetString OCTET STRING
-    }
+    block       BinaryData
   }
 
 END

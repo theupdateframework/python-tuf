@@ -20,12 +20,13 @@ MetadataModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     type        RoleType,
     expires     UTCDateTime,
     version     Positive,
-    body        CHOICE {
-      rootMetadata      RootMetadata,
-      targetsMetadata   TargetsMetadata,
-      snapshotMetadata  SnapshotMetadata,
-      timestampMetadata TimestampMetadata
-    }
+    body        SignedBody
+  }
+  SignedBody    ::= CHOICE {
+    rootMetadata      RootMetadata,
+    targetsMetadata   TargetsMetadata,
+    snapshotMetadata  SnapshotMetadata,
+    timestampMetadata TimestampMetadata
   }
 
 END

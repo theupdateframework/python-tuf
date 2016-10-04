@@ -23,17 +23,20 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Threshold       ::= Positive
   Version         ::= Positive
 
+  BinaryData      ::= CHOICE {
+    bitString     BIT STRING,
+    octetString   OCTET STRING,
+    hexString     HexString,
+    base64String  Base64String
+  }
+
   Hashes          ::= SEQUENCE OF Hash
   Hash            ::= SEQUENCE {
-    function      ENUMERATED {sha224, sha256, sha384, sha512, sha512-224,
-                              sha512-256, ...},
-    digest        CHOICE {
-      bitString     BIT STRING,
-      octetString   OCTET STRING,
-      hexString     HexString,
-      base64String  Base64String
-    }
+    function      HashFunction,
+    digest        BinaryData
   }
+  HashFunction ::= ENUMERATED {sha224, sha256, sha384, sha512, sha512-224,
+                               sha512-256, ...}
 
   Keyids          ::= SEQUENCE OF Keyid
   -- Usually, a hash of a public key.
@@ -42,21 +45,18 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Signatures      ::= SEQUENCE OF Signature
   Signature       ::= SEQUENCE {
     keyid         Keyid,
-    method        ENUMERATED {rsassa-pss, ed25519, ...},
+    method        SignatureMethod,
     -- For efficient checking, sign the hash of the message.
     hash          Hash
   }
+  SignatureMethod ::= ENUMERATED {rsassa-pss, ed25519, ...}
 
   PublicKeys      ::= SEQUENCE OF PublicKey
   PublicKey       ::= SEQUENCE {
     publicKeyid     Keyid,
-    publicKeyType   ENUMERATED {rsa, ed25519, ...},
-    publicKeyValue  CHOICE {
-      bitString     BIT STRING,
-      octetString   OCTET STRING,
-      hexString     HexString,
-      base64String  Base64String
-    }
+    publicKeyType   PublicKeyType,
+    publicKeyValue  BinaryData
   }
+  PublicKeyType   ::= ENUMERATED {rsa, ed25519, ...}
 
 END

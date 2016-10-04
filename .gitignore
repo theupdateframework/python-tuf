@@ -1,5 +1,7 @@
 vim.session
+Makefile
 Makefile.am.sample
 *.c
 *.h
+*.o
 *.swp
