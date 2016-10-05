@@ -4,7 +4,8 @@ SnapshotModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   IMPORTS StrictFilename, Version FROM CommonModule;
 
-  SnapshotMetadata ::= SEQUENCE {
+  SnapshotMetadata ::= SEQUENCE OF FilenameAndVersion
+  FilenameAndVersion ::= SEQUENCE {
     filename  StrictFilename,
     version   Version,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2

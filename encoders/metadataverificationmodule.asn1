@@ -188,7 +188,9 @@ PathsToRoles ::= SEQUENCE {
     terminating	 [2] IMPLICIT BOOLEAN DEFAULT FALSE
 }
 
-SnapshotMetadata ::= SEQUENCE {
+SnapshotMetadata ::= SEQUENCE OF FilenameAndVersion
+
+FilenameAndVersion ::= SEQUENCE {
     filename	 [0] IMPLICIT StrictFilename,
     version	 [1] IMPLICIT Version,
     ...
