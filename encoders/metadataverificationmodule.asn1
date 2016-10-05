@@ -1,0 +1,225 @@
+-- $ asn1C -EF CommonModule.asn1 MetadataModule.asn1 RootModule.asn1 TargetsModule.asn1 SnapshotModule.asn1 TimestampModule.asn1  TrustPinningModule.asn1 > metadataverificationmodule.asn1
+-- To keep asn1ate happy, had to remove:
+-- 1. PATTERN constraints on VisibleString.
+-- 2. Module definitions in between.
+
+CommonModule DEFINITIONS AUTOMATIC TAGS ::=
+BEGIN
+
+RoleType ::= ENUMERATED {
+    root(0),
+    targets(1),
+    snapshot(2),
+    timestamp(3)
+}
+
+Filename ::= VisibleString
+
+StrictFilename ::= VisibleString
+
+HexString ::= VisibleString
+
+Base64String ::= VisibleString
+
+UTCDateTime ::= VisibleString
+
+Paths ::= SEQUENCE OF Path
+
+Path ::= VisibleString
+
+Natural ::= INTEGER (0..MAX)
+
+Positive ::= INTEGER (1..MAX)
+
+Length ::= Positive
+
+Threshold ::= Positive
+
+Version ::= Positive
+
+BinaryData ::= CHOICE {
+    bitString	 [0] IMPLICIT BIT STRING,
+    octetString	 [1] IMPLICIT OCTET STRING,
+    hexString	 [2] IMPLICIT HexString,
+    base64String	 [3] IMPLICIT Base64String
+}
+
+Hashes ::= SEQUENCE OF Hash
+
+Hash ::= SEQUENCE {
+    function	 [0] IMPLICIT HashFunction,
+    digest	 [1] EXPLICIT BinaryData
+}
+
+HashFunction ::= ENUMERATED {
+    sha224(0),
+    sha256(1),
+    sha384(2),
+    sha512(3),
+    sha512-224(4),
+    sha512-256(5),
+    ...
+}
+
+Keyids ::= SEQUENCE OF Keyid
+
+Keyid ::= HexString
+
+Signatures ::= SEQUENCE OF Signature
+
+Signature ::= SEQUENCE {
+    keyid	 [0] IMPLICIT Keyid,
+    method	 [1] IMPLICIT SignatureMethod,
+    hash	 [2] IMPLICIT Hash
+}
+
+SignatureMethod ::= ENUMERATED {
+    rsassa-pss(0),
+    ed25519(1),
+    ...
+}
+
+PublicKeys ::= SEQUENCE OF PublicKey
+
+PublicKey ::= SEQUENCE {
+    publicKeyid	 [0] IMPLICIT Keyid,
+    publicKeyType	 [1] IMPLICIT PublicKeyType,
+    publicKeyValue	 [2] EXPLICIT BinaryData
+}
+
+PublicKeyType ::= ENUMERATED {
+    rsa(0),
+    ed25519(1),
+    ...
+}
+
+Metadata ::= SEQUENCE {
+    signed	 [0] IMPLICIT Signed,
+    signatures	 [1] IMPLICIT Signatures
+}
+
+Signed ::= SEQUENCE {
+    type	 [0] IMPLICIT RoleType,
+    expires	 [1] IMPLICIT UTCDateTime,
+    version	 [2] IMPLICIT Positive,
+    body	 [3] EXPLICIT SignedBody
+}
+
+SignedBody ::= CHOICE {
+    rootMetadata	 [0] IMPLICIT RootMetadata,
+    targetsMetadata	 [1] IMPLICIT TargetsMetadata,
+    snapshotMetadata	 [2] IMPLICIT SnapshotMetadata,
+    timestampMetadata	 [3] IMPLICIT TimestampMetadata
+}
+
+RootMetadata ::= SEQUENCE {
+    keys	 [0] IMPLICIT PublicKeys,
+    roles	 [1] IMPLICIT TopLevelRoles,
+    ...
+}
+
+TopLevelRoles ::= SEQUENCE {
+    role	 [0] IMPLICIT RoleType,
+    url	 [1] IMPLICIT VisibleString,
+    keyids	 [2] IMPLICIT Keyids,
+    threshold	 [3] IMPLICIT Threshold,
+    ...
+}
+
+TargetsMetadata ::= SEQUENCE {
+    targets	 [0] IMPLICIT Targets,
+    delegations	 [1] IMPLICIT TargetsDelegations OPTIONAL,
+    ...
+}
+
+Targets ::= SEQUENCE {
+    target	 [0] IMPLICIT Target,
+    custom	 [1] IMPLICIT Custom OPTIONAL
+}
+
+Target ::= SEQUENCE {
+    filename	 [0] IMPLICIT Filename,
+    length	 [1] IMPLICIT Length,
+    hashes	 [2] IMPLICIT Hashes
+}
+
+Custom ::= SEQUENCE {
+    ecuIdentifier	 [0] IMPLICIT VisibleString,
+    encryptedTarget	 [1] IMPLICIT Target OPTIONAL,
+    encryptedSymmetricKey	 [2] IMPLICIT EncryptedSymmetricKey OPTIONAL,
+    ...
+}
+
+EncryptedSymmetricKey ::= SEQUENCE {
+    encryptedSymmetricKeyType	 [0] IMPLICIT EncryptedSymmetricKeyType,
+    encryptedSymmetricKeyValue	 [1] IMPLICIT VisibleString
+}
+
+EncryptedSymmetricKeyType ::= ENUMERATED {
+    aes128(0),
+    aes192(1),
+    aes256(2),
+    ...
+}
+
+TargetsDelegations ::= SEQUENCE {
+    keys	 [0] IMPLICIT PublicKeys,
+    roles	 [1] IMPLICIT DelegatedTargetsRoles,
+    pathsToRoles	 [2] IMPLICIT PathsToRoles
+}
+
+DelegatedTargetsRoles ::= SEQUENCE {
+    rolename	 [0] IMPLICIT RoleName,
+    filename	 [1] IMPLICIT StrictFilename OPTIONAL,
+    keyids	 [2] IMPLICIT Keyids,
+    threshold	 [3] IMPLICIT Threshold
+}
+
+RoleNames ::= SEQUENCE OF RoleName
+
+RoleName ::= StrictFilename
+
+PathsToRoles ::= SEQUENCE {
+    paths	 [0] IMPLICIT Paths,
+    roles	 [1] IMPLICIT RoleNames,
+    terminating	 [2] IMPLICIT BOOLEAN DEFAULT FALSE
+}
+
+SnapshotMetadata ::= SEQUENCE {
+    filename	 [0] IMPLICIT StrictFilename,
+    version	 [1] IMPLICIT Version,
+    ...
+}
+
+TimestampMetadata ::= SEQUENCE {
+    filename	 [0] IMPLICIT Filename,
+    version	 [1] IMPLICIT Version,
+    ...
+}
+
+TrustPinning ::= SEQUENCE {
+    repositories	 [0] IMPLICIT Repositories,
+    delegations	 [1] IMPLICIT RepositoryDelegations
+}
+
+Repositories ::= SEQUENCE OF Repository
+
+Repository ::= SEQUENCE {
+    name	 [0] IMPLICIT RepositoryName,
+    url	 [1] IMPLICIT VisibleString OPTIONAL,
+    metadataDirectory	 [2] IMPLICIT VisibleString
+}
+
+RepositoryNames ::= SEQUENCE OF RepositoryName
+
+RepositoryName ::= VisibleString
+
+RepositoryDelegations ::= SEQUENCE OF RepositoryDelegation
+
+RepositoryDelegation ::= SEQUENCE {
+    paths	 [0] IMPLICIT Paths,
+    repositories	 [1] IMPLICIT RepositoryNames,
+    terminating	 [2] IMPLICIT BOOLEAN DEFAULT FALSE
+}
+
+END

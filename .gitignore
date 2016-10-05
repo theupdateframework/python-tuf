@@ -1,7 +1,12 @@
+venv/
 vim.session
 Makefile
 Makefile.am.sample
+*.ber
 *.c
+*.cer
+*.der
 *.h
 *.o
+*.pyc
 *.swp
