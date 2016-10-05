@@ -1,2 +1,2 @@
-asn1ate
+-e git://github.com/kimgr/asn1ate.git#egg=asn1ate
 pyasn1

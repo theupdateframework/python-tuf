@@ -10,7 +10,8 @@ RootModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }
-  TopLevelRoles ::= SEQUENCE {
+  TopLevelRoles ::= SEQUENCE OF TopLevelRole
+  TopLevelRole  ::= SEQUENCE {
     role      RoleType,
     -- TAP 5: The URL pointing to the metadata file for this role.
     url       VisibleString,

@@ -118,7 +118,9 @@ RootMetadata ::= SEQUENCE {
     ...
 }
 
-TopLevelRoles ::= SEQUENCE {
+TopLevelRoles ::= SEQUENCE OF TopLevelRole
+
+TopLevelRole ::= SEQUENCE {
     role	 [0] IMPLICIT RoleType,
     url	 [1] IMPLICIT VisibleString,
     keyids	 [2] IMPLICIT Keyids,

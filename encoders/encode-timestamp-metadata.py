@@ -26,24 +26,23 @@ signed['version'] = 1
 timestampMetadata = TimestampMetadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3))
 timestampMetadata['filename'] = 'snapshot.ber'
 timestampMetadata['version'] = 1
+
 signedBody = SignedBody().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3))
 signedBody.setComponentByName('timestampMetadata', timestampMetadata)
 signed['body'] = signedBody
-
 metadata['signed'] = signed
 
 signatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
 signature = Signature()
-signature['keyid'] = '47e327152bab6f2ede2922a9805124d2f5d42087a34003048cf068c00a1285d2'
+signature['keyid'] = '1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4'
 signature['method'] = int(SignatureMethod('ed25519'))
 hash = Hash().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))
 hash['function'] = int(HashFunction('sha256'))
 digest = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
-digest.setComponentByName('hexString', 'f0af17449a83681de22db7ce16672f16f37131bec0022371d4ace5d1854301e0')
+digest.setComponentByName('hexString', '90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaedf4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02')
 hash['digest'] = digest
 signature['hash'] = hash
 signatures.setComponentByPosition(0, signature)
-
 metadata['signatures'] = signatures
 
 print(metadata.prettyPrint())
