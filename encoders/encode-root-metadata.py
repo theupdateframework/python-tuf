@@ -124,9 +124,10 @@ signature['method'] = int(SignatureMethod('ed25519'))
 hash = Hash().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))
 hash['function'] = int(HashFunction('sha256'))
 digest = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
-digest.setComponentByName('hexString', 'a312b9c3cb4a1b693e8ebac5ee1ca9cc01f2661c14391917dcb111517f72370809f32c890c6b801e30158ac4efe0d4d87317223077784c7a378834249d048306')
+digest.setComponentByName('hexString', '4813494d137e1631bba301d5acab6e7bb7aa74ce1185d456565ef51d737677b2')
 hash['digest'] = digest
 signature['hash'] = hash
+signature['value'] = 'a312b9c3cb4a1b693e8ebac5ee1ca9cc01f2661c14391917dcb111517f72370809f32c890c6b801e30158ac4efe0d4d87317223077784c7a378834249d048306'
 signatures.setComponentByPosition(0, signature)
 metadata['signatures'] = signatures
 

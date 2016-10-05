@@ -46,8 +46,11 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Signature       ::= SEQUENCE {
     keyid         Keyid,
     method        SignatureMethod,
-    -- For efficient checking, sign the hash of the message.
-    hash          Hash
+    -- For efficient checking, sign the hash of the message instead of the
+    -- message itself.
+    hash          Hash,
+    -- The signature itself.
+    value         HexString
   }
   SignatureMethod ::= ENUMERATED {rsassa-pss, ed25519, ...}
 

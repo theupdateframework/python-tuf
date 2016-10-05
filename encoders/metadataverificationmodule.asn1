@@ -70,7 +70,8 @@ Signatures ::= SEQUENCE OF Signature
 Signature ::= SEQUENCE {
     keyid	 [0] IMPLICIT Keyid,
     method	 [1] IMPLICIT SignatureMethod,
-    hash	 [2] IMPLICIT Hash
+    hash	 [2] IMPLICIT Hash,
+    value	 [3] IMPLICIT HexString
 }
 
 SignatureMethod ::= ENUMERATED {
