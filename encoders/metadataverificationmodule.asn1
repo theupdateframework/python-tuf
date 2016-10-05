@@ -1,4 +1,4 @@
--- $ asn1C -EF CommonModule.asn1 MetadataModule.asn1 RootModule.asn1 TargetsModule.asn1 SnapshotModule.asn1 TimestampModule.asn1  TrustPinningModule.asn1 > metadataverificationmodule.asn1
+-- $ asn1c -EF CommonModule.asn1 MetadataModule.asn1 RootModule.asn1 TargetsModule.asn1 SnapshotModule.asn1 TimestampModule.asn1  TrustPinningModule.asn1 > metadataverificationmodule.asn1
 -- To keep asn1ate happy, had to remove:
 -- 1. PATTERN constraints on VisibleString.
 -- 2. Module definitions in between.
