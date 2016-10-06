@@ -119,7 +119,7 @@ metadata['signatures'] = signatures
 
 print(metadata.prettyPrint())
 before = encoder.encode(metadata)
-filename = 'snapshotMetadata.cer'
+filename = 'supplierTargetsMetadata.cer'
 with open(filename, 'wb') as a:
   a.write(before)
 
