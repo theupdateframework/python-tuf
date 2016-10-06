@@ -167,9 +167,7 @@ EncryptedSymmetricKeyType ::= ENUMERATED {
     ...
 }
 
-TargetsDelegations ::= SEQUENCE OF TargetsDelegation
-
-TargetsDelegation ::= SEQUENCE {
+TargetsDelegations ::= SEQUENCE {
     keys	 [0] IMPLICIT PublicKeys,
     roles	 [1] IMPLICIT DelegatedTargetsRoles,
     prioritizedPathsToRoles	 [2] IMPLICIT PrioritizedPathsToRoles

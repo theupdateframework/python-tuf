@@ -49,8 +49,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   EncryptedSymmetricKeyType ::= ENUMERATED {aes128, aes192, aes256, ...}
 
   -- https://github.com/theupdateframework/taps/blob/master/tap3.md
-  TargetsDelegations  ::= SEQUENCE OF TargetsDelegation
-  TargetsDelegation   ::= SEQUENCE {
+  TargetsDelegations  ::= SEQUENCE {
     -- The public keys of all delegatees.
     keys                    PublicKeys,
     -- The role name, filename, public keys, and threshold of a delegatee.
