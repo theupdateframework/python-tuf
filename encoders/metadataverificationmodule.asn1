@@ -135,7 +135,9 @@ TargetsMetadata ::= SEQUENCE {
     ...
 }
 
-Targets ::= SEQUENCE {
+Targets ::= SEQUENCE OF TargetAndCustom
+
+TargetAndCustom ::= SEQUENCE {
     target	 [0] IMPLICIT Target,
     custom	 [1] IMPLICIT Custom OPTIONAL
 }
@@ -165,13 +167,17 @@ EncryptedSymmetricKeyType ::= ENUMERATED {
     ...
 }
 
-TargetsDelegations ::= SEQUENCE {
+TargetsDelegations ::= SEQUENCE OF TargetsDelegation
+
+TargetsDelegation ::= SEQUENCE {
     keys	 [0] IMPLICIT PublicKeys,
     roles	 [1] IMPLICIT DelegatedTargetsRoles,
-    pathsToRoles	 [2] IMPLICIT PathsToRoles
+    prioritizedPathsToRoles	 [2] IMPLICIT PrioritizedPathsToRoles
 }
 
-DelegatedTargetsRoles ::= SEQUENCE {
+DelegatedTargetsRoles ::= SEQUENCE OF DelegatedTargetsRole
+
+DelegatedTargetsRole ::= SEQUENCE {
     rolename	 [0] IMPLICIT RoleName,
     filename	 [1] IMPLICIT StrictFilename OPTIONAL,
     keyids	 [2] IMPLICIT Keyids,
@@ -181,6 +187,8 @@ DelegatedTargetsRoles ::= SEQUENCE {
 RoleNames ::= SEQUENCE OF RoleName
 
 RoleName ::= StrictFilename
+
+PrioritizedPathsToRoles ::= SEQUENCE OF PathsToRoles
 
 PathsToRoles ::= SEQUENCE {
     paths	 [0] IMPLICIT Paths,
