@@ -27,16 +27,16 @@ firstSignature['method'] = int(SignatureMethod('ed25519'))
 firstHash = Hash().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))
 firstHash['function'] = int(HashFunction('sha256'))
 firstDigest = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
-firstDigest.setComponentByName('hexString', 'e8e0be17af502722c78dbaf99017b43816f63bab9aacc77558c38115622a4871')
+firstDigest['hexString'] = 'e8e0be17af502722c78dbaf99017b43816f63bab9aacc77558c38115622a4871'
 firstHash['digest'] = firstDigest
 firstSignature['hash'] = firstHash
 firstSignature['value'] = '90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaedf4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02'
-firstSignatures.setComponentByPosition(0, firstSignature)
+firstSignatures[0] = firstSignature
 
 firstCurrentTime = CurrentTime()
 firstCurrentTime['signed'] = firstNonceAndTimeStamp
 firstCurrentTime['signatures'] = firstSignatures
-currentTimes.setComponentByPosition(0, firstCurrentTime)
+currentTimes[0] = firstCurrentTime
 
 secondNonceAndTimeStamp = NonceAndTimestamp().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
 secondNonceAndTimeStamp['nonce'] = 2016
@@ -49,16 +49,16 @@ secondSignature['method'] = int(SignatureMethod('ed25519'))
 secondHash = Hash().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))
 secondHash['function'] = int(HashFunction('sha256'))
 secondDigest = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
-secondDigest.setComponentByName('hexString', 'e8e0be17af502722c78dbaf99017b43816f63bab9aacc77558c38115622a4871')
+secondDigest['hexString'] = 'e8e0be17af502722c78dbaf99017b43816f63bab9aacc77558c38115622a4871'
 secondHash['digest'] = secondDigest
 secondSignature['hash'] = secondHash
 secondSignature['value'] = '90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaedf4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02'
-secondSignatures.setComponentByPosition(0, secondSignature)
+secondSignatures[0] = secondSignature
 
 secondCurrentTime = CurrentTime()
 secondCurrentTime['signed'] = secondNonceAndTimeStamp
 secondCurrentTime['signatures'] = secondSignatures
-currentTimes.setComponentByPosition(1, secondCurrentTime)
+currentTimes[1] = secondCurrentTime
 
 print(currentTimes.prettyPrint())
 before = encoder.encode(currentTimes)
