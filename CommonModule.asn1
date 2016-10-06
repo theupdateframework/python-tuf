@@ -48,6 +48,7 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     method        SignatureMethod,
     -- For efficient checking, sign the hash of the message instead of the
     -- message itself.
+    -- Maybe https://github.com/benlaurie/objecthash might work here.
     hash          Hash,
     -- The signature itself.
     value         HexString

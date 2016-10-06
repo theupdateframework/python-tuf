@@ -1,2 +1,2 @@
 -e git://github.com/kimgr/asn1ate.git#egg=asn1ate
-pyasn1
+-e git://github.com/etingof/pyasn1.git#egg=pyasn1

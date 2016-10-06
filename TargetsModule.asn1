@@ -14,7 +14,8 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     ...
   }
 
-  Targets ::= SEQUENCE {
+  Targets         ::= SEQUENCE OF TargetAndCustom
+  TargetAndCustom ::= SEQUENCE {
     -- The filename, length, and hashes of unencrypted images on a repository.
     target  Target,
     -- This optional attribute is used by the director repository to specify
@@ -47,18 +48,19 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
   EncryptedSymmetricKeyType ::= ENUMERATED {aes128, aes192, aes256, ...}
 
-  TargetsDelegations ::= SEQUENCE {
-    -- These three attributes are optional, and for use only in case of
-    -- image/target delegations. However, if delegations are used, all three
-    -- attributes must be defined.
+  -- https://github.com/theupdateframework/taps/blob/master/tap3.md
+  TargetsDelegations  ::= SEQUENCE OF TargetsDelegation
+  TargetsDelegation   ::= SEQUENCE {
     -- The public keys of all delegatees.
-    keys          PublicKeys,
+    keys                    PublicKeys,
     -- The role name, filename, public keys, and threshold of a delegatee.
-    roles         DelegatedTargetsRoles,
-    -- A list paths to roles, listed in order of priority.
-    pathsToRoles  PathsToRoles
+    roles                   DelegatedTargetsRoles,
+    -- A list of paths to roles, listed in order of priority.
+    prioritizedPathsToRoles PrioritizedPathsToRoles
   }
-  DelegatedTargetsRoles ::= SEQUENCE {
+
+  DelegatedTargetsRoles ::= SEQUENCE OF DelegatedTargetsRole
+  DelegatedTargetsRole  ::= SEQUENCE {
     -- The rolename (e.g., "supplierA-dev").
     rolename  RoleName,
     -- An explicit filename for the role (e.g., "supplierA.ext").
@@ -71,11 +73,11 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- The threshold number of these keys.
     threshold Threshold
   }
-  RoleNames ::= SEQUENCE OF RoleName
+  RoleNames               ::= SEQUENCE OF RoleName
   -- No known path separator allowed in a rolename.
-  RoleName  ::= StrictFilename
-
-  PathsToRoles ::= SEQUENCE {
+  RoleName                ::= StrictFilename
+  PrioritizedPathsToRoles ::= SEQUENCE OF PathsToRoles
+  PathsToRoles            ::= SEQUENCE {
     -- A list of image/target paths entrusted to these roles.
     paths       Paths,
     -- A list of roles required to sign the same metadata about the matching
