@@ -5,7 +5,8 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   IMPORTS Filename,
           Signature,
           UTCDateTime FROM CommonModule
-          Target      FROM TargetsModule;
+          Target      FROM TargetsModule
+          Nonce       FROM TimeServerModule;
 
   -- What a secondary without additional storage sends its primary to request an
   -- image.
@@ -18,7 +19,7 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   -- What a secondary sends its primary after reboot.
   VersionReport ::= SEQUENCE {
     -- Nonce for the time server.
-    nonceForTimeServer INTEGER,
+    nonceForTimeServer Nonce,
     -- The ECU version manifest for the director.
     ecuVersionManifest ECUVersionManifest,
     ...
