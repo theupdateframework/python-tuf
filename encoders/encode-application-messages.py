@@ -121,37 +121,16 @@ metadataFile['broadcastGUID'] = 21409173649268048596096
 metadataFile['fileNumber'] = 1
 metadataFile['filename'] = 'timestamp.cer'
 
-# TODO: figure out how to decode from file, and assign this damned subtype
-metadata = Metadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3))
-
-signed = Signed().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
-signed['type'] = int(RoleType('timestamp'))
-signed['expires'] = "2030-01-01T00:00:00Z"
-signed['version'] = 1
-
-timestampMetadata = TimestampMetadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3))
-timestampMetadata['filename'] = 'snapshot.ber'
-timestampMetadata['version'] = 1
-
-signedBody = SignedBody().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3))
-signedBody['timestampMetadata'] = timestampMetadata
-signed['body'] = signedBody
-metadata['signed'] = signed
-
-signatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
-signature = Signature()
-signature['keyid'] = '1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4'
-signature['method'] = int(SignatureMethod('ed25519'))
-hash = Hash().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))
-hash['function'] = int(HashFunction('sha256'))
-digest = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
-digest['hexString'] = '323748f86a762247e6631bc01c26fb22c63fd0176a2e1db7b0d5b78de228cd86'
-hash['digest'] = digest
-signature['hash'] = hash
-signature['value'] = '90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaedf4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02'
-signatures[0] = signature
-metadata['signatures'] = signatures
-metadataFile['metadata'] = metadata
+# NOTE: This is how you attach a metadata file!
+# Be sure to run ./encode-timestamp-metadata.py first.
+with open('timestampMetadata.cer', 'rb') as b:
+  after = b.read()
+  tuples = decoder.decode(after, asn1Spec=Metadata())
+  recovered = tuples[0]
+  metadata = Metadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3))
+  metadata.setComponentByPosition(0, recovered[0])
+  metadata.setComponentByPosition(1, recovered[1])
+  metadataFile['metadata'] = metadata
 
 print(metadataFile.prettyPrint())
 before = encoder.encode(metadataFile)
