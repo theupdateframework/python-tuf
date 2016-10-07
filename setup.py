@@ -113,6 +113,6 @@ setup(
   extras_require = extras,
   scripts = [
     'tuf/scripts/basic_client.py',
-    'tuf/scripts/tuf.py'
+    'tuf/scripts/tufcli.py'
   ]
 )
