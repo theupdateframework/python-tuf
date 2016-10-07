@@ -354,7 +354,8 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       # If the average download speed is below a certain threshold, we flag
       # this as a possible slow-retrieval attack.
       if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.SlowRetrievalError(average_download_speed) 
+        #raise tuf.SlowRetrievalError(average_download_speed) 
+        break
 
       else:
         logger.debug('Good average download speed: ' +
