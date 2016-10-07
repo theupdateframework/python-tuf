@@ -1,6 +1,6 @@
                       The Update Framework Specification
 
-14 July 2016
+7 October 2016
 Version 1.0 (Draft)
 
 1. Introduction
@@ -442,7 +442,7 @@ Version 1.0 (Draft)
 
 4.2. File formats: general principles
 
-   All signed metadata files have the format:
+   All signed metadata objects have the format:
    
        { "signed" : ROLE,
          "signatures" : [
@@ -515,7 +515,7 @@ Version 1.0 (Draft)
    for the root role, is done by changing the keys listed for the roles in
    this file.
 
-   The format of root.json is as follows:
+   The "signed" portion of root.json is as follows:
 
      { "_type" : "Root",
        "version" : VERSION,
@@ -551,7 +551,7 @@ Version 1.0 (Draft)
    whose signatures are required in order to consider a file as being properly
    signed by that role.
 
-   A signed root.json example file:
+   A root.json example file:
 
    {
    "signatures": [
@@ -629,7 +629,7 @@ Version 1.0 (Draft)
    mirrors.json.  For the root role, the hash(es), size, and version number
    are listed.
 
-   The format of snapshot.json is as follows:
+   The "signed" portion of snapshot.json is as follows:
 
      { "_type" : "Snapshot",
        "version" : VERSION,
@@ -655,7 +655,7 @@ Version 1.0 (Draft)
    HASHES is a dictionary that specifies one or more hashes, including the
    cryptographic hash function.  For example: { "sha256": HASH, ... }.
 
-   A signed snapshot.json example file:
+   A snapshot.json example file:
 
    {
    "signatures": [
@@ -690,7 +690,7 @@ Version 1.0 (Draft)
 
 4.5. File formats: targets.json and delegated target roles
 
-   The format of targets.json is as follows:
+   The "signed" portion of targets.json is as follows:
 
      { "_type" : "Targets",
        "version" : VERSION,
@@ -783,7 +783,7 @@ Version 1.0 (Draft)
    The metadata files for delegated target roles has the same format as the
    top-level targets.json metadata file.
 
-   A signed targets.json example file:
+   A targets.json example file:
 
    {
    "signatures": [
@@ -847,7 +847,7 @@ Version 1.0 (Draft)
    Timestamp files will potentially be downloaded very frequently.  Unnecessary
    information in them will be avoided.
 
-   The format of the timestamp file is as follows:
+   The "signed" portion of timestamp.json is as follows:
 
      { "_type" : "Timestamp",
        "version" : VERSION,
@@ -892,7 +892,7 @@ Version 1.0 (Draft)
    mirrors are active and believed to be mirroring specific parts of the
    repository.
 
-   The format of mirrors.json is as follows:
+   The "signed" portion of mirrors.json is as follows:
 
      { "_type" : "Mirrorlist",
        "version" : VERSION,
