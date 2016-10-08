@@ -18,7 +18,7 @@ currentTimes = CurrentTimes()
 
 firstNonceAndTimeStamp = NonceAndTimestamp().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
 firstNonceAndTimeStamp['nonce'] = 42
-firstNonceAndTimeStamp['timestamp'] = "2030-01-01T00:00:00Z"
+firstNonceAndTimeStamp['timestamp'] = 1893474000
 
 firstSignatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
 firstSignature = Signature()
@@ -40,7 +40,7 @@ currentTimes[0] = firstCurrentTime
 
 secondNonceAndTimeStamp = NonceAndTimestamp().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
 secondNonceAndTimeStamp['nonce'] = 2016
-secondNonceAndTimeStamp['timestamp'] = "2030-01-01T00:00:00Z"
+secondNonceAndTimeStamp['timestamp'] = 1893474000
 
 secondSignatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
 secondSignature = Signature()

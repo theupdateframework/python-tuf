@@ -1,4 +1,4 @@
--- $ asn1c -EF CommonModule.asn1 MetadataModule.asn1 RootModule.asn1 TargetsModule.asn1 SnapshotModule.asn1 TimestampModule.asn1  TrustPinningModule.asn1 > metadataverificationmodule.asn1
+-- $ asn1c -EF CommonModule.asn1 TimeServerModule.asn1 > timeservermodule.asn1
 -- To keep asn1ate happy, had to remove:
 -- 1. PATTERN constraints on VisibleString.
 -- 2. Module definitions in between.
@@ -13,19 +13,27 @@ RoleType ::= ENUMERATED {
     timestamp(3)
 }
 
-Filename ::= VisibleString
+Filename ::= VisibleString (SIZE(1..32))
 
-StrictFilename ::= VisibleString
+StrictFilename ::= VisibleString (SIZE(1..32))
 
-HexString ::= VisibleString
+BitString ::= BIT STRING (SIZE(1..1024))
 
-Base64String ::= VisibleString
+OctetString ::= OCTET STRING (SIZE(1..1024))
 
-UTCDateTime ::= VisibleString
+HexString ::= VisibleString (SIZE(1..1024))
 
-Paths ::= SEQUENCE OF Path
+Base64String ::= VisibleString (SIZE(1..1024))
 
-Path ::= VisibleString
+Paths ::= SEQUENCE (SIZE(1..8)) OF Path
+
+Path ::= VisibleString (SIZE(1..32))
+
+URLs ::= SEQUENCE (SIZE(1..8)) OF URL
+
+URL ::= VisibleString (SIZE(1..1024))
+
+Identifier ::= VisibleString (SIZE(1..32))
 
 Natural ::= INTEGER (0..MAX)
 
@@ -37,14 +45,16 @@ Threshold ::= Positive
 
 Version ::= Positive
 
+UTCDateTime ::= Positive
+
 BinaryData ::= CHOICE {
-    bitString	 [0] IMPLICIT BIT STRING,
-    octetString	 [1] IMPLICIT OCTET STRING,
+    bitString	 [0] IMPLICIT BitString,
+    octetString	 [1] IMPLICIT OctetString,
     hexString	 [2] IMPLICIT HexString,
     base64String	 [3] IMPLICIT Base64String
 }
 
-Hashes ::= SEQUENCE OF Hash
+Hashes ::= SEQUENCE (SIZE(1..8)) OF Hash
 
 Hash ::= SEQUENCE {
     function	 [0] IMPLICIT HashFunction,
@@ -61,11 +71,11 @@ HashFunction ::= ENUMERATED {
     ...
 }
 
-Keyids ::= SEQUENCE OF Keyid
+Keyids ::= SEQUENCE (SIZE(1..8)) OF Keyid
 
 Keyid ::= HexString
 
-Signatures ::= SEQUENCE OF Signature
+Signatures ::= SEQUENCE (SIZE(1..8)) OF Signature
 
 Signature ::= SEQUENCE {
     keyid	 [0] IMPLICIT Keyid,
@@ -80,7 +90,7 @@ SignatureMethod ::= ENUMERATED {
     ...
 }
 
-PublicKeys ::= SEQUENCE OF PublicKey
+PublicKeys ::= SEQUENCE (SIZE(1..8)) OF PublicKey
 
 PublicKey ::= SEQUENCE {
     publicKeyid	 [0] IMPLICIT Keyid,
@@ -94,11 +104,11 @@ PublicKeyType ::= ENUMERATED {
     ...
 }
 
-Nonces ::= SEQUENCE OF Nonce
+Nonces ::= SEQUENCE (SIZE(1..128)) OF Nonce
 
 Nonce ::= INTEGER
 
-CurrentTimes ::= SEQUENCE OF CurrentTime
+CurrentTimes ::= SEQUENCE (SIZE(1..128)) OF CurrentTime
 
 CurrentTime ::= SEQUENCE {
     signed	 [0] IMPLICIT NonceAndTimestamp,
