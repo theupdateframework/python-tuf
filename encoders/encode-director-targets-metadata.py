@@ -2,7 +2,7 @@
 
 from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
-from pyasn1.codec.cer import encoder, decoder
+from pyasn1.codec.ber import encoder, decoder
 
 from metadataverificationmodule import BinaryData,                \
                                        Custom,                    \
@@ -92,7 +92,7 @@ metadata['signatures'] = signatures
 
 print(metadata.prettyPrint())
 before = encoder.encode(metadata)
-filename = 'directorTargetsMetadata.cer'
+filename = 'directorTargetsMetadata.ber'
 with open(filename, 'wb') as a:
   a.write(before)
 

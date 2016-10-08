@@ -2,7 +2,7 @@
 
 from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
-from pyasn1.codec.cer import encoder, decoder
+from pyasn1.codec.ber import encoder, decoder
 
 from bootloadermodule import  BinaryData,               \
                               ECUVersionManifest,       \
@@ -22,7 +22,7 @@ imageRequest['filename'] = 'supplier1.img'
 
 print(imageRequest.prettyPrint())
 before = encoder.encode(imageRequest)
-filename = 'imageRequest.cer'
+filename = 'imageRequest.ber'
 with open(filename, 'wb') as a:
   a.write(before)
 
@@ -73,7 +73,7 @@ versionReport['ecuVersionManifest'] = ecuVersionManifest
 
 print(versionReport.prettyPrint())
 before = encoder.encode(versionReport)
-filename = 'versionReport.cer'
+filename = 'versionReport.ber'
 with open(filename, 'wb') as a:
   a.write(before)
 

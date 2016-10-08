@@ -2,7 +2,7 @@
 
 from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
-from pyasn1.codec.cer import encoder, decoder
+from pyasn1.codec.ber import encoder, decoder
 
 from metadataverificationmodule import BinaryData,          \
                                        FilenameAndVersion,  \
@@ -27,17 +27,17 @@ signed['version'] = 1
 snapshotMetadata = SnapshotMetadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))
 
 targetsFilenameAndVersion = FilenameAndVersion()
-targetsFilenameAndVersion['filename'] = 'targets.cer'
+targetsFilenameAndVersion['filename'] = 'targets.ber'
 targetsFilenameAndVersion['version'] = 1
 snapshotMetadata[0] = targetsFilenameAndVersion
 
 supplierOneFilenameAndVersion = FilenameAndVersion()
-supplierOneFilenameAndVersion['filename'] = 'supplier1.cer'
+supplierOneFilenameAndVersion['filename'] = 'supplier1.ber'
 supplierOneFilenameAndVersion['version'] = 1
 snapshotMetadata[1] = supplierOneFilenameAndVersion
 
 supplierTwoFilenameAndVersion = FilenameAndVersion()
-supplierTwoFilenameAndVersion['filename'] = 'supplier2.cer'
+supplierTwoFilenameAndVersion['filename'] = 'supplier2.ber'
 supplierTwoFilenameAndVersion['version'] = 1
 snapshotMetadata[2] = supplierTwoFilenameAndVersion
 
@@ -62,7 +62,7 @@ metadata['signatures'] = signatures
 
 print(metadata.prettyPrint())
 before = encoder.encode(metadata)
-filename = 'snapshotMetadata.cer'
+filename = 'snapshotMetadata.ber'
 with open(filename, 'wb') as a:
   a.write(before)
 

@@ -2,7 +2,7 @@
 
 from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
-from pyasn1.codec.cer import encoder, decoder
+from pyasn1.codec.ber import encoder, decoder
 
 from applicationmodule import BinaryData,                   \
                               ECUVersionManifest,           \
@@ -86,7 +86,7 @@ vehicleVersionManifest['signature'] = primarySignature
 
 print(vehicleVersionManifest.prettyPrint())
 before = encoder.encode(vehicleVersionManifest)
-filename = 'vehicleVersionManifest.cer'
+filename = 'vehicleVersionManifest.ber'
 with open(filename, 'wb') as a:
   a.write(before)
 
@@ -104,7 +104,7 @@ metadataBroadcast['numberOfMetadataFiles'] = 9
 
 print(metadataBroadcast.prettyPrint())
 before = encoder.encode(metadataBroadcast)
-filename = 'metadataBroadcast.cer'
+filename = 'metadataBroadcast.ber'
 with open(filename, 'wb') as a:
   a.write(before)
 
@@ -119,11 +119,11 @@ print(recovered.prettyPrint())
 metadataFile = MetadataFile()
 metadataFile['broadcastGUID'] = 21409173649268048596096
 metadataFile['fileNumber'] = 1
-metadataFile['filename'] = 'timestamp.cer'
+metadataFile['filename'] = 'timestamp.ber'
 
 # NOTE: This is how you attach a metadata file!
 # Be sure to run ./encode-timestamp-metadata.py first.
-with open('timestampMetadata.cer', 'rb') as b:
+with open('timestampMetadata.ber', 'rb') as b:
   after = b.read()
   tuples = decoder.decode(after, asn1Spec=Metadata())
   recovered = tuples[0]
@@ -134,7 +134,7 @@ with open('timestampMetadata.cer', 'rb') as b:
 
 print(metadataFile.prettyPrint())
 before = encoder.encode(metadataFile)
-filename = 'metadataFile.cer'
+filename = 'metadataFile.ber'
 with open(filename, 'wb') as a:
   a.write(before)
 
@@ -153,7 +153,7 @@ imageFile['blockSize'] = 1024
 
 print(imageFile.prettyPrint())
 before = encoder.encode(imageFile)
-filename = 'imageFile.cer'
+filename = 'imageFile.ber'
 with open(filename, 'wb') as a:
   a.write(before)
 
@@ -174,7 +174,7 @@ imageBlock['block'] = block
 
 print(imageBlock.prettyPrint())
 before = encoder.encode(imageBlock)
-filename = 'imageBlock.cer'
+filename = 'imageBlock.ber'
 with open(filename, 'wb') as a:
   a.write(before)
 

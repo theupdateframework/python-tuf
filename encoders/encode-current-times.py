@@ -2,7 +2,7 @@
 
 from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
-from pyasn1.codec.cer import encoder, decoder
+from pyasn1.codec.ber import encoder, decoder
 
 from timeservermodule import  BinaryData,         \
                               CurrentTime,        \
@@ -62,7 +62,7 @@ currentTimes[1] = secondCurrentTime
 
 print(currentTimes.prettyPrint())
 before = encoder.encode(currentTimes)
-filename = 'currentTimes.cer'
+filename = 'currentTimes.ber'
 with open(filename, 'wb') as a:
   a.write(before)
 
