@@ -30,8 +30,8 @@ from applicationmodule import BinaryData,                   \
 # VehicleVersionManifest
 ecuVersionManifestSigned = ECUVersionManifestSigned().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
 ecuVersionManifestSigned['ecuIdentifier'] = 'ABC1234567890'
-ecuVersionManifestSigned['previousTime'] = "2016-01-01T00:00:00Z"
-ecuVersionManifestSigned['currentTime'] = "2016-10-06T18:28:00Z"
+ecuVersionManifestSigned['previousTime'] = 1451624400
+ecuVersionManifestSigned['currentTime'] = 1475956320
 ecuVersionManifestSigned['securityAttack'] = "Freeze attack detected."
 installedImage = Target().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 4))
 installedImage['filename'] = 'supplier1.img'
