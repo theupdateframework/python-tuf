@@ -21,7 +21,7 @@ metadata = Metadata()
 
 signed = Signed().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
 signed['type'] = int(RoleType('snapshot'))
-signed['expires'] = "2030-01-01T00:00:00Z"
+signed['expires'] = 1893474000
 signed['version'] = 1
 
 snapshotMetadata = SnapshotMetadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))

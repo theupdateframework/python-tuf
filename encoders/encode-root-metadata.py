@@ -27,7 +27,7 @@ metadata = Metadata()
 
 signed = Signed().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
 signed['type'] = int(RoleType('root'))
-signed['expires'] = "2030-01-01T00:00:00Z"
+signed['expires'] = 1893474000
 signed['version'] = 1
 
 rootMetadata = RootMetadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
@@ -72,40 +72,40 @@ roles = TopLevelRoles().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tag
 
 rootRole = TopLevelRole()
 rootRole['role'] = int(RoleType('root'))
-rootRole['url'] = 'http://example.com/root.json'
 rootRoleKeyids = Keyids().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
 rootRoleKeyid = Keyid('f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6')
-rootRoleKeyids[0] = rootRoleKeyid
+# Some damned bug in pyasn1 I could not care less to fix right now.
+rootRoleKeyids.setComponentByPosition(0, rootRoleKeyid, False)
 rootRole['keyids'] = rootRoleKeyids
 rootRole['threshold'] = 1
 roles[0] = rootRole
 
 snapshotRole = TopLevelRole()
 snapshotRole['role'] = int(RoleType('snapshot'))
-snapshotRole['url'] = 'http://example.com/snapshot.json'
 snapshotRoleKeyids = Keyids().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
 snapshotRoleKeyid = Keyid('fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309')
-snapshotRoleKeyids[0] = snapshotRoleKeyid
+# Some damned bug in pyasn1 I could not care less to fix right now.
+snapshotRoleKeyids.setComponentByPosition(0, snapshotRoleKeyid, False)
 snapshotRole['keyids'] = snapshotRoleKeyids
 snapshotRole['threshold'] = 1
 roles[1] = snapshotRole
 
 targetsRole = TopLevelRole()
 targetsRole['role'] = int(RoleType('targets'))
-targetsRole['url'] = 'http://example.com/targets.json'
 targetsRoleKeyids = Keyids().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
 targetsRoleKeyid = Keyid('93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b')
-targetsRoleKeyids[0] = targetsRoleKeyid
+# Some damned bug in pyasn1 I could not care less to fix right now.
+targetsRoleKeyids.setComponentByPosition(0, targetsRoleKeyid, False)
 targetsRole['keyids'] = targetsRoleKeyids
 targetsRole['threshold'] = 1
 roles[2] = targetsRole
 
 timestampRole = TopLevelRole()
 timestampRole['role'] = int(RoleType('timestamp'))
-timestampRole['url'] = 'http://example.com/timestamp.json'
 timestampRoleKeyids = Keyids().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
 timestampRoleKeyid = Keyid('1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4')
-timestampRoleKeyids[0] = timestampRoleKeyid
+# Some damned bug in pyasn1 I could not care less to fix right now.
+timestampRoleKeyids.setComponentByPosition(0, timestampRoleKeyid, False)
 timestampRole['keyids'] = timestampRoleKeyids
 timestampRole['threshold'] = 1
 roles[3] = timestampRole

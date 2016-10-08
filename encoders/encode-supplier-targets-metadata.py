@@ -38,7 +38,7 @@ metadata = Metadata()
 
 signed = Signed().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
 signed['type'] = int(RoleType('targets'))
-signed['expires'] = "2030-01-01T00:00:00Z"
+signed['expires'] = 1893474000
 signed['version'] = 1
 
 targetsMetadata = TargetsMetadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
@@ -75,7 +75,8 @@ firstRole = DelegatedTargetsRole()
 firstRole['rolename'] = 'supplier2'
 firstRoleKeyids = Keyids().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
 firstRoleKeyid = Keyid('e0685506e51ad56014771e465188a327cab597953c30789e294ebb3d274a251f')
-firstRoleKeyids[0] = firstRoleKeyid
+# Some damned bug in pyasn1 I could not care less to fix right now.
+firstRoleKeyids.setComponentByPosition(0, firstRoleKeyid, False)
 firstRole['keyids'] = firstRoleKeyids
 firstRole['threshold'] = 1
 roles[0] = firstRole
@@ -85,11 +86,13 @@ prioritizedPathsToRoles = PrioritizedPathsToRoles().subtype(implicitTag=tag.Tag(
 firstPathsToRoles = PathsToRoles()
 firstPaths = Paths().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0))
 firstPath = Path('*supplier2*')
-firstPaths[0] = firstPath
+# Some damned bug in pyasn1 I could not care less to fix right now.
+firstPaths.setComponentByPosition(0, firstPath, False)
 firstPathsToRoles['paths'] = firstPaths
 firstRoles = RoleNames().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
 firstRole = RoleName('supplier2')
-firstRoles[0] = firstRole
+# Some damned bug in pyasn1 I could not care less to fix right now.
+firstRoles.setComponentByPosition(0, firstRole, False)
 firstPathsToRoles['roles'] = firstRoles
 firstPathsToRoles['terminating'] = True
 prioritizedPathsToRoles[0] = firstPathsToRoles

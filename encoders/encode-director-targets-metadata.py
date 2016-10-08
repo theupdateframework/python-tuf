@@ -27,7 +27,7 @@ metadata = Metadata()
 
 signed = Signed().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
 signed['type'] = int(RoleType('targets'))
-signed['expires'] = "2030-01-01T00:00:00Z"
+signed['expires'] = 1893474000
 signed['version'] = 1
 
 targetsMetadata = TargetsMetadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
@@ -64,7 +64,9 @@ firstEncryptedTarget['hashes'] = firstEncryptedHashes
 firstCustom['encryptedTarget'] = firstEncryptedTarget
 firstEncryptedSymmetricKey = EncryptedSymmetricKey().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))
 firstEncryptedSymmetricKey['encryptedSymmetricKeyType'] = EncryptedSymmetricKeyType('aes128').subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0))
-firstEncryptedSymmetricKey['encryptedSymmetricKeyValue'] = 'YWJjZGVmZ2gxMjM0NTY3OA=='
+firstEncryptedSymmetricKeyValue = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
+firstEncryptedSymmetricKeyValue['base64String'] = 'YWJjZGVmZ2gxMjM0NTY3OA=='
+firstEncryptedSymmetricKey['encryptedSymmetricKeyValue'] = firstEncryptedSymmetricKeyValue
 firstCustom['encryptedSymmetricKey'] = firstEncryptedSymmetricKey
 firstTargetAndCustom['custom'] = firstCustom
 
