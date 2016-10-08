@@ -2,21 +2,30 @@ RootModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   EXPORTS RootMetadata;
 
-  IMPORTS Keyids, PublicKeys, RoleType, Threshold, URLs FROM CommonModule;
+  IMPORTS Length,
+          RoleType,
+          SequenceOfKeyids,
+          SequenceOfPublicKeys,
+          SequenceOfURLs,
+          Threshold FROM CommonModule;
 
   RootMetadata ::= SEQUENCE {
-    keys        PublicKeys,
-    roles       TopLevelRoles,
+    keys        SequenceOfPublicKeys,
+    roles       SequenceOfTopLevelRoles,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
+  }
+  SequenceOfTopLevelRoles ::= SEQUENCE {
+    length        Length,
+    topLevelRoles TopLevelRoles
   }
   -- Adjust length of SEQUENCE OF to your needs.
   TopLevelRoles ::= SEQUENCE (SIZE(4)) OF TopLevelRole
   TopLevelRole  ::= SEQUENCE {
     role      RoleType,
     -- TAP 5: The URLs pointing to the metadata file for this role.
-    url       URLs OPTIONAL,
-    keyids    Keyids,
+    url       SequenceOfURLs OPTIONAL,
+    keyids    SequenceOfKeyids,
     threshold Threshold,
     ...
   }

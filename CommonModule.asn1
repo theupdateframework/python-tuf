@@ -77,4 +77,30 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
   PublicKeyType   ::= ENUMERATED {rsa, ed25519, ...}
 
+  -- "Arrays" with lengths.
+  SequenceOfPaths ::= SEQUENCE {
+    length  Length,
+    paths   Paths
+  }
+  SequenceOfURLs ::= SEQUENCE {
+    length  Length,
+    urls    URLs
+  }
+  SequenceOfHashes ::= SEQUENCE {
+    length  Length,
+    hashes  Hashes
+  }
+  SequenceOfKeyids ::= SEQUENCE {
+    length  Length,
+    keyids  Keyids
+  }
+  SequenceOfSignatures ::= SEQUENCE {
+    length      Length,
+    signatures  Signatures
+  }
+  SequenceOfPublicKeys ::= SEQUENCE {
+    length      Length,
+    publicKeys  PublicKeys
+  }
+
 END

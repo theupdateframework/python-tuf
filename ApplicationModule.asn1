@@ -3,6 +3,7 @@ ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   IMPORTS BinaryData,
           Filename,
           Identifier,
+          Length,
           Positive,
           Signature           FROM CommonModule
           Metadata            FROM MetadataModule
@@ -21,9 +22,13 @@ ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- A unique identifier for the primary sending this manifest.
     primaryIdentifier   Identifier,
     -- An ECU version manifest per secondary.
-    ecuVersionManifests ECUVersionManifests,
+    ecuVersionManifests SequenceOfECUVersionManifests,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
+  }
+  SequenceOfECUVersionManifests ::= SEQUENCE {
+    length              Length,
+    ecuVersionManifests ECUVersionManifests
   }
   -- Adjust length of SEQUENCE OF to your needs.
   ECUVersionManifests ::= SEQUENCE (SIZE(1..128)) OF ECUVersionManifest
@@ -35,7 +40,7 @@ ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- for this broadcast session.
     broadcastGUID INTEGER,
     -- The number of metadata files that will be broadcast in this session.
-    numberOfMetadataFiles Positive
+    numberOfMetadataFiles Length
   }
   MetadataFile ::= SEQUENCE {
     -- The broadcast session associated with this metadata file.
