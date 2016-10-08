@@ -16,10 +16,12 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   -- Table 1 of RFC 4648.
   Base64String    ::= VisibleString (SIZE(1..1024))
                                     (PATTERN "[A-Za-z0-9\+/=]+")
-  Paths           ::= SEQUENCE OF Path
+  -- Adjust length of SEQUENCE OF to your needs.
+  Paths           ::= SEQUENCE (SIZE(1..8)) OF Path
   Path            ::= VisibleString (SIZE(1..32))
                                     (PATTERN "[\w\*\\/]+")
-  URLs            ::= SEQUENCE OF URL
+  -- Adjust length of SEQUENCE OF to your needs.
+  URLs            ::= SEQUENCE (SIZE(1..8)) OF URL
   URL             ::= VisibleString (SIZE(1..1024))
   -- A generic identifier for vehicles, primaries, secondaries.
   Identifier      ::= VisibleString (SIZE(1..32))
@@ -39,7 +41,8 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     base64String  Base64String
   }
 
-  Hashes          ::= SEQUENCE OF Hash
+  -- Adjust length of SEQUENCE OF to your needs.
+  Hashes          ::= SEQUENCE (SIZE(1..8)) OF Hash
   Hash            ::= SEQUENCE {
     function      HashFunction,
     digest        BinaryData
@@ -47,11 +50,13 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   HashFunction ::= ENUMERATED {sha224, sha256, sha384, sha512, sha512-224,
                                sha512-256, ...}
 
-  Keyids          ::= SEQUENCE OF Keyid
+  -- Adjust length of SEQUENCE OF to your needs.
+  Keyids          ::= SEQUENCE (SIZE(1..8)) OF Keyid
   -- Usually, a hash of a public key.
   Keyid           ::= HexString
 
-  Signatures      ::= SEQUENCE OF Signature
+  -- Adjust length of SEQUENCE OF to your needs.
+  Signatures      ::= SEQUENCE (SIZE(1..8)) OF Signature
   Signature       ::= SEQUENCE {
     keyid         Keyid,
     method        SignatureMethod,
@@ -63,7 +68,8 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
   SignatureMethod ::= ENUMERATED {rsassa-pss, ed25519, ...}
 
-  PublicKeys      ::= SEQUENCE OF PublicKey
+  -- Adjust length of SEQUENCE OF to your needs.
+  PublicKeys      ::= SEQUENCE (SIZE(1..8)) OF PublicKey
   PublicKey       ::= SEQUENCE {
     publicKeyid     Keyid,
     publicKeyType   PublicKeyType,

@@ -10,7 +10,8 @@ TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     delegations RepositoryDelegations
   }
 
-  Repositories    ::= SEQUENCE OF Repository
+  -- Adjust length of SEQUENCE OF to your needs.
+  Repositories    ::= SEQUENCE (SIZE(1..8)) OF Repository
   Repository      ::= SEQUENCE {
     -- A shorthand name for the repository.
     name              RepositoryName,
@@ -20,10 +21,12 @@ TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- current metadata.
     metadataDirectory StrictFilename
   }
-  RepositoryNames ::= SEQUENCE OF RepositoryName
+  -- Adjust length of SEQUENCE OF to your needs.
+  RepositoryNames ::= SEQUENCE (SIZE(2)) OF RepositoryName
   RepositoryName  ::= StrictFilename
 
-  RepositoryDelegations ::= SEQUENCE OF RepositoryDelegation
+  -- Adjust length of SEQUENCE OF to your needs.
+  RepositoryDelegations ::= SEQUENCE (SIZE(1)) OF RepositoryDelegation
   RepositoryDelegation  ::= SEQUENCE {
     -- The list of targets delegated to the following repositories.
     paths         Paths,

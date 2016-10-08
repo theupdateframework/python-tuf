@@ -4,7 +4,8 @@ SnapshotModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   IMPORTS StrictFilename, Version FROM CommonModule;
 
-  SnapshotMetadata ::= SEQUENCE OF FilenameAndVersion
+  -- Adjust length of SEQUENCE OF to your needs.
+  SnapshotMetadata ::= SEQUENCE (SIZE(1..128)) OF FilenameAndVersion
   FilenameAndVersion ::= SEQUENCE {
     filename  StrictFilename,
     version   Version,

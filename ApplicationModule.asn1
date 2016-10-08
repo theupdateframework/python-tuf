@@ -25,7 +25,8 @@ ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }
-  ECUVersionManifests ::= SEQUENCE OF ECUVersionManifest
+  -- Adjust length of SEQUENCE OF to your needs.
+  ECUVersionManifests ::= SEQUENCE (SIZE(1..128)) OF ECUVersionManifest
 
   -- A signal from a primary to its secondaries that new metadata will be
   -- broadcast.

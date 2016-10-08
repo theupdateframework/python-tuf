@@ -22,7 +22,8 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     ...
   }
 
-  Targets         ::= SEQUENCE OF TargetAndCustom
+  -- Adjust length of SEQUENCE OF to your needs.
+  Targets         ::= SEQUENCE (SIZE(1..128)) OF TargetAndCustom
   TargetAndCustom ::= SEQUENCE {
     -- The filename, length, and hashes of unencrypted images on a repository.
     target  Target,
@@ -66,7 +67,8 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     prioritizedPathsToRoles PrioritizedPathsToRoles
   }
 
-  DelegatedTargetsRoles ::= SEQUENCE OF DelegatedTargetsRole
+  -- Adjust length of SEQUENCE OF to your needs.
+  DelegatedTargetsRoles ::= SEQUENCE (SIZE(1..8)) OF DelegatedTargetsRole
   DelegatedTargetsRole  ::= SEQUENCE {
     -- The rolename (e.g., "supplierA-dev").
     rolename  RoleName,
@@ -80,10 +82,12 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- The threshold number of these keys.
     threshold Threshold
   }
-  RoleNames               ::= SEQUENCE OF RoleName
+  -- Adjust length of SEQUENCE OF to your needs.
+  RoleNames               ::= SEQUENCE (SIZE(1..8)) OF RoleName
   -- No known path separator allowed in a rolename.
   RoleName                ::= StrictFilename
-  PrioritizedPathsToRoles ::= SEQUENCE OF PathsToRoles
+  -- Adjust length of SEQUENCE OF to your needs.
+  PrioritizedPathsToRoles ::= SEQUENCE (SIZE(1..8)) OF PathsToRoles
   PathsToRoles            ::= SEQUENCE {
     -- A list of image/target paths entrusted to these roles.
     paths       Paths,
