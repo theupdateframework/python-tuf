@@ -4,28 +4,37 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   RoleType        ::= ENUMERATED {root, targets, snapshot, timestamp}
 
-  Filename        ::= VisibleString
+  -- String types.
+  Filename        ::= VisibleString (SIZE(1..32))
   -- No known path separator allowed in a strict filename.
-  StrictFilename  ::= VisibleString (PATTERN "[^/\\]+")
-  HexString       ::= VisibleString (PATTERN "[0-9a-f]+")
+  StrictFilename  ::= VisibleString (SIZE(1..32))
+                                    (PATTERN "[^/\\]+")
+  BitString       ::= BIT STRING    (SIZE(1..1024))
+  OctetString     ::= OCTET STRING  (SIZE(1..1024))
+  HexString       ::= VisibleString (SIZE(1..1024))
+                                    (PATTERN "[0-9a-f]+")
   -- Table 1 of RFC 4648.
-  Base64String    ::= VisibleString (PATTERN "[A-Za-z0-9\+/=]+")
-  -- UTC date and time in the ISO 8601 format ("YYYY-MM-DDTHH:MM:SSZ").
-  UTCDateTime     ::= VisibleString (PATTERN
-                                        "\d(4)-\d(2)-\d(2)T\d(2):\d(2):\d(2)Z")
+  Base64String    ::= VisibleString (SIZE(1..1024))
+                                    (PATTERN "[A-Za-z0-9\+/=]+")
   Paths           ::= SEQUENCE OF Path
-
-  Path            ::= VisibleString (PATTERN "[\w\*\\/]+")
+  Path            ::= VisibleString (SIZE(1..32))
+                                    (PATTERN "[\w\*\\/]+")
+  URLs            ::= SEQUENCE OF URL
+  URL             ::= VisibleString (SIZE(1..1024))
+  -- A generic identifier for vehicles, primaries, secondaries.
+  Identifier      ::= VisibleString (SIZE(1..32))
 
   Natural         ::= INTEGER (0..MAX)
   Positive        ::= INTEGER (1..MAX)
   Length          ::= Positive
   Threshold       ::= Positive
   Version         ::= Positive
+  -- The date and time in UTC encoded as a UNIX timestamp.
+  UTCDateTime     ::= Positive
 
   BinaryData      ::= CHOICE {
-    bitString     BIT STRING,
-    octetString   OCTET STRING,
+    bitString     BitString,
+    octetString   OctetString,
     hexString     HexString,
     base64String  Base64String
   }

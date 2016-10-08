@@ -3,6 +3,7 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   EXPORTS ECUVersionManifest;
 
   IMPORTS Filename,
+          Identifier,
           Signature,
           UTCDateTime FROM CommonModule
           Target      FROM TargetsModule
@@ -32,13 +33,13 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
   ECUVersionManifestSigned ::= SEQUENCE {
     -- A unique identifier for the ECU.
-    ecuIdentifier   VisibleString,
+    ecuIdentifier   Identifier,
     -- The previous time seen on the time server.
     previousTime    UTCDateTime,
     -- The latest known time seen on the time server.
     currentTime     UTCDateTime,
     -- A message about a detected security attack, if any.
-    securityAttack  VisibleString OPTIONAL,
+    securityAttack  VisibleString (SIZE(1..1024)) OPTIONAL,
     -- Metadata about the installed image.
     installedImage  Target,
     ...

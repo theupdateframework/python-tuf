@@ -2,7 +2,7 @@ RootModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   EXPORTS RootMetadata;
 
-  IMPORTS Keyids, PublicKeys, RoleType, Threshold FROM CommonModule;
+  IMPORTS Keyids, PublicKeys, RoleType, Threshold, URLs FROM CommonModule;
 
   RootMetadata ::= SEQUENCE {
     keys        PublicKeys,
@@ -13,8 +13,8 @@ RootModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   TopLevelRoles ::= SEQUENCE OF TopLevelRole
   TopLevelRole  ::= SEQUENCE {
     role      RoleType,
-    -- TAP 5: The URL pointing to the metadata file for this role.
-    url       VisibleString,
+    -- TAP 5: The URLs pointing to the metadata file for this role.
+    url       URLs OPTIONAL,
     keyids    Keyids,
     threshold Threshold,
     ...

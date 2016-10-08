@@ -1,6 +1,6 @@
 TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
-  IMPORTS Paths FROM CommonModule;
+  IMPORTS Paths, StrictFilename, URLs FROM CommonModule;
 
   -- https://github.com/theupdateframework/taps/blob/master/tap4.md
   TrustPinning ::= SEQUENCE {
@@ -15,14 +15,13 @@ TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- A shorthand name for the repository.
     name              RepositoryName,
     -- The base URL to the repository.
-    -- If the URL is not specified, then hard pinning is assumed.
-    url               VisibleString OPTIONAL,
+    mirrors           URLs,
     -- The name of the directory on the client which contains previous and
     -- current metadata.
-    metadataDirectory VisibleString
+    metadataDirectory StrictFilename
   }
   RepositoryNames ::= SEQUENCE OF RepositoryName
-  RepositoryName  ::= VisibleString
+  RepositoryName  ::= StrictFilename
 
   RepositoryDelegations ::= SEQUENCE OF RepositoryDelegation
   RepositoryDelegation  ::= SEQUENCE {

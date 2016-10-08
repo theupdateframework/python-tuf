@@ -2,7 +2,15 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   EXPORTS TargetsMetadata, Target;
 
-  IMPORTS Filename, Hashes, Keyids, Length, Paths, PublicKeys, StrictFilename,
+  IMPORTS BinaryData,
+          Filename,
+          Identifier,
+          Hashes,
+          Keyids,
+          Length,
+          Paths,
+          PublicKeys,
+          StrictFilename,
           Threshold FROM CommonModule;
 
   TargetsMetadata ::= SEQUENCE {
@@ -31,7 +39,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Custom ::= SEQUENCE {
     -- Information, e.g., serial numbers, that ECUs may use to identify metadata
     -- intended by the director for them.
-    ecuIdentifier         VisibleString,
+    ecuIdentifier         Identifier,
     -- Optional attribute: use only if director encrypts images for this ECU
     -- these encrypted images are on the director repository.
     encryptedTarget       Target OPTIONAL,
@@ -44,7 +52,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- This is the symmetric key type.
     encryptedSymmetricKeyType   EncryptedSymmetricKeyType,
     -- This is the symmetric key encrypted using the asymmetric ECU key.
-    encryptedSymmetricKeyValue  VisibleString
+    encryptedSymmetricKeyValue  BinaryData
   }
   EncryptedSymmetricKeyType ::= ENUMERATED {aes128, aes192, aes256, ...}
 
