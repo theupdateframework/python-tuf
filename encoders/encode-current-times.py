@@ -4,23 +4,15 @@ from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
 from pyasn1.codec.ber import encoder, decoder
 
-from timeservermodule import  BinaryData,         \
-                              CurrentTime,        \
-                              CurrentTimes,       \
-                              Hash,               \
-                              HashFunction,       \
-                              NonceAndTimestamp,  \
-                              Signature,          \
-                              SignatureMethod,    \
-                              Signatures
+from timeservermodule import  *
 
-currentTimes = CurrentTimes()
+currentTimes = CurrentTimes().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
 
 firstNonceAndTimeStamp = NonceAndTimestamp().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
 firstNonceAndTimeStamp['nonce'] = 42
 firstNonceAndTimeStamp['timestamp'] = 1893474000
 
-firstSignatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
+firstSignatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
 firstSignature = Signature()
 firstSignature['keyid'] = '521cbdaa188030b3c06f60f6271b4e22d4f3dcfcfaa5969e73c645da3228eaec'
 firstSignature['method'] = int(SignatureMethod('ed25519'))
@@ -35,6 +27,7 @@ firstSignatures[0] = firstSignature
 
 firstCurrentTime = CurrentTime()
 firstCurrentTime['signed'] = firstNonceAndTimeStamp
+firstCurrentTime['numberOfSignatures'] = 1
 firstCurrentTime['signatures'] = firstSignatures
 currentTimes[0] = firstCurrentTime
 
@@ -42,7 +35,7 @@ secondNonceAndTimeStamp = NonceAndTimestamp().subtype(implicitTag=tag.Tag(tag.ta
 secondNonceAndTimeStamp['nonce'] = 2016
 secondNonceAndTimeStamp['timestamp'] = 1893474000
 
-secondSignatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
+secondSignatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
 secondSignature = Signature()
 secondSignature['keyid'] = '521cbdaa188030b3c06f60f6271b4e22d4f3dcfcfaa5969e73c645da3228eaec'
 secondSignature['method'] = int(SignatureMethod('ed25519'))
@@ -57,11 +50,15 @@ secondSignatures[0] = secondSignature
 
 secondCurrentTime = CurrentTime()
 secondCurrentTime['signed'] = secondNonceAndTimeStamp
+secondCurrentTime['numberOfSignatures'] = 1
 secondCurrentTime['signatures'] = secondSignatures
 currentTimes[1] = secondCurrentTime
 
-print(currentTimes.prettyPrint())
-before = encoder.encode(currentTimes)
+sequenceOfCurrentTimes = SequenceOfCurrentTimes()
+sequenceOfCurrentTimes['numberOfCurrentTimes'] = 2
+sequenceOfCurrentTimes['currentTimes'] = currentTimes
+
+before = encoder.encode(sequenceOfCurrentTimes)
 filename = 'currentTimes.ber'
 with open(filename, 'wb') as a:
   a.write(before)
@@ -69,6 +66,6 @@ with open(filename, 'wb') as a:
 with open(filename, 'rb') as b:
   after = b.read()
 
-tuples = decoder.decode(after, asn1Spec=CurrentTimes())
+tuples = decoder.decode(after, asn1Spec=SequenceOfCurrentTimes())
 recovered = tuples[0]
 print(recovered.prettyPrint())

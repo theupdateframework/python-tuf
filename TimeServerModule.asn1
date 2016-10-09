@@ -5,11 +5,19 @@ TimeServerModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           UTCDateTime FROM CommonModule;
 
   -- What a primary sends the time server: a nonce from each of its secondaries.
+  SequenceOfNonces ::= SEQUENCE {
+    numberOfNonces  Length,
+    nonces          Nonces
+  }
   -- Adjust length of SEQUENCE OF to your needs.
   Nonces  ::= SEQUENCE (SIZE(1..128)) OF Nonce
   Nonce   ::= INTEGER
 
   -- What the time server sends in response.
+  SequenceOfCurrentTimes ::= SEQUENCE {
+    numberOfCurrentTimes  Length,
+    currentTimes          CurrentTimes
+  }
   -- Adjust length of SEQUENCE OF to your needs.
   CurrentTimes  ::= SEQUENCE (SIZE(1..128)) OF CurrentTime
   CurrentTime   ::= SEQUENCE {

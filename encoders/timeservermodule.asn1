@@ -104,15 +104,26 @@ PublicKeyType ::= ENUMERATED {
     ...
 }
 
+SequenceOfNonces ::= SEQUENCE {
+    numberOfNonces	 [0] IMPLICIT Length,
+    nonces	 [1] IMPLICIT Nonces
+}
+
 Nonces ::= SEQUENCE (SIZE(1..128)) OF Nonce
 
 Nonce ::= INTEGER
+
+SequenceOfCurrentTimes ::= SEQUENCE {
+    numberOfCurrentTimes	 [0] IMPLICIT Length,
+    currentTimes	 [1] IMPLICIT CurrentTimes
+}
 
 CurrentTimes ::= SEQUENCE (SIZE(1..128)) OF CurrentTime
 
 CurrentTime ::= SEQUENCE {
     signed	 [0] IMPLICIT NonceAndTimestamp,
-    signatures	 [1] IMPLICIT Signatures
+    numberOfSignatures	 [1] IMPLICIT Length,
+    signatures	 [2] IMPLICIT Signatures
 }
 
 NonceAndTimestamp ::= SEQUENCE {
