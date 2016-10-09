@@ -4,28 +4,7 @@ from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
 from pyasn1.codec.ber import encoder, decoder
 
-from applicationmodule import BinaryData,                   \
-                              ECUVersionManifest,           \
-                              ECUVersionManifests,          \
-                              ECUVersionManifestSigned,     \
-                              Hash,                         \
-                              HashFunction,                 \
-                              Hashes,                       \
-                              ImageBlock,                   \
-                              ImageFile,                    \
-                              Metadata,                     \
-                              MetadataBroadcast,            \
-                              MetadataFile,                 \
-                              RoleType,                     \
-                              Signed,                       \
-                              SignedBody,                   \
-                              Signature,                    \
-                              SignatureMethod,              \
-                              Signatures,                   \
-                              Target,                       \
-                              TimestampMetadata,            \
-                              VehicleVersionManifest,       \
-                              VehicleVersionManifestSigned
+from applicationmodule import *
 
 # VehicleVersionManifest
 ecuVersionManifestSigned = ECUVersionManifestSigned().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
@@ -36,13 +15,14 @@ ecuVersionManifestSigned['securityAttack'] = "Freeze attack detected."
 installedImage = Target().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 4))
 installedImage['filename'] = 'supplier1.img'
 installedImage['length'] = 3948340
-firstHashes = Hashes().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
+firstHashes = Hashes().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 3))
 firstHash = Hash()
 firstHash['function'] = int(HashFunction('sha256'))
 firstDigest = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
 firstDigest['hexString'] = '753c5cab1e64c76c9601d9ea2a64f31bf6b0109ec36c15cecc38beacddc8a728'
 firstHash['digest'] = firstDigest
 firstHashes[0] = firstHash
+installedImage['numberOfHashes'] = 1
 installedImage['hashes'] = firstHashes
 ecuVersionManifestSigned['installedImage'] = installedImage
 
@@ -61,13 +41,14 @@ ecuVersionManifest = ECUVersionManifest()
 ecuVersionManifest['signed'] = ecuVersionManifestSigned
 ecuVersionManifest['signature'] = secondarySignature
 
-ecuVersionManifests = ECUVersionManifests().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
+ecuVersionManifests = ECUVersionManifests().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 3))
 ecuVersionManifests[0] = ecuVersionManifest
 
 vehicleVersionManifestSigned = VehicleVersionManifestSigned().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))
 # http://randomvin.com/
 vehicleVersionManifestSigned['vehicleIdentifier'] = '1XPCDB9X5RN345827'
 vehicleVersionManifestSigned['primaryIdentifier'] = 'ABC0000000000'
+vehicleVersionManifestSigned['numberOfECUVersionManifests'] = 1
 vehicleVersionManifestSigned['ecuVersionManifests'] = ecuVersionManifests
 
 vehicleVersionManifest = VehicleVersionManifest()
@@ -84,7 +65,6 @@ primarySignature['hash'] = primaryHash
 primarySignature['value'] = '90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaedf4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02'
 vehicleVersionManifest['signature'] = primarySignature
 
-print(vehicleVersionManifest.prettyPrint())
 before = encoder.encode(vehicleVersionManifest)
 filename = 'vehicleVersionManifest.ber'
 with open(filename, 'wb') as a:
@@ -102,7 +82,6 @@ metadataBroadcast = MetadataBroadcast()
 metadataBroadcast['broadcastGUID'] = 21409173649268048596096
 metadataBroadcast['numberOfMetadataFiles'] = 9
 
-print(metadataBroadcast.prettyPrint())
 before = encoder.encode(metadataBroadcast)
 filename = 'metadataBroadcast.ber'
 with open(filename, 'wb') as a:
@@ -130,9 +109,9 @@ with open('timestampMetadata.ber', 'rb') as b:
   metadata = Metadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3))
   metadata.setComponentByPosition(0, recovered[0])
   metadata.setComponentByPosition(1, recovered[1])
+  metadata.setComponentByPosition(2, recovered[2])
   metadataFile['metadata'] = metadata
 
-print(metadataFile.prettyPrint())
 before = encoder.encode(metadataFile)
 filename = 'metadataFile.ber'
 with open(filename, 'wb') as a:
@@ -151,7 +130,6 @@ imageFile['filename'] = 'supplier1.img'
 imageFile['numberOfBlocks'] = 3
 imageFile['blockSize'] = 1024
 
-print(imageFile.prettyPrint())
 before = encoder.encode(imageFile)
 filename = 'imageFile.ber'
 with open(filename, 'wb') as a:
@@ -172,7 +150,6 @@ block = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFor
 block['hexString'] = '496aca80e4d8f29fb8e8cd816c3afb48d3f103970b3a2ee1600c08ca67326dee'
 imageBlock['block'] = block
 
-print(imageBlock.prettyPrint())
 before = encoder.encode(imageBlock)
 filename = 'imageBlock.ber'
 with open(filename, 'wb') as a:

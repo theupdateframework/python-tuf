@@ -106,7 +106,8 @@ PublicKeyType ::= ENUMERATED {
 
 Metadata ::= SEQUENCE {
     signed	 [0] IMPLICIT Signed,
-    signatures	 [1] IMPLICIT Signatures
+    numberOfSignatures	 [1] IMPLICIT Length,
+    signatures	 [2] IMPLICIT Signatures
 }
 
 Signed ::= SEQUENCE {
@@ -124,8 +125,10 @@ SignedBody ::= CHOICE {
 }
 
 RootMetadata ::= SEQUENCE {
-    keys	 [0] IMPLICIT PublicKeys,
-    roles	 [1] IMPLICIT TopLevelRoles,
+    numberOfKeys	 [0] IMPLICIT Length,
+    keys	 [1] IMPLICIT PublicKeys,
+    numberOfRoles	 [2] IMPLICIT Length,
+    roles	 [3] IMPLICIT TopLevelRoles,
     ...
 }
 
@@ -133,15 +136,18 @@ TopLevelRoles ::= SEQUENCE (SIZE(4)) OF TopLevelRole
 
 TopLevelRole ::= SEQUENCE {
     role	 [0] IMPLICIT RoleType,
-    url	 [1] IMPLICIT URLs OPTIONAL,
-    keyids	 [2] IMPLICIT Keyids,
-    threshold	 [3] IMPLICIT Threshold,
+    numberOfURLs	 [1] IMPLICIT Length OPTIONAL,
+    urls	 [2] IMPLICIT URLs OPTIONAL,
+    numberOfKeyids	 [3] IMPLICIT Length,
+    keyids	 [4] IMPLICIT Keyids,
+    threshold	 [5] IMPLICIT Threshold,
     ...
 }
 
 TargetsMetadata ::= SEQUENCE {
-    targets	 [0] IMPLICIT Targets,
-    delegations	 [1] IMPLICIT TargetsDelegations OPTIONAL,
+    numberOfTargets	 [0] IMPLICIT Length,
+    targets	 [1] IMPLICIT Targets,
+    delegations	 [2] IMPLICIT TargetsDelegations OPTIONAL,
     ...
 }
 
@@ -155,7 +161,8 @@ TargetAndCustom ::= SEQUENCE {
 Target ::= SEQUENCE {
     filename	 [0] IMPLICIT Filename,
     length	 [1] IMPLICIT Length,
-    hashes	 [2] IMPLICIT Hashes
+    numberOfHashes	 [2] IMPLICIT Length,
+    hashes	 [3] IMPLICIT Hashes
 }
 
 Custom ::= SEQUENCE {
@@ -178,9 +185,12 @@ EncryptedSymmetricKeyType ::= ENUMERATED {
 }
 
 TargetsDelegations ::= SEQUENCE {
-    keys	 [0] IMPLICIT PublicKeys,
-    roles	 [1] IMPLICIT DelegatedTargetsRoles,
-    prioritizedPathsToRoles	 [2] IMPLICIT PrioritizedPathsToRoles
+    numberOfKeys	 [0] IMPLICIT Length,
+    keys	 [1] IMPLICIT PublicKeys,
+    numberOfRoles	 [2] IMPLICIT Length,
+    roles	 [3] IMPLICIT DelegatedTargetsRoles,
+    numberOfPrioritizedPathsToRoles	 [4] IMPLICIT Length,
+    prioritizedPathsToRoles	 [5] IMPLICIT PrioritizedPathsToRoles
 }
 
 DelegatedTargetsRoles ::= SEQUENCE (SIZE(1..8)) OF DelegatedTargetsRole
@@ -188,8 +198,9 @@ DelegatedTargetsRoles ::= SEQUENCE (SIZE(1..8)) OF DelegatedTargetsRole
 DelegatedTargetsRole ::= SEQUENCE {
     rolename	 [0] IMPLICIT RoleName,
     filename	 [1] IMPLICIT StrictFilename OPTIONAL,
-    keyids	 [2] IMPLICIT Keyids,
-    threshold	 [3] IMPLICIT Threshold
+    numberOfKeyids	 [2] IMPLICIT Length,
+    keyids	 [3] IMPLICIT Keyids,
+    threshold	 [4] IMPLICIT Threshold
 }
 
 RoleNames ::= SEQUENCE (SIZE(1..8)) OF RoleName
@@ -199,14 +210,21 @@ RoleName ::= StrictFilename
 PrioritizedPathsToRoles ::= SEQUENCE (SIZE(1..8)) OF PathsToRoles
 
 PathsToRoles ::= SEQUENCE {
-    paths	 [0] IMPLICIT Paths,
-    roles	 [1] IMPLICIT RoleNames,
-    terminating	 [2] IMPLICIT BOOLEAN DEFAULT FALSE
+    numberOfPaths	 [0] IMPLICIT Length,
+    paths	 [1] IMPLICIT Paths,
+    numberOfRoles	 [2] IMPLICIT Length,
+    roles	 [3] IMPLICIT RoleNames,
+    terminating	 [4] IMPLICIT BOOLEAN DEFAULT FALSE
 }
 
-SnapshotMetadata ::= SEQUENCE (SIZE(1..128)) OF FilenameAndVersion
+SnapshotMetadata ::= SEQUENCE {
+    numberOfSnapshotMetadataFiles	 [0] IMPLICIT Length,
+    snapshotMetadataFiles	 [1] IMPLICIT SnapshotMetadataFiles
+}
 
-FilenameAndVersion ::= SEQUENCE {
+SnapshotMetadataFiles ::= SEQUENCE (SIZE(1..128)) OF SnapshotMetadataFile
+
+SnapshotMetadataFile ::= SEQUENCE {
     filename	 [0] IMPLICIT StrictFilename,
     version	 [1] IMPLICIT Version,
     ...
@@ -218,15 +236,26 @@ TimestampMetadata ::= SEQUENCE {
     ...
 }
 
+SequenceOfNonces ::= SEQUENCE {
+    numberOfNonces	 [0] IMPLICIT Length,
+    nonces	 [1] IMPLICIT Nonces
+}
+
 Nonces ::= SEQUENCE (SIZE(1..128)) OF Nonce
 
 Nonce ::= INTEGER
+
+SequenceOfCurrentTimes ::= SEQUENCE {
+    numberOfCurrentTimes	 [0] IMPLICIT Length,
+    currentTimes	 [1] IMPLICIT CurrentTimes
+}
 
 CurrentTimes ::= SEQUENCE (SIZE(1..128)) OF CurrentTime
 
 CurrentTime ::= SEQUENCE {
     signed	 [0] IMPLICIT NonceAndTimestamp,
-    signatures	 [1] IMPLICIT Signatures
+    numberOfSignatures	 [1] IMPLICIT Length,
+    signatures	 [2] IMPLICIT Signatures
 }
 
 NonceAndTimestamp ::= SEQUENCE {
@@ -268,7 +297,8 @@ VehicleVersionManifest ::= SEQUENCE {
 VehicleVersionManifestSigned ::= SEQUENCE {
     vehicleIdentifier	 [0] IMPLICIT Identifier,
     primaryIdentifier	 [1] IMPLICIT Identifier,
-    ecuVersionManifests	 [2] IMPLICIT ECUVersionManifests,
+    numberOfECUVersionManifests	 [2] IMPLICIT Length,
+    ecuVersionManifests	 [3] IMPLICIT ECUVersionManifests,
     ...
 }
 
@@ -276,7 +306,7 @@ ECUVersionManifests ::= SEQUENCE (SIZE(1..128)) OF ECUVersionManifest
 
 MetadataBroadcast ::= SEQUENCE {
     broadcastGUID	 [0] IMPLICIT INTEGER,
-    numberOfMetadataFiles	 [1] IMPLICIT Positive
+    numberOfMetadataFiles	 [1] IMPLICIT Length
 }
 
 MetadataFile ::= SEQUENCE {
