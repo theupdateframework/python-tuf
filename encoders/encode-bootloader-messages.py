@@ -4,17 +4,7 @@ from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
 from pyasn1.codec.ber import encoder, decoder
 
-from bootloadermodule import  BinaryData,               \
-                              ECUVersionManifest,       \
-                              ECUVersionManifestSigned, \
-                              Hash,                     \
-                              HashFunction,             \
-                              Hashes,                   \
-                              ImageRequest,             \
-                              Signature,                \
-                              SignatureMethod,          \
-                              Target,                   \
-                              VersionReport
+from bootloadermodule import  *
 
 # ImageRequest
 imageRequest = ImageRequest()
@@ -42,13 +32,14 @@ ecuVersionManifestSigned['securityAttack'] = "Freeze attack detected."
 installedImage = Target().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 4))
 installedImage['filename'] = 'supplier1.img'
 installedImage['length'] = 3948340
-firstHashes = Hashes().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
+firstHashes = Hashes().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 3))
 firstHash = Hash()
 firstHash['function'] = int(HashFunction('sha256'))
 firstDigest = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
 firstDigest['hexString'] = '753c5cab1e64c76c9601d9ea2a64f31bf6b0109ec36c15cecc38beacddc8a728'
 firstHash['digest'] = firstDigest
 firstHashes[0] = firstHash
+installedImage['numberOfHashes'] = 1
 installedImage['hashes'] = firstHashes
 ecuVersionManifestSigned['installedImage'] = installedImage
 
@@ -71,7 +62,6 @@ versionReport = VersionReport()
 versionReport['nonceForTimeServer'] = 42
 versionReport['ecuVersionManifest'] = ecuVersionManifest
 
-print(versionReport.prettyPrint())
 before = encoder.encode(versionReport)
 filename = 'versionReport.ber'
 with open(filename, 'wb') as a:
