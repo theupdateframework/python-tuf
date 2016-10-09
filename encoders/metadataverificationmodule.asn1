@@ -104,9 +104,39 @@ PublicKeyType ::= ENUMERATED {
     ...
 }
 
+SequenceOfPaths ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    paths	 [1] IMPLICIT Paths
+}
+
+SequenceOfURLs ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    urls	 [1] IMPLICIT URLs
+}
+
+SequenceOfHashes ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    hashes	 [1] IMPLICIT Hashes
+}
+
+SequenceOfKeyids ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    keyids	 [1] IMPLICIT Keyids
+}
+
+SequenceOfSignatures ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    signatures	 [1] IMPLICIT Signatures
+}
+
+SequenceOfPublicKeys ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    publicKeys	 [1] IMPLICIT PublicKeys
+}
+
 Metadata ::= SEQUENCE {
     signed	 [0] IMPLICIT Signed,
-    signatures	 [1] IMPLICIT Signatures
+    signatures	 [1] IMPLICIT SequenceOfSignatures
 }
 
 Signed ::= SEQUENCE {
@@ -124,25 +154,35 @@ SignedBody ::= CHOICE {
 }
 
 RootMetadata ::= SEQUENCE {
-    keys	 [0] IMPLICIT PublicKeys,
-    roles	 [1] IMPLICIT TopLevelRoles,
+    keys	 [0] IMPLICIT SequenceOfPublicKeys,
+    roles	 [1] IMPLICIT SequenceOfTopLevelRoles,
     ...
+}
+
+SequenceOfTopLevelRoles ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    topLevelRoles	 [1] IMPLICIT TopLevelRoles
 }
 
 TopLevelRoles ::= SEQUENCE (SIZE(4)) OF TopLevelRole
 
 TopLevelRole ::= SEQUENCE {
     role	 [0] IMPLICIT RoleType,
-    url	 [1] IMPLICIT URLs OPTIONAL,
-    keyids	 [2] IMPLICIT Keyids,
+    url	 [1] IMPLICIT SequenceOfURLs OPTIONAL,
+    keyids	 [2] IMPLICIT SequenceOfKeyids,
     threshold	 [3] IMPLICIT Threshold,
     ...
 }
 
 TargetsMetadata ::= SEQUENCE {
-    targets	 [0] IMPLICIT Targets,
+    targets	 [0] IMPLICIT SequenceOfTargets,
     delegations	 [1] IMPLICIT TargetsDelegations OPTIONAL,
     ...
+}
+
+SequenceOfTargets ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    targets	 [1] IMPLICIT Targets
 }
 
 Targets ::= SEQUENCE (SIZE(1..128)) OF TargetAndCustom
@@ -155,7 +195,7 @@ TargetAndCustom ::= SEQUENCE {
 Target ::= SEQUENCE {
     filename	 [0] IMPLICIT Filename,
     length	 [1] IMPLICIT Length,
-    hashes	 [2] IMPLICIT Hashes
+    hashes	 [2] IMPLICIT SequenceOfHashes
 }
 
 Custom ::= SEQUENCE {
@@ -178,9 +218,14 @@ EncryptedSymmetricKeyType ::= ENUMERATED {
 }
 
 TargetsDelegations ::= SEQUENCE {
-    keys	 [0] IMPLICIT PublicKeys,
-    roles	 [1] IMPLICIT DelegatedTargetsRoles,
-    prioritizedPathsToRoles	 [2] IMPLICIT PrioritizedPathsToRoles
+    keys	 [0] IMPLICIT SequenceOfPublicKeys,
+    roles	 [1] IMPLICIT SequenceOfDelegatedTargetsRoles,
+    prioritizedPathsToRoles	 [2] IMPLICIT SequenceOfPrioritizedPathsToRoles
+}
+
+SequenceOfDelegatedTargetsRoles ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    delegatedTargetsRoles	 [1] IMPLICIT DelegatedTargetsRoles
 }
 
 DelegatedTargetsRoles ::= SEQUENCE (SIZE(1..8)) OF DelegatedTargetsRole
@@ -188,23 +233,38 @@ DelegatedTargetsRoles ::= SEQUENCE (SIZE(1..8)) OF DelegatedTargetsRole
 DelegatedTargetsRole ::= SEQUENCE {
     rolename	 [0] IMPLICIT RoleName,
     filename	 [1] IMPLICIT StrictFilename OPTIONAL,
-    keyids	 [2] IMPLICIT Keyids,
+    keyids	 [2] IMPLICIT SequenceOfKeyids,
     threshold	 [3] IMPLICIT Threshold
+}
+
+SequenceOfRoleNames ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    roleNames	 [1] IMPLICIT RoleNames
 }
 
 RoleNames ::= SEQUENCE (SIZE(1..8)) OF RoleName
 
 RoleName ::= StrictFilename
 
+SequenceOfPrioritizedPathsToRoles ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    prioritizedPathsToRoles	 [1] IMPLICIT PrioritizedPathsToRoles
+}
+
 PrioritizedPathsToRoles ::= SEQUENCE (SIZE(1..8)) OF PathsToRoles
 
 PathsToRoles ::= SEQUENCE {
-    paths	 [0] IMPLICIT Paths,
-    roles	 [1] IMPLICIT RoleNames,
+    paths	 [0] IMPLICIT SequenceOfPaths,
+    roles	 [1] IMPLICIT SequenceOfRoleNames,
     terminating	 [2] IMPLICIT BOOLEAN DEFAULT FALSE
 }
 
-SnapshotMetadata ::= SEQUENCE (SIZE(1..128)) OF FilenameAndVersion
+SnapshotMetadata ::= SEQUENCE {
+    numberOfFiles	 [0] IMPLICIT Length,
+    files	 [1] IMPLICIT FilenameAndVersions
+}
+
+FilenameAndVersions ::= SEQUENCE (SIZE(1..128)) OF FilenameAndVersion
 
 FilenameAndVersion ::= SEQUENCE {
     filename	 [0] IMPLICIT StrictFilename,
@@ -219,27 +279,42 @@ TimestampMetadata ::= SEQUENCE {
 }
 
 TrustPinning ::= SEQUENCE {
-    repositories	 [0] IMPLICIT Repositories,
-    delegations	 [1] IMPLICIT RepositoryDelegations
+    repositories	 [0] IMPLICIT SequenceOfRepositories,
+    delegations	 [1] IMPLICIT SequenceOfRepositoryDelegations
+}
+
+SequenceOfRepositories ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    repositories	 [1] IMPLICIT Repositories
 }
 
 Repositories ::= SEQUENCE (SIZE(1..8)) OF Repository
 
 Repository ::= SEQUENCE {
     name	 [0] IMPLICIT RepositoryName,
-    mirrors	 [1] IMPLICIT URLs,
+    mirrors	 [1] IMPLICIT SequenceOfURLs,
     metadataDirectory	 [2] IMPLICIT StrictFilename
+}
+
+SequenceOfRepositoryNames ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    repositoryNames	 [1] IMPLICIT RepositoryNames
 }
 
 RepositoryNames ::= SEQUENCE (SIZE(2)) OF RepositoryName
 
 RepositoryName ::= StrictFilename
 
+SequenceOfRepositoryDelegations ::= SEQUENCE {
+    length	 [0] IMPLICIT Length,
+    repositoryDelegations	 [1] IMPLICIT RepositoryDelegations
+}
+
 RepositoryDelegations ::= SEQUENCE (SIZE(1)) OF RepositoryDelegation
 
 RepositoryDelegation ::= SEQUENCE {
-    paths	 [0] IMPLICIT Paths,
-    repositories	 [1] IMPLICIT RepositoryNames,
+    paths	 [0] IMPLICIT SequenceOfPaths,
+    repositories	 [1] IMPLICIT SequenceOfRepositoryNames,
     terminating	 [2] IMPLICIT BOOLEAN DEFAULT FALSE
 }
 
