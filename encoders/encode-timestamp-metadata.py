@@ -39,7 +39,6 @@ sequenceOfSignatures['length'] = 1
 sequenceOfSignatures['signatures'] = signatures
 metadata['signatures'] = sequenceOfSignatures
 
-print(metadata.prettyPrint())
 before = encoder.encode(metadata)
 filename = 'timestampMetadata.ber'
 with open(filename, 'wb') as a:

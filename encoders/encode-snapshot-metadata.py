@@ -4,18 +4,7 @@ from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
 from pyasn1.codec.ber import encoder, decoder
 
-from metadataverificationmodule import BinaryData,          \
-                                       FilenameAndVersion,  \
-                                       Hash,                \
-                                       HashFunction,        \
-                                       Metadata,            \
-                                       RoleType,            \
-                                       Signed,              \
-                                       SignedBody,          \
-                                       Signature,           \
-                                       SignatureMethod,     \
-                                       Signatures,          \
-                                       SnapshotMetadata
+from metadataverificationmodule import *
 
 metadata = Metadata()
 
@@ -24,24 +13,27 @@ signed['type'] = int(RoleType('snapshot'))
 signed['expires'] = 1893474000
 signed['version'] = 1
 
-snapshotMetadata = SnapshotMetadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))
+filenameAndVersions = FilenameAndVersions().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
 
 targetsFilenameAndVersion = FilenameAndVersion()
 targetsFilenameAndVersion['filename'] = 'targets.ber'
 targetsFilenameAndVersion['version'] = 1
-snapshotMetadata[0] = targetsFilenameAndVersion
+filenameAndVersions[0] = targetsFilenameAndVersion
 
 supplierOneFilenameAndVersion = FilenameAndVersion()
 supplierOneFilenameAndVersion['filename'] = 'supplier1.ber'
 supplierOneFilenameAndVersion['version'] = 1
-snapshotMetadata[1] = supplierOneFilenameAndVersion
+filenameAndVersions[1] = supplierOneFilenameAndVersion
 
 supplierTwoFilenameAndVersion = FilenameAndVersion()
 supplierTwoFilenameAndVersion['filename'] = 'supplier2.ber'
 supplierTwoFilenameAndVersion['version'] = 1
-snapshotMetadata[2] = supplierTwoFilenameAndVersion
+filenameAndVersions[2] = supplierTwoFilenameAndVersion
 
 signedBody = SignedBody().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3))
+snapshotMetadata = SnapshotMetadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))
+snapshotMetadata['length'] = 3
+snapshotMetadata['filenameAndVersions'] = filenameAndVersions
 signedBody['snapshotMetadata'] = snapshotMetadata
 signed['body'] = signedBody
 metadata['signed'] = signed
@@ -58,9 +50,11 @@ hash['digest'] = digest
 signature['hash'] = hash
 signature['value'] = 'f7f03b13e3f4a78a23561419fc0dd741a637e49ee671251be9f8f3fceedfc112e44ee3aaff2278fad9164ab039118d4dc53f22f94900dae9a147aa4d35dcfc0f'
 signatures[0] = signature
-metadata['signatures'] = signatures
+sequenceOfSignatures = SequenceOfSignatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
+sequenceOfSignatures['length'] = 1
+sequenceOfSignatures['signatures'] = signatures
+metadata['signatures'] = sequenceOfSignatures
 
-print(metadata.prettyPrint())
 before = encoder.encode(metadata)
 filename = 'snapshotMetadata.ber'
 with open(filename, 'wb') as a:

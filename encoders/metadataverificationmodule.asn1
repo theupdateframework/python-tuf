@@ -260,8 +260,8 @@ PathsToRoles ::= SEQUENCE {
 }
 
 SnapshotMetadata ::= SEQUENCE {
-    numberOfFiles	 [0] IMPLICIT Length,
-    files	 [1] IMPLICIT FilenameAndVersions
+    length	 [0] IMPLICIT Length,
+    filenameAndVersions	 [1] IMPLICIT FilenameAndVersions
 }
 
 FilenameAndVersions ::= SEQUENCE (SIZE(1..128)) OF FilenameAndVersion
