@@ -4,28 +4,25 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   IMPORTS BinaryData,
           Filename,
+          Hashes,
           Identifier,
+          Keyids,
           Length,
-          SequenceOfHashes,
-          SequenceOfKeyids,
-          SequenceOfPaths,
-          SequenceOfPublicKeys,
+          Paths,
+          PublicKeys,
           StrictFilename,
           Threshold FROM CommonModule;
 
   TargetsMetadata ::= SEQUENCE {
+    numberOfTargets Length,
     -- Metadata about unencrypted images on a repository.
-    targets     SequenceOfTargets,
+    targets         Targets,
     -- Delegations are optional.
-    delegations TargetsDelegations OPTIONAL,
+    delegations     TargetsDelegations OPTIONAL,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }
 
-  SequenceOfTargets ::= SEQUENCE {
-    length  Length,
-    targets Targets
-  }
   -- Adjust length of SEQUENCE OF to your needs.
   Targets           ::= SEQUENCE (SIZE(1..128)) OF TargetAndCustom
   TargetAndCustom   ::= SEQUENCE {
@@ -37,9 +34,10 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     custom  Custom OPTIONAL
   }
   Target ::= SEQUENCE {
-    filename  Filename,
-    length    Length,
-    hashes    SequenceOfHashes
+    filename        Filename,
+    length          Length,
+    numberOfHashes  Length,
+    hashes          Hashes
   }
   Custom ::= SEQUENCE {
     -- Information, e.g., serial numbers, that ECUs may use to identify metadata
@@ -64,52 +62,46 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   -- https://github.com/theupdateframework/taps/blob/master/tap3.md
   TargetsDelegations  ::= SEQUENCE {
     -- The public keys of all delegatees.
-    keys                    SequenceOfPublicKeys,
+    numberOfKeys                    Length,
+    keys                            PublicKeys,
     -- The role name, filename, public keys, and threshold of a delegatee.
-    roles                   SequenceOfDelegatedTargetsRoles,
+    numberOfRoles                   Length,
+    roles                           DelegatedTargetsRoles,
     -- A list of paths to roles, listed in order of priority.
-    prioritizedPathsToRoles SequenceOfPrioritizedPathsToRoles
+    numberOfPrioritizedPathsToRoles Length,
+    prioritizedPathsToRoles         PrioritizedPathsToRoles
   }
 
-  SequenceOfDelegatedTargetsRoles ::= SEQUENCE {
-    length                Length,
-    delegatedTargetsRoles DelegatedTargetsRoles
-  }
   -- Adjust length of SEQUENCE OF to your needs.
   DelegatedTargetsRoles ::= SEQUENCE (SIZE(1..8)) OF DelegatedTargetsRole
   DelegatedTargetsRole  ::= SEQUENCE {
     -- The rolename (e.g., "supplierA-dev").
-    rolename  RoleName,
+    rolename        RoleName,
     -- An explicit filename for the role (e.g., "supplierA.ext").
     -- Otherwise, it is implicitly assumed to be ROLENAME.EXT (e.g.,
     -- "supplierA-dev.ext").
     -- Different rolenames MAY use the same filename.
-    filename  StrictFilename OPTIONAL,
+    filename        StrictFilename OPTIONAL,
     -- The public keys used by this role.
-    keyids    SequenceOfKeyids,
+    numberOfKeyids  Length,
+    keyids          Keyids,
     -- The threshold number of these keys.
-    threshold Threshold
-  }
-  SequenceOfRoleNames ::= SEQUENCE {
-    length    Length,
-    roleNames RoleNames
+    threshold       Threshold
   }
   -- Adjust length of SEQUENCE OF to your needs.
   RoleNames               ::= SEQUENCE (SIZE(1..8)) OF RoleName
   -- No known path separator allowed in a rolename.
   RoleName                ::= StrictFilename
-  SequenceOfPrioritizedPathsToRoles ::= SEQUENCE {
-    length                  Length,
-    prioritizedPathsToRoles PrioritizedPathsToRoles
-  }
   -- Adjust length of SEQUENCE OF to your needs.
   PrioritizedPathsToRoles ::= SEQUENCE (SIZE(1..8)) OF PathsToRoles
   PathsToRoles            ::= SEQUENCE {
     -- A list of image/target paths entrusted to these roles.
-    paths       SequenceOfPaths,
+    numberOfPaths Length,
+    paths         Paths,
     -- A list of roles required to sign the same metadata about the matching
     -- targets/images.
-    roles       SequenceOfRoleNames,
+    numberOfRoles Length,
+    roles         RoleNames,
     -- Whether or not this delegation is terminating.
     terminating BOOLEAN DEFAULT FALSE
   }

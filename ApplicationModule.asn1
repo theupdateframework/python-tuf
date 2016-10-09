@@ -18,17 +18,14 @@ ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
   VehicleVersionManifestSigned ::= SEQUENCE {
     -- A unique identifier for the vehicle.
-    vehicleIdentifier   Identifier,
+    vehicleIdentifier           Identifier,
     -- A unique identifier for the primary sending this manifest.
-    primaryIdentifier   Identifier,
+    primaryIdentifier           Identifier,
+    numberOfECUVersionManifests Length,
     -- An ECU version manifest per secondary.
-    ecuVersionManifests SequenceOfECUVersionManifests,
+    ecuVersionManifests         ECUVersionManifests,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
-  }
-  SequenceOfECUVersionManifests ::= SEQUENCE {
-    length              Length,
-    ecuVersionManifests ECUVersionManifests
   }
   -- Adjust length of SEQUENCE OF to your needs.
   ECUVersionManifests ::= SEQUENCE (SIZE(1..128)) OF ECUVersionManifest

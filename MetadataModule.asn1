@@ -3,9 +3,10 @@ MetadataModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   EXPORTS Metadata;
 
   -- https://sourceforge.net/p/asn1c/discussion/357921/thread/aced2512/
-  IMPORTS Positive,
+  IMPORTS Length,
+          Positive,
           RoleType,
-          SequenceOfSignatures,
+          Signatures,
           UTCDateTime       FROM CommonModule
           RootMetadata      FROM RootModule
           TargetsMetadata   FROM TargetsModule
@@ -13,8 +14,9 @@ MetadataModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           TimestampMetadata FROM TimestampModule;
 
   Metadata      ::= SEQUENCE {
-    signed      Signed,
-    signatures  SequenceOfSignatures
+    signed              Signed,
+    numberOfSignatures  Length,
+    signatures          Signatures
   }
   Signed        ::= SEQUENCE {
     type        RoleType,
