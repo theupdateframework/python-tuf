@@ -13,32 +13,32 @@ signed['type'] = int(RoleType('snapshot'))
 signed['expires'] = 1893474000
 signed['version'] = 1
 
-filenameAndVersions = FilenameAndVersions().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
+snapshotMetadataFiles = SnapshotMetadataFiles().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
 
-targetsFilenameAndVersion = FilenameAndVersion()
+targetsFilenameAndVersion = SnapshotMetadataFile()
 targetsFilenameAndVersion['filename'] = 'targets.ber'
 targetsFilenameAndVersion['version'] = 1
-filenameAndVersions[0] = targetsFilenameAndVersion
+snapshotMetadataFiles[0] = targetsFilenameAndVersion
 
-supplierOneFilenameAndVersion = FilenameAndVersion()
+supplierOneFilenameAndVersion = SnapshotMetadataFile()
 supplierOneFilenameAndVersion['filename'] = 'supplier1.ber'
 supplierOneFilenameAndVersion['version'] = 1
-filenameAndVersions[1] = supplierOneFilenameAndVersion
+snapshotMetadataFiles[1] = supplierOneFilenameAndVersion
 
-supplierTwoFilenameAndVersion = FilenameAndVersion()
+supplierTwoFilenameAndVersion = SnapshotMetadataFile()
 supplierTwoFilenameAndVersion['filename'] = 'supplier2.ber'
 supplierTwoFilenameAndVersion['version'] = 1
-filenameAndVersions[2] = supplierTwoFilenameAndVersion
+snapshotMetadataFiles[2] = supplierTwoFilenameAndVersion
 
 signedBody = SignedBody().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3))
 snapshotMetadata = SnapshotMetadata().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))
-snapshotMetadata['length'] = 3
-snapshotMetadata['filenameAndVersions'] = filenameAndVersions
+snapshotMetadata['numberOfSnapshotMetadataFiles'] = 3
+snapshotMetadata['snapshotMetadataFiles'] = snapshotMetadataFiles
 signedBody['snapshotMetadata'] = snapshotMetadata
 signed['body'] = signedBody
 metadata['signed'] = signed
 
-signatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
+signatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
 signature = Signature()
 signature['keyid'] = 'fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309'
 signature['method'] = int(SignatureMethod('ed25519'))
@@ -50,10 +50,8 @@ hash['digest'] = digest
 signature['hash'] = hash
 signature['value'] = 'f7f03b13e3f4a78a23561419fc0dd741a637e49ee671251be9f8f3fceedfc112e44ee3aaff2278fad9164ab039118d4dc53f22f94900dae9a147aa4d35dcfc0f'
 signatures[0] = signature
-sequenceOfSignatures = SequenceOfSignatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
-sequenceOfSignatures['length'] = 1
-sequenceOfSignatures['signatures'] = signatures
-metadata['signatures'] = sequenceOfSignatures
+metadata['numberOfSignatures'] = 1
+metadata['signatures'] = signatures
 
 before = encoder.encode(metadata)
 filename = 'snapshotMetadata.ber'

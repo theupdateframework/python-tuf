@@ -8,11 +8,11 @@ SnapshotModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   -- Adjust length of SEQUENCE OF to your needs.
   SnapshotMetadata ::= SEQUENCE {
-    length              Length,
-    filenameAndVersions FilenameAndVersions
+    numberOfSnapshotMetadataFiles Length,
+    snapshotMetadataFiles         SnapshotMetadataFiles
   }
-  FilenameAndVersions ::= SEQUENCE (SIZE(1..128)) OF FilenameAndVersion
-  FilenameAndVersion ::= SEQUENCE {
+  SnapshotMetadataFiles ::= SEQUENCE (SIZE(1..128)) OF SnapshotMetadataFile
+  SnapshotMetadataFile ::= SEQUENCE {
     filename  StrictFilename,
     version   Version,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
