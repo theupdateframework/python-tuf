@@ -104,39 +104,10 @@ PublicKeyType ::= ENUMERATED {
     ...
 }
 
-SequenceOfPaths ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    paths	 [1] IMPLICIT Paths
-}
-
-SequenceOfURLs ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    urls	 [1] IMPLICIT URLs
-}
-
-SequenceOfHashes ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    hashes	 [1] IMPLICIT Hashes
-}
-
-SequenceOfKeyids ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    keyids	 [1] IMPLICIT Keyids
-}
-
-SequenceOfSignatures ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    signatures	 [1] IMPLICIT Signatures
-}
-
-SequenceOfPublicKeys ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    publicKeys	 [1] IMPLICIT PublicKeys
-}
-
 Metadata ::= SEQUENCE {
     signed	 [0] IMPLICIT Signed,
-    signatures	 [1] IMPLICIT SequenceOfSignatures
+    numberOfSignatures	 [1] IMPLICIT Length,
+    signatures	 [2] IMPLICIT Signatures
 }
 
 Signed ::= SEQUENCE {
@@ -154,35 +125,30 @@ SignedBody ::= CHOICE {
 }
 
 RootMetadata ::= SEQUENCE {
-    keys	 [0] IMPLICIT SequenceOfPublicKeys,
-    roles	 [1] IMPLICIT SequenceOfTopLevelRoles,
+    numberOfKeys	 [0] IMPLICIT Length,
+    keys	 [1] IMPLICIT PublicKeys,
+    numberOfRoles	 [2] IMPLICIT Length,
+    roles	 [3] IMPLICIT TopLevelRoles,
     ...
-}
-
-SequenceOfTopLevelRoles ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    topLevelRoles	 [1] IMPLICIT TopLevelRoles
 }
 
 TopLevelRoles ::= SEQUENCE (SIZE(4)) OF TopLevelRole
 
 TopLevelRole ::= SEQUENCE {
     role	 [0] IMPLICIT RoleType,
-    url	 [1] IMPLICIT SequenceOfURLs OPTIONAL,
-    keyids	 [2] IMPLICIT SequenceOfKeyids,
-    threshold	 [3] IMPLICIT Threshold,
+    numberOfURLs	 [1] IMPLICIT Length OPTIONAL,
+    urls	 [2] IMPLICIT URLs OPTIONAL,
+    numberOfKeyids	 [3] IMPLICIT Length,
+    keyids	 [4] IMPLICIT Keyids,
+    threshold	 [5] IMPLICIT Threshold,
     ...
 }
 
 TargetsMetadata ::= SEQUENCE {
-    targets	 [0] IMPLICIT SequenceOfTargets,
-    delegations	 [1] IMPLICIT TargetsDelegations OPTIONAL,
+    numberOfTargets	 [0] IMPLICIT Length,
+    targets	 [1] IMPLICIT Targets,
+    delegations	 [2] IMPLICIT TargetsDelegations OPTIONAL,
     ...
-}
-
-SequenceOfTargets ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    targets	 [1] IMPLICIT Targets
 }
 
 Targets ::= SEQUENCE (SIZE(1..128)) OF TargetAndCustom
@@ -195,7 +161,8 @@ TargetAndCustom ::= SEQUENCE {
 Target ::= SEQUENCE {
     filename	 [0] IMPLICIT Filename,
     length	 [1] IMPLICIT Length,
-    hashes	 [2] IMPLICIT SequenceOfHashes
+    numberOfHashes	 [2] IMPLICIT Length,
+    hashes	 [3] IMPLICIT Hashes
 }
 
 Custom ::= SEQUENCE {
@@ -218,14 +185,12 @@ EncryptedSymmetricKeyType ::= ENUMERATED {
 }
 
 TargetsDelegations ::= SEQUENCE {
-    keys	 [0] IMPLICIT SequenceOfPublicKeys,
-    roles	 [1] IMPLICIT SequenceOfDelegatedTargetsRoles,
-    prioritizedPathsToRoles	 [2] IMPLICIT SequenceOfPrioritizedPathsToRoles
-}
-
-SequenceOfDelegatedTargetsRoles ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    delegatedTargetsRoles	 [1] IMPLICIT DelegatedTargetsRoles
+    numberOfKeys	 [0] IMPLICIT Length,
+    keys	 [1] IMPLICIT PublicKeys,
+    numberOfRoles	 [2] IMPLICIT Length,
+    roles	 [3] IMPLICIT DelegatedTargetsRoles,
+    numberOfPrioritizedPathsToRoles	 [4] IMPLICIT Length,
+    prioritizedPathsToRoles	 [5] IMPLICIT PrioritizedPathsToRoles
 }
 
 DelegatedTargetsRoles ::= SEQUENCE (SIZE(1..8)) OF DelegatedTargetsRole
@@ -233,30 +198,23 @@ DelegatedTargetsRoles ::= SEQUENCE (SIZE(1..8)) OF DelegatedTargetsRole
 DelegatedTargetsRole ::= SEQUENCE {
     rolename	 [0] IMPLICIT RoleName,
     filename	 [1] IMPLICIT StrictFilename OPTIONAL,
-    keyids	 [2] IMPLICIT SequenceOfKeyids,
-    threshold	 [3] IMPLICIT Threshold
-}
-
-SequenceOfRoleNames ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    roleNames	 [1] IMPLICIT RoleNames
+    numberOfKeyids	 [2] IMPLICIT Length,
+    keyids	 [3] IMPLICIT Keyids,
+    threshold	 [4] IMPLICIT Threshold
 }
 
 RoleNames ::= SEQUENCE (SIZE(1..8)) OF RoleName
 
 RoleName ::= StrictFilename
 
-SequenceOfPrioritizedPathsToRoles ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    prioritizedPathsToRoles	 [1] IMPLICIT PrioritizedPathsToRoles
-}
-
 PrioritizedPathsToRoles ::= SEQUENCE (SIZE(1..8)) OF PathsToRoles
 
 PathsToRoles ::= SEQUENCE {
-    paths	 [0] IMPLICIT SequenceOfPaths,
-    roles	 [1] IMPLICIT SequenceOfRoleNames,
-    terminating	 [2] IMPLICIT BOOLEAN DEFAULT FALSE
+    numberOfPaths	 [0] IMPLICIT Length,
+    paths	 [1] IMPLICIT Paths,
+    numberOfRoles	 [2] IMPLICIT Length,
+    roles	 [3] IMPLICIT RoleNames,
+    terminating	 [4] IMPLICIT BOOLEAN DEFAULT FALSE
 }
 
 SnapshotMetadata ::= SEQUENCE {
@@ -279,43 +237,33 @@ TimestampMetadata ::= SEQUENCE {
 }
 
 TrustPinning ::= SEQUENCE {
-    repositories	 [0] IMPLICIT SequenceOfRepositories,
-    delegations	 [1] IMPLICIT SequenceOfRepositoryDelegations
-}
-
-SequenceOfRepositories ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    repositories	 [1] IMPLICIT Repositories
+    numberOfRepositories	 [0] IMPLICIT Length,
+    repositories	 [1] IMPLICIT Repositories,
+    numberOfDelegations	 [2] IMPLICIT Length,
+    delegations	 [3] IMPLICIT RepositoryDelegations
 }
 
 Repositories ::= SEQUENCE (SIZE(1..8)) OF Repository
 
 Repository ::= SEQUENCE {
     name	 [0] IMPLICIT RepositoryName,
-    mirrors	 [1] IMPLICIT SequenceOfURLs,
-    metadataDirectory	 [2] IMPLICIT StrictFilename
-}
-
-SequenceOfRepositoryNames ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    repositoryNames	 [1] IMPLICIT RepositoryNames
+    numberOfMirrors	 [1] IMPLICIT Length,
+    mirrors	 [2] IMPLICIT URLs,
+    metadataDirectory	 [3] IMPLICIT StrictFilename
 }
 
 RepositoryNames ::= SEQUENCE (SIZE(2)) OF RepositoryName
 
 RepositoryName ::= StrictFilename
 
-SequenceOfRepositoryDelegations ::= SEQUENCE {
-    length	 [0] IMPLICIT Length,
-    repositoryDelegations	 [1] IMPLICIT RepositoryDelegations
-}
-
 RepositoryDelegations ::= SEQUENCE (SIZE(1)) OF RepositoryDelegation
 
 RepositoryDelegation ::= SEQUENCE {
-    paths	 [0] IMPLICIT SequenceOfPaths,
-    repositories	 [1] IMPLICIT SequenceOfRepositoryNames,
-    terminating	 [2] IMPLICIT BOOLEAN DEFAULT FALSE
+    numberOfPaths	 [0] IMPLICIT Length,
+    paths	 [1] IMPLICIT Paths,
+    numberOfRepositories	 [2] IMPLICIT Length,
+    repositories	 [3] IMPLICIT RepositoryNames,
+    terminating	 [4] IMPLICIT BOOLEAN DEFAULT FALSE
 }
 
 END

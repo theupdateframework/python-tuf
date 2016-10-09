@@ -22,7 +22,7 @@ signedBody['timestampMetadata'] = timestampMetadata
 signed['body'] = signedBody
 metadata['signed'] = signed
 
-signatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
+signatures = Signatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))
 signature = Signature()
 signature['keyid'] = '1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4'
 signature['method'] = int(SignatureMethod('ed25519'))
@@ -34,10 +34,8 @@ hash['digest'] = digest
 signature['hash'] = hash
 signature['value'] = '90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaedf4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02'
 signatures[0] = signature
-sequenceOfSignatures = SequenceOfSignatures().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 1))
-sequenceOfSignatures['length'] = 1
-sequenceOfSignatures['signatures'] = signatures
-metadata['signatures'] = sequenceOfSignatures
+metadata['numberOfSignatures'] = 1
+metadata['signatures'] = signatures
 
 before = encoder.encode(metadata)
 filename = 'timestampMetadata.ber'
