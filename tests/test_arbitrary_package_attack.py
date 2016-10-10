@@ -224,8 +224,8 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     # Modify 'file1.txt' and confirm that the TUF client rejects it.
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
     with open(target_path, 'wt') as file_object:
-      file_object.write('add malicious content.')
-
+      file_object.write('malicious content, size 33 bytes.')
+    
     try:
       self.repository_updater.download_target(file1_fileinfo, destination)
     
@@ -240,7 +240,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       # is raised for 'url_file'.
       self.assertTrue(url_file in exception.mirror_errors)
       self.assertTrue(isinstance(exception.mirror_errors[url_file],
-                                 tuf.DownloadLengthMismatchError))
+                                 tuf.BadHashError))
     
     else:
       self.fail('TUF did not prevent an arbitrary package attack.')
@@ -254,7 +254,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     # An attacker modifies 'file1.txt'.
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
     with open(target_path, 'wt') as file_object:
-      file_object.write('add malicious content.')
+      file_object.write('malicious content, size 33 bytes.')
 
     # An attacker also tries to add the malicious target's length and digest
     # to its metadata file.
@@ -291,7 +291,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       # Verify that the specific and expected mirror exception is raised.
       self.assertTrue(url_file in exception.mirror_errors)
       self.assertTrue(isinstance(exception.mirror_errors[url_file],
-                                 tuf.DownloadLengthMismatchError))
+                                 tuf.BadHashError))
     
     else:
       self.fail('TUF did not prevent an arbitrary package attack.')

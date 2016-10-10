@@ -245,7 +245,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
+        self.assertTrue(isinstance(mirror_error, tuf.SlowRetrievalError))
     
     else:
       self.fail('TUF did not prevent a slow retrieval attack.')
@@ -263,7 +263,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     server_process = self._start_slow_server('mode_2')
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
     original_average_download_speed = tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED 
-    tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED = 1
+    tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED = 3
 
     try:
       file1_target = self.repository_updater.target('file1.txt')
@@ -280,7 +280,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.DownloadLengthMismatchError))
+        self.assertTrue(isinstance(mirror_error, tuf.SlowRetrievalError))
     
     else:
       # Another possibility is to check for a successfully downloaded

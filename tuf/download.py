@@ -251,12 +251,13 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
     # Download the contents of the URL, up to the required length, to a
     # temporary file, and get the total number of downloaded bytes.
-    total_downloaded = _download_fixed_amount_of_data(connection, temp_file, 
-                                                      required_length)
-
+    total_downloaded, average_download_speed = \
+      _download_fixed_amount_of_data(connection, temp_file, required_length)
+    
     # Does the total number of downloaded bytes match the required length?
     _check_downloaded_length(total_downloaded, required_length,
-                             STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH)
+                             STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH,
+                             average_download_speed=average_download_speed)
 
   except:
     # Close 'temp_file'.  Any written data is lost.
@@ -300,8 +301,10 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
     Runtime or network exceptions will be raised without question.
  
   <Returns>
-    total_downloaded:
-      The total number of bytes downloaded for the desired file.
+    A (total_downloaded, average_download_speed) tuple, where
+    'total_downloaded' is the total number of bytes downloaded for the desired
+    file and the 'average_download_speed' calculated for the download
+    attempt.
   """
   
   # Tolerate servers with a slow start by ignoring their delivery speed for
@@ -312,6 +315,7 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
 
   # Keep track of total bytes downloaded.
   number_of_bytes_received = 0
+  average_download_speed = 0
   
   start_time = timeit.default_timer()
 
@@ -347,20 +351,13 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       
       if (seconds_spent_receiving + grace_period) < 0:
         continue 
-      
+     
       # Measure the average download speed.
       average_download_speed = number_of_bytes_received / seconds_spent_receiving
-  
-      # If the average download speed is below a certain threshold, we flag
-      # this as a possible slow-retrieval attack.
+      
       if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
-        #raise tuf.SlowRetrievalError(average_download_speed) 
         break
 
-      else:
-        logger.debug('Good average download speed: ' +
-                     repr(average_download_speed) + ' bytes per second')
-      
       # We might have no more data to read. Check number of bytes downloaded. 
       if not data:
         logger.debug('Downloaded ' + repr(number_of_bytes_received) + '/' +
@@ -376,7 +373,7 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
     # This else block returns and skips closing the connection in the finally
     # block, so close the connection here.
     connection.close()
-    return number_of_bytes_received
+    return number_of_bytes_received, average_download_speed
   
   finally:
     # Whatever happens, make sure that we always close the connection.
@@ -558,21 +555,20 @@ def _check_content_length(reported_length, required_length, strict_length=True):
     comparison_result = 'equal to' 
 
   if strict_length:
-    message = 'The reported length is '+comparison_result+' the required '+\
-      'length of '+repr(required_length)+' bytes.'
-    logger.debug(message)
+    logger.debug('The reported length is ' + comparison_result + ' the'
+      ' required length of '+repr(required_length)+' bytes.')
   
   else:
-    message = 'The reported length is '+comparison_result+' the upper limit '+\
-      'of '+repr(required_length)+' bytes.'
-    logger.debug(message)
+    logger.debug('The reported length is ' + comparison_result + ' the upper'
+      ' limit of ' + repr(required_length) + ' bytes.')
 
 
 
 
-  
+
 def _check_downloaded_length(total_downloaded, required_length,
-                             STRICT_REQUIRED_LENGTH=True):
+                             STRICT_REQUIRED_LENGTH=True,
+                             average_download_speed=None):
   """
   <Purpose>
     A helper function which checks whether the total number of downloaded bytes
@@ -594,6 +590,9 @@ def _check_downloaded_length(total_downloaded, required_length,
       checking of required_length. True by default. We explicitly set this to
       False when we know that we want to turn this off for downloading the
       timestamp metadata, which has no signed required_length.
+
+    average_download_speed:
+     The average download speed for the downloaded file. 
   
   <Side Effects>
     None.
@@ -601,37 +600,49 @@ def _check_downloaded_length(total_downloaded, required_length,
   <Exceptions>
     tuf.DownloadLengthMismatchError, if STRICT_REQUIRED_LENGTH is True and
     total_downloaded is not equal required_length.
- 
+
+    tuf.SlowRetrievalError, if the total downloaded was done in in less than
+    the acceptable download speed (as set in tuf.conf.py).
+
   <Returns>
     None.
   """
 
   if total_downloaded == required_length:
-    logger.info('Downloaded '+str(total_downloaded)+' bytes out of the '+\
-                'expected '+str(required_length)+ ' bytes.')
+    logger.info('Downloaded ' + str(total_downloaded) + ' bytes out of the'
+      ' expected ' + str(required_length) + ' bytes.')
+  
   else:
     difference_in_bytes = abs(total_downloaded - required_length)
 
     # What we downloaded is not equal to the required length, but did we ask
     # for strict checking of required length?
     if STRICT_REQUIRED_LENGTH:
-      message = 'Downloaded '+str(total_downloaded)+' bytes, but expected '+\
-        str(required_length)+' bytes. There is a difference of '+\
-        str(difference_in_bytes)+' bytes.'
+      logger.error('Downloaded ' + str(total_downloaded) + ' bytes, but'
+        ' expected ' + str(required_length) + ' bytes. There is a difference'
+        ' of ' + str(difference_in_bytes) + ' bytes.')
       
-      # This must be due to a programming error, and must never happen!
-      logger.error(message)          
+      # If the average download speed is below a certain threshold, we flag
+      # this as a possible slow-retrieval attack.
+      logger.debug('Average download speed: ' + repr(average_download_speed))
+      logger.debug('Minimum average download speed: ' + repr(tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED))
+      
+      if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
+        raise tuf.SlowRetrievalError(average_download_speed)
+
+      else:
+        logger.debug('Good average download speed: ' +
+                     repr(average_download_speed) + ' bytes per second')
+          
       raise tuf.DownloadLengthMismatchError(required_length, total_downloaded)
     
     else:
-      message = 'Downloaded '+str(total_downloaded)+' bytes out of an upper '+\
-        'limit of '+str(required_length)+' bytes.'
       # We specifically disabled strict checking of required length, but we
       # will log a warning anyway. This is useful when we wish to download the
       # Timestamp or Root metadata, for which we have no signed metadata; so,
       # we must guess a reasonable required_length for it.
-      logger.info(message)
-
+      logger.info('Downloaded ' + str(total_downloaded) + ' bytes out of an'
+        ' upper limit of ' + str(required_length) + ' bytes.')
 
 
 
