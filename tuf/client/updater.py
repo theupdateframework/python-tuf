@@ -706,7 +706,7 @@ class Updater(object):
       raise tuf.Error('Unknown repository specified in attempt to load '
           'metadata from file. Repo name: ' + repr(repo_name) + '; only aware '
           'of these repositories: ' +
-          repr([r.repository_name for r in self.repositories]))
+          repr([r for r in self.repositories]))
 
 
 
