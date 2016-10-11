@@ -353,7 +353,8 @@ class Updater(object):
     """
     if repo_name is not None:
       self._validate_repo_name(repo_name)
-      return self.repositories[repo_name].targets_of_role(targets)
+      return self.repositories[repo_name].targets_of_role(rolename)
+      # TODO: Add testing of the above.
 
     else:
       # This case is only intended to handle a single default repository.
