@@ -225,6 +225,11 @@ libraries with apt (Advanced Package Tool.)
 
     $ apt-get install build-essential libssl-dev libff-dev python-dev 
 
+Fedora-based distribution can install these libraries with dnf.
+::
+
+    $ dnf install libffi-devel redhat-rpm-config openssl-devel
+
 OS X users can install these header libraries with the `Homebrew <http://brew.sh/>`_ package manager.
 ::
 
