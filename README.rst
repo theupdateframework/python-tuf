@@ -225,7 +225,7 @@ libraries with apt (Advanced Package Tool.)
 
     $ apt-get install build-essential libssl-dev libff-dev python-dev 
 
-Fedora-based distribution can install these libraries with dnf.
+Fedora-based distributions can install these libraries with dnf.
 ::
 
     $ dnf install libffi-devel redhat-rpm-config openssl-devel
