@@ -72,7 +72,7 @@ from setuptools import setup
 from setuptools import find_packages
 
 extras = {
-  'tools': ['pycrypto>=2.6.1', 'pynacl>=0.2.3']
+  'tools': ['cryptography>=1.4.0', 'pycrypto>=2.6.1', 'pynacl>=0.2.3']
 }
 
 with open('README.rst') as file_object:
