@@ -223,7 +223,7 @@ development header files. Debian-based distributions can install these header
 libraries with apt (Advanced Package Tool.)
 ::
 
-    $ apt-get install build-essential libssl-dev libff-dev python-dev 
+    $ apt-get install build-essential libssl-dev libffi-dev python-dev 
 
 Fedora-based distributions can install these libraries with dnf.
 ::
