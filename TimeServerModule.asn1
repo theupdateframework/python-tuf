@@ -14,20 +14,15 @@ TimeServerModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Nonce   ::= INTEGER
 
   -- What the time server sends in response.
-  SequenceOfCurrentTimes ::= SEQUENCE {
-    numberOfCurrentTimes  Length,
-    currentTimes          CurrentTimes
-  }
-  -- Adjust length of SEQUENCE OF to your needs.
-  CurrentTimes  ::= SEQUENCE (SIZE(1..128)) OF CurrentTime
   CurrentTime   ::= SEQUENCE {
-    signed              NonceAndTimestamp,
+    signed              NoncesAndTimestamp,
     numberOfSignatures  Length,
     signatures          Signatures
   }
-  NonceAndTimestamp ::= SEQUENCE {
-    nonce     Nonce,
-    timestamp UTCDateTime,
+  NoncesAndTimestamp ::= SEQUENCE {
+    numberOfNonces  Length,
+    nonces          Nonces,
+    timestamp       UTCDateTime,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }

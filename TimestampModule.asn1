@@ -2,13 +2,21 @@ TimestampModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   EXPORTS TimestampMetadata;
 
-  IMPORTS Filename, Version FROM CommonModule;
+  IMPORTS Filename,
+          Hashes,
+          Length,
+          Version FROM CommonModule;
 
   TimestampMetadata ::= SEQUENCE {
     filename  Filename,
     version   Version,
+    -- Temporary additions that demo-day TUF needs.
+    length          Length,
+    numberOfHashes  Length,
+    hashes          Hashes,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }
+
 
 END

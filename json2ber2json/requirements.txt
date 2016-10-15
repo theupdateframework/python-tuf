@@ -1,2 +1,4 @@
 -e git://github.com/kimgr/asn1ate.git#egg=asn1ate
 -e git://github.com/etingof/pyasn1.git#egg=pyasn1
+cryptography
+tuf[tools]

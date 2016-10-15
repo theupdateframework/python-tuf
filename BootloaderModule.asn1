@@ -4,7 +4,8 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   IMPORTS Filename,
           Identifier,
-          Signature,
+          Length,
+          Signatures,
           UTCDateTime FROM CommonModule
           Target      FROM TargetsModule
           Nonce       FROM TimeServerModule;
@@ -29,7 +30,8 @@ BootloaderModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- The signed portion of the manifest.
     signed      ECUVersionManifestSigned,
     -- The signature on the hash of the signed portion.
-    signature  Signature
+    numberOfSignatures  Length,
+    signatures          Signatures
   }
   ECUVersionManifestSigned ::= SEQUENCE {
     -- A unique identifier for the ECU.

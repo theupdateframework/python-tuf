@@ -1,4 +1,4 @@
--- $ asn1c -EF CommonModule.asn1 MetadataModule.asn1  RootModule.asn1 TargetsModule.asn1 SnapshotModule.asn1 TimestampModule.asn1 TimeServerModule.asn1 BootloaderModule.asn1 ApplicationModule.asn1 > applicationmodule.asn1
+-- $ asn1c -EF CommonModule.asn1 MetadataModule.asn1 RootModule.asn1 TargetsModule.asn1 SnapshotModule.asn1 TimestampModule.asn1  TrustPinningModule.asn1 > metadataverificationmodule.asn1
 -- To keep asn1ate happy, had to remove:
 -- 1. PATTERN constraints on VisibleString.
 -- 2. Module definitions in between.
@@ -145,7 +145,7 @@ TopLevelRole ::= SEQUENCE {
 }
 
 TargetsMetadata ::= SEQUENCE {
-    numberOfTargets	 [0] IMPLICIT Length,
+    numberOfTargets	 [0] IMPLICIT Natural,
     targets	 [1] IMPLICIT Targets,
     delegations	 [2] IMPLICIT TargetsDelegations OPTIONAL,
     ...
@@ -227,105 +227,49 @@ SnapshotMetadataFiles ::= SEQUENCE (SIZE(1..128)) OF SnapshotMetadataFile
 SnapshotMetadataFile ::= SEQUENCE {
     filename	 [0] IMPLICIT StrictFilename,
     version	 [1] IMPLICIT Version,
+    length	 [2] IMPLICIT Length OPTIONAL,
+    numberOfHashes	 [3] IMPLICIT Length OPTIONAL,
+    hashes	 [4] IMPLICIT Hashes OPTIONAL,
     ...
 }
 
 TimestampMetadata ::= SEQUENCE {
     filename	 [0] IMPLICIT Filename,
     version	 [1] IMPLICIT Version,
+    length	 [2] IMPLICIT Length,
+    numberOfHashes	 [3] IMPLICIT Length,
+    hashes	 [4] IMPLICIT Hashes,
     ...
 }
 
-SequenceOfNonces ::= SEQUENCE {
-    numberOfNonces	 [0] IMPLICIT Length,
-    nonces	 [1] IMPLICIT Nonces
+TrustPinning ::= SEQUENCE {
+    numberOfRepositories	 [0] IMPLICIT Length,
+    repositories	 [1] IMPLICIT Repositories,
+    numberOfDelegations	 [2] IMPLICIT Length,
+    delegations	 [3] IMPLICIT RepositoryDelegations
 }
 
-Nonces ::= SEQUENCE (SIZE(1..128)) OF Nonce
+Repositories ::= SEQUENCE (SIZE(1..8)) OF Repository
 
-Nonce ::= INTEGER
-
-SequenceOfCurrentTimes ::= SEQUENCE {
-    numberOfCurrentTimes	 [0] IMPLICIT Length,
-    currentTimes	 [1] IMPLICIT CurrentTimes
+Repository ::= SEQUENCE {
+    name	 [0] IMPLICIT RepositoryName,
+    numberOfMirrors	 [1] IMPLICIT Length,
+    mirrors	 [2] IMPLICIT URLs,
+    metadataDirectory	 [3] IMPLICIT StrictFilename
 }
 
-CurrentTimes ::= SEQUENCE (SIZE(1..128)) OF CurrentTime
+RepositoryNames ::= SEQUENCE (SIZE(2)) OF RepositoryName
 
-CurrentTime ::= SEQUENCE {
-    signed	 [0] IMPLICIT NonceAndTimestamp,
-    numberOfSignatures	 [1] IMPLICIT Length,
-    signatures	 [2] IMPLICIT Signatures
-}
+RepositoryName ::= StrictFilename
 
-NonceAndTimestamp ::= SEQUENCE {
-    nonce	 [0] IMPLICIT Nonce,
-    timestamp	 [1] IMPLICIT UTCDateTime,
-    ...
-}
+RepositoryDelegations ::= SEQUENCE (SIZE(1)) OF RepositoryDelegation
 
-ImageRequest ::= SEQUENCE {
-    filename	 [0] IMPLICIT Filename,
-    ...
-}
-
-VersionReport ::= SEQUENCE {
-    nonceForTimeServer	 [0] IMPLICIT Nonce,
-    ecuVersionManifest	 [1] IMPLICIT ECUVersionManifest,
-    ...
-}
-
-ECUVersionManifest ::= SEQUENCE {
-    signed	 [0] IMPLICIT ECUVersionManifestSigned,
-    signature	 [1] IMPLICIT Signature
-}
-
-ECUVersionManifestSigned ::= SEQUENCE {
-    ecuIdentifier	 [0] IMPLICIT Identifier,
-    previousTime	 [1] IMPLICIT UTCDateTime,
-    currentTime	 [2] IMPLICIT UTCDateTime,
-    securityAttack	 [3] IMPLICIT VisibleString (SIZE(1..1024)) OPTIONAL,
-    installedImage	 [4] IMPLICIT Target,
-    ...
-}
-
-VehicleVersionManifest ::= SEQUENCE {
-    signed	 [0] IMPLICIT VehicleVersionManifestSigned,
-    signature	 [1] IMPLICIT Signature
-}
-
-VehicleVersionManifestSigned ::= SEQUENCE {
-    vehicleIdentifier	 [0] IMPLICIT Identifier,
-    primaryIdentifier	 [1] IMPLICIT Identifier,
-    numberOfECUVersionManifests	 [2] IMPLICIT Length,
-    ecuVersionManifests	 [3] IMPLICIT ECUVersionManifests,
-    ...
-}
-
-ECUVersionManifests ::= SEQUENCE (SIZE(1..128)) OF ECUVersionManifest
-
-MetadataBroadcast ::= SEQUENCE {
-    broadcastGUID	 [0] IMPLICIT INTEGER,
-    numberOfMetadataFiles	 [1] IMPLICIT Length
-}
-
-MetadataFile ::= SEQUENCE {
-    broadcastGUID	 [0] IMPLICIT INTEGER,
-    fileNumber	 [1] IMPLICIT Positive,
-    filename	 [2] IMPLICIT Filename,
-    metadata	 [3] IMPLICIT Metadata
-}
-
-ImageFile ::= SEQUENCE {
-    filename	 [0] IMPLICIT Filename,
-    numberOfBlocks	 [1] IMPLICIT Positive,
-    blockSize	 [2] IMPLICIT Positive
-}
-
-ImageBlock ::= SEQUENCE {
-    filename	 [0] IMPLICIT Filename,
-    blockNumber	 [1] IMPLICIT Positive,
-    block	 [2] EXPLICIT BinaryData
+RepositoryDelegation ::= SEQUENCE {
+    numberOfPaths	 [0] IMPLICIT Length,
+    paths	 [1] IMPLICIT Paths,
+    numberOfRepositories	 [2] IMPLICIT Length,
+    repositories	 [3] IMPLICIT RepositoryNames,
+    terminating	 [4] IMPLICIT BOOLEAN DEFAULT FALSE
 }
 
 END

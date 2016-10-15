@@ -1,4 +1,4 @@
--- $ asn1c -EF CommonModule.asn1 MetadataModule.asn1 RootModule.asn1 TargetsModule.asn1 SnapshotModule.asn1 TimestampModule.asn1  TrustPinningModule.asn1 > metadataverificationmodule.asn1
+-- $ asn1c -EF CommonModule.asn1 TargetsModule.asn1 TimeServerModule.asn1 BootloaderModule.asn1 > bootloadermodule.asn1
 -- To keep asn1ate happy, had to remove:
 -- 1. PATTERN constraints on VisibleString.
 -- 2. Module definitions in between.
@@ -104,48 +104,8 @@ PublicKeyType ::= ENUMERATED {
     ...
 }
 
-Metadata ::= SEQUENCE {
-    signed	 [0] IMPLICIT Signed,
-    numberOfSignatures	 [1] IMPLICIT Length,
-    signatures	 [2] IMPLICIT Signatures
-}
-
-Signed ::= SEQUENCE {
-    type	 [0] IMPLICIT RoleType,
-    expires	 [1] IMPLICIT UTCDateTime,
-    version	 [2] IMPLICIT Positive,
-    body	 [3] EXPLICIT SignedBody
-}
-
-SignedBody ::= CHOICE {
-    rootMetadata	 [0] IMPLICIT RootMetadata,
-    targetsMetadata	 [1] IMPLICIT TargetsMetadata,
-    snapshotMetadata	 [2] IMPLICIT SnapshotMetadata,
-    timestampMetadata	 [3] IMPLICIT TimestampMetadata
-}
-
-RootMetadata ::= SEQUENCE {
-    numberOfKeys	 [0] IMPLICIT Length,
-    keys	 [1] IMPLICIT PublicKeys,
-    numberOfRoles	 [2] IMPLICIT Length,
-    roles	 [3] IMPLICIT TopLevelRoles,
-    ...
-}
-
-TopLevelRoles ::= SEQUENCE (SIZE(4)) OF TopLevelRole
-
-TopLevelRole ::= SEQUENCE {
-    role	 [0] IMPLICIT RoleType,
-    numberOfURLs	 [1] IMPLICIT Length OPTIONAL,
-    urls	 [2] IMPLICIT URLs OPTIONAL,
-    numberOfKeyids	 [3] IMPLICIT Length,
-    keyids	 [4] IMPLICIT Keyids,
-    threshold	 [5] IMPLICIT Threshold,
-    ...
-}
-
 TargetsMetadata ::= SEQUENCE {
-    numberOfTargets	 [0] IMPLICIT Length,
+    numberOfTargets	 [0] IMPLICIT Natural,
     targets	 [1] IMPLICIT Targets,
     delegations	 [2] IMPLICIT TargetsDelegations OPTIONAL,
     ...
@@ -217,53 +177,52 @@ PathsToRoles ::= SEQUENCE {
     terminating	 [4] IMPLICIT BOOLEAN DEFAULT FALSE
 }
 
-SnapshotMetadata ::= SEQUENCE {
-    numberOfSnapshotMetadataFiles	 [0] IMPLICIT Length,
-    snapshotMetadataFiles	 [1] IMPLICIT SnapshotMetadataFiles
+SequenceOfNonces ::= SEQUENCE {
+    numberOfNonces	 [0] IMPLICIT Length,
+    nonces	 [1] IMPLICIT Nonces
 }
 
-SnapshotMetadataFiles ::= SEQUENCE (SIZE(1..128)) OF SnapshotMetadataFile
+Nonces ::= SEQUENCE (SIZE(1..128)) OF Nonce
 
-SnapshotMetadataFile ::= SEQUENCE {
-    filename	 [0] IMPLICIT StrictFilename,
-    version	 [1] IMPLICIT Version,
+Nonce ::= INTEGER
+
+CurrentTime ::= SEQUENCE {
+    signed	 [0] IMPLICIT NoncesAndTimestamp,
+    numberOfSignatures	 [1] IMPLICIT Length,
+    signatures	 [2] IMPLICIT Signatures
+}
+
+NoncesAndTimestamp ::= SEQUENCE {
+    numberOfNonces	 [0] IMPLICIT Length,
+    nonces	 [1] IMPLICIT Nonces,
+    timestamp	 [2] IMPLICIT UTCDateTime,
     ...
 }
 
-TimestampMetadata ::= SEQUENCE {
+ImageRequest ::= SEQUENCE {
     filename	 [0] IMPLICIT Filename,
-    version	 [1] IMPLICIT Version,
     ...
 }
 
-TrustPinning ::= SEQUENCE {
-    numberOfRepositories	 [0] IMPLICIT Length,
-    repositories	 [1] IMPLICIT Repositories,
-    numberOfDelegations	 [2] IMPLICIT Length,
-    delegations	 [3] IMPLICIT RepositoryDelegations
+VersionReport ::= SEQUENCE {
+    nonceForTimeServer	 [0] IMPLICIT Nonce,
+    ecuVersionManifest	 [1] IMPLICIT ECUVersionManifest,
+    ...
 }
 
-Repositories ::= SEQUENCE (SIZE(1..8)) OF Repository
-
-Repository ::= SEQUENCE {
-    name	 [0] IMPLICIT RepositoryName,
-    numberOfMirrors	 [1] IMPLICIT Length,
-    mirrors	 [2] IMPLICIT URLs,
-    metadataDirectory	 [3] IMPLICIT StrictFilename
+ECUVersionManifest ::= SEQUENCE {
+    signed	 [0] IMPLICIT ECUVersionManifestSigned,
+    numberOfSignatures	 [1] IMPLICIT Length,
+    signatures	 [2] IMPLICIT Signatures
 }
 
-RepositoryNames ::= SEQUENCE (SIZE(2)) OF RepositoryName
-
-RepositoryName ::= StrictFilename
-
-RepositoryDelegations ::= SEQUENCE (SIZE(1)) OF RepositoryDelegation
-
-RepositoryDelegation ::= SEQUENCE {
-    numberOfPaths	 [0] IMPLICIT Length,
-    paths	 [1] IMPLICIT Paths,
-    numberOfRepositories	 [2] IMPLICIT Length,
-    repositories	 [3] IMPLICIT RepositoryNames,
-    terminating	 [4] IMPLICIT BOOLEAN DEFAULT FALSE
+ECUVersionManifestSigned ::= SEQUENCE {
+    ecuIdentifier	 [0] IMPLICIT Identifier,
+    previousTime	 [1] IMPLICIT UTCDateTime,
+    currentTime	 [2] IMPLICIT UTCDateTime,
+    securityAttack	 [3] IMPLICIT VisibleString (SIZE(1..1024)) OPTIONAL,
+    installedImage	 [4] IMPLICIT Target,
+    ...
 }
 
 END

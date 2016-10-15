@@ -5,7 +5,7 @@ ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           Identifier,
           Length,
           Positive,
-          Signature           FROM CommonModule
+          Signatures          FROM CommonModule
           Metadata            FROM MetadataModule
           ECUVersionManifest  FROM BootloaderModule;
 
@@ -14,7 +14,8 @@ ApplicationModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- The signed portion of the manifest.
     signed    VehicleVersionManifestSigned,
     -- The signature on the hash of the signed portion.
-    signature Signature
+    numberOfSignatures  Length,
+    signatures          Signatures
   }
   VehicleVersionManifestSigned ::= SEQUENCE {
     -- A unique identifier for the vehicle.

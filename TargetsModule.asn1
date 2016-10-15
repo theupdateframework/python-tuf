@@ -8,13 +8,15 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           Identifier,
           Keyids,
           Length,
+          Natural,
           Paths,
           PublicKeys,
           StrictFilename,
           Threshold FROM CommonModule;
 
   TargetsMetadata ::= SEQUENCE {
-    numberOfTargets Length,
+    -- Allowed to have no targets at all.
+    numberOfTargets Natural,
     -- Metadata about unencrypted images on a repository.
     targets         Targets,
     -- Delegations are optional.

@@ -113,22 +113,16 @@ Nonces ::= SEQUENCE (SIZE(1..128)) OF Nonce
 
 Nonce ::= INTEGER
 
-SequenceOfCurrentTimes ::= SEQUENCE {
-    numberOfCurrentTimes	 [0] IMPLICIT Length,
-    currentTimes	 [1] IMPLICIT CurrentTimes
-}
-
-CurrentTimes ::= SEQUENCE (SIZE(1..128)) OF CurrentTime
-
 CurrentTime ::= SEQUENCE {
-    signed	 [0] IMPLICIT NonceAndTimestamp,
+    signed	 [0] IMPLICIT NoncesAndTimestamp,
     numberOfSignatures	 [1] IMPLICIT Length,
     signatures	 [2] IMPLICIT Signatures
 }
 
-NonceAndTimestamp ::= SEQUENCE {
-    nonce	 [0] IMPLICIT Nonce,
-    timestamp	 [1] IMPLICIT UTCDateTime,
+NoncesAndTimestamp ::= SEQUENCE {
+    numberOfNonces	 [0] IMPLICIT Length,
+    nonces	 [1] IMPLICIT Nonces,
+    timestamp	 [2] IMPLICIT UTCDateTime,
     ...
 }
 

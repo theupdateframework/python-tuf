@@ -3,6 +3,7 @@ SnapshotModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   EXPORTS SnapshotMetadata;
 
   IMPORTS Length,
+          Hashes,
           StrictFilename,
           Version FROM CommonModule;
 
@@ -15,6 +16,10 @@ SnapshotModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   SnapshotMetadataFile ::= SEQUENCE {
     filename  StrictFilename,
     version   Version,
+    -- Temporary additions that demo-day TUF needs.
+    length          Length OPTIONAL,
+    numberOfHashes  Length OPTIONAL,
+    hashes          Hashes OPTIONAL,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }

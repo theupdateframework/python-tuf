@@ -1,4 +1,4 @@
--- $ asn1c -EF CommonModule.asn1 TargetsModule.asn1 TimeServerModule.asn1 BootloaderModule.asn1 > bootloadermodule.asn1
+-- $ asn1c -EF CommonModule.asn1 MetadataModule.asn1  RootModule.asn1 TargetsModule.asn1 SnapshotModule.asn1 TimestampModule.asn1 TimeServerModule.asn1 BootloaderModule.asn1 ApplicationModule.asn1 > applicationmodule.asn1
 -- To keep asn1ate happy, had to remove:
 -- 1. PATTERN constraints on VisibleString.
 -- 2. Module definitions in between.
@@ -104,8 +104,48 @@ PublicKeyType ::= ENUMERATED {
     ...
 }
 
+Metadata ::= SEQUENCE {
+    signed	 [0] IMPLICIT Signed,
+    numberOfSignatures	 [1] IMPLICIT Length,
+    signatures	 [2] IMPLICIT Signatures
+}
+
+Signed ::= SEQUENCE {
+    type	 [0] IMPLICIT RoleType,
+    expires	 [1] IMPLICIT UTCDateTime,
+    version	 [2] IMPLICIT Positive,
+    body	 [3] EXPLICIT SignedBody
+}
+
+SignedBody ::= CHOICE {
+    rootMetadata	 [0] IMPLICIT RootMetadata,
+    targetsMetadata	 [1] IMPLICIT TargetsMetadata,
+    snapshotMetadata	 [2] IMPLICIT SnapshotMetadata,
+    timestampMetadata	 [3] IMPLICIT TimestampMetadata
+}
+
+RootMetadata ::= SEQUENCE {
+    numberOfKeys	 [0] IMPLICIT Length,
+    keys	 [1] IMPLICIT PublicKeys,
+    numberOfRoles	 [2] IMPLICIT Length,
+    roles	 [3] IMPLICIT TopLevelRoles,
+    ...
+}
+
+TopLevelRoles ::= SEQUENCE (SIZE(4)) OF TopLevelRole
+
+TopLevelRole ::= SEQUENCE {
+    role	 [0] IMPLICIT RoleType,
+    numberOfURLs	 [1] IMPLICIT Length OPTIONAL,
+    urls	 [2] IMPLICIT URLs OPTIONAL,
+    numberOfKeyids	 [3] IMPLICIT Length,
+    keyids	 [4] IMPLICIT Keyids,
+    threshold	 [5] IMPLICIT Threshold,
+    ...
+}
+
 TargetsMetadata ::= SEQUENCE {
-    numberOfTargets	 [0] IMPLICIT Length,
+    numberOfTargets	 [0] IMPLICIT Natural,
     targets	 [1] IMPLICIT Targets,
     delegations	 [2] IMPLICIT TargetsDelegations OPTIONAL,
     ...
@@ -177,6 +217,31 @@ PathsToRoles ::= SEQUENCE {
     terminating	 [4] IMPLICIT BOOLEAN DEFAULT FALSE
 }
 
+SnapshotMetadata ::= SEQUENCE {
+    numberOfSnapshotMetadataFiles	 [0] IMPLICIT Length,
+    snapshotMetadataFiles	 [1] IMPLICIT SnapshotMetadataFiles
+}
+
+SnapshotMetadataFiles ::= SEQUENCE (SIZE(1..128)) OF SnapshotMetadataFile
+
+SnapshotMetadataFile ::= SEQUENCE {
+    filename	 [0] IMPLICIT StrictFilename,
+    version	 [1] IMPLICIT Version,
+    length	 [2] IMPLICIT Length OPTIONAL,
+    numberOfHashes	 [3] IMPLICIT Length OPTIONAL,
+    hashes	 [4] IMPLICIT Hashes OPTIONAL,
+    ...
+}
+
+TimestampMetadata ::= SEQUENCE {
+    filename	 [0] IMPLICIT Filename,
+    version	 [1] IMPLICIT Version,
+    length	 [2] IMPLICIT Length,
+    numberOfHashes	 [3] IMPLICIT Length,
+    hashes	 [4] IMPLICIT Hashes,
+    ...
+}
+
 SequenceOfNonces ::= SEQUENCE {
     numberOfNonces	 [0] IMPLICIT Length,
     nonces	 [1] IMPLICIT Nonces
@@ -186,22 +251,16 @@ Nonces ::= SEQUENCE (SIZE(1..128)) OF Nonce
 
 Nonce ::= INTEGER
 
-SequenceOfCurrentTimes ::= SEQUENCE {
-    numberOfCurrentTimes	 [0] IMPLICIT Length,
-    currentTimes	 [1] IMPLICIT CurrentTimes
-}
-
-CurrentTimes ::= SEQUENCE (SIZE(1..128)) OF CurrentTime
-
 CurrentTime ::= SEQUENCE {
-    signed	 [0] IMPLICIT NonceAndTimestamp,
+    signed	 [0] IMPLICIT NoncesAndTimestamp,
     numberOfSignatures	 [1] IMPLICIT Length,
     signatures	 [2] IMPLICIT Signatures
 }
 
-NonceAndTimestamp ::= SEQUENCE {
-    nonce	 [0] IMPLICIT Nonce,
-    timestamp	 [1] IMPLICIT UTCDateTime,
+NoncesAndTimestamp ::= SEQUENCE {
+    numberOfNonces	 [0] IMPLICIT Length,
+    nonces	 [1] IMPLICIT Nonces,
+    timestamp	 [2] IMPLICIT UTCDateTime,
     ...
 }
 
@@ -218,7 +277,8 @@ VersionReport ::= SEQUENCE {
 
 ECUVersionManifest ::= SEQUENCE {
     signed	 [0] IMPLICIT ECUVersionManifestSigned,
-    signature	 [1] IMPLICIT Signature
+    numberOfSignatures	 [1] IMPLICIT Length,
+    signatures	 [2] IMPLICIT Signatures
 }
 
 ECUVersionManifestSigned ::= SEQUENCE {
@@ -228,6 +288,46 @@ ECUVersionManifestSigned ::= SEQUENCE {
     securityAttack	 [3] IMPLICIT VisibleString (SIZE(1..1024)) OPTIONAL,
     installedImage	 [4] IMPLICIT Target,
     ...
+}
+
+VehicleVersionManifest ::= SEQUENCE {
+    signed	 [0] IMPLICIT VehicleVersionManifestSigned,
+    numberOfSignatures	 [1] IMPLICIT Length,
+    signatures	 [2] IMPLICIT Signatures
+}
+
+VehicleVersionManifestSigned ::= SEQUENCE {
+    vehicleIdentifier	 [0] IMPLICIT Identifier,
+    primaryIdentifier	 [1] IMPLICIT Identifier,
+    numberOfECUVersionManifests	 [2] IMPLICIT Length,
+    ecuVersionManifests	 [3] IMPLICIT ECUVersionManifests,
+    ...
+}
+
+ECUVersionManifests ::= SEQUENCE (SIZE(1..128)) OF ECUVersionManifest
+
+MetadataBroadcast ::= SEQUENCE {
+    broadcastGUID	 [0] IMPLICIT INTEGER,
+    numberOfMetadataFiles	 [1] IMPLICIT Length
+}
+
+MetadataFile ::= SEQUENCE {
+    broadcastGUID	 [0] IMPLICIT INTEGER,
+    fileNumber	 [1] IMPLICIT Positive,
+    filename	 [2] IMPLICIT Filename,
+    metadata	 [3] IMPLICIT Metadata
+}
+
+ImageFile ::= SEQUENCE {
+    filename	 [0] IMPLICIT Filename,
+    numberOfBlocks	 [1] IMPLICIT Positive,
+    blockSize	 [2] IMPLICIT Positive
+}
+
+ImageBlock ::= SEQUENCE {
+    filename	 [0] IMPLICIT Filename,
+    blockNumber	 [1] IMPLICIT Positive,
+    block	 [2] EXPLICIT BinaryData
 }
 
 END
