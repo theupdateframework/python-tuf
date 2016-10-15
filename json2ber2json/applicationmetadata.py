@@ -16,14 +16,14 @@ def get_asn_signed(json_signed):
                                         tag.tagFormatConstructed, 0))
 
   signed['vehicleIdentifier'] = json_signed['vin']
-  signed['primaryIdentifier'] = json_signed['primary-serial']
+  signed['primaryIdentifier'] = json_signed['primary_ecu_serial']
 
   ecuVersionManifests = ECUVersionManifests()\
                         .subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                      tag.tagFormatSimple, 3))
   numberOfECUVersionManifests = 0
 
-  for manifest in json_signed['ecu-version-manifests']:
+  for manifest in json_signed['ecu_version_manifests']:
     json_signed, json_signatures = manifest['signed'], manifest['signatures']
     asn_signed, ber_signed = \
               metadata.get_asn_and_ber_signed(bootloadermetadata.get_asn_signed,
@@ -45,7 +45,7 @@ def get_json_signed(asn_metadata):
 
   json_signed = {
       'vin': str(asn_signed['vehicleIdentifier']),
-      'primary-serial': str(asn_signed['primaryIdentifier'])
+      'primary_ecu_serial': str(asn_signed['primaryIdentifier'])
   }
 
   json_manifests = []
@@ -57,7 +57,7 @@ def get_json_signed(asn_metadata):
               metadata.asn_to_json_metadata(bootloadermetadata.get_json_signed,
                                             manifest)
     json_manifests.append(json_manifest)
-  json_signed['ecu-version-manifests'] = json_manifests
+  json_signed['ecu_version_manifests'] = json_manifests
 
   return json_signed
 
