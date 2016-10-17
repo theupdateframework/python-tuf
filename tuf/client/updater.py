@@ -1224,7 +1224,8 @@ class Updater(object):
                            current_role['threshold'], current_role['keyids'])
     
     if not valid:
-      raise tuf.BadSignatureError('Root not signed by previous threshold/keys.')
+      raise tuf.BadSignatureError('Root is not signed by previous threshold'
+        ' of keys.')
 
 
 

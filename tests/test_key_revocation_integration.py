@@ -2,7 +2,7 @@
 
 """
 <Program Name>
-  test_key_revocation.py
+  test_key_revocation_integration.py
 
 <Author>
   Vladimir Diaz.

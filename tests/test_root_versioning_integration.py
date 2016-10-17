@@ -2,7 +2,7 @@
 
 """
 <Program Name>
-  test_root_versioning.py
+  test_root_versioning_integration.py
 
 <Author>
   Evan Cordell.

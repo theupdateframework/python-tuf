@@ -2,13 +2,13 @@
 
 """
 <Program Name>
-  test_updater_root_rotation.py
+  test_updater_root_rotation_integration.py
 
 <Author>
-  Evan Cordell
+  Evan Cordell.
 
 <Started>
-  August 8, 2016
+  August 8, 2016.
   
 <Copyright>
   See LICENSE for licensing information.
@@ -67,7 +67,7 @@ import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
 import six
 
-logger = logging.getLogger('tuf.test_updater')
+logger = logging.getLogger('tuf.test_updater_root_rotation_integration')
 repo_tool.disable_console_log_messages()
 
 
