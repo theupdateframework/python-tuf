@@ -1213,7 +1213,7 @@ class Updater(object):
    
 
     
-  def _verify_next_version_of_root(self, role, current, next):
+  def _verify_root_chain_link(self, role, current, next):
     if role != 'root':
       return True
     
@@ -1544,7 +1544,7 @@ class Updater(object):
     updated_metadata_object = metadata_signable['signed']
     current_metadata_object = self.metadata['current'].get(metadata_role)
    
-    self._verify_next_version_of_root(metadata_role, current_metadata_object,
+    self._verify_root_chain_link(metadata_role, current_metadata_object,
                                       metadata_signable)
 
     # Finally, update the metadata and fileinfo stores, and rebuild the
