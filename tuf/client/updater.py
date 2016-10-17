@@ -1803,39 +1803,11 @@ class Updater(object):
       logger.debug(repr(metadata_role) + ' referenced in ' +
         repr(referenced_metadata)+ '.  ' + repr(metadata_role) +
         ' may be updated.')
-
    
-    # TODO: All metadata should now be referenced by version number.
-    # Temporarily commenting the soon-to-be-removed lines.
-    """
-    if metadata_role in ['root', 'snapshot']:
-      # Extract the fileinfo of the uncompressed version of 'metadata_role'.
-      expected_fileinfo = self.metadata['current'][referenced_metadata] \
-                                       ['meta'] \
-                                       [uncompressed_metadata_filename]
-
-      # Simply return if the metadata for 'metadata_role' has not been updated,
-      # according to the uncompressed metadata provided by the referenced
-      # metadata.  The metadata is considered updated if its fileinfo has
-      # changed.
-      if not self._fileinfo_has_changed(uncompressed_metadata_filename,
-                                        expected_fileinfo):
-        logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
-        
-        # Since we have not downloaded a new version of this metadata, we
-        # should check to see if our local version is stale and notify the user
-        # if so. This raises tuf.ExpiredMetadataError if the metadata we
-        # have is expired. Resolves issue #322.
-        self._ensure_not_expired(self.metadata['current'][metadata_role],
-                                 metadata_role)
-
-        return
-
-    # The version number is inspected instead for all other roles.  The
-    # metadata is considered updated if its version number is strictly greater
-    # than its currently trusted version number.
-    else:
-    """
+    # Simply return if the metadata for 'metadata_role' has not been updated,
+    # according to the uncompressed metadata provided by the referenced
+    # metadata.  The metadata is considered updated if its version number is
+    # strictly greater than its currently trusted version number.
     expected_versioninfo = self.metadata['current'][referenced_metadata] \
                                         ['meta'] \
                                         [uncompressed_metadata_filename]
@@ -1844,8 +1816,15 @@ class Updater(object):
                                               expected_versioninfo):
       logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
       
+      # Since we have not downloaded a new version of this metadata, we
+      # should check to see if our local version is stale and notify the user
+      # if so. This raises tuf.ExpiredMetadataError if the metadata we
+      # have is expired. Resolves issue #322.
       self._ensure_not_expired(self.metadata['current'][metadata_role],
                                metadata_role)
+      # TODO: If 'metadata_role' is root or snapshot, we should verify that 
+      # root's hash matches what's in snapshot, and that snapshot hash matches
+      # what's listed in timestamp.json.
       
       return
     
@@ -1898,15 +1877,6 @@ class Updater(object):
       upperbound_filelength = tuf.conf.DEFAULT_TARGETS_REQUIRED_LENGTH
     
     try:
-      # TODO: All metadata should now be referenced by version number.
-      # Temporarily commenting the soon-to-be-removed lines.
-      """ 
-      if metadata_role in ['root', 'snapshot']:
-        self._update_metadata_via_fileinfo(metadata_role, expected_fileinfo, compression)
-     
-      # Update all other metadata by way of version number.
-      else:
-      """
       self._update_metadata(metadata_role, upperbound_filelength,
                             expected_versioninfo['version'], compression)
 
