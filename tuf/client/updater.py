@@ -667,11 +667,18 @@ class Updater(object):
         logger.info('An expired Root metadata was loaded and must be updated.')
         raise
 
+    # TODO: How should the latest root metadata be verified?  According to the
+    # currently trusted root keys?  What if all of the currently trusted
+    # root keys have since been revoked by the latest metadata?  Alternatively,
+    # do we blindly trust the downloaded root metadata here?  
     self._update_root_metadata(root_metadata)
     
     # Use default but sane information for timestamp metadata, and do not
     # require strict checks on its required length.
     self._update_metadata('timestamp', DEFAULT_TIMESTAMP_UPPERLENGTH)
+    # TODO: After fetching snapshot.json, we should either verify the root
+    # fileinfo referenced there matches what was fetched earlier in
+    # _update_root_metadata() or make another attempt to download root.json.
     self._update_metadata_if_changed('snapshot',
                                      referenced_metadata='timestamp')
     self._update_metadata_if_changed('targets')
