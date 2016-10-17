@@ -16,7 +16,9 @@ SnapshotModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   SnapshotMetadataFile ::= SEQUENCE {
     filename  StrictFilename,
     version   Version,
-    -- Temporary additions that demo-day TUF needs.
+    -- NOTE: These optional fields are only for the root metadata, and is
+    -- expected to be removed once TAP 5 is approved.
+    -- https://github.com/theupdateframework/taps/blob/master/tap5.md
     length          Length OPTIONAL,
     numberOfHashes  Length OPTIONAL,
     hashes          Hashes OPTIONAL,

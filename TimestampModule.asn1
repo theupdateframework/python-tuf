@@ -8,9 +8,8 @@ TimestampModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           Version FROM CommonModule;
 
   TimestampMetadata ::= SEQUENCE {
-    filename  Filename,
-    version   Version,
-    -- Temporary additions that demo-day TUF needs.
+    filename        Filename,
+    version         Version,
     length          Length,
     numberOfHashes  Length,
     hashes          Hashes,
