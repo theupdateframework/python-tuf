@@ -191,7 +191,7 @@ class BadSignatureError(CryptoError):
     self.metadata_role_name = metadata_role_name
 
   def __str__(self):
-    return repr(self.metadata_role_name) + ' metadata has bad signature.'
+    return repr(self.metadata_role_name) + ' metadata has a bad signature.'
 
 
 

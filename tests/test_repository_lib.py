@@ -452,7 +452,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
-                      '3', expires, False) 
+                      '3', expires, False)
     self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
                       1, '3', False) 
     self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  

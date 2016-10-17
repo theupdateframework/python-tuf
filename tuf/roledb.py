@@ -118,12 +118,14 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   # Do not modify the contents of the 'root_metadata' argument.
   root_metadata = copy.deepcopy(root_metadata)
   
-  # Iterate through the roles found in 'root_metadata'
-  # and add them to '_roledb_dict'.  Duplicates are avoided.
+  # Iterate the roles found in 'root_metadata' and add them to '_roledb_dict'.
+  # Duplicates are avoided.
   for rolename, roleinfo in six.iteritems(root_metadata['roles']):
     if rolename == 'root':
       roleinfo['version'] = root_metadata['version']
       roleinfo['expires'] = root_metadata['expires']
+      roleinfo['previous_keyids'] = roleinfo['keyids']
+      roleinfo['previous_threshold'] = roleinfo['threshold'] 
     
     roleinfo['signatures'] = []
     roleinfo['signing_keyids'] = []

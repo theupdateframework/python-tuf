@@ -334,8 +334,8 @@ class TestRepository(unittest.TestCase):
     repository.targets('role1').load_signing_key(role1_privkey)
    
     # Verify that a consistent snapshot can be written and loaded.  The
-    # 'targets' and 'role1' roles must be be marked as dirty, otherwise
-    # writeall() will not create consistent snapshots for them.
+    # 'targets' and 'role1' roles must be marked as dirty, otherwise writeall()
+    # will not create consistent snapshots for them.
     repository.mark_dirty(['targets', 'role1'])
     repository.writeall(consistent_snapshot=True)
 
@@ -359,10 +359,11 @@ class TestRepository(unittest.TestCase):
     # Verify the expected filenames.  get_filepaths_in_directory() returns
     # a list of absolute paths.
     metadata_files = repo.get_filepaths_in_directory(metadata_directory) 
-    expected_files = ['root.json', 'root.json.gz', 'targets.json',
-                      'targets.json.gz', 'snapshot.json', 'snapshot.json.gz',
-                      'timestamp.json', 'timestamp.json.gz', 'role1.json',
-                      'role1.json.gz', 'role2.json', 'role2.json.gz']
+    expected_files = ['1.root.json', '1.root.json.gz', 'root.json',
+                      'root.json.gz', 'targets.json', 'targets.json.gz',
+                      'snapshot.json', 'snapshot.json.gz', 'timestamp.json',
+                      'timestamp.json.gz', 'role1.json', 'role1.json.gz',
+                      'role2.json', 'role2.json.gz']
     basenames = [] 
     for filepath in metadata_files:
       basenames.append(os.path.basename(filepath))

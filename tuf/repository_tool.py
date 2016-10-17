@@ -224,8 +224,6 @@ class Repository(object):
 
     # Write the metadata files of all the Targets roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
-    dirty_roles = tuf.roledb.get_dirty_roles()
-    
     filenames = {'root': os.path.join(self._metadata_directory, repo_lib.ROOT_FILENAME),
                  'targets': os.path.join(self._metadata_directory, repo_lib.TARGETS_FILENAME),
                  'snapshot': os.path.join(self._metadata_directory, repo_lib.SNAPSHOT_FILENAME),
@@ -293,7 +291,7 @@ class Repository(object):
 
 
   
-  def write(self, rolename, consistent_snapshot=False):
+  def write(self, rolename, consistent_snapshot=False, increment_version_number=True):
     """
     <Purpose>
       Write the JSON metadata for 'rolename' to its corresponding file on disk.
@@ -310,6 +308,10 @@ class Repository(object):
         <version_number>.root.json, <version_number>.targets.json.gz,
         <version_number>.README.json
         Example: 13.root.json'
+
+      increment_version_number:
+        Boolean indicating whether the version number of 'rolename' should be
+        automatically incremented.
 
     <Exceptions>
       None.
@@ -335,7 +337,8 @@ class Repository(object):
                                           self._metadata_directory,
                                           consistent_snapshot,
                                           filenames=filenames,
-                                          allow_partially_signed=True)
+                                          allow_partially_signed=True,
+                                          increment_version_number=increment_version_number)
   
   
   
@@ -678,10 +681,13 @@ class Metadata(object):
 
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+    
+    previous_keyids = roleinfo['keyids']
    
     # Add 'key' to the role's entry in 'tuf.roledb.py' and avoid duplicates.
-    if keyid not in roleinfo['keyids']: 
+    if keyid not in previous_keyids: 
       roleinfo['keyids'].append(keyid)
+      roleinfo['previous_keyids'] = previous_keyids
       
       tuf.roledb.update_roleinfo(self._rolename, roleinfo)
 
@@ -1166,6 +1172,7 @@ class Metadata(object):
     tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
     
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
+    roleinfo['previous_threshold'] = roleinfo['threshold']
     roleinfo['threshold'] = threshold
     
     tuf.roledb.update_roleinfo(self._rolename, roleinfo)
@@ -2881,9 +2888,12 @@ def load_repository(repository_directory):
     metadata_path = os.path.join(metadata_directory, metadata_role)
     metadata_name = \
       metadata_path[len(metadata_directory):].lstrip(os.path.sep)
-
-    # Strip the version number if 'consistent_snapshot' is True.
+    
+    # Strip the version number if 'consistent_snapshot' is True,
+    # or if 'metadata_role' is Root.
     # Example:  '10.django.json' --> 'django.json'
+    consistent_snapshot = \
+      metadata_role.endswith('root.json') or consistent_snapshot == True
     metadata_name, version_number_junk = \
       repo_lib._strip_version_number(metadata_name, consistent_snapshot)
 

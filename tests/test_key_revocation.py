@@ -351,7 +351,6 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # Remove 'root_keyid' and add a new key.  Verify that the client detects
     # the removal and addition of keys to the Root file.
     repository = repo_tool.load_repository(self.repository_directory)
-    repository.root.remove_verification_key(self.role_keys['root']['public'])
     
     repository.root.add_verification_key(self.role_keys['snapshot']['public'])
     repository.root.add_verification_key(self.role_keys['targets']['public'])
@@ -364,10 +363,13 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     repository.root.load_signing_key(self.role_keys['targets']['private'])
     repository.root.load_signing_key(self.role_keys['timestamp']['private'])
     
-    # Note: we added Timetamp's key to the Root role.
+    # Note: We added the Snapshot, Targets, and Timetamp keys to the Root role.
+    # The Root's expected private key has not been loaded yet, so that
+    # we can verify that refresh() correctly raises a tuf.BadSignatureError
+    # exception.
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
- 
+    
     # Root's version number = 2 after the following writeall().
     repository.writeall()
     
@@ -385,27 +387,32 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
       for mirror_exception in exception.mirror_errors.values():
         self.assertTrue(isinstance(mirror_exception, tuf.BadSignatureError))
 
-    # Load the previous Root signing key so that the the client can update
-    # successfully.
+    repository.root.add_verification_key(self.role_keys['root']['public'])
     repository.root.load_signing_key(self.role_keys['root']['private'])
-    repository.writeall() 
+    
+    # root, snapshot, and timestamp should be dirty 
+    repository.dirty_roles()
+    repository.write('root', increment_version_number=False)
+    repository.write('snapshot')
+    repository.write('timestamp')
 
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
     
-    # Root's version number = 3...
+    # Root's version number = 2...
     # The client successfully performs a refresh of top-level metadata to get
     # the latest changes.
     self.repository_updater.refresh()
-    self.assertEqual(self.repository_updater.metadata['current']['root']['version'], 3)
+    self.assertEqual(self.repository_updater.metadata['current']['root']['version'], 2)
 
     # Revoke the snapshot and targets keys (added to root) so that multiple
     # snapshots are created.  Discontinue signing with the old root key now
     # that the client has successfully updated (note: the old Root key
     # was revoked, but the repository continued signing with it to allow
     # the client to update).
+    repository.root.remove_verification_key(self.role_keys['root']['public'])
     repository.root.unload_signing_key(self.role_keys['root']['private'])
     repository.root.remove_verification_key(self.role_keys['snapshot']['public'])
     repository.root.unload_signing_key(self.role_keys['snapshot']['private'])
@@ -416,7 +423,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
-    # Root's version number = 4...
+    # Root's version number = 3...
     self.repository_updater.refresh() 
     
     repository.root.remove_verification_key(self.role_keys['targets']['public'])
@@ -428,13 +435,13 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
-    # Root's version number = 5... 
+    # Root's version number = 4... 
     self.repository_updater.refresh()
-    self.assertEqual(self.repository_updater.metadata['current']['root']['version'], 5)
+    self.assertEqual(self.repository_updater.metadata['current']['root']['version'], 4)
     
     # Verify that the client is able to recognize that a new set of keys have
     # been added to the Root role.
-    # First, has 'root`_keyid' been removed?
+    # First, has 'root_keyid' been removed?
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertTrue(root_keyid not in root_roleinfo['keyids'])
 
@@ -450,8 +457,7 @@ def _load_role_keys(keystore_directory):
   
   # Populating 'self.role_keys' by importing the required public and private
   # keys of 'tuf/tests/repository_data/'.  The role keys are needed when
-  # modifying the remote repository used by the test cases in this unit test.
-
+  # modifying the remote repository used by the test cases in this unit test.  
   # The pre-generated key files in 'repository_data/keystore' are all encrypted with
   # a 'password' passphrase.
   EXPECTED_KEYFILE_PASSWORD = 'password'
