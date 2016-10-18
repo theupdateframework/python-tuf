@@ -2017,28 +2017,35 @@ def write_metadata_file(metadata, filename, version_number,
   # and indentation is used.  The 'tuf.util.TempFile' file-like object is
   # automically closed after the final move.
   file_object.write(file_content)
-  logger.debug('Saving ' + repr(written_filename))
   
-  file_object.move(written_filename)
- 
   if consistent_snapshot:
     dirname, basename = os.path.split(written_filename)
     basename = basename.split(METADATA_EXTENSION, 1)[0]
     version_and_filename = str(version_number) + '.' + basename + METADATA_EXTENSION 
     written_consistent_filename = os.path.join(dirname, version_and_filename)
 
-    # TODO: If we were to create a hard link to 'written_filename', all
-    # consistent snapshots will always point to the current version.
-    # Example: 1.root.json and 2.root.json -> root.json
-    #logger.info('Linking ' + repr(written_consistent_filename))
-    #os.link(written_filename, written_consistent_filename)
+    # If we were to point consistent snapshots to 'written_filename', they
+    # would always point to the current version.  Example: 1.root.json and
+    # 2.root.json -> root.json.  If consistent snapshot is True, we should save
+    # the consistent snapshot and point 'written_filename' to it.
+    logger.info('Creating a consistent snapshot for ' + repr(written_filename))
+    logger.debug('Saving ' + repr(written_consistent_filename))
+    file_object.move(written_consistent_filename)
 
-    logger.info('Copying ' + repr(written_consistent_filename))
-    shutil.copyfile(written_filename, written_consistent_filename)
+    # TODO: We should provide the option of either (1) creating a link via
+    # os.link() to the consistent snapshot or (2) creating a copy of the
+    # consistent snapshot and saving to its expected filename (e.g.,
+    # root.json).  The option should be a configurable in tuf.conf.py.
+    # For now, we create a copy of the consistent snapshot and save it to
+    # 'written_filename'.
+    logger.info('Pointing ' + repr(filename) + ' to the consistent snapshot.')
+    shutil.copyfile(written_consistent_filename, written_filename)
   
   else:
-    logger.info('Not linking a consistent filename for: ' + repr(written_filename))
-
+    logger.info('Not creating a consistent snapshot for ' + repr(written_filename))
+    logger.debug('Saving ' + repr(written_filename))
+    file_object.move(written_filename)
+  
   # Generate the compressed versions of 'metadata', if necessary.  A compressed
   # file may be written (without needing to write the uncompressed version) if
   # the repository maintainer adds compression after writing the uncompressed
