@@ -122,6 +122,9 @@ repository.targets.add_target(target2_filepath)
 repository.targets.delegate('role1', [delegation_public], [target3_filepath])
 repository.targets('role1').load_signing_key(delegation_private)
 
+repository.targets('role1').delegate('role2', [delegation_public], [])
+repository.targets('role2').load_signing_key(delegation_private)
+
 # Set the top-level expiration times far into the future so that
 # they do not expire anytime soon, or else the tests fail.  Unit tests may
 # modify the expiration  datetimes (of the copied files), if they wish.
@@ -130,6 +133,7 @@ repository.targets.expiration = datetime.datetime(2030, 1, 1, 0, 0)
 repository.snapshot.expiration = datetime.datetime(2030, 1, 1, 0, 0)
 repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 0, 0)
 repository.targets('role1').expiration = datetime.datetime(2030, 1, 1, 0, 0)
+repository.targets('role2').expiration = datetime.datetime(2030, 1, 1, 0, 0)
 
 # Compress the top-level role metadata so that the unit tests have a
 # pre-generated example of compressed metadata.
@@ -140,7 +144,7 @@ repository.timestamp.compressions = ['gz']
 
 # Create the actual metadata files, which are saved to 'metadata.staged'. 
 if not options.dry_run:
-  repository.write()
+  repository.writeall()
 
 # Move the staged.metadata to 'metadata' and create the client folder.  The
 # client folder, which includes the required directory structure and metadata

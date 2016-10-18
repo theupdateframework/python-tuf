@@ -408,7 +408,7 @@ ROLE_SCHEMA = SCHEMA.Object(
   name = SCHEMA.Optional(ROLENAME_SCHEMA),
   keyids = KEYIDS_SCHEMA,
   threshold = THRESHOLD_SCHEMA,
-  backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
+  terminating = SCHEMA.Optional(BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
 
@@ -459,9 +459,11 @@ COMMAND_SCHEMA = SCHEMA.DictOf(
 # tuf.roledb
 ROLEDB_SCHEMA = SCHEMA.Object(
   object_name = 'ROLEDB_SCHEMA',
-  keyids = KEYIDS_SCHEMA,
+  keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
   signing_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
-  threshold = THRESHOLD_SCHEMA,
+  previous_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
+  threshold = SCHEMA.Optional(THRESHOLD_SCHEMA),
+  previous_threshold = SCHEMA.Optional(THRESHOLD_SCHEMA),
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
   expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
   signatures = SCHEMA.Optional(SIGNATURES_SCHEMA),

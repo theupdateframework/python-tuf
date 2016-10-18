@@ -289,18 +289,18 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                                                                   'password')
     repository.snapshot.load_signing_key(snapshot_private)
 
-    # Expire snapshot in 8s. This should be far enough into the future that we
+    # Expire snapshot in 10s. This should be far enough into the future that we
     # haven't reached it before the first refresh validates timestamp expiry.
     # We want a successful refresh before expiry, then a second refresh after
     # expiry (which we then expect to raise an exception due to expired
     # metadata).
-    expiry_time = time.time() + 8
+    expiry_time = time.time() + 10
     datetime_object = tuf.formats.unix_timestamp_to_datetime(int(expiry_time))
 
     repository.snapshot.expiration = datetime_object
 
     # Now write to the repository.
-    repository.write()
+    repository.writeall()
 
     # And move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -369,7 +369,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     expiry_time = time.time() + 1
     datetime_object = tuf.formats.unix_timestamp_to_datetime(int(expiry_time))
     repository.timestamp.expiration = datetime_object
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))

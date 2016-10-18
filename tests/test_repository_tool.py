@@ -112,7 +112,7 @@ class TestRepository(unittest.TestCase):
 
   
 
-  def test_write_and_write_partial(self):
+  def test_writeall(self):
     # Test creation of a TUF repository.
     # 
     # 1. Import public and private keys.
@@ -120,9 +120,9 @@ class TestRepository(unittest.TestCase):
     # 3. Load signing keys.
     # 4. Add target files.
     # 5. Perform delegation.
-    # 5. write()
+    # 6. writeall()
     # 
-    # Copy the target files from 'tuf/tests/repository_data' so that write()
+    # Copy the target files from 'tuf/tests/repository_data' so that writeall()
     # has target fileinfo to include in metadata.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     targets_directory = os.path.join(temporary_directory, 'repository',
@@ -186,9 +186,9 @@ class TestRepository(unittest.TestCase):
     repository.targets.add_verification_key(targets_pubkey)
     repository.snapshot.add_verification_key(snapshot_pubkey)
 
-    # Verify that repository.write() fails for insufficient threshold
+    # Verify that repository.writeall() fails for insufficient threshold
     # of signatures (default threshold = 1).
-    self.assertRaises(tuf.UnsignedMetadataError, repository.write) 
+    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall) 
     
     repository.timestamp.add_verification_key(timestamp_pubkey)
     
@@ -198,9 +198,9 @@ class TestRepository(unittest.TestCase):
     repository.targets.load_signing_key(targets_privkey)
     repository.snapshot.load_signing_key(snapshot_privkey)
    
-    # Verify that repository.write() fails for insufficient threshold
+    # Verify that repository.writeall() fails for insufficient threshold
     # of signatures (default threshold = 1).
-    self.assertRaises(tuf.UnsignedMetadataError, repository.write) 
+    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall) 
     
     repository.timestamp.load_signing_key(timestamp_privkey)
    
@@ -218,7 +218,7 @@ class TestRepository(unittest.TestCase):
     
     # (6) Write repository.
     repository.targets.compressions = ['gz']
-    repository.write()
+    repository.writeall()
     
     # Verify that the expected metadata is written.
     for role in ['root.json', 'targets.json', 'snapshot.json', 'timestamp.json']:
@@ -239,8 +239,9 @@ class TestRepository(unittest.TestCase):
     role1_signable = tuf.util.load_json_file(role1_filepath)
     tuf.formats.check_signable_object_format(role1_signable)
 
-    # Verify that an exception is *not* raised for multiple repository.write().
-    repository.write()
+    # Verify that an exception is *not* raised for multiple
+    # repository.writeall().
+    repository.writeall()
 
     # Verify that status() does not raise an exception.
     repository.status()
@@ -308,17 +309,14 @@ class TestRepository(unittest.TestCase):
     repository.timestamp.unload_signing_key(root_privkey)
     repository.timestamp.load_signing_key(timestamp_privkey)
 
-    # Verify that a write() fails if a repository is loaded and a change
+    # Verify that a writeall() fails if a repository is loaded and a change
     # is made to a role.
     repo_tool.load_repository(repository_directory)
     
     repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 12, 0)
-    self.assertRaises(tuf.UnsignedMetadataError, repository.write)
+    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall)
 
-    # Verify that a write_partial() is allowed. 
-    repository.write_partial()
-
-    # Next, perform a non-partial write() with consistent snapshots enabled.
+    # Next, perform a writeall() with consistent snapshots enabled.
     # Since the timestamp was modified, load its private key.
     repository.timestamp.load_signing_key(timestamp_privkey)
 
@@ -326,27 +324,28 @@ class TestRepository(unittest.TestCase):
     # snapshot modifies the Root metadata, which specifies whether a repository
     # supports consistent snapshots.  Verify that an exception is raised due to
     # the missing signatures of Root and Snapshot.
-    self.assertRaises(tuf.UnsignedMetadataError, repository.write,
-                      False, True)
+    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall, True)
     
     # Load the private keys of Root and Snapshot (new version required since
-    # Root has changed.)
+    # Root will change to enable consistent snapshots.
     repository.root.load_signing_key(root_privkey)
+    repository.targets.load_signing_key(targets_privkey)
     repository.snapshot.load_signing_key(snapshot_privkey)
+    repository.targets('role1').load_signing_key(role1_privkey)
    
     # Verify that a consistent snapshot can be written and loaded.  The
-    # 'targets' and 'role1' roles must be be marked as dirty, otherwise
-    # write() will not create consistent snapshots for them.
+    # 'targets' and 'role1' roles must be marked as dirty, otherwise writeall()
+    # will not create consistent snapshots for them.
     repository.mark_dirty(['targets', 'role1'])
-    repository.write(consistent_snapshot=True)
+    repository.writeall(consistent_snapshot=True)
 
     # Verify that the newly written consistent snapshot can be loaded
     # successfully.
     repo_tool.load_repository(repository_directory)
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repository.write, 3, False)
-    self.assertRaises(tuf.FormatError, repository.write, False, 3)
+    self.assertRaises(tuf.FormatError, repository.writeall, 3, False)
+    self.assertRaises(tuf.FormatError, repository.writeall, False, 3)
 
 
 
@@ -360,10 +359,11 @@ class TestRepository(unittest.TestCase):
     # Verify the expected filenames.  get_filepaths_in_directory() returns
     # a list of absolute paths.
     metadata_files = repo.get_filepaths_in_directory(metadata_directory) 
-    expected_files = ['root.json', 'root.json.gz', 'targets.json',
-                      'targets.json.gz', 'snapshot.json', 'snapshot.json.gz',
-                      'timestamp.json', 'timestamp.json.gz', 'role1.json',
-                      'role1.json.gz']
+    expected_files = ['1.root.json', '1.root.json.gz', 'root.json',
+                      'root.json.gz', 'targets.json', 'targets.json.gz',
+                      'snapshot.json', 'snapshot.json.gz', 'timestamp.json',
+                      'timestamp.json.gz', 'role1.json', 'role1.json.gz',
+                      'role2.json', 'role2.json.gz']
     basenames = [] 
     for filepath in metadata_files:
       basenames.append(os.path.basename(filepath))
@@ -555,7 +555,7 @@ class TestMetadata(unittest.TestCase):
 
 
   def test_add_verification_key(self):
-    # Add verification key and verify with keys() that it was added. 
+    # Add verification key and verify that it was added via (role).keys.
     key_path = os.path.join('repository_data',
                             'keystore', 'snapshot_key.pub')
     key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
@@ -563,10 +563,42 @@ class TestMetadata(unittest.TestCase):
     
     keyid = key_object['keyid']
     self.assertEqual([keyid], self.metadata.keys)
+    
+    expiration = \
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
+    expiration = expiration.isoformat() + 'Z' 
+    roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
+                'signatures': [], 'version': 0,
+                'consistent_snapshot': False,
+                'compressions': [''], 'expires': expiration,
+                'partial_loaded': False}
+    
+    tuf.roledb.add_role('Root', roleinfo)
+    tuf.roledb.add_role('Targets', roleinfo)
+    tuf.roledb.add_role('Snapshot', roleinfo)
+    tuf.roledb.add_role('Timestamp', roleinfo)
+  
+    # Test for different top-level role names.
+    self.metadata._rolename = 'Targets'
+    self.metadata.add_verification_key(key_object)
+    self.metadata._rolename = 'Snapshot'
+    self.metadata.add_verification_key(key_object)
+    self.metadata._rolename = 'Timestamp'
+    self.metadata.add_verification_key(key_object)
 
+    # Test for a given 'expires' argument.
+    expires = datetime.datetime(2030, 1, 1, 12, 0)
+    self.metadata.add_verification_key(key_object, expires)
 
+  
+    # Test for an expired 'expires'.
+    expired = datetime.datetime(1984, 1, 1, 12, 0)
+    self.assertRaises(tuf.Error,
+                      self.metadata.add_verification_key, key_object, expired)
+    
     # Test improperly formatted key argument.
     self.assertRaises(tuf.FormatError, self.metadata.add_verification_key, 3)
+    self.assertRaises(tuf.FormatError, self.metadata.add_verification_key, key_object, 3)
 
 
 
@@ -663,13 +695,22 @@ class TestMetadata(unittest.TestCase):
     root_signable = tuf.util.load_json_file(root_filepath)
     signatures = root_signable['signatures']
 
-    # Add the first signature from the list, as only need one is needed.
+    # Add the first signature from the list, as only one is needed.
     self.metadata.add_signature(signatures[0])
     self.assertEqual(signatures, self.metadata.signatures)
 
+    # Verify that a signature is added if a 'signatures' entry is not present.
+    tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'])
+    del tuf.roledb._roledb_dict['default']['root']['signatures']
+    self.metadata._rolename = 'root'
+    self.metadata.add_signature(signatures[0])
+
+    # Add a duplicate signature.
+    self.metadata.add_signature(signatures[0])
 
     # Test improperly formatted signature argument.
     self.assertRaises(tuf.FormatError, self.metadata.add_signature, 3)
+    self.assertRaises(tuf.FormatError, self.metadata.add_signature, signatures[0], 3)
 
 
 
@@ -948,7 +989,7 @@ class TestTargets(unittest.TestCase):
     threshold = 1
 
     self.targets_object.delegate(rolename, public_keys, list_of_targets,
-                                 threshold, backtrack=True,
+                                 threshold, terminating=False,
                                  restricted_paths=None,
                                  path_hash_prefixes=None)
 
@@ -1107,7 +1148,7 @@ class TestTargets(unittest.TestCase):
     path_hash_prefixes = ['e3a3', '8fae', 'd543']
 
     self.targets_object.delegate(rolename, public_keys, list_of_targets,
-                                 threshold, backtrack=True,
+                                 threshold, terminating=False,
                                  restricted_paths=restricted_paths,
                                  path_hash_prefixes=path_hash_prefixes)
 
@@ -1116,7 +1157,7 @@ class TestTargets(unittest.TestCase):
     
     # Try to delegate to a role that has already been delegated.
     self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,
-                      public_keys, list_of_targets, threshold, backtrack=True,
+                      public_keys, list_of_targets, threshold, terminating=False,
                       restricted_paths=restricted_paths,
                       path_hash_prefixes=path_hash_prefixes)
 
@@ -1124,13 +1165,13 @@ class TestTargets(unittest.TestCase):
     self.targets_object.revoke(rolename)
     self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,
                       public_keys, ['non-existent.txt'], threshold,
-                      backtrack=True, restricted_paths=restricted_paths,
+                      terminating=False, restricted_paths=restricted_paths,
                       path_hash_prefixes=path_hash_prefixes)
     
     # Test for targets that do not exist under the targets directory.
     self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,
                       public_keys, list_of_targets, threshold,
-                      backtrack=True, restricted_paths=['non-existent.txt'],
+                      terminating=False, restricted_paths=['non-existent.txt'],
                       path_hash_prefixes=path_hash_prefixes)
 
 
@@ -1506,7 +1547,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Verify the expected roles have been loaded.  See
     # 'tuf/tests/repository_data/repository/'.
     expected_roles = \
-      ['root', 'targets', 'snapshot', 'timestamp', 'role1']
+      ['root', 'targets', 'snapshot', 'timestamp', 'role1', 'role2']
     for role in tuf.roledb.get_rolenames():
       self.assertTrue(role in expected_roles)
     
@@ -1514,7 +1555,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(len(repository.targets.keys))
     self.assertTrue(len(repository.snapshot.keys))
     self.assertTrue(len(repository.timestamp.keys))
-    self.assertTrue(len(repository.targets('role1').keys))
+    self.assertEqual(1, repository.targets('role1').version)
 
     # Assumed the targets (tuf/tests/repository_data/) role contains 'file1.txt'
     # and 'file2.txt'.
@@ -1535,6 +1576,15 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertRaises(tuf.RepositoryError, repo_tool.load_repository,
                       repository_directory)
 
+
+
+  def test_dirty_roles(self):
+    original_repository_directory = os.path.join('repository_data',
+                                                 'repository')
+    repository = repo_tool.load_repository(original_repository_directory) 
+    
+    # dirty_roles() only logs the list of dirty roles.
+    repository.dirty_roles()
 
 
 # Run the test cases.

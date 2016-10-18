@@ -744,7 +744,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -816,7 +816,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -870,7 +870,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
     # Verify that client's metadata files were refreshed successfully.
-    self.assertEqual(len(self.repository_updater.metadata['current']), 5)
+    self.assertEqual(len(self.repository_updater.metadata['current']), 6)
 
     # Test for compressed metadata roles.
     self.repository_updater.metadata['current']['snapshot']['meta']['targets.json.gz'] = \
@@ -997,18 +997,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository = repo_tool.load_repository(self.repository_directory)
   
      
-    repository.targets.delegate('role2', [self.role_keys['targets']['public']],
+    repository.targets.delegate('role3', [self.role_keys['targets']['public']],
                                 [], restricted_paths=[foo_pattern])
     
-    repository.targets.delegate('role3', [self.role_keys['targets']['public']],
+    repository.targets.delegate('role4', [self.role_keys['targets']['public']],
                                 [foo_package], restricted_paths=[foo_pattern])
     
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
-    repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
     repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets('role4').load_signing_key(self.role_keys['targets']['private']) 
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -1027,21 +1027,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # return a 'tuf.UnknownTargetError' exception.
     repository = repo_tool.load_repository(self.repository_directory)
     
-    repository.targets.revoke('role2')
     repository.targets.revoke('role3')
+    repository.targets.revoke('role4')
    
     # Ensure we delegate in trusted order (i.e., 'role2' has higher priority.)
-    repository.targets.delegate('role2', [self.role_keys['targets']['public']],
-                                [], backtrack=False, restricted_paths=[foo_pattern])
     repository.targets.delegate('role3', [self.role_keys['targets']['public']],
+                                [], terminating=True, restricted_paths=[foo_pattern])
+    repository.targets.delegate('role4', [self.role_keys['targets']['public']],
                                 [foo_package], restricted_paths=[foo_pattern])
     
-    repository.targets('role2').load_signing_key(self.role_keys['targets']['private']) 
     repository.targets('role3').load_signing_key(self.role_keys['targets']['private']) 
+    repository.targets('role4').load_signing_key(self.role_keys['targets']['private']) 
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -1108,7 +1108,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
      
-    repository.write(consistent_snapshot=True)
+    repository.writeall(consistent_snapshot=True)
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -1233,7 +1233,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -1278,7 +1278,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))

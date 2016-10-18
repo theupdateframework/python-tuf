@@ -1128,6 +1128,10 @@ def extract_pem(pem, private_pem=False):
     pem:
       A string in PEM format.
 
+    private_pem:
+      Boolean indicating whether 'pem' contains a private key.  'pem' is
+      expected to begin and end with a private header and footer.
+
   <Exceptions>
     tuf.FormatError, if 'pem' is improperly formatted.
 

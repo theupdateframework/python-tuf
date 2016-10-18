@@ -218,7 +218,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Set an arbitrary expiration so that the repository tool generates a new
     # version.
     repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 12, 12)
-    repository.write()
+    repository.writeall()
     
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
@@ -289,7 +289,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # Set an arbitrary expiration so that the repository tool generates a new
     # version.
     repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 12, 12)
-    repository.write()
+    repository.writeall()
    
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))

@@ -429,7 +429,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   # Verify the expected 'signature_method' value.
   if signature_method != 'RSASSA-PSS':
     raise tuf.UnknownMethodError(signature_method)
-  
+ 
   # Verify the RSASSA-PSS signature with pyca/cryptography.
   try:
     public_key_object = serialization.load_pem_public_key(public_key.encode('utf-8'),
@@ -454,12 +454,9 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       return False
 
   # Raised by load_pem_public_key(). 
-  except ValueError:
-    raise tuf.CryptoError('The PEM could not be decoded successfully.')
-
-  # Raised by load_pem_public_key().
-  except cryptography.exceptions.UnsupportedAlgorithm:
-    raise tuf.CryptoError('The private key type is not supported.')
+  except (ValueError, cryptography.exceptions.UnsupportedAlgorithm) as e:
+    raise tuf.CryptoError('The PEM could not be decoded successfully,'
+      ' or contained an unsupported key type: ' + str(e))
 
 
 
@@ -468,17 +465,10 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
 def create_rsa_encrypted_pem(private_key, passphrase):
   """
   <Purpose>
-    Return a string in PEM format, where the private part of the RSA key is
-    encrypted.  The private part of the RSA key is encrypted by the Triple
-    Data Encryption Algorithm (3DES) and Cipher-block chaining (CBC) for the 
-    mode of operation.  Password-Based Key Derivation Function 1 (PBKDF1) + MD5
-    is used to strengthen 'passphrase'.
-
-    TODO: Generate encrypted PEM (that matches PyCrypto's) once support is
-    added to pyca/cryptography.
-
-    https://en.wikipedia.org/wiki/Triple_DES
-    https://en.wikipedia.org/wiki/PBKDF2
+    Return a string in PEM format, where the private portion of the RSA key is
+    encrypted.  The format of the encrypted PEM is PKCS8, while the encryption
+    algorithm used varies.  pyca/cryptography will try to use the best
+    available encryption algorithm in this case.
 
     >>> public, private = generate_rsa_public_and_private(2048)
     >>> passphrase = 'secret'
@@ -498,13 +488,14 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
+    tuf.CryptoError, if 'private_key' (private PEM format) cannot be
+      deserialized.
 
     TypeError, if 'private_key' is unset. 
 
   <Side Effects>
-    PyCrypto's Crypto.PublicKey.RSA.exportKey() called to perform the actual
-    generation of the PEM-formatted output.
+    pyca/cryptography's key serialization functions are called to the
+    PEM-formatted output.
 
   <Returns>
     A string in PEM format, where the private RSA key is encrypted.
@@ -521,32 +512,32 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
 
   # 'private_key' is in PEM format and unencrypted.  The extracted key will be
-  # imported and converted to PyCrypto's RSA key object
-  # (i.e., Crypto.PublicKey.RSA).  Use PyCrypto's exportKey method, with a
-  # passphrase specified, to create the string.  PyCrypto uses PBKDF1+MD5 to
-  # strengthen 'passphrase', and 3DES with CBC mode for encryption.
+  # imported and converted to PyCA's RSA key object (.  Use PyCA's
+  # private_bytes() method, with a passphrase specified, to create the expected
+  # format of the private key.  In contrast, pycrypto_keys.py uses PBKDF1+MD5
+  # to strengthen 'passphrase', and 3DES with CBC mode for encryption.
   # 'private_key' may still be a NULL string after the
   # 'tuf.formats.PEMRSA_SCHEMA' (i.e., 'private_key' has variable size and can
   # be an empty string.
-  # TODO: Use PyCrypto to generate the encrypted PEM string.  Generating
-  # encrypted PEMs appears currently unsupported by pyca/cryptography. 
+  
   if len(private_key):
-    try:
-      rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
-      encrypted_pem = rsa_key_object.exportKey(format='PEM',
-                                               passphrase=passphrase) 
-    
-    except (ValueError, IndexError, TypeError) as e:
-      raise tuf.CryptoError('An encrypted RSA key in PEM format cannot be'
-        ' generated: ' + str(e))
+    try: 
+      private_key = load_pem_private_key(private_key.encode('utf-8'),
+                                         password=None,
+                                         backend=default_backend())
+    except ValueError:
+      raise tuf.CryptoError('The private key (in PEM format) could not be'
+        ' deserialized.')
   
   else:
     raise TypeError('The required private key is unset.')
-    
+  
+  encrypted_pem = \
+    private_key.private_bytes(encoding=serialization.Encoding.PEM,
+    format=serialization.PrivateFormat.PKCS8,
+    encryption_algorithm=serialization.BestAvailableEncryption(passphrase.encode('utf-8')))
 
   return encrypted_pem.decode()
-
-
 
 
 
@@ -738,7 +729,7 @@ def encrypt_key(key_object, password):
   tuf.formats.PASSWORD_SCHEMA.check_match(password)
 
   # Ensure the private portion of the key is included in 'key_object'.
-  if not key_object['keyval']['private']:
+  if 'private' not in key_object['keyval'] or not key_object['keyval']['private']:
     raise tuf.FormatError('Key object does not contain a private part.')
 
   # Derive a key (i.e., an appropriate encryption key and not the

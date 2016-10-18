@@ -452,7 +452,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
-                      '3', expires, False) 
+                      '3', expires, False)
     self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
                       1, '3', False) 
     self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
@@ -900,7 +900,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.roledb.add_role('obsolete_role', targets_roleinfo)
 
     repo_lib._generate_and_write_metadata('obsolete_role', obsolete_metadata,
-                                          True,    
                                           targets_directory, metadata_directory,         
                                           consistent_snapshot=False,
                                           filenames=None,     
@@ -961,6 +960,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     shutil.copytree(os.path.join('repository_data', 'repository', 'targets'),
                     targets_directory)
 
+    # Add a duplicate signature to the Root file for testing purposes).
+    root_file = os.path.join(metadata_directory, 'root.json')
+    signable = tuf.util.load_json_file(os.path.join(metadata_directory, 'root.json'))
+    signable['signatures'].append(signable['signatures'][0])
+
+    repo_lib.write_metadata_file(signable, root_file, 8, ['gz'], False)
+
     # Remove compressed metadata so that we can test for loading of a
     # repository with no compression enabled.
     for role_file in os.listdir(metadata_directory):
@@ -972,19 +978,16 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     repository = repo_tool.create_new_repository(repository_directory)
     repo_lib._load_top_level_metadata(repository, filenames)
 
-    # We partially loaded 'role1' via the top-level Targets role.  For the
-    # purposes of this test case (which only loads top-level metadata and no
-    # delegated metadata), remove this role to avoid issues with partially
-    # loaded information (e.g., missing 'version' info, signatures, etc.)
-    tuf.roledb.remove_role('role1')
-
     # Partially write all top-level roles (we increase the threshold of each
     # top-level role so that they are flagged as partially written.
     repository.root.threshold = repository.root.threshold + 1
     repository.snapshot.threshold = repository.snapshot.threshold + 1
     repository.targets.threshold = repository.targets.threshold + 1
     repository.timestamp.threshold = repository.timestamp.threshold + 1
-    repository.write(write_partial=True)
+    repository.write('root', )
+    repository.write('snapshot')
+    repository.write('targets')
+    repository.write('timestamp')
     
     repo_lib._load_top_level_metadata(repository, filenames)
 
@@ -1028,9 +1031,21 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
     self.assertEqual(len(root_signable), expected_number_of_signatures)
 
-    # Test that invalid keyid are ignored.
+    # Test for an invalid keyid.
     root_signable['signatures'][0]['keyid'] = '404'
     tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
+  
+    # Re-add a valid signature for the following test condition.
+    root_signable['signatures'].append(new_pss_signature)
+
+    # Test that an exception is not raised if an invalid sig is present,
+    # and that the duplicate key is removed 'root_signable'.
+    root_signable['signatures'][0]['sig'] = '4040'
+    invalid_keyid = root_signable['signatures'][0]['keyid'] 
+    tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
+
+    for signature in root_signable['signatures']:
+      self.assertFalse(invalid_keyid == signature['keyid'])
 
 
 
