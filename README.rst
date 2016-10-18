@@ -223,8 +223,12 @@ development header files. Debian-based distributions can install these header
 libraries with apt (Advanced Package Tool.)
 ::
 
-    $ apt-get install python-dev
-    $ apt-get install libffi-dev
+    $ apt-get install build-essential libssl-dev libffi-dev python-dev 
+
+Fedora-based distributions can install these libraries with dnf.
+::
+
+    $ dnf install libffi-devel redhat-rpm-config openssl-devel
 
 OS X users can install these header libraries with the `Homebrew <http://brew.sh/>`_ package manager.
 ::

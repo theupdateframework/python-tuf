@@ -47,7 +47,7 @@
   
   PEM-encrypted RSA key files use the Triple Data Encryption Algorithm (3DES),
   and Cipher-block chaining (CBC) for the mode of operation.  Password-Based Key
-  Derivation Function 1 (PBKF1) + MD5.
+  Derivation Function 1 (PBKDF1) + MD5.
  """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -467,7 +467,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   <Purpose>
     Return a string in PEM format, where the private portion of the RSA key is
     encrypted.  The format of the encrypted PEM is PKCS8, while the encryption
-    algorithm used is not fixed.  pyca/cryptography will try to use the best
+    algorithm used varies.  pyca/cryptography will try to use the best
     available encryption algorithm in this case.
 
     >>> public, private = generate_rsa_public_and_private(2048)
@@ -672,7 +672,7 @@ def encrypt_key(key_object, password):
     
     Whereas an encrypted PEM file uses the Triple Data Encryption Algorithm
     (3DES), the Cipher-block chaining (CBC) mode of operation, and the Password
-    Based Key Derivation Function 1 (PBKF1) + MD5 to strengthen 'password',
+    Based Key Derivation Function 1 (PBKDF1) + MD5 to strengthen 'password',
     encrypted TUF keys use AES-256-CTR-Mode and passwords strengthened with
     PBKDF2-HMAC-SHA256 (100K iterations by default, but may be overriden in
     'tuf.conf.PBKDF2_ITERATIONS' by the user).

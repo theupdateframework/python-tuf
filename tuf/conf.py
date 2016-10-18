@@ -79,7 +79,7 @@ SOCKET_TIMEOUT = 2 #seconds
 # The maximum chunk of data, in bytes, we would download in every round.
 CHUNK_SIZE = 8192 #bytes
 
-# The minimum average of download speed (bytes/second) that must be met to
+# The minimum average download speed (bytes/second) that must be met to
 # avoid being considered as a slow retrieval attack.
 MIN_AVERAGE_DOWNLOAD_SPEED = CHUNK_SIZE #bytes/second
 

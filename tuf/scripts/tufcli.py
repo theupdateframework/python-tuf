@@ -2,7 +2,7 @@
 
 """
 <Program Name>
-  tuf.py
+  tufcli.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
@@ -19,16 +19,16 @@
   which is required by the repository and developer tools.
 
 <Usage>
-  $ tuf.py --init </path/to/repo> [--consistent-snapshot=false]
-  $ tuf.py --gen-key <role> --keytype <keytype> --keystore </path/to/keystore> [--expires=<days>]
-  $ tuf.py --add <target> --repo <path/to/repo> 
-  $ tuf.py --remove <target> --repo <path/to/repo>
-  $ tuf.py --snapshot <path/to/repo>
-  $ tuf.py --timestamp <path/to/repo>
-  $ tuf.py --sign <role> --repo <path/to/repo>
-  $ tuf.py --commit <path/to/repo>
-  $ tuf.py --regenerate <path/to/repo>
-  $ tuf.py --clean --repo
+  $ tufcli.py --init </path/to/repo> [--consistent-snapshot=false]
+  $ tufcli.py --gen-key <role> --keytype <keytype> --keystore </path/to/keystore> [--expires=<days>]
+  $ tufcli.py --add <target> --repo <path/to/repo> 
+  $ tufcli.py --remove <target> --repo <path/to/repo>
+  $ tufcli.py --snapshot <path/to/repo>
+  $ tufcli.py --timestamp <path/to/repo>
+  $ tufcli.py --sign <role> --repo <path/to/repo>
+  $ tufcli.py --commit <path/to/repo>
+  $ tufcli.py --regenerate <path/to/repo>
+  $ tufcli.py --clean --repo
 
 <Options>
   --init
@@ -155,7 +155,7 @@ def parse_options():
 
   parser = optparse.OptionParser()
 
-  # Add the options supported by 'tuf.py' to the option parser.
+  # Add the options supported by 'tufcli.py' to the option parser.
   parser.add_option('--verbose', dest='VERBOSE', type=int, default=2,
                     help='Set the verbosity level of logging messages.'
                          'The lower the setting, the greater the verbosity.')
