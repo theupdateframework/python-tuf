@@ -140,8 +140,12 @@ The following four key files should now exist:
 Enter a password for the encrypted RSA key:
 ```
 `import_rsa_privatekey_from_file()` raises a `tuf.CryptoError` exception if the
-key / password is invalid: tuf.CryptoError: RSA (public, private) tuple cannot
+key / password is invalid:
+
+```
+tuf.CryptoError: RSA (public, private) tuple cannot
 be generated from the encrypted PEM string: Bad decrypt. Incorrect password?
+```
 Note: The specific message provided by the exception might differ depending on
 which cryptography library is used.
 
