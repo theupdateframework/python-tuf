@@ -168,25 +168,25 @@ Enter a password for the encrypted Ed25519 key:
 ```
 
 ### Create Top-level Metadata ###
-The [metadata document](../METADATA.md) outlines the JSON metadata files that
-must exist on a TUF repository.  The following sub-sections provide the
+The [metadata document](../METADATA.md) outlines the JSON files that must exist
+on a TUF repository.  The following sub-sections demonstrate the
 `repository_tool.py` calls repository maintainers may issue to generate the
 required roles.  The top-level roles to be created are `root`, `timestamp`,
 `snapshot`, and `target`.
 
-We begin with `root`, the root of trust that specifies the public keys of the 
-top-level roles, including itself. 
+We begin with `root`, the locus of trust that specifies the public keys of the 
+top-level roles, including itself.
 
 
 #### Create Root ####
 ```python
 # Continuing from the previous section . . .
 
-# Create a new Repository object that holds the file path to the repository and
-# the four top-level role objects (Root, Targets, Snapshot, Timestamp).
-# Metadata files are created when repository.write() is called.  The repository
-# directory is created if it does not exist.  You may see log messages
-# indicating any directories created.
+# Create a new Repository object that holds the file path to the TUF repository
+# and the four top-level role objects (Root, Targets, Snapshot, Timestamp).
+# Metadata files are created when repository.writeall() or repository.write()
+# are called.  The repository directory is created if it does not exist.  You
+# may see log messages indicating any directories created.
 >>> repository = create_new_repository("repository/")
 
 # The Repository instance, 'repository', initially contains top-level Metadata
@@ -195,9 +195,10 @@ top-level roles, including itself.
 # corresponding private key.
 >>> repository.root.add_verification_key(public_root_key)
 
-# Role keys (i.e., the key's keyid) may be queried.  Other attributes include:
-# signing_keys, version, signatures, expiration, threshold, delegations
-# (Targets role), and compressions.
+# A role's verification key(s) (to be more precise, the verification key's
+# keyid) may be queried.  Other attributes include: signing_keys, version,
+# signatures, expiration, threshold, delegations (attribute available only to a
+# Targets role), and compressions.
 >>> repository.root.keys
 ['b23514431a53676595922e955c2d547293da4a7917e3ca243a175e72bbf718df']
 
@@ -207,30 +208,30 @@ top-level roles, including itself.
 >>> public_root_key2 = import_rsa_publickey_from_file("keystore/root_key2.pub")
 >>> repository.root.add_verification_key(public_root_key2)
 
-# Threshold of each role defaults to 1.   Maintainers may change the threshold
-# value, but repository_tool.py validates thresholds and warns users.  Set the
-# threshold of the root role to 2, which means the root metadata file is
-# considered valid if it contains at least two valid signatures.  We also
-# load the second private key, which hasn't been imported yet.
+# The threshold of each role defaults to 1.   Maintainers may change the
+# threshold value, but repository_tool.py validates thresholds and warns users.
+# Set the threshold of the root role to 2, which means the root metadata file
+# is considered valid if it's signed by at least two valid keys.  We also load
+# the second private key, which hasn't been imported yet.
 >>> repository.root.threshold = 2
 >>> private_root_key2 = import_rsa_privatekey_from_file("keystore/root_key2", password="password")
 
 # Load the root signing keys to the repository, which writeall() or write()
-# (write multiple roles, or a single role, to disk) uses to sign the root
-# metadata.  The load_signing_key() method SHOULD warn when the key is NOT
-# explicitly allowed to sign for it.
+# (write multiple roles, or a single role, to disk) use to sign the root
+# metadata.
 
 >>> repository.root.load_signing_key(private_root_key)
 >>> repository.root.load_signing_key(private_root_key2)
 
 # Print the roles that are "dirty" (i.e., that have not been written to disk
-# or have changed.
+# or have changed.  Root should be dirty because verification keys have been
+# added, private keys loaded, etc.)
 >>> repository.dirty_roles()
 Dirty roles: ['root']
 
-# The status() function also prints the next role(s) that needs editing.
-# In this example, the 'targets' role needs editing next, since the root
-# role is now fully valid.
+# The status() function also prints the next role that needs editing.  In this
+# example, the 'targets' role needs editing next, since the root role is now
+# fully valid.
 >>> repository.status()
 'targets' role contains 0 / 1 public keys.
 
