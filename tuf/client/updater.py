@@ -678,7 +678,7 @@ class Updater(object):
     # Spool the errors from all mirrors of all repositories in all delegations.
     all_mirror_errors = {}
     for nwme in exceptions_from_all_delegations:
-      for mirror_url, mirror_error in six.iteritems(e.mirror_errors):
+      for mirror_url, mirror_error in six.iteritems(nwme.mirror_errors):
         # TODO: <~> THE FOLLOWING LINE IS FLAWED!
         # If there are mirrors of the same URL in multiple repositories
         # (which will occur for a common use case!), then there will be
