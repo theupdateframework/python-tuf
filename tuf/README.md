@@ -34,17 +34,18 @@
 A software update system must follow two steps to integrate The Update
 Framework (TUF).  First, it must add the framework to the client side of the
 update system.  The [tuf.client.updater](client/README.md) module assists in
-integrating TUF on the client side.  Second, the repository on the server side
-must be modified to include a minimum of four top-level metadata (root.json,
-targets.json, snapshot.json, timestamp.json).  No additional software is
-required to convert a repository to a TUF one.  The repository tool that
-generates the required TUF metadata is the focus of this demo.  In addition,
-the update procedure of a TUF integration is demonstrated and some malicious
-updates are attempted.
+integrating TUF on the client side.  Second, the software repository on the
+server side must be modified to include a minimum of four top-level metadata
+(root.json, targets.json, snapshot.json, and timestamp.json).  No additional
+software is required to convert a software repository to a TUF one.  The
+repository tool that generates the required TUF metadata for a software
+repository is the focus of this document.  In addition, the update procedure of
+a TUF integration is demonstrated, and some malicious updates are attempted to
+show how TUF protects against these attacks.
 
 The [repository tool](repository_tool.py) contains functions to generate all of
 the files needed to populate and manage a TUF repository.  The tool may either
-be imported into a Python module or used with the Python interpreter in
+be imported into a Python module, or used with the Python interpreter in
 interactive mode.  For instance, here is an example of loading a TUF repository
 in interactive mode:
 
@@ -54,27 +55,28 @@ Python 2.7.3 (default, Sep 26 2013, 20:08:41)
 [GCC 4.6.3] on linux2
 Type "help", "copyright", "credits" or "license" for more information.
 >>> from tuf.repository_tool import *
->>> repository = load_repository("/path/to/repository")
+>>> repository = load_repository("path/to/repository")
 ```
 
 A repository object that encapsulates the metadata files of the repository can
-be created or loaded by the repository tool.  Repository maintainers modify the
-repository object to update metadata files stored on the repository.  TUF uses
-the metadata files to validate files requested and downloaded by clients.  In
-addition to the repository object, where the majority of changes are made, the
-repository tool provides functions to generate and persist cryptographic keys.
-The framework utilizes cryptographic keys to sign and verify metadata files.
+be created or loaded by the repository tool.  Repository maintainers can modify
+the repository object to manipulate the metadata files stored on the
+repository.  TUF clients use the metadata files to validate files requested and
+downloaded.  In addition to the repository object, where the majority of
+changes are made, the repository tool provides functions to generate and
+persist cryptographic keys.  The framework utilizes cryptographic keys to sign
+and verify metadata files.
 
-To begin the demo, cryptographic keys are generated.  However, before metadata
-files can be validated by clients and target files fetched in a secure manner,
-public keys must be pinned to particular metadata roles and signatures generated
-by the private keys.  After covering keys, the four required top-level roles are
-created next.  Examples are given demonstrating the expected work flow, where
-the metadata roles are created in a specific order, keys imported and loaded,
-and the metadata objects signed and written to disk.  Lastly, target files are
-added to the repository, included in metadata, and a custom delegation
-performed to extend the default roles of the repository.  By the end, a fully
-populated TUF repository is generated that can be used to securely download
+To begin, cryptographic keys are generated with the repository tool.  However,
+before metadata files can be validated by clients and target files fetched in a
+secure manner, public keys must be pinned to particular metadata roles and
+metadata signed by role's private keys.  After covering keys, the four required
+top-level metadata are created next.  Examples are given demonstrating the
+expected work flow, where the metadata roles are created in a specific order,
+keys imported and loaded, and metadata signed and written to disk.  Lastly,
+target files are added to the repository, and a custom delegation performed to
+extend the default roles of the repository.  By the end, a fully populated TUF
+repository is generated that can be used by clients to securely download
 updates.
 
 ### Virtual Machine and Installation Instructions ###
@@ -566,7 +568,8 @@ restricted paths for some role is provided next.
 ## How to Perform an Update ##
 
 Documentation for setting up a TUF client and performing an update is
-provided [here](client_setup_and_repository_example.md).
+provided [here](client_setup_and_repository_example.md).  The documentation
+there is provided here for convenience.
 
 The following [repository tool](README.md) function creates a directory
 structure that a client downloading new software using TUF (via
