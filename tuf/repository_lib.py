@@ -1064,7 +1064,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None: # pragma: no cover
-    message = 'Enter a password for the ED25519 key: '
+    message = 'Enter a password for the Ed25519 key: '
     password = _get_password(message, confirm=True)
 
   # Does 'password' have the correct format?
@@ -1204,7 +1204,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   # Password confirmation disabled here, which should ideally happen only
   # when creating encrypted key files (i.e., improve usability).
   if password is None: # pragma: no cover
-    message = 'Enter a password for the encrypted ED25519 key: '
+    message = 'Enter a password for the encrypted Ed25519 key: '
     password = _get_password(message, confirm=False)
 
   # Does 'password' have the correct format?
