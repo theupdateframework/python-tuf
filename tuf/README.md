@@ -86,18 +86,20 @@ The repository tool supports multiple public-key algorithms, such as
 Which cryptography library to use is determined by the default, or user modified,
 settings in [conf.py](conf.py).
 
-The [PyCrypto](https://www.dlitz.net/software/pycrypto/) library may be selected to
-generate RSA keys and [RSA-PSS](https://en.wikipedia.org/wiki/RSA-PSS) signatures.
-If generation of Ed25519 signatures is needed, the [PyNaCl](https://github.com/pyca/pynacl)
-library setting should be enabled.  PyNaCl is a Python binding to the Networking and
-Cryptography Library.  For key storage, RSA keys may be stored in PEM or JSON format,
-and Ed25519 keys in JSON format.  Private keys, for both RSA and Ed25519, are encrypted
-and passphrase-protected (strengthened with PBKDF2-HMAC-SHA256.)  Generating cryptographic
-key files, importing, and loading them can be done with functions available in the repository
-tool.
+The [PyCrypto](https://www.dlitz.net/software/pycrypto/) library may be
+selected to generate RSA keys and
+[RSA-PSS](https://en.wikipedia.org/wiki/RSA-PSS) signatures.  If generation of
+Ed25519 signatures is needed, the [PyNaCl](https://github.com/pyca/pynacl)
+library setting should be enabled.  PyNaCl is a Python binding to the
+Networking and Cryptography Library.  For key storage, RSA keys may be stored
+in PEM or JSON format, and Ed25519 keys in JSON format.  Private keys, for both
+RSA and Ed25519, are encrypted and passphrase-protected (strengthened with
+PBKDF2-HMAC-SHA256.)  Generating, importing, and loading cryptographic key
+files can be done with functions available in the repository tool.
 
-To start, a public and private RSA key pair is generated with the `generate_and_write_rsa_keypair()`
-function.  The keys generated will sign the repository metadata files created in upcoming sub-sections.
+To start, a public and private RSA key pair is generated with the
+`generate_and_write_rsa_keypair()` function.  The keys generated next are
+needed to sign the repository metadata files created in upcoming sub-sections.
 
 #### Create RSA Keys ####
 ```python
@@ -105,9 +107,10 @@ function.  The keys generated will sign the repository metadata files created in
 
 # Generate and write the first of two root keys for the TUF repository.  The
 # following function creates an RSA key pair, where the private key is saved to
-# "keystore/root_key" and the public key to "keystore/root_key.pub".
-# The 'keystore' directory can be manually created in the current directory
-# to store the keys that we create in these examples.
+# "keystore/root_key" and the public key to "keystore/root_key.pub" (both saved
+# to the current working directory).  The 'keystore' directory can be manually
+# created in the current directory to store the keys created in these examples.
+# If 'keystore' directory does not exist, it will be created. 
 >>> generate_and_write_rsa_keypair("keystore/root_key", bits=2048, password="password")
 
 # If the key length is unspecified, it defaults to 3072 bits. A length of less 
@@ -126,27 +129,30 @@ The following four key files should now exist:
 
 ### Import RSA Keys ###
 ```python
->>> from tuf.repository_tool import *
+# Continuing from the previous section . . .
 
 # Import an existing public key.
 >>> public_root_key = import_rsa_publickey_from_file("keystore/root_key.pub")
 
-# Import an existing private key.  Importing a private key requires a password, whereas
-# importing a public key does not.
+# Import an existing private key.  Importing a private key requires a password,
+# whereas importing a public key does not.
 >>> private_root_key = import_rsa_privatekey_from_file("keystore/root_key")
 Enter a password for the encrypted RSA key:
 ```
 `import_rsa_privatekey_from_file()` raises a `tuf.CryptoError` exception if the
-key / password is invalid.
+key / password is invalid: tuf.CryptoError: RSA (public, private) tuple cannot
+be generated from the encrypted PEM string: Bad decrypt. Incorrect password?
+Note: The specific message provided by the exception might differ depending on
+which cryptography library is used.
 
 ### Create and Import Ed25519 Keys ###
 ```Python
->>> from tuf.repository_tool import *
+# Continuing from the previous section . . .
 
-# Generate and write an ed25519 key pair.  The private key is saved encrypted.
+# Generate and write an Ed25519 key pair.  The private key is saved encrypted.
 # A 'password' argument may be supplied, otherwise a prompt is presented.
 >>> generate_and_write_ed25519_keypair('keystore/ed25519_key')
-Enter a password for the ED25519 key: 
+Enter a password for the Ed25519 key: 
 Confirm:
 
 # Import the ed25519 public key just created . . .
@@ -154,7 +160,7 @@ Confirm:
 
 # and its corresponding private key.
 >>> private_ed25519_key = import_ed25519_privatekey_from_file('keystore/ed25519_key')
-Enter a password for the encrypted ED25519 key: 
+Enter a password for the encrypted Ed25519 key: 
 ```
 
 ### Create Top-level Metadata ###
