@@ -2028,7 +2028,7 @@ def write_metadata_file(metadata, filename, version_number,
     # would always point to the current version.  Example: 1.root.json and
     # 2.root.json -> root.json.  If consistent snapshot is True, we should save
     # the consistent snapshot and point 'written_filename' to it.
-    logger.info('Creating a consistent snapshot for ' + repr(written_filename))
+    logger.debug('Creating a consistent snapshot for ' + repr(written_filename))
     logger.debug('Saving ' + repr(written_consistent_filename))
     file_object.move(written_consistent_filename)
 
@@ -2038,11 +2038,11 @@ def write_metadata_file(metadata, filename, version_number,
     # root.json).  The option should be a configurable in tuf.conf.py.
     # For now, we create a copy of the consistent snapshot and save it to
     # 'written_filename'.
-    logger.info('Pointing ' + repr(filename) + ' to the consistent snapshot.')
+    logger.debug('Pointing ' + repr(filename) + ' to the consistent snapshot.')
     shutil.copyfile(written_consistent_filename, written_filename)
   
   else:
-    logger.info('Not creating a consistent snapshot for ' + repr(written_filename))
+    logger.debug('Not creating a consistent snapshot for ' + repr(written_filename))
     logger.debug('Saving ' + repr(written_filename))
     file_object.move(written_filename)
   
