@@ -1,7 +1,7 @@
 # Repository Management #
 
 ## Table of Contents ##
-- [How to Create and Modify a Basic TUF Repository](#how-to-create-and-modify-a-tuf-repository)
+- [How to Create and Modify a TUF Repository](#how-to-create-and-modify-a-tuf-repository)
   - [Overview](#overview)
   - [Keys](#keys)
     - [Create RSA Keys](#create-rsa-keys)
@@ -18,26 +18,35 @@
   - [Wrap-up](#wrap-up)
 - [Delegate to Hashed Bins](#delegate-to-hashed-bins)
 - [Consistent Snapshots](#consistent-snapshots)
+- [How to Perform an Update](#how-to-perform-an-update)
+- [Blocking Malicious Updates](#blocking-malicious-updates)
+  - [Arbitrary Package Attack](#arbitrary-package-attack)
+  - [Rollback Attack](#rollback-attack)
+  - [Indefinite Freeze Attack](#indefinite-freeze-attack)
+  - [Endless Data Attack](#endless-data-attack)
+  - [Compromised Key Attack](#compromised-key-attack)
+  - [Slow Retrieval Attack](#slow-retrieval-attack)
+- [Conclusion](#conclusion)
 
-
-## How to Create and Modify a Basic TUF Repository ##
-
+## How to Create and Modify a TUF Repository ##
 
 ### Overview ###
-A software update system must complete two main tasks to integrate The Update
-Framework (TUF.)  First, it must add the framework to the client side of the system.
-The [tuf.client.updater](client/README.md) module and
-[tuf.interposition](interposition/README.md) package assist in integrating
-TUF on the client side.  Second, the repository on the server side must
-be modified to include a minimum of four metadata files.  No additional software
-is required to convert a repository to a TUF one.  The tool to generate the
-required metadata files of the repository is the focus of this document.
+A software update system must follow two steps to integrate The Update
+Framework (TUF).  First, it must add the framework to the client side of the
+update system.  The [tuf.client.updater](client/README.md) module assists in
+integrating TUF on the client side.  Second, the repository on the server side
+must be modified to include a minimum of four top-level metadata (root.json,
+targets.json, snapshot.json, timestamp.json).  No additional software is
+required to convert a repository to a TUF one.  The repository tool that
+generates the required TUF metadata is the focus of this demo.  In addition,
+the update procedure of a TUF integration is demonstrated and some malicious
+updates are attempted.
 
-
-The [repository tool](repository_tool.py) contains functions to generate all the
-files needed to populate and manage a TUF repository.  The tool may either be
-imported into a Python module or used with the Python interpreter in interactive
-mode.
+The [repository tool](repository_tool.py) contains functions to generate all of
+the files needed to populate and manage a TUF repository.  The tool may either
+be imported into a Python module or used with the Python interpreter in
+interactive mode.  For instance, here is an example of loading a TUF repository
+in interactive mode:
 
 ```Bash
 $ python
@@ -48,34 +57,59 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> repository = load_repository("/path/to/repository")
 ```
 
-The tool requires additional cryptographic libraries that may be installed
-with [pip](https://pypi.python.org/pypi/pip).
-```Bash
-$ pip install tuf[tools]
+A repository object that encapsulates the metadata files of the repository can
+be created or loaded by the repository tool.  Repository maintainers modify the
+repository object to update metadata files stored on the repository.  TUF uses
+the metadata files to validate files requested and downloaded by clients.  In
+addition to the repository object, where the majority of changes are made, the
+repository tool provides functions to generate and persist cryptographic keys.
+The framework utilizes cryptographic keys to sign and verify metadata files.
+
+To begin the demo, cryptographic keys are generated.  However, before metadata
+files can be validated by clients and target files fetched in a secure manner,
+public keys must be pinned to particular metadata roles and signatures generated
+by the private keys.  After covering keys, the four required top-level roles are
+created next.  Examples are given demonstrating the expected work flow, where
+the metadata roles are created in a specific order, keys imported and loaded,
+and the metadata objects signed and written to disk.  Lastly, target files are
+added to the repository, included in metadata, and a custom delegation
+performed to extend the default roles of the repository.  By the end, a fully
+populated TUF repository is generated that can be used to securely download
+updates.
+
+### Virtual Machine and Installation Instructions ###
+A VirtualBox [appliance](https://en.wikipedia.org/wiki/Virtual_appliance) is
+made available that can be used to reproduce these demo instructions.  The
+appliance has all the requisite libraries and programs pre-installed, and has
+everything separated from the OS's Python installation.  All the user has to do
+is activate the [Virtualenv
+enviroment](http://docs.python-guide.org/en/latest/dev/virtualenvs/).  The
+Virtual Machine can be downloaded
+[here](https://drive.google.com/file/d/0BxIzRxMoQ-57RnFxNmN4cHFxWk0/view?usp=sharing).
+The account credentials to log on to the Linux installation on the virtual
+machine are:
+
+```
+user: tuf
+password: password
 ```
 
-A repository object that encapsulates the metadata files of the repository
-can be created or loaded by the repository tool.  Repository maintainers
-modify the repository object to update metadata files stored on the
-repository.  TUF uses the metadata files to validate files requested and
-downloaded by clients.  In addition to the repository object, where the majority
-of changes are made, the repository tool provides functions to generate and
-persist cryptographic keys.  The framework utilizes cryptographic keys to
-sign and verify metadata files.  For a comprehensive list of repository tool
-functions and classes, a [diagram](../docs/images/repository_tool-diagram.png)
-is available.  Documentation for setting up a TUF client and performing an update is
-provided [here](client_setup_and_repository_example.md).
+You can activate the 'tufenv' environment as follows:
 
-To begin, cryptographic keys are generated.  Before metadata files can be validated
-by clients and target files fetched in a secure manner, public keys must be pinned to
-particular metadata roles and signatures generated by the private keys.  After
-covering keys, the four required top-level roles are introduced.  Examples are
-given demonstrating the expected work flow, where the metadata roles are created
-in a specific order, keys imported and loaded, and the metadata objects signed and
-written to disk.  Lastly, target files are added to the repository, included in
-metadata, and custom delegations performed to extend the default roles of the
-repository.  By the end, a fully populated TUF repository is generated that can be
-tested.
+```Bash
+$ cd ~/projects/demo_docker_summit/
+$ source tufenv/bin/activate
+
+# You can now create a TUF repository according to the demo document.
+$ cd demo/demo_repository/
+$ python
+>>> from tuf.repository_tool import *
+```
+
+It would also be a good idea at this time to verify that the Git repository
+(~/projects/demo_docker_summit/demo) on the VM is up-to-date.  One can update it by
+executing "git pull origin master" on the command line.
+
 
 ### Keys ###
 The repository tool supports multiple public-key algorithms, such as
@@ -101,15 +135,17 @@ function.  The keys generated will sign the repository metadata files created in
 ```python
 >>> from tuf.repository_tool import *
 
-# Generate and write the first of two root keys for the TUF repository.
-# The following function creates an RSA key pair, where the private key is saved to
-# "/path/to/root_key" and the public key to "/path/to/root_key.pub".
->>> generate_and_write_rsa_keypair("/path/to/root_key", bits=2048, password="password")
+# Generate and write the first of two root keys for the TUF repository.  The
+# following function creates an RSA key pair, where the private key is saved to
+# "keystore/root_key" and the public key to "keystore/root_key.pub".
+# The 'keystore' directory can be manually created in the current directory
+# to store the keys that we create in these examples.
+>>> generate_and_write_rsa_keypair("keystore/root_key", bits=2048, password="password")
 
 # If the key length is unspecified, it defaults to 3072 bits. A length of less 
 # than 2048 bits raises an exception. A password may be supplied as an 
 # argument, otherwise a user prompt is presented.
->>> generate_and_write_rsa_keypair("/path/to/root_key2")
+>>> generate_and_write_rsa_keypair("keystore/root_key2")
 Enter a password for the RSA key:
 Confirm:
 ```
@@ -125,11 +161,11 @@ The following four key files should now exist:
 >>> from tuf.repository_tool import *
 
 # Import an existing public key.
->>> public_root_key = import_rsa_publickey_from_file("/path/to/root_key.pub")
+>>> public_root_key = import_rsa_publickey_from_file("keystore/root_key.pub")
 
 # Import an existing private key.  Importing a private key requires a password, whereas
 # importing a public key does not.
->>> private_root_key = import_rsa_privatekey_from_file("/path/to/root_key")
+>>> private_root_key = import_rsa_privatekey_from_file("keystore/root_key")
 Enter a password for the encrypted RSA key:
 ```
 `import_rsa_privatekey_from_file()` raises a `tuf.CryptoError` exception if the
@@ -141,15 +177,15 @@ key / password is invalid.
 
 # Generate and write an ed25519 key pair.  The private key is saved encrypted.
 # A 'password' argument may be supplied, otherwise a prompt is presented.
->>> generate_and_write_ed25519_keypair('/path/to/ed25519_key')
+>>> generate_and_write_ed25519_keypair('keystore/ed25519_key')
 Enter a password for the ED25519 key: 
 Confirm:
 
 # Import the ed25519 public key just created . . .
->>> public_ed25519_key = import_ed25519_publickey_from_file('/path/to/ed25519_key.pub')
+>>> public_ed25519_key = import_ed25519_publickey_from_file('keystore/ed25519_key.pub')
 
 # and its corresponding private key.
->>> private_ed25519_key = import_ed25519_privatekey_from_file('/path/to/ed25519_key')
+>>> private_ed25519_key = import_ed25519_privatekey_from_file('keystore/ed25519_key')
 Enter a password for the encrypted ED25519 key: 
 ```
 
@@ -168,59 +204,60 @@ top-level roles, including itself.
 ```python
 # Continuing from the previous section . . .
 
-# Create a new Repository object that holds the file path to the repository and the four
-# top-level role objects (Root, Targets, Snapshot, Timestamp). Metadata files are created when
-# repository.write() is called.  The repository directory is created if it does not exist.
->>> repository = create_new_repository("/path/to/repository/")
+# Create a new Repository object that holds the file path to the repository and
+# the four top-level role objects (Root, Targets, Snapshot, Timestamp).
+# Metadata files are created when repository.write() is called.  The repository
+# directory is created if it does not exist.  You may see log messages
+# indicating any directories created.
+>>> repository = create_new_repository("repository/")
 
-# The Repository instance, 'repository', initially contains top-level Metadata objects.
-# Add one of the public keys, created in the previous section, to the root role.  Metadata is
-# considered valid if it is signed by the public key's corresponding private key.
+# The Repository instance, 'repository', initially contains top-level Metadata
+# objects.  Add one of the public keys, created in the previous section, to the
+# root role.  Metadata is considered valid if it is signed by the public key's
+# corresponding private key.
 >>> repository.root.add_verification_key(public_root_key)
 
-# Role keys (i.e., the key's keyid) may be queried.  Other attributes include: signing_keys, version,
-# signatures, expiration, threshold, delegations (Targets role), and compressions.
+# Role keys (i.e., the key's keyid) may be queried.  Other attributes include:
+# signing_keys, version, signatures, expiration, threshold, delegations
+# (Targets role), and compressions.
 >>> repository.root.keys
 ['b23514431a53676595922e955c2d547293da4a7917e3ca243a175e72bbf718df']
 
-# Add a second public key to the root role.  Although previously generated and saved to a file,
-# the second public key must be imported before it can added to a role.
->>> public_root_key2 = import_rsa_publickey_from_file("/path/to/root_key2.pub")
+# Add a second public key to the root role.  Although previously generated and
+# saved to a file, the second public key must be imported before it can added
+# to a role.
+>>> public_root_key2 = import_rsa_publickey_from_file("keystore/root_key2.pub")
 >>> repository.root.add_verification_key(public_root_key2)
 
-# Threshold of each role defaults to 1.   Users may change the threshold value, but repository_tool.py
-# validates thresholds and warns users.  Set the threshold of the root role to 2,
-# which means the root metadata file is considered valid if it contains at least two valid 
-# signatures.
+# Threshold of each role defaults to 1.   Maintainers may change the threshold
+# value, but repository_tool.py validates thresholds and warns users.  Set the
+# threshold of the root role to 2, which means the root metadata file is
+# considered valid if it contains at least two valid signatures.  We also
+# load the second private key, which hasn't been imported yet.
 >>> repository.root.threshold = 2
->>> private_root_key2 = import_rsa_privatekey_from_file("/path/to/root_key2", password="password")
+>>> private_root_key2 = import_rsa_privatekey_from_file("keystore/root_key2", password="password")
 
-# Load the root signing keys to the repository, which write() uses to sign the root metadata.
-# The load_signing_key() method SHOULD warn when the key is NOT explicitly allowed to
-# sign for it.
+# Load the root signing keys to the repository, which writeall() or write()
+# (write multiple roles, or a single role, to disk) uses to sign the root
+# metadata.  The load_signing_key() method SHOULD warn when the key is NOT
+# explicitly allowed to sign for it.
+
 >>> repository.root.load_signing_key(private_root_key)
 >>> repository.root.load_signing_key(private_root_key2)
 
-# Print the number of valid signatures and public / private keys of the
-# repository's metadata.
+# Print the roles that are "dirty" (i.e., that have not been written to disk
+# or have changed.
+>>> repository.dirty_roles()
+Dirty roles: ['root']
+
+# The status() function also prints the next role(s) that needs editing.
+# In this example, the 'targets' role needs editing next, since the root
+# role is now fully valid.
 >>> repository.status()
-'root' role contains 2 / 2 signatures.
 'targets' role contains 0 / 1 public keys.
 
->>> try:
-...   repository.write()
-
-# An exception is raised here by write() because the other top-level roles (targets, snapshot,
-# and timestamp) have not been configured with keys.  Another option is to call
-# repository.write_partial() and generate metadata that may contain an invalid threshold of
-# signatures, required public keys, etc.  write_partial() allows multiple repository maintainers to
-# independently sign metadata and generate them separately.  load_repository() can load partially
-# written metadata.
->>> except tuf.UnsignedMetadataError, e:
-...   print e 
-Not enough signatures for '/path/to/repository/metadata.staged/targets.json'
-
-# In the next section, update the other top-level roles and create a repository with valid metadata.
+# In the next section, update the other top-level roles and create a repository
+# with valid metadata.
 ```
 
 #### Create Timestamp, Snapshot, Targets
@@ -239,42 +276,34 @@ manner.
 
 # Generate keys for the remaining top-level roles.  The root keys have been set above.
 # The password argument may be omitted if a password prompt is needed. 
->>> generate_and_write_rsa_keypair("/path/to/targets_key", password="password")
->>> generate_and_write_rsa_keypair("/path/to/snapshot_key", password="password")
->>> generate_and_write_rsa_keypair("/path/to/timestamp_key", password="password")
+>>> generate_and_write_rsa_keypair("keystore/targets_key", password="password")
+>>> generate_and_write_rsa_keypair("keystore/snapshot_key", password="password")
+>>> generate_and_write_rsa_keypair("keystore/timestamp_key", password="password")
 
 # Add the public keys of the remaining top-level roles.
->>> repository.targets.add_verification_key(import_rsa_publickey_from_file("/path/to/targets_key.pub"))
->>> repository.snapshot.add_verification_key(import_rsa_publickey_from_file("/path/to/snapshot_key.pub"))
->>> repository.timestamp.add_verification_key(import_rsa_publickey_from_file("/path/to/timestamp_key.pub"))
+>>> repository.targets.add_verification_key(import_rsa_publickey_from_file("keystore/targets_key.pub"))
+>>> repository.snapshot.add_verification_key(import_rsa_publickey_from_file("keystore/snapshot_key.pub"))
+>>> repository.timestamp.add_verification_key(import_rsa_publickey_from_file("keystore/timestamp_key.pub"))
 
 # Import the signing keys of the remaining top-level roles.  Prompt for passwords.
->>> private_targets_key = import_rsa_privatekey_from_file("/path/to/targets_key")
+>>> private_targets_key = import_rsa_privatekey_from_file("kestore/targets_key")
 Enter a password for the encrypted RSA key:
 
->>> private_snapshot_key = import_rsa_privatekey_from_file("/path/to/snapshot_key")
+>>> private_snapshot_key = import_rsa_privatekey_from_file("keystore/snapshot_key")
 Enter a password for the encrypted RSA key:
 
->>> private_timestamp_key = import_rsa_privatekey_from_file("/path/to/timestamp_key")
+>>> private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
 Enter a password for the encrypted RSA key:
 
-# Load the signing keys of the remaining roles so that valid signatures are generated when
-# repository.write() is called.
+# Load the signing keys of the remaining roles so that valid signatures are
+# generated when repository.writeall() is called.
 >>> repository.targets.load_signing_key(private_targets_key)
 >>> repository.snapshot.load_signing_key(private_snapshot_key)
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 
-# Optionally set the expiration date of the timestamp role.  By default, roles are set to expire
-# as follows:  root(1 year), targets(3 months), snapshot(1 week), timestamp(1 day).
->>> repository.timestamp.expiration = datetime.datetime(2014, 10, 28, 12, 8)
-
-# Metadata files may also be compressed.  Only "gz" (gzip) is currently supported.
->>> repository.targets.compressions = ["gz"]
->>> repository.snapshot.compressions = ["gz"]
-
-# Write all metadata to "/path/to/repository/metadata.staged/".  The common case is to crawl the
-# filesystem for all delegated roles in "/path/to/repository/metadata.staged/targets/".
->>> repository.write()
+# Write all metadata to "repository/metadata.staged/".  The common case is to crawl the
+# filesystem for all delegated roles in "metadata.staged/".
+>>> repository.writeall()
 ```
 
 ### Targets ###
@@ -300,16 +329,16 @@ repository.
 
 ```Bash
 # Create and save target files to the targets directory of the repository.
-$ cd /path/to/repository/targets/
+$ cd repository/targets/
 $ echo 'file1' > file1.txt
 $ echo 'file2' > file2.txt
 $ echo 'file3' > file3.txt
-$ mkdir django; echo 'file4' > django/file4.txt
+$ mkdir myproject; echo 'file4' > myproject/file4.txt
 ```
 
 With the target files available on the `targets/` directory of the repository,
-the `add_targets()` method of a Targets role can be called to add the target to
-metadata.
+the `add_targets()` method of a Targets role can be called to add the target
+files to metadata.
 
 ```python
 >>> from tuf.repository_tool import *
@@ -318,11 +347,11 @@ metadata.
 # Load the repository created in the previous section.  This repository so far
 # contains metadata for the top-level roles, but no target paths are yet listed
 # in targets metadata.
->>> repository = load_repository("/path/to/repository/")
+>>> repository = load_repository("repository/")
 
 # get_filepaths_in_directory() returns a list of file paths in a directory.  It can also return
 # files in sub-directories if 'recursive_walk' is True.
->>> list_of_targets = repository.get_filepaths_in_directory("/path/to/repository/targets/",
+>>> list_of_targets = repository.get_filepaths_in_directory("repository/targets/",
                                                         recursive_walk=False, followlinks=True) 
 
 # Add the list of target paths to the metadata of the top-level Targets role.
@@ -331,16 +360,6 @@ metadata.
 # target paths added to a role must be relative to the targets directory,
 # otherwise an exception is raised.
 >>> repository.targets.add_targets(list_of_targets)
-
-# Individual target files may also be added to roles, including custom data
-# about the target.  In the example below, file permissions of the target
-# (octal number specifying file access for owner, group, others (e.g., 0755) is
-# added alongside the default fileinfo.  All target objects in metadata include
-# the target's filepath, hash, and length.
->>> target3_filepath = "/path/to/repository/targets/file3.txt"
->>> octal_file_permissions = oct(os.stat(target3_filepath).st_mode)[4:]
->>> custom_file_permissions = {'file_permissions': octal_file_permissions}
->>> repository.targets.add_target(target3_filepath, custom_file_permissions)
 ```
 
 The private keys of roles affected by the changes above must now be imported and
@@ -352,24 +371,28 @@ metadata.  `snapshot.json` keys must be loaded and its metadata signed because
 ```Python
 # The private key of the updated targets metadata must be loaded before it can
 # be signed and written (Note the load_repository() call above).
->>> private_targets_key =  import_rsa_privatekey_from_file("/path/to/targets_key")
+>>> private_targets_key = import_rsa_privatekey_from_file("keystore/targets_key")
 Enter a password for the encrypted RSA key:
 
 >>> repository.targets.load_signing_key(private_targets_key)
 
 # Due to the load_repository() and new versions of metadata, we must also load
 # the private keys of Snapshot and Timestamp to generate a valid set of metadata.
->>> private_snapshot_key = import_rsa_privatekey_from_file("/path/to/snapshot_key")
+>>> private_snapshot_key = import_rsa_privatekey_from_file("keystore/snapshot_key")
 Enter a password for the encrypted RSA key:
 >>> repository.snapshot.load_signing_key(private_snapshot_key)
 
->>> private_timestamp_key = import_rsa_privatekey_from_file("/path/to/timestamp_key")
+>>> private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
 Enter a password for the encrypted RSA key:
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 
+# Which roles are dirty?
+>>> repository.dirty_roles()
+Dirty roles: ['timestamp', 'snapshot', 'targets']
+
 # Generate new versions of the modified top-level metadata (targets, snapshot,
 # and timestamp).
->>> repository.write()
+>>> repository.writeall()
 ```
 
 #### Remove Target Files ####
@@ -409,38 +432,33 @@ targets and generate signed metadata.
 ```python
 # Continuing from the previous section . . .
 
-# Generate a key for a new delegated role named "unclaimed".
->>> generate_and_write_rsa_keypair("/path/to/unclaimed_key", bits=2048, password="password")
->>> public_unclaimed_key = import_rsa_publickey_from_file("/path/to/unclaimed_key.pub")
+# Generate a key for a new delegated role named "django".
+>>> generate_and_write_rsa_keypair("keystore/django_key", bits=2048, password="password")
+>>> public_django_key = import_rsa_publickey_from_file("keystore/django_key.pub")
 
-# Make a delegation from "targets" to "unclaimed", initially containing zero
+# Make a delegation from "targets" to "django", initially containing zero
 # targets.
 # delegate(rolename, list_of_public_keys, list_of_file_paths, threshold,
 #          restricted_paths, path_hash_prefixes)
->>> repository.targets.delegate("unclaimed", [public_unclaimed_key], [])
+>>> repository.targets.delegate("django", [public_django_key], [])
 
-# Load the private key of "unclaimed" so that signatures are later added and
+# Load the private key of "django" so that signatures are later added and
 # valid metadata is created.
->>> private_unclaimed_key = import_rsa_privatekey_from_file("/path/to/unclaimed_key")
+>>> private_django_key = import_rsa_privatekey_from_file("keystore/django_key")
 Enter a password for the encrypted RSA key:
 
->>> repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
+>>> repository.targets("django").load_signing_key(private_django_key)
 
 # Update an attribute of the unclaimed role.
->>> repository.targets("unclaimed").version = 2
+>>> repository.targets("django").version = 2
 
-# Delegations may also be nested.  Create the delegated role "django"
-# (delegated from "unclaimed"), where it initially contains zero targets and
-# future targets are restricted to a particular directory.
->>> repository.targets("unclaimed").delegate("django", [public_unclaimed_key], [],
-                                         restricted_paths=["/path/to/repository/targets/django/*"])
->>> repository.targets("django").load_signing_key(private_unclaimed_key)
->>> repository.targets("django").add_target("/path/to/repository/targets/django/file4.txt")
->>> repository.targets("django").compressions = ["gz"]
+# Dirty roles?
+$ repository.dirty_roles()
+Dirty roles: ['timestamp', 'snapshot', 'targets', 'django']
 
-#  Write the metadata of "unclaimed", "django", "root", "targets", "snapshot,
+#  Write the metadata of "django", "root", "targets", "snapshot,
 # and "timestamp".
->>> repository.write()
+>>> repository.writeall()
 ```
 
 #### Revoke Delegated Role ####
@@ -471,7 +489,33 @@ Repository maintainers may push final changes to the "live" repository by
 copying the staged directory to its destination. 
 ```Bash
 # Copy the staged metadata directory changes to the live repository.
-$ cp -r "/path/to/repository/metadata.staged/" "/path/to/repository/metadata/"
+$ cp -r "repository/metadata.staged/" "repository/metadata/"
+```
+
+## Consistent Snapshots ##
+The basic TUF repository we have generated above is adequate for repositories
+that have some way of guaranteeing consistency of repository data.
+A community software repository is one example where consistency of files and
+metadata can become an issue.  Repositories of this kind are continually updated
+by multiple maintainers and software authors uploading their packages, increasing
+the likelihood that a client downloading version X of a release unexpectedly
+requests the target files of a version Y just released.
+
+To guarantee consistency of metadata and target files, a repository may
+optionally support multiple versions of `snapshot.json` simultaneously, where a
+client with version 1 of `snapshot.json` can download `target_file.zip` and
+another client with version 2 of `snapshot.json` can also download a different
+`target_file.zip` (same file name, but different file digest.)  If the
+`consistent_snapshot` parameter of write() is `True`, metadata and target file
+names on the file system have their digests prepended (note: target file names
+specified in metadata do not contain digests in their names.)
+
+The repository maintainer is responsible for the duration of multiple versions
+of metadata and target files available on a repository.  Generating consistent
+metadata and target files on the repository is enabled by setting the
+`consistent_snapshot` argument of write(): 
+```Python
+>>> repository.write(consistent_snapshot=True)
 ```
 
 ## Delegate to Hashed Bins ##
@@ -519,28 +563,341 @@ restricted paths for some role is provided next.
 >>> repository.targets('unclaimed').add_restricted_paths('/path/to/repository/targets/django/*', 'django')
 ```
 
-## Consistent Snapshots ##
-The basic TUF repository we have generated above is adequate for repositories
-that have some way of guaranteeing consistency of repository data.
-A community software repository is one example where consistency of files and
-metadata can become an issue.  Repositories of this kind are continually updated
-by multiple maintainers and software authors uploading their packages, increasing
-the likelihood that a client downloading version X of a release unexpectedly
-requests the target files of a version Y just released.
+## How to Perform an Update ##
 
-To guarantee consistency of metadata and target files, a repository may
-optionally support multiple versions of `snapshot.json` simultaneously, where a
-client with version 1 of `snapshot.json` can download `target_file.zip` and
-another client with version 2 of `snapshot.json` can also download a different
-`target_file.zip` (same file name, but different file digest.)  If the
-`consistent_snapshot` parameter of write() is `True`, metadata and target file
-names on the file system have their digests prepended (note: target file names
-specified in metadata do not contain digests in their names.)
+Documentation for setting up a TUF client and performing an update is
+provided [here](client_setup_and_repository_example.md).
 
-The repository maintainer is responsible for the duration of multiple versions
-of metadata and target files available on a repository.  Generating consistent
-metadata and target files on the repository is enabled by setting the
-`consistent_snapshot` argument of write(): 
-```Python
->>> repository.write(consistent_snapshot=True)
+The following [repository tool](README.md) function creates a directory
+structure that a client downloading new software using TUF (via
+tuf/client/updater.py) expects. The `root.json` metadata file must exist, and
+also the directories that hold the metadata files downloaded from a repository.
+Software updaters integrating with TUF may use this directory to store TUF
+updates saved on the client side.
+
+```python
+>>> from tuf.repository_tool import *
+>>> create_tuf_client_directory("repository/", "client/")
 ```
+
+`create_tuf_client_directory()` moves metadata from `repository/metadata` to
+`client/` in this example.  The repository in `repository/` may be the
+repository example created in the repository tool [README](README.md).
+
+## Test TUF Locally ##
+Run the local TUF repository server.
+```Bash
+$ cd "repository/"; python -m SimpleHTTPServer 8001
+```
+
+Retrieve targets from the TUF repository and save them to `client/`.  The
+`basic_client.py` script is available in the 'scripts' directory.  In the
+following example, it is copied to the 'client' directory and executed from
+there.  In a different command-line prompt . . .
+```Bash
+$ cd "client/"
+$ ls
+metadata/
+
+# Copy tuf/scripts/basic_client.py to current directory.  Note: You should
+# activate another "tufenv" virtualenv if using a new windows/tab, otherwise
+# the local Python installation would be incorrectly used.
+$ python basic_client.py --repo http://localhost:8001
+$ ls . targets/
+.:
+metadata  targets  tuf.log
+
+targets/:
+file1.txt  file2.txt file3.txt
+```
+
+## Blocking Malicious Updates ##
+TUF protects against a number of attacks, some of which include rollback,
+arbitrary package, and mix and match attacks.  We begin this section on
+blocking malicious updates by demonstrating how the client rejects a
+target file downloaded from the repository that doesn't match what is
+listed in metadata.
+
+### Arbitrary Package Attack ###
+In an arbitrary package attack, an  attacker installs anything they want on the
+client system. That is, an attacker can provide arbitrary files in response to
+download requests and the files will not be detected as illegitimate.  We
+simulate an arbitrary package attack by creating a "malicious" target file
+that our client attempts to fetch.
+
+```Bash
+$ mv 'repository/targets/file3.txt' 'repository/targets/file3.txt.backup'
+$ echo 'bad_target' > 'repository/targets/file3.txt'
+```
+
+We next reset our local timestamp (so that a new update is prompted), and 
+the target files previously downloaded by the client.
+```Bash
+rm -rf "client/targets/" "client/metadata/current/timestamp.json"
+```
+
+The client now performs an update and should detect the invalid target file...
+```Bash
+$ python basic_client.py --repo http://localhost:8001
+Error: No working mirror was found:
+  localhost:8001: BadHashError()
+```
+
+The log file (tuf.log) saved to the current working directory contains more
+information on the update procedure and the cause of the BadHashError.
+```Bash
+...
+
+BadHashError: Observed
+hash ('f569179171c86aa9ed5e8b1d6c94dfd516123189568d239ed57d818946aaabe7') !=
+expected hash (u'94f6e58bd04a4513b8301e75f40527cf7610c66d1960b26f6ac2e743e108bdac')
+
+[2016-09-30 15:06:44,704 UTC] [tuf.client.updater] [ERROR] [_get_file:1394@updater.py]
+
+Failed to update /file3.txt from all mirrors: {u'http://localhost:8001/targets/file3.txt': BadHashError()}
+```
+
+
+### Indefinite Freeze Attack ###
+In an indefinite freeze attack, an attacker continues to present a software
+update system with the same files the client has already seen. The result is
+that the client does not know that new files are available.   Although the
+client would be unable to prevent an attacker or compromised repository from
+feeding it stale metadata, it can at least detect when an attacker is doing so
+indefinitely.  The signed metadata used by TUF contains an "expires" field that
+indicates when the expired metadata should no longer be trusted.
+
+In the following simulation, the client first tries to perform an update.
+
+```Bash
+$ python basic_client.py --repo http://localhost:8001 
+```
+
+According to the logger (`tuf.log` file in the current working directory),
+everything appears to be up-to-date.  The remote server should also show that
+the client retrieved only the timestamp.json file.  Let's suppose now that an
+attacker continues to feed our client the same stale metadata.  If we were to
+move the time to a future date that would cause metadata to expire, the TUF
+framework should raise an exception or error to indicate that the metadata
+should no longer be trusted.
+
+```Bash
+$ sudo date -s '2080-12-25 12:34:56'
+Wed Dec 25 12:34:56 EST 2080
+
+$ python basic_client.py --repo http://localhost:8001
+Error: No working mirror was found:
+  u'localhost:8001': ExpiredMetadataError(u"Metadata u'root' expired on Tue Jan  1 00:00:00 2030 (UTC).",)
+```
+
+Note: Reset the date to continue with the rest of the attacks.
+
+
+### Rollback Attack ###
+In a rollback attack, an attacker presents a software update system with older
+files than those the client has already seen, causing the client to use files
+older than those the client knows about.  We begin this attack example by
+saving the current version of the Timestamp file available on the repository.
+This saved file will later be served to the client to see if it is rejected.
+The client should not accept versions of metadata that is older than 
+previously trusted.
+
+Navigate to the directory containing the server's files and save the current
+timestamp.json to a temporary location:
+```Bash
+$ cp repository/metadata/timestamp.json /tmp
+```
+
+We should now generate a new Timestamp file on the repository side.
+```Bash
+$ python
+>>> from tuf.repository_tool import * 
+>>> repository = load_repository('repository')
+>>> repository.timestamp.version
+1
+>>> repository.timestamp.version = 2
+>>> repository.dirty_roles()
+Dirty roles: [u'timestamp']
+>>> private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
+Enter a password for the encrypted RSA file: 
+>>> repository.timestamp.load_signing_key(private_timestamp_key)
+>>> repository.write('timestamp')
+
+$ cp repository/metadata.staged/* repository/metadata
+```
+
+Now start the HTTP server from the server's directory containing the
+'repository' subdirectory.
+```Bash
+$ python -m SimpleHTTPServer 8001
+```
+
+And perform an update so that the client retrieves the updated timestamp.json.
+```Bash
+$ python basic_client.py --repo http://localhost:8001
+```
+
+Finally, move the previous timestamp.json file to the current live repository
+and have the client try to download the outdated version.  The client should
+reject it!
+```Bash
+$ cp /tmp/timestamp.json repository/metadata/
+$ python -m SimpleHTTPServer 8001
+```
+
+On the client side, perform an update...
+```Bash
+$ python basic_client.py --repo http://localhost:8001
+Error: No working mirror was found:
+  u'localhost:8001': ReplayedMetadataError()
+```
+
+The tuf.log file contains more information about the Rollback error.  Please
+reset the timestamp.json to the latest version, which can be found in the
+'repository/metadata.staged' subdirectory.
+
+```Bash
+$ cp repository/metadata.staged/timestamp.json repository/metadata
+```
+
+
+### Endless Data Attack ###
+In an endless data attack, an attacker responds to a file download request with
+an endless stream of data, causing harm to clients (e.g., a disk partition
+filling up or memory exhaustion).  In this simulated attack, we append
+extra data to one of the target files available on the repository.
+The client should only download the exact number of bytes it expects for
+a requested target file (according to what is listed in trusted metadata).
+
+```Bash
+$ python -c "print 'a' * 1000" >> repository/targets/file1.txt
+```
+
+Now delete the local metadata and target files on the client side so
+that remote metadata and target files are downloaded again.
+```Bash
+$ rm -rf repository/targets/
+$ rm repository/metadata/current/snapshot.json* repository/metadata/current/timestamp.json*
+```
+
+Lastly, perform an update to verify that the file1.txt is downloaded up to the
+expected size, and no more.  The target file available on the repository
+does contain more data than expected, though.
+
+```Bash
+$ python basic_client.py --repo http://localhost:8001 
+```
+
+At this point, part of the "file1.txt" file should have been fetched.  That is,
+up to 31 bytes of it should have been downloaded, and the rest of the maliciously
+appended data ignored.  If we inspect the logger, we'd disover the following:
+
+```Bash
+[2016-10-06 21:37:39,092 UTC] [tuf.download] [INFO] [_download_file:235@download.py]
+Downloading: u'http://localhost:8001/targets/file1.txt'                         
+                                                                                 
+[2016-10-06 21:37:39,145 UTC] [tuf.download] [INFO] [_check_downloaded_length:610@download.py]
+Downloaded 31 bytes out of the expected 31 bytes.                               
+                                                                                 
+[2016-10-06 21:37:39,145 UTC] [tuf.client.updater] [INFO] [_get_file:1372@updater.py]
+Not decompressing http://localhost:8001/targets/file1.txt                       
+                                                                                 
+[2016-10-06 21:37:39,145 UTC] [tuf.client.updater] [INFO] [_check_hashes:778@updater.py]
+The file's sha256 hash is correct: 65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da
+```
+
+Indeed, the sha256 sum of the first 31 bytes of the "file1.txt" available
+on the repository should match to what is trusted.  The client did not
+downloaded the appended data.
+
+
+### Compromised Key Attack ###
+An attacker who is able to compromise a single key or less than a given
+threshold of keys can compromise clients. This includes relying on a single
+online key (such as only being protected by SSL) or a single offline key (such
+as most software update systems use to sign files).  In this example, we
+attempt to sign a role file with less-than-a-threshold number of keys.  The
+single key (suppose this is a compromised key) used for signing is to
+demonstrate that roles must be signed with the total number of keys required
+for the role.  In order to compromise a role, an attacker would have to
+compromise the full set of keys.  This approach of requiring a threshold number
+of signatures provides compromise resilience.
+
+Let's attempt to sign a new snapshot file with a less-than-threshold number of
+keys.  The client should reject the partially signed snapshot file served by
+the repository (or imagine that it is a compromised repository).
+
+```Bash
+$ python
+>>> from tuf.repository_tool import *
+>>> repository = load_repository('repository')
+>>> repository.root.version = 8
+>>> private_root_key = import_rsa_privatekey_from_file("keystore/root_key", password="password")
+>>> repository.root.load_signing_key(private_root_key)
+>>> private_root_key2 = import_rsa_privatekey_from_file("keystore/root_key2", password="password")
+>>> repository.root.load_signing_key(private_root_key2)
+
+>>> repository.snapshot.version = 8
+>>> repository.snapshot.threshold = 2
+>>> private_snapshot_key = import_rsa_privatekey_from_file("keystore/snapshot_key", password="password")
+>>> repository.snapshot.load_signing_key(private_snapshot_key)
+
+>>> repository.timestamp.version = 8
+>>> private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key", password="password")
+>>> repository.timestamp.load_signing_key(private_timestamp_key)
+
+>>> repository.write('root')
+>>> repository.write('snapshot')
+>>> repository.write('timestamp')
+
+$ cp repository/metadata.staged/* repository/metadata
+```
+
+The client should not attempt to refresh the top-level metadata and the
+partially written snapshot.json.
+
+```Bash
+$ python basic_client.py --repo http://localhost:8001
+Error: No working mirror was found:
+  u'localhost:8001': BadSignatureError()
+```
+
+
+### Slow Retrieval Attack ###
+In a slow retrieval attack, an attacker responds to clients with a very slow
+stream of data that essentially results in the client never continuing the
+update process.  For this example, we simulate a slow retrieval attack by
+spawning a server that serves our update client data at a slow rate.  TUF
+should not be vulnerable to this attack, and the framework should raise an
+exception or error when it detects that a malicious server is serving it data
+at a slow enough rate.
+
+We first spawn a server that slowly streams data to a client request.  The
+'slow_retrieval_server.py' module can be copied over to the '../demo_repository'
+directory from which to launch it.
+
+```Bash
+$ python slow_retrieval_server.py 8002 mode_2
+```
+
+The client may now make a request to the slow server on port 8002.  However,
+before doing so, we'll need to reduce (for the purposes of this demo) the
+minimum average download rate allowed.  Open the '.../demo/tuf/tuf/conf.py'
+file and set MIN_AVERAGE_DOWNLOAD_SPEED to 1.  This should make it so
+that client correctly detects the slow retrieval server's delayed streaming.
+
+```Bash
+$ python basic_client.py --verbose 1 --repo http://localhost:8002
+Error: No working mirror was found:
+  u'localhost:8002': SlowRetrievalError()
+```
+
+The framework should detect the attack and raise a SlowRetrievalError
+exception to the client application.
+
+
+## Conclusion ##
+These are just some of the attacks that TUF provides protection against.  For
+more attacks and updater weaknesses, please see the
+[Security](https://github.com/theupdateframework/tuf/blob/develop/SECURITY.md)
+page.
