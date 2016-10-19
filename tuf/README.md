@@ -219,7 +219,6 @@ top-level roles, including itself.
 # Load the root signing keys to the repository, which writeall() or write()
 # (write multiple roles, or a single role, to disk) use to sign the root
 # metadata.
-
 >>> repository.root.load_signing_key(private_root_key)
 >>> repository.root.load_signing_key(private_root_key2)
 
@@ -242,15 +241,17 @@ Dirty roles: ['root']
 #### Create Timestamp, Snapshot, Targets
 Now that `root.json` has been set, the other top-level roles may be created.
 The signing keys added to these roles must correspond to the public keys
-specified by the root.  
+specified by the Root role.  
 
 On the client side, `root.json` must always exist.  The other top-level roles,
-created next, are requested by repository clients in (Timestamp -> Snapshot ->
-Root -> Targets) order to ensure required metadata is downloaded in a secure
-manner.
+created next, are requested by repository clients in (Root -> Timestamp ->
+Snapshot -> Targets) order to ensure required metadata is downloaded in a
+secure manner.
 
 ```python
 # Continuing from the previous section . . .
+
+# 'datetime' module needed to optionally set a role's expiration.
 >>> import datetime
 
 # Generate keys for the remaining top-level roles.  The root keys have been set above.
@@ -259,13 +260,14 @@ manner.
 >>> generate_and_write_rsa_keypair("keystore/snapshot_key", password="password")
 >>> generate_and_write_rsa_keypair("keystore/timestamp_key", password="password")
 
-# Add the public keys of the remaining top-level roles.
+# Add the verification keys of the remaining top-level roles.
+
 >>> repository.targets.add_verification_key(import_rsa_publickey_from_file("keystore/targets_key.pub"))
 >>> repository.snapshot.add_verification_key(import_rsa_publickey_from_file("keystore/snapshot_key.pub"))
 >>> repository.timestamp.add_verification_key(import_rsa_publickey_from_file("keystore/timestamp_key.pub"))
 
 # Import the signing keys of the remaining top-level roles.  Prompt for passwords.
->>> private_targets_key = import_rsa_privatekey_from_file("kestore/targets_key")
+>>> private_targets_key = import_rsa_privatekey_from_file("keystore/targets_key")
 Enter a password for the encrypted RSA key:
 
 >>> private_snapshot_key = import_rsa_privatekey_from_file("keystore/snapshot_key")
@@ -280,8 +282,13 @@ Enter a password for the encrypted RSA key:
 >>> repository.snapshot.load_signing_key(private_snapshot_key)
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 
-# Write all metadata to "repository/metadata.staged/".  The common case is to crawl the
-# filesystem for all delegated roles in "metadata.staged/".
+# Optionally set the expiration date of the timestamp role.  By default, roles
+# are set to expire as follows:  root(1 year), targets(3 months), snapshot(1
+# week), timestamp(1 day).
+>>> repository.timestamp.expiration = datetime.datetime(2080, 10, 28, 12, 8)
+
+# Write all metadata to "repository/metadata.staged/".  The common case is to
+# crawl the filesystem for all the delegated roles in "metadata.staged/".
 >>> repository.writeall()
 ```
 
