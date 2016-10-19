@@ -79,40 +79,6 @@ extend the default roles of the repository.  By the end, a fully populated TUF
 repository is generated that can be used by clients to securely download
 updates.
 
-### Virtual Machine and Installation Instructions ###
-A VirtualBox [appliance](https://en.wikipedia.org/wiki/Virtual_appliance) is
-made available that can be used to reproduce these demo instructions.  The
-appliance has all the requisite libraries and programs pre-installed, and has
-everything separated from the OS's Python installation.  All the user has to do
-is activate the [Virtualenv
-enviroment](http://docs.python-guide.org/en/latest/dev/virtualenvs/).  The
-Virtual Machine can be downloaded
-[here](https://drive.google.com/file/d/0BxIzRxMoQ-57RnFxNmN4cHFxWk0/view?usp=sharing).
-The account credentials to log on to the Linux installation on the virtual
-machine are:
-
-```
-user: tuf
-password: password
-```
-
-You can activate the 'tufenv' environment as follows:
-
-```Bash
-$ cd ~/projects/demo_docker_summit/
-$ source tufenv/bin/activate
-
-# You can now create a TUF repository according to the demo document.
-$ cd demo/demo_repository/
-$ python
->>> from tuf.repository_tool import *
-```
-
-It would also be a good idea at this time to verify that the Git repository
-(~/projects/demo_docker_summit/demo) on the VM is up-to-date.  One can update it by
-executing "git pull origin master" on the command line.
-
-
 ### Keys ###
 The repository tool supports multiple public-key algorithms, such as
 [RSA](https://en.wikipedia.org/wiki/RSA_%28cryptosystem%29) and
