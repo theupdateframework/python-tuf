@@ -715,11 +715,10 @@ Note: Reset the date to continue with the rest of the attacks.
 ### Rollback Attack ###
 In a rollback attack, an attacker presents a software update system with older
 files than those the client has already seen, causing the client to use files
-older than those the client knows about.  We begin this attack example by
-saving the current version of the Timestamp file available on the repository.
-This saved file will later be served to the client to see if it is rejected.
-The client should not accept versions of metadata that is older than 
-previously trusted.
+older than those the client knows about.  We begin this example by saving the
+current version of the Timestamp file available on the repository.  This saved
+file will later be served to the client to see if it is rejected.  The client
+should not accept versions of metadata that is older than previously trusted.
 
 Navigate to the directory containing the server's files and save the current
 timestamp.json to a temporary location:
@@ -727,7 +726,7 @@ timestamp.json to a temporary location:
 $ cp repository/metadata/timestamp.json /tmp
 ```
 
-We should now generate a new Timestamp file on the repository side.
+We should next generate a new Timestamp file on the repository side.
 ```Bash
 $ python
 >>> from tuf.repository_tool import * 
@@ -745,8 +744,8 @@ Enter a password for the encrypted RSA file:
 $ cp repository/metadata.staged/* repository/metadata
 ```
 
-Now start the HTTP server from the server's directory containing the
-'repository' subdirectory.
+Now start the HTTP server from the directory containing the 'repository'
+subdirectory.
 ```Bash
 $ python -m SimpleHTTPServer 8001
 ```
@@ -761,7 +760,7 @@ and have the client try to download the outdated version.  The client should
 reject it!
 ```Bash
 $ cp /tmp/timestamp.json repository/metadata/
-$ python -m SimpleHTTPServer 8001
+$ cd repository; python -m SimpleHTTPServer 8001
 ```
 
 On the client side, perform an update...
