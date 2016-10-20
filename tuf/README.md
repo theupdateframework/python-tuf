@@ -293,41 +293,47 @@ Enter a password for the encrypted RSA key:
 ```
 
 ### Targets ###
-TUF verifies target files by including their length, hash(es),
-and filepath in metadata.  The filepaths are relative to a `targets/` directory
-on the repository.  A TUF client can download a target file by first updating 
-the latest copy of metadata (and thus available targets), verifying that their
-length and hashes are valid, and then saving them locally to complete the update
+TUF makes it possible for clients to validate downloaded target files by
+including a target file's length, hash(es), and filepath in metadata.  The
+filepaths are relative to a `targets/` directory on the software repository.  A
+TUF client can download a target file by first updating the latest copy of
+metadata (and thus available targets), verifying that their length and hashes
+are valid, and saving the target file(s) locally to complete the update
 process.
 
-In this section, the target files intended for clients are added to a repository
-and listed in `targets.json` metadata.
+In this section, the target files intended for clients are added to a
+repository and listed in `targets.json` metadata.
 
 #### Add Target Files ####
 
-The repository maintainer adds target files to roles (e.g., `targets`,
-`unclaimed`) by specifying target paths.  Files at these target paths
-must exist before the repository tool can generate and add their (hash(es),
-length, filepath) to metadata.
+The repository maintainer adds target files to roles (e.g., `targets` and
+`unclaimed`) by specifying their filepaths.  The target files must exist at the
+specified filepaths before the repository tool can generate and add their
+(hash(es), length, and filepath) to metadata.
 
-The actual target files are added first to the `targets/` directory of the
-repository.
+First, the actual target files are manually created and saved to the `targets/`
+directory of the repository:
 
 ```Bash
-# Create and save target files to the targets directory of the repository.
+# Create and save target files to the targets directory of the software
+# repository.
 $ cd repository/targets/
 $ echo 'file1' > file1.txt
 $ echo 'file2' > file2.txt
 $ echo 'file3' > file3.txt
 $ mkdir myproject; echo 'file4' > myproject/file4.txt
+$ cd ../../
 ```
 
-With the target files available on the `targets/` directory of the repository,
-the `add_targets()` method of a Targets role can be called to add the target
-files to metadata.
+With the target files available on the `targets/` directory of the software
+repository, the `add_targets()` method of a Targets role can be called to add
+the target filepaths to metadata.
 
 ```python
 >>> from tuf.repository_tool import *
+
+# The 'os' module is needed to gather file attributes, which will be included
+# in a custom field for some of the target files added to metadata.
 >>> import os
 
 # Load the repository created in the previous section.  This repository so far
@@ -338,15 +344,30 @@ files to metadata.
 # get_filepaths_in_directory() returns a list of file paths in a directory.  It can also return
 # files in sub-directories if 'recursive_walk' is True.
 >>> list_of_targets = repository.get_filepaths_in_directory("repository/targets/",
-                                                        recursive_walk=False, followlinks=True) 
+                                                        recursive_walk=False, followlinks=True)
+
+# Note: Since we set the 'recursive_walk' argument to false, the 'myproject'
+# sub-directory is excluded from 'list_of_targets'.
+>>> list_of_targets
+['repository/targets/file2.txt', 'repository/targets/file1.txt', 'repository/targets/file3.txt']
 
 # Add the list of target paths to the metadata of the top-level Targets role.
 # Any target file paths that might already exist are NOT replaced.
 # add_targets() does not create or move target files on the file system.  Any
-# target paths added to a role must be relative to the targets directory,
+# target paths added to a role must fall under the expected targets directory,
 # otherwise an exception is raised.
 >>> repository.targets.add_targets(list_of_targets)
+
 ```
+# Individual target files may also be added to roles, including custom data
+# about the target.  In the example below, file permissions of the target
+# (octal number specifying file access for owner, group, others (e.g., 0755) is
+# added alongside the default fileinfo.  All target objects in metadata include
+# the target's filepath, hash, and length.
+>>> target4_filepath = "repository/targets/myproject/file4.txt"
+>>> octal_file_permissions = oct(os.stat(target4_filepath).st_mode)[4:]
+>>> custom_file_permissions = {'file_permissions': octal_file_permissions}
+>>> repository.targets.add_target(target4_filepath, custom_file_permissions)
 
 The private keys of roles affected by the changes above must now be imported and
 loaded.  `targets.json` must be signed because a target file was added to its
@@ -391,58 +412,61 @@ new metadata to disk.
 
 # Remove a target file listed in the "targets" metadata.  The target file is
 # not actually deleted from the file system.
->>> repository.targets.remove_target("/path/to/repository/targets/file3.txt")
+>>> repository.targets.remove_target("repository/targets/file3.txt")
 
-# repository.write() creates any new metadata files, updates those that have
-# changed, and any that need updating to make a new "snapshot" (new
-# snapshot.json and timestamp.json).
->>> repository.write()
+# repository.writeall() writes any required metadata files (e.g., if
+# targets.json is updated, snapshot.json and timestamp.json are also written
+# to disk), updates those that have changed, and any that need updating to make
+# a new "snapshot" (new snapshot.json and timestamp.json).
+>>> repository.writeall()
 ```
 
 ### Delegations ###
-All of the target files available on the repository created so far have been
-added to one role.  But, what if multiple developers are responsible for the
-files of a project?  What if responsiblity separation is desired?  Performing a
-delegation, where one parent role delegates trust of some paths to another
-role, is an option for integrators that require custom roles in addition to the
-top-level roles available by default.
+All of the target files available on the software repository created so far
+have been added to one role (the top-level Targets role).  However, what if
+multiple developers are responsible for the files of a project?  What if
+responsiblity separation is desired?  Performing a delegation, where one role
+delegates trust of some paths to another role, is an option for integrators
+that require additional roles on top of the top-level roles available by
+default.
 
-In the next sub-section, a delegated `unclaimed` role is delegated from the
-top-level `targets` role.  The `targets` role specifies the delegated role's
-public keys, the paths it is trusted to provide, and its role name.
-Futhermore, the example below demonstrates a nested delegation from `unclaimed`
-to `django`.  Once a parent role has delegated trust, delegated roles may add
+In the next sub-section, the `unclaimed` role is delegated from the top-level
+`targets` role.  The `targets` role specifies the delegated role's public keys,
+the paths it is trusted to provide, and its role name.  Futhermore, the example
+below demonstrates a nested delegation from `unclaimed` to `django`.  Once a
+role has delegated trust to another, the delegated role may independently add
 targets and generate signed metadata.
-
 
 ```python
 # Continuing from the previous section . . .
 
-# Generate a key for a new delegated role named "django".
->>> generate_and_write_rsa_keypair("keystore/django_key", bits=2048, password="password")
->>> public_django_key = import_rsa_publickey_from_file("keystore/django_key.pub")
+# Generate a key for a new delegated role named "unclaimed".
+>>> generate_and_write_rsa_keypair("keystore/unclaimed_key", bits=2048, password="password")
+>>> public_unclaimed_key = import_rsa_publickey_from_file("keystore/unclaimed_key.pub")
 
-# Make a delegation from "targets" to "django", initially containing zero
+# Make a delegation from "targets" to "unclaimed", initially containing zero
 # targets.
 # delegate(rolename, list_of_public_keys, list_of_file_paths, threshold,
 #          restricted_paths, path_hash_prefixes)
->>> repository.targets.delegate("django", [public_django_key], [])
+>>> repository.targets.delegate("unclaimed", [public_unclaimed_key], [])
 
-# Load the private key of "django" so that signatures are later added and
-# valid metadata is created.
->>> private_django_key = import_rsa_privatekey_from_file("keystore/django_key")
+# Load the private key of "unclaimed" so that unclaimed's metadata can be
+# signed, and valid metadata created.
+>>> private_unclaimed_key = import_rsa_privatekey_from_file("keystore/unclaimed_key")
 Enter a password for the encrypted RSA key:
 
->>> repository.targets("django").load_signing_key(private_django_key)
+>>> repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
 
-# Update an attribute of the unclaimed role.
->>> repository.targets("django").version = 2
+# Update an attribute of the unclaimed role.  Note: writeall() will
+# automatically increment this version number automatically, so the written
+# unclaimed will be version 3.
+>>> repository.targets("unclaimed").version = 2
 
 # Dirty roles?
 $ repository.dirty_roles()
-Dirty roles: ['timestamp', 'snapshot', 'targets', 'django']
+Dirty roles: ['timestamp', 'snapshot', 'targets', 'unclaimed']
 
-#  Write the metadata of "django", "root", "targets", "snapshot,
+#  Write the metadata of "unclaimed", "targets", "snapshot,
 # and "timestamp".
 >>> repository.writeall()
 ```
@@ -451,12 +475,12 @@ Dirty roles: ['timestamp', 'snapshot', 'targets', 'django']
 ```python
 # Continuing from the previous section . . .
 
-# Create a delegated role that will be revoked in the next step.
->>> repository.targets('unclaimed').delegate("flask", [public_unclaimed_key], [])
+# Create a delegated role that will be revoked in the next step...
+>>> repository.targets('unclaimed').delegate("django", [public_unclaimed_key], [])
 
-# Revoke "flask" and write the metadata of all remaining roles.
->>> repository.targets('unclaimed').revoke("flask")
->>> repository.write()
+# Revoke "django" and write the metadata of all remaining roles.
+>>> repository.targets('unclaimed').revoke("django")
+>>> repository.writeall()
 ```
 
 #### Wrap-up ####
