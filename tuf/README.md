@@ -576,15 +576,15 @@ restricted paths for some role is provided next.
 ## How to Perform an Update ##
 
 Documentation for setting up a TUF client and performing an update is
-provided [here](client_setup_and_repository_example.md).  The documentation
+available [here](client_setup_and_repository_example.md).  The documentation
 there is provided here for convenience.
 
 The following [repository tool](README.md) function creates a directory
 structure that a client downloading new software using TUF (via
 tuf/client/updater.py) expects. The `root.json` metadata file must exist, and
 also the directories that hold the metadata files downloaded from a repository.
-Software updaters integrating with TUF may use this directory to store TUF
-updates saved on the client side.
+Software updaters integrating TUF may use this directory to store TUF updates
+saved on the client side.
 
 ```python
 >>> from tuf.repository_tool import *
@@ -593,7 +593,8 @@ updates saved on the client side.
 
 `create_tuf_client_directory()` moves metadata from `repository/metadata` to
 `client/` in this example.  The repository in `repository/` may be the
-repository example created in the repository tool [README](README.md).
+repository example created in the repository tool [README](README.md) (this
+document).
 
 ## Test TUF Locally ##
 Run the local TUF repository server.
@@ -619,7 +620,7 @@ $ ls . targets/
 metadata  targets  tuf.log
 
 targets/:
-file1.txt  file2.txt file3.txt
+file1.txt  file2.txt  myproject
 ```
 
 ## Blocking Malicious Updates ##
