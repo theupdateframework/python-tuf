@@ -626,9 +626,9 @@ file1.txt  file2.txt  myproject
 ## Blocking Malicious Updates ##
 TUF protects against a number of attacks, some of which include rollback,
 arbitrary package, and mix and match attacks.  We begin this section on
-blocking malicious updates by demonstrating how the client rejects a
-target file downloaded from the repository that doesn't match what is
-listed in metadata.
+blocking malicious updates by demonstrating how the client rejects a target
+file downloaded from the software repository that doesn't match what is listed
+in TUF metadata.
 
 ### Arbitrary Package Attack ###
 In an arbitrary package attack, an  attacker installs anything they want on the
@@ -638,17 +638,18 @@ simulate an arbitrary package attack by creating a "malicious" target file
 that our client attempts to fetch.
 
 ```Bash
-$ mv 'repository/targets/file3.txt' 'repository/targets/file3.txt.backup'
-$ echo 'bad_target' > 'repository/targets/file3.txt'
+$ mv 'repository/targets/file2.txt' 'repository/targets/file2.txt.backup'
+$ echo 'bad_target' > 'repository/targets/file2.txt'
 ```
 
 We next reset our local timestamp (so that a new update is prompted), and 
 the target files previously downloaded by the client.
 ```Bash
-rm -rf "client/targets/" "client/metadata/current/timestamp.json"
+$ rm -rf "client/targets/" "client/metadata/current/timestamp.json"
 ```
 
 The client now performs an update and should detect the invalid target file...
+Note: The following command should be executed in the "client/" directory.
 ```Bash
 $ python basic_client.py --repo http://localhost:8001
 Error: No working mirror was found:
@@ -657,18 +658,16 @@ Error: No working mirror was found:
 
 The log file (tuf.log) saved to the current working directory contains more
 information on the update procedure and the cause of the BadHashError.
+
 ```Bash
 ...
 
 BadHashError: Observed
 hash ('f569179171c86aa9ed5e8b1d6c94dfd516123189568d239ed57d818946aaabe7') !=
-expected hash (u'94f6e58bd04a4513b8301e75f40527cf7610c66d1960b26f6ac2e743e108bdac')
-
-[2016-09-30 15:06:44,704 UTC] [tuf.client.updater] [ERROR] [_get_file:1394@updater.py]
-
-Failed to update /file3.txt from all mirrors: {u'http://localhost:8001/targets/file3.txt': BadHashError()}
+expected hash (u'67ee5478eaadb034ba59944eb977797b49ca6aa8d3574587f36ebcbeeb65f70e')
+[2016-10-20 19:45:16,079 UTC] [tuf.client.updater] [ERROR] [_get_file:1415@updater.py]
+Failed to update /file2.txt from all mirrors: {u'http://localhost:8001/targets/file2.txt': BadHashError()}
 ```
-
 
 ### Indefinite Freeze Attack ###
 In an indefinite freeze attack, an attacker continues to present a software
