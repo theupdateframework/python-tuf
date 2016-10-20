@@ -770,9 +770,9 @@ Error: No working mirror was found:
   u'localhost:8001': ReplayedMetadataError()
 ```
 
-The tuf.log file contains more information about the Rollback error.  Please
-reset the timestamp.json to the latest version, which can be found in the
-'repository/metadata.staged' subdirectory.
+The tuf.log file contains more information about the ReplayedMetadataError
+exception and update process.  Please reset timestamp.json to the latest
+version, which can be found in the 'repository/metadata.staged' subdirectory.
 
 ```Bash
 $ cp repository/metadata.staged/timestamp.json repository/metadata
@@ -782,25 +782,26 @@ $ cp repository/metadata.staged/timestamp.json repository/metadata
 ### Endless Data Attack ###
 In an endless data attack, an attacker responds to a file download request with
 an endless stream of data, causing harm to clients (e.g., a disk partition
-filling up or memory exhaustion).  In this simulated attack, we append
-extra data to one of the target files available on the repository.
-The client should only download the exact number of bytes it expects for
-a requested target file (according to what is listed in trusted metadata).
+filling up or memory exhaustion).  In this simulated attack, we append extra
+data to one of the target files available on the software repository.  The
+client should only download the exact number of bytes it expects for a
+requested target file (according to what is listed in trusted TUF metadata).
 
 ```Bash
+$ cp repository/targets/file1.txt /tmp
 $ python -c "print 'a' * 1000" >> repository/targets/file1.txt
 ```
 
 Now delete the local metadata and target files on the client side so
 that remote metadata and target files are downloaded again.
 ```Bash
-$ rm -rf repository/targets/
-$ rm repository/metadata/current/snapshot.json* repository/metadata/current/timestamp.json*
+$ rm -rf client/targets/
+$ rm client/metadata/current/snapshot.json* client/metadata/current/timestamp.json*
 ```
 
 Lastly, perform an update to verify that the file1.txt is downloaded up to the
-expected size, and no more.  The target file available on the repository
-does contain more data than expected, though.
+expected size, and no more.  The target file available on the software
+repository does contain more data than expected, though.
 
 ```Bash
 $ python basic_client.py --repo http://localhost:8001 
@@ -828,28 +829,34 @@ Indeed, the sha256 sum of the first 31 bytes of the "file1.txt" available
 on the repository should match to what is trusted.  The client did not
 downloaded the appended data.
 
+Note: Restore file1.txt
+
+```Bash
+$ cp /tmp/file1.txt repository/targets/
+```
+
 
 ### Compromised Key Attack ###
-An attacker who is able to compromise a single key or less than a given
-threshold of keys can compromise clients. This includes relying on a single
-online key (such as only being protected by SSL) or a single offline key (such
-as most software update systems use to sign files).  In this example, we
-attempt to sign a role file with less-than-a-threshold number of keys.  The
-single key (suppose this is a compromised key) used for signing is to
-demonstrate that roles must be signed with the total number of keys required
-for the role.  In order to compromise a role, an attacker would have to
-compromise the full set of keys.  This approach of requiring a threshold number
-of signatures provides compromise resilience.
+An attacker who compromise less than a given threshold of keys is limited in
+scope. This includes relying on a single online key (such as only being
+protected by SSL) or a single offline key (such as most software update systems
+use to sign files).  In this example, we attempt to sign a role file with
+less-than-a-threshold number of keys.  A single key (suppose this is a
+compromised key) is used to demonstrate that roles must be signed with the
+total number of keys required for the role.  In order to compromise a role, an
+attacker would have to compromise a threshold of keys.  This approach of
+requiring a threshold number of signatures provides compromise resilience.
 
 Let's attempt to sign a new snapshot file with a less-than-threshold number of
 keys.  The client should reject the partially signed snapshot file served by
-the repository (or imagine that it is a compromised repository).
+the repository (or imagine that it is a compromised software repository).
 
 ```Bash
 $ python
 >>> from tuf.repository_tool import *
 >>> repository = load_repository('repository')
->>> repository.root.version = 8
+>>> version = repository.root.version
+>>> repository.root.version = version + 1
 >>> private_root_key = import_rsa_privatekey_from_file("keystore/root_key", password="password")
 >>> repository.root.load_signing_key(private_root_key)
 >>> private_root_key2 = import_rsa_privatekey_from_file("keystore/root_key2", password="password")
@@ -871,8 +878,8 @@ $ python
 $ cp repository/metadata.staged/* repository/metadata
 ```
 
-The client should not attempt to refresh the top-level metadata and the
-partially written snapshot.json.
+The client now attempts to refresh the top-level metadata and the
+partially written snapshot.json, which should be rejected.
 
 ```Bash
 $ python basic_client.py --repo http://localhost:8001
