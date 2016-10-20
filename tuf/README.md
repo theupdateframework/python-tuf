@@ -358,7 +358,7 @@ the target filepaths to metadata.
 # otherwise an exception is raised.
 >>> repository.targets.add_targets(list_of_targets)
 
-```
+```Python
 # Individual target files may also be added to roles, including custom data
 # about the target.  In the example below, file permissions of the target
 # (octal number specifying file access for owner, group, others (e.g., 0755) is
@@ -368,6 +368,7 @@ the target filepaths to metadata.
 >>> octal_file_permissions = oct(os.stat(target4_filepath).st_mode)[4:]
 >>> custom_file_permissions = {'file_permissions': octal_file_permissions}
 >>> repository.targets.add_target(target4_filepath, custom_file_permissions)
+```
 
 The private keys of roles affected by the changes above must now be imported and
 loaded.  `targets.json` must be signed because a target file was added to its
@@ -485,17 +486,17 @@ Dirty roles: ['timestamp', 'snapshot', 'targets', 'unclaimed']
 
 #### Wrap-up ####
 
-In summary, the five steps a repository maintainer follows to create a basic TUF
+In summary, the five steps a repository maintainer follows to create a TUF
 repository are:
 
-1.  Generate a repository directory that contains TUF metadata and the target files.
+1.  Create a directory for the software repository that holds the TUF metadata and the target files.
 2.  Create top-level roles (`root.json`, `snapshot.json`, `targets.json`, and `timestamp.json`.) 
 3.  Add target files to the `targets` role.
 4.  Optionally, create delegated roles to distribute target files.
 5.  Write the changes.
 
 The repository tool saves repository changes to a `metadata.staged` directory.
-Repository maintainers may push final changes to the "live" repository by
+Repository maintainers may push finalized changes to the "live" repository by
 copying the staged directory to its destination. 
 ```Bash
 # Copy the staged metadata directory changes to the live repository.
