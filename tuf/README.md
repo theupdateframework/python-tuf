@@ -358,7 +358,6 @@ the target filepaths to metadata.
 # otherwise an exception is raised.
 >>> repository.targets.add_targets(list_of_targets)
 
-```Python
 # Individual target files may also be added to roles, including custom data
 # about the target.  In the example below, file permissions of the target
 # (octal number specifying file access for owner, group, others (e.g., 0755) is
@@ -505,11 +504,11 @@ $ cp -r "repository/metadata.staged/" "repository/metadata/"
 
 ## Consistent Snapshots ##
 The basic TUF repository we have generated above is adequate for repositories
-that have some way of guaranteeing consistency of repository data.
-A community software repository is one example where consistency of files and
-metadata can become an issue.  Repositories of this kind are continually updated
-by multiple maintainers and software authors uploading their packages, increasing
-the likelihood that a client downloading version X of a release unexpectedly
+that have some way of guaranteeing consistency of repository data.  A community
+software repository is one example where consistency of files and metadata can
+become an issue.  Repositories of this kind are continually updated by multiple
+maintainers and software authors uploading their packages, increasing the
+likelihood that a client downloading version X of a release unexpectedly
 requests the target files of a version Y just released.
 
 To guarantee consistency of metadata and target files, a repository may
@@ -517,28 +516,28 @@ optionally support multiple versions of `snapshot.json` simultaneously, where a
 client with version 1 of `snapshot.json` can download `target_file.zip` and
 another client with version 2 of `snapshot.json` can also download a different
 `target_file.zip` (same file name, but different file digest.)  If the
-`consistent_snapshot` parameter of write() is `True`, metadata and target file
-names on the file system have their digests prepended (note: target file names
-specified in metadata do not contain digests in their names.)
+`consistent_snapshot` parameter of writeall() or write() are `True`, metadata
+and target file names on the file system have their digests prepended (note:
+target file names specified in metadata do not contain digests in their names.)
 
 The repository maintainer is responsible for the duration of multiple versions
 of metadata and target files available on a repository.  Generating consistent
 metadata and target files on the repository is enabled by setting the
-`consistent_snapshot` argument of write(): 
+`consistent_snapshot` argument of writeall() or write(): 
 ```Python
->>> repository.write(consistent_snapshot=True)
+>>> repository.writeall(consistent_snapshot=True)
 ```
 
 ## Delegate to Hashed Bins ##
 Why use hashed bin delegations?
 
 For software update systems with a large number of target files, delegating to
-hashed bins (a special type of delegated role) might be an easier alternative to
-manually performing the delegations.  How many target files should each delegated
-role contain?  How will these delegations affect the number of metadata that
-clients must additionally download in a typical update?  Hashed bin delegations
-is availabe to integrators that rather not deal with the answers to these
-questions.
+hashed bins (a special type of delegated role) might be an easier alternative
+to manually performing the delegations.  How many target files should each
+delegated role contain?  How will these delegations affect the number of
+metadata that clients must additionally download in a typical update?  Hashed
+bin delegations are availabe to integrators that rather not deal with the
+management of delegated roles and a great number of target files.
 
 A large number of target files may be distributed to multiple hashed bins with
 `delegate_hashed_bins()`.  The metadata files of delegated roles will be nearly
@@ -562,16 +561,16 @@ restricted paths for some role is provided next.
 ```Python
 # Get a list of target paths for the hashed bins.
 >>> targets = \
-  repository.get_filepaths_in_directory('/path/to/repository/targets/django', recursive_walk=True)
->>> repository.targets('django').delegate_hashed_bins(targets, [public_unclaimed_key], 32)
+  repository.get_filepaths_in_directory('repository/targets/myproject', recursive_walk=True)
+>>> repository.targets('unclaimed').delegate_hashed_bins(targets, [public_unclaimed_key], 32)
 
 # delegated_hashed_bins() only assigns the public key(s) of the hashed bins, so
 # the private keys may be manually loaded as follows:
->>> for delegation in repository.targets('django').delegations:
+>>> for delegation in repository.targets('unclaimed').delegations:
 ...   delegation.load_signing_key(private_unclaimed_key)
 
 # Delegated roles can be restricted to particular paths with add_restricted_paths().
->>> repository.targets('unclaimed').add_restricted_paths('/path/to/repository/targets/django/*', 'django')
+>>> repository.targets('unclaimed').add_restricted_paths('repository/targets/myproject/*', 'django')
 ```
 
 ## How to Perform an Update ##
