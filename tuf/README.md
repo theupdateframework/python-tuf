@@ -669,6 +669,14 @@ expected hash (u'67ee5478eaadb034ba59944eb977797b49ca6aa8d3574587f36ebcbeeb65f70
 Failed to update /file2.txt from all mirrors: {u'http://localhost:8001/targets/file2.txt': BadHashError()}
 ```
 
+Note: The "malicious" target file should be removed and the original file2.txt
+restored, otherwise the following examples will fail with BadHashError
+exceptions:
+
+```Bash
+$ mv 'repository/targets/file2.txt.backup' 'repository/targets/file2.txt'
+```
+
 ### Indefinite Freeze Attack ###
 In an indefinite freeze attack, an attacker continues to present a software
 update system with the same files the client has already seen. The result is
@@ -676,7 +684,7 @@ that the client does not know that new files are available.   Although the
 client would be unable to prevent an attacker or compromised repository from
 feeding it stale metadata, it can at least detect when an attacker is doing so
 indefinitely.  The signed metadata used by TUF contains an "expires" field that
-indicates when the expired metadata should no longer be trusted.
+indicates when metadata should no longer be trusted.
 
 In the following simulation, the client first tries to perform an update.
 
