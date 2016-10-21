@@ -330,14 +330,14 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       data = b'' 
       read_amount = min(tuf.conf.CHUNK_SIZE,
                         required_length - number_of_bytes_received)
-      
+     
       try: 
         data = connection.read(read_amount)
      
       # Python 3.2 returns 'IOError' if the remote file object has timed out. 
       except (socket.error, IOError):
         pass
-    
+   
       number_of_bytes_received = number_of_bytes_received + len(data)
       
       # Data successfully read from the connection.  Store it. 
@@ -356,7 +356,13 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       average_download_speed = number_of_bytes_received / seconds_spent_receiving
       
       if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
+        logger.debug('The average download speed dropped below the minimum'
+          ' average download speed set in conf.py.') 
         break
+      
+      else:
+        logger.debug('The average download speed has not dipped below the'
+          ' mimimum average download speed set in conf.py.')
 
       # We might have no more data to read. Check number of bytes downloaded. 
       if not data:
@@ -641,6 +647,13 @@ def _check_downloaded_length(total_downloaded, required_length,
       # will log a warning anyway. This is useful when we wish to download the
       # Timestamp or Root metadata, for which we have no signed metadata; so,
       # we must guess a reasonable required_length for it.
+      if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
+        raise tuf.SlowRetrievalError(average_download_speed)
+
+      else:
+        logger.debug('Good average download speed: ' +
+                     repr(average_download_speed) + ' bytes per second')
+      
       logger.info('Downloaded ' + str(total_downloaded) + ' bytes out of an'
         ' upper limit of ' + str(required_length) + ' bytes.')
 
