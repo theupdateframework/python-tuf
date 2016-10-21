@@ -81,7 +81,7 @@ CHUNK_SIZE = 8192 #bytes
 
 # The minimum average download speed (bytes/second) that must be met to
 # avoid being considered as a slow retrieval attack.
-MIN_AVERAGE_DOWNLOAD_SPEED = CHUNK_SIZE #bytes/second
+MIN_AVERAGE_DOWNLOAD_SPEED = 100 #bytes/second
 
 # The time (in seconds) we ignore a server with a slow initial retrieval speed.
 SLOW_START_GRACE_PERIOD = 3 #seconds

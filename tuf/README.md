@@ -904,9 +904,7 @@ which to launch it.
 
 ```Bash
 # Before launching the slow retrieval server, copy 'slow_retrieval_server.py'
-# to the 'repository/' directory and run it from that directory.  Assuming
-# the current working directory is "repository/":
-$ cp ../../../tests/slow_retrieval_server.py .
+# to the 'repository/' directory and run it from that directory as follows:
 $ python slow_retrieval_server.py 8002 mode_2
 ```
 
