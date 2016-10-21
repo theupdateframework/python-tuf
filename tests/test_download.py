@@ -116,22 +116,16 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     download.safe_download(self.url, self.target_data_length - 4)
     download.unsafe_download(self.url, self.target_data_length - 4)
 
-    # We catch 'tuf.SlowRetrievalError' here because safe_download()
-    # will not download more bytes than requested and the connection eventually
-    # hits a slow retrieval error when the server can't satisfy the request (
-    # in this case, a length greater than the size of the target file).
+    # We catch 'tuf.SlowRetrievalError' for both safe_download() and
+    # unsafe_download() because they will not download more bytes than
+    # requested and the connection eventually hits a slow retrieval error when
+    # the server can't satisfy the request (in this case, a length greater
+    # than the size of the target file).
     self.assertRaises(tuf.SlowRetrievalError, download.safe_download,
                       self.url, self.target_data_length + 1)
     
-    # However, we do *not* catch 'tuf.DownloadLengthMismatchError' in the next
-    # test condition because unsafe_download() does not enforce the required
-    # length argument.  The length reported and the length downloaded are still
-    # logged.
-    temp_fileobj = \
-    download.unsafe_download(self.url, self.target_data_length + 1)
-    self.assertEqual(self.target_data, temp_fileobj.read().decode('utf-8'))
-    self.assertEqual(self.target_data_length, len(temp_fileobj.read()))
-    temp_fileobj.close_temp_file()
+    self.assertRaises(tuf.SlowRetrievalError, download.unsafe_download,
+                      self.url, self.target_data_length + 1)
 
 
 
