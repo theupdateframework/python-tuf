@@ -258,7 +258,7 @@ class SlowRetrievalError(DownloadError):
     self.__average_download_speed = average_download_speed #bytes/second
 
   def __str__(self):
-    return 'Download was too slow.  The average download speed has gone' +\
+    return 'Download was too slow.  The average download speed dropped' +\
       ' below the minimum download speed of ' +\
       repr(self.__average_download_speed) + ' bytes per second.'
 

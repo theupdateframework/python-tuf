@@ -1691,8 +1691,6 @@ class Targets(Metadata):
 
 
 
-
-
   def add_delegated_role(self, rolename, targets_object):
     """ 
     <Purpose>
@@ -1712,9 +1710,6 @@ class Targets(Metadata):
     <Exceptions>
       tuf.FormatError, if the arguments are improperly formatted.
 
-      tuf.RoleAlreadyExistsError, if 'rolename' has already been delegated by
-      this Targets object.
-
     <Side Effects>
       Updates the Target object's dictionary of delegated targets.
     
@@ -1733,12 +1728,45 @@ class Targets(Metadata):
    
 
     if rolename in self._delegated_roles:
-      raise tuf.RoleAlreadyExistsError(repr(rolename) + ' already exists.')
+      logger.debug(repr(rolename) + ' already exists.')
     
     else:
       self._delegated_roles[rolename] = targets_object
+  
 
 
+  def remove_delegated_role(self, rolename):
+    """
+      Remove 'rolename' from this Targets object's list of delegated roles.
+      This method does not update tuf.roledb and others.
+
+    <Arguments>
+      rolename:
+        The rolename of the delegated role to remove.  'rolename' should be a
+        role previously delegated by this Targets role.
+
+    <Exceptions>
+      tuf.FormatError, if the argument is improperly formatted.
+
+    <Side Effects>
+      Updates the Target object's dictionary of delegated targets.
+    
+    <Returns>
+      None.
+    """
+
+    # Do the arguments have the correct format?
+    # Ensure the arguments have the appropriate number of objects and object
+    # types, and that all dict keys are properly named.
+    # Raise 'tuf.FormatError' if any are improperly formatted.
+    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    
+    if rolename not in self._delegated_roles:
+      logger.debug(repr(rolename) + ' has not been delegated.') 
+      return
+    
+    else:
+      del self._delegated_roles[rolename]
 
 
 
@@ -2249,7 +2277,7 @@ class Targets(Metadata):
 
     # The new targets object is added as an attribute to this Targets object. 
     new_targets_object = Targets(self._targets_directory, rolename,
-                                 roleinfo, parent_targets_object=self)
+                                 roleinfo, parent_targets_object=self._parent_targets_object)
     
     # Update the 'delegations' field of the current role.
     current_roleinfo = tuf.roledb.get_roleinfo(self.rolename) 
@@ -2289,8 +2317,9 @@ class Targets(Metadata):
    
     else:
       self._parent_targets_object.add_delegated_role(rolename, new_targets_object)
-
-
+      self.add_delegated_role(rolename, new_targets_object)
+      
+  
 
 
 
@@ -2346,6 +2375,9 @@ class Targets(Metadata):
     # Remove the rolename delegation from the current role.  For example, the
     # 'django' role is removed from repository.targets('django').
     del self._delegated_roles[rolename]
+    self._parent_targets_object.remove_delegated_role(rolename)
+
+
 
 
 
