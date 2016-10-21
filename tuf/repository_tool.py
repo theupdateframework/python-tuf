@@ -347,14 +347,13 @@ class Repository(object):
   def status(self):
     """
     <Purpose>
-      Determine the status of the top-level roles, including those delegated by
-      the Targets role.  status() checks if each role provides sufficient public
-      and private keys, signatures, and that a valid metadata file is generated
-      if writeall() were to be called.  Metadata files are temporarily written so
-      that file hashes and lengths may be verified, determine if delegated role
-      trust is fully obeyed, and target paths valid according to parent roles.
-      status() does not do a simple check for number of threshold keys and
-      signatures.
+      Determine the status of the top-level roles.  status() checks if each
+      role provides sufficient public and private keys, signatures, and that a
+      valid metadata file is generated if writeall() or write() were to be
+      called.  Metadata files are temporarily written so that file hashes and
+      lengths may be verified, determine if delegated role trust is fully
+      obeyed, and target paths valid according to parent roles.  status() does
+      not do a simple check for number of threshold keys and signatures.
 
     <Arguments>
       None.
@@ -373,60 +372,14 @@ class Repository(object):
 
     # Generate and write temporary metadata so that full verification of
     # metadata is possible, such as verifying signatures, digests, and file
-    # content.  Ensure temporary files generated are removed after verification
-    # results are completed.
+    # content.  Ensure temporary files are removed after verification results
+    # are completed.
     try:
       temp_repository_directory = tempfile.mkdtemp()
       targets_directory = self._targets_directory
       metadata_directory = os.path.join(temp_repository_directory,
                                         METADATA_STAGED_DIRECTORY_NAME)
       os.mkdir(metadata_directory)
-
-    
-      # Retrieve the roleinfo of the delegated roles, exluding the top-level
-      # targets role.
-      delegated_roles = tuf.roledb.get_delegated_rolenames('targets')
-      insufficient_keys = []
-      insufficient_signatures = []
-     
-      # Iterate the list of delegated roles and determine the list of invalid
-      # roles.  First verify the public and private keys, and then the generated
-      # metadata file.
-      for delegated_role in delegated_roles:
-        filename = delegated_role + METADATA_EXTENSION
-        filename = os.path.join(metadata_directory, filename)
-        
-        # Ensure the parent directories of 'filename' exist, otherwise an
-        # IO exception is raised if 'filename' is written to a sub-directory.
-        tuf.util.ensure_parent_dir(filename)
-       
-        # Append any invalid roles to the 'insufficient_keys' and
-        # 'insufficient_signatures' lists
-        try: 
-          repo_lib._check_role_keys(delegated_role)
-        
-        except tuf.InsufficientKeysError:
-          insufficient_keys.append(delegated_role)
-          continue
-        
-        try: 
-          repo_lib._generate_and_write_metadata(delegated_role, filename,
-                                                targets_directory,
-                                                metadata_directory)
-        except tuf.UnsignedMetadataError:
-          insufficient_signatures.append(delegated_role)
-     
-      # Log the verification results of the delegated roles and return
-      # immediately after each invalid case.
-      if len(insufficient_keys):
-        logger.info('Delegated roles with insufficient'
-          ' keys:\n' + repr(insufficient_keys))
-        return
-      
-      if len(insufficient_signatures):
-        logger.info('Delegated roles with insufficient'
-          ' signatures:\n' + repr(insufficient_signatures)) 
-        return
 
       # Verify the top-level roles and log the results.
       repo_lib._log_status_of_top_level_roles(targets_directory,
