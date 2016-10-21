@@ -1710,9 +1710,6 @@ class Targets(Metadata):
     <Exceptions>
       tuf.FormatError, if the arguments are improperly formatted.
 
-      tuf.RoleAlreadyExistsError, if 'rolename' has already been delegated by
-      this Targets object.
-
     <Side Effects>
       Updates the Target object's dictionary of delegated targets.
     
@@ -1731,7 +1728,7 @@ class Targets(Metadata):
    
 
     if rolename in self._delegated_roles:
-      raise tuf.RoleAlreadyExistsError(repr(rolename) + ' already exists.')
+      logger.debug(repr(rolename) + ' already exists.')
     
     else:
       self._delegated_roles[rolename] = targets_object
