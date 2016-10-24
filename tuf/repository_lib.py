@@ -474,8 +474,9 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
       for basename in files:
         
         # don't delete previous root files
+        # if encounter with 'root.json', skip it
         if basename.endswith('root.json'):
-          return
+          continue
         
         metadata_path = os.path.join(directory_path, basename)
         # Strip the metadata dirname and the leading path separator.
@@ -2032,14 +2033,23 @@ def write_metadata_file(metadata, filename, version_number,
     logger.debug('Saving ' + repr(written_consistent_filename))
     file_object.move(written_consistent_filename)
 
-    # TODO: We should provide the option of either (1) creating a link via
+    # For Issue #374 https://github.com/theupdateframework/tuf/issues/374
+    # We provide the option of either (1) creating a link via
     # os.link() to the consistent snapshot or (2) creating a copy of the
     # consistent snapshot and saving to its expected filename (e.g.,
     # root.json).  The option should be a configurable in tuf.conf.py.
     # For now, we create a copy of the consistent snapshot and save it to
     # 'written_filename'.
-    logger.debug('Pointing ' + repr(filename) + ' to the consistent snapshot.')
-    shutil.copyfile(written_consistent_filename, written_filename)
+    if (tuf.conf.CONSISTENT_METHOD == 'copy'):
+      logger.info('Pointing ' + repr(filename) + ' to the consistent snapshot.')
+      shutil.copyfile(written_consistent_filename, written_filename)
+
+    elif (tuf.conf.CONSISTENT_METHOD == 'link'):
+      logger.info('Linking ' + repr(written_consistent_filename))
+      os.link(written_consistent_filename, written_filename)
+
+    else:
+      raise tuf.Error('Consistent method is not correct.')
   
   else:
     logger.debug('Not creating a consistent snapshot for ' + repr(written_filename))
