@@ -194,9 +194,13 @@ class TestRepository(unittest.TestCase):
     
     
     # (3) Load top-level signing keys.
+    repository.status()
     repository.root.load_signing_key(root_privkey)
+    repository.status()
     repository.targets.load_signing_key(targets_privkey)
+    repository.status()
     repository.snapshot.load_signing_key(snapshot_privkey)
+    repository.status()
    
     # Verify that repository.writeall() fails for insufficient threshold
     # of signatures (default threshold = 1).

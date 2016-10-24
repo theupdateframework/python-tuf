@@ -2183,7 +2183,6 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
     
     except tuf.InsufficientKeysError as e:
       logger.info(str(e))
-      return
 
   # Do the top-level roles contain a valid threshold of signatures?  Top-level
   # metadata is verified in Root -> Targets -> Snapshot -> Timestamp order.
