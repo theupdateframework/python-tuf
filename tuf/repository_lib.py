@@ -2046,10 +2046,14 @@ def write_metadata_file(metadata, filename, version_number,
 
     elif (tuf.conf.CONSISTENT_METHOD == 'hard_link'):
       logger.info('Hard linking ' + repr(written_consistent_filename))
+
+      if os.path.exists(written_filename):
+        os.remove(written_filename)
+
       os.link(written_consistent_filename, written_filename)
 
     else:
-      raise tuf.Error('Consistent method is not correct, try "copy" or "hard_link" ')
+      raise tuf.InvalidConfigurationError('Consistent method is not correct, try "copy" or "hard_link" ')
   
   else:
     logger.debug('Not creating a consistent snapshot for ' + repr(written_filename))

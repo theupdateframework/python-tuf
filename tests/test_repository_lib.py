@@ -48,6 +48,7 @@ import tuf.formats
 import tuf.roledb
 import tuf.keydb
 import tuf.hash
+import tuf.conf
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool as repo_tool
 
@@ -80,8 +81,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
    
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated for the test cases.
-    shutil.rmtree(cls.temporary_directory)
-
+    # shutil.rmtree(cls.temporary_directory)
+    pass
 
 
   def setUp(self):
@@ -754,6 +755,42 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                  version_number,
                                  compression_algorithms,
                                  consistent_snapshot=False)
+
+    # Try to wirte a consistent metadate file. An exception is not raised in this case.
+    tuf.conf.CONSISTENT_METHOD = 'hard_link'
+    repo_lib.write_metadata_file(root_signable, output_filename,
+                                 version_number,
+                                 compression_algorithms,
+                                 consistent_snapshot=True)
+
+    # Test if the consistent files are properly named (<version number>.rolename.json) or not
+    version_and_filename = str(version_number) + '.' + 'root.json'
+    first_version_output_file = os.path.join(temporary_directory, version_and_filename)
+    self.assertTrue(os.path.exists(first_version_output_file))
+
+    # Try to add more consistent metadata files.
+    version_number += 1
+    repo_lib.write_metadata_file(root_signable, output_filename,
+                                 version_number,
+                                 compression_algorithms,
+                                 consistent_snapshot=True)
+
+    # Test if the the latest root.json points to the expected consistent file
+    # and
+    # consistent metadata do not all point to the same root.json
+    version_and_filename = str(version_number) + '.' + 'root.json'
+    second_version_output_file = os.path.join(temporary_directory, version_and_filename)
+    self.assertTrue(os.path.exists(second_version_output_file))
+    self.assertNotEqual(os.stat(output_filename).st_ino, os.stat(first_version_output_file).st_ino)
+    self.assertEqual(os.stat(output_filename).st_ino, os.stat(second_version_output_file).st_ino)
+
+    # Test improper Consistent_METHOD configuration
+    tuf.conf.CONSISTENT_METHOD = 'somebadidea'
+    self.assertRaises(tuf.InvalidConfigurationError, repo_lib.write_metadata_file,
+                                                     root_signable, output_filename,
+                                                     version_number,
+                                                     compression_algorithms,
+                                                     consistent_snapshot=True)
 
     # Test unknown compression algorithm.
     self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
