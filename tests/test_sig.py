@@ -177,6 +177,16 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['unknown_method_sigs'])
 
     self.assertTrue(tuf.sig.verify(signable, 'Root'))
+   
+    # Test for an unknown signature when 'role' is left unspecified.
+    sig_status = tuf.sig.get_signature_status(signable)
+    
+    self.assertEqual(0, sig_status['threshold'])
+    self.assertEqual([], sig_status['good_sigs'])
+    self.assertEqual([], sig_status['bad_sigs'])
+    self.assertEqual([KEYS[0]['keyid']], sig_status['unknown_sigs'])
+    self.assertEqual([], sig_status['untrusted_sigs'])
+    self.assertEqual([], sig_status['unknown_method_sigs'])
 
     # Done.  Let's remove the added key(s) from the key database.
     tuf.keydb.remove_key(KEYS[0]['keyid'])
@@ -281,6 +291,9 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['unknown_method_sigs'])
 
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
+    
+    self.assertRaises(tuf.UnknownRoleError,
+                      tuf.sig.get_signature_status, signable, 'unknown_role')
 
     # Done.  Let's remove the added key(s) from the key database.
     tuf.keydb.remove_key(KEYS[0]['keyid'])
