@@ -917,7 +917,7 @@ def load_json_file(filepath):
 
     tuf.Error: If 'filepath' cannot be deserialized to a Python object.
 
-    IOError in case of runtime IO exceptions.
+    IOError: If there are runtime IO exceptions.
 
   <Side Effects>
     None.

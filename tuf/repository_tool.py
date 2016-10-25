@@ -2887,6 +2887,8 @@ def load_repository(repository_directory):
       metadata_name = metadata_name[:-extension_length]
     
     else:
+      logger.debug('Skipping file with unsupported metadata'
+        ' extension: ' + repr(metadata_path))
       continue
    
     # Skip top-level roles, only interested in delegated roles now that the
@@ -2906,7 +2908,9 @@ def load_repository(repository_directory):
     try:
       signable = tuf.util.load_json_file(metadata_path)
     
-    except (ValueError, IOError):
+    except (tuf.Error, ValueError, IOError):
+      logger.debug('Tried to load metadata with invalid JSON'
+        ' content: ' + repr(metadata_path))
       continue
     
     metadata_object = signable['signed']
@@ -2931,6 +2935,9 @@ def load_repository(repository_directory):
 
     if os.path.exists(metadata_path + '.gz'):
       roleinfo['compressions'].append('gz')
+
+    else:
+      logger.debug('A compressed version does not exist.')
   
     tuf.roledb.add_role(metadata_name, roleinfo) 
     loaded_metadata.append(metadata_name)

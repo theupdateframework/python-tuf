@@ -1542,9 +1542,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory) 
     original_repository_directory = os.path.join('repository_data',
                                                  'repository')
+    
     repository_directory = os.path.join(temporary_directory, 'repository')
+    metadata_directory = os.path.join(repository_directory, 'metadata.staged')
     shutil.copytree(original_repository_directory, repository_directory)
-     
+   
+    # For testing purposes, add a metadata file with an extension that is
+    # not supported, and another with invalid JSON content.
+    invalid_metadata_file = os.path.join(metadata_directory, 'root.xml')
+    root_file = os.path.join(metadata_directory, 'root.json')
+    shutil.copyfile(root_file, invalid_metadata_file)
+    bad_root_content = os.path.join(metadata_directory, 'root_bad.json') 
+    with open(bad_root_content, 'wb') as file_object:
+      file_object.write('bad')
+
     repository = repo_tool.load_repository(repository_directory)
     self.assertTrue(isinstance(repository, repo_tool.Repository))
 
@@ -1561,8 +1572,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(len(repository.timestamp.keys))
     self.assertEqual(1, repository.targets('role1').version)
 
-    # Assumed the targets (tuf/tests/repository_data/) role contains 'file1.txt'
-    # and 'file2.txt'.
+    # It is assumed that the targets (tuf/tests/repository_data/) role contains
+    # 'file1.txt' and 'file2.txt'.
     self.assertTrue('/file1.txt' in repository.targets.target_files)
     self.assertTrue('/file2.txt' in repository.targets.target_files)
     self.assertTrue('/file3.txt' in repository.targets('role1').target_files)
