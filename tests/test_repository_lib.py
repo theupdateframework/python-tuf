@@ -793,7 +793,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                                      version_number,
                                                      compression_algorithms,
                                                      consistent_snapshot=True)
-
+    
+    # Reset CONSISTENT_METHOD so that subsequent tests work as expected.
+    tuf.conf.CONSISTENT_METHOD = 'copy'
+    
     # Test for unknown compression algorithm.
     self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
                                        root_signable, output_filename,
