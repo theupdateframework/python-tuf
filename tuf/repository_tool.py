@@ -789,9 +789,9 @@ class Metadata(object):
     # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
 
-    # TODO Should we consider to check the keys in tuf.keydb manually or automatically in the future
-    # There could be a lot of no-longer-used keys stored in the keydb
-    
+    # TODO: Should we consider removing keys from keydb that are no longer
+    # associated with any roles?  There could be many no-longer-used keys
+    # stored in the keydb if not.  For now, just unload the key.
     if key['keyid'] in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].remove(key['keyid'])
       
@@ -2425,10 +2425,10 @@ class Targets(Metadata):
     logger.info(repr(number_of_bins) + ' hashed bins.')
     logger.info(repr(total_hash_prefixes) + ' total hash prefixes.')
 
-    # Store the target paths that fall into each bin.  The digest of the
-    # target path, reduced to the first 'prefix_length' hex digits, is
-    # calculated to determine which 'bin_index' it should go.
-    # Use xrange here because there can a large number of prefixes and we may not need to take care of everyone.
+    # Store the target paths that fall into each bin.  The digest of the target
+    # path, reduced to the first 'prefix_length' hex digits, is calculated to
+    # determine which 'bin_index' it should go.  we use xrange() here because
+    # there can be a large number of prefixes to process.
     target_paths_in_bin = {}
     for bin_index in six.moves.xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
