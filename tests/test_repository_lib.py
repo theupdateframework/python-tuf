@@ -81,8 +81,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
    
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated for the test cases.
-    # shutil.rmtree(cls.temporary_directory)
-    pass
+    shutil.rmtree(cls.temporary_directory)
 
 
   def setUp(self):
