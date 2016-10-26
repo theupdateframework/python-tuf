@@ -473,8 +473,8 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
       # 'files' here is a list of target file names.
       for basename in files:
         
-        # don't delete previous root files
-        # if encounter with 'root.json', skip it
+        # If we encounter 'root.json', skip it.  We don't ever delete root.json
+        # files, since they should it always exist.
         if basename.endswith('root.json'):
           continue
         
@@ -2033,13 +2033,11 @@ def write_metadata_file(metadata, filename, version_number,
     logger.debug('Saving ' + repr(written_consistent_filename))
     file_object.move(written_consistent_filename)
 
-    # For Issue #374 https://github.com/theupdateframework/tuf/issues/374
-    # We provide the option of either (1) creating a link via
-    # os.link() to the consistent snapshot or (2) creating a copy of the
-    # consistent snapshot and saving to its expected filename (e.g.,
-    # root.json).  The option should be a configurable in tuf.conf.py.
-    # For now, we create a copy of the consistent snapshot and save it to
-    # 'written_filename'.
+    # For GitHub issue #374 https://github.com/theupdateframework/tuf/issues/374
+    # We provide the option of either (1) creating a link via os.link() to the
+    # consistent file or (2) creating a copy of the consistent file and saving
+    # to its expected filename (e.g., root.json).  The option of either
+    # creating a copy or link should be configurable in tuf.conf.py.
     if (tuf.conf.CONSISTENT_METHOD == 'copy'):
       logger.info('Pointing ' + repr(filename) + ' to the consistent snapshot.')
       shutil.copyfile(written_consistent_filename, written_filename)
@@ -2047,13 +2045,15 @@ def write_metadata_file(metadata, filename, version_number,
     elif (tuf.conf.CONSISTENT_METHOD == 'hard_link'):
       logger.info('Hard linking ' + repr(written_consistent_filename))
 
+      # 'written_filename' must not exist, otherwise os.link complains.
       if os.path.exists(written_filename):
         os.remove(written_filename)
 
       os.link(written_consistent_filename, written_filename)
 
     else:
-      raise tuf.InvalidConfigurationError('Consistent method is not correct, try "copy" or "hard_link" ')
+      raise tuf.InvalidConfigurationError('The consistent method specified'
+        ' in tuf.conf.py is not supported, try either "copy" or "hard_link"')
   
   else:
     logger.debug('Not creating a consistent snapshot for ' + repr(written_filename))
