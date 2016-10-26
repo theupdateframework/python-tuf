@@ -793,6 +793,15 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                                      version_number,
                                                      compression_algorithms,
                                                      consistent_snapshot=True)
+
+    # Try to create a link to root.json when root.json doesn't exist locally.
+    # repository_lib should log a message if this is the case.
+    tuf.conf.CONSISTENT_METHOD = 'hard_link'
+    os.remove(output_filename)
+    repo_lib.write_metadata_file(root_signable, output_filename,
+                                 version_number,
+                                 compression_algorithms,
+                                 consistent_snapshot=True)
     
     # Reset CONSISTENT_METHOD so that subsequent tests work as expected.
     tuf.conf.CONSISTENT_METHOD = 'copy'

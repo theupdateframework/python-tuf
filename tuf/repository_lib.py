@@ -2045,9 +2045,12 @@ def write_metadata_file(metadata, filename, version_number,
     elif (tuf.conf.CONSISTENT_METHOD == 'hard_link'):
       logger.info('Hard linking ' + repr(written_consistent_filename))
 
-      # 'written_filename' must not exist, otherwise os.link complains.
+      # 'written_filename' must not exist, otherwise os.link() complains.
       if os.path.exists(written_filename):
         os.remove(written_filename)
+      
+      else:
+        logger.debug(repr(written_filename) + ' does not exist.')
 
       os.link(written_consistent_filename, written_filename)
 
