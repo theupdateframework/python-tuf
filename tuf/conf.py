@@ -145,3 +145,10 @@ SUPPORTED_URI_SCHEMES = ['http', 'https']
 
 # By default, limit number of delegatees we visit for any target.
 MAX_NUMBER_OF_DELEGATIONS = 2**5
+
+# This configuration is for indicating which method to realize consistent snapshot
+# There are two options: "copy" or "hard_link"
+# For "copy", there will two copies of the root.json, will take up more memory, but suitable more broadly.
+# For "hard_link", there will only a link from current file to 2.root.json(for example), this will save more memory.
+# Defaultly, we use 'copy'
+CONSISTENT_METHOD = 'copy'

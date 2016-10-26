@@ -788,6 +788,9 @@ class Metadata(object):
     
     # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
+
+    # TODO Should we consider to check the keys in tuf.keydb manually or automatically in the future
+    # There could be a lot of no-longer-used keys stored in the keydb
     
     if key['keyid'] in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].remove(key['keyid'])
@@ -1429,7 +1432,7 @@ class Timestamp(Metadata):
     
     self._rolename = 'timestamp'
 
-    # By default, 'snapshot' metadata is set to expire 1 week from the current
+    # By default, 'root' metadata is set to expire 1 year from the current
     # time.  The expiration may be modified.
     expiration = \
       tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
@@ -2424,7 +2427,8 @@ class Targets(Metadata):
 
     # Store the target paths that fall into each bin.  The digest of the
     # target path, reduced to the first 'prefix_length' hex digits, is
-    # calculated to determine which 'bin_index' it should go. 
+    # calculated to determine which 'bin_index' it should go.
+    # Use xrange here because there can a large number of prefixes and we may not need to take care of everyone.
     target_paths_in_bin = {}
     for bin_index in six.moves.xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
