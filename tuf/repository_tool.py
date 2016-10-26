@@ -788,7 +788,10 @@ class Metadata(object):
     
     # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
-    
+
+    # TODO: Should we consider removing keys from keydb that are no longer
+    # associated with any roles?  There could be many no-longer-used keys
+    # stored in the keydb if not.  For now, just unload the key.
     if key['keyid'] in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].remove(key['keyid'])
       
@@ -1429,7 +1432,7 @@ class Timestamp(Metadata):
     
     self._rolename = 'timestamp'
 
-    # By default, 'snapshot' metadata is set to expire 1 week from the current
+    # By default, 'root' metadata is set to expire 1 year from the current
     # time.  The expiration may be modified.
     expiration = \
       tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
@@ -2422,9 +2425,10 @@ class Targets(Metadata):
     logger.info(repr(number_of_bins) + ' hashed bins.')
     logger.info(repr(total_hash_prefixes) + ' total hash prefixes.')
 
-    # Store the target paths that fall into each bin.  The digest of the
-    # target path, reduced to the first 'prefix_length' hex digits, is
-    # calculated to determine which 'bin_index' it should go. 
+    # Store the target paths that fall into each bin.  The digest of the target
+    # path, reduced to the first 'prefix_length' hex digits, is calculated to
+    # determine which 'bin_index' it should go.  we use xrange() here because
+    # there can be a large number of prefixes to process.
     target_paths_in_bin = {}
     for bin_index in six.moves.xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
@@ -2887,6 +2891,8 @@ def load_repository(repository_directory):
       metadata_name = metadata_name[:-extension_length]
     
     else:
+      logger.debug('Skipping file with unsupported metadata'
+        ' extension: ' + repr(metadata_path))
       continue
    
     # Skip top-level roles, only interested in delegated roles now that the
@@ -2906,7 +2912,9 @@ def load_repository(repository_directory):
     try:
       signable = tuf.util.load_json_file(metadata_path)
     
-    except (ValueError, IOError):
+    except (tuf.Error, ValueError, IOError):
+      logger.debug('Tried to load metadata with invalid JSON'
+        ' content: ' + repr(metadata_path))
       continue
     
     metadata_object = signable['signed']
@@ -2931,6 +2939,9 @@ def load_repository(repository_directory):
 
     if os.path.exists(metadata_path + '.gz'):
       roleinfo['compressions'].append('gz')
+
+    else:
+      logger.debug('A compressed version does not exist.')
   
     tuf.roledb.add_role(metadata_name, roleinfo) 
     loaded_metadata.append(metadata_name)
