@@ -1553,9 +1553,15 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     root_file = os.path.join(metadata_directory, 'root.json')
     shutil.copyfile(root_file, invalid_metadata_file)
     bad_root_content = os.path.join(metadata_directory, 'root_bad.json') 
+    
     with open(bad_root_content, 'wb') as file_object:
-      file_object.write('bad')
+      file_object.write(b'bad') 
 
+    # Remove the compressed version of role1 to test whether the
+    # load_repository() complains or not (it logs a message).
+    role1_path = os.path.join(metadata_directory, 'role1.json.gz')
+    os.remove(role1_path)
+    
     repository = repo_tool.load_repository(repository_directory)
     self.assertTrue(isinstance(repository, repo_tool.Repository))
 
