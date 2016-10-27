@@ -439,6 +439,30 @@ class Repository(object):
     """
   
     tuf.roledb.mark_dirty(roles)
+  
+  
+  
+  def unmark_dirty(self, roles):
+    """
+    <Purpose>
+      No longer mark the list of 'roles' as dirty.
+
+    <Arguments>
+      roles:
+        A list of roles to mark as dirty.  on the next write, these roles
+        will be written to disk.
+
+    <Exceptions>
+      None.
+    
+    <Side Effects>
+      None.
+
+    <Returns>
+      None.
+    """
+  
+    tuf.roledb.unmark_dirty(roles)
 
 
 
