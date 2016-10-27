@@ -701,6 +701,32 @@ class TestRoledb(unittest.TestCase):
     self.assertRaises(tuf.InvalidNameError, tuf.roledb.mark_dirty,
                       ['dirty_role'], 'non-existent')
 
+  
+  
+  def test_unmark_dirty(self):
+    # Add a dirty role to roledb.
+    rolename = 'targets'
+    roleinfo1 = {'keyids': ['123'], 'threshold': 1}
+    tuf.roledb.add_role(rolename, roleinfo1)
+    rolename2 = 'dirty_role'
+    roleinfo2 = {'keyids': ['123'], 'threshold': 2}
+    tuf.roledb.add_role(rolename2, roleinfo2)
+    mark_role_as_dirty = True
+    tuf.roledb.update_roleinfo(rolename, roleinfo1, mark_role_as_dirty)
+    # Note: The 'default' repository is searched if the repository name is
+    # not given to get_dirty_roles().
+    self.assertEqual([rolename], tuf.roledb.get_dirty_roles())
+    tuf.roledb.update_roleinfo(rolename2, roleinfo2, mark_role_as_dirty)
+    
+    tuf.roledb.unmark_dirty(['dirty_role'])
+    self.assertEqual([rolename], sorted(tuf.roledb.get_dirty_roles()))
+    tuf.roledb.unmark_dirty(['targets'])
+    self.assertEqual([], sorted(tuf.roledb.get_dirty_roles()))
+
+    # Verify that a role cannot be unmarked as dirty for a non-existent
+    # repository.
+    self.assertRaises(tuf.InvalidNameError, tuf.roledb.unmark_dirty,
+                      ['dirty_role'], 'non-existent')
 
 
   def _test_rolename(self, test_function):
