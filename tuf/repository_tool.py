@@ -279,7 +279,9 @@ class Repository(object):
                                             self._targets_directory,
                                             self._metadata_directory,
                                             consistent_snapshot, filenames)
-     
+    
+    tuf.roledb.unmark_dirty(dirty_rolenames)
+
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked and should no longer have their metadata files
     # available on disk, otherwise loading a repository may unintentionally
