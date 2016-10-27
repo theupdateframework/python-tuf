@@ -2204,7 +2204,16 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   # Do the top-level roles contain a valid threshold of signatures?  Top-level
   # metadata is verified in Root -> Targets -> Snapshot -> Timestamp order.
   # Verify the metadata of the Root role.
+  dirty_rolenames = tuf.roledb.get_dirty_roles()
+
   root_roleinfo = tuf.roledb.get_roleinfo('root')
+  root_is_dirty = None 
+  if 'root' in dirty_rolenames:
+    root_is_dirty = True
+
+  else:
+    root_is_dirty = False 
+  
   try:
     signable, root_filename = \
       _generate_and_write_metadata('root', root_filename,
@@ -2219,10 +2228,18 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
 
   finally:
     tuf.roledb.unmark_dirty(['root'])
-    tuf.roledb.update_roleinfo('root', root_roleinfo)
+    tuf.roledb.update_roleinfo('root', root_roleinfo,
+                               mark_role_as_dirty=root_is_dirty)
 
   # Verify the metadata of the Targets role.
   targets_roleinfo = tuf.roledb.get_roleinfo('targets')
+  targets_is_dirty = None 
+  if 'targets' in dirty_rolenames:
+    targets_is_dirty = True
+
+  else:
+    targets_is_dirty = False 
+  
   try:
     signable, targets_filename = \
       _generate_and_write_metadata('targets', targets_filename,
@@ -2235,10 +2252,18 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   
   finally:
     tuf.roledb.unmark_dirty(['targets'])
-    tuf.roledb.update_roleinfo('targets', targets_roleinfo)
+    tuf.roledb.update_roleinfo('targets', targets_roleinfo,
+                               mark_role_as_dirty=targets_is_dirty)
 
   # Verify the metadata of the snapshot role.
   snapshot_roleinfo = tuf.roledb.get_roleinfo('snapshot')
+  snapshot_is_dirty = None 
+  if 'snapshot' in dirty_rolenames:
+    snapshot_is_dirty = True
+
+  else:
+    snapshot_is_dirty = False 
+  
   filenames = {'root': root_filename, 'targets': targets_filename} 
   try:
     signable, snapshot_filename = \
@@ -2253,10 +2278,18 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   
   finally:
     tuf.roledb.unmark_dirty(['snapshot'])
-    tuf.roledb.update_roleinfo('snapshot', snapshot_roleinfo)
+    tuf.roledb.update_roleinfo('snapshot', snapshot_roleinfo,
+                               mark_role_as_dirty=snapshot_is_dirty)
   
   # Verify the metadata of the Timestamp role.
   timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp')
+  timestamp_is_dirty = None 
+  if 'timestamp' in dirty_rolenames:
+    timestamp_is_dirty = True
+
+  else:
+    timestamp_is_dirty = False 
+
   filenames = {'snapshot': snapshot_filename}
   try:
     signable, timestamp_filename = \
@@ -2271,9 +2304,9 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   
   finally:
     tuf.roledb.unmark_dirty(['timestamp'])
-    tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo)
-
-
+    tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
+                               mark_role_as_dirty=timestamp_is_dirty)
+  
 
 
 def _log_status(rolename, signable):
