@@ -341,6 +341,9 @@ class Repository(object):
                                           filenames=filenames,
                                           allow_partially_signed=True,
                                           increment_version_number=increment_version_number)
+
+    # Ensure 'rolename' is no longer marked as dirty after the successful write().
+    tuf.roledb.unmark_dirty([rolename])
   
   
   
