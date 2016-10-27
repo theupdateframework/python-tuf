@@ -511,7 +511,7 @@ def unmark_dirty(roles, repository_name='default'):
     try: 
       _dirty_roles[repository_name].remove(role)
 
-    except ValueError:
+    except (KeyError, ValueError):
       logger.debug(repr(role) + ' is not dirty.') 
 
 

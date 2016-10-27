@@ -723,6 +723,10 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.unmark_dirty(['targets'])
     self.assertEqual([], sorted(tuf.roledb.get_dirty_roles()))
 
+    # What happens for a role that isn't dirty?  unmark_dirty() should just
+    # log a message.
+    tuf.roledb.unmark_dirty(['unknown_role'])
+
     # Verify that a role cannot be unmarked as dirty for a non-existent
     # repository.
     self.assertRaises(tuf.InvalidNameError, tuf.roledb.unmark_dirty,
