@@ -347,6 +347,19 @@ class TestRepository(unittest.TestCase):
     # successfully.
     repo_tool.load_repository(repository_directory)
 
+    # Verify the behavior of marking and unmarking roles as dirty.
+    # We begin by ensuring that writeall() cleared the list of dirty roles.. 
+    self.assertEqual([], tuf.roledb.get_dirty_roles())
+    
+    repository.mark_dirty(['root', 'timestamp'])
+    self.assertEqual(['root', 'timestamp'], sorted(tuf.roledb.get_dirty_roles()))
+    repository.unmark_dirty(['root'])
+    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles())
+    
+    # Ensure status() does not leave behind any dirty roles.
+    repository.status()
+    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles())
+
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repository.writeall, 3, False)
     self.assertRaises(tuf.FormatError, repository.writeall, False, 3)
