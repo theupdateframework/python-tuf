@@ -505,8 +505,7 @@ def unmark_dirty(roles, repository_name='default'):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise tuf.InvalidNameError('Repository name does not' ' exist: ' +
-      repository_name)
+    raise tuf.InvalidNameError('Repository name does not exist: ' + repository_name)
 
   for role in roles:
     try: 
