@@ -31,7 +31,7 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.ed25519_keys as ed25519_keys 
 
 logger = logging.getLogger('tuf.test_ed25519_keys')
@@ -49,8 +49,8 @@ class TestEd25519_keys(unittest.TestCase):
     pub, priv = ed25519_keys.generate_public_and_private()
     
     # Check format of 'pub' and 'priv'.
-    self.assertEqual(True, tuf.formats.ED25519PUBLIC_SCHEMA.matches(pub))
-    self.assertEqual(True, tuf.formats.ED25519SEED_SCHEMA.matches(priv))
+    self.assertEqual(True, tuf.tufformats.ED25519PUBLIC_SCHEMA.matches(pub))
+    self.assertEqual(True, tuf.tufformats.ED25519SEED_SCHEMA.matches(priv))
 
 
 
@@ -62,9 +62,9 @@ class TestEd25519_keys(unittest.TestCase):
 
     # Verify format of returned values.
     self.assertEqual(True,
-                     tuf.formats.ED25519SIGNATURE_SCHEMA.matches(signature))
+                     tuf.tufformats.ED25519SIGNATURE_SCHEMA.matches(signature))
     
-    self.assertEqual(True, tuf.formats.NAME_SCHEMA.matches(method))
+    self.assertEqual(True, tuf.tufformats.NAME_SCHEMA.matches(method))
     self.assertEqual('ed25519', method)
 
     # Check for improperly formatted argument.

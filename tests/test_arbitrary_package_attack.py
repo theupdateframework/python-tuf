@@ -51,7 +51,7 @@ else:
   import unittest2 as unittest 
 
 import tuf
-import tuf.formats
+import tuf.tufformats
 import tuf.util
 import tuf.roledb
 import tuf.keydb
@@ -181,7 +181,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     client_target_path = os.path.join(self.client_directory, 'file1.txt') 
     self.assertFalse(os.path.exists(client_target_path))
     length, hashes = tuf.util.get_file_details(target_path)
-    fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
@@ -189,19 +189,19 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     
     self.assertTrue(os.path.exists(client_target_path))
     length, hashes = tuf.util.get_file_details(client_target_path)
-    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    download_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     self.assertEqual(fileinfo, download_fileinfo)
   
     # Test: Download a target file that has been modified by an attacker.
     with open(target_path, 'wt') as file_object:
       file_object.write('add malicious content.')
     length, hashes = tuf.util.get_file_details(target_path)
-    malicious_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    malicious_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     
     six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     length, hashes = tuf.util.get_file_details(client_target_path)
-    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+    download_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is unequal to the original trusted version.
     self.assertNotEqual(download_fileinfo, fileinfo)
@@ -267,7 +267,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     metadata['signed']['targets']['/file1.txt']['hashes'] = hashes
     metadata['signed']['targets']['/file1.txt']['length'] = length
 
-    tuf.formats.check_signable_object_format(metadata) 
+    tuf.tufformats.check_signable_object_format(metadata) 
     
     with open(metadata_path, 'wb') as file_object:
       json.dumps(metadata, file_object, indent=1, sort_keys=True).encode('utf-8')   

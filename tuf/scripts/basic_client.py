@@ -63,7 +63,7 @@ import optparse
 import logging
 
 import tuf
-import tuf.formats
+import tuf.tufformats
 import tuf.client.updater
 import tuf.log
 
@@ -99,7 +99,7 @@ def update_client(repository_mirror):
 
   # Does 'repository_mirror' have the correct format?
   try:
-    tuf.formats.URL_SCHEMA.check_match(repository_mirror)
+    tuf.tufformats.URL_SCHEMA.check_match(repository_mirror)
   except tuf.FormatError as e:
     message = 'The repository mirror supplied is invalid.' 
     raise tuf.RepositoryError(message)

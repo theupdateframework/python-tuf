@@ -46,7 +46,7 @@ from __future__ import unicode_literals
 import logging
 
 import tuf
-import tuf.formats
+import tuf.tufformats
 import tuf.keydb
 import tuf.roledb
 
@@ -79,7 +79,7 @@ def get_signature_status(signable, role=None, repository_name='default',
                                   'method': 'evp',
                                   'sig': sig}]}
       
-      Conformant to tuf.formats.SIGNABLE_SCHEMA.
+      Conformant to tuf.tufformats.SIGNABLE_SCHEMA.
 
     role:
       TUF role (e.g., 'root', 'targets', 'snapshot').
@@ -106,24 +106,24 @@ def get_signature_status(signable, role=None, repository_name='default',
 
   <Returns>
     A dictionary representing the status of the signatures in 'signable'.
-    Conformant to tuf.formats.SIGNATURESTATUS_SCHEMA.
+    Conformant to tuf.tufformats.SIGNATURESTATUS_SCHEMA.
   """
 
   # Do the arguments have the correct format?  This check will ensure that
   # arguments have the appropriate number of objects and object types, and that
   # all dict keys are properly named.  Raise 'tuf.FormatError' if the check
   # fails.
-  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.SIGNABLE_SCHEMA.check_match(signable)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   if role is not None:
-    tuf.formats.ROLENAME_SCHEMA.check_match(role)
+    tuf.tufformats.ROLENAME_SCHEMA.check_match(role)
 
   if threshold is not None:
-    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold) 
+    tuf.tufformats.THRESHOLD_SCHEMA.check_match(threshold) 
   
   if keyids is not None:
-    tuf.formats.KEYIDS_SCHEMA.check_match(keyids)
+    tuf.tufformats.KEYIDS_SCHEMA.check_match(keyids)
   
   # The signature status dictionary returned.
   signature_status = {}
@@ -273,9 +273,9 @@ def verify(signable, role, repository_name='default',
     False otherwise.
   """
     
-  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
-  tuf.formats.ROLENAME_SCHEMA.check_match(role)
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.SIGNABLE_SCHEMA.check_match(signable)
+  tuf.tufformats.ROLENAME_SCHEMA.check_match(role)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   # Retrieve the signature status.  tuf.sig.get_signature_status() raises:
   # tuf.UnknownRoleError tuf.FormatError.  'threshold' and 'keyids' are also
@@ -324,7 +324,7 @@ def may_need_new_keys(signature_status):
   # This check will ensure 'signature_status' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.SIGNATURESTATUS_SCHEMA.check_match(signature_status)
+  tuf.tufformats.SIGNATURESTATUS_SCHEMA.check_match(signature_status)
 
   unknown = signature_status['unknown_sigs']
   untrusted = signature_status['untrusted_sigs']
@@ -358,7 +358,7 @@ def generate_rsa_signature(signed, rsakey_dict):
       It is stored in the 'signed' field of 'signable'.
 
     rsakey_dict:
-      The RSA key, a 'tuf.formats.RSAKEY_SCHEMA' dictionary.
+      The RSA key, a 'tuf.tufformats.RSAKEY_SCHEMA' dictionary.
       Used here to produce 'keyid', 'method', and 'sig'.
 
   <Exceptions>
@@ -370,14 +370,14 @@ def generate_rsa_signature(signed, rsakey_dict):
     None.
 
   <Returns>
-    Signature dictionary conformant to tuf.formats.SIGNATURE_SCHEMA.
+    Signature dictionary conformant to tuf.tufformats.SIGNATURE_SCHEMA.
     Has the form:
     {'keyid': keyid, 'method': 'evp', 'sig': sig}
   """
 
   # We need 'signed' in canonical JSON format to generate
   # the 'method' and 'sig' fields of the signature.
-  signed = tuf.formats.encode_canonical(signed)
+  signed = tuf.tufformats.encode_canonical(signed)
 
   # Generate the RSA signature.
   # Raises tuf.FormatError and TypeError.

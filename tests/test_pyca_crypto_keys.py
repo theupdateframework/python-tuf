@@ -30,7 +30,7 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.pyca_crypto_keys as crypto_keys
 
 logger = logging.getLogger('tuf.test_pyca_crypto_keys')
@@ -48,9 +48,9 @@ class TestPyca_crypto_keys(unittest.TestCase):
     pub, priv = crypto_keys.generate_rsa_public_and_private()
     
     # Check format of 'pub' and 'priv'.
-    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(pub),
+    self.assertEqual(None, tuf.tufformats.PEMRSA_SCHEMA.check_match(pub),
                      FORMAT_ERROR_MSG)
-    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(priv),
+    self.assertEqual(None, tuf.tufformats.PEMRSA_SCHEMA.check_match(priv),
                      FORMAT_ERROR_MSG)
 
     # Check for an invalid "bits" argument.  bits >= 2048.
@@ -70,7 +70,7 @@ class TestPyca_crypto_keys(unittest.TestCase):
 
     # Verify format of returned values.
     self.assertNotEqual(None, signature)
-    self.assertEqual(None, tuf.formats.NAME_SCHEMA.check_match(method),
+    self.assertEqual(None, tuf.tufformats.NAME_SCHEMA.check_match(method),
                      FORMAT_ERROR_MSG)
     self.assertEqual('RSASSA-PSS', method)
 
@@ -194,7 +194,7 @@ class TestPyca_crypto_keys(unittest.TestCase):
     # Verify normal case.
     encrypted_pem = crypto_keys.create_rsa_encrypted_pem(private_rsa, passphrase)
    
-    self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
+    self.assertTrue(tuf.tufformats.PEMRSA_SCHEMA.matches(encrypted_pem))
 
     # Test for invalid arguments.
     self.assertRaises(tuf.FormatError, crypto_keys.create_rsa_encrypted_pem,

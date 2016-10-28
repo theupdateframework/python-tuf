@@ -55,7 +55,7 @@ if sys.version_info >= (2, 7):
 else:
   import unittest2 as unittest 
 
-import tuf.formats
+import tuf.tufformats
 import tuf.util
 import tuf.log
 import tuf.client.updater as updater
@@ -196,7 +196,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     role1_metadata['signed']['targets']['/file2.txt']['hashes'] = hashes
     role1_metadata['signed']['targets']['/file2.txt']['length'] = length
 
-    tuf.formats.check_signable_object_format(role1_metadata) 
+    tuf.tufformats.check_signable_object_format(role1_metadata) 
     
     with open(role1_filepath, 'wt') as file_object:
       json.dump(role1_metadata, file_object, indent=1, sort_keys=True)   

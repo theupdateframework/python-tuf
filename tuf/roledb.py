@@ -21,7 +21,7 @@
   rolename, deleting all the delegated roles, retrieving role paths, etc.  The
   Update Framework process maintains a role database for each repository.
 
-  The role database is a dictionary conformant to 'tuf.formats.ROLEDICT_SCHEMA'
+  The role database is a dictionary conformant to 'tuf.tufformats.ROLEDICT_SCHEMA'
   and has the form:
   
   {'repository_name': {
@@ -48,7 +48,7 @@ import logging
 import copy
 
 import tuf
-import tuf.formats
+import tuf.tufformats
 import tuf.log
 import six
 
@@ -74,7 +74,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
 
   <Arguments>
     root_metadata:
-      A dictionary conformant to 'tuf.formats.ROOT_SCHEMA'.  The roles found
+      A dictionary conformant to 'tuf.tufformats.ROOT_SCHEMA'.  The roles found
       in the 'roles' field of 'root_metadata' is needed by this function.
 
     repository_name:
@@ -98,10 +98,10 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   # This check will ensure 'root_metadata' has the appropriate number of objects 
   # and object types, and that all dict keys are properly named.
   # Raises tuf.FormatError.
-  tuf.formats.ROOT_SCHEMA.check_match(root_metadata)
+  tuf.tufformats.ROOT_SCHEMA.check_match(root_metadata)
 
   # Is 'repository_name' formatted correctly?
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
@@ -167,7 +167,7 @@ def create_roledb(repository_name):
   """
 
   # Is 'repository_name' properly formatted?  If not, raise 'tuf.FormatError'.
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
  
   global _roledb_dict
   global _dirty_roles
@@ -207,7 +207,7 @@ def remove_roledb(repository_name):
   """
 
   # Is 'repository_name' properly formatted?  If not, raise 'tuf.FormatError'.
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
@@ -275,13 +275,13 @@ def add_role(rolename, roleinfo, repository_name='default'):
   # Does 'rolename' have the correct object format?
   # This check will ensure 'rolename' has the appropriate number of objects 
   # and object types, and that all dict keys are properly named.
-  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Does 'roleinfo' have the correct object format?
-  tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+  tuf.tufformats.ROLEDB_SCHEMA.check_match(roleinfo)
 
   # Is 'repository_name' correctly formatted?
-  tuf.formats.NAME_SCHEMA.check_match(repository_name) 
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name) 
 
   global _roledb_dict
 
@@ -358,12 +358,12 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
   # Does the arguments have the correct object format?
   # This check will ensure arguments have the appropriate number of objects 
   # and object types, and that all dict keys are properly named.
-  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
-  tuf.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
+  tuf.tufformats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'roleinfo' have the correct object format?
-  tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+  tuf.tufformats.ROLEDB_SCHEMA.check_match(roleinfo)
   
   # Raises tuf.InvalidNameError.
   _validate_rolename(rolename)
@@ -417,7 +417,7 @@ def get_dirty_roles(repository_name='default'):
   
   # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError'
   # if not.
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
   
   global _roledb_dict
   global _dirty_roles
@@ -457,8 +457,8 @@ def mark_dirty(roles, repository_name='default'):
   """
 
   # Are the arguments properly formatted?  If not, raise tuf.FormatError.
-  tuf.formats.NAMES_SCHEMA.check_match(roles)
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAMES_SCHEMA.check_match(roles)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
   
   global _roledb_dict
   global _dirty_roles
@@ -498,8 +498,8 @@ def unmark_dirty(roles, repository_name='default'):
   """
   
   # Are the arguments properly formatted?  If not, raise tuf.FormatError.
-  tuf.formats.NAMES_SCHEMA.check_match(roles)
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAMES_SCHEMA.check_match(roles)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
   
   global _roledb_dict
   global _dirty_roles
@@ -595,7 +595,7 @@ def remove_role(rolename, repository_name='default'):
   
   # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError'
   # if it is improperly formatted.
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename, repository_name)
@@ -636,7 +636,7 @@ def get_rolenames(repository_name='default'):
  
   # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError'
   # if it is improperly formatted.
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
@@ -692,7 +692,7 @@ def get_roleinfo(rolename, repository_name='default'):
   """
  
   # Is 'repository_name' properly formatted?  If not, raise 'tuf.FormatError'.
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
   
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename, repository_name)
@@ -740,7 +740,7 @@ def get_role_keyids(rolename, repository_name='default'):
   """
   
   # Raise 'tuf.FormatError' if 'repository_name' is improperly formatted.
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
   
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename, repository_name)
@@ -786,7 +786,7 @@ def get_role_threshold(rolename, repository_name='default'):
     A threshold integer value.
   """
   # Raise 'tuf.FormatError' if 'repository_name' is improperly formatted.
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename, repository_name)
@@ -832,7 +832,7 @@ def get_role_paths(rolename, repository_name='default'):
   """
 
   # Raise 'tuf.FormatError' if 'repository_name' is improperly formatted.
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
   
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename)
@@ -892,7 +892,7 @@ def get_delegated_rolenames(rolename, repository_name='default'):
 
   # Does 'repository_name' have the correct format?  Raise 'tuf.FormatError' if
   # it does not.
-  tuf.formats.NAME_SCHEMA.check_match(repository_name) 
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name) 
  
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
   _check_rolename(rolename)
@@ -945,8 +945,8 @@ def clear_roledb(repository_name='default', clear_all=False):
   """
 
   # Do the arguments have the correct format?  If not, raise 'tuf.FormatError'
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
-  tuf.formats.BOOLEAN_SCHEMA.check_match(clear_all)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.BOOLEAN_SCHEMA.check_match(clear_all)
 
   global _roledb_dict
   global _dirty_roles
@@ -972,7 +972,7 @@ def clear_roledb(repository_name='default', clear_all=False):
 def _check_rolename(rolename, repository_name='default'):
   """
   Raise tuf.FormatError if 'rolename' does not match
-  'tuf.formats.ROLENAME_SCHEMA', tuf.UnknownRoleError if 'rolename' is not
+  'tuf.tufformats.ROLENAME_SCHEMA', tuf.UnknownRoleError if 'rolename' is not
   found in the role database, or tuf.InvalidNameError if 'repository_name'
   does not exist in the role database.
   """
@@ -980,10 +980,10 @@ def _check_rolename(rolename, repository_name='default'):
   # Does 'rolename' have the correct object format?
   # This check will ensure 'rolename' has the appropriate number of objects 
   # and object types, and that all dict keys are properly named.
-  tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+  tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
 
   # Does 'repository_name' have the correct format?
-  tuf.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   # Raises tuf.InvalidNameError.
   _validate_rolename(rolename)

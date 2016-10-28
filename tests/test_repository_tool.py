@@ -43,7 +43,7 @@ else:
 
 import tuf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.roledb
 import tuf.keydb
 import tuf.hash
@@ -230,7 +230,7 @@ class TestRepository(unittest.TestCase):
       role_signable = tuf.util.load_json_file(role_filepath)
       
       # Raise 'tuf.FormatError' if 'role_signable' is an invalid signable.
-      tuf.formats.check_signable_object_format(role_signable)
+      tuf.tufformats.check_signable_object_format(role_signable)
         
       self.assertTrue(os.path.exists(role_filepath))
 
@@ -241,7 +241,7 @@ class TestRepository(unittest.TestCase):
     # Verify the 'role1.json' delegation is also written.
     role1_filepath = os.path.join(metadata_directory, 'role1.json')
     role1_signable = tuf.util.load_json_file(role1_filepath)
-    tuf.formats.check_signable_object_format(role1_signable)
+    tuf.tufformats.check_signable_object_format(role1_signable)
 
     # Verify that an exception is *not* raised for multiple
     # repository.writeall().
@@ -422,7 +422,7 @@ class TestMetadata(unittest.TestCase):
         
         # Expire in 86400 seconds (1 day).
         expiration = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
+          tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + 86400))
         expiration = expiration.isoformat() + 'Z' 
         roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
                     'signatures': [], 'version': 0,
@@ -507,7 +507,7 @@ class TestMetadata(unittest.TestCase):
 
 
     # Test invalid argument (i.e., expiration has already expired.)
-    expired_datetime = tuf.formats.unix_timestamp_to_datetime(int(time.time() - 1))
+    expired_datetime = tuf.tufformats.unix_timestamp_to_datetime(int(time.time() - 1))
     try: 
       self.metadata.expiration = expired_datetime 
     
@@ -582,7 +582,7 @@ class TestMetadata(unittest.TestCase):
     self.assertEqual([keyid], self.metadata.keys)
     
     expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
+      tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + 86400))
     expiration = expiration.isoformat() + 'Z' 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
                 'signatures': [], 'version': 0,
@@ -906,12 +906,12 @@ class TestTargets(unittest.TestCase):
     self.assertTrue(isinstance(targets_object, repo_tool.Metadata))
     self.assertTrue(tuf.roledb.role_exists('project'))
 
-    # Custom roleinfo object (i.e., tuf.formats.ROLEDB_SCHEMA).  'keyids' and
+    # Custom roleinfo object (i.e., tuf.tufformats.ROLEDB_SCHEMA).  'keyids' and
     # 'threshold' are required, the rest are optional.
     roleinfo = {'keyids': 
           ['66c4cb5fef5e4d62b7013ef1cab4b8a827a36c14056d5603c3a970e21eb30e6f'],
                 'threshold': 8}
-    self.assertTrue(tuf.formats.ROLEDB_SCHEMA.matches(roleinfo))
+    self.assertTrue(tuf.tufformats.ROLEDB_SCHEMA.matches(roleinfo))
     
     targets_object = repo_tool.Targets('targets_directory/', 'package', roleinfo)
     self.assertTrue(isinstance(targets_object, repo_tool.Metadata))

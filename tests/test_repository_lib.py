@@ -44,7 +44,7 @@ else:
 
 import tuf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.roledb
 import tuf.keydb
 import tuf.hash
@@ -107,11 +107,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Ensure the generated key files are importable.
     imported_pubkey = \
       repo_lib.import_rsa_publickey_from_file(test_keypath + '.pub')
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_pubkey))
+    self.assertTrue(tuf.tufformats.RSAKEY_SCHEMA.matches(imported_pubkey))
     
     imported_privkey = \
       repo_lib.import_rsa_privatekey_from_file(test_keypath, 'pw')
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_privkey))
+    self.assertTrue(tuf.tufformats.RSAKEY_SCHEMA.matches(imported_privkey))
 
     # Custom 'bits' argument.
     os.remove(test_keypath)
@@ -149,7 +149,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     
     imported_rsa_key = repo_lib.import_rsa_privatekey_from_file(key_filepath,
                                                                  'password')
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_rsa_key))
+    self.assertTrue(tuf.tufformats.RSAKEY_SCHEMA.matches(imported_rsa_key))
 
     
     # Test improperly formatted argument.
@@ -183,7 +183,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(os.path.exists(key_filepath))
     
     imported_rsa_key = repo_lib.import_rsa_publickey_from_file(key_filepath)
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_rsa_key))
+    self.assertTrue(tuf.tufformats.RSAKEY_SCHEMA.matches(imported_rsa_key))
 
     
     # Test improperly formatted argument.
@@ -220,11 +220,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Ensure the generated key files are importable.
     imported_pubkey = \
       repo_lib.import_ed25519_publickey_from_file(test_keypath + '.pub')
-    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_pubkey))
+    self.assertTrue(tuf.tufformats.ED25519KEY_SCHEMA.matches(imported_pubkey))
     
     imported_privkey = \
       repo_lib.import_ed25519_privatekey_from_file(test_keypath, 'pw')
-    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_privkey))
+    self.assertTrue(tuf.tufformats.ED25519KEY_SCHEMA.matches(imported_privkey))
 
 
     # Test improperly formatted arguments.
@@ -245,7 +245,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
      
     imported_ed25519_key = \
       repo_lib.import_ed25519_publickey_from_file(ed25519_keypath + '.pub')
-    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
+    self.assertTrue(tuf.tufformats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
     
     
     # Test improperly formatted argument.
@@ -293,7 +293,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
      
     imported_ed25519_key = \
       repo_lib.import_ed25519_privatekey_from_file(ed25519_keypath, 'pw')
-    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
+    self.assertTrue(tuf.tufformats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
     
     
     # Test improperly formatted argument.
@@ -386,7 +386,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     file_hashes = {'sha256': sha256_digest_object.hexdigest(),
                    'sha512': sha512_digest_object.hexdigest()}
     fileinfo = {'length': file_length, 'hashes': file_hashes}
-    self.assertTrue(tuf.formats.FILEINFO_SCHEMA.matches(fileinfo))
+    self.assertTrue(tuf.tufformats.FILEINFO_SCHEMA.matches(fileinfo))
     
     self.assertEqual(fileinfo, repo_lib.get_metadata_fileinfo(test_filepath))
 
@@ -410,8 +410,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       '/packages/file2.txt': 'c9c4a5cdd84858dd6a23d98d7e6e6b2aec45034946c16b2200bc317c75415e92'  
     }
     for filepath, target_hash in six.iteritems(expected_target_hashes):
-      self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
-      self.assertTrue(tuf.formats.HASH_SCHEMA.matches(target_hash))
+      self.assertTrue(tuf.tufformats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.tufformats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(repo_lib.get_target_hash(filepath), target_hash)
    
     # Test for improperly formatted argument.
@@ -434,7 +434,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     root_metadata = repo_lib.generate_root_metadata(1, expires,
                                                     consistent_snapshot=False)
-    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
+    self.assertTrue(tuf.tufformats.ROOT_SCHEMA.matches(root_metadata))
 
     root_keyids = tuf.roledb.get_role_keyids('root')
     tuf.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'bad_keytype'
@@ -510,14 +510,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       repo_lib.generate_targets_metadata(targets_directory, target_files,
                                          version, expiration_date, delegations,
                                          False)
-    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
+    self.assertTrue(tuf.tufformats.TARGETS_SCHEMA.matches(targets_metadata))
    
     # Valid arguments with 'delegations' set to None.
     targets_metadata = \
       repo_lib.generate_targets_metadata(targets_directory, target_files,
                                          version, expiration_date, None,
                                          False)
-    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
+    self.assertTrue(tuf.tufformats.TARGETS_SCHEMA.matches(targets_metadata))
 
     # Verify that 'digest.filename' file is saved to 'targets_directory' if
     # the 'write_consistent_targets' argument is True.
@@ -600,7 +600,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                           expiration_date, root_filename,
                                           targets_filename,
                                           consistent_snapshot=False)
-    self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
+    self.assertTrue(tuf.tufformats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
 
 
     # Test improperly formatted arguments.
@@ -653,7 +653,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     timestamp_metadata = \
       repo_lib.generate_timestamp_metadata(snapshot_filename, version,
                                            expiration_date)
-    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
+    self.assertTrue(tuf.tufformats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
     
 
     # Test improperly formatted arguments.
@@ -706,7 +706,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Verify that a valid root signable is generated.
     root_signable = repo_lib.sign_metadata(root_metadata, root_keyids,
                                            root_filename) 
-    self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(root_signable))
+    self.assertTrue(tuf.tufformats.SIGNABLE_SCHEMA.matches(root_signable))
 
     # Test for an unset private key (in this case, target's).
     repo_lib.sign_metadata(targets_metadata, targets_keyids,
@@ -945,7 +945,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     targets_roleinfo = tuf.roledb.get_roleinfo('targets')
     targets_roleinfo['version'] = 1
     expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
+      tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + 86400))
     expiration = expiration.isoformat() + 'Z' 
     targets_roleinfo['expires'] = expiration 
     tuf.roledb.add_role('obsolete_role', targets_roleinfo)

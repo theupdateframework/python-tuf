@@ -39,7 +39,7 @@ import json
 import random
 
 import tuf
-import tuf.formats
+import tuf.tufformats
 import tuf.util
 import tuf.keydb
 import tuf.roledb
@@ -162,9 +162,9 @@ class Repository(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.PATH_SCHEMA.check_match(repository_directory)
-    tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
-    tuf.formats.PATH_SCHEMA.check_match(targets_directory)
+    tuf.tufformats.PATH_SCHEMA.check_match(repository_directory)
+    tuf.tufformats.PATH_SCHEMA.check_match(metadata_directory)
+    tuf.tufformats.PATH_SCHEMA.check_match(targets_directory)
     
     self._repository_directory = repository_directory
     self._metadata_directory = metadata_directory
@@ -214,8 +214,8 @@ class Repository(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
-    tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
+    tuf.tufformats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+    tuf.tufformats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
     
     # At this point, tuf.keydb and tuf.roledb must be fully populated,
     # otherwise writeall() throws a 'tuf.UnsignedMetadataError' for the
@@ -506,9 +506,9 @@ class Repository(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.PATH_SCHEMA.check_match(files_directory)
-    tuf.formats.BOOLEAN_SCHEMA.check_match(recursive_walk)
-    tuf.formats.BOOLEAN_SCHEMA.check_match(followlinks)
+    tuf.tufformats.PATH_SCHEMA.check_match(files_directory)
+    tuf.tufformats.BOOLEAN_SCHEMA.check_match(recursive_walk)
+    tuf.tufformats.BOOLEAN_SCHEMA.check_match(followlinks)
 
     # Ensure a valid directory is given.
     if not os.path.isdir(files_directory):
@@ -580,7 +580,7 @@ class Metadata(object):
 
     <Arguments>
       key:
-        The role key to be added, conformant to 'tuf.formats.ANYKEY_SCHEMA'.
+        The role key to be added, conformant to 'tuf.tufformats.ANYKEY_SCHEMA'.
         Adding a public key to a role means that its corresponding private key
         must generate and add its signature to the role.  A threshold number of
         signatures is required for a role to be fully signed.
@@ -605,7 +605,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.ANYKEY_SCHEMA.check_match(key)
+    tuf.tufformats.ANYKEY_SCHEMA.check_match(key)
 
     # If 'expires' is unset, choose a default expiration for 'key'.  By
     # default, Root, Targets, Snapshot, and Timestamp keys are set to expire
@@ -613,23 +613,23 @@ class Metadata(object):
     if expires is None:
       if self.rolename == 'root':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
+          tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
       
       elif self.rolename == 'Targets':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+          tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
       
       elif self.rolename == 'Snapshot':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
+          tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
   
       elif self.rolename == 'Timestamp':
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+          tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
 
       else:
         expires = \
-          tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+          tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
     
     # Is 'expires' a datetime.datetime() object?
     # Raise 'tuf.FormatError' if not.
@@ -643,7 +643,7 @@ class Metadata(object):
     
     # Ensure the expiration has not already passed.
     current_datetime = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time()))
+      tuf.tufformats.unix_timestamp_to_datetime(int(time.time()))
     
     if expires < current_datetime:
       raise tuf.Error(repr(key) + ' has already expired.')
@@ -687,7 +687,7 @@ class Metadata(object):
 
     <Arguments>
       key:
-        The role's key, conformant to 'tuf.formats.ANYKEY_SCHEMA'.  'key'
+        The role's key, conformant to 'tuf.tufformats.ANYKEY_SCHEMA'.  'key'
         should contain only the public portion, as only the public key is
         needed.  The 'add_verification_key()' method should have previously
         added 'key'. 
@@ -708,7 +708,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.ANYKEY_SCHEMA.check_match(key)
+    tuf.tufformats.ANYKEY_SCHEMA.check_match(key)
     
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -736,7 +736,7 @@ class Metadata(object):
 
     <Arguments>
       key:
-        The role's key, conformant to 'tuf.formats.ANYKEY_SCHEMA'.  It must
+        The role's key, conformant to 'tuf.tufformats.ANYKEY_SCHEMA'.  It must
         contain the private key, so that role signatures may be generated when
         writeall() or write() is eventually called to generate valid metadata
         files.
@@ -757,7 +757,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.ANYKEY_SCHEMA.check_match(key)
+    tuf.tufformats.ANYKEY_SCHEMA.check_match(key)
   
     # Ensure the private portion of the key is available, otherwise signatures
     # cannot be generated when the metadata file is written to disk.
@@ -795,7 +795,7 @@ class Metadata(object):
 
     <Arguments>
       key:
-        The role key to be unloaded, conformant to 'tuf.formats.ANYKEY_SCHEMA'.
+        The role key to be unloaded, conformant to 'tuf.tufformats.ANYKEY_SCHEMA'.
 
     <Exceptions>
       tuf.FormatError, if the 'key' argument is improperly formatted.
@@ -813,7 +813,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.ANYKEY_SCHEMA.check_match(key)
+    tuf.tufformats.ANYKEY_SCHEMA.check_match(key)
     
     # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -846,7 +846,7 @@ class Metadata(object):
     <Arguments>
       signature:
         The signature to be added to the role, conformant to
-        'tuf.formats.SIGNATURE_SCHEMA'.
+        'tuf.tufformats.SIGNATURE_SCHEMA'.
 
       mark_role_as_dirty:
         A boolean indicating whether the updated 'roleinfo' for 'rolename'
@@ -873,8 +873,8 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
-    tuf.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty) 
+    tuf.tufformats.SIGNATURE_SCHEMA.check_match(signature)
+    tuf.tufformats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty) 
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     
@@ -906,7 +906,7 @@ class Metadata(object):
     <Arguments>
       signature:
         The role signature to remove, conformant to
-        'tuf.formats.SIGNATURE_SCHEMA'.
+        'tuf.tufformats.SIGNATURE_SCHEMA'.
 
     <Exceptions>
       tuf.FormatError, if the 'signature' argument is improperly formatted.
@@ -924,7 +924,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
+    tuf.tufformats.SIGNATURE_SCHEMA.check_match(signature)
   
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     
@@ -957,7 +957,7 @@ class Metadata(object):
       None.
 
     <Returns>
-      A list of signatures, conformant to 'tuf.formats.SIGNATURES_SCHEMA'.
+      A list of signatures, conformant to 'tuf.tufformats.SIGNATURES_SCHEMA'.
     """
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1012,7 +1012,7 @@ class Metadata(object):
       None.
 
     <Returns>
-      The role's name, conformant to 'tuf.formats.ROLENAME_SCHEMA'.
+      The role's name, conformant to 'tuf.tufformats.ROLENAME_SCHEMA'.
       Examples: 'root', 'timestamp', 'targets/unclaimed/django'.
     """
 
@@ -1025,7 +1025,7 @@ class Metadata(object):
     """
     <Purpose>
       A getter method that returns the role's version number, conformant to
-      'tuf.formats.VERSION_SCHEMA'.
+      'tuf.tufformats.VERSION_SCHEMA'.
 
     <Arguments>
       None.
@@ -1037,7 +1037,7 @@ class Metadata(object):
       None.
 
     <Returns>
-      The role's version number, conformant to 'tuf.formats.VERSION_SCHEMA'.
+      The role's version number, conformant to 'tuf.tufformats.VERSION_SCHEMA'.
     """
     
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1068,7 +1068,7 @@ class Metadata(object):
 
     <Arguments>
       version:
-        The role's version number, conformant to 'tuf.formats.VERSION_SCHEMA'.
+        The role's version number, conformant to 'tuf.tufformats.VERSION_SCHEMA'.
 
     <Exceptions>
       tuf.FormatError, if the 'version' argument is improperly formatted.
@@ -1085,7 +1085,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
+    tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version)
     
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
     roleinfo['version'] = version 
@@ -1111,7 +1111,7 @@ class Metadata(object):
       None.
 
     <Returns>
-      The role's threshold value, conformant to 'tuf.formats.THRESHOLD_SCHEMA'.
+      The role's threshold value, conformant to 'tuf.tufformats.THRESHOLD_SCHEMA'.
     """
     
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
@@ -1137,7 +1137,7 @@ class Metadata(object):
       threshold:
         An integer value that sets the role's threshold value, or the miminum
         number of signatures needed for metadata to be considered fully
-        signed.  Conformant to 'tuf.formats.THRESHOLD_SCHEMA'.
+        signed.  Conformant to 'tuf.tufformats.THRESHOLD_SCHEMA'.
 
     <Exceptions>
       tuf.FormatError, if the 'threshold' argument is improperly formatted.
@@ -1154,7 +1154,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
+    tuf.tufformats.THRESHOLD_SCHEMA.check_match(threshold)
     
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
     roleinfo['previous_threshold'] = roleinfo['threshold']
@@ -1236,7 +1236,7 @@ class Metadata(object):
     
     # Ensure the expiration has not already passed.
     current_datetime_object = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time()))
+      tuf.tufformats.unix_timestamp_to_datetime(int(time.time()))
     
     if datetime_object < current_datetime_object:
       raise tuf.Error(repr(self.rolename) + ' has already expired.')
@@ -1271,7 +1271,7 @@ class Metadata(object):
 
     <Returns>
       A list of keyids of the role's signing keys, conformant to
-      'tuf.formats.KEYIDS_SCHEMA'.
+      'tuf.tufformats.KEYIDS_SCHEMA'.
     """
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1305,7 +1305,7 @@ class Metadata(object):
 
     <Returns>
       A list of compression algorithms, conformant to
-      'tuf.formats.COMPRESSIONS_SCHEMA'.
+      'tuf.tufformats.COMPRESSIONS_SCHEMA'.
     """
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1330,7 +1330,7 @@ class Metadata(object):
     <Arguments>
       compression_list:
         A list of file compression algorithms, conformant to
-        'tuf.formats.COMPRESSIONS_SCHEMA'.
+        'tuf.tufformats.COMPRESSIONS_SCHEMA'.
 
     <Exceptions>
       tuf.FormatError, if 'compression_list' is improperly formatted.
@@ -1346,7 +1346,7 @@ class Metadata(object):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_list)
+    tuf.tufformats.COMPRESSIONS_SCHEMA.check_match(compression_list)
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
    
@@ -1402,7 +1402,7 @@ class Root(Metadata):
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
     expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
+      tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
@@ -1464,7 +1464,7 @@ class Timestamp(Metadata):
     # By default, 'root' metadata is set to expire 1 year from the current
     # time.  The expiration may be modified.
     expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+      tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
@@ -1520,7 +1520,7 @@ class Snapshot(Metadata):
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
     expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
+      tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
@@ -1574,7 +1574,7 @@ class Targets(Metadata):
 
     roleinfo:
       An already populated roleinfo object of 'rolename'.  Conformant to
-      'tuf.formats.ROLEDB_SCHEMA'.
+      'tuf.tufformats.ROLEDB_SCHEMA'.
 
   <Exceptions>
     tuf.FormatError, if the arguments are improperly formatted.
@@ -1594,11 +1594,11 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.PATH_SCHEMA.check_match(targets_directory)
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    tuf.tufformats.PATH_SCHEMA.check_match(targets_directory)
+    tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
     
     if roleinfo is not None:
-      tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
+      tuf.tufformats.ROLEDB_SCHEMA.check_match(roleinfo)
 
     super(Targets, self).__init__()
     self._targets_directory = targets_directory
@@ -1616,7 +1616,7 @@ class Targets(Metadata):
     # By default, Targets objects are set to expire 3 months from the current
     # time.  May be later modified.
     expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+      tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
     # If 'roleinfo' is not provided, set an initial default.
@@ -1665,7 +1665,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
    
     if rolename in self._delegated_roles:
       return self._delegated_roles[rolename]
@@ -1706,7 +1706,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
   
     if not isinstance(targets_object, Targets):
       raise tuf.FormatError(repr(targets_object) + ' is not a Targets object.')
@@ -1744,7 +1744,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
+    tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
     
     if rolename not in self._delegated_roles:
       logger.debug(repr(rolename) + ' has not been delegated.') 
@@ -1823,8 +1823,8 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.PATHS_SCHEMA.check_match(restricted_paths)
-    tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
+    tuf.tufformats.PATHS_SCHEMA.check_match(restricted_paths)
+    tuf.tufformats.ROLENAME_SCHEMA.check_match(child_rolename)
 
     # A list of relative and verified paths to be added to the child role's
     # entry in the parent's delegations.
@@ -1901,12 +1901,12 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.PATH_SCHEMA.check_match(filepath)
+    tuf.tufformats.PATH_SCHEMA.check_match(filepath)
     if custom is None:
       custom = {}
     
     else:
-      tuf.formats.CUSTOM_SCHEMA.check_match(custom)
+      tuf.tufformats.CUSTOM_SCHEMA.check_match(custom)
 
     filepath = os.path.abspath(filepath)
    
@@ -1968,7 +1968,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+    tuf.tufformats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
     # Update the tuf.roledb entry.
     targets_directory_length = len(self._targets_directory) 
@@ -2038,7 +2038,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(filepath)
+    tuf.tufformats.RELPATH_SCHEMA.check_match(filepath)
    
     filepath = os.path.abspath(filepath)
     targets_directory_length = len(self._targets_directory)
@@ -2168,7 +2168,7 @@ class Targets(Metadata):
         files added to 'rolename' must fall under one of the restricted paths.
       
       path_hash_prefixes:
-        A list of hash prefixes in 'tuf.formats.PATH_HASH_PREFIXES_SCHEMA'
+        A list of hash prefixes in 'tuf.tufformats.PATH_HASH_PREFIXES_SCHEMA'
         format, used in hashed bin delegations.  Targets may be located and
         stored in hashed bins by calculating the target path's hash prefix.
 
@@ -2191,17 +2191,17 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
-    tuf.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
-    tuf.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
-    tuf.formats.THRESHOLD_SCHEMA.check_match(threshold)
-    tuf.formats.BOOLEAN_SCHEMA.check_match(terminating)
+    tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
+    tuf.tufformats.ANYKEYLIST_SCHEMA.check_match(public_keys)
+    tuf.tufformats.RELPATHS_SCHEMA.check_match(list_of_targets)
+    tuf.tufformats.THRESHOLD_SCHEMA.check_match(threshold)
+    tuf.tufformats.BOOLEAN_SCHEMA.check_match(terminating)
     
     if restricted_paths is not None:
-      tuf.formats.RELPATHS_SCHEMA.check_match(restricted_paths)
+      tuf.tufformats.RELPATHS_SCHEMA.check_match(restricted_paths)
     
     if path_hash_prefixes is not None:
-      tuf.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
+      tuf.tufformats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
 
     # Check if 'rolename' is not already a delegation.
     if tuf.roledb.role_exists(rolename):
@@ -2251,7 +2251,7 @@ class Targets(Metadata):
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
     expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+      tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
     
     roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
@@ -2343,7 +2343,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.ROLENAME_SCHEMA.check_match(rolename) 
+    tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename) 
 
     # Remove 'rolename' from this Target's delegations dict.  
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -2427,9 +2427,9 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.PATHS_SCHEMA.check_match(list_of_targets)
-    tuf.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
-    tuf.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
+    tuf.tufformats.PATHS_SCHEMA.check_match(list_of_targets)
+    tuf.tufformats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
+    tuf.tufformats.NUMBINS_SCHEMA.check_match(number_of_bins)
     
     # Convert 'number_of_bins' to hexadecimal and determine the number of
     # hexadecimal digits needed by each hash prefix.  Calculate the total
@@ -2567,7 +2567,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.PATH_SCHEMA.check_match(target_filepath)
+    tuf.tufformats.PATH_SCHEMA.check_match(target_filepath)
     
     return self._locate_and_update_target_in_bin(target_filepath, 'add_target')
 
@@ -2609,7 +2609,7 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.PATH_SCHEMA.check_match(target_filepath)
+    tuf.tufformats.PATH_SCHEMA.check_match(target_filepath)
    
     return self._locate_and_update_target_in_bin(target_filepath, 'remove_target')
 
@@ -2770,7 +2770,7 @@ def create_new_repository(repository_directory):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(repository_directory)
+  tuf.tufformats.PATH_SCHEMA.check_match(repository_directory)
 
   # Set the repository, metadata, and targets directories.  These directories
   # are created if they do not exist.
@@ -2865,7 +2865,7 @@ def load_repository(repository_directory):
  
   # Does 'repository_directory' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(repository_directory)
+  tuf.tufformats.PATH_SCHEMA.check_match(repository_directory)
 
   # Load top-level metadata.
   #tuf.roledb.clear_roledb(clear_all=True)

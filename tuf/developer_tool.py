@@ -37,7 +37,7 @@ import tempfile
 import json
 
 import tuf
-import tuf.formats
+import tuf.tufformats
 import tuf.util
 import tuf.keydb
 import tuf.roledb
@@ -194,10 +194,10 @@ class Project(Targets):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.NAME_SCHEMA.check_match(project_name)
-    tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
-    tuf.formats.PATH_SCHEMA.check_match(targets_directory)
-    tuf.formats.PATH_SCHEMA.check_match(file_prefix)
+    tuf.tufformats.NAME_SCHEMA.check_match(project_name)
+    tuf.tufformats.PATH_SCHEMA.check_match(metadata_directory)
+    tuf.tufformats.PATH_SCHEMA.check_match(targets_directory)
+    tuf.tufformats.PATH_SCHEMA.check_match(file_prefix)
 
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
@@ -247,7 +247,7 @@ class Project(Targets):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.BOOLEAN_SCHEMA.check_match(write_partial)
+    tuf.tufformats.BOOLEAN_SCHEMA.check_match(write_partial)
     
     # At this point the tuf.keydb and tuf.roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.Repository' exception if 
@@ -300,7 +300,7 @@ class Project(Targets):
 
       <Arguments>
         key:
-          The role key to be added, conformant to 'tuf.formats.ANYKEY_SCHEMA'.
+          The role key to be added, conformant to 'tuf.tufformats.ANYKEY_SCHEMA'.
           Adding a public key to a role means that its corresponding private
           key must generate and add its signture to the role. 
 
@@ -595,12 +595,12 @@ def create_new_project(project_name, metadata_directory,
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
+  tuf.tufformats.PATH_SCHEMA.check_match(metadata_directory)
  
   # Do the same for the location in the repo and the project name, we must
   # ensure they are valid pathnames.
-  tuf.formats.NAME_SCHEMA.check_match(project_name)
-  tuf.formats.PATH_SCHEMA.check_match(location_in_repository)
+  tuf.tufformats.NAME_SCHEMA.check_match(project_name)
+  tuf.tufformats.PATH_SCHEMA.check_match(location_in_repository)
 
   # for the targets directory we do the same, but first, let's find out what
   # layout the user needs, layout_type is a variable that is usually set to
@@ -616,10 +616,10 @@ def create_new_project(project_name, metadata_directory,
     layout_type = 'repo-like'
 
   if targets_directory is not None:
-    tuf.formats.PATH_SCHEMA.check_match(targets_directory);
+    tuf.tufformats.PATH_SCHEMA.check_match(targets_directory);
 
   if key is not None:
-    tuf.formats.KEY_SCHEMA.check_match(key)
+    tuf.tufformats.KEY_SCHEMA.check_match(key)
 
   # Set the metadata and targets directories.  These directories
   # are created if they do not exist.
@@ -724,10 +724,10 @@ def _save_project_configuration(metadata_directory, targets_directory,
   """
 
   # Schema check for the arguments. 
-  tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
-  tuf.formats.PATH_SCHEMA.check_match(prefix)
-  tuf.formats.PATH_SCHEMA.check_match(targets_directory)
-  tuf.formats.RELPATH_SCHEMA.check_match(project_name)
+  tuf.tufformats.PATH_SCHEMA.check_match(metadata_directory)
+  tuf.tufformats.PATH_SCHEMA.check_match(prefix)
+  tuf.tufformats.PATH_SCHEMA.check_match(targets_directory)
+  tuf.tufformats.RELPATH_SCHEMA.check_match(project_name)
 
   cfg_file_directory = metadata_directory
 
@@ -800,10 +800,10 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   
   # Does 'repository_directory' have the correct format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(project_directory)
+  tuf.tufformats.PATH_SCHEMA.check_match(project_directory)
   
   # Do the same for the prefix
-  tuf.formats.PATH_SCHEMA.check_match(prefix)
+  tuf.tufformats.PATH_SCHEMA.check_match(prefix)
 
   # Clear the role and key databases since we are loading in a new project.
   tuf.roledb.clear_roledb() 
@@ -817,7 +817,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   
   try:
     project_configuration = tuf.util.load_json_file(config_filename)
-    tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration) 
+    tuf.tufformats.PROJECT_CFG_SCHEMA.check_match(project_configuration) 
   
   except (OSError, IOError, tuf.FormatError):
     raise
@@ -864,7 +864,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   targets_metadata_path = os.path.join(project_directory, metadata_directory,
       project_filename)
   signable = tuf.util.load_json_file(targets_metadata_path)
-  tuf.formats.check_signable_object_format(signable)
+  tuf.tufformats.check_signable_object_format(signable)
   targets_metadata = signable['signed']
   
   # Remove the prefix from the metadata.

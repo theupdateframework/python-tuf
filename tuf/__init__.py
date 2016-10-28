@@ -33,7 +33,7 @@ import six
 import logging
 logger = logging.getLogger('tuf.__init__')
 
-# Import 'tuf.formats' if a module tries to import the
+# Import 'tuf.tufformats' if a module tries to import the
 # entire tuf package (i.e., from tuf import *). 
 __all__ = ['formats']
 

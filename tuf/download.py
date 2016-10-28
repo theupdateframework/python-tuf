@@ -40,7 +40,7 @@ import tuf
 import tuf.conf
 import tuf.hash
 import tuf.util
-import tuf.formats
+import tuf.tufformats
 import six
 
 # 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
@@ -49,7 +49,7 @@ try:
   from ssl import match_hostname, CertificateError
 
 except ImportError: # pragma: no cover
-  from tuf._vendor.ssl_match_hostname import match_hostname, CertificateError
+  from tuf.ssl_crypto._vendor.ssl_match_hostname import match_hostname, CertificateError
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
@@ -97,8 +97,8 @@ def safe_download(url, required_length):
   
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  tuf.tufformats.URL_SCHEMA.check_match(url)
+  tuf.tufformats.LENGTH_SCHEMA.check_match(required_length)
 
   # Ensure 'url' specifies one of the URI schemes in
   # 'tuf.conf.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
@@ -161,8 +161,8 @@ def unsafe_download(url, required_length):
   
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  tuf.tufformats.URL_SCHEMA.check_match(url)
+  tuf.tufformats.LENGTH_SCHEMA.check_match(required_length)
   
   # Ensure 'url' specifies one of the URI schemes in
   # 'tuf.conf.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
@@ -225,8 +225,8 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  tuf.tufformats.URL_SCHEMA.check_match(url)
+  tuf.tufformats.LENGTH_SCHEMA.check_match(required_length)
 
   # 'url.replace()' is for compatibility with Windows-based systems because
   # they might put back-slashes in place of forward-slashes.  This converts it

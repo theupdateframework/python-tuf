@@ -67,7 +67,7 @@ import tuf
 import tuf.util
 import tuf.conf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.keydb
 import tuf.roledb
 import tuf.repository_tool as repo_tool
@@ -213,7 +213,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.FormatError, updater.Updater, 8,
                       self.repository_mirrors)
    
-    # Invalid 'repository_mirrors' argument.  'tuf.formats.MIRRORDICT_SCHEMA'
+    # Invalid 'repository_mirrors' argument.  'tuf.tufformats.MIRRORDICT_SCHEMA'
     # expected.
     self.assertRaises(tuf.FormatError, updater.Updater, updater.Updater, 8)
 
@@ -370,7 +370,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # populates the 'self.versioninfo' dictionary.
     self.repository_updater._update_versioninfo('targets.json')
     self.assertEqual(len(versioninfo_dict), 1)
-    self.assertTrue(tuf.formats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
+    self.assertTrue(tuf.tufformats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
    
     # The Snapshot role stores the version numbers of all the roles available
     # on the repository.  Load Snapshot to extract Root's version number
@@ -408,10 +408,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # 'self.fileinfo' dictionary.
       self.repository_updater._update_fileinfo('root.json')
       self.assertEqual(len(fileinfo_dict), 1)
-      self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
+      self.assertTrue(tuf.tufformats.FILEDICT_SCHEMA.matches(fileinfo_dict))
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
       length, hashes = tuf.util.get_file_details(root_filepath)
-      root_fileinfo = tuf.formats.make_fileinfo(length, hashes) 
+      root_fileinfo = tuf.tufformats.make_fileinfo(length, hashes) 
       self.assertTrue('root.json' in fileinfo_dict)
       self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
 
@@ -432,18 +432,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       #  Verify that the method returns 'False' if file info was not changed.
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
       length, hashes = tuf.util.get_file_details(root_filepath)
-      root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+      root_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
       self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
                                                              root_fileinfo))
 
       # Verify that the method returns 'True' if length or hashes were changed.
       new_length = 8
-      new_root_fileinfo = tuf.formats.make_fileinfo(new_length, hashes)
+      new_root_fileinfo = tuf.tufformats.make_fileinfo(new_length, hashes)
       self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
       # Hashes were changed.
       new_hashes = {'sha256': self.random_string()}
-      new_root_fileinfo = tuf.formats.make_fileinfo(length, new_hashes)
+      new_root_fileinfo = tuf.tufformats.make_fileinfo(length, new_hashes)
       self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
 
@@ -596,13 +596,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # 'tuf.ExpiredMetadataError' should be raised in this next test condition,
     # because the expiration_date has expired by 10 seconds.
-    expires = tuf.formats.unix_timestamp_to_datetime(int(time.time() - 10))
+    expires = tuf.tufformats.unix_timestamp_to_datetime(int(time.time() - 10))
     expires = expires.isoformat() + 'Z'
     root_metadata['expires'] = expires
     
     # Ensure the 'expires' value of the root file is valid by checking the
     # the formats of the 'root.json' object.
-    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
+    self.assertTrue(tuf.tufformats.ROOT_SCHEMA.matches(root_metadata))
     self.assertRaises(tuf.ExpiredMetadataError,
                       self.repository_updater._ensure_not_expired,
                       root_metadata, 'root')
@@ -783,7 +783,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Verify that the list of targets was returned, and that it contains valid
     # target files.
-    self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
+    self.assertTrue(tuf.tufformats.TARGETFILES_SCHEMA.matches(targets_list))
     for target in targets_list:
       self.assertTrue((target['filepath'], target['fileinfo']) in six.iteritems(targets_in_metadata))
    
@@ -894,7 +894,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
    # Verify format of 'all_targets', it should correspond to 
    # 'TARGETFILES_SCHEMA'.
-   self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(all_targets))
+   self.assertTrue(tuf.tufformats.TARGETFILES_SCHEMA.matches(all_targets))
 
    # Verify that there is a correct number of records in 'all_targets' list,
    # and the expected filepaths specified in the metadata.  On the targets
@@ -945,7 +945,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Verify that list of targets was returned and that it contains valid
     # target files.
-    self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
+    self.assertTrue(tuf.tufformats.TARGETFILES_SCHEMA.matches(targets_list))
     for target in targets_list:
       self.assertTrue((target['filepath'], target['fileinfo']) in six.iteritems(expected_targets))
 
@@ -975,7 +975,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     target_files[filepath] = fileinfo
     
     target_fileinfo = self.repository_updater.target(filepath)
-    self.assertTrue(tuf.formats.TARGETFILE_SCHEMA.matches(target_fileinfo))
+    self.assertTrue(tuf.tufformats.TARGETFILE_SCHEMA.matches(target_fileinfo))
     self.assertEqual(target_fileinfo['filepath'], filepath)
     self.assertEqual(target_fileinfo['fileinfo'], fileinfo)
     
@@ -1080,7 +1080,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       os.path.join(destination_directory, target_filepath1.lstrip('/'))
     self.assertTrue(os.path.exists(download_filepath))
     length, hashes = tuf.util.get_file_details(download_filepath, tuf.conf.REPOSITORY_HASH_ALGORITHMS)
-    download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
+    download_targetfileinfo = tuf.tufformats.make_fileinfo(length, hashes)
    
     # Add any 'custom' data from the repository's target fileinfo to the
     # 'download_targetfileinfo' object being tested.
@@ -1323,8 +1323,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       '/Jalape\xc3\xb1o': '78bfd5c314680545eb48ecad508aceb861f8d6e680f4fe1b791da45c298cda88' 
     }
     for filepath, target_hash in six.iteritems(expected_target_hashes):
-      self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
-      self.assertTrue(tuf.formats.HASH_SCHEMA.matches(target_hash))
+      self.assertTrue(tuf.tufformats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.tufformats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(self.repository_updater._get_target_hash(filepath), target_hash)
    
     # Test for improperly formatted argument.

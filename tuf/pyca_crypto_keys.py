@@ -129,7 +129,7 @@ import tuf
 import tuf.hash
 
 # Perform object format-checking.
-import tuf.formats
+import tuf.tufformats
 
 # Extract/reference the cryptography library settings.  For example:
 # 'tuf.conf.RSA_CRYPTO_LIBRARY'
@@ -176,7 +176,7 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   """
   <Purpose> 
     Generate public and private RSA keys with modulus length 'bits'.
-    The public and private keys returned conform to 'tuf.formats.PEMRSA_SCHEMA'
+    The public and private keys returned conform to 'tuf.tufformats.PEMRSA_SCHEMA'
     and have the form:
 
     '-----BEGIN RSA PUBLIC KEY----- ...'
@@ -192,9 +192,9 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
     the key size recommended by TUF.
     
     >>> public, private = generate_rsa_public_and_private(2048)
-    >>> tuf.formats.PEMRSA_SCHEMA.matches(public)
+    >>> tuf.tufformats.PEMRSA_SCHEMA.matches(public)
     True
-    >>> tuf.formats.PEMRSA_SCHEMA.matches(private)
+    >>> tuf.tufformats.PEMRSA_SCHEMA.matches(private)
     True
 
   <Arguments>
@@ -214,15 +214,15 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   """
 
   # Does 'bits' have the correct format?
-  # This check will ensure 'bits' conforms to 'tuf.formats.RSAKEYBITS_SCHEMA'.
+  # This check will ensure 'bits' conforms to 'tuf.tufformats.RSAKEYBITS_SCHEMA'.
   # 'bits' must be an integer object, with a minimum value of 2048.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.RSAKEYBITS_SCHEMA.check_match(bits)
+  tuf.tufformats.RSAKEYBITS_SCHEMA.check_match(bits)
   
   # Generate the public and private RSA keys.  The pyca/cryptography 'rsa'
   # module performs the actual key generation.  The 'bits' argument is used,
   # and a 2048-bit minimum is enforced by
-  # tuf.formats.RSAKEYBITS_SCHEMA.check_match().
+  # tuf.tufformats.RSAKEYBITS_SCHEMA.check_match().
   private_key = rsa.generate_private_key(public_exponent=65537, key_size=bits,
                                          backend=default_backend())
 
@@ -260,11 +260,11 @@ def create_rsa_signature(private_key, data):
     >>> public, private = generate_rsa_public_and_private(2048)
     >>> data = 'The quick brown fox jumps over the lazy dog'.encode('utf-8')
     >>> signature, method = create_rsa_signature(private, data)
-    >>> tuf.formats.NAME_SCHEMA.matches(method)
+    >>> tuf.tufformats.NAME_SCHEMA.matches(method)
     True
     >>> method == 'RSASSA-PSS'
     True
-    >>> tuf.formats.PYCACRYPTOSIGNATURE_SCHEMA.matches(signature)
+    >>> tuf.tufformats.PYCACRYPTOSIGNATURE_SCHEMA.matches(signature)
     True
 
   <Arguments>
@@ -291,11 +291,11 @@ def create_rsa_signature(private_key, data):
   """
   
   # Does the arguments have the correct format?
-  # This check will ensure the arguments conform to 'tuf.formats.PEMRSA_SCHEMA'.
-  # and 'tuf.formats.DATA_SCHEMA' 
+  # This check will ensure the arguments conform to 'tuf.tufformats.PEMRSA_SCHEMA'.
+  # and 'tuf.tufformats.DATA_SCHEMA' 
   # Raise 'tuf.FormatError' if the checks fail.
-  tuf.formats.PEMRSA_SCHEMA.check_match(private_key)
-  tuf.formats.DATA_SCHEMA.check_match(data) 
+  tuf.tufformats.PEMRSA_SCHEMA.check_match(private_key)
+  tuf.tufformats.DATA_SCHEMA.check_match(data) 
 
   # Signing 'data' requires a private key.  The 'RSASSA-PSS' signing method is
   # the only method currently supported.
@@ -408,18 +408,18 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   """
   
   # Does 'public_key' have the correct format?
-  # This check will ensure 'public_key' conforms to 'tuf.formats.PEMRSA_SCHEMA'.
+  # This check will ensure 'public_key' conforms to 'tuf.tufformats.PEMRSA_SCHEMA'.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.PEMRSA_SCHEMA.check_match(public_key)
+  tuf.tufformats.PEMRSA_SCHEMA.check_match(public_key)
 
   # Does 'signature_method' have the correct format?
-  tuf.formats.NAME_SCHEMA.check_match(signature_method)
+  tuf.tufformats.NAME_SCHEMA.check_match(signature_method)
 
   # Does 'signature' have the correct format?
-  tuf.formats.PYCACRYPTOSIGNATURE_SCHEMA.check_match(signature)
+  tuf.tufformats.PYCACRYPTOSIGNATURE_SCHEMA.check_match(signature)
   
   # What about 'data'?
-  tuf.formats.DATA_SCHEMA.check_match(data)
+  tuf.tufformats.DATA_SCHEMA.check_match(data)
 
   # Verify whether the private key of 'public_key' produced 'signature'.
   # Before returning the 'valid_signature' Boolean result, ensure 'RSASSA-PSS'
@@ -473,7 +473,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
     >>> public, private = generate_rsa_public_and_private(2048)
     >>> passphrase = 'secret'
     >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase)
-    >>> tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem)
+    >>> tuf.tufformats.PEMRSA_SCHEMA.matches(encrypted_pem)
     True
 
   <Arguments>
@@ -499,17 +499,17 @@ def create_rsa_encrypted_pem(private_key, passphrase):
 
   <Returns>
     A string in PEM format, where the private RSA key is encrypted.
-    Conforms to 'tuf.formats.PEMRSA_SCHEMA'.
+    Conforms to 'tuf.tufformats.PEMRSA_SCHEMA'.
   """
   
   # Does 'private_key' have the correct format?
   # This check will ensure 'private_key' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.PEMRSA_SCHEMA.check_match(private_key)
+  tuf.tufformats.PEMRSA_SCHEMA.check_match(private_key)
   
   # Does 'passphrase' have the correct format?
-  tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
+  tuf.tufformats.PASSWORD_SCHEMA.check_match(passphrase)
 
   # 'private_key' is in PEM format and unencrypted.  The extracted key will be
   # imported and converted to PyCA's RSA key object (.  Use PyCA's
@@ -517,7 +517,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   # format of the private key.  In contrast, pycrypto_keys.py uses PBKDF1+MD5
   # to strengthen 'passphrase', and 3DES with CBC mode for encryption.
   # 'private_key' may still be a NULL string after the
-  # 'tuf.formats.PEMRSA_SCHEMA' (i.e., 'private_key' has variable size and can
+  # 'tuf.tufformats.PEMRSA_SCHEMA' (i.e., 'private_key' has variable size and can
   # be an empty string.
   
   if len(private_key):
@@ -545,7 +545,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   """
   <Purpose>
     Generate public and private RSA keys from an encrypted PEM.
-    The public and private keys returned conform to 'tuf.formats.PEMRSA_SCHEMA'
+    The public and private keys returned conform to 'tuf.tufformats.PEMRSA_SCHEMA'
     and have the form:
 
     '-----BEGIN RSA PUBLIC KEY----- ... -----END RSA PUBLIC KEY-----'
@@ -569,9 +569,9 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
     >>> encrypted_pem = create_rsa_encrypted_pem(private, passphrase)
     >>> returned_public, returned_private = \
     create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase)
-    >>> tuf.formats.PEMRSA_SCHEMA.matches(returned_public)
+    >>> tuf.tufformats.PEMRSA_SCHEMA.matches(returned_public)
     True
-    >>> tuf.formats.PEMRSA_SCHEMA.matches(returned_private)
+    >>> tuf.tufformats.PEMRSA_SCHEMA.matches(returned_private)
     True
     >>> public == returned_public
     True
@@ -610,10 +610,10 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # This check will ensure 'encrypted_pem' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.PEMRSA_SCHEMA.check_match(encrypted_pem)
+  tuf.tufformats.PEMRSA_SCHEMA.check_match(encrypted_pem)
 
   # Does 'passphrase' have the correct format?
-  tuf.formats.PASSWORD_SCHEMA.check_match(passphrase)
+  tuf.tufformats.PASSWORD_SCHEMA.check_match(passphrase)
   
   # Generate a pyca/cryptography key object from 'encrypted_pem'.  The
   # generated PyCrypto key contains the required export methods needed to
@@ -690,7 +690,7 @@ def encrypt_key(key_object, password):
           '1f26964cc8d4f7ee5f3c5da2fbb7ab35811169573ac367b860a537e47789f8c4'}}
     >>> passphrase = 'secret'
     >>> encrypted_key = encrypt_key(ed25519_key, passphrase)
-    >>> tuf.formats.ENCRYPTEDKEY_SCHEMA.matches(encrypted_key.encode('utf-8'))
+    >>> tuf.tufformats.ENCRYPTEDKEY_SCHEMA.matches(encrypted_key.encode('utf-8'))
     True
 
   <Arguments>
@@ -716,17 +716,17 @@ def encrypt_key(key_object, password):
     encryption key.
 
   <Returns>
-    An encrypted string in 'tuf.formats.ENCRYPTEDKEY_SCHEMA' format.
+    An encrypted string in 'tuf.tufformats.ENCRYPTEDKEY_SCHEMA' format.
   """
   
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.ANYKEY_SCHEMA.check_match(key_object)
+  tuf.tufformats.ANYKEY_SCHEMA.check_match(key_object)
   
   # Does 'password' have the correct format?
-  tuf.formats.PASSWORD_SCHEMA.check_match(password)
+  tuf.tufformats.PASSWORD_SCHEMA.check_match(password)
 
   # Ensure the private portion of the key is included in 'key_object'.
   if 'private' not in key_object['keyval'] or not key_object['keyval']['private']:
@@ -780,7 +780,7 @@ def decrypt_key(encrypted_key, password):
     >>> passphrase = 'secret'
     >>> encrypted_key = encrypt_key(ed25519_key, passphrase)
     >>> decrypted_key = decrypt_key(encrypted_key.encode('utf-8'), passphrase)
-    >>> tuf.formats.ED25519KEY_SCHEMA.matches(decrypted_key)
+    >>> tuf.tufformats.ED25519KEY_SCHEMA.matches(decrypted_key)
     True
     >>> decrypted_key == ed25519_key
     True
@@ -789,7 +789,7 @@ def decrypt_key(encrypted_key, password):
     encrypted_key:
       An encrypted TUF key (additional data is also included, such as salt,
       number of password iterations used for the derived encryption key, etc)
-      of the form 'tuf.formats.ENCRYPTEDKEY_SCHEMA'.  'encrypted_key' should
+      of the form 'tuf.tufformats.ENCRYPTEDKEY_SCHEMA'.  'encrypted_key' should
       have been generated with encrypted_key().
 
     password:
@@ -810,24 +810,24 @@ def decrypt_key(encrypted_key, password):
     used to re-derive the encryption/decryption key.
 
   <Returns>
-    The decrypted key object in 'tuf.formats.ANYKEY_SCHEMA' format.
+    The decrypted key object in 'tuf.tufformats.ANYKEY_SCHEMA' format.
   """
   
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.FormatError' if the check fails.
-  tuf.formats.ENCRYPTEDKEY_SCHEMA.check_match(encrypted_key)
+  tuf.tufformats.ENCRYPTEDKEY_SCHEMA.check_match(encrypted_key)
   
   # Does 'password' have the correct format?
-  tuf.formats.PASSWORD_SCHEMA.check_match(password)
+  tuf.tufformats.PASSWORD_SCHEMA.check_match(password)
 
   # Decrypt 'encrypted_key', using 'password' (and additional key derivation
   # data like salts and password iterations) to re-derive the decryption key. 
   json_data = _decrypt(encrypted_key.decode('utf-8'), password)
  
   # Raise 'tuf.Error' if 'json_data' cannot be deserialized to a valid
-  # 'tuf.formats.ANYKEY_SCHEMA' key object.
+  # 'tuf.tufformats.ANYKEY_SCHEMA' key object.
   key_object = tuf.util.load_json_string(json_data.decode()) 
   
   return key_object
@@ -882,7 +882,7 @@ def _encrypt(key_data, derived_key_information):
   modified.
 
   'key_data' is the JSON string representation of the key.  In the case
-  of RSA keys, this format would be 'tuf.formats.RSAKEY_SCHEMA':
+  of RSA keys, this format would be 'tuf.tufformats.RSAKEY_SCHEMA':
   
   {'keytype': 'rsa',
    'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',

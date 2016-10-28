@@ -59,7 +59,7 @@ import tuf
 import tuf.util
 import tuf.conf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.keydb
 import tuf.roledb
 import tuf.repository_tool as repo_tool

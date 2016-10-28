@@ -37,7 +37,7 @@
   As a result, 'bad' was flagged a mismatch.
   
   'schema.py' provides additional schemas for testing objects based on other
-  criteria.  See 'tuf.formats.py' and the rest of this module for extensive
+  criteria.  See 'tuf.tufformats.py' and the rest of this module for extensive
   examples.  Anything related to the checking of TUF objects and their formats
   can be found in 'formats.py'.
 """

@@ -25,7 +25,7 @@ import shutil
 
 import tuf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.roledb
 import tuf.keydb
 import tuf.developer_tool as developer_tool

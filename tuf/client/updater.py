@@ -118,7 +118,7 @@ import fnmatch
 import tuf
 import tuf.conf
 import tuf.download
-import tuf.formats
+import tuf.tufformats
 import tuf.hash
 import tuf.keys
 import tuf.keydb
@@ -168,7 +168,7 @@ class Updater(object):
 
     self.mirrors:
       The repository mirrors from which metadata and targets are available.
-      Conformant to 'tuf.formats.MIRRORDICT_SCHEMA'.
+      Conformant to 'tuf.tufformats.MIRRORDICT_SCHEMA'.
     
     self.updater_name:
       The name of the updater instance.
@@ -251,7 +251,7 @@ class Updater(object):
       
       repository_mirrors:
         A dictionary holding repository mirror information, conformant to
-        'tuf.formats.MIRRORDICT_SCHEMA'.  This dictionary holds information
+        'tuf.tufformats.MIRRORDICT_SCHEMA'.  This dictionary holds information
         such as the directory containing the metadata and target files, the
         server's URL prefix, and the target content directories the client
         should be confined to.
@@ -283,8 +283,8 @@ class Updater(object):
     # number of objects and object types and that all dict
     # keys are properly named.
     # Raise 'tuf.FormatError' if there is a mistmatch.
-    tuf.formats.NAME_SCHEMA.check_match(updater_name)
-    tuf.formats.MIRRORDICT_SCHEMA.check_match(repository_mirrors)
+    tuf.tufformats.NAME_SCHEMA.check_match(updater_name)
+    tuf.tufformats.MIRRORDICT_SCHEMA.check_match(repository_mirrors)
    
     # Save the validated arguments.
     self.updater_name = updater_name
@@ -421,7 +421,7 @@ class Updater(object):
     # Ensure the metadata path is valid/exists, else ignore the call. 
     if os.path.exists(metadata_filepath):
       # Load the file.  The loaded object should conform to
-      # 'tuf.formats.SIGNABLE_SCHEMA'.
+      # 'tuf.tufformats.SIGNABLE_SCHEMA'.
       try:
         metadata_signable = tuf.util.load_json_file(metadata_filepath)
       
@@ -432,7 +432,7 @@ class Updater(object):
       except tuf.Error:
         return
       
-      tuf.formats.check_signable_object_format(metadata_signable)
+      tuf.tufformats.check_signable_object_format(metadata_signable)
 
       # Extract the 'signed' role object from 'metadata_signable'.
       metadata_object = metadata_signable['signed']
@@ -632,7 +632,7 @@ class Updater(object):
     # number of objects and object types, and that all dict
     # keys are properly named.
     # Raise 'tuf.FormatError' if the check fail.
-    tuf.formats.BOOLEAN_SCHEMA.check_match(unsafely_update_root_if_necessary)
+    tuf.tufformats.BOOLEAN_SCHEMA.check_match(unsafely_update_root_if_necessary)
 
     # The Timestamp role does not have signed metadata about it; otherwise we
     # would need an infinite regress of metadata. Therefore, we use some
@@ -756,7 +756,7 @@ class Updater(object):
       trusted_hashes:
         A dictionary with hash-algorithm names as keys and hashes as dict values.
         The hashes should be in the hexdigest format.  Should be Conformant to
-        'tuf.formats.HASHDICT_SCHEMA'.
+        'tuf.tufformats.HASHDICT_SCHEMA'.
 
     <Exceptions>
       tuf.BadHashError, if the hashes don't match.
@@ -988,7 +988,7 @@ class Updater(object):
     else:
       # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
       # 'tuf.FormatError' if not.
-      tuf.formats.check_signable_object_format(metadata_signable)
+      tuf.tufformats.check_signable_object_format(metadata_signable)
 
     # Is 'metadata_signable' expired?
     self._ensure_not_expired(metadata_signable['signed'], metadata_role)
@@ -1173,7 +1173,7 @@ class Updater(object):
         Type of data needed for download, must correspond to one of the strings
         in the list ['meta', 'target'].  'meta' for metadata file type or
         'target' for target file type.  It should correspond to the
-        'tuf.formats.NAME_SCHEMA' format.
+        'tuf.tufformats.NAME_SCHEMA' format.
 
       file_length:
         The expected length, or upper bound, of the target or metadata file to
@@ -1314,7 +1314,7 @@ class Updater(object):
     # is the file-like object returned by 'download.py'.  'metadata_signable'
     # is the object extracted from 'metadata_file_object'.  Metadata saved to
     # files are regarded as 'signable' objects, conformant to
-    # 'tuf.formats.SIGNABLE_SCHEMA'.
+    # 'tuf.tufformats.SIGNABLE_SCHEMA'.
     #
     # Some metadata (presently timestamp) will be downloaded "unsafely", in the
     # sense that we can only estimate its true length and know nothing about
@@ -1601,7 +1601,7 @@ class Updater(object):
         A dict object representing the new file information for
         'metadata_filename'.  'new_versioninfo' may be 'None' when
         updating 'root' without having 'snapshot' available.  This
-        dict conforms to 'tuf.formats.VERSIONINFO_SCHEMA' and has
+        dict conforms to 'tuf.tufformats.VERSIONINFO_SCHEMA' and has
         the form:
         
         {'version': 288}
@@ -1696,7 +1696,7 @@ class Updater(object):
       # client's copy of snapshot.json.
       try:
         timestamp_version_number = self.metadata['current']['snapshot']['version']
-        trusted_versioninfo = tuf.formats.make_versioninfo(timestamp_version_number)
+        trusted_versioninfo = tuf.tufformats.make_versioninfo(timestamp_version_number)
       
       except KeyError:
         trusted_versioninfo = \
@@ -1711,7 +1711,7 @@ class Updater(object):
         targets_version_number = \
           self.metadata['current'][metadata_filename[:-len('.json')]]['version']
         trusted_versioninfo = \
-          tuf.formats.make_versioninfo(targets_version_number)
+          tuf.tufformats.make_versioninfo(targets_version_number)
       
       except KeyError:
         trusted_versioninfo = \
@@ -1743,7 +1743,7 @@ class Updater(object):
         A dict object representing the new file information for
         'metadata_filename'.  'new_fileinfo' may be 'None' when
         updating 'root' without having 'snapshot' available.  This
-        dict conforms to 'tuf.formats.FILEINFO_SCHEMA' and has
+        dict conforms to 'tuf.tufformats.FILEINFO_SCHEMA' and has
         the form:
         
         {'length': 23423
@@ -1835,7 +1835,7 @@ class Updater(object):
     # Extract the file information from the actual file and save it
     # to the fileinfo store.
     file_length, hashes = tuf.util.get_file_details(current_filepath)
-    metadata_fileinfo = tuf.formats.make_fileinfo(file_length, hashes)
+    metadata_fileinfo = tuf.tufformats.make_fileinfo(file_length, hashes)
     self.fileinfo[metadata_filename] = metadata_fileinfo
 
 
@@ -1934,7 +1934,7 @@ class Updater(object):
     
     <Arguments>
       metadata_object:
-        The metadata that should be expired, a 'tuf.formats.ANYROLE_SCHEMA'
+        The metadata that should be expired, a 'tuf.tufformats.ANYROLE_SCHEMA'
         object.
 
       metadata_rolename:
@@ -1956,7 +1956,7 @@ class Updater(object):
     expires = metadata_object['expires']
    
     # If the current time has surpassed the expiration date, raise
-    # an exception.  'expires' is in 'tuf.formats.ISO8601_DATETIME_SCHEMA'
+    # an exception.  'expires' is in 'tuf.tufformats.ISO8601_DATETIME_SCHEMA'
     # format (e.g., '1985-10-21T01:22:00Z'.)  Convert it to a unix timestamp and
     # compare it against the current time.time() (also in Unix/POSIX time
     # format, although with microseconds attached.)
@@ -1965,7 +1965,7 @@ class Updater(object):
     # Generate a user-friendly error message if 'expires' is less than the
     # current time (i.e., a local time.)
     expires_datetime = iso8601.parse_date(expires)
-    expires_timestamp = tuf.formats.datetime_to_unix_timestamp(expires_datetime)
+    expires_timestamp = tuf.tufformats.datetime_to_unix_timestamp(expires_datetime)
     
     if expires_timestamp < current_time:
       message = 'Metadata '+repr(metadata_rolename)+' expired on ' + \
@@ -1985,7 +1985,7 @@ class Updater(object):
       on the repository.  This list also includes all the targets of
       delegated roles.  Targets of the list returned are ordered according
       the trusted order of the delegated roles, where parent roles come before
-      children.  The list conforms to 'tuf.formats.TARGETFILES_SCHEMA'
+      children.  The list conforms to 'tuf.tufformats.TARGETFILES_SCHEMA'
       and has the form:
       
       [{'filepath': 'a/b/c.txt',
@@ -2008,7 +2008,7 @@ class Updater(object):
       The metadata for target roles is updated and stored.
 
     <Returns>
-     A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
+     A list of targets, conformant to 'tuf.tufformats.TARGETFILES_SCHEMA'.
     """
     
     # Load the most up-to-date targets of the 'targets' role and all
@@ -2115,7 +2115,7 @@ class Updater(object):
     <Purpose>
       Non-public method that returns the target information of all the targets
       of 'rolename'.  The returned information is a list conformant to
-      'tuf.formats.TARGETFILES_SCHEMA', and has the form:
+      'tuf.tufformats.TARGETFILES_SCHEMA', and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2129,7 +2129,7 @@ class Updater(object):
       
       targets:
         A list of targets containing target information, conformant to
-        'tuf.formats.TARGETFILES_SCHEMA'.
+        'tuf.tufformats.TARGETFILES_SCHEMA'.
 
       skip_refresh:
         A boolean indicating if the target metadata for 'rolename'
@@ -2144,7 +2144,7 @@ class Updater(object):
 
     <Returns>
       A list of dict objects containing the target information of all the
-      targets of 'rolename'.  Conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
+      targets of 'rolename'.  Conformant to 'tuf.tufformats.TARGETFILES_SCHEMA'.
     """
 
     if targets is None:
@@ -2186,7 +2186,7 @@ class Updater(object):
     <Purpose> 
       Return a list of trusted targets directly specified by 'rolename'.
       The returned information is a list conformant to
-      'tuf.formats.TARGETFILES_SCHEMA', and has the form:
+      'tuf.tufformats.TARGETFILES_SCHEMA', and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2216,12 +2216,12 @@ class Updater(object):
       The metadata of updated delegated roles are downloaded and stored.
       
     <Returns>
-      A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'. 
+      A list of targets, conformant to 'tuf.tufformats.TARGETFILES_SCHEMA'. 
     """
       
     # Does 'rolename' have the correct format?
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(rolename)
+    tuf.tufformats.RELPATH_SCHEMA.check_match(rolename)
 
     if not tuf.roledb.role_exists(rolename, self.updater_name):
       raise tuf.UnknownRoleError(rolename)
@@ -2259,12 +2259,12 @@ class Updater(object):
     
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETFILE_SCHEMA'.
+      'tuf.tufformats.TARGETFILE_SCHEMA'.
     """
 
     # Does 'target_filepath' have the correct format?
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
+    tuf.tufformats.RELPATH_SCHEMA.check_match(target_filepath)
   
     # 'target_filepath' might contain URL encoding escapes.
     # http://docs.python.org/2/library/urllib.html#urllib.unquote
@@ -2313,7 +2313,7 @@ class Updater(object):
     
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETFILE_SCHEMA'.
+      'tuf.tufformats.TARGETFILE_SCHEMA'.
     """
 
     target = None
@@ -2426,7 +2426,7 @@ class Updater(object):
     
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETFILE_SCHEMA'.
+      'tuf.tufformats.TARGETFILE_SCHEMA'.
     """
 
     target = None
@@ -2630,7 +2630,7 @@ class Updater(object):
   
     # Does 'destination_directory' have the correct format?
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.PATH_SCHEMA.check_match(destination_directory)
+    tuf.tufformats.PATH_SCHEMA.check_match(destination_directory)
 
     # Iterate through the rolenames and verify whether the 'previous'
     # directory contains a target no longer found in 'current'.
@@ -2669,7 +2669,7 @@ class Updater(object):
       located there has mismatched file properties.
 
       The returned information is a list conformant to
-      'tuf.formats.TARGETFILES_SCHEMA' and has the form:
+      'tuf.tufformats.TARGETFILES_SCHEMA' and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2692,13 +2692,13 @@ class Updater(object):
       The files in 'targets' are read and their hashes computed. 
 
     <Returns>
-      A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
+      A list of targets, conformant to 'tuf.tufformats.TARGETFILES_SCHEMA'.
     """
 
     # Do the arguments have the correct format?
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.TARGETFILES_SCHEMA.check_match(targets)
-    tuf.formats.PATH_SCHEMA.check_match(destination_directory)
+    tuf.tufformats.TARGETFILES_SCHEMA.check_match(targets)
+    tuf.tufformats.PATH_SCHEMA.check_match(destination_directory)
 
     # Keep track of the target objects and filepaths of updated targets.
     # Return 'updated_targets' and use 'updated_targetpaths' to avoid
@@ -2758,7 +2758,7 @@ class Updater(object):
     <Arguments>
       target:
         The target to be downloaded.  Conformant to
-        'tuf.formats.TARGETFILE_SCHEMA'.
+        'tuf.tufformats.TARGETFILE_SCHEMA'.
 
       destination_directory:
         The directory to save the downloaded target file.
@@ -2786,8 +2786,8 @@ class Updater(object):
     # number of objects and object types, and that all dict
     # keys are properly named.
     # Raise 'tuf.FormatError' if the check fail.
-    tuf.formats.TARGETFILE_SCHEMA.check_match(target)
-    tuf.formats.PATH_SCHEMA.check_match(destination_directory)
+    tuf.tufformats.TARGETFILE_SCHEMA.check_match(target)
+    tuf.tufformats.PATH_SCHEMA.check_match(destination_directory)
 
     # Extract the target file information.
     target_filepath = target['filepath']

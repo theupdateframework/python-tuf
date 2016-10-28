@@ -28,8 +28,8 @@
   raises a 'tuf.FormatError' exception if the match fails and the other
   returns a Boolean result.
 
-  tuf.formats.<SCHEMA>.check_match(object)
-  tuf.formats.<SCHEMA>.matches(object)
+  tuf.tufformats.<SCHEMA>.check_match(object)
+  tuf.tufformats.<SCHEMA>.matches(object)
 
   Example:
 
@@ -38,8 +38,8 @@
              'keyval': {'public': 'public_key',
                         'private': 'private_key'}
 
-  tuf.formats.RSAKEY_SCHEMA.check_match(rsa_key)
-  tuf.formats.RSAKEY_SCHEMA.matches(rsa_key)
+  tuf.tufformats.RSAKEY_SCHEMA.check_match(rsa_key)
+  tuf.tufformats.RSAKEY_SCHEMA.matches(rsa_key)
 
   In this example, if a dict key or dict value is missing or incorrect,
   the match fails.  There are numerous variations of object checking
@@ -49,8 +49,8 @@
   multiple top-level roles, each with differing metadata formats.
   Example:
   
-  root_object = tuf.formats.RootFile.from_metadata(root_metadata_file)
-  targets_metadata = tuf.formats.TargetsFile.make_metadata(...)
+  root_object = tuf.tufformats.RootFile.from_metadata(root_metadata_file)
+  targets_metadata = tuf.tufformats.TargetsFile.make_metadata(...)
 
   The input and output of these classes are checked against their respective
   schema to ensure correctly formatted metadata.
@@ -866,7 +866,7 @@ def unix_timestamp_to_datetime(unix_timestamp):
   <Arguments>
     unix_timestamp:
       An integer representing the time (e.g., 1445455680).  Conformant to
-      'tuf.formats.UNIX_TIMESTAMP_SCHEMA'.
+      'tuf.tufformats.UNIX_TIMESTAMP_SCHEMA'.
 
   <Exceptions>
     tuf.FormatError, if 'unix_timestamp' is improperly formatted.
@@ -1097,7 +1097,7 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
                        path_hash_prefixes=None):
   """
   <Purpose>
-    Create a dictionary conforming to 'tuf.formats.ROLE_SCHEMA',
+    Create a dictionary conforming to 'tuf.tufformats.ROLE_SCHEMA',
     representing the role with 'keyids', 'threshold', and 'paths'
     as field values.  'paths' is optional (i.e., used only by the
     'Target' role).
@@ -1128,7 +1128,7 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
 
   <Side Effects>
     If any of the arguments do not have a proper format, a 
-    tuf.formats exception is raised when the 'ROLE_SCHEMA' dict
+    tuf.tufformats exception is raised when the 'ROLE_SCHEMA' dict
     is created.
 
   <Returns>
@@ -1159,7 +1159,7 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
 
   # Does 'role_meta' have the correct type?
   # This check ensures 'role_meta' conforms to
-  # tuf.formats.ROLE_SCHEMA.
+  # tuf.tufformats.ROLE_SCHEMA.
   ROLE_SCHEMA.check_match(role_meta)
 
   return role_meta
@@ -1198,7 +1198,7 @@ def get_role_class(expected_rolename):
  
   # Does 'expected_rolename' have the correct type?
   # This check ensures 'expected_rolename' conforms to
-  # 'tuf.formats.NAME_SCHEMA'.
+  # 'tuf.tufformats.NAME_SCHEMA'.
   # Raise 'tuf.FormatError' if there is a mismatch.
   NAME_SCHEMA.check_match(expected_rolename)
   
@@ -1242,7 +1242,7 @@ def expected_meta_rolename(meta_rolename):
    
   # Does 'meta_rolename' have the correct type?
   # This check ensures 'meta_rolename' conforms to
-  # 'tuf.formats.NAME_SCHEMA'.
+  # 'tuf.tufformats.NAME_SCHEMA'.
   # Raise 'tuf.FormatError' if there is a mismatch.
   NAME_SCHEMA.check_match(meta_rolename)
   
@@ -1256,7 +1256,7 @@ def check_signable_object_format(object):
   """
   <Purpose>
     Ensure 'object' is properly formatted, conformant to
-    'tuf.formats.SIGNABLE_SCHEMA'.  Return the signing role on success.
+    'tuf.tufformats.SIGNABLE_SCHEMA'.  Return the signing role on success.
     Note: The 'signed' field of a 'SIGNABLE_SCHEMA' is checked against
     tuf.schema.Any().  The 'signed' field, however, should actually
     hold one of the supported role schemas (e.g., 'ROOT_SCHEMA',
@@ -1281,7 +1281,7 @@ def check_signable_object_format(object):
   
   # Does 'object' have the correct type?
   # This check ensures 'object' conforms to
-  # 'tuf.formats.SIGNABLE_SCHEMA'.
+  # 'tuf.tufformats.SIGNABLE_SCHEMA'.
   SIGNABLE_SCHEMA.check_match(object)
 
   try:

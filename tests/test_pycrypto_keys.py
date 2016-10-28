@@ -30,7 +30,7 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.pycrypto_keys as pycrypto
 
 logger = logging.getLogger('tuf.test_pycrypto_keys')
@@ -48,9 +48,9 @@ class TestPycrypto_keys(unittest.TestCase):
     pub, priv = pycrypto.generate_rsa_public_and_private()
     
     # Check format of 'pub' and 'priv'.
-    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(pub),
+    self.assertEqual(None, tuf.tufformats.PEMRSA_SCHEMA.check_match(pub),
                      FORMAT_ERROR_MSG)
-    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(priv),
+    self.assertEqual(None, tuf.tufformats.PEMRSA_SCHEMA.check_match(priv),
                      FORMAT_ERROR_MSG)
 
     # Check for invalid bits argument.  bit >= 2048 and a multiple of 256.
@@ -73,7 +73,7 @@ class TestPycrypto_keys(unittest.TestCase):
 
     # Verify format of returned values.
     self.assertNotEqual(None, signature)
-    self.assertEqual(None, tuf.formats.NAME_SCHEMA.check_match(method),
+    self.assertEqual(None, tuf.tufformats.NAME_SCHEMA.check_match(method),
                      FORMAT_ERROR_MSG)
     self.assertEqual('RSASSA-PSS', method)
 
@@ -151,18 +151,18 @@ class TestPycrypto_keys(unittest.TestCase):
     passphrase = 'pw'
 
     # Check format of 'public_rsa'.
-    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(public_rsa),
+    self.assertEqual(None, tuf.tufformats.PEMRSA_SCHEMA.check_match(public_rsa),
                      FORMAT_ERROR_MSG)
     
     # Check format of 'passphrase'.
-    self.assertEqual(None, tuf.formats.PASSWORD_SCHEMA.check_match(passphrase),
+    self.assertEqual(None, tuf.tufformats.PASSWORD_SCHEMA.check_match(passphrase),
                      FORMAT_ERROR_MSG)
 
     # Generate the encrypted PEM string of 'public_rsa'.
     pem_rsakey = pycrypto.create_rsa_encrypted_pem(private_rsa, passphrase)
 
     # Check format of 'pem_rsakey'.
-    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(pem_rsakey),
+    self.assertEqual(None, tuf.tufformats.PEMRSA_SCHEMA.check_match(pem_rsakey),
                      FORMAT_ERROR_MSG)
 
     # Check for invalid arguments.
@@ -185,7 +185,7 @@ class TestPycrypto_keys(unittest.TestCase):
     pem_rsakey = pycrypto.create_rsa_encrypted_pem(private_rsa, passphrase)
    
     # Check format of 'passphrase'.
-    self.assertEqual(None, tuf.formats.PASSWORD_SCHEMA.check_match(passphrase),
+    self.assertEqual(None, tuf.tufformats.PASSWORD_SCHEMA.check_match(passphrase),
                      FORMAT_ERROR_MSG)
 
     # Decrypt 'pem_rsakey' and verify the decrypted object is properly
@@ -194,11 +194,11 @@ class TestPycrypto_keys(unittest.TestCase):
     pycrypto.create_rsa_public_and_private_from_encrypted_pem(pem_rsakey,
                                                              passphrase)
     self.assertEqual(None,
-                     tuf.formats.PEMRSA_SCHEMA.check_match(public_decrypted),
+                     tuf.tufformats.PEMRSA_SCHEMA.check_match(public_decrypted),
                      FORMAT_ERROR_MSG)
     
     self.assertEqual(None,
-                     tuf.formats.PEMRSA_SCHEMA.check_match(private_decrypted),
+                     tuf.tufformats.PEMRSA_SCHEMA.check_match(private_decrypted),
                      FORMAT_ERROR_MSG)
 
     # Does 'public_decrypted' and 'private_decrypted' match the originals?
@@ -212,13 +212,13 @@ class TestPycrypto_keys(unittest.TestCase):
 
     # Check for non-encrypted PEM strings.
     # create_rsa_public_and_private_from_encrypted_pem()
-    # returns a tuple of tuf.formats.PEMRSA_SCHEMA objects if the PEM formatted
+    # returns a tuple of tuf.tufformats.PEMRSA_SCHEMA objects if the PEM formatted
     # string is not actually encrypted but still a valid PEM string.
     pub, priv = pycrypto.create_rsa_public_and_private_from_encrypted_pem(
                               private_rsa, passphrase)
-    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(pub),
+    self.assertEqual(None, tuf.tufformats.PEMRSA_SCHEMA.check_match(pub),
                      FORMAT_ERROR_MSG)
-    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(priv),
+    self.assertEqual(None, tuf.tufformats.PEMRSA_SCHEMA.check_match(priv),
                      FORMAT_ERROR_MSG)
 
     # Check for invalid arguments.

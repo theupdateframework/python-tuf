@@ -29,7 +29,7 @@ import unittest
 import datetime
 
 import tuf
-import tuf.formats
+import tuf.tufformats
 import tuf.schema
 
 import six
@@ -49,99 +49,99 @@ class TestFormats(unittest.TestCase):
   def test_schemas(self):
     # Test conditions for valid schemas.
     valid_schemas = {
-      'ISO8601_DATETIME_SCHEMA': (tuf.formats.ISO8601_DATETIME_SCHEMA,
+      'ISO8601_DATETIME_SCHEMA': (tuf.tufformats.ISO8601_DATETIME_SCHEMA,
                                   '1985-10-21T13:20:00Z'),
 
-      'UNIX_TIMESTAMP_SCHEMA': (tuf.formats.UNIX_TIMESTAMP_SCHEMA, 499137720),
+      'UNIX_TIMESTAMP_SCHEMA': (tuf.tufformats.UNIX_TIMESTAMP_SCHEMA, 499137720),
       
-      'HASH_SCHEMA': (tuf.formats.HASH_SCHEMA, 'A4582BCF323BCEF'),
+      'HASH_SCHEMA': (tuf.tufformats.HASH_SCHEMA, 'A4582BCF323BCEF'),
       
-      'HASHDICT_SCHEMA': (tuf.formats.HASHDICT_SCHEMA,
+      'HASHDICT_SCHEMA': (tuf.tufformats.HASHDICT_SCHEMA,
                           {'sha256': 'A4582BCF323BCEF'}),
       
-      'HEX_SCHEMA': (tuf.formats.HEX_SCHEMA, 'A4582BCF323BCEF'),
+      'HEX_SCHEMA': (tuf.tufformats.HEX_SCHEMA, 'A4582BCF323BCEF'),
       
-      'KEYID_SCHEMA': (tuf.formats.KEYID_SCHEMA, '123456789abcdef'),
+      'KEYID_SCHEMA': (tuf.tufformats.KEYID_SCHEMA, '123456789abcdef'),
       
-      'KEYIDS_SCHEMA': (tuf.formats.KEYIDS_SCHEMA,
+      'KEYIDS_SCHEMA': (tuf.tufformats.KEYIDS_SCHEMA,
                         ['123456789abcdef', '123456789abcdef']),
       
-      'SIG_METHOD_SCHEMA': (tuf.formats.SIG_METHOD_SCHEMA, 'ed25519'),
+      'SIG_METHOD_SCHEMA': (tuf.tufformats.SIG_METHOD_SCHEMA, 'ed25519'),
       
-      'RELPATH_SCHEMA': (tuf.formats.RELPATH_SCHEMA, 'metadata/root/'),
+      'RELPATH_SCHEMA': (tuf.tufformats.RELPATH_SCHEMA, 'metadata/root/'),
       
-      'RELPATHS_SCHEMA': (tuf.formats.RELPATHS_SCHEMA,
+      'RELPATHS_SCHEMA': (tuf.tufformats.RELPATHS_SCHEMA,
                           ['targets/role1/', 'targets/role2/']),
       
-      'PATH_SCHEMA': (tuf.formats.PATH_SCHEMA, '/home/someuser/'),
+      'PATH_SCHEMA': (tuf.tufformats.PATH_SCHEMA, '/home/someuser/'),
       
-      'PATHS_SCHEMA': (tuf.formats.PATHS_SCHEMA,
+      'PATHS_SCHEMA': (tuf.tufformats.PATHS_SCHEMA,
                        ['/home/McFly/', '/home/Tannen/']),
       
-      'URL_SCHEMA': (tuf.formats.URL_SCHEMA,
+      'URL_SCHEMA': (tuf.tufformats.URL_SCHEMA,
                      'https://www.updateframework.com/'),
       
-      'VERSION_SCHEMA': (tuf.formats.VERSION_SCHEMA,
+      'VERSION_SCHEMA': (tuf.tufformats.VERSION_SCHEMA,
                          {'major': 1, 'minor': 0, 'fix': 8}),
       
-      'LENGTH_SCHEMA': (tuf.formats.LENGTH_SCHEMA, 8),
+      'LENGTH_SCHEMA': (tuf.tufformats.LENGTH_SCHEMA, 8),
       
-      'NAME_SCHEMA': (tuf.formats.NAME_SCHEMA, 'Marty McFly'),
+      'NAME_SCHEMA': (tuf.tufformats.NAME_SCHEMA, 'Marty McFly'),
       
-      'BOOLEAN_SCHEMA': (tuf.formats.BOOLEAN_SCHEMA, True),
+      'BOOLEAN_SCHEMA': (tuf.tufformats.BOOLEAN_SCHEMA, True),
       
-      'THRESHOLD_SCHEMA': (tuf.formats.THRESHOLD_SCHEMA, 1),
+      'THRESHOLD_SCHEMA': (tuf.tufformats.THRESHOLD_SCHEMA, 1),
       
-      'ROLENAME_SCHEMA': (tuf.formats.ROLENAME_SCHEMA, 'Root'),
+      'ROLENAME_SCHEMA': (tuf.tufformats.ROLENAME_SCHEMA, 'Root'),
       
-      'RSAKEYBITS_SCHEMA': (tuf.formats.RSAKEYBITS_SCHEMA, 4096),
+      'RSAKEYBITS_SCHEMA': (tuf.tufformats.RSAKEYBITS_SCHEMA, 4096),
       
-      'PASSWORD_SCHEMA': (tuf.formats.PASSWORD_SCHEMA, 'secret'),
+      'PASSWORD_SCHEMA': (tuf.tufformats.PASSWORD_SCHEMA, 'secret'),
       
-      'PASSWORDS_SCHEMA': (tuf.formats.PASSWORDS_SCHEMA, ['pass1', 'pass2']),
+      'PASSWORDS_SCHEMA': (tuf.tufformats.PASSWORDS_SCHEMA, ['pass1', 'pass2']),
       
-      'KEYVAL_SCHEMA': (tuf.formats.KEYVAL_SCHEMA,
+      'KEYVAL_SCHEMA': (tuf.tufformats.KEYVAL_SCHEMA,
                         {'public': 'pubkey', 'private': 'privkey'}),
       
-      'KEY_SCHEMA': (tuf.formats.KEY_SCHEMA,
+      'KEY_SCHEMA': (tuf.tufformats.KEY_SCHEMA,
                      {'keytype': 'rsa',
                       'keyval': {'public': 'pubkey',
                                  'private': 'privkey'}}),
       
-      'RSAKEY_SCHEMA': (tuf.formats.RSAKEY_SCHEMA,
+      'RSAKEY_SCHEMA': (tuf.tufformats.RSAKEY_SCHEMA,
                         {'keytype': 'rsa',
                          'keyid': '123456789abcdef',
                          'keyval': {'public': 'pubkey',
                                     'private': 'privkey'}}),
       
-      'FILEINFO_SCHEMA': (tuf.formats.FILEINFO_SCHEMA,
+      'FILEINFO_SCHEMA': (tuf.tufformats.FILEINFO_SCHEMA,
                           {'length': 1024,
                            'hashes': {'sha256': 'A4582BCF323BCEF'},
                            'custom': {'type': 'paintjob'}}),
       
-      'FILEDICT_SCHEMA': (tuf.formats.FILEDICT_SCHEMA,
+      'FILEDICT_SCHEMA': (tuf.tufformats.FILEDICT_SCHEMA,
                           {'metadata/root.json': {'length': 1024,
                                                  'hashes': {'sha256': 'ABCD123'},
                                                  'custom': {'type': 'metadata'}}}),
       
-      'TARGETFILE_SCHEMA': (tuf.formats.TARGETFILE_SCHEMA,
+      'TARGETFILE_SCHEMA': (tuf.tufformats.TARGETFILE_SCHEMA,
                             {'filepath': 'targets/target1.gif',
                              'fileinfo': {'length': 1024,
                                           'hashes': {'sha256': 'ABCD123'},
                                           'custom': {'type': 'target'}}}),
       
-      'TARGETFILES_SCHEMA': (tuf.formats.TARGETFILES_SCHEMA,
+      'TARGETFILES_SCHEMA': (tuf.tufformats.TARGETFILES_SCHEMA,
                              [{'filepath': 'targets/target1.gif',
                                'fileinfo': {'length': 1024,
                                             'hashes': {'sha256': 'ABCD123'},
                                             'custom': {'type': 'target'}}}]),
       
-      'SIGNATURE_SCHEMA': (tuf.formats.SIGNATURE_SCHEMA,
+      'SIGNATURE_SCHEMA': (tuf.tufformats.SIGNATURE_SCHEMA,
                            {'keyid': '123abc',
                             'method': 'evp',
                             'sig': 'A4582BCF323BCEF'}),
       
-      'SIGNATURESTATUS_SCHEMA': (tuf.formats.SIGNATURESTATUS_SCHEMA,
+      'SIGNATURESTATUS_SCHEMA': (tuf.tufformats.SIGNATURESTATUS_SCHEMA,
                                  {'threshold': 1,
                                   'good_sigs': ['123abc'],
                                   'bad_sigs': ['123abc'],
@@ -149,24 +149,24 @@ class TestFormats(unittest.TestCase):
                                   'untrusted_sigs': ['123abc'],
                                   'unknown_method_sigs': ['123abc']}),
       
-      'SIGNABLE_SCHEMA': (tuf.formats.SIGNABLE_SCHEMA,
+      'SIGNABLE_SCHEMA': (tuf.tufformats.SIGNABLE_SCHEMA,
                           {'signed': 'signer',
                            'signatures': [{'keyid': '123abc',
                                            'method': 'evp',
                                            'sig': 'A4582BCF323BCEF'}]}),
       
-      'KEYDICT_SCHEMA': (tuf.formats.KEYDICT_SCHEMA,
+      'KEYDICT_SCHEMA': (tuf.tufformats.KEYDICT_SCHEMA,
                          {'123abc': {'keytype': 'rsa',
                                      'keyval': {'public': 'pubkey',
                                                 'private': 'privkey'}}}),
 
-      'KEYDB_SCHEMA': (tuf.formats.KEYDB_SCHEMA,
+      'KEYDB_SCHEMA': (tuf.tufformats.KEYDB_SCHEMA,
                        {'123abc': {'keytype': 'rsa',
                                    'keyid': '123456789abcdef',
                                    'keyval': {'public': 'pubkey',
                                               'private': 'privkey'}}}),
       
-      'SCPCONFIG_SCHEMA': (tuf.formats.SCPCONFIG_SCHEMA,
+      'SCPCONFIG_SCHEMA': (tuf.tufformats.SCPCONFIG_SCHEMA,
                            {'general': {'transfer_module': 'scp',
                                         'metadata_path': '/path/meta.json',
                                         'targets_directory': '/targets'},
@@ -175,7 +175,7 @@ class TestFormats(unittest.TestCase):
                                     'identity_file': '/home/.ssh/file',
                                     'remote_directory': '/home/McFly'}}),
 
-      'RECEIVECONFIG_SCHEMA': (tuf.formats.RECEIVECONFIG_SCHEMA,
+      'RECEIVECONFIG_SCHEMA': (tuf.tufformats.RECEIVECONFIG_SCHEMA,
                                {'general': {'transfer_module': 'scp',
                                             'pushroots': ['/pushes'],
                                             'repository_directory': '/repo',
@@ -183,17 +183,17 @@ class TestFormats(unittest.TestCase):
                                             'targets_directory': '/repo/targets',
                                             'backup_directory': '/repo/backup'}}),
 
-      'ROLE_SCHEMA': (tuf.formats.ROLE_SCHEMA,
+      'ROLE_SCHEMA': (tuf.tufformats.ROLE_SCHEMA,
                       {'keyids': ['123abc'],
                        'threshold': 1,
                        'paths': ['path1/', 'path2']}),
 
-      'ROLEDICT_SCHEMA': (tuf.formats.ROLEDICT_SCHEMA,
+      'ROLEDICT_SCHEMA': (tuf.tufformats.ROLEDICT_SCHEMA,
                           {'root': {'keyids': ['123abc'],
                            'threshold': 1,
                            'paths': ['path1/', 'path2']}}),
 
-      'ROOT_SCHEMA': (tuf.formats.ROOT_SCHEMA,
+      'ROOT_SCHEMA': (tuf.tufformats.ROOT_SCHEMA,
                       {'_type': 'Root',
                        'version': 8,
                        'consistent_snapshot': False,
@@ -206,7 +206,7 @@ class TestFormats(unittest.TestCase):
                                           'threshold': 1,
                                           'paths': ['path1/', 'path2']}}}),
 
-      'TARGETS_SCHEMA': (tuf.formats.TARGETS_SCHEMA,
+      'TARGETS_SCHEMA': (tuf.tufformats.TARGETS_SCHEMA,
         {'_type': 'Targets',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
@@ -220,34 +220,34 @@ class TestFormats(unittest.TestCase):
                                     'threshold': 1,
                                     'paths': ['path1/', 'path2']}]}}),
 
-      'SNAPSHOT_SCHEMA': (tuf.formats.SNAPSHOT_SCHEMA,
+      'SNAPSHOT_SCHEMA': (tuf.tufformats.SNAPSHOT_SCHEMA,
         {'_type': 'Snapshot',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'snapshot.json': {'version': 1024}}}),
 
-      'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
+      'TIMESTAMP_SCHEMA': (tuf.tufformats.TIMESTAMP_SCHEMA,
         {'_type': 'Timestamp',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'metadattimestamp.json': {'length': 1024,
                                             'hashes': {'sha256': 'AB1245'}}}}),
 
-      'MIRROR_SCHEMA': (tuf.formats.MIRROR_SCHEMA,
+      'MIRROR_SCHEMA': (tuf.tufformats.MIRROR_SCHEMA,
         {'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
          'targets_path': 'targets/',
          'confined_target_dirs': ['path1/', 'path2/'],
          'custom': {'type': 'mirror'}}),
 
-      'MIRRORDICT_SCHEMA': (tuf.formats.MIRRORDICT_SCHEMA,
+      'MIRRORDICT_SCHEMA': (tuf.tufformats.MIRRORDICT_SCHEMA,
         {'mirror1': {'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
          'targets_path': 'targets/',
          'confined_target_dirs': ['path1/', 'path2/'],
          'custom': {'type': 'mirror'}}}),
 
-      'MIRRORLIST_SCHEMA': (tuf.formats.MIRRORLIST_SCHEMA,
+      'MIRRORLIST_SCHEMA': (tuf.tufformats.MIRRORLIST_SCHEMA,
         {'_type': 'Mirrors',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
@@ -275,8 +275,8 @@ class TestFormats(unittest.TestCase):
 
   def test_MetaFile(self):
     # Test conditions for instantiations of a class that inherits from
-    # 'tuf.formats.MetaFile'.
-    class NewMetadataFile(tuf.formats.MetaFile):
+    # 'tuf.tufformats.MetaFile'.
+    class NewMetadataFile(tuf.tufformats.MetaFile):
       def __init__(self, version, expires):
         self.info = {}
         self.info['version'] = version
@@ -298,21 +298,21 @@ class TestFormats(unittest.TestCase):
 
 
   def test_TimestampFile(self):
-    # Test conditions for valid instances of 'tuf.formats.TimestampFile'.
+    # Test conditions for valid instances of 'tuf.tufformats.TimestampFile'.
     version = 8 
     length = 88
     hashes = {'sha256': '3c7fe3eeded4a34'}
     expires = '1985-10-21T13:20:00Z'
     filedict = {'snapshot.json': {'length': length, 'hashes': hashes}}
 
-    make_metadata = tuf.formats.TimestampFile.make_metadata
-    from_metadata = tuf.formats.TimestampFile.from_metadata
-    TIMESTAMP_SCHEMA = tuf.formats.TIMESTAMP_SCHEMA
+    make_metadata = tuf.tufformats.TimestampFile.make_metadata
+    from_metadata = tuf.tufformats.TimestampFile.from_metadata
+    TIMESTAMP_SCHEMA = tuf.tufformats.TIMESTAMP_SCHEMA
 
     self.assertTrue(TIMESTAMP_SCHEMA.matches(make_metadata(version, expires,
                                                            filedict)))
     metadata = make_metadata(version, expires, filedict)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TimestampFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.TimestampFile))
 
     # Test conditions for invalid arguments.
     bad_version = 'eight'
@@ -331,7 +331,7 @@ class TestFormats(unittest.TestCase):
 
 
   def test_RootFile(self):
-    # Test conditions for valid instances of 'tuf.formats.RootFile'.
+    # Test conditions for valid instances of 'tuf.tufformats.RootFile'.
     version = 8
     consistent_snapshot = False
     expires = '1985-10-21T13:20:00Z'
@@ -346,9 +346,9 @@ class TestFormats(unittest.TestCase):
     
     compression_algorithms = ['gz']
 
-    make_metadata = tuf.formats.RootFile.make_metadata
-    from_metadata = tuf.formats.RootFile.from_metadata
-    ROOT_SCHEMA = tuf.formats.ROOT_SCHEMA
+    make_metadata = tuf.tufformats.RootFile.make_metadata
+    from_metadata = tuf.tufformats.RootFile.from_metadata
+    ROOT_SCHEMA = tuf.tufformats.ROOT_SCHEMA
 
     self.assertTrue(ROOT_SCHEMA.matches(make_metadata(version, expires,
                                                       keydict, roledict,
@@ -356,7 +356,7 @@ class TestFormats(unittest.TestCase):
                                                       compression_algorithms)))
     metadata = make_metadata(version, expires, keydict, roledict,
                              consistent_snapshot, compression_algorithms)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.RootFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.RootFile))
 
     # Test conditions for invalid arguments.
     bad_version = '8'
@@ -391,19 +391,19 @@ class TestFormats(unittest.TestCase):
 
 
   def test_SnapshotFile(self):
-    # Test conditions for valid instances of 'tuf.formats.SnapshotFile'.
+    # Test conditions for valid instances of 'tuf.tufformats.SnapshotFile'.
     version = 8
     expires = '1985-10-21T13:20:00Z'
     versiondict = {'targets.json' : {'version': version}}
   
-    make_metadata = tuf.formats.SnapshotFile.make_metadata
-    from_metadata = tuf.formats.SnapshotFile.from_metadata
-    SNAPSHOT_SCHEMA = tuf.formats.SNAPSHOT_SCHEMA
+    make_metadata = tuf.tufformats.SnapshotFile.make_metadata
+    from_metadata = tuf.tufformats.SnapshotFile.from_metadata
+    SNAPSHOT_SCHEMA = tuf.tufformats.SNAPSHOT_SCHEMA
 
     self.assertTrue(SNAPSHOT_SCHEMA.matches(make_metadata(version, expires,
                                                          versiondict)))
     metadata = make_metadata(version, expires, versiondict)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.SnapshotFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.SnapshotFile))
 
     # Test conditions for invalid arguments.
     bad_version = '8'
@@ -421,7 +421,7 @@ class TestFormats(unittest.TestCase):
 
 
   def test_TargetsFile(self):
-    # Test conditions for valid instances of 'tuf.formats.TargetsFile'.
+    # Test conditions for valid instances of 'tuf.tufformats.TargetsFile'.
     version = 8
     expires = '1985-10-21T13:20:00Z'
 
@@ -435,29 +435,29 @@ class TestFormats(unittest.TestCase):
                    'roles': [{'name': 'root', 'keyids': ['123abc'],
                               'threshold': 1, 'paths': ['path1/', 'path2']}]}
 
-    make_metadata = tuf.formats.TargetsFile.make_metadata
-    from_metadata = tuf.formats.TargetsFile.from_metadata
-    TARGETS_SCHEMA = tuf.formats.TARGETS_SCHEMA
+    make_metadata = tuf.tufformats.TargetsFile.make_metadata
+    from_metadata = tuf.tufformats.TargetsFile.from_metadata
+    TARGETS_SCHEMA = tuf.tufformats.TARGETS_SCHEMA
 
     self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(version, expires,
                                                          filedict, delegations)))
     self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(version, expires, filedict)))
 
     metadata = make_metadata(version, expires, filedict, delegations)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.TargetsFile))
     
     # Test conditions for different combination of required arguments (i.e.,
     # a filedict or delegations argument is required.)
     metadata = make_metadata(version, expires, filedict)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.TargetsFile))
     
     metadata = make_metadata(version, expires, delegations=delegations)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.TargetsFile))
     
     # Directly instantiating a TargetsFile object.
-    tuf.formats.TargetsFile(version, expires)
-    tuf.formats.TargetsFile(version, expires, filedict)
-    tuf.formats.TargetsFile(version, expires, delegations=delegations)
+    tuf.tufformats.TargetsFile(version, expires)
+    tuf.tufformats.TargetsFile(version, expires, filedict)
+    tuf.tufformats.TargetsFile(version, expires, delegations=delegations)
 
     # Test conditions for invalid arguments.
     bad_version = 'eight'
@@ -483,10 +483,10 @@ class TestFormats(unittest.TestCase):
     version = 8
     expires = '1985-10-21T13:20:00Z'
     
-    mirrors_file = tuf.formats.MirrorsFile(version, expires)
+    mirrors_file = tuf.tufformats.MirrorsFile(version, expires)
     
-    make_metadata = tuf.formats.MirrorsFile.make_metadata
-    from_metadata = tuf.formats.MirrorsFile.from_metadata
+    make_metadata = tuf.tufformats.MirrorsFile.make_metadata
+    from_metadata = tuf.tufformats.MirrorsFile.from_metadata
 
     self.assertRaises(NotImplementedError, make_metadata)
     self.assertRaises(NotImplementedError, from_metadata, mirrors_file)
@@ -495,54 +495,54 @@ class TestFormats(unittest.TestCase):
 
   def test_unix_timestamp_to_datetime(self):
     # Test conditions for valid arguments.
-    UNIX_TIMESTAMP_SCHEMA = tuf.formats.UNIX_TIMESTAMP_SCHEMA 
-    self.assertTrue(datetime.datetime, tuf.formats.unix_timestamp_to_datetime(499137720))
+    UNIX_TIMESTAMP_SCHEMA = tuf.tufformats.UNIX_TIMESTAMP_SCHEMA 
+    self.assertTrue(datetime.datetime, tuf.tufformats.unix_timestamp_to_datetime(499137720))
     datetime_object = datetime.datetime(1985, 10, 26, 1, 22)
-    self.assertEqual(datetime_object, tuf.formats.unix_timestamp_to_datetime(499137720))
+    self.assertEqual(datetime_object, tuf.tufformats.unix_timestamp_to_datetime(499137720))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.formats.unix_timestamp_to_datetime, 'bad')
-    self.assertRaises(tuf.FormatError, tuf.formats.unix_timestamp_to_datetime, 1000000000000000000000)
-    self.assertRaises(tuf.FormatError, tuf.formats.unix_timestamp_to_datetime, -1)
-    self.assertRaises(tuf.FormatError, tuf.formats.unix_timestamp_to_datetime, ['5'])
+    self.assertRaises(tuf.FormatError, tuf.tufformats.unix_timestamp_to_datetime, 'bad')
+    self.assertRaises(tuf.FormatError, tuf.tufformats.unix_timestamp_to_datetime, 1000000000000000000000)
+    self.assertRaises(tuf.FormatError, tuf.tufformats.unix_timestamp_to_datetime, -1)
+    self.assertRaises(tuf.FormatError, tuf.tufformats.unix_timestamp_to_datetime, ['5'])
 
 
 
   def test_datetime_to_unix_timestamp(self):
     # Test conditions for valid arguments.
     datetime_object = datetime.datetime(2015, 10, 21, 19, 28)
-    self.assertEqual(1445455680, tuf.formats.datetime_to_unix_timestamp(datetime_object))
+    self.assertEqual(1445455680, tuf.tufformats.datetime_to_unix_timestamp(datetime_object))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.formats.datetime_to_unix_timestamp, 'bad')
-    self.assertRaises(tuf.FormatError, tuf.formats.datetime_to_unix_timestamp, 1000000000000000000000)
-    self.assertRaises(tuf.FormatError, tuf.formats.datetime_to_unix_timestamp, ['1'])
+    self.assertRaises(tuf.FormatError, tuf.tufformats.datetime_to_unix_timestamp, 'bad')
+    self.assertRaises(tuf.FormatError, tuf.tufformats.datetime_to_unix_timestamp, 1000000000000000000000)
+    self.assertRaises(tuf.FormatError, tuf.tufformats.datetime_to_unix_timestamp, ['1'])
 
 
 
   def test_format_base64(self):
     # Test conditions for valid arguments.
     data = 'updateframework'.encode('utf-8')
-    self.assertEqual('dXBkYXRlZnJhbWV3b3Jr', tuf.formats.format_base64(data))
-    self.assertTrue(isinstance(tuf.formats.format_base64(data), six.string_types))
+    self.assertEqual('dXBkYXRlZnJhbWV3b3Jr', tuf.tufformats.format_base64(data))
+    self.assertTrue(isinstance(tuf.tufformats.format_base64(data), six.string_types))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.formats.format_base64, 123)
-    self.assertRaises(tuf.FormatError, tuf.formats.format_base64, True)
-    self.assertRaises(tuf.FormatError, tuf.formats.format_base64, ['123'])
+    self.assertRaises(tuf.FormatError, tuf.tufformats.format_base64, 123)
+    self.assertRaises(tuf.FormatError, tuf.tufformats.format_base64, True)
+    self.assertRaises(tuf.FormatError, tuf.tufformats.format_base64, ['123'])
 
 
   def test_parse_base64(self):
     # Test conditions for valid arguments.
     base64 = 'dXBkYXRlZnJhbWV3b3Jr'
-    self.assertEqual(b'updateframework', tuf.formats.parse_base64(base64))
-    self.assertTrue(isinstance(tuf.formats.parse_base64(base64), six.binary_type))
+    self.assertEqual(b'updateframework', tuf.tufformats.parse_base64(base64))
+    self.assertTrue(isinstance(tuf.tufformats.parse_base64(base64), six.binary_type))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.formats.parse_base64, 123)
-    self.assertRaises(tuf.FormatError, tuf.formats.parse_base64, True)
-    self.assertRaises(tuf.FormatError, tuf.formats.parse_base64, ['123'])
-    self.assertRaises(tuf.FormatError, tuf.formats.parse_base64, '/')
+    self.assertRaises(tuf.FormatError, tuf.tufformats.parse_base64, 123)
+    self.assertRaises(tuf.FormatError, tuf.tufformats.parse_base64, True)
+    self.assertRaises(tuf.FormatError, tuf.tufformats.parse_base64, ['123'])
+    self.assertRaises(tuf.FormatError, tuf.tufformats.parse_base64, '/')
 
 
 
@@ -560,16 +560,16 @@ class TestFormats(unittest.TestCase):
                                'threshold': 1,
                                'paths': ['path1/', 'path2']}}}
 
-    SIGNABLE_SCHEMA = tuf.formats.SIGNABLE_SCHEMA
-    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.formats.make_signable(root)))
-    signable = tuf.formats.make_signable(root)
-    self.assertEqual('root', tuf.formats.check_signable_object_format(signable))
+    SIGNABLE_SCHEMA = tuf.tufformats.SIGNABLE_SCHEMA
+    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.tufformats.make_signable(root)))
+    signable = tuf.tufformats.make_signable(root)
+    self.assertEqual('root', tuf.tufformats.check_signable_object_format(signable))
     
-    self.assertEqual(signable, tuf.formats.make_signable(signable))
+    self.assertEqual(signable, tuf.tufformats.make_signable(signable))
 
     # Test conditions for miscellaneous arguments. 
-    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.formats.make_signable('123')))
-    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.formats.make_signable(123)))
+    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.tufformats.make_signable('123')))
+    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.tufformats.make_signable(123)))
 
 
 
@@ -580,8 +580,8 @@ class TestFormats(unittest.TestCase):
     version = 8
     custom = {'type': 'paintjob'}
    
-    FILEINFO_SCHEMA = tuf.formats.FILEINFO_SCHEMA
-    make_fileinfo = tuf.formats.make_fileinfo
+    FILEINFO_SCHEMA = tuf.tufformats.FILEINFO_SCHEMA
+    make_fileinfo = tuf.tufformats.make_fileinfo
     self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes, version, custom)))
     self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes)))
 
@@ -603,8 +603,8 @@ class TestFormats(unittest.TestCase):
     version_number = 8
     versioninfo = {'version': version_number}
 
-    VERSIONINFO_SCHEMA = tuf.formats.VERSIONINFO_SCHEMA
-    make_versioninfo = tuf.formats.make_versioninfo
+    VERSIONINFO_SCHEMA = tuf.tufformats.VERSIONINFO_SCHEMA
+    make_versioninfo = tuf.tufformats.make_versioninfo
     self.assertTrue(VERSIONINFO_SCHEMA.matches(make_versioninfo(version_number)))
 
     # Test conditions for invalid arguments.
@@ -622,8 +622,8 @@ class TestFormats(unittest.TestCase):
     path_hash_prefixes = ['000', '003']
     name = '123'
 
-    ROLE_SCHEMA = tuf.formats.ROLE_SCHEMA
-    make_role = tuf.formats.make_role_metadata
+    ROLE_SCHEMA = tuf.tufformats.ROLE_SCHEMA
+    make_role = tuf.tufformats.make_role_metadata
 
     self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold)))
     self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, name=name)))
@@ -659,26 +659,26 @@ class TestFormats(unittest.TestCase):
 
   def test_get_role_class(self):
     # Test conditions for valid arguments.
-    get_role_class = tuf.formats.get_role_class
+    get_role_class = tuf.tufformats.get_role_class
     
-    self.assertEqual(tuf.formats.RootFile, get_role_class('Root'))
-    self.assertEqual(tuf.formats.TargetsFile, get_role_class('Targets'))
-    self.assertEqual(tuf.formats.SnapshotFile, get_role_class('Snapshot'))
-    self.assertEqual(tuf.formats.TimestampFile, get_role_class('Timestamp'))
-    self.assertEqual(tuf.formats.MirrorsFile, get_role_class('Mirrors'))
+    self.assertEqual(tuf.tufformats.RootFile, get_role_class('Root'))
+    self.assertEqual(tuf.tufformats.TargetsFile, get_role_class('Targets'))
+    self.assertEqual(tuf.tufformats.SnapshotFile, get_role_class('Snapshot'))
+    self.assertEqual(tuf.tufformats.TimestampFile, get_role_class('Timestamp'))
+    self.assertEqual(tuf.tufformats.MirrorsFile, get_role_class('Mirrors'))
 
     # Test conditions for invalid arguments.
     self.assertRaises(tuf.FormatError, get_role_class, 'role')
     self.assertRaises(tuf.FormatError, get_role_class, 'ROLE')
     self.assertRaises(tuf.FormatError, get_role_class, 'abcd')
     self.assertRaises(tuf.FormatError, get_role_class, 123)
-    self.assertRaises(tuf.FormatError, get_role_class, tuf.formats.RootFile)
+    self.assertRaises(tuf.FormatError, get_role_class, tuf.tufformats.RootFile)
 
 
 
   def test_expected_meta_rolename(self):
     # Test conditions for valid arguments.
-    expected_rolename = tuf.formats.expected_meta_rolename
+    expected_rolename = tuf.tufformats.expected_meta_rolename
 
     self.assertEqual('Root', expected_rolename('root'))
     self.assertEqual('Targets', expected_rolename('targets'))
@@ -690,7 +690,7 @@ class TestFormats(unittest.TestCase):
 
     # Test conditions for invalid arguments.
     self.assertRaises(tuf.FormatError, expected_rolename, 123)
-    self.assertRaises(tuf.FormatError, expected_rolename, tuf.formats.RootFile)
+    self.assertRaises(tuf.FormatError, expected_rolename, tuf.tufformats.RootFile)
     self.assertRaises(tuf.FormatError, expected_rolename, True)
 
 
@@ -709,14 +709,14 @@ class TestFormats(unittest.TestCase):
                                'threshold': 1,
                                'paths': ['path1/', 'path2']}}}
     
-    root = tuf.formats.make_signable(root)
-    self.assertEqual('root', tuf.formats.check_signable_object_format(root))
+    root = tuf.tufformats.make_signable(root)
+    self.assertEqual('root', tuf.tufformats.check_signable_object_format(root))
 
     # Test conditions for invalid arguments.
-    check_signable = tuf.formats.check_signable_object_format
+    check_signable = tuf.tufformats.check_signable_object_format
     self.assertRaises(tuf.FormatError, check_signable, 'Root')
     self.assertRaises(tuf.FormatError, check_signable, 123)
-    self.assertRaises(tuf.FormatError, check_signable, tuf.formats.RootFile)
+    self.assertRaises(tuf.FormatError, check_signable, tuf.tufformats.RootFile)
     self.assertRaises(tuf.FormatError, check_signable, True)
 
     saved_type = root['signed']['_type']
@@ -735,7 +735,7 @@ class TestFormats(unittest.TestCase):
 
   def test_encode_canonical(self):
     # Test conditions for valid arguments.
-    encode = tuf.formats.encode_canonical
+    encode = tuf.tufformats.encode_canonical
     result = [] 
     output = result.append
     bad_output = 123
@@ -755,7 +755,7 @@ class TestFormats(unittest.TestCase):
     self.assertEqual('[1,2,3]', ''.join(result))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, encode, tuf.formats.RootFile)
+    self.assertRaises(tuf.FormatError, encode, tuf.tufformats.RootFile)
     self.assertRaises(tuf.FormatError, encode, 8.0)
     self.assertRaises(tuf.FormatError, encode, {"x": 8.0})
     self.assertRaises(tuf.FormatError, encode, 8.0, output)

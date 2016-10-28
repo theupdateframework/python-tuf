@@ -31,7 +31,7 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.keydb
 import tuf.roledb
 import tuf.keys
@@ -60,7 +60,7 @@ class TestSig(unittest.TestCase):
 
     # A valid, but empty signature status.
     sig_status = tuf.sig.get_signature_status(signable)
-    self.assertTrue(tuf.formats.SIGNATURESTATUS_SCHEMA.matches(sig_status))
+    self.assertTrue(tuf.tufformats.SIGNATURESTATUS_SCHEMA.matches(sig_status))
     
     self.assertEqual(0, sig_status['threshold'])
     self.assertEqual([], sig_status['good_sigs'])
@@ -102,7 +102,7 @@ class TestSig(unittest.TestCase):
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
-    roleinfo = tuf.formats.make_role_metadata(
+    roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
 
@@ -132,7 +132,7 @@ class TestSig(unittest.TestCase):
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
-    roleinfo = tuf.formats.make_role_metadata(
+    roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
 
@@ -161,7 +161,7 @@ class TestSig(unittest.TestCase):
                                   KEYS[0], signable['signed']))
 
     threshold = 1
-    roleinfo = tuf.formats.make_role_metadata(
+    roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
     
     tuf.roledb.add_role('Root', roleinfo)
@@ -202,7 +202,7 @@ class TestSig(unittest.TestCase):
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 2
-    roleinfo = tuf.formats.make_role_metadata(
+    roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid'],
         KEYS[2]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
@@ -237,7 +237,7 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
     threshold = 2
-    roleinfo = tuf.formats.make_role_metadata(
+    roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid'],
         KEYS[1]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
@@ -274,10 +274,10 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
     threshold = 2
-    roleinfo = tuf.formats.make_role_metadata(
+    roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid'], KEYS[2]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
-    roleinfo = tuf.formats.make_role_metadata(
+    roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[1]['keyid'], KEYS[2]['keyid']], threshold)
     tuf.roledb.add_role('Release', roleinfo)
 
@@ -331,7 +331,7 @@ class TestSig(unittest.TestCase):
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
-    roleinfo = tuf.formats.make_role_metadata(
+    roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
 
@@ -358,7 +358,7 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
     threshold = 2
-    roleinfo = tuf.formats.make_role_metadata(
+    roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid'], KEYS[1]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
 
@@ -384,7 +384,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual(KEYS[0]['keyid'], signature['keyid'])
     
     returned_signature = tuf.sig.generate_rsa_signature(signable['signed'], KEYS[0]) 
-    self.assertTrue(tuf.formats.SIGNATURE_SCHEMA.matches(returned_signature))
+    self.assertTrue(tuf.tufformats.SIGNATURE_SCHEMA.matches(returned_signature))
 
     signable['signatures'].append(tuf.keys.create_signature(
                                   KEYS[1], signable['signed']))
@@ -404,7 +404,7 @@ class TestSig(unittest.TestCase):
 
     tuf.keydb.add_key(KEYS[1])
     threshold = 1
-    roleinfo = tuf.formats.make_role_metadata(
+    roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[1]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
 

@@ -29,7 +29,7 @@ import unittest
 import logging
 
 import tuf
-import tuf.formats
+import tuf.tufformats
 import tuf.keys
 import tuf.keydb
 import tuf.log
@@ -312,7 +312,7 @@ class TestKeydb(unittest.TestCase):
     expires = '1985-10-21T01:21:00Z'
     compression_algorithms = ['gz']
    
-    root_metadata = tuf.formats.RootFile.make_metadata(version,
+    root_metadata = tuf.tufformats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
                                                        consistent_snapshot,
@@ -368,7 +368,7 @@ class TestKeydb(unittest.TestCase):
     expires = '1985-10-21T01:21:00Z'
     compression_algorithms = ['gz']
     
-    root_metadata = tuf.formats.RootFile.make_metadata(version,
+    root_metadata = tuf.tufformats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
                                                        consistent_snapshot,

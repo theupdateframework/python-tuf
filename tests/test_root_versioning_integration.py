@@ -36,7 +36,7 @@ else:
 
 import tuf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.roledb
 import tuf.keydb
 import tuf.hash
@@ -202,7 +202,7 @@ class TestRepository(unittest.TestCase):
     
     for role_signable in [old_root_signable, new_root_signable, root_1_signable, root_2_signable]:
       # Raise 'tuf.FormatError' if 'role_signable' is an invalid signable.
-      tuf.formats.check_signable_object_format(role_signable)
+      tuf.tufformats.check_signable_object_format(role_signable)
     
     # Verify contents of versioned roots
     self.assertEqual(old_root_signable, root_1_signable)
