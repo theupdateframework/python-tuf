@@ -476,7 +476,7 @@ ROLEDB_SCHEMA = SCHEMA.Object(
 # Root role: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(
   object_name = 'ROOT_SCHEMA',
-  _type = SCHEMA.String('Root'),
+  _type = SCHEMA.String('root'),
   version = METADATAVERSION_SCHEMA,
   consistent_snapshot = BOOLEAN_SCHEMA,
   compression_algorithms = COMPRESSIONS_SCHEMA,
@@ -487,7 +487,7 @@ ROOT_SCHEMA = SCHEMA.Object(
 # Targets role: Indicates targets and delegates target paths to other roles.
 TARGETS_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETS_SCHEMA',
-  _type = SCHEMA.String('Targets'),
+  _type = SCHEMA.String('targets'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   targets = FILEDICT_SCHEMA,
@@ -496,7 +496,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
 # Snapshot role: indicates the latest versions of all metadata (except timestamp).
 SNAPSHOT_SCHEMA = SCHEMA.Object(
   object_name = 'SNAPSHOT_SCHEMA',
-  _type = SCHEMA.String('Snapshot'),
+  _type = SCHEMA.String('snapshot'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   meta = FILEINFODICT_SCHEMA)
@@ -504,7 +504,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
 # Timestamp role: indicates the latest version of the snapshot file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
-  _type = SCHEMA.String('Timestamp'),
+  _type = SCHEMA.String('timestamp'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   meta = FILEDICT_SCHEMA)
@@ -543,7 +543,7 @@ MIRRORDICT_SCHEMA = SCHEMA.DictOf(
 # serve.
 MIRRORLIST_SCHEMA = SCHEMA.Object(
   object_name = 'MIRRORLIST_SCHEMA',
-  _type = SCHEMA.String('Mirrors'),
+  _type = SCHEMA.String('mirrors'),
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   mirrors = SCHEMA.ListOf(MIRROR_SCHEMA))
@@ -617,7 +617,7 @@ class TimestampFile(MetaFile):
     
   @staticmethod
   def make_metadata(version, expiration_date, filedict):
-    result = {'_type' : 'Timestamp'}
+    result = {'_type' : 'timestamp'}
     result['version'] = version 
     result['expires'] = expiration_date
     result['meta'] = filedict
@@ -664,7 +664,7 @@ class RootFile(MetaFile):
   @staticmethod
   def make_metadata(version, expiration_date, keydict, roledict,
                     consistent_snapshot, compression_algorithms):
-    result = {'_type' : 'Root'}
+    result = {'_type' : 'root'}
     result['version'] = version
     result['expires'] = expiration_date
     result['keys'] = keydict
@@ -705,7 +705,7 @@ class SnapshotFile(MetaFile):
 
   @staticmethod
   def make_metadata(version, expiration_date, versiondict):
-    result = {'_type' : 'Snapshot'}
+    result = {'_type' : 'snapshot'}
     result['version'] = version 
     result['expires'] = expiration_date
     result['meta'] = versiondict
@@ -752,7 +752,7 @@ class TargetsFile(MetaFile):
     if filedict is None and delegations is None:
       raise tuf.Error('We don\'t allow completely empty targets metadata.')
 
-    result = {'_type' : 'Targets'}
+    result = {'_type' : 'targets'}
     result['version'] = version
     result['expires'] = expiration_date
     result['targets'] = {} 
