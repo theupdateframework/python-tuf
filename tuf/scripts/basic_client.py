@@ -99,7 +99,7 @@ def update_client(repository_mirror):
 
   # Does 'repository_mirror' have the correct format?
   try:
-    tuf.tufformats.URL_SCHEMA.check_match(repository_mirror)
+    tuf.ssl_crypto.formats.URL_SCHEMA.check_match(repository_mirror)
   except tuf.ssl_commons.exceptions.FormatError as e:
     message = 'The repository mirror supplied is invalid.' 
     raise tuf.ssl_commons.exceptions.RepositoryError(message)

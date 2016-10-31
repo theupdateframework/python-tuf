@@ -59,15 +59,15 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   """
   <Purpose>
     Populate the key database with the unique keys found in 'root_metadata'.
-    The database dictionary will conform to 'tuf.tufformats.KEYDB_SCHEMA' and
+    The database dictionary will conform to 'tuf.ssl_crypto.formats.KEYDB_SCHEMA' and
     have the form: {keyid: key, ...}.  
-    The 'keyid' conforms to 'tuf.tufformats.KEYID_SCHEMA' and 'key' to its
+    The 'keyid' conforms to 'tuf.ssl_crypto.formats.KEYID_SCHEMA' and 'key' to its
     respective type.  In the case of RSA keys, this object would match
     'RSAKEY_SCHEMA'.
 
   <Arguments>
     root_metadata:
-      A dictionary conformant to 'tuf.tufformats.ROOT_SCHEMA'.  The keys found
+      A dictionary conformant to 'tuf.ssl_crypto.formats.ROOT_SCHEMA'.  The keys found
       in the 'keys' field of 'root_metadata' are needed by this function.
 
     repository_name:
@@ -94,10 +94,10 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   # This check will ensure 'root_metadata' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
-  tuf.tufformats.ROOT_SCHEMA.check_match(root_metadata)
+  tuf.ssl_crypto.formats.ROOT_SCHEMA.check_match(root_metadata)
   
   # Does 'repository_name' have the correct format?
-  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Clear the key database for 'repository_name', or create it if non-existent.
   if repository_name in _keydb_dict:
@@ -163,7 +163,7 @@ def create_keydb(repository_name):
   """
 
   # Is 'repository_name' properly formatted?  Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
-  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name in _keydb_dict:
     raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name already exists:'
@@ -199,7 +199,7 @@ def remove_keydb(repository_name):
   """
 
   # Is 'repository_name' properly formatted?  Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
-  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
     logger.warn('Repository name does not exist: ' + repr(repository_name))
@@ -223,7 +223,7 @@ def add_key(key_dict, keyid=None, repository_name='default'):
   
   <Arguments>
     key_dict:
-      A dictionary conformant to 'tuf.tufformats.ANYKEY_SCHEMA'.
+      A dictionary conformant to 'tuf.ssl_crypto.formats.ANYKEY_SCHEMA'.
       It has the form:
       
       {'keytype': 'rsa',
@@ -260,15 +260,15 @@ def add_key(key_dict, keyid=None, repository_name='default'):
   # This check will ensure 'key_dict' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError if the check fails.
-  tuf.tufformats.ANYKEY_SCHEMA.check_match(key_dict)
+  tuf.ssl_crypto.formats.ANYKEY_SCHEMA.check_match(key_dict)
 
   # Does 'repository_name' have the correct format?
-  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Does 'keyid' have the correct format?
   if keyid is not None:
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails. 
-    tuf.tufformats.KEYID_SCHEMA.check_match(keyid)
+    tuf.ssl_crypto.formats.KEYID_SCHEMA.check_match(keyid)
 
     # Check if each keyid found in 'key_dict' matches 'keyid'.
     if keyid != key_dict['keyid']:
@@ -298,7 +298,7 @@ def get_key(keyid, repository_name='default'):
 
   <Arguments>
     keyid:
-      An object conformant to 'tuf.tufformats.KEYID_SCHEMA'.  It is used as an
+      An object conformant to 'tuf.ssl_crypto.formats.KEYID_SCHEMA'.  It is used as an
       identifier for keys.
 
     repository_name:
@@ -318,17 +318,17 @@ def get_key(keyid, repository_name='default'):
 
   <Returns>
     The key matching 'keyid'.  In the case of RSA keys, a dictionary conformant
-    to 'tuf.tufformats.RSAKEY_SCHEMA' is returned.
+    to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' is returned.
   """
 
   # Does 'keyid' have the correct format?
   # This check will ensure 'keyid' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' is the match fails.
-  tuf.tufformats.KEYID_SCHEMA.check_match(keyid)
+  tuf.ssl_crypto.formats.KEYID_SCHEMA.check_match(keyid)
 
   # Does 'repository_name' have the correct format?
-  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
     raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not exist:'
@@ -352,7 +352,7 @@ def remove_key(keyid, repository_name='default'):
 
   <Arguments>
     keyid:
-      An object conformant to 'tuf.tufformats.KEYID_SCHEMA'.  It is used as an
+      An object conformant to 'tuf.ssl_crypto.formats.KEYID_SCHEMA'.  It is used as an
       identifier for keys.
 
     repository_name:
@@ -378,10 +378,10 @@ def remove_key(keyid, repository_name='default'):
   # This check will ensure 'keyid' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' is the match fails.
-  tuf.tufformats.KEYID_SCHEMA.check_match(keyid)
+  tuf.ssl_crypto.formats.KEYID_SCHEMA.check_match(keyid)
 
   # Does 'repository_name' have the correct format?
-  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
     raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not exist:'
@@ -427,8 +427,8 @@ def clear_keydb(repository_name='default', clear_all=False):
 
   # Do the arguments have the correct format?  Raise 'tuf.ssl_commons.exceptions.FormatError' if
   # 'repository_name' is improperly formatted.
-  tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
-  tuf.tufformats.BOOLEAN_SCHEMA.check_match(clear_all)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(clear_all)
 
   global _keydb_dict
 

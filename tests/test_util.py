@@ -378,8 +378,8 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       '/warehouse/file2.txt': 'd543a573a2cec67026eff06e75702303559e64e705eba06f65799baaf0424417'
     }
     for filepath, target_hash in six.iteritems(expected_target_hashes):
-      self.assertTrue(tuf.tufformats.RELPATH_SCHEMA.matches(filepath))
-      self.assertTrue(tuf.tufformats.HASH_SCHEMA.matches(target_hash))
+      self.assertTrue(tuf.ssl_crypto.formats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.ssl_crypto.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(tuf.util.get_target_hash(filepath), target_hash)
    
     # Test for improperly formatted argument.
@@ -413,7 +413,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       }
     ]
 
-    self.assertTrue(tuf.tufformats.ROLELIST_SCHEMA.matches(role_list))
+    self.assertTrue(tuf.ssl_crypto.formats.ROLELIST_SCHEMA.matches(role_list))
     self.assertEqual(tuf.util.find_delegated_role(role_list, 'targets/tuf'), 1)
     self.assertEqual(tuf.util.find_delegated_role(role_list, 'targets/warehouse'), 0)
     
@@ -488,9 +488,9 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
   def test_C4_ensure_all_targets_allowed(self):
     # Test normal case.
     rolename = 'targets/warehouse'
-    self.assertTrue(tuf.tufformats.ROLENAME_SCHEMA.matches(rolename))
+    self.assertTrue(tuf.ssl_crypto.formats.ROLENAME_SCHEMA.matches(rolename))
     list_of_targets = ['/file1.txt', '/README.txt', '/warehouse/file2.txt'] 
-    self.assertTrue(tuf.tufformats.RELPATHS_SCHEMA.matches(list_of_targets))
+    self.assertTrue(tuf.ssl_crypto.formats.RELPATHS_SCHEMA.matches(list_of_targets))
     parent_delegations = {"keys": {
       "a394c28384648328b16731f81440d72243c77bb44c07c040be99347f0df7d7bf": {
        "keytype": "ed25519", 
@@ -512,7 +512,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       }
      ]
     }
-    self.assertTrue(tuf.tufformats.DELEGATIONS_SCHEMA.matches(parent_delegations))
+    self.assertTrue(tuf.ssl_crypto.formats.DELEGATIONS_SCHEMA.matches(parent_delegations))
 
     tuf.util.ensure_all_targets_allowed(rolename, list_of_targets,
                                     parent_delegations)

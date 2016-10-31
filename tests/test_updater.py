@@ -213,7 +213,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, updater.Updater, 8,
                       self.repository_mirrors)
    
-    # Invalid 'repository_mirrors' argument.  'tuf.tufformats.MIRRORDICT_SCHEMA'
+    # Invalid 'repository_mirrors' argument.  'tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA'
     # expected.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, updater.Updater, updater.Updater, 8)
 
@@ -408,7 +408,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # 'self.fileinfo' dictionary.
       self.repository_updater._update_fileinfo('root.json')
       self.assertEqual(len(fileinfo_dict), 1)
-      self.assertTrue(tuf.tufformats.FILEDICT_SCHEMA.matches(fileinfo_dict))
+      self.assertTrue(tuf.ssl_crypto.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
       length, hashes = tuf.util.get_file_details(root_filepath)
       root_fileinfo = tuf.tufformats.make_fileinfo(length, hashes) 
@@ -602,7 +602,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Ensure the 'expires' value of the root file is valid by checking the
     # the formats of the 'root.json' object.
-    self.assertTrue(tuf.tufformats.ROOT_SCHEMA.matches(root_metadata))
+    self.assertTrue(tuf.ssl_crypto.formats.ROOT_SCHEMA.matches(root_metadata))
     self.assertRaises(tuf.ssl_commons.exceptions.ExpiredMetadataError,
                       self.repository_updater._ensure_not_expired,
                       root_metadata, 'root')
@@ -783,7 +783,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Verify that the list of targets was returned, and that it contains valid
     # target files.
-    self.assertTrue(tuf.tufformats.TARGETFILES_SCHEMA.matches(targets_list))
+    self.assertTrue(tuf.ssl_crypto.formats.TARGETFILES_SCHEMA.matches(targets_list))
     for target in targets_list:
       self.assertTrue((target['filepath'], target['fileinfo']) in six.iteritems(targets_in_metadata))
    
@@ -894,7 +894,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
    # Verify format of 'all_targets', it should correspond to 
    # 'TARGETFILES_SCHEMA'.
-   self.assertTrue(tuf.tufformats.TARGETFILES_SCHEMA.matches(all_targets))
+   self.assertTrue(tuf.ssl_crypto.formats.TARGETFILES_SCHEMA.matches(all_targets))
 
    # Verify that there is a correct number of records in 'all_targets' list,
    # and the expected filepaths specified in the metadata.  On the targets
@@ -945,7 +945,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Verify that list of targets was returned and that it contains valid
     # target files.
-    self.assertTrue(tuf.tufformats.TARGETFILES_SCHEMA.matches(targets_list))
+    self.assertTrue(tuf.ssl_crypto.formats.TARGETFILES_SCHEMA.matches(targets_list))
     for target in targets_list:
       self.assertTrue((target['filepath'], target['fileinfo']) in six.iteritems(expected_targets))
 
@@ -975,7 +975,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     target_files[filepath] = fileinfo
     
     target_fileinfo = self.repository_updater.target(filepath)
-    self.assertTrue(tuf.tufformats.TARGETFILE_SCHEMA.matches(target_fileinfo))
+    self.assertTrue(tuf.ssl_crypto.formats.TARGETFILE_SCHEMA.matches(target_fileinfo))
     self.assertEqual(target_fileinfo['filepath'], filepath)
     self.assertEqual(target_fileinfo['fileinfo'], fileinfo)
     
@@ -1323,8 +1323,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       '/Jalape\xc3\xb1o': '78bfd5c314680545eb48ecad508aceb861f8d6e680f4fe1b791da45c298cda88' 
     }
     for filepath, target_hash in six.iteritems(expected_target_hashes):
-      self.assertTrue(tuf.tufformats.RELPATH_SCHEMA.matches(filepath))
-      self.assertTrue(tuf.tufformats.HASH_SCHEMA.matches(target_hash))
+      self.assertTrue(tuf.ssl_crypto.formats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.ssl_crypto.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(self.repository_updater._get_target_hash(filepath), target_hash)
    
     # Test for improperly formatted argument.

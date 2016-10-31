@@ -29,6 +29,7 @@ import unittest
 import datetime
 
 import tuf
+import tuf.ssl_crypto.formats
 import tuf.tufformats
 import tuf.ssl_commons.schema
 
@@ -49,99 +50,99 @@ class TestFormats(unittest.TestCase):
   def test_schemas(self):
     # Test conditions for valid schemas.
     valid_schemas = {
-      'ISO8601_DATETIME_SCHEMA': (tuf.tufformats.ISO8601_DATETIME_SCHEMA,
+      'ISO8601_DATETIME_SCHEMA': (tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA,
                                   '1985-10-21T13:20:00Z'),
 
-      'UNIX_TIMESTAMP_SCHEMA': (tuf.tufformats.UNIX_TIMESTAMP_SCHEMA, 499137720),
+      'UNIX_TIMESTAMP_SCHEMA': (tuf.ssl_crypto.formats.UNIX_TIMESTAMP_SCHEMA, 499137720),
       
-      'HASH_SCHEMA': (tuf.tufformats.HASH_SCHEMA, 'A4582BCF323BCEF'),
+      'HASH_SCHEMA': (tuf.ssl_crypto.formats.HASH_SCHEMA, 'A4582BCF323BCEF'),
       
-      'HASHDICT_SCHEMA': (tuf.tufformats.HASHDICT_SCHEMA,
+      'HASHDICT_SCHEMA': (tuf.ssl_crypto.formats.HASHDICT_SCHEMA,
                           {'sha256': 'A4582BCF323BCEF'}),
       
-      'HEX_SCHEMA': (tuf.tufformats.HEX_SCHEMA, 'A4582BCF323BCEF'),
+      'HEX_SCHEMA': (tuf.ssl_crypto.formats.HEX_SCHEMA, 'A4582BCF323BCEF'),
       
-      'KEYID_SCHEMA': (tuf.tufformats.KEYID_SCHEMA, '123456789abcdef'),
+      'KEYID_SCHEMA': (tuf.ssl_crypto.formats.KEYID_SCHEMA, '123456789abcdef'),
       
-      'KEYIDS_SCHEMA': (tuf.tufformats.KEYIDS_SCHEMA,
+      'KEYIDS_SCHEMA': (tuf.ssl_crypto.formats.KEYIDS_SCHEMA,
                         ['123456789abcdef', '123456789abcdef']),
       
-      'SIG_METHOD_SCHEMA': (tuf.tufformats.SIG_METHOD_SCHEMA, 'ed25519'),
+      'SIG_METHOD_SCHEMA': (tuf.ssl_crypto.formats.SIG_METHOD_SCHEMA, 'ed25519'),
       
-      'RELPATH_SCHEMA': (tuf.tufformats.RELPATH_SCHEMA, 'metadata/root/'),
+      'RELPATH_SCHEMA': (tuf.ssl_crypto.formats.RELPATH_SCHEMA, 'metadata/root/'),
       
-      'RELPATHS_SCHEMA': (tuf.tufformats.RELPATHS_SCHEMA,
+      'RELPATHS_SCHEMA': (tuf.ssl_crypto.formats.RELPATHS_SCHEMA,
                           ['targets/role1/', 'targets/role2/']),
       
-      'PATH_SCHEMA': (tuf.tufformats.PATH_SCHEMA, '/home/someuser/'),
+      'PATH_SCHEMA': (tuf.ssl_crypto.formats.PATH_SCHEMA, '/home/someuser/'),
       
-      'PATHS_SCHEMA': (tuf.tufformats.PATHS_SCHEMA,
+      'PATHS_SCHEMA': (tuf.ssl_crypto.formats.PATHS_SCHEMA,
                        ['/home/McFly/', '/home/Tannen/']),
       
-      'URL_SCHEMA': (tuf.tufformats.URL_SCHEMA,
+      'URL_SCHEMA': (tuf.ssl_crypto.formats.URL_SCHEMA,
                      'https://www.updateframework.com/'),
       
-      'VERSION_SCHEMA': (tuf.tufformats.VERSION_SCHEMA,
+      'VERSION_SCHEMA': (tuf.ssl_crypto.formats.VERSION_SCHEMA,
                          {'major': 1, 'minor': 0, 'fix': 8}),
       
-      'LENGTH_SCHEMA': (tuf.tufformats.LENGTH_SCHEMA, 8),
+      'LENGTH_SCHEMA': (tuf.ssl_crypto.formats.LENGTH_SCHEMA, 8),
       
-      'NAME_SCHEMA': (tuf.tufformats.NAME_SCHEMA, 'Marty McFly'),
+      'NAME_SCHEMA': (tuf.ssl_crypto.formats.NAME_SCHEMA, 'Marty McFly'),
       
-      'BOOLEAN_SCHEMA': (tuf.tufformats.BOOLEAN_SCHEMA, True),
+      'BOOLEAN_SCHEMA': (tuf.ssl_crypto.formats.BOOLEAN_SCHEMA, True),
       
-      'THRESHOLD_SCHEMA': (tuf.tufformats.THRESHOLD_SCHEMA, 1),
+      'THRESHOLD_SCHEMA': (tuf.ssl_crypto.formats.THRESHOLD_SCHEMA, 1),
       
-      'ROLENAME_SCHEMA': (tuf.tufformats.ROLENAME_SCHEMA, 'Root'),
+      'ROLENAME_SCHEMA': (tuf.ssl_crypto.formats.ROLENAME_SCHEMA, 'Root'),
       
-      'RSAKEYBITS_SCHEMA': (tuf.tufformats.RSAKEYBITS_SCHEMA, 4096),
+      'RSAKEYBITS_SCHEMA': (tuf.ssl_crypto.formats.RSAKEYBITS_SCHEMA, 4096),
       
-      'PASSWORD_SCHEMA': (tuf.tufformats.PASSWORD_SCHEMA, 'secret'),
+      'PASSWORD_SCHEMA': (tuf.ssl_crypto.formats.PASSWORD_SCHEMA, 'secret'),
       
-      'PASSWORDS_SCHEMA': (tuf.tufformats.PASSWORDS_SCHEMA, ['pass1', 'pass2']),
+      'PASSWORDS_SCHEMA': (tuf.ssl_crypto.formats.PASSWORDS_SCHEMA, ['pass1', 'pass2']),
       
-      'KEYVAL_SCHEMA': (tuf.tufformats.KEYVAL_SCHEMA,
+      'KEYVAL_SCHEMA': (tuf.ssl_crypto.formats.KEYVAL_SCHEMA,
                         {'public': 'pubkey', 'private': 'privkey'}),
       
-      'KEY_SCHEMA': (tuf.tufformats.KEY_SCHEMA,
+      'KEY_SCHEMA': (tuf.ssl_crypto.formats.KEY_SCHEMA,
                      {'keytype': 'rsa',
                       'keyval': {'public': 'pubkey',
                                  'private': 'privkey'}}),
       
-      'RSAKEY_SCHEMA': (tuf.tufformats.RSAKEY_SCHEMA,
+      'RSAKEY_SCHEMA': (tuf.ssl_crypto.formats.RSAKEY_SCHEMA,
                         {'keytype': 'rsa',
                          'keyid': '123456789abcdef',
                          'keyval': {'public': 'pubkey',
                                     'private': 'privkey'}}),
       
-      'FILEINFO_SCHEMA': (tuf.tufformats.FILEINFO_SCHEMA,
+      'FILEINFO_SCHEMA': (tuf.ssl_crypto.formats.FILEINFO_SCHEMA,
                           {'length': 1024,
                            'hashes': {'sha256': 'A4582BCF323BCEF'},
                            'custom': {'type': 'paintjob'}}),
       
-      'FILEDICT_SCHEMA': (tuf.tufformats.FILEDICT_SCHEMA,
+      'FILEDICT_SCHEMA': (tuf.ssl_crypto.formats.FILEDICT_SCHEMA,
                           {'metadata/root.json': {'length': 1024,
                                                  'hashes': {'sha256': 'ABCD123'},
                                                  'custom': {'type': 'metadata'}}}),
       
-      'TARGETFILE_SCHEMA': (tuf.tufformats.TARGETFILE_SCHEMA,
+      'TARGETFILE_SCHEMA': (tuf.ssl_crypto.formats.TARGETFILE_SCHEMA,
                             {'filepath': 'targets/target1.gif',
                              'fileinfo': {'length': 1024,
                                           'hashes': {'sha256': 'ABCD123'},
                                           'custom': {'type': 'target'}}}),
       
-      'TARGETFILES_SCHEMA': (tuf.tufformats.TARGETFILES_SCHEMA,
+      'TARGETFILES_SCHEMA': (tuf.ssl_crypto.formats.TARGETFILES_SCHEMA,
                              [{'filepath': 'targets/target1.gif',
                                'fileinfo': {'length': 1024,
                                             'hashes': {'sha256': 'ABCD123'},
                                             'custom': {'type': 'target'}}}]),
       
-      'SIGNATURE_SCHEMA': (tuf.tufformats.SIGNATURE_SCHEMA,
+      'SIGNATURE_SCHEMA': (tuf.ssl_crypto.formats.SIGNATURE_SCHEMA,
                            {'keyid': '123abc',
                             'method': 'evp',
                             'sig': 'A4582BCF323BCEF'}),
       
-      'SIGNATURESTATUS_SCHEMA': (tuf.tufformats.SIGNATURESTATUS_SCHEMA,
+      'SIGNATURESTATUS_SCHEMA': (tuf.ssl_crypto.formats.SIGNATURESTATUS_SCHEMA,
                                  {'threshold': 1,
                                   'good_sigs': ['123abc'],
                                   'bad_sigs': ['123abc'],
@@ -149,24 +150,24 @@ class TestFormats(unittest.TestCase):
                                   'untrusted_sigs': ['123abc'],
                                   'unknown_method_sigs': ['123abc']}),
       
-      'SIGNABLE_SCHEMA': (tuf.tufformats.SIGNABLE_SCHEMA,
+      'SIGNABLE_SCHEMA': (tuf.ssl_crypto.formats.SIGNABLE_SCHEMA,
                           {'signed': 'signer',
                            'signatures': [{'keyid': '123abc',
                                            'method': 'evp',
                                            'sig': 'A4582BCF323BCEF'}]}),
       
-      'KEYDICT_SCHEMA': (tuf.tufformats.KEYDICT_SCHEMA,
+      'KEYDICT_SCHEMA': (tuf.ssl_crypto.formats.KEYDICT_SCHEMA,
                          {'123abc': {'keytype': 'rsa',
                                      'keyval': {'public': 'pubkey',
                                                 'private': 'privkey'}}}),
 
-      'KEYDB_SCHEMA': (tuf.tufformats.KEYDB_SCHEMA,
+      'KEYDB_SCHEMA': (tuf.ssl_crypto.formats.KEYDB_SCHEMA,
                        {'123abc': {'keytype': 'rsa',
                                    'keyid': '123456789abcdef',
                                    'keyval': {'public': 'pubkey',
                                               'private': 'privkey'}}}),
       
-      'SCPCONFIG_SCHEMA': (tuf.tufformats.SCPCONFIG_SCHEMA,
+      'SCPCONFIG_SCHEMA': (tuf.ssl_crypto.formats.SCPCONFIG_SCHEMA,
                            {'general': {'transfer_module': 'scp',
                                         'metadata_path': '/path/meta.json',
                                         'targets_directory': '/targets'},
@@ -175,7 +176,7 @@ class TestFormats(unittest.TestCase):
                                     'identity_file': '/home/.ssh/file',
                                     'remote_directory': '/home/McFly'}}),
 
-      'RECEIVECONFIG_SCHEMA': (tuf.tufformats.RECEIVECONFIG_SCHEMA,
+      'RECEIVECONFIG_SCHEMA': (tuf.ssl_crypto.formats.RECEIVECONFIG_SCHEMA,
                                {'general': {'transfer_module': 'scp',
                                             'pushroots': ['/pushes'],
                                             'repository_directory': '/repo',
@@ -188,12 +189,12 @@ class TestFormats(unittest.TestCase):
                        'threshold': 1,
                        'paths': ['path1/', 'path2']}),
 
-      'ROLEDICT_SCHEMA': (tuf.tufformats.ROLEDICT_SCHEMA,
+      'ROLEDICT_SCHEMA': (tuf.ssl_crypto.formats.ROLEDICT_SCHEMA,
                           {'root': {'keyids': ['123abc'],
                            'threshold': 1,
                            'paths': ['path1/', 'path2']}}),
 
-      'ROOT_SCHEMA': (tuf.tufformats.ROOT_SCHEMA,
+      'ROOT_SCHEMA': (tuf.ssl_crypto.formats.ROOT_SCHEMA,
                       {'_type': 'Root',
                        'version': 8,
                        'consistent_snapshot': False,
@@ -206,7 +207,7 @@ class TestFormats(unittest.TestCase):
                                           'threshold': 1,
                                           'paths': ['path1/', 'path2']}}}),
 
-      'TARGETS_SCHEMA': (tuf.tufformats.TARGETS_SCHEMA,
+      'TARGETS_SCHEMA': (tuf.ssl_crypto.formats.TARGETS_SCHEMA,
         {'_type': 'Targets',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
@@ -233,21 +234,21 @@ class TestFormats(unittest.TestCase):
          'meta': {'metadattimestamp.json': {'length': 1024,
                                             'hashes': {'sha256': 'AB1245'}}}}),
 
-      'MIRROR_SCHEMA': (tuf.tufformats.MIRROR_SCHEMA,
+      'MIRROR_SCHEMA': (tuf.ssl_crypto.formats.MIRROR_SCHEMA,
         {'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
          'targets_path': 'targets/',
          'confined_target_dirs': ['path1/', 'path2/'],
          'custom': {'type': 'mirror'}}),
 
-      'MIRRORDICT_SCHEMA': (tuf.tufformats.MIRRORDICT_SCHEMA,
+      'MIRRORDICT_SCHEMA': (tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA,
         {'mirror1': {'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
          'targets_path': 'targets/',
          'confined_target_dirs': ['path1/', 'path2/'],
          'custom': {'type': 'mirror'}}}),
 
-      'MIRRORLIST_SCHEMA': (tuf.tufformats.MIRRORLIST_SCHEMA,
+      'MIRRORLIST_SCHEMA': (tuf.ssl_crypto.formats.MIRRORLIST_SCHEMA,
         {'_type': 'Mirrors',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
@@ -348,7 +349,7 @@ class TestFormats(unittest.TestCase):
 
     make_metadata = tuf.tufformats.RootFile.make_metadata
     from_metadata = tuf.tufformats.RootFile.from_metadata
-    ROOT_SCHEMA = tuf.tufformats.ROOT_SCHEMA
+    ROOT_SCHEMA = tuf.ssl_crypto.formats.ROOT_SCHEMA
 
     self.assertTrue(ROOT_SCHEMA.matches(make_metadata(version, expires,
                                                       keydict, roledict,
@@ -437,7 +438,7 @@ class TestFormats(unittest.TestCase):
 
     make_metadata = tuf.tufformats.TargetsFile.make_metadata
     from_metadata = tuf.tufformats.TargetsFile.from_metadata
-    TARGETS_SCHEMA = tuf.tufformats.TARGETS_SCHEMA
+    TARGETS_SCHEMA = tuf.ssl_crypto.formats.TARGETS_SCHEMA
 
     self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(version, expires,
                                                          filedict, delegations)))
@@ -495,7 +496,7 @@ class TestFormats(unittest.TestCase):
 
   def test_unix_timestamp_to_datetime(self):
     # Test conditions for valid arguments.
-    UNIX_TIMESTAMP_SCHEMA = tuf.tufformats.UNIX_TIMESTAMP_SCHEMA 
+    UNIX_TIMESTAMP_SCHEMA = tuf.ssl_crypto.formats.UNIX_TIMESTAMP_SCHEMA 
     self.assertTrue(datetime.datetime, tuf.tufformats.unix_timestamp_to_datetime(499137720))
     datetime_object = datetime.datetime(1985, 10, 26, 1, 22)
     self.assertEqual(datetime_object, tuf.tufformats.unix_timestamp_to_datetime(499137720))
@@ -560,7 +561,7 @@ class TestFormats(unittest.TestCase):
                                'threshold': 1,
                                'paths': ['path1/', 'path2']}}}
 
-    SIGNABLE_SCHEMA = tuf.tufformats.SIGNABLE_SCHEMA
+    SIGNABLE_SCHEMA = tuf.ssl_crypto.formats.SIGNABLE_SCHEMA
     self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.tufformats.make_signable(root)))
     signable = tuf.tufformats.make_signable(root)
     self.assertEqual('root', tuf.tufformats.check_signable_object_format(signable))
@@ -580,7 +581,7 @@ class TestFormats(unittest.TestCase):
     version = 8
     custom = {'type': 'paintjob'}
    
-    FILEINFO_SCHEMA = tuf.tufformats.FILEINFO_SCHEMA
+    FILEINFO_SCHEMA = tuf.ssl_crypto.formats.FILEINFO_SCHEMA
     make_fileinfo = tuf.tufformats.make_fileinfo
     self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes, version, custom)))
     self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes)))
@@ -603,7 +604,7 @@ class TestFormats(unittest.TestCase):
     version_number = 8
     versioninfo = {'version': version_number}
 
-    VERSIONINFO_SCHEMA = tuf.tufformats.VERSIONINFO_SCHEMA
+    VERSIONINFO_SCHEMA = tuf.ssl_crypto.formats.VERSIONINFO_SCHEMA
     make_versioninfo = tuf.tufformats.make_versioninfo
     self.assertTrue(VERSIONINFO_SCHEMA.matches(make_versioninfo(version_number)))
 

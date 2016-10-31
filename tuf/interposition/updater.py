@@ -224,7 +224,7 @@ class Updater(object):
         - Given a TUF mirror, how do we verify its SSL certificate? 
       
       This dictionary holds repository mirror information, conformant to       
-      'tuf.tufformats.MIRRORDICT_SCHEMA'. Information such as the directory 
+      'tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA'. Information such as the directory 
       containing the metadata and target files, the server's URL prefix, and 
       the target directories the client should be confined to.                                                  
       
@@ -383,7 +383,7 @@ class Updater(object):
       been stored and filename of the target file been stored in the directory.
     """
     
-    tuf.tufformats.RELPATH_SCHEMA.check_match(target_filepath)
+    tuf.ssl_crypto.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
     # Download file into a temporary directory shared over runtime
     destination_directory = self.tempdir

@@ -79,9 +79,9 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   """
 
   # Checking if all the arguments have appropriate format.
-  tuf.tufformats.RELPATH_SCHEMA.check_match(file_path)
-  tuf.tufformats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
-  tuf.tufformats.NAME_SCHEMA.check_match(file_type)
+  tuf.ssl_crypto.formats.RELPATH_SCHEMA.check_match(file_path)
+  tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(file_type)
 
   # Verify 'file_type' is supported.
   if file_type not in _SUPPORTED_FILE_TYPES:

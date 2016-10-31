@@ -97,8 +97,8 @@ def safe_download(url, required_length):
   
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.URL_SCHEMA.check_match(url)
-  tuf.tufformats.LENGTH_SCHEMA.check_match(required_length)
+  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(url)
+  tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
 
   # Ensure 'url' specifies one of the URI schemes in
   # 'tuf.conf.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
@@ -161,8 +161,8 @@ def unsafe_download(url, required_length):
   
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.URL_SCHEMA.check_match(url)
-  tuf.tufformats.LENGTH_SCHEMA.check_match(required_length)
+  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(url)
+  tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
   
   # Ensure 'url' specifies one of the URI schemes in
   # 'tuf.conf.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
@@ -225,8 +225,8 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.URL_SCHEMA.check_match(url)
-  tuf.tufformats.LENGTH_SCHEMA.check_match(required_length)
+  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(url)
+  tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
 
   # 'url.replace()' is for compatibility with Windows-based systems because
   # they might put back-slashes in place of forward-slashes.  This converts it

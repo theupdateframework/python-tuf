@@ -102,8 +102,8 @@ def update_repository(repository_path, command, command_arguments):
   """
 
   # Do the arguments have the correct format?
-  tuf.tufformats.URL_SCHEMA.check_match(repository_path)
-  tuf.tufformats.NAME_SCHEMA.check_match(command)
+  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(repository_path)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(command)
   tuf.tufformats.COMMAND_SCHEMA.check_match(command_arguments)
   
   # Set the local repository directory containing all of the metadata files.

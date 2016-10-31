@@ -60,7 +60,7 @@ class TestSig(unittest.TestCase):
 
     # A valid, but empty signature status.
     sig_status = tuf.sig.get_signature_status(signable)
-    self.assertTrue(tuf.tufformats.SIGNATURESTATUS_SCHEMA.matches(sig_status))
+    self.assertTrue(tuf.ssl_crypto.formats.SIGNATURESTATUS_SCHEMA.matches(sig_status))
     
     self.assertEqual(0, sig_status['threshold'])
     self.assertEqual([], sig_status['good_sigs'])
@@ -384,7 +384,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual(KEYS[0]['keyid'], signature['keyid'])
     
     returned_signature = tuf.sig.generate_rsa_signature(signable['signed'], KEYS[0]) 
-    self.assertTrue(tuf.tufformats.SIGNATURE_SCHEMA.matches(returned_signature))
+    self.assertTrue(tuf.ssl_crypto.formats.SIGNATURE_SCHEMA.matches(returned_signature))
 
     signable['signatures'].append(tuf.keys.create_signature(
                                   KEYS[1], signable['signed']))

@@ -906,12 +906,12 @@ class TestTargets(unittest.TestCase):
     self.assertTrue(isinstance(targets_object, repo_tool.Metadata))
     self.assertTrue(tuf.roledb.role_exists('project'))
 
-    # Custom roleinfo object (i.e., tuf.tufformats.ROLEDB_SCHEMA).  'keyids' and
+    # Custom roleinfo object (i.e., tuf.ssl_crypto.formats.ROLEDB_SCHEMA).  'keyids' and
     # 'threshold' are required, the rest are optional.
     roleinfo = {'keyids': 
           ['66c4cb5fef5e4d62b7013ef1cab4b8a827a36c14056d5603c3a970e21eb30e6f'],
                 'threshold': 8}
-    self.assertTrue(tuf.tufformats.ROLEDB_SCHEMA.matches(roleinfo))
+    self.assertTrue(tuf.ssl_crypto.formats.ROLEDB_SCHEMA.matches(roleinfo))
     
     targets_object = repo_tool.Targets('targets_directory/', 'package', roleinfo)
     self.assertTrue(isinstance(targets_object, repo_tool.Metadata))

@@ -360,7 +360,7 @@ def _check_directory(directory):
 
   # Does 'directory' have the correct format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(directory)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(directory)
 
   # Check if the directory exists.
   if not os.path.isdir(directory):
@@ -857,10 +857,10 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
   # This check ensures arguments have the appropriate number of
   # objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(filepath)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filepath)
 
   # Does 'bits' have the correct format?
-  tuf.tufformats.RSAKEYBITS_SCHEMA.check_match(bits)
+  tuf.ssl_crypto.formats.RSAKEYBITS_SCHEMA.check_match(bits)
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None: # pragma: no cover
@@ -868,7 +868,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
     password = _get_password(message, confirm=True)
 
   # Does 'password' have the correct format?
-  tuf.tufformats.PASSWORD_SCHEMA.check_match(password)
+  tuf.ssl_crypto.formats.PASSWORD_SCHEMA.check_match(password)
  
   #  Generate public and private RSA keys, encrypted the private portion
   # and store them in PEM format.
@@ -905,7 +905,7 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   """
   <Purpose>
     Import the encrypted PEM file in 'filepath', decrypt it, and return the key
-    object in 'tuf.tufformats.RSAKEY_SCHEMA' format.
+    object in 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' format.
 
     Which cryptography library performs the cryptographic decryption is
     determined by the string set in 'tuf.conf.RSA_CRYPTO_LIBRARY'.  PyCrypto
@@ -931,14 +931,14 @@ def import_rsa_privatekey_from_file(filepath, password=None):
     The contents of 'filepath' is read, decrypted, and the key stored.
 
   <Returns>
-    An RSA key object, conformant to 'tuf.tufformats.RSAKEY_SCHEMA'.
+    An RSA key object, conformant to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA'.
   """
 
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(filepath)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
   # Password confirmation disabled here, which should ideally happen only
@@ -948,7 +948,7 @@ def import_rsa_privatekey_from_file(filepath, password=None):
     password = _get_password(message, confirm=False)
 
   # Does 'password' have the correct format?
-  tuf.tufformats.PASSWORD_SCHEMA.check_match(password)
+  tuf.ssl_crypto.formats.PASSWORD_SCHEMA.check_match(password)
 
   encrypted_pem = None
 
@@ -956,7 +956,7 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   with open(filepath, 'rb') as file_object:
     encrypted_pem = file_object.read().decode('utf-8')
 
-  # Convert 'encrypted_pem' to 'tuf.tufformats.RSAKEY_SCHEMA' format.  Raise
+  # Convert 'encrypted_pem' to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' format.  Raise
   # 'tuf.ssl_commons.exceptions.CryptoError' if 'encrypted_pem' is invalid.
   rsa_key = tuf.keys.import_rsakey_from_encrypted_pem(encrypted_pem, password)
   
@@ -970,7 +970,7 @@ def import_rsa_publickey_from_file(filepath):
   """
   <Purpose>
     Import the RSA key stored in 'filepath'.  The key object returned is a TUF
-    key, specifically 'tuf.tufformats.RSAKEY_SCHEMA'.  If the RSA PEM in 'filepath'
+    key, specifically 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA'.  If the RSA PEM in 'filepath'
     contains a private key, it is discarded.
 
     Which cryptography library performs the cryptographic decryption is
@@ -992,21 +992,21 @@ def import_rsa_publickey_from_file(filepath):
     'filepath' is read and its contents extracted.
 
   <Returns>
-    An RSA key object conformant to 'tuf.tufformats.RSAKEY_SCHEMA'.
+    An RSA key object conformant to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA'.
   """
 
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(filepath)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filepath)
 
   # Read the contents of the key file that should be in PEM format and contains
   # the public portion of the RSA key.
   with open(filepath, 'rb') as file_object:
     rsa_pubkey_pem = file_object.read().decode('utf-8')
 
-  # Convert 'rsa_pubkey_pem' to 'tuf.tufformats.RSAKEY_SCHEMA' format.
+  # Convert 'rsa_pubkey_pem' to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' format.
   try:
     rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
   
@@ -1061,7 +1061,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(filepath)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
   if password is None: # pragma: no cover
@@ -1069,7 +1069,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
     password = _get_password(message, confirm=True)
 
   # Does 'password' have the correct format?
-  tuf.tufformats.PASSWORD_SCHEMA.check_match(password)
+  tuf.ssl_crypto.formats.PASSWORD_SCHEMA.check_match(password)
 
   # Generate a new ED25519 key object and encrypt it.  The cryptography library
   # used is determined by the user, or by default (set in
@@ -1085,7 +1085,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   ed25519key_metadata_format = \
     tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
   
-  # Write the public key, conformant to 'tuf.tufformats.KEY_SCHEMA', to
+  # Write the public key, conformant to 'tuf.ssl_crypto.formats.KEY_SCHEMA', to
   # '<filepath>.pub'.
   tuf.util.ensure_parent_dir(filepath)
 
@@ -1098,7 +1098,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   file_object.move(filepath + '.pub')
 
   # Write the encrypted key string, conformant to
-  # 'tuf.tufformats.ENCRYPTEDKEY_SCHEMA', to '<filepath>'.
+  # 'tuf.ssl_crypto.formats.ENCRYPTEDKEY_SCHEMA', to '<filepath>'.
   file_object = tuf.util.TempFile()
   file_object.write(encrypted_key.encode('utf-8'))
   file_object.move(filepath)
@@ -1110,8 +1110,8 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
 def import_ed25519_publickey_from_file(filepath):
   """
   <Purpose>
-    Load the ED25519 public key object (conformant to 'tuf.tufformats.KEY_SCHEMA')
-    stored in 'filepath'.  Return 'filepath' in tuf.tufformats.ED25519KEY_SCHEMA
+    Load the ED25519 public key object (conformant to 'tuf.ssl_crypto.formats.KEY_SCHEMA')
+    stored in 'filepath'.  Return 'filepath' in tuf.ssl_crypto.formats.ED25519KEY_SCHEMA
     format.
     
     If the TUF key object in 'filepath' contains a private key, it is discarded.
@@ -1128,17 +1128,17 @@ def import_ed25519_publickey_from_file(filepath):
     The contents of 'filepath' is read and saved.
 
   <Returns>
-    An ED25519 key object conformant to 'tuf.tufformats.ED25519KEY_SCHEMA'.
+    An ED25519 key object conformant to 'tuf.ssl_crypto.formats.ED25519KEY_SCHEMA'.
   """
 
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(filepath)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filepath)
 
   # ED25519 key objects are saved in json and metadata format.  Return the
-  # loaded key object in tuf.tufformats.ED25519KEY_SCHEMA' format that also
+  # loaded key object in tuf.ssl_crypto.formats.ED25519KEY_SCHEMA' format that also
   # includes the keyid.
   ed25519_key_metadata = tuf.util.load_json_file(filepath)
   ed25519_key, junk = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
@@ -1160,7 +1160,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   """
   <Purpose>
     Import the encrypted ed25519 TUF key file in 'filepath', decrypt it, and
-    return the key object in 'tuf.tufformats.ED25519KEY_SCHEMA' format.
+    return the key object in 'tuf.ssl_crypto.formats.ED25519KEY_SCHEMA' format.
 
     Which cryptography library performs the cryptographic decryption is
     determined by the string set in 'tuf.conf.ED25519_CRYPTO_LIBRARY'.  PyCrypto
@@ -1192,14 +1192,14 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
     'password' is used to decrypt the 'filepath' key file.
 
   <Returns>
-    An ed25519 key object of the form: 'tuf.tufformats.ED25519KEY_SCHEMA'.
+    An ed25519 key object of the form: 'tuf.ssl_crypto.formats.ED25519KEY_SCHEMA'.
   """
 
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(filepath)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
   # Password confirmation disabled here, which should ideally happen only
@@ -1209,7 +1209,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
     password = _get_password(message, confirm=False)
 
   # Does 'password' have the correct format?
-  tuf.tufformats.PASSWORD_SCHEMA.check_match(password)
+  tuf.ssl_crypto.formats.PASSWORD_SCHEMA.check_match(password)
 
   # Store the encrypted contents of 'filepath' prior to calling the decryption
   # routine.
@@ -1272,7 +1272,7 @@ def get_metadata_filenames(metadata_directory=None):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(metadata_directory)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(metadata_directory)
 
   # Store the filepaths of the top-level roles, including the
   # 'metadata_directory' for each one.
@@ -1300,7 +1300,7 @@ def get_metadata_fileinfo(filename, custom=None):
   """
   <Purpose>
     Retrieve the file information of 'filename'.  The object returned
-    conforms to 'tuf.tufformats.FILEINFO_SCHEMA'.  The information
+    conforms to 'tuf.ssl_crypto.formats.FILEINFO_SCHEMA'.  The information
     generated for 'filename' is stored in metadata files like 'targets.json'.
     The fileinfo object returned has the form:
     
@@ -1325,7 +1325,7 @@ def get_metadata_fileinfo(filename, custom=None):
     such as file size and its hash.
 
   <Returns>
-    A dictionary conformant to 'tuf.tufformats.FILEINFO_SCHEMA'.  This
+    A dictionary conformant to 'tuf.ssl_crypto.formats.FILEINFO_SCHEMA'.  This
     dictionary contains the length, hashes, and custom data about the
     'filename' metadata file.  SHA256 hashes are generated by default.
   """
@@ -1334,9 +1334,9 @@ def get_metadata_fileinfo(filename, custom=None):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(filename)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filename)
   if custom is not None:
-    tuf.tufformats.CUSTOM_SCHEMA.check_match(custom)
+    tuf.ssl_crypto.formats.CUSTOM_SCHEMA.check_match(custom)
 
   if not os.path.isfile(filename):
     message = repr(filename) + ' is not a file.'
@@ -1360,7 +1360,7 @@ def get_metadata_versioninfo(rolename):
   """
   <Purpose>
     Retrieve the version information of 'rolename'.  The object returned
-    conforms to 'tuf.tufformats.VERSIONINFO_SCHEMA'.  The information
+    conforms to 'tuf.ssl_crypto.formats.VERSIONINFO_SCHEMA'.  The information
     generated for 'rolename' is stored in 'snapshot.json'.
     The versioninfo object returned has the form:
     
@@ -1380,14 +1380,14 @@ def get_metadata_versioninfo(rolename):
     None.
   
   <Returns>
-    A dictionary conformant to 'tuf.tufformats.VERSIONINFO_SCHEMA'.  This
+    A dictionary conformant to 'tuf.ssl_crypto.formats.VERSIONINFO_SCHEMA'.  This
     dictionary contains the version  number of 'rolename'.
   """
   
   # Does 'rolename' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
+  tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(rolename)
   
   roleinfo = tuf.roledb.get_roleinfo(rolename) 
   versioninfo = {'version': roleinfo['version']}
@@ -1446,7 +1446,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
     
     expiration_date:
       The expiration date of the metadata file.  Conformant to
-      'tuf.tufformats.ISO8601_DATETIME_SCHEMA'.
+      'tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA'.
 
     consistent_snapshot:
       Boolean.  If True, a file digest is expected to be prepended to the
@@ -1469,17 +1469,17 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
     The contents of 'tuf.keydb.py' and 'tuf.roledb.py' are read.
 
   <Returns>
-    A root metadata object, conformant to 'tuf.tufformats.ROOT_SCHEMA'.
+    A root metadata object, conformant to 'tuf.ssl_crypto.formats.ROOT_SCHEMA'.
   """
 
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if any of the arguments are improperly formatted.
-  tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.tufformats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  tuf.tufformats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
-  tuf.tufformats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
+  tuf.ssl_crypto.formats.METADATAVERSION_SCHEMA.check_match(version)
+  tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+  tuf.ssl_crypto.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
 
   # The role and key dictionaries to be saved in the root metadata object.
   # Conformant to 'ROLEDICT_SCHEMA' and 'KEYDICT_SCHEMA', respectively. 
@@ -1502,7 +1502,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
     for keyid in tuf.roledb.get_role_keyids(rolename):
       key = tuf.keydb.get_key(keyid)
 
-      # If 'key' is an RSA key, it would conform to 'tuf.tufformats.RSAKEY_SCHEMA',
+      # If 'key' is an RSA key, it would conform to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA',
       # and have the form:
       # {'keytype': 'rsa',
       #  'keyid': keyid,
@@ -1574,11 +1574,11 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
     expiration_date:
       The expiration date of the metadata file.  Conformant to
-      'tuf.tufformats.ISO8601_DATETIME_SCHEMA'.
+      'tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA'.
 
     delegations:
       The delegations made by the targets role to be generated.  'delegations'
-      must match 'tuf.tufformats.DELEGATIONS_SCHEMA'.
+      must match 'tuf.ssl_crypto.formats.DELEGATIONS_SCHEMA'.
 
     write_consistent_targets:
       Boolean that indicates whether file digests should be prepended to the
@@ -1598,24 +1598,24 @@ def generate_targets_metadata(targets_directory, target_files, version,
     <sha-2 hash>.some_file.txt, <sha-3 hash>.some_file.txt, etc., are created.
 
   <Returns>
-    A targets metadata object, conformant to 'tuf.tufformats.TARGETS_SCHEMA'.
+    A targets metadata object, conformant to 'tuf.ssl_crypto.formats.TARGETS_SCHEMA'.
   """
 
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(targets_directory)
-  tuf.tufformats.PATH_FILEINFO_SCHEMA.check_match(target_files)
-  tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.tufformats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  tuf.tufformats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(targets_directory)
+  tuf.ssl_crypto.formats.PATH_FILEINFO_SCHEMA.check_match(target_files)
+  tuf.ssl_crypto.formats.METADATAVERSION_SCHEMA.check_match(version)
+  tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(write_consistent_targets)
 
   if delegations is not None:
-    tuf.tufformats.DELEGATIONS_SCHEMA.check_match(delegations)
+    tuf.ssl_crypto.formats.DELEGATIONS_SCHEMA.check_match(delegations)
   
   # Store the file attributes of targets in 'target_files'.  'filedict',
-  # conformant to 'tuf.tufformats.FILEDICT_SCHEMA', is added to the targets
+  # conformant to 'tuf.ssl_crypto.formats.FILEDICT_SCHEMA', is added to the targets
   # metadata object returned.
   filedict = {}
 
@@ -1699,7 +1699,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
     expiration_date:
       The expiration date of the metadata file.
-      Conformant to 'tuf.tufformats.ISO8601_DATETIME_SCHEMA'.
+      Conformant to 'tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA'.
 
     root_filename:
       The filename of the top-level root role.  The hash and file size of this
@@ -1731,12 +1731,12 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
-  tuf.tufformats.PATH_SCHEMA.check_match(metadata_directory)
-  tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.tufformats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
-  tuf.tufformats.PATH_SCHEMA.check_match(root_filename)
-  tuf.tufformats.PATH_SCHEMA.check_match(targets_filename)
-  tuf.tufformats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(metadata_directory)
+  tuf.ssl_crypto.formats.METADATAVERSION_SCHEMA.check_match(version)
+  tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(root_filename)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(targets_filename)
+  tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   metadata_directory = _check_directory(metadata_directory)
 
@@ -1807,7 +1807,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date):
 
     expiration_date:
       The expiration date of the metadata file, conformant to
-      'tuf.tufformats.ISO8601_DATETIME_SCHEMA'.
+      'tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA'.
 
   <Exceptions>
     tuf.ssl_commons.exceptions.FormatError, if the generated timestamp metadata object cannot be
@@ -1824,9 +1824,9 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date):
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
-  tuf.tufformats.PATH_SCHEMA.check_match(snapshot_filename)
-  tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version)
-  tuf.tufformats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(snapshot_filename)
+  tuf.ssl_crypto.formats.METADATAVERSION_SCHEMA.check_match(version)
+  tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
 
   # Retrieve the versioninfo of the Snapshot metadata file.
   snapshot_fileinfo = {}
@@ -1861,7 +1861,7 @@ def sign_metadata(metadata_object, keyids, filename):
   <Arguments>
     metadata_object:
       The metadata object to sign.  For example, 'metadata' might correspond to
-      'tuf.tufformats.ROOT_SCHEMA' or 'tuf.tufformats.TARGETS_SCHEMA'.
+      'tuf.ssl_crypto.formats.ROOT_SCHEMA' or 'tuf.ssl_crypto.formats.TARGETS_SCHEMA'.
 
     keyids:
       The keyids list of the signing keys.
@@ -1881,16 +1881,16 @@ def sign_metadata(metadata_object, keyids, filename):
     None.
 
   <Returns>
-    A signable object conformant to 'tuf.tufformats.SIGNABLE_SCHEMA'.
+    A signable object conformant to 'tuf.ssl_crypto.formats.SIGNABLE_SCHEMA'.
   """
 
   # Do the arguments have the correct format?
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
-  tuf.tufformats.ANYROLE_SCHEMA.check_match(metadata_object)  
-  tuf.tufformats.KEYIDS_SCHEMA.check_match(keyids)
-  tuf.tufformats.PATH_SCHEMA.check_match(filename)
+  tuf.ssl_crypto.formats.ANYROLE_SCHEMA.check_match(metadata_object)  
+  tuf.ssl_crypto.formats.KEYIDS_SCHEMA.check_match(keyids)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filename)
 
   # Make sure the metadata is in 'signable' format.  That is,
   # it contains a 'signatures' field containing the result
@@ -1945,7 +1945,7 @@ def write_metadata_file(metadata, filename, version_number,
   <Arguments>
     metadata:
       The object that will be saved to 'filename', conformant to
-      'tuf.tufformats.SIGNABLE_SCHEMA'.
+      'tuf.ssl_crypto.formats.SIGNABLE_SCHEMA'.
 
     filename:
       The filename of the metadata to be written (e.g., 'root.json').
@@ -1985,11 +1985,11 @@ def write_metadata_file(metadata, filename, version_number,
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
-  tuf.tufformats.SIGNABLE_SCHEMA.check_match(metadata)
-  tuf.tufformats.PATH_SCHEMA.check_match(filename)
-  tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version_number)
-  tuf.tufformats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
-  tuf.tufformats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
+  tuf.ssl_crypto.formats.SIGNABLE_SCHEMA.check_match(metadata)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filename)
+  tuf.ssl_crypto.formats.METADATAVERSION_SCHEMA.check_match(version_number)
+  tuf.ssl_crypto.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
+  tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   # Verify the directory of 'filename', and convert 'filename' to its absolute
   # path so that temporary files are moved to their expected destinations.
@@ -2368,8 +2368,8 @@ def create_tuf_client_directory(repository_directory, client_directory):
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
-  tuf.tufformats.PATH_SCHEMA.check_match(repository_directory)
-  tuf.tufformats.PATH_SCHEMA.check_match(client_directory)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(repository_directory)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(client_directory)
 
   # Set the absolute path of the Repository's metadata directory.  The metadata
   # directory should be the one served by the Live repository.  At a minimum,

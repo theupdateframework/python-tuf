@@ -92,7 +92,7 @@ class TempFile(object):
     # If compression is set then the original file is saved in 'self._orig_file'.
     self._orig_file = None
     temp_dir = tuf.conf.temporary_directory
-    if temp_dir is not None and tuf.tufformats.PATH_SCHEMA.matches(temp_dir):
+    if temp_dir is not None and tuf.ssl_crypto.formats.PATH_SCHEMA.matches(temp_dir):
       try:
         self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix,
                                                           dir=temp_dir)
@@ -310,7 +310,7 @@ class TempFile(object):
 
     # Does 'compression' have the correct format?
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-    tuf.tufformats.NAME_SCHEMA.check_match(compression)
+    tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(compression)
     
     if self._orig_file is not None:
       raise tuf.ssl_commons.exceptions.Error('Can only set compression on a TempFile once.')
@@ -392,8 +392,8 @@ def get_file_details(filepath, hash_algorithms=['sha256']):
   
   # Making sure that the format of 'filepath' is a path string.
   # 'tuf.ssl_commons.exceptions.FormatError' is raised on incorrect format.
-  tuf.tufformats.PATH_SCHEMA.check_match(filepath)
-  tuf.tufformats.HASHALGORITHMS_SCHEMA.check_match(hash_algorithms)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filepath)
+  tuf.ssl_crypto.formats.HASHALGORITHMS_SCHEMA.check_match(hash_algorithms)
 
   # The returned file hashes of 'filepath'.
   file_hashes = {}
@@ -413,7 +413,7 @@ def get_file_details(filepath, hash_algorithms=['sha256']):
 
   # Performing a format check to ensure 'file_hash' corresponds HASHDICT_SCHEMA.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.HASHDICT_SCHEMA.check_match(file_hashes)
+  tuf.ssl_crypto.formats.HASHDICT_SCHEMA.check_match(file_hashes)
 
   return file_length, file_hashes
 
@@ -447,7 +447,7 @@ def ensure_parent_dir(filename):
 
   # Ensure 'filename' corresponds to 'PATH_SCHEMA'.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' on a mismatch.
-  tuf.tufformats.PATH_SCHEMA.check_match(filename)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filename)
 
   # Split 'filename' into head and tail, check if head exists.
   directory = os.path.split(filename)[0]
@@ -484,8 +484,8 @@ def file_in_confined_directories(filepath, confined_directories):
 
   # Do the arguments have the correct format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.RELPATH_SCHEMA.check_match(filepath)
-  tuf.tufformats.RELPATHS_SCHEMA.check_match(confined_directories)
+  tuf.ssl_crypto.formats.RELPATH_SCHEMA.check_match(filepath)
+  tuf.ssl_crypto.formats.RELPATHS_SCHEMA.check_match(confined_directories)
 
   for confined_directory in confined_directories:
     # The empty string (arbitrarily chosen) signifies the client is confined
@@ -540,8 +540,8 @@ def find_delegated_role(roles, delegated_role):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
-  tuf.tufformats.ROLELIST_SCHEMA.check_match(roles)
-  tuf.tufformats.ROLENAME_SCHEMA.check_match(delegated_role)
+  tuf.ssl_crypto.formats.ROLELIST_SCHEMA.check_match(roles)
+  tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(delegated_role)
 
   # The index of a role, if any, with the same name.
   role_index = None
@@ -642,9 +642,9 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
-  tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
-  tuf.tufformats.RELPATHS_SCHEMA.check_match(list_of_targets)
-  tuf.tufformats.DELEGATIONS_SCHEMA.check_match(parent_delegations)
+  tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(rolename)
+  tuf.ssl_crypto.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+  tuf.ssl_crypto.formats.DELEGATIONS_SCHEMA.check_match(parent_delegations)
   
   # Return if 'rolename' is 'targets'.  'targets' is not a delegated role.  Any
   # target file listed in 'targets' is allowed.
@@ -746,8 +746,8 @@ def paths_are_consistent_with_hash_prefixes(paths, path_hash_prefixes):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
-  tuf.tufformats.RELPATHS_SCHEMA.check_match(paths)
-  tuf.tufformats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
+  tuf.ssl_crypto.formats.RELPATHS_SCHEMA.check_match(paths)
+  tuf.ssl_crypto.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
 
   # Assume that 'paths' and 'path_hash_prefixes' are inconsistent until
   # proven otherwise.
@@ -806,7 +806,7 @@ def get_target_hash(target_filepath):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.RELPATH_SCHEMA.check_match(target_filepath)
+  tuf.ssl_crypto.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
   # Calculate the hash of the filepath to determine which bin to find the 
   # target.  The client currently assumes the repository uses
@@ -928,7 +928,7 @@ def load_json_file(filepath):
 
   # Making sure that the format of 'filepath' is a path string.
   # tuf.ssl_commons.exceptions.FormatError is raised on incorrect format.
-  tuf.tufformats.PATH_SCHEMA.check_match(filepath)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filepath)
 
   deserialized_object = None
 
@@ -983,8 +983,8 @@ def digests_are_equal(digest1, digest2):
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.tufformats.HEX_SCHEMA.check_match(digest1)
-  tuf.tufformats.HEX_SCHEMA.check_match(digest2)
+  tuf.ssl_crypto.formats.HEX_SCHEMA.check_match(digest1)
+  tuf.ssl_crypto.formats.HEX_SCHEMA.check_match(digest2)
 
   if len(digest1) != len(digest2):
     return False
