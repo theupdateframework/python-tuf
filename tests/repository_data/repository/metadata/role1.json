@@ -3,11 +3,11 @@
   {
    "keyid": "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9",
    "method": "ed25519",
-   "sig": "e8f6db97fcad5eb2ca1cf5fc6b6d4579d026811581b0d2061af90c7cb26d966e15a06e7c596f663b05aa061308929f96136167359fc9d44919a36383403abd09"
+   "sig": "e10b2dd543312f298469336b05aef7f86c1314b654056b5b4e0345ec232275cff73d87ea33879d6af41989b2b6d633b8e675ec1b781572cbdff9389aaa461a0c"
   }
  ],
  "signed": {
-  "_type": "Targets",
+  "_type": "targets",
   "delegations": {
    "keys": {
     "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9": {
