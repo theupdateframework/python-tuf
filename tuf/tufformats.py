@@ -25,7 +25,7 @@
 
   The first section deals with schemas and object matching based on format.
   There are two ways of checking the format of objects.  The first method
-  raises a 'tuf.FormatError' exception if the match fails and the other
+  raises a 'tuf.ssl_commons.exceptions.FormatError' exception if the match fails and the other
   returns a Boolean result.
 
   tuf.tufformats.<SCHEMA>.check_match(object)
@@ -78,7 +78,7 @@ import datetime
 import time
 
 import tuf
-import tuf.schema as SCHEMA
+import tuf.ssl_commons.schema as SCHEMA
 
 import six
 
@@ -605,7 +605,7 @@ class TimestampFile(MetaFile):
   @staticmethod
   def from_metadata(object):
     # Is 'object' a Timestamp metadata file?
-    # Raise tuf.FormatError if not.
+    # Raise tuf.ssl_commons.exceptions.FormatError if not.
     TIMESTAMP_SCHEMA.check_match(object) 
 
     version = object['version']
@@ -623,7 +623,7 @@ class TimestampFile(MetaFile):
     result['meta'] = filedict
 
     # Is 'result' a Timestamp metadata file?
-    # Raise 'tuf.FormatError' if not.
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     TIMESTAMP_SCHEMA.check_match(result)
 
     return result
@@ -647,7 +647,7 @@ class RootFile(MetaFile):
   @staticmethod
   def from_metadata(object):
     # Is 'object' a Root metadata file?
-    # Raise 'tuf.FormatError' if not.
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     ROOT_SCHEMA.check_match(object) 
     
     version = object['version']
@@ -673,7 +673,7 @@ class RootFile(MetaFile):
     result['compression_algorithms'] = compression_algorithms
     
     # Is 'result' a Root metadata file?
-    # Raise 'tuf.FormatError' if not.
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     ROOT_SCHEMA.check_match(result)
     
     return result
@@ -693,7 +693,7 @@ class SnapshotFile(MetaFile):
   @staticmethod
   def from_metadata(object):
     # Is 'object' a Snapshot metadata file?
-    # Raise 'tuf.FormatError' if not.
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     SNAPSHOT_SCHEMA.check_match(object)
     
     version = object['version']
@@ -711,7 +711,7 @@ class SnapshotFile(MetaFile):
     result['meta'] = versiondict
 
     # Is 'result' a Snapshot metadata file?
-    # Raise 'tuf.FormatError' if not.
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     SNAPSHOT_SCHEMA.check_match(result)
     
     return result
@@ -736,7 +736,7 @@ class TargetsFile(MetaFile):
   @staticmethod
   def from_metadata(object):
     # Is 'object' a Targets metadata file?
-    # Raise tuf.FormatError if not.
+    # Raise tuf.ssl_commons.exceptions.FormatError if not.
     TARGETS_SCHEMA.check_match(object)
     
     version = object['version']
@@ -750,7 +750,7 @@ class TargetsFile(MetaFile):
   @staticmethod
   def make_metadata(version, expiration_date, filedict=None, delegations=None):
     if filedict is None and delegations is None:
-      raise tuf.Error('We don\'t allow completely empty targets metadata.')
+      raise tuf.ssl_commons.exceptions.Error('We don\'t allow completely empty targets metadata.')
 
     result = {'_type' : 'Targets'}
     result['version'] = version
@@ -762,7 +762,7 @@ class TargetsFile(MetaFile):
       result['delegations'] = delegations
 
     # Is 'result' a Targets metadata file?
-    # Raise 'tuf.FormatError' if not.
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     TARGETS_SCHEMA.check_match(result)
     
     return result
@@ -829,7 +829,7 @@ def datetime_to_unix_timestamp(datetime_object):
       The datetime.datetime() object to convert to a Unix timestamp.
 
   <Exceptions>
-    tuf.FormatError, if 'datetime_object' is not a datetime.datetime() object.
+    tuf.ssl_commons.exceptions.FormatError, if 'datetime_object' is not a datetime.datetime() object.
 
   <Side Effects>
     None.
@@ -839,10 +839,10 @@ def datetime_to_unix_timestamp(datetime_object):
   """
   
   # Is 'datetime_object' a datetime.datetime() object?
-  # Raise 'tuf.FormatError' if not.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
   if not isinstance(datetime_object, datetime.datetime):
     message = repr(datetime_object) + ' is not a datetime.datetime() object.'
-    raise tuf.FormatError(message) 
+    raise tuf.ssl_commons.exceptions.FormatError(message) 
    
   unix_timestamp = calendar.timegm(datetime_object.timetuple())
   
@@ -869,7 +869,7 @@ def unix_timestamp_to_datetime(unix_timestamp):
       'tuf.tufformats.UNIX_TIMESTAMP_SCHEMA'.
 
   <Exceptions>
-    tuf.FormatError, if 'unix_timestamp' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'unix_timestamp' is improperly formatted.
 
   <Side Effects>
     None.
@@ -879,7 +879,7 @@ def unix_timestamp_to_datetime(unix_timestamp):
   """
   
   # Is 'unix_timestamp' properly formatted?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   UNIX_TIMESTAMP_SCHEMA.check_match(unix_timestamp)
 
   # Convert 'unix_timestamp' to a 'time.struct_time',  in UTC.  The Daylight
@@ -907,7 +907,7 @@ def format_base64(data):
       Binary or buffer of data to convert.
 
   <Exceptions>
-    tuf.FormatError, if the base64 encoding fails or the argument
+    tuf.ssl_commons.exceptions.FormatError, if the base64 encoding fails or the argument
     is invalid.
 
   <Side Effects>
@@ -921,7 +921,7 @@ def format_base64(data):
     return binascii.b2a_base64(data).decode('utf-8').rstrip('=\n ')
   
   except (TypeError, binascii.Error) as e:
-    raise tuf.FormatError('Invalid base64 encoding: ' + str(e))
+    raise tuf.ssl_commons.exceptions.FormatError('Invalid base64 encoding: ' + str(e))
 
 
 
@@ -937,7 +937,7 @@ def parse_base64(base64_string):
       A string holding a base64 value.
 
   <Exceptions>
-    tuf.FormatError, if 'base64_string' cannot be parsed due to
+    tuf.ssl_commons.exceptions.FormatError, if 'base64_string' cannot be parsed due to
     an invalid base64 encoding.
 
   <Side Effects>
@@ -950,7 +950,7 @@ def parse_base64(base64_string):
 
   if not isinstance(base64_string, six.string_types):
     message = 'Invalid argument: '+repr(base64_string)
-    raise tuf.FormatError(message)
+    raise tuf.ssl_commons.exceptions.FormatError(message)
 
   extra = len(base64_string) % 4
   if extra:
@@ -961,7 +961,7 @@ def parse_base64(base64_string):
     return binascii.a2b_base64(base64_string.encode('utf-8'))
   
   except (TypeError, binascii.Error) as e:
-    raise tuf.FormatError('Invalid base64 encoding: ' + str(e))
+    raise tuf.ssl_commons.exceptions.FormatError('Invalid base64 encoding: ' + str(e))
 
 
 
@@ -1024,13 +1024,13 @@ def make_fileinfo(length, hashes, version=None, custom=None):
       An optional object providing additional information about the file.
 
   <Exceptions>
-    tuf.FormatError, if the 'FILEINFO_SCHEMA' to be returned
+    tuf.ssl_commons.exceptions.FormatError, if the 'FILEINFO_SCHEMA' to be returned
     does not have the correct format.
 
   <Side Effects>
     If any of the arguments are incorrectly formatted, the dict
     returned will be checked for formatting errors, and if found,
-    will raise a 'tuf.FormatError' exception.
+    will raise a 'tuf.ssl_commons.exceptions.FormatError' exception.
 
   <Returns>
     A dictionary conformant to 'FILEINFO_SCHEMA', representing the file
@@ -1045,7 +1045,7 @@ def make_fileinfo(length, hashes, version=None, custom=None):
   if custom is not None:
     fileinfo['custom'] = custom
 
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   FILEINFO_SCHEMA.check_match(fileinfo)
 
   return fileinfo
@@ -1067,7 +1067,7 @@ def make_versioninfo(version_number):
       in Snapshot metadata.
 
   <Exceptions>
-    tuf.FormatError, if the dict to be returned does not have the correct
+    tuf.ssl_commons.exceptions.FormatError, if the dict to be returned does not have the correct
     format (i.e., VERSIONINFO_SCHEMA).
 
   <Side Effects>
@@ -1080,7 +1080,7 @@ def make_versioninfo(version_number):
 
   versioninfo = {'version': version_number}
 
-  # Raise 'tuf.FormatError' if 'versioninfo' is improperly formatted.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'versioninfo' is improperly formatted.
   try: 
     VERSIONINFO_SCHEMA.check_match(versioninfo)
   
@@ -1123,7 +1123,7 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
       target files.
 
   <Exceptions>
-    tuf.FormatError, if the returned role meta is
+    tuf.ssl_commons.exceptions.FormatError, if the returned role meta is
     formatted incorrectly.
 
   <Side Effects>
@@ -1150,7 +1150,7 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
 
   if paths is not None and path_hash_prefixes is not None:
     raise \
-      tuf.FormatError('Both "paths" and "path_hash_prefixes" are specified.')
+      tuf.ssl_commons.exceptions.FormatError('Both "paths" and "path_hash_prefixes" are specified.')
 
   if path_hash_prefixes is not None:
     role_meta['path_hash_prefixes'] = path_hash_prefixes
@@ -1184,7 +1184,7 @@ def get_role_class(expected_rolename):
       to return.
 
   <Exceptions>
-    tuf.FormatError, if 'expected_rolename' is not a
+    tuf.ssl_commons.exceptions.FormatError, if 'expected_rolename' is not a
     supported role.
 
   <Side Effects>
@@ -1199,14 +1199,14 @@ def get_role_class(expected_rolename):
   # Does 'expected_rolename' have the correct type?
   # This check ensures 'expected_rolename' conforms to
   # 'tuf.tufformats.NAME_SCHEMA'.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   NAME_SCHEMA.check_match(expected_rolename)
   
   try:
     role_class = ROLE_CLASSES_BY_TYPE[expected_rolename]
   
   except KeyError:
-    raise tuf.FormatError(repr(expected_rolename) + ' not supported.')
+    raise tuf.ssl_commons.exceptions.FormatError(repr(expected_rolename) + ' not supported.')
   
   else:
     return role_class
@@ -1231,7 +1231,7 @@ def expected_meta_rolename(meta_rolename):
       E.g., 'root', 'targets'.
 
   <Exceptions>
-    tuf.FormatError, if 'meta_rolename' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'meta_rolename' is improperly formatted.
 
   <Side Effects>
     None.
@@ -1243,7 +1243,7 @@ def expected_meta_rolename(meta_rolename):
   # Does 'meta_rolename' have the correct type?
   # This check ensures 'meta_rolename' conforms to
   # 'tuf.tufformats.NAME_SCHEMA'.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   NAME_SCHEMA.check_match(meta_rolename)
   
   return string.capwords(meta_rolename)
@@ -1258,7 +1258,7 @@ def check_signable_object_format(object):
     Ensure 'object' is properly formatted, conformant to
     'tuf.tufformats.SIGNABLE_SCHEMA'.  Return the signing role on success.
     Note: The 'signed' field of a 'SIGNABLE_SCHEMA' is checked against
-    tuf.schema.Any().  The 'signed' field, however, should actually
+    tuf.ssl_commons.schema.Any().  The 'signed' field, however, should actually
     hold one of the supported role schemas (e.g., 'ROOT_SCHEMA',
     'TARGETS_SCHEMA').  The role schemas all differ in their format, so this
     function determines exactly which schema is listed in the 'signed'
@@ -1269,7 +1269,7 @@ def check_signable_object_format(object):
      The object compare against 'SIGNABLE.SCHEMA'. 
 
   <Exceptions>
-    tuf.FormatError, if 'object' does not have the correct format.
+    tuf.ssl_commons.exceptions.FormatError, if 'object' does not have the correct format.
 
   <Side Effects>
     None.
@@ -1288,15 +1288,15 @@ def check_signable_object_format(object):
     role_type = object['signed']['_type']
   
   except (KeyError, TypeError):
-    raise tuf.FormatError('Untyped object')
+    raise tuf.ssl_commons.exceptions.FormatError('Untyped object')
   
   try:
     schema = SCHEMAS_BY_TYPE[role_type]
   
   except KeyError:
-    raise tuf.FormatError('Unrecognized type ' + repr(role_type))
+    raise tuf.ssl_commons.exceptions.FormatError('Unrecognized type ' + repr(role_type))
   
-  # 'tuf.FormatError' raised if 'object' does not have a properly
+  # 'tuf.ssl_commons.exceptions.FormatError' raised if 'object' does not have a properly
   # formatted role schema.
   schema.check_match(object['signed'])
 
@@ -1370,7 +1370,7 @@ def _encode_canonical(object, output_function):
       _encode_canonical(value, output_function)
     output_function("}")
   else:
-    raise tuf.FormatError('I cannot encode '+repr(object))
+    raise tuf.ssl_commons.exceptions.FormatError('I cannot encode '+repr(object))
 
 
 
@@ -1416,7 +1416,7 @@ def encode_canonical(object, output_function=None):
       (e.g., output_function('result')).
 
   <Exceptions>
-    tuf.FormatError, if 'object' cannot be encoded or 'output_function'
+    tuf.ssl_commons.exceptions.FormatError, if 'object' cannot be encoded or 'output_function'
     is not callable.
 
   <Side Effects>
@@ -1436,9 +1436,9 @@ def encode_canonical(object, output_function=None):
   try:
     _encode_canonical(object, output_function)
   
-  except (TypeError, tuf.FormatError) as  e:
+  except (TypeError, tuf.ssl_commons.exceptions.FormatError) as  e:
     message = 'Could not encode ' + repr(object) + ': ' + str(e)
-    raise tuf.FormatError(message)
+    raise tuf.ssl_commons.exceptions.FormatError(message)
 
   # Return the encoded 'object' as a string.
   # Note: Implies 'output_function' is None,

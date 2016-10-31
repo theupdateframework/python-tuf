@@ -84,10 +84,10 @@ def safe_download(url, required_length):
     'url'.
  
   <Exceptions>
-    tuf.DownloadLengthMismatchError, if there was a mismatch of observed vs
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a mismatch of observed vs
     expected lengths while downloading the file.
  
-    tuf.FormatError, if any of the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are improperly formatted.
 
     Any other unforeseen runtime exception.
  
@@ -96,7 +96,7 @@ def safe_download(url, required_length):
   """
   
   # Do all of the arguments have the appropriate format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.URL_SCHEMA.check_match(url)
   tuf.tufformats.LENGTH_SCHEMA.check_match(required_length)
 
@@ -112,7 +112,7 @@ def safe_download(url, required_length):
     message = \
       repr(url) + ' specifies an unsupported URI scheme.  Supported ' + \
       ' URI Schemes: ' + repr(tuf.conf.SUPPORTED_URI_SCHEMES)
-    raise tuf.FormatError(message)
+    raise tuf.ssl_commons.exceptions.FormatError(message)
   
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
 
@@ -148,10 +148,10 @@ def unsafe_download(url, required_length):
     'url'.
  
   <Exceptions>
-    tuf.DownloadLengthMismatchError, if there was a mismatch of observed vs
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a mismatch of observed vs
     expected lengths while downloading the file.
  
-    tuf.FormatError, if any of the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are improperly formatted.
 
     Any other unforeseen runtime exception.
  
@@ -160,7 +160,7 @@ def unsafe_download(url, required_length):
   """
   
   # Do all of the arguments have the appropriate format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.URL_SCHEMA.check_match(url)
   tuf.tufformats.LENGTH_SCHEMA.check_match(required_length)
   
@@ -176,7 +176,7 @@ def unsafe_download(url, required_length):
     message = \
       repr(url) + ' specifies an unsupported URI scheme.  Supported ' + \
       ' URI Schemes: ' + repr(tuf.conf.SUPPORTED_URI_SCHEMES) 
-    raise tuf.FormatError(message)
+    raise tuf.ssl_commons.exceptions.FormatError(message)
   
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
 
@@ -212,10 +212,10 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     'url'.
  
   <Exceptions>
-    tuf.DownloadLengthMismatchError, if there was a mismatch of observed vs
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a mismatch of observed vs
     expected lengths while downloading the file.
  
-    tuf.FormatError, if any of the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are improperly formatted.
 
     Any other unforeseen runtime exception.
  
@@ -224,7 +224,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
   """
 
   # Do all of the arguments have the appropriate format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.URL_SCHEMA.check_match(url)
   tuf.tufformats.LENGTH_SCHEMA.check_match(required_length)
 
@@ -604,10 +604,10 @@ def _check_downloaded_length(total_downloaded, required_length,
     None.
  
   <Exceptions>
-    tuf.DownloadLengthMismatchError, if STRICT_REQUIRED_LENGTH is True and
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if STRICT_REQUIRED_LENGTH is True and
     total_downloaded is not equal required_length.
 
-    tuf.SlowRetrievalError, if the total downloaded was done in in less than
+    tuf.ssl_commons.exceptions.SlowRetrievalError, if the total downloaded was done in in less than
     the acceptable download speed (as set in tuf.conf.py).
 
   <Returns>
@@ -634,13 +634,13 @@ def _check_downloaded_length(total_downloaded, required_length,
       logger.debug('Minimum average download speed: ' + repr(tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED))
       
       if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.SlowRetrievalError(average_download_speed)
+        raise tuf.ssl_commons.exceptions.SlowRetrievalError(average_download_speed)
 
       else:
         logger.debug('Good average download speed: ' +
                      repr(average_download_speed) + ' bytes per second')
           
-      raise tuf.DownloadLengthMismatchError(required_length, total_downloaded)
+      raise tuf.ssl_commons.exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
     
     else:
       # We specifically disabled strict checking of required length, but we
@@ -648,7 +648,7 @@ def _check_downloaded_length(total_downloaded, required_length,
       # Timestamp or Root metadata, for which we have no signed metadata; so,
       # we must guess a reasonable required_length for it.
       if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.SlowRetrievalError(average_download_speed)
+        raise tuf.ssl_commons.exceptions.SlowRetrievalError(average_download_speed)
 
       else:
         logger.debug('Good average download speed: ' +

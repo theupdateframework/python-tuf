@@ -70,7 +70,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['unknown_method_sigs'])
 
     # A valid signable, but non-existent role argument.
-    self.assertRaises(tuf.UnknownRoleError, tuf.sig.get_signature_status,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError, tuf.sig.get_signature_status,
                       signable, 'unknown_role')
     
     # Should verify we are not adding a duplicate signature
@@ -82,12 +82,12 @@ class TestSig(unittest.TestCase):
     tuf.keydb.add_key(KEYS[0]) 
 
     # Improperly formatted role.
-    self.assertRaises(tuf.FormatError, tuf.sig.get_signature_status,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.sig.get_signature_status,
                       signable, 1)
 
     # Not allowed to call verify() without having specified a role.
     args = (signable, None)
-    self.assertRaises(tuf.Error, tuf.sig.verify, *args)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.sig.verify, *args)
 
     # Done.  Let's remove the added key(s) from the key database.
     tuf.keydb.remove_key(KEYS[0]['keyid'])
@@ -292,7 +292,7 @@ class TestSig(unittest.TestCase):
 
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
     
-    self.assertRaises(tuf.UnknownRoleError,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError,
                       tuf.sig.get_signature_status, signable, 'unknown_role')
 
     # Done.  Let's remove the added key(s) from the key database.
@@ -317,7 +317,7 @@ class TestSig(unittest.TestCase):
     # function tuf.sig.verify() without a role specified because
     # tuf.sig.verify() is checking trust, as well.
     args = (signable, None)
-    self.assertRaises(tuf.Error, tuf.sig.verify, *args)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.sig.verify, *args)
 
     # Done.  Let's remove the added key(s) from the key database.
     tuf.keydb.remove_key(KEYS[0]['keyid'])
@@ -426,12 +426,12 @@ class TestSig(unittest.TestCase):
     # Object types are checked as well.
     signable = {'not_signed' : 'test', 'signatures' : []}
     args = (signable['not_signed'], KEYS[0]) 
-    self.assertRaises(tuf.FormatError, tuf.sig.get_signature_status, *args)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.sig.get_signature_status, *args)
 
     # 'signatures' value must be a list.  Let's try a dict. 
     signable = {'signed' : 'test', 'signatures' : {}} 
     args = (signable['signed'], KEYS[0])
-    self.assertRaises(tuf.FormatError, tuf.sig.get_signature_status, *args)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.sig.get_signature_status, *args)
 
 
 

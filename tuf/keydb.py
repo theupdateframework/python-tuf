@@ -75,9 +75,9 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       the key database is populated for the 'default' repository.
 
   <Exceptions>
-    tuf.FormatError, if 'root_metadata' does not have the correct format.
+    tuf.ssl_commons.exceptions.FormatError, if 'root_metadata' does not have the correct format.
 
-    tuf.InvalidNameError, if 'repository_name' does not exist in the key
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not exist in the key
     database.
 
   <Side Effects>
@@ -93,7 +93,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   # Does 'root_metadata' have the correct format?
   # This check will ensure 'root_metadata' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.ROOT_SCHEMA.check_match(root_metadata)
   
   # Does 'repository_name' have the correct format?
@@ -129,7 +129,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       # Although keyid duplicates should *not* occur (unique dict keys), log a
       # warning and continue.  Howerver, 'key_dict' may have already been
       # adding to the keydb elsewhere.
-      except tuf.KeyAlreadyExistsError as e: # pragma: no cover
+      except tuf.ssl_commons.exceptions.KeyAlreadyExistsError as e: # pragma: no cover
         logger.warning(e)
         continue
     
@@ -151,9 +151,9 @@ def create_keydb(repository_name):
       may be added to via add_key(keyid, repository_name).
 
   <Exceptions>
-    tuf.FormatError, if 'repository_name' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly formatted.
     
-    tuf.InvalidNameError, if 'repository_name' already exists.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' already exists.
 
   <Side Effects>
     None.
@@ -162,11 +162,11 @@ def create_keydb(repository_name):
     None. 
   """
 
-  # Is 'repository_name' properly formatted?  Raise 'tuf.FormatError' if not.
+  # Is 'repository_name' properly formatted?  Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
   tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name in _keydb_dict:
-    raise tuf.InvalidNameError('Repository name already exists:'
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name already exists:'
       ' ' + repr(repository_name))
   
   _keydb_dict[repository_name] = {}
@@ -187,9 +187,9 @@ def remove_keydb(repository_name):
       not be removed, so 'repository_name' cannot be 'default'.
 
   <Exceptions>
-    tuf.FormatError, if 'repository_name' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly formatted.
 
-    tuf.InvalidNameError, if 'repository_name' is 'default'.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' is 'default'.
 
   <Side Effects>
     None.
@@ -198,7 +198,7 @@ def remove_keydb(repository_name):
     None. 
   """
 
-  # Is 'repository_name' properly formatted?  Raise 'tuf.FormatError' if not.
+  # Is 'repository_name' properly formatted?  Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
   tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
@@ -206,7 +206,7 @@ def remove_keydb(repository_name):
     return
 
   if repository_name == 'default':
-    raise tuf.InvalidNameError('Cannot remove the default repository:'
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Cannot remove the default repository:'
       ' ' + repr(repository_name))
  
   del _keydb_dict[repository_name]
@@ -240,13 +240,13 @@ def add_key(key_dict, keyid=None, repository_name='default'):
       added to the 'default' repository.
 
   <Exceptions>
-    tuf.FormatError, if the arguments do not have the correct format.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the correct format.
 
-    tuf.Error, if 'keyid' does not match the keyid for 'rsakey_dict'.
+    tuf.ssl_commons.exceptions.Error, if 'keyid' does not match the keyid for 'rsakey_dict'.
 
-    tuf.KeyAlreadyExistsError, if 'rsakey_dict' is found in the key database.
+    tuf.ssl_commons.exceptions.KeyAlreadyExistsError, if 'rsakey_dict' is found in the key database.
 
-    tuf.InvalidNameError, if 'repository_name' does not exist in the key
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not exist in the key
     database.
 
   <Side Effects>
@@ -259,7 +259,7 @@ def add_key(key_dict, keyid=None, repository_name='default'):
   # Does 'key_dict' have the correct format?
   # This check will ensure 'key_dict' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError if the check fails.
   tuf.tufformats.ANYKEY_SCHEMA.check_match(key_dict)
 
   # Does 'repository_name' have the correct format?
@@ -267,23 +267,23 @@ def add_key(key_dict, keyid=None, repository_name='default'):
 
   # Does 'keyid' have the correct format?
   if keyid is not None:
-    # Raise 'tuf.FormatError' if the check fails. 
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails. 
     tuf.tufformats.KEYID_SCHEMA.check_match(keyid)
 
     # Check if each keyid found in 'key_dict' matches 'keyid'.
     if keyid != key_dict['keyid']:
-      raise tuf.Error('Incorrect keyid.  Got ' + key_dict['keyid'] + ' but expected ' + keyid)
+      raise tuf.ssl_commons.exceptions.Error('Incorrect keyid.  Got ' + key_dict['keyid'] + ' but expected ' + keyid)
 
   # Ensure 'repository_name' is actually set in the key database.
   if repository_name not in _keydb_dict:
-    raise tuf.InvalidNameError('Repository name does not exist:'
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not exist:'
       ' ' + repr(repository_name))
 
   # Check if the keyid belonging to 'key_dict' is not already
   # available in the key database before returning.
   keyid = key_dict['keyid']
   if keyid in _keydb_dict[repository_name]:
-    raise tuf.KeyAlreadyExistsError('Key: ' + keyid)
+    raise tuf.ssl_commons.exceptions.KeyAlreadyExistsError('Key: ' + keyid)
  
   _keydb_dict[repository_name][keyid] = copy.deepcopy(key_dict)
 
@@ -306,11 +306,11 @@ def get_key(keyid, repository_name='default'):
       retrieved from the 'default' repository.
 
   <Exceptions>
-    tuf.FormatError, if the arguments do not have the correct format.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the correct format.
 
-    tuf.UnknownKeyError, if 'keyid' is not found in the keydb database.
+    tuf.ssl_commons.exceptions.UnknownKeyError, if 'keyid' is not found in the keydb database.
 
-    tuf.InvalidNameError, if 'repository_name' does not exist in the key
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not exist in the key
     database.
 
   <Side Effects>
@@ -324,14 +324,14 @@ def get_key(keyid, repository_name='default'):
   # Does 'keyid' have the correct format?
   # This check will ensure 'keyid' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' is the match fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' is the match fails.
   tuf.tufformats.KEYID_SCHEMA.check_match(keyid)
 
   # Does 'repository_name' have the correct format?
   tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
-    raise tuf.InvalidNameError('Repository name does not exist:'
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not exist:'
       ' ' + repr(repository_name))
   
   # Return the key belonging to 'keyid', if found in the key database.
@@ -339,7 +339,7 @@ def get_key(keyid, repository_name='default'):
     return copy.deepcopy(_keydb_dict[repository_name][keyid])
   
   except KeyError:
-    raise tuf.UnknownKeyError('Key: ' + keyid)
+    raise tuf.ssl_commons.exceptions.UnknownKeyError('Key: ' + keyid)
 
 
 
@@ -360,11 +360,11 @@ def remove_key(keyid, repository_name='default'):
       is removed from the 'default' repository.
 
   <Exceptions>
-    tuf.FormatError, if the arguments do not have the correct format.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the correct format.
 
-    tuf.UnknownKeyError, if 'keyid' is not found in key database.
+    tuf.ssl_commons.exceptions.UnknownKeyError, if 'keyid' is not found in key database.
 
-    tuf.InvalidNameError, if 'repository_name' does not exist in the key
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not exist in the key
     database.
 
   <Side Effects>
@@ -377,14 +377,14 @@ def remove_key(keyid, repository_name='default'):
   # Does 'keyid' have the correct format?
   # This check will ensure 'keyid' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' is the match fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' is the match fails.
   tuf.tufformats.KEYID_SCHEMA.check_match(keyid)
 
   # Does 'repository_name' have the correct format?
   tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
-    raise tuf.InvalidNameError('Repository name does not exist:'
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not exist:'
       ' ' + repr(repository_name))
 
   # Remove the key belonging to 'keyid' if found in the key database.
@@ -392,7 +392,7 @@ def remove_key(keyid, repository_name='default'):
     del _keydb_dict[repository_name][keyid]
   
   else:
-    raise tuf.UnknownKeyError('Key: ' + keyid)
+    raise tuf.ssl_commons.exceptions.UnknownKeyError('Key: ' + keyid)
 
 
 
@@ -413,9 +413,9 @@ def clear_keydb(repository_name='default', clear_all=False):
       Boolean indicating whether to clear the entire keydb.
 
   <Exceptions>
-    tuf.FormatError, if 'repository_name' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly formatted.
 
-    tuf.InvalidNameError, if 'repository_name' does not exist in the key
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not exist in the key
     database.
 
   <Side Effects>
@@ -425,7 +425,7 @@ def clear_keydb(repository_name='default', clear_all=False):
     None.
   """
 
-  # Do the arguments have the correct format?  Raise 'tuf.FormatError' if
+  # Do the arguments have the correct format?  Raise 'tuf.ssl_commons.exceptions.FormatError' if
   # 'repository_name' is improperly formatted.
   tuf.tufformats.NAME_SCHEMA.check_match(repository_name)
   tuf.tufformats.BOOLEAN_SCHEMA.check_match(clear_all)
@@ -437,7 +437,7 @@ def clear_keydb(repository_name='default', clear_all=False):
     _keydb_dict['default'] = {}
 
   if repository_name not in _keydb_dict:
-    raise tuf.InvalidNameError('Repository name does not exist:'
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not exist:'
       ' ' + repr(repository_name))
 
   _keydb_dict[repository_name] = {}

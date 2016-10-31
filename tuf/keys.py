@@ -198,10 +198,10 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
       greater, and a multiple of 256.
 
   <Exceptions>
-    tuf.FormatError, if 'bits' is improperly or invalid (i.e., not an integer
+    tuf.ssl_commons.exceptions.FormatError, if 'bits' is improperly or invalid (i.e., not an integer
     and not at least 2048).
    
-    tuf.UnsupportedLibraryError, if any of the cryptography libraries specified
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if any of the cryptography libraries specified
     in 'tuf.conf.py' are unsupported or unavailable.
 
     ValueError, if an exception occurs after calling the RSA key generation
@@ -221,10 +221,10 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   # Does 'bits' have the correct format?
   # This check will ensure 'bits' conforms to 'tuf.tufformats.RSAKEYBITS_SCHEMA'.
   # 'bits' must be an integer object, with a minimum value of 2048.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.RSAKEYBITS_SCHEMA.check_match(bits)
 
-  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified
+  # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified
   # in 'tuf.conf', are unsupported or unavailable:
   # 'tuf.conf.RSA_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['rsa'])
@@ -248,7 +248,7 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
     public, private = tuf.pyca_crypto_keys.generate_rsa_public_and_private(bits)
   
   else: # pragma: no cover
-    raise tuf.UnsupportedLibraryError('Invalid crypto'
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Invalid crypto'
       ' library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.') 
     
   # Generate the keyid of the RSA key.  Note: The private key material is
@@ -299,7 +299,7 @@ def generate_ed25519_key():
     None.
   
   <Exceptions>
-    tuf.UnsupportedLibraryError, if an unsupported or unavailable library is
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if an unsupported or unavailable library is
     detected.
   
   <Side Effects>
@@ -311,7 +311,7 @@ def generate_ed25519_key():
     Conforms to 'tuf.tufformats.ED25519KEY_SCHEMA'. 
   """
   
-  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified
+  # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified
   # in 'tuf.conf', are unsupported or unavailable:
   # 'tuf.conf.ED25519_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['ed25519'])
@@ -332,7 +332,7 @@ def generate_ed25519_key():
       tuf.ed25519_keys.generate_public_and_private()
   
   else: # pragma: no cover
-    raise tuf.UnsupportedLibraryError('The required PyNaCl library'
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The required PyNaCl library'
       ' is unavailable.')
 
   # Generate the keyid of the Ed25519 key.  'key_value' corresponds to the
@@ -402,7 +402,7 @@ def format_keyval_to_metadata(keytype, key_value, private=False):
       returned.
 
   <Exceptions>
-    tuf.FormatError, if 'key_value' does not conform to 
+    tuf.ssl_commons.exceptions.FormatError, if 'key_value' does not conform to 
     'tuf.tufformats.KEYVAL_SCHEMA', or if the private key is not present in
     'key_value' if requested by the caller via 'private'.
 
@@ -416,7 +416,7 @@ def format_keyval_to_metadata(keytype, key_value, private=False):
   # Does 'keytype' have the correct format?
   # This check will ensure 'keytype' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.KEYTYPE_SCHEMA.check_match(keytype)
   
   # Does 'key_value' have the correct format?
@@ -428,7 +428,7 @@ def format_keyval_to_metadata(keytype, key_value, private=False):
     # present in 'key_val' (a private key is optional for 'KEYVAL_SCHEMA'
     # dicts).
     if 'private' not in key_value:
-      raise tuf.FormatError('The required private key is missing'
+      raise tuf.ssl_commons.exceptions.FormatError('The required private key is missing'
         ' from: ' + repr(key_value))
     
     else: 
@@ -487,7 +487,7 @@ def format_metadata_to_key(key_metadata):
                   'private': '...'}}
 
   <Exceptions>
-    tuf.FormatError, if 'key_metadata' does not conform to
+    tuf.ssl_commons.exceptions.FormatError, if 'key_metadata' does not conform to
     'tuf.tufformats.KEY_SCHEMA'.
 
   <Side Effects>
@@ -501,7 +501,7 @@ def format_metadata_to_key(key_metadata):
   # Does 'key_metadata' have the correct format?
   # This check will ensure 'key_metadata' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.KEY_SCHEMA.check_match(key_metadata)
 
   # Construct the dictionary to be returned.
@@ -571,7 +571,7 @@ def check_crypto_libraries(required_libraries):
       ['rsa', 'ed25519', 'general'] can be specified.
 
   <Exceptions>
-    tuf.UnsupportedLibraryError, if the 'required_libraries' and the libraries
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if the 'required_libraries' and the libraries
     specified in 'tuf.conf' are not supported or unavailable.
 
   <Side Effects>
@@ -584,10 +584,10 @@ def check_crypto_libraries(required_libraries):
   # Does 'required_libraries' have the correct format?
   # This check will ensure 'required_libraries' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.REQUIRED_LIBRARIES_SCHEMA.check_match(required_libraries)
  
-  # The checks below all raise 'tuf.UnsupportedLibraryError' if the general,
+  # The checks below all raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the general,
   # RSA, and Ed25519 crypto libraries specified in 'tuf.conf.py' are not
   # supported or unavailable.  The appropriate error message is added to the
   # exception.  The funcions of this module that depend on user-installed
@@ -598,40 +598,40 @@ def check_crypto_libraries(required_libraries):
   
   if 'rsa' in required_libraries and _RSA_CRYPTO_LIBRARY not in \
                                    _SUPPORTED_RSA_CRYPTO_LIBRARIES:
-    raise tuf.UnsupportedLibraryError('The ' + repr(_RSA_CRYPTO_LIBRARY) +
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_RSA_CRYPTO_LIBRARY) +
       ' crypto library specified in "tuf.conf.RSA_CRYPTO_LIBRARY" is not '
       ' supported.\nSupported crypto libraries: ' +
       repr(_SUPPORTED_RSA_CRYPTO_LIBRARIES) + '.')
   
   if 'ed25519' in required_libraries and _ED25519_CRYPTO_LIBRARY not in \
                                          _SUPPORTED_ED25519_CRYPTO_LIBRARIES:
-    raise tuf.UnsupportedLibraryError('The ' + repr(_ED25519_CRYPTO_LIBRARY) +
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_ED25519_CRYPTO_LIBRARY) +
       ' crypto library specified in "tuf.conf.ED25519_CRYPTO_LIBRARY" is not '
       ' supported.\nSupported crypto libraries: ' +
       repr(_SUPPORTED_ED25519_CRYPTO_LIBRARIES) + '.')
   
   if 'general' in required_libraries and _GENERAL_CRYPTO_LIBRARY not in \
                                          _SUPPORTED_GENERAL_CRYPTO_LIBRARIES:
-    raise tuf.UnsupportedLibraryError('The ' + repr(_GENERAL_CRYPTO_LIBRARY) +
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_GENERAL_CRYPTO_LIBRARY) +
       ' crypto library specified in "tuf.conf.GENERAL_CRYPTO_LIBRARY" is not'
       ' supported.\nSupported crypto libraries: ' +
       repr(_SUPPORTED_GENERAL_CRYPTO_LIBRARIES) + '.')
 
   if 'rsa' in required_libraries and _RSA_CRYPTO_LIBRARY not in \
                                      _available_crypto_libraries:
-    raise tuf.UnsupportedLibraryError('The ' + repr(_RSA_CRYPTO_LIBRARY) +
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_RSA_CRYPTO_LIBRARY) +
       ' crypto library specified in "tuf.conf.RSA_CRYPTO_LIBRARY" could not'
       ' be imported.  Available libraries: ' + repr(_available_crypto_libraries))
   
   if 'ed25519' in required_libraries and _ED25519_CRYPTO_LIBRARY not in \
                                          _available_crypto_libraries:
-    raise tuf.UnsupportedLibraryError('The ' + repr(_ED25519_CRYPTO_LIBRARY) +
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_ED25519_CRYPTO_LIBRARY) +
       ' crypto library specified in "tuf.conf.ED25519_CRYPTO_LIBRARY" could'
       ' not be imported.')
   
   if 'general' in required_libraries and _GENERAL_CRYPTO_LIBRARY not in \
                                          _available_crypto_libraries:
-    raise tuf.UnsupportedLibraryError('The ' + repr(_GENERAL_CRYPTO_LIBRARY) +
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_GENERAL_CRYPTO_LIBRARY) +
       ' crypto library specified in "tuf.conf.GENERAL_CRYPTO_LIBRARY" could'
       ' not be imported.')
 
@@ -692,9 +692,9 @@ def create_signature(key_dict, data):
       Data object used by create_signature() to generate the signature.
 
   <Exceptions>
-    tuf.FormatError, if 'key_dict' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'key_dict' is improperly formatted.
    
-    tuf.UnsupportedLibraryError, if an unsupported or unavailable library is
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if an unsupported or unavailable library is
     detected.
 
     TypeError, if 'key_dict' contains an invalid keytype.
@@ -710,11 +710,11 @@ def create_signature(key_dict, data):
   # Does 'key_dict' have the correct format?
   # This check will ensure 'key_dict' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   # The key type of 'key_dict' must be either 'rsa' or 'ed25519'.
   tuf.tufformats.ANYKEY_SCHEMA.check_match(key_dict)
   
-  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified
+  # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified
   # in 'tuf.conf', are unsupported or unavailable:
   # 'tuf.conf.RSA_CRYPTO_LIBRARY' or 'tuf.conf.ED25519_CRYPTO_LIBRARY'. 
   check_crypto_libraries([key_dict['keytype']])
@@ -748,7 +748,7 @@ def create_signature(key_dict, data):
       sig, method = tuf.pyca_crypto_keys.create_rsa_signature(private, data.encode('utf-8'))
     
     else: # pragma: no cover
-      raise tuf.UnsupportedLibraryError('Unsupported'
+      raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Unsupported'
         ' "tuf.conf.RSA_CRYPTO_LIBRARY": ' + repr(_RSA_CRYPTO_LIBRARY) + '.')
   
   elif keytype == 'ed25519':
@@ -758,7 +758,7 @@ def create_signature(key_dict, data):
       sig, method = tuf.ed25519_keys.create_signature(public, private, data.encode('utf-8'))
     
     else: # pragma: no cover
-      raise tuf.UnsupportedLibraryError('The required PyNaCl library'
+      raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The required PyNaCl library'
         ' is unavailable.')
 
   # 'tuf.tufformats.ANYKEY_SCHEMA' should detect invalid key types. 
@@ -826,13 +826,13 @@ def verify_signature(key_dict, signature, data):
       'signature'.  'data' is needed here to verify the signature.
 
   <Exceptions>
-    tuf.FormatError, raised if either 'key_dict' or 'signature' are improperly
+    tuf.ssl_commons.exceptions.FormatError, raised if either 'key_dict' or 'signature' are improperly
     formatted.
     
-    tuf.UnsupportedLibraryError, if an unsupported or unavailable library is
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if an unsupported or unavailable library is
     detected.
     
-    tuf.UnknownMethodError.  Raised if the signing method used by
+    tuf.ssl_commons.exceptions.UnknownMethodError.  Raised if the signing method used by
     'signature' is not one supported.
 
   <Side Effects>
@@ -846,7 +846,7 @@ def verify_signature(key_dict, signature, data):
   # Does 'key_dict' have the correct format?
   # This check will ensure 'key_dict' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.ANYKEY_SCHEMA.check_match(key_dict)
 
   # Does 'signature' have the correct format?
@@ -874,7 +874,7 @@ def verify_signature(key_dict, signature, data):
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
       if 'pycrypto' not in _available_crypto_libraries: # pragma: no cover
-        raise tuf.UnsupportedLibraryError('Metadata downloaded from the remote'
+        raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Metadata downloaded from the remote'
           ' repository listed an RSA signature.  "pycrypto" was set'
           ' (in conf.py) to generate RSA signatures, but the PyCrypto library'
           ' is not installed.  \n$ pip install PyCrypto, or pip install'
@@ -886,7 +886,7 @@ def verify_signature(key_dict, signature, data):
                                                                  public, data) 
     elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography': 
       if 'pyca-cryptography' not in _available_crypto_libraries: # pragma: no cover
-        raise tuf.UnsupportedLibraryError('Metadata downloaded from the remote'
+        raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Metadata downloaded from the remote'
           ' repository listed an RSA signature.  "pyca-cryptography" was set'
           ' (in conf.py) to generate RSA signatures, but the "cryptography"'
           ' library is not installed.  \n$ pip install cryptography, or pip'
@@ -898,7 +898,7 @@ def verify_signature(key_dict, signature, data):
                                                                  public, data) 
     
     else: # pragma: no cover
-      raise tuf.UnsupportedLibraryError('Unsupported'
+      raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Unsupported'
         ' "tuf.conf.RSA_CRYPTO_LIBRARY": ' + repr(_RSA_CRYPTO_LIBRARY) + '.') 
   
   elif keytype == 'ed25519':
@@ -960,9 +960,9 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
       encryption key is derived from it.
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
    
-    tuf.UnsupportedLibraryError, if any of the cryptography libraries specified
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if any of the cryptography libraries specified
     in 'tuf.conf.py' are unsupported or unavailable.
 
   <Side Effects>
@@ -981,7 +981,7 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
   # Does 'password' have the correct format?
   tuf.tufformats.PASSWORD_SCHEMA.check_match(password)
 
-  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified in
+  # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified in
   # 'tuf.conf', are unsupported or unavailable:
   # 'tuf.conf.RSA_CRYPTO_LIBRARY' and 'tuf.conf.GENERAL_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['rsa', 'general'])
@@ -1009,7 +1009,7 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
     private = extract_pem(private, private_pem=True)
   
   else: #pragma: no cover
-    raise tuf.UnsupportedLibraryError('Invalid crypto'
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Invalid crypto'
       ' library: ' + repr(_RSA_CRYPTO_LIBRARY) + '.') 
     
   # Generate the keyid of the RSA key.  'key_value' corresponds to the
@@ -1061,7 +1061,7 @@ def format_rsakey_from_pem(pem):
       A string in PEM format.
 
   <Exceptions>
-    tuf.FormatError, if 'pem' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'pem' is improperly formatted.
 
   <Side Effects>
     Only the public portion of the PEM is extracted.  Leading or trailing
@@ -1076,7 +1076,7 @@ def format_rsakey_from_pem(pem):
   # Does 'pem' have the correct format?
   # This check will ensure arguments has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.PEMRSA_SCHEMA.check_match(pem)
   
   # Ensure the PEM string has a valid header and footer.  Although a simple
@@ -1133,7 +1133,7 @@ def extract_pem(pem, private_pem=False):
       expected to begin and end with a private header and footer.
 
   <Exceptions>
-    tuf.FormatError, if 'pem' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'pem' is improperly formatted.
 
   <Side Effects>
     Only the public and private portion of the PEM is extracted.  Leading or
@@ -1163,11 +1163,11 @@ def extract_pem(pem, private_pem=False):
   except ValueError:
     # Be careful not to print private key material in exception message. 
     if not private_pem:  
-      raise tuf.FormatError('Required PEM header ' + repr(pem_header) + '\n not'
+      raise tuf.ssl_commons.exceptions.FormatError('Required PEM header ' + repr(pem_header) + '\n not'
         ' found in PEM string: ' + repr(pem))
     
     else:
-      raise tuf.FormatError('Required PEM header ' + repr(pem_header) + '\n not'
+      raise tuf.ssl_commons.exceptions.FormatError('Required PEM header ' + repr(pem_header) + '\n not'
         ' found in private PEM string.')
   
   try:
@@ -1177,11 +1177,11 @@ def extract_pem(pem, private_pem=False):
   except ValueError:
     # Be careful not to print private key material in exception message.
     if not private_pem:  
-      raise tuf.FormatError('Required PEM footer ' + repr(pem_footer) + '\n not'
+      raise tuf.ssl_commons.exceptions.FormatError('Required PEM footer ' + repr(pem_footer) + '\n not'
         ' found in PEM string ' + repr(pem))
 
     else:
-      raise tuf.FormatError('Required PEM footer ' + repr(pem_footer) + '\n not'
+      raise tuf.ssl_commons.exceptions.FormatError('Required PEM footer ' + repr(pem_footer) + '\n not'
         ' found in private PEM string.')
   
   # Extract only the public portion of 'pem'.  Leading or trailing whitespace
@@ -1234,11 +1234,11 @@ def encrypt_key(key_object, password):
       encryption key is derived from it. 
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if 'key_object' cannot be encrypted.
+    tuf.ssl_commons.exceptions.CryptoError, if 'key_object' cannot be encrypted.
 
-    tuf.UnsupportedLibraryError, if the general-purpose cryptography library
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if the general-purpose cryptography library
     specified in 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is unsupported.
 
   <Side Effects>
@@ -1252,13 +1252,13 @@ def encrypt_key(key_object, password):
   # Does 'key_object' have the correct format?
   # This check will ensure 'key_object' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.ANYKEY_SCHEMA.check_match(key_object)
   
   # Does 'password' have the correct format?
   tuf.tufformats.PASSWORD_SCHEMA.check_match(password)
   
-  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified in
+  # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified in
   # 'tuf.conf', are unsupported or unavailable:
   # 'tuf.conf.GENERAL_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['general'])
@@ -1280,7 +1280,7 @@ def encrypt_key(key_object, password):
  
   # check_crypto_libraries() should have fully verified _GENERAL_CRYPTO_LIBRARY.
   else: # pragma: no cover
-    raise tuf.UnsupportedLibraryError('Invalid crypto library:'
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Invalid crypto library:'
       ' ' + repr(_GENERAL_CRYPTO_LIBRARY) + '.') 
 
   return encrypted_key
@@ -1334,11 +1334,11 @@ def decrypt_key(encrypted_key, passphrase):
       re-deriving the encryption key.
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if 'encrypted_key' cannot be decrypted.
+    tuf.ssl_commons.exceptions.CryptoError, if 'encrypted_key' cannot be decrypted.
 
-    tuf.UnsupportedLibraryError, if the general-purpose cryptography library
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if the general-purpose cryptography library
     specified in 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is unsupported.
 
   <Side Effects>
@@ -1353,13 +1353,13 @@ def decrypt_key(encrypted_key, passphrase):
   # Does 'encrypted_key' have the correct format?
   # This check ensures 'encrypted_key' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.ENCRYPTEDKEY_SCHEMA.check_match(encrypted_key)
   
   # Does 'passphrase' have the correct format?
   tuf.tufformats.PASSWORD_SCHEMA.check_match(passphrase)
   
-  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified in
+  # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified in
   # 'tuf.conf', are unsupported or unavailable:
   # 'tuf.conf.GENERAL_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['general'])
@@ -1382,7 +1382,7 @@ def decrypt_key(encrypted_key, passphrase):
   
   # check_crypto_libraries() should have fully verified _GENERAL_CRYPTO_LIBRARY.
   else: # pragma: no cover
-    raise tuf.UnsupportedLibraryError('Invalid crypto library:'
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Invalid crypto library:'
       ' ' + repr(_GENERAL_CRYPTO_LIBRARY) + '.')
 
   # The corresponding encrypt_key() encrypts and stores key objects in
@@ -1424,9 +1424,9 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   encryption key is derived from it.
 
   <Exceptions>
-  tuf.FormatError, if the arguments are improperly formatted.
+  tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-  tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
+  tuf.ssl_commons.exceptions.CryptoError, if an RSA key in encrypted PEM format cannot be created.
 
   TypeError, 'private_key' is unset.
 
@@ -1442,13 +1442,13 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   # Does 'private_key' have the correct format?
   # This check will ensure 'private_key' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.PEMRSA_SCHEMA.check_match(private_key)
 
   # Does 'passphrase' have the correct format?
   tuf.tufformats.PASSWORD_SCHEMA.check_match(passphrase)
   
-  # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified
+  # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified
   # in 'tuf.conf', are unsupported or unavailable:
   # 'tuf.conf.GENERAL_CRYPTO_LIBRARY' and 'tuf.conf.RSA_CRYPTO_LIBRARY'.
   check_crypto_libraries(['rsa', 'general'])
@@ -1469,7 +1469,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
 
   # check_crypto_libraries() should have fully verified _RSA_CRYPTO_LIBRARY.
   else: # pragma: no cover
-    raise tuf.UnsupportedLibraryError('Invalid crypto library:'
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Invalid crypto library:'
       ' ' + repr(_RSA_CRYPTO_LIBRARY) + '.')
 
   return encrypted_pem

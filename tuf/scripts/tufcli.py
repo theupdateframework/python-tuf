@@ -92,7 +92,7 @@ def update_repository(repository_path, command, command_arguments):
     command_arguments:
 
   <Exceptions>
-    tuf.FormatError, if any of the arugments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arugments are improperly formatted.
 
   <Side Effects>
     The TUF repository at 'repository_path' is either created or modified. 
@@ -241,7 +241,7 @@ if __name__ == '__main__':
   try:
     update_repository(repository_path, command, command_arguments)
   
-  except (tuf.Error) as e:
+  except (tuf.ssl_commons.exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
 

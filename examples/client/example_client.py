@@ -65,7 +65,7 @@ for target in updated_targets:
   try:
     updater.download_target(target, destination_directory)
   
-  except tuf.DownloadError as e:
+  except tuf.ssl_commons.exceptions.DownloadError as e:
     pass
 
 # Remove any files from the destination directory that are no longer being

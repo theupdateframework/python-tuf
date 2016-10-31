@@ -51,10 +51,10 @@ class TestLog(unittest.TestCase):
       self.assertTrue(logger.isEnabledFor(level))
 
     # Test for improperly formatted argument.
-    self.assertRaises(tuf.FormatError, tuf.log.set_log_level, '123')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.log.set_log_level, '123')
 
     # Test for invalid argument.
-    self.assertRaises(tuf.FormatError, tuf.log.set_log_level, 51)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.log.set_log_level, 51)
 
 
 
@@ -70,18 +70,18 @@ class TestLog(unittest.TestCase):
     # file logging is disabled (via tuf.conf.ENABLE_FILE_LOGGING).
     tuf.conf.ENABLE_FILE_LOGGING = False
     imp.reload(tuf.log)
-    #self.assertRaises(tuf.Error, tuf.log.set_filehandler_log_level, logging.INFO)
+    #self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.log.set_filehandler_log_level, logging.INFO)
     
     # Test for improperly formatted argument.
-    self.assertRaises(tuf.FormatError, tuf.log.set_filehandler_log_level, '123')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.log.set_filehandler_log_level, '123')
 
     # Test for invalid argument.
-    self.assertRaises(tuf.FormatError, tuf.log.set_filehandler_log_level, 51)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.log.set_filehandler_log_level, 51)
 
 
   def test_set_console_log_level(self):
     # Test setting a console log level without first adding one.
-    self.assertRaises(tuf.Error, tuf.log.set_console_log_level)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.log.set_console_log_level)
     
     # Normal case.  Default log level.  Setting the console log level first
     # requires adding a console logger.
@@ -93,10 +93,10 @@ class TestLog(unittest.TestCase):
       tuf.log.set_console_log_level(level)
     
     # Test for improperly formatted argument.
-    self.assertRaises(tuf.FormatError, tuf.log.set_console_log_level, '123')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.log.set_console_log_level, '123')
 
     # Test for invalid argument.
-    self.assertRaises(tuf.FormatError, tuf.log.set_console_log_level, 51)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.log.set_console_log_level, 51)
   
   
 
@@ -114,10 +114,10 @@ class TestLog(unittest.TestCase):
       tuf.log.set_console_log_level(level)
     
     # Test for improperly formatted argument.
-    self.assertRaises(tuf.FormatError, tuf.log.add_console_handler, '123')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.log.add_console_handler, '123')
 
     # Test for invalid argument.
-    self.assertRaises(tuf.FormatError, tuf.log.add_console_handler, 51)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.log.add_console_handler, 51)
 
     # Test that an exception is printed to the console.  Note: A stack trace
     # is not included in the exception output because 'log.py' applies a filter

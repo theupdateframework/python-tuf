@@ -199,7 +199,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
 
     # Errors, not enough signing keys to satisfy root's threshold.
-    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsignedMetadataError, repository.writeall)
 
     repository.root.add_verification_key(self.role_keys['role1']['public'])
     repository.root.load_signing_key(self.role_keys['root']['private'])
@@ -256,14 +256,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.refresh()
     
-    except tuf.NoWorkingMirrorError as exception:                               
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:                               
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):   
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']           
         url_file = os.path.join(url_prefix, 'metadata', '2.root.json')       
                                                    
         # Verify that '2.root.json' is the culprit.                          
         self.assertEqual(url_file, mirror_url)                                  
-        self.assertTrue(isinstance(mirror_error, tuf.BadSignatureError))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.BadSignatureError))
 
 
 
@@ -304,7 +304,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
     
-    self.assertRaises(tuf.NoWorkingMirrorError, self.repository_updater.refresh)
+    self.assertRaises(tuf.ssl_commons.exceptions.NoWorkingMirrorError, self.repository_updater.refresh)
 
 
 

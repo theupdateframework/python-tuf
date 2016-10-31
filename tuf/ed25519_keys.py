@@ -102,7 +102,7 @@ with warnings.catch_warnings():
 
 # The optimized pure Python implementation of ed25519 provided by TUF.  If
 # PyNaCl cannot be imported and an attempt to use is made in this module, a
-# 'tuf.UnsupportedLibraryError' exception is raised.  
+# 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' exception is raised.  
 import tuf.ssl_crypto._vendor.ed25519.ed25519
 
 import tuf
@@ -143,7 +143,7 @@ def generate_public_and_private():
     None.
 
   <Exceptions>
-    tuf.UnsupportedLibraryError, if the PyNaCl ('nacl') module is unavailable.
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if the PyNaCl ('nacl') module is unavailable.
 
     NotImplementedError, if a randomness source is not found by 'os.urandom'.
 
@@ -172,7 +172,7 @@ def generate_public_and_private():
   
   except NameError: # pragma: no cover
     message = 'The PyNaCl library and/or its dependencies unavailable.'
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError(message)
   
   return public, seed
 
@@ -217,9 +217,9 @@ def create_signature(public_key, private_key, data):
       Data object used by create_signature() to generate the signature.
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if a signature cannot be created.
+    tuf.ssl_commons.exceptions.CryptoError, if a signature cannot be created.
 
   <Side Effects>
     nacl.signing.SigningKey.sign() called to generate the actual signature.
@@ -233,7 +233,7 @@ def create_signature(public_key, private_key, data):
   # Does 'public_key' have the correct format?
   # This check will ensure 'public_key' conforms to
   # 'tuf.tufformats.ED25519PUBLIC_SCHEMA', which must have length 32 bytes.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.ED25519PUBLIC_SCHEMA.check_match(public_key)
 
   # Is 'private_key' properly formatted?
@@ -257,11 +257,11 @@ def create_signature(public_key, private_key, data):
   
   except NameError: # pragma: no cover
     message = 'The PyNaCl library and/or its dependencies unavailable.'
-    raise tuf.UnsupportedLibraryError(message)
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError(message)
   
   except (ValueError, TypeError, nacl.exceptions.CryptoError) as e:
     message = 'An "ed25519" signature could not be created with PyNaCl.'
-    raise tuf.CryptoError(message + str(e))
+    raise tuf.ssl_commons.exceptions.CryptoError(message + str(e))
    
   return signature, method
 
@@ -311,10 +311,10 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
       of ed25519 (slower).
 
   <Exceptions>
-    tuf.UnknownMethodError.  Raised if the signing method used by
+    tuf.ssl_commons.exceptions.UnknownMethodError.  Raised if the signing method used by
     'signature' is not one supported by tuf.ed25519_keys.create_signature().
     
-    tuf.FormatError. Raised if the arguments are improperly formatted. 
+    tuf.ssl_commons.exceptions.FormatError. Raised if the arguments are improperly formatted. 
 
   <Side Effects>
     tuf.ssl_crypto._vendor.ed25519.ed25519.checkvalid() called to do the actual
@@ -328,7 +328,7 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
   # Does 'public_key' have the correct format?
   # This check will ensure 'public_key' conforms to
   # 'tuf.tufformats.ED25519PUBLIC_SCHEMA', which must have length 32 bytes.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.ED25519PUBLIC_SCHEMA.check_match(public_key)
 
   # Is 'method' properly formatted?
@@ -342,7 +342,7 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
 
   # Verify 'signature'.  Before returning the Boolean result,
   # ensure 'ed25519' was used as the signing method.
-  # Raise 'tuf.UnsupportedLibraryError' if 'use_pynacl' is True but 'nacl' is
+  # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if 'use_pynacl' is True but 'nacl' is
   # unavailable.
   public = public_key
   valid_signature = False
@@ -356,7 +356,7 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
       
       except NameError: # pragma: no cover
         message = 'The PyNaCl library and/or its dependencies unavailable.'
-        raise tuf.UnsupportedLibraryError(message)
+        raise tuf.ssl_commons.exceptions.UnsupportedLibraryError(message)
       
       except nacl.exceptions.BadSignatureError:
         pass 
@@ -375,7 +375,7 @@ def verify_signature(public_key, method, signature, data, use_pynacl=False):
   else:
     message = 'Unsupported ed25519 signing method: '+repr(method)+'.\n'+ \
       'Supported methods: '+repr(_SUPPORTED_ED25519_SIGNING_METHODS)+'.'
-    raise tuf.UnknownMethodError(message)
+    raise tuf.ssl_commons.exceptions.UnknownMethodError(message)
 
   return valid_signature 
 

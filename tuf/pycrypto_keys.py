@@ -183,7 +183,7 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
       greater, and a multiple of 256.
 
   <Exceptions>
-    tuf.FormatError, if 'bits' does not contain the correct format.
+    tuf.ssl_commons.exceptions.FormatError, if 'bits' does not contain the correct format.
     
     ValueError, if an exception occurs in the RSA key generation routine.
     'bits' must be a multiple of 256.  The 'ValueError' exception is raised by
@@ -199,7 +199,7 @@ def generate_rsa_public_and_private(bits=_DEFAULT_RSA_KEY_BITS):
   # Does 'bits' have the correct format?
   # This check will ensure 'bits' conforms to 'tuf.tufformats.RSAKEYBITS_SCHEMA'.
   # 'bits' must be an integer object, with a minimum value of 2048.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.RSAKEYBITS_SCHEMA.check_match(bits)
   
   # Generate the public and private RSA keys.  The PyCrypto module performs
@@ -251,11 +251,11 @@ def create_rsa_signature(private_key, data):
       Data (string) used by create_rsa_signature() to generate the signature.
 
   <Exceptions>
-    tuf.FormatError, if 'private_key' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'private_key' is improperly formatted.
     
     ValueError, if 'private_key' is unset.
 
-    tuf.CryptoError, if the signature cannot be generated. 
+    tuf.ssl_commons.exceptions.CryptoError, if the signature cannot be generated. 
 
   <Side Effects>
     PyCrypto's 'Crypto.Signature.PKCS1_PSS' called to generate the signature.
@@ -267,7 +267,7 @@ def create_rsa_signature(private_key, data):
   
   # Does 'private_key' have the correct format?
   # This check will ensure 'private_key' conforms to 'tuf.tufformats.PEMRSA_SCHEMA'.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.PEMRSA_SCHEMA.check_match(private_key)
 
   # Does 'data' have the correct format?
@@ -298,22 +298,22 @@ def create_rsa_signature(private_key, data):
       rsa_key_object = Crypto.PublicKey.RSA.importKey(private_key)
     
     except (ValueError, IndexError, TypeError) as e:
-      raise tuf.CryptoError('Invalid private key or hash data: ' + str(e))
+      raise tuf.ssl_commons.exceptions.CryptoError('Invalid private key or hash data: ' + str(e))
    
-    # Generate RSSA-PSS signature.  Raise 'tuf.CryptoError' for the expected
+    # Generate RSSA-PSS signature.  Raise 'tuf.ssl_commons.exceptions.CryptoError' for the expected
     # PyCrypto exceptions.
     try:
       pkcs1_pss_signer = Crypto.Signature.PKCS1_PSS.new(rsa_key_object)
       signature = pkcs1_pss_signer.sign(sha256_object)
     
     except ValueError: #pragma: no cover
-      raise tuf.CryptoError('The RSA key too small for given hash algorithm.')
+      raise tuf.ssl_commons.exceptions.CryptoError('The RSA key too small for given hash algorithm.')
     
     except TypeError:
-      raise tuf.CryptoError('Missing required RSA private key.')
+      raise tuf.ssl_commons.exceptions.CryptoError('Missing required RSA private key.')
    
     except IndexError: # pragma: no cover
-      raise tuf.CryptoError('An RSA signature cannot be generated: ' + str(e))
+      raise tuf.ssl_commons.exceptions.CryptoError('An RSA signature cannot be generated: ' + str(e))
   
   else:
     raise ValueError('The required private key is unset.')
@@ -356,10 +356,10 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       'signature'.  'data' is needed here to verify the signature.
 
   <Exceptions>
-    tuf.UnknownMethodError.  Raised if the signing method used by
+    tuf.ssl_commons.exceptions.UnknownMethodError.  Raised if the signing method used by
     'signature' is not one supported by tuf.keys.create_signature().
     
-    tuf.FormatError. Raised if 'signature', 'signature_method', or 'public_key'
+    tuf.ssl_commons.exceptions.FormatError. Raised if 'signature', 'signature_method', or 'public_key'
     is improperly formatted.
 
   <Side Effects>
@@ -371,7 +371,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   
   # Does 'public_key' have the correct format?
   # This check will ensure 'public_key' conforms to 'tuf.tufformats.PEMRSA_SCHEMA'.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.PEMRSA_SCHEMA.check_match(public_key)
 
   # Does 'signature_method' have the correct format?
@@ -389,7 +389,7 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
   valid_signature = False
 
   # Verify the signature with PyCrypto if the signature method is valid,
-  # otherwise raise 'tuf.UnknownMethodError'.
+  # otherwise raise 'tuf.ssl_commons.exceptions.UnknownMethodError'.
   if signature_method == 'RSASSA-PSS':
     try:
       rsa_key_object = Crypto.PublicKey.RSA.importKey(public_key)
@@ -398,10 +398,10 @@ def verify_rsa_signature(signature, signature_method, public_key, data):
       valid_signature = pkcs1_pss_verifier.verify(sha256_object, signature)
     
     except (ValueError, IndexError, TypeError) as e:
-      raise tuf.CryptoError('The RSA signature could not be verified.')
+      raise tuf.ssl_commons.exceptions.CryptoError('The RSA signature could not be verified.')
   
   else:
-    raise tuf.UnknownMethodError(signature_method)
+    raise tuf.ssl_commons.exceptions.UnknownMethodError(signature_method)
 
   return valid_signature 
 
@@ -437,9 +437,9 @@ def create_rsa_encrypted_pem(private_key, passphrase):
       encryption key is derived from it. 
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if an RSA key in encrypted PEM format cannot be created.
+    tuf.ssl_commons.exceptions.CryptoError, if an RSA key in encrypted PEM format cannot be created.
 
     TypeError, 'private_key' is unset. 
 
@@ -455,7 +455,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   # Does 'private_key' have the correct format?
   # This check will ensure 'private_key' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.PEMRSA_SCHEMA.check_match(private_key)
   
   # Does 'passphrase' have the correct format?
@@ -477,7 +477,7 @@ def create_rsa_encrypted_pem(private_key, passphrase):
                                                passphrase=passphrase) 
     
     except (ValueError, IndexError, TypeError) as e:
-      raise tuf.CryptoError('An encrypted RSA key in PEM format cannot'
+      raise tuf.ssl_commons.exceptions.CryptoError('An encrypted RSA key in PEM format cannot'
         ' be generated: ' + str(e))
   
   else:
@@ -539,9 +539,9 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
       it is used to derive a stronger symmetric key.
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if the public and private RSA keys cannot be generated
+    tuf.ssl_commons.exceptions.CryptoError, if the public and private RSA keys cannot be generated
     from 'encrypted_pem', or exported in PEM format.
 
   <Side Effects>
@@ -555,7 +555,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # Does 'encryped_pem' have the correct format?
   # This check will ensure 'encrypted_pem' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.PEMRSA_SCHEMA.check_match(encrypted_pem)
 
   # Does 'passphrase' have the correct format?
@@ -573,9 +573,9 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # If the passphrase is incorrect, PyCrypto returns: "RSA key format is not
   # supported".
   except (ValueError, IndexError, TypeError) as e:
-    # Raise 'tuf.CryptoError' and PyCrypto's exception message.  Avoid
+    # Raise 'tuf.ssl_commons.exceptions.CryptoError' and PyCrypto's exception message.  Avoid
     # propogating PyCrypto's exception trace to avoid revealing sensitive error.
-    raise tuf.CryptoError('RSA (public, private) tuple cannot be generated'
+    raise tuf.ssl_commons.exceptions.CryptoError('RSA (public, private) tuple cannot be generated'
       ' from the encrypted PEM string: ' + str(e))
   
   # Export the public and private halves of the PyCrypto RSA key object.  The
@@ -590,7 +590,7 @@ def create_rsa_public_and_private_from_encrypted_pem(encrypted_pem, passphrase):
   # exported.  See 'Crypto.PublicKey.RSA'.  'ValueError' should not be raised
   # if the 'Crypto.PublicKey.RSA.importKey() call above passed.
   except (ValueError): #pragma: no cover
-    raise tuf.CryptoError('The public and private keys cannot be exported'
+    raise tuf.ssl_commons.exceptions.CryptoError('The public and private keys cannot be exported'
       ' in PEM format.')
 
   return public.decode(), private.decode()
@@ -643,10 +643,10 @@ def encrypt_key(key_object, password):
       encryption key is derived from it. 
 
   <Exceptions>
-    tuf.FormatError, if any of the arguments are improperly formatted or 
+    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are improperly formatted or 
     'key_object' does not contain the private portion of the key.
 
-    tuf.CryptoError, if an ED25519 key in encrypted TUF format cannot be
+    tuf.ssl_commons.exceptions.CryptoError, if an ED25519 key in encrypted TUF format cannot be
     created.
 
   <Side Effects>
@@ -660,7 +660,7 @@ def encrypt_key(key_object, password):
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.ANYKEY_SCHEMA.check_match(key_object)
   
   # Does 'password' have the correct format?
@@ -668,7 +668,7 @@ def encrypt_key(key_object, password):
 
   # Ensure the private portion of the key is included in 'key_object'.
   if not key_object['keyval']['private']:
-    raise tuf.FormatError('Key object does not contain a private part.')
+    raise tuf.ssl_commons.exceptions.FormatError('Key object does not contain a private part.')
 
   # Derive a key (i.e., an appropriate encryption key and not the
   # user's password) from the given 'password'.  Strengthen 'password' with
@@ -736,11 +736,11 @@ def decrypt_key(encrypted_key, password):
       encryption key is derived from it. 
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if a TUF key cannot be decrypted from 'encrypted_key'.
+    tuf.ssl_commons.exceptions.CryptoError, if a TUF key cannot be decrypted from 'encrypted_key'.
     
-    tuf.Error, if a valid TUF key object is not found in 'encrypted_key'.
+    tuf.ssl_commons.exceptions.Error, if a valid TUF key object is not found in 'encrypted_key'.
 
   <Side Effects>
     The PyCrypto library called to perform the actual decryption of
@@ -754,7 +754,7 @@ def decrypt_key(encrypted_key, password):
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.ENCRYPTEDKEY_SCHEMA.check_match(encrypted_key)
   
   # Does 'password' have the correct format?
@@ -764,7 +764,7 @@ def decrypt_key(encrypted_key, password):
   # data like salts and password iterations) to re-derive the decryption key. 
   json_data = _decrypt(encrypted_key.decode('utf-8'), password)
  
-  # Raise 'tuf.Error' if 'json_data' cannot be deserialized to a valid
+  # Raise 'tuf.ssl_commons.exceptions.Error' if 'json_data' cannot be deserialized to a valid
   # 'tuf.tufformats.ANYKEY_SCHEMA' key object.
   key_object = tuf.util.load_json_string(json_data.decode()) 
   
@@ -832,7 +832,7 @@ def _encrypt(key_data, derived_key_information):
      'derived_key': '...',
      'iterations': '...'}
 
-  'tuf.CryptoError' raised if the encryption fails.
+  'tuf.ssl_commons.exceptions.CryptoError' raised if the encryption fails.
   """
   
   # Generate a random initialization vector (IV).  The 'iv' is treated as the
@@ -861,9 +861,9 @@ def _encrypt(key_data, derived_key_information):
   # PyCrypto does not document the exceptions that may be raised or under
   # what circumstances.  PyCrypto example given is to call encrypt() without
   # checking for exceptions.  Avoid propogating the exception trace and only
-  # raise 'tuf.CryptoError', along with the cause of encryption failure.
+  # raise 'tuf.ssl_commons.exceptions.CryptoError', along with the cause of encryption failure.
   except (ValueError, IndexError, TypeError) as e:
-    raise tuf.CryptoError('The key data cannot be encrypted: ' + str(e))
+    raise tuf.ssl_commons.exceptions.CryptoError('The key data cannot be encrypted: ' + str(e))
 
   # Generate the hmac of the ciphertext to ensure it has not been modified.
   # The decryption routine may verify a ciphertext without having to perform
@@ -897,21 +897,21 @@ def _decrypt(file_contents, password):
   """
   The corresponding decryption routine for _encrypt().
 
-  'tuf.CryptoError' raised if the decryption fails.
+  'tuf.ssl_commons.exceptions.CryptoError' raised if the decryption fails.
   """
  
   # Extract the salt, iterations, hmac, initialization vector, and ciphertext
   # from 'file_contents'.  These five values are delimited by
   # '_ENCRYPTION_DELIMITER'.  This delimiter is arbitrarily chosen and should
   # not occur in the hexadecimal representations of the fields it is separating.
-  # Raise 'tuf.CryptoError', if 'file_contents' does not contains the expected
+  # Raise 'tuf.ssl_commons.exceptions.CryptoError', if 'file_contents' does not contains the expected
   # data layout.
   try: 
     salt, iterations, hmac, iv, ciphertext = \
       file_contents.split(_ENCRYPTION_DELIMITER)
   
   except ValueError:
-    raise tuf.CryptoError('Invalid encrypted file.') 
+    raise tuf.ssl_commons.exceptions.CryptoError('Invalid encrypted file.') 
 
   # Ensure we have the expected raw data for the delimited cryptographic data. 
   salt = binascii.unhexlify(salt.encode('utf-8'))
@@ -932,7 +932,7 @@ def _decrypt(file_contents, password):
   generated_hmac = generated_hmac_object.hexdigest()
 
   if not tuf.util.digests_are_equal(generated_hmac, hmac):
-    raise tuf.CryptoError('Decryption failed.')
+    raise tuf.ssl_commons.exceptions.CryptoError('Decryption failed.')
 
   # The following decryption routine assumes 'ciphertext' was encrypted with
   # AES-256.
@@ -947,11 +947,11 @@ def _decrypt(file_contents, password):
   # PyCrypto does not document the exceptions that may be raised or under
   # what circumstances.  PyCrypto example given is to call decrypt() without
   # checking for exceptions.  Avoid propogating the exception trace and only
-  # raise 'tuf.CryptoError', along with the cause of decryption failure.
+  # raise 'tuf.ssl_commons.exceptions.CryptoError', along with the cause of decryption failure.
   # Note: decryption failure, due to malicious ciphertext, should not occur here
   # if the hmac check above passed.
   except (ValueError, IndexError, TypeError) as e: # pragma: no cover
-    raise tuf.CryptoError('Decryption failed: ' + str(e))
+    raise tuf.ssl_commons.exceptions.CryptoError('Decryption failed: ' + str(e))
 
   return key_plaintext
 

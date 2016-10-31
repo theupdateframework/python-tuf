@@ -30,7 +30,7 @@ import datetime
 
 import tuf
 import tuf.tufformats
-import tuf.schema
+import tuf.ssl_commons.schema
 
 import six
 
@@ -267,7 +267,7 @@ class TestFormats(unittest.TestCase):
     # value and test that it does not match 'schema_type'.
     for schema_name, (schema_type, valid_schema) in six.iteritems(valid_schemas):
       invalid_schema = 0xBAD
-      if isinstance(schema_type, tuf.schema.Integer): 
+      if isinstance(schema_type, tuf.ssl_commons.schema.Integer): 
         invalid_schema = 'BAD'
       self.assertEqual(False, schema_type.matches(invalid_schema))
 
@@ -318,14 +318,14 @@ class TestFormats(unittest.TestCase):
     bad_version = 'eight'
     bad_expires = '2000'
     bad_filedict = 123
-    self.assertRaises(tuf.FormatError, make_metadata, bad_version,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, bad_version,
                                                       expires, filedict)
-    self.assertRaises(tuf.FormatError, make_metadata, version,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version,
                                                       bad_expires, filedict)
-    self.assertRaises(tuf.FormatError, make_metadata, version,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version,
                                                       expires, bad_filedict)
     
-    self.assertRaises(tuf.FormatError, from_metadata, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, from_metadata, 123)
 
 
 
@@ -365,28 +365,28 @@ class TestFormats(unittest.TestCase):
     bad_roledict = 123
     bad_compression_algorithms = ['nozip']
 
-    self.assertRaises(tuf.FormatError, make_metadata, bad_version,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, bad_version,
                                                       expires,
                                                       keydict, roledict,
                                                       consistent_snapshot,
                                                       compression_algorithms)
-    self.assertRaises(tuf.FormatError, make_metadata, version,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version,
                                                       bad_expires,
                                                       keydict, roledict,
                                                       consistent_snapshot,
                                                       compression_algorithms)
-    self.assertRaises(tuf.FormatError, make_metadata, version,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version,
                                                       expires,
                                                       bad_keydict, roledict,
                                                       consistent_snapshot,
                                                       compression_algorithms)
-    self.assertRaises(tuf.FormatError, make_metadata, version,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version,
                                                       expires,
                                                       keydict, bad_roledict,
                                                       consistent_snapshot,
                                                       compression_algorithms)
 
-    self.assertRaises(tuf.FormatError, from_metadata, 'bad')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, from_metadata, 'bad')
 
 
 
@@ -409,14 +409,14 @@ class TestFormats(unittest.TestCase):
     bad_version = '8'
     bad_expires = '2000'
     bad_versiondict = 123
-    self.assertRaises(tuf.FormatError, make_metadata, version,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version,
                                                       expires, bad_versiondict)
-    self.assertRaises(tuf.FormatError, make_metadata, bad_version, expires, 
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, bad_version, expires, 
                                                       versiondict)
-    self.assertRaises(tuf.FormatError, make_metadata, version, bad_expires,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version, bad_expires,
                                                       bad_versiondict)
     
-    self.assertRaises(tuf.FormatError, from_metadata, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, from_metadata, 123)
 
 
 
@@ -464,17 +464,17 @@ class TestFormats(unittest.TestCase):
     bad_expires = '2000'
     bad_filedict = 123
     bad_delegations = 123
-    self.assertRaises(tuf.FormatError, make_metadata, bad_version, expires,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, bad_version, expires,
                                                       filedict, delegations)
-    self.assertRaises(tuf.FormatError, make_metadata, version, bad_expires,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version, bad_expires,
                                                       filedict, delegations)
-    self.assertRaises(tuf.FormatError, make_metadata, version, expires,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version, expires,
                                                       bad_filedict, delegations)
-    self.assertRaises(tuf.FormatError, make_metadata, version, expires,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version, expires,
                                                       filedict, bad_delegations)
-    self.assertRaises(tuf.Error, make_metadata, version, expires)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, make_metadata, version, expires)
 
-    self.assertRaises(tuf.FormatError, from_metadata, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, from_metadata, 123)
     
 
 
@@ -501,10 +501,10 @@ class TestFormats(unittest.TestCase):
     self.assertEqual(datetime_object, tuf.tufformats.unix_timestamp_to_datetime(499137720))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.tufformats.unix_timestamp_to_datetime, 'bad')
-    self.assertRaises(tuf.FormatError, tuf.tufformats.unix_timestamp_to_datetime, 1000000000000000000000)
-    self.assertRaises(tuf.FormatError, tuf.tufformats.unix_timestamp_to_datetime, -1)
-    self.assertRaises(tuf.FormatError, tuf.tufformats.unix_timestamp_to_datetime, ['5'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.unix_timestamp_to_datetime, 'bad')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.unix_timestamp_to_datetime, 1000000000000000000000)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.unix_timestamp_to_datetime, -1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.unix_timestamp_to_datetime, ['5'])
 
 
 
@@ -514,9 +514,9 @@ class TestFormats(unittest.TestCase):
     self.assertEqual(1445455680, tuf.tufformats.datetime_to_unix_timestamp(datetime_object))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.tufformats.datetime_to_unix_timestamp, 'bad')
-    self.assertRaises(tuf.FormatError, tuf.tufformats.datetime_to_unix_timestamp, 1000000000000000000000)
-    self.assertRaises(tuf.FormatError, tuf.tufformats.datetime_to_unix_timestamp, ['1'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.datetime_to_unix_timestamp, 'bad')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.datetime_to_unix_timestamp, 1000000000000000000000)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.datetime_to_unix_timestamp, ['1'])
 
 
 
@@ -527,9 +527,9 @@ class TestFormats(unittest.TestCase):
     self.assertTrue(isinstance(tuf.tufformats.format_base64(data), six.string_types))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.tufformats.format_base64, 123)
-    self.assertRaises(tuf.FormatError, tuf.tufformats.format_base64, True)
-    self.assertRaises(tuf.FormatError, tuf.tufformats.format_base64, ['123'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.format_base64, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.format_base64, True)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.format_base64, ['123'])
 
 
   def test_parse_base64(self):
@@ -539,10 +539,10 @@ class TestFormats(unittest.TestCase):
     self.assertTrue(isinstance(tuf.tufformats.parse_base64(base64), six.binary_type))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.tufformats.parse_base64, 123)
-    self.assertRaises(tuf.FormatError, tuf.tufformats.parse_base64, True)
-    self.assertRaises(tuf.FormatError, tuf.tufformats.parse_base64, ['123'])
-    self.assertRaises(tuf.FormatError, tuf.tufformats.parse_base64, '/')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.parse_base64, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.parse_base64, True)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.parse_base64, ['123'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.parse_base64, '/')
 
 
 
@@ -590,11 +590,11 @@ class TestFormats(unittest.TestCase):
     bad_hashes = 'bad'
     bad_custom = 'bad'
 
-    self.assertRaises(tuf.FormatError, make_fileinfo, bad_length, hashes, custom)
-    self.assertRaises(tuf.FormatError, make_fileinfo, length, bad_hashes, custom)
-    self.assertRaises(tuf.FormatError, make_fileinfo, length, hashes, bad_custom)
-    self.assertRaises(tuf.FormatError, make_fileinfo, bad_length, hashes)
-    self.assertRaises(tuf.FormatError, make_fileinfo, length, bad_hashes)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_fileinfo, bad_length, hashes, custom)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_fileinfo, length, bad_hashes, custom)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_fileinfo, length, hashes, bad_custom)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_fileinfo, bad_length, hashes)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_fileinfo, length, bad_hashes)
 
 
   
@@ -610,7 +610,7 @@ class TestFormats(unittest.TestCase):
     # Test conditions for invalid arguments.
     bad_version_number = '8'
 
-    self.assertRaises(tuf.FormatError, make_versioninfo, bad_version_number)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_versioninfo, bad_version_number)
     
 
 
@@ -638,24 +638,24 @@ class TestFormats(unittest.TestCase):
     bad_paths = 'bad'
     bad_name = 123
 
-    self.assertRaises(tuf.FormatError, make_role, bad_keyids, threshold)
-    self.assertRaises(tuf.FormatError, make_role, keyids, bad_threshold)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, bad_keyids, threshold)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, bad_threshold)
 
-    self.assertRaises(tuf.FormatError, make_role, bad_keyids, threshold, paths=paths)
-    self.assertRaises(tuf.FormatError, make_role, keyids, bad_threshold, paths=paths)
-    self.assertRaises(tuf.FormatError, make_role, keyids, threshold, paths=bad_paths)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, bad_keyids, threshold, paths=paths)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, bad_threshold, paths=paths)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, threshold, paths=bad_paths)
 
-    self.assertRaises(tuf.FormatError, make_role, bad_keyids, threshold, name=name)
-    self.assertRaises(tuf.FormatError, make_role, keyids, bad_threshold, name=name)
-    self.assertRaises(tuf.FormatError, make_role, keyids, threshold, name=bad_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, bad_keyids, threshold, name=name)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, bad_threshold, name=name)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, threshold, name=bad_name)
 
-    self.assertRaises(tuf.FormatError, make_role, bad_keyids, threshold, name=name, paths=paths)
-    self.assertRaises(tuf.FormatError, make_role, keyids, bad_threshold, name=name, paths=paths)
-    self.assertRaises(tuf.FormatError, make_role, keyids, threshold, name=bad_name, paths=paths)
-    self.assertRaises(tuf.FormatError, make_role, keyids, threshold, name=name, paths=bad_paths)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, bad_keyids, threshold, name=name, paths=paths)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, bad_threshold, name=name, paths=paths)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, threshold, name=bad_name, paths=paths)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, threshold, name=name, paths=bad_paths)
  
     # 'paths' and 'path_hash_prefixes' cannot both be specified.
-    self.assertRaises(tuf.FormatError, make_role, keyids, threshold, name, paths, path_hash_prefixes)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, threshold, name, paths, path_hash_prefixes)
 
   def test_get_role_class(self):
     # Test conditions for valid arguments.
@@ -668,11 +668,11 @@ class TestFormats(unittest.TestCase):
     self.assertEqual(tuf.tufformats.MirrorsFile, get_role_class('Mirrors'))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, get_role_class, 'role')
-    self.assertRaises(tuf.FormatError, get_role_class, 'ROLE')
-    self.assertRaises(tuf.FormatError, get_role_class, 'abcd')
-    self.assertRaises(tuf.FormatError, get_role_class, 123)
-    self.assertRaises(tuf.FormatError, get_role_class, tuf.tufformats.RootFile)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, 'role')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, 'ROLE')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, 'abcd')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, tuf.tufformats.RootFile)
 
 
 
@@ -689,9 +689,9 @@ class TestFormats(unittest.TestCase):
     self.assertEqual('Root', expected_rolename('Root'))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, expected_rolename, 123)
-    self.assertRaises(tuf.FormatError, expected_rolename, tuf.tufformats.RootFile)
-    self.assertRaises(tuf.FormatError, expected_rolename, True)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, expected_rolename, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, expected_rolename, tuf.tufformats.RootFile)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, expected_rolename, True)
 
 
 
@@ -714,22 +714,22 @@ class TestFormats(unittest.TestCase):
 
     # Test conditions for invalid arguments.
     check_signable = tuf.tufformats.check_signable_object_format
-    self.assertRaises(tuf.FormatError, check_signable, 'Root')
-    self.assertRaises(tuf.FormatError, check_signable, 123)
-    self.assertRaises(tuf.FormatError, check_signable, tuf.tufformats.RootFile)
-    self.assertRaises(tuf.FormatError, check_signable, True)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, 'Root')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, tuf.tufformats.RootFile)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, True)
 
     saved_type = root['signed']['_type']
     del root['signed']['_type']
-    self.assertRaises(tuf.FormatError, check_signable, root)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, root)
     root['signed']['_type'] = saved_type
 
     root['signed']['_type'] = 'root'
-    self.assertRaises(tuf.FormatError, check_signable, root)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, root)
     root['signed']['_type'] = 'Root'
 
     del root['signed']['expires']
-    self.assertRaises(tuf.FormatError, check_signable, root)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, root)
 
 
 
@@ -755,12 +755,12 @@ class TestFormats(unittest.TestCase):
     self.assertEqual('[1,2,3]', ''.join(result))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, encode, tuf.tufformats.RootFile)
-    self.assertRaises(tuf.FormatError, encode, 8.0)
-    self.assertRaises(tuf.FormatError, encode, {"x": 8.0})
-    self.assertRaises(tuf.FormatError, encode, 8.0, output)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, encode, tuf.tufformats.RootFile)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, encode, 8.0)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, encode, {"x": 8.0})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, encode, 8.0, output)
 
-    self.assertRaises(tuf.FormatError, encode, {"x": tuf.FormatError})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, encode, {"x": tuf.ssl_commons.exceptions.FormatError})
 
 
 # Run unit test.

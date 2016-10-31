@@ -84,24 +84,24 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
     self.mirrors['mirror1'] = mirror1 
 
     # Test: Invalid 'file_type'.
-    self.assertRaises(tuf.Error, mirrors.get_list_of_mirrors,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, mirrors.get_list_of_mirrors,
                       self.random_string(), 'a', self.mirrors)
 
-    self.assertRaises(tuf.Error, mirrors.get_list_of_mirrors,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, mirrors.get_list_of_mirrors,
                       12345, 'a', self.mirrors)
 
     # Test: Improperly formatted 'file_path'.
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 12345, self.mirrors)
 
     # Test: Improperly formatted 'mirrors_dict' object.
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 'a', 12345)
 
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 'a', ['a'])
 
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 'a', {'a':'b'})
 
 

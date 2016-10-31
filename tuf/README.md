@@ -139,11 +139,11 @@ The following four key files should now exist:
 >>> private_root_key = import_rsa_privatekey_from_file("keystore/root_key")
 Enter a password for the encrypted RSA key:
 ```
-`import_rsa_privatekey_from_file()` raises a `tuf.CryptoError` exception if the
+`import_rsa_privatekey_from_file()` raises a `tuf.ssl_commons.exceptions.CryptoError` exception if the
 key / password is invalid:
 
 ```
-tuf.CryptoError: RSA (public, private) tuple cannot
+tuf.ssl_commons.exceptions.CryptoError: RSA (public, private) tuple cannot
 be generated from the encrypted PEM string: Bad decrypt. Incorrect password?
 ```
 Note: The specific message provided by the exception might differ depending on

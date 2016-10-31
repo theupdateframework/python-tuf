@@ -184,7 +184,7 @@ class TestHash(unittest.TestCase):
 
 
   def _do_unsupported_algorithm(self, library):
-    self.assertRaises(tuf.UnsupportedAlgorithmError, tuf.hash.digest, 'bogus')
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsupportedAlgorithmError, tuf.hash.digest, 'bogus')
 
 
   def test_digest_size(self):
@@ -238,12 +238,12 @@ class TestHash(unittest.TestCase):
 
 
   def test_unsupported_digest_algorithm_and_library(self):
-    self.assertRaises(tuf.UnsupportedAlgorithmError, tuf.hash.digest,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsupportedAlgorithmError, tuf.hash.digest,
                       'sha123', 'hashlib')
-    self.assertRaises(tuf.UnsupportedAlgorithmError, tuf.hash.digest,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsupportedAlgorithmError, tuf.hash.digest,
                       'sha123', 'pycrypto')
     
-    self.assertRaises(tuf.UnsupportedLibraryError, tuf.hash.digest,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsupportedLibraryError, tuf.hash.digest,
                       'sha256', 'badlib')
 
 

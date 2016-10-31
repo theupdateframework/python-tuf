@@ -234,19 +234,19 @@ class Updater(object):
                                         'confined_target_dirs': ['']}} 
 
     <Exceptions>
-      tuf.FormatError:                                                          
+      tuf.ssl_commons.exceptions.FormatError:                                                          
         If the arguments of 'tuf.client.updater.Updater' are improperly
         formatted.                              
                                                                               
-      tuf.RepositoryError:                                                      
+      tuf.ssl_commons.exceptions.RepositoryError:                                                      
         If there is an error with the updater's repository files, such          
         as a missing 'root.json' file.   
 
-      tuf.NoWorkingMirrorError:                                                 
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:                                                 
         If while refreshing, the metadata for any of the top-level roles cannot 
         be updated.       
                                                                                         
-      tuf.ExpiredMetadataError:                                                 
+      tuf.ssl_commons.exceptions.ExpiredMetadataError:                                                 
         While refreshing, if any metadata has expired.  
  
     <Side Effects>
@@ -301,10 +301,10 @@ class Updater(object):
       None
 
     <Exceptions>
-      tuf.NoWorkingMirrorError:                                                 
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:                                                 
         If the metadata for any of the top-level roles cannot be updated.       
                                                                                      
-      tuf.ExpiredMetadataError:                                                 
+      tuf.ssl_commons.exceptions.ExpiredMetadataError:                                                 
         If any metadata has expired.
 
     <Side Effects>
@@ -365,14 +365,14 @@ class Updater(object):
         The target's relative path on the remote repository.   
 
     <Exceptions>
-      tuf.FormatError:                                                          
+      tuf.ssl_commons.exceptions.FormatError:                                                          
         If 'target_filepath', 'updated_target' in
         'tuf.client.updater.download_target', is  improperly formatted.                           
 
-      tuf.UnknownTargetError:                                                   
+      tuf.ssl_commons.exceptions.UnknownTargetError:                                                   
         If 'target_filepath' was not found. 
 
-      tuf.NoWorkingMirrorError:                                                 
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:                                                 
         If a 'target_filepath' could not be downloaded from any of the mirrors.  
 
     <Side Effects>
@@ -438,7 +438,7 @@ class Updater(object):
         The URL of the target we want to retrieve.
 
     <Exceptions>
-      tuf.URLMatchesNoPatternError:
+      tuf.ssl_commons.exceptions.URLMatchesNoPatternError:
         This exception is raised when no target_path url pattern is wrong and 
         does match regular expression.
 
@@ -478,7 +478,7 @@ class Updater(object):
       # If source_url does not match any regular expression...
       if target_filepath is None:
         # ...then we raise a predictable exception.
-        raise tuf.URLMatchesNoPatternError(source_url)
+        raise tuf.ssl_commons.exceptions.URLMatchesNoPatternError(source_url)
 
     except:
       logger.exception('Possibly invalid target_paths for ' + \
@@ -507,13 +507,13 @@ class Updater(object):
         server or None, if no such data needed.
 
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         TODO: validate arguments.
 
-      tuf.NoWorkingMirrorError:                                                 
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:                                                 
         If a 'target_filepath' could not be downloaded from any of the mirrors.  
 
-      tuf.URLMatchesNoPatternError:
+      tuf.ssl_commons.exceptions.URLMatchesNoPatternError:
         This exception is raised when no target_path url pattern is wrong and 
         does match regular expression.
 
@@ -564,18 +564,18 @@ class Updater(object):
         then temporary file is used.
      
     <Exceptions> 
-      tuf.FormatError:                                                          
+      tuf.ssl_commons.exceptions.FormatError:                                                          
         If 'target_filepath', 'updated_target' in 
         tuf.client.updater.download_target and arguments of updated_targets are 
         improperly formatted.                           
 
-      tuf.UnknownTargetError:                                                   
+      tuf.ssl_commons.exceptions.UnknownTargetError:                                                   
         If 'target_filepath' was not found. 
 
-      tuf.NoWorkingMirrorError:                                                 
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:                                                 
         If a 'target_filepath' could not be downloaded from any of the mirrors.  
 
-      tuf.URLMatchesNoPatternError:
+      tuf.ssl_commons.exceptions.URLMatchesNoPatternError:
         This exception is raised when no target_path url pattern is wrong and 
         does match regular expression.
 
@@ -736,11 +736,11 @@ class UpdaterController(object):
       are to be checked if they are valid or not.
 
     <Exceptions>
-      tuf.InvalidConfigurationError:
+      tuf.ssl_commons.exceptions.InvalidConfigurationError:
         If the configuration is invalid. For example - wrong hostname, invalid
         port number, wrong mirror format.
 
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If the network_location is not unique or configuration.network_location
         is same as repository_mirror_network_locations.
 
@@ -769,7 +769,7 @@ class UpdaterController(object):
     # tuf.interposition.configuration.Configuration as an object which makes 
     # configuration an instance of tuf.interposition.configuration.Configuration
     if not isinstance(configuration, Configuration):
-      raise tuf.InvalidConfigurationError('Invalid configuration')
+      raise tuf.ssl_commons.exceptions.InvalidConfigurationError('Invalid configuration')
 
     # Restrict each (incoming, outgoing) network location pair to be unique across
     # configurations; this prevents interposition cycles, amongst other
@@ -779,12 +779,12 @@ class UpdaterController(object):
     if configuration.network_location in self.__updaters:
       message = 'Updater with ' + repr(configuration.network_location) + \
                 ' already exists as an updater.'
-      raise tuf.FormatError()
+      raise tuf.ssl_commons.exceptions.FormatError()
     
     if configuration.network_location in self.__repository_mirror_network_locations:
       message = 'Updater with ' + repr(configuration.network_location) + \
                 ' already exists as a mirror.'
-      raise tuf.FormatError(message)
+      raise tuf.ssl_commons.exceptions.FormatError(message)
 
     # Check for redundancy in server repository mirrors.
     repository_mirror_network_locations = \
@@ -798,14 +798,14 @@ class UpdaterController(object):
         if mirror_network_location in self.__updaters:
           message = 'Mirror with ' + repr(mirror_network_location) + \
                     ' already exists as an updater.'
-          raise tuf.FormatError(message)
+          raise tuf.ssl_commons.exceptions.FormatError(message)
         
         if mirror_network_location in self.__repository_mirror_network_locations:
           message = 'Mirror with ' + repr(mirror_network_location) + \
                     ' already exists as a mirror.'
-          raise tuf.FormatError(message)
+          raise tuf.ssl_commons.exceptions.FormatError(message)
 
-      except (tuf.FormatError) as e:
+      except (tuf.ssl_commons.exceptions.FormatError) as e:
         error_message = 'Invalid repository mirror ' + \
                         repr(mirror_network_location)
         logger.exception(error_message)
@@ -825,11 +825,11 @@ class UpdaterController(object):
       updater will be added.
 
     <Exceptions>
-      tuf.InvalidConfigurationError:
+      tuf.ssl_commons.exceptions.InvalidConfigurationError:
         If the configuration is invalid. For example - wrong hostname, invalid
         port number, wrong mirror format.
 
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         This exception is raised if the network location which tuf is trying to 
         add is not unique.
     
@@ -868,18 +868,18 @@ class UpdaterController(object):
       to be refreshed.
 
     <Exceptions>
-      tuf.InvalidConfigurationError:
+      tuf.ssl_commons.exceptions.InvalidConfigurationError:
         If there is anything wrong with the Format of the configuration, this 
         exception is raised.
 
-      tuf.NotFoundError:
+      tuf.ssl_commons.exceptions.NotFoundError:
         If the updater to be refreshed is not found in the list of updaters or
-        mirrors, then tuf.NotFoundError exception is raised.
+        mirrors, then tuf.ssl_commons.exceptions.NotFoundError exception is raised.
       
-      tuf.NoWorkingMirrorError:
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:
         If the metadata for any of the top-level roles cannot be updated.
 
-      tuf.ExpiredMetadataError:
+      tuf.ssl_commons.exceptions.ExpiredMetadataError:
         If any metadata has expired.
 
     <Side Effects>
@@ -891,7 +891,7 @@ class UpdaterController(object):
     
     # Check if the configuration is valid else raise an exception.
     if not isinstance(configuration, Configuration):
-      raise tuf.InvalidConfigurationError('Invalid configuration')
+      raise tuf.ssl_commons.exceptions.InvalidConfigurationError('Invalid configuration')
 
     # Get the repository mirrors of the given configuration.
     repository_mirror_network_locations = \
@@ -902,12 +902,12 @@ class UpdaterController(object):
     if configuration.network_location not in self.__updaters:
       message = 'Update with ' + repr(configuration.network_location) + \
                 ' not found.'
-      raise tuf.NotFoundError(message)
+      raise tuf.ssl_commons.exceptions.NotFoundError(message)
 
     if not repository_mirror_network_locations.issubset(self.__repository_mirror_network_locations):
       message = 'Mirror with ' + repr(repository_mirror_network_locations) + \
                 ' not found.'
-      raise tuf.NotFoundError(message)
+      raise tuf.ssl_commons.exceptions.NotFoundError(message)
 
     # Get the updater and refresh its top-level metadata.  In the majority of
     # integrations, a software updater integrating TUF with interposition will
@@ -1017,14 +1017,14 @@ class UpdaterController(object):
       'configuration' is the configuration object of the updater to be removed.
 
     <Exceptions>
-      tuf.InvalidConfigurationError:
+      tuf.ssl_commons.exceptions.InvalidConfigurationError:
         If there is anything wrong with the configuration for example invalid 
-        hostname, invalid port number etc, tuf.InvalidConfigurationError is 
+        hostname, invalid port number etc, tuf.ssl_commons.exceptions.InvalidConfigurationError is 
         raised.
 
-      tuf.NotFoundError:
+      tuf.ssl_commons.exceptions.NotFoundError:
         If the updater with the given configuration does not exists, 
-        tuf.NotFoundError exception is raised.
+        tuf.ssl_commons.exceptions.NotFoundError exception is raised.
 
     <Side Effects>
       Removes the stored updater and the mirrors associated with that updater.
@@ -1036,7 +1036,7 @@ class UpdaterController(object):
 
     # Check if the given configuration is valid or not.
     if not isinstance(configuration, Configuration):
-      raise tuf.InvalidConfigurationError('Invalid configuration')
+      raise tuf.ssl_commons.exceptions.InvalidConfigurationError('Invalid configuration')
     
     # If the configuration is valid, get the repository mirrors associated with 
     # it.
@@ -1045,11 +1045,11 @@ class UpdaterController(object):
 
     # Check if network location of the given configuration exists or not.
     if configuration.network_location not in self.__updaters:
-      raise tuf.NotFoundError('Network location not found')
+      raise tuf.ssl_commons.exceptions.NotFoundError('Network location not found')
 
     # Check if the associated mirrors exists or not.
     if not repository_mirror_network_locations.issubset(self.__repository_mirror_network_locations):
-      raise tuf.NotFoundError('Repository mirror does not exists')
+      raise tuf.ssl_commons.exceptions.NotFoundError('Repository mirror does not exists')
 
     # Get the updater.
     updater = self.__updaters.get(configuration.network_location)

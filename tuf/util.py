@@ -67,7 +67,7 @@ class TempFile(object):
     
     except OSError as err: # pragma: no cover
       logger.critical('Cannot create a system temporary directory: '+repr(err))
-      raise tuf.Error(err)
+      raise tuf.ssl_commons.exceptions.Error(err)
 
 
 
@@ -81,7 +81,7 @@ class TempFile(object):
         A string argument to be used with tempfile.NamedTemporaryFile function.
 
     <Exceptions>
-      tuf.Error on failure to load temp dir.
+      tuf.ssl_commons.exceptions.Error on failure to load temp dir.
 
     <Return>
       None.
@@ -162,7 +162,7 @@ class TempFile(object):
         Number of bytes to be read.
 
     <Exceptions>
-      tuf.FormatError: if 'size' is invalid.
+      tuf.ssl_commons.exceptions.FormatError: if 'size' is invalid.
 
     <Return>
       String of data.
@@ -177,7 +177,7 @@ class TempFile(object):
     
     else:
       if not (isinstance(size, int) and size > 0):
-        raise tuf.FormatError
+        raise tuf.ssl_commons.exceptions.FormatError
       
       return self.temporary_file.read(size)
 
@@ -295,11 +295,11 @@ class TempFile(object):
         a file.  Only gzip is allowed.
 
     <Exceptions>
-      tuf.FormatError: If 'compression' is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError: If 'compression' is improperly formatted.
 
-      tuf.Error: If an invalid compression is given.
+      tuf.ssl_commons.exceptions.Error: If an invalid compression is given.
 
-      tuf.DecompressionError: If the compression failed for any reason.
+      tuf.ssl_commons.exceptions.DecompressionError: If the compression failed for any reason.
 
     <Side Effects>
       'self._orig_file' is used to store the original data of 'temporary_file'.
@@ -309,14 +309,14 @@ class TempFile(object):
     """
 
     # Does 'compression' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
     tuf.tufformats.NAME_SCHEMA.check_match(compression)
     
     if self._orig_file is not None:
-      raise tuf.Error('Can only set compression on a TempFile once.')
+      raise tuf.ssl_commons.exceptions.Error('Can only set compression on a TempFile once.')
 
     if compression != 'gzip':
-      raise tuf.Error('Only gzip compression is supported.')
+      raise tuf.ssl_commons.exceptions.Error('Only gzip compression is supported.')
 
     self.seek(0)
     self._compression = compression
@@ -330,7 +330,7 @@ class TempFile(object):
       self.flush() 
     
     except Exception as exception:
-      raise tuf.DecompressionError(exception)
+      raise tuf.ssl_commons.exceptions.DecompressionError(exception)
 
 
 
@@ -382,16 +382,16 @@ def get_file_details(filepath, hash_algorithms=['sha256']):
     hash_algorithms:
 
   <Exceptions>
-    tuf.FormatError: If hash of the file does not match HASHDICT_SCHEMA.
+    tuf.ssl_commons.exceptions.FormatError: If hash of the file does not match HASHDICT_SCHEMA.
 
-    tuf.Error: If 'filepath' does not exist. 
+    tuf.ssl_commons.exceptions.Error: If 'filepath' does not exist. 
 
   <Returns>
     A tuple (length, hashes) describing 'filepath'.
   """
   
   # Making sure that the format of 'filepath' is a path string.
-  # 'tuf.FormatError' is raised on incorrect format.
+  # 'tuf.ssl_commons.exceptions.FormatError' is raised on incorrect format.
   tuf.tufformats.PATH_SCHEMA.check_match(filepath)
   tuf.tufformats.HASHALGORITHMS_SCHEMA.check_match(hash_algorithms)
 
@@ -400,7 +400,7 @@ def get_file_details(filepath, hash_algorithms=['sha256']):
 
   # Does the path exists?
   if not os.path.exists(filepath):
-    raise tuf.Error('Path ' + repr(filepath) + ' doest not exist.')
+    raise tuf.ssl_commons.exceptions.Error('Path ' + repr(filepath) + ' doest not exist.')
   filepath = os.path.abspath(filepath)
 
   # Obtaining length of the file.
@@ -412,7 +412,7 @@ def get_file_details(filepath, hash_algorithms=['sha256']):
     file_hashes.update({algorithm: digest_object.hexdigest()})
 
   # Performing a format check to ensure 'file_hash' corresponds HASHDICT_SCHEMA.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.HASHDICT_SCHEMA.check_match(file_hashes)
 
   return file_length, file_hashes
@@ -435,7 +435,7 @@ def ensure_parent_dir(filename):
       A path string.
 
   <Exceptions>
-    tuf.FormatError: If 'filename' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError: If 'filename' is improperly formatted.
 
   <Side Effects>
     A directory is created whenever the parent directory of 'filename' does not
@@ -446,7 +446,7 @@ def ensure_parent_dir(filename):
   """
 
   # Ensure 'filename' corresponds to 'PATH_SCHEMA'.
-  # Raise 'tuf.FormatError' on a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' on a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(filename)
 
   # Split 'filename' into head and tail, check if head exists.
@@ -475,7 +475,7 @@ def file_in_confined_directories(filepath, confined_directories):
       A list, or a tuple, of directory strings.
 
   <Exceptions>
-   tuf.FormatError: On incorrect format of the input.
+   tuf.ssl_commons.exceptions.FormatError: On incorrect format of the input.
 
   <Return>
     Boolean.  True, if path is either the empty string
@@ -483,7 +483,7 @@ def file_in_confined_directories(filepath, confined_directories):
   """
 
   # Do the arguments have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.RELPATH_SCHEMA.check_match(filepath)
   tuf.tufformats.RELPATHS_SCHEMA.check_match(confined_directories)
 
@@ -526,7 +526,7 @@ def find_delegated_role(roles, delegated_role):
       The name of the role to be found in the list of roles.
 
   <Exceptions>
-    tuf.RepositoryError, if the list of roles has invalid data.
+    tuf.ssl_commons.exceptions.RepositoryError, if the list of roles has invalid data.
 
   <Side Effects>
     No known side effects.
@@ -539,7 +539,7 @@ def find_delegated_role(roles, delegated_role):
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if any are improperly formatted.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
   tuf.tufformats.ROLELIST_SCHEMA.check_match(roles)
   tuf.tufformats.ROLENAME_SCHEMA.check_match(delegated_role)
 
@@ -553,7 +553,7 @@ def find_delegated_role(roles, delegated_role):
     # This role has no name.
     if name is None:
       no_name_message = 'Role with no name.'
-      raise tuf.RepositoryError(no_name_message)
+      raise tuf.ssl_commons.exceptions.RepositoryError(no_name_message)
     
     # Does this role have the same name?
     else:
@@ -566,7 +566,7 @@ def find_delegated_role(roles, delegated_role):
         # ...there are at least two roles with the same name.
         else:
           duplicate_role_message = 'Duplicate role (' + str(delegated_role) + ').'
-          raise tuf.RepositoryError(duplicate_role_message)
+          raise tuf.ssl_commons.exceptions.RepositoryError(duplicate_role_message)
       
       # This role has a different name.
       else:
@@ -620,15 +620,15 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
       'delegations' attribute.
 
   <Exceptions>
-    tuf.FormatError:
+    tuf.ssl_commons.exceptions.FormatError:
       If any of the arguments are improperly formatted.
 
-    tuf.ForbiddenTargetError:
+    tuf.ssl_commons.exceptions.ForbiddenTargetError:
       If the targets of 'metadata_role' are not allowed according to
       the parent's metadata file.  The 'paths' and 'path_hash_prefixes'
       attributes are verified.
 
-    tuf.RepositoryError:
+    tuf.ssl_commons.exceptions.RepositoryError:
       If the parent of 'rolename' has not made a delegation to 'rolename'.
 
   <Side Effects>
@@ -641,7 +641,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if any are improperly formatted.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
   tuf.tufformats.ROLENAME_SCHEMA.check_match(rolename)
   tuf.tufformats.RELPATHS_SCHEMA.check_match(list_of_targets)
   tuf.tufformats.DELEGATIONS_SCHEMA.check_match(parent_delegations)
@@ -677,7 +677,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
                         allowed_child_path_hash_prefixes):
         message =  repr(rolename) + ' specifies a target that does not' + \
           ' have a path hash prefix listed in its parent role.'
-        raise tuf.ForbiddenTargetError(message)
+        raise tuf.ssl_commons.exceptions.ForbiddenTargetError(message)
     
     elif allowed_child_paths is not None: 
       # Check that each delegated target is either explicitly listed or a parent
@@ -693,7 +693,7 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
             break
         
         else: 
-          raise tuf.ForbiddenTargetError('Role '+repr(rolename)+' specifies'+\
+          raise tuf.ssl_commons.exceptions.ForbiddenTargetError('Role '+repr(rolename)+' specifies'+\
                                          ' target '+repr(child_target)+','+\
                                          ' which is not an allowed path'+\
                                          ' according to the delegations set'+\
@@ -703,14 +703,14 @@ def ensure_all_targets_allowed(rolename, list_of_targets, parent_delegations):
       # 'role' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' attributes should not be missing,
       # so raise an error in case this clause is reached.
-      raise tuf.FormatError(repr(role) + ' did not contain one of ' +\
+      raise tuf.ssl_commons.exceptions.FormatError(repr(role) + ' did not contain one of ' +\
                             'the required fields ("paths" or ' +\
                             '"path_hash_prefixes").')
 
   # Raise an exception if the parent has not delegated to the specified
   # 'rolename' child role.
   else:
-    raise tuf.RepositoryError('The parent role has not delegated to '+\
+    raise tuf.ssl_commons.exceptions.RepositoryError('The parent role has not delegated to '+\
                               repr(rolename) + '.')
 
 
@@ -731,7 +731,7 @@ def paths_are_consistent_with_hash_prefixes(paths, path_hash_prefixes):
       The list of path hash prefixes with which to check the list of paths.
 
   <Exceptions>
-    tuf.FormatError:
+    tuf.ssl_commons.exceptions.FormatError:
       If the arguments are improperly formatted.
 
   <Side Effects>
@@ -745,7 +745,7 @@ def paths_are_consistent_with_hash_prefixes(paths, path_hash_prefixes):
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if any are improperly formatted.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
   tuf.tufformats.RELPATHS_SCHEMA.check_match(paths)
   tuf.tufformats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
 
@@ -805,7 +805,7 @@ def get_target_hash(target_filepath):
   # Does 'target_filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.RELPATH_SCHEMA.check_match(target_filepath)
 
   # Calculate the hash of the filepath to determine which bin to find the 
@@ -876,7 +876,7 @@ def load_json_string(data):
       A JSON string.
   
   <Exceptions>
-    tuf.Error, if 'data' cannot be deserialized to a Python object.
+    tuf.ssl_commons.exceptions.Error, if 'data' cannot be deserialized to a Python object.
 
   <Side Effects>
     None.
@@ -892,11 +892,11 @@ def load_json_string(data):
  
   except TypeError:
     message = 'Invalid JSON string: ' + repr(data)
-    raise tuf.Error(message)
+    raise tuf.ssl_commons.exceptions.Error(message)
   
   except ValueError:
     message = 'Cannot deserialize to a Python object: ' + repr(data)
-    raise tuf.Error(message)
+    raise tuf.ssl_commons.exceptions.Error(message)
   
   else:
     return deserialized_object    
@@ -913,9 +913,9 @@ def load_json_file(filepath):
       Absolute path of JSON file.
 
   <Exceptions>
-    tuf.FormatError: If 'filepath' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError: If 'filepath' is improperly formatted.
 
-    tuf.Error: If 'filepath' cannot be deserialized to a Python object.
+    tuf.ssl_commons.exceptions.Error: If 'filepath' cannot be deserialized to a Python object.
 
     IOError: If there are runtime IO exceptions.
 
@@ -927,7 +927,7 @@ def load_json_file(filepath):
   """
 
   # Making sure that the format of 'filepath' is a path string.
-  # tuf.FormatError is raised on incorrect format.
+  # tuf.ssl_commons.exceptions.FormatError is raised on incorrect format.
   tuf.tufformats.PATH_SCHEMA.check_match(filepath)
 
   deserialized_object = None
@@ -945,7 +945,7 @@ def load_json_file(filepath):
     deserialized_object = json.load(fileobject)
   
   except (ValueError, TypeError):
-    raise tuf.Error('Cannot deserialize to a Python object: ' + repr(filepath))
+    raise tuf.ssl_commons.exceptions.Error('Cannot deserialize to a Python object: ' + repr(filepath))
 
   
   else:
@@ -971,7 +971,7 @@ def digests_are_equal(digest1, digest2):
       The second hexadecimal string value to compare.
 
   <Exceptions>
-    tuf.FormatError: If the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError: If the arguments are improperly formatted.
 
   <Side Effects>
     None.
@@ -982,7 +982,7 @@ def digests_are_equal(digest1, digest2):
   
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.HEX_SCHEMA.check_match(digest1)
   tuf.tufformats.HEX_SCHEMA.check_match(digest2)
 

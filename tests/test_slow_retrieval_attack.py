@@ -236,16 +236,16 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
       file1_target = self.repository_updater.target('file1.txt')
       self.repository_updater.download_target(file1_target, self.client_directory)
      
-    # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
+    # Verify that the specific 'tuf.ssl_commons.exceptions.SlowRetrievalError' exception is raised by
     # each mirror.
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.SlowRetrievalError))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.SlowRetrievalError))
     
     else:
       self.fail('TUF did not prevent a slow retrieval attack.')
@@ -269,18 +269,18 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
       file1_target = self.repository_updater.target('file1.txt')
       self.repository_updater.download_target(file1_target, self.client_directory)
 
-    # Verify that the specific 'tuf.SlowRetrievalError' exception is raised by
+    # Verify that the specific 'tuf.ssl_commons.exceptions.SlowRetrievalError' exception is raised by
     # each mirror.  'file1.txt' should be large enough to trigger a slow
     # retrieval attack, otherwise the expected exception may not be
     # consistently raised.
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
        
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.SlowRetrievalError))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.SlowRetrievalError))
     
     else:
       # Another possibility is to check for a successfully downloaded

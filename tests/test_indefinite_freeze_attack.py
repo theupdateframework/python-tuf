@@ -321,9 +321,9 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.refresh() # We expect this to fail!
 
-    except tuf.ExpiredMetadataError:
+    except tuf.ssl_commons.exceptions.ExpiredMetadataError:
       logger.info('Test: Refresh #2 - failed as expected. Expired local'
-                  ' snapshot case generated a tuf.ExpiredMetadataError'
+                  ' snapshot case generated a tuf.ssl_commons.exceptions.ExpiredMetadataError'
                   ' exception as expected. Test pass.')
     
     # I think that I only expect tuf.ExpiredMetadata error here. A
@@ -387,14 +387,14 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.refresh() # We expect NoWorkingMirrorError.
     
-    except tuf.NoWorkingMirrorError as e:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as e:
       # NoWorkingMirrorError indicates that we did not find valid, unexpired
       # metadata at any mirror. That exception class preserves the errors from
       # each mirror. We now assert that for each mirror, the particular error
       # detected was that metadata was expired (the timestamp we manually
       # expired).
       for mirror_url, mirror_error in six.iteritems(e.mirror_errors):
-        self.assertTrue(isinstance(mirror_error, tuf.ExpiredMetadataError))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.ExpiredMetadataError))
     
     else:
       self.fail('TUF failed to detect expired, stale timestamp metadata.'

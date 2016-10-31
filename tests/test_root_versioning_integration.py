@@ -72,11 +72,11 @@ class TestRepository(unittest.TestCase):
     self.assertTrue(isinstance(repository.targets, repo_tool.Targets))
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_tool.Repository, 3,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository, 3,
                       'metadata_directory/', 'targets_directory')
-    self.assertRaises(tuf.FormatError, repo_tool.Repository,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository,
                       'repository_directory', 3, 'targets_directory')
-    self.assertRaises(tuf.FormatError, repo_tool.Repository,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository,
                       'repository_directory', 'metadata_directory', 3)
 
 
@@ -201,7 +201,7 @@ class TestRepository(unittest.TestCase):
     root_2_signable = tuf.util.load_json_file(root_2_filepath)
     
     for role_signable in [old_root_signable, new_root_signable, root_1_signable, root_2_signable]:
-      # Raise 'tuf.FormatError' if 'role_signable' is an invalid signable.
+      # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'role_signable' is an invalid signable.
       tuf.tufformats.check_signable_object_format(role_signable)
     
     # Verify contents of versioned roots
@@ -216,7 +216,7 @@ class TestRepository(unittest.TestCase):
     repository.root.threshold = 2
    
     # Errors, not enough signing keys to satisfy old threshold 
-    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsignedMetadataError, repository.writeall)
     
     # No error, write() ignore's root's threshold and allows it to be written
     # to disk partially signed.

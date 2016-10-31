@@ -323,16 +323,16 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.refresh()
    
-    # Verify that the specific 'tuf.ReplayedMetadataError' is raised by each
+    # Verify that the specific 'tuf.ssl_commons.exceptions.ReplayedMetadataError' is raised by each
     # mirror.
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
        
         # Verify that 'timestamp.json' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.ReplayedMetadataError))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.ReplayedMetadataError))
 
     else:
       self.fail('TUF did not prevent a replay attack.')

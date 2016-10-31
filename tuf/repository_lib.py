@@ -232,7 +232,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       tuf.roledb.update_roleinfo(rolename, roleinfo)
       
       message = 'Not enough signatures for ' + repr(metadata_filename)
-      raise tuf.UnsignedMetadataError(message, signable)
+      raise tuf.ssl_commons.exceptions.UnsignedMetadataError(message, signable)
   
   # 'rolename' is a delegated role or a top-level role that is  partially
   # signed, and thus its signatures shouldn't be verified.
@@ -347,9 +347,9 @@ def _check_directory(directory):
       The directory to check.
 
   <Exceptions>
-    tuf.Error, if 'directory' could not be validated.
+    tuf.ssl_commons.exceptions.Error, if 'directory' could not be validated.
 
-    tuf.FormatError, if 'directory' is not properly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'directory' is not properly formatted.
 
   <Side Effects>
     None.
@@ -359,12 +359,12 @@ def _check_directory(directory):
   """
 
   # Does 'directory' have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(directory)
 
   # Check if the directory exists.
   if not os.path.isdir(directory):
-    raise tuf.Error(repr(directory) + ' directory does not exist.')
+    raise tuf.ssl_commons.exceptions.Error(repr(directory) + ' directory does not exist.')
 
   directory = os.path.abspath(directory)
   
@@ -390,12 +390,12 @@ def _check_role_keys(rolename):
  
   # Raise an exception for an invalid threshold of public keys.
   if total_keyids < threshold: 
-    raise tuf.InsufficientKeysError(repr(rolename) + ' role contains'
+    raise tuf.ssl_commons.exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
       ' ' + repr(total_keyids) + ' / ' + repr(threshold) + ' public keys.')
 
   # Raise an exception for an invalid threshold of signing keys.
   if total_signatures == 0 and total_signing_keys < threshold: 
-    raise tuf.InsufficientKeysError(repr(rolename) + ' role contains'
+    raise tuf.ssl_commons.exceptions.InsufficientKeysError(repr(rolename) + ' role contains'
       ' ' + repr(total_signing_keys) + ' / ' + repr(threshold) + ' signing keys.')
 
 
@@ -426,7 +426,7 @@ def _remove_invalid_and_duplicate_signatures(signable):
     try:
       key = tuf.keydb.get_key(keyid)
     
-    except tuf.UnknownKeyError:
+    except tuf.ssl_commons.exceptions.UnknownKeyError:
       signable['signatures'].remove(signature)
       continue
     
@@ -647,7 +647,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     consistent_snapshot = root_metadata['consistent_snapshot']
   
   else:
-    raise tuf.RepositoryError('Cannot load the required root file:'
+    raise tuf.ssl_commons.exceptions.RepositoryError('Cannot load the required root file:'
       ' ' + repr(root_filename))
   
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
@@ -781,7 +781,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
           key_object['keyid'] = keyid
           tuf.keydb.add_key(key_object, keyid=None)
 
-      except tuf.KeyAlreadyExistsError:
+      except tuf.ssl_commons.exceptions.KeyAlreadyExistsError:
         pass
       
   else:
@@ -844,7 +844,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
       The password used to encrypt 'filepath'.
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
   <Side Effects>
     Writes key files to '<filepath>' and '<filepath>.pub'.
@@ -856,7 +856,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
   # Do the arguments have the correct format?
   # This check ensures arguments have the appropriate number of
   # objects and object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(filepath)
 
   # Does 'bits' have the correct format?
@@ -923,9 +923,9 @@ def import_rsa_privatekey_from_file(filepath, password=None):
       The passphrase to decrypt 'filepath'.
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-    tuf.CryptoError, if 'filepath' is not a valid encrypted key file.
+    tuf.ssl_commons.exceptions.CryptoError, if 'filepath' is not a valid encrypted key file.
 
   <Side Effects>
     The contents of 'filepath' is read, decrypted, and the key stored.
@@ -937,7 +937,7 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
@@ -957,7 +957,7 @@ def import_rsa_privatekey_from_file(filepath, password=None):
     encrypted_pem = file_object.read().decode('utf-8')
 
   # Convert 'encrypted_pem' to 'tuf.tufformats.RSAKEY_SCHEMA' format.  Raise
-  # 'tuf.CryptoError' if 'encrypted_pem' is invalid.
+  # 'tuf.ssl_commons.exceptions.CryptoError' if 'encrypted_pem' is invalid.
   rsa_key = tuf.keys.import_rsakey_from_encrypted_pem(encrypted_pem, password)
   
   return rsa_key
@@ -983,9 +983,9 @@ def import_rsa_publickey_from_file(filepath):
       <filepath>.pub file, an RSA PEM file.
     
   <Exceptions>
-    tuf.FormatError, if 'filepath' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'filepath' is improperly formatted.
 
-    tuf.Error, if a valid RSA key object cannot be generated.  This may be
+    tuf.ssl_commons.exceptions.Error, if a valid RSA key object cannot be generated.  This may be
     caused by an improperly formatted PEM file.
 
   <Side Effects>
@@ -998,7 +998,7 @@ def import_rsa_publickey_from_file(filepath):
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(filepath)
 
   # Read the contents of the key file that should be in PEM format and contains
@@ -1010,8 +1010,8 @@ def import_rsa_publickey_from_file(filepath):
   try:
     rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
   
-  except tuf.FormatError as e:
-    raise tuf.Error('Cannot import improperly formatted PEM file.' + repr(str(e)))
+  except tuf.ssl_commons.exceptions.FormatError as e:
+    raise tuf.ssl_commons.exceptions.Error('Cannot import improperly formatted PEM file.' + repr(str(e)))
   
   return rsakey_dict
 
@@ -1043,11 +1043,11 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
       'password', so it is not directly used.
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
     
-    tuf.CryptoError, if 'filepath' cannot be encrypted.
+    tuf.ssl_commons.exceptions.CryptoError, if 'filepath' cannot be encrypted.
 
-    tuf.UnsupportedLibraryError, if 'filepath' cannot be encrypted due to an
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if 'filepath' cannot be encrypted due to an
     invalid configuration setting (i.e., invalid 'tuf.conf.py' setting).
 
   <Side Effects>
@@ -1060,7 +1060,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
@@ -1073,8 +1073,8 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
 
   # Generate a new ED25519 key object and encrypt it.  The cryptography library
   # used is determined by the user, or by default (set in
-  # 'tuf.conf.ED25519_CRYPTO_LIBRARY').  Raise 'tuf.CryptoError' or
-  # 'tuf.UnsupportedLibraryError', if 'ed25519_key' cannot be encrypted.
+  # 'tuf.conf.ED25519_CRYPTO_LIBRARY').  Raise 'tuf.ssl_commons.exceptions.CryptoError' or
+  # 'tuf.ssl_commons.exceptions.UnsupportedLibraryError', if 'ed25519_key' cannot be encrypted.
   ed25519_key = tuf.keys.generate_ed25519_key()
   encrypted_key = tuf.keys.encrypt_key(ed25519_key, password) 
 
@@ -1121,7 +1121,7 @@ def import_ed25519_publickey_from_file(filepath):
       <filepath>.pub file, a TUF public key file.
     
   <Exceptions>
-    tuf.FormatError, if 'filepath' is improperly formatted or is an unexpected
+    tuf.ssl_commons.exceptions.FormatError, if 'filepath' is improperly formatted or is an unexpected
     key type.
 
   <Side Effects>
@@ -1134,7 +1134,7 @@ def import_ed25519_publickey_from_file(filepath):
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(filepath)
 
   # ED25519 key objects are saved in json and metadata format.  Return the
@@ -1148,7 +1148,7 @@ def import_ed25519_publickey_from_file(filepath):
   # should have fully validated 'ed25519_key_metadata'.
   if ed25519_key['keytype'] != 'ed25519': # pragma: no cover
     message = 'Invalid key type loaded: ' + repr(ed25519_key['keytype'])
-    raise tuf.FormatError(message)
+    raise tuf.ssl_commons.exceptions.FormatError(message)
 
   return ed25519_key
 
@@ -1180,12 +1180,12 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
       object can be returned.
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted or the imported
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted or the imported
     key object contains an invalid key type (i.e., not 'ed25519').
 
-    tuf.CryptoError, if 'filepath' cannot be decrypted.
+    tuf.ssl_commons.exceptions.CryptoError, if 'filepath' cannot be decrypted.
 
-    tuf.UnsupportedLibraryError, if 'filepath' cannot be decrypted due to an
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError, if 'filepath' cannot be decrypted due to an
     invalid configuration setting (i.e., invalid 'tuf.conf.py' setting).
 
   <Side Effects>
@@ -1198,7 +1198,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   # Does 'filepath' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(filepath)
 
   # If the caller does not provide a password argument, prompt for one.
@@ -1220,14 +1220,14 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
 
   # Decrypt the loaded key file, calling the appropriate cryptography library
   # (i.e., set by the user) and generating the derived encryption key from
-  # 'password'.  Raise 'tuf.CryptoError' or 'tuf.UnsupportedLibraryError' if the
+  # 'password'.  Raise 'tuf.ssl_commons.exceptions.CryptoError' or 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the
   # decryption fails.
   key_object = tuf.keys.decrypt_key(encrypted_key, password)
 
   # Raise an exception if an unexpected key type is imported. 
   if key_object['keytype'] != 'ed25519':
     message = 'Invalid key type loaded: ' + repr(key_object['keytype'])
-    raise tuf.FormatError(message)
+    raise tuf.ssl_commons.exceptions.FormatError(message)
 
   return key_object
 
@@ -1255,7 +1255,7 @@ def get_metadata_filenames(metadata_directory=None):
       The directory containing the metadata files.
 
   <Exceptions>
-    tuf.FormatError, if 'metadata_directory' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'metadata_directory' is improperly formatted.
 
   <Side Effects>
     None.
@@ -1271,7 +1271,7 @@ def get_metadata_filenames(metadata_directory=None):
   # Does 'metadata_directory' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(metadata_directory)
 
   # Store the filepaths of the top-level roles, including the
@@ -1316,9 +1316,9 @@ def get_metadata_fileinfo(filename, custom=None):
       An optional object providing additional information about the file. 
 
   <Exceptions>
-    tuf.FormatError, if 'filename' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'filename' is improperly formatted.
 
-    tuf.Error, if 'filename' doesn't exist.
+    tuf.ssl_commons.exceptions.Error, if 'filename' doesn't exist.
 
   <Side Effects>
     The file is opened and information about the file is generated,
@@ -1333,14 +1333,14 @@ def get_metadata_fileinfo(filename, custom=None):
   # Does 'filename' and 'custom' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(filename)
   if custom is not None:
     tuf.tufformats.CUSTOM_SCHEMA.check_match(custom)
 
   if not os.path.isfile(filename):
     message = repr(filename) + ' is not a file.'
-    raise tuf.Error(message)
+    raise tuf.ssl_commons.exceptions.Error(message)
   
   # Note: 'filehashes' is a dictionary of the form
   # {'sha256': 1233dfba312, ...}.  'custom' is an optional
@@ -1369,12 +1369,12 @@ def get_metadata_versioninfo(rolename):
   <Arguments>
     rolename:
       The metadata role whose versioninfo is needed.  It must exist, otherwise
-      a 'tuf.UnknownRoleError' exception is raised.
+      a 'tuf.ssl_commons.exceptions.UnknownRoleError' exception is raised.
 
   <Exceptions>
-    tuf.FormatError, if 'rolename' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'rolename' is improperly formatted.
 
-    tuf.UnknownRoleError, if 'rolename' does not exist.
+    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' does not exist.
 
   <Side Effects>
     None.
@@ -1459,10 +1459,10 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
       algorithms used by the repository.
 
   <Exceptions>
-    tuf.FormatError, if the generated root metadata object could not
+    tuf.ssl_commons.exceptions.FormatError, if the generated root metadata object could not
     be generated with the correct format.
 
-    tuf.Error, if an error is encountered while generating the root
+    tuf.ssl_commons.exceptions.Error, if an error is encountered while generating the root
     metadata object (e.g., a required top-level role not found in 'tuf.roledb'.)
   
   <Side Effects>
@@ -1475,7 +1475,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if any of the arguments are improperly formatted.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if any of the arguments are improperly formatted.
   tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.tufformats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   tuf.tufformats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
@@ -1493,7 +1493,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
     
     # If a top-level role is missing from 'tuf.roledb.py', raise an exception.
     if not tuf.roledb.role_exists(rolename):
-      raise tuf.Error(repr(rolename) + ' not in "tuf.roledb".')
+      raise tuf.ssl_commons.exceptions.Error(repr(rolename) + ' not in "tuf.roledb".')
    
     # Keep track of the keys loaded to avoid duplicates.
     keyids = []
@@ -1520,11 +1520,11 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
         
         # This is not a recognized key.  Raise an exception.
         else:
-          raise tuf.Error('Unsupported keytype: ' + keyid)
+          raise tuf.ssl_commons.exceptions.Error('Unsupported keytype: ' + keyid)
       
       # Do we have a duplicate?
       if keyid in keyids:
-        raise tuf.Error('Same keyid listed twice: ' + keyid)
+        raise tuf.ssl_commons.exceptions.Error('Same keyid listed twice: ' + keyid)
       
       # Add the loaded keyid for the role being processed.
       keyids.append(keyid)
@@ -1585,10 +1585,10 @@ def generate_targets_metadata(targets_directory, target_files, version,
       target files.
   
   <Exceptions>
-    tuf.FormatError, if an error occurred trying to generate the targets
+    tuf.ssl_commons.exceptions.FormatError, if an error occurred trying to generate the targets
     metadata object.
 
-    tuf.Error, if any of the target files cannot be read. 
+    tuf.ssl_commons.exceptions.Error, if any of the target files cannot be read. 
 
   <Side Effects>
     The target files are read and file information generated about them.
@@ -1604,7 +1604,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
   # Do the arguments have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.tufformats.PATH_SCHEMA.check_match(targets_directory)
   tuf.tufformats.PATH_FILEINFO_SCHEMA.check_match(target_files)
   tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version)
@@ -1638,7 +1638,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
     # Ensure all target files listed in 'target_files' exist.  If just one of
     # these files does not exist, raise an exception.
     if not os.path.exists(target_path):
-      raise tuf.Error(repr(target_path) + ' cannot be read.'
+      raise tuf.ssl_commons.exceptions.Error(repr(target_path) + ' cannot be read.'
         '  Unable to generate targets metadata.')
 
     # Add 'custom' if it has been provided.  Custom data about the target is
@@ -1715,9 +1715,9 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
       is stripped from the target filename and listed in the snapshot metadata. 
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-    tuf.Error, if an error occurred trying to generate the snapshot metadata
+    tuf.ssl_commons.exceptions.Error, if an error occurred trying to generate the snapshot metadata
     object.
 
   <Side Effects>
@@ -1730,7 +1730,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # Do the arguments have the correct format?
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.PATH_SCHEMA.check_match(metadata_directory)
   tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.tufformats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
@@ -1810,7 +1810,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date):
       'tuf.tufformats.ISO8601_DATETIME_SCHEMA'.
 
   <Exceptions>
-    tuf.FormatError, if the generated timestamp metadata object cannot be
+    tuf.ssl_commons.exceptions.FormatError, if the generated timestamp metadata object cannot be
     formatted correctly, or one of the arguments is improperly formatted.
 
   <Side Effects>
@@ -1823,7 +1823,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date):
   # Do the arguments have the correct format?
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.PATH_SCHEMA.check_match(snapshot_filename)
   tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version)
   tuf.tufformats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
@@ -1872,10 +1872,10 @@ def sign_metadata(metadata_object, keyids, filename):
       does NOT save the signed metadata to this filename.
 
   <Exceptions>
-    tuf.FormatError, if a valid 'signable' object could not be generated or
+    tuf.ssl_commons.exceptions.FormatError, if a valid 'signable' object could not be generated or
     the arguments are improperly formatted.
 
-    tuf.Error, if an invalid keytype was found in the keystore. 
+    tuf.ssl_commons.exceptions.Error, if an invalid keytype was found in the keystore. 
   
   <Side Effects>
     None.
@@ -1887,7 +1887,7 @@ def sign_metadata(metadata_object, keyids, filename):
   # Do the arguments have the correct format?
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.ANYROLE_SCHEMA.check_match(metadata_object)  
   tuf.tufformats.KEYIDS_SCHEMA.check_match(keyids)
   tuf.tufformats.PATH_SCHEMA.check_match(filename)
@@ -1920,9 +1920,9 @@ def sign_metadata(metadata_object, keyids, filename):
         logger.debug('Private key unset.  Skipping: ' + repr(keyid))
     
     else:
-      raise tuf.Error('The keydb contains a key with an invalid key type.')
+      raise tuf.ssl_commons.exceptions.Error('The keydb contains a key with an invalid key type.')
 
-  # Raise 'tuf.FormatError' if the resulting 'signable' is not formatted
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the resulting 'signable' is not formatted
   # correctly.
   tuf.tufformats.check_signable_object_format(signable)
 
@@ -1967,9 +1967,9 @@ def write_metadata_file(metadata, filename, version_number,
       prepended to the filename.
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-    tuf.Error, if the directory of 'filename' does not exist.
+    tuf.ssl_commons.exceptions.Error, if the directory of 'filename' does not exist.
 
     Any other runtime (e.g., IO) exception.
 
@@ -1984,7 +1984,7 @@ def write_metadata_file(metadata, filename, version_number,
   # Do the arguments have the correct format?
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.SIGNABLE_SCHEMA.check_match(metadata)
   tuf.tufformats.PATH_SCHEMA.check_match(filename)
   tuf.tufformats.METADATAVERSION_SCHEMA.check_match(version_number)
@@ -2055,7 +2055,7 @@ def write_metadata_file(metadata, filename, version_number,
       os.link(written_consistent_filename, written_filename)
 
     else:
-      raise tuf.InvalidConfigurationError('The consistent method specified'
+      raise tuf.ssl_commons.exceptions.InvalidConfigurationError('The consistent method specified'
         ' in tuf.conf.py is not supported, try either "copy" or "hard_link"')
   
   else:
@@ -2093,7 +2093,7 @@ def write_metadata_file(metadata, filename, version_number,
     # 'compression_algorithms' list is validated against the
     # COMPRESSIONS_SCHEMA above.
     else: # pragma: no cover
-      raise tuf.FormatError('Unknown compression algorithm:'
+      raise tuf.ssl_commons.exceptions.FormatError('Unknown compression algorithm:'
         ' ' + repr(compression_algorithm))
    
     # Save the compressed version, ensuring an unchanged file is not re-saved.
@@ -2198,7 +2198,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
     try:
       _check_role_keys(rolename)
     
-    except tuf.InsufficientKeysError as e:
+    except tuf.ssl_commons.exceptions.InsufficientKeysError as e:
       logger.info(str(e))
 
   # Do the top-level roles contain a valid threshold of signatures?  Top-level
@@ -2220,9 +2220,9 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
                                    targets_directory, metadata_directory)
     _log_status('root', signable)
  
-  # 'tuf.UnsignedMetadataError' raised if metadata contains an invalid threshold
+  # 'tuf.ssl_commons.exceptions.UnsignedMetadataError' raised if metadata contains an invalid threshold
   # of signatures.  log the valid/threshold message, where valid < threshold.
-  except tuf.UnsignedMetadataError as e:
+  except tuf.ssl_commons.exceptions.UnsignedMetadataError as e:
     _log_status('root', e.signable)
     return
 
@@ -2246,7 +2246,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
                                    targets_directory, metadata_directory)
     _log_status('targets', signable)
   
-  except tuf.UnsignedMetadataError as e:
+  except tuf.ssl_commons.exceptions.UnsignedMetadataError as e:
     _log_status('targets', e.signable)
     return
   
@@ -2272,7 +2272,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
                                    False, filenames)
     _log_status('snapshot', signable)
   
-  except tuf.UnsignedMetadataError as e:
+  except tuf.ssl_commons.exceptions.UnsignedMetadataError as e:
     _log_status('snapshot', e.signable)
     return
   
@@ -2298,7 +2298,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
                                    False, filenames)
     _log_status('timestamp', signable)
   
-  except tuf.UnsignedMetadataError as e:
+  except tuf.ssl_commons.exceptions.UnsignedMetadataError as e:
     _log_status('timestamp', e.signable)
     return
   
@@ -2351,9 +2351,9 @@ def create_tuf_client_directory(repository_directory, client_directory):
       and target files downloaded from a TUF repository.
   
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
-    tuf.RepositoryError, if the metadata directory in 'client_directory'
+    tuf.ssl_commons.exceptions.RepositoryError, if the metadata directory in 'client_directory'
     already exists.
 
   <Side Effects>
@@ -2367,7 +2367,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
   # Do the arguments have the correct format?
   # This check ensures arguments have the appropriate number of objects and 
   # object types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if the check fails.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.tufformats.PATH_SCHEMA.check_match(repository_directory)
   tuf.tufformats.PATH_SCHEMA.check_match(client_directory)
 
@@ -2394,7 +2394,7 @@ def create_tuf_client_directory(repository_directory, client_directory):
     if e.errno == errno.EEXIST:
       message = 'Cannot create a fresh client metadata directory: ' +\
         repr(client_metadata_directory) + '.  Already exists.'
-      raise tuf.RepositoryError(message)
+      raise tuf.ssl_commons.exceptions.RepositoryError(message)
     
     else:
       raise

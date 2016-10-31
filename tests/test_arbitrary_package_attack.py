@@ -229,18 +229,18 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.download_target(file1_fileinfo, destination)
     
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       url_prefix = self.repository_mirrors['mirror1']['url_prefix']
       url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
       # Verify that only one exception is raised for 'url_file'.
       self.assertTrue(len(exception.mirror_errors), 1)
 
-      # Verify that the expected 'tuf.DownloadLengthMismatchError' exception
+      # Verify that the expected 'tuf.ssl_commons.exceptions.DownloadLengthMismatchError' exception
       # is raised for 'url_file'.
       self.assertTrue(url_file in exception.mirror_errors)
       self.assertTrue(isinstance(exception.mirror_errors[url_file],
-                                 tuf.BadHashError))
+                                 tuf.ssl_commons.exceptions.BadHashError))
     
     else:
       self.fail('TUF did not prevent an arbitrary package attack.')
@@ -281,7 +281,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       destination = os.path.join(self.client_directory)
       self.repository_updater.download_target(file1_fileinfo, destination)
     
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       url_prefix = self.repository_mirrors['mirror1']['url_prefix']
       url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
@@ -291,7 +291,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       # Verify that the specific and expected mirror exception is raised.
       self.assertTrue(url_file in exception.mirror_errors)
       self.assertTrue(isinstance(exception.mirror_errors[url_file],
-                                 tuf.BadHashError))
+                                 tuf.ssl_commons.exceptions.BadHashError))
     
     else:
       self.fail('TUF did not prevent an arbitrary package attack.')

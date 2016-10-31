@@ -79,7 +79,7 @@ except ImportError: # pragma: no cover
 # Were we able to import any hash libraries?
 if not _supported_libraries: # pragma: no cover
   # This is fatal, we'll have no way of generating hashes.
-  raise tuf.Error('Unable to import a hash library from the '
+  raise tuf.ssl_commons.exceptions.Error('Unable to import a hash library from the '
                   'following supported list: '+str(_SUPPORTED_LIB_LIST)) 
 
 
@@ -125,8 +125,8 @@ def digest(algorithm=_DEFAULT_HASH_ALGORITHM,
       (e.g., pycrypto, hashlib).
       
   <Exceptions>
-    tuf.UnsupportedAlgorithmError
-    tuf.UnsupportedLibraryError
+    tuf.ssl_commons.exceptions.UnsupportedAlgorithmError
+    tuf.ssl_commons.exceptions.UnsupportedLibraryError
 
   <Side Effects>
     None.
@@ -143,7 +143,7 @@ def digest(algorithm=_DEFAULT_HASH_ALGORITHM,
       return hashlib.new(algorithm)
     
     except ValueError:
-      raise tuf.UnsupportedAlgorithmError(algorithm)
+      raise tuf.ssl_commons.exceptions.UnsupportedAlgorithmError(algorithm)
 
   # Was a pycrypto digest object requested and is it supported?
   elif hash_library == 'pycrypto' and hash_library in _supported_libraries:
@@ -163,11 +163,11 @@ def digest(algorithm=_DEFAULT_HASH_ALGORITHM,
     elif algorithm == 'sha512':
       return SHA512.new()
     else:
-      raise tuf.UnsupportedAlgorithmError(algorithm)
+      raise tuf.ssl_commons.exceptions.UnsupportedAlgorithmError(algorithm)
   
   # The requested hash library is not supported. 
   else:
-    raise tuf.UnsupportedLibraryError('Unsupported library requested.  '
+    raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Unsupported library requested.  '
                     'Supported hash libraries: '+str(_SUPPORTED_LIB_LIST)) 
 
 
@@ -195,9 +195,9 @@ def digest_fileobject(file_object, algorithm=_DEFAULT_HASH_ALGORITHM,
       (e.g., pycrypto, hashlib).
 
   <Exceptions>
-    tuf.UnsupportedAlgorithmError
+    tuf.ssl_commons.exceptions.UnsupportedAlgorithmError
     
-    tuf.Error
+    tuf.ssl_commons.exceptions.Error
 
   <Side Effects>
     Calls tuf.hash.digest() to create the actual digest object.
@@ -209,8 +209,8 @@ def digest_fileobject(file_object, algorithm=_DEFAULT_HASH_ALGORITHM,
 
   # Digest object returned whose hash will be updated using 'file_object'.
   # digest() raises:
-  # tuf.UnsupportedAlgorithmError
-  # tuf.Error
+  # tuf.ssl_commons.exceptions.UnsupportedAlgorithmError
+  # tuf.ssl_commons.exceptions.Error
   digest_object = digest(algorithm, hash_library)
 
   # Defensively seek to beginning, as there's no case where we don't
@@ -257,8 +257,8 @@ def digest_filename(filename, algorithm=_DEFAULT_HASH_ALGORITHM,
       (e.g., pycrypto, hashlib).
 
   <Exceptions>
-    tuf.UnsupportedAlgorithmError
-    tuf.Error 
+    tuf.ssl_commons.exceptions.UnsupportedAlgorithmError
+    tuf.ssl_commons.exceptions.Error 
 
   <Side Effects>
     Calls tuf.hash.digest_fileobject() after opening 'filename'.
@@ -274,8 +274,8 @@ def digest_filename(filename, algorithm=_DEFAULT_HASH_ALGORITHM,
   
   # Create digest_object and update its hash data from file_object.
   # digest_fileobject() raises:
-  # tuf.UnsupportedAlgorithmError
-  # tuf.Error
+  # tuf.ssl_commons.exceptions.UnsupportedAlgorithmError
+  # tuf.ssl_commons.exceptions.Error
   digest_object = digest_fileobject(file_object, algorithm, hash_library)
   
   file_object.close()

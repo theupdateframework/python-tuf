@@ -69,9 +69,9 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       The 'custom' field is optional.
 
   <Exceptions>
-    tuf.Error, on unsupported 'file_type'.
+    tuf.ssl_commons.exceptions.Error, on unsupported 'file_type'.
     
-    tuf.FormatError, on bad argument.
+    tuf.ssl_commons.exceptions.FormatError, on bad argument.
 
   <Return>
     List of mirror urls corresponding to the file_type and file_path.  If no
@@ -87,7 +87,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   if file_type not in _SUPPORTED_FILE_TYPES:
     message = 'Invalid file_type argument.  '+ \
       'Supported file types: '+repr(_SUPPORTED_FILE_TYPES)
-    raise tuf.Error(message)
+    raise tuf.ssl_commons.exceptions.Error(message)
 
   # Reference to 'tuf.util.file_in_confined_directories()' (improve readability).
   # This function checks whether a mirror should serve a file to the client.

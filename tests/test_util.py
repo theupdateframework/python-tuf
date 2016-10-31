@@ -143,7 +143,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
     # Test: Unexpected input.
     for bogus_arg in ['abcd', ['abcd'], {'a':'a'}, -100]:
-      self.assertRaises(tuf.FormatError, self.temp_fileobj.read, bogus_arg)
+      self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.temp_fileobj.read, bogus_arg)
 
 
 
@@ -219,7 +219,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     # other than 'gzip'.  In short feeding incorrect input.
     bogus_args = ['zip', 1234, self.random_string()]
     for arg in bogus_args:    
-      self.assertRaises(tuf.Error,
+      self.assertRaises(tuf.ssl_commons.exceptions.Error,
                         self.temp_fileobj.decompress_temp_file_object, arg)
     
     # Test for a valid util.decompress_temp_file_object() call. 
@@ -238,14 +238,14 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     self.assertEqual(data_in_orig_file, fileobj.read())
 
     # Try decompressing once more.
-    self.assertRaises(tuf.Error, 
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, 
                       self.temp_fileobj.decompress_temp_file_object, 'gzip')
     
     # Test decompression of invalid gzip file.
     temp_file = tuf.util.TempFile()
     temp_file.write(b'bad zip')
     contents = temp_file.read()
-    self.assertRaises(tuf.DecompressionError,
+    self.assertRaises(tuf.ssl_commons.exceptions.DecompressionError,
                       temp_file.decompress_temp_file_object, 'gzip')
 
 
@@ -270,9 +270,9 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     
     for bogus_input in bogus_inputs:
       if isinstance(bogus_input, six.string_types):
-        self.assertRaises(tuf.Error, tuf.util.get_file_details, bogus_input)
+        self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.util.get_file_details, bogus_input)
       else:
-        self.assertRaises(tuf.FormatError, tuf.util.get_file_details, bogus_input)
+        self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.get_file_details, bogus_input)
 
  
     
@@ -285,7 +285,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
         tuf.util.ensure_parent_dir(os.path.join(parent_dir, 'a.txt'))
         self.assertTrue(os.path.isdir(parent_dir))
       else:
-        self.assertRaises(tuf.FormatError, tuf.util.ensure_parent_dir, parent_dir)
+        self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.ensure_parent_dir, parent_dir)
       
 
 
@@ -298,7 +298,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     list_of_filepaths = [12, ['a'], {'a':'a'}, 'a']    
     for bogus_confined_directory in list_of_confined_directories:
       for filepath in list_of_filepaths:
-        self.assertRaises(tuf.FormatError, in_confined_directory, 
+        self.assertRaises(tuf.ssl_commons.exceptions.FormatError, in_confined_directory, 
                           filepath, bogus_confined_directory)
 
     # Test: Inputs that evaluate to False.
@@ -338,9 +338,9 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     self.assertEqual(data, tuf.util.load_json_string(json_string))
 
     # Test invalid arguments.
-    self.assertRaises(tuf.Error, tuf.util.load_json_string, 8)
-    invalid_json_string = {'a': tuf.FormatError}
-    self.assertRaises(tuf.Error, tuf.util.load_json_string, invalid_json_string)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.util.load_json_string, 8)
+    invalid_json_string = {'a': tuf.ssl_commons.exceptions.FormatError}
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.util.load_json_string, invalid_json_string)
 
  
 
@@ -358,7 +358,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
     # Improperly formatted arguments.
     for bogus_arg in [1, [b'a'], {'a':b'b'}]:
-      self.assertRaises(tuf.FormatError, tuf.util.load_json_file, bogus_arg)
+      self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.load_json_file, bogus_arg)
 
     # Non-existent path. 
     self.assertRaises(IOError, tuf.util.load_json_file, 'non-existent.json')
@@ -366,7 +366,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     # Invalid JSON content.
     with open(filepath, 'a') as filepath:
       filepath.write('junk data')
-    self.assertRaises(tuf.Error, tuf.util.load_json_file, filepath)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.util.load_json_file, filepath)
 
 
   
@@ -383,7 +383,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
       self.assertEqual(tuf.util.get_target_hash(filepath), target_hash)
    
     # Test for improperly formatted argument.
-    self.assertRaises(tuf.FormatError, tuf.util.get_target_hash, 8)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.get_target_hash, 8)
 
 
 
@@ -423,12 +423,12 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
                                               None)
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, tuf.util.find_delegated_role, 8, role_list)
-    self.assertRaises(tuf.FormatError, tuf.util.find_delegated_role, 8, 'targets/tuf')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.find_delegated_role, 8, role_list)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.find_delegated_role, 8, 'targets/tuf')
 
     # Test duplicate roles.
     role_list.append(role_list[1])
-    self.assertRaises(tuf.RepositoryError, tuf.util.find_delegated_role, role_list,
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, tuf.util.find_delegated_role, role_list,
                       'targets/tuf')
 
     # Test missing 'name' attribute (optional, but required by 
@@ -436,7 +436,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     # Delete the duplicate role, and the remaining role's 'name' attribute. 
     del role_list[2]
     del role_list[0]['name']
-    self.assertRaises(tuf.RepositoryError, tuf.util.find_delegated_role, role_list,
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, tuf.util.find_delegated_role, role_list,
                       'targets/warehouse')
   
   
@@ -459,15 +459,15 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
                                                           extra_invalid_prefix))
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       tuf.util.paths_are_consistent_with_hash_prefixes, 8,
                       path_hash_prefixes) 
     
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       tuf.util.paths_are_consistent_with_hash_prefixes,
                       list_of_targets, 8)
     
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       tuf.util.paths_are_consistent_with_hash_prefixes,
                       list_of_targets, ['zza1'])
     
@@ -523,33 +523,33 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
                                     parent_delegations)
     
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, tuf.util.ensure_all_targets_allowed,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.ensure_all_targets_allowed,
                       8, list_of_targets, parent_delegations)
     
-    self.assertRaises(tuf.FormatError, tuf.util.ensure_all_targets_allowed,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.ensure_all_targets_allowed,
                       rolename, 8, parent_delegations)
     
-    self.assertRaises(tuf.FormatError, tuf.util.ensure_all_targets_allowed,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.ensure_all_targets_allowed,
                       rolename, list_of_targets, 8)
 
     # Test for invalid 'rolename', which has not been delegated by its parent,
     # 'targets'.
-    self.assertRaises(tuf.RepositoryError, tuf.util.ensure_all_targets_allowed,
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, tuf.util.ensure_all_targets_allowed,
                       'targets/non-delegated_rolename', list_of_targets,
                       parent_delegations)
 
     # Test for target file that is not allowed by the parent role.
-    self.assertRaises(tuf.ForbiddenTargetError, tuf.util.ensure_all_targets_allowed,
+    self.assertRaises(tuf.ssl_commons.exceptions.ForbiddenTargetError, tuf.util.ensure_all_targets_allowed,
                       'targets/warehouse', ['file1.zip'], parent_delegations)
     
-    self.assertRaises(tuf.ForbiddenTargetError, tuf.util.ensure_all_targets_allowed,
+    self.assertRaises(tuf.ssl_commons.exceptions.ForbiddenTargetError, tuf.util.ensure_all_targets_allowed,
                       'targets/warehouse', ['file1.txt', 'bad-README.txt'],
                       parent_delegations)
 
     # Test for required attributes.
     # Missing 'paths' attribute.
     del parent_delegations['roles'][0]['paths']
-    self.assertRaises(tuf.FormatError, tuf.util.ensure_all_targets_allowed,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.ensure_all_targets_allowed,
                       'targets/warehouse', list_of_targets, parent_delegations)
     
     # Test 'path_hash_prefixes' attribute.
@@ -565,7 +565,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     path_hash_prefix = tuf.util.get_target_hash('file5.txt')[0:4]
     self.assertTrue(path_hash_prefix not in parent_delegations['roles'][0]
                                                         ['path_hash_prefixes'])
-    self.assertRaises(tuf.ForbiddenTargetError, tuf.util.ensure_all_targets_allowed,
+    self.assertRaises(tuf.ssl_commons.exceptions.ForbiddenTargetError, tuf.util.ensure_all_targets_allowed,
                       'targets/warehouse', ['file5.txt'], parent_delegations)
   
   
@@ -597,9 +597,9 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     self.assertFalse(tuf.util.digests_are_equal(digest, '0a8df1'))
 
     # Test for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.util.digests_are_equal, 7,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.digests_are_equal, 7,
                       digest)
-    self.assertRaises(tuf.FormatError, tuf.util.digests_are_equal, digest,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.util.digests_are_equal, digest,
                       7)
    
     # Test that digests_are_equal() takes the same amount of time to compare

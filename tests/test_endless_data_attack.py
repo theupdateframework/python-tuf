@@ -283,9 +283,9 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.refresh()
     
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
-        self.assertTrue(isinstance(mirror_error, tuf.Error))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.Error))
     
     else:
       self.fail('TUF did not prevent an endless data attack.')
