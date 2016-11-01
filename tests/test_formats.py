@@ -562,15 +562,15 @@ class TestFormats(unittest.TestCase):
                                'paths': ['path1/', 'path2']}}}
 
     SIGNABLE_SCHEMA = tuf.ssl_crypto.formats.SIGNABLE_SCHEMA
-    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.tufformats.make_signable(root)))
-    signable = tuf.tufformats.make_signable(root)
+    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.ssl_crypto.formats.make_signable(root)))
+    signable = tuf.ssl_crypto.formats.make_signable(root)
     self.assertEqual('root', tuf.tufformats.check_signable_object_format(signable))
     
-    self.assertEqual(signable, tuf.tufformats.make_signable(signable))
+    self.assertEqual(signable, tuf.ssl_crypto.formats.make_signable(signable))
 
     # Test conditions for miscellaneous arguments. 
-    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.tufformats.make_signable('123')))
-    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.tufformats.make_signable(123)))
+    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.ssl_crypto.formats.make_signable('123')))
+    self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.ssl_crypto.formats.make_signable(123)))
 
 
 
@@ -710,7 +710,7 @@ class TestFormats(unittest.TestCase):
                                'threshold': 1,
                                'paths': ['path1/', 'path2']}}}
     
-    root = tuf.tufformats.make_signable(root)
+    root = tuf.ssl_crypto.formats.make_signable(root)
     self.assertEqual('root', tuf.tufformats.check_signable_object_format(root))
 
     # Test conditions for invalid arguments.
@@ -736,7 +736,7 @@ class TestFormats(unittest.TestCase):
 
   def test_encode_canonical(self):
     # Test conditions for valid arguments.
-    encode = tuf.tufformats.encode_canonical
+    encode = tuf.ssl_crypto.formats.encode_canonical
     result = [] 
     output = result.append
     bad_output = 123

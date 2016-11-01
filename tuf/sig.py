@@ -377,7 +377,7 @@ def generate_rsa_signature(signed, rsakey_dict):
 
   # We need 'signed' in canonical JSON format to generate
   # the 'method' and 'sig' fields of the signature.
-  signed = tuf.tufformats.encode_canonical(signed)
+  signed = tuf.ssl_crypto.formats.encode_canonical(signed)
 
   # Generate the RSA signature.
   # Raises tuf.ssl_commons.exceptions.FormatError and TypeError.

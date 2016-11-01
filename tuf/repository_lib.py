@@ -42,6 +42,7 @@ import gzip
 import random
 
 import tuf
+import tuf.ssl_crypto.formats
 import tuf.tufformats
 import tuf.util
 import tuf.keydb
@@ -1896,7 +1897,7 @@ def sign_metadata(metadata_object, keyids, filename):
   # it contains a 'signatures' field containing the result
   # of signing the 'signed' field of 'metadata' with each
   # keyid of 'keyids'.
-  signable = tuf.tufformats.make_signable(metadata_object)
+  signable = tuf.ssl_crypto.formats.make_signable(metadata_object)
 
   # Sign the metadata with each keyid in 'keyids'.  'signable' should have
   # zero signatures (metadata_object contained none).

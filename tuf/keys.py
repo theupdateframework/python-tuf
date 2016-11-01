@@ -543,7 +543,7 @@ def _get_keyid(keytype, key_value, hash_algorithm=_KEY_ID_HASH_ALGORITHM):
 
   # Convert the TUF key to JSON Canonical format, suitable for adding
   # to digest objects.
-  key_update_data = tuf.tufformats.encode_canonical(key_meta)
+  key_update_data = tuf.ssl_crypto.formats.encode_canonical(key_meta)
 
   # Create a digest object and call update(), using the JSON canonical format
   # of 'rskey_meta' as the update data.  _KEY_ID_HASH_ALGORITHM should be the
@@ -737,7 +737,7 @@ def create_signature(key_dict, data):
   # generated across different platforms and Python key dictionaries.  The
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
-  data = tuf.tufformats.encode_canonical(data)
+  data = tuf.ssl_crypto.formats.encode_canonical(data)
 
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
@@ -868,7 +868,7 @@ def verify_signature(key_dict, signature, data):
   # generated across different platforms and Python key dictionaries.  The
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
-  data = tuf.tufformats.encode_canonical(data).encode('utf-8')
+  data = tuf.ssl_crypto.formats.encode_canonical(data).encode('utf-8')
   
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
