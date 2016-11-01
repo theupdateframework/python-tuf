@@ -69,7 +69,7 @@ import time
 
 import tuf
 import tuf.tufformats
-import tuf.conf
+from simple_settings import settings
 
 # Setting a handler's log level filters only logging messages of that level
 # (and above).  For example, setting the built-in StreamHandler's log level to
@@ -108,12 +108,12 @@ logger = logging.getLogger('tuf')
 logger.setLevel(_DEFAULT_LOG_LEVEL)
 
 # Set the built-in file handler.  Messages will be logged to
-# 'tuf.conf.LOG_FILENAME', and only those messages with a log level of
+# 'settings.LOG_FILENAME', and only those messages with a log level of
 # '_DEFAULT_LOG_LEVEL'.  The log level of messages handled by 'file_handler'
-# may be modified with 'set_filehandler_log_level()'.  'tuf.conf.LOG_FILENAME'
+# may be modified with 'set_filehandler_log_level()'.  'settings.LOG_FILENAME'
 # will be opened in append mode.
-if tuf.conf.ENABLE_FILE_LOGGING:
-  file_handler = logging.FileHandler(tuf.conf.LOG_FILENAME)
+if settings.ENABLE_FILE_LOGGING:
+  file_handler = logging.FileHandler(settings.LOG_FILENAME)
   file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
   file_handler.setFormatter(formatter)
   logger.addHandler(file_handler)

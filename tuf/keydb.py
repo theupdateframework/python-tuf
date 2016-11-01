@@ -116,7 +116,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
       # format, which is the format expected by 'add_key()'.  Note:
       # The 'keyids' returned by format_metadata_to_key() include keyids in
       # addition to the default keyid listed in 'key_dict'.  The additional
-      # keyids are generated according to tuf.conf.REPOSITORY_HASH_ALGORITHMS.
+      # keyids are generated according to settings.REPOSITORY_HASH_ALGORITHMS.
       key_dict, keyids = tuf.keys.format_metadata_to_key(key_metadata)
       
       try:

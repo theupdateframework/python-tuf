@@ -35,7 +35,7 @@ import json
 
 import tuf
 import tuf.util
-import tuf.conf
+from simple_settings import settings
 import tuf.log
 import tuf.interposition.updater as updater
 import tuf.interposition.configuration as configuration
@@ -140,9 +140,9 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     port = self.SERVER_PORT
     url_prefix = 'http://localhost:' + str(port) + repository_basepath
 
-    # Setting 'tuf.conf.repository_directory' with the temporary client         
+    # Setting 'settings.repository_directory' with the temporary client         
     # directory copied from the original repository files.                      
-    tuf.conf.repository_directory = self.client_directory
+    settings.repository_directory = self.client_directory
 
     self.repository_mirrors = {'mirror': {'url_prefix': url_prefix,            
                                            'metadata_path': 'metadata',         
@@ -394,9 +394,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     port = self.SERVER_PORT
     url_prefix = 'http://localhost:' + str(port) + repository_basepath
 
-    # Setting 'tuf.conf.repository_directory' with the temporary client         
+    # Setting 'settings.repository_directory' with the temporary client         
     # directory copied from the original repository files.                      
-    tuf.conf.repository_directory = self.client_directory
+    settings.repository_directory = self.client_directory
 
     self.repository_mirrors = {'mirror': {'url_prefix': url_prefix,            
                                           'metadata_path': 'metadata',         

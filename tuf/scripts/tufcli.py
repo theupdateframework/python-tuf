@@ -107,7 +107,7 @@ def update_repository(repository_path, command, command_arguments):
   tuf.tufformats.COMMAND_SCHEMA.check_match(command_arguments)
   
   # Set the local repository directory containing all of the metadata files.
-  tuf.conf.repository_directory = repository_path 
+  settings.repository_directory = repository_path 
 
   if command == 'init':
     repository = create_new_repository(repository_path)

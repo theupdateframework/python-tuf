@@ -105,7 +105,7 @@ def update_client(repository_mirror):
     raise tuf.ssl_commons.exceptions.RepositoryError(message)
   
   # Set the local repository directory containing all of the metadata files.
-  tuf.conf.repository_directory = '.'
+  settings.repository_directory = '.'
 
   # Set the repository mirrors.  This dictionary is needed by the Updater
   # class of updater.py.

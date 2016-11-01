@@ -35,6 +35,7 @@ import sys
 import unittest
 import glob
 import random
+from simple_settings import settings
 
 # 'unittest2' required for testing under Python < 2.7.
 if sys.version_info >= (2, 7):

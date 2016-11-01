@@ -44,7 +44,7 @@ import tuf.roledb
 import tuf.keys
 import tuf.sig
 import tuf.log
-import tuf.conf
+from simple_settings import settings
 import tuf.repository_tool
 import six
 

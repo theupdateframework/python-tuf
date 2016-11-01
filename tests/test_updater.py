@@ -65,7 +65,7 @@ else:
 
 import tuf
 import tuf.util
-import tuf.conf
+from simple_settings import settings
 import tuf.log
 import tuf.tufformats
 import tuf.keydb
@@ -167,9 +167,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
@@ -219,12 +219,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
     # 'tuf.client.updater.py' requires that the client's repository directory
-    # be configured in 'tuf.conf.py'.
-    tuf.conf.repository_directory = None
+    # be configured in 'tuf.settings.py'.
+    settings.repository_directory = None
     self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, updater.Updater, 'test_repository',
                       self.repository_mirrors)
-    # Restore 'tuf.conf.repository_directory' to the original client directory.
-    tuf.conf.repository_directory = self.client_directory
+    # Restore 'settings.repository_directory' to the original client directory.
+    settings.repository_directory = self.client_directory
     
 
     # Test: empty client repository (i.e., no metadata directory).
@@ -619,10 +619,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # This is the default metadata that we would create for the timestamp role,
     # because it has no signed metadata for itself.
-    DEFAULT_TIMESTAMP_FILELENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    DEFAULT_TIMESTAMP_FILELENGTH = settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
  
     # This is the the upper bound length for Targets metadata.
-    DEFAULT_TARGETS_FILELENGTH = tuf.conf.DEFAULT_TARGETS_REQUIRED_LENGTH
+    DEFAULT_TARGETS_FILELENGTH = settings.DEFAULT_TARGETS_REQUIRED_LENGTH
 
     # Save the versioninfo of 'targets.json,' needed later when re-installing
     # with _update_metadata().
@@ -754,7 +754,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Update 'targets.json' and verify that the client's current 'targets.json'
     # has been updated.  'timestamp' and 'snapshot' must be manually updated
     # so that new 'targets' can be recognized.
-    DEFAULT_TIMESTAMP_FILELENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    DEFAULT_TIMESTAMP_FILELENGTH = settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
     self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILELENGTH)
     self.repository_updater._update_metadata_if_changed('snapshot', 'timestamp')
@@ -1079,7 +1079,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     download_filepath = \
       os.path.join(destination_directory, target_filepath1.lstrip('/'))
     self.assertTrue(os.path.exists(download_filepath))
-    length, hashes = tuf.util.get_file_details(download_filepath, tuf.conf.REPOSITORY_HASH_ALGORITHMS)
+    length, hashes = tuf.util.get_file_details(download_filepath, settings.REPOSITORY_HASH_ALGORITHMS)
     download_targetfileinfo = tuf.tufformats.make_fileinfo(length, hashes)
    
     # Add any 'custom' data from the repository's target fileinfo to the

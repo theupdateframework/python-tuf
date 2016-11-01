@@ -23,6 +23,7 @@ import imp
 
 import tuf
 import tuf.log
+from simple_settings import settings
 
 logger = logging.getLogger('tuf.test_log')
 
@@ -67,8 +68,8 @@ class TestLog(unittest.TestCase):
       tuf.log.set_log_level(level)
    
     # Test that the log level of the file handler cannot be set because
-    # file logging is disabled (via tuf.conf.ENABLE_FILE_LOGGING).
-    tuf.conf.ENABLE_FILE_LOGGING = False
+    # file logging is disabled (via settings.ENABLE_FILE_LOGGING).
+    settings.ENABLE_FILE_LOGGING = False
     imp.reload(tuf.log)
     #self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.log.set_filehandler_log_level, logging.INFO)
     

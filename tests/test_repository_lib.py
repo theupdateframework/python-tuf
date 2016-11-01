@@ -49,7 +49,7 @@ import tuf.tufformats
 import tuf.roledb
 import tuf.keydb
 import tuf.ssl_crypto.hash
-import tuf.conf
+from simple_settings import settings
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool as repo_tool
 
@@ -760,7 +760,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # this case.  For testing purposes, root.json should be a hard link to the
     # consistent metadata file.  We should verify that root.json points to
     # the latest consistent files.
-    tuf.conf.CONSISTENT_METHOD = 'hard_link'
+    settings.CONSISTENT_METHOD = 'hard_link'
     repo_lib.write_metadata_file(root_signable, output_filename,
                                  version_number,
                                  compression_algorithms,
@@ -787,8 +787,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertNotEqual(os.stat(output_filename).st_ino, os.stat(first_version_output_file).st_ino)
     self.assertEqual(os.stat(output_filename).st_ino, os.stat(second_version_output_file).st_ino)
 
-    # Test for an improper tuf.conf.CONSISTENT_METHOD string value.
-    tuf.conf.CONSISTENT_METHOD = 'somebadidea'
+    # Test for an improper settings.CONSISTENT_METHOD string value.
+    settings.CONSISTENT_METHOD = 'somebadidea'
     self.assertRaises(tuf.ssl_commons.exceptions.InvalidConfigurationError, repo_lib.write_metadata_file,
                                                      root_signable, output_filename,
                                                      version_number,
@@ -797,7 +797,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Try to create a link to root.json when root.json doesn't exist locally.
     # repository_lib should log a message if this is the case.
-    tuf.conf.CONSISTENT_METHOD = 'hard_link'
+    settings.CONSISTENT_METHOD = 'hard_link'
     os.remove(output_filename)
     repo_lib.write_metadata_file(root_signable, output_filename,
                                  version_number,
@@ -805,7 +805,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                  consistent_snapshot=True)
     
     # Reset CONSISTENT_METHOD so that subsequent tests work as expected.
-    tuf.conf.CONSISTENT_METHOD = 'copy'
+    settings.CONSISTENT_METHOD = 'copy'
     
     # Test for unknown compression algorithm.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.write_metadata_file,

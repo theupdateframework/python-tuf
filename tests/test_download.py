@@ -37,7 +37,7 @@ import time
 import unittest
 
 import tuf
-import tuf.conf
+from simple_settings import settings
 import tuf.download as download
 import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
@@ -195,9 +195,9 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     with open(fake_cacert, 'wt') as file_object:
       file_object.write('fake cacert')
     
-    tuf.conf.ssl_certificates = fake_cacert
+    settings.ssl_certificates = fake_cacert
     tuf.download._get_opener('https')
-    tuf.conf.ssl_certificates = None
+    settings.ssl_certificates = None
 
 
 
@@ -225,7 +225,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     https_url = 'https://localhost:' + str(port) + '/' + relative_target_filepath
    
     # Download the target file using an https connection.
-    tuf.conf.ssl_certificates = 'ssl_cert.crt'
+    settings.ssl_certificates = 'ssl_cert.crt'
     message = 'Downloading target file from https server: ' + https_url  
     logger.info(message)
     try: 

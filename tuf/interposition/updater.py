@@ -126,7 +126,7 @@
        }
      }
 
-  # After creating 'tuf.configuration.json' and the example updater module, run
+  # After creating 'settingsiguration.json' and the example updater module, run
   # 'interposition.py'.  The urllib calls will be intercepted, and information
   # about the update process is generated to a log file named 'tuf.log' in the
   # same directory, which can be reviewed.
@@ -148,7 +148,7 @@ import tempfile
 import logging
 
 import tuf.client.updater
-import tuf.conf
+from simple_settings import settings
 import tuf.log
 import six
 
@@ -198,7 +198,7 @@ class Updater(object):
     switch_context():
       There is an updater object for each network location that is interposed.  
       Context switching is required because there are multiple                  
-      'tuf.client.updater' objects and each one depends on tuf.conf settings    
+      'tuf.client.updater' objects and each one depends on settings settings    
       that are shared.      
   """
 
@@ -264,7 +264,7 @@ class Updater(object):
     logger.debug('Created temporary directory at ' + repr(self.tempdir))
 
     # Switching context before instantiating updater because updater depends 
-    # on some module (tuf.conf) variables.
+    # on some module (settings) variables.
     self.switch_context()
 
     # Instantiating a 'tuf.client.updater' object causes all the configurations
@@ -396,7 +396,7 @@ class Updater(object):
       os.path.join(destination_directory, target_filepath.lstrip(os.sep))
     
     # Switch TUF context. Switching context before instantiating updater 
-    # because updater depends on some module (tuf.conf) variables. 
+    # because updater depends on some module (settings) variables. 
     self.switch_context()
     
     # Locate the fileinfo of 'target_filepath'.  updater.target() searches
@@ -626,12 +626,12 @@ class Updater(object):
     <Purpose>
       There is an updater object for each network location that is interposed.
       Context switching is required because there are multiple
-      'tuf.client.updater' objects and each one depends on tuf.conf settings
+      'tuf.client.updater' objects and each one depends on settings settings
       that are shared.
 
       For this, two settings are required:
 
-      1. Setting local repository directory in 'tuf.conf'.
+      1. Setting local repository directory in 'settings'.
       2. Setting the local SSL certificate PEM file.
 
     <Arguments>
@@ -642,18 +642,18 @@ class Updater(object):
 
     <Side Effects>
       The given configuration's 'repository_directory' and ssl_certificates
-      settings are set to 'tuf.conf.repository_directory' and
-      'tuf.conf.ssl_certificates', respectively.
+      settings are set to 'settings.repository_directory' and
+      'settings.ssl_certificates', respectively.
 
     <Returns>
       None
     """
     
     # Set the local repository directory containing the metadata files.
-    tuf.conf.repository_directory = self.configuration.repository_directory
+    settings.repository_directory = self.configuration.repository_directory
 
     # Set the local SSL certificates PEM file.
-    tuf.conf.ssl_certificates = self.configuration.ssl_certificates
+    settings.ssl_certificates = self.configuration.ssl_certificates
 
 
 

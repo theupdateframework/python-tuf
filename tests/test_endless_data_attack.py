@@ -61,7 +61,7 @@ import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
 import tuf.keydb
-
+from simple_settings import settings
 import six
 
 logger = logging.getLogger('tuf.test_endless_data_attack')
@@ -148,9 +148,9 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -176,7 +176,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     # a non-TUF client that does not verify hashes, detect mix-and-mix attacks,
     # etc.)  A tuf client, on the other hand, should only download target files
     # up to their expected lengths, as explicitly specified in metadata, or 
-    # 'tuf/conf.py' (when retrieving 'timestamp.json' and 'root.json unsafely'.)
+    # 'tuf/settings.py' (when retrieving 'timestamp.json' and 'root.json unsafely'.)
    
     # Test: Download a valid target file from the repository.
     # Ensure the target file to be downloaded has not already been downloaded,
@@ -279,7 +279,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
     # Does the TUF client download the upper limit of an unsafely fetched
     # 'timestamp.json'?  'timestamp.json' must not be greater than
-    # 'tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH'.
+    # 'settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH'.
     try:
       self.repository_updater.refresh()
     

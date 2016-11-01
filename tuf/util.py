@@ -36,7 +36,7 @@ import fnmatch
 
 import tuf
 import tuf.ssl_crypto.hash
-import tuf.conf
+from simple_settings import settings
 import tuf.tufformats
 import six
 
@@ -91,7 +91,7 @@ class TempFile(object):
     
     # If compression is set then the original file is saved in 'self._orig_file'.
     self._orig_file = None
-    temp_dir = tuf.conf.temporary_directory
+    temp_dir = settings.temporary_directory
     if temp_dir is not None and tuf.ssl_crypto.formats.PATH_SCHEMA.matches(temp_dir):
       try:
         self.temporary_file = tempfile.NamedTemporaryFile(prefix=prefix,

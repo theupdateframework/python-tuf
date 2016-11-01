@@ -37,7 +37,7 @@ import ssl
 import time
 
 import tuf
-import tuf.conf
+from simple_settings import settings
 import tuf.ssl_crypto.hash
 import tuf.util
 import tuf.tufformats
@@ -73,7 +73,7 @@ def safe_download(url, required_length):
   <Arguments>
     url:
       A URL string that represents the location of the file.  The URI scheme
-      component must be one of 'tuf.conf.SUPPORTED_URI_SCHEMES'.
+      component must be one of 'settings.SUPPORTED_URI_SCHEMES'.
   
     required_length:
       An integer value representing the length of the file.  This is an exact
@@ -101,17 +101,17 @@ def safe_download(url, required_length):
   tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
 
   # Ensure 'url' specifies one of the URI schemes in
-  # 'tuf.conf.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
+  # 'settings.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
   # supported.  If the URI scheme of 'url' is empty or "file", files on the
   # local system can be accessed.  Unexpected files may be accessed by
   # compromised metadata (unlikely to happen if targets.json metadata is signed
   # with offline keys).  
   parsed_url = six.moves.urllib.parse.urlparse(url)
 
-  if parsed_url.scheme not in tuf.conf.SUPPORTED_URI_SCHEMES:
+  if parsed_url.scheme not in settings.SUPPORTED_URI_SCHEMES:
     message = \
       repr(url) + ' specifies an unsupported URI scheme.  Supported ' + \
-      ' URI Schemes: ' + repr(tuf.conf.SUPPORTED_URI_SCHEMES)
+      ' URI Schemes: ' + repr(settings.SUPPORTED_URI_SCHEMES)
     raise tuf.ssl_commons.exceptions.FormatError(message)
   
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
@@ -137,7 +137,7 @@ def unsafe_download(url, required_length):
   <Arguments>
     url:
       A URL string that represents the location of the file.  The URI scheme
-      component must be one of 'tuf.conf.SUPPORTED_URI_SCHEMES'.
+      component must be one of 'settings.SUPPORTED_URI_SCHEMES'.
   
     required_length:
       An integer value representing the length of the file.  This is an upper
@@ -165,17 +165,17 @@ def unsafe_download(url, required_length):
   tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
   
   # Ensure 'url' specifies one of the URI schemes in
-  # 'tuf.conf.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
+  # 'settings.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
   # supported.  If the URI scheme of 'url' is empty or "file", files on the
   # local system can be accessed.  Unexpected files may be accessed by
   # compromised metadata (unlikely to happen if targets.json metadata is signed
   # with offline keys).  
   parsed_url = six.moves.urllib.parse.urlparse(url)
 
-  if parsed_url.scheme not in tuf.conf.SUPPORTED_URI_SCHEMES:
+  if parsed_url.scheme not in settings.SUPPORTED_URI_SCHEMES:
     message = \
       repr(url) + ' specifies an unsupported URI scheme.  Supported ' + \
-      ' URI Schemes: ' + repr(tuf.conf.SUPPORTED_URI_SCHEMES) 
+      ' URI Schemes: ' + repr(settings.SUPPORTED_URI_SCHEMES) 
     raise tuf.ssl_commons.exceptions.FormatError(message)
   
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
@@ -308,10 +308,10 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
   """
   
   # Tolerate servers with a slow start by ignoring their delivery speed for
-  # 'tuf.conf.SLOW_START_GRACE_PERIOD' seconds.  Set 'seconds_spent_receiving'
+  # 'settings.SLOW_START_GRACE_PERIOD' seconds.  Set 'seconds_spent_receiving'
   # to negative SLOW_START_GRACE_PERIOD seconds, and begin checking the average
   # download speed once it is positive.
-  grace_period = -tuf.conf.SLOW_START_GRACE_PERIOD
+  grace_period = -settings.SLOW_START_GRACE_PERIOD
 
   # Keep track of total bytes downloaded.
   number_of_bytes_received = 0
@@ -328,7 +328,7 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       # in the while loop.
       time.sleep(0.05)
       data = b'' 
-      read_amount = min(tuf.conf.CHUNK_SIZE,
+      read_amount = min(settings.CHUNK_SIZE,
                         required_length - number_of_bytes_received)
      
       try: 
@@ -355,14 +355,14 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       # Measure the average download speed.
       average_download_speed = number_of_bytes_received / seconds_spent_receiving
       
-      if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
         logger.debug('The average download speed dropped below the minimum'
-          ' average download speed set in conf.py.') 
+          ' average download speed set in settings.py.') 
         break
       
       else:
         logger.debug('The average download speed has not dipped below the'
-          ' mimimum average download speed set in conf.py.')
+          ' mimimum average download speed set in settings.py.')
 
       # We might have no more data to read. Check number of bytes downloaded. 
       if not data:
@@ -411,7 +411,7 @@ def _get_opener(scheme=None):
   """
 
   if scheme == "https":
-    assert os.path.isfile(tuf.conf.ssl_certificates)
+    assert os.path.isfile(settings.ssl_certificates)
 
     # If we are going over https, use an opener which will provide SSL
     # certificate verification.
@@ -470,7 +470,7 @@ def _open_connection(url):
   opener = _get_opener(scheme=parsed_url.scheme)
   request = _get_request(url)
   
-  return opener.open(request, timeout = tuf.conf.SOCKET_TIMEOUT)
+  return opener.open(request, timeout = settings.SOCKET_TIMEOUT)
 
 
 
@@ -608,7 +608,7 @@ def _check_downloaded_length(total_downloaded, required_length,
     total_downloaded is not equal required_length.
 
     tuf.ssl_commons.exceptions.SlowRetrievalError, if the total downloaded was done in in less than
-    the acceptable download speed (as set in tuf.conf.py).
+    the acceptable download speed (as set in tuf.settings.py).
 
   <Returns>
     None.
@@ -631,9 +631,9 @@ def _check_downloaded_length(total_downloaded, required_length,
       # If the average download speed is below a certain threshold, we flag
       # this as a possible slow-retrieval attack.
       logger.debug('Average download speed: ' + repr(average_download_speed))
-      logger.debug('Minimum average download speed: ' + repr(tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED))
+      logger.debug('Minimum average download speed: ' + repr(settings.MIN_AVERAGE_DOWNLOAD_SPEED))
       
-      if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
         raise tuf.ssl_commons.exceptions.SlowRetrievalError(average_download_speed)
 
       else:
@@ -647,7 +647,7 @@ def _check_downloaded_length(total_downloaded, required_length,
       # will log a warning anyway. This is useful when we wish to download the
       # Timestamp or Root metadata, for which we have no signed metadata; so,
       # we must guess a reasonable required_length for it.
-      if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
         raise tuf.ssl_commons.exceptions.SlowRetrievalError(average_download_speed)
 
       else:
@@ -688,8 +688,8 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
       self._tunnel()
 
     # set location of certificate authorities
-    assert os.path.isfile(tuf.conf.ssl_certificates)
-    cert_path = tuf.conf.ssl_certificates
+    assert os.path.isfile(settings.ssl_certificates)
+    cert_path = settings.ssl_certificates
 
     # TODO: Disallow SSLv2.
     # http://docs.python.org/dev/library/ssl.html#protocol-versions

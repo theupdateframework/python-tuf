@@ -51,10 +51,10 @@
   # from this module.
   import tuf.client.updater
 
-  # The only other module the client interacts with is 'tuf.conf'.  The
+  # The only other module the client interacts with is 'settings'.  The
   # client accesses this module solely to set the repository directory.
   # This directory will hold the files downloaded from a remote repository.
-  tuf.conf.repository_directory = 'local-repository'
+  settings.repository_directory = 'local-repository'
  
   # Next, the client creates a dictionary object containing the repository
   # mirrors.  The client may download content from any one of these mirrors.
@@ -116,7 +116,7 @@ import random
 import fnmatch
 
 import tuf
-import tuf.conf
+from simple_settings import settings
 import tuf.download
 import tuf.tufformats
 import tuf.ssl_crypto.hash
@@ -238,12 +238,12 @@ class Updater(object):
       In order to use an updater, the following directories must already
       exist locally:
             
-            {tuf.conf.repository_directory}/metadata/current
-            {tuf.conf.repository_directory}/metadata/previous
+            {settings.repository_directory}/metadata/current
+            {settings.repository_directory}/metadata/previous
       
       and, at a minimum, the root metadata file must exist:
 
-            {tuf.conf.repository_directory}/metadata/current/root.json
+            {settings.repository_directory}/metadata/current/root.json
     
     <Arguments>
       updater_name:
@@ -320,13 +320,13 @@ class Updater(object):
     self.consistent_snapshot = False
     
     # Ensure the repository metadata directory has been set.
-    if tuf.conf.repository_directory is None:
+    if settings.repository_directory is None:
       raise tuf.ssl_commons.exceptions.RepositoryError('The TUF update client module must specify the'
         ' directory containing the local repository files.'
-        '  "tuf.conf.repository_directory" MUST be set.')
+        '  "settings.repository_directory" MUST be set.')
 
     # Set the path for the current set of metadata files.  
-    repository_directory = tuf.conf.repository_directory
+    repository_directory = settings.repository_directory
     current_path = os.path.join(repository_directory, 'metadata', 'current')
     
     # Ensure the current path is valid/exists before saving it.
@@ -637,14 +637,14 @@ class Updater(object):
     # The Timestamp role does not have signed metadata about it; otherwise we
     # would need an infinite regress of metadata. Therefore, we use some
     # default, but sane, upper file length for its metadata.
-    DEFAULT_TIMESTAMP_UPPERLENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    DEFAULT_TIMESTAMP_UPPERLENGTH = settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
     # The Root role may be updated without knowing its version number if
     # top-level metadata cannot be safely downloaded (e.g., keys may have been
     # revoked, thus requiring a new Root file that includes the updated keys)
     # and 'unsafely_update_root_if_necessary' is True.
     # We use some default, but sane, upper file length for its metadata.
-    DEFAULT_ROOT_UPPERLENGTH = tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH
+    DEFAULT_ROOT_UPPERLENGTH = settings.DEFAULT_ROOT_REQUIRED_LENGTH
 
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
@@ -715,7 +715,7 @@ class Updater(object):
     # Retrieve the latest, remote root.json.
     latest_root_metadata_file = \
       self._get_metadata_file('root', 'root.json',
-                              tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH, None, 
+                              settings.DEFAULT_ROOT_REQUIRED_LENGTH, None, 
                               compression_algorithm=compression_algorithm)
     latest_root_metadata = \
       tuf.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
@@ -734,7 +734,7 @@ class Updater(object):
       # in the latest root.json after running through the intermediates with
       # _update_metadata().
       self.consistent_snapshot = True
-      self._update_metadata('root', tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH, version=version, 
+      self._update_metadata('root', settings.DEFAULT_ROOT_REQUIRED_LENGTH, version=version, 
                             compression_algorithm=compression_algorithm)
 
 
@@ -1542,14 +1542,14 @@ class Updater(object):
     # expected role.  Note: The Timestamp role is not updated via this
     # function.
     if metadata_role == 'snapshot': 
-      upperbound_filelength = tuf.conf.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
+      upperbound_filelength = settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
     
     elif metadata_role == 'root':
-      upperbound_filelength = tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH
+      upperbound_filelength = settings.DEFAULT_ROOT_REQUIRED_LENGTH
       
     # The metadata is considered Targets (or delegated Targets metadata).
     else:
-      upperbound_filelength = tuf.conf.DEFAULT_TARGETS_REQUIRED_LENGTH
+      upperbound_filelength = settings.DEFAULT_TARGETS_REQUIRED_LENGTH
     
     try:
       self._update_metadata(metadata_role, upperbound_filelength,
@@ -2320,7 +2320,7 @@ class Updater(object):
     current_metadata = self.metadata['current']
     role_names = ['targets']
     visited_role_names = set()
-    number_of_delegations = tuf.conf.MAX_NUMBER_OF_DELEGATIONS
+    number_of_delegations = settings.MAX_NUMBER_OF_DELEGATIONS
 
     # Ensure the client has the most up-to-date version of 'targets.json'.
     # Raise 'tuf.ssl_commons.exceptions.NoWorkingMirrorError' if the changed metadata cannot be
@@ -2393,7 +2393,7 @@ class Updater(object):
     if target is None and number_of_delegations == 0 and len(role_names) > 0:
       logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
                    'but allowed to visit at most ' +
-                   repr(tuf.conf.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
+                   repr(settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
     return target
 

@@ -132,8 +132,8 @@ import tuf.ssl_crypto.hash
 import tuf.tufformats
 
 # Extract/reference the cryptography library settings.  For example:
-# 'tuf.conf.RSA_CRYPTO_LIBRARY'
-import tuf.conf
+# 'settings.RSA_CRYPTO_LIBRARY'
+from simple_settings import settings
 
 # Import routine to process key files containing JSON data.
 import tuf.util
@@ -160,7 +160,7 @@ _SALT_SIZE = 16
 
 # Default PBKDF2 passphrase iterations.  The current "good enough" number
 # of passphrase iterations.  We recommend that important keys, such as root,
-# be kept offline.  'tuf.conf.PBKDF2_ITERATIONS' should increase as CPU
+# be kept offline.  'settings.PBKDF2_ITERATIONS' should increase as CPU
 # speeds increase, set here at 100,000 iterations by default (in 2013).
 # Repository maintainers may opt to modify the default setting according to
 # their security needs and computational restrictions.  A strong user password
@@ -168,7 +168,7 @@ _SALT_SIZE = 16
 # derived key+PBDKF2 combination if the key is loaded and re-saved, overriding
 # any previous iteration setting used by the old '<keyid>.key'.
 # https://en.wikipedia.org/wiki/PBKDF2
-_PBKDF2_ITERATIONS = tuf.conf.PBKDF2_ITERATIONS
+_PBKDF2_ITERATIONS = settings.PBKDF2_ITERATIONS
 
 
 
@@ -675,7 +675,7 @@ def encrypt_key(key_object, password):
     Based Key Derivation Function 1 (PBKDF1) + MD5 to strengthen 'password',
     encrypted TUF keys use AES-256-CTR-Mode and passwords strengthened with
     PBKDF2-HMAC-SHA256 (100K iterations by default, but may be overriden in
-    'tuf.conf.PBKDF2_ITERATIONS' by the user).
+    'settings.PBKDF2_ITERATIONS' by the user).
 
     http://en.wikipedia.org/wiki/Advanced_Encryption_Standard
     http://en.wikipedia.org/wiki/CTR_mode#Counter_.28CTR.29
@@ -735,7 +735,7 @@ def encrypt_key(key_object, password):
   # Derive a key (i.e., an appropriate encryption key and not the
   # user's password) from the given 'password'.  Strengthen 'password' with
   # PBKDF2-HMAC-SHA256 (100K iterations by default, but may be overriden in
-  # 'tuf.conf.PBKDF2_ITERATIONS' by the user).
+  # 'settings.PBKDF2_ITERATIONS' by the user).
   salt, iterations, derived_key = _generate_derived_key(password)
  
   # Store the derived key info in a dictionary, the object expected
@@ -764,7 +764,7 @@ def decrypt_key(encrypted_key, password):
     
     Encrypted TUF keys use AES-256-CTR-Mode and passwords strengthened with
     PBKDF2-HMAC-SHA256 (100K iterations be default, but may be overriden in
-    'tuf.conf.py' by the user).
+    'tuf.settings.py' by the user).
   
     http://en.wikipedia.org/wiki/Advanced_Encryption_Standard
     http://en.wikipedia.org/wiki/CTR_mode#Counter_.28CTR.29

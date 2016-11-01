@@ -19,7 +19,7 @@
   is designed to support multiple public-key algorithms, such as RSA and
   Ed25519, and multiple cryptography libraries.  Which cryptography library to
   use is determined by the default, or user modified, values set in
-  'tuf.conf.py'
+  'tuf.settings.py'
   
   https://en.wikipedia.org/wiki/RSA_(algorithm)
   http://ed25519.cr.yp.to/
@@ -132,7 +132,7 @@ import tuf.ssl_crypto.ed25519_keys
 import tuf
 
 # Import the cryptography library settings.
-import tuf.conf
+from simple_settings import settings
 
 # Digest objects needed to generate hashes.
 import tuf.ssl_crypto.hash
@@ -143,8 +143,8 @@ import tuf.tufformats
 
 # The hash algorithm used in the generation of the key ID for each unique key.
 # If multiple hash algorithms is desired for the generation of key IDs,
-# 'tuf.conf.REPOSITORY_HASH_ALGORITHMS' can be used.
-_KEY_ID_HASH_ALGORITHM = tuf.conf.DEFAULT_HASH_ALGORITHM 
+# 'settings.REPOSITORY_HASH_ALGORITHMS' can be used.
+_KEY_ID_HASH_ALGORITHM = settings.DEFAULT_HASH_ALGORITHM 
 
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
@@ -155,9 +155,9 @@ _DEFAULT_RSA_KEY_BITS = 3072
 # The crypto libraries to use in 'keys.py', set by default or by the user.
 # The following cryptography libraries are currently supported:
 # ['pycrypto', 'pynacl', 'ed25519', 'pyca-cryptography']
-_RSA_CRYPTO_LIBRARY = tuf.conf.RSA_CRYPTO_LIBRARY
-_ED25519_CRYPTO_LIBRARY = tuf.conf.ED25519_CRYPTO_LIBRARY
-_GENERAL_CRYPTO_LIBRARY = tuf.conf.GENERAL_CRYPTO_LIBRARY
+_RSA_CRYPTO_LIBRARY = settings.RSA_CRYPTO_LIBRARY
+_ED25519_CRYPTO_LIBRARY = settings.ED25519_CRYPTO_LIBRARY
+_GENERAL_CRYPTO_LIBRARY = settings.GENERAL_CRYPTO_LIBRARY
 
 
 def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
@@ -203,11 +203,11 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
     and not at least 2048).
    
     tuf.ssl_commons.exceptions.UnsupportedLibraryError, if any of the cryptography libraries specified
-    in 'tuf.conf.py' are unsupported or unavailable.
+    in 'tuf.settings.py' are unsupported or unavailable.
 
     ValueError, if an exception occurs after calling the RSA key generation
     routine.  'bits' must be a multiple of 256 if PyCrypto is set via
-    'tuf.conf.py'.  The 'ValueError' exception is raised by the key generation
+    'tuf.settings.py'.  The 'ValueError' exception is raised by the key generation
     function of the cryptography library called.
 
   <Side Effects>
@@ -226,8 +226,8 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   tuf.ssl_crypto.formats.RSAKEYBITS_SCHEMA.check_match(bits)
 
   # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified
-  # in 'tuf.conf', are unsupported or unavailable:
-  # 'tuf.conf.RSA_CRYPTO_LIBRARY'. 
+  # in 'settings', are unsupported or unavailable:
+  # 'settings.RSA_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['rsa'])
 
   # Begin building the RSA key dictionary. 
@@ -313,8 +313,8 @@ def generate_ed25519_key():
   """
   
   # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified
-  # in 'tuf.conf', are unsupported or unavailable:
-  # 'tuf.conf.ED25519_CRYPTO_LIBRARY'. 
+  # in 'settings', are unsupported or unavailable:
+  # 'settings.ED25519_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['ed25519'])
 
   # Begin building the Ed25519 key dictionary. 
@@ -439,7 +439,7 @@ def format_keyval_to_metadata(keytype, key_value, private=False):
     public_key_value = {'public': key_value['public']}
     
     return {'keytype': keytype,
-            'keyid_hash_algorithms': tuf.conf.REPOSITORY_HASH_ALGORITHMS,
+            'keyid_hash_algorithms': settings.REPOSITORY_HASH_ALGORITHMS,
             'keyval': public_key_value}
 
 
@@ -516,7 +516,7 @@ def format_metadata_to_key(key_metadata):
   keyids = set()
   keyids.add(default_keyid)
   
-  for hash_algorithm in tuf.conf.REPOSITORY_HASH_ALGORITHMS:
+  for hash_algorithm in settings.REPOSITORY_HASH_ALGORITHMS:
     keyid = _get_keyid(keytype, key_value, hash_algorithm)
     keyids.add(keyid)
 
@@ -524,7 +524,7 @@ def format_metadata_to_key(key_metadata):
   # 'keyid_hash_algorithms' 
   key_dict['keytype'] = keytype
   key_dict['keyid'] = default_keyid
-  key_dict['keyid_hash_algorithms'] = tuf.conf.REPOSITORY_HASH_ALGORITHMS
+  key_dict['keyid_hash_algorithms'] = settings.REPOSITORY_HASH_ALGORITHMS
   key_dict['keyval'] = key_value
 
   return key_dict, keyids
@@ -564,7 +564,7 @@ def check_crypto_libraries(required_libraries):
   """
   <Purpose>
     Public function that ensures the cryptography libraries specified in
-    'tuf.conf' are supported and available for each 'required_libraries'.
+    'settings' are supported and available for each 'required_libraries'.
 
   <Arguments>
     required_libraries:
@@ -573,10 +573,10 @@ def check_crypto_libraries(required_libraries):
 
   <Exceptions>
     tuf.ssl_commons.exceptions.UnsupportedLibraryError, if the 'required_libraries' and the libraries
-    specified in 'tuf.conf' are not supported or unavailable.
+    specified in 'settings' are not supported or unavailable.
 
   <Side Effects>
-    Validates the libraries set in 'tuf.conf'.
+    Validates the libraries set in 'settings'.
 
   <Returns>
     None.
@@ -589,7 +589,7 @@ def check_crypto_libraries(required_libraries):
   tuf.ssl_crypto.formats.REQUIRED_LIBRARIES_SCHEMA.check_match(required_libraries)
  
   # The checks below all raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the general,
-  # RSA, and Ed25519 crypto libraries specified in 'tuf.conf.py' are not
+  # RSA, and Ed25519 crypto libraries specified in 'tuf.settings.py' are not
   # supported or unavailable.  The appropriate error message is added to the
   # exception.  The funcions of this module that depend on user-installed
   # crypto libraries should call this private function to ensure the called
@@ -600,40 +600,40 @@ def check_crypto_libraries(required_libraries):
   if 'rsa' in required_libraries and _RSA_CRYPTO_LIBRARY not in \
                                    _SUPPORTED_RSA_CRYPTO_LIBRARIES:
     raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_RSA_CRYPTO_LIBRARY) +
-      ' crypto library specified in "tuf.conf.RSA_CRYPTO_LIBRARY" is not '
+      ' crypto library specified in "settings.RSA_CRYPTO_LIBRARY" is not '
       ' supported.\nSupported crypto libraries: ' +
       repr(_SUPPORTED_RSA_CRYPTO_LIBRARIES) + '.')
   
   if 'ed25519' in required_libraries and _ED25519_CRYPTO_LIBRARY not in \
                                          _SUPPORTED_ED25519_CRYPTO_LIBRARIES:
     raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_ED25519_CRYPTO_LIBRARY) +
-      ' crypto library specified in "tuf.conf.ED25519_CRYPTO_LIBRARY" is not '
+      ' crypto library specified in "settings.ED25519_CRYPTO_LIBRARY" is not '
       ' supported.\nSupported crypto libraries: ' +
       repr(_SUPPORTED_ED25519_CRYPTO_LIBRARIES) + '.')
   
   if 'general' in required_libraries and _GENERAL_CRYPTO_LIBRARY not in \
                                          _SUPPORTED_GENERAL_CRYPTO_LIBRARIES:
     raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_GENERAL_CRYPTO_LIBRARY) +
-      ' crypto library specified in "tuf.conf.GENERAL_CRYPTO_LIBRARY" is not'
+      ' crypto library specified in "settings.GENERAL_CRYPTO_LIBRARY" is not'
       ' supported.\nSupported crypto libraries: ' +
       repr(_SUPPORTED_GENERAL_CRYPTO_LIBRARIES) + '.')
 
   if 'rsa' in required_libraries and _RSA_CRYPTO_LIBRARY not in \
                                      _available_crypto_libraries:
     raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_RSA_CRYPTO_LIBRARY) +
-      ' crypto library specified in "tuf.conf.RSA_CRYPTO_LIBRARY" could not'
+      ' crypto library specified in "settings.RSA_CRYPTO_LIBRARY" could not'
       ' be imported.  Available libraries: ' + repr(_available_crypto_libraries))
   
   if 'ed25519' in required_libraries and _ED25519_CRYPTO_LIBRARY not in \
                                          _available_crypto_libraries:
     raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_ED25519_CRYPTO_LIBRARY) +
-      ' crypto library specified in "tuf.conf.ED25519_CRYPTO_LIBRARY" could'
+      ' crypto library specified in "settings.ED25519_CRYPTO_LIBRARY" could'
       ' not be imported.')
   
   if 'general' in required_libraries and _GENERAL_CRYPTO_LIBRARY not in \
                                          _available_crypto_libraries:
     raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The ' + repr(_GENERAL_CRYPTO_LIBRARY) +
-      ' crypto library specified in "tuf.conf.GENERAL_CRYPTO_LIBRARY" could'
+      ' crypto library specified in "settings.GENERAL_CRYPTO_LIBRARY" could'
       ' not be imported.')
 
 
@@ -662,7 +662,7 @@ def create_signature(key_dict, data):
     http://ed25519.cr.yp.to/
 
     Which signature to generate is determined by the key type of 'key_dict'
-    and the available cryptography library specified in 'tuf.conf'.
+    and the available cryptography library specified in 'settings'.
     
     >>> ed25519_key = generate_ed25519_key()
     >>> data = 'The quick brown fox jumps over the lazy dog'
@@ -701,7 +701,7 @@ def create_signature(key_dict, data):
     TypeError, if 'key_dict' contains an invalid keytype.
 
   <Side Effects>
-    The cryptography library specified in 'tuf.conf' called to perform the
+    The cryptography library specified in 'settings' called to perform the
     actual signing routine.
 
   <Returns>
@@ -716,8 +716,8 @@ def create_signature(key_dict, data):
   tuf.ssl_crypto.formats.ANYKEY_SCHEMA.check_match(key_dict)
   
   # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified
-  # in 'tuf.conf', are unsupported or unavailable:
-  # 'tuf.conf.RSA_CRYPTO_LIBRARY' or 'tuf.conf.ED25519_CRYPTO_LIBRARY'. 
+  # in 'settings', are unsupported or unavailable:
+  # 'settings.RSA_CRYPTO_LIBRARY' or 'settings.ED25519_CRYPTO_LIBRARY'. 
   check_crypto_libraries([key_dict['keytype']])
 
   # Signing the 'data' object requires a private key.
@@ -750,7 +750,7 @@ def create_signature(key_dict, data):
     
     else: # pragma: no cover
       raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Unsupported'
-        ' "tuf.conf.RSA_CRYPTO_LIBRARY": ' + repr(_RSA_CRYPTO_LIBRARY) + '.')
+        ' "settings.RSA_CRYPTO_LIBRARY": ' + repr(_RSA_CRYPTO_LIBRARY) + '.')
   
   elif keytype == 'ed25519':
     public = binascii.unhexlify(public.encode('utf-8'))
@@ -837,7 +837,7 @@ def verify_signature(key_dict, signature, data):
     'signature' is not one supported.
 
   <Side Effects>
-    The cryptography library specified in 'tuf.conf' called to do the actual
+    The cryptography library specified in 'settings' called to do the actual
     verification.
 
   <Returns>
@@ -877,10 +877,10 @@ def verify_signature(key_dict, signature, data):
       if 'pycrypto' not in _available_crypto_libraries: # pragma: no cover
         raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Metadata downloaded from the remote'
           ' repository listed an RSA signature.  "pycrypto" was set'
-          ' (in conf.py) to generate RSA signatures, but the PyCrypto library'
+          ' (in settings.py) to generate RSA signatures, but the PyCrypto library'
           ' is not installed.  \n$ pip install PyCrypto, or pip install'
           ' tuf[tools], or you can try switching your configuration'
-          ' (tuf.conf.py) to use pyca-cryptography if that is available instead.')
+          ' (tuf.settings.py) to use pyca-cryptography if that is available instead.')
       
       else:
         valid_signature = tuf.pycrypto_keys.verify_rsa_signature(sig, method,
@@ -889,10 +889,10 @@ def verify_signature(key_dict, signature, data):
       if 'pyca-cryptography' not in _available_crypto_libraries: # pragma: no cover
         raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Metadata downloaded from the remote'
           ' repository listed an RSA signature.  "pyca-cryptography" was set'
-          ' (in conf.py) to generate RSA signatures, but the "cryptography"'
+          ' (in settings.py) to generate RSA signatures, but the "cryptography"'
           ' library is not installed.  \n$ pip install cryptography, or pip'
           ' install tuf[tools], or you can try switching your configuration'
-          ' (tuf/conf.py) to use PyCrypto if that is available instead.')
+          ' (tuf/settings.py) to use PyCrypto if that is available instead.')
 
       else:
         valid_signature = tuf.pyca_crypto_keys.verify_rsa_signature(sig, method,
@@ -900,7 +900,7 @@ def verify_signature(key_dict, signature, data):
     
     else: # pragma: no cover
       raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Unsupported'
-        ' "tuf.conf.RSA_CRYPTO_LIBRARY": ' + repr(_RSA_CRYPTO_LIBRARY) + '.') 
+        ' "settings.RSA_CRYPTO_LIBRARY": ' + repr(_RSA_CRYPTO_LIBRARY) + '.') 
   
   elif keytype == 'ed25519':
     public = binascii.unhexlify(public.encode('utf-8'))
@@ -964,7 +964,7 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
     tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
    
     tuf.ssl_commons.exceptions.UnsupportedLibraryError, if any of the cryptography libraries specified
-    in 'tuf.conf.py' are unsupported or unavailable.
+    in 'tuf.settings.py' are unsupported or unavailable.
 
   <Side Effects>
     None.
@@ -983,8 +983,8 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
   tuf.ssl_crypto.formats.PASSWORD_SCHEMA.check_match(password)
 
   # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified in
-  # 'tuf.conf', are unsupported or unavailable:
-  # 'tuf.conf.RSA_CRYPTO_LIBRARY' and 'tuf.conf.GENERAL_CRYPTO_LIBRARY'. 
+  # 'settings', are unsupported or unavailable:
+  # 'settings.RSA_CRYPTO_LIBRARY' and 'settings.GENERAL_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['rsa', 'general'])
 
   # Begin building the RSA key dictionary. 
@@ -1212,7 +1212,7 @@ def encrypt_key(key_object, password):
     Derivation Function 1 (PBKDF1) + MD5 to strengthen 'password', encrypted
     TUF keys use AES-256-CTR-Mode and passwords strengthened with
     PBKDF2-HMAC-SHA256 (100K iterations by default, but may be overriden in
-    'tuf.conf.PBKDF2_ITERATIONS' by the user).
+    'settings.PBKDF2_ITERATIONS' by the user).
 
     http://en.wikipedia.org/wiki/Advanced_Encryption_Standard
     http://en.wikipedia.org/wiki/CTR_mode#Counter_.28CTR.29
@@ -1240,7 +1240,7 @@ def encrypt_key(key_object, password):
     tuf.ssl_commons.exceptions.CryptoError, if 'key_object' cannot be encrypted.
 
     tuf.ssl_commons.exceptions.UnsupportedLibraryError, if the general-purpose cryptography library
-    specified in 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is unsupported.
+    specified in 'settings.GENERAL_CRYPTO_LIBRARY' is unsupported.
 
   <Side Effects>
     Perform crytographic operations using the library specified in
@@ -1260,8 +1260,8 @@ def encrypt_key(key_object, password):
   tuf.ssl_crypto.formats.PASSWORD_SCHEMA.check_match(password)
   
   # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified in
-  # 'tuf.conf', are unsupported or unavailable:
-  # 'tuf.conf.GENERAL_CRYPTO_LIBRARY'. 
+  # 'settings', are unsupported or unavailable:
+  # 'settings.GENERAL_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['general'])
 
   # Encrypted string of 'key_object'.  The encrypted string may be safely saved
@@ -1270,7 +1270,7 @@ def encrypt_key(key_object, password):
 
   # Generate an encrypted string of 'key_object' using AES-256-CTR-Mode, where
   # 'password' is strengthened with PBKDF2-HMAC-SHA256.  Ensure the general-
-  # purpose library specified in 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is supported.
+  # purpose library specified in 'settings.GENERAL_CRYPTO_LIBRARY' is supported.
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     encrypted_key = \
       tuf.pycrypto_keys.encrypt_key(key_object, password)
@@ -1306,7 +1306,7 @@ def decrypt_key(encrypted_key, passphrase):
     Derivation Function 1 (PBKDF1) + MD5 to strengthen 'password', encrypted
     TUF keys use AES-256-CTR-Mode and passwords strengthened with
     PBKDF2-HMAC-SHA256 (100K iterations be default, but may be overriden in
-    'tuf.conf.py' by the user).
+    'tuf.settings.py' by the user).
 
     http://en.wikipedia.org/wiki/Advanced_Encryption_Standard
     http://en.wikipedia.org/wiki/CTR_mode#Counter_.28CTR.29
@@ -1340,7 +1340,7 @@ def decrypt_key(encrypted_key, passphrase):
     tuf.ssl_commons.exceptions.CryptoError, if 'encrypted_key' cannot be decrypted.
 
     tuf.ssl_commons.exceptions.UnsupportedLibraryError, if the general-purpose cryptography library
-    specified in 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is unsupported.
+    specified in 'settings.GENERAL_CRYPTO_LIBRARY' is unsupported.
 
   <Side Effects>
     Perform crytographic operations using the library specified in
@@ -1361,8 +1361,8 @@ def decrypt_key(encrypted_key, passphrase):
   tuf.ssl_crypto.formats.PASSWORD_SCHEMA.check_match(passphrase)
   
   # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified in
-  # 'tuf.conf', are unsupported or unavailable:
-  # 'tuf.conf.GENERAL_CRYPTO_LIBRARY'. 
+  # 'settings', are unsupported or unavailable:
+  # 'settings.GENERAL_CRYPTO_LIBRARY'. 
   check_crypto_libraries(['general'])
 
   # Store and return the decrypted key object.
@@ -1372,7 +1372,7 @@ def decrypt_key(encrypted_key, passphrase):
   # encrypt_key() generates an encrypted string of the TUF key object using
   # AES-256-CTR-Mode, where 'password' is strengthened with PBKDF2-HMAC-SHA256.
   # Ensure the general-purpose library specified in
-  # 'tuf.conf.GENERAL_CRYPTO_LIBRARY' is supported.
+  # 'settings.GENERAL_CRYPTO_LIBRARY' is supported.
   if _GENERAL_CRYPTO_LIBRARY == 'pycrypto':
     key_object = \
       tuf.pycrypto_keys.decrypt_key(encrypted_key, passphrase)
@@ -1450,8 +1450,8 @@ def create_rsa_encrypted_pem(private_key, passphrase):
   tuf.ssl_crypto.formats.PASSWORD_SCHEMA.check_match(passphrase)
   
   # Raise 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the following libraries, specified
-  # in 'tuf.conf', are unsupported or unavailable:
-  # 'tuf.conf.GENERAL_CRYPTO_LIBRARY' and 'tuf.conf.RSA_CRYPTO_LIBRARY'.
+  # in 'settings', are unsupported or unavailable:
+  # 'settings.GENERAL_CRYPTO_LIBRARY' and 'settings.RSA_CRYPTO_LIBRARY'.
   check_crypto_libraries(['rsa', 'general'])
 
   encrypted_pem = None

@@ -33,6 +33,7 @@ import tuf.tufformats
 import tuf.keys
 import tuf.keydb
 import tuf.log
+from simple_settings import settings
 
 logger = logging.getLogger('tuf.test_keydb')
 
@@ -41,7 +42,7 @@ logger = logging.getLogger('tuf.test_keydb')
 KEYS = []
 for junk in range(3):
   rsa_key = tuf.keys.generate_rsa_key(2048)
-  rsa_key['keyid_hash_algorithms'] = tuf.conf.REPOSITORY_HASH_ALGORITHMS
+  rsa_key['keyid_hash_algorithms'] = settings.REPOSITORY_HASH_ALGORITHMS
   KEYS.append(rsa_key)
 
 

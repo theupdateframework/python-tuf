@@ -50,7 +50,7 @@ import tuf.roledb
 import tuf.keys
 import tuf.sig
 import tuf.log
-import tuf.conf
+from simple_settings import settings
 
 import iso8601
 import six
@@ -829,7 +829,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
     as the pass phrase), and store it in 'filepath'.  The public key portion of
     the generated RSA key is stored in <'filepath'>.pub.  Which cryptography
     library performs the cryptographic decryption is determined by the string
-    set in 'tuf.conf.RSA_CRYPTO_LIBRARY'.  PyCrypto currently supported.  The
+    set in 'settings.RSA_CRYPTO_LIBRARY'.  PyCrypto currently supported.  The
     PEM private key is encrypted with 3DES and CBC the mode of operation.  The
     password is strengthened with PBKDF1-MD5.
 
@@ -909,7 +909,7 @@ def import_rsa_privatekey_from_file(filepath, password=None):
     object in 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' format.
 
     Which cryptography library performs the cryptographic decryption is
-    determined by the string set in 'tuf.conf.RSA_CRYPTO_LIBRARY'.  PyCrypto
+    determined by the string set in 'settings.RSA_CRYPTO_LIBRARY'.  PyCrypto
     currently supported.
 
     The PEM private key is encrypted with 3DES and CBC the mode of operation.
@@ -975,7 +975,7 @@ def import_rsa_publickey_from_file(filepath):
     contains a private key, it is discarded.
 
     Which cryptography library performs the cryptographic decryption is
-    determined by the string set in 'tuf.conf.RSA_CRYPTO_LIBRARY'.  PyCrypto
+    determined by the string set in 'settings.RSA_CRYPTO_LIBRARY'.  PyCrypto
     currently supported.  If the RSA PEM in 'filepath' contains a private key,
     it is discarded.
 
@@ -1027,7 +1027,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
     as the pass phrase), and store it in 'filepath'.  The public key portion of
     the generated ED25519 key is stored in <'filepath'>.pub.  Which cryptography
     library performs the cryptographic decryption is determined by the string
-    set in 'tuf.conf.ED25519_CRYPTO_LIBRARY'.
+    set in 'settings.ED25519_CRYPTO_LIBRARY'.
     
     PyCrypto currently supported.  The Ed25519 private key is encrypted with
     AES-256 and CTR the mode of operation.  The password is strengthened with
@@ -1049,7 +1049,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
     tuf.ssl_commons.exceptions.CryptoError, if 'filepath' cannot be encrypted.
 
     tuf.ssl_commons.exceptions.UnsupportedLibraryError, if 'filepath' cannot be encrypted due to an
-    invalid configuration setting (i.e., invalid 'tuf.conf.py' setting).
+    invalid configuration setting (i.e., invalid 'tuf.settings.py' setting).
 
   <Side Effects>
     Writes key files to '<filepath>' and '<filepath>.pub'.
@@ -1074,7 +1074,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
 
   # Generate a new ED25519 key object and encrypt it.  The cryptography library
   # used is determined by the user, or by default (set in
-  # 'tuf.conf.ED25519_CRYPTO_LIBRARY').  Raise 'tuf.ssl_commons.exceptions.CryptoError' or
+  # 'settings.ED25519_CRYPTO_LIBRARY').  Raise 'tuf.ssl_commons.exceptions.CryptoError' or
   # 'tuf.ssl_commons.exceptions.UnsupportedLibraryError', if 'ed25519_key' cannot be encrypted.
   ed25519_key = tuf.keys.generate_ed25519_key()
   encrypted_key = tuf.keys.encrypt_key(ed25519_key, password) 
@@ -1164,7 +1164,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
     return the key object in 'tuf.ssl_crypto.formats.ED25519KEY_SCHEMA' format.
 
     Which cryptography library performs the cryptographic decryption is
-    determined by the string set in 'tuf.conf.ED25519_CRYPTO_LIBRARY'.  PyCrypto
+    determined by the string set in 'settings.ED25519_CRYPTO_LIBRARY'.  PyCrypto
     currently supported.
 
     The TUF private key (may also contain the public part) is encrypted with AES
@@ -1187,7 +1187,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
     tuf.ssl_commons.exceptions.CryptoError, if 'filepath' cannot be decrypted.
 
     tuf.ssl_commons.exceptions.UnsupportedLibraryError, if 'filepath' cannot be decrypted due to an
-    invalid configuration setting (i.e., invalid 'tuf.conf.py' setting).
+    invalid configuration setting (i.e., invalid 'tuf.settings.py' setting).
 
   <Side Effects>
     'password' is used to decrypt the 'filepath' key file.
@@ -1349,7 +1349,7 @@ def get_metadata_fileinfo(filename, custom=None):
   # file information, such as the file's author, version/revision
   # numbers, etc.
   filesize, filehashes = \
-    tuf.util.get_file_details(filename, tuf.conf.REPOSITORY_HASH_ALGORITHMS)
+    tuf.util.get_file_details(filename, settings.REPOSITORY_HASH_ALGORITHMS)
 
   return tuf.tufformats.make_fileinfo(filesize, filehashes, custom=custom)
 
@@ -2038,12 +2038,12 @@ def write_metadata_file(metadata, filename, version_number,
     # We provide the option of either (1) creating a link via os.link() to the
     # consistent file or (2) creating a copy of the consistent file and saving
     # to its expected filename (e.g., root.json).  The option of either
-    # creating a copy or link should be configurable in tuf.conf.py.
-    if (tuf.conf.CONSISTENT_METHOD == 'copy'):
+    # creating a copy or link should be configurable in tuf.settings.py.
+    if (settings.CONSISTENT_METHOD == 'copy'):
       logger.debug('Pointing ' + repr(filename) + ' to the consistent snapshot.')
       shutil.copyfile(written_consistent_filename, written_filename)
 
-    elif (tuf.conf.CONSISTENT_METHOD == 'hard_link'):
+    elif (settings.CONSISTENT_METHOD == 'hard_link'):
       logger.info('Hard linking ' + repr(written_consistent_filename))
 
       # 'written_filename' must not exist, otherwise os.link() complains.
@@ -2057,7 +2057,7 @@ def write_metadata_file(metadata, filename, version_number,
 
     else:
       raise tuf.ssl_commons.exceptions.InvalidConfigurationError('The consistent method specified'
-        ' in tuf.conf.py is not supported, try either "copy" or "hard_link"')
+        ' in tuf.settings.py is not supported, try either "copy" or "hard_link"')
   
   else:
     logger.debug('Not creating a consistent snapshot for ' + repr(written_filename))

@@ -57,7 +57,7 @@ else:
 
 import tuf
 import tuf.util
-import tuf.conf
+from simple_settings import settings
 import tuf.log
 import tuf.tufformats
 import tuf.keydb
@@ -159,9 +159,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',

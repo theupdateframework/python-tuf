@@ -38,6 +38,7 @@ import tuf
 import tuf.log
 import tuf.ssl_crypto.hash
 import tuf.util
+from simple_settings import settings
 import tuf.unittest_toolbox as unittest_toolbox
 
 import six
@@ -68,15 +69,15 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
 
   def _extract_tempfile_directory(self, config_temp_dir=None):
     """
-      Takes a directory (essentially specified in the conf.py as
+      Takes a directory (essentially specified in the settings.py as
       'temporary_directory') and substitutes tempfile.TemporaryFile() with
       tempfile.mkstemp() in order to extract actual directory of the stored  
       tempfile.  Returns the config's temporary directory (or default temp
       directory) and actual directory.
     """
 
-    # Patching 'tuf.conf.temporary_directory'.
-    tuf.conf.temporary_directory = config_temp_dir
+    # Patching 'settings.temporary_directory'.
+    settings.temporary_directory = config_temp_dir
 
     if config_temp_dir is None:
       # 'config_temp_dir' needs to be set to default.
@@ -104,22 +105,22 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
  
   def test_A2_tempfile_init(self):
     # Goal: Verify that temporary files are stored in the appropriate temp
-    # directory.  The location of the temporary files is set in 'tuf.conf.py'.
+    # directory.  The location of the temporary files is set in 'tuf.settings.py'.
 
     # Test: Expected input verification.
-    # Assumed 'tuf.conf.temporary_directory' is 'None' initially.
+    # Assumed 'settings.temporary_directory' is 'None' initially.
     temp_file = tuf.util.TempFile()
     temp_file_directory = os.path.dirname(temp_file.temporary_file.name)
     self.assertEqual(tempfile.gettempdir(), temp_file_directory)
 
-    saved_temporary_directory = tuf.conf.temporary_directory
+    saved_temporary_directory = settings.temporary_directory
     temp_directory = self.make_temp_directory()
-    tuf.conf.temporary_directory = temp_directory
+    settings.temporary_directory = temp_directory
     temp_file = tuf.util.TempFile()
     temp_file_directory = os.path.dirname(temp_file.temporary_file.name)
     self.assertEqual(temp_directory, temp_file_directory)
 
-    tuf.conf.temporary_directory = saved_temporary_directory
+    settings.temporary_directory = saved_temporary_directory
 
     # Test: Unexpected input handling.
     config_temp_dirs = [self.random_string(), 123, ['a'], {'a':1}]

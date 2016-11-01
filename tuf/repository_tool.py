@@ -46,8 +46,8 @@ import tuf.roledb
 import tuf.keys
 import tuf.sig
 import tuf.log
-import tuf.conf
 import tuf.repository_lib as repo_lib
+from simple_settings import settings
 from tuf.repository_lib import generate_and_write_rsa_keypair
 from tuf.repository_lib import generate_and_write_ed25519_keypair
 from tuf.repository_lib import import_rsa_publickey_from_file

@@ -36,7 +36,7 @@ import tuf.client.updater
 tuf.log.set_log_level(logging.INFO)
 
 # Set the local repository directory containing the metadata files.
-tuf.conf.repository_directory = '.'
+settings.repository_directory = '.'
 
 # Set the repository mirrors.  This dictionary is needed by the Updater
 # class of updater.py.  The client will download metadata and target
