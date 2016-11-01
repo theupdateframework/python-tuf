@@ -46,7 +46,7 @@ import tuf.log
 import tuf.tufformats
 import tuf.roledb
 import tuf.keydb
-import tuf.hash
+import tuf.ssl_crypto.hash
 import tuf.repository_tool as repo_tool
 
 import six

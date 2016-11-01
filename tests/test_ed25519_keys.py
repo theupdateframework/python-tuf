@@ -32,7 +32,7 @@ import logging
 import tuf
 import tuf.log
 import tuf.tufformats
-import tuf.ed25519_keys as ed25519_keys 
+import tuf.ssl_crypto.ed25519_keys as ed25519_keys 
 
 logger = logging.getLogger('tuf.test_ed25519_keys')
 

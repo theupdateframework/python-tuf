@@ -48,7 +48,7 @@ import tuf.log
 import tuf.tufformats
 import tuf.roledb
 import tuf.keydb
-import tuf.hash
+import tuf.ssl_crypto.hash
 import tuf.conf
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool as repo_tool
@@ -382,8 +382,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Generate test fileinfo object.  It is assumed SHA256 and SHA512 hashes
     # are computed by get_metadata_fileinfo().
     file_length = os.path.getsize(test_filepath)
-    sha256_digest_object = tuf.hash.digest_filename(test_filepath)
-    sha512_digest_object = tuf.hash.digest_filename(test_filepath, algorithm='sha512')
+    sha256_digest_object = tuf.ssl_crypto.hash.digest_filename(test_filepath)
+    sha512_digest_object = tuf.ssl_crypto.hash.digest_filename(test_filepath, algorithm='sha512')
     file_hashes = {'sha256': sha256_digest_object.hexdigest(),
                    'sha512': sha512_digest_object.hexdigest()}
     fileinfo = {'length': file_length, 'hashes': file_hashes}

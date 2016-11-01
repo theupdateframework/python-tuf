@@ -2474,7 +2474,7 @@ class Targets(Metadata):
       # its path relative to the targets directory.  Example:
       # '{repository_root}/targets/file1.txt' -> 'file1.txt'.
       relative_path = target_path[len(self._targets_directory):]
-      digest_object = tuf.hash.digest(algorithm=HASH_FUNCTION)
+      digest_object = tuf.ssl_crypto.hash.digest(algorithm=HASH_FUNCTION)
       digest_object.update(relative_path.encode('utf-8'))
       relative_path_hash = digest_object.hexdigest()
       relative_path_hash_prefix = relative_path_hash[:prefix_length]
@@ -2680,7 +2680,7 @@ class Targets(Metadata):
     # its path relative to the targets directory.  Example:
     # '{repository_root}/targets/file1.txt' -> '/file1.txt'.
     relative_path = filepath[len(self._targets_directory):]
-    digest_object = tuf.hash.digest(algorithm=HASH_FUNCTION)
+    digest_object = tuf.ssl_crypto.hash.digest(algorithm=HASH_FUNCTION)
     digest_object.update(relative_path.encode('utf-8'))
     path_hash = digest_object.hexdigest()
     path_hash_prefix = path_hash[:prefix_length]

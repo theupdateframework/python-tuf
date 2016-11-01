@@ -126,7 +126,7 @@ with warnings.catch_warnings():
 
 # The optimized version of the ed25519 library provided by default is imported
 # regardless of the availability of PyNaCl.
-import tuf.ed25519_keys
+import tuf.ssl_crypto.ed25519_keys
 
 # Import the TUF package and TUF-defined exceptions in __init__.py.
 import tuf
@@ -135,7 +135,7 @@ import tuf
 import tuf.conf
 
 # Digest objects needed to generate hashes.
-import tuf.hash
+import tuf.ssl_crypto.hash
 
 # Perform format checks of argument objects.
 import tuf.ssl_crypto.formats
@@ -330,7 +330,7 @@ def generate_ed25519_key():
   # attacks.
   if 'pynacl' in _available_crypto_libraries:
     public, private = \
-      tuf.ed25519_keys.generate_public_and_private()
+      tuf.ssl_crypto.ed25519_keys.generate_public_and_private()
   
   else: # pragma: no cover
     raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The required PyNaCl library'
@@ -548,7 +548,7 @@ def _get_keyid(keytype, key_value, hash_algorithm=_KEY_ID_HASH_ALGORITHM):
   # Create a digest object and call update(), using the JSON canonical format
   # of 'rskey_meta' as the update data.  _KEY_ID_HASH_ALGORITHM should be the
   # default hash algorithm used to generate the key ID of a unique key. 
-  digest_object = tuf.hash.digest(hash_algorithm)
+  digest_object = tuf.ssl_crypto.hash.digest(hash_algorithm)
   digest_object.update(key_update_data.encode('utf-8'))
 
   # 'keyid' becomes the hexadecimal representation of the hash.  
@@ -756,7 +756,7 @@ def create_signature(key_dict, data):
     public = binascii.unhexlify(public.encode('utf-8'))
     private = binascii.unhexlify(private.encode('utf-8'))
     if 'pynacl' in _available_crypto_libraries:
-      sig, method = tuf.ed25519_keys.create_signature(public, private, data.encode('utf-8'))
+      sig, method = tuf.ssl_crypto.ed25519_keys.create_signature(public, private, data.encode('utf-8'))
     
     else: # pragma: no cover
       raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('The required PyNaCl library'
@@ -906,13 +906,13 @@ def verify_signature(key_dict, signature, data):
     public = binascii.unhexlify(public.encode('utf-8'))
     if _ED25519_CRYPTO_LIBRARY == 'pynacl' or \
                               'pynacl' in _available_crypto_libraries:
-      valid_signature = tuf.ed25519_keys.verify_signature(public,
+      valid_signature = tuf.ssl_crypto.ed25519_keys.verify_signature(public,
                                                           method, sig, data,
                                                           use_pynacl=True)
     
     # Fall back to the optimized pure python implementation of ed25519. 
     else: # pragma: no cover
-      valid_signature = tuf.ed25519_keys.verify_signature(public,
+      valid_signature = tuf.ssl_crypto.ed25519_keys.verify_signature(public,
                                                           method, sig, data,
                                                           use_pynacl=False)
   

@@ -119,7 +119,7 @@ import tuf
 import tuf.conf
 import tuf.download
 import tuf.tufformats
-import tuf.hash
+import tuf.ssl_crypto.hash
 import tuf.keys
 import tuf.keydb
 import tuf.log
@@ -762,7 +762,7 @@ class Updater(object):
       tuf.ssl_commons.exceptions.BadHashError, if the hashes don't match.
 
     <Side Effects>
-      Hash digest object is created using the 'tuf.hash' module.
+      Hash digest object is created using the 'tuf.ssl_crypto.hash' module.
 
     <Returns>
       None.
@@ -771,7 +771,7 @@ class Updater(object):
     # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
     # return.
     for algorithm, trusted_hash in six.iteritems(trusted_hashes):
-      digest_object = tuf.hash.digest(algorithm)
+      digest_object = tuf.ssl_crypto.hash.digest(algorithm)
       digest_object.update(file_object.read())
       computed_hash = digest_object.hexdigest()
       
@@ -2592,7 +2592,7 @@ class Updater(object):
     # Calculate the hash of the filepath to determine which bin to find the 
     # target.  The client currently assumes the repository (i.e., repository
     # tool) uses 'hash_function' to generate hashes and UTF-8.
-    digest_object = tuf.hash.digest(hash_function)
+    digest_object = tuf.ssl_crypto.hash.digest(hash_function)
     encoded_target_filepath = target_filepath.encode('utf-8')
     digest_object.update(encoded_target_filepath)
     target_filepath_hash = digest_object.hexdigest() 
@@ -2725,7 +2725,7 @@ class Updater(object):
       for algorithm, digest in six.iteritems(target['fileinfo']['hashes']):
         digest_object = None
         try:
-          digest_object = tuf.hash.digest_filename(target_filepath,
+          digest_object = tuf.ssl_crypto.hash.digest_filename(target_filepath,
                                                    algorithm=algorithm)
         
         # This exception would occur if the target does not exist locally. 

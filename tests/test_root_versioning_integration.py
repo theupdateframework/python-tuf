@@ -39,7 +39,7 @@ import tuf.log
 import tuf.tufformats
 import tuf.roledb
 import tuf.keydb
-import tuf.hash
+import tuf.ssl_crypto.hash
 import tuf.repository_tool as repo_tool
 
 logger = logging.getLogger('tuf.test_root_versioning')

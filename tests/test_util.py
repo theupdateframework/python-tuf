@@ -36,7 +36,7 @@ import timeit
 
 import tuf
 import tuf.log
-import tuf.hash
+import tuf.ssl_crypto.hash
 import tuf.util
 import tuf.unittest_toolbox as unittest_toolbox
 
@@ -257,7 +257,7 @@ class TestUtil(unittest_toolbox.Modified_TestCase):
     filepath = self.make_temp_data_file()
 
     # Computing the hash and length of the tempfile.
-    digest_object = tuf.hash.digest_filename(filepath, algorithm='sha256')
+    digest_object = tuf.ssl_crypto.hash.digest_filename(filepath, algorithm='sha256')
     file_hash = {'sha256' : digest_object.hexdigest()}
     file_length = os.path.getsize(filepath)
  

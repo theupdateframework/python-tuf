@@ -108,7 +108,7 @@ import Crypto.Util.Counter
 import tuf
 
 # Digest objects needed to generate hashes.
-import tuf.hash
+import tuf.ssl_crypto.hash
 
 # Perform object format-checking.
 import tuf.tufformats

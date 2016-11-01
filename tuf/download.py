@@ -38,7 +38,7 @@ import time
 
 import tuf
 import tuf.conf
-import tuf.hash
+import tuf.ssl_crypto.hash
 import tuf.util
 import tuf.tufformats
 import six

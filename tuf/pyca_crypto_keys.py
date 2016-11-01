@@ -126,7 +126,7 @@ from cryptography.hazmat.primitives.ciphers import modes
 import tuf
 
 # Digest objects are needed to generate hashes.
-import tuf.hash
+import tuf.ssl_crypto.hash
 
 # Perform object format-checking.
 import tuf.tufformats

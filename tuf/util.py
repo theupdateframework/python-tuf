@@ -35,7 +35,7 @@ import tempfile
 import fnmatch
 
 import tuf
-import tuf.hash
+import tuf.ssl_crypto.hash
 import tuf.conf
 import tuf.tufformats
 import six
@@ -408,7 +408,7 @@ def get_file_details(filepath, hash_algorithms=['sha256']):
 
   # Obtaining hash of the file.
   for algorithm in hash_algorithms:
-    digest_object = tuf.hash.digest_filename(filepath, algorithm)
+    digest_object = tuf.ssl_crypto.hash.digest_filename(filepath, algorithm)
     file_hashes.update({algorithm: digest_object.hexdigest()})
 
   # Performing a format check to ensure 'file_hash' corresponds HASHDICT_SCHEMA.
@@ -811,7 +811,7 @@ def get_target_hash(target_filepath):
   # Calculate the hash of the filepath to determine which bin to find the 
   # target.  The client currently assumes the repository uses
   # 'HASH_FUNCTION' to generate hashes and 'utf-8'.
-  digest_object = tuf.hash.digest(HASH_FUNCTION)
+  digest_object = tuf.ssl_crypto.hash.digest(HASH_FUNCTION)
   encoded_target_filepath = target_filepath.encode('utf-8')
   digest_object.update(encoded_target_filepath)
   target_filepath_hash = digest_object.hexdigest() 
