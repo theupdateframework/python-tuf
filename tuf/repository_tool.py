@@ -41,9 +41,9 @@ import random
 import tuf
 import tuf.tufformats
 import tuf.ssl_crypto.util
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.roledb
-import tuf.keys
+import tuf.ssl_crypto.keys
 import tuf.sig
 import tuf.log
 import tuf.repository_lib as repo_lib
@@ -100,7 +100,7 @@ SNAPSHOT_EXPIRATION = 604800
 TIMESTAMP_EXPIRATION = 86400
 
 try:
-  tuf.keys.check_crypto_libraries(['rsa', 'ed25519', 'general'])
+  tuf.ssl_crypto.keys.check_crypto_libraries(['rsa', 'ed25519', 'general'])
 
 except tuf.ssl_commons.exceptions.UnsupportedLibraryError: #pragma: no cover
   logger.warn('Warning: The repository and developer tools require'
@@ -217,7 +217,7 @@ class Repository(object):
     tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
     tuf.ssl_crypto.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
     
-    # At this point, tuf.keydb and tuf.roledb must be fully populated,
+    # At this point, tuf.ssl_crypto.keydb and tuf.roledb must be fully populated,
     # otherwise writeall() throws a 'tuf.ssl_commons.exceptions.UnsignedMetadataError' for the
     # top-level roles.  exception if any of the top-level roles are missing
     # signatures, keys, etc.
@@ -595,7 +595,7 @@ class Metadata(object):
       tuf.ssl_commons.exceptions.Error, if the 'expires' datetime has already expired.
 
     <Side Effects>
-      The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated.
+      The role's entries in 'tuf.ssl_crypto.keydb.py' and 'tuf.roledb.py' are updated.
 
     <Returns>
       None.
@@ -653,10 +653,10 @@ class Metadata(object):
     key['expires'] = expires 
 
     # Ensure 'key', which should contain the public portion, is added to
-    # 'tuf.keydb.py'.  Add 'key' to the list of recognized keys.  Keys may be
+    # 'tuf.ssl_crypto.keydb.py'.  Add 'key' to the list of recognized keys.  Keys may be
     # shared, so do not raise an exception if 'key' has already been loaded.
     try:
-      tuf.keydb.add_key(key)
+      tuf.ssl_crypto.keydb.add_key(key)
     
     except tuf.ssl_commons.exceptions.KeyAlreadyExistsError:
       logger.warning('Adding a verification key that has already been used.')
@@ -747,7 +747,7 @@ class Metadata(object):
       tuf.ssl_commons.exceptions.Error, if the private key is not found in 'key'.
 
     <Side Effects>
-      Updates the role's 'tuf.keydb.py' and 'tuf.roledb.py' entries.
+      Updates the role's 'tuf.ssl_crypto.keydb.py' and 'tuf.roledb.py' entries.
 
     <Returns>
       None.
@@ -767,11 +767,11 @@ class Metadata(object):
     # Has the key, with the private portion included, been added to the keydb?
     # The public version of the key may have been previously added.
     try:
-      tuf.keydb.add_key(key)
+      tuf.ssl_crypto.keydb.add_key(key)
     
     except tuf.ssl_commons.exceptions.KeyAlreadyExistsError:
-      tuf.keydb.remove_key(key['keyid'])
-      tuf.keydb.add_key(key)
+      tuf.ssl_crypto.keydb.remove_key(key['keyid'])
+      tuf.ssl_crypto.keydb.add_key(key)
 
     # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -2180,7 +2180,7 @@ class Targets(Metadata):
 
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
-      caller (i.e., targets.<rolename>).  The 'tuf.keydb.py' and
+      caller (i.e., targets.<rolename>).  The 'tuf.ssl_crypto.keydb.py' and
       'tuf.roledb.py' stores are updated with 'public_keys'.
 
     <Returns>
@@ -2212,10 +2212,10 @@ class Targets(Metadata):
     keyids = [] 
     keydict = {}
 
-    # Add all the keys in 'public_keys' to tuf.keydb.
+    # Add all the keys in 'public_keys' to tuf.ssl_crypto.keydb.
     for key in public_keys:
       keyid = key['keyid']
-      key_metadata_format = tuf.keys.format_keyval_to_metadata(key['keytype'],
+      key_metadata_format = tuf.ssl_crypto.keys.format_keyval_to_metadata(key['keytype'],
                                                                key['keyval'])
       # Update 'keyids' and 'keydict'.
       new_keydict = {keyid: key_metadata_format}
@@ -2869,7 +2869,7 @@ def load_repository(repository_directory):
 
   # Load top-level metadata.
   #tuf.roledb.clear_roledb(clear_all=True)
-  #tuf.keydb.clear_keydb(clear_all=True)
+  #tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,
@@ -2992,9 +2992,9 @@ def load_repository(repository_directory):
     # The repository maintainer should have also been made aware of the
     # duplicate key when it was added.
     for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
-      key_object, junk = tuf.keys.format_metadata_to_key(key_metadata)
+      key_object, junk = tuf.ssl_crypto.keys.format_metadata_to_key(key_metadata)
       try:
-        tuf.keydb.add_key(key_object)
+        tuf.ssl_crypto.keydb.add_key(key_object)
       
       except tuf.ssl_commons.exceptions.KeyAlreadyExistsError:
         pass

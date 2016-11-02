@@ -38,7 +38,7 @@ import tuf
 import tuf.log
 import tuf.tufformats
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.ssl_crypto.hash
 import tuf.repository_tool as repo_tool
 
@@ -59,7 +59,7 @@ class TestRepository(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
 
   def test_init(self):
     # Test normal case.

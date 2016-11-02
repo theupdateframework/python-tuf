@@ -27,7 +27,7 @@ import tuf
 import tuf.log
 import tuf.tufformats
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.developer_tool as developer_tool
 
 from tuf.developer_tool import METADATA_DIRECTORY_NAME
@@ -56,7 +56,7 @@ class TestProject(unittest.TestCase):
   def tearDown(self):
     # called after every test case
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
   def test_create_new_project(self):
@@ -152,7 +152,7 @@ class TestProject(unittest.TestCase):
     os.chmod(local_tmp, 0o0555)
 
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     self.assertRaises(OSError, developer_tool.create_new_project ,project_name,
         metadata_directory, location_in_repository, targets_directory,
         project_key)
@@ -163,7 +163,7 @@ class TestProject(unittest.TestCase):
     os.chmod(local_tmp, 0o0555)
 
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     self.assertRaises(OSError, developer_tool.create_new_project ,project_name,
         metadata_directory, location_in_repository, targets_directory,
         project_key)

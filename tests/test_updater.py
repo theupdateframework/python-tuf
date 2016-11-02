@@ -69,7 +69,7 @@ import tuf.ssl_crypto.util
 from simple_settings import settings
 import tuf.log
 import tuf.tufformats
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.roledb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
@@ -194,7 +194,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True) 
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True) 
 
 
 
@@ -332,8 +332,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # keys multiplied by the number of keyid hash algorithms), to include the
     # delegated targets key.  The delegated roles of 'targets.json' are also
     # loaded when the repository object is instantiated.
-    print('\ndifference: ' + repr(list(set(tuf.keydb._keydb_dict[self.repository_name].keys()) - set(root_metadata['keys'].keys()))))
-    self.assertEqual(number_of_root_keys * 2 + 1, len(tuf.keydb._keydb_dict[self.repository_name]))
+    print('\ndifference: ' + repr(list(set(tuf.ssl_crypto.keydb._keydb_dict[self.repository_name].keys()) - set(root_metadata['keys'].keys()))))
+    self.assertEqual(number_of_root_keys * 2 + 1, len(tuf.ssl_crypto.keydb._keydb_dict[self.repository_name]))
 
     # Test: normal case.
     self.repository_updater._rebuild_key_and_role_db()
@@ -343,7 +343,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # _rebuild_key_and_role_db() will only rebuild the keys and roles specified
     # in the 'root.json' file, unlike __init__().  Instantiating an updater
     # object calls both _rebuild_key_and_role_db() and _import_delegations().
-    self.assertEqual(number_of_root_keys * 2, len(tuf.keydb._keydb_dict[self.repository_name]))
+    self.assertEqual(number_of_root_keys * 2, len(tuf.ssl_crypto.keydb._keydb_dict[self.repository_name]))
    
     # Test: properly updated roledb and keydb dicts if the Root role changes.
     root_metadata = self.repository_updater.metadata['current']['root']
@@ -354,7 +354,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], 8)
-    self.assertEqual(number_of_root_keys * 2 - 2, len(tuf.keydb._keydb_dict[self.repository_name]))
+    self.assertEqual(number_of_root_keys * 2 - 2, len(tuf.ssl_crypto.keydb._keydb_dict[self.repository_name]))
   """
     
 
@@ -459,20 +459,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # there without using '_load_metadata_from_file()' since it calls
     # '_import_delegations()'.
     repository_name = self.repository_updater.updater_name
-    tuf.keydb.clear_keydb(repository_name)
+    tuf.ssl_crypto.keydb.clear_keydb(repository_name)
     tuf.roledb.clear_roledb(repository_name)
 
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 0)
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 0)
+    self.assertEqual(len(tuf.ssl_crypto.keydb._keydb_dict[repository_name]), 0)
     
     self.repository_updater._rebuild_key_and_role_db()
     
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
     # Take into account the number of keyids algorithms supported by default,
     # which this test condition expects to be two (sha256 and sha512).
-    print('\nkeydb_dict len: ' + repr(len(tuf.keydb._keydb_dict[repository_name].keys())))
-    print('\nkeydb_dict: ' + repr(tuf.keydb._keydb_dict[repository_name].keys()))
-    self.assertEqual(4 * 2, len(tuf.keydb._keydb_dict[repository_name]))
+    print('\nkeydb_dict len: ' + repr(len(tuf.ssl_crypto.keydb._keydb_dict[repository_name].keys())))
+    print('\nkeydb_dict: ' + repr(tuf.ssl_crypto.keydb._keydb_dict[repository_name].keys()))
+    self.assertEqual(4 * 2, len(tuf.ssl_crypto.keydb._keydb_dict[repository_name]))
 
     # Test: pass a role without delegations.
     self.repository_updater._import_delegations('root')
@@ -482,7 +482,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
     # Take into account the number of keyid hash algorithms, which this
     # test condition expects to be two (for sha256 and sha512).
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2)
+    self.assertEqual(len(tuf.ssl_crypto.keydb._keydb_dict[repository_name]), 4 * 2)
 
     # Test: normal case, first level delegation.
     self.repository_updater._import_delegations('targets')
@@ -490,7 +490,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 5)
     # The number of root keys (times the number of key hash algorithms) + 
     # delegation's key.
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2 + 1)
+    self.assertEqual(len(tuf.ssl_crypto.keydb._keydb_dict[repository_name]), 4 * 2 + 1)
 
     # Verify that roledb dictionary was added.
     self.assertTrue('role1' in tuf.roledb._roledb_dict[repository_name])
@@ -504,7 +504,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       keyids.append(signature['keyid'])
       
     for keyid in keyids:
-      self.assertTrue(keyid in tuf.keydb._keydb_dict[repository_name])
+      self.assertTrue(keyid in tuf.ssl_crypto.keydb._keydb_dict[repository_name])
 
     # Verify that _import_delegations() ignores invalid keytypes in the 'keys'
     # field of parent role's 'delegations'.
@@ -520,7 +520,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Verify that _import_delegations() raises an exception if any key in
     # 'delegations' is improperly formatted (i.e., bad keyid).
-    tuf.keydb.clear_keydb(repository_name)
+    tuf.ssl_crypto.keydb.clear_keydb(repository_name)
     
     self.repository_updater.metadata['current']['targets']['delegations']\
       ['keys'].update({'123': self.repository_updater.metadata['current']\

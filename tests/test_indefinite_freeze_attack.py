@@ -66,7 +66,7 @@ import tuf.client.updater as updater
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 from simple_settings import settings
 
 import six
@@ -181,7 +181,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
   def test_without_tuf(self):

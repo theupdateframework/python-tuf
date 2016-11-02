@@ -39,9 +39,9 @@ import json
 import tuf
 import tuf.tufformats
 import tuf.ssl_crypto.util
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.roledb
-import tuf.keys
+import tuf.ssl_crypto.keys
 import tuf.sig
 import tuf.log
 from simple_settings import settings
@@ -50,8 +50,8 @@ import six
 
 # These imports provide the interface for 'developer_tool.py', since the imports
 # are made there. 
-from tuf.keys import format_keyval_to_metadata
-from tuf.keys import format_metadata_to_key
+from tuf.ssl_crypto.keys import format_keyval_to_metadata
+from tuf.ssl_crypto.keys import format_metadata_to_key
 
 from tuf.repository_tool import Targets
 from tuf.repository_lib import get_metadata_fileinfo
@@ -249,7 +249,7 @@ class Project(Targets):
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(write_partial)
     
-    # At this point the tuf.keydb and tuf.roledb stores must be fully
+    # At this point the tuf.ssl_crypto.keydb and tuf.roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.Repository' exception if 
     # any of the project roles are missing signatures, keys, etc.
 
@@ -310,7 +310,7 @@ class Project(Targets):
         tuf.ssl_commons.exceptions.Error, if the project already contains a key.
 
       <Side Effects>
-        The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated.
+        The role's entries in 'tuf.ssl_crypto.keydb.py' and 'tuf.roledb.py' are updated.
 
       <Returns>
         None
@@ -754,7 +754,7 @@ def _save_project_configuration(metadata_directory, targets_directory,
 
   # Build a dictionary containing the actual keys.
   for key in public_keys:
-    key_info = tuf.keydb.get_key(key)
+    key_info = tuf.ssl_crypto.keydb.get_key(key)
     key_metadata = format_keyval_to_metadata(key_info['keytype'],
                                              key_info['keyval'])
     project_config['public_keys'][key] = key_metadata
@@ -807,7 +807,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
 
   # Clear the role and key databases since we are loading in a new project.
   tuf.roledb.clear_roledb() 
-  tuf.keydb.clear_keydb()
+  tuf.ssl_crypto.keydb.clear_keydb()
 
   # Locate metadata filepaths and targets filepath.
   project_directory = os.path.abspath(project_directory)
@@ -857,7 +857,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   keydict = project_configuration['public_keys']
   
   for keyid in keydict:
-    key, junk = tuf.keys.format_metadata_to_key(keydict[keyid]) 
+    key, junk = tuf.ssl_crypto.keys.format_metadata_to_key(keydict[keyid]) 
     project.add_verification_key(key)
  
   # Load the project's metadata.
@@ -890,8 +890,8 @@ def load_project(project_directory, prefix='', new_targets_location=None):
 
   
   for key_metadata in targets_metadata['delegations']['keys'].values():
-    key_object, junk = tuf.keys.format_metadata_to_key(key_metadata)
-    tuf.keydb.add_key(key_object)
+    key_object, junk = tuf.ssl_crypto.keys.format_metadata_to_key(key_metadata)
+    tuf.ssl_crypto.keydb.add_key(key_object)
 
   for role in targets_metadata['delegations']['roles']:
     rolename = role['name']
@@ -972,10 +972,10 @@ def load_project(project_directory, prefix='', new_targets_location=None):
       
       # Add the keys specified in the delegations field of the Targets role.
       for key_metadata in metadata_object['delegations']['keys'].values():
-        key_object, junk = tuf.keys.format_metadata_to_key(key_metadata)
+        key_object, junk = tuf.ssl_crypto.keys.format_metadata_to_key(key_metadata)
         
         try: 
-          tuf.keydb.add_key(key_object)
+          tuf.ssl_crypto.keydb.add_key(key_object)
         
         except tuf.ssl_commons.exceptions.KeyAlreadyExistsError:
           pass

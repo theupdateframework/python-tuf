@@ -120,8 +120,8 @@ from simple_settings import settings
 import tuf.download
 import tuf.tufformats
 import tuf.ssl_crypto.hash
-import tuf.keys
-import tuf.keydb
+import tuf.ssl_crypto.keys
+import tuf.ssl_crypto.keydb
 import tuf.log
 import tuf.mirrors
 import tuf.roledb
@@ -490,7 +490,7 @@ class Updater(object):
     # The metadata files for delegated roles are also not loaded when the
     # repository is first instantiated.  Due to this setup, reloading delegated
     # roles is not required here.
-    tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
+    tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
                                               self.updater_name)
     tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
                                                 self.updater_name)
@@ -538,15 +538,15 @@ class Updater(object):
     # Iterate the keys of the delegated roles of 'parent_role' and load them.
     for keyid, keyinfo in six.iteritems(keys_info):
       if keyinfo['keytype'] in ['rsa', 'ed25519']:
-        key, keyids = tuf.keys.format_metadata_to_key(keyinfo)
+        key, keyids = tuf.ssl_crypto.keys.format_metadata_to_key(keyinfo)
       
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          tuf.keydb.add_key(key, keyid, self.updater_name)
+          tuf.ssl_crypto.keydb.add_key(key, keyid, self.updater_name)
           for keyid in keyids:
             key['keyid'] = keyid
-            tuf.keydb.add_key(key, keyid=None, repository_name=self.updater_name)
+            tuf.ssl_crypto.keydb.add_key(key, keyid=None, repository_name=self.updater_name)
 
         except tuf.ssl_commons.exceptions.KeyAlreadyExistsError:
           pass

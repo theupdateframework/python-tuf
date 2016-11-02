@@ -45,7 +45,7 @@ import tuf
 import tuf.log
 import tuf.tufformats
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.ssl_crypto.hash
 import tuf.repository_tool as repo_tool
 
@@ -88,7 +88,7 @@ class TestRepository(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb(clear_all=True) 
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
   def test_init(self):
@@ -438,7 +438,7 @@ class TestMetadata(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     self.metadata = None 
 
   
@@ -785,7 +785,7 @@ class TestRoot(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb() 
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
 
 
   
@@ -807,7 +807,7 @@ class TestTimestamp(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb() 
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
   
   
   
@@ -832,7 +832,7 @@ class TestSnapshot(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb() 
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
   
   
   
@@ -887,7 +887,7 @@ class TestTargets(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb() 
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     self.targets_object = None
   
   

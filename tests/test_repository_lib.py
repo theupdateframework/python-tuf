@@ -47,7 +47,7 @@ import tuf.ssl_crypto.formats
 import tuf.log
 import tuf.tufformats
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.ssl_crypto.hash
 from simple_settings import settings
 import tuf.repository_lib as repo_lib
@@ -91,7 +91,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
 
@@ -273,7 +273,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     keytype = imported_ed25519_key['keytype'] 
     keyval = imported_ed25519_key['keyval']
     ed25519key_metadata_format = \
-      tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
+      tuf.ssl_crypto.keys.format_keyval_to_metadata(keytype, keyval, private=False)
     
     ed25519key_metadata_format['keytype'] = 'invalid_keytype'
     with open(ed25519_keypath + '.pub', 'wb') as file_object:
@@ -428,9 +428,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
 
     # generate_root_metadata() expects the top-level roles and keys to be
-    # available in 'tuf.keydb' and 'tuf.roledb'.
+    # available in 'tuf.ssl_crypto.keydb' and 'tuf.roledb'.
     tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'])
-    tuf.keydb.create_keydb_from_root_metadata(root_signable['signed'])
+    tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(root_signable['signed'])
     expires = '1985-10-21T01:22:00Z'
 
     root_metadata = repo_lib.generate_root_metadata(1, expires,
@@ -438,13 +438,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(tuf.ssl_crypto.formats.ROOT_SCHEMA.matches(root_metadata))
 
     root_keyids = tuf.roledb.get_role_keyids('root')
-    tuf.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'bad_keytype'
+    tuf.ssl_crypto.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'bad_keytype'
     self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.generate_root_metadata, 1,
                       expires, consistent_snapshot=False)
     
     # Reset the root key's keytype, so that we can next verify that a different
     # tuf.ssl_commons.exceptions.Error exception is raised for duplicate keyids.
-    tuf.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'rsa'
+    tuf.ssl_crypto.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'rsa'
     
     # Add duplicate keyid to root's roleinfo.
     tuf.roledb._roledb_dict['default']['root']['keyids'].append(root_keyids[0])
@@ -461,7 +461,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test for missing required roles and keys.
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.generate_root_metadata,
                       1, expires, False)
 
@@ -681,7 +681,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     targets_filename = os.path.join(metadata_path, 'targets.json')
     targets_metadata = tuf.ssl_crypto.util.load_json_file(targets_filename)['signed']
     
-    tuf.keydb.create_keydb_from_root_metadata(root_metadata)
+    tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(root_metadata)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata)
     root_keyids = tuf.roledb.get_role_keyids('root')
     targets_keyids = tuf.roledb.get_role_keyids('targets')
@@ -696,13 +696,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       repo_lib.import_ed25519_publickey_from_file(targets_public_keypath)
 
     # sign_metadata() expects the private key 'root_metadata' to be in
-    # 'tuf.keydb'.  Remove any public keys that may be loaded before
+    # 'tuf.ssl_crypto.keydb'.  Remove any public keys that may be loaded before
     # adding private key, otherwise a 'tuf.KeyAlreadyExists' exception is
     # raised.
-    tuf.keydb.remove_key(root_private_key['keyid'])
-    tuf.keydb.add_key(root_private_key)
-    tuf.keydb.remove_key(targets_public_key['keyid'])
-    tuf.keydb.add_key(targets_public_key)
+    tuf.ssl_crypto.keydb.remove_key(root_private_key['keyid'])
+    tuf.ssl_crypto.keydb.add_key(root_private_key)
+    tuf.ssl_crypto.keydb.remove_key(targets_public_key['keyid'])
+    tuf.ssl_crypto.keydb.add_key(targets_public_key)
    
     # Verify that a valid root signable is generated.
     root_signable = repo_lib.sign_metadata(root_metadata, root_keyids,
@@ -715,7 +715,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Add an invalid keytype to one of the root keys.
     root_keyid = root_keyids[0]
-    tuf.keydb._keydb_dict['default'][root_keyid]['keytype'] = 'bad_keytype'
+    tuf.ssl_crypto.keydb._keydb_dict['default'][root_keyid]['keytype'] = 'bad_keytype'
     self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.sign_metadata, root_metadata,
                       root_keyids, root_filename)
 
@@ -999,7 +999,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test__load_top_level_metadata(self):
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     repository_directory = os.path.join(temporary_directory, 'repository') 
@@ -1067,15 +1067,15 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     root_rsa_key = repo_lib.import_rsa_privatekey_from_file(key_filepath,
                                                             'password')
     
-    # Add 'root_rsa_key' to tuf.keydb, since
+    # Add 'root_rsa_key' to tuf.ssl_crypto.keydb, since
     # _remove_invalid_and_duplicate_signatures() checks for unknown keys in
-    # tuf.keydb.
-    tuf.keydb.add_key(root_rsa_key)
+    # tuf.ssl_crypto.keydb.
+    tuf.ssl_crypto.keydb.add_key(root_rsa_key)
 
     # Append the new valid, but duplicate PSS signature, and test that
     # duplicates are removed.  create_signature() generates a key for the
     # key type of the first argument (i.e., root_rsa_key).
-    new_pss_signature = tuf.keys.create_signature(root_rsa_key,
+    new_pss_signature = tuf.ssl_crypto.keys.create_signature(root_rsa_key,
                                                   root_signable['signed'])
     root_signable['signatures'].append(new_pss_signature)
 

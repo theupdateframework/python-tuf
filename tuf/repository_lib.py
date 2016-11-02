@@ -45,9 +45,9 @@ import tuf
 import tuf.ssl_crypto.formats
 import tuf.tufformats
 import tuf.ssl_crypto.util
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.roledb
-import tuf.keys
+import tuf.ssl_crypto.keys
 import tuf.sig
 import tuf.log
 from simple_settings import settings
@@ -423,16 +423,16 @@ def _remove_invalid_and_duplicate_signatures(signable):
     key = None
 
     # Remove 'signature' from 'signable' if the listed keyid does not exist
-    # in 'tuf.keydb'.
+    # in 'tuf.ssl_crypto.keydb'.
     try:
-      key = tuf.keydb.get_key(keyid)
+      key = tuf.ssl_crypto.keydb.get_key(keyid)
     
     except tuf.ssl_commons.exceptions.UnknownKeyError:
       signable['signatures'].remove(signature)
       continue
     
     # Remove 'signature' from 'signable' if it is an invalid signature.
-    if not tuf.keys.verify_signature(key, signature, signed):
+    if not tuf.ssl_crypto.keys.verify_signature(key, signature, signed):
       logger.debug('Removing invalid signature for ' + repr(keyid)) 
       signable['signatures'].remove(signature)
     
@@ -610,7 +610,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     signable = tuf.ssl_crypto.util.load_json_file(root_filename)
     tuf.tufformats.check_signable_object_format(signable)
     root_metadata = signable['signed']  
-    tuf.keydb.create_keydb_from_root_metadata(root_metadata)
+    tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(root_metadata)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata)
 
     # Load Root's roleinfo and update 'tuf.roledb'.
@@ -768,7 +768,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
 
     # Add the keys specified in the delegations field of the Targets role.
     for key_metadata in six.itervalues(targets_metadata['delegations']['keys']):
-      key_object, keyids = tuf.keys.format_metadata_to_key(key_metadata)
+      key_object, keyids = tuf.ssl_crypto.keys.format_metadata_to_key(key_metadata)
      
       # Add 'key_object' to the list of recognized keys.  Keys may be shared,
       # so do not raise an exception if 'key_object' has already been loaded.
@@ -777,10 +777,10 @@ def _load_top_level_metadata(repository, top_level_filenames):
       # repository maintainer should have also been made aware of the duplicate
       # key when it was added.
       try: 
-        tuf.keydb.add_key(key_object)
+        tuf.ssl_crypto.keydb.add_key(key_object)
         for keyid in keyids: #pragma: no branch
           key_object['keyid'] = keyid
-          tuf.keydb.add_key(key_object, keyid=None)
+          tuf.ssl_crypto.keydb.add_key(key_object, keyid=None)
 
       except tuf.ssl_commons.exceptions.KeyAlreadyExistsError:
         pass
@@ -873,10 +873,10 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
  
   #  Generate public and private RSA keys, encrypted the private portion
   # and store them in PEM format.
-  rsa_key = tuf.keys.generate_rsa_key(bits)
+  rsa_key = tuf.ssl_crypto.keys.generate_rsa_key(bits)
   public = rsa_key['keyval']['public']
   private = rsa_key['keyval']['private']
-  encrypted_pem = tuf.keys.create_rsa_encrypted_pem(private, password) 
+  encrypted_pem = tuf.ssl_crypto.keys.create_rsa_encrypted_pem(private, password) 
  
   # Write public key (i.e., 'public', which is in PEM format) to
   # '<filepath>.pub'.  If the parent directory of filepath does not exist,
@@ -959,7 +959,7 @@ def import_rsa_privatekey_from_file(filepath, password=None):
 
   # Convert 'encrypted_pem' to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' format.  Raise
   # 'tuf.ssl_commons.exceptions.CryptoError' if 'encrypted_pem' is invalid.
-  rsa_key = tuf.keys.import_rsakey_from_encrypted_pem(encrypted_pem, password)
+  rsa_key = tuf.ssl_crypto.keys.import_rsakey_from_encrypted_pem(encrypted_pem, password)
   
   return rsa_key
 
@@ -1009,7 +1009,7 @@ def import_rsa_publickey_from_file(filepath):
 
   # Convert 'rsa_pubkey_pem' to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' format.
   try:
-    rsakey_dict = tuf.keys.format_rsakey_from_pem(rsa_pubkey_pem)
+    rsakey_dict = tuf.ssl_crypto.keys.format_rsakey_from_pem(rsa_pubkey_pem)
   
   except tuf.ssl_commons.exceptions.FormatError as e:
     raise tuf.ssl_commons.exceptions.Error('Cannot import improperly formatted PEM file.' + repr(str(e)))
@@ -1076,15 +1076,15 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   # used is determined by the user, or by default (set in
   # 'settings.ED25519_CRYPTO_LIBRARY').  Raise 'tuf.ssl_commons.exceptions.CryptoError' or
   # 'tuf.ssl_commons.exceptions.UnsupportedLibraryError', if 'ed25519_key' cannot be encrypted.
-  ed25519_key = tuf.keys.generate_ed25519_key()
-  encrypted_key = tuf.keys.encrypt_key(ed25519_key, password) 
+  ed25519_key = tuf.ssl_crypto.keys.generate_ed25519_key()
+  encrypted_key = tuf.ssl_crypto.keys.encrypt_key(ed25519_key, password) 
 
   # ed25519 public key file contents in metadata format (i.e., does not include
   # the keyid portion).
   keytype = ed25519_key['keytype']
   keyval = ed25519_key['keyval']
   ed25519key_metadata_format = \
-    tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
+    tuf.ssl_crypto.keys.format_keyval_to_metadata(keytype, keyval, private=False)
   
   # Write the public key, conformant to 'tuf.ssl_crypto.formats.KEY_SCHEMA', to
   # '<filepath>.pub'.
@@ -1142,10 +1142,10 @@ def import_ed25519_publickey_from_file(filepath):
   # loaded key object in tuf.ssl_crypto.formats.ED25519KEY_SCHEMA' format that also
   # includes the keyid.
   ed25519_key_metadata = tuf.ssl_crypto.util.load_json_file(filepath)
-  ed25519_key, junk = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
+  ed25519_key, junk = tuf.ssl_crypto.keys.format_metadata_to_key(ed25519_key_metadata)
 
   # Raise an exception if an unexpected key type is imported.
-  # Redundant validation of 'keytype'.  'tuf.keys.format_metadata_to_key()'
+  # Redundant validation of 'keytype'.  'tuf.ssl_crypto.keys.format_metadata_to_key()'
   # should have fully validated 'ed25519_key_metadata'.
   if ed25519_key['keytype'] != 'ed25519': # pragma: no cover
     message = 'Invalid key type loaded: ' + repr(ed25519_key['keytype'])
@@ -1223,7 +1223,7 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   # (i.e., set by the user) and generating the derived encryption key from
   # 'password'.  Raise 'tuf.ssl_commons.exceptions.CryptoError' or 'tuf.ssl_commons.exceptions.UnsupportedLibraryError' if the
   # decryption fails.
-  key_object = tuf.keys.decrypt_key(encrypted_key, password)
+  key_object = tuf.ssl_crypto.keys.decrypt_key(encrypted_key, password)
 
   # Raise an exception if an unexpected key type is imported. 
   if key_object['keytype'] != 'ed25519':
@@ -1435,7 +1435,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
                            compression_algorithms=['gz']):
   """
   <Purpose>
-    Create the root metadata.  'tuf.roledb.py' and 'tuf.keydb.py' are read and
+    Create the root metadata.  'tuf.roledb.py' and 'tuf.ssl_crypto.keydb.py' are read and
     the information returned by these modules is used to generate the root
     metadata object.
 
@@ -1467,7 +1467,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
     metadata object (e.g., a required top-level role not found in 'tuf.roledb'.)
   
   <Side Effects>
-    The contents of 'tuf.keydb.py' and 'tuf.roledb.py' are read.
+    The contents of 'tuf.ssl_crypto.keydb.py' and 'tuf.roledb.py' are read.
 
   <Returns>
     A root metadata object, conformant to 'tuf.ssl_crypto.formats.ROOT_SCHEMA'.
@@ -1501,7 +1501,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
     # Generate keys for the keyids listed by the role being processed.
     for keyid in tuf.roledb.get_role_keyids(rolename):
-      key = tuf.keydb.get_key(keyid)
+      key = tuf.ssl_crypto.keydb.get_key(keyid)
 
       # If 'key' is an RSA key, it would conform to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA',
       # and have the form:
@@ -1517,7 +1517,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
           keytype = key['keytype']
           keyval = key['keyval']
           keydict[keyid] = \
-            tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
+            tuf.ssl_crypto.keys.format_keyval_to_metadata(keytype, keyval, private=False)
         
         # This is not a recognized key.  Raise an exception.
         else:
@@ -1857,7 +1857,7 @@ def sign_metadata(metadata_object, keyids, filename):
   <Purpose>
     Sign a metadata object. If any of the keyids have already signed the file,
     the old signature is replaced.  The keys in 'keyids' must already be
-    loaded in 'tuf.keydb'.
+    loaded in 'tuf.ssl_crypto.keydb'.
 
   <Arguments>
     metadata_object:
@@ -1904,14 +1904,14 @@ def sign_metadata(metadata_object, keyids, filename):
   for keyid in keyids:
     
     # Load the signing key.
-    key = tuf.keydb.get_key(keyid)
+    key = tuf.ssl_crypto.keydb.get_key(keyid)
 
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
         signed = signable['signed']
         try:
-          signature = tuf.keys.create_signature(key, signed)
+          signature = tuf.ssl_crypto.keys.create_signature(key, signed)
           signable['signatures'].append(signature)
         
         except Exception:

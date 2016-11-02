@@ -33,11 +33,11 @@ import tuf.log
 import tuf.ssl_crypto.pycrypto_keys
 import tuf.ssl_crypto.formats
 import tuf.tufformats
-import tuf.keys
+import tuf.ssl_crypto.keys
 
 logger = logging.getLogger('tuf.test_keys')
 
-KEYS = tuf.keys
+KEYS = tuf.ssl_crypto.keys
 FORMAT_ERROR_MSG = 'tuf.ssl_commons.exceptions.FormatError was raised! Check object\'s format.'
 DATA = 'SOME DATA REQUIRING AUTHENTICITY.'
 
@@ -262,7 +262,7 @@ class TestKeys(unittest.TestCase):
       self.assertRaises(TypeError, KEYS.verify_signature)
    
       # Verify that the pure python 'ed25519' base case (triggered if 'pynacl' is
-      # unavailable) is executed in tuf.keys.verify_signature().
+      # unavailable) is executed in tuf.ssl_crypto.keys.verify_signature().
       KEYS._ED25519_CRYPTO_LIBRARY = 'invalid'
       KEYS._available_crypto_libraries = ['invalid']
       verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)

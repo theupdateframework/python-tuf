@@ -47,7 +47,7 @@ import logging
 
 import tuf
 import tuf.tufformats
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.roledb
 
 
@@ -66,7 +66,7 @@ def get_signature_status(signable, role=None, repository_name='default',
   <Purpose>
     Return a dictionary representing the status of the signatures listed in
     'signable'.  Given an object conformant to SIGNABLE_SCHEMA, a set of public
-    keys in 'tuf.keydb', a set of roles in 'tuf.roledb', and a role, the status
+    keys in 'tuf.ssl_crypto.keydb', a set of roles in 'tuf.roledb', and a role, the status
     of these signatures can be determined.  This method will iterate the
     signatures in 'signable' and enumerate all the keys that are valid,
     invalid, unrecognized, unauthorized, or generated using an unknown method.
@@ -158,7 +158,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 
     # Does the signature use an unrecognized key?
     try:
-      key = tuf.keydb.get_key(keyid, repository_name)
+      key = tuf.ssl_crypto.keydb.get_key(keyid, repository_name)
     
     except tuf.ssl_commons.exceptions.UnknownKeyError:
       unknown_sigs.append(keyid)
@@ -166,7 +166,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 
     # Does the signature use an unknown key signing method?
     try:
-      valid_sig = tuf.keys.verify_signature(key, signature, signed)
+      valid_sig = tuf.ssl_crypto.keys.verify_signature(key, signature, signed)
     
     except tuf.ssl_commons.exceptions.UnknownMethodError:
       unknown_method_sigs.append(keyid)
@@ -354,7 +354,7 @@ def generate_rsa_signature(signed, rsakey_dict):
 
   <Arguments>
     signed:
-      The data used by 'tuf.keys.create_signature()' to generate signatures.
+      The data used by 'tuf.ssl_crypto.keys.create_signature()' to generate signatures.
       It is stored in the 'signed' field of 'signable'.
 
     rsakey_dict:
@@ -381,6 +381,6 @@ def generate_rsa_signature(signed, rsakey_dict):
 
   # Generate the RSA signature.
   # Raises tuf.ssl_commons.exceptions.FormatError and TypeError.
-  signature = tuf.keys.create_signature(rsakey_dict, signed)
+  signature = tuf.ssl_crypto.keys.create_signature(rsakey_dict, signed)
 
   return signature

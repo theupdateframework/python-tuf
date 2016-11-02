@@ -54,7 +54,7 @@ import tuf
 import tuf.tufformats
 import tuf.ssl_crypto.util
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
@@ -166,7 +166,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     unittest_toolbox.Modified_TestCase.tearDown(self)
     # updater.Updater() populates the roledb with the name "test_repository" 
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
   def test_without_tuf(self):
     # Verify that a target file replaced with a malicious version is downloaded

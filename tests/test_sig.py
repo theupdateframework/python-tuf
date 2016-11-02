@@ -32,9 +32,9 @@ import logging
 import tuf
 import tuf.log
 import tuf.tufformats
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.roledb
-import tuf.keys
+import tuf.ssl_crypto.keys
 import tuf.sig
 
 logger = logging.getLogger('tuf.test_sig')
@@ -42,7 +42,7 @@ logger = logging.getLogger('tuf.test_sig')
 # Setup the keys to use in our test cases.
 KEYS = []
 for _ in range(3):
-  KEYS.append(tuf.keys.generate_rsa_key(2048))
+  KEYS.append(tuf.ssl_crypto.keys.generate_rsa_key(2048))
 
 
 
@@ -52,7 +52,7 @@ class TestSig(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
 
 
   def test_get_signature_status_no_role(self):
@@ -76,10 +76,10 @@ class TestSig(unittest.TestCase):
     # Should verify we are not adding a duplicate signature
     # when doing the following action.  Here we know 'signable'
     # has only one signature so it's okay.
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
 
-    tuf.keydb.add_key(KEYS[0]) 
+    tuf.ssl_crypto.keydb.add_key(KEYS[0]) 
 
     # Improperly formatted role.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.sig.get_signature_status,
@@ -90,17 +90,17 @@ class TestSig(unittest.TestCase):
     self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.sig.verify, *args)
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[0]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[0]['keyid'])
 
 
   def test_get_signature_status_bad_sig(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
     signable['signed'] += 'signature no longer matches signed data'
 
-    tuf.keydb.add_key(KEYS[0])
+    tuf.ssl_crypto.keydb.add_key(KEYS[0])
     threshold = 1
     roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
@@ -118,7 +118,7 @@ class TestSig(unittest.TestCase):
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[0]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[0]['keyid'])
     # Remove the role.
     tuf.roledb.remove_role('Root')
 
@@ -126,11 +126,11 @@ class TestSig(unittest.TestCase):
   def test_get_signature_status_unknown_method(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
     signable['signatures'][0]['method'] = 'fake-sig-method'
 
-    tuf.keydb.add_key(KEYS[0])
+    tuf.ssl_crypto.keydb.add_key(KEYS[0])
     threshold = 1
     roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
@@ -149,7 +149,7 @@ class TestSig(unittest.TestCase):
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[0]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[0]['keyid'])
     # Remove the role.
     tuf.roledb.remove_role('Root')
 
@@ -157,7 +157,7 @@ class TestSig(unittest.TestCase):
   def test_get_signature_status_single_key(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
 
     threshold = 1
@@ -165,7 +165,7 @@ class TestSig(unittest.TestCase):
         [KEYS[0]['keyid']], threshold)
     
     tuf.roledb.add_role('Root', roleinfo)
-    tuf.keydb.add_key(KEYS[0])
+    tuf.ssl_crypto.keydb.add_key(KEYS[0])
 
     sig_status = tuf.sig.get_signature_status(signable, 'Root')
 
@@ -189,7 +189,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['unknown_method_sigs'])
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[0]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[0]['keyid'])
     # Remove the role.
     tuf.roledb.remove_role('Root')
 
@@ -197,10 +197,10 @@ class TestSig(unittest.TestCase):
   def test_get_signature_status_below_threshold(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
 
-    tuf.keydb.add_key(KEYS[0])
+    tuf.ssl_crypto.keydb.add_key(KEYS[0])
     threshold = 2
     roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid'],
@@ -219,7 +219,7 @@ class TestSig(unittest.TestCase):
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[0]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[0]['keyid'])
 
     # Remove the role.
     tuf.roledb.remove_role('Root')
@@ -229,13 +229,13 @@ class TestSig(unittest.TestCase):
     signable = {'signed' : 'test', 'signatures' : []}
 
     # Two keys sign it, but only one of them will be trusted.
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[2], signable['signed']))
 
-    tuf.keydb.add_key(KEYS[0])
-    tuf.keydb.add_key(KEYS[1])
+    tuf.ssl_crypto.keydb.add_key(KEYS[0])
+    tuf.ssl_crypto.keydb.add_key(KEYS[1])
     threshold = 2
     roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid'],
@@ -254,8 +254,8 @@ class TestSig(unittest.TestCase):
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[0]['keyid'])
-    tuf.keydb.remove_key(KEYS[1]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[0]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[1]['keyid'])
 
     # Remove the role.
     tuf.roledb.remove_role('Root')
@@ -266,13 +266,13 @@ class TestSig(unittest.TestCase):
 
     # Two keys sign it, but one of them is only trusted for a different
     # role.
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[1], signable['signed']))
 
-    tuf.keydb.add_key(KEYS[0])
-    tuf.keydb.add_key(KEYS[1])
+    tuf.ssl_crypto.keydb.add_key(KEYS[0])
+    tuf.ssl_crypto.keydb.add_key(KEYS[1])
     threshold = 2
     roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid'], KEYS[2]['keyid']], threshold)
@@ -296,8 +296,8 @@ class TestSig(unittest.TestCase):
                       tuf.sig.get_signature_status, signable, 'unknown_role')
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[0]['keyid'])
-    tuf.keydb.remove_key(KEYS[1]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[0]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[1]['keyid'])
 
     # Remove the roles.
     tuf.roledb.remove_role('Root')
@@ -308,10 +308,10 @@ class TestSig(unittest.TestCase):
   def test_check_signatures_no_role(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
 
-    tuf.keydb.add_key(KEYS[0])
+    tuf.ssl_crypto.keydb.add_key(KEYS[0])
 
     # No specific role we're considering. It's invalid to use the
     # function tuf.sig.verify() without a role specified because
@@ -320,16 +320,16 @@ class TestSig(unittest.TestCase):
     self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.sig.verify, *args)
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[0]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[0]['keyid'])
 
 
 
   def test_verify_single_key(self):
     signable = {'signed' : 'test', 'signatures' : []}
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
 
-    tuf.keydb.add_key(KEYS[0])
+    tuf.ssl_crypto.keydb.add_key(KEYS[0])
     threshold = 1
     roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
@@ -340,7 +340,7 @@ class TestSig(unittest.TestCase):
     self.assertTrue(tuf.sig.verify(signable, 'Root'))
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[0]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[0]['keyid'])
 
     # Remove the roles.
     tuf.roledb.remove_role('Root')
@@ -350,13 +350,13 @@ class TestSig(unittest.TestCase):
     signable = {'signed' : 'test', 'signatures' : []}
 
     # Two keys sign it, but only one of them will be trusted.
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[2], signable['signed']))
 
-    tuf.keydb.add_key(KEYS[0])
-    tuf.keydb.add_key(KEYS[1])
+    tuf.ssl_crypto.keydb.add_key(KEYS[0])
+    tuf.ssl_crypto.keydb.add_key(KEYS[1])
     threshold = 2
     roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[0]['keyid'], KEYS[1]['keyid']], threshold)
@@ -365,8 +365,8 @@ class TestSig(unittest.TestCase):
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[0]['keyid'])
-    tuf.keydb.remove_key(KEYS[1]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[0]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[1]['keyid'])
 
     # Remove the roles.
     tuf.roledb.remove_role('Root')
@@ -376,7 +376,7 @@ class TestSig(unittest.TestCase):
   def test_generate_rsa_signature(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
 
     self.assertEqual(1, len(signable['signatures']))
@@ -386,7 +386,7 @@ class TestSig(unittest.TestCase):
     returned_signature = tuf.sig.generate_rsa_signature(signable['signed'], KEYS[0]) 
     self.assertTrue(tuf.ssl_crypto.formats.SIGNATURE_SCHEMA.matches(returned_signature))
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[1], signable['signed']))
 
     self.assertEqual(2, len(signable['signatures']))
@@ -399,10 +399,10 @@ class TestSig(unittest.TestCase):
     # One untrusted key in 'signable'.    
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.ssl_crypto.keys.create_signature(
                                   KEYS[0], signable['signed']))
 
-    tuf.keydb.add_key(KEYS[1])
+    tuf.ssl_crypto.keydb.add_key(KEYS[1])
     threshold = 1
     roleinfo = tuf.tufformats.make_role_metadata(
         [KEYS[1]['keyid']], threshold)
@@ -414,7 +414,7 @@ class TestSig(unittest.TestCase):
 
 
     # Done.  Let's remove the added key(s) from the key database.
-    tuf.keydb.remove_key(KEYS[1]['keyid'])
+    tuf.ssl_crypto.keydb.remove_key(KEYS[1]['keyid'])
 
     # Remove the roles.
     tuf.roledb.remove_role('Root')

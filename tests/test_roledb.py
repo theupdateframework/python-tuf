@@ -30,7 +30,7 @@ import logging
 
 import tuf
 import tuf.tufformats
-import tuf.keys
+import tuf.ssl_crypto.keys
 import tuf.roledb
 import tuf.log
 
@@ -40,7 +40,7 @@ logger = logging.getLogger('tuf.test_roledb')
 # Generate the three keys to use in our test cases.
 KEYS = []
 for junk in range(3):
-  KEYS.append(tuf.keys.generate_rsa_key(2048))
+  KEYS.append(tuf.ssl_crypto.keys.generate_rsa_key(2048))
 
 
 
