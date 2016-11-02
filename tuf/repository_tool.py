@@ -279,7 +279,9 @@ class Repository(object):
                                             self._targets_directory,
                                             self._metadata_directory,
                                             consistent_snapshot, filenames)
-     
+    
+    tuf.roledb.unmark_dirty(dirty_rolenames)
+
     # Delete the metadata of roles no longer in 'tuf.roledb'.  Obsolete roles
     # may have been revoked and should no longer have their metadata files
     # available on disk, otherwise loading a repository may unintentionally
@@ -339,6 +341,9 @@ class Repository(object):
                                           filenames=filenames,
                                           allow_partially_signed=True,
                                           increment_version_number=increment_version_number)
+
+    # Ensure 'rolename' is no longer marked as dirty after the successful write().
+    tuf.roledb.unmark_dirty([rolename])
   
   
   
@@ -439,6 +444,30 @@ class Repository(object):
     """
   
     tuf.roledb.mark_dirty(roles)
+  
+  
+  
+  def unmark_dirty(self, roles):
+    """
+    <Purpose>
+      No longer mark the list of 'roles' as dirty.
+
+    <Arguments>
+      roles:
+        A list of roles to mark as dirty.  on the next write, these roles
+        will be written to disk.
+
+    <Exceptions>
+      None.
+    
+    <Side Effects>
+      None.
+
+    <Returns>
+      None.
+    """
+  
+    tuf.roledb.unmark_dirty(roles)
 
 
 
@@ -789,9 +818,9 @@ class Metadata(object):
     # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
 
-    # TODO Should we consider to check the keys in tuf.keydb manually or automatically in the future
-    # There could be a lot of no-longer-used keys stored in the keydb
-    
+    # TODO: Should we consider removing keys from keydb that are no longer
+    # associated with any roles?  There could be many no-longer-used keys
+    # stored in the keydb if not.  For now, just unload the key.
     if key['keyid'] in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].remove(key['keyid'])
       
@@ -2425,10 +2454,10 @@ class Targets(Metadata):
     logger.info(repr(number_of_bins) + ' hashed bins.')
     logger.info(repr(total_hash_prefixes) + ' total hash prefixes.')
 
-    # Store the target paths that fall into each bin.  The digest of the
-    # target path, reduced to the first 'prefix_length' hex digits, is
-    # calculated to determine which 'bin_index' it should go.
-    # Use xrange here because there can a large number of prefixes and we may not need to take care of everyone.
+    # Store the target paths that fall into each bin.  The digest of the target
+    # path, reduced to the first 'prefix_length' hex digits, is calculated to
+    # determine which 'bin_index' it should go.  we use xrange() here because
+    # there can be a large number of prefixes to process.
     target_paths_in_bin = {}
     for bin_index in six.moves.xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
@@ -2891,6 +2920,8 @@ def load_repository(repository_directory):
       metadata_name = metadata_name[:-extension_length]
     
     else:
+      logger.debug('Skipping file with unsupported metadata'
+        ' extension: ' + repr(metadata_path))
       continue
    
     # Skip top-level roles, only interested in delegated roles now that the
@@ -2910,7 +2941,9 @@ def load_repository(repository_directory):
     try:
       signable = tuf.util.load_json_file(metadata_path)
     
-    except (ValueError, IOError):
+    except (tuf.Error, ValueError, IOError):
+      logger.debug('Tried to load metadata with invalid JSON'
+        ' content: ' + repr(metadata_path))
       continue
     
     metadata_object = signable['signed']
@@ -2935,6 +2968,9 @@ def load_repository(repository_directory):
 
     if os.path.exists(metadata_path + '.gz'):
       roleinfo['compressions'].append('gz')
+
+    else:
+      logger.debug('A compressed version does not exist.')
   
     tuf.roledb.add_role(metadata_name, roleinfo) 
     loaded_metadata.append(metadata_name)

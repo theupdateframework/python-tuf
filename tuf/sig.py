@@ -78,6 +78,7 @@ def get_signature_status(signable, role=None, repository_name='default',
                   'signatures': [{'keyid': keyid,
                                   'method': 'evp',
                                   'sig': sig}]}
+      
       Conformant to tuf.formats.SIGNABLE_SCHEMA.
 
     role:
@@ -127,14 +128,16 @@ def get_signature_status(signable, role=None, repository_name='default',
   # The signature status dictionary returned.
   signature_status = {}
 
-  # The fields of the signature_status dict.  A description of each field:
+  # The fields of the signature_status dict, where each field stores keyids.  A
+  # description of each field:
   # good_sigs = keys confirmed to have produced 'sig' and 'method' using
-  # 'signed' and that are associated with 'role'; bad_sigs = negation of
-  # good_sigs; unknown_sigs = keys not found in the 'keydb' database;
+  # 'signed', which are associated with 'role';
+  # bad_sigs = negation of good_sigs;
+  # unknown_sigs = keys not found in the 'keydb' database;
   # untrusted_sigs = keys that are not in the list of keyids associated with
   # 'role';
   # unknown_method_sigs = keys found to have used an unsupported method
-  # of generating signatures. 
+  # of generating signatures.
   good_sigs = []
   bad_sigs = []
   unknown_sigs = []
@@ -146,14 +149,14 @@ def get_signature_status(signable, role=None, repository_name='default',
   signed = signable['signed']
   signatures = signable['signatures']
 
-  # Iterate through the signatures and enumerate the signature_status fields.
+  # Iterate the signatures and enumerate the signature_status fields.
   # (i.e., good_sigs, bad_sigs, etc.).
   for signature in signatures:
     sig = signature['sig']
     keyid = signature['keyid']
     method = signature['method']
 
-    # Identify unrecognized key.
+    # Does the signature use an unrecognized key?
     try:
       key = tuf.keydb.get_key(keyid, repository_name)
     
@@ -161,7 +164,7 @@ def get_signature_status(signable, role=None, repository_name='default',
       unknown_sigs.append(keyid)
       continue
 
-    # Identify key using an unknown key signing method.
+    # Does the signature use an unknown key signing method?
     try:
       valid_sig = tuf.keys.verify_signature(key, signature, signed)
     
@@ -169,12 +172,12 @@ def get_signature_status(signable, role=None, repository_name='default',
       unknown_method_sigs.append(keyid)
       continue
 
-    # We are now dealing with a valid key. 
+    # We are now dealing with either a trusted or untrusted key... 
     if valid_sig:
       if role is not None:
         
         try:
-          # Identify unauthorized key.
+          # Is this an unauthorized key? (a keyid associated with 'role')
           if keyids is None:
             keyids = tuf.roledb.get_role_keyids(role, repository_name) 
           
@@ -186,11 +189,16 @@ def get_signature_status(signable, role=None, repository_name='default',
         except tuf.UnknownRoleError:
           raise
       
+      # This is an unset role, thus an unknown signature.
+      else:
+        unknown_sigs.append(keyid)
+        continue
+
       # Identify good/authorized key.
       good_sigs.append(keyid)
     
     else:
-      # Identify bad key.
+      # This is a bad signature for a trusted key.
       bad_sigs.append(keyid) 
   
   # Retrieve the threshold value for 'role'.  Raise tuf.UnknownRoleError

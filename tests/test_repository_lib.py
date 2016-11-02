@@ -755,14 +755,18 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                  compression_algorithms,
                                  consistent_snapshot=False)
 
-    # Try to wirte a consistent metadate file. An exception is not raised in this case.
+    # Try to write a consistent metadate file. An exception is not raised in
+    # this case.  For testing purposes, root.json should be a hard link to the
+    # consistent metadata file.  We should verify that root.json points to
+    # the latest consistent files.
     tuf.conf.CONSISTENT_METHOD = 'hard_link'
     repo_lib.write_metadata_file(root_signable, output_filename,
                                  version_number,
                                  compression_algorithms,
                                  consistent_snapshot=True)
 
-    # Test if the consistent files are properly named (<version number>.rolename.json) or not
+    # Test if the consistent files are properly named
+    # Filename format of a consistent file: <version number>.rolename.json
     version_and_filename = str(version_number) + '.' + 'root.json'
     first_version_output_file = os.path.join(temporary_directory, version_and_filename)
     self.assertTrue(os.path.exists(first_version_output_file))
@@ -775,15 +779,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                  consistent_snapshot=True)
 
     # Test if the the latest root.json points to the expected consistent file
-    # and
-    # consistent metadata do not all point to the same root.json
+    # and consistent metadata do not all point to the same root.json
     version_and_filename = str(version_number) + '.' + 'root.json'
     second_version_output_file = os.path.join(temporary_directory, version_and_filename)
     self.assertTrue(os.path.exists(second_version_output_file))
     self.assertNotEqual(os.stat(output_filename).st_ino, os.stat(first_version_output_file).st_ino)
     self.assertEqual(os.stat(output_filename).st_ino, os.stat(second_version_output_file).st_ino)
 
-    # Test improper Consistent_METHOD configuration
+    # Test for an improper tuf.conf.CONSISTENT_METHOD string value.
     tuf.conf.CONSISTENT_METHOD = 'somebadidea'
     self.assertRaises(tuf.InvalidConfigurationError, repo_lib.write_metadata_file,
                                                      root_signable, output_filename,
@@ -791,7 +794,19 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                                      compression_algorithms,
                                                      consistent_snapshot=True)
 
-    # Test unknown compression algorithm.
+    # Try to create a link to root.json when root.json doesn't exist locally.
+    # repository_lib should log a message if this is the case.
+    tuf.conf.CONSISTENT_METHOD = 'hard_link'
+    os.remove(output_filename)
+    repo_lib.write_metadata_file(root_signable, output_filename,
+                                 version_number,
+                                 compression_algorithms,
+                                 consistent_snapshot=True)
+    
+    # Reset CONSISTENT_METHOD so that subsequent tests work as expected.
+    tuf.conf.CONSISTENT_METHOD = 'copy'
+    
+    # Test for unknown compression algorithm.
     self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
                                        root_signable, output_filename,
                                        version_number,

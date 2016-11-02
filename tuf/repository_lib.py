@@ -473,8 +473,8 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
       # 'files' here is a list of target file names.
       for basename in files:
         
-        # don't delete previous root files
-        # if encounter with 'root.json', skip it
+        # If we encounter 'root.json', skip it.  We don't ever delete root.json
+        # files, since they should it always exist.
         if basename.endswith('root.json'):
           continue
         
@@ -1917,7 +1917,7 @@ def sign_metadata(metadata_object, keyids, filename):
           logger.warning('Unable to create signature for keyid: ' + repr(keyid))
       
       else:
-        logger.warning('Private key unset.  Skipping: ' + repr(keyid))
+        logger.debug('Private key unset.  Skipping: ' + repr(keyid))
     
     else:
       raise tuf.Error('The keydb contains a key with an invalid key type.')
@@ -2033,27 +2033,30 @@ def write_metadata_file(metadata, filename, version_number,
     logger.debug('Saving ' + repr(written_consistent_filename))
     file_object.move(written_consistent_filename)
 
-    # For Issue #374 https://github.com/theupdateframework/tuf/issues/374
-    # We provide the option of either (1) creating a link via
-    # os.link() to the consistent snapshot or (2) creating a copy of the
-    # consistent snapshot and saving to its expected filename (e.g.,
-    # root.json).  The option should be a configurable in tuf.conf.py.
-    # For now, we create a copy of the consistent snapshot and save it to
-    # 'written_filename'.
+    # For GitHub issue #374 https://github.com/theupdateframework/tuf/issues/374
+    # We provide the option of either (1) creating a link via os.link() to the
+    # consistent file or (2) creating a copy of the consistent file and saving
+    # to its expected filename (e.g., root.json).  The option of either
+    # creating a copy or link should be configurable in tuf.conf.py.
     if (tuf.conf.CONSISTENT_METHOD == 'copy'):
-      logger.info('Pointing ' + repr(filename) + ' to the consistent snapshot.')
+      logger.debug('Pointing ' + repr(filename) + ' to the consistent snapshot.')
       shutil.copyfile(written_consistent_filename, written_filename)
 
     elif (tuf.conf.CONSISTENT_METHOD == 'hard_link'):
       logger.info('Hard linking ' + repr(written_consistent_filename))
 
+      # 'written_filename' must not exist, otherwise os.link() complains.
       if os.path.exists(written_filename):
         os.remove(written_filename)
+      
+      else:
+        logger.debug(repr(written_filename) + ' does not exist.')
 
       os.link(written_consistent_filename, written_filename)
 
     else:
-      raise tuf.InvalidConfigurationError('Consistent method is not correct, try "copy" or "hard_link" ')
+      raise tuf.InvalidConfigurationError('The consistent method specified'
+        ' in tuf.conf.py is not supported, try either "copy" or "hard_link"')
   
   else:
     logger.debug('Not creating a consistent snapshot for ' + repr(written_filename))
@@ -2150,7 +2153,7 @@ def _write_compressed_metadata(file_object, compressed_filename,
     # Move the 'tuf.util.TempFile' object to one of the filenames so that it is
     # saved and the temporary file closed.
     if not os.path.exists(consistent_filename):
-      logger.info('Saving ' + repr(consistent_filename))
+      logger.debug('Saving ' + repr(consistent_filename))
       file_object.move(consistent_filename)
 
     else:
@@ -2197,11 +2200,20 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
     
     except tuf.InsufficientKeysError as e:
       logger.info(str(e))
-      return
 
   # Do the top-level roles contain a valid threshold of signatures?  Top-level
   # metadata is verified in Root -> Targets -> Snapshot -> Timestamp order.
   # Verify the metadata of the Root role.
+  dirty_rolenames = tuf.roledb.get_dirty_roles()
+
+  root_roleinfo = tuf.roledb.get_roleinfo('root')
+  root_is_dirty = None 
+  if 'root' in dirty_rolenames:
+    root_is_dirty = True
+
+  else:
+    root_is_dirty = False 
+  
   try:
     signable, root_filename = \
       _generate_and_write_metadata('root', root_filename,
@@ -2214,7 +2226,20 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
     _log_status('root', e.signable)
     return
 
+  finally:
+    tuf.roledb.unmark_dirty(['root'])
+    tuf.roledb.update_roleinfo('root', root_roleinfo,
+                               mark_role_as_dirty=root_is_dirty)
+
   # Verify the metadata of the Targets role.
+  targets_roleinfo = tuf.roledb.get_roleinfo('targets')
+  targets_is_dirty = None 
+  if 'targets' in dirty_rolenames:
+    targets_is_dirty = True
+
+  else:
+    targets_is_dirty = False 
+  
   try:
     signable, targets_filename = \
       _generate_and_write_metadata('targets', targets_filename,
@@ -2224,8 +2249,21 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   except tuf.UnsignedMetadataError as e:
     _log_status('targets', e.signable)
     return
+  
+  finally:
+    tuf.roledb.unmark_dirty(['targets'])
+    tuf.roledb.update_roleinfo('targets', targets_roleinfo,
+                               mark_role_as_dirty=targets_is_dirty)
 
   # Verify the metadata of the snapshot role.
+  snapshot_roleinfo = tuf.roledb.get_roleinfo('snapshot')
+  snapshot_is_dirty = None 
+  if 'snapshot' in dirty_rolenames:
+    snapshot_is_dirty = True
+
+  else:
+    snapshot_is_dirty = False 
+  
   filenames = {'root': root_filename, 'targets': targets_filename} 
   try:
     signable, snapshot_filename = \
@@ -2238,7 +2276,20 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
     _log_status('snapshot', e.signable)
     return
   
+  finally:
+    tuf.roledb.unmark_dirty(['snapshot'])
+    tuf.roledb.update_roleinfo('snapshot', snapshot_roleinfo,
+                               mark_role_as_dirty=snapshot_is_dirty)
+  
   # Verify the metadata of the Timestamp role.
+  timestamp_roleinfo = tuf.roledb.get_roleinfo('timestamp')
+  timestamp_is_dirty = None 
+  if 'timestamp' in dirty_rolenames:
+    timestamp_is_dirty = True
+
+  else:
+    timestamp_is_dirty = False 
+
   filenames = {'snapshot': snapshot_filename}
   try:
     signable, timestamp_filename = \
@@ -2250,8 +2301,12 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
   except tuf.UnsignedMetadataError as e:
     _log_status('timestamp', e.signable)
     return
-
-
+  
+  finally:
+    tuf.roledb.unmark_dirty(['timestamp'])
+    tuf.roledb.update_roleinfo('timestamp', timestamp_roleinfo,
+                               mark_role_as_dirty=timestamp_is_dirty)
+  
 
 
 def _log_status(rolename, signable):

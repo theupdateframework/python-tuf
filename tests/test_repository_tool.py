@@ -194,9 +194,13 @@ class TestRepository(unittest.TestCase):
     
     
     # (3) Load top-level signing keys.
+    repository.status()
     repository.root.load_signing_key(root_privkey)
+    repository.status()
     repository.targets.load_signing_key(targets_privkey)
+    repository.status()
     repository.snapshot.load_signing_key(snapshot_privkey)
+    repository.status()
    
     # Verify that repository.writeall() fails for insufficient threshold
     # of signatures (default threshold = 1).
@@ -342,6 +346,19 @@ class TestRepository(unittest.TestCase):
     # Verify that the newly written consistent snapshot can be loaded
     # successfully.
     repo_tool.load_repository(repository_directory)
+
+    # Verify the behavior of marking and unmarking roles as dirty.
+    # We begin by ensuring that writeall() cleared the list of dirty roles.. 
+    self.assertEqual([], tuf.roledb.get_dirty_roles())
+    
+    repository.mark_dirty(['root', 'timestamp'])
+    self.assertEqual(['root', 'timestamp'], sorted(tuf.roledb.get_dirty_roles()))
+    repository.unmark_dirty(['root'])
+    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles())
+    
+    # Ensure status() does not leave behind any dirty roles.
+    repository.status()
+    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles())
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.FormatError, repository.writeall, 3, False)
@@ -1538,9 +1555,26 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory) 
     original_repository_directory = os.path.join('repository_data',
                                                  'repository')
+    
     repository_directory = os.path.join(temporary_directory, 'repository')
+    metadata_directory = os.path.join(repository_directory, 'metadata.staged')
     shutil.copytree(original_repository_directory, repository_directory)
-     
+   
+    # For testing purposes, add a metadata file with an extension that is
+    # not supported, and another with invalid JSON content.
+    invalid_metadata_file = os.path.join(metadata_directory, 'root.xml')
+    root_file = os.path.join(metadata_directory, 'root.json')
+    shutil.copyfile(root_file, invalid_metadata_file)
+    bad_root_content = os.path.join(metadata_directory, 'root_bad.json') 
+    
+    with open(bad_root_content, 'wb') as file_object:
+      file_object.write(b'bad') 
+
+    # Remove the compressed version of role1 to test whether the
+    # load_repository() complains or not (it logs a message).
+    role1_path = os.path.join(metadata_directory, 'role1.json.gz')
+    os.remove(role1_path)
+    
     repository = repo_tool.load_repository(repository_directory)
     self.assertTrue(isinstance(repository, repo_tool.Repository))
 
@@ -1557,8 +1591,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(len(repository.timestamp.keys))
     self.assertEqual(1, repository.targets('role1').version)
 
-    # Assumed the targets (tuf/tests/repository_data/) role contains 'file1.txt'
-    # and 'file2.txt'.
+    # It is assumed that the targets (tuf/tests/repository_data/) role contains
+    # 'file1.txt' and 'file2.txt'.
     self.assertTrue('/file1.txt' in repository.targets.target_files)
     self.assertTrue('/file2.txt' in repository.targets.target_files)
     self.assertTrue('/file3.txt' in repository.targets('role1').target_files)
