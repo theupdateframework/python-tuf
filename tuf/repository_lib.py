@@ -44,7 +44,7 @@ import random
 import tuf
 import tuf.ssl_crypto.formats
 import tuf.tufformats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.keydb
 import tuf.roledb
 import tuf.keys
@@ -607,7 +607,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   if os.path.exists(root_filename):
     
     # Initialize the key and role metadata of the top-level roles.
-    signable = tuf.util.load_json_file(root_filename)
+    signable = tuf.ssl_crypto.util.load_json_file(root_filename)
     tuf.tufformats.check_signable_object_format(signable)
     root_metadata = signable['signed']  
     tuf.keydb.create_keydb_from_root_metadata(root_metadata)
@@ -654,7 +654,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
   # always written. 
   if os.path.exists(timestamp_filename):
-    signable = tuf.util.load_json_file(timestamp_filename)
+    signable = tuf.ssl_crypto.util.load_json_file(timestamp_filename)
     timestamp_metadata = signable['signed']
     for signature in signable['signatures']:
       repository.timestamp.add_signature(signature, mark_role_as_dirty=False)
@@ -696,7 +696,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     snapshot_filename = os.path.join(dirname, str(snapshot_version) + '.' + basename + METADATA_EXTENSION)
 
   if os.path.exists(snapshot_filename):
-    signable = tuf.util.load_json_file(snapshot_filename)
+    signable = tuf.ssl_crypto.util.load_json_file(snapshot_filename)
     tuf.tufformats.check_signable_object_format(signable)
     snapshot_metadata = signable['signed']  
     
@@ -735,7 +735,7 @@ def _load_top_level_metadata(repository, top_level_filenames):
     targets_filename = os.path.join(dirname, str(targets_version) + '.' + basename)
   
   if os.path.exists(targets_filename):
-    signable = tuf.util.load_json_file(targets_filename)
+    signable = tuf.ssl_crypto.util.load_json_file(targets_filename)
     tuf.tufformats.check_signable_object_format(signable)
     targets_metadata = signable['signed']
 
@@ -881,11 +881,11 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
   # Write public key (i.e., 'public', which is in PEM format) to
   # '<filepath>.pub'.  If the parent directory of filepath does not exist,
   # create it (and all its parent directories, if necessary).
-  tuf.util.ensure_parent_dir(filepath)
+  tuf.ssl_crypto.util.ensure_parent_dir(filepath)
 
   # Create a tempororary file, write the contents of the public key, and move
   # to final destination.
-  file_object = tuf.util.TempFile()
+  file_object = tuf.ssl_crypto.util.TempFile()
   file_object.write(public.encode('utf-8'))
   
   # The temporary file is closed after the final move.
@@ -894,7 +894,7 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
   # Write the private key in encrypted PEM format to '<filepath>'.
   # Unlike the public key file, the private key does not have a file
   # extension.
-  file_object = tuf.util.TempFile()
+  file_object = tuf.ssl_crypto.util.TempFile()
   file_object.write(encrypted_pem.encode('utf-8'))
   file_object.move(filepath)
 
@@ -1088,11 +1088,11 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   
   # Write the public key, conformant to 'tuf.ssl_crypto.formats.KEY_SCHEMA', to
   # '<filepath>.pub'.
-  tuf.util.ensure_parent_dir(filepath)
+  tuf.ssl_crypto.util.ensure_parent_dir(filepath)
 
   # Create a tempororary file, write the contents of the public key, and move
   # to final destination.
-  file_object = tuf.util.TempFile()
+  file_object = tuf.ssl_crypto.util.TempFile()
   file_object.write(json.dumps(ed25519key_metadata_format).encode('utf-8'))
   
   # The temporary file is closed after the final move.
@@ -1100,7 +1100,7 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
 
   # Write the encrypted key string, conformant to
   # 'tuf.ssl_crypto.formats.ENCRYPTEDKEY_SCHEMA', to '<filepath>'.
-  file_object = tuf.util.TempFile()
+  file_object = tuf.ssl_crypto.util.TempFile()
   file_object.write(encrypted_key.encode('utf-8'))
   file_object.move(filepath)
   
@@ -1141,7 +1141,7 @@ def import_ed25519_publickey_from_file(filepath):
   # ED25519 key objects are saved in json and metadata format.  Return the
   # loaded key object in tuf.ssl_crypto.formats.ED25519KEY_SCHEMA' format that also
   # includes the keyid.
-  ed25519_key_metadata = tuf.util.load_json_file(filepath)
+  ed25519_key_metadata = tuf.ssl_crypto.util.load_json_file(filepath)
   ed25519_key, junk = tuf.keys.format_metadata_to_key(ed25519_key_metadata)
 
   # Raise an exception if an unexpected key type is imported.
@@ -1349,7 +1349,7 @@ def get_metadata_fileinfo(filename, custom=None):
   # file information, such as the file's author, version/revision
   # numbers, etc.
   filesize, filehashes = \
-    tuf.util.get_file_details(filename, settings.REPOSITORY_HASH_ALGORITHMS)
+    tuf.ssl_crypto.util.get_file_details(filename, settings.REPOSITORY_HASH_ALGORITHMS)
 
   return tuf.tufformats.make_fileinfo(filesize, filehashes, custom=custom)
 
@@ -1425,7 +1425,7 @@ def get_target_hash(target_filepath):
     The hash of 'target_filepath'.
   """
   
-  return tuf.util.get_target_hash(target_filepath)
+  return tuf.ssl_crypto.util.get_target_hash(target_filepath)
 
 
 
@@ -1746,7 +1746,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # available delegated roles on the repository.
   fileinfodict = {}
   root_path = os.path.join(metadata_directory, root_filename + '.json')
-  length, hashes = tuf.util.get_file_details(root_path)
+  length, hashes = tuf.ssl_crypto.util.get_file_details(root_path)
   root_version = get_metadata_versioninfo('root')
   fileinfodict[ROOT_FILENAME] = tuf.tufformats.make_fileinfo(length, hashes, version=root_version['version'])
   fileinfodict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename)
@@ -1831,7 +1831,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date):
 
   # Retrieve the versioninfo of the Snapshot metadata file.
   snapshot_fileinfo = {}
-  length, hashes = tuf.util.get_file_details(snapshot_filename)
+  length, hashes = tuf.ssl_crypto.util.get_file_details(snapshot_filename)
   snapshot_version = get_metadata_versioninfo('snapshot')
   snapshot_fileinfo[SNAPSHOT_FILENAME] = \
     tuf.tufformats.make_fileinfo(length, hashes, version=snapshot_version['version']) 
@@ -2012,11 +2012,11 @@ def write_metadata_file(metadata, filename, version_number,
   # versions.  To avoid partial metadata from being written, 'metadata' is
   # first written to a temporary location (i.e., 'file_object') and then
   # moved to 'filename'.
-  file_object = tuf.util.TempFile()
+  file_object = tuf.ssl_crypto.util.TempFile()
   
   # Serialize 'metadata' to the file-like object and then write
   # 'file_object' to disk.  The dictionary keys of 'metadata' are sorted
-  # and indentation is used.  The 'tuf.util.TempFile' file-like object is
+  # and indentation is used.  The 'tuf.ssl_crypto.util.TempFile' file-like object is
   # automically closed after the final move.
   file_object.write(file_content)
   
@@ -2077,7 +2077,7 @@ def write_metadata_file(metadata, filename, version_number,
       continue
 
     elif compression_algorithm == 'gz':
-      file_object = tuf.util.TempFile()
+      file_object = tuf.ssl_crypto.util.TempFile()
       compressed_filename = filename + '.gz'
 
       # Instantiate a gzip object, but save compressed content to
@@ -2127,7 +2127,7 @@ def _write_compressed_metadata(file_object, compressed_filename,
       file_object.move(compressed_filename)
     
     # The temporary file must be closed if 'file_object.move()' is not used.
-    # tuf.util.TempFile() automatically closes the temp file when move() is
+    # tuf.ssl_crypto.util.TempFile() automatically closes the temp file when move() is
     # called
     else:
       file_object.close_temp_file()
@@ -2151,7 +2151,7 @@ def _write_compressed_metadata(file_object, compressed_filename,
       else:
         logger.debug('Skipping compression extension: ' + repr(compression_extension))
    
-    # Move the 'tuf.util.TempFile' object to one of the filenames so that it is
+    # Move the 'tuf.ssl_crypto.util.TempFile' object to one of the filenames so that it is
     # saved and the temporary file closed.
     if not os.path.exists(consistent_filename):
       logger.debug('Saving ' + repr(consistent_filename))

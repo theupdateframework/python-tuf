@@ -56,7 +56,7 @@ else:
   import unittest2 as unittest 
 
 import tuf.tufformats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.roledb
@@ -189,9 +189,9 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
                                   'role1.json')
     file1_filepath = os.path.join(self.repository_directory, 'targets',
                                   'file1.txt')
-    length, hashes = tuf.util.get_file_details(file1_filepath)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(file1_filepath)
 
-    role1_metadata = tuf.util.load_json_file(role1_filepath)
+    role1_metadata = tuf.ssl_crypto.util.load_json_file(role1_filepath)
     role1_metadata['signed']['targets']['/file2.txt'] = {}
     role1_metadata['signed']['targets']['/file2.txt']['hashes'] = hashes
     role1_metadata['signed']['targets']['/file2.txt']['length'] = length

@@ -227,7 +227,7 @@ class TestRepository(unittest.TestCase):
     # Verify that the expected metadata is written.
     for role in ['root.json', 'targets.json', 'snapshot.json', 'timestamp.json']:
       role_filepath = os.path.join(metadata_directory, role)
-      role_signable = tuf.util.load_json_file(role_filepath)
+      role_signable = tuf.ssl_crypto.util.load_json_file(role_filepath)
       
       # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'role_signable' is an invalid signable.
       tuf.tufformats.check_signable_object_format(role_signable)
@@ -240,7 +240,7 @@ class TestRepository(unittest.TestCase):
        
     # Verify the 'role1.json' delegation is also written.
     role1_filepath = os.path.join(metadata_directory, 'role1.json')
-    role1_signable = tuf.util.load_json_file(role1_filepath)
+    role1_signable = tuf.ssl_crypto.util.load_json_file(role1_filepath)
     tuf.tufformats.check_signable_object_format(role1_signable)
 
     # Verify that an exception is *not* raised for multiple
@@ -709,7 +709,7 @@ class TestMetadata(unittest.TestCase):
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
     root_filepath = os.path.join(metadata_directory, 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
     signatures = root_signable['signatures']
 
     # Add the first signature from the list, as only one is needed.
@@ -737,7 +737,7 @@ class TestMetadata(unittest.TestCase):
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
     root_filepath = os.path.join(metadata_directory, 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
     signatures = root_signable['signatures']
     self.metadata.add_signature(signatures[0])
 
@@ -752,7 +752,7 @@ class TestMetadata(unittest.TestCase):
     # Test invalid signature argument (i.e., signature that has not been added.)
     # Load an unused signature to be tested.
     targets_filepath = os.path.join(metadata_directory, 'targets.json')
-    targets_signable = tuf.util.load_json_file(targets_filepath)
+    targets_signable = tuf.ssl_crypto.util.load_json_file(targets_filepath)
     signatures = targets_signable['signatures']
     
     self.assertRaises(tuf.ssl_commons.exceptions.Error, self.metadata.remove_signature, signatures[0])
@@ -768,7 +768,7 @@ class TestMetadata(unittest.TestCase):
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
     root_filepath = os.path.join(metadata_directory, 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
     signatures = root_signable['signatures']
 
     # Add the first signature from the list, as only need one is needed.

@@ -60,7 +60,7 @@ else:
 
 import tuf.ssl_crypto.formats
 import tuf.tufformats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.repository_tool as repo_tool
@@ -211,7 +211,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
                                   'timestamp.json')
 
-    timestamp_metadata = tuf.util.load_json_file(timestamp_path)
+    timestamp_metadata = tuf.ssl_crypto.util.load_json_file(timestamp_path)
     expiry_time = time.time() - 10
     expires = tuf.tufformats.unix_timestamp_to_datetime(int(expiry_time))
     expires = expires.isoformat() + 'Z'
@@ -229,7 +229,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                                          'timestamp.json')
     shutil.copy(timestamp_path, client_timestamp_path)
     
-    length, hashes = tuf.util.get_file_details(timestamp_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(timestamp_path)
     fileinfo = tuf.tufformats.make_fileinfo(length, hashes) 
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
@@ -237,7 +237,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
    
     six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
     
-    length, hashes = tuf.util.get_file_details(client_timestamp_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is equal to the current local file.

@@ -55,7 +55,7 @@ else:
 
 import tuf
 import tuf.tufformats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
@@ -185,7 +185,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
     client_target_path = os.path.join(self.client_directory, 'file1.txt') 
     self.assertFalse(os.path.exists(client_target_path))
-    length, hashes = tuf.util.get_file_details(target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
     fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
@@ -193,7 +193,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     self.assertTrue(os.path.exists(client_target_path))
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     self.assertEqual(fileinfo, download_fileinfo)
   
@@ -202,7 +202,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     with open(target_path, 'r+t') as file_object:
       original_content = file_object.read() 
       file_object.write(original_content+('append large amount of data' * 100000))
-    large_length, hashes = tuf.util.get_file_details(target_path)
+    large_length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
     malicious_fileinfo = tuf.tufformats.make_fileinfo(large_length, hashes)
     
     # Is the modified file actually larger? 
@@ -210,7 +210,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     
     six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is unequal to the original trusted version.
@@ -234,10 +234,10 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
    
     # Verify the client's downloaded file matches the repository's.
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     self.assertEqual(fileinfo, download_fileinfo)
 
@@ -248,7 +248,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
       file_object.write(original_content+('append large amount of data' * 10000))
    
     # Is the modified file actually larger?
-    large_length, hashes = tuf.util.get_file_details(target_path)
+    large_length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
     self.assertTrue(large_length > length)
     
     os.remove(client_target_path)
@@ -257,7 +257,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     # A large amount of data has been appended to the original content.  The
     # extra data appended should be discarded by the client, so the downloaded
     # file size and hash should not have changed.
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     self.assertEqual(fileinfo, download_fileinfo)
     
@@ -265,16 +265,16 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
                                   'timestamp.json')
    
-    original_length, hashes = tuf.util.get_file_details(timestamp_path)
+    original_length, hashes = tuf.ssl_crypto.util.get_file_details(timestamp_path)
     
     with open(timestamp_path, 'r+') as file_object:
-      timestamp_content = tuf.util.load_json_file(timestamp_path) 
+      timestamp_content = tuf.ssl_crypto.util.load_json_file(timestamp_path) 
       large_data = 'LargeTimestamp' * 10000
       timestamp_content['signed']['_type'] = large_data 
       json.dump(timestamp_content, file_object, indent=1, sort_keys=True)
 
     
-    modified_length, hashes = tuf.util.get_file_details(timestamp_path)
+    modified_length, hashes = tuf.ssl_crypto.util.get_file_details(timestamp_path)
     self.assertTrue(modified_length > original_length)
 
     # Does the TUF client download the upper limit of an unsafely fetched

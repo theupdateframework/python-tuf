@@ -188,8 +188,8 @@ class TestRepository(unittest.TestCase):
     root_filepath = os.path.join(metadata_directory, 'root.json')
     root_1_filepath = os.path.join(metadata_directory, '1.root.json')
     root_2_filepath = os.path.join(metadata_directory, '2.root.json')
-    old_root_signable = tuf.util.load_json_file(root_filepath)
-    root_1_signable = tuf.util.load_json_file(root_1_filepath)
+    old_root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
+    root_1_signable = tuf.ssl_crypto.util.load_json_file(root_1_filepath)
     
     # Make a change to the root keys
     repository.root.add_verification_key(targets_pubkey)
@@ -197,8 +197,8 @@ class TestRepository(unittest.TestCase):
     repository.root.threshold = 2
     repository.writeall()
 
-    new_root_signable = tuf.util.load_json_file(root_filepath)
-    root_2_signable = tuf.util.load_json_file(root_2_filepath)
+    new_root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
+    root_2_signable = tuf.ssl_crypto.util.load_json_file(root_2_filepath)
     
     for role_signable in [old_root_signable, new_root_signable, root_1_signable, root_2_signable]:
       # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'role_signable' is an invalid signable.

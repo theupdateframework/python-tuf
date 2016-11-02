@@ -56,7 +56,7 @@ else:
   import unittest2 as unittest 
 
 import tuf
-import tuf.util
+import tuf.ssl_crypto.util
 from simple_settings import settings
 import tuf.log
 import tuf.tufformats

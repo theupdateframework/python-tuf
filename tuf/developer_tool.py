@@ -38,7 +38,7 @@ import json
 
 import tuf
 import tuf.tufformats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.keydb
 import tuf.roledb
 import tuf.keys
@@ -265,7 +265,7 @@ class Project(Targets):
       # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
       # IO exception is raised if 'metadata_filepath' is written to a
       # sub-directory.
-      tuf.util.ensure_parent_dir(delegated_filename)
+      tuf.ssl_crypto.util.ensure_parent_dir(delegated_filename)
       
       _generate_and_write_metadata(delegated_rolename, delegated_filename,
                                    write_partial, self._targets_directory,
@@ -816,7 +816,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   config_filename = os.path.join(project_directory, PROJECT_FILENAME)
   
   try:
-    project_configuration = tuf.util.load_json_file(config_filename)
+    project_configuration = tuf.ssl_crypto.util.load_json_file(config_filename)
     tuf.ssl_crypto.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration) 
   
   except (OSError, IOError, tuf.ssl_commons.exceptions.FormatError):
@@ -863,7 +863,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   # Load the project's metadata.
   targets_metadata_path = os.path.join(project_directory, metadata_directory,
       project_filename)
-  signable = tuf.util.load_json_file(targets_metadata_path)
+  signable = tuf.ssl_crypto.util.load_json_file(targets_metadata_path)
   tuf.tufformats.check_signable_object_format(signable)
   targets_metadata = signable['signed']
   
@@ -929,7 +929,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
 
       signable = None
       try:
-        signable = tuf.util.load_json_file(metadata_path)
+        signable = tuf.ssl_crypto.util.load_json_file(metadata_path)
       
       except (ValueError, IOError, tuf.ssl_commons.exceptions.Error):
         raise

@@ -138,6 +138,7 @@ from simple_settings import settings
 import tuf.ssl_crypto.hash
 
 # Perform format checks of argument objects.
+import tuf.pycrypto_keys
 import tuf.ssl_crypto.formats
 import tuf.tufformats
 

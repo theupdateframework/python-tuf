@@ -28,7 +28,7 @@ from __future__ import unicode_literals
 import os
 
 import tuf
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.tufformats
 
 import six
@@ -89,12 +89,12 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       'Supported file types: '+repr(_SUPPORTED_FILE_TYPES)
     raise tuf.ssl_commons.exceptions.Error(message)
 
-  # Reference to 'tuf.util.file_in_confined_directories()' (improve readability).
+  # Reference to 'tuf.ssl_crypto.util.file_in_confined_directories()' (improve readability).
   # This function checks whether a mirror should serve a file to the client.
   # A client may be confined to certain paths on a repository mirror
   # when fetching target files.  This field may be set by the client when
   # the repository mirror is added to the 'tuf.client.updater.Updater' object.
-  in_confined_directory = tuf.util.file_in_confined_directories
+  in_confined_directory = tuf.ssl_crypto.util.file_in_confined_directories
 
   list_of_mirrors = []
   for mirror_name, mirror_info in six.iteritems(mirrors_dict):

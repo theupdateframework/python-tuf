@@ -64,7 +64,8 @@ else:
   import unittest2 as unittest 
 
 import tuf
-import tuf.util
+import tuf.ssl_commons.exceptions
+import tuf.ssl_crypto.util
 from simple_settings import settings
 import tuf.log
 import tuf.tufformats
@@ -287,7 +288,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # compare it against the loaded metadata by '_load_metadata_from_file()'.
     role1_filepath = \
       os.path.join(self.client_metadata_current, 'role1.json')
-    role1_meta = tuf.util.load_json_file(role1_filepath)
+    role1_meta = tuf.ssl_crypto.util.load_json_file(role1_filepath)
  
     # Load the 'role1.json' file with _load_metadata_from_file, which should
     # store the loaded metadata in the 'self.repository_updater.metadata'
@@ -376,7 +377,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # on the repository.  Load Snapshot to extract Root's version number
     # and compare it against the one loaded by 'self.repository_updater'.
     snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
-    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    snapshot_signable = tuf.ssl_crypto.util.load_json_file(snapshot_filepath)
     targets_versioninfo = snapshot_signable['signed']['meta']['targets.json'] 
    
     # Verify that the manually loaded version number of root.json matches
@@ -410,7 +411,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.assertEqual(len(fileinfo_dict), 1)
       self.assertTrue(tuf.ssl_crypto.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
-      length, hashes = tuf.util.get_file_details(root_filepath)
+      length, hashes = tuf.ssl_crypto.util.get_file_details(root_filepath)
       root_fileinfo = tuf.tufformats.make_fileinfo(length, hashes) 
       self.assertTrue('root.json' in fileinfo_dict)
       self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
@@ -431,7 +432,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_2__fileinfo_has_changed(self):
       #  Verify that the method returns 'False' if file info was not changed.
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
-      length, hashes = tuf.util.get_file_details(root_filepath)
+      length, hashes = tuf.ssl_crypto.util.get_file_details(root_filepath)
       root_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
       self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
                                                              root_fileinfo))
@@ -496,7 +497,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Verify that keydb dictionary was updated.
     role1_signable = \
-      tuf.util.load_json_file(os.path.join(self.client_metadata_current,
+      tuf.ssl_crypto.util.load_json_file(os.path.join(self.client_metadata_current,
                                            'role1.json'))
     keyids = []
     for signature in role1_signable['signatures']:
@@ -541,7 +542,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_2__versioninfo_has_been_updated(self):
     # Verify that the method returns 'False' if a versioninfo was not changed.
     snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
-    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    snapshot_signable = tuf.ssl_crypto.util.load_json_file(snapshot_filepath)
     targets_versioninfo = snapshot_signable['signed']['meta']['targets.json'] 
     
     self.assertFalse(self.repository_updater._versioninfo_has_been_updated('targets.json',
@@ -660,7 +661,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                 targets_versioninfo['version'])
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
    
-    targets_signable = tuf.util.load_json_file(targets_filepath)
+    targets_signable = tuf.ssl_crypto.util.load_json_file(targets_filepath)
     loaded_targets_version = targets_signable['signed']['version']
     self.assertEqual(targets_versioninfo['version'], loaded_targets_version)
     
@@ -929,7 +930,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # as available on the server-side version of the role. 
     role1_filepath = os.path.join(self.repository_directory, 'metadata',
                                   'role1.json')
-    role1_signable = tuf.util.load_json_file(role1_filepath)
+    role1_signable = tuf.ssl_crypto.util.load_json_file(role1_filepath)
     expected_targets = role1_signable['signed']['targets']
 
 
@@ -1079,7 +1080,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     download_filepath = \
       os.path.join(destination_directory, target_filepath1.lstrip('/'))
     self.assertTrue(os.path.exists(download_filepath))
-    length, hashes = tuf.util.get_file_details(download_filepath, settings.REPOSITORY_HASH_ALGORITHMS)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(download_filepath, settings.REPOSITORY_HASH_ALGORITHMS)
     download_targetfileinfo = tuf.tufformats.make_fileinfo(length, hashes)
    
     # Add any 'custom' data from the repository's target fileinfo to the
@@ -1218,7 +1219,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     repository.targets.remove_target(target1)
     
-    length, hashes = tuf.util.get_file_details(target1)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target1)
 
     repository.targets.add_target(target1)
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
@@ -1227,7 +1228,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     with open(target1, 'a') as file_object:
       file_object.write('append extra text')
 
-    length, hashes = tuf.util.get_file_details(target1)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target1)
 
     repository.targets.add_target(target1)
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
@@ -1335,7 +1336,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_10__hard_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
-    temp_file_object = tuf.util.TempFile()
+    temp_file_object = tuf.ssl_crypto.util.TempFile()
     temp_file_object.write(b'X')
     temp_file_object.seek(0)
     self.assertRaises(tuf.ssl_commons.exceptions.DownloadLengthMismatchError,
@@ -1348,7 +1349,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_10__soft_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
-    temp_file_object = tuf.util.TempFile()
+    temp_file_object = tuf.ssl_crypto.util.TempFile()
     temp_file_object.write(b'XXX')
     temp_file_object.seek(0)
     self.assertRaises(tuf.ssl_commons.exceptions.DownloadLengthMismatchError,

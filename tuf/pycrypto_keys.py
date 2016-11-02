@@ -111,13 +111,13 @@ import tuf
 import tuf.ssl_crypto.hash
 
 # Perform object format-checking.
-import tuf.tufformats
+#import tuf.tufformats
 
 # Extract the cryptography library settings.
 from simple_settings import settings
 
 # Import key files containing json data.
-import tuf.util
+import tuf.ssl_crypto.util
 
 # Recommended RSA key sizes:
 # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
@@ -766,7 +766,7 @@ def decrypt_key(encrypted_key, password):
  
   # Raise 'tuf.ssl_commons.exceptions.Error' if 'json_data' cannot be deserialized to a valid
   # 'tuf.ssl_crypto.formats.ANYKEY_SCHEMA' key object.
-  key_object = tuf.util.load_json_string(json_data.decode()) 
+  key_object = tuf.ssl_crypto.util.load_json_string(json_data.decode()) 
   
   return key_object
 
@@ -931,7 +931,7 @@ def _decrypt(file_contents, password):
                                                Crypto.Hash.SHA256)
   generated_hmac = generated_hmac_object.hexdigest()
 
-  if not tuf.util.digests_are_equal(generated_hmac, hmac):
+  if not tuf.ssl_crypto.util.digests_are_equal(generated_hmac, hmac):
     raise tuf.ssl_commons.exceptions.CryptoError('Decryption failed.')
 
   # The following decryption routine assumes 'ciphertext' was encrypted with

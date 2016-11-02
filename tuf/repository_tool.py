@@ -40,7 +40,7 @@ import random
 
 import tuf
 import tuf.tufformats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.keydb
 import tuf.roledb
 import tuf.keys
@@ -2939,7 +2939,7 @@ def load_repository(repository_directory):
     signable = None
     
     try:
-      signable = tuf.util.load_json_file(metadata_path)
+      signable = tuf.ssl_crypto.util.load_json_file(metadata_path)
     
     except (tuf.ssl_commons.exceptions.Error, ValueError, IOError):
       logger.debug('Tried to load metadata with invalid JSON'

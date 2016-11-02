@@ -52,7 +52,7 @@ else:
 
 import tuf
 import tuf.tufformats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.roledb
 import tuf.keydb
 import tuf.log
@@ -181,7 +181,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
     client_target_path = os.path.join(self.client_directory, 'file1.txt') 
     self.assertFalse(os.path.exists(client_target_path))
-    length, hashes = tuf.util.get_file_details(target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
     fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
@@ -189,19 +189,19 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     self.assertTrue(os.path.exists(client_target_path))
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     self.assertEqual(fileinfo, download_fileinfo)
   
     # Test: Download a target file that has been modified by an attacker.
     with open(target_path, 'wt') as file_object:
       file_object.write('add malicious content.')
-    length, hashes = tuf.util.get_file_details(target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
     malicious_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     
     six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is unequal to the original trusted version.
@@ -259,12 +259,12 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
     # An attacker also tries to add the malicious target's length and digest
     # to its metadata file.
-    length, hashes = tuf.util.get_file_details(target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
 
     metadata_path = \
       os.path.join(self.repository_directory, 'metadata', 'targets.json')
     
-    metadata = tuf.util.load_json_file(metadata_path)
+    metadata = tuf.ssl_crypto.util.load_json_file(metadata_path)
     metadata['signed']['targets']['/file1.txt']['hashes'] = hashes
     metadata['signed']['targets']['/file1.txt']['length'] = length
 

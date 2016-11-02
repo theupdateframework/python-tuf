@@ -29,7 +29,7 @@ import optparse
 import stat
 
 from tuf.repository_tool import *
-import tuf.util
+import tuf.ssl_crypto.util
 
 
 parser = optparse.OptionParser()
@@ -95,11 +95,11 @@ repository.timestamp.load_signing_key(timestamp_private)
 # Create the target files (downloaded by clients) whose file size and digest
 # are specified in the 'targets.json' file.
 target1_filepath = 'repository/targets/file1.txt'
-tuf.util.ensure_parent_dir(target1_filepath)
+tuf.ssl_crypto.util.ensure_parent_dir(target1_filepath)
 target2_filepath = 'repository/targets/file2.txt'
-tuf.util.ensure_parent_dir(target2_filepath)
+tuf.ssl_crypto.util.ensure_parent_dir(target2_filepath)
 target3_filepath = 'repository/targets/file3.txt'
-tuf.util.ensure_parent_dir(target2_filepath)
+tuf.ssl_crypto.util.ensure_parent_dir(target2_filepath)
 
 if not options.dry_run:
   with open(target1_filepath, 'wt') as file_object:

@@ -425,7 +425,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Load the root metadata provided in 'tuf/tests/repository_data/'.
     root_filepath = os.path.join('repository_data', 'repository',
                                  'metadata', 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
 
     # generate_root_metadata() expects the top-level roles and keys to be
     # available in 'tuf.keydb' and 'tuf.roledb'.
@@ -472,7 +472,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     targets_directory = os.path.join(temporary_directory, 'targets')
     file1_path = os.path.join(targets_directory, 'file.txt')
-    tuf.util.ensure_parent_dir(file1_path)
+    tuf.ssl_crypto.util.ensure_parent_dir(file1_path)
 
     with open(file1_path, 'wt') as file_object:
       file_object.write('test file.')
@@ -677,9 +677,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     keystore_path = os.path.join('repository_data',
                                  'keystore')
     root_filename = os.path.join(metadata_path, 'root.json')
-    root_metadata = tuf.util.load_json_file(root_filename)['signed']
+    root_metadata = tuf.ssl_crypto.util.load_json_file(root_filename)['signed']
     targets_filename = os.path.join(metadata_path, 'targets.json')
-    targets_metadata = tuf.util.load_json_file(targets_filename)['signed']
+    targets_metadata = tuf.ssl_crypto.util.load_json_file(targets_filename)['signed']
     
     tuf.keydb.create_keydb_from_root_metadata(root_metadata)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata)
@@ -735,7 +735,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
     root_filename = os.path.join(metadata_directory, 'root.json')
-    root_signable = tuf.util.load_json_file(root_filename)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filename)
   
     output_filename = os.path.join(temporary_directory, 'root.json')
     compression_algorithms = ['gz']
@@ -833,7 +833,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
   def test__write_compressed_metadata(self):
     # Test for invalid 'compressed_filename' argument and set
     # 'write_new_metadata' to False.
-    file_object = tuf.util.TempFile()
+    file_object = tuf.ssl_crypto.util.TempFile()
     existing_filename = os.path.join('repository_data', 'repository',
                                      'metadata', 'root.json')
 
@@ -845,7 +845,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                         version_number=8)
 
     # Test writing of compressed metadata when consistent snapshots is enabled. 
-    file_object = tuf.util.TempFile()
+    file_object = tuf.ssl_crypto.util.TempFile()
     shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.json.gz'))
     shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.json.zip'))
     shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.zip'))
@@ -922,7 +922,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Load the root metadata provided in 'tuf/tests/repository_data/'.
     root_filepath = os.path.join('repository_data', 'repository',
                                  'metadata', 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
 
     # _generate_and_write_metadata() expects the top-level roles
     # (specifically 'snapshot') and keys to be available in 'tuf.roledb'.
@@ -937,7 +937,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                     'targets.json')
     obsolete_metadata = os.path.join(metadata_directory,
                                             'obsolete_role.json')
-    tuf.util.ensure_parent_dir(obsolete_metadata)
+    tuf.ssl_crypto.util.ensure_parent_dir(obsolete_metadata)
     shutil.copyfile(targets_metadata, obsolete_metadata)
     
     # Verify that obsolete metadata (a metadata file exists on disk, but the
@@ -959,7 +959,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     snapshot_filepath = os.path.join('repository_data', 'repository',
                                      'metadata', 'snapshot.json')
-    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    snapshot_signable = tuf.ssl_crypto.util.load_json_file(snapshot_filepath)
     tuf.roledb.remove_role('obsolete_role')
     self.assertTrue(os.path.exists(os.path.join(metadata_directory,
                                                 'obsolete_role.json')))
@@ -979,7 +979,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     os.makedirs(metadata_directory)
     snapshot_filepath = os.path.join('repository_data', 'repository',
                                      'metadata', 'snapshot.json')
-    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    snapshot_signable = tuf.ssl_crypto.util.load_json_file(snapshot_filepath)
  
     # Create role metadata that should not exist in snapshot.json.
     role1_filepath = os.path.join('repository_data', 'repository',
@@ -1014,7 +1014,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Add a duplicate signature to the Root file for testing purposes).
     root_file = os.path.join(metadata_directory, 'root.json')
-    signable = tuf.util.load_json_file(os.path.join(metadata_directory, 'root.json'))
+    signable = tuf.ssl_crypto.util.load_json_file(os.path.join(metadata_directory, 'root.json'))
     signable['signatures'].append(signable['signatures'][0])
 
     repo_lib.write_metadata_file(signable, root_file, 8, ['gz'], False)
@@ -1062,7 +1062,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # signatures).  First load a valid signable (in this case, the root role).
     root_filepath = os.path.join('repository_data', 'repository',
                                  'metadata', 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
     key_filepath = os.path.join('repository_data', 'keystore', 'root_key')
     root_rsa_key = repo_lib.import_rsa_privatekey_from_file(key_filepath,
                                                             'password')

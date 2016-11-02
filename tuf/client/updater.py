@@ -126,7 +126,7 @@ import tuf.log
 import tuf.mirrors
 import tuf.roledb
 import tuf.sig
-import tuf.util
+import tuf.ssl_crypto.util
 
 import six
 import iso8601
@@ -423,7 +423,7 @@ class Updater(object):
       # Load the file.  The loaded object should conform to
       # 'tuf.ssl_crypto.formats.SIGNABLE_SCHEMA'.
       try:
-        metadata_signable = tuf.util.load_json_file(metadata_filepath)
+        metadata_signable = tuf.ssl_crypto.util.load_json_file(metadata_filepath)
       
       # Although the metadata file may exist locally, it may not
       # be a valid json file.  On the next refresh cycle, it will be
@@ -718,7 +718,7 @@ class Updater(object):
                               settings.DEFAULT_ROOT_REQUIRED_LENGTH, None, 
                               compression_algorithm=compression_algorithm)
     latest_root_metadata = \
-      tuf.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
+      tuf.ssl_crypto.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
     
     
     next_version = current_root_metadata['version'] + 1
@@ -750,7 +750,7 @@ class Updater(object):
 
     <Arguments>
       file_object:
-        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        A 'tuf.ssl_crypto.util.TempFile' file-like object.  'file_object' ensures that a
         read() without a size argument properly reads the entire file.
 
       trusted_hashes:
@@ -795,7 +795,7 @@ class Updater(object):
 
     <Arguments>
       file_object:
-        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        A 'tuf.ssl_crypto.util.TempFile' file-like object.  'file_object' ensures that a
         read() without a size argument properly reads the entire file.
 
       trusted_file_length:
@@ -812,7 +812,7 @@ class Updater(object):
       None.
     """
 
-    # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
+    # Read the entire contents of 'file_object', a 'tuf.ssl_crypto.util.TempFile' file-like
     # object that ensures the entire file is read.
     observed_length = len(file_object.read())
    
@@ -835,14 +835,14 @@ class Updater(object):
     """
     <Purpose>
       Non-public method that checks the trusted file length of a
-      'tuf.util.TempFile' file-like object. The length of the file must be less
+      'tuf.ssl_crypto.util.TempFile' file-like object. The length of the file must be less
       than or equal to the expected length. This is a deliberately redundant
       implementation designed to complement
       tuf.download._check_downloaded_length().
 
     <Arguments>
       file_object:
-        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        A 'tuf.ssl_crypto.util.TempFile' file-like object.  'file_object' ensures that a
         read() without a size argument properly reads the entire file.
 
       trusted_file_length:
@@ -859,7 +859,7 @@ class Updater(object):
       None.
     """
 
-    # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
+    # Read the entire contents of 'file_object', a 'tuf.ssl_crypto.util.TempFile' file-like
     # object that ensures the entire file is read.
     observed_length = len(file_object.read()) 
    
@@ -907,7 +907,7 @@ class Updater(object):
       a temporary file and returned.
 
     <Returns>
-      A 'tuf.util.TempFile' file-like object containing the target.
+      A 'tuf.ssl_crypto.util.TempFile' file-like object containing the target.
     """
 
     # Define a callable function that is passed as an argument to _get_file()
@@ -946,7 +946,7 @@ class Updater(object):
 
     <Arguments>
       metadata_file_object:
-        A 'tuf.util.TempFile' instance containing the metadata file.
+        A 'tuf.ssl_crypto.util.TempFile' instance containing the metadata file.
         'metadata_file_object' ensures the entire file is returned with read().
 
       metadata_role:
@@ -980,7 +980,7 @@ class Updater(object):
     metadata = metadata_file_object.read().decode('utf-8')
     
     try:
-      metadata_signable = tuf.util.load_json_string(metadata)
+      metadata_signable = tuf.ssl_crypto.util.load_json_string(metadata)
     
     except Exception as exception:
       raise tuf.ssl_commons.exceptions.InvalidMetadataJSONError(exception)
@@ -1048,7 +1048,7 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A 'tuf.util.TempFile' file-like object containing the metadata.
+      A 'tuf.ssl_crypto.util.TempFile' file-like object containing the metadata.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors('meta', remote_filename,
@@ -1073,7 +1073,7 @@ class Updater(object):
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
         metadata_signable = \
-          tuf.util.load_json_string(file_object.read().decode('utf-8'))
+          tuf.ssl_crypto.util.load_json_string(file_object.read().decode('utf-8'))
        
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number for
@@ -1164,7 +1164,7 @@ class Updater(object):
         The relative metadata or target filepath.
 
       verify_file_function:
-        A callable function that expects a 'tuf.util.TempFile' file-like object
+        A callable function that expects a 'tuf.ssl_crypto.util.TempFile' file-like object
         and raises an exception if the file is invalid.  Target files and
         uncompressed versions of metadata may be verified with
         'verify_file_function'.
@@ -1202,7 +1202,7 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A 'tuf.util.TempFile' file-like object containing the metadata or target.
+      A 'tuf.ssl_crypto.util.TempFile' file-like object containing the metadata or target.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
@@ -1347,7 +1347,7 @@ class Updater(object):
     current_filepath = os.path.join(self.metadata_directory['current'],
                                     metadata_filename)
     current_filepath = os.path.abspath(current_filepath)
-    tuf.util.ensure_parent_dir(current_filepath)
+    tuf.ssl_crypto.util.ensure_parent_dir(current_filepath)
     
     previous_filepath = os.path.join(self.metadata_directory['previous'],
                                      metadata_filename)
@@ -1355,14 +1355,14 @@ class Updater(object):
     
     if os.path.exists(current_filepath):
       # Previous metadata might not exist, say when delegations are added.
-      tuf.util.ensure_parent_dir(previous_filepath)
+      tuf.ssl_crypto.util.ensure_parent_dir(previous_filepath)
       shutil.move(current_filepath, previous_filepath)
 
     # Next, move the verified updated metadata file to the 'current' directory.
-    # Note that the 'move' method comes from tuf.util's TempFile class.
-    # 'metadata_file_object' is an instance of tuf.util.TempFile.
+    # Note that the 'move' method comes from tuf.ssl_crypto.util's TempFile class.
+    # 'metadata_file_object' is an instance of tuf.ssl_crypto.util.TempFile.
     metadata_signable = \
-      tuf.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+      tuf.ssl_crypto.util.load_json_string(metadata_file_object.read().decode('utf-8'))
     
     if compression_algorithm == 'gzip':
       current_uncompressed_filepath = \
@@ -1834,7 +1834,7 @@ class Updater(object):
    
     # Extract the file information from the actual file and save it
     # to the fileinfo store.
-    file_length, hashes = tuf.util.get_file_details(current_filepath)
+    file_length, hashes = tuf.ssl_crypto.util.get_file_details(current_filepath)
     metadata_fileinfo = tuf.tufformats.make_fileinfo(file_length, hashes)
     self.fileinfo[metadata_filename] = metadata_fileinfo
 
@@ -1879,7 +1879,7 @@ class Updater(object):
 
     # Move the current path to the previous path.  
     if os.path.exists(current_filepath):
-      tuf.util.ensure_parent_dir(previous_filepath)
+      tuf.ssl_crypto.util.ensure_parent_dir(previous_filepath)
       os.rename(current_filepath, previous_filepath)
 
 
@@ -2536,7 +2536,7 @@ class Updater(object):
       # Is the child role allowed by its parent role to specify this path
       # in its metadata?
       try: 
-        tuf.util.ensure_all_targets_allowed(child_role_name, [target_filepath],
+        tuf.ssl_crypto.util.ensure_all_targets_allowed(child_role_name, [target_filepath],
                                             parent_delegations)
       
       except tuf.ssl_commons.exceptions.ForbiddenTargetError:
