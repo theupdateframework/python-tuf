@@ -31,7 +31,7 @@ import logging
 import tuf
 import tuf.log
 import tuf.tufformats
-import tuf.pyca_crypto_keys as crypto_keys
+import tuf.ssl_crypto.pyca_crypto_keys as crypto_keys
 
 logger = logging.getLogger('tuf.test_pyca_crypto_keys')
 

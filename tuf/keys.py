@@ -99,7 +99,7 @@ except ImportError: # pragma: no cover
 # Try to import TUF's pyca/Cryptography module (pyca_crypto_keys.py), which is
 # used for general-purpose cryptography and RSA.
 try:
-  import tuf.pyca_crypto_keys
+  import tuf.ssl_crypto.pyca_crypto_keys
   _available_crypto_libraries.append('pyca-cryptography')
 
 except ImportError: # pragma: no cover
@@ -247,7 +247,7 @@ def generate_rsa_key(bits=_DEFAULT_RSA_KEY_BITS):
   # Unlike PyCrypto, PyCA Cryptography does not require 'bits' to be a multiple
   # 256.
   elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
-    public, private = tuf.pyca_crypto_keys.generate_rsa_public_and_private(bits)
+    public, private = tuf.ssl_crypto.pyca_crypto_keys.generate_rsa_public_and_private(bits)
   
   else: # pragma: no cover
     raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Invalid crypto'
@@ -747,7 +747,7 @@ def create_signature(key_dict, data):
       sig, method = tuf.pycrypto_keys.create_rsa_signature(private, data.encode('utf-8'))
    
     elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
-      sig, method = tuf.pyca_crypto_keys.create_rsa_signature(private, data.encode('utf-8'))
+      sig, method = tuf.ssl_crypto.pyca_crypto_keys.create_rsa_signature(private, data.encode('utf-8'))
     
     else: # pragma: no cover
       raise tuf.ssl_commons.exceptions.UnsupportedLibraryError('Unsupported'
@@ -896,7 +896,7 @@ def verify_signature(key_dict, signature, data):
           ' (tuf/settings.py) to use PyCrypto if that is available instead.')
 
       else:
-        valid_signature = tuf.pyca_crypto_keys.verify_rsa_signature(sig, method,
+        valid_signature = tuf.ssl_crypto.pyca_crypto_keys.verify_rsa_signature(sig, method,
                                                                  public, data) 
     
     else: # pragma: no cover
@@ -1005,7 +1005,7 @@ def import_rsakey_from_encrypted_pem(encrypted_pem, password):
 
   elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
     public, private = \
-      tuf.pyca_crypto_keys.create_rsa_public_and_private_from_encrypted_pem(encrypted_pem,
+      tuf.ssl_crypto.pyca_crypto_keys.create_rsa_public_and_private_from_encrypted_pem(encrypted_pem,
                                                                          password)
     public = format_rsakey_from_pem(public)['keyval']['public']
     private = extract_pem(private, private_pem=True)
@@ -1278,7 +1278,7 @@ def encrypt_key(key_object, password):
   
   elif _GENERAL_CRYPTO_LIBRARY == 'pyca-cryptography':
     encrypted_key = \
-      tuf.pyca_crypto_keys.encrypt_key(key_object, password)
+      tuf.ssl_crypto.pyca_crypto_keys.encrypt_key(key_object, password)
  
   # check_crypto_libraries() should have fully verified _GENERAL_CRYPTO_LIBRARY.
   else: # pragma: no cover
@@ -1380,7 +1380,7 @@ def decrypt_key(encrypted_key, passphrase):
   
   elif _GENERAL_CRYPTO_LIBRARY == 'pyca-cryptography':
     key_object = \
-      tuf.pyca_crypto_keys.decrypt_key(encrypted_key, passphrase)
+      tuf.ssl_crypto.pyca_crypto_keys.decrypt_key(encrypted_key, passphrase)
   
   # check_crypto_libraries() should have fully verified _GENERAL_CRYPTO_LIBRARY.
   else: # pragma: no cover
