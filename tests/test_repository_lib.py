@@ -323,7 +323,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Use 'pycrypto_keys.py' to bypass the key format validation performed by
     # 'keys.py'.
     salt, iterations, derived_key = \
-      tuf.pycrypto_keys._generate_derived_key('pw')
+      tuf.ssl_crypto.pycrypto_keys._generate_derived_key('pw')
  
     # Store the derived key info in a dictionary, the object expected
     # by the non-public _encrypt() routine.
@@ -333,7 +333,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Convert the key object to json string format and encrypt it with the
     # derived key.
     encrypted_key = \
-      tuf.pycrypto_keys._encrypt(json.dumps(imported_ed25519_key),
+      tuf.ssl_crypto.pycrypto_keys._encrypt(json.dumps(imported_ed25519_key),
                                  derived_key_information)  
     
     with open(ed25519_keypath, 'wb') as file_object:

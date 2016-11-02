@@ -30,7 +30,7 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.pycrypto_keys
+import tuf.ssl_crypto.pycrypto_keys
 import tuf.ssl_crypto.formats
 import tuf.tufformats
 import tuf.keys

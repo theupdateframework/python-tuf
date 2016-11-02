@@ -31,7 +31,7 @@ import logging
 import tuf
 import tuf.log
 import tuf.tufformats
-import tuf.pycrypto_keys as pycrypto
+import tuf.ssl_crypto.pycrypto_keys as pycrypto
 
 logger = logging.getLogger('tuf.test_pycrypto_keys')
 
@@ -245,11 +245,11 @@ class TestPycrypto_keys(unittest.TestCase):
     'keyid': 'd62247f817883f593cf6c66a5a55292488d457bcf638ae03207dbbba9dbe457d',
     'keyval': {'public': public_rsa, 'private': private_rsa}}
 
-    encrypted_rsa_key = tuf.pycrypto_keys.encrypt_key(rsa_key, passphrase)
+    encrypted_rsa_key = tuf.ssl_crypto.pycrypto_keys.encrypt_key(rsa_key, passphrase)
 
     # Test for invalid arguments.
     rsa_key['keyval']['private'] = ''
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.pycrypto_keys.encrypt_key, rsa_key,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.pycrypto_keys.encrypt_key, rsa_key,
                                        'passphrase')
 
 
@@ -263,17 +263,17 @@ class TestPycrypto_keys(unittest.TestCase):
     'keyid': 'd62247f817883f593cf6c66a5a55292488d457bcf638ae03207dbbba9dbe457d',
     'keyval': {'public': public_rsa, 'private': private_rsa}}
 
-    encrypted_rsa_key = tuf.pycrypto_keys.encrypt_key(rsa_key, passphrase).encode('utf-8')
+    encrypted_rsa_key = tuf.ssl_crypto.pycrypto_keys.encrypt_key(rsa_key, passphrase).encode('utf-8')
     
-    decrypted_rsa_key = tuf.pycrypto_keys.decrypt_key(encrypted_rsa_key, passphrase)
+    decrypted_rsa_key = tuf.ssl_crypto.pycrypto_keys.decrypt_key(encrypted_rsa_key, passphrase)
 
 
     # Test for invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.pycrypto_keys.decrypt_key, b'bad',
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.ssl_crypto.pycrypto_keys.decrypt_key, b'bad',
                                        passphrase)
 
     # Test for invalid encrypted content (i.e., invalid hmac and ciphertext.)
-    encryption_delimiter = tuf.pycrypto_keys._ENCRYPTION_DELIMITER 
+    encryption_delimiter = tuf.ssl_crypto.pycrypto_keys._ENCRYPTION_DELIMITER 
     salt, iterations, hmac, iv, ciphertext = \
       encrypted_rsa_key.decode('utf-8').split(encryption_delimiter)
    
@@ -285,7 +285,7 @@ class TestPycrypto_keys(unittest.TestCase):
       salt + encryption_delimiter + iterations + encryption_delimiter + \
       bad_hmac + encryption_delimiter + iv + encryption_delimiter + ciphertext
       
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.pycrypto_keys.decrypt_key,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.ssl_crypto.pycrypto_keys.decrypt_key,
                       invalid_encrypted_rsa_key.encode('utf-8'), passphrase)
 
     # Test for invalid 'ciphertext'
@@ -294,18 +294,18 @@ class TestPycrypto_keys(unittest.TestCase):
       salt + encryption_delimiter + iterations + encryption_delimiter + \
       hmac + encryption_delimiter + iv + encryption_delimiter + bad_ciphertext
     
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.pycrypto_keys.decrypt_key,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.ssl_crypto.pycrypto_keys.decrypt_key,
                       invalid_encrypted_rsa_key.encode('utf-8'), passphrase)
 
 
 
   def test__decrypt_key(self):
     # Test for invalid arguments.
-    salt, iterations, derived_key = tuf.pycrypto_keys._generate_derived_key('pw')
+    salt, iterations, derived_key = tuf.ssl_crypto.pycrypto_keys._generate_derived_key('pw')
     derived_key_information = {'salt': salt, 'derived_key': derived_key,
                                'iterations': iterations}
     
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.pycrypto_keys._encrypt,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.ssl_crypto.pycrypto_keys._encrypt,
                           8, derived_key_information)
 
 
