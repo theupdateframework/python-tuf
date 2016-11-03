@@ -1,0 +1,8 @@
+[submodule "tuf/ssl_commons"]
+	path = tuf/ssl_commons
+	url = https://github.com/baloyan/ssl_commons.git
+	branch = development
+[submodule "tuf/ssl_crypto"]
+	path = tuf/ssl_crypto
+	url = https://github.com/baloyan/ssl_crypto.git
+	branch = crypto-merge
