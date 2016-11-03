@@ -217,9 +217,10 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       roleinfo = tuf.roledb.get_roleinfo(rolename)
       roleinfo['version'] = current_version 
       tuf.roledb.update_roleinfo(rolename, roleinfo)
-      
-      message = 'Not enough signatures for ' + repr(metadata_filename)
-      raise tuf.UnsignedMetadataError(message, signable)
+     
+      # Note that 'signable' is an argument to tuf.UnsignedMetadataError().   
+      raise tuf.UnsignedMetadataError('Not enough signatures'
+        ' for ' + repr(metadata_filename), signable)
   
   # 'rolename' is a delegated role or a top-level role that is  partially
   # signed, and thus its signatures shouldn't be verified.
