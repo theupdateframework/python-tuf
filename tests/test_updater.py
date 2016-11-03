@@ -76,8 +76,8 @@ import tuf.client.updater as updater
 import six
 
 logger = logging.getLogger('tuf.test_updater')
-repo_tool.disable_console_log_messages()
-
+#repo_tool.disable_console_log_messages()
+tuf.log.set_log_level(logging.DEBUG)
 
 class TestUpdater(unittest_toolbox.Modified_TestCase):
 
@@ -918,20 +918,29 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_5_targets_of_role(self):
     # Setup
+    
+    """ 
     # Remove knowledge of 'targets.json' from the metadata store.
     self.repository_updater.metadata['current']['targets']
     
     # Remove the metadata of the delegated roles.
     #shutil.rmtree(os.path.join(self.client_metadata, 'targets'))
     os.remove(os.path.join(self.client_metadata_current, 'targets.json'))
-  
+    
     # Extract the target files specified by the delegated role, 'role1.json',
     # as available on the server-side version of the role. 
     role1_filepath = os.path.join(self.repository_directory, 'metadata',
                                   'role1.json')
     role1_signable = tuf.util.load_json_file(role1_filepath)
     expected_targets = role1_signable['signed']['targets']
+    """
 
+    self.repository_updater.refresh()
+    self.repository_updater._refresh_targets_metadata('targets', refresh_all_delegated_roles=True)
+
+    print('\nloaded roles: ' + repr(tuf.roledb.get_rolenames('test_repository')))
+    #print('loaded roles: ' + repr(tuf.roledb._roledb_dict['test_repository']))
+    targets_list = self.repository_updater.targets_of_role('targets')
 
     # Test: normal case.
     targets_list = self.repository_updater.targets_of_role('role1')
