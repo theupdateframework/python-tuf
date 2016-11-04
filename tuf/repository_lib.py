@@ -174,18 +174,31 @@ def _generate_and_write_metadata(rolename, metadata_filename,
                                          roleinfo['expires'],
                                          roleinfo['delegations'],
                                          consistent_snapshot)
- 
-  if rolename in ['root', 'targets', 'snapshot', 'timestamp'] and not allow_partially_signed: 
-    # Before writing 'rolename' to disk, increment its version number and
-    # verify that it is fully signed.  Only delegated roles should not be
-    # written to disk without full verification of its signatures, since they
-    # can only be considered fully signed depending on the delegating role.
+  
+  # Before writing 'rolename' to disk, automatically increment its version
+  # number (if 'increment_version_number' is True) so that the caller doesn't
+  # have to manually perform this action.  The version number should be
+  # incremented in both the metadata file and roledb (required so that Snapshot
+  # references the latest version).
+  
+  # Store the 'current_version' in case the version number must be restored
+  # (e.g., if 'rolename' cannot be written to disk because its metadata isn't
+  # properly signed).
+  current_version = metadata['version']
+  if increment_version_number:
     roleinfo = tuf.roledb.get_roleinfo(rolename)
-    current_version = metadata['version']
     metadata['version'] = metadata['version'] + 1
     roleinfo['version'] = roleinfo['version'] + 1
-     
     tuf.roledb.update_roleinfo(rolename, roleinfo)
+  
+  else:
+    logger.debug('Not incrementing ' + repr(rolename) + '\' version number.')
+  
+  if rolename in ['root', 'targets', 'snapshot', 'timestamp'] and not allow_partially_signed: 
+    # Verify that the top-level 'rolename' is fully signed.  Only a delegated
+    # role should not be written to disk without full verification of its
+    # signatures, since it can only be considered fully signed depending on the
+    # delegating role.
     signable = sign_metadata(metadata, signing_keyids, metadata_filename)
  
 
@@ -202,18 +215,23 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       # In the normal case, we should write metadata if the threshold is met.
       return tuf.sig.verify(signable, rolename, 'default', roleinfo['threshold'],
                                       roleinfo['signing_keyids'])
- 
+
 
     if should_write():
       _remove_invalid_and_duplicate_signatures(signable)
+      
+      # Root should always be written as if consistent_snapshot is True (i.e.,
+      # write <version>.root.json and root.json to disk). 
+      if rolename == 'root':
+        consistent_snapshot = True
       filename = write_metadata_file(signable, metadata_filename,
                                      metadata['version'], compression_algorithms,
                                      consistent_snapshot)
   
     # 'signable' contains an invalid threshold of signatures. 
     else:
-      # Since new metadata cannot be successfully written, reset the version
-      # number.
+      # Since new metadata cannot be successfully written, restore the current
+      # version number.
       roleinfo = tuf.roledb.get_roleinfo(rolename)
       roleinfo['version'] = current_version 
       tuf.roledb.update_roleinfo(rolename, roleinfo)
@@ -222,21 +240,14 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       raise tuf.UnsignedMetadataError('Not enough signatures'
         ' for ' + repr(metadata_filename), signable)
   
-  # 'rolename' is a delegated role or a top-level role that is  partially
-  # signed, and thus its signatures shouldn't be verified.
+  # 'rolename' is a delegated role or a top-level role that is partially
+  # signed, and thus its signatures should not be verified.
   else:
-    # If writing a new version of 'rolename,' increment its version number in
-    # both the metadata file and roledb (required so that snapshot references
-    # the latest version).
-    roleinfo = tuf.roledb.get_roleinfo(rolename)
-    if increment_version_number:
-      metadata['version'] = metadata['version'] + 1
-      roleinfo['version'] = roleinfo['version'] + 1
-    
-    tuf.roledb.update_roleinfo(rolename, roleinfo)
     signable = sign_metadata(metadata, signing_keyids, metadata_filename)
     _remove_invalid_and_duplicate_signatures(signable)
-    
+   
+    # Root should always be written as if consistent_snapshot is True (i.e.,
+    # <version>.root.json and root.json). 
     if rolename == 'root':
        filename = write_metadata_file(signable, metadata_filename,
                            metadata['version'], compression_algorithms,
@@ -1926,6 +1937,7 @@ def write_metadata_file(metadata, filename, version_number,
   <Purpose>
     If necessary, write the 'metadata' signable object to 'filename', and the
     compressed version of the metadata file if 'compression' is set.
+    
     Note:  Compression algorithms like gzip attach a timestamp to compressed
     files, so a metadata file compressed multiple times may generate different
     digests even though the uncompressed content has not changed.
