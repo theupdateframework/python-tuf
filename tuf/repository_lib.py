@@ -176,13 +176,13 @@ def _generate_and_write_metadata(rolename, metadata_filename,
                                          consistent_snapshot)
   
   # Before writing 'rolename' to disk, automatically increment its version
-  # number (if 'increment_version_number' is True) so that the caller doesn't
+  # number (if 'increment_version_number' is True) so that the caller does not
   # have to manually perform this action.  The version number should be
   # incremented in both the metadata file and roledb (required so that Snapshot
   # references the latest version).
   
   # Store the 'current_version' in case the version number must be restored
-  # (e.g., if 'rolename' cannot be written to disk because its metadata isn't
+  # (e.g., if 'rolename' cannot be written to disk because its metadata is not
   # properly signed).
   current_version = metadata['version']
   if increment_version_number:
@@ -192,13 +192,13 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     tuf.roledb.update_roleinfo(rolename, roleinfo)
   
   else:
-    logger.debug('Not incrementing ' + repr(rolename) + '\' version number.')
+    logger.debug('Not incrementing ' + repr(rolename) + '\'s version number.')
   
   if rolename in ['root', 'targets', 'snapshot', 'timestamp'] and not allow_partially_signed: 
     # Verify that the top-level 'rolename' is fully signed.  Only a delegated
     # role should not be written to disk without full verification of its
-    # signatures, since it can only be considered fully signed depending on the
-    # delegating role.
+    # signature(s), since it can only be considered fully signed depending on
+    # the delegating role.
     signable = sign_metadata(metadata, signing_keyids, metadata_filename)
  
 
