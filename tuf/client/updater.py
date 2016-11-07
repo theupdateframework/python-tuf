@@ -1739,6 +1739,7 @@ class Updater(object):
       metadadata_filename:
         The metadata filename for the role.  For the 'root' role,
         'metadata_filename' would be 'root.json'.
+      
       new_fileinfo:
         A dict object representing the new file information for
         'metadata_filename'.  'new_fileinfo' may be 'None' when
@@ -1985,7 +1986,7 @@ class Updater(object):
       on the repository.  This list also includes all the targets of
       delegated roles.  Targets of the list returned are ordered according
       the trusted order of the delegated roles, where parent roles come before
-      children.  The list conforms to 'tuf.formats.TARGETFILES_SCHEMA'
+      children.  The list conforms to 'tuf.formats.TARGETINFOS_SCHEMA'
       and has the form:
       
       [{'filepath': 'a/b/c.txt',
@@ -2008,7 +2009,7 @@ class Updater(object):
       The metadata for target roles is updated and stored.
 
     <Returns>
-     A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
+     A list of targets, conformant to 'tuf.formats.TARGETINFOS_SCHEMA'.
     """
     
     # Load the most up-to-date targets of the 'targets' role and all
@@ -2115,7 +2116,7 @@ class Updater(object):
     <Purpose>
       Non-public method that returns the target information of all the targets
       of 'rolename'.  The returned information is a list conformant to
-      'tuf.formats.TARGETFILES_SCHEMA', and has the form:
+      'tuf.formats.TARGETINFOS_SCHEMA', and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2129,7 +2130,7 @@ class Updater(object):
       
       targets:
         A list of targets containing target information, conformant to
-        'tuf.formats.TARGETFILES_SCHEMA'.
+        'tuf.formats.TARGETINFOS_SCHEMA'.
 
       skip_refresh:
         A boolean indicating if the target metadata for 'rolename'
@@ -2144,7 +2145,7 @@ class Updater(object):
 
     <Returns>
       A list of dict objects containing the target information of all the
-      targets of 'rolename'.  Conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
+      targets of 'rolename'.  Conformant to 'tuf.formats.TARGETINFOS_SCHEMA'.
     """
 
     if targets is None:
@@ -2186,7 +2187,7 @@ class Updater(object):
     <Purpose> 
       Return a list of trusted targets directly specified by 'rolename'.
       The returned information is a list conformant to
-      'tuf.formats.TARGETFILES_SCHEMA', and has the form:
+      'tuf.formats.TARGETINFOS_SCHEMA', and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2216,7 +2217,7 @@ class Updater(object):
       The metadata of updated delegated roles are downloaded and stored.
       
     <Returns>
-      A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'. 
+      A list of targets, conformant to 'tuf.formats.TARGETINFOS_SCHEMA'. 
     """
       
     # Does 'rolename' have the correct format?
@@ -2259,7 +2260,7 @@ class Updater(object):
     
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETFILE_SCHEMA'.
+      'tuf.formats.TARGETINFO_SCHEMA'.
     """
 
     # Does 'target_filepath' have the correct format?
@@ -2313,7 +2314,7 @@ class Updater(object):
     
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETFILE_SCHEMA'.
+      'tuf.formats.TARGETINFO_SCHEMA'.
     """
 
     target = None
@@ -2426,7 +2427,7 @@ class Updater(object):
     
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETFILE_SCHEMA'.
+      'tuf.formats.TARGETINFO_SCHEMA'.
     """
 
     target = None
@@ -2669,7 +2670,7 @@ class Updater(object):
       located there has mismatched file properties.
 
       The returned information is a list conformant to
-      'tuf.formats.TARGETFILES_SCHEMA' and has the form:
+      'tuf.formats.TARGETINFOS_SCHEMA' and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2692,12 +2693,12 @@ class Updater(object):
       The files in 'targets' are read and their hashes computed. 
 
     <Returns>
-      A list of targets, conformant to 'tuf.formats.TARGETFILES_SCHEMA'.
+      A list of targets, conformant to 'tuf.formats.TARGETINFOS_SCHEMA'.
     """
 
     # Do the arguments have the correct format?
     # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.TARGETFILES_SCHEMA.check_match(targets)
+    tuf.formats.TARGETINFOS_SCHEMA.check_match(targets)
     tuf.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Keep track of the target objects and filepaths of updated targets.
@@ -2758,7 +2759,7 @@ class Updater(object):
     <Arguments>
       target:
         The target to be downloaded.  Conformant to
-        'tuf.formats.TARGETFILE_SCHEMA'.
+        'tuf.formats.TARGETINFO_SCHEMA'.
 
       destination_directory:
         The directory to save the downloaded target file.
@@ -2786,7 +2787,7 @@ class Updater(object):
     # number of objects and object types, and that all dict
     # keys are properly named.
     # Raise 'tuf.FormatError' if the check fail.
-    tuf.formats.TARGETFILE_SCHEMA.check_match(target)
+    tuf.formats.TARGETINFO_SCHEMA.check_match(target)
     tuf.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Extract the target file information.

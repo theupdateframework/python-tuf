@@ -124,13 +124,13 @@ class TestFormats(unittest.TestCase):
                                                  'hashes': {'sha256': 'ABCD123'},
                                                  'custom': {'type': 'metadata'}}}),
       
-      'TARGETFILE_SCHEMA': (tuf.formats.TARGETFILE_SCHEMA,
+      'TARGETINFO_SCHEMA': (tuf.formats.TARGETINFO_SCHEMA,
                             {'filepath': 'targets/target1.gif',
                              'fileinfo': {'length': 1024,
                                           'hashes': {'sha256': 'ABCD123'},
                                           'custom': {'type': 'target'}}}),
       
-      'TARGETFILES_SCHEMA': (tuf.formats.TARGETFILES_SCHEMA,
+      'TARGETINFOS_SCHEMA': (tuf.formats.TARGETINFOS_SCHEMA,
                              [{'filepath': 'targets/target1.gif',
                                'fileinfo': {'length': 1024,
                                             'hashes': {'sha256': 'ABCD123'},
