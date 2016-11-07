@@ -301,13 +301,13 @@ FILEDICT_SCHEMA = SCHEMA.DictOf(
   value_schema = FILEINFO_SCHEMA)
 
 # A dict holding a target file.
-TARGETFILE_SCHEMA = SCHEMA.Object(
-  object_name = 'TARGETFILE_SCHEMA',
+TARGETINFO_SCHEMA = SCHEMA.Object(
+  object_name = 'TARGETINFO_SCHEMA',
   filepath = RELPATH_SCHEMA,
   fileinfo = FILEINFO_SCHEMA)
 
-# A list of TARGETFILE_SCHEMA.
-TARGETFILES_SCHEMA = SCHEMA.ListOf(TARGETFILE_SCHEMA)
+# A list of TARGETINFO_SCHEMA.
+TARGETINFOS_SCHEMA = SCHEMA.ListOf(TARGETINFO_SCHEMA)
 
 # A single signature of an object.  Indicates the signature, the ID of the
 # signing key, and the signing method.

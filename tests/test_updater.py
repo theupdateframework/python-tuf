@@ -779,13 +779,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater.metadata['current']['targets']['targets']
     
     # Test: normal case.
-    targets_list = self.repository_updater._targets_of_role('targets')
+    targetinfos_list = self.repository_updater._targets_of_role('targets')
     
     # Verify that the list of targets was returned, and that it contains valid
     # target files.
-    self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
-    for target in targets_list:
-      self.assertTrue((target['filepath'], target['fileinfo']) in six.iteritems(targets_in_metadata))
+    self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(targetinfos_list))
+    for targetinfo in targetinfos_list:
+      self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in six.iteritems(targets_in_metadata))
    
 
 
@@ -893,8 +893,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    all_targets = self.repository_updater.all_targets()
 
    # Verify format of 'all_targets', it should correspond to 
-   # 'TARGETFILES_SCHEMA'.
-   self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(all_targets))
+   # 'TARGETINFOS_SCHEMA'.
+   self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(all_targets))
 
    # Verify that there is a correct number of records in 'all_targets' list,
    # and the expected filepaths specified in the metadata.  On the targets
@@ -934,7 +934,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
     # Test: normal case.
-    targets_list = self.repository_updater.targets_of_role('role1')
+    targetinfos = self.repository_updater.targets_of_role('role1')
 
     # Verify that the expected role files were downloaded and installed.
     os.path.exists(os.path.join(self.client_metadata_current, 'targets.json'))
@@ -945,9 +945,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Verify that list of targets was returned and that it contains valid
     # target files.
-    self.assertTrue(tuf.formats.TARGETFILES_SCHEMA.matches(targets_list))
-    for target in targets_list:
-      self.assertTrue((target['filepath'], target['fileinfo']) in six.iteritems(expected_targets))
+    self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(targetinfos))
+    for targetinfo in targetinfos:
+      self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in six.iteritems(expected_targets))
 
 
     # Test: Invalid arguments.
@@ -974,10 +974,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     filepath, fileinfo = target_files.popitem()
     target_files[filepath] = fileinfo
     
-    target_fileinfo = self.repository_updater.target(filepath)
-    self.assertTrue(tuf.formats.TARGETFILE_SCHEMA.matches(target_fileinfo))
-    self.assertEqual(target_fileinfo['filepath'], filepath)
-    self.assertEqual(target_fileinfo['fileinfo'], fileinfo)
+    target_targetinfo = self.repository_updater.target(filepath)
+    self.assertTrue(tuf.formats.TARGETINFO_SCHEMA.matches(target_targetinfo))
+    self.assertEqual(target_targetinfo['filepath'], filepath)
+    self.assertEqual(target_targetinfo['fileinfo'], fileinfo)
     
     # Test: invalid target path.    
     self.assertRaises(tuf.UnknownTargetError, self.repository_updater.target,
@@ -1072,8 +1072,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # will be used to test against download_target() and a repository with
     # 'consistent_snapshot' set to True.
     target_filepath1 = target_filepaths.pop()
-    target_fileinfo = self.repository_updater.target(target_filepath1)
-    self.repository_updater.download_target(target_fileinfo,
+    targetinfo = self.repository_updater.target(target_filepath1)
+    self.repository_updater.download_target(targetinfo,
                                             destination_directory)
 
     download_filepath = \
@@ -1084,10 +1084,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    
     # Add any 'custom' data from the repository's target fileinfo to the
     # 'download_targetfileinfo' object being tested.
-    if 'custom' in target_fileinfo['fileinfo']: 
-      download_targetfileinfo['custom'] = target_fileinfo['fileinfo']['custom']
+    if 'custom' in targetinfo['fileinfo']: 
+      download_targetfileinfo['custom'] = targetinfo['fileinfo']['custom']
 
-    self.assertEqual(target_fileinfo['fileinfo'], download_targetfileinfo)
+    self.assertEqual(targetinfo['fileinfo'], download_targetfileinfo)
 
     # Test when consistent snapshots is set.  First, create a valid
     # repository with consistent snapshots set (root.json contains a
@@ -1119,8 +1119,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
     
     target_filepath2 = target_filepaths.pop()
-    target_fileinfo2 = self.repository_updater.target(target_filepath2)
-    self.repository_updater.download_target(target_fileinfo2,
+    targetinfo2 = self.repository_updater.target(target_filepath2)
+    self.repository_updater.download_target(targetinfo2,
                                             destination_directory)
 
     # Test: Invalid arguments.
@@ -1128,7 +1128,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                       8, destination_directory)
 
     self.assertRaises(tuf.FormatError, self.repository_updater.download_target,
-                      target_fileinfo, 8)
+                      targetinfo, 8)
    
     # Test:
     # Attempt a file download of a valid target, however, a download exception
@@ -1141,7 +1141,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       mirrors[mirror_name]['confined_target_dirs'] = [self.random_path()]
 
     try:
-      self.repository_updater.download_target(target_fileinfo,
+      self.repository_updater.download_target(targetinfo,
                                               destination_directory)
     
     except tuf.NoWorkingMirrorError as exception:
