@@ -209,19 +209,6 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       filename = write_metadata_file(signable, metadata_filename,
                                      metadata['version'], compression_algorithms,
                                      consistent_snapshot)
-   
-      # The root and timestamp files should also be written without a version
-      # number prepended if 'consistent_snaptshot' is True.  Clients may request
-      # a timestamp and root file without knowing their version numbers.
-      if rolename == 'root' or rolename == 'timestamp':
-        write_metadata_file(signable, metadata_filename, metadata['version'],
-                            compression_algorithms, consistent_snapshot=False)
-      
-      # The root role should always be accessible by version number, so that
-      # clients can walk through root history to update keys.
-      if rolename == 'root':
-         write_metadata_file(signable, metadata_filename, metadata['version'],
-                            compression_algorithms, consistent_snapshot=True)
   
     # 'signable' contains an invalid threshold of signatures. 
     else:
