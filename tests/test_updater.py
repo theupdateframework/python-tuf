@@ -1257,6 +1257,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     #   self.assertEqual(len(exception.mirror_errors), 0)
 
 
+    # TODO: Test errors for download_target if all mirrors are bad.
+
+
 
 
 

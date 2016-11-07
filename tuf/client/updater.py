@@ -421,7 +421,7 @@ class Updater(object):
 
 
 
-  def target(self, target_filepath, repo_name=None):
+  def target(self, target_filepath, repo_name=None, multi_custom=False):
     """
     Returns the output of target(target_filepath) run on the updater for the
     given repository.
@@ -429,6 +429,84 @@ class Updater(object):
     If multiple repositories are known to this updater, a repo_name argument
     must be provided. (If only one repository is listed in this updater, then
     that repository is used.)
+
+    <Arguments>
+
+      target_filepath
+        the filename of the sought target, relative to the root of the targets
+        namespace
+
+      repo_name (optional)
+        If specified, the target will be sought from the given repository only,
+        regardless of which repository is delegated a path matching the
+        given target_filepath
+
+      multi_custom (optional)
+        Determines the treatment of custom target info (the optional 'custom'
+        field in tuf.formats.FILEINFO_SCHEMA) in the event that there are
+        multi-repository delegations.
+        # TODO: <~> Support this for multi-role delegation as well for
+        # consistency, even though there is no pressing need.
+
+        The intention here is to optionally allow the client to pick through
+        potentially differing 'custom' fields in the otherwise-identical
+        fileinfo from different sources when all of those sources are required
+        to agree (in a multi-repository delegation). This behavior may change:
+        it is confusing. There is a good chance that people will misinterpret
+        this as returning target info existing at different priority levels,
+        from different delegations: this is not that. The info returned will
+        *always be from a single pinning delegation* (which may have multiple
+        required repositories).
+
+        If set to the default, False, no more than one fileinfo will be
+        returned.
+
+        If set to True, behavior is more complex. If a multi- repository
+        delegation is involved in the chain of trust specifying the valid
+        target fileinfo that would be returned -- that is, if there are
+        multiple roles or repositories that had to specify matching target
+        fileinfo for the fileinfo to be returned -- all of those (matching)
+        fileinfo dictionaries are returned. These will match in all respects
+        except, potentially, the 'custom' field, since that does not need to be
+        equal in order for the fileinfo to be treated as matching.
+
+        An example return value, if multi_custom is set to True and pinned.json
+        specifies a multi-repository delegation for targets in target directory
+        'django' for which two repositories, 'PyPI' and 'DjangoSecure' must
+        agree on target info in order for that info to be valid.
+        {
+          'DjangoSecure': {
+            filepath: 'django/django.1.9.3.tgz',
+            fileinfo: {hashes: ..., length: ...,
+              custom: {'some custom key': 'some custom value'} } },
+
+          'PyPI': {
+            filepath: 'django/django.1.9.3.tgz',
+            fileinfo: {hashes: ..., length: ... } } }
+        }
+
+
+        # TODO: <~> A new test case must be written for these scenarios.
+
+
+    <Returns>
+      By default, a single fileinfo dict, compliant with
+      tuf.formats.TARGETFILE_SCHEMA. This metadata describes a trustworthy
+      target file matching the given target_filepath, certified by the
+      repository(/ies) connected to. If multiple matching targetfile infos were
+      encountered in a multi-repo delegation, there is no guarantee provided of
+      which one will be returned (they are only permitted to differ in their
+      'custom' field.)
+
+      If multi_custom is True, this will instead be a dict of such objects. If
+      a multi-repository delegation is encountered, there will be one such
+      object in the dict for every repository that is required in the multi-
+      repository delegation. They will each identical in all regards except,
+      potentially for the optional 'custom' field of the fileinfo
+      (tuf.formats.TARGETFILE_SCHEMA.fileinfo.custom). The values in the dict
+      are indexed by the name of the repository from which the targetfile info
+      came from.
+
 
     <Exceptions>
       tuf.FormatError if there is a pinning delegation that has no repositories
@@ -461,7 +539,7 @@ class Updater(object):
       assert 0 != len(repo_list), 'Programming error. ' + \
           '(Should be impossible due to _get_pinnings_for_target() checks'
 
-      tentative_target = None
+      matching_tentative_targets = dict()
 
       for repo_name in repo_list:
         logger.debug('Checking for target ' + repr(target_filepath) + ' in '
@@ -481,18 +559,25 @@ class Updater(object):
 
         if new_tentative_target is None:
           # If any of the required repos don't yield target info, then this
-          # multi-repository pinning delegation cannot validate the file.
-          tentative_target = None
+          # pinning delegation cannot validate the file.
+          matching_tentative_targets = dict()
           break
 
-        elif tentative_target is None:
+        elif not matching_tentative_targets:
           # If we got target info, and we didn't already have target info from
-          # a previous repository, then this was the first repository in this
-          # pinning, and we save the target info.
-          tentative_target = new_tentative_target
+          # a previous repository in this delegation, then this was the first
+          # repository in this pinning, and we save the target info.
+          matching_tentative_targets[repo_name] = [new_tentative_target]
 
         elif not _target_info_is_equal(
-            tentative_target['fileinfo'], new_tentative_target['fileinfo']):
+            next(six.itervalues(matching_tentative_targets))['fileinfo'],
+            new_tentative_target['fileinfo']):
+          # That compared an arbitrary item from the matching_tentative_targets
+          # dict to the new tentative target fileinfo (in a way that works in
+          # both Python2 and Python3). Note that we only had to compare the
+          # first target info dict in matching_tentative_targets, since they
+          # all have to be "equal" per _target_info_is_equal in order to get
+          # into that list in the first place.
 
           # If we already have target info from a previous repository and it's
           # not equal to the target info we just fetched, then this multi-repo
@@ -505,18 +590,34 @@ class Updater(object):
               'all repositories must agree on file info for a target in a '
               'multi-repository delegation, we proceed as if the delegation '
               'has not provided target info for this file. Skipping this'
-                'multi-repository pinning delegation.')
-          tentative_target = None
+              'multi-repository pinning delegation.')
+          matching_tentative_targets = dict()
           break # moves to the next pinning
 
-        # Else, new tentative target and tentative target both are non-None
-        # and are identical, so we proceed happily to the next repository in
-        # the (potentially multi-repository) pinning delegation.
+        # Else, we are working with a multi-repository delegation and the new
+        # tentative target and previous tentative targets both exist and and
+        # are equivalent (except for the custom field, which is permitted to
+        # differ), so we add the new target info to the list and proceed
+        # happily to the next repository in the multi-repository pinning
+        # delegation.
+        matching_tentative_targets[repo_name] = new_tentative_target
+
 
       # We've now checked every repository in this particular pinning.
       # Check result of looking for target info in the delegated-to roles.
-      if tentative_target is not None:
-        return tentative_target
+      if matching_tentative_targets:
+        if multi_custom:
+          # If optional parameter multi_custom is True, we return the full dict
+          # of matching fileinfos from all required repositories, so that the
+          # client can pick through potentially differing 'custom' fields in
+          # the fileinfo from different sources.
+          return matching_tentative_targets
+        else:
+          # Else, by default, we just return an arbitrary matching fileinfo
+          # in a Python2/3 compatible way. (The order *within* a specific
+          # delegation is not guaranteed. These must be identical in all
+          # regards except for 'custom' fileinfo.)
+          return next(six.itervalues(matching_tentative_targets))
 
       else:
         logger.debug('Failed to find target ' + repr(target_filepath) + ' in '
@@ -572,6 +673,9 @@ class Updater(object):
     If multiple repositories are known to this updater, a repo_name argument
     must be provided. (If only one repository is listed in this updater, then
     that repository is used.)
+
+    # TODO: Augment this to work like target() does, determining from which
+    # repository(/ies) to obtain data from based on pinned.json.
     """
     if repo_name is not None:
       self._validate_repo_name(repo_name)
