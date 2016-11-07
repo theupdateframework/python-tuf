@@ -180,9 +180,9 @@ class Updater(object):
       The expiration time for downloaded metadata is also verified.
       
       The metadata for delegated roles are not refreshed by this method, but by
-      the target methods (e.g., all_targets(), targets_of_role(), target()).
-      The refresh() method should be called by the client before any target
-      requests.
+      the target methods (e.g., all_targets(), targets_of_role(),
+      get_one_valid_targetinfo()).  The refresh() method should be called by
+      the client before any target requests.
     
     all_targets():
       Returns the target information for the 'targets' and delegated roles.
@@ -193,7 +193,7 @@ class Updater(object):
       Returns the target information for the targets of a specified role.
       Like all_targets(), delegated metadata is updated if it has changed.
     
-    target(file_path):
+    get_one_valid_targetinfo(file_path):
       Returns the target information for a specific file identified by its file
       path.  This target method also downloads the metadata of updated targets.
     
@@ -486,10 +486,10 @@ class Updater(object):
     # Clobbering this means all delegated metadata files are rendered outdated
     # and will need to be reloaded.  However, reloading the delegated metadata
     # files is avoided here because fetching target information with methods
-    # like all_targets() and target() always cause a refresh of these files.
-    # The metadata files for delegated roles are also not loaded when the
-    # repository is first instantiated.  Due to this setup, reloading delegated
-    # roles is not required here.
+    # like all_targets() and get_one_valid_targetinfo() always cause a refresh
+    # of these files.  The metadata files for delegated roles are also not
+    # loaded when the repository is first instantiated.  Due to this setup,
+    # reloading delegated roles is not required here.
     tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
                                               self.updater_name)
     tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
@@ -590,11 +590,11 @@ class Updater(object):
       
       Delegated metadata is not refreshed by this method. After this method is
       called, the use of target methods (e.g., all_targets(),
-      targets_of_role(), or target()) will update delegated metadata, when
-      required.  Calling refresh() ensures that top-level metadata is
-      up-to-date, so that the target methods can refer to the latest available
-      content. Thus, refresh() should always be called by the client before any
-      requests of target file information.
+      targets_of_role(), or get_one_valid_targetinfo()) will update delegated
+      metadata, when required.  Calling refresh() ensures that top-level
+      metadata is up-to-date, so that the target methods can refer to the
+      latest available content. Thus, refresh() should always be called by the
+      client before any requests of target file information.
 
       The expiration time for downloaded metadata is also verified, including
       local metadata that the repository claims is up to date.
@@ -2235,10 +2235,10 @@ class Updater(object):
 
 
 
-  def target(self, target_filepath):
+  def get_one_valid_targetinfo(self, target_filepath):
     """
     <Purpose>
-      Return the target file information of 'target_filepath', and update its
+      Return the target information of 'target_filepath', and update its
       corresponding metadata, if necessary.
 
     <Arguments>    
