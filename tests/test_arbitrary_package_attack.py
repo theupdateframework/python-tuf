@@ -215,7 +215,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     # Verify that a target file (on the remote repository) modified by an
     # attacker is not downloaded by the TUF client.
     # First test that the valid target file is successfully downloaded.
-    file1_fileinfo = self.repository_updater.target('file1.txt')
+    file1_fileinfo = self.repository_updater.get_one_valid_targetinfo('file1.txt')
     destination = os.path.join(self.client_directory)
     self.repository_updater.download_target(file1_fileinfo, destination)
     client_target_path = os.path.join(destination, 'file1.txt')
@@ -277,7 +277,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     # 'targets.json' is not downloaded.
     try:
       self.repository_updater.refresh()
-      file1_fileinfo = self.repository_updater.target('file1.txt')
+      file1_fileinfo = self.repository_updater.get_one_valid_targetinfo('file1.txt')
       destination = os.path.join(self.client_directory)
       self.repository_updater.download_target(file1_fileinfo, destination)
     

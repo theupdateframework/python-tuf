@@ -961,7 +961,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_6_target(self):
+  def test_6_get_one_valid_targetinfo(self):
     # Setup
     # Extract the file information of the targets specified in 'targets.json'.
     self.repository_updater.refresh()
@@ -969,21 +969,23 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
    
     target_files = targets_metadata['targets']
     # Extract random target from 'target_files', which will be compared to what
-    # is returned by target().  Restore the popped target (dict value stored in
-    # the metadata store) so that it can be found later.
+    # is returned by get_one_valid_targetinfo().  Restore the popped target
+    # (dict value stored in the metadata store) so that it can be found later.
     filepath, fileinfo = target_files.popitem()
     target_files[filepath] = fileinfo
     
-    target_targetinfo = self.repository_updater.target(filepath)
+    target_targetinfo = self.repository_updater.get_one_valid_targetinfo(filepath)
     self.assertTrue(tuf.formats.TARGETINFO_SCHEMA.matches(target_targetinfo))
     self.assertEqual(target_targetinfo['filepath'], filepath)
     self.assertEqual(target_targetinfo['fileinfo'], fileinfo)
     
     # Test: invalid target path.    
-    self.assertRaises(tuf.UnknownTargetError, self.repository_updater.target,
+    self.assertRaises(tuf.UnknownTargetError,
+                      self.repository_updater.get_one_valid_targetinfo,
                       self.random_path())
     
-    # Test updater.target() backtracking behavior (enabled by default.)
+    # Test updater.get_one_valid_targetinfo() backtracking behavior (enabled by
+    # default.)
     targets_directory = os.path.join(self.repository_directory, 'targets')
     foo_directory = os.path.join(targets_directory, 'foo')
     foo_pattern = os.path.join(foo_directory, 'foo*.tar.gz')
@@ -1016,15 +1018,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                     os.path.join(self.repository_directory, 'metadata'))
 
     
-    # updater.target() should find 'foo1.1.tar.gz' by backtracking to 'role3'.
-    # 'role2' allows backtracking.
+    # updater.get_one_valid_targetinfo() should find 'foo1.1.tar.gz' by
+    # backtracking to 'role3'.  'role2' allows backtracking.
     self.repository_updater.refresh()
-    self.repository_updater.target('foo/foo1.1.tar.gz')
+    self.repository_updater.get_one_valid_targetinfo('foo/foo1.1.tar.gz')
 
 
     # Test when 'role2' does *not* allow backtracking.  If 'foo/foo1.1.tar.gz'
-    # is not provided by the authoritative 'role2', updater.target() should
-    # return a 'tuf.UnknownTargetError' exception.
+    # is not provided by the authoritative 'role2',
+    # updater.get_one_valid_targetinfo() should return a
+    # 'tuf.UnknownTargetError' exception.
     repository = repo_tool.load_repository(self.repository_directory)
     
     repository.targets.revoke('role3')
@@ -1048,9 +1051,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
-    # Verify that 'tuf.UnknownTargetError' is raised by updater.target().
+    # Verify that 'tuf.UnknownTargetError' is raised by
+    # updater.get_one_valid_targetinfo().
     self.repository_updater.refresh()
-    self.assertRaises(tuf.UnknownTargetError, self.repository_updater.target,
+    self.assertRaises(tuf.UnknownTargetError,
+                      self.repository_updater.get_one_valid_targetinfo,
                       'foo/foo1.1.tar.gz')
 
 
@@ -1072,7 +1077,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # will be used to test against download_target() and a repository with
     # 'consistent_snapshot' set to True.
     target_filepath1 = target_filepaths.pop()
-    targetinfo = self.repository_updater.target(target_filepath1)
+    targetinfo = self.repository_updater.get_one_valid_targetinfo(target_filepath1)
     self.repository_updater.download_target(targetinfo,
                                             destination_directory)
 
@@ -1119,7 +1124,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
     
     target_filepath2 = target_filepaths.pop()
-    targetinfo2 = self.repository_updater.target(target_filepath2)
+    targetinfo2 = self.repository_updater.get_one_valid_targetinfo(target_filepath2)
     self.repository_updater.download_target(targetinfo2,
                                             destination_directory)
 
