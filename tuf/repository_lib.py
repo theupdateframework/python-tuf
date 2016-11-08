@@ -1590,12 +1590,12 @@ def generate_targets_metadata(targets_directory, target_files, version,
     tuf.Error, if any of the target files cannot be read. 
 
   <Side Effects>
-    The target files are read and file information generated about them.
-    If 'write_consistent_targets' is True, target files will be copied to
-    digest files. For example, if 'some_file.txt' is one of the targets of
-    'target_files', consistent targets <sha-2 hash>.some_file.txt,
-    <sha-3 hash>.some_file.txt, etc., are created and the content of
-    'some_file.txt' will be copied into them.
+    The target files are read and file information generated about them.  If
+    'write_consistent_targets' is True, each target in 'target_files' will be
+    copied to a file with a digest prepended to its filename. For example, if
+    'some_file.txt' is one of the targets of 'target_files', consistent targets
+    <sha-2 hash>.some_file.txt, <sha-3 hash>.some_file.txt, etc., are created
+    and the content of 'some_file.txt' will be copied into them.
 
   <Returns>
     A targets metadata object, conformant to 'tuf.formats.TARGETS_SCHEMA'.
