@@ -1650,19 +1650,13 @@ def generate_targets_metadata(targets_directory, target_files, version,
     filedict[relative_targetpath] = \
       get_metadata_fileinfo(target_path, custom_data)
    
-    # Create hard links for 'target_path' if consistent hashing is enabled.
+    # Copy 'target_path' to 'digest_target' if consistent hashing is enabled.
     if write_consistent_targets:
       for target_digest in six.itervalues(filedict[relative_targetpath]['hashes']):
         dirname, basename = os.path.split(target_path)
         digest_filename = target_digest + '.' + basename
         digest_target = os.path.join(dirname, digest_filename)
-
-        if not os.path.exists(digest_target):
-          logger.warning('Hard linking target file to ' + repr(digest_target))
-          os.link(target_path, digest_target)
-        
-        else:
-          logger.debug(repr(digest_target) + ' already exists.')
+        shutil.copyfile(target_path, digest_target)
 
   # Generate the targets metadata object.
   targets_metadata = tuf.formats.TargetsFile.make_metadata(version,
