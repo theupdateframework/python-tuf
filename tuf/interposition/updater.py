@@ -347,14 +347,15 @@ class Updater(object):
     <Purpose>
       Download the 'target_filepath' target file.  Everything here is performed
       in a temporary directory.  It identifies the target information for
-      'target_filepath' by calling the target() method of 'tuf.client.updater'.
-      This method also downloads the metadata of the updated targets. By doing
-      this, the client retrieves the target information for the targets they
-      want to update. When client retrieves all the information, the
-      updated_targets() method of 'tuf.client.updater' is called to determine
-      the list of targets which have been changed from those saved locally on
-      disk.  tuf.client.upater.download_target() downloads all the targets in
-      the list in the destination directory, which is our temporary directory.
+      'target_filepath' by calling the get_one_valid_targetinfo() method of
+      'tuf.client.updater'.  This method also downloads the metadata of the
+      updated targets. By doing this, the client retrieves the target
+      information for the targets they want to update. When client retrieves
+      all the information, the updated_targets() method of 'tuf.client.updater'
+      is called to determine the list of targets which have been changed from
+      those saved locally on disk.  tuf.client.upater.download_target()
+      downloads all the targets in the list in the destination directory, which
+      is our temporary directory.
                                                                                       
       This will only store the file in the temporary directory if the
       downloaded file matches the description of the file in the trusted
@@ -399,14 +400,14 @@ class Updater(object):
     # because updater depends on some module (tuf.conf) variables. 
     self.switch_context()
     
-    # Locate the fileinfo of 'target_filepath'.  updater.target() searches
-    # targets metadata in order of trust, according to the currently trusted
-    # snapshot.  To prevent consecutive target file requests from referring to
-    # different snapshots, top-level metadata is not automatically refreshed.
-    # It returns the target information for a specific file identified by its 
-    # file path.  This target method also downloads the metadata of updated 
-    # targets. 
-    targets = [self.updater.target(target_filepath)]
+    # Locate the fileinfo of 'target_filepath'.
+    # updater.get_one_valid_targetinfo() searches targets metadata in order of
+    # trust, according to the currently trusted snapshot.  To prevent
+    # consecutive target file requests from referring to different snapshots,
+    # top-level metadata is not automatically refreshed.  It returns the target
+    # information for a specific file identified by its file path.  This target
+    # method also downloads the metadata of updated targets. 
+    targets = [self.updater.get_one_valid_targetinfo(target_filepath)]
 
     # TODO: targets are always updated if destination directory is new, right?
     # After the client has retrieved the target information for those targets   

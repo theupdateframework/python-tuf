@@ -226,7 +226,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     # attacker, to contain a large amount of extra data, is not downloaded by
     # the TUF client.  First test that the valid target file is successfully
     # downloaded.
-    file1_fileinfo = self.repository_updater.target('file1.txt')
+    file1_fileinfo = self.repository_updater.get_one_valid_targetinfo('file1.txt')
     destination = os.path.join(self.client_directory)
     self.repository_updater.download_target(file1_fileinfo, destination)
     client_target_path = os.path.join(destination, 'file1.txt')
