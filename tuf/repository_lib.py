@@ -1590,11 +1590,12 @@ def generate_targets_metadata(targets_directory, target_files, version,
     tuf.Error, if any of the target files cannot be read. 
 
   <Side Effects>
-    The target files are read and file information generated about them.
-    If 'write_consistent_targets' is True, hard links are created for
-    the targets in 'target_files'.  For example, if 'some_file.txt' is one
-    of the targets of 'target_files', consistent targets
-    <sha-2 hash>.some_file.txt, <sha-3 hash>.some_file.txt, etc., are created.
+    The target files are read and file information generated about them.  If
+    'write_consistent_targets' is True, each target in 'target_files' will be
+    copied to a file with a digest prepended to its filename. For example, if
+    'some_file.txt' is one of the targets of 'target_files', consistent targets
+    <sha-2 hash>.some_file.txt, <sha-3 hash>.some_file.txt, etc., are created
+    and the content of 'some_file.txt' will be copied into them.
 
   <Returns>
     A targets metadata object, conformant to 'tuf.formats.TARGETS_SCHEMA'.
@@ -1650,19 +1651,13 @@ def generate_targets_metadata(targets_directory, target_files, version,
     filedict[relative_targetpath] = \
       get_metadata_fileinfo(target_path, custom_data)
    
-    # Create hard links for 'target_path' if consistent hashing is enabled.
+    # Copy 'target_path' to 'digest_target' if consistent hashing is enabled.
     if write_consistent_targets:
       for target_digest in six.itervalues(filedict[relative_targetpath]['hashes']):
         dirname, basename = os.path.split(target_path)
         digest_filename = target_digest + '.' + basename
         digest_target = os.path.join(dirname, digest_filename)
-
-        if not os.path.exists(digest_target):
-          logger.warning('Hard linking target file to ' + repr(digest_target))
-          os.link(target_path, digest_target)
-        
-        else:
-          logger.debug(repr(digest_target) + ' already exists.')
+        shutil.copyfile(target_path, digest_target)
 
   # Generate the targets metadata object.
   targets_metadata = tuf.formats.TargetsFile.make_metadata(version,
