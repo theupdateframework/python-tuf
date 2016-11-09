@@ -118,7 +118,7 @@ import fnmatch
 import tuf
 from simple_settings import settings
 import tuf.download
-import tuf.tufformats
+import tuf.formats
 import tuf.ssl_crypto.hash
 import tuf.ssl_crypto.keys
 import tuf.ssl_crypto.keydb
@@ -251,10 +251,10 @@ class Updater(object):
       
       repository_mirrors:
         A dictionary holding repository mirror information, conformant to
-        'tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA'.  This dictionary holds information
-        such as the directory containing the metadata and target files, the
-        server's URL prefix, and the target content directories the client
-        should be confined to.
+        'tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA'.  This dictionary holds
+        information such as the directory containing the metadata and target
+        files, the server's URL prefix, and the target content directories the
+        client should be confined to.
             
         repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
                                           'metadata_path': 'metadata',
@@ -321,9 +321,9 @@ class Updater(object):
     
     # Ensure the repository metadata directory has been set.
     if settings.repository_directory is None:
-      raise tuf.ssl_commons.exceptions.RepositoryError('The TUF update client module must specify the'
-        ' directory containing the local repository files.'
-        '  "settings.repository_directory" MUST be set.')
+      raise tuf.ssl_commons.exceptions.RepositoryError('The TUF update client'
+        ' module must specify the directory containing the local repository'
+        ' files.  "settings.repository_directory" MUST be set.')
 
     # Set the path for the current set of metadata files.  
     repository_directory = settings.repository_directory
@@ -331,9 +331,9 @@ class Updater(object):
     
     # Ensure the current path is valid/exists before saving it.
     if not os.path.exists(current_path):
-      raise tuf.ssl_commons.exceptions.RepositoryError('Missing ' + repr(current_path) + '.'
-        '  This path must exist and, at a minimum, contain the Root'
-        ' metadata file.')
+      raise tuf.ssl_commons.exceptions.RepositoryError('Missing'
+        ' ' + repr(current_path) + '.  This path must exist and, at a minimum,'
+        ' contain the Root metadata file.')
 
     self.metadata_directory['current'] = current_path
     
@@ -355,8 +355,8 @@ class Updater(object):
     # Raise an exception if the repository is missing the required 'root'
     # metadata.
     if 'root' not in self.metadata['current']:
-      raise tuf.ssl_commons.exceptions.RepositoryError('No root of trust! Could not find the'
-        ' "root.json" file.')
+      raise tuf.ssl_commons.exceptions.RepositoryError('No root of trust!'
+        ' Could not find the "root.json" file.')
 
 
 
@@ -432,7 +432,7 @@ class Updater(object):
       except tuf.ssl_commons.exceptions.Error:
         return
       
-      tuf.tufformats.check_signable_object_format(metadata_signable)
+      tuf.formats.check_signable_object_format(metadata_signable)
 
       # Extract the 'signed' role object from 'metadata_signable'.
       metadata_object = metadata_signable['signed']
@@ -656,8 +656,9 @@ class Updater(object):
       self._ensure_not_expired(root_metadata, 'root')
     
     except tuf.ssl_commons.exceptions.ExpiredMetadataError:
-      # Raise 'tuf.ssl_commons.exceptions.NoWorkingMirrorError' if a valid (not expired, properly
-      # signed, and valid metadata) 'root.json' cannot be installed.
+      # Raise 'tuf.ssl_commons.exceptions.NoWorkingMirrorError' if a valid (not
+      # expired, properly signed, and valid metadata) 'root.json' cannot be
+      # installed.
       if unsafely_update_root_if_necessary:
         logger.info('Expired Root metadata was loaded from disk.'
           '  Try to update it now.' )
@@ -795,8 +796,9 @@ class Updater(object):
 
     <Arguments>
       file_object:
-        A 'tuf.ssl_crypto.util.TempFile' file-like object.  'file_object' ensures that a
-        read() without a size argument properly reads the entire file.
+        A 'tuf.ssl_crypto.util.TempFile' file-like object.  'file_object'
+        ensures that a read() without a size argument properly reads the entire
+        file.
 
       trusted_file_length:
         A non-negative integer that is the trusted length of the file.
@@ -835,21 +837,23 @@ class Updater(object):
     """
     <Purpose>
       Non-public method that checks the trusted file length of a
-      'tuf.ssl_crypto.util.TempFile' file-like object. The length of the file must be less
-      than or equal to the expected length. This is a deliberately redundant
-      implementation designed to complement
+      'tuf.ssl_crypto.util.TempFile' file-like object. The length of the file
+      must be less than or equal to the expected length. This is a deliberately
+      redundant implementation designed to complement
       tuf.download._check_downloaded_length().
 
     <Arguments>
       file_object:
-        A 'tuf.ssl_crypto.util.TempFile' file-like object.  'file_object' ensures that a
-        read() without a size argument properly reads the entire file.
+        A 'tuf.ssl_crypto.util.TempFile' file-like object.  'file_object'
+        ensures that a read() without a size argument properly reads the entire
+        file.
 
       trusted_file_length:
         A non-negative integer that is the trusted length of the file.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if the lengths do not match.
+      tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if the lengths do
+      not match.
 
     <Side Effects>
       Reads the contents of 'file_object' and logs a message if 'file_object'
@@ -859,8 +863,9 @@ class Updater(object):
       None.
     """
 
-    # Read the entire contents of 'file_object', a 'tuf.ssl_crypto.util.TempFile' file-like
-    # object that ensures the entire file is read.
+    # Read the entire contents of 'file_object', a
+    # 'tuf.ssl_crypto.util.TempFile' file-like object that ensures the entire
+    # file is read.
     observed_length = len(file_object.read()) 
    
     # Return and log a message if 'file_object' is less than or equal to
@@ -988,7 +993,7 @@ class Updater(object):
     else:
       # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
       # 'tuf.ssl_commons.exceptions.FormatError' if not.
-      tuf.tufformats.check_signable_object_format(metadata_signable)
+      tuf.formats.check_signable_object_format(metadata_signable)
 
     # Is 'metadata_signable' expired?
     self._ensure_not_expired(metadata_signable['signed'], metadata_role)
@@ -1164,9 +1169,9 @@ class Updater(object):
         The relative metadata or target filepath.
 
       verify_file_function:
-        A callable function that expects a 'tuf.ssl_crypto.util.TempFile' file-like object
-        and raises an exception if the file is invalid.  Target files and
-        uncompressed versions of metadata may be verified with
+        A callable function that expects a 'tuf.ssl_crypto.util.TempFile'
+        file-like object and raises an exception if the file is invalid.
+        Target files and uncompressed versions of metadata may be verified with
         'verify_file_function'.
 
       file_type:
@@ -1202,7 +1207,8 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A 'tuf.ssl_crypto.util.TempFile' file-like object containing the metadata or target.
+      A 'tuf.ssl_crypto.util.TempFile' file-like object containing the metadata
+      or target.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
@@ -1469,8 +1475,9 @@ class Updater(object):
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.  
     if referenced_metadata not in self.metadata['current']:
-      raise tuf.ssl_commons.exceptions.RepositoryError('Cannot update ' + repr(metadata_role) +
-        ' because ' + referenced_metadata + ' is missing.')
+      raise tuf.ssl_commons.exceptions.RepositoryError('Cannot update'
+        ' ' + repr(metadata_role) + ' because ' + referenced_metadata + ' is'
+        ' missing.')
     
     # The referenced metadata has been loaded.  Extract the new versioninfo for
     # 'metadata_role' from it. 
@@ -1696,7 +1703,7 @@ class Updater(object):
       # client's copy of snapshot.json.
       try:
         timestamp_version_number = self.metadata['current']['snapshot']['version']
-        trusted_versioninfo = tuf.tufformats.make_versioninfo(timestamp_version_number)
+        trusted_versioninfo = tuf.formats.make_versioninfo(timestamp_version_number)
       
       except KeyError:
         trusted_versioninfo = \
@@ -1711,7 +1718,7 @@ class Updater(object):
         targets_version_number = \
           self.metadata['current'][metadata_filename[:-len('.json')]]['version']
         trusted_versioninfo = \
-          tuf.tufformats.make_versioninfo(targets_version_number)
+          tuf.formats.make_versioninfo(targets_version_number)
       
       except KeyError:
         trusted_versioninfo = \
@@ -1836,7 +1843,7 @@ class Updater(object):
     # Extract the file information from the actual file and save it
     # to the fileinfo store.
     file_length, hashes = tuf.ssl_crypto.util.get_file_details(current_filepath)
-    metadata_fileinfo = tuf.tufformats.make_fileinfo(file_length, hashes)
+    metadata_fileinfo = tuf.formats.make_fileinfo(file_length, hashes)
     self.fileinfo[metadata_filename] = metadata_fileinfo
 
 
@@ -1956,17 +1963,18 @@ class Updater(object):
     # Extract the expiration time.
     expires = metadata_object['expires']
    
-    # If the current time has surpassed the expiration date, raise
-    # an exception.  'expires' is in 'tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA'
-    # format (e.g., '1985-10-21T01:22:00Z'.)  Convert it to a unix timestamp and
-    # compare it against the current time.time() (also in Unix/POSIX time
-    # format, although with microseconds attached.)
+    # If the current time has surpassed the expiration date, raise an
+    # exception.  'expires' is in
+    # 'tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA' format (e.g.,
+    # '1985-10-21T01:22:00Z'.)  Convert it to a unix timestamp and compare it
+    # against the current time.time() (also in Unix/POSIX time format, although
+    # with microseconds attached.)
     current_time = int(time.time())
 
     # Generate a user-friendly error message if 'expires' is less than the
     # current time (i.e., a local time.)
     expires_datetime = iso8601.parse_date(expires)
-    expires_timestamp = tuf.tufformats.datetime_to_unix_timestamp(expires_datetime)
+    expires_timestamp = tuf.formats.datetime_to_unix_timestamp(expires_datetime)
     
     if expires_timestamp < current_time:
       message = 'Metadata '+repr(metadata_rolename)+' expired on ' + \

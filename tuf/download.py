@@ -15,9 +15,10 @@
 <Purpose>
   Download metadata and target files and check their validity.  The hash and
   length of a downloaded file has to match the hash and length supplied by the
-  metadata of that file.  The downloaded file is technically a  file-like object
-  that will automatically destroys itself once closed.  Note that the file-like
-  object, 'tuf.ssl_crypto.util.TempFile', is returned by the '_download_file()' function.
+  metadata of that file.  The downloaded file is technically a  file-like
+  object that will automatically destroys itself once closed.  Note that the
+  file-like object, 'tuf.ssl_crypto.util.TempFile', is returned by the
+  '_download_file()' function.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -40,7 +41,7 @@ import tuf
 from simple_settings import settings
 import tuf.ssl_crypto.hash
 import tuf.ssl_crypto.util
-import tuf.tufformats
+import tuf.ssl_crypto.formats
 import six
 
 # 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
@@ -65,10 +66,10 @@ def safe_download(url, required_length):
     tuf.download.unsafe_download() may be called if an upper download limit is
     preferred.
  
-    'tuf.ssl_crypto.util.TempFile', the file-like object returned, is used instead of
-    regular tempfile object because of additional functionality provided, such
-    as handling compressed metadata and automatically closing files after
-    moving to final destination.
+    'tuf.ssl_crypto.util.TempFile', the file-like object returned, is used
+    instead of regular tempfile object because of additional functionality
+    provided, such as handling compressed metadata and automatically closing
+    files after moving to final destination.
   
   <Arguments>
     url:
@@ -80,19 +81,21 @@ def safe_download(url, required_length):
       limit.
 
   <Side Effects>
-    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the contents of
-    'url'.
+    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the
+    contents of 'url'.
  
   <Exceptions>
-    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a mismatch of observed vs
-    expected lengths while downloading the file.
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
+    mismatch of observed vs expected lengths while downloading the file.
  
-    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are
+    improperly formatted.
 
     Any other unforeseen runtime exception.
  
   <Returns>
-    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the contents of 'url'.
+    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the
+    contents of 'url'.
   """
   
   # Do all of the arguments have the appropriate format?
@@ -129,10 +132,10 @@ def unsafe_download(url, required_length):
     tuf.download.safe_download() may be called if an exact download limit is
     preferred.
  
-    'tuf.ssl_crypto.util.TempFile', the file-like object returned, is used instead of
-    regular tempfile object because of additional functionality provided, such
-    as handling compressed metadata and automatically closing files after
-    moving to final destination.
+    'tuf.ssl_crypto.util.TempFile', the file-like object returned, is used
+    instead of regular tempfile object because of additional functionality
+    provided, such as handling compressed metadata and automatically closing
+    files after moving to final destination.
   
   <Arguments>
     url:
@@ -144,19 +147,21 @@ def unsafe_download(url, required_length):
       limit.
 
   <Side Effects>
-    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the contents of
-    'url'.
+    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the
+    contents of 'url'.
  
   <Exceptions>
-    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a mismatch of observed vs
-    expected lengths while downloading the file.
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
+    mismatch of observed vs expected lengths while downloading the file.
  
-    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are
+    improperly formatted.
 
     Any other unforeseen runtime exception.
  
   <Returns>
-    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the contents of 'url'.
+    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the
+    contents of 'url'.
   """
   
   # Do all of the arguments have the appropriate format?
@@ -191,8 +196,9 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     opens a connection to 'url' and downloads the file while ensuring its
     length and hashes match 'required_hashes' and 'required_length'. 
  
-    tuf.ssl_crypto.util.TempFile is used instead of regular tempfile object because of 
-    additional functionality provided by 'tuf.ssl_crypto.util.TempFile'.
+    tuf.ssl_crypto.util.TempFile is used instead of regular tempfile object
+    because of additional functionality provided by
+    'tuf.ssl_crypto.util.TempFile'.
   
   <Arguments>
     url:
@@ -208,19 +214,21 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
       timestamp metadata, which has no signed required_length.
 
   <Side Effects>
-    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the contents of
-    'url'.
+    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the
+    contents of 'url'.
  
   <Exceptions>
-    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a mismatch of observed vs
-    expected lengths while downloading the file.
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
+    mismatch of observed vs expected lengths while downloading the file.
  
-    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are
+    improperly formatted.
 
     Any other unforeseen runtime exception.
  
   <Returns>
-    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the contents of 'url'.
+    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the
+    contents of 'url'.
   """
 
   # Do all of the arguments have the appropriate format?
@@ -604,11 +612,13 @@ def _check_downloaded_length(total_downloaded, required_length,
     None.
  
   <Exceptions>
-    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if STRICT_REQUIRED_LENGTH is True and
-    total_downloaded is not equal required_length.
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if
+    STRICT_REQUIRED_LENGTH is True and total_downloaded is not equal
+    required_length.
 
-    tuf.ssl_commons.exceptions.SlowRetrievalError, if the total downloaded was done in in less than
-    the acceptable download speed (as set in tuf.settings.py).
+    tuf.ssl_commons.exceptions.SlowRetrievalError, if the total downloaded was
+    done in in less than the acceptable download speed (as set in
+    tuf.settings.py).
 
   <Returns>
     None.

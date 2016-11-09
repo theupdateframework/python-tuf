@@ -46,7 +46,7 @@ from __future__ import unicode_literals
 import logging
 
 import tuf
-import tuf.tufformats
+import tuf.ssl_crypto.formats
 import tuf.ssl_crypto.keydb
 import tuf.roledb
 
@@ -66,9 +66,9 @@ def get_signature_status(signable, role=None, repository_name='default',
   <Purpose>
     Return a dictionary representing the status of the signatures listed in
     'signable'.  Given an object conformant to SIGNABLE_SCHEMA, a set of public
-    keys in 'tuf.ssl_crypto.keydb', a set of roles in 'tuf.roledb', and a role, the status
-    of these signatures can be determined.  This method will iterate the
-    signatures in 'signable' and enumerate all the keys that are valid,
+    keys in 'tuf.ssl_crypto.keydb', a set of roles in 'tuf.roledb', and a role,
+    the status of these signatures can be determined.  This method will iterate
+    the signatures in 'signable' and enumerate all the keys that are valid,
     invalid, unrecognized, unauthorized, or generated using an unknown method.
 
   <Arguments>
@@ -97,7 +97,8 @@ def get_signature_status(signable, role=None, repository_name='default',
       in tuf.roledb.py for 'role'.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'signable' does not have the correct format.
+    tuf.ssl_commons.exceptions.FormatError, if 'signable' does not have the
+    correct format.
 
     tuf.ssl_commons.exceptions.UnknownRoleError, if 'role' is not recognized.
 
@@ -111,8 +112,8 @@ def get_signature_status(signable, role=None, repository_name='default',
 
   # Do the arguments have the correct format?  This check will ensure that
   # arguments have the appropriate number of objects and object types, and that
-  # all dict keys are properly named.  Raise 'tuf.ssl_commons.exceptions.FormatError' if the check
-  # fails.
+  # all dict keys are properly named.  Raise
+  # 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
   tuf.ssl_crypto.formats.SIGNABLE_SCHEMA.check_match(signable)
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
@@ -201,8 +202,9 @@ def get_signature_status(signable, role=None, repository_name='default',
       # This is a bad signature for a trusted key.
       bad_sigs.append(keyid) 
   
-  # Retrieve the threshold value for 'role'.  Raise tuf.ssl_commons.exceptions.UnknownRoleError
-  # if we were given an invalid role.
+  # Retrieve the threshold value for 'role'.  Raise
+  # tuf.ssl_commons.exceptions.UnknownRoleError if we were given an invalid
+  # role.
   if role is not None:
     try:
       threshold = \
@@ -260,7 +262,8 @@ def verify(signable, role, repository_name='default',
   <Exceptions>
     tuf.ssl_commons.exceptions.UnknownRoleError, if 'role' is not recognized.
 
-    tuf.ssl_commons.exceptions.FormatError, if 'signable' is not formatted correctly.
+    tuf.ssl_commons.exceptions.FormatError, if 'signable' is not formatted
+    correctly.
 
     tuf.ssl_commons.exceptions.Error, if an invalid threshold is encountered.
 
@@ -278,7 +281,8 @@ def verify(signable, role, repository_name='default',
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Retrieve the signature status.  tuf.sig.get_signature_status() raises:
-  # tuf.ssl_commons.exceptions.UnknownRoleError tuf.ssl_commons.exceptions.FormatError.  'threshold' and 'keyids' are also
+  # tuf.ssl_commons.exceptions.UnknownRoleError
+  # tuf.ssl_commons.exceptions.FormatError.  'threshold' and 'keyids' are also
   # validated.
   status = get_signature_status(signable, role, repository_name, threshold, keyids)
         
@@ -311,7 +315,8 @@ def may_need_new_keys(signature_status):
       The dictionary returned by tuf.sig.get_signature_status().
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'signature_status does not have the correct format.
+    tuf.ssl_commons.exceptions.FormatError, if 'signature_status does not have
+    the correct format.
 
   <Side Effects>
     None.
@@ -354,15 +359,16 @@ def generate_rsa_signature(signed, rsakey_dict):
 
   <Arguments>
     signed:
-      The data used by 'tuf.ssl_crypto.keys.create_signature()' to generate signatures.
-      It is stored in the 'signed' field of 'signable'.
+      The data used by 'tuf.ssl_crypto.keys.create_signature()' to generate
+      signatures.  It is stored in the 'signed' field of 'signable'.
 
     rsakey_dict:
       The RSA key, a 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' dictionary.
       Used here to produce 'keyid', 'method', and 'sig'.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'rsakey_dict' does not have the correct format.
+    tuf.ssl_commons.exceptions.FormatError, if 'rsakey_dict' does not have the
+    correct format.
 
     TypeError, if a private key is not defined for 'rsakey_dict'.
 

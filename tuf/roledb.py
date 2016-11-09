@@ -21,8 +21,8 @@
   rolename, deleting all the delegated roles, retrieving role paths, etc.  The
   Update Framework process maintains a role database for each repository.
 
-  The role database is a dictionary conformant to 'tuf.ssl_crypto.formats.ROLEDICT_SCHEMA'
-  and has the form:
+  The role database is a dictionary conformant to
+  'tuf.ssl_crypto.formats.ROLEDICT_SCHEMA' and has the form:
   
   {'repository_name': {
       'rolename': {'keyids': ['34345df32093bd12...'],
@@ -48,7 +48,7 @@ import logging
 import copy
 
 import tuf
-import tuf.tufformats
+import tuf.ssl_crypto.formats
 import tuf.log
 import six
 
@@ -74,18 +74,21 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
 
   <Arguments>
     root_metadata:
-      A dictionary conformant to 'tuf.ssl_crypto.formats.ROOT_SCHEMA'.  The roles found
-      in the 'roles' field of 'root_metadata' is needed by this function.
+      A dictionary conformant to 'tuf.ssl_crypto.formats.ROOT_SCHEMA'.  The
+      roles found in the 'roles' field of 'root_metadata' is needed by this
+      function.
 
     repository_name:
       The name of the repository to store 'root_metadata'.  If not supplied,
       'rolename' is added to the 'default' repository.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'root_metadata' does not have the correct object format.
+    tuf.ssl_commons.exceptions.FormatError, if 'root_metadata' does not have
+    the correct object format.
 
-    tuf.ssl_commons.exceptions.Error, if one of the roles found in 'root_metadata' contains an invalid
-    delegation (i.e., a nonexistent parent role).
+    tuf.ssl_commons.exceptions.Error, if one of the roles found in
+    'root_metadata' contains an invalid delegation (i.e., a nonexistent parent
+    role).
 
   <Side Effects>
     Calls add_role().  The old role database for 'repository_name' is replaced.
@@ -155,9 +158,11 @@ def create_roledb(repository_name):
       create_roledb_from_root_metadata(root_metadata, repository_name).
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly
+    formatted.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' already exists in the roledb.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' already
+    exists in the roledb.
 
   <Side Effects>
     None.
@@ -166,15 +171,16 @@ def create_roledb(repository_name):
     None.
   """
 
-  # Is 'repository_name' properly formatted?  If not, raise 'tuf.ssl_commons.exceptions.FormatError'.
+  # Is 'repository_name' properly formatted?  If not, raise
+  # 'tuf.ssl_commons.exceptions.FormatError'.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
  
   global _roledb_dict
   global _dirty_roles
 
   if repository_name in _roledb_dict or repository_name in _dirty_roles:
-    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name already exists:'
-      ' ' + repr(repository_name))
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name'
+      ' already exists: ' + repr(repository_name))
 
   _roledb_dict[repository_name] = {}
   _dirty_roles[repository_name] = set()
@@ -194,10 +200,12 @@ def remove_roledb(repository_name):
       'default' because the default repository is expected to always exist.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly
+    formatted.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' is the 'default' repository
-    name.  The 'default' repository name should always exist.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' is the
+    'default' repository name.  The 'default' repository name should always
+    exist.
 
   <Side Effects>
     None.
@@ -206,7 +214,8 @@ def remove_roledb(repository_name):
     None.
   """
 
-  # Is 'repository_name' properly formatted?  If not, raise 'tuf.ssl_commons.exceptions.FormatError'.
+  # Is 'repository_name' properly formatted?  If not, raise
+  # 'tuf.ssl_commons.exceptions.FormatError'.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
@@ -218,8 +227,8 @@ def remove_roledb(repository_name):
     return
 
   if repository_name == 'default':
-    raise tuf.ssl_commons.exceptions.InvalidNameError('Cannot remove the default repository:'
-      ' ' + repr(repository_name))
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Cannot remove the'
+      ' default repository: ' + repr(repository_name))
 
   del _roledb_dict[repository_name]
   del _dirty_roles[repository_name]
@@ -257,13 +266,14 @@ def add_role(rolename, roleinfo, repository_name='default'):
       'rolename' is added to the 'default' repository.
   
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'rolename' or 'roleinfo' does not have the correct
-    object format.
+    tuf.ssl_commons.exceptions.FormatError, if 'rolename' or 'roleinfo' does
+    not have the correct object format.
 
-    tuf.ssl_commons.exceptions.RoleAlreadyExistsError, if 'rolename' has already been added.
+    tuf.ssl_commons.exceptions.RoleAlreadyExistsError, if 'rolename' has
+    already been added.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is improperly formatted, or
-    'repository_name' does not exist.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is improperly
+    formatted, or 'repository_name' does not exist.
 
   <Side Effects>
     The role database is modified.
@@ -340,13 +350,14 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
       supplied, the 'default' repository is searched.
   
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'rolename' or 'roleinfo' does not have the correct
-    object format.
+    tuf.ssl_commons.exceptions.FormatError, if 'rolename' or 'roleinfo' does
+    not have the correct object format.
 
-    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found in the role database.
+    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found
+    in the role database.
     
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is improperly formatted, or
-    'repository_name' does not exist in the role database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is improperly
+    formatted, or 'repository_name' does not exist in the role database.
 
   <Side Effects>
     The role database is modified.
@@ -403,10 +414,11 @@ def get_dirty_roles(repository_name='default'):
       'default' repository is searched.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly
+    formatted.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not exist in the role
-    database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not
+    exist in the role database.
 
   <Side Effects>
     None.
@@ -415,16 +427,16 @@ def get_dirty_roles(repository_name='default'):
     A list of the roles that have been modified.
   """
   
-  # Does 'repository_name' have the correct format?  Raise 'tuf.ssl_commons.exceptions.FormatError'
-  # if not.
+  # Does 'repository_name' have the correct format?  Raise
+  # 'tuf.ssl_commons.exceptions.FormatError' if not.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
   
   global _roledb_dict
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not' ' exist: ' +
-      repository_name)
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does'
+      '  not' ' exist: ' + repository_name)
 
   return list(_dirty_roles[repository_name])
 
@@ -444,10 +456,11 @@ def mark_dirty(roles, repository_name='default'):
       A list of roles that should be marked as dirty.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+    formatted.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not exist in the role
-    database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not
+    exist in the role database.
 
   <Side Effects>
     None.
@@ -456,7 +469,8 @@ def mark_dirty(roles, repository_name='default'):
     None.
   """
 
-  # Are the arguments properly formatted?  If not, raise tuf.ssl_commons.exceptions.FormatError.
+  # Are the arguments properly formatted?  If not, raise
+  # tuf.ssl_commons.exceptions.FormatError.
   tuf.ssl_crypto.formats.NAMES_SCHEMA.check_match(roles)
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
   
@@ -464,8 +478,8 @@ def mark_dirty(roles, repository_name='default'):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not' ' exist: ' +
-      repository_name)
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does'
+      ' not' ' exist: ' + repository_name)
 
   _dirty_roles[repository_name].update(roles)
 
@@ -485,10 +499,11 @@ def unmark_dirty(roles, repository_name='default'):
       A list of roles that should no longer be marked as dirty.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+    formatted.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not exist in the role
-    database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not
+    exist in the role database.
 
   <Side Effects>
     None.
@@ -497,7 +512,8 @@ def unmark_dirty(roles, repository_name='default'):
     None.
   """
   
-  # Are the arguments properly formatted?  If not, raise tuf.ssl_commons.exceptions.FormatError.
+  # Are the arguments properly formatted?  If not, raise
+  # tuf.ssl_commons.exceptions.FormatError.
   tuf.ssl_crypto.formats.NAMES_SCHEMA.check_match(roles)
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
   
@@ -505,7 +521,8 @@ def unmark_dirty(roles, repository_name='default'):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not exist: ' + repository_name)
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does'
+      ' not exist: ' + repository_name)
 
   for role in roles:
     try: 
@@ -531,10 +548,11 @@ def role_exists(rolename, repository_name='default'):
       supplied, the 'default' repository is searched.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'rolename' does not have the correct object format.
+    tuf.ssl_commons.exceptions.FormatError, if 'rolename' does not have the
+    correct object format.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly formatted, or
-    'repository_name' does not exist in the role database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly
+    formatted, or 'repository_name' does not exist in the role database.
 
   <Side Effects>
     None.
@@ -543,7 +561,8 @@ def role_exists(rolename, repository_name='default'):
     Boolean.  True if 'rolename' is found in the role database, False otherwise.
   """
 
-  # Raise tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.exceptions.InvalidNameError if the arguments are invalid.
+  # Raise tuf.ssl_commons.exceptions.FormatError,
+  # tuf.ssl_commons.exceptions.InvalidNameError if the arguments are invalid.
   try: 
     _check_rolename(rolename, repository_name)
   
@@ -579,12 +598,14 @@ def remove_role(rolename, repository_name='default'):
       'default' repository is searched.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'rolename' does not have the correct object format.
+    tuf.ssl_commons.exceptions.FormatError, if 'rolename' does not have the
+    correct object format.
 
-    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found in the role database.
+    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found
+    in the role database.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly formatted, or
-    'repository_name' does not exist in the role database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly
+    formatted, or 'repository_name' does not exist in the role database.
 
   <Side Effects>
     A role may be removed from the role database.
@@ -593,11 +614,13 @@ def remove_role(rolename, repository_name='default'):
     None.
   """
   
-  # Does 'repository_name' have the correct format?  Raise 'tuf.ssl_commons.exceptions.FormatError'
-  # if it is improperly formatted.
+  # Does 'repository_name' have the correct format?  Raise
+  # 'tuf.ssl_commons.exceptions.FormatError' if it is improperly formatted.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
-  # Raises tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.exceptions.UnknownRoleError, or tuf.ssl_commons.exceptions.InvalidNameError.
+  # Raises tuf.ssl_commons.exceptions.FormatError,
+  # tuf.ssl_commons.exceptions.UnknownRoleError, or
+  # tuf.ssl_commons.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
   
   global _roledb_dict
@@ -622,10 +645,11 @@ def get_rolenames(repository_name='default'):
       'default' repository is searched.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' is improperly
+    formatted.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not exist in the role
-    database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not
+    exist in the role database.
 
   <Side Effects>
     None.
@@ -634,16 +658,16 @@ def get_rolenames(repository_name='default'):
     A list of rolenames.
   """
  
-  # Does 'repository_name' have the correct format?  Raise 'tuf.ssl_commons.exceptions.FormatError'
-  # if it is improperly formatted.
+  # Does 'repository_name' have the correct format?  Raise
+  # 'tuf.ssl_commons.exceptions.FormatError' if it is improperly formatted.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not' ' exist: ' +
-      repository_name)
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does'
+      ' not' ' exist: ' + repository_name)
   
   return list(_roledb_dict[repository_name].keys())
 
@@ -676,12 +700,13 @@ def get_roleinfo(rolename, repository_name='default'):
       'default' repository is searched.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+    formatted.
     
     tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' does not exist.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly formatted, or
-    'repository_name' does not exist in the role database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly
+    formatted, or 'repository_name' does not exist in the role database.
 
 
   <Side Effects>
@@ -691,10 +716,13 @@ def get_roleinfo(rolename, repository_name='default'):
     The roleinfo of 'rolename'.
   """
  
-  # Is 'repository_name' properly formatted?  If not, raise 'tuf.ssl_commons.exceptions.FormatError'.
+  # Is 'repository_name' properly formatted?  If not, raise
+  # 'tuf.ssl_commons.exceptions.FormatError'.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
   
-  # Raises tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.exceptions.UnknownRoleError, or tuf.ssl_commons.exceptions.InvalidNameError.
+  # Raises tuf.ssl_commons.exceptions.FormatError,
+  # tuf.ssl_commons.exceptions.UnknownRoleError, or
+  # tuf.ssl_commons.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
 
   global _roledb_dict
@@ -725,12 +753,14 @@ def get_role_keyids(rolename, repository_name='default'):
       'default' repository is searched.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the correct object format. 
+    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the
+    correct object format. 
 
-    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found in the role database.
+    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found
+    in the role database.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly formatted, or
-    'repository_name' does not exist in the role database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly
+    formatted, or 'repository_name' does not exist in the role database.
 
   <Side Effects>
     None.
@@ -739,10 +769,13 @@ def get_role_keyids(rolename, repository_name='default'):
     A list of keyids.
   """
   
-  # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'repository_name' is improperly formatted.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'repository_name' is
+  # improperly formatted.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
   
-  # Raises tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.exceptions.UnknownRoleError, or tuf.ssl_commons.exceptions.InvalidNameError.
+  # Raises tuf.ssl_commons.exceptions.FormatError,
+  # tuf.ssl_commons.exceptions.UnknownRoleError, or
+  # tuf.ssl_commons.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
   
   global _roledb_dit
@@ -772,12 +805,14 @@ def get_role_threshold(rolename, repository_name='default'):
       
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the correct object format. 
+    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the
+    correct object format. 
 
-    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found in in the role database.
+    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found
+    in in the role database.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly formatted, or
-    'repository_name' does not exist in the role database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly
+    formatted, or 'repository_name' does not exist in the role database.
 
   <Side Effects>
     None.
@@ -785,10 +820,13 @@ def get_role_threshold(rolename, repository_name='default'):
   <Returns>
     A threshold integer value.
   """
-  # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'repository_name' is improperly formatted.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'repository_name' is
+  # improperly formatted.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
-  # Raises tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.exceptions.UnknownRoleError, or tuf.ssl_commons.exceptions.InvalidNameError.
+  # Raises tuf.ssl_commons.exceptions.FormatError,
+  # tuf.ssl_commons.exceptions.UnknownRoleError, or
+  # tuf.ssl_commons.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
   
   global _roledb_dict
@@ -817,12 +855,14 @@ def get_role_paths(rolename, repository_name='default'):
       'default' repository is searched.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the correct object format.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the
+    correct object format.
 
-    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found in the role database.
+    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found
+    in the role database.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly formatted, or
-    'repository_name' does not exist in the role database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly
+    formatted, or 'repository_name' does not exist in the role database.
 
   <Side Effects>
     None.
@@ -831,10 +871,13 @@ def get_role_paths(rolename, repository_name='default'):
     A list of paths.
   """
 
-  # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'repository_name' is improperly formatted.
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'repository_name' is
+  # improperly formatted.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
   
-  # Raises tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.exceptions.UnknownRoleError, or tuf.ssl_commons.exceptions.InvalidNameError.
+  # Raises tuf.ssl_commons.exceptions.FormatError,
+  # tuf.ssl_commons.exceptions.UnknownRoleError, or
+  # tuf.ssl_commons.exceptions.InvalidNameError.
   _check_rolename(rolename)
  
   global _roledb_dict
@@ -874,12 +917,14 @@ def get_delegated_rolenames(rolename, repository_name='default'):
       supplied, the 'default' repository is searched.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the correct object format.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the
+    correct object format.
 
-    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found in the role database.
+    tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found
+    in the role database.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly formatted, or
-    'repository_name' does not exist in the role database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly
+    formatted, or 'repository_name' does not exist in the role database.
 
   <Side Effects>
     None.
@@ -890,11 +935,13 @@ def get_delegated_rolenames(rolename, repository_name='default'):
   """
 
 
-  # Does 'repository_name' have the correct format?  Raise 'tuf.ssl_commons.exceptions.FormatError' if
-  # it does not.
+  # Does 'repository_name' have the correct format?  Raise
+  # 'tuf.ssl_commons.exceptions.FormatError' if it does not.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name) 
  
-  # Raises tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.exceptions.UnknownRoleError, or tuf.ssl_commons.exceptions.InvalidNameError.
+  # Raises tuf.ssl_commons.exceptions.FormatError,
+  # tuf.ssl_commons.exceptions.UnknownRoleError, or
+  # tuf.ssl_commons.exceptions.InvalidNameError.
   _check_rolename(rolename)
 
   global _roledb_dict
@@ -904,10 +951,9 @@ def get_delegated_rolenames(rolename, repository_name='default'):
     raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not'
       ' exist: ' + repository_name)
 
-  # get_roleinfo() raises a 'tuf.ssl_commons.exceptions.InvalidNameError' if 'repository_name' does
-  # not exist in the role database.
-  roleinfo = get_roleinfo(rolename, repository_name)
-  delegated_roles = []
+  # get_roleinfo() raises a 'tuf.ssl_commons.exceptions.InvalidNameError' if
+  # 'repository_name' does not exist in the role database.
+  roleinfo = get_roleinfo(rolename, repository_name) delegated_roles = []
  
   for delegated_role in roleinfo['delegations']['roles']:
     delegated_roles.append(delegated_role['name'])
@@ -932,10 +978,11 @@ def clear_roledb(repository_name='default', clear_all=False):
       Boolean indicating whether to clear the entire roledb.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' does not have the correct format.
+    tuf.ssl_commons.exceptions.FormatError, if 'repository_name' does not have
+    the correct format.
 
-    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not exist in the role
-    database.
+    tuf.ssl_commons.exceptions.InvalidNameError, if 'repository_name' does not
+    exist in the role database.
 
   <Side Effects>
     None.
@@ -944,7 +991,8 @@ def clear_roledb(repository_name='default', clear_all=False):
     None.
   """
 
-  # Do the arguments have the correct format?  If not, raise 'tuf.ssl_commons.exceptions.FormatError'
+  # Do the arguments have the correct format?  If not, raise
+  # 'tuf.ssl_commons.exceptions.FormatError'
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
   tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(clear_all)
 
@@ -970,11 +1018,11 @@ def clear_roledb(repository_name='default', clear_all=False):
 
 
 def _check_rolename(rolename, repository_name='default'):
-  """
-  Raise tuf.ssl_commons.exceptions.FormatError if 'rolename' does not match
-  'tuf.ssl_crypto.formats.ROLENAME_SCHEMA', tuf.ssl_commons.exceptions.UnknownRoleError if 'rolename' is not
-  found in the role database, or tuf.ssl_commons.exceptions.InvalidNameError if 'repository_name'
-  does not exist in the role database.
+  """ Raise tuf.ssl_commons.exceptions.FormatError if 'rolename' does not match
+  'tuf.ssl_crypto.formats.ROLENAME_SCHEMA',
+  tuf.ssl_commons.exceptions.UnknownRoleError if 'rolename' is not found in the
+  role database, or tuf.ssl_commons.exceptions.InvalidNameError if
+  'repository_name' does not exist in the role database.
   """
   
   # Does 'rolename' have the correct object format?
@@ -996,7 +1044,8 @@ def _check_rolename(rolename, repository_name='default'):
       ' exist: ' + repository_name)
  
   if rolename not in _roledb_dict[repository_name]:
-    raise tuf.ssl_commons.exceptions.UnknownRoleError('Role name does not exist: ' + rolename)
+    raise tuf.ssl_commons.exceptions.UnknownRoleError('Role name does not'
+      ' exist: ' + rolename)
 
 
 
@@ -1004,18 +1053,18 @@ def _check_rolename(rolename, repository_name='default'):
 
 def _validate_rolename(rolename):
   """
-  Raise tuf.ssl_commons.exceptions.InvalidNameError if 'rolename' is not formatted correctly.
-  It is assumed 'rolename' has been checked against 'ROLENAME_SCHEMA'
-  prior to calling this function.
-  """
+  Raise tuf.ssl_commons.exceptions.InvalidNameError if 'rolename' is not
+  formatted correctly.  It is assumed 'rolename' has been checked against
+  'ROLENAME_SCHEMA' prior to calling this function.  """
 
   if rolename == '':
-    raise tuf.ssl_commons.exceptions.InvalidNameError('Rolename must *not* be an empty string.')
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Rolename must *not* be'  
+      ' an empty string.')
 
   if rolename != rolename.strip():
-    raise tuf.ssl_commons.exceptions.InvalidNameError('Invalid rolename. Cannot start or end'
-      ' with whitespace: ' + rolename)
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Invalid rolename.'
+      '  Cannot start or end with whitespace: ' + rolename)
 
   if rolename.startswith('/') or rolename.endswith('/'):
-    raise tuf.ssl_commons.exceptions.InvalidNameError('Invalid rolename. Cannot start or end with a'
-      ' "/": ' + rolename)
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Invalid rolename.'
+      '  Cannot start or end with a "/": ' + rolename)

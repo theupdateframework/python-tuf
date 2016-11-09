@@ -68,7 +68,7 @@ import logging
 import time
 
 import tuf
-import tuf.tufformats
+import tuf.ssl_crypto.formats
 from simple_settings import settings
 
 # Setting a handler's log level filters only logging messages of that level
@@ -250,8 +250,8 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
       'log_level' examples: logging.INFO; logging.CRITICAL.
       
   <Exceptions>
-    tuf.ssl_commons.exceptions.Error, if the 'log.py' console handler has not been set yet with
-    add_console_handler().
+    tuf.ssl_commons.exceptions.Error, if the 'log.py' console handler has not
+    been set yet with add_console_handler().
 
   <Side Effects>
     Overrides the logging level for the console handler.
