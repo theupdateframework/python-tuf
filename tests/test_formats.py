@@ -30,7 +30,7 @@ import datetime
 
 import tuf
 import tuf.ssl_crypto.formats
-import tuf.tufformats
+import tuf.formats
 import tuf.ssl_commons.schema
 
 import six
@@ -184,7 +184,7 @@ class TestFormats(unittest.TestCase):
                                             'targets_directory': '/repo/targets',
                                             'backup_directory': '/repo/backup'}}),
 
-      'ROLE_SCHEMA': (tuf.tufformats.ROLE_SCHEMA,
+      'ROLE_SCHEMA': (tuf.formats.ROLE_SCHEMA,
                       {'keyids': ['123abc'],
                        'threshold': 1,
                        'paths': ['path1/', 'path2']}),
@@ -221,13 +221,13 @@ class TestFormats(unittest.TestCase):
                                     'threshold': 1,
                                     'paths': ['path1/', 'path2']}]}}),
 
-      'SNAPSHOT_SCHEMA': (tuf.tufformats.SNAPSHOT_SCHEMA,
+      'SNAPSHOT_SCHEMA': (tuf.formats.SNAPSHOT_SCHEMA,
         {'_type': 'Snapshot',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'snapshot.json': {'version': 1024}}}),
 
-      'TIMESTAMP_SCHEMA': (tuf.tufformats.TIMESTAMP_SCHEMA,
+      'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
         {'_type': 'Timestamp',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
@@ -276,8 +276,8 @@ class TestFormats(unittest.TestCase):
 
   def test_MetaFile(self):
     # Test conditions for instantiations of a class that inherits from
-    # 'tuf.tufformats.MetaFile'.
-    class NewMetadataFile(tuf.tufformats.MetaFile):
+    # 'tuf.formats.MetaFile'.
+    class NewMetadataFile(tuf.formats.MetaFile):
       def __init__(self, version, expires):
         self.info = {}
         self.info['version'] = version
@@ -299,21 +299,21 @@ class TestFormats(unittest.TestCase):
 
 
   def test_TimestampFile(self):
-    # Test conditions for valid instances of 'tuf.tufformats.TimestampFile'.
+    # Test conditions for valid instances of 'tuf.formats.TimestampFile'.
     version = 8 
     length = 88
     hashes = {'sha256': '3c7fe3eeded4a34'}
     expires = '1985-10-21T13:20:00Z'
     filedict = {'snapshot.json': {'length': length, 'hashes': hashes}}
 
-    make_metadata = tuf.tufformats.TimestampFile.make_metadata
-    from_metadata = tuf.tufformats.TimestampFile.from_metadata
-    TIMESTAMP_SCHEMA = tuf.tufformats.TIMESTAMP_SCHEMA
+    make_metadata = tuf.formats.TimestampFile.make_metadata
+    from_metadata = tuf.formats.TimestampFile.from_metadata
+    TIMESTAMP_SCHEMA = tuf.formats.TIMESTAMP_SCHEMA
 
     self.assertTrue(TIMESTAMP_SCHEMA.matches(make_metadata(version, expires,
                                                            filedict)))
     metadata = make_metadata(version, expires, filedict)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.TimestampFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TimestampFile))
 
     # Test conditions for invalid arguments.
     bad_version = 'eight'
@@ -332,7 +332,7 @@ class TestFormats(unittest.TestCase):
 
 
   def test_RootFile(self):
-    # Test conditions for valid instances of 'tuf.tufformats.RootFile'.
+    # Test conditions for valid instances of 'tuf.formats.RootFile'.
     version = 8
     consistent_snapshot = False
     expires = '1985-10-21T13:20:00Z'
@@ -347,8 +347,8 @@ class TestFormats(unittest.TestCase):
     
     compression_algorithms = ['gz']
 
-    make_metadata = tuf.tufformats.RootFile.make_metadata
-    from_metadata = tuf.tufformats.RootFile.from_metadata
+    make_metadata = tuf.formats.RootFile.make_metadata
+    from_metadata = tuf.formats.RootFile.from_metadata
     ROOT_SCHEMA = tuf.ssl_crypto.formats.ROOT_SCHEMA
 
     self.assertTrue(ROOT_SCHEMA.matches(make_metadata(version, expires,
@@ -357,7 +357,7 @@ class TestFormats(unittest.TestCase):
                                                       compression_algorithms)))
     metadata = make_metadata(version, expires, keydict, roledict,
                              consistent_snapshot, compression_algorithms)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.RootFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.RootFile))
 
     # Test conditions for invalid arguments.
     bad_version = '8'
@@ -392,19 +392,19 @@ class TestFormats(unittest.TestCase):
 
 
   def test_SnapshotFile(self):
-    # Test conditions for valid instances of 'tuf.tufformats.SnapshotFile'.
+    # Test conditions for valid instances of 'tuf.formats.SnapshotFile'.
     version = 8
     expires = '1985-10-21T13:20:00Z'
     versiondict = {'targets.json' : {'version': version}}
   
-    make_metadata = tuf.tufformats.SnapshotFile.make_metadata
-    from_metadata = tuf.tufformats.SnapshotFile.from_metadata
-    SNAPSHOT_SCHEMA = tuf.tufformats.SNAPSHOT_SCHEMA
+    make_metadata = tuf.formats.SnapshotFile.make_metadata
+    from_metadata = tuf.formats.SnapshotFile.from_metadata
+    SNAPSHOT_SCHEMA = tuf.formats.SNAPSHOT_SCHEMA
 
     self.assertTrue(SNAPSHOT_SCHEMA.matches(make_metadata(version, expires,
                                                          versiondict)))
     metadata = make_metadata(version, expires, versiondict)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.SnapshotFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.SnapshotFile))
 
     # Test conditions for invalid arguments.
     bad_version = '8'
@@ -422,7 +422,7 @@ class TestFormats(unittest.TestCase):
 
 
   def test_TargetsFile(self):
-    # Test conditions for valid instances of 'tuf.tufformats.TargetsFile'.
+    # Test conditions for valid instances of 'tuf.formats.TargetsFile'.
     version = 8
     expires = '1985-10-21T13:20:00Z'
 
@@ -436,8 +436,8 @@ class TestFormats(unittest.TestCase):
                    'roles': [{'name': 'root', 'keyids': ['123abc'],
                               'threshold': 1, 'paths': ['path1/', 'path2']}]}
 
-    make_metadata = tuf.tufformats.TargetsFile.make_metadata
-    from_metadata = tuf.tufformats.TargetsFile.from_metadata
+    make_metadata = tuf.formats.TargetsFile.make_metadata
+    from_metadata = tuf.formats.TargetsFile.from_metadata
     TARGETS_SCHEMA = tuf.ssl_crypto.formats.TARGETS_SCHEMA
 
     self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(version, expires,
@@ -445,20 +445,20 @@ class TestFormats(unittest.TestCase):
     self.assertTrue(TARGETS_SCHEMA.matches(make_metadata(version, expires, filedict)))
 
     metadata = make_metadata(version, expires, filedict, delegations)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.TargetsFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
     
     # Test conditions for different combination of required arguments (i.e.,
     # a filedict or delegations argument is required.)
     metadata = make_metadata(version, expires, filedict)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.TargetsFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
     
     metadata = make_metadata(version, expires, delegations=delegations)
-    self.assertTrue(isinstance(from_metadata(metadata), tuf.tufformats.TargetsFile))
+    self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
     
     # Directly instantiating a TargetsFile object.
-    tuf.tufformats.TargetsFile(version, expires)
-    tuf.tufformats.TargetsFile(version, expires, filedict)
-    tuf.tufformats.TargetsFile(version, expires, delegations=delegations)
+    tuf.formats.TargetsFile(version, expires)
+    tuf.formats.TargetsFile(version, expires, filedict)
+    tuf.formats.TargetsFile(version, expires, delegations=delegations)
 
     # Test conditions for invalid arguments.
     bad_version = 'eight'
@@ -484,10 +484,10 @@ class TestFormats(unittest.TestCase):
     version = 8
     expires = '1985-10-21T13:20:00Z'
     
-    mirrors_file = tuf.tufformats.MirrorsFile(version, expires)
+    mirrors_file = tuf.formats.MirrorsFile(version, expires)
     
-    make_metadata = tuf.tufformats.MirrorsFile.make_metadata
-    from_metadata = tuf.tufformats.MirrorsFile.from_metadata
+    make_metadata = tuf.formats.MirrorsFile.make_metadata
+    from_metadata = tuf.formats.MirrorsFile.from_metadata
 
     self.assertRaises(NotImplementedError, make_metadata)
     self.assertRaises(NotImplementedError, from_metadata, mirrors_file)
@@ -497,53 +497,53 @@ class TestFormats(unittest.TestCase):
   def test_unix_timestamp_to_datetime(self):
     # Test conditions for valid arguments.
     UNIX_TIMESTAMP_SCHEMA = tuf.ssl_crypto.formats.UNIX_TIMESTAMP_SCHEMA 
-    self.assertTrue(datetime.datetime, tuf.tufformats.unix_timestamp_to_datetime(499137720))
+    self.assertTrue(datetime.datetime, tuf.formats.unix_timestamp_to_datetime(499137720))
     datetime_object = datetime.datetime(1985, 10, 26, 1, 22)
-    self.assertEqual(datetime_object, tuf.tufformats.unix_timestamp_to_datetime(499137720))
+    self.assertEqual(datetime_object, tuf.formats.unix_timestamp_to_datetime(499137720))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.unix_timestamp_to_datetime, 'bad')
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.unix_timestamp_to_datetime, 1000000000000000000000)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.unix_timestamp_to_datetime, -1)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.unix_timestamp_to_datetime, ['5'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.unix_timestamp_to_datetime, 'bad')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.unix_timestamp_to_datetime, 1000000000000000000000)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.unix_timestamp_to_datetime, -1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.unix_timestamp_to_datetime, ['5'])
 
 
 
   def test_datetime_to_unix_timestamp(self):
     # Test conditions for valid arguments.
     datetime_object = datetime.datetime(2015, 10, 21, 19, 28)
-    self.assertEqual(1445455680, tuf.tufformats.datetime_to_unix_timestamp(datetime_object))
+    self.assertEqual(1445455680, tuf.formats.datetime_to_unix_timestamp(datetime_object))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.datetime_to_unix_timestamp, 'bad')
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.datetime_to_unix_timestamp, 1000000000000000000000)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.datetime_to_unix_timestamp, ['1'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.datetime_to_unix_timestamp, 'bad')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.datetime_to_unix_timestamp, 1000000000000000000000)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.datetime_to_unix_timestamp, ['1'])
 
 
 
   def test_format_base64(self):
     # Test conditions for valid arguments.
     data = 'updateframework'.encode('utf-8')
-    self.assertEqual('dXBkYXRlZnJhbWV3b3Jr', tuf.tufformats.format_base64(data))
-    self.assertTrue(isinstance(tuf.tufformats.format_base64(data), six.string_types))
+    self.assertEqual('dXBkYXRlZnJhbWV3b3Jr', tuf.formats.format_base64(data))
+    self.assertTrue(isinstance(tuf.formats.format_base64(data), six.string_types))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.format_base64, 123)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.format_base64, True)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.format_base64, ['123'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.format_base64, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.format_base64, True)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.format_base64, ['123'])
 
 
   def test_parse_base64(self):
     # Test conditions for valid arguments.
     base64 = 'dXBkYXRlZnJhbWV3b3Jr'
-    self.assertEqual(b'updateframework', tuf.tufformats.parse_base64(base64))
-    self.assertTrue(isinstance(tuf.tufformats.parse_base64(base64), six.binary_type))
+    self.assertEqual(b'updateframework', tuf.formats.parse_base64(base64))
+    self.assertTrue(isinstance(tuf.formats.parse_base64(base64), six.binary_type))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.parse_base64, 123)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.parse_base64, True)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.parse_base64, ['123'])
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.tufformats.parse_base64, '/')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.parse_base64, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.parse_base64, True)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.parse_base64, ['123'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.formats.parse_base64, '/')
 
 
 
@@ -564,7 +564,7 @@ class TestFormats(unittest.TestCase):
     SIGNABLE_SCHEMA = tuf.ssl_crypto.formats.SIGNABLE_SCHEMA
     self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.ssl_crypto.formats.make_signable(root)))
     signable = tuf.ssl_crypto.formats.make_signable(root)
-    self.assertEqual('root', tuf.tufformats.check_signable_object_format(signable))
+    self.assertEqual('root', tuf.formats.check_signable_object_format(signable))
     
     self.assertEqual(signable, tuf.ssl_crypto.formats.make_signable(signable))
 
@@ -582,7 +582,7 @@ class TestFormats(unittest.TestCase):
     custom = {'type': 'paintjob'}
    
     FILEINFO_SCHEMA = tuf.ssl_crypto.formats.FILEINFO_SCHEMA
-    make_fileinfo = tuf.tufformats.make_fileinfo
+    make_fileinfo = tuf.formats.make_fileinfo
     self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes, version, custom)))
     self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes)))
 
@@ -605,7 +605,7 @@ class TestFormats(unittest.TestCase):
     versioninfo = {'version': version_number}
 
     VERSIONINFO_SCHEMA = tuf.ssl_crypto.formats.VERSIONINFO_SCHEMA
-    make_versioninfo = tuf.tufformats.make_versioninfo
+    make_versioninfo = tuf.formats.make_versioninfo
     self.assertTrue(VERSIONINFO_SCHEMA.matches(make_versioninfo(version_number)))
 
     # Test conditions for invalid arguments.
@@ -623,8 +623,8 @@ class TestFormats(unittest.TestCase):
     path_hash_prefixes = ['000', '003']
     name = '123'
 
-    ROLE_SCHEMA = tuf.tufformats.ROLE_SCHEMA
-    make_role = tuf.tufformats.make_role_metadata
+    ROLE_SCHEMA = tuf.formats.ROLE_SCHEMA
+    make_role = tuf.formats.make_role_metadata
 
     self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold)))
     self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, name=name)))
@@ -660,26 +660,26 @@ class TestFormats(unittest.TestCase):
 
   def test_get_role_class(self):
     # Test conditions for valid arguments.
-    get_role_class = tuf.tufformats.get_role_class
+    get_role_class = tuf.formats.get_role_class
     
-    self.assertEqual(tuf.tufformats.RootFile, get_role_class('Root'))
-    self.assertEqual(tuf.tufformats.TargetsFile, get_role_class('Targets'))
-    self.assertEqual(tuf.tufformats.SnapshotFile, get_role_class('Snapshot'))
-    self.assertEqual(tuf.tufformats.TimestampFile, get_role_class('Timestamp'))
-    self.assertEqual(tuf.tufformats.MirrorsFile, get_role_class('Mirrors'))
+    self.assertEqual(tuf.formats.RootFile, get_role_class('Root'))
+    self.assertEqual(tuf.formats.TargetsFile, get_role_class('Targets'))
+    self.assertEqual(tuf.formats.SnapshotFile, get_role_class('Snapshot'))
+    self.assertEqual(tuf.formats.TimestampFile, get_role_class('Timestamp'))
+    self.assertEqual(tuf.formats.MirrorsFile, get_role_class('Mirrors'))
 
     # Test conditions for invalid arguments.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, 'role')
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, 'ROLE')
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, 'abcd')
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, 123)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, tuf.tufformats.RootFile)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, get_role_class, tuf.formats.RootFile)
 
 
 
   def test_expected_meta_rolename(self):
     # Test conditions for valid arguments.
-    expected_rolename = tuf.tufformats.expected_meta_rolename
+    expected_rolename = tuf.formats.expected_meta_rolename
 
     self.assertEqual('Root', expected_rolename('root'))
     self.assertEqual('Targets', expected_rolename('targets'))
@@ -691,7 +691,7 @@ class TestFormats(unittest.TestCase):
 
     # Test conditions for invalid arguments.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, expected_rolename, 123)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, expected_rolename, tuf.tufformats.RootFile)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, expected_rolename, tuf.formats.RootFile)
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, expected_rolename, True)
 
 
@@ -711,13 +711,13 @@ class TestFormats(unittest.TestCase):
                                'paths': ['path1/', 'path2']}}}
     
     root = tuf.ssl_crypto.formats.make_signable(root)
-    self.assertEqual('root', tuf.tufformats.check_signable_object_format(root))
+    self.assertEqual('root', tuf.formats.check_signable_object_format(root))
 
     # Test conditions for invalid arguments.
-    check_signable = tuf.tufformats.check_signable_object_format
+    check_signable = tuf.formats.check_signable_object_format
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, 'Root')
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, 123)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, tuf.tufformats.RootFile)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, tuf.formats.RootFile)
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, check_signable, True)
 
     saved_type = root['signed']['_type']
@@ -756,7 +756,7 @@ class TestFormats(unittest.TestCase):
     self.assertEqual('[1,2,3]', ''.join(result))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, encode, tuf.tufformats.RootFile)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, encode, tuf.formats.RootFile)
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, encode, 8.0)
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, encode, {"x": 8.0})
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, encode, 8.0, output)
