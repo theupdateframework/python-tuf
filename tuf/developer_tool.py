@@ -37,7 +37,7 @@ import tempfile
 import json
 
 import tuf
-import tuf.tufformats
+import tuf.formats
 import tuf.ssl_crypto.util
 import tuf.ssl_crypto.keydb
 import tuf.roledb
@@ -864,7 +864,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   targets_metadata_path = os.path.join(project_directory, metadata_directory,
       project_filename)
   signable = tuf.ssl_crypto.util.load_json_file(targets_metadata_path)
-  tuf.tufformats.check_signable_object_format(signable)
+  tuf.formats.check_signable_object_format(signable)
   targets_metadata = signable['signed']
   
   # Remove the prefix from the metadata.
