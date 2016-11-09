@@ -23,15 +23,15 @@
   Normally, a software updater integrating TUF will develop their own costum
   client module by importing 'tuf.client.updater', instantiating the required
   object, and calling the desired methods to perform an update.  This basic
-  client is provided to users who wish to give TUF a quick test run without
-  the hassle of writing client code.  This module can also used by updaters that
-  do not need the customization and only require their clients to perform an
+  client is provided to users who wish to give TUF a quick test run without the
+  hassle of writing client code.  This module can also used by updaters that do
+  not need the customization and only require their clients to perform an
   update of all the files provided by their repository mirror(s).
 
-  For software updaters that DO require customization, see the 'example_client.py'
-  script.  The 'example_client.py' script provides an outline of the client code
-  that software updaters may develop and then tailor to their specific software
-  updater or package manager.
+  For software updaters that DO require customization, see the
+  'example_client.py' script.  The 'example_client.py' script provides an
+  outline of the client code that software updaters may develop and then tailor
+  to their specific software updater or package manager.
 
   Additional tools for clients running legacy applications will also be made
   available.  These tools will allow secure software updates using The Update
@@ -63,7 +63,7 @@ import optparse
 import logging
 
 import tuf
-import tuf.tufformats
+import tuf.ssl_commons.exceptions
 import tuf.client.updater
 import tuf.log
 
@@ -87,7 +87,8 @@ def update_client(repository_mirror):
       files.  E.g., 'http://localhost:8001'
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.RepositoryError, if 'repository_mirror' is improperly formatted.
+    tuf.ssl_commons.exceptions.RepositoryError, if 'repository_mirror' is
+    improperly formatted.
 
   <Side Effects>
     Connects to a repository mirror and updates the metadata files and
@@ -100,9 +101,10 @@ def update_client(repository_mirror):
   # Does 'repository_mirror' have the correct format?
   try:
     tuf.ssl_crypto.formats.URL_SCHEMA.check_match(repository_mirror)
-  except tuf.ssl_commons.exceptions.FormatError as e:
-    message = 'The repository mirror supplied is invalid.' 
-    raise tuf.ssl_commons.exceptions.RepositoryError(message)
+  
+  except tuf.ssl_commons.exceptions.FormatError:
+    raise tuf.ssl_commons.exceptions.RepositoryError('The repository mirror'
+      ' supplied is invalid.')
   
   # Set the local repository directory containing all of the metadata files.
   settings.repository_directory = '.'
@@ -200,8 +202,7 @@ def parse_options():
 
   # Ensure the '--repo' option was set by the user.
   if options.REPOSITORY_MIRROR is None:
-    message = '"--repo" must be set on the command-line.'
-    parser.error(message)
+    parser.error('"--repo" must be set on the command-line.')
     
   # Return the repository mirror containing the metadata and target files.
   return options.REPOSITORY_MIRROR
