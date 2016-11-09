@@ -29,7 +29,8 @@ import os
 
 import tuf
 import tuf.ssl_crypto.util
-import tuf.tufformats
+import tuf.ssl_crypto.formats
+import tuf.ssl_commons.exceptions
 
 import six
 
@@ -85,31 +86,31 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
 
   # Verify 'file_type' is supported.
   if file_type not in _SUPPORTED_FILE_TYPES:
-    message = 'Invalid file_type argument.  '+ \
-      'Supported file types: '+repr(_SUPPORTED_FILE_TYPES)
-    raise tuf.ssl_commons.exceptions.Error(message)
+    raise tuf.ssl_commons.exceptions.Error('Invalid file_type argument.'
+      '  Supported file types: ' + repr(_SUPPORTED_FILE_TYPES))
 
-  # Reference to 'tuf.ssl_crypto.util.file_in_confined_directories()' (improve readability).
-  # This function checks whether a mirror should serve a file to the client.
-  # A client may be confined to certain paths on a repository mirror
-  # when fetching target files.  This field may be set by the client when
-  # the repository mirror is added to the 'tuf.client.updater.Updater' object.
+  # Reference to 'tuf.ssl_crypto.util.file_in_confined_directories()' (improve
+  # readability).  This function checks whether a mirror should serve a file to
+  # the client.  A client may be confined to certain paths on a repository
+  # mirror when fetching target files.  This field may be set by the client
+  # when the repository mirror is added to the 'tuf.client.updater.Updater'
+  # object.
   in_confined_directory = tuf.ssl_crypto.util.file_in_confined_directories
 
   list_of_mirrors = []
   for mirror_name, mirror_info in six.iteritems(mirrors_dict):
     if file_type == 'meta':
-      base = mirror_info['url_prefix']+'/'+mirror_info['metadata_path']
+      base = mirror_info['url_prefix'] + '/' + mirror_info['metadata_path']
 
-    # 'file_type' == 'target'.  'file_type' should have been verified to contain
-    # a supported string value above (either 'meta' or 'target').
+    # 'file_type' == 'target'.  'file_type' should have been verified to
+    # contain a supported string value above (either 'meta' or 'target').
     else:
       targets_path = mirror_info['targets_path']
       full_filepath = os.path.join(targets_path, file_path)
       if not in_confined_directory(full_filepath,
                                    mirror_info['confined_target_dirs']):
         continue
-      base = mirror_info['url_prefix']+'/'+mirror_info['targets_path']
+      base = mirror_info['url_prefix'] + '/' + mirror_info['targets_path']
 
     # urllib.quote(string) replaces special characters in string using the %xx
     # escape.  This is done to avoid parsing issues of the URL on the server
