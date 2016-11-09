@@ -45,7 +45,7 @@ else:
 import tuf
 import tuf.ssl_crypto.formats
 import tuf.log
-import tuf.tufformats
+import tuf.formats
 import tuf.roledb
 import tuf.ssl_crypto.keydb
 import tuf.ssl_crypto.hash
@@ -601,7 +601,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                           expiration_date, root_filename,
                                           targets_filename,
                                           consistent_snapshot=False)
-    self.assertTrue(tuf.tufformats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
+    self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
 
 
     # Test improperly formatted arguments.
@@ -654,7 +654,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     timestamp_metadata = \
       repo_lib.generate_timestamp_metadata(snapshot_filename, version,
                                            expiration_date)
-    self.assertTrue(tuf.tufformats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
+    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
     
 
     # Test improperly formatted arguments.
@@ -946,7 +946,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     targets_roleinfo = tuf.roledb.get_roleinfo('targets')
     targets_roleinfo['version'] = 1
     expiration = \
-      tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + 86400))
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
     expiration = expiration.isoformat() + 'Z' 
     targets_roleinfo['expires'] = expiration 
     tuf.roledb.add_role('obsolete_role', targets_roleinfo)

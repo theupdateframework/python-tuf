@@ -43,7 +43,7 @@ else:
 
 import tuf
 import tuf.log
-import tuf.tufformats
+import tuf.formats
 import tuf.roledb
 import tuf.ssl_crypto.keydb
 import tuf.ssl_crypto.hash
@@ -230,7 +230,7 @@ class TestRepository(unittest.TestCase):
       role_signable = tuf.ssl_crypto.util.load_json_file(role_filepath)
       
       # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'role_signable' is an invalid signable.
-      tuf.tufformats.check_signable_object_format(role_signable)
+      tuf.formats.check_signable_object_format(role_signable)
         
       self.assertTrue(os.path.exists(role_filepath))
 
@@ -241,7 +241,7 @@ class TestRepository(unittest.TestCase):
     # Verify the 'role1.json' delegation is also written.
     role1_filepath = os.path.join(metadata_directory, 'role1.json')
     role1_signable = tuf.ssl_crypto.util.load_json_file(role1_filepath)
-    tuf.tufformats.check_signable_object_format(role1_signable)
+    tuf.formats.check_signable_object_format(role1_signable)
 
     # Verify that an exception is *not* raised for multiple
     # repository.writeall().
@@ -422,7 +422,7 @@ class TestMetadata(unittest.TestCase):
         
         # Expire in 86400 seconds (1 day).
         expiration = \
-          tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + 86400))
+          tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
         expiration = expiration.isoformat() + 'Z' 
         roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
                     'signatures': [], 'version': 0,
@@ -507,7 +507,7 @@ class TestMetadata(unittest.TestCase):
 
 
     # Test invalid argument (i.e., expiration has already expired.)
-    expired_datetime = tuf.tufformats.unix_timestamp_to_datetime(int(time.time() - 1))
+    expired_datetime = tuf.formats.unix_timestamp_to_datetime(int(time.time() - 1))
     try: 
       self.metadata.expiration = expired_datetime 
     
@@ -582,7 +582,7 @@ class TestMetadata(unittest.TestCase):
     self.assertEqual([keyid], self.metadata.keys)
     
     expiration = \
-      tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + 86400))
+      tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
     expiration = expiration.isoformat() + 'Z' 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1, 
                 'signatures': [], 'version': 0,

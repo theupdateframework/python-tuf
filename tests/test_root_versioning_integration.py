@@ -36,7 +36,7 @@ else:
 
 import tuf
 import tuf.log
-import tuf.tufformats
+import tuf.formats
 import tuf.roledb
 import tuf.ssl_crypto.keydb
 import tuf.ssl_crypto.hash
@@ -201,8 +201,9 @@ class TestRepository(unittest.TestCase):
     root_2_signable = tuf.ssl_crypto.util.load_json_file(root_2_filepath)
     
     for role_signable in [old_root_signable, new_root_signable, root_1_signable, root_2_signable]:
-      # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'role_signable' is an invalid signable.
-      tuf.tufformats.check_signable_object_format(role_signable)
+      # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'role_signable' is an
+      # invalid signable.
+      tuf.formats.check_signable_object_format(role_signable)
     
     # Verify contents of versioned roots
     self.assertEqual(old_root_signable, root_1_signable)

@@ -31,7 +31,7 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.tufformats
+import tuf.formats
 import tuf.ssl_crypto.keydb
 import tuf.roledb
 import tuf.ssl_crypto.keys
@@ -102,7 +102,7 @@ class TestSig(unittest.TestCase):
 
     tuf.ssl_crypto.keydb.add_key(KEYS[0])
     threshold = 1
-    roleinfo = tuf.tufformats.make_role_metadata(
+    roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
 
@@ -132,7 +132,7 @@ class TestSig(unittest.TestCase):
 
     tuf.ssl_crypto.keydb.add_key(KEYS[0])
     threshold = 1
-    roleinfo = tuf.tufformats.make_role_metadata(
+    roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
 
@@ -161,7 +161,7 @@ class TestSig(unittest.TestCase):
                                   KEYS[0], signable['signed']))
 
     threshold = 1
-    roleinfo = tuf.tufformats.make_role_metadata(
+    roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
     
     tuf.roledb.add_role('Root', roleinfo)
@@ -202,7 +202,7 @@ class TestSig(unittest.TestCase):
 
     tuf.ssl_crypto.keydb.add_key(KEYS[0])
     threshold = 2
-    roleinfo = tuf.tufformats.make_role_metadata(
+    roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid'],
         KEYS[2]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
@@ -237,7 +237,7 @@ class TestSig(unittest.TestCase):
     tuf.ssl_crypto.keydb.add_key(KEYS[0])
     tuf.ssl_crypto.keydb.add_key(KEYS[1])
     threshold = 2
-    roleinfo = tuf.tufformats.make_role_metadata(
+    roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid'],
         KEYS[1]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
@@ -274,10 +274,10 @@ class TestSig(unittest.TestCase):
     tuf.ssl_crypto.keydb.add_key(KEYS[0])
     tuf.ssl_crypto.keydb.add_key(KEYS[1])
     threshold = 2
-    roleinfo = tuf.tufformats.make_role_metadata(
+    roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid'], KEYS[2]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
-    roleinfo = tuf.tufformats.make_role_metadata(
+    roleinfo = tuf.formats.make_role_metadata(
         [KEYS[1]['keyid'], KEYS[2]['keyid']], threshold)
     tuf.roledb.add_role('Release', roleinfo)
 
@@ -331,7 +331,7 @@ class TestSig(unittest.TestCase):
 
     tuf.ssl_crypto.keydb.add_key(KEYS[0])
     threshold = 1
-    roleinfo = tuf.tufformats.make_role_metadata(
+    roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
 
@@ -358,7 +358,7 @@ class TestSig(unittest.TestCase):
     tuf.ssl_crypto.keydb.add_key(KEYS[0])
     tuf.ssl_crypto.keydb.add_key(KEYS[1])
     threshold = 2
-    roleinfo = tuf.tufformats.make_role_metadata(
+    roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid'], KEYS[1]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
 
@@ -404,7 +404,7 @@ class TestSig(unittest.TestCase):
 
     tuf.ssl_crypto.keydb.add_key(KEYS[1])
     threshold = 1
-    roleinfo = tuf.tufformats.make_role_metadata(
+    roleinfo = tuf.formats.make_role_metadata(
         [KEYS[1]['keyid']], threshold)
     tuf.roledb.add_role('Root', roleinfo)
 

@@ -56,7 +56,6 @@ if sys.version_info >= (2, 7):
 else:
   import unittest2 as unittest 
 
-import tuf.tufformats
 import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater

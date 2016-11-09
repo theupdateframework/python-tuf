@@ -68,7 +68,7 @@ import tuf.ssl_commons.exceptions
 import tuf.ssl_crypto.util
 from simple_settings import settings
 import tuf.log
-import tuf.tufformats
+import tuf.formats
 import tuf.ssl_crypto.keydb
 import tuf.roledb
 import tuf.repository_tool as repo_tool
@@ -371,7 +371,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # populates the 'self.versioninfo' dictionary.
     self.repository_updater._update_versioninfo('targets.json')
     self.assertEqual(len(versioninfo_dict), 1)
-    self.assertTrue(tuf.tufformats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
+    self.assertTrue(tuf.formats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
    
     # The Snapshot role stores the version numbers of all the roles available
     # on the repository.  Load Snapshot to extract Root's version number
@@ -412,7 +412,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.assertTrue(tuf.ssl_crypto.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
       length, hashes = tuf.ssl_crypto.util.get_file_details(root_filepath)
-      root_fileinfo = tuf.tufformats.make_fileinfo(length, hashes) 
+      root_fileinfo = tuf.formats.make_fileinfo(length, hashes) 
       self.assertTrue('root.json' in fileinfo_dict)
       self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
 
@@ -433,18 +433,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       #  Verify that the method returns 'False' if file info was not changed.
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
       length, hashes = tuf.ssl_crypto.util.get_file_details(root_filepath)
-      root_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
+      root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
       self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
                                                              root_fileinfo))
 
       # Verify that the method returns 'True' if length or hashes were changed.
       new_length = 8
-      new_root_fileinfo = tuf.tufformats.make_fileinfo(new_length, hashes)
+      new_root_fileinfo = tuf.formats.make_fileinfo(new_length, hashes)
       self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
       # Hashes were changed.
       new_hashes = {'sha256': self.random_string()}
-      new_root_fileinfo = tuf.tufformats.make_fileinfo(length, new_hashes)
+      new_root_fileinfo = tuf.formats.make_fileinfo(length, new_hashes)
       self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
 
@@ -597,7 +597,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # 'tuf.ssl_commons.exceptions.ExpiredMetadataError' should be raised in this next test condition,
     # because the expiration_date has expired by 10 seconds.
-    expires = tuf.tufformats.unix_timestamp_to_datetime(int(time.time() - 10))
+    expires = tuf.formats.unix_timestamp_to_datetime(int(time.time() - 10))
     expires = expires.isoformat() + 'Z'
     root_metadata['expires'] = expires
     
@@ -1085,7 +1085,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       os.path.join(destination_directory, target_filepath1.lstrip('/'))
     self.assertTrue(os.path.exists(download_filepath))
     length, hashes = tuf.ssl_crypto.util.get_file_details(download_filepath, settings.REPOSITORY_HASH_ALGORITHMS)
-    download_targetfileinfo = tuf.tufformats.make_fileinfo(length, hashes)
+    download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
    
     # Add any 'custom' data from the repository's target fileinfo to the
     # 'download_targetfileinfo' object being tested.

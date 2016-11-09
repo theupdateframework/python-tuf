@@ -29,7 +29,7 @@ import unittest
 import logging
 
 import tuf
-import tuf.tufformats
+import tuf.formats
 import tuf.ssl_crypto.keys
 import tuf.roledb
 import tuf.log
@@ -541,7 +541,7 @@ class TestRoledb(unittest.TestCase):
     expires = '1985-10-21T01:21:00Z'
     compression_algorithms = ['gz'] 
 
-    root_metadata = tuf.tufformats.RootFile.make_metadata(version,
+    root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
                                                        consistent_snapshot,
@@ -590,7 +590,7 @@ class TestRoledb(unittest.TestCase):
     
     # Generate 'root_metadata' to verify that 'release' and 'root' are added
     # to the role database.
-    root_metadata = tuf.tufformats.RootFile.make_metadata(version,
+    root_metadata = tuf.formats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
                                                        consistent_snapshot,

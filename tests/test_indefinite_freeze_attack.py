@@ -59,7 +59,7 @@ else:
   import unittest2 as unittest 
 
 import tuf.ssl_crypto.formats
-import tuf.tufformats
+import tuf.formats
 import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater
@@ -213,10 +213,10 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
 
     timestamp_metadata = tuf.ssl_crypto.util.load_json_file(timestamp_path)
     expiry_time = time.time() - 10
-    expires = tuf.tufformats.unix_timestamp_to_datetime(int(expiry_time))
+    expires = tuf.formats.unix_timestamp_to_datetime(int(expiry_time))
     expires = expires.isoformat() + 'Z'
     timestamp_metadata['signed']['expires'] = expires 
-    tuf.tufformats.check_signable_object_format(timestamp_metadata) 
+    tuf.formats.check_signable_object_format(timestamp_metadata) 
     
     with open(timestamp_path, 'wb') as file_object:
       # Explicitly specify the JSON separators for Python 2 + 3 consistency.
@@ -230,7 +230,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     shutil.copy(timestamp_path, client_timestamp_path)
     
     length, hashes = tuf.ssl_crypto.util.get_file_details(timestamp_path)
-    fileinfo = tuf.tufformats.make_fileinfo(length, hashes) 
+    fileinfo = tuf.formats.make_fileinfo(length, hashes) 
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
     url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
@@ -238,7 +238,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
     
     length, hashes = tuf.ssl_crypto.util.get_file_details(client_timestamp_path)
-    download_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
+    download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is equal to the current local file.
     self.assertEqual(download_fileinfo, fileinfo)
@@ -297,7 +297,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # expiry (which we then expect to raise an exception due to expired
     # metadata).
     expiry_time = time.time() + 10
-    datetime_object = tuf.tufformats.unix_timestamp_to_datetime(int(expiry_time))
+    datetime_object = tuf.formats.unix_timestamp_to_datetime(int(expiry_time))
 
     repository.snapshot.expiration = datetime_object
 
@@ -369,7 +369,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # 'repository.timestamp.expiration = ...' with already-expired timestamp
     # metadata because of consistency checks that occur during that assignment.
     expiry_time = time.time() + 1
-    datetime_object = tuf.tufformats.unix_timestamp_to_datetime(int(expiry_time))
+    datetime_object = tuf.formats.unix_timestamp_to_datetime(int(expiry_time))
     repository.timestamp.expiration = datetime_object
     repository.writeall()
     

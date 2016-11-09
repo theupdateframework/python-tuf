@@ -30,7 +30,7 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.tufformats
+import tuf.ssl_crypto.formats
 import tuf.ssl_crypto.pycrypto_keys as pycrypto
 
 logger = logging.getLogger('tuf.test_pycrypto_keys')
