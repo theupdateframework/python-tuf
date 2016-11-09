@@ -69,7 +69,7 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.tufformats
+import tuf.formats
 
 from tuf.repository_tool import *
 
@@ -104,7 +104,7 @@ def update_repository(repository_path, command, command_arguments):
   # Do the arguments have the correct format?
   tuf.ssl_crypto.formats.URL_SCHEMA.check_match(repository_path)
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(command)
-  tuf.tufformats.COMMAND_SCHEMA.check_match(command_arguments)
+  tuf.formats.COMMAND_SCHEMA.check_match(command_arguments)
   
   # Set the local repository directory containing all of the metadata files.
   settings.repository_directory = repository_path 
