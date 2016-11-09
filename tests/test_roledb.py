@@ -29,8 +29,8 @@ import unittest
 import logging
 
 import tuf
-import tuf.formats
-import tuf.keys
+import tuf.tufformats
+import tuf.ssl_crypto.keys
 import tuf.roledb
 import tuf.log
 
@@ -40,7 +40,7 @@ logger = logging.getLogger('tuf.test_roledb')
 # Generate the three keys to use in our test cases.
 KEYS = []
 for junk in range(3):
-  KEYS.append(tuf.keys.generate_rsa_key(2048))
+  KEYS.append(tuf.ssl_crypto.keys.generate_rsa_key(2048))
 
 
 
@@ -66,8 +66,8 @@ class TestRoledb(unittest.TestCase):
     self.assertTrue(repository_name in tuf.roledb._roledb_dict)
    
     # Test for invalid and improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, tuf.roledb.create_roledb, 123)
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.create_roledb, 'default')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.create_roledb, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.create_roledb, 'default')
 
     # Reset the roledb so that subsequent test functions have access to the
     # original, default roledb.
@@ -82,7 +82,7 @@ class TestRoledb(unittest.TestCase):
     rolename = 'targets'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.remove_roledb, 'default') 
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.remove_roledb, 'default') 
     tuf.roledb.create_roledb(repository_name)
 
     tuf.roledb.remove_roledb(repository_name)
@@ -111,7 +111,7 @@ class TestRoledb(unittest.TestCase):
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
     self.assertEqual(roleinfo['keyids'], tuf.roledb.get_role_keyids(rolename, repository_name))
@@ -124,7 +124,7 @@ class TestRoledb(unittest.TestCase):
 
     # Test condition for invalid and unexpected arguments.
     self.assertRaises(TypeError, tuf.roledb.clear_roledb, 'default', False, 'unexpected_argument')
-    self.assertRaises(tuf.FormatError, tuf.roledb.clear_roledb, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.clear_roledb, 123)
 
 
 
@@ -142,7 +142,7 @@ class TestRoledb(unittest.TestCase):
 
     # Verify that a role can be added to a non-default repository.
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.clear_roledb,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.clear_roledb,
                                             repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
@@ -154,27 +154,27 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.remove_roledb(repository_name)
 
     # Test conditions where the arguments are improperly formatted.
-    self.assertRaises(tuf.FormatError, tuf.roledb.add_role, None, roleinfo) 
-    self.assertRaises(tuf.FormatError, tuf.roledb.add_role, 123, roleinfo) 
-    self.assertRaises(tuf.FormatError, tuf.roledb.add_role, [''], roleinfo) 
-    self.assertRaises(tuf.FormatError, tuf.roledb.add_role, rolename, None) 
-    self.assertRaises(tuf.FormatError, tuf.roledb.add_role, rolename, 123)
-    self.assertRaises(tuf.FormatError, tuf.roledb.add_role, rolename, [''])
-    self.assertRaises(tuf.FormatError, tuf.roledb.add_role, rolename, roleinfo, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.add_role, None, roleinfo) 
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.add_role, 123, roleinfo) 
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.add_role, [''], roleinfo) 
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.add_role, rolename, None) 
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.add_role, rolename, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.add_role, rolename, [''])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.add_role, rolename, roleinfo, 123)
 
 
     # Test condition where the rolename already exists in the role database.
-    self.assertRaises(tuf.RoleAlreadyExistsError, tuf.roledb.add_role,
+    self.assertRaises(tuf.ssl_commons.exceptions.RoleAlreadyExistsError, tuf.roledb.add_role,
                       rolename, roleinfo)
    
     # Test where the repository name does not exist in the role database.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.add_role,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.add_role,
                       'new_role', roleinfo, 'non-existent')
     
     # Test conditions for invalid rolenames.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.add_role, ' badrole ',
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.add_role, ' badrole ',
                       roleinfo)
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.add_role, '/badrole/',
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.add_role, '/badrole/',
                       roleinfo)
 
 
@@ -195,8 +195,8 @@ class TestRoledb(unittest.TestCase):
 
     # Verify that a role can be queried for a non-default repository.
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.role_exists, rolename, repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.role_exists, rolename, repository_name)
     
     tuf.roledb.create_roledb(repository_name)
     self.assertEqual(False, tuf.roledb.role_exists(rolename, repository_name))
@@ -208,15 +208,15 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.remove_roledb(repository_name)
 
     # Test conditions where the arguments are improperly formatted.
-    self.assertRaises(tuf.FormatError, tuf.roledb.role_exists, None)
-    self.assertRaises(tuf.FormatError, tuf.roledb.role_exists, 123)
-    self.assertRaises(tuf.FormatError, tuf.roledb.role_exists, ['rolename'])
-    self.assertRaises(tuf.FormatError, tuf.roledb.role_exists, rolename, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.role_exists, None)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.role_exists, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.role_exists, ['rolename'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.role_exists, rolename, 123)
 
     # Test conditions for invalid rolenames.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.role_exists, '')
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.role_exists, ' badrole ')
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.role_exists, '/badrole/')
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.role_exists, '')
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.role_exists, ' badrole ')
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.role_exists, '/badrole/')
 
 
 
@@ -242,7 +242,7 @@ class TestRoledb(unittest.TestCase):
 
     # Verify that a role can be removed from a non-default repository.
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.remove_role, rolename, repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.remove_role, rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
 
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
@@ -250,7 +250,7 @@ class TestRoledb(unittest.TestCase):
     self.assertEqual(None, tuf.roledb.remove_role(rolename, repository_name))
 
     # Verify that a role cannot be removed from a non-existent repository name.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.remove_role, rolename, 'non-existent')
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.remove_role, rolename, 'non-existent')
 
     # Reset the roledb so that subsequent test have access to the original,
     # default roledb.
@@ -266,7 +266,7 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
     self._test_rolename(tuf.roledb.remove_role)
-    self.assertRaises(tuf.FormatError, tuf.roledb.remove_role, rolename, 123) 
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.remove_role, rolename, 123) 
 
 
 
@@ -285,7 +285,7 @@ class TestRoledb(unittest.TestCase):
     # Verify that rolenames can be retrieved for a role in a non-default
     # repository.
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_rolenames, repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.get_rolenames, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
     tuf.roledb.add_role(rolename2, roleinfo, repository_name)
@@ -298,7 +298,7 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.remove_roledb(repository_name)
    
     # Test for invalid or improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, tuf.roledb.get_rolenames, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.get_rolenames, 123)
 
 
 
@@ -308,7 +308,7 @@ class TestRoledb(unittest.TestCase):
     rolename2 = 'role1'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
-    self.assertRaises(tuf.UnknownRoleError, tuf.roledb.get_roleinfo, rolename)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError, tuf.roledb.get_roleinfo, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
     
@@ -318,7 +318,7 @@ class TestRoledb(unittest.TestCase):
     # Verify that a roleinfo can be retrieved for a role in a non-default
     # repository.
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_roleinfo, 
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.get_roleinfo, 
                                             rolename, repository_name)
 
     tuf.roledb.create_roledb(repository_name) 
@@ -327,7 +327,7 @@ class TestRoledb(unittest.TestCase):
     
     # Verify that a roleinfo cannot be retrieved for a non-existent repository
     # name.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_roleinfo, rolename,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.get_roleinfo, rolename,
                       'non-existent')
 
     # Reset the roledb so that subsequent tests have access to the original,
@@ -337,8 +337,8 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are improperly formatted, contain
     # invalid names, or haven't been added to the role database.
     self._test_rolename(tuf.roledb.get_roleinfo)
-    self.assertRaises(tuf.FormatError, tuf.roledb.get_roleinfo, rolename, 123)
-    self.assertRaises(tuf.FormatError, tuf.roledb.get_roleinfo, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.get_roleinfo, rolename, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.get_roleinfo, 123)
 
     
 
@@ -348,7 +348,7 @@ class TestRoledb(unittest.TestCase):
     rolename2 = 'role1'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
-    self.assertRaises(tuf.UnknownRoleError, tuf.roledb.get_role_keyids, rolename)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError, tuf.roledb.get_role_keyids, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
     
@@ -359,7 +359,7 @@ class TestRoledb(unittest.TestCase):
     # Verify that the role keyids can be retrieved for a role in a non-default
     # repository.
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_role_keyids, 
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.get_role_keyids, 
                                             rolename, repository_name)
     tuf.roledb.create_roledb(repository_name) 
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
@@ -367,7 +367,7 @@ class TestRoledb(unittest.TestCase):
 
     # Verify that rolekeyids cannot be retrieved from a non-existent repository
     # name.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_role_keyids, rolename,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.get_role_keyids, rolename,
                       'non-existent')
 
     # Reset the roledb so that subsequent tests have access to the original,
@@ -377,7 +377,7 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are improperly formatted, contain
     # invalid names, or haven't been added to the role database.
     self._test_rolename(tuf.roledb.get_role_keyids)
-    self.assertRaises(tuf.FormatError, tuf.roledb.get_role_keyids, rolename, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.get_role_keyids, rolename, 123)
     
 
 
@@ -387,7 +387,7 @@ class TestRoledb(unittest.TestCase):
     rolename2 = 'role1'
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2}
-    self.assertRaises(tuf.UnknownRoleError, tuf.roledb.get_role_threshold, rolename)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError, tuf.roledb.get_role_threshold, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
     
@@ -397,7 +397,7 @@ class TestRoledb(unittest.TestCase):
     # Verify that the threshold can be retrieved for a role in a non-default
     # repository.
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_role_threshold,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.get_role_threshold,
                                             rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
@@ -405,7 +405,7 @@ class TestRoledb(unittest.TestCase):
 
     # Verify that a role's threshold cannot be retrieved from a non-existent
     # repository name.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_role_threshold,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.get_role_threshold,
                       rolename, 'non-existent')
 
     # Reset the roledb so that subsequent tests have access to the original,
@@ -415,7 +415,7 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
     self._test_rolename(tuf.roledb.get_role_threshold) 
-    self.assertRaises(tuf.FormatError, tuf.roledb.get_role_threshold, rolename, 123) 
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.get_role_threshold, rolename, 123) 
 
 
   def test_get_role_paths(self):
@@ -425,7 +425,7 @@ class TestRoledb(unittest.TestCase):
     roleinfo = {'keyids': ['123'], 'threshold': 1}
     paths = ['a/b', 'c/d']
     roleinfo2 = {'keyids': ['456', '789'], 'threshold': 2, 'paths': paths}
-    self.assertRaises(tuf.UnknownRoleError, tuf.roledb.get_role_paths, rolename)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError, tuf.roledb.get_role_paths, rolename)
     tuf.roledb.add_role(rolename, roleinfo)
     tuf.roledb.add_role(rolename2, roleinfo2)
 
@@ -435,7 +435,7 @@ class TestRoledb(unittest.TestCase):
     # Verify that role paths can be queried for roles in non-default
     # repositories.
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_role_paths,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.get_role_paths,
                                             rolename, repository_name)
 
     tuf.roledb.create_roledb(repository_name)
@@ -450,7 +450,7 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
     self._test_rolename(tuf.roledb.get_role_paths)
-    self.assertRaises(tuf.FormatError, tuf.roledb.get_role_paths, rolename, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.get_role_paths, rolename, 123)
 
 
 
@@ -484,7 +484,7 @@ class TestRoledb(unittest.TestCase):
       {'roles': [],
       'keys': {}}}
 
-    self.assertRaises(tuf.UnknownRoleError, tuf.roledb.get_delegated_rolenames,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError, tuf.roledb.get_delegated_rolenames,
                       rolename)
     
     tuf.roledb.add_role(rolename, roleinfo)
@@ -507,7 +507,7 @@ class TestRoledb(unittest.TestCase):
     # Verify that the delegated rolenames of a role in a non-default
     # repository can be accessed.
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_delegated_rolenames,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.get_delegated_rolenames,
                                            rolename, repository_name)
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
@@ -521,7 +521,7 @@ class TestRoledb(unittest.TestCase):
     # Test conditions where the arguments are improperly formatted,
     # contain invalid names, or haven't been added to the role database.
     self._test_rolename(tuf.roledb.get_delegated_rolenames)
-    self.assertRaises(tuf.FormatError, tuf.roledb.get_delegated_rolenames, rolename, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.get_delegated_rolenames, rolename, 123)
 
 
 
@@ -541,7 +541,7 @@ class TestRoledb(unittest.TestCase):
     expires = '1985-10-21T01:21:00Z'
     compression_algorithms = ['gz'] 
 
-    root_metadata = tuf.formats.RootFile.make_metadata(version,
+    root_metadata = tuf.tufformats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
                                                        consistent_snapshot,
@@ -555,7 +555,7 @@ class TestRoledb(unittest.TestCase):
 
     # Test that a roledb is created for a non-default repository.
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.clear_roledb,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.clear_roledb,
                                             repository_name)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
     self.assertEqual([keyid], tuf.roledb.get_role_keyids('root', repository_name))
@@ -566,17 +566,17 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.remove_roledb(repository_name)
     
     # Test conditions for arguments with invalid formats.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       tuf.roledb.create_roledb_from_root_metadata, None)
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       tuf.roledb.create_roledb_from_root_metadata, '')
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       tuf.roledb.create_roledb_from_root_metadata, 123)
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       tuf.roledb.create_roledb_from_root_metadata, ['123'])
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       tuf.roledb.create_roledb_from_root_metadata, {'bad': '123'})
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       tuf.roledb.create_roledb_from_root_metadata, root_metadata, 123)
     
     # Verify that the expected roles of a Root file are properly loaded.
@@ -590,7 +590,7 @@ class TestRoledb(unittest.TestCase):
     
     # Generate 'root_metadata' to verify that 'release' and 'root' are added
     # to the role database.
-    root_metadata = tuf.formats.RootFile.make_metadata(version,
+    root_metadata = tuf.tufformats.RootFile.make_metadata(version,
                                                        expires,
                                                        keydict, roledict,
                                                        consistent_snapshot,
@@ -617,7 +617,7 @@ class TestRoledb(unittest.TestCase):
     # repository.
     repository_name = 'example_repository'
     mark_role_as_dirty = True
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.clear_roledb, repository_name) 
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.clear_roledb, repository_name) 
     tuf.roledb.create_roledb(repository_name)
     tuf.roledb.add_role(rolename, roleinfo, repository_name)
     tuf.roledb.update_roleinfo(rolename, roleinfo, mark_role_as_dirty, repository_name)
@@ -627,23 +627,23 @@ class TestRoledb(unittest.TestCase):
     tuf.roledb.remove_roledb(repository_name)
 
     # Test for an unknown role.
-    self.assertRaises(tuf.UnknownRoleError, tuf.roledb.update_roleinfo,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError, tuf.roledb.update_roleinfo,
                       'unknown_rolename', roleinfo)
 
     # Verify that a roleinfo cannot be updated to a non-existent repository
     # name.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.update_roleinfo,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.update_roleinfo,
                       'new_rolename', roleinfo, False, 'non-existent')
       
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, tuf.roledb.update_roleinfo, 1, roleinfo)
-    self.assertRaises(tuf.FormatError, tuf.roledb.update_roleinfo, rolename, 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.update_roleinfo, 1, roleinfo)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.update_roleinfo, rolename, 1)
 
     repository_name = 'example_repository'
     mark_role_as_dirty = True 
-    self.assertRaises(tuf.FormatError, tuf.roledb.update_roleinfo, rolename,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.update_roleinfo, rolename,
                                        roleinfo, 1, repository_name)
-    self.assertRaises(tuf.FormatError, tuf.roledb.update_roleinfo,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.update_roleinfo,
                                        rolename, mark_role_as_dirty, 123)
 
 
@@ -669,14 +669,14 @@ class TestRoledb(unittest.TestCase):
     self.assertEqual([rolename], tuf.roledb.get_dirty_roles(repository_name))
    
     # Verify that dirty roles are not returned for a non-existent repository.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.get_dirty_roles, 'non-existent')
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.get_dirty_roles, 'non-existent')
 
     # Reset the roledb so that subsequent tests have access to a default
     # roledb.
     tuf.roledb.remove_roledb(repository_name)
 
     # Test for improperly formatted argument.
-    self.assertRaises(tuf.FormatError, tuf.roledb.get_dirty_roles, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.roledb.get_dirty_roles, 123)
    
 
 
@@ -698,7 +698,7 @@ class TestRoledb(unittest.TestCase):
 
     # Verify that a role cannot be marked as dirty for a non-existent
     # repository.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.mark_dirty,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.mark_dirty,
                       ['dirty_role'], 'non-existent')
 
   
@@ -729,7 +729,7 @@ class TestRoledb(unittest.TestCase):
 
     # Verify that a role cannot be unmarked as dirty for a non-existent
     # repository.
-    self.assertRaises(tuf.InvalidNameError, tuf.roledb.unmark_dirty,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.roledb.unmark_dirty,
                       ['dirty_role'], 'non-existent')
 
 
@@ -738,20 +738,20 @@ class TestRoledb(unittest.TestCase):
     # for format, invalid name, and unknown role exceptions.
     
     # Test conditions where the arguments are improperly formatted.
-    self.assertRaises(tuf.FormatError, test_function, None)
-    self.assertRaises(tuf.FormatError, test_function, 123)
-    self.assertRaises(tuf.FormatError, test_function, ['rolename'])
-    self.assertRaises(tuf.FormatError, test_function, {'a': 'b'})
-    self.assertRaises(tuf.FormatError, test_function, ('a', 'b'))
-    self.assertRaises(tuf.FormatError, test_function, True)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, test_function, None)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, test_function, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, test_function, ['rolename'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, test_function, {'a': 'b'})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, test_function, ('a', 'b'))
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, test_function, True)
     
     # Test condition where the 'rolename' has not been added to the role database.
-    self.assertRaises(tuf.UnknownRoleError, test_function, 'badrole')
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError, test_function, 'badrole')
 
     # Test conditions for invalid rolenames.
-    self.assertRaises(tuf.InvalidNameError, test_function, '')
-    self.assertRaises(tuf.InvalidNameError, test_function, ' badrole ')
-    self.assertRaises(tuf.InvalidNameError, test_function, '/badrole/')
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, test_function, '')
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, test_function, ' badrole ')
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, test_function, '/badrole/')
 
 
 

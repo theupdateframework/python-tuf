@@ -34,14 +34,14 @@ import copy
 import json
 
 import tuf
-import tuf.util
-import tuf.conf
+import tuf.ssl_crypto.util
+from simple_settings import settings
 import tuf.log
 import tuf.interposition.updater as updater
 import tuf.interposition.configuration as configuration
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 
 
 if sys.version_info >= (2, 7):                                                  
@@ -140,9 +140,9 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     port = self.SERVER_PORT
     url_prefix = 'http://localhost:' + str(port) + repository_basepath
 
-    # Setting 'tuf.conf.repository_directory' with the temporary client         
+    # Setting 'settings.repository_directory' with the temporary client         
     # directory copied from the original repository files.                      
-    tuf.conf.repository_directory = self.client_directory
+    settings.repository_directory = self.client_directory
 
     self.repository_mirrors = {'mirror': {'url_prefix': url_prefix,            
                                            'metadata_path': 'metadata',         
@@ -196,7 +196,7 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.                                      
     unittest_toolbox.Modified_TestCase.tearDown(self) 
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
   
 
   # Unit Tests
@@ -207,18 +207,18 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     updater_controller.add(self.good_configuration)
 
     # Instead of configuration, if some number is given.
-    self.assertRaises(tuf.InvalidConfigurationError, updater_controller.add, 8)
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidConfigurationError, updater_controller.add, 8)
 
     # Hostname already exists, should raise exception.
-    self.assertRaises(tuf.FormatError, updater_controller.add, 
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, updater_controller.add, 
                       self.good_configuration)
     
     # Hostname already exists as a mirror, should raise an exception.
-    self.assertRaises(tuf.FormatError, updater_controller.add, 
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, updater_controller.add, 
                       self.test1_configuration)
 
     # Repository mirror already exists as another mirror. 
-    self.assertRaises(tuf.FormatError, updater_controller.add,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, updater_controller.add,
                       self.test2_configuration)
 
     # Remove the old updater.
@@ -228,7 +228,7 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     updater_controller.add(self.test3_configuration)
     
     # Repository mirror already exists as an updater.
-    self.assertRaises(tuf.FormatError, updater_controller.add,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, updater_controller.add,
                       self.test4_configuration)
     
     # Remove the updater once the testing is completed.
@@ -244,12 +244,12 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     updater_controller.refresh(self.good_configuration)
 
     # Check for invalid configuration error.
-    self.assertRaises(tuf.InvalidConfigurationError,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidConfigurationError,
                       updater_controller.refresh, 8)
     
     # Check if the updater not added in the updater list is refreshed, gives an 
     # error or not.
-    self.assertRaises(tuf.NotFoundError, updater_controller.refresh, 
+    self.assertRaises(tuf.ssl_commons.exceptions.NotFoundError, updater_controller.refresh, 
                       self.test1_configuration)
     
     # Giving the same port number and network location as good_configuration.
@@ -257,7 +257,7 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     self.test4_configuration.network_location = 'localhost:8001'
 
     # Check if the mirror not added is refreshed, gives an error or not.
-    self.assertRaises(tuf.NotFoundError, updater_controller.refresh,
+    self.assertRaises(tuf.ssl_commons.exceptions.NotFoundError, updater_controller.refresh,
                       self.test4_configuration)
   
     # Make an object of tuf.interposition.updater.Updater of good configuration
@@ -269,7 +269,7 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
       'http://localhost:99999999'
  
     # To check if a bad url_prefix of a mirror raises an exception or not. 
-    self.assertRaises(tuf.NoWorkingMirrorError, good_updater.refresh)
+    self.assertRaises(tuf.ssl_commons.exceptions.NoWorkingMirrorError, good_updater.refresh)
 
 
 
@@ -285,7 +285,7 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     updater_controller.get(wrong_url)
 
     good_updater = updater.Updater(self.good_configuration)
-    self.assertRaises(tuf.URLMatchesNoPatternError,
+    self.assertRaises(tuf.ssl_commons.exceptions.URLMatchesNoPatternError,
                       good_updater.get_target_filepath, url)
 
 
@@ -297,17 +297,17 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     updater_controller.add(self.good_configuration)
 
     # Check for invalid configuration error.
-    self.assertRaises(tuf.InvalidConfigurationError,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidConfigurationError,
                       updater_controller.remove, 8)
     
-    self.assertRaises(tuf.NotFoundError, updater_controller.remove,
+    self.assertRaises(tuf.ssl_commons.exceptions.NotFoundError, updater_controller.remove,
                       self.test1_configuration)
     
     # Giving the same port number and network location as good_configuration.
     self.test4_configuration.port = 8001
     self.test4_configuration.network_location = 'localhost:8001'
 
-    self.assertRaises(tuf.NotFoundError, updater_controller.remove,
+    self.assertRaises(tuf.ssl_commons.exceptions.NotFoundError, updater_controller.remove,
                       self.test4_configuration)
 
 
@@ -394,9 +394,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     port = self.SERVER_PORT
     url_prefix = 'http://localhost:' + str(port) + repository_basepath
 
-    # Setting 'tuf.conf.repository_directory' with the temporary client         
+    # Setting 'settings.repository_directory' with the temporary client         
     # directory copied from the original repository files.                      
-    tuf.conf.repository_directory = self.client_directory
+    settings.repository_directory = self.client_directory
 
     self.repository_mirrors = {'mirror': {'url_prefix': url_prefix,            
                                           'metadata_path': 'metadata',         
@@ -417,7 +417,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.                                      
     unittest_toolbox.Modified_TestCase.tearDown(self) 
     tuf.roledb.clear_roledb('localhost')
-    tuf.keydb.clear_keydb('localhost')
+    tuf.ssl_crypto.keydb.clear_keydb('localhost')
 
 
   # Unit Tests
@@ -425,10 +425,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     myUpdater = updater.Updater(self.good_configuration)  
     
     target_filepath = 'file.txt'
-    self.assertRaises(tuf.UnknownTargetError, myUpdater.download_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownTargetError, myUpdater.download_target,
                       target_filepath)
     
-    self.assertRaises(tuf.FormatError, myUpdater.download_target, 8)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, myUpdater.download_target, 8)
     
     target_filepath = 'file1.txt'
     myUpdater.download_target(target_filepath)
@@ -440,7 +440,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertRaises(AttributeError, myUpdater.get_target_filepath, 8)
 
     test_source_url = 'http://localhost:9999'
-    self.assertRaises(tuf.URLMatchesNoPatternError,
+    self.assertRaises(tuf.ssl_commons.exceptions.URLMatchesNoPatternError,
                       myUpdater.get_target_filepath, test_source_url)
     
     test_source_url = 'http://localhost:8001/targets/file.txt'
@@ -468,10 +468,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       os.path.join(self.temporary_directory, 'interposition.json') 
     myUpdater.retrieve(test_source_url, interposition_file)
 
-    #self.assertRaises(tuf.NoWorkingMirrorError, myUpdater.retrieve, test_source_url)
+    #self.assertRaises(tuf.ssl_commons.exceptions.NoWorkingMirrorError, myUpdater.retrieve, test_source_url)
 
     test_source_url = 'http://6767:localhost'
-    self.assertRaises(tuf.URLMatchesNoPatternError, myUpdater.retrieve,
+    self.assertRaises(tuf.ssl_commons.exceptions.URLMatchesNoPatternError, myUpdater.retrieve,
                       test_source_url)
 
     test_source_url = 'http://localhost:8001/targets/file1.txt'

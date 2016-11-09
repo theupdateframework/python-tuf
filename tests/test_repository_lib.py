@@ -43,12 +43,13 @@ else:
   import unittest2 as unittest 
 
 import tuf
+import tuf.ssl_crypto.formats
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.roledb
-import tuf.keydb
-import tuf.hash
-import tuf.conf
+import tuf.ssl_crypto.keydb
+import tuf.ssl_crypto.hash
+from simple_settings import settings
 import tuf.repository_lib as repo_lib
 import tuf.repository_tool as repo_tool
 
@@ -90,7 +91,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
 
@@ -107,11 +108,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Ensure the generated key files are importable.
     imported_pubkey = \
       repo_lib.import_rsa_publickey_from_file(test_keypath + '.pub')
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_pubkey))
+    self.assertTrue(tuf.ssl_crypto.formats.RSAKEY_SCHEMA.matches(imported_pubkey))
     
     imported_privkey = \
       repo_lib.import_rsa_privatekey_from_file(test_keypath, 'pw')
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_privkey))
+    self.assertTrue(tuf.ssl_crypto.formats.RSAKEY_SCHEMA.matches(imported_privkey))
 
     # Custom 'bits' argument.
     os.remove(test_keypath)
@@ -123,16 +124,16 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_lib.generate_and_write_rsa_keypair,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_and_write_rsa_keypair,
                       3, bits=2048, password='pw')
-    self.assertRaises(tuf.FormatError, repo_lib.generate_and_write_rsa_keypair,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_and_write_rsa_keypair,
                       test_keypath, bits='bad', password='pw')
-    self.assertRaises(tuf.FormatError, repo_lib.generate_and_write_rsa_keypair,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_and_write_rsa_keypair,
                       test_keypath, bits=2048, password=3)
 
 
     # Test invalid 'bits' argument.
-    self.assertRaises(tuf.FormatError, repo_lib.generate_and_write_rsa_keypair,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_and_write_rsa_keypair,
                       test_keypath, bits=1024, password='pw')
 
 
@@ -149,11 +150,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     
     imported_rsa_key = repo_lib.import_rsa_privatekey_from_file(key_filepath,
                                                                  'password')
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_rsa_key))
+    self.assertTrue(tuf.ssl_crypto.formats.RSAKEY_SCHEMA.matches(imported_rsa_key))
 
     
     # Test improperly formatted argument.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       repo_lib.import_rsa_privatekey_from_file, 3, 'pw')
 
 
@@ -168,7 +169,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile') 
     with open(invalid_keyfile, 'wb') as file_object:
       file_object.write(b'bad keyfile')
-    self.assertRaises(tuf.CryptoError, repo_lib.import_rsa_privatekey_from_file,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, repo_lib.import_rsa_privatekey_from_file,
                       invalid_keyfile, 'pw')
 
 
@@ -183,11 +184,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(os.path.exists(key_filepath))
     
     imported_rsa_key = repo_lib.import_rsa_publickey_from_file(key_filepath)
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(imported_rsa_key))
+    self.assertTrue(tuf.ssl_crypto.formats.RSAKEY_SCHEMA.matches(imported_rsa_key))
 
     
     # Test improperly formatted argument.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       repo_lib.import_rsa_privatekey_from_file, 3)
 
 
@@ -202,7 +203,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     invalid_keyfile = os.path.join(temporary_directory, 'invalid_keyfile') 
     with open(invalid_keyfile, 'wb') as file_object:
       file_object.write(b'bad keyfile')
-    self.assertRaises(tuf.Error, repo_lib.import_rsa_publickey_from_file,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.import_rsa_publickey_from_file,
                       invalid_keyfile)
 
 
@@ -220,18 +221,18 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Ensure the generated key files are importable.
     imported_pubkey = \
       repo_lib.import_ed25519_publickey_from_file(test_keypath + '.pub')
-    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_pubkey))
+    self.assertTrue(tuf.ssl_crypto.formats.ED25519KEY_SCHEMA.matches(imported_pubkey))
     
     imported_privkey = \
       repo_lib.import_ed25519_privatekey_from_file(test_keypath, 'pw')
-    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_privkey))
+    self.assertTrue(tuf.ssl_crypto.formats.ED25519KEY_SCHEMA.matches(imported_privkey))
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       repo_lib.generate_and_write_ed25519_keypair,
                       3, password='pw')
-    self.assertRaises(tuf.FormatError, repo_lib.generate_and_write_rsa_keypair,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_and_write_rsa_keypair,
                       test_keypath, password=3)
 
 
@@ -245,11 +246,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
      
     imported_ed25519_key = \
       repo_lib.import_ed25519_publickey_from_file(ed25519_keypath + '.pub')
-    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
+    self.assertTrue(tuf.ssl_crypto.formats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
     
     
     # Test improperly formatted argument.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       repo_lib.import_ed25519_publickey_from_file, 3)
 
 
@@ -265,20 +266,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     with open(invalid_keyfile, 'wb') as file_object:
       file_object.write(b'bad keyfile')
     
-    self.assertRaises(tuf.Error, repo_lib.import_ed25519_publickey_from_file,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.import_ed25519_publickey_from_file,
                       invalid_keyfile)
  
     # Invalid public key imported (contains unexpected keytype.)
     keytype = imported_ed25519_key['keytype'] 
     keyval = imported_ed25519_key['keyval']
     ed25519key_metadata_format = \
-      tuf.keys.format_keyval_to_metadata(keytype, keyval, private=False)
+      tuf.ssl_crypto.keys.format_keyval_to_metadata(keytype, keyval, private=False)
     
     ed25519key_metadata_format['keytype'] = 'invalid_keytype'
     with open(ed25519_keypath + '.pub', 'wb') as file_object:
       file_object.write(json.dumps(ed25519key_metadata_format).encode('utf-8'))
     
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       repo_lib.import_ed25519_publickey_from_file,
                       ed25519_keypath + '.pub')
 
@@ -293,11 +294,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
      
     imported_ed25519_key = \
       repo_lib.import_ed25519_privatekey_from_file(ed25519_keypath, 'pw')
-    self.assertTrue(tuf.formats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
+    self.assertTrue(tuf.ssl_crypto.formats.ED25519KEY_SCHEMA.matches(imported_ed25519_key))
     
     
     # Test improperly formatted argument.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       repo_lib.import_ed25519_privatekey_from_file, 3, 'pw')
 
 
@@ -313,7 +314,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     with open(invalid_keyfile, 'wb') as file_object:
       file_object.write(b'bad keyfile')
     
-    self.assertRaises(tuf.Error, repo_lib.import_ed25519_privatekey_from_file,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.import_ed25519_privatekey_from_file,
                       invalid_keyfile, 'pw')
     
     # Invalid private key imported (contains unexpected keytype.)
@@ -322,7 +323,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Use 'pycrypto_keys.py' to bypass the key format validation performed by
     # 'keys.py'.
     salt, iterations, derived_key = \
-      tuf.pycrypto_keys._generate_derived_key('pw')
+      tuf.ssl_crypto.pycrypto_keys._generate_derived_key('pw')
  
     # Store the derived key info in a dictionary, the object expected
     # by the non-public _encrypt() routine.
@@ -332,13 +333,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Convert the key object to json string format and encrypt it with the
     # derived key.
     encrypted_key = \
-      tuf.pycrypto_keys._encrypt(json.dumps(imported_ed25519_key),
+      tuf.ssl_crypto.pycrypto_keys._encrypt(json.dumps(imported_ed25519_key),
                                  derived_key_information)  
     
     with open(ed25519_keypath, 'wb') as file_object:
       file_object.write(encrypted_key.encode('utf-8'))
 
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       repo_lib.import_ed25519_privatekey_from_file,
                       ed25519_keypath, 'pw')
 
@@ -366,7 +367,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
     # Test improperly formatted argument.
-    self.assertRaises(tuf.FormatError, repo_lib.get_metadata_filenames, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.get_metadata_filenames, 3)
 
 
 
@@ -381,23 +382,23 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Generate test fileinfo object.  It is assumed SHA256 and SHA512 hashes
     # are computed by get_metadata_fileinfo().
     file_length = os.path.getsize(test_filepath)
-    sha256_digest_object = tuf.hash.digest_filename(test_filepath)
-    sha512_digest_object = tuf.hash.digest_filename(test_filepath, algorithm='sha512')
+    sha256_digest_object = tuf.ssl_crypto.hash.digest_filename(test_filepath)
+    sha512_digest_object = tuf.ssl_crypto.hash.digest_filename(test_filepath, algorithm='sha512')
     file_hashes = {'sha256': sha256_digest_object.hexdigest(),
                    'sha512': sha512_digest_object.hexdigest()}
     fileinfo = {'length': file_length, 'hashes': file_hashes}
-    self.assertTrue(tuf.formats.FILEINFO_SCHEMA.matches(fileinfo))
+    self.assertTrue(tuf.ssl_crypto.formats.FILEINFO_SCHEMA.matches(fileinfo))
     
     self.assertEqual(fileinfo, repo_lib.get_metadata_fileinfo(test_filepath))
 
 
     # Test improperly formatted argument.
-    self.assertRaises(tuf.FormatError, repo_lib.get_metadata_fileinfo, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.get_metadata_fileinfo, 3)
 
 
     # Test non-existent file.
     nonexistent_filepath = os.path.join(temporary_directory, 'oops.txt')
-    self.assertRaises(tuf.Error, repo_lib.get_metadata_fileinfo,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.get_metadata_fileinfo,
                       nonexistent_filepath)
 
 
@@ -410,12 +411,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       '/packages/file2.txt': 'c9c4a5cdd84858dd6a23d98d7e6e6b2aec45034946c16b2200bc317c75415e92'  
     }
     for filepath, target_hash in six.iteritems(expected_target_hashes):
-      self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
-      self.assertTrue(tuf.formats.HASH_SCHEMA.matches(target_hash))
+      self.assertTrue(tuf.ssl_crypto.formats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.ssl_crypto.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(repo_lib.get_target_hash(filepath), target_hash)
    
     # Test for improperly formatted argument.
-    self.assertRaises(tuf.FormatError, repo_lib.get_target_hash, 8)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.get_target_hash, 8)
 
 
 
@@ -424,44 +425,44 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Load the root metadata provided in 'tuf/tests/repository_data/'.
     root_filepath = os.path.join('repository_data', 'repository',
                                  'metadata', 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
 
     # generate_root_metadata() expects the top-level roles and keys to be
-    # available in 'tuf.keydb' and 'tuf.roledb'.
+    # available in 'tuf.ssl_crypto.keydb' and 'tuf.roledb'.
     tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'])
-    tuf.keydb.create_keydb_from_root_metadata(root_signable['signed'])
+    tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(root_signable['signed'])
     expires = '1985-10-21T01:22:00Z'
 
     root_metadata = repo_lib.generate_root_metadata(1, expires,
                                                     consistent_snapshot=False)
-    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
+    self.assertTrue(tuf.ssl_crypto.formats.ROOT_SCHEMA.matches(root_metadata))
 
     root_keyids = tuf.roledb.get_role_keyids('root')
-    tuf.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'bad_keytype'
-    self.assertRaises(tuf.Error, repo_lib.generate_root_metadata, 1,
+    tuf.ssl_crypto.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'bad_keytype'
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.generate_root_metadata, 1,
                       expires, consistent_snapshot=False)
     
     # Reset the root key's keytype, so that we can next verify that a different
-    # tuf.Error exception is raised for duplicate keyids.
-    tuf.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'rsa'
+    # tuf.ssl_commons.exceptions.Error exception is raised for duplicate keyids.
+    tuf.ssl_crypto.keydb._keydb_dict['default'][root_keyids[0]]['keytype'] = 'rsa'
     
     # Add duplicate keyid to root's roleinfo.
     tuf.roledb._roledb_dict['default']['root']['keyids'].append(root_keyids[0])
-    self.assertRaises(tuf.Error, repo_lib.generate_root_metadata, 1,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.generate_root_metadata, 1,
                       expires, consistent_snapshot=False)
     
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_root_metadata,  
                       '3', expires, False)
-    self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_root_metadata,  
                       1, '3', False) 
-    self.assertRaises(tuf.FormatError, repo_lib.generate_root_metadata,  
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_root_metadata,  
                       1, expires, 3) 
 
     # Test for missing required roles and keys.
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
-    self.assertRaises(tuf.Error, repo_lib.generate_root_metadata,
+    tuf.ssl_crypto.keydb.clear_keydb()
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.generate_root_metadata,
                       1, expires, False)
 
 
@@ -471,7 +472,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     targets_directory = os.path.join(temporary_directory, 'targets')
     file1_path = os.path.join(targets_directory, 'file.txt')
-    tuf.util.ensure_parent_dir(file1_path)
+    tuf.ssl_crypto.util.ensure_parent_dir(file1_path)
 
     with open(file1_path, 'wt') as file_object:
       file_object.write('test file.')
@@ -510,14 +511,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       repo_lib.generate_targets_metadata(targets_directory, target_files,
                                          version, expiration_date, delegations,
                                          False)
-    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
+    self.assertTrue(tuf.ssl_crypto.formats.TARGETS_SCHEMA.matches(targets_metadata))
    
     # Valid arguments with 'delegations' set to None.
     targets_metadata = \
       repo_lib.generate_targets_metadata(targets_directory, target_files,
                                          version, expiration_date, None,
                                          False)
-    self.assertTrue(tuf.formats.TARGETS_SCHEMA.matches(targets_metadata))
+    self.assertTrue(tuf.ssl_crypto.formats.TARGETS_SCHEMA.matches(targets_metadata))
 
     # Verify that 'digest.filename' file is saved to 'targets_directory' if
     # the 'write_consistent_targets' argument is True.
@@ -543,20 +544,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue('custom' in targets_metadata['targets']['file.txt'])
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_lib.generate_targets_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_targets_metadata,
                       3, target_files, version, expiration_date)  
-    self.assertRaises(tuf.FormatError, repo_lib.generate_targets_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_targets_metadata,
                       targets_directory, 3, version, expiration_date)  
-    self.assertRaises(tuf.FormatError, repo_lib.generate_targets_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_targets_metadata,
                       targets_directory, target_files, '3', expiration_date)  
-    self.assertRaises(tuf.FormatError, repo_lib.generate_targets_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_targets_metadata,
                       targets_directory, target_files, version, '3')  
     
     # Improperly formatted 'delegations' and 'write_consistent_targets' 
-    self.assertRaises(tuf.FormatError, repo_lib.generate_targets_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_targets_metadata,
                       targets_directory, target_files, version, expiration_date,
                       3, False)  
-    self.assertRaises(tuf.FormatError, repo_lib.generate_targets_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_targets_metadata,
                       targets_directory, target_files, version, expiration_date,
                       delegations, 3)  
 
@@ -564,7 +565,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     bad_target_file = \
       {'non-existent.txt': {'file_permission': file_permissions}}
 
-    self.assertRaises(tuf.Error, repo_lib.generate_targets_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.generate_targets_metadata,
                       targets_directory, bad_target_file, version,
                       expiration_date)
 
@@ -600,26 +601,26 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                           expiration_date, root_filename,
                                           targets_filename,
                                           consistent_snapshot=False)
-    self.assertTrue(tuf.formats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
+    self.assertTrue(tuf.tufformats.SNAPSHOT_SCHEMA.matches(snapshot_metadata))
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_lib.generate_snapshot_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       3, version, expiration_date,
                       root_filename, targets_filename, consistent_snapshot=False)
-    self.assertRaises(tuf.FormatError, repo_lib.generate_snapshot_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, '3', expiration_date,
                       root_filename, targets_filename, consistent_snapshot=False)
-    self.assertRaises(tuf.FormatError, repo_lib.generate_snapshot_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, version, '3',
                       root_filename, targets_filename, consistent_snapshot=False)
-    self.assertRaises(tuf.FormatError, repo_lib.generate_snapshot_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, version, expiration_date,
                       3, targets_filename, consistent_snapshot=False)
-    self.assertRaises(tuf.FormatError, repo_lib.generate_snapshot_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, version, expiration_date,
                       root_filename, 3, consistent_snapshot=False)
-    self.assertRaises(tuf.FormatError, repo_lib.generate_snapshot_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_snapshot_metadata,
                       metadata_directory, version, expiration_date,
                       root_filename, targets_filename, 3)
 
@@ -653,15 +654,15 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     timestamp_metadata = \
       repo_lib.generate_timestamp_metadata(snapshot_filename, version,
                                            expiration_date)
-    self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
+    self.assertTrue(tuf.tufformats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
     
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_timestamp_metadata,
                       3, version, expiration_date)
-    self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_timestamp_metadata,
                       snapshot_filename, '3', expiration_date)
-    self.assertRaises(tuf.FormatError, repo_lib.generate_timestamp_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.generate_timestamp_metadata,
                       snapshot_filename, version, '3')
 
 
@@ -676,11 +677,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     keystore_path = os.path.join('repository_data',
                                  'keystore')
     root_filename = os.path.join(metadata_path, 'root.json')
-    root_metadata = tuf.util.load_json_file(root_filename)['signed']
+    root_metadata = tuf.ssl_crypto.util.load_json_file(root_filename)['signed']
     targets_filename = os.path.join(metadata_path, 'targets.json')
-    targets_metadata = tuf.util.load_json_file(targets_filename)['signed']
+    targets_metadata = tuf.ssl_crypto.util.load_json_file(targets_filename)['signed']
     
-    tuf.keydb.create_keydb_from_root_metadata(root_metadata)
+    tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(root_metadata)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata)
     root_keyids = tuf.roledb.get_role_keyids('root')
     targets_keyids = tuf.roledb.get_role_keyids('targets')
@@ -695,18 +696,18 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       repo_lib.import_ed25519_publickey_from_file(targets_public_keypath)
 
     # sign_metadata() expects the private key 'root_metadata' to be in
-    # 'tuf.keydb'.  Remove any public keys that may be loaded before
+    # 'tuf.ssl_crypto.keydb'.  Remove any public keys that may be loaded before
     # adding private key, otherwise a 'tuf.KeyAlreadyExists' exception is
     # raised.
-    tuf.keydb.remove_key(root_private_key['keyid'])
-    tuf.keydb.add_key(root_private_key)
-    tuf.keydb.remove_key(targets_public_key['keyid'])
-    tuf.keydb.add_key(targets_public_key)
+    tuf.ssl_crypto.keydb.remove_key(root_private_key['keyid'])
+    tuf.ssl_crypto.keydb.add_key(root_private_key)
+    tuf.ssl_crypto.keydb.remove_key(targets_public_key['keyid'])
+    tuf.ssl_crypto.keydb.add_key(targets_public_key)
    
     # Verify that a valid root signable is generated.
     root_signable = repo_lib.sign_metadata(root_metadata, root_keyids,
                                            root_filename) 
-    self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(root_signable))
+    self.assertTrue(tuf.ssl_crypto.formats.SIGNABLE_SCHEMA.matches(root_signable))
 
     # Test for an unset private key (in this case, target's).
     repo_lib.sign_metadata(targets_metadata, targets_keyids,
@@ -714,16 +715,16 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Add an invalid keytype to one of the root keys.
     root_keyid = root_keyids[0]
-    tuf.keydb._keydb_dict['default'][root_keyid]['keytype'] = 'bad_keytype'
-    self.assertRaises(tuf.Error, repo_lib.sign_metadata, root_metadata,
+    tuf.ssl_crypto.keydb._keydb_dict['default'][root_keyid]['keytype'] = 'bad_keytype'
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib.sign_metadata, root_metadata,
                       root_keyids, root_filename)
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_lib.sign_metadata, 3, root_keyids,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.sign_metadata, 3, root_keyids,
                       'root.json')
-    self.assertRaises(tuf.FormatError, repo_lib.sign_metadata, root_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.sign_metadata, root_metadata,
                       3, 'root.json')
-    self.assertRaises(tuf.FormatError, repo_lib.sign_metadata, root_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.sign_metadata, root_metadata,
                       root_keyids, 3)
 
 
@@ -734,7 +735,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
     root_filename = os.path.join(metadata_directory, 'root.json')
-    root_signable = tuf.util.load_json_file(root_filename)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filename)
   
     output_filename = os.path.join(temporary_directory, 'root.json')
     compression_algorithms = ['gz']
@@ -759,7 +760,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # this case.  For testing purposes, root.json should be a hard link to the
     # consistent metadata file.  We should verify that root.json points to
     # the latest consistent files.
-    tuf.conf.CONSISTENT_METHOD = 'hard_link'
+    settings.CONSISTENT_METHOD = 'hard_link'
     repo_lib.write_metadata_file(root_signable, output_filename,
                                  version_number,
                                  compression_algorithms,
@@ -786,9 +787,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertNotEqual(os.stat(output_filename).st_ino, os.stat(first_version_output_file).st_ino)
     self.assertEqual(os.stat(output_filename).st_ino, os.stat(second_version_output_file).st_ino)
 
-    # Test for an improper tuf.conf.CONSISTENT_METHOD string value.
-    tuf.conf.CONSISTENT_METHOD = 'somebadidea'
-    self.assertRaises(tuf.InvalidConfigurationError, repo_lib.write_metadata_file,
+    # Test for an improper settings.CONSISTENT_METHOD string value.
+    settings.CONSISTENT_METHOD = 'somebadidea'
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidConfigurationError, repo_lib.write_metadata_file,
                                                      root_signable, output_filename,
                                                      version_number,
                                                      compression_algorithms,
@@ -796,7 +797,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Try to create a link to root.json when root.json doesn't exist locally.
     # repository_lib should log a message if this is the case.
-    tuf.conf.CONSISTENT_METHOD = 'hard_link'
+    settings.CONSISTENT_METHOD = 'hard_link'
     os.remove(output_filename)
     repo_lib.write_metadata_file(root_signable, output_filename,
                                  version_number,
@@ -804,26 +805,26 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                  consistent_snapshot=True)
     
     # Reset CONSISTENT_METHOD so that subsequent tests work as expected.
-    tuf.conf.CONSISTENT_METHOD = 'copy'
+    settings.CONSISTENT_METHOD = 'copy'
     
     # Test for unknown compression algorithm.
-    self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.write_metadata_file,
                                        root_signable, output_filename,
                                        version_number,
                                        compression_algorithms=['bad_algo'],
                                        consistent_snapshot=False)
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.write_metadata_file,
                       3, output_filename, version_number,
                       compression_algorithms, False)
-    self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.write_metadata_file,
                       root_signable, 3, version_number, compression_algorithms,
                       False)
-    self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.write_metadata_file,
                       root_signable, output_filename, '3',
                       compression_algorithms, False)
-    self.assertRaises(tuf.FormatError, repo_lib.write_metadata_file,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.write_metadata_file,
                       root_signable, output_filename, version_number,
                       compression_algorithms, 3)
   
@@ -832,7 +833,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
   def test__write_compressed_metadata(self):
     # Test for invalid 'compressed_filename' argument and set
     # 'write_new_metadata' to False.
-    file_object = tuf.util.TempFile()
+    file_object = tuf.ssl_crypto.util.TempFile()
     existing_filename = os.path.join('repository_data', 'repository',
                                      'metadata', 'root.json')
 
@@ -844,7 +845,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                         version_number=8)
 
     # Test writing of compressed metadata when consistent snapshots is enabled. 
-    file_object = tuf.util.TempFile()
+    file_object = tuf.ssl_crypto.util.TempFile()
     shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.json.gz'))
     shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.json.zip'))
     shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.zip'))
@@ -881,14 +882,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_lib.create_tuf_client_directory,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.create_tuf_client_directory,
                       3, client_directory)
-    self.assertRaises(tuf.FormatError, repo_lib.create_tuf_client_directory,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_lib.create_tuf_client_directory,
                       repository_directory, 3)
 
 
     # Test invalid argument (i.e., client directory already exists.)
-    self.assertRaises(tuf.RepositoryError, repo_lib.create_tuf_client_directory,
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, repo_lib.create_tuf_client_directory,
                       repository_directory, client_directory)
 
     # Test invalid client metadata directory (i.e., non-errno.EEXIST exceptions
@@ -912,7 +913,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test__check_directory(self):
     # Test for non-existent directory.
-    self.assertRaises(tuf.Error, repo_lib._check_directory, 'non-existent')
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo_lib._check_directory, 'non-existent')
 
 
 
@@ -921,7 +922,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Load the root metadata provided in 'tuf/tests/repository_data/'.
     root_filepath = os.path.join('repository_data', 'repository',
                                  'metadata', 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
 
     # _generate_and_write_metadata() expects the top-level roles
     # (specifically 'snapshot') and keys to be available in 'tuf.roledb'.
@@ -936,7 +937,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                     'targets.json')
     obsolete_metadata = os.path.join(metadata_directory,
                                             'obsolete_role.json')
-    tuf.util.ensure_parent_dir(obsolete_metadata)
+    tuf.ssl_crypto.util.ensure_parent_dir(obsolete_metadata)
     shutil.copyfile(targets_metadata, obsolete_metadata)
     
     # Verify that obsolete metadata (a metadata file exists on disk, but the
@@ -945,7 +946,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     targets_roleinfo = tuf.roledb.get_roleinfo('targets')
     targets_roleinfo['version'] = 1
     expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
+      tuf.tufformats.unix_timestamp_to_datetime(int(time.time() + 86400))
     expiration = expiration.isoformat() + 'Z' 
     targets_roleinfo['expires'] = expiration 
     tuf.roledb.add_role('obsolete_role', targets_roleinfo)
@@ -958,7 +959,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     snapshot_filepath = os.path.join('repository_data', 'repository',
                                      'metadata', 'snapshot.json')
-    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    snapshot_signable = tuf.ssl_crypto.util.load_json_file(snapshot_filepath)
     tuf.roledb.remove_role('obsolete_role')
     self.assertTrue(os.path.exists(os.path.join(metadata_directory,
                                                 'obsolete_role.json')))
@@ -978,7 +979,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     os.makedirs(metadata_directory)
     snapshot_filepath = os.path.join('repository_data', 'repository',
                                      'metadata', 'snapshot.json')
-    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    snapshot_signable = tuf.ssl_crypto.util.load_json_file(snapshot_filepath)
  
     # Create role metadata that should not exist in snapshot.json.
     role1_filepath = os.path.join('repository_data', 'repository',
@@ -998,7 +999,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test__load_top_level_metadata(self):
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     repository_directory = os.path.join(temporary_directory, 'repository') 
@@ -1013,7 +1014,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Add a duplicate signature to the Root file for testing purposes).
     root_file = os.path.join(metadata_directory, 'root.json')
-    signable = tuf.util.load_json_file(os.path.join(metadata_directory, 'root.json'))
+    signable = tuf.ssl_crypto.util.load_json_file(os.path.join(metadata_directory, 'root.json'))
     signable['signatures'].append(signable['signatures'][0])
 
     repo_lib.write_metadata_file(signable, root_file, 8, ['gz'], False)
@@ -1051,7 +1052,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Remove the required Root file and verify that an exception is raised.
     os.remove(os.path.join(metadata_directory, 'root.json'))
-    self.assertRaises(tuf.RepositoryError, repo_lib._load_top_level_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, repo_lib._load_top_level_metadata,
                       repository, filenames)
 
 
@@ -1061,20 +1062,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # signatures).  First load a valid signable (in this case, the root role).
     root_filepath = os.path.join('repository_data', 'repository',
                                  'metadata', 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
     key_filepath = os.path.join('repository_data', 'keystore', 'root_key')
     root_rsa_key = repo_lib.import_rsa_privatekey_from_file(key_filepath,
                                                             'password')
     
-    # Add 'root_rsa_key' to tuf.keydb, since
+    # Add 'root_rsa_key' to tuf.ssl_crypto.keydb, since
     # _remove_invalid_and_duplicate_signatures() checks for unknown keys in
-    # tuf.keydb.
-    tuf.keydb.add_key(root_rsa_key)
+    # tuf.ssl_crypto.keydb.
+    tuf.ssl_crypto.keydb.add_key(root_rsa_key)
 
     # Append the new valid, but duplicate PSS signature, and test that
     # duplicates are removed.  create_signature() generates a key for the
     # key type of the first argument (i.e., root_rsa_key).
-    new_pss_signature = tuf.keys.create_signature(root_rsa_key,
+    new_pss_signature = tuf.ssl_crypto.keys.create_signature(root_rsa_key,
                                                   root_signable['signed'])
     root_signable['signatures'].append(new_pss_signature)
 

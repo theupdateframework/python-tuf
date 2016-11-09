@@ -28,8 +28,8 @@ from __future__ import unicode_literals
 import os
 
 import tuf
-import tuf.util
-import tuf.formats
+import tuf.ssl_crypto.util
+import tuf.tufformats
 
 import six
 
@@ -69,9 +69,9 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       The 'custom' field is optional.
 
   <Exceptions>
-    tuf.Error, on unsupported 'file_type'.
+    tuf.ssl_commons.exceptions.Error, on unsupported 'file_type'.
     
-    tuf.FormatError, on bad argument.
+    tuf.ssl_commons.exceptions.FormatError, on bad argument.
 
   <Return>
     List of mirror urls corresponding to the file_type and file_path.  If no
@@ -79,22 +79,22 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   """
 
   # Checking if all the arguments have appropriate format.
-  tuf.formats.RELPATH_SCHEMA.check_match(file_path)
-  tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
-  tuf.formats.NAME_SCHEMA.check_match(file_type)
+  tuf.ssl_crypto.formats.RELPATH_SCHEMA.check_match(file_path)
+  tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(file_type)
 
   # Verify 'file_type' is supported.
   if file_type not in _SUPPORTED_FILE_TYPES:
     message = 'Invalid file_type argument.  '+ \
       'Supported file types: '+repr(_SUPPORTED_FILE_TYPES)
-    raise tuf.Error(message)
+    raise tuf.ssl_commons.exceptions.Error(message)
 
-  # Reference to 'tuf.util.file_in_confined_directories()' (improve readability).
+  # Reference to 'tuf.ssl_crypto.util.file_in_confined_directories()' (improve readability).
   # This function checks whether a mirror should serve a file to the client.
   # A client may be confined to certain paths on a repository mirror
   # when fetching target files.  This field may be set by the client when
   # the repository mirror is added to the 'tuf.client.updater.Updater' object.
-  in_confined_directory = tuf.util.file_in_confined_directories
+  in_confined_directory = tuf.ssl_crypto.util.file_in_confined_directories
 
   list_of_mirrors = []
   for mirror_name, mirror_info in six.iteritems(mirrors_dict):

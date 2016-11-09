@@ -25,9 +25,9 @@ import shutil
 
 import tuf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.developer_tool as developer_tool
 
 from tuf.developer_tool import METADATA_DIRECTORY_NAME
@@ -56,7 +56,7 @@ class TestProject(unittest.TestCase):
   def tearDown(self):
     # called after every test case
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
   def test_create_new_project(self):
@@ -102,11 +102,11 @@ class TestProject(unittest.TestCase):
         os.path.join(metadata_directory,TARGETS_DIRECTORY_NAME))
 
     # Create a blank project without a valid metadata directory.
-    self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, developer_tool.create_new_project,
        0, metadata_directory, location_in_repository) 
-    self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, developer_tool.create_new_project,
        project_name, 0, location_in_repository) 
-    self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, developer_tool.create_new_project,
        project_name, metadata_directory, 0) 
 
 
@@ -123,7 +123,7 @@ class TestProject(unittest.TestCase):
     self.assertTrue(project._targets_directory == targets_directory)
 
     # Finally, check that if targets_directory is set, it is valid.
-    self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, developer_tool.create_new_project,
         project_name, metadata_directory, location_in_repository, 0)
    
     # Copy a key to our workspace and create a new project with it.
@@ -152,7 +152,7 @@ class TestProject(unittest.TestCase):
     os.chmod(local_tmp, 0o0555)
 
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     self.assertRaises(OSError, developer_tool.create_new_project ,project_name,
         metadata_directory, location_in_repository, targets_directory,
         project_key)
@@ -163,7 +163,7 @@ class TestProject(unittest.TestCase):
     os.chmod(local_tmp, 0o0555)
 
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     self.assertRaises(OSError, developer_tool.create_new_project ,project_name,
         metadata_directory, location_in_repository, targets_directory,
         project_key)
@@ -209,7 +209,7 @@ class TestProject(unittest.TestCase):
     with open(file_to_corrupt, 'wt') as fp:
       fp.write('this is not a json file')
    
-    self.assertRaises(tuf.Error, developer_tool.load_project, repo_filepath)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, developer_tool.load_project, repo_filepath)
 
     
 
@@ -220,7 +220,7 @@ class TestProject(unittest.TestCase):
         'someotherpath', 'prefix')
 
     # Add invalid verification key.
-    self.assertRaises(tuf.FormatError, project.add_verification_key, 'invalid')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, project.add_verification_key, 'invalid')
 
     # Add verification key.
     #  - load it first 
@@ -237,7 +237,7 @@ class TestProject(unittest.TestCase):
     second_verification_key = \
       developer_tool.import_ed25519_publickey_from_file(second_verification_key_path)
     
-    self.assertRaises(tuf.Error,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
         project.add_verification_key,(second_verification_key))
 
 
@@ -301,7 +301,7 @@ class TestProject(unittest.TestCase):
     project('delegation').delegate('subdelegation', [subdelegation_key], [])
 
     # call write (except)
-    self.assertRaises(tuf.Error, project.write, ())
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, project.write, ())
 
     # Call status (for the sake of doing it and executing its statements.)
     project.status()
@@ -350,7 +350,7 @@ class TestProject(unittest.TestCase):
     project('delegation').compressions = project.compressions
 
     # Write and reload.
-    self.assertRaises(tuf.Error, project.write)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, project.write)
     project.write(write_partial=True)
 
     project = developer_tool.load_project(local_tmp)

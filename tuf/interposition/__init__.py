@@ -246,7 +246,7 @@ def __read_configuration(configuration_handler,
       configurations = tuf_interpositions.get("configurations", {})
 
       if len(configurations) == 0:
-        raise tuf.InvalidConfigurationError(NO_CONFIGURATIONS.format(filename=filename))
+        raise tuf.ssl_commons.exceptions.InvalidConfigurationError(NO_CONFIGURATIONS.format(filename=filename))
 
       else:
         for network_location, configuration in six.iteritems(configurations):

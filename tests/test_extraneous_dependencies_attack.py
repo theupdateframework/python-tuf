@@ -55,14 +55,14 @@ if sys.version_info >= (2, 7):
 else:
   import unittest2 as unittest 
 
-import tuf.formats
-import tuf.util
+import tuf.tufformats
+import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.unittest_toolbox as unittest_toolbox
-
+from simple_settings import settings
 import six
 
 logger = logging.getLogger('tuf.test_extraneous_dependencies_attack')
@@ -153,9 +153,9 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -172,7 +172,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
     
 
 
@@ -189,14 +189,14 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
                                   'role1.json')
     file1_filepath = os.path.join(self.repository_directory, 'targets',
                                   'file1.txt')
-    length, hashes = tuf.util.get_file_details(file1_filepath)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(file1_filepath)
 
-    role1_metadata = tuf.util.load_json_file(role1_filepath)
+    role1_metadata = tuf.ssl_crypto.util.load_json_file(role1_filepath)
     role1_metadata['signed']['targets']['/file2.txt'] = {}
     role1_metadata['signed']['targets']['/file2.txt']['hashes'] = hashes
     role1_metadata['signed']['targets']['/file2.txt']['length'] = length
 
-    tuf.formats.check_signable_object_format(role1_metadata) 
+    tuf.tufformats.check_signable_object_format(role1_metadata) 
     
     with open(role1_filepath, 'wt') as file_object:
       json.dump(role1_metadata, file_object, indent=1, sort_keys=True)   
@@ -219,16 +219,16 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.targets_of_role('role1')
    
-    # Verify that the specific 'tuf.ForbiddenTargetError' exception is raised
+    # Verify that the specific 'tuf.ssl_commons.exceptions.ForbiddenTargetError' exception is raised
     # by each mirror.
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'metadata', 'role1.json')
        
         # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.BadSignatureError))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.BadSignatureError))
 
     else:
       self.fail('TUF did not prevent an extraneous dependencies attack.')

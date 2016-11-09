@@ -37,7 +37,7 @@ import time
 import unittest
 
 import tuf
-import tuf.conf
+from simple_settings import settings
 import tuf.download as download
 import tuf.log
 import tuf.unittest_toolbox as unittest_toolbox
@@ -107,7 +107,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
   # Test: Incorrect lengths.
   def test_download_url_to_tempfileobj_and_lengths(self):
-    # We do *not* catch 'tuf.DownloadLengthMismatchError' in the following two
+    # We do *not* catch 'tuf.ssl_commons.exceptions.DownloadLengthMismatchError' in the following two
     # calls because the file at 'self.url' contains enough bytes to satisfy the
     # smaller number of required bytes requested. safe_download() and
     # unsafe_download() will only log a warning when the the server-reported
@@ -116,15 +116,15 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     download.safe_download(self.url, self.target_data_length - 4)
     download.unsafe_download(self.url, self.target_data_length - 4)
 
-    # We catch 'tuf.SlowRetrievalError' for both safe_download() and
+    # We catch 'tuf.ssl_commons.exceptions.SlowRetrievalError' for both safe_download() and
     # unsafe_download() because they will not download more bytes than
     # requested and the connection eventually hits a slow retrieval error when
     # the server can't satisfy the request (in this case, a length greater
     # than the size of the target file).
-    self.assertRaises(tuf.SlowRetrievalError, download.safe_download,
+    self.assertRaises(tuf.ssl_commons.exceptions.SlowRetrievalError, download.safe_download,
                       self.url, self.target_data_length + 1)
     
-    self.assertRaises(tuf.SlowRetrievalError, download.unsafe_download,
+    self.assertRaises(tuf.ssl_commons.exceptions.SlowRetrievalError, download.unsafe_download,
                       self.url, self.target_data_length + 1)
 
 
@@ -160,10 +160,10 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     download_file = download.safe_download
     unsafe_download_file = download.unsafe_download
 
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       download_file, None, self.target_data_length)
 
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       download_file,
                       self.random_string(), self.target_data_length)
 
@@ -179,9 +179,9 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
 
     # Specify an unsupported URI scheme.
     url_with_unsupported_uri = self.url.replace('http', 'file')
-    self.assertRaises(tuf.FormatError, download_file, url_with_unsupported_uri,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, download_file, url_with_unsupported_uri,
                       self.target_data_length)
-    self.assertRaises(tuf.FormatError, unsafe_download_file,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, unsafe_download_file,
                       url_with_unsupported_uri, self.target_data_length)
 
  
@@ -195,9 +195,9 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     with open(fake_cacert, 'wt') as file_object:
       file_object.write('fake cacert')
     
-    tuf.conf.ssl_certificates = fake_cacert
+    settings.ssl_certificates = fake_cacert
     tuf.download._get_opener('https')
-    tuf.conf.ssl_certificates = None
+    settings.ssl_certificates = None
 
 
 
@@ -225,7 +225,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
     https_url = 'https://localhost:' + str(port) + '/' + relative_target_filepath
    
     # Download the target file using an https connection.
-    tuf.conf.ssl_certificates = 'ssl_cert.crt'
+    settings.ssl_certificates = 'ssl_cert.crt'
     message = 'Downloading target file from https server: ' + https_url  
     logger.info(message)
     try: 

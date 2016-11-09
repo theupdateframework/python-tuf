@@ -36,10 +36,10 @@ else:
 
 import tuf
 import tuf.log
-import tuf.formats
+import tuf.tufformats
 import tuf.roledb
-import tuf.keydb
-import tuf.hash
+import tuf.ssl_crypto.keydb
+import tuf.ssl_crypto.hash
 import tuf.repository_tool as repo_tool
 
 logger = logging.getLogger('tuf.test_root_versioning')
@@ -59,7 +59,7 @@ class TestRepository(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
 
   def test_init(self):
     # Test normal case.
@@ -72,11 +72,11 @@ class TestRepository(unittest.TestCase):
     self.assertTrue(isinstance(repository.targets, repo_tool.Targets))
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_tool.Repository, 3,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository, 3,
                       'metadata_directory/', 'targets_directory')
-    self.assertRaises(tuf.FormatError, repo_tool.Repository,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository,
                       'repository_directory', 3, 'targets_directory')
-    self.assertRaises(tuf.FormatError, repo_tool.Repository,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository,
                       'repository_directory', 'metadata_directory', 3)
 
 
@@ -188,8 +188,8 @@ class TestRepository(unittest.TestCase):
     root_filepath = os.path.join(metadata_directory, 'root.json')
     root_1_filepath = os.path.join(metadata_directory, '1.root.json')
     root_2_filepath = os.path.join(metadata_directory, '2.root.json')
-    old_root_signable = tuf.util.load_json_file(root_filepath)
-    root_1_signable = tuf.util.load_json_file(root_1_filepath)
+    old_root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
+    root_1_signable = tuf.ssl_crypto.util.load_json_file(root_1_filepath)
     
     # Make a change to the root keys
     repository.root.add_verification_key(targets_pubkey)
@@ -197,12 +197,12 @@ class TestRepository(unittest.TestCase):
     repository.root.threshold = 2
     repository.writeall()
 
-    new_root_signable = tuf.util.load_json_file(root_filepath)
-    root_2_signable = tuf.util.load_json_file(root_2_filepath)
+    new_root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
+    root_2_signable = tuf.ssl_crypto.util.load_json_file(root_2_filepath)
     
     for role_signable in [old_root_signable, new_root_signable, root_1_signable, root_2_signable]:
-      # Raise 'tuf.FormatError' if 'role_signable' is an invalid signable.
-      tuf.formats.check_signable_object_format(role_signable)
+      # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'role_signable' is an invalid signable.
+      tuf.tufformats.check_signable_object_format(role_signable)
     
     # Verify contents of versioned roots
     self.assertEqual(old_root_signable, root_1_signable)
@@ -216,7 +216,7 @@ class TestRepository(unittest.TestCase):
     repository.root.threshold = 2
    
     # Errors, not enough signing keys to satisfy old threshold 
-    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsignedMetadataError, repository.writeall)
     
     # No error, write() ignore's root's threshold and allows it to be written
     # to disk partially signed.

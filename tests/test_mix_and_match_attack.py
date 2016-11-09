@@ -52,14 +52,15 @@ if sys.version_info >= (2, 7):
 else:
   import unittest2 as unittest 
 
-import tuf.formats
-import tuf.util
+import tuf.tufformats
+import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
+from simple_settings import settings
 
 import six
 
@@ -155,9 +156,9 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -174,7 +175,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
   def test_with_tuf(self):
@@ -241,16 +242,16 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.targets_of_role('role1')
    
-    # Verify that the specific 'tuf.BadVersionNumberError' exception is raised
+    # Verify that the specific 'tuf.ssl_commons.exceptions.BadVersionNumberError' exception is raised
     # by each mirror.
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'metadata', 'role1.json')
        
         # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.BadVersionNumberError))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.BadVersionNumberError))
 
     else:
       self.fail('TUF did not prevent a mix-and-match attack.')

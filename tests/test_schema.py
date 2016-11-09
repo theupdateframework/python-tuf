@@ -31,7 +31,7 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.schema
+import tuf.ssl_commons.schema
 
 logger = logging.getLogger('tuf.test_schema')
 
@@ -50,7 +50,7 @@ class TestSchema(unittest.TestCase):
   def test_Schema(self):
     # Test conditions for the instantation of classes that inherit
     # from class Schema().
-    class NewSchema(tuf.schema.Schema): 
+    class NewSchema(tuf.ssl_commons.schema.Schema): 
       def __init__(self):
         pass
 
@@ -58,24 +58,24 @@ class TestSchema(unittest.TestCase):
     self.assertRaises(NotImplementedError, new_schema.matches, 'test')
    
     # Define a new schema.
-    class NewSchema2(tuf.schema.Schema):
+    class NewSchema2(tuf.ssl_commons.schema.Schema):
       def __init__(self, string):
         self._string = string
 
       def check_match(self, object):
         if self._string != object:
           message = 'Expected: '+repr(self._string)
-          raise tuf.FormatError(message)
+          raise tuf.ssl_commons.exceptions.FormatError(message)
 
     new_schema2 = NewSchema2('test')
-    self.assertRaises(tuf.FormatError, new_schema2.check_match, 'bad')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, new_schema2.check_match, 'bad')
     self.assertFalse(new_schema2.matches('bad'))
     self.assertTrue(new_schema2.matches('test'))
    
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, new_schema2.check_match, True)
-    self.assertRaises(tuf.FormatError, new_schema2.check_match, NewSchema2)
-    self.assertRaises(tuf.FormatError, new_schema2.check_match, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, new_schema2.check_match, True)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, new_schema2.check_match, NewSchema2)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, new_schema2.check_match, 123)
 
     self.assertFalse(new_schema2.matches(True))
     self.assertFalse(new_schema2.matches(NewSchema2))
@@ -85,7 +85,7 @@ class TestSchema(unittest.TestCase):
 
   def test_Any(self):
     # Test conditions for valid arguments. 
-    any_schema = tuf.schema.Any() 
+    any_schema = tuf.ssl_commons.schema.Any() 
 
     self.assertTrue(any_schema.matches('test'))
     self.assertTrue(any_schema.matches(123))
@@ -97,25 +97,25 @@ class TestSchema(unittest.TestCase):
 
   def test_String(self):
     # Test conditions for valid arguments. 
-    string_schema = tuf.schema.String('test')
+    string_schema = tuf.ssl_commons.schema.String('test')
 
     self.assertTrue(string_schema.matches('test'))
 
     # Test conditions for invalid arguments. 
     self.assertFalse(string_schema.matches(True))
     self.assertFalse(string_schema.matches(['test']))
-    self.assertFalse(string_schema.matches(tuf.schema.Schema))
+    self.assertFalse(string_schema.matches(tuf.ssl_commons.schema.Schema))
 
     # Test conditions for invalid arguments in a schema definition.
-    self.assertRaises(tuf.FormatError, tuf.schema.String, 1)
-    self.assertRaises(tuf.FormatError, tuf.schema.String, [1])
-    self.assertRaises(tuf.FormatError, tuf.schema.String, {'a': 1})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.String, 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.String, [1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.String, {'a': 1})
 
 
 
   def test_AnyString(self):
     # Test conditions for valid arguments. 
-    anystring_schema = tuf.schema.AnyString()
+    anystring_schema = tuf.ssl_commons.schema.AnyString()
     
     self.assertTrue(anystring_schema.matches(''))
     self.assertTrue(anystring_schema.matches('a string'))
@@ -129,9 +129,9 @@ class TestSchema(unittest.TestCase):
 
   def test_OneOf(self):
     # Test conditions for valid arguments. 
-    oneof_schema = tuf.schema.OneOf([tuf.schema.ListOf(tuf.schema.Integer()),
-                                     tuf.schema.String('Hello'),
-                                     tuf.schema.String('bye')])
+    oneof_schema = tuf.ssl_commons.schema.OneOf([tuf.ssl_commons.schema.ListOf(tuf.ssl_commons.schema.Integer()),
+                                     tuf.ssl_commons.schema.String('Hello'),
+                                     tuf.ssl_commons.schema.String('bye')])
     
     self.assertTrue(oneof_schema.matches([]))
     self.assertTrue(oneof_schema.matches('bye'))
@@ -142,18 +142,18 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(oneof_schema.matches(['Hi']))
     
     # Test conditions for invalid arguments in a schema definition.
-    self.assertRaises(tuf.FormatError, tuf.schema.OneOf, 1)
-    self.assertRaises(tuf.FormatError, tuf.schema.OneOf, [1])
-    self.assertRaises(tuf.FormatError, tuf.schema.OneOf, {'a': 1})
-    self.assertRaises(tuf.FormatError, tuf.schema.OneOf, [tuf.schema.AnyString(), 1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.OneOf, 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.OneOf, [1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.OneOf, {'a': 1})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.OneOf, [tuf.ssl_commons.schema.AnyString(), 1])
 
 
 
   def test_AllOf(self):
     # Test conditions for valid arguments. 
-    allof_schema = tuf.schema.AllOf([tuf.schema.Any(),
-                                     tuf.schema.AnyString(),
-                                     tuf.schema.String('a')])
+    allof_schema = tuf.ssl_commons.schema.AllOf([tuf.ssl_commons.schema.Any(),
+                                     tuf.ssl_commons.schema.AnyString(),
+                                     tuf.ssl_commons.schema.String('a')])
     
     self.assertTrue(allof_schema.matches('a'))
     
@@ -161,15 +161,15 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(allof_schema.matches('b'))
    
     # Test conditions for invalid arguments in a schema definition.
-    self.assertRaises(tuf.FormatError, tuf.schema.AllOf, 1)
-    self.assertRaises(tuf.FormatError, tuf.schema.AllOf, [1])
-    self.assertRaises(tuf.FormatError, tuf.schema.AllOf, {'a': 1})
-    self.assertRaises(tuf.FormatError, tuf.schema.AllOf, [tuf.schema.AnyString(), 1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.AllOf, 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.AllOf, [1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.AllOf, {'a': 1})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.AllOf, [tuf.ssl_commons.schema.AnyString(), 1])
 
 
   def test_Boolean(self):
     # Test conditions for valid arguments. 
-    boolean_schema = tuf.schema.Boolean()
+    boolean_schema = tuf.ssl_commons.schema.Boolean()
     
     self.assertTrue(boolean_schema.matches(True) and
                     boolean_schema.matches(False))
@@ -181,8 +181,8 @@ class TestSchema(unittest.TestCase):
 
   def test_ListOf(self):
     # Test conditions for valid arguments. 
-    listof_schema = tuf.schema.ListOf(tuf.schema.RegularExpression('(?:..)*'))
-    listof2_schema = tuf.schema.ListOf(tuf.schema.Integer(),
+    listof_schema = tuf.ssl_commons.schema.ListOf(tuf.ssl_commons.schema.RegularExpression('(?:..)*'))
+    listof2_schema = tuf.ssl_commons.schema.ListOf(tuf.ssl_commons.schema.Integer(),
                                        min_count=3, max_count=10)
 
     self.assertTrue(listof_schema.matches([]))
@@ -201,31 +201,31 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(listof2_schema.matches(([3]*11)))
 
     # Test conditions for invalid arguments in a schema definition.
-    self.assertRaises(tuf.FormatError, tuf.schema.ListOf, 1)
-    self.assertRaises(tuf.FormatError, tuf.schema.ListOf, [1])
-    self.assertRaises(tuf.FormatError, tuf.schema.ListOf, {'a': 1})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.ListOf, 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.ListOf, [1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.ListOf, {'a': 1})
 
 
 
   def test_Integer(self):
     # Test conditions for valid arguments. 
-    integer_schema = tuf.schema.Integer()
+    integer_schema = tuf.ssl_commons.schema.Integer()
 
     self.assertTrue(integer_schema.matches(99))
-    self.assertTrue(tuf.schema.Integer(lo=10, hi=30).matches(25))
+    self.assertTrue(tuf.ssl_commons.schema.Integer(lo=10, hi=30).matches(25))
     
     # Test conditions for invalid arguments.
     self.assertFalse(integer_schema.matches(False))
     self.assertFalse(integer_schema.matches('a string'))
-    self.assertFalse(tuf.schema.Integer(lo=10, hi=30).matches(5))
+    self.assertFalse(tuf.ssl_commons.schema.Integer(lo=10, hi=30).matches(5))
 
 
 
   def test_DictOf(self):
     # Test conditions for valid arguments. 
-    dictof_schema = tuf.schema.DictOf(tuf.schema.RegularExpression(r'[aeiou]+'),
-                                      tuf.schema.Struct([tuf.schema.AnyString(),
-                                                         tuf.schema.AnyString()]))
+    dictof_schema = tuf.ssl_commons.schema.DictOf(tuf.ssl_commons.schema.RegularExpression(r'[aeiou]+'),
+                                      tuf.ssl_commons.schema.Struct([tuf.ssl_commons.schema.AnyString(),
+                                                         tuf.ssl_commons.schema.AnyString()]))
 
     self.assertTrue(dictof_schema.matches({}))
     self.assertTrue(dictof_schema.matches({'a': ['x', 'y'], 'e' : ['', '']}))
@@ -237,17 +237,17 @@ class TestSchema(unittest.TestCase):
                                             'd' : ['a', 'b']}))
 
     # Test conditions for invalid arguments in a schema definition.
-    self.assertRaises(tuf.FormatError, tuf.schema.DictOf, 1, 1)
-    self.assertRaises(tuf.FormatError, tuf.schema.DictOf, [1], [1])
-    self.assertRaises(tuf.FormatError, tuf.schema.DictOf, {'a': 1}, 1)
-    self.assertRaises(tuf.FormatError, tuf.schema.DictOf, tuf.schema.AnyString(), 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.DictOf, 1, 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.DictOf, [1], [1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.DictOf, {'a': 1}, 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.DictOf, tuf.ssl_commons.schema.AnyString(), 1)
 
 
 
   def test_Optional(self):
     # Test conditions for valid arguments. 
-    optional_schema = tuf.schema.Object(k1=tuf.schema.String('X'), 
-                                k2=tuf.schema.Optional(tuf.schema.String('Y')))
+    optional_schema = tuf.ssl_commons.schema.Object(k1=tuf.ssl_commons.schema.String('X'), 
+                                k2=tuf.ssl_commons.schema.Optional(tuf.ssl_commons.schema.String('Y')))
 
     self.assertTrue(optional_schema.matches({'k1': 'X', 'k2': 'Y'}))
     self.assertTrue(optional_schema.matches({'k1': 'X'}))
@@ -256,17 +256,17 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(optional_schema.matches({'k1': 'X', 'k2': 'Z'}))
   
     # Test conditions for invalid arguments in a schema definition.
-    self.assertRaises(tuf.FormatError, tuf.schema.Optional, 1)
-    self.assertRaises(tuf.FormatError, tuf.schema.Optional, [1])
-    self.assertRaises(tuf.FormatError, tuf.schema.Optional, {'a': 1})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.Optional, 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.Optional, [1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.Optional, {'a': 1})
  
 
 
   def test_Object(self):
     # Test conditions for valid arguments. 
-    object_schema = tuf.schema.Object(a=tuf.schema.AnyString(),
-                                      bc=tuf.schema.Struct([tuf.schema.Integer(),
-                                                            tuf.schema.Integer()]))
+    object_schema = tuf.ssl_commons.schema.Object(a=tuf.ssl_commons.schema.AnyString(),
+                                      bc=tuf.ssl_commons.schema.Struct([tuf.ssl_commons.schema.Integer(),
+                                                            tuf.ssl_commons.schema.Integer()]))
 
     self.assertTrue(object_schema.matches({'a':'ZYYY', 'bc':[5,9]}))
     self.assertTrue(object_schema.matches({'a':'ZYYY', 'bc':[5,9], 'xx':5}))
@@ -276,9 +276,9 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(object_schema.matches({'a':'ZYYY'}))
 
     # Test conditions for invalid arguments in a schema definition.
-    self.assertRaises(tuf.FormatError, tuf.schema.Object, a='a')
-    self.assertRaises(tuf.FormatError, tuf.schema.Object, a=[1])
-    self.assertRaises(tuf.FormatError, tuf.schema.Object, a=tuf.schema.AnyString(),
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.Object, a='a')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.Object, a=[1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.Object, a=tuf.ssl_commons.schema.AnyString(),
                                                           b=1)
 
     # Test condition for invalid non-dict arguments.
@@ -289,12 +289,12 @@ class TestSchema(unittest.TestCase):
 
   def test_Struct(self):
     # Test conditions for valid arguments. 
-    struct_schema = tuf.schema.Struct([tuf.schema.ListOf(tuf.schema.AnyString()),
-                                                         tuf.schema.AnyString(),
-                                                         tuf.schema.String('X')])
-    struct2_schema = tuf.schema.Struct([tuf.schema.String('X')], allow_more=True)
-    struct3_schema = tuf.schema.Struct([tuf.schema.String('X'),
-                     tuf.schema.Integer()], [tuf.schema.Integer()])
+    struct_schema = tuf.ssl_commons.schema.Struct([tuf.ssl_commons.schema.ListOf(tuf.ssl_commons.schema.AnyString()),
+                                                         tuf.ssl_commons.schema.AnyString(),
+                                                         tuf.ssl_commons.schema.String('X')])
+    struct2_schema = tuf.ssl_commons.schema.Struct([tuf.ssl_commons.schema.String('X')], allow_more=True)
+    struct3_schema = tuf.ssl_commons.schema.Struct([tuf.ssl_commons.schema.String('X'),
+                     tuf.ssl_commons.schema.Integer()], [tuf.ssl_commons.schema.Integer()])
 
     self.assertTrue(struct_schema.matches([[], 'Q', 'X']))
     
@@ -322,23 +322,23 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(struct3_schema.matches(['X', 3, 'A']))
 
     # Test conditions for invalid arguments in a schema definition.
-    self.assertRaises(tuf.FormatError, tuf.schema.Struct, 1)
-    self.assertRaises(tuf.FormatError, tuf.schema.Struct, [1])
-    self.assertRaises(tuf.FormatError, tuf.schema.Struct, {'a': 1})
-    self.assertRaises(tuf.FormatError, tuf.schema.Struct,
-                      [tuf.schema.AnyString(), 1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.Struct, 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.Struct, [1])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.Struct, {'a': 1})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.Struct,
+                      [tuf.ssl_commons.schema.AnyString(), 1])
 
 
 
   def test_RegularExpression(self):
     # Test conditions for valid arguments.
     # RegularExpression(pattern, modifiers, re_object, re_name).
-    re_schema = tuf.schema.RegularExpression('h.*d')
+    re_schema = tuf.ssl_commons.schema.RegularExpression('h.*d')
 
     self.assertTrue(re_schema.matches('hello world'))
     
     # Provide a pattern that contains the trailing '$'
-    re_schema_2 = tuf.schema.RegularExpression(pattern='abc$',
+    re_schema_2 = tuf.ssl_commons.schema.RegularExpression(pattern='abc$',
                                                modifiers=0,
                                                re_object=None,
                                                re_name='my_re')
@@ -347,7 +347,7 @@ class TestSchema(unittest.TestCase):
    
     # Test for valid optional arguments.
     compiled_re = re.compile('^[a-z].*')
-    re_schema_optional = tuf.schema.RegularExpression(pattern='abc',
+    re_schema_optional = tuf.ssl_commons.schema.RegularExpression(pattern='abc',
                                                       modifiers=0,
                                                       re_object=compiled_re,
                                                       re_name='my_re')
@@ -355,12 +355,12 @@ class TestSchema(unittest.TestCase):
    
     # Valid arguments, but the 'pattern' argument is unset (required if the 
     # 're_object' is 'None'.)
-    self.assertRaises(tuf.FormatError, tuf.schema.RegularExpression, None, 0,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.RegularExpression, None, 0,
                                                       None, None)
     
     # Valid arguments, 're_name' is unset, and 'pattern' is None.  An exception
     # is not raised, but 're_name' is set to 'pattern'.
-    re_schema_optional = tuf.schema.RegularExpression(pattern=None,
+    re_schema_optional = tuf.ssl_commons.schema.RegularExpression(pattern=None,
                                                       modifiers=0,
                                                       re_object=compiled_re,
                                                       re_name=None)
@@ -373,19 +373,19 @@ class TestSchema(unittest.TestCase):
     self.assertFalse(re_schema.matches('hello world!'))
     self.assertFalse(re_schema.matches([33, 'Hello']))
 
-    self.assertRaises(tuf.FormatError, tuf.schema.RegularExpression, 8)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.RegularExpression, 8)
 
 
 
   def test_LengthString(self):
     # Test conditions for valid arguments.
-    length_string = tuf.schema.LengthString(11)
+    length_string = tuf.ssl_commons.schema.LengthString(11)
 
     self.assertTrue(length_string.matches('Hello World'))
     self.assertTrue(length_string.matches('Hello Marty'))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.schema.LengthString, 'hello')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.LengthString, 'hello')
  
     self.assertFalse(length_string.matches('hello'))
     self.assertFalse(length_string.matches(8))
@@ -394,14 +394,14 @@ class TestSchema(unittest.TestCase):
   
   def test_LengthBytes(self):
     # Test conditions for valid arguments.
-    length_bytes = tuf.schema.LengthBytes(11)
+    length_bytes = tuf.ssl_commons.schema.LengthBytes(11)
 
     self.assertTrue(length_bytes.matches(b'Hello World'))
     self.assertTrue(length_bytes.matches(b'Hello Marty'))
 
     # Test conditions for invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.schema.LengthBytes, 'hello')
-    self.assertRaises(tuf.FormatError, tuf.schema.LengthBytes, True)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.LengthBytes, 'hello')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.schema.LengthBytes, True)
  
     self.assertFalse(length_bytes.matches(b'hello'))
     self.assertFalse(length_bytes.matches(8))
@@ -410,7 +410,7 @@ class TestSchema(unittest.TestCase):
   
   def test_AnyBytes(self):
     # Test conditions for valid arguments. 
-    anybytes_schema = tuf.schema.AnyBytes()
+    anybytes_schema = tuf.ssl_commons.schema.AnyBytes()
     
     self.assertTrue(anybytes_schema.matches(b''))
     self.assertTrue(anybytes_schema.matches(b'a string'))

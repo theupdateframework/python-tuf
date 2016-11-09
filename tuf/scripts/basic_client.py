@@ -63,7 +63,7 @@ import optparse
 import logging
 
 import tuf
-import tuf.formats
+import tuf.tufformats
 import tuf.client.updater
 import tuf.log
 
@@ -87,7 +87,7 @@ def update_client(repository_mirror):
       files.  E.g., 'http://localhost:8001'
 
   <Exceptions>
-    tuf.RepositoryError, if 'repository_mirror' is improperly formatted.
+    tuf.ssl_commons.exceptions.RepositoryError, if 'repository_mirror' is improperly formatted.
 
   <Side Effects>
     Connects to a repository mirror and updates the metadata files and
@@ -99,13 +99,13 @@ def update_client(repository_mirror):
 
   # Does 'repository_mirror' have the correct format?
   try:
-    tuf.formats.URL_SCHEMA.check_match(repository_mirror)
-  except tuf.FormatError as e:
+    tuf.ssl_crypto.formats.URL_SCHEMA.check_match(repository_mirror)
+  except tuf.ssl_commons.exceptions.FormatError as e:
     message = 'The repository mirror supplied is invalid.' 
-    raise tuf.RepositoryError(message)
+    raise tuf.ssl_commons.exceptions.RepositoryError(message)
   
   # Set the local repository directory containing all of the metadata files.
-  tuf.conf.repository_directory = '.'
+  settings.repository_directory = '.'
 
   # Set the repository mirrors.  This dictionary is needed by the Updater
   # class of updater.py.
@@ -133,7 +133,7 @@ def update_client(repository_mirror):
     try: 
       updater.download_target(target, destination_directory)
     
-    except tuf.DownloadError:
+    except tuf.ssl_commons.exceptions.DownloadError:
       pass
 
   # Remove any files from the destination directory that are no longer being
@@ -218,7 +218,7 @@ if __name__ == '__main__':
   try:
     update_client(repository_mirror)
   
-  except (tuf.NoWorkingMirrorError, tuf.RepositoryError) as e:
+  except (tuf.ssl_commons.exceptions.NoWorkingMirrorError, tuf.ssl_commons.exceptions.RepositoryError) as e:
     sys.stderr.write('Error: '+str(e)+'\n')
     sys.exit(1)
 

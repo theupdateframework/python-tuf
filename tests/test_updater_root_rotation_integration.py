@@ -56,11 +56,11 @@ else:
   import unittest2 as unittest 
 
 import tuf
-import tuf.util
-import tuf.conf
+import tuf.ssl_crypto.util
+from simple_settings import settings
 import tuf.log
-import tuf.formats
-import tuf.keydb
+import tuf.tufformats
+import tuf.ssl_crypto.keydb
 import tuf.roledb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
@@ -159,9 +159,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
@@ -185,7 +185,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True) 
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True) 
 
 
 
@@ -199,7 +199,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
 
     # Errors, not enough signing keys to satisfy root's threshold.
-    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsignedMetadataError, repository.writeall)
 
     repository.root.add_verification_key(self.role_keys['role1']['public'])
     repository.root.load_signing_key(self.role_keys['root']['private'])
@@ -256,14 +256,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.refresh()
     
-    except tuf.NoWorkingMirrorError as exception:                               
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:                               
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):   
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']           
         url_file = os.path.join(url_prefix, 'metadata', '2.root.json')       
                                                    
         # Verify that '2.root.json' is the culprit.                          
         self.assertEqual(url_file, mirror_url)                                  
-        self.assertTrue(isinstance(mirror_error, tuf.BadSignatureError))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.BadSignatureError))
 
 
 
@@ -304,7 +304,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
     
-    self.assertRaises(tuf.NoWorkingMirrorError, self.repository_updater.refresh)
+    self.assertRaises(tuf.ssl_commons.exceptions.NoWorkingMirrorError, self.repository_updater.refresh)
 
 
 

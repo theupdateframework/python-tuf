@@ -64,11 +64,12 @@ else:
   import unittest2 as unittest 
 
 import tuf
-import tuf.util
-import tuf.conf
+import tuf.ssl_commons.exceptions
+import tuf.ssl_crypto.util
+from simple_settings import settings
 import tuf.log
-import tuf.formats
-import tuf.keydb
+import tuf.tufformats
+import tuf.ssl_crypto.keydb
 import tuf.roledb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
@@ -167,9 +168,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
@@ -193,7 +194,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True) 
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True) 
 
 
 
@@ -210,27 +211,27 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: Invalid arguments.
     # Invalid 'updater_name' argument.  String expected. 
-    self.assertRaises(tuf.FormatError, updater.Updater, 8,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, updater.Updater, 8,
                       self.repository_mirrors)
    
-    # Invalid 'repository_mirrors' argument.  'tuf.formats.MIRRORDICT_SCHEMA'
+    # Invalid 'repository_mirrors' argument.  'tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA'
     # expected.
-    self.assertRaises(tuf.FormatError, updater.Updater, updater.Updater, 8)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, updater.Updater, updater.Updater, 8)
 
 
     # 'tuf.client.updater.py' requires that the client's repository directory
-    # be configured in 'tuf.conf.py'.
-    tuf.conf.repository_directory = None
-    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+    # be configured in 'tuf.settings.py'.
+    settings.repository_directory = None
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, updater.Updater, 'test_repository',
                       self.repository_mirrors)
-    # Restore 'tuf.conf.repository_directory' to the original client directory.
-    tuf.conf.repository_directory = self.client_directory
+    # Restore 'settings.repository_directory' to the original client directory.
+    settings.repository_directory = self.client_directory
     
 
     # Test: empty client repository (i.e., no metadata directory).
     metadata_backup = self.client_metadata + '.backup'
     shutil.move(self.client_metadata, metadata_backup)
-    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, updater.Updater, 'test_repository',
                       self.repository_mirrors)
     # Restore the client's metadata directory.
     shutil.move(metadata_backup, self.client_metadata)
@@ -243,7 +244,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     shutil.move(self.client_metadata_current, current_backup)
     shutil.move(self.client_metadata_previous, previous_backup)
-    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, updater.Updater, 'test_repository',
                       self.repository_mirrors)
     
     # Restore the client's previous directory.  The required 'current' directory
@@ -252,7 +253,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: repository with only a '{repository_directory}/metadata/previous'
     # directory.
-    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, updater.Updater, 'test_repository',
                       self.repository_mirrors)
     # Restore the client's current directory.
     shutil.move(current_backup, self.client_metadata_current)
@@ -260,7 +261,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: repository with a '{repository_directory}/metadata/current'
     # directory, but the 'previous' directory is missing.
     shutil.move(self.client_metadata_previous, previous_backup)
-    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, updater.Updater, 'test_repository',
                       self.repository_mirrors)
     shutil.move(previous_backup, self.client_metadata_previous)
    
@@ -268,7 +269,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     client_root_file = os.path.join(self.client_metadata_current, 'root.json')
     backup_root_file = client_root_file + '.backup'
     shutil.move(client_root_file, backup_root_file)
-    self.assertRaises(tuf.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, updater.Updater, 'test_repository',
                       self.repository_mirrors)
     # Restore the client's 'root.json file.
     shutil.move(backup_root_file, client_root_file)
@@ -287,7 +288,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # compare it against the loaded metadata by '_load_metadata_from_file()'.
     role1_filepath = \
       os.path.join(self.client_metadata_current, 'role1.json')
-    role1_meta = tuf.util.load_json_file(role1_filepath)
+    role1_meta = tuf.ssl_crypto.util.load_json_file(role1_filepath)
  
     # Load the 'role1.json' file with _load_metadata_from_file, which should
     # store the loaded metadata in the 'self.repository_updater.metadata'
@@ -309,7 +310,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test invalid metadata set argument (must be either
     # 'current' or 'previous'.)
-    self.assertRaises(tuf.Error,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
                       self.repository_updater._load_metadata_from_file,
                       'bad_metadata_set', 'role1')
 
@@ -331,8 +332,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # keys multiplied by the number of keyid hash algorithms), to include the
     # delegated targets key.  The delegated roles of 'targets.json' are also
     # loaded when the repository object is instantiated.
-    print('\ndifference: ' + repr(list(set(tuf.keydb._keydb_dict[self.repository_name].keys()) - set(root_metadata['keys'].keys()))))
-    self.assertEqual(number_of_root_keys * 2 + 1, len(tuf.keydb._keydb_dict[self.repository_name]))
+    print('\ndifference: ' + repr(list(set(tuf.ssl_crypto.keydb._keydb_dict[self.repository_name].keys()) - set(root_metadata['keys'].keys()))))
+    self.assertEqual(number_of_root_keys * 2 + 1, len(tuf.ssl_crypto.keydb._keydb_dict[self.repository_name]))
 
     # Test: normal case.
     self.repository_updater._rebuild_key_and_role_db()
@@ -342,7 +343,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # _rebuild_key_and_role_db() will only rebuild the keys and roles specified
     # in the 'root.json' file, unlike __init__().  Instantiating an updater
     # object calls both _rebuild_key_and_role_db() and _import_delegations().
-    self.assertEqual(number_of_root_keys * 2, len(tuf.keydb._keydb_dict[self.repository_name]))
+    self.assertEqual(number_of_root_keys * 2, len(tuf.ssl_crypto.keydb._keydb_dict[self.repository_name]))
    
     # Test: properly updated roledb and keydb dicts if the Root role changes.
     root_metadata = self.repository_updater.metadata['current']['root']
@@ -353,7 +354,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], 8)
-    self.assertEqual(number_of_root_keys * 2 - 2, len(tuf.keydb._keydb_dict[self.repository_name]))
+    self.assertEqual(number_of_root_keys * 2 - 2, len(tuf.ssl_crypto.keydb._keydb_dict[self.repository_name]))
   """
     
 
@@ -370,13 +371,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # populates the 'self.versioninfo' dictionary.
     self.repository_updater._update_versioninfo('targets.json')
     self.assertEqual(len(versioninfo_dict), 1)
-    self.assertTrue(tuf.formats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
+    self.assertTrue(tuf.tufformats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
    
     # The Snapshot role stores the version numbers of all the roles available
     # on the repository.  Load Snapshot to extract Root's version number
     # and compare it against the one loaded by 'self.repository_updater'.
     snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
-    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    snapshot_signable = tuf.ssl_crypto.util.load_json_file(snapshot_filepath)
     targets_versioninfo = snapshot_signable['signed']['meta']['targets.json'] 
    
     # Verify that the manually loaded version number of root.json matches
@@ -408,10 +409,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # 'self.fileinfo' dictionary.
       self.repository_updater._update_fileinfo('root.json')
       self.assertEqual(len(fileinfo_dict), 1)
-      self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
+      self.assertTrue(tuf.ssl_crypto.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
-      length, hashes = tuf.util.get_file_details(root_filepath)
-      root_fileinfo = tuf.formats.make_fileinfo(length, hashes) 
+      length, hashes = tuf.ssl_crypto.util.get_file_details(root_filepath)
+      root_fileinfo = tuf.tufformats.make_fileinfo(length, hashes) 
       self.assertTrue('root.json' in fileinfo_dict)
       self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
 
@@ -431,19 +432,19 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_2__fileinfo_has_changed(self):
       #  Verify that the method returns 'False' if file info was not changed.
       root_filepath = os.path.join(self.client_metadata_current, 'root.json')
-      length, hashes = tuf.util.get_file_details(root_filepath)
-      root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
+      length, hashes = tuf.ssl_crypto.util.get_file_details(root_filepath)
+      root_fileinfo = tuf.tufformats.make_fileinfo(length, hashes)
       self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
                                                              root_fileinfo))
 
       # Verify that the method returns 'True' if length or hashes were changed.
       new_length = 8
-      new_root_fileinfo = tuf.formats.make_fileinfo(new_length, hashes)
+      new_root_fileinfo = tuf.tufformats.make_fileinfo(new_length, hashes)
       self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
       # Hashes were changed.
       new_hashes = {'sha256': self.random_string()}
-      new_root_fileinfo = tuf.formats.make_fileinfo(length, new_hashes)
+      new_root_fileinfo = tuf.tufformats.make_fileinfo(length, new_hashes)
       self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
 
@@ -458,20 +459,20 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # there without using '_load_metadata_from_file()' since it calls
     # '_import_delegations()'.
     repository_name = self.repository_updater.updater_name
-    tuf.keydb.clear_keydb(repository_name)
+    tuf.ssl_crypto.keydb.clear_keydb(repository_name)
     tuf.roledb.clear_roledb(repository_name)
 
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 0)
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 0)
+    self.assertEqual(len(tuf.ssl_crypto.keydb._keydb_dict[repository_name]), 0)
     
     self.repository_updater._rebuild_key_and_role_db()
     
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
     # Take into account the number of keyids algorithms supported by default,
     # which this test condition expects to be two (sha256 and sha512).
-    print('\nkeydb_dict len: ' + repr(len(tuf.keydb._keydb_dict[repository_name].keys())))
-    print('\nkeydb_dict: ' + repr(tuf.keydb._keydb_dict[repository_name].keys()))
-    self.assertEqual(4 * 2, len(tuf.keydb._keydb_dict[repository_name]))
+    print('\nkeydb_dict len: ' + repr(len(tuf.ssl_crypto.keydb._keydb_dict[repository_name].keys())))
+    print('\nkeydb_dict: ' + repr(tuf.ssl_crypto.keydb._keydb_dict[repository_name].keys()))
+    self.assertEqual(4 * 2, len(tuf.ssl_crypto.keydb._keydb_dict[repository_name]))
 
     # Test: pass a role without delegations.
     self.repository_updater._import_delegations('root')
@@ -481,7 +482,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
     # Take into account the number of keyid hash algorithms, which this
     # test condition expects to be two (for sha256 and sha512).
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2)
+    self.assertEqual(len(tuf.ssl_crypto.keydb._keydb_dict[repository_name]), 4 * 2)
 
     # Test: normal case, first level delegation.
     self.repository_updater._import_delegations('targets')
@@ -489,21 +490,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 5)
     # The number of root keys (times the number of key hash algorithms) + 
     # delegation's key.
-    self.assertEqual(len(tuf.keydb._keydb_dict[repository_name]), 4 * 2 + 1)
+    self.assertEqual(len(tuf.ssl_crypto.keydb._keydb_dict[repository_name]), 4 * 2 + 1)
 
     # Verify that roledb dictionary was added.
     self.assertTrue('role1' in tuf.roledb._roledb_dict[repository_name])
     
     # Verify that keydb dictionary was updated.
     role1_signable = \
-      tuf.util.load_json_file(os.path.join(self.client_metadata_current,
+      tuf.ssl_crypto.util.load_json_file(os.path.join(self.client_metadata_current,
                                            'role1.json'))
     keyids = []
     for signature in role1_signable['signatures']:
       keyids.append(signature['keyid'])
       
     for keyid in keyids:
-      self.assertTrue(keyid in tuf.keydb._keydb_dict[repository_name])
+      self.assertTrue(keyid in tuf.ssl_crypto.keydb._keydb_dict[repository_name])
 
     # Verify that _import_delegations() ignores invalid keytypes in the 'keys'
     # field of parent role's 'delegations'.
@@ -519,12 +520,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Verify that _import_delegations() raises an exception if any key in
     # 'delegations' is improperly formatted (i.e., bad keyid).
-    tuf.keydb.clear_keydb(repository_name)
+    tuf.ssl_crypto.keydb.clear_keydb(repository_name)
     
     self.repository_updater.metadata['current']['targets']['delegations']\
       ['keys'].update({'123': self.repository_updater.metadata['current']\
       ['targets']['delegations']['keys'][existing_keyid]})
-    self.assertRaises(tuf.Error, self.repository_updater._import_delegations,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.repository_updater._import_delegations,
                       'targets')
 
     # Restore the keyid of 'existing_keyids2'.
@@ -541,7 +542,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_2__versioninfo_has_been_updated(self):
     # Verify that the method returns 'False' if a versioninfo was not changed.
     snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
-    snapshot_signable = tuf.util.load_json_file(snapshot_filepath)
+    snapshot_signable = tuf.ssl_crypto.util.load_json_file(snapshot_filepath)
     targets_versioninfo = snapshot_signable['signed']['meta']['targets.json'] 
     
     self.assertFalse(self.repository_updater._versioninfo_has_been_updated('targets.json',
@@ -594,16 +595,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     root_metadata = self.repository_updater.metadata['current']['root']
     self.repository_updater._ensure_not_expired(root_metadata, 'root')
     
-    # 'tuf.ExpiredMetadataError' should be raised in this next test condition,
+    # 'tuf.ssl_commons.exceptions.ExpiredMetadataError' should be raised in this next test condition,
     # because the expiration_date has expired by 10 seconds.
-    expires = tuf.formats.unix_timestamp_to_datetime(int(time.time() - 10))
+    expires = tuf.tufformats.unix_timestamp_to_datetime(int(time.time() - 10))
     expires = expires.isoformat() + 'Z'
     root_metadata['expires'] = expires
     
     # Ensure the 'expires' value of the root file is valid by checking the
     # the formats of the 'root.json' object.
-    self.assertTrue(tuf.formats.ROOT_SCHEMA.matches(root_metadata))
-    self.assertRaises(tuf.ExpiredMetadataError,
+    self.assertTrue(tuf.ssl_crypto.formats.ROOT_SCHEMA.matches(root_metadata))
+    self.assertRaises(tuf.ssl_commons.exceptions.ExpiredMetadataError,
                       self.repository_updater._ensure_not_expired,
                       root_metadata, 'root')
 
@@ -619,10 +620,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # This is the default metadata that we would create for the timestamp role,
     # because it has no signed metadata for itself.
-    DEFAULT_TIMESTAMP_FILELENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    DEFAULT_TIMESTAMP_FILELENGTH = settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
  
     # This is the the upper bound length for Targets metadata.
-    DEFAULT_TARGETS_FILELENGTH = tuf.conf.DEFAULT_TARGETS_REQUIRED_LENGTH
+    DEFAULT_TARGETS_FILELENGTH = settings.DEFAULT_TARGETS_REQUIRED_LENGTH
 
     # Save the versioninfo of 'targets.json,' needed later when re-installing
     # with _update_metadata().
@@ -660,7 +661,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                 targets_versioninfo['version'])
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
    
-    targets_signable = tuf.util.load_json_file(targets_filepath)
+    targets_signable = tuf.ssl_crypto.util.load_json_file(targets_filepath)
     loaded_targets_version = targets_signable['signed']['version']
     self.assertEqual(targets_versioninfo['version'], loaded_targets_version)
     
@@ -682,7 +683,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Test: Invalid / untrusted version numbers.
     # Invalid version number for the uncompressed version of 'targets.json'.
-    self.assertRaises(tuf.NoWorkingMirrorError,
+    self.assertRaises(tuf.ssl_commons.exceptions.NoWorkingMirrorError,
                       self.repository_updater._update_metadata,
                       'targets', DEFAULT_TARGETS_FILELENGTH, 88)
     
@@ -692,27 +693,27 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater._update_metadata('targets',
                                                DEFAULT_TARGETS_FILELENGTH, 88)
     
-    except tuf.NoWorkingMirrorError as e:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as e:
       for mirror_error in six.itervalues(e.mirror_errors):
-        assert isinstance(mirror_error, tuf.BadVersionNumberError)
+        assert isinstance(mirror_error, tuf.ssl_commons.exceptions.BadVersionNumberError)
     
     # Invalid version number for the compressed version of 'targets.json' 
-    self.assertRaises(tuf.NoWorkingMirrorError,
+    self.assertRaises(tuf.ssl_commons.exceptions.NoWorkingMirrorError,
                       self.repository_updater._update_metadata,
                       'targets', DEFAULT_TARGETS_FILELENGTH, 88,
                       'gzip')
     
     # Verify that the specific exception raised is correct for the previous
     # case.  The version number is checked, so the specific error in
-    # this case should be 'tuf.BadVersionNumberError'.
+    # this case should be 'tuf.ssl_commons.exceptions.BadVersionNumberError'.
     try:
       self.repository_updater._update_metadata('targets',
                                                DEFAULT_TARGETS_FILELENGTH,
                                                88, 'gzip')
     
-    except tuf.NoWorkingMirrorError as e:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as e:
       for mirror_error in six.itervalues(e.mirror_errors):
-        assert isinstance(mirror_error, tuf.BadVersionNumberError)
+        assert isinstance(mirror_error, tuf.ssl_commons.exceptions.BadVersionNumberError)
 
 
 
@@ -754,7 +755,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Update 'targets.json' and verify that the client's current 'targets.json'
     # has been updated.  'timestamp' and 'snapshot' must be manually updated
     # so that new 'targets' can be recognized.
-    DEFAULT_TIMESTAMP_FILELENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    DEFAULT_TIMESTAMP_FILELENGTH = settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
     self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILELENGTH)
     self.repository_updater._update_metadata_if_changed('snapshot', 'timestamp')
@@ -765,7 +766,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(self.repository_updater.metadata['current']['targets']['version'], 2)
 
     # Test for an invalid 'referenced_metadata' argument.
-    self.assertRaises(tuf.RepositoryError,
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError,
                       self.repository_updater._update_metadata_if_changed,
                       'snapshot', 'bad_role')
     
@@ -783,7 +784,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     # Verify that the list of targets was returned, and that it contains valid
     # target files.
-    self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(targetinfos_list))
+    self.assertTrue(tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA.matches(targetinfos_list))
     for targetinfo in targetinfos_list:
       self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in six.iteritems(targets_in_metadata))
    
@@ -805,7 +806,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # 'unsafely_update_root_if_necessary' is explictly set to 'False'.
     expired_date = '1960-01-01T12:00:00Z' 
     self.repository_updater.metadata['current']['root']['expires'] = expired_date
-    self.assertRaises(tuf.ExpiredMetadataError,
+    self.assertRaises(tuf.ssl_commons.exceptions.ExpiredMetadataError,
                       self.repository_updater.refresh,
                       unsafely_update_root_if_necessary=False)
 
@@ -894,7 +895,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
    # Verify format of 'all_targets', it should correspond to 
    # 'TARGETINFOS_SCHEMA'.
-   self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(all_targets))
+   self.assertTrue(tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA.matches(all_targets))
 
    # Verify that there is a correct number of records in 'all_targets' list,
    # and the expected filepaths specified in the metadata.  On the targets
@@ -929,7 +930,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # as available on the server-side version of the role. 
     role1_filepath = os.path.join(self.repository_directory, 'metadata',
                                   'role1.json')
-    role1_signable = tuf.util.load_json_file(role1_filepath)
+    role1_signable = tuf.ssl_crypto.util.load_json_file(role1_filepath)
     expected_targets = role1_signable['signed']['targets']
 
 
@@ -945,16 +946,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     #  Verify that list of targets was returned and that it contains valid
     # target files.
-    self.assertTrue(tuf.formats.TARGETINFOS_SCHEMA.matches(targetinfos))
+    self.assertTrue(tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA.matches(targetinfos))
     for targetinfo in targetinfos:
       self.assertTrue((targetinfo['filepath'], targetinfo['fileinfo']) in six.iteritems(expected_targets))
 
-
     # Test: Invalid arguments.
     # targets_of_role() expected a string rolename.
-    self.assertRaises(tuf.FormatError, self.repository_updater.targets_of_role,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.repository_updater.targets_of_role,
                       8)
-    self.assertRaises(tuf.UnknownRoleError, self.repository_updater.targets_of_role,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError, self.repository_updater.targets_of_role,
                       'unknown_rolename')
 
 
@@ -975,12 +975,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     target_files[filepath] = fileinfo
     
     target_targetinfo = self.repository_updater.get_one_valid_targetinfo(filepath)
-    self.assertTrue(tuf.formats.TARGETINFO_SCHEMA.matches(target_targetinfo))
+    self.assertTrue(tuf.ssl_crypto.formats.TARGETINFO_SCHEMA.matches(target_targetinfo))
     self.assertEqual(target_targetinfo['filepath'], filepath)
     self.assertEqual(target_targetinfo['fileinfo'], fileinfo)
     
     # Test: invalid target path.    
-    self.assertRaises(tuf.UnknownTargetError,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownTargetError,
                       self.repository_updater.get_one_valid_targetinfo,
                       self.random_path())
     
@@ -1027,7 +1027,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test when 'role2' does *not* allow backtracking.  If 'foo/foo1.1.tar.gz'
     # is not provided by the authoritative 'role2',
     # updater.get_one_valid_targetinfo() should return a
-    # 'tuf.UnknownTargetError' exception.
+    # 'tuf.ssl_commons.exceptions.UnknownTargetError' exception.
     repository = repo_tool.load_repository(self.repository_directory)
     
     repository.targets.revoke('role3')
@@ -1051,10 +1051,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
-    # Verify that 'tuf.UnknownTargetError' is raised by
+    # Verify that 'tuf.ssl_commons.exceptions.UnknownTargetError' is raised by
     # updater.get_one_valid_targetinfo().
     self.repository_updater.refresh()
-    self.assertRaises(tuf.UnknownTargetError,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownTargetError,
                       self.repository_updater.get_one_valid_targetinfo,
                       'foo/foo1.1.tar.gz')
 
@@ -1084,8 +1084,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     download_filepath = \
       os.path.join(destination_directory, target_filepath1.lstrip('/'))
     self.assertTrue(os.path.exists(download_filepath))
-    length, hashes = tuf.util.get_file_details(download_filepath, tuf.conf.REPOSITORY_HASH_ALGORITHMS)
-    download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(download_filepath, settings.REPOSITORY_HASH_ALGORITHMS)
+    download_targetfileinfo = tuf.tufformats.make_fileinfo(length, hashes)
    
     # Add any 'custom' data from the repository's target fileinfo to the
     # 'download_targetfileinfo' object being tested.
@@ -1129,10 +1129,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                             destination_directory)
 
     # Test: Invalid arguments.
-    self.assertRaises(tuf.FormatError, self.repository_updater.download_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.repository_updater.download_target,
                       8, destination_directory)
 
-    self.assertRaises(tuf.FormatError, self.repository_updater.download_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      self.repository_updater.download_target,
                       targetinfo, 8)
    
     # Test:
@@ -1149,7 +1150,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater.download_target(targetinfo,
                                               destination_directory)
     
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       # Ensure that no mirrors were found due to mismatch in confined target
       # directories.  get_list_of_mirrors() returns an empty list in this case,
       # which does not generate specific exception errors.
@@ -1211,10 +1212,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     
     # Test: Invalid arguments.
-    self.assertRaises(tuf.FormatError, self.repository_updater.updated_targets,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.repository_updater.updated_targets,
                       8, destination_directory)
 
-    self.assertRaises(tuf.FormatError, self.repository_updater.updated_targets,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.repository_updater.updated_targets,
                       all_targets, 8)
 
     # Modify one target file on the remote repository.
@@ -1223,7 +1224,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     repository.targets.remove_target(target1)
     
-    length, hashes = tuf.util.get_file_details(target1)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target1)
 
     repository.targets.add_target(target1)
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
@@ -1232,7 +1233,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     with open(target1, 'a') as file_object:
       file_object.write('append extra text')
 
-    length, hashes = tuf.util.get_file_details(target1)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target1)
 
     repository.targets.add_target(target1)
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
@@ -1328,22 +1329,22 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       '/Jalape\xc3\xb1o': '78bfd5c314680545eb48ecad508aceb861f8d6e680f4fe1b791da45c298cda88' 
     }
     for filepath, target_hash in six.iteritems(expected_target_hashes):
-      self.assertTrue(tuf.formats.RELPATH_SCHEMA.matches(filepath))
-      self.assertTrue(tuf.formats.HASH_SCHEMA.matches(target_hash))
+      self.assertTrue(tuf.ssl_crypto.formats.RELPATH_SCHEMA.matches(filepath))
+      self.assertTrue(tuf.ssl_crypto.formats.HASH_SCHEMA.matches(target_hash))
       self.assertEqual(self.repository_updater._get_target_hash(filepath), target_hash)
    
     # Test for improperly formatted argument.
-    #self.assertRaises(tuf.FormatError, self.repository_updater._get_target_hash, 8)
+    #self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.repository_updater._get_target_hash, 8)
 
 
 
 
   def test_10__hard_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
-    temp_file_object = tuf.util.TempFile()
+    temp_file_object = tuf.ssl_crypto.util.TempFile()
     temp_file_object.write(b'X')
     temp_file_object.seek(0)
-    self.assertRaises(tuf.DownloadLengthMismatchError,
+    self.assertRaises(tuf.ssl_commons.exceptions.DownloadLengthMismatchError,
                      self.repository_updater._hard_check_file_length,
                      temp_file_object, 10) 
 
@@ -1353,10 +1354,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_10__soft_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
-    temp_file_object = tuf.util.TempFile()
+    temp_file_object = tuf.ssl_crypto.util.TempFile()
     temp_file_object.write(b'XXX')
     temp_file_object.seek(0)
-    self.assertRaises(tuf.DownloadLengthMismatchError,
+    self.assertRaises(tuf.ssl_commons.exceptions.DownloadLengthMismatchError,
                      self.repository_updater._soft_check_file_length,
                      temp_file_object, 1)
 
@@ -1364,7 +1365,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_10__targets_of_role(self):
     # Test for non-existent role. 
-    self.assertRaises(tuf.UnknownRoleError,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError,
                       self.repository_updater._targets_of_role,
                       'non-existent-role')
     
@@ -1396,7 +1397,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test if both 'path' and 'path_hash_prefixes' is missing.
     del child_role['paths']
     del child_role['path_hash_prefixes']
-    self.assertRaises(tuf.FormatError, self.repository_updater._visit_child_role,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.repository_updater._visit_child_role,
                       child_role, targets_role['delegations'], child_role['name'])
 
     

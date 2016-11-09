@@ -51,10 +51,10 @@
   # from this module.
   import tuf.client.updater
 
-  # The only other module the client interacts with is 'tuf.conf'.  The
+  # The only other module the client interacts with is 'settings'.  The
   # client accesses this module solely to set the repository directory.
   # This directory will hold the files downloaded from a remote repository.
-  tuf.conf.repository_directory = 'local-repository'
+  settings.repository_directory = 'local-repository'
  
   # Next, the client creates a dictionary object containing the repository
   # mirrors.  The client may download content from any one of these mirrors.
@@ -116,17 +116,17 @@ import random
 import fnmatch
 
 import tuf
-import tuf.conf
+from simple_settings import settings
 import tuf.download
-import tuf.formats
-import tuf.hash
-import tuf.keys
-import tuf.keydb
+import tuf.tufformats
+import tuf.ssl_crypto.hash
+import tuf.ssl_crypto.keys
+import tuf.ssl_crypto.keydb
 import tuf.log
 import tuf.mirrors
 import tuf.roledb
 import tuf.sig
-import tuf.util
+import tuf.ssl_crypto.util
 
 import six
 import iso8601
@@ -168,7 +168,7 @@ class Updater(object):
 
     self.mirrors:
       The repository mirrors from which metadata and targets are available.
-      Conformant to 'tuf.formats.MIRRORDICT_SCHEMA'.
+      Conformant to 'tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA'.
     
     self.updater_name:
       The name of the updater instance.
@@ -238,12 +238,12 @@ class Updater(object):
       In order to use an updater, the following directories must already
       exist locally:
             
-            {tuf.conf.repository_directory}/metadata/current
-            {tuf.conf.repository_directory}/metadata/previous
+            {settings.repository_directory}/metadata/current
+            {settings.repository_directory}/metadata/previous
       
       and, at a minimum, the root metadata file must exist:
 
-            {tuf.conf.repository_directory}/metadata/current/root.json
+            {settings.repository_directory}/metadata/current/root.json
     
     <Arguments>
       updater_name:
@@ -251,7 +251,7 @@ class Updater(object):
       
       repository_mirrors:
         A dictionary holding repository mirror information, conformant to
-        'tuf.formats.MIRRORDICT_SCHEMA'.  This dictionary holds information
+        'tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA'.  This dictionary holds information
         such as the directory containing the metadata and target files, the
         server's URL prefix, and the target content directories the client
         should be confined to.
@@ -262,10 +262,10 @@ class Updater(object):
                                           'confined_target_dirs': ['']}}
     
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If the arguments are improperly formatted. 
       
-      tuf.RepositoryError:
+      tuf.ssl_commons.exceptions.RepositoryError:
         If there is an error with the updater's repository files, such
         as a missing 'root.json' file.
 
@@ -282,9 +282,9 @@ class Updater(object):
     # These checks ensure the arguments have the appropriate
     # number of objects and object types and that all dict
     # keys are properly named.
-    # Raise 'tuf.FormatError' if there is a mistmatch.
-    tuf.formats.NAME_SCHEMA.check_match(updater_name)
-    tuf.formats.MIRRORDICT_SCHEMA.check_match(repository_mirrors)
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mistmatch.
+    tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(updater_name)
+    tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA.check_match(repository_mirrors)
    
     # Save the validated arguments.
     self.updater_name = updater_name
@@ -320,18 +320,18 @@ class Updater(object):
     self.consistent_snapshot = False
     
     # Ensure the repository metadata directory has been set.
-    if tuf.conf.repository_directory is None:
-      raise tuf.RepositoryError('The TUF update client module must specify the'
+    if settings.repository_directory is None:
+      raise tuf.ssl_commons.exceptions.RepositoryError('The TUF update client module must specify the'
         ' directory containing the local repository files.'
-        '  "tuf.conf.repository_directory" MUST be set.')
+        '  "settings.repository_directory" MUST be set.')
 
     # Set the path for the current set of metadata files.  
-    repository_directory = tuf.conf.repository_directory
+    repository_directory = settings.repository_directory
     current_path = os.path.join(repository_directory, 'metadata', 'current')
     
     # Ensure the current path is valid/exists before saving it.
     if not os.path.exists(current_path):
-      raise tuf.RepositoryError('Missing ' + repr(current_path) + '.'
+      raise tuf.ssl_commons.exceptions.RepositoryError('Missing ' + repr(current_path) + '.'
         '  This path must exist and, at a minimum, contain the Root'
         ' metadata file.')
 
@@ -342,7 +342,7 @@ class Updater(object):
    
     # Ensure the previous path is valid/exists.
     if not os.path.exists(previous_path):
-      raise tuf.RepositoryError('Missing ' + repr(previous_path) + '.'
+      raise tuf.ssl_commons.exceptions.RepositoryError('Missing ' + repr(previous_path) + '.'
         '  This path MUST exist.')
 
     self.metadata_directory['previous'] = previous_path
@@ -355,7 +355,7 @@ class Updater(object):
     # Raise an exception if the repository is missing the required 'root'
     # metadata.
     if 'root' not in self.metadata['current']:
-      raise tuf.RepositoryError('No root of trust! Could not find the'
+      raise tuf.ssl_commons.exceptions.RepositoryError('No root of trust! Could not find the'
         ' "root.json" file.')
 
 
@@ -392,10 +392,10 @@ class Updater(object):
         not end in '.json'.  Examples: 'root', 'targets', 'unclaimed'.
 
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If the role object loaded for 'metadata_role' is improperly formatted.
 
-      tuf.Error:
+      tuf.ssl_commons.exceptions.Error:
         If there was an error importing a delegated role of 'metadata_role'
         or the 'metadata_set' is not one currently supported.
     
@@ -411,7 +411,7 @@ class Updater(object):
 
     # Ensure we have a valid metadata set.
     if metadata_set not in ['current', 'previous']:
-      raise tuf.Error('Invalid metadata set: ' + repr(metadata_set))
+      raise tuf.ssl_commons.exceptions.Error('Invalid metadata set: ' + repr(metadata_set))
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
@@ -421,18 +421,18 @@ class Updater(object):
     # Ensure the metadata path is valid/exists, else ignore the call. 
     if os.path.exists(metadata_filepath):
       # Load the file.  The loaded object should conform to
-      # 'tuf.formats.SIGNABLE_SCHEMA'.
+      # 'tuf.ssl_crypto.formats.SIGNABLE_SCHEMA'.
       try:
-        metadata_signable = tuf.util.load_json_file(metadata_filepath)
+        metadata_signable = tuf.ssl_crypto.util.load_json_file(metadata_filepath)
       
       # Although the metadata file may exist locally, it may not
       # be a valid json file.  On the next refresh cycle, it will be
       # updated as required.  If Root if cannot be loaded from disk
       # successfully, an exception should be raised by the caller.
-      except tuf.Error:
+      except tuf.ssl_commons.exceptions.Error:
         return
       
-      tuf.formats.check_signable_object_format(metadata_signable)
+      tuf.tufformats.check_signable_object_format(metadata_signable)
 
       # Extract the 'signed' role object from 'metadata_signable'.
       metadata_object = metadata_signable['signed']
@@ -469,10 +469,10 @@ class Updater(object):
       None.
 
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If the 'root' metadata is improperly formatted.
 
-      tuf.Error:
+      tuf.ssl_commons.exceptions.Error:
         If there is an error loading a role contained in the 'root'
         metadata.
 
@@ -490,8 +490,8 @@ class Updater(object):
     # of these files.  The metadata files for delegated roles are also not
     # loaded when the repository is first instantiated.  Due to this setup,
     # reloading delegated roles is not required here.
-    tuf.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
-                                              self.updater_name)
+    tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(self.metadata['current']['root'],
+                                                         self.updater_name)
     tuf.roledb.create_roledb_from_root_metadata(self.metadata['current']['root'],
                                                 self.updater_name)
 
@@ -509,11 +509,11 @@ class Updater(object):
         The role whose delegations will be imported.
         
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If a key attribute of a delegated role's signing key is
         improperly formatted.
 
-      tuf.Error:
+      tuf.ssl_commons.exceptions.Error:
         If the signing key of a delegated role cannot not be loaded.
 
     <Side Effects>
@@ -538,20 +538,20 @@ class Updater(object):
     # Iterate the keys of the delegated roles of 'parent_role' and load them.
     for keyid, keyinfo in six.iteritems(keys_info):
       if keyinfo['keytype'] in ['rsa', 'ed25519']:
-        key, keyids = tuf.keys.format_metadata_to_key(keyinfo)
+        key, keyids = tuf.ssl_crypto.keys.format_metadata_to_key(keyinfo)
       
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          tuf.keydb.add_key(key, keyid, self.updater_name)
+          tuf.ssl_crypto.keydb.add_key(key, keyid, self.updater_name)
           for keyid in keyids:
             key['keyid'] = keyid
-            tuf.keydb.add_key(key, keyid=None, repository_name=self.updater_name)
+            tuf.ssl_crypto.keydb.add_key(key, keyid=None, repository_name=self.updater_name)
 
-        except tuf.KeyAlreadyExistsError:
+        except tuf.ssl_commons.exceptions.KeyAlreadyExistsError:
           pass
         
-        except (tuf.FormatError, tuf.Error):
+        except (tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.exceptions.Error):
           logger.exception('Invalid key for keyid: ' + repr(keyid) + '.')
           logger.error('Aborting role delegation for parent role ' + parent_role + '.')
           raise
@@ -569,7 +569,7 @@ class Updater(object):
         logger.debug('Adding delegated role: ' + str(rolename) + '.')
         tuf.roledb.add_role(rolename, roleinfo, self.updater_name)
       
-      except tuf.RoleAlreadyExistsError:
+      except tuf.ssl_commons.exceptions.RoleAlreadyExistsError:
         logger.warning('Role already exists: ' + rolename)
       
       except:
@@ -611,10 +611,10 @@ class Updater(object):
         Root role is unsafely updated if its current version number is unknown.
 
     <Exceptions>
-      tuf.NoWorkingMirrorError:
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:
         If the metadata for any of the top-level roles cannot be updated.
 
-      tuf.ExpiredMetadataError:
+      tuf.ssl_commons.exceptions.ExpiredMetadataError:
          If any of the top-level metadata is expired (whether a new version was
          downloaded expired or no new version was found and the existing
          version is now expired). 
@@ -631,32 +631,32 @@ class Updater(object):
     # This check ensures the arguments have the appropriate 
     # number of objects and object types, and that all dict
     # keys are properly named.
-    # Raise 'tuf.FormatError' if the check fail.
-    tuf.formats.BOOLEAN_SCHEMA.check_match(unsafely_update_root_if_necessary)
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fail.
+    tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(unsafely_update_root_if_necessary)
 
     # The Timestamp role does not have signed metadata about it; otherwise we
     # would need an infinite regress of metadata. Therefore, we use some
     # default, but sane, upper file length for its metadata.
-    DEFAULT_TIMESTAMP_UPPERLENGTH = tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    DEFAULT_TIMESTAMP_UPPERLENGTH = settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
 
     # The Root role may be updated without knowing its version number if
     # top-level metadata cannot be safely downloaded (e.g., keys may have been
     # revoked, thus requiring a new Root file that includes the updated keys)
     # and 'unsafely_update_root_if_necessary' is True.
     # We use some default, but sane, upper file length for its metadata.
-    DEFAULT_ROOT_UPPERLENGTH = tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH
+    DEFAULT_ROOT_UPPERLENGTH = settings.DEFAULT_ROOT_REQUIRED_LENGTH
 
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
-    # Raise 'tuf.NoWorkingMirrorError' if an update fails.
+    # Raise 'tuf.ssl_commons.exceptions.NoWorkingMirrorError' if an update fails.
     root_metadata = self.metadata['current']['root']
     
     try: 
       self._ensure_not_expired(root_metadata, 'root')
     
-    except tuf.ExpiredMetadataError:
-      # Raise 'tuf.NoWorkingMirrorError' if a valid (not expired, properly
+    except tuf.ssl_commons.exceptions.ExpiredMetadataError:
+      # Raise 'tuf.ssl_commons.exceptions.NoWorkingMirrorError' if a valid (not expired, properly
       # signed, and valid metadata) 'root.json' cannot be installed.
       if unsafely_update_root_if_necessary:
         logger.info('Expired Root metadata was loaded from disk.'
@@ -715,10 +715,10 @@ class Updater(object):
     # Retrieve the latest, remote root.json.
     latest_root_metadata_file = \
       self._get_metadata_file('root', 'root.json',
-                              tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH, None, 
+                              settings.DEFAULT_ROOT_REQUIRED_LENGTH, None, 
                               compression_algorithm=compression_algorithm)
     latest_root_metadata = \
-      tuf.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
+      tuf.ssl_crypto.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
     
     
     next_version = current_root_metadata['version'] + 1
@@ -734,7 +734,7 @@ class Updater(object):
       # in the latest root.json after running through the intermediates with
       # _update_metadata().
       self.consistent_snapshot = True
-      self._update_metadata('root', tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH, version=version, 
+      self._update_metadata('root', settings.DEFAULT_ROOT_REQUIRED_LENGTH, version=version, 
                             compression_algorithm=compression_algorithm)
 
 
@@ -750,19 +750,19 @@ class Updater(object):
 
     <Arguments>
       file_object:
-        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        A 'tuf.ssl_crypto.util.TempFile' file-like object.  'file_object' ensures that a
         read() without a size argument properly reads the entire file.
 
       trusted_hashes:
         A dictionary with hash-algorithm names as keys and hashes as dict values.
         The hashes should be in the hexdigest format.  Should be Conformant to
-        'tuf.formats.HASHDICT_SCHEMA'.
+        'tuf.ssl_crypto.formats.HASHDICT_SCHEMA'.
 
     <Exceptions>
-      tuf.BadHashError, if the hashes don't match.
+      tuf.ssl_commons.exceptions.BadHashError, if the hashes don't match.
 
     <Side Effects>
-      Hash digest object is created using the 'tuf.hash' module.
+      Hash digest object is created using the 'tuf.ssl_crypto.hash' module.
 
     <Returns>
       None.
@@ -771,13 +771,13 @@ class Updater(object):
     # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
     # return.
     for algorithm, trusted_hash in six.iteritems(trusted_hashes):
-      digest_object = tuf.hash.digest(algorithm)
+      digest_object = tuf.ssl_crypto.hash.digest(algorithm)
       digest_object.update(file_object.read())
       computed_hash = digest_object.hexdigest()
       
       # Raise an exception if any of the hashes are incorrect.
       if trusted_hash != computed_hash:
-        raise tuf.BadHashError(trusted_hash, computed_hash)
+        raise tuf.ssl_commons.exceptions.BadHashError(trusted_hash, computed_hash)
       else:
         logger.info('The file\'s ' + algorithm + ' hash is correct: ' + trusted_hash)
 
@@ -795,14 +795,14 @@ class Updater(object):
 
     <Arguments>
       file_object:
-        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        A 'tuf.ssl_crypto.util.TempFile' file-like object.  'file_object' ensures that a
         read() without a size argument properly reads the entire file.
 
       trusted_file_length:
         A non-negative integer that is the trusted length of the file.
 
     <Exceptions>
-      tuf.DownloadLengthMismatchError, if the lengths do not match.
+      tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if the lengths do not match.
 
     <Side Effects>
       Reads the contents of 'file_object' and logs a message if 'file_object'
@@ -812,7 +812,7 @@ class Updater(object):
       None.
     """
 
-    # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
+    # Read the entire contents of 'file_object', a 'tuf.ssl_crypto.util.TempFile' file-like
     # object that ensures the entire file is read.
     observed_length = len(file_object.read())
    
@@ -821,7 +821,7 @@ class Updater(object):
     # ensures that a downloaded file strictly matches a known, or trusted,
     # file length.
     if observed_length != trusted_file_length:
-      raise tuf.DownloadLengthMismatchError(trusted_file_length,
+      raise tuf.ssl_commons.exceptions.DownloadLengthMismatchError(trusted_file_length,
                                             observed_length)
     else:
       logger.debug('Observed length ('+str(observed_length)+\
@@ -835,21 +835,21 @@ class Updater(object):
     """
     <Purpose>
       Non-public method that checks the trusted file length of a
-      'tuf.util.TempFile' file-like object. The length of the file must be less
+      'tuf.ssl_crypto.util.TempFile' file-like object. The length of the file must be less
       than or equal to the expected length. This is a deliberately redundant
       implementation designed to complement
       tuf.download._check_downloaded_length().
 
     <Arguments>
       file_object:
-        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+        A 'tuf.ssl_crypto.util.TempFile' file-like object.  'file_object' ensures that a
         read() without a size argument properly reads the entire file.
 
       trusted_file_length:
         A non-negative integer that is the trusted length of the file.
 
     <Exceptions>
-      tuf.DownloadLengthMismatchError, if the lengths do not match.
+      tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if the lengths do not match.
 
     <Side Effects>
       Reads the contents of 'file_object' and logs a message if 'file_object'
@@ -859,7 +859,7 @@ class Updater(object):
       None.
     """
 
-    # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
+    # Read the entire contents of 'file_object', a 'tuf.ssl_crypto.util.TempFile' file-like
     # object that ensures the entire file is read.
     observed_length = len(file_object.read()) 
    
@@ -867,7 +867,7 @@ class Updater(object):
     # 'trusted_file_length', otherwise raise an exception.  A soft check
     # ensures that an upper bound restricts how large a file is downloaded.
     if observed_length > trusted_file_length:
-      raise tuf.DownloadLengthMismatchError(trusted_file_length,
+      raise tuf.ssl_commons.exceptions.DownloadLengthMismatchError(trusted_file_length,
                                             observed_length)
     else:
       logger.debug('Observed length ('+str(observed_length)+\
@@ -897,7 +897,7 @@ class Updater(object):
         The expected hashes of the target file.
 
     <Exceptions>
-      tuf.NoWorkingMirrorError:
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:
         The target could not be fetched. This is raised only when all known
         mirrors failed to provide a valid copy of the desired target file.
 
@@ -907,7 +907,7 @@ class Updater(object):
       a temporary file and returned.
 
     <Returns>
-      A 'tuf.util.TempFile' file-like object containing the target.
+      A 'tuf.ssl_crypto.util.TempFile' file-like object containing the target.
     """
 
     # Define a callable function that is passed as an argument to _get_file()
@@ -946,7 +946,7 @@ class Updater(object):
 
     <Arguments>
       metadata_file_object:
-        A 'tuf.util.TempFile' instance containing the metadata file.
+        A 'tuf.ssl_crypto.util.TempFile' instance containing the metadata file.
         'metadata_file_object' ensures the entire file is returned with read().
 
       metadata_role:
@@ -954,16 +954,16 @@ class Updater(object):
         'unclaimed').
 
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         In case the metadata file is valid JSON, but not valid TUF metadata.
 
-      tuf.InvalidMetadataJSONError:
+      tuf.ssl_commons.exceptions.InvalidMetadataJSONError:
         In case the metadata file is not valid JSON.
 
-      tuf.ReplayedMetadataError:
+      tuf.ssl_commons.exceptions.ReplayedMetadataError:
         In case the downloaded metadata file is older than the current one.
 
-      tuf.RepositoryError:
+      tuf.ssl_commons.exceptions.RepositoryError:
         In case the repository is somehow inconsistent; e.g. a parent has not
         delegated to a child (contrary to expectations).
 
@@ -980,15 +980,15 @@ class Updater(object):
     metadata = metadata_file_object.read().decode('utf-8')
     
     try:
-      metadata_signable = tuf.util.load_json_string(metadata)
+      metadata_signable = tuf.ssl_crypto.util.load_json_string(metadata)
     
     except Exception as exception:
-      raise tuf.InvalidMetadataJSONError(exception)
+      raise tuf.ssl_commons.exceptions.InvalidMetadataJSONError(exception)
     
     else:
       # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
-      # 'tuf.FormatError' if not.
-      tuf.formats.check_signable_object_format(metadata_signable)
+      # 'tuf.ssl_commons.exceptions.FormatError' if not.
+      tuf.tufformats.check_signable_object_format(metadata_signable)
 
     # Is 'metadata_signable' expired?
     self._ensure_not_expired(metadata_signable['signed'], metadata_role)
@@ -1002,7 +1002,7 @@ class Updater(object):
     valid = tuf.sig.verify(metadata_signable, metadata_role, self.updater_name)
     
     if not valid:
-      raise tuf.BadSignatureError(metadata_role)
+      raise tuf.ssl_commons.exceptions.BadSignatureError(metadata_role)
 
 
 
@@ -1038,7 +1038,7 @@ class Updater(object):
         needed if the remote metadata file is compressed. 
 
     <Exceptions>
-      tuf.NoWorkingMirrorError:
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:
         The metadata could not be fetched. This is raised only when all known
         mirrors failed to provide a valid copy of the desired metadata file.
 
@@ -1048,7 +1048,7 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A 'tuf.util.TempFile' file-like object containing the metadata.
+      A 'tuf.ssl_crypto.util.TempFile' file-like object containing the metadata.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors('meta', remote_filename,
@@ -1073,7 +1073,7 @@ class Updater(object):
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
         metadata_signable = \
-          tuf.util.load_json_string(file_object.read().decode('utf-8'))
+          tuf.ssl_crypto.util.load_json_string(file_object.read().decode('utf-8'))
        
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number for
@@ -1087,7 +1087,7 @@ class Updater(object):
             message = \
               'Downloaded version number: ' + repr(version_downloaded) + '.' \
               ' Version number MUST be: ' + repr(expected_version)
-            raise tuf.BadVersionNumberError(message) 
+            raise tuf.ssl_commons.exceptions.BadVersionNumberError(message) 
          
         # The caller does not know which version to download.  Verify that the
         # downloaded version is at least greater than the one locally available.
@@ -1102,7 +1102,7 @@ class Updater(object):
               self.metadata['current'][metadata_role]['version']
               
             if version_downloaded < current_version:
-              raise tuf.ReplayedMetadataError(metadata_role, version_downloaded,
+              raise tuf.ssl_commons.exceptions.ReplayedMetadataError(metadata_role, version_downloaded,
                                               current_version)
           
           except KeyError:
@@ -1125,7 +1125,7 @@ class Updater(object):
     else:
       logger.error('Failed to update ' + repr(remote_filename) + ' from all'
         ' mirrors: ' + repr(file_mirror_errors))
-      raise tuf.NoWorkingMirrorError(file_mirror_errors)
+      raise tuf.ssl_commons.exceptions.NoWorkingMirrorError(file_mirror_errors)
    
 
     
@@ -1140,7 +1140,7 @@ class Updater(object):
                            current_role['threshold'], current_role['keyids'])
     
     if not valid:
-      raise tuf.BadSignatureError('Root is not signed by previous threshold'
+      raise tuf.ssl_commons.exceptions.BadSignatureError('Root is not signed by previous threshold'
         ' of keys.')
 
 
@@ -1164,7 +1164,7 @@ class Updater(object):
         The relative metadata or target filepath.
 
       verify_file_function:
-        A callable function that expects a 'tuf.util.TempFile' file-like object
+        A callable function that expects a 'tuf.ssl_crypto.util.TempFile' file-like object
         and raises an exception if the file is invalid.  Target files and
         uncompressed versions of metadata may be verified with
         'verify_file_function'.
@@ -1173,7 +1173,7 @@ class Updater(object):
         Type of data needed for download, must correspond to one of the strings
         in the list ['meta', 'target'].  'meta' for metadata file type or
         'target' for target file type.  It should correspond to the
-        'tuf.formats.NAME_SCHEMA' format.
+        'tuf.ssl_crypto.formats.NAME_SCHEMA' format.
 
       file_length:
         The expected length, or upper bound, of the target or metadata file to
@@ -1192,7 +1192,7 @@ class Updater(object):
         A boolean switch to toggle safe or unsafe download of the file.
 
     <Exceptions>
-      tuf.NoWorkingMirrorError:
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:
         The metadata could not be fetched. This is raised only when all known
         mirrors failed to provide a valid copy of the desired metadata file.
 
@@ -1202,7 +1202,7 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A 'tuf.util.TempFile' file-like object containing the metadata or target.
+      A 'tuf.ssl_crypto.util.TempFile' file-like object containing the metadata or target.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
@@ -1249,7 +1249,7 @@ class Updater(object):
     else:
       logger.error('Failed to update {0} from all mirrors: {1}'.format(
                    filepath, file_mirror_errors))
-      raise tuf.NoWorkingMirrorError(file_mirror_errors)
+      raise tuf.ssl_commons.exceptions.NoWorkingMirrorError(file_mirror_errors)
 
 
 
@@ -1285,7 +1285,7 @@ class Updater(object):
         are considered.  Any other string is ignored.
 
     <Exceptions>
-      tuf.NoWorkingMirrorError:
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:
         The metadata cannot be updated. This is not specific to a single
         failure but rather indicates that all possible ways to update the
         metadata have been tried and failed.
@@ -1314,7 +1314,7 @@ class Updater(object):
     # is the file-like object returned by 'download.py'.  'metadata_signable'
     # is the object extracted from 'metadata_file_object'.  Metadata saved to
     # files are regarded as 'signable' objects, conformant to
-    # 'tuf.formats.SIGNABLE_SCHEMA'.
+    # 'tuf.ssl_crypto.formats.SIGNABLE_SCHEMA'.
     #
     # Some metadata (presently timestamp) will be downloaded "unsafely", in the
     # sense that we can only estimate its true length and know nothing about
@@ -1347,7 +1347,7 @@ class Updater(object):
     current_filepath = os.path.join(self.metadata_directory['current'],
                                     metadata_filename)
     current_filepath = os.path.abspath(current_filepath)
-    tuf.util.ensure_parent_dir(current_filepath)
+    tuf.ssl_crypto.util.ensure_parent_dir(current_filepath)
     
     previous_filepath = os.path.join(self.metadata_directory['previous'],
                                      metadata_filename)
@@ -1355,14 +1355,14 @@ class Updater(object):
     
     if os.path.exists(current_filepath):
       # Previous metadata might not exist, say when delegations are added.
-      tuf.util.ensure_parent_dir(previous_filepath)
+      tuf.ssl_crypto.util.ensure_parent_dir(previous_filepath)
       shutil.move(current_filepath, previous_filepath)
 
     # Next, move the verified updated metadata file to the 'current' directory.
-    # Note that the 'move' method comes from tuf.util's TempFile class.
-    # 'metadata_file_object' is an instance of tuf.util.TempFile.
+    # Note that the 'move' method comes from tuf.ssl_crypto.util's TempFile class.
+    # 'metadata_file_object' is an instance of tuf.ssl_crypto.util.TempFile.
     metadata_signable = \
-      tuf.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+      tuf.ssl_crypto.util.load_json_string(metadata_file_object.read().decode('utf-8'))
     
     if compression_algorithm == 'gzip':
       current_uncompressed_filepath = \
@@ -1443,11 +1443,11 @@ class Updater(object):
         is 'timestamp'.  See refresh().
         
     <Exceptions>
-      tuf.NoWorkingMirrorError:
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:
         If 'metadata_role' could not be downloaded after determining that it had
         changed.
         
-      tuf.RepositoryError:
+      tuf.ssl_commons.exceptions.RepositoryError:
         If the referenced metadata is missing.
 
     <Side Effects>
@@ -1469,7 +1469,7 @@ class Updater(object):
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.  
     if referenced_metadata not in self.metadata['current']:
-      raise tuf.RepositoryError('Cannot update ' + repr(metadata_role) +
+      raise tuf.ssl_commons.exceptions.RepositoryError('Cannot update ' + repr(metadata_role) +
         ' because ' + referenced_metadata + ' is missing.')
     
     # The referenced metadata has been loaded.  Extract the new versioninfo for
@@ -1493,7 +1493,7 @@ class Updater(object):
       
       # Since we have not downloaded a new version of this metadata, we
       # should check to see if our local version is stale and notify the user
-      # if so. This raises tuf.ExpiredMetadataError if the metadata we
+      # if so. This raises tuf.ssl_commons.exceptions.ExpiredMetadataError if the metadata we
       # have is expired. Resolves issue #322.
       self._ensure_not_expired(self.metadata['current'][metadata_role],
                                metadata_role)
@@ -1542,14 +1542,14 @@ class Updater(object):
     # expected role.  Note: The Timestamp role is not updated via this
     # function.
     if metadata_role == 'snapshot': 
-      upperbound_filelength = tuf.conf.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
+      upperbound_filelength = settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
     
     elif metadata_role == 'root':
-      upperbound_filelength = tuf.conf.DEFAULT_ROOT_REQUIRED_LENGTH
+      upperbound_filelength = settings.DEFAULT_ROOT_REQUIRED_LENGTH
       
     # The metadata is considered Targets (or delegated Targets metadata).
     else:
-      upperbound_filelength = tuf.conf.DEFAULT_TARGETS_REQUIRED_LENGTH
+      upperbound_filelength = settings.DEFAULT_TARGETS_REQUIRED_LENGTH
     
     try:
       self._update_metadata(metadata_role, upperbound_filelength,
@@ -1601,7 +1601,7 @@ class Updater(object):
         A dict object representing the new file information for
         'metadata_filename'.  'new_versioninfo' may be 'None' when
         updating 'root' without having 'snapshot' available.  This
-        dict conforms to 'tuf.formats.VERSIONINFO_SCHEMA' and has
+        dict conforms to 'tuf.ssl_crypto.formats.VERSIONINFO_SCHEMA' and has
         the form:
         
         {'version': 288}
@@ -1696,7 +1696,7 @@ class Updater(object):
       # client's copy of snapshot.json.
       try:
         timestamp_version_number = self.metadata['current']['snapshot']['version']
-        trusted_versioninfo = tuf.formats.make_versioninfo(timestamp_version_number)
+        trusted_versioninfo = tuf.tufformats.make_versioninfo(timestamp_version_number)
       
       except KeyError:
         trusted_versioninfo = \
@@ -1711,7 +1711,7 @@ class Updater(object):
         targets_version_number = \
           self.metadata['current'][metadata_filename[:-len('.json')]]['version']
         trusted_versioninfo = \
-          tuf.formats.make_versioninfo(targets_version_number)
+          tuf.tufformats.make_versioninfo(targets_version_number)
       
       except KeyError:
         trusted_versioninfo = \
@@ -1744,7 +1744,7 @@ class Updater(object):
         A dict object representing the new file information for
         'metadata_filename'.  'new_fileinfo' may be 'None' when
         updating 'root' without having 'snapshot' available.  This
-        dict conforms to 'tuf.formats.FILEINFO_SCHEMA' and has
+        dict conforms to 'tuf.ssl_crypto.formats.FILEINFO_SCHEMA' and has
         the form:
         
         {'length': 23423
@@ -1835,8 +1835,8 @@ class Updater(object):
    
     # Extract the file information from the actual file and save it
     # to the fileinfo store.
-    file_length, hashes = tuf.util.get_file_details(current_filepath)
-    metadata_fileinfo = tuf.formats.make_fileinfo(file_length, hashes)
+    file_length, hashes = tuf.ssl_crypto.util.get_file_details(current_filepath)
+    metadata_fileinfo = tuf.tufformats.make_fileinfo(file_length, hashes)
     self.fileinfo[metadata_filename] = metadata_fileinfo
 
 
@@ -1880,7 +1880,7 @@ class Updater(object):
 
     # Move the current path to the previous path.  
     if os.path.exists(current_filepath):
-      tuf.util.ensure_parent_dir(previous_filepath)
+      tuf.ssl_crypto.util.ensure_parent_dir(previous_filepath)
       os.rename(current_filepath, previous_filepath)
 
 
@@ -1935,7 +1935,7 @@ class Updater(object):
     
     <Arguments>
       metadata_object:
-        The metadata that should be expired, a 'tuf.formats.ANYROLE_SCHEMA'
+        The metadata that should be expired, a 'tuf.ssl_crypto.formats.ANYROLE_SCHEMA'
         object.
 
       metadata_rolename:
@@ -1943,7 +1943,7 @@ class Updater(object):
         in '.json'.  Examples: 'root', 'targets', 'targets/linux/x86'.
     
     <Exceptions>
-      tuf.ExpiredMetadataError:
+      tuf.ssl_commons.exceptions.ExpiredMetadataError:
         If 'metadata_rolename' has expired.
 
     <Side Effects>
@@ -1957,7 +1957,7 @@ class Updater(object):
     expires = metadata_object['expires']
    
     # If the current time has surpassed the expiration date, raise
-    # an exception.  'expires' is in 'tuf.formats.ISO8601_DATETIME_SCHEMA'
+    # an exception.  'expires' is in 'tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA'
     # format (e.g., '1985-10-21T01:22:00Z'.)  Convert it to a unix timestamp and
     # compare it against the current time.time() (also in Unix/POSIX time
     # format, although with microseconds attached.)
@@ -1966,14 +1966,14 @@ class Updater(object):
     # Generate a user-friendly error message if 'expires' is less than the
     # current time (i.e., a local time.)
     expires_datetime = iso8601.parse_date(expires)
-    expires_timestamp = tuf.formats.datetime_to_unix_timestamp(expires_datetime)
+    expires_timestamp = tuf.tufformats.datetime_to_unix_timestamp(expires_datetime)
     
     if expires_timestamp < current_time:
       message = 'Metadata '+repr(metadata_rolename)+' expired on ' + \
         expires_datetime.ctime() + ' (UTC).'
       logger.error(message)
 
-      raise tuf.ExpiredMetadataError(message)
+      raise tuf.ssl_commons.exceptions.ExpiredMetadataError(message)
 
 
 
@@ -1982,12 +1982,11 @@ class Updater(object):
   def all_targets(self):
     """
     <Purpose> 
-      Get a list of the target information for all the trusted targets
-      on the repository.  This list also includes all the targets of
-      delegated roles.  Targets of the list returned are ordered according
-      the trusted order of the delegated roles, where parent roles come before
-      children.  The list conforms to 'tuf.formats.TARGETINFOS_SCHEMA'
-      and has the form:
+      Get a list of the target information for all the trusted targets on the
+      repository.  This list also includes all the targets of delegated roles.
+      Targets of the list returned are ordered according the trusted order of
+      the delegated roles, where parent roles come before children.  The list
+      conforms to 'tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA' and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -1998,18 +1997,19 @@ class Updater(object):
       None.
 
     <Exceptions>
-      tuf.RepositoryError:
+      tuf.ssl_commons.exceptions.RepositoryError:
         If the metadata for the 'targets' role is missing from
         the 'snapshot' metadata.
 
-      tuf.UnknownRoleError:
+      tuf.ssl_commons.exceptions.UnknownRoleError:
         If one of the roles could not be found in the role database.
 
     <Side Effects>
       The metadata for target roles is updated and stored.
 
     <Returns>
-     A list of targets, conformant to 'tuf.formats.TARGETINFOS_SCHEMA'.
+     A list of targets, conformant to
+     'tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA'.
     """
     
     # Load the most up-to-date targets of the 'targets' role and all
@@ -2060,7 +2060,7 @@ class Updater(object):
          repository (via snapshot.json) should be refreshed. 
 
     <Exceptions>
-      tuf.RepositoryError:
+      tuf.ssl_commons.exceptions.RepositoryError:
         If the metadata file for the 'targets' role is missing from the
         'snapshot' metadata.
 
@@ -2116,7 +2116,7 @@ class Updater(object):
     <Purpose>
       Non-public method that returns the target information of all the targets
       of 'rolename'.  The returned information is a list conformant to
-      'tuf.formats.TARGETINFOS_SCHEMA', and has the form:
+      'tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA', and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2130,14 +2130,14 @@ class Updater(object):
       
       targets:
         A list of targets containing target information, conformant to
-        'tuf.formats.TARGETINFOS_SCHEMA'.
+        'tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA'.
 
       skip_refresh:
         A boolean indicating if the target metadata for 'rolename'
         should be refreshed.
 
     <Exceptions>
-      tuf.UnknownRoleError:
+      tuf.ssl_commons.exceptions.UnknownRoleError:
         If 'rolename' is not found in the role database.
 
     <Side Effects>
@@ -2145,7 +2145,8 @@ class Updater(object):
 
     <Returns>
       A list of dict objects containing the target information of all the
-      targets of 'rolename'.  Conformant to 'tuf.formats.TARGETINFOS_SCHEMA'.
+      targets of 'rolename'.  Conformant to
+      'tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA'.
     """
 
     if targets is None:
@@ -2155,7 +2156,7 @@ class Updater(object):
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
 
     if not tuf.roledb.role_exists(rolename, self.updater_name):
-      raise tuf.UnknownRoleError(rolename)
+      raise tuf.ssl_commons.exceptions.UnknownRoleError(rolename)
 
     # We do not need to worry about the target paths being trusted because
     # this is enforced before any new metadata is accepted.
@@ -2187,7 +2188,7 @@ class Updater(object):
     <Purpose> 
       Return a list of trusted targets directly specified by 'rolename'.
       The returned information is a list conformant to
-      'tuf.formats.TARGETINFOS_SCHEMA', and has the form:
+      'tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA', and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2204,28 +2205,29 @@ class Updater(object):
         The name of the role should start with 'targets'.
        
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If 'rolename' is improperly formatted.
      
-      tuf.RepositoryError:
+      tuf.ssl_commons.exceptions.RepositoryError:
         If the metadata of 'rolename' cannot be updated.
 
-      tuf.UnknownRoleError:
+      tuf.ssl_commons.exceptions.UnknownRoleError:
         If 'rolename' is not found in the role database.
 
     <Side Effects>
       The metadata of updated delegated roles are downloaded and stored.
       
     <Returns>
-      A list of targets, conformant to 'tuf.formats.TARGETINFOS_SCHEMA'. 
+      A list of targets, conformant to
+      'tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA'. 
     """
       
     # Does 'rolename' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(rolename)
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+    tuf.ssl_crypto.formats.RELPATH_SCHEMA.check_match(rolename)
 
     if not tuf.roledb.role_exists(rolename, self.updater_name):
-      raise tuf.UnknownRoleError(rolename)
+      raise tuf.ssl_commons.exceptions.UnknownRoleError(rolename)
     
     self._refresh_targets_metadata(rolename)
 
@@ -2247,10 +2249,10 @@ class Updater(object):
         the 'targets' (or equivalent) directory on a given mirror.
 
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If 'target_filepath' is improperly formatted.
 
-      tuf.UnknownTargetError:
+      tuf.ssl_commons.exceptions.UnknownTargetError:
         If 'target_filepath' was not found.
 
       Any other unforeseen runtime exception.
@@ -2260,12 +2262,12 @@ class Updater(object):
     
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETINFO_SCHEMA'.
+      'tuf.ssl_crypto.formats.TARGETINFO_SCHEMA'.
     """
 
     # Does 'target_filepath' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.RELPATH_SCHEMA.check_match(target_filepath)
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+    tuf.ssl_crypto.formats.RELPATH_SCHEMA.check_match(target_filepath)
   
     # 'target_filepath' might contain URL encoding escapes.
     # http://docs.python.org/2/library/urllib.html#urllib.unquote
@@ -2280,7 +2282,7 @@ class Updater(object):
     # Raise an exception if the target information could not be retrieved.
     if target is None:
       logger.error(target_filepath + ' not found.')
-      raise tuf.UnknownTargetError(target_filepath + ' not found.')
+      raise tuf.ssl_commons.exceptions.UnknownTargetError(target_filepath + ' not found.')
     
     # Otherwise, return the found target.
     else:
@@ -2303,10 +2305,10 @@ class Updater(object):
         the 'targets' (or equivalent) directory on a given mirror.
 
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If 'target_filepath' is improperly formatted.
 
-      tuf.RepositoryError:
+      tuf.ssl_commons.exceptions.RepositoryError:
         If 'target_filepath' is not found.
    
     <Side Effects>
@@ -2314,18 +2316,18 @@ class Updater(object):
     
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETINFO_SCHEMA'.
+      'tuf.ssl_crypto.formats.TARGETINFO_SCHEMA'.
     """
 
     target = None
     current_metadata = self.metadata['current']
     role_names = ['targets']
     visited_role_names = set()
-    number_of_delegations = tuf.conf.MAX_NUMBER_OF_DELEGATIONS
+    number_of_delegations = settings.MAX_NUMBER_OF_DELEGATIONS
 
     # Ensure the client has the most up-to-date version of 'targets.json'.
-    # Raise 'tuf.NoWorkingMirrorError' if the changed metadata cannot be
-    # successfully downloaded and 'tuf.RepositoryError' if the referenced
+    # Raise 'tuf.ssl_commons.exceptions.NoWorkingMirrorError' if the changed metadata cannot be
+    # successfully downloaded and 'tuf.ssl_commons.exceptions.RepositoryError' if the referenced
     # metadata is missing.  Target methods such as this one are called after
     # the top-level metadata have been refreshed (i.e., updater.refresh()).
     self._update_metadata_if_changed('targets')
@@ -2394,7 +2396,7 @@ class Updater(object):
     if target is None and number_of_delegations == 0 and len(role_names) > 0:
       logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
                    'but allowed to visit at most ' +
-                   repr(tuf.conf.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
+                   repr(settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
     return target
 
@@ -2427,7 +2429,7 @@ class Updater(object):
     
     <Returns>
       The target information for 'target_filepath', conformant to
-      'tuf.formats.TARGETINFO_SCHEMA'.
+      'tuf.ssl_crypto.formats.TARGETINFO_SCHEMA'.
     """
 
     target = None
@@ -2530,17 +2532,17 @@ class Updater(object):
       # 'role_name' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
-      raise tuf.FormatError(repr(child_role_name) + ' has neither '
+      raise tuf.ssl_commons.exceptions.FormatError(repr(child_role_name) + ' has neither '
                                 '"paths" nor "path_hash_prefixes".')
 
     if child_role_is_relevant:
       # Is the child role allowed by its parent role to specify this path
       # in its metadata?
       try: 
-        tuf.util.ensure_all_targets_allowed(child_role_name, [target_filepath],
+        tuf.ssl_crypto.util.ensure_all_targets_allowed(child_role_name, [target_filepath],
                                             parent_delegations)
       
-      except tuf.ForbiddenTargetError:
+      except tuf.ssl_commons.exceptions.ForbiddenTargetError:
         logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
                      repr(target_filepath) + ', but is not allowed to sign for'
                      ' it according to its delegating role.')
@@ -2593,7 +2595,7 @@ class Updater(object):
     # Calculate the hash of the filepath to determine which bin to find the 
     # target.  The client currently assumes the repository (i.e., repository
     # tool) uses 'hash_function' to generate hashes and UTF-8.
-    digest_object = tuf.hash.digest(hash_function)
+    digest_object = tuf.ssl_crypto.hash.digest(hash_function)
     encoded_target_filepath = target_filepath.encode('utf-8')
     digest_object.update(encoded_target_filepath)
     target_filepath_hash = digest_object.hexdigest() 
@@ -2616,10 +2618,10 @@ class Updater(object):
         The directory containing the target files tracked by TUF.
 
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If 'destination_directory' is improperly formatted.
       
-      tuf.RepositoryError:
+      tuf.ssl_commons.exceptions.RepositoryError:
         If an error occurred removing any files.
 
     <Side Effects>
@@ -2630,8 +2632,8 @@ class Updater(object):
     """
   
     # Does 'destination_directory' have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.PATH_SCHEMA.check_match(destination_directory)
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+    tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Iterate through the rolenames and verify whether the 'previous'
     # directory contains a target no longer found in 'current'.
@@ -2670,7 +2672,7 @@ class Updater(object):
       located there has mismatched file properties.
 
       The returned information is a list conformant to
-      'tuf.formats.TARGETINFOS_SCHEMA' and has the form:
+      'tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA' and has the form:
       
       [{'filepath': 'a/b/c.txt',
         'fileinfo': {'length': 13323,
@@ -2686,20 +2688,21 @@ class Updater(object):
         The directory containing the target files.
 
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If the arguments are improperly formatted.
 
     <Side Effects>
       The files in 'targets' are read and their hashes computed. 
 
     <Returns>
-      A list of targets, conformant to 'tuf.formats.TARGETINFOS_SCHEMA'.
+      A list of targets, conformant to
+      'tuf.ssl_crypto.formats.TARGETFILES_SCHEMA'.
     """
 
     # Do the arguments have the correct format?
-    # Raise 'tuf.FormatError' if there is a mismatch.
-    tuf.formats.TARGETINFOS_SCHEMA.check_match(targets)
-    tuf.formats.PATH_SCHEMA.check_match(destination_directory)
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+    tuf.ssl_crypto.formats.TARGETFILES_SCHEMA.check_match(targets)
+    tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Keep track of the target objects and filepaths of updated targets.
     # Return 'updated_targets' and use 'updated_targetpaths' to avoid
@@ -2726,7 +2729,7 @@ class Updater(object):
       for algorithm, digest in six.iteritems(target['fileinfo']['hashes']):
         digest_object = None
         try:
-          digest_object = tuf.hash.digest_filename(target_filepath,
+          digest_object = tuf.ssl_crypto.hash.digest_filename(target_filepath,
                                                    algorithm=algorithm)
         
         # This exception would occur if the target does not exist locally. 
@@ -2759,16 +2762,16 @@ class Updater(object):
     <Arguments>
       target:
         The target to be downloaded.  Conformant to
-        'tuf.formats.TARGETINFO_SCHEMA'.
+        'tuf.ssl_crypto.formats.TARGETINFO_SCHEMA'.
 
       destination_directory:
         The directory to save the downloaded target file.
 
     <Exceptions>
-      tuf.FormatError:
+      tuf.ssl_commons.exceptions.FormatError:
         If 'target' is not properly formatted.
 
-      tuf.NoWorkingMirrorError:
+      tuf.ssl_commons.exceptions.NoWorkingMirrorError:
         If a target could not be downloaded from any of the mirrors.
 
         Although expected to be rare, there might be OSError exceptions (except
@@ -2786,9 +2789,9 @@ class Updater(object):
     # This check ensures the arguments have the appropriate 
     # number of objects and object types, and that all dict
     # keys are properly named.
-    # Raise 'tuf.FormatError' if the check fail.
-    tuf.formats.TARGETINFO_SCHEMA.check_match(target)
-    tuf.formats.PATH_SCHEMA.check_match(destination_directory)
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fail.
+    tuf.ssl_crypto.formats.TARGETFILE_SCHEMA.check_match(target)
+    tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Extract the target file information.
     target_filepath = target['filepath']
