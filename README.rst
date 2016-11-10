@@ -236,6 +236,16 @@ OS X users can install these header libraries with the `Homebrew <http://brew.sh
     $ brew install python
     $ brew install libffi
 
+Since this Git repository uses submodules, the --recursive option should be
+used when cloning:
+$ git clone --recursive git@github.com:theupdateframework/tuf.git
+(or https for the transfer protocol)
+
+The command above works for Git version 1.6.5 and later.  For older versions
+or already clones repositories, please use:
+$ git clone git@github.com:theupdateframework/tuf.git
+$ git submodule update --init --recursive
+
 Installation of minimal, optional, development, and testing requirements
 can then be accomplished with one command:
 ::
