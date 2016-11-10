@@ -953,7 +953,8 @@ def get_delegated_rolenames(rolename, repository_name='default'):
 
   # get_roleinfo() raises a 'tuf.ssl_commons.exceptions.InvalidNameError' if
   # 'repository_name' does not exist in the role database.
-  roleinfo = get_roleinfo(rolename, repository_name) delegated_roles = []
+  roleinfo = get_roleinfo(rolename, repository_name)
+  delegated_roles = []
  
   for delegated_role in roleinfo['delegations']['roles']:
     delegated_roles.append(delegated_role['name'])

@@ -2704,12 +2704,12 @@ class Updater(object):
 
     <Returns>
       A list of targets, conformant to
-      'tuf.ssl_crypto.formats.TARGETFILES_SCHEMA'.
+      'tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA'.
     """
 
     # Do the arguments have the correct format?
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-    tuf.ssl_crypto.formats.TARGETFILES_SCHEMA.check_match(targets)
+    tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA.check_match(targets)
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Keep track of the target objects and filepaths of updated targets.
@@ -2798,7 +2798,7 @@ class Updater(object):
     # number of objects and object types, and that all dict
     # keys are properly named.
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fail.
-    tuf.ssl_crypto.formats.TARGETFILE_SCHEMA.check_match(target)
+    tuf.ssl_crypto.formats.TARGETINFO_SCHEMA.check_match(target)
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(destination_directory)
 
     # Extract the target file information.

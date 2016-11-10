@@ -37,7 +37,7 @@ import tuf.ssl_crypto.keys
 logger = logging.getLogger('tuf.test_keys')
 
 KEYS = tuf.ssl_crypto.keys
-FORMAT_ERROR_MSG = 'tuf.ssl_commons.exceptions.FormatError was raised!'
+FORMAT_ERROR_MSG = 'tuf.ssl_commons.exceptions.FormatError was raised!' + \
   '  Check object\'s format.'
 DATA = 'SOME DATA REQUIRING AUTHENTICITY.'
 
