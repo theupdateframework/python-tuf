@@ -28,7 +28,7 @@ from __future__ import unicode_literals
 import unittest
 
 import tuf
-import tuf.tufformats as formats
+import tuf.ssl_commons.exceptions
 import tuf.mirrors as mirrors
 import tuf.unittest_toolbox as unittest_toolbox
 

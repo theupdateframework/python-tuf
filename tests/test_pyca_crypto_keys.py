@@ -30,13 +30,14 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.tufformats
+import tuf.ssl_crypto.formats
 import tuf.ssl_crypto.pyca_crypto_keys as crypto_keys
 
 logger = logging.getLogger('tuf.test_pyca_crypto_keys')
 
 public_rsa, private_rsa = crypto_keys.generate_rsa_public_and_private()
-FORMAT_ERROR_MSG = 'tuf.ssl_commons.exceptions.FormatError raised.  Check object\'s format.'
+FORMAT_ERROR_MSG = 'tuf.ssl_commons.exceptions.FormatError raised.'
+  '  Check object\'s format.'
 
 
 class TestPyca_crypto_keys(unittest.TestCase):
