@@ -1869,7 +1869,9 @@ class Targets(Metadata):
       Targets object.
       
       This method does not actually create 'filepath' on the file system.
-      'filepath' must already exist on the file system.
+      'filepath' must already exist on the file system.  If 'filepath'
+      has already been added, it will be replaced with any new file
+      or 'custom' information. 
 
       >>> 
       >>>
@@ -1877,21 +1879,22 @@ class Targets(Metadata):
 
     <Arguments>
       filepath:
-        The path of the target file.  It must be located in the repository's
-        targets directory.
+        The path of the target file.  It must exist in the repository's targets
+        directory.
 
       custom:
         An optional object providing additional information about the file.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if 'filepath' is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if 'filepath' is improperly
+      formatted.
 
-      tuf.ssl_commons.exceptions.Error, if 'filepath' is not found under the repository's targets
-      directory.
+      tuf.ssl_commons.exceptions.Error, if 'filepath' is not found under the
+      repository's targets directory.
 
     <Side Effects>
       Adds 'filepath' to this role's list of targets.  This role's
-      'tuf.roledb.py' is also updated.
+      'tuf.roledb.py' entry is also updated.
 
     <Returns>
       None.
@@ -1899,8 +1902,8 @@ class Targets(Metadata):
     
     # Does 'filepath' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(filepath)
     if custom is None:
       custom = {}
@@ -1912,26 +1915,36 @@ class Targets(Metadata):
    
     # Ensure 'filepath' is found under the repository's targets directory.
     if not filepath.startswith(self._targets_directory): 
-      raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not under the Repository\'s'
-        ' targets directory: ' + repr(self._targets_directory))
+      raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' does not exist'
+        ' under the repository\'s targets directory:'
+        ' ' + repr(self._targets_directory))
 
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
-    # list of targets.  'filepath' will be verified as an allowed path according
-    # to this Targets parent role when write() is called.  Not verifying
-    # 'filepath' here allows freedom to add targets and parent restrictions
-    # in any order, and minimize the number of times these checks are performed.
+    # list of targets.  'filepath' will not be verified as an allowed path
+    # according to some delegating role.  Not verifying 'filepath' here allows
+    # freedom to add targets and parent restrictions in any order, minimize the
+    # number of times these checks are performed, and allow any role to
+    # delegate trust of packages to this Targes role.
     if os.path.isfile(filepath):
       
       # Update the role's 'tuf.roledb.py' entry and avoid duplicates.
       targets_directory_length = len(self._targets_directory) 
       roleinfo = tuf.roledb.get_roleinfo(self._rolename)
       relative_path = filepath[targets_directory_length:]
+      
       if relative_path not in roleinfo['paths']:
+        logger.debug('Adding new target: ' + repr(relative_path))
         roleinfo['paths'].update({relative_path: custom})
+      
+      else:
+        logger.debug('Replacing target: ' + repr(relative_path))
+        roleinfo['paths'].update({relative_path: custom})
+      
       tuf.roledb.update_roleinfo(self._rolename, roleinfo)
     
     else:
-      raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not a valid file.')
+      raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not'
+        ' a valid file.')
  
 
   
