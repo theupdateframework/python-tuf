@@ -20,7 +20,7 @@ import datetime
 import optparse
 import os
 
-import tuf.util
+import tuf.ssl_crypto.util
 from tuf.developer_tool import *
 
 parser = optparse.OptionParser()
@@ -59,11 +59,11 @@ os.mkdir("project/targets")
 # Create the target files (downloaded by clients) whose file size and digest
 # are specified in the 'targets.json' file.
 target1_filepath = 'project/targets/file1.txt'
-tuf.util.ensure_parent_dir(target1_filepath)
+tuf.ssl_crypto.util.ensure_parent_dir(target1_filepath)
 target2_filepath = 'project/targets/file2.txt'
-tuf.util.ensure_parent_dir(target2_filepath)
+tuf.ssl_crypto.util.ensure_parent_dir(target2_filepath)
 target3_filepath = 'project/targets/file3.txt'
-tuf.util.ensure_parent_dir(target2_filepath)
+tuf.ssl_crypto.util.ensure_parent_dir(target2_filepath)
 
 if not options.dry_run:
   with open(target1_filepath, 'wt') as file_object:

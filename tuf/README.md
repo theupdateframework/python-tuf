@@ -84,7 +84,7 @@ The repository tool supports multiple public-key algorithms, such as
 [RSA](https://en.wikipedia.org/wiki/RSA_%28cryptosystem%29) and
 [Ed25519](http://ed25519.cr.yp.to/), and multiple cryptography libraries.
 Which cryptography library to use is determined by the default, or user modified,
-settings in [conf.py](conf.py).
+settings in [settings.py](settings.py).
 
 The [PyCrypto](https://www.dlitz.net/software/pycrypto/) library may be
 selected to generate RSA keys and
@@ -144,11 +144,11 @@ The following four key files should now exist:
 >>> private_root_key = import_rsa_privatekey_from_file("keystore/root_key")
 Enter a password for the encrypted RSA key:
 ```
-`import_rsa_privatekey_from_file()` raises a `tuf.CryptoError` exception if the
+`import_rsa_privatekey_from_file()` raises a `tuf.ssl_commons.exceptions.CryptoError` exception if the
 key / password is invalid:
 
 ```
-tuf.CryptoError: RSA (public, private) tuple cannot
+tuf.ssl_commons.exceptions.CryptoError: RSA (public, private) tuple cannot
 be generated from the encrypted PEM string: Bad decrypt. Incorrect password?
 ```
 Note: The specific message provided by the exception might differ depending on
@@ -916,7 +916,7 @@ $ python slow_retrieval_server.py 8002 mode_2
 The client may now make a request to the slow retrieval server on port 8002.
 However, before doing so, we'll reduce (for the purposes of this demo) the
 minimum average download rate allowed and download chunk size.  Open the
-'conf.py' module and set MIN_AVERAGE_DOWNLOAD_SPEED = 5 and CHUNK_SIZE = 1.
+'settings.py' module and set MIN_AVERAGE_DOWNLOAD_SPEED = 5 and CHUNK_SIZE = 1.
 This should make it so that the client detects the slow retrieval server's
 delayed streaming.
 

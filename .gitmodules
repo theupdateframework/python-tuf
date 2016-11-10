@@ -1,0 +1,8 @@
+[submodule "tuf/ssl_commons"]
+	path = tuf/ssl_commons
+	url = https://github.com/secure-systems-lab/ssl_commons.git
+	branch = master
+[submodule "tuf/ssl_crypto"]
+	path = tuf/ssl_crypto
+	url = https://github.com/secure-systems-lab/ssl_crypto.git
+	branch = master

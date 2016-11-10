@@ -52,12 +52,13 @@ else:
 
 import tuf
 import tuf.formats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
+from simple_settings import settings
 
 import six
 
@@ -145,9 +146,9 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -165,7 +166,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     unittest_toolbox.Modified_TestCase.tearDown(self)
     # updater.Updater() populates the roledb with the name "test_repository" 
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
   def test_without_tuf(self):
     # Verify that a target file replaced with a malicious version is downloaded
@@ -180,7 +181,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
     client_target_path = os.path.join(self.client_directory, 'file1.txt') 
     self.assertFalse(os.path.exists(client_target_path))
-    length, hashes = tuf.util.get_file_details(target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
     fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
@@ -188,19 +189,19 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     self.assertTrue(os.path.exists(client_target_path))
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     self.assertEqual(fileinfo, download_fileinfo)
   
     # Test: Download a target file that has been modified by an attacker.
     with open(target_path, 'wt') as file_object:
       file_object.write('add malicious content.')
-    length, hashes = tuf.util.get_file_details(target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
     malicious_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is unequal to the original trusted version.
@@ -229,18 +230,18 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.download_target(file1_fileinfo, destination)
     
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       url_prefix = self.repository_mirrors['mirror1']['url_prefix']
       url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
       # Verify that only one exception is raised for 'url_file'.
       self.assertTrue(len(exception.mirror_errors), 1)
 
-      # Verify that the expected 'tuf.DownloadLengthMismatchError' exception
+      # Verify that the expected 'tuf.ssl_commons.exceptions.DownloadLengthMismatchError' exception
       # is raised for 'url_file'.
       self.assertTrue(url_file in exception.mirror_errors)
       self.assertTrue(isinstance(exception.mirror_errors[url_file],
-                                 tuf.BadHashError))
+                                 tuf.ssl_commons.exceptions.BadHashError))
     
     else:
       self.fail('TUF did not prevent an arbitrary package attack.')
@@ -258,12 +259,12 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
 
     # An attacker also tries to add the malicious target's length and digest
     # to its metadata file.
-    length, hashes = tuf.util.get_file_details(target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
 
     metadata_path = \
       os.path.join(self.repository_directory, 'metadata', 'targets.json')
     
-    metadata = tuf.util.load_json_file(metadata_path)
+    metadata = tuf.ssl_crypto.util.load_json_file(metadata_path)
     metadata['signed']['targets']['/file1.txt']['hashes'] = hashes
     metadata['signed']['targets']['/file1.txt']['length'] = length
 
@@ -281,7 +282,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       destination = os.path.join(self.client_directory)
       self.repository_updater.download_target(file1_fileinfo, destination)
     
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       url_prefix = self.repository_mirrors['mirror1']['url_prefix']
       url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
@@ -291,7 +292,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       # Verify that the specific and expected mirror exception is raised.
       self.assertTrue(url_file in exception.mirror_errors)
       self.assertTrue(isinstance(exception.mirror_errors[url_file],
-                                 tuf.BadHashError))
+                                 tuf.ssl_commons.exceptions.BadHashError))
     
     else:
       self.fail('TUF did not prevent an arbitrary package attack.')

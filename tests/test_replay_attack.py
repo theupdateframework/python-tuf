@@ -54,12 +54,12 @@ else:
   import unittest2 as unittest 
 
 import tuf.formats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
-
+from simple_settings import settings
 import six
 
 # The repository tool is imported and logs console messages by default.  Disable
@@ -154,9 +154,9 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -173,7 +173,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
   def test_without_tuf(self):
@@ -205,7 +205,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     
     # The fileinfo of the previous version is saved to verify that it is indeed
     # accepted by the non-TUF client.
-    length, hashes = tuf.util.get_file_details(backup_timestamp)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(backup_timestamp)
     previous_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     # Modify the timestamp file on the remote repository.
@@ -227,7 +227,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
 
     # Save the fileinfo of the new version generated to verify that it is
     # saved by the client. 
-    length, hashes = tuf.util.get_file_details(timestamp_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(timestamp_path)
     new_fileinfo = tuf.formats.make_fileinfo(length, hashes)
 
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
@@ -237,7 +237,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
    
     six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
    
-    length, hashes = tuf.util.get_file_details(client_timestamp_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is equal to the new version.
@@ -249,7 +249,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     
     six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
    
-    length, hashes = tuf.util.get_file_details(client_timestamp_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is equal to the previous version.
@@ -276,7 +276,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     
     # The fileinfo of the previous version is saved to verify that it is indeed
     # accepted by the non-TUF client.
-    length, hashes = tuf.util.get_file_details(backup_timestamp)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(backup_timestamp)
     previous_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     # Modify the timestamp file on the remote repository.
@@ -298,7 +298,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
 
     # Save the fileinfo of the new version generated to verify that it is
     # saved by the client. 
-    length, hashes = tuf.util.get_file_details(timestamp_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(timestamp_path)
     new_fileinfo = tuf.formats.make_fileinfo(length, hashes)
 
     # Refresh top-level metadata, including 'timestamp.json'.  Installation of
@@ -307,7 +307,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
 
     client_timestamp_path = os.path.join(self.client_directory, 'metadata',
                                          'current', 'timestamp.json')
-    length, hashes = tuf.util.get_file_details(client_timestamp_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is equal to the new version.
@@ -323,16 +323,16 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.refresh()
    
-    # Verify that the specific 'tuf.ReplayedMetadataError' is raised by each
+    # Verify that the specific 'tuf.ssl_commons.exceptions.ReplayedMetadataError' is raised by each
     # mirror.
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
        
         # Verify that 'timestamp.json' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.ReplayedMetadataError))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.ReplayedMetadataError))
 
     else:
       self.fail('TUF did not prevent a replay attack.')

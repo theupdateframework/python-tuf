@@ -58,14 +58,16 @@ if sys.version_info >= (2, 7):
 else:
   import unittest2 as unittest 
 
+import tuf.ssl_crypto.formats
 import tuf.formats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
+from simple_settings import settings
 
 import six
 
@@ -160,9 +162,9 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -179,7 +181,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
   def test_without_tuf(self):
@@ -209,7 +211,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
                                   'timestamp.json')
 
-    timestamp_metadata = tuf.util.load_json_file(timestamp_path)
+    timestamp_metadata = tuf.ssl_crypto.util.load_json_file(timestamp_path)
     expiry_time = time.time() - 10
     expires = tuf.formats.unix_timestamp_to_datetime(int(expiry_time))
     expires = expires.isoformat() + 'Z'
@@ -227,7 +229,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
                                          'timestamp.json')
     shutil.copy(timestamp_path, client_timestamp_path)
     
-    length, hashes = tuf.util.get_file_details(timestamp_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(timestamp_path)
     fileinfo = tuf.formats.make_fileinfo(length, hashes) 
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
@@ -235,7 +237,7 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
    
     six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
     
-    length, hashes = tuf.util.get_file_details(client_timestamp_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is equal to the current local file.
@@ -321,9 +323,9 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.refresh() # We expect this to fail!
 
-    except tuf.ExpiredMetadataError:
+    except tuf.ssl_commons.exceptions.ExpiredMetadataError:
       logger.info('Test: Refresh #2 - failed as expected. Expired local'
-                  ' snapshot case generated a tuf.ExpiredMetadataError'
+                  ' snapshot case generated a tuf.ssl_commons.exceptions.ExpiredMetadataError'
                   ' exception as expected. Test pass.')
     
     # I think that I only expect tuf.ExpiredMetadata error here. A
@@ -387,14 +389,14 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.refresh() # We expect NoWorkingMirrorError.
     
-    except tuf.NoWorkingMirrorError as e:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as e:
       # NoWorkingMirrorError indicates that we did not find valid, unexpired
       # metadata at any mirror. That exception class preserves the errors from
       # each mirror. We now assert that for each mirror, the particular error
       # detected was that metadata was expired (the timestamp we manually
       # expired).
       for mirror_url, mirror_error in six.iteritems(e.mirror_errors):
-        self.assertTrue(isinstance(mirror_error, tuf.ExpiredMetadataError))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.ExpiredMetadataError))
     
     else:
       self.fail('TUF failed to detect expired, stale timestamp metadata.'
