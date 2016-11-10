@@ -530,9 +530,12 @@ class Repository(object):
         targets.append(full_target_path)
 
       # Prune the subdirectories to walk right now if we do not wish to
-      # recursively walk files_directory.
+      # recursively walk 'files_directory'.
       if recursive_walk is False:
         del dirnames[:]
+
+      else:
+        logger.debug('Not pruning subdirectories ' + repr(dirnames))
 
     return targets
 
@@ -544,9 +547,9 @@ class Metadata(object):
   """
   <Purpose>
     Provide a base class to represent a TUF Metadata role.  There are four
-    top-level roles: Root, Targets, Snapshot, and Timestamp.  The Metadata class
-    provides methods that are needed by all top-level roles, such as adding
-    and removing public keys, private keys, and signatures.  Metadata
+    top-level roles: Root, Targets, Snapshot, and Timestamp.  The Metadata
+    class provides methods that are needed by all top-level roles, such as
+    adding and removing public keys, private keys, and signatures.  Metadata
     attributes, such as rolename, version, threshold, expiration, key list, and
     compressions, is also provided by the Metadata base class.
 

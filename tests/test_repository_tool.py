@@ -381,10 +381,15 @@ class TestRepository(unittest.TestCase):
                       'snapshot.json', 'snapshot.json.gz', 'timestamp.json',
                       'timestamp.json.gz', 'role1.json', 'role1.json.gz',
                       'role2.json', 'role2.json.gz']
+    
     basenames = [] 
     for filepath in metadata_files:
       basenames.append(os.path.basename(filepath))
     self.assertEqual(sorted(expected_files), sorted(basenames))
+
+    # Test when 'recursive_walk' is True.
+    metadata_files = repo.get_filepaths_in_directory(metadata_directory,
+                                                     recursive_walk=True) 
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo.get_filepaths_in_directory,
@@ -1013,6 +1018,14 @@ class TestTargets(unittest.TestCase):
     # Test that a valid Targets() object is returned by delegations().
     for delegated_object in self.targets_object.delegations:
       self.assertTrue(isinstance(delegated_object, repo_tool.Targets))
+
+
+
+  def test_add_delegated_role(self):
+    # Test for invalid targets object.
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      self.targets_object.add_delegated_role, 'targets',
+                                                             'bad_object')
 
 
 
