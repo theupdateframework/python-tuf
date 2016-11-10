@@ -215,6 +215,8 @@ and instructions for installing locally from source are provided here:
     $ cd virtualenv-15.0.3
     $ python virtualenv.py myVE
 
+External Dependencies
+=====================
 
 Before installing TUF, a couple of its Python dependencies have non-Python dependencies
 of their own that should installed first.  PyCrypto and PyNaCl (third-party dependencies
@@ -236,6 +238,9 @@ OS X users can install these header libraries with the `Homebrew <http://brew.sh
     $ brew install python
     $ brew install libffi
 
+Cloning Git Repository
+======================
+
 Since this Git repository uses submodules, the --recursive option should be
 used when cloning:
 ::
@@ -243,17 +248,23 @@ used when cloning:
     (or https for the transfer protocol)
 
 The command above works for Git version 1.6.5 and later.  For older versions
-or already clones repositories, please use:
+or already cloned repositories, please use:
 ::
 
     $ git clone git@github.com:theupdateframework/tuf.git
     $ git submodule update --init --recursive
+
+Development Installation
+========================
 
 Installation of minimal, optional, development, and testing requirements
 can then be accomplished with one command:
 ::
 
     $ pip install -r dev-requirements.txt
+
+Testing
+=======
 
 The Update Framework's unit tests can be executed by invoking
 `tox <https://testrun.org/tox/>`_. All supported Python versions are
