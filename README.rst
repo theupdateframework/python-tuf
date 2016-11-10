@@ -237,7 +237,7 @@ OS X users can install these header libraries with the `Homebrew <http://brew.sh
     $ brew install libffi
 
 Since this Git repository uses submodules, the --recursive option should be
-when cloning:
+used when cloning:
 $ git clone --recursive git@github.com:theupdateframework/tuf.git
 (or https for the transfer protocol)
 
