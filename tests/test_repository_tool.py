@@ -1042,6 +1042,14 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(self.targets_object.target_files['/file2.txt'],
                      custom_file_permissions)
 
+    # Attempt to replace target that has already been added.
+    octal_file_permissions2 = oct(os.stat(target_filepath).st_mode)[4:]
+    custom_file_permissions2 = {'file_permissions': octal_file_permissions}
+    self.targets_object.add_target(target2_filepath, custom_file_permissions2) 
+    self.assertEqual(self.targets_object.target_files['/file2.txt'],
+                     custom_file_permissions2)
+
+
     # Test improperly formatted arguments.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_target, 3)
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_target, 3,
