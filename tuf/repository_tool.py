@@ -146,7 +146,8 @@ class Repository(object):
       metadata.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+    formatted.
 
   <Side Effects>
     Creates top-level role objects and assigns them as attributes.
@@ -160,8 +161,8 @@ class Repository(object):
   
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(repository_directory)
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(metadata_directory)
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(targets_directory)
@@ -200,8 +201,8 @@ class Repository(object):
         By default, all metadata is compressed with gzip.
         
     <Exceptions>
-      tuf.ssl_commons.exceptions.UnsignedMetadataError, if any of the top-level and delegated roles do
-      not have the minimum threshold of signatures.
+      tuf.ssl_commons.exceptions.UnsignedMetadataError, if any of the top-level
+      and delegated roles do not have the minimum threshold of signatures.
 
     <Side Effects>
       Creates metadata files in the repository's metadata directory.
@@ -217,10 +218,11 @@ class Repository(object):
     tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
     tuf.ssl_crypto.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
     
-    # At this point, tuf.ssl_crypto.keydb and tuf.roledb must be fully populated,
-    # otherwise writeall() throws a 'tuf.ssl_commons.exceptions.UnsignedMetadataError' for the
-    # top-level roles.  exception if any of the top-level roles are missing
-    # signatures, keys, etc.
+    # At this point, tuf.ssl_crypto.keydb and tuf.roledb must be fully
+    # populated, otherwise writeall() throws a
+    # 'tuf.ssl_commons.exceptions.UnsignedMetadataError' for the top-level
+    # roles.  exception if any of the top-level roles are missing signatures,
+    # keys, etc.
 
     # Write the metadata files of all the Targets roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
@@ -249,8 +251,9 @@ class Repository(object):
     
     # Metadata should be written in (delegated targets -> root -> targets ->
     # snapshot -> timestamp) order.  Begin by generating the 'root.json'
-    # metadata file.  _generate_and_write_metadata() raises a 'tuf.ssl_commons.exceptions.Error'
-    # exception if the metadata cannot be written.
+    # metadata file.  _generate_and_write_metadata() raises a
+    # 'tuf.ssl_commons.exceptions.Error' exception if the metadata cannot be
+    # written.
     if 'root' in dirty_rolenames or consistent_snapshot:
       repo_lib._generate_and_write_metadata('root', filenames['root'],
                                             self._targets_directory,
@@ -398,13 +401,13 @@ class Repository(object):
   def dirty_roles(self):
     """
     <Purpose>
-      Print/log the roles that have been modified.  For example,
-      if some role's version number is changed (repository.timestamp.version = 2),
-      it is considered dirty and will be included in the list of dirty
-      roles printed/logged here.  Unlike status(), signatures, public keys,
-      targets, etc. are not verified.  status() should be called instead if
-      the caller would like to verify if a valid role file is generated
-      if writeall() were to be called.
+      Print/log the roles that have been modified.  For example, if some role's
+      version number is changed (repository.timestamp.version = 2), it is
+      considered dirty and will be included in the list of dirty roles
+      printed/logged here.  Unlike status(), signatures, public keys, targets,
+      etc. are not verified.  status() should be called instead if the caller
+      would like to verify if a valid role file is generated if writeall() were
+      to be called.
       
     <Arguments>
       None.
@@ -506,8 +509,8 @@ class Repository(object):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(files_directory)
     tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(recursive_walk)
     tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(followlinks)
@@ -2737,7 +2740,8 @@ class Targets(Metadata):
       delegation = roleinfo['delegations']['roles'][0]
     
     else:
-      raise tuf.ssl_commons.exceptions.Error(self.rolename + ' has not delegated to any roles.')
+      raise tuf.ssl_commons.exceptions.Error(self.rolename + ' has not'
+        ' delegated to any roles.')
 
     # Set 'prefix_length' if this Targets object has delegated to hashed bins,
     # otherwise raise an exception.
@@ -2745,13 +2749,14 @@ class Targets(Metadata):
       prefix_length = len(delegation['path_hash_prefixes'][0])
       
     else:
-      raise tuf.ssl_commons.exceptions.Error(self.rolename + ' has not delegated to hashed bins.')
+      raise tuf.ssl_commons.exceptions.Error(self.rolename + ' has not'
+        ' delegated to hashed bins.')
    
     # Ensure the filepath falls under the repository's targets directory.
     filepath = os.path.abspath(target_filepath)
     if not filepath.startswith(self._targets_directory + os.sep):
-      raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not under the Repository\'s'
-        ' targets directory: ' + repr(self._targets_directory))
+      raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not under'
+        ' the Repository\'s targets directory: ' + repr(self._targets_directory))
     
     # Determine the hash prefix of 'target_path' by computing the digest of
     # its path relative to the targets directory.  Example:
@@ -2783,7 +2788,8 @@ class Targets(Metadata):
       getattr(self._delegated_roles[hashed_bin_name], method_name)(target_filepath)
 
     else:
-      raise tuf.ssl_commons.exceptions.Error(target_filepath + ' not found in any of the bins.')
+      raise tuf.ssl_commons.exceptions.Error(target_filepath + ' not found'
+        ' in any of the bins.')
 
 
 
@@ -2801,8 +2807,8 @@ class Targets(Metadata):
       None.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.UnknownRoleError, if this Targets' rolename does not exist in
-      'tuf.roledb'. 
+      tuf.ssl_commons.exceptions.UnknownRoleError, if this Targets' rolename
+      does not exist in 'tuf.roledb'. 
 
     <Side Effects>
       None.
@@ -2833,7 +2839,8 @@ def create_new_repository(repository_directory):
       the TUF repository.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+    formatted.
 
   <Side Effects>
     The 'repository_directory' is created if it does not exist, including its
@@ -2926,11 +2933,11 @@ def load_repository(repository_directory):
     repository_directory:
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'repository_directory' or any of the metadata files
-    are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'repository_directory' or any of
+    the metadata files are improperly formatted.
 
-    tuf.ssl_commons.exceptions.RepositoryError, if the Root role cannot be found.  At a minimum,
-    a repository must contain 'root.json'
+    tuf.ssl_commons.exceptions.RepositoryError, if the Root role cannot be
+    found.  At a minimum, a repository must contain 'root.json'
   
   <Side Effects>
    All the metadata files found in the repository are loaded and their contents

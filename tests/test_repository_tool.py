@@ -1280,6 +1280,10 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(sorted(self.targets_object.get_delegated_rolenames()),
                      sorted(delegated_rolenames))
 
+    # For testing / coverage purposes, try to create delegated bins that  
+    # hold a range of hash prefixes (e.g., bin name: 000-003).
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+                                             number_of_bins=512)
     # Test improperly formatted arguments.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       self.targets_object.delegate_hashed_bins, 3, public_keys,
@@ -1290,7 +1294,6 @@ class TestTargets(unittest.TestCase):
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       self.targets_object.delegate_hashed_bins,
                       list_of_targets, public_keys, '1')
-
 
     # Test invalid arguments.
     # Invalid number of bins, which must be a power of 2.
