@@ -990,8 +990,17 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                        snapshot_signable['signed'],
                                        True)
 
-    # Verify what happens for a non-existent metadata directory (a debug message
-    # is logged).
+    # _delete_obsolete_metadata should never delete root.json.
+    root_filepath = os.path.join('repository_data', 'repository',
+                                 'metadata', 'root.json')
+    shutil.copyfile(root_filepath, os.path.join(metadata_directory, 'root.json'))
+    repo_lib._delete_obsolete_metadata(metadata_directory,
+                                       snapshot_signable['signed'],
+                                       True)
+    self.assertTrue(os.path.exists(os.path.join(metadata_directory, 'root.json')))
+
+    # Verify what happens for a non-existent metadata directory (a debug
+    # message is logged).
     repo_lib._delete_obsolete_metadata('non-existent',
                                        snapshot_signable['signed'],
                                        True)

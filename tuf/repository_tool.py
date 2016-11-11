@@ -146,7 +146,8 @@ class Repository(object):
       metadata.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+    formatted.
 
   <Side Effects>
     Creates top-level role objects and assigns them as attributes.
@@ -160,8 +161,8 @@ class Repository(object):
   
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(repository_directory)
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(metadata_directory)
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(targets_directory)
@@ -200,8 +201,8 @@ class Repository(object):
         By default, all metadata is compressed with gzip.
         
     <Exceptions>
-      tuf.ssl_commons.exceptions.UnsignedMetadataError, if any of the top-level and delegated roles do
-      not have the minimum threshold of signatures.
+      tuf.ssl_commons.exceptions.UnsignedMetadataError, if any of the top-level
+      and delegated roles do not have the minimum threshold of signatures.
 
     <Side Effects>
       Creates metadata files in the repository's metadata directory.
@@ -217,10 +218,11 @@ class Repository(object):
     tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
     tuf.ssl_crypto.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
     
-    # At this point, tuf.ssl_crypto.keydb and tuf.roledb must be fully populated,
-    # otherwise writeall() throws a 'tuf.ssl_commons.exceptions.UnsignedMetadataError' for the
-    # top-level roles.  exception if any of the top-level roles are missing
-    # signatures, keys, etc.
+    # At this point, tuf.ssl_crypto.keydb and tuf.roledb must be fully
+    # populated, otherwise writeall() throws a
+    # 'tuf.ssl_commons.exceptions.UnsignedMetadataError' for the top-level
+    # roles.  exception if any of the top-level roles are missing signatures,
+    # keys, etc.
 
     # Write the metadata files of all the Targets roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
@@ -249,8 +251,9 @@ class Repository(object):
     
     # Metadata should be written in (delegated targets -> root -> targets ->
     # snapshot -> timestamp) order.  Begin by generating the 'root.json'
-    # metadata file.  _generate_and_write_metadata() raises a 'tuf.ssl_commons.exceptions.Error'
-    # exception if the metadata cannot be written.
+    # metadata file.  _generate_and_write_metadata() raises a
+    # 'tuf.ssl_commons.exceptions.Error' exception if the metadata cannot be
+    # written.
     if 'root' in dirty_rolenames or consistent_snapshot:
       repo_lib._generate_and_write_metadata('root', filenames['root'],
                                             self._targets_directory,
@@ -398,13 +401,13 @@ class Repository(object):
   def dirty_roles(self):
     """
     <Purpose>
-      Print/log the roles that have been modified.  For example,
-      if some role's version number is changed (repository.timestamp.version = 2),
-      it is considered dirty and will be included in the list of dirty
-      roles printed/logged here.  Unlike status(), signatures, public keys,
-      targets, etc. are not verified.  status() should be called instead if
-      the caller would like to verify if a valid role file is generated
-      if writeall() were to be called.
+      Print/log the roles that have been modified.  For example, if some role's
+      version number is changed (repository.timestamp.version = 2), it is
+      considered dirty and will be included in the list of dirty roles
+      printed/logged here.  Unlike status(), signatures, public keys, targets,
+      etc. are not verified.  status() should be called instead if the caller
+      would like to verify if a valid role file is generated if writeall() were
+      to be called.
       
     <Arguments>
       None.
@@ -489,9 +492,11 @@ class Repository(object):
         To follow symbolic links, set followlinks=True.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+      formatted.
 
-      tuf.ssl_commons.exceptions.Error, if 'file_directory' is not a valid directory.
+      tuf.ssl_commons.exceptions.Error, if 'file_directory' is not a valid
+      directory.
 
       Python IO exceptions.
 
@@ -504,15 +509,16 @@ class Repository(object):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(files_directory)
     tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(recursive_walk)
     tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(followlinks)
 
     # Ensure a valid directory is given.
     if not os.path.isdir(files_directory):
-      raise tuf.ssl_commons.exceptions.Error(repr(files_directory) + ' is not a directory.')
+      raise tuf.ssl_commons.exceptions.Error(repr(files_directory) + ' is not'
+        ' a directory.')
    
     # A list of the target filepaths found in 'files_directory'.
     targets = []
@@ -527,9 +533,12 @@ class Repository(object):
         targets.append(full_target_path)
 
       # Prune the subdirectories to walk right now if we do not wish to
-      # recursively walk files_directory.
+      # recursively walk 'files_directory'.
       if recursive_walk is False:
         del dirnames[:]
+
+      else:
+        logger.debug('Not pruning subdirectories ' + repr(dirnames))
 
     return targets
 
@@ -541,9 +550,9 @@ class Metadata(object):
   """
   <Purpose>
     Provide a base class to represent a TUF Metadata role.  There are four
-    top-level roles: Root, Targets, Snapshot, and Timestamp.  The Metadata class
-    provides methods that are needed by all top-level roles, such as adding
-    and removing public keys, private keys, and signatures.  Metadata
+    top-level roles: Root, Targets, Snapshot, and Timestamp.  The Metadata
+    class provides methods that are needed by all top-level roles, such as
+    adding and removing public keys, private keys, and signatures.  Metadata
     attributes, such as rolename, version, threshold, expiration, key list, and
     compressions, is also provided by the Metadata base class.
 
@@ -580,22 +589,26 @@ class Metadata(object):
 
     <Arguments>
       key:
-        The role key to be added, conformant to 'tuf.ssl_crypto.formats.ANYKEY_SCHEMA'.
-        Adding a public key to a role means that its corresponding private key
-        must generate and add its signature to the role.  A threshold number of
-        signatures is required for a role to be fully signed.
+        The role key to be added, conformant to
+        'tuf.ssl_crypto.formats.ANYKEY_SCHEMA'.  Adding a public key to a role
+        means that its corresponding private key must generate and add its
+        signature to the role.  A threshold number of signatures is required
+        for a role to be fully signed.
 
       expires:
         The date in which 'key' expires.  'expires' is a datetime.datetime()
         object.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if any of the arguments are improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if any of the arguments are
+      improperly formatted.
 
-      tuf.ssl_commons.exceptions.Error, if the 'expires' datetime has already expired.
+      tuf.ssl_commons.exceptions.Error, if the 'expires' datetime has already
+      expired.
 
     <Side Effects>
-      The role's entries in 'tuf.ssl_crypto.keydb.py' and 'tuf.roledb.py' are updated.
+      The role's entries in 'tuf.ssl_crypto.keydb.py' and 'tuf.roledb.py' are
+      updated.
 
     <Returns>
       None.
@@ -603,8 +616,8 @@ class Metadata(object):
    
     # Does 'key' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.ANYKEY_SCHEMA.check_match(key)
 
     # If 'expires' is unset, choose a default expiration for 'key'.  By
@@ -646,15 +659,17 @@ class Metadata(object):
       tuf.formats.unix_timestamp_to_datetime(int(time.time()))
     
     if expires < current_datetime:
-      raise tuf.ssl_commons.exceptions.Error(repr(key) + ' has already expired.')
+      raise tuf.ssl_commons.exceptions.Error(repr(key) + ' has already'
+        ' expired.')
    
     # Update the key's 'expires' entry.
     expires = expires.isoformat() + 'Z'
     key['expires'] = expires 
 
     # Ensure 'key', which should contain the public portion, is added to
-    # 'tuf.ssl_crypto.keydb.py'.  Add 'key' to the list of recognized keys.  Keys may be
-    # shared, so do not raise an exception if 'key' has already been loaded.
+    # 'tuf.ssl_crypto.keydb.py'.  Add 'key' to the list of recognized keys.
+    # Keys may be shared, so do not raise an exception if 'key' has already
+    # been loaded.
     try:
       tuf.ssl_crypto.keydb.add_key(key)
     
@@ -687,15 +702,17 @@ class Metadata(object):
 
     <Arguments>
       key:
-        The role's key, conformant to 'tuf.ssl_crypto.formats.ANYKEY_SCHEMA'.  'key'
-        should contain only the public portion, as only the public key is
+        The role's key, conformant to 'tuf.ssl_crypto.formats.ANYKEY_SCHEMA'.
+        'key' should contain only the public portion, as only the public key is
         needed.  The 'add_verification_key()' method should have previously
         added 'key'. 
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the 'key' argument is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the 'key' argument is
+      improperly formatted.
       
-      tuf.ssl_commons.exceptions.Error, if the 'key' argument has not been previously added.
+      tuf.ssl_commons.exceptions.Error, if the 'key' argument has not been
+      previously added.
     
     <Side Effects>
       Updates the role's 'tuf.roledb.py' entry.
@@ -706,8 +723,8 @@ class Metadata(object):
     
     # Does 'key' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.ANYKEY_SCHEMA.check_match(key)
     
     keyid = key['keyid']
@@ -736,10 +753,10 @@ class Metadata(object):
 
     <Arguments>
       key:
-        The role's key, conformant to 'tuf.ssl_crypto.formats.ANYKEY_SCHEMA'.  It must
-        contain the private key, so that role signatures may be generated when
-        writeall() or write() is eventually called to generate valid metadata
-        files.
+        The role's key, conformant to 'tuf.ssl_crypto.formats.ANYKEY_SCHEMA'.
+        It must contain the private key, so that role signatures may be
+        generated when writeall() or write() is eventually called to generate
+        valid metadata files.
 
     <Exceptions>
       tuf.ssl_commons.exceptions.FormatError, if 'key' is improperly formatted.
@@ -755,8 +772,8 @@ class Metadata(object):
     
     # Does 'key' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.ANYKEY_SCHEMA.check_match(key)
   
     # Ensure the private portion of the key is available, otherwise signatures
@@ -795,12 +812,15 @@ class Metadata(object):
 
     <Arguments>
       key:
-        The role key to be unloaded, conformant to 'tuf.ssl_crypto.formats.ANYKEY_SCHEMA'.
+        The role key to be unloaded, conformant to
+        'tuf.ssl_crypto.formats.ANYKEY_SCHEMA'.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the 'key' argument is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the 'key' argument is
+      improperly formatted.
 
-      tuf.ssl_commons.exceptions.Error, if the 'key' argument has not been previously loaded.
+      tuf.ssl_commons.exceptions.Error, if the 'key' argument has not been
+      previously loaded.
 
     <Side Effects>
       Updates the signing keys of the role in 'tuf.roledb.py'.
@@ -811,8 +831,8 @@ class Metadata(object):
     
     # Does 'key' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.ANYKEY_SCHEMA.check_match(key)
     
     # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
@@ -859,7 +879,8 @@ class Metadata(object):
 
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the 'signature' argument is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the 'signature' argument is
+      improperly formatted.
 
     <Side Effects>
       Adds 'signature', if not already added, to the role's 'signatures' field
@@ -871,8 +892,8 @@ class Metadata(object):
     
     # Does 'signature' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.SIGNATURE_SCHEMA.check_match(signature)
     tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty) 
 
@@ -909,9 +930,11 @@ class Metadata(object):
         'tuf.ssl_crypto.formats.SIGNATURE_SCHEMA'.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the 'signature' argument is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the 'signature' argument is
+      improperly formatted.
 
-      tuf.ssl_commons.exceptions.Error, if 'signature' has not been previously added to this role.
+      tuf.ssl_commons.exceptions.Error, if 'signature' has not been previously
+      added to this role.
 
     <Side Effects>
       Updates the 'signatures' field of the role in 'tuf.roledb.py'.
@@ -922,8 +945,8 @@ class Metadata(object):
     
     # Does 'signature' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.SIGNATURE_SCHEMA.check_match(signature)
   
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -957,7 +980,8 @@ class Metadata(object):
       None.
 
     <Returns>
-      A list of signatures, conformant to 'tuf.ssl_crypto.formats.SIGNATURES_SCHEMA'.
+      A list of signatures, conformant to
+      'tuf.ssl_crypto.formats.SIGNATURES_SCHEMA'.
     """
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1037,7 +1061,8 @@ class Metadata(object):
       None.
 
     <Returns>
-      The role's version number, conformant to 'tuf.ssl_crypto.formats.VERSION_SCHEMA'.
+      The role's version number, conformant to
+      'tuf.ssl_crypto.formats.VERSION_SCHEMA'.
     """
     
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1068,14 +1093,16 @@ class Metadata(object):
 
     <Arguments>
       version:
-        The role's version number, conformant to 'tuf.ssl_crypto.formats.VERSION_SCHEMA'.
+        The role's version number, conformant to
+        'tuf.ssl_crypto.formats.VERSION_SCHEMA'.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the 'version' argument is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the 'version' argument is
+      improperly formatted.
 
     <Side Effects>
-      Modifies the 'version' attribute of the Repository object and updates
-      the role's version in 'tuf.roledb.py'.
+      Modifies the 'version' attribute of the Repository object and updates the
+      role's version in 'tuf.roledb.py'.
 
     <Returns>
       None.
@@ -1083,8 +1110,8 @@ class Metadata(object):
     
     # Does 'version' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.METADATAVERSION_SCHEMA.check_match(version)
     
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1111,7 +1138,8 @@ class Metadata(object):
       None.
 
     <Returns>
-      The role's threshold value, conformant to 'tuf.ssl_crypto.formats.THRESHOLD_SCHEMA'.
+      The role's threshold value, conformant to
+      'tuf.ssl_crypto.formats.THRESHOLD_SCHEMA'.
     """
     
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
@@ -1140,7 +1168,8 @@ class Metadata(object):
         signed.  Conformant to 'tuf.ssl_crypto.formats.THRESHOLD_SCHEMA'.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the 'threshold' argument is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the 'threshold' argument is
+      improperly formatted.
 
     <Side Effects>
       Modifies the threshold attribute of the Repository object and updates
@@ -1152,8 +1181,8 @@ class Metadata(object):
    
     # Does 'threshold' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.THRESHOLD_SCHEMA.check_match(threshold)
     
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
@@ -1212,9 +1241,11 @@ class Metadata(object):
         The datetime expiration of the role, a datetime.datetime() object.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if 'datetime_object' is not a datetime.datetime() object. 
+      tuf.ssl_commons.exceptions.FormatError, if 'datetime_object' is not a
+      datetime.datetime() object. 
    
-      tuf.ssl_commons.exceptions.Error, if 'datetime_object' has already expired.
+      tuf.ssl_commons.exceptions.Error, if 'datetime_object' has already
+      expired.
 
     <Side Effects>
       Modifies the expiration attribute of the Repository object. 
@@ -1227,8 +1258,8 @@ class Metadata(object):
     # Is 'datetime_object' a datetime.datetime() object?
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     if not isinstance(datetime_object, datetime.datetime):
-      raise tuf.ssl_commons.exceptions.FormatError(repr(datetime_object) + ' is not a'
-        ' datetime.datetime() object.') 
+      raise tuf.ssl_commons.exceptions.FormatError(repr(datetime_object) + ' is'
+        ' not a datetime.datetime() object.') 
 
     # truncate the microseconds value to produce a correct schema string 
     # of the form yyyy-mm-ddThh:mm:ssZ
@@ -1239,7 +1270,8 @@ class Metadata(object):
       tuf.formats.unix_timestamp_to_datetime(int(time.time()))
     
     if datetime_object < current_datetime_object:
-      raise tuf.ssl_commons.exceptions.Error(repr(self.rolename) + ' has already expired.')
+      raise tuf.ssl_commons.exceptions.Error(repr(self.rolename) + ' has'
+        ' already expired.')
    
     # Update the role's 'expires' entry in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1333,7 +1365,8 @@ class Metadata(object):
         'tuf.ssl_crypto.formats.COMPRESSIONS_SCHEMA'.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if 'compression_list' is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if 'compression_list' is
+      improperly formatted.
 
     <Side Effects>
       Updates the role's compression algorithms listed in 'tuf.roledb.py'.
@@ -1344,8 +1377,8 @@ class Metadata(object):
    
     # Does 'compression_name' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.COMPRESSIONS_SCHEMA.check_match(compression_list)
 
     roleinfo = tuf.roledb.get_roleinfo(self.rolename)
@@ -1435,8 +1468,8 @@ class Timestamp(Metadata):
     This Timestamp object sub-classes Metadata, so the expected Metadata
     operations like adding/removing public keys, signatures, private keys, and
     updating metadata attributes (e.g., version and expiration) is supported.
-    Since Snapshot is a top-level role and must exist, a default Timestamp object
-    is instantiated when a new Repository object is created.
+    Since Snapshot is a top-level role and must exist, a default Timestamp
+    object is instantiated when a new Repository object is created.
 
     >>>
     >>>
@@ -1554,12 +1587,12 @@ class Targets(Metadata):
 
     Likewise, revoking a delegation causes removal of the delegation attribute.
     
-    This Targets object sub-classes Metadata, so the expected
-    Metadata operations like adding/removing public keys, signatures, private
-    keys, and updating metadata attributes (e.g., version and expiration) is
-    supported.  Since Targets is a top-level role and must exist, a default
-    Targets object (for 'targets.json', not delegated roles) is instantiated when
-    a new Repository object is created.
+    This Targets object sub-classes Metadata, so the expected Metadata
+    operations like adding/removing public keys, signatures, private keys, and
+    updating metadata attributes (e.g., version and expiration) is supported.
+    Since Targets is a top-level role and must exist, a default Targets object
+    (for 'targets.json', not delegated roles) is instantiated when a new
+    Repository object is created.
 
     >>> 
     >>>
@@ -1577,7 +1610,8 @@ class Targets(Metadata):
       'tuf.ssl_crypto.formats.ROLEDB_SCHEMA'.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+    formatted.
 
   <Side Effects>
     Modifies the roleinfo of the targets role in 'tuf.roledb', or creates
@@ -1592,8 +1626,8 @@ class Targets(Metadata):
    
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(targets_directory)
     tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(rolename)
     
@@ -1649,10 +1683,11 @@ class Targets(Metadata):
         previously delegated by this Targets role.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+      formatted.
 
-      tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' has not been delegated by this
-      Targets object.
+      tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' has not been
+      delegated by this Targets object.
 
     <Side Effects>
       Modifies the roleinfo of the targets role in 'tuf.roledb'.
@@ -1663,16 +1698,16 @@ class Targets(Metadata):
     
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(rolename)
    
     if rolename in self._delegated_roles:
       return self._delegated_roles[rolename]
     
     else:
-      raise tuf.ssl_commons.exceptions.UnknownRoleError(repr(rolename) + ' has not been delegated'
-        ' by ' + repr(self.rolename))
+      raise tuf.ssl_commons.exceptions.UnknownRoleError(repr(rolename) + ' has'
+        ' not been delegated by ' + repr(self.rolename))
 
 
 
@@ -1693,7 +1728,8 @@ class Targets(Metadata):
         A Targets() object. 
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+      formatted.
 
     <Side Effects>
       Updates the Target object's dictionary of delegated targets.
@@ -1704,12 +1740,13 @@ class Targets(Metadata):
     
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(rolename)
   
     if not isinstance(targets_object, Targets):
-      raise tuf.ssl_commons.exceptions.FormatError(repr(targets_object) + ' is not a Targets object.')
+      raise tuf.ssl_commons.exceptions.FormatError(repr(targets_object) + ' is'
+        ' not a Targets object.')
    
 
     if rolename in self._delegated_roles:
@@ -1731,7 +1768,8 @@ class Targets(Metadata):
         role previously delegated by this Targets role.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the argument is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the argument is improperly
+      formatted.
 
     <Side Effects>
       Updates the Target object's dictionary of delegated targets.
@@ -1742,8 +1780,8 @@ class Targets(Metadata):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(rolename)
     
     if rolename not in self._delegated_roles:
@@ -1808,9 +1846,10 @@ class Targets(Metadata):
         'unclaimed').
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.Error, if a restricted path in 'restricted_paths' is not a string
-      path, doesn't live under the repository's targets directory, or if
-      'child_rolename' has not been delegated yet. 
+      tuf.ssl_commons.exceptions.Error, if a restricted path in
+      'restricted_paths' is not a string path, doesn't live under the
+      repository's targets directory, or if 'child_rolename' has not been
+      delegated yet. 
 
     <Side Effects>
       Modifies this Targets' delegations field.
@@ -1830,18 +1869,20 @@ class Targets(Metadata):
     # entry in the parent's delegations.
     relative_paths = []
    
-    # Ensure the 'child_rolename' has been delegated, otherwise it will not
-    # have an entry in the parent role's delegations field.
+    # Ensure that 'child_rolename' exists, otherwise it will not have an entry
+    # in the parent role's delegations field.
     if not tuf.roledb.role_exists(child_rolename):
-      raise tuf.ssl_commons.exceptions.Error(repr(child_rolename) + ' has not been delegated.')
+      raise tuf.ssl_commons.exceptions.Error(repr(child_rolename) + ' does'
+        ' not exist.')
 
     for restricted_path in restricted_paths:
       # Do the restricted paths fall under the repository's targets directory?
       # Append a trailing path separator with os.path.join(path, '').
       targets_directory = os.path.join(self._targets_directory, '')
       if not restricted_path.startswith(targets_directory):
-        raise tuf.ssl_commons.exceptions.Error(repr(restricted_path) + ' does not live under the'
-          ' Repository\'s targets directory: ' + repr(self._targets_directory))
+        raise tuf.ssl_commons.exceptions.Error(repr(restricted_path) + ' does'
+          ' not live under the repository\'s targets'
+          ' directory: ' + repr(self._targets_directory))
 
       relative_paths.append(restricted_path[len(self._targets_directory):])
 
@@ -1857,6 +1898,9 @@ class Targets(Metadata):
     for relative_path in relative_paths:
       if relative_path not in restricted_paths:
         restricted_paths.append(relative_path)
+
+      else:
+        logger.debug(repr(relative_path) + ' is already a restricted path.')
    
     tuf.roledb.update_roleinfo(self._rolename, roleinfo)
 
@@ -1953,7 +1997,7 @@ class Targets(Metadata):
     <Purpose>
       Add a list of target filepaths (all relative to 'self.targets_directory').
       This method does not actually create files on the file system.  The
-      list of target must already exist.
+      list of targets must already exist on disk.
       
       >>> 
       >>>
@@ -1965,10 +2009,12 @@ class Targets(Metadata):
         object.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+      formatted.
       
-      tuf.ssl_commons.exceptions.Error, if any of the paths listed in 'list_of_targets' is not found
-      under the repository's targets directory or is invalid.
+      tuf.ssl_commons.exceptions.Error, if any of the paths listed in
+      'list_of_targets' is not found under the repository's targets directory
+      or is invalid.
 
     <Side Effects>
       This Targets' roleinfo is updated with the paths in 'list_of_targets'.
@@ -1997,23 +2043,26 @@ class Targets(Metadata):
       filepath = os.path.abspath(target)
     
       if not filepath.startswith(self._targets_directory+os.sep):
-        raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not under the Repository\'s'
-          ' targets directory: ' + repr(self._targets_directory))
+        raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not'
+          ' under the Repository\'s targets'
+          ' directory: ' + repr(self._targets_directory))
       
       if os.path.isfile(filepath):
         relative_list_of_targets.append(filepath[targets_directory_length:])
       
       else:
-        raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not a valid file.')
+        raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not'
+          ' a valid file.')
 
     # Update this Targets 'tuf.roledb.py' entry.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
     for relative_target in relative_list_of_targets:
       if relative_target not in roleinfo['paths']:
+        logger.debug('Adding new target: ' + repr(relative_target))
         roleinfo['paths'].update({relative_target: {}})
       
       else:
-        continue
+        logger.debug('Replacing target: ' + repr(relative_target))
     
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
@@ -2035,10 +2084,11 @@ class Targets(Metadata):
         repository's targets directory.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if 'filepath' is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if 'filepath' is improperly
+      formatted.
 
-      tuf.ssl_commons.exceptions.Error, if 'filepath' is not under the repository's targets directory,
-      or not found.
+      tuf.ssl_commons.exceptions.Error, if 'filepath' is not under the
+      repository's targets directory, or not found.
 
     <Side Effects>
       Modifies this Targets 'tuf.roledb.py' entry.
@@ -2049,8 +2099,8 @@ class Targets(Metadata):
 
     # Does 'filepath' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
     tuf.ssl_crypto.formats.RELPATH_SCHEMA.check_match(filepath)
    
     filepath = os.path.abspath(filepath)
@@ -2058,8 +2108,8 @@ class Targets(Metadata):
     
     # Ensure 'filepath' is under the repository targets directory.
     if not filepath.startswith(self._targets_directory+os.sep):
-      raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not under the Repository\'s'
-        ' targets directory: ' + repr(self._targets_directory))
+      raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not under'
+        ' the Repository\'s targets directory: ' + repr(self._targets_directory))
 
     # The relative filepath is listed in 'paths'.
     relative_filepath = filepath[targets_directory_length:]
@@ -2166,30 +2216,33 @@ class Targets(Metadata):
         The threshold number of keys of 'rolename'. 
       
       terminating:
-        Boolean that indicates whether this role allows the updater client
-        to continue searching for targets (target files it is trusted to list
-        but has not yet specified) in other delegations.  If 'terminating' is
-        True and 'updater.target()' does not find 'example_target.tar.gz' in
-        this role, a 'tuf.ssl_commons.exceptions.UnknownTargetError' exception should be raised.  If
-        'terminatin' is False (default), and 'target/other_role' is also trusted
-        with 'example_target.tar.gz' and has listed it, updater.target()
-        should backtrack and return the target file specified by
-        'target/other_role'.
+        Boolean that indicates whether this role allows the updater client to
+        continue searching for targets (target files it is trusted to list but
+        has not yet specified) in other delegations.  If 'terminating' is True
+        and 'updater.target()' does not find 'example_target.tar.gz' in this
+        role, a 'tuf.ssl_commons.exceptions.UnknownTargetError' exception
+        should be raised.  If 'terminatin' is False (default), and
+        'target/other_role' is also trusted with 'example_target.tar.gz' and
+        has listed it, updater.target() should backtrack and return the target
+        file specified by 'target/other_role'.
 
       restricted_paths:
         A list of restricted directory or file paths of 'rolename'.  Any target
         files added to 'rolename' must fall under one of the restricted paths.
       
       path_hash_prefixes:
-        A list of hash prefixes in 'tuf.ssl_crypto.formats.PATH_HASH_PREFIXES_SCHEMA'
-        format, used in hashed bin delegations.  Targets may be located and
-        stored in hashed bins by calculating the target path's hash prefix.
+        A list of hash prefixes in
+        'tuf.ssl_crypto.formats.PATH_HASH_PREFIXES_SCHEMA' format, used in
+        hashed bin delegations.  Targets may be located and stored in hashed
+        bins by calculating the target path's hash prefix.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if any of the arguments are improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if any of the arguments are
+      improperly formatted.
 
-      tuf.ssl_commons.exceptions.Error, if the delegated role already exists or if any of the arguments
-      is an invalid path (i.e., not under the repository's targets directory).
+      tuf.ssl_commons.exceptions.Error, if the delegated role already exists or
+      if any of the arguments is an invalid path (i.e., not under the
+      repository's targets directory).
 
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
@@ -2218,7 +2271,8 @@ class Targets(Metadata):
 
     # Check if 'rolename' is not already a delegation.
     if tuf.roledb.role_exists(rolename):
-      raise tuf.ssl_commons.exceptions.Error(repr(rolename) + ' already delegated.')
+      raise tuf.ssl_commons.exceptions.Error(repr(rolename) + ' already'
+        ' delegated.')
 
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations). 
@@ -2243,8 +2297,9 @@ class Targets(Metadata):
     for target in list_of_targets:
       target = os.path.abspath(target)
       if not target.startswith(self._targets_directory + os.sep):
-        raise tuf.ssl_commons.exceptions.Error(repr(target) + ' is not under the Repository\'s'
-          ' targets directory: ' + repr(self._targets_directory))
+        raise tuf.ssl_commons.exceptions.Error(repr(target) + ' is not under'
+          ' the repository\'s targets'
+          ' directory: ' + repr(self._targets_directory))
 
       relative_targetpaths.update({target[targets_directory_length:]: {}})
     
@@ -2255,8 +2310,9 @@ class Targets(Metadata):
     if restricted_paths is not None: 
       for path in restricted_paths:
         if not path.startswith(self._targets_directory + os.sep):
-          raise tuf.ssl_commons.exceptions.Error(repr(path) + ' is not under the Repository\'s'
-            ' targets directory: ' +repr(self._targets_directory))
+          raise tuf.ssl_commons.exceptions.Error(repr(path) + ' is not under'
+            ' the repository\'s targets'
+            ' directory: ' +repr(self._targets_directory))
         
         # Append a trailing path separator with os.path.join(path, '').
         relative_restricted_paths.append(path[targets_directory_length:])
@@ -2341,7 +2397,8 @@ class Targets(Metadata):
         parent role (this role) wants to revoke.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if 'rolename' is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if 'rolename' is improperly
+      formatted.
 
     <Side Effects>
       The delegations dictionary of 'rolename' is modified, and its 'tuf.roledb'
@@ -2423,11 +2480,12 @@ class Targets(Metadata):
         considered the hash prefix).
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+      formatted.
       
-      tuf.ssl_commons.exceptions.Error, if 'number_of_bins' is not a power of 2, or one of the targets
-        in 'list_of_targets' is not located under the repository's targets
-        directory.
+      tuf.ssl_commons.exceptions.Error, if 'number_of_bins' is not a power of
+      2, or one of the targets in 'list_of_targets' is not located under the
+      repository's targets directory.
 
     <Side Effects>
       Delegates multiple target roles from the current parent role.
@@ -2443,7 +2501,7 @@ class Targets(Metadata):
     tuf.ssl_crypto.formats.PATHS_SCHEMA.check_match(list_of_targets)
     tuf.ssl_crypto.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
     tuf.ssl_crypto.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
-    
+   
     # Convert 'number_of_bins' to hexadecimal and determine the number of
     # hexadecimal digits needed by each hash prefix.  Calculate the total
     # number of hash prefixes (e.g., 000 - FFF total values) to be spread over
@@ -2460,7 +2518,8 @@ class Targets(Metadata):
     # distributed over 'number_of_bins' (must be 2 ^ n).  Each bin will contain
     # (total_hash_prefixes / number_of_bins) hash prefixes.
     if total_hash_prefixes % number_of_bins != 0:
-      raise tuf.ssl_commons.exceptions.Error('The "number_of_bins" argument must be a power of 2.')
+      raise tuf.ssl_commons.exceptions.Error('The "number_of_bins" argument'
+        ' must be a power of 2.')
 
     logger.info('Creating hashed bin delegations.')
     logger.info(repr(len(list_of_targets)) + ' total targets.')
@@ -2479,9 +2538,14 @@ class Targets(Metadata):
     # repository's targets directory.
     for target_path in list_of_targets:
       target_path = os.path.abspath(target_path)
-      if not target_path.startswith(self._targets_directory+os.sep):
-        raise tuf.ssl_commons.exceptions.Error('A path in the list of targets argument is not'
-          ' under the repository\'s targets directory: ' + repr(target_path))
+      if not target_path.startswith(self._targets_directory + os.sep):
+        raise tuf.ssl_commons.exceptions.Error('A path in "list of'
+          ' targets" does not live under the repository\'s targets'
+          ' directory: ' + repr(target_path))
+
+      else:
+        logger.debug(repr(target_path) + ' lives under the repository\'s'
+          ' targets directory.')
       
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.  Example:
@@ -2562,11 +2626,12 @@ class Targets(Metadata):
         must fall under repository's targets directory.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if 'target_filepath' is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if 'target_filepath' is
+      improperly formatted.
       
-      tuf.ssl_commons.exceptions.Error, if 'target_filepath' cannot be added to a hashed bin
-      (e.g., an invalid target filepath, or the expected hashed bin does not
-      exist.)
+      tuf.ssl_commons.exceptions.Error, if 'target_filepath' cannot be added to
+      a hashed bin (e.g., an invalid target filepath, or the expected hashed
+      bin does not exist.)
 
     <Side Effects>
       The fileinfo of 'target_filepath' is added to a hashed bin of this Targets
@@ -2604,11 +2669,12 @@ class Targets(Metadata):
         must fall under repository's targets directory.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.FormatError, if 'target_filepath' is improperly formatted.
+      tuf.ssl_commons.exceptions.FormatError, if 'target_filepath' is
+      improperly formatted.
       
-      tuf.ssl_commons.exceptions.Error, if 'target_filepath' cannot be removed from a hashed bin
-      (e.g., an invalid target filepath, or the expected hashed bin does not
-      exist.)
+      tuf.ssl_commons.exceptions.Error, if 'target_filepath' cannot be removed
+      from a hashed bin (e.g., an invalid target filepath, or the expected
+      hashed bin does not exist.)
 
     <Side Effects>
       The fileinfo of 'target_filepath' is removed from a hashed bin of this
@@ -2650,8 +2716,9 @@ class Targets(Metadata):
         repository.targets('000-007').remove_target(target_filepath)
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.Error, if 'target_filepath' cannot be updated (e.g., an invalid target
-      filepath, or the expected hashed bin does not exist.)
+      tuf.ssl_commons.exceptions.Error, if 'target_filepath' cannot be updated
+      (e.g., an invalid target filepath, or the expected hashed bin does not
+      exist.)
 
     <Side Effects>
       The fileinfo of 'target_filepath' is added to a hashed bin of this Targets
@@ -2673,7 +2740,8 @@ class Targets(Metadata):
       delegation = roleinfo['delegations']['roles'][0]
     
     else:
-      raise tuf.ssl_commons.exceptions.Error(self.rolename + ' has not delegated to any roles.')
+      raise tuf.ssl_commons.exceptions.Error(self.rolename + ' has not'
+        ' delegated to any roles.')
 
     # Set 'prefix_length' if this Targets object has delegated to hashed bins,
     # otherwise raise an exception.
@@ -2681,13 +2749,14 @@ class Targets(Metadata):
       prefix_length = len(delegation['path_hash_prefixes'][0])
       
     else:
-      raise tuf.ssl_commons.exceptions.Error(self.rolename + ' has not delegated to hashed bins.')
+      raise tuf.ssl_commons.exceptions.Error(self.rolename + ' has not'
+        ' delegated to hashed bins.')
    
     # Ensure the filepath falls under the repository's targets directory.
     filepath = os.path.abspath(target_filepath)
     if not filepath.startswith(self._targets_directory + os.sep):
-      raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not under the Repository\'s'
-        ' targets directory: ' + repr(self._targets_directory))
+      raise tuf.ssl_commons.exceptions.Error(repr(filepath) + ' is not under'
+        ' the Repository\'s targets directory: ' + repr(self._targets_directory))
     
     # Determine the hash prefix of 'target_path' by computing the digest of
     # its path relative to the targets directory.  Example:
@@ -2708,7 +2777,7 @@ class Targets(Metadata):
         break
       
       else:
-        continue
+        logger.debug('"path_hash_prefix" not found.')
 
     # 'self._delegated_roles' is keyed by relative rolenames, so update
     # 'hashed_bin_name'.
@@ -2719,7 +2788,8 @@ class Targets(Metadata):
       getattr(self._delegated_roles[hashed_bin_name], method_name)(target_filepath)
 
     else:
-      raise tuf.ssl_commons.exceptions.Error(target_filepath + ' not found in any of the bins.')
+      raise tuf.ssl_commons.exceptions.Error(target_filepath + ' not found'
+        ' in any of the bins.')
 
 
 
@@ -2737,8 +2807,8 @@ class Targets(Metadata):
       None.
 
     <Exceptions>
-      tuf.ssl_commons.exceptions.UnknownRoleError, if this Targets' rolename does not exist in
-      'tuf.roledb'. 
+      tuf.ssl_commons.exceptions.UnknownRoleError, if this Targets' rolename
+      does not exist in 'tuf.roledb'. 
 
     <Side Effects>
       None.
@@ -2769,7 +2839,8 @@ def create_new_repository(repository_directory):
       the TUF repository.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
+    formatted.
 
   <Side Effects>
     The 'repository_directory' is created if it does not exist, including its
@@ -2862,11 +2933,11 @@ def load_repository(repository_directory):
     repository_directory:
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.FormatError, if 'repository_directory' or any of the metadata files
-    are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if 'repository_directory' or any of
+    the metadata files are improperly formatted.
 
-    tuf.ssl_commons.exceptions.RepositoryError, if the Root role cannot be found.  At a minimum,
-    a repository must contain 'root.json'
+    tuf.ssl_commons.exceptions.RepositoryError, if the Root role cannot be
+    found.  At a minimum, a repository must contain 'root.json'
   
   <Side Effects>
    All the metadata files found in the repository are loaded and their contents
