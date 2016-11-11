@@ -33,6 +33,7 @@ import logging
 import tempfile
 import shutil
 import sys
+import errno
 
 # 'unittest2' required for testing under Python < 2.7.
 if sys.version_info >= (2, 7):
@@ -1341,16 +1342,41 @@ class TestTargets(unittest.TestCase):
       
       else:
         self.assertFalse('/file1.txt' in delegation.target_files)
-          
+   
+    # Verify that 'path_hash_prefixes' must exist for hashed bin delegations.
+     
+    roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
+    for delegated_role in roleinfo['delegations']['roles']:
+      delegated_role['path_hash_prefixes'] = []
+
+    tuf.roledb.update_roleinfo(self.targets_object.rolename, roleinfo)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      self.targets_object.add_target_to_bin, target1_filepath)
+
+    # Verify that an exception is raised if a target does not match with
+    # any of the 'path_hash_prefixes'.
+    roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
+    delegated_role = roleinfo['delegations']['roles'][0]
+    delegated_role['path_hash_prefixes'] = ['faac']
+    delegated_roles = list()
+    delegated_roles.append(delegated_role)
+    roleinfo['delegations']['roles'] = delegated_roles
+    tuf.roledb.update_roleinfo(self.targets_object.rolename, roleinfo)
+    
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      self.targets_object.add_target_to_bin, target1_filepath)
+    
     # Test for non-existent delegations and hashed bins.
     empty_targets_role = repo_tool.Targets(self.targets_directory, 'empty')
     
-    self.assertRaises(tuf.ssl_commons.exceptions.Error, empty_targets_role.add_target_to_bin,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      empty_targets_role.add_target_to_bin,
                       target1_filepath)
 
     # Test for a required hashed bin that does not exist.
     self.targets_object.revoke('e')
-    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_target_to_bin,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      self.targets_object.add_target_to_bin,
                       target1_filepath)
 
     # Test improperly formatted argument.
@@ -1562,7 +1588,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(os.path.exists(metadata_directory))
     self.assertTrue(os.path.exists(targets_directory))
 
-
     # Test that the 'repository' directory is created (along with the other
     # sub-directories) when it does not exist yet.  The repository tool creates
     # the non-existent directory.
@@ -1580,7 +1605,49 @@ class TestRepositoryToolFunctions(unittest.TestCase):
      
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.create_new_repository, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      repo_tool.create_new_repository, 3)
+
+    # For testing purposes, try to create a repository directory that
+    # fails due to a non-errno.EEXIST exception raised.  create_new_repository()
+    # should only pass for OSError (errno.EEXIST).
+    try: 
+      repo_tool.create_new_repository('bad' * 2000)
+    
+    except OSError as e:
+      self.assertTrue(e.errno == errno.ENAMETOOLONG)
+
+    # Reset the 'repository_directory' so that the metadata and targets
+    # directories can be tested likewise.
+    repository_directory = os.path.join(temporary_directory, 'repository')
+    
+    # The same test as before, but for the metadata and targets directories.
+    original_metadata_staged_directory = \
+      tuf.repository_tool.METADATA_STAGED_DIRECTORY_NAME
+    tuf.repository_tool.METADATA_STAGED_DIRECTORY_NAME = 'bad' * 2000
+    
+    try:
+      repo_tool.create_new_repository(repository_directory)
+    
+    except OSError as e:
+      self.assertTrue(e.errno == errno.ENAMETOOLONG)
+    
+    # Reset metadata staged directory so that the targets directory can be
+    # tested...
+    tuf.repository_tool.METADATA_STAGED_DIRECTORY_NAME = \
+      original_metadata_staged_directory 
+    
+    original_targets_directory = tuf.repository_tool.TARGETS_DIRECTORY_NAME
+    tuf.repository_tool.TARGETS_DIRECTORY_NAME = 'bad' * 2000
+    
+    try:
+      repo_tool.create_new_repository(repository_directory)
+    
+    except OSError as e:
+      self.assertTrue(e.errno == errno.ENAMETOOLONG)
+
+    tuf.repository_tool.TARGETS_DIRECTORY_NAME = \
+      original_targets_directory 
 
 
 

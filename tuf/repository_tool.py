@@ -2777,7 +2777,7 @@ class Targets(Metadata):
         break
       
       else:
-        continue
+        logger.debug('"path_hash_prefix" not found.')
 
     # 'self._delegated_roles' is keyed by relative rolenames, so update
     # 'hashed_bin_name'.
