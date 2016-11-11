@@ -1737,8 +1737,8 @@ class Targets(Metadata):
     
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
     tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(rolename)
   
     if not isinstance(targets_object, Targets):
@@ -1866,11 +1866,11 @@ class Targets(Metadata):
     # entry in the parent's delegations.
     relative_paths = []
    
-    # Ensure the 'child_rolename' has been delegated, otherwise it will not
-    # have an entry in the parent role's delegations field.
+    # Ensure that 'child_rolename' exists, otherwise it will not have an entry
+    # in the parent role's delegations field.
     if not tuf.roledb.role_exists(child_rolename):
-      raise tuf.ssl_commons.exceptions.Error(repr(child_rolename) + ' has not'  
-        ' been delegated.')
+      raise tuf.ssl_commons.exceptions.Error(repr(child_rolename) + ' does'
+        ' not exist.')
 
     for restricted_path in restricted_paths:
       # Do the restricted paths fall under the repository's targets directory?
@@ -1895,6 +1895,9 @@ class Targets(Metadata):
     for relative_path in relative_paths:
       if relative_path not in restricted_paths:
         restricted_paths.append(relative_path)
+
+      else:
+        logger.debug(repr(relative_path) + ' is already a restricted path.')
    
     tuf.roledb.update_roleinfo(self._rolename, roleinfo)
 
@@ -1991,7 +1994,7 @@ class Targets(Metadata):
     <Purpose>
       Add a list of target filepaths (all relative to 'self.targets_directory').
       This method does not actually create files on the file system.  The
-      list of target must already exist.
+      list of targets must already exist on disk.
       
       >>> 
       >>>
@@ -2052,10 +2055,11 @@ class Targets(Metadata):
     roleinfo = tuf.roledb.get_roleinfo(self._rolename)
     for relative_target in relative_list_of_targets:
       if relative_target not in roleinfo['paths']:
+        logger.debug('Adding new target: ' + repr(relative_target))
         roleinfo['paths'].update({relative_target: {}})
       
       else:
-        continue
+        logger.debug('Replacing target: ' + repr(relative_target))
     
     tuf.roledb.update_roleinfo(self.rolename, roleinfo)
   
@@ -2494,7 +2498,7 @@ class Targets(Metadata):
     tuf.ssl_crypto.formats.PATHS_SCHEMA.check_match(list_of_targets)
     tuf.ssl_crypto.formats.ANYKEYLIST_SCHEMA.check_match(keys_of_hashed_bins)
     tuf.ssl_crypto.formats.NUMBINS_SCHEMA.check_match(number_of_bins)
-    
+   
     # Convert 'number_of_bins' to hexadecimal and determine the number of
     # hexadecimal digits needed by each hash prefix.  Calculate the total
     # number of hash prefixes (e.g., 000 - FFF total values) to be spread over
@@ -2531,10 +2535,14 @@ class Targets(Metadata):
     # repository's targets directory.
     for target_path in list_of_targets:
       target_path = os.path.abspath(target_path)
-      if not target_path.startswith(self._targets_directory+os.sep):
-        raise tuf.ssl_commons.exceptions.Error('A path in the list of'
-          ' targets argument is not under the repository\'s targets'
+      if not target_path.startswith(self._targets_directory + os.sep):
+        raise tuf.ssl_commons.exceptions.Error('A path in "list of'
+          ' targets" does not live under the repository\'s targets'
           ' directory: ' + repr(target_path))
+
+      else:
+        logger.debug(repr(target_path) + ' lives under the repository\'s'
+          ' targets directory.')
       
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.  Example:

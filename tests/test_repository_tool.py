@@ -381,13 +381,13 @@ class TestRepository(unittest.TestCase):
                       'snapshot.json', 'snapshot.json.gz', 'timestamp.json',
                       'timestamp.json.gz', 'role1.json', 'role1.json.gz',
                       'role2.json', 'role2.json.gz']
-    
+
     basenames = [] 
     for filepath in metadata_files:
       basenames.append(os.path.basename(filepath))
     self.assertEqual(sorted(expected_files), sorted(basenames))
 
-    # Test when 'recursive_walk' is True.
+    # Test when the 'recursive_walk' argument is True.
     metadata_files = repo.get_filepaths_in_directory(metadata_directory,
                                                      recursive_walk=True) 
 
@@ -1019,6 +1019,10 @@ class TestTargets(unittest.TestCase):
     for delegated_object in self.targets_object.delegations:
       self.assertTrue(isinstance(delegated_object, repo_tool.Targets))
 
+    # For testing / coverage purposes, try to remove a delegated role with the
+    # remove_delegated_role() method.
+    self.targets_object.remove_delegated_role(rolename)
+
 
 
   def test_add_delegated_role(self):
@@ -1058,10 +1062,9 @@ class TestTargets(unittest.TestCase):
     # Attempt to replace target that has already been added.
     octal_file_permissions2 = oct(os.stat(target_filepath).st_mode)[4:]
     custom_file_permissions2 = {'file_permissions': octal_file_permissions}
-    self.targets_object.add_target(target2_filepath, custom_file_permissions2) 
+    self.targets_object.add_target(target2_filepath, custom_file_permissions2)
     self.assertEqual(self.targets_object.target_files['/file2.txt'],
-                     custom_file_permissions2)
-
+    custom_file_permissions2)
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_target, 3)
@@ -1104,7 +1107,9 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(len(self.targets_object.target_files), 3)
     self.assertEqual(self.targets_object.target_files, 
                      {'/file1.txt': {}, '/file2.txt': {}, '/file3.txt': {}})
-
+    
+    # Attempt to replace targets that has already been added.
+    self.targets_object.add_targets(target_files)
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_targets, 3)
@@ -1135,18 +1140,21 @@ class TestTargets(unittest.TestCase):
     # Test remove_target()'s behavior.
     self.targets_object.remove_target(target_filepath)
     self.assertEqual(self.targets_object.target_files, {})
-
-
+    
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.remove_target, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      self.targets_object.remove_target, 3)
 
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
-    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.remove_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      self.targets_object.remove_target,
                       '/non-existent.txt')
+    
     # Test for filepath that hasn't been added yet.
     target5_filepath = os.path.join(self.targets_directory, 'file5.txt')
-    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.remove_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      self.targets_object.remove_target,
                       target5_filepath)
 
 
@@ -1291,9 +1299,10 @@ class TestTargets(unittest.TestCase):
                       list_of_targets, public_keys, number_of_bins=3)
     
     # Invalid 'list_of_targets'.
+    invalid_targets = ['/non-existent']
     self.assertRaises(tuf.ssl_commons.exceptions.Error,
                       self.targets_object.delegate_hashed_bins,
-                      ['/non-existent'], public_keys, number_of_bins=3)
+                      invalid_targets, public_keys, number_of_bins=16)
 
 
 
@@ -1434,13 +1443,14 @@ class TestTargets(unittest.TestCase):
     
     # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains
     # the expected restricted paths of the delegated role.  Only
-    # Repository.write() verifies that child target paths are allowed by the
-    # parent.
     targets_object_roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
 
     delegated_role = targets_object_roleinfo['delegations']['roles'][0]
     self.assertEqual(['/tuf_files/*'], delegated_role['paths'])
-
+    
+    # Try to add a restricted path that has already been set.
+    # add_restricted_paths() should simply log a message in this case.
+    self.targets_object.add_restricted_paths(restricted_paths, 'tuf')
 
     # Test improperly formatted arguments.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_restricted_paths,
