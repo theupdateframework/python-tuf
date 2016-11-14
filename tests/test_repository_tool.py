@@ -33,6 +33,7 @@ import logging
 import tempfile
 import shutil
 import sys
+import errno
 
 # 'unittest2' required for testing under Python < 2.7.
 if sys.version_info >= (2, 7):
@@ -45,8 +46,8 @@ import tuf
 import tuf.log
 import tuf.formats
 import tuf.roledb
-import tuf.keydb
-import tuf.hash
+import tuf.ssl_crypto.keydb
+import tuf.ssl_crypto.hash
 import tuf.repository_tool as repo_tool
 
 import six
@@ -88,7 +89,7 @@ class TestRepository(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb(clear_all=True) 
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
   def test_init(self):
@@ -103,11 +104,11 @@ class TestRepository(unittest.TestCase):
     self.assertTrue(isinstance(repository.targets, repo_tool.Targets))
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_tool.Repository, 3,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository, 3,
                       'metadata_directory/', 'targets_directory')
-    self.assertRaises(tuf.FormatError, repo_tool.Repository,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository,
                       'repository_directory', 3, 'targets_directory')
-    self.assertRaises(tuf.FormatError, repo_tool.Repository,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository,
                       'repository_directory', 'metadata_directory', 3)
 
   
@@ -188,7 +189,7 @@ class TestRepository(unittest.TestCase):
 
     # Verify that repository.writeall() fails for insufficient threshold
     # of signatures (default threshold = 1).
-    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall) 
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsignedMetadataError, repository.writeall) 
     
     repository.timestamp.add_verification_key(timestamp_pubkey)
     
@@ -204,7 +205,7 @@ class TestRepository(unittest.TestCase):
    
     # Verify that repository.writeall() fails for insufficient threshold
     # of signatures (default threshold = 1).
-    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall) 
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsignedMetadataError, repository.writeall) 
     
     repository.timestamp.load_signing_key(timestamp_privkey)
    
@@ -227,9 +228,9 @@ class TestRepository(unittest.TestCase):
     # Verify that the expected metadata is written.
     for role in ['root.json', 'targets.json', 'snapshot.json', 'timestamp.json']:
       role_filepath = os.path.join(metadata_directory, role)
-      role_signable = tuf.util.load_json_file(role_filepath)
+      role_signable = tuf.ssl_crypto.util.load_json_file(role_filepath)
       
-      # Raise 'tuf.FormatError' if 'role_signable' is an invalid signable.
+      # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'role_signable' is an invalid signable.
       tuf.formats.check_signable_object_format(role_signable)
         
       self.assertTrue(os.path.exists(role_filepath))
@@ -240,7 +241,7 @@ class TestRepository(unittest.TestCase):
        
     # Verify the 'role1.json' delegation is also written.
     role1_filepath = os.path.join(metadata_directory, 'role1.json')
-    role1_signable = tuf.util.load_json_file(role1_filepath)
+    role1_signable = tuf.ssl_crypto.util.load_json_file(role1_filepath)
     tuf.formats.check_signable_object_format(role1_signable)
 
     # Verify that an exception is *not* raised for multiple
@@ -250,7 +251,7 @@ class TestRepository(unittest.TestCase):
     # Verify that status() does not raise an exception.
     repository.status()
     
-    # Verify that status() does not raise 'tuf.InsufficientKeysError' if a
+    # Verify that status() does not raise 'tuf.ssl_commons.exceptions.InsufficientKeysError' if a
     # top-level role does not contain a threshold of keys.
     targets_roleinfo = tuf.roledb.get_roleinfo('targets')
     old_threshold = targets_roleinfo['threshold']
@@ -263,7 +264,7 @@ class TestRepository(unittest.TestCase):
     targets_roleinfo['threshold'] = old_threshold
     tuf.roledb.update_roleinfo('targets', targets_roleinfo)
    
-    # Verify that status() does not raise 'tuf.InsufficientKeysError' if a
+    # Verify that status() does not raise 'tuf.ssl_commons.exceptions.InsufficientKeysError' if a
     # delegated role does not contain a threshold of keys.
     role1_roleinfo = tuf.roledb.get_roleinfo('role1')
     old_role1_threshold = role1_roleinfo['threshold']
@@ -276,7 +277,7 @@ class TestRepository(unittest.TestCase):
     role1_roleinfo['threshold'] = old_role1_threshold 
     tuf.roledb.update_roleinfo('role1', role1_roleinfo)
 
-    # Verify status() does not raise 'tuf.UnsignedMetadataError' if any of the
+    # Verify status() does not raise 'tuf.ssl_commons.exceptions.UnsignedMetadataError' if any of the
     # the top-level roles. Test that 'root' is improperly signed.
     repository.root.unload_signing_key(root_privkey)
     repository.root.load_signing_key(targets_privkey)
@@ -318,7 +319,7 @@ class TestRepository(unittest.TestCase):
     repo_tool.load_repository(repository_directory)
     
     repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 12, 0)
-    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsignedMetadataError, repository.writeall)
 
     # Next, perform a writeall() with consistent snapshots enabled.
     # Since the timestamp was modified, load its private key.
@@ -328,7 +329,7 @@ class TestRepository(unittest.TestCase):
     # snapshot modifies the Root metadata, which specifies whether a repository
     # supports consistent snapshots.  Verify that an exception is raised due to
     # the missing signatures of Root and Snapshot.
-    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall, True)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsignedMetadataError, repository.writeall, True)
     
     # Load the private keys of Root and Snapshot (new version required since
     # Root will change to enable consistent snapshots.
@@ -361,8 +362,8 @@ class TestRepository(unittest.TestCase):
     self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles())
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repository.writeall, 3, False)
-    self.assertRaises(tuf.FormatError, repository.writeall, False, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repository.writeall, 3, False)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repository.writeall, False, 3)
 
 
 
@@ -381,26 +382,31 @@ class TestRepository(unittest.TestCase):
                       'snapshot.json', 'snapshot.json.gz', 'timestamp.json',
                       'timestamp.json.gz', 'role1.json', 'role1.json.gz',
                       'role2.json', 'role2.json.gz']
+
     basenames = [] 
     for filepath in metadata_files:
       basenames.append(os.path.basename(filepath))
     self.assertEqual(sorted(expected_files), sorted(basenames))
 
+    # Test when the 'recursive_walk' argument is True.
+    metadata_files = repo.get_filepaths_in_directory(metadata_directory,
+                                                     recursive_walk=True) 
+
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo.get_filepaths_in_directory,
                       3, recursive_walk=False, followlinks=False)
-    self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo.get_filepaths_in_directory,
                       metadata_directory, 3, followlinks=False)
-    self.assertRaises(tuf.FormatError, repo.get_filepaths_in_directory,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo.get_filepaths_in_directory,
                       metadata_directory, recursive_walk=False, followlinks=3)
 
     # Test invalid directory argument.
     # A non-directory.
-    self.assertRaises(tuf.Error, repo.get_filepaths_in_directory,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo.get_filepaths_in_directory,
                       os.path.join(metadata_directory, 'root.json'))
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     nonexistent_directory = os.path.join(temporary_directory, 'nonexistent/')
-    self.assertRaises(tuf.Error, repo.get_filepaths_in_directory,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, repo.get_filepaths_in_directory,
                       nonexistent_directory, recursive_walk=False,
                       followlinks=False)
 
@@ -438,7 +444,7 @@ class TestMetadata(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     self.metadata = None 
 
   
@@ -499,7 +505,7 @@ class TestMetadata(unittest.TestCase):
     try: 
       self.metadata.expiration = '3' 
     
-    except tuf.FormatError:
+    except tuf.ssl_commons.exceptions.FormatError:
       pass
     
     else:
@@ -511,7 +517,7 @@ class TestMetadata(unittest.TestCase):
     try: 
       self.metadata.expiration = expired_datetime 
     
-    except tuf.Error:
+    except tuf.ssl_commons.exceptions.Error:
       pass
     
     else:
@@ -564,7 +570,7 @@ class TestMetadata(unittest.TestCase):
     # Test improperly formatted argument.
     try:
       self.metadata.compressions = 3
-    except tuf.FormatError:
+    except tuf.ssl_commons.exceptions.FormatError:
       pass
     else:
       self.fail('Setter failed to detect improperly formatted compressions')
@@ -610,12 +616,12 @@ class TestMetadata(unittest.TestCase):
   
     # Test for an expired 'expires'.
     expired = datetime.datetime(1984, 1, 1, 12, 0)
-    self.assertRaises(tuf.Error,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
                       self.metadata.add_verification_key, key_object, expired)
     
     # Test improperly formatted key argument.
-    self.assertRaises(tuf.FormatError, self.metadata.add_verification_key, 3)
-    self.assertRaises(tuf.FormatError, self.metadata.add_verification_key, key_object, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.metadata.add_verification_key, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.metadata.add_verification_key, key_object, 3)
 
 
 
@@ -636,7 +642,7 @@ class TestMetadata(unittest.TestCase):
     
 
     # Test improperly formatted argument
-    self.assertRaises(tuf.FormatError, self.metadata.remove_verification_key, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.metadata.remove_verification_key, 3)
 
 
     # Test non-existent public key argument.
@@ -644,7 +650,7 @@ class TestMetadata(unittest.TestCase):
                             'keystore', 'targets_key.pub')
     unused_key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
     
-    self.assertRaises(tuf.Error, self.metadata.remove_verification_key,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.metadata.remove_verification_key,
                       unused_key_object)
 
 
@@ -661,14 +667,14 @@ class TestMetadata(unittest.TestCase):
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.metadata.load_signing_key, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.metadata.load_signing_key, 3)
 
     
     # Test non-private key.
     key_path = os.path.join('repository_data',
                             'keystore', 'snapshot_key.pub')
     key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
-    self.assertRaises(tuf.Error, self.metadata.load_signing_key, key_object)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.metadata.load_signing_key, key_object)
 
 
 
@@ -688,7 +694,7 @@ class TestMetadata(unittest.TestCase):
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.metadata.unload_signing_key, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.metadata.unload_signing_key, 3)
 
 
     # Test non-existent key argument.
@@ -697,7 +703,7 @@ class TestMetadata(unittest.TestCase):
     unused_key_object = repo_tool.import_ed25519_privatekey_from_file(key_path,
                                                                   'password')
     
-    self.assertRaises(tuf.Error, self.metadata.unload_signing_key,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.metadata.unload_signing_key,
                       unused_key_object)
 
 
@@ -709,7 +715,7 @@ class TestMetadata(unittest.TestCase):
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
     root_filepath = os.path.join(metadata_directory, 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
     signatures = root_signable['signatures']
 
     # Add the first signature from the list, as only one is needed.
@@ -726,8 +732,8 @@ class TestMetadata(unittest.TestCase):
     self.metadata.add_signature(signatures[0])
 
     # Test improperly formatted signature argument.
-    self.assertRaises(tuf.FormatError, self.metadata.add_signature, 3)
-    self.assertRaises(tuf.FormatError, self.metadata.add_signature, signatures[0], 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.metadata.add_signature, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.metadata.add_signature, signatures[0], 3)
 
 
 
@@ -737,7 +743,7 @@ class TestMetadata(unittest.TestCase):
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
     root_filepath = os.path.join(metadata_directory, 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
     signatures = root_signable['signatures']
     self.metadata.add_signature(signatures[0])
 
@@ -746,16 +752,16 @@ class TestMetadata(unittest.TestCase):
 
 
     # Test improperly formatted signature argument.
-    self.assertRaises(tuf.FormatError, self.metadata.remove_signature, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.metadata.remove_signature, 3)
 
 
     # Test invalid signature argument (i.e., signature that has not been added.)
     # Load an unused signature to be tested.
     targets_filepath = os.path.join(metadata_directory, 'targets.json')
-    targets_signable = tuf.util.load_json_file(targets_filepath)
+    targets_signable = tuf.ssl_crypto.util.load_json_file(targets_filepath)
     signatures = targets_signable['signatures']
     
-    self.assertRaises(tuf.Error, self.metadata.remove_signature, signatures[0])
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.metadata.remove_signature, signatures[0])
 
 
 
@@ -768,7 +774,7 @@ class TestMetadata(unittest.TestCase):
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
     root_filepath = os.path.join(metadata_directory, 'root.json')
-    root_signable = tuf.util.load_json_file(root_filepath)
+    root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
     signatures = root_signable['signatures']
 
     # Add the first signature from the list, as only need one is needed.
@@ -785,7 +791,7 @@ class TestRoot(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb() 
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
 
 
   
@@ -807,7 +813,7 @@ class TestTimestamp(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb() 
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
   
   
   
@@ -832,7 +838,7 @@ class TestSnapshot(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb() 
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
   
   
   
@@ -887,7 +893,7 @@ class TestTargets(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb() 
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     self.targets_object = None
   
   
@@ -906,12 +912,12 @@ class TestTargets(unittest.TestCase):
     self.assertTrue(isinstance(targets_object, repo_tool.Metadata))
     self.assertTrue(tuf.roledb.role_exists('project'))
 
-    # Custom roleinfo object (i.e., tuf.formats.ROLEDB_SCHEMA).  'keyids' and
+    # Custom roleinfo object (i.e., tuf.ssl_crypto.formats.ROLEDB_SCHEMA).  'keyids' and
     # 'threshold' are required, the rest are optional.
     roleinfo = {'keyids': 
           ['66c4cb5fef5e4d62b7013ef1cab4b8a827a36c14056d5603c3a970e21eb30e6f'],
                 'threshold': 8}
-    self.assertTrue(tuf.formats.ROLEDB_SCHEMA.matches(roleinfo))
+    self.assertTrue(tuf.ssl_crypto.formats.ROLEDB_SCHEMA.matches(roleinfo))
     
     targets_object = repo_tool.Targets('targets_directory/', 'package', roleinfo)
     self.assertTrue(isinstance(targets_object, repo_tool.Metadata))
@@ -919,9 +925,9 @@ class TestTargets(unittest.TestCase):
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_tool.Targets, 3)
-    self.assertRaises(tuf.FormatError, repo_tool.Targets, 'targets_directory/', 3)
-    self.assertRaises(tuf.FormatError, repo_tool.Targets, 'targets_directory/',
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Targets, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Targets, 'targets_directory/', 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Targets, 'targets_directory/',
                       'targets', 3)
   
 
@@ -942,10 +948,10 @@ class TestTargets(unittest.TestCase):
     self.assertTrue(isinstance(targets_object('role1'), repo_tool.Targets))
    
     # Test invalid (i.e., non-delegated) rolename argument.
-    self.assertRaises(tuf.UnknownRoleError, targets_object, 'unknown_role')
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownRoleError, targets_object, 'unknown_role')
 
     # Test improperly formatted argument.
-    self.assertRaises(tuf.FormatError, targets_object, 1)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, targets_object, 1)
 
 
 
@@ -1014,6 +1020,18 @@ class TestTargets(unittest.TestCase):
     for delegated_object in self.targets_object.delegations:
       self.assertTrue(isinstance(delegated_object, repo_tool.Targets))
 
+    # For testing / coverage purposes, try to remove a delegated role with the
+    # remove_delegated_role() method.
+    self.targets_object.remove_delegated_role(rolename)
+
+
+
+  def test_add_delegated_role(self):
+    # Test for invalid targets object.
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      self.targets_object.add_delegated_role, 'targets',
+                                                             'bad_object')
+
 
 
   def test_add_target(self):
@@ -1042,26 +1060,33 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(self.targets_object.target_files['/file2.txt'],
                      custom_file_permissions)
 
+    # Attempt to replace target that has already been added.
+    octal_file_permissions2 = oct(os.stat(target_filepath).st_mode)[4:]
+    custom_file_permissions2 = {'file_permissions': octal_file_permissions}
+    self.targets_object.add_target(target2_filepath, custom_file_permissions2)
+    self.assertEqual(self.targets_object.target_files['/file2.txt'],
+    custom_file_permissions2)
+
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.targets_object.add_target, 3)
-    self.assertRaises(tuf.FormatError, self.targets_object.add_target, 3,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_target, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_target, 3,
                       custom_file_permissions)
-    self.assertRaises(tuf.FormatError, self.targets_object.add_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_target,
                       target_filepath, 3)
 
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
-    self.assertRaises(tuf.Error, self.targets_object.add_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_target,
                       'non-existent.txt')
 
     # Not under the repository's targets directory. 
-    self.assertRaises(tuf.Error, self.targets_object.add_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_target,
                       self.temporary_directory)
     
     # Not a file (i.e., a valid path, but a directory.)
     test_directory = os.path.join(self.targets_directory, 'test_directory')
     os.mkdir(test_directory)
-    self.assertRaises(tuf.Error, self.targets_object.add_target, test_directory)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_target, test_directory)
 
 
 
@@ -1083,21 +1108,23 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(len(self.targets_object.target_files), 3)
     self.assertEqual(self.targets_object.target_files, 
                      {'/file1.txt': {}, '/file2.txt': {}, '/file3.txt': {}})
-
+    
+    # Attempt to replace targets that has already been added.
+    self.targets_object.add_targets(target_files)
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.targets_object.add_targets, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_targets, 3)
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
-    self.assertRaises(tuf.Error, self.targets_object.add_targets,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_targets,
                       ['non-existent.txt'])
-    self.assertRaises(tuf.Error, self.targets_object.add_targets,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_targets,
                       [target1_filepath, target2_filepath, 'non-existent.txt'])
-    self.assertRaises(tuf.Error, self.targets_object.add_targets,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_targets,
                       [self.temporary_directory])
     temp_directory = os.path.join(self.targets_directory, 'temp')
     os.mkdir(temp_directory)
-    self.assertRaises(tuf.Error, self.targets_object.add_targets,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_targets,
                       [temp_directory])
 
 
@@ -1114,18 +1141,21 @@ class TestTargets(unittest.TestCase):
     # Test remove_target()'s behavior.
     self.targets_object.remove_target(target_filepath)
     self.assertEqual(self.targets_object.target_files, {})
-
-
+    
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.targets_object.remove_target, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      self.targets_object.remove_target, 3)
 
 
     # Test invalid filepath argument (i.e., non-existent or invalid file.)
-    self.assertRaises(tuf.Error, self.targets_object.remove_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      self.targets_object.remove_target,
                       '/non-existent.txt')
+    
     # Test for filepath that hasn't been added yet.
     target5_filepath = os.path.join(self.targets_directory, 'file5.txt')
-    self.assertRaises(tuf.Error, self.targets_object.remove_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      self.targets_object.remove_target,
                       target5_filepath)
 
 
@@ -1173,42 +1203,42 @@ class TestTargets(unittest.TestCase):
                      ['tuf'])
     
     # Try to delegate to a role that has already been delegated.
-    self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.delegate, rolename,
                       public_keys, list_of_targets, threshold, terminating=False,
                       restricted_paths=restricted_paths,
                       path_hash_prefixes=path_hash_prefixes)
 
     # Test for targets that do not exist under the targets directory.
     self.targets_object.revoke(rolename)
-    self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.delegate, rolename,
                       public_keys, ['non-existent.txt'], threshold,
                       terminating=False, restricted_paths=restricted_paths,
                       path_hash_prefixes=path_hash_prefixes)
     
     # Test for targets that do not exist under the targets directory.
-    self.assertRaises(tuf.Error, self.targets_object.delegate, rolename,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.delegate, rolename,
                       public_keys, list_of_targets, threshold,
                       terminating=False, restricted_paths=['non-existent.txt'],
                       path_hash_prefixes=path_hash_prefixes)
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.delegate,
                       3, public_keys, list_of_targets, threshold,
                       restricted_paths, path_hash_prefixes)
-    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.delegate,
                       rolename, 3, list_of_targets, threshold,
                       restricted_paths, path_hash_prefixes)
-    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.delegate,
                       rolename, public_keys, 3, threshold,
                       restricted_paths, path_hash_prefixes)
-    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.delegate,
                       rolename, public_keys, list_of_targets, '3',
                       restricted_paths, path_hash_prefixes)
-    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.delegate,
                       rolename, public_keys, list_of_targets, threshold,
                       3, path_hash_prefixes)
-    self.assertRaises(tuf.FormatError, self.targets_object.delegate,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.delegate,
                       rolename, public_keys, list_of_targets, threshold,
                       restricted_paths, 3)
 
@@ -1217,12 +1247,12 @@ class TestTargets(unittest.TestCase):
     # files, etc.).
     # Test duplicate 'rolename' delegation, which should have been delegated
     # in the normal case above.
-    self.assertRaises(tuf.Error, self.targets_object.delegate,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.delegate,
                       rolename, public_keys, list_of_targets, threshold,
                       restricted_paths, path_hash_prefixes)
     
     # Test non-existent target paths.
-    self.assertRaises(tuf.Error, self.targets_object.delegate,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.delegate,
                       rolename, public_keys, ['/non-existent'], threshold,
                       restricted_paths, path_hash_prefixes)
 
@@ -1251,28 +1281,32 @@ class TestTargets(unittest.TestCase):
     self.assertEqual(sorted(self.targets_object.get_delegated_rolenames()),
                      sorted(delegated_rolenames))
 
+    # For testing / coverage purposes, try to create delegated bins that  
+    # hold a range of hash prefixes (e.g., bin name: 000-003).
+    self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
+                                             number_of_bins=512)
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       self.targets_object.delegate_hashed_bins, 3, public_keys,
                       number_of_bins=1)
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       self.targets_object.delegate_hashed_bins,
                       list_of_targets, 3, number_of_bins=1)
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       self.targets_object.delegate_hashed_bins,
                       list_of_targets, public_keys, '1')
 
-
     # Test invalid arguments.
     # Invalid number of bins, which must be a power of 2.
-    self.assertRaises(tuf.Error,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
                       self.targets_object.delegate_hashed_bins,
                       list_of_targets, public_keys, number_of_bins=3)
     
     # Invalid 'list_of_targets'.
-    self.assertRaises(tuf.Error,
+    invalid_targets = ['/non-existent']
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
                       self.targets_object.delegate_hashed_bins,
-                      ['/non-existent'], public_keys, number_of_bins=3)
+                      invalid_targets, public_keys, number_of_bins=16)
 
 
 
@@ -1308,24 +1342,49 @@ class TestTargets(unittest.TestCase):
       
       else:
         self.assertFalse('/file1.txt' in delegation.target_files)
-          
+   
+    # Verify that 'path_hash_prefixes' must exist for hashed bin delegations.
+     
+    roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
+    for delegated_role in roleinfo['delegations']['roles']:
+      delegated_role['path_hash_prefixes'] = []
+
+    tuf.roledb.update_roleinfo(self.targets_object.rolename, roleinfo)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      self.targets_object.add_target_to_bin, target1_filepath)
+
+    # Verify that an exception is raised if a target does not match with
+    # any of the 'path_hash_prefixes'.
+    roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
+    delegated_role = roleinfo['delegations']['roles'][0]
+    delegated_role['path_hash_prefixes'] = ['faac']
+    delegated_roles = list()
+    delegated_roles.append(delegated_role)
+    roleinfo['delegations']['roles'] = delegated_roles
+    tuf.roledb.update_roleinfo(self.targets_object.rolename, roleinfo)
+    
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      self.targets_object.add_target_to_bin, target1_filepath)
+    
     # Test for non-existent delegations and hashed bins.
     empty_targets_role = repo_tool.Targets(self.targets_directory, 'empty')
     
-    self.assertRaises(tuf.Error, empty_targets_role.add_target_to_bin,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      empty_targets_role.add_target_to_bin,
                       target1_filepath)
 
     # Test for a required hashed bin that does not exist.
     self.targets_object.revoke('e')
-    self.assertRaises(tuf.Error, self.targets_object.add_target_to_bin,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
+                      self.targets_object.add_target_to_bin,
                       target1_filepath)
 
     # Test improperly formatted argument.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       self.targets_object.add_target_to_bin, 3)
 
     # Invalid target file path argument.
-    self.assertRaises(tuf.Error,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error,
                       self.targets_object.add_target_to_bin, '/non-existent')
   
   
@@ -1376,11 +1435,11 @@ class TestTargets(unittest.TestCase):
 
 
     # Test improperly formatted argument.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       self.targets_object.remove_target_from_bin, 3)
 
     # Invalid target file path argument.
-    self.assertRaises(tuf.Error, self.targets_object.remove_target_from_bin,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.remove_target_from_bin,
                       '/non-existent')
     
     
@@ -1413,33 +1472,34 @@ class TestTargets(unittest.TestCase):
     
     # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains
     # the expected restricted paths of the delegated role.  Only
-    # Repository.write() verifies that child target paths are allowed by the
-    # parent.
     targets_object_roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
 
     delegated_role = targets_object_roleinfo['delegations']['roles'][0]
     self.assertEqual(['/tuf_files/*'], delegated_role['paths'])
-
+    
+    # Try to add a restricted path that has already been set.
+    # add_restricted_paths() should simply log a message in this case.
+    self.targets_object.add_restricted_paths(restricted_paths, 'tuf')
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, self.targets_object.add_restricted_paths,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_restricted_paths,
                       3, 'tuf')
-    self.assertRaises(tuf.FormatError, self.targets_object.add_restricted_paths,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.add_restricted_paths,
                       restricted_paths, 3)
 
 
     # Test invalid arguments.
     # A non-delegated child role.
-    self.assertRaises(tuf.Error, self.targets_object.add_restricted_paths,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_restricted_paths,
                       restricted_paths, 'non_delegated_rolename')
     
     # Non-existent 'restricted_paths'.
-    self.assertRaises(tuf.Error, self.targets_object.add_restricted_paths,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_restricted_paths,
                       ['/non-existent'], 'tuf')
     
     # Directory not under the repository's targets directory.
     repository_directory = os.path.join('repository_data', 'repository')
-    self.assertRaises(tuf.Error, self.targets_object.add_restricted_paths,
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, self.targets_object.add_restricted_paths,
                       [repository_directory], 'tuf')
 
 
@@ -1468,7 +1528,7 @@ class TestTargets(unittest.TestCase):
 
 
     # Test improperly formatted rolename argument.
-    self.assertRaises(tuf.FormatError, self.targets_object.revoke, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.targets_object.revoke, 3)
 
 
 
@@ -1528,7 +1588,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(os.path.exists(metadata_directory))
     self.assertTrue(os.path.exists(targets_directory))
 
-
     # Test that the 'repository' directory is created (along with the other
     # sub-directories) when it does not exist yet.  The repository tool creates
     # the non-existent directory.
@@ -1546,7 +1605,49 @@ class TestRepositoryToolFunctions(unittest.TestCase):
      
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_tool.create_new_repository, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      repo_tool.create_new_repository, 3)
+
+    # For testing purposes, try to create a repository directory that
+    # fails due to a non-errno.EEXIST exception raised.  create_new_repository()
+    # should only pass for OSError (errno.EEXIST).
+    try: 
+      repo_tool.create_new_repository('bad' * 2000)
+    
+    except OSError as e:
+      self.assertTrue(e.errno == errno.ENAMETOOLONG)
+
+    # Reset the 'repository_directory' so that the metadata and targets
+    # directories can be tested likewise.
+    repository_directory = os.path.join(temporary_directory, 'repository')
+    
+    # The same test as before, but for the metadata and targets directories.
+    original_metadata_staged_directory = \
+      tuf.repository_tool.METADATA_STAGED_DIRECTORY_NAME
+    tuf.repository_tool.METADATA_STAGED_DIRECTORY_NAME = 'bad' * 2000
+    
+    try:
+      repo_tool.create_new_repository(repository_directory)
+    
+    except OSError as e:
+      self.assertTrue(e.errno == errno.ENAMETOOLONG)
+    
+    # Reset metadata staged directory so that the targets directory can be
+    # tested...
+    tuf.repository_tool.METADATA_STAGED_DIRECTORY_NAME = \
+      original_metadata_staged_directory 
+    
+    original_targets_directory = tuf.repository_tool.TARGETS_DIRECTORY_NAME
+    tuf.repository_tool.TARGETS_DIRECTORY_NAME = 'bad' * 2000
+    
+    try:
+      repo_tool.create_new_repository(repository_directory)
+    
+    except OSError as e:
+      self.assertTrue(e.errno == errno.ENAMETOOLONG)
+
+    tuf.repository_tool.TARGETS_DIRECTORY_NAME = \
+      original_targets_directory 
 
 
 
@@ -1598,7 +1699,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue('/file3.txt' in repository.targets('role1').target_files)
     
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, repo_tool.load_repository, 3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.load_repository, 3)
 
 
     # Test for invalid 'repository_directory' (i.e., does not contain the
@@ -1607,7 +1708,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
       os.path.join(repository_directory,
                    repo_tool.METADATA_STAGED_DIRECTORY_NAME, 'root.json') 
     os.remove(root_filepath)
-    self.assertRaises(tuf.RepositoryError, repo_tool.load_repository,
+    self.assertRaises(tuf.ssl_commons.exceptions.RepositoryError, repo_tool.load_repository,
                       repository_directory)
 
 

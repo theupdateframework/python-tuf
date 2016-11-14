@@ -31,13 +31,13 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.formats
-import tuf.ed25519_keys as ed25519_keys 
+import tuf.ssl_crypto.formats
+import tuf.ssl_crypto.ed25519_keys as ed25519_keys 
 
 logger = logging.getLogger('tuf.test_ed25519_keys')
 
 public, private = ed25519_keys.generate_public_and_private()
-FORMAT_ERROR_MSG = 'tuf.FormatError raised.  Check object\'s format.'
+FORMAT_ERROR_MSG = 'tuf.ssl_commons.exceptions.FormatError raised.  Check object\'s format.'
 
 
 class TestEd25519_keys(unittest.TestCase):
@@ -49,8 +49,8 @@ class TestEd25519_keys(unittest.TestCase):
     pub, priv = ed25519_keys.generate_public_and_private()
     
     # Check format of 'pub' and 'priv'.
-    self.assertEqual(True, tuf.formats.ED25519PUBLIC_SCHEMA.matches(pub))
-    self.assertEqual(True, tuf.formats.ED25519SEED_SCHEMA.matches(priv))
+    self.assertEqual(True, tuf.ssl_crypto.formats.ED25519PUBLIC_SCHEMA.matches(pub))
+    self.assertEqual(True, tuf.ssl_crypto.formats.ED25519SEED_SCHEMA.matches(priv))
 
 
 
@@ -62,20 +62,20 @@ class TestEd25519_keys(unittest.TestCase):
 
     # Verify format of returned values.
     self.assertEqual(True,
-                     tuf.formats.ED25519SIGNATURE_SCHEMA.matches(signature))
+                     tuf.ssl_crypto.formats.ED25519SIGNATURE_SCHEMA.matches(signature))
     
-    self.assertEqual(True, tuf.formats.NAME_SCHEMA.matches(method))
+    self.assertEqual(True, tuf.ssl_crypto.formats.NAME_SCHEMA.matches(method))
     self.assertEqual('ed25519', method)
 
     # Check for improperly formatted argument.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       ed25519_keys.create_signature, 123, private, data)
     
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       ed25519_keys.create_signature, public, 123, data)
    
     # Check for invalid 'data'.
-    self.assertRaises(tuf.CryptoError,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError,
                       ed25519_keys.create_signature, public, private, 123)
 
 
@@ -102,23 +102,23 @@ class TestEd25519_keys(unittest.TestCase):
 
 
     # Check for improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, ed25519_keys.verify_signature, 123, method,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, ed25519_keys.verify_signature, 123, method,
                                        signature, data)
     
     # Signature method improperly formatted.
-    self.assertRaises(tuf.FormatError, ed25519_keys.verify_signature, public, 123,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, ed25519_keys.verify_signature, public, 123,
                                        signature, data)
    
     # Invalid signature method.
-    self.assertRaises(tuf.UnknownMethodError, ed25519_keys.verify_signature, public,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownMethodError, ed25519_keys.verify_signature, public,
                                        'unsupported_method', signature, data)
    
     # Signature not a string.
-    self.assertRaises(tuf.FormatError, ed25519_keys.verify_signature, public, method,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, ed25519_keys.verify_signature, public, method,
                                        123, data)
    
     # Invalid signature length, which must be exactly 64 bytes..
-    self.assertRaises(tuf.FormatError, ed25519_keys.verify_signature, public, method,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, ed25519_keys.verify_signature, public, method,
                                        'bad_signature', data)
     
     # Check for invalid signature and data.

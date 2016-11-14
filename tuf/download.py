@@ -15,9 +15,10 @@
 <Purpose>
   Download metadata and target files and check their validity.  The hash and
   length of a downloaded file has to match the hash and length supplied by the
-  metadata of that file.  The downloaded file is technically a  file-like object
-  that will automatically destroys itself once closed.  Note that the file-like
-  object, 'tuf.util.TempFile', is returned by the '_download_file()' function.
+  metadata of that file.  The downloaded file is technically a  file-like
+  object that will automatically destroys itself once closed.  Note that the
+  file-like object, 'tuf.ssl_crypto.util.TempFile', is returned by the
+  '_download_file()' function.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -37,10 +38,10 @@ import ssl
 import time
 
 import tuf
-import tuf.conf
-import tuf.hash
-import tuf.util
-import tuf.formats
+from simple_settings import settings
+import tuf.ssl_crypto.hash
+import tuf.ssl_crypto.util
+import tuf.ssl_crypto.formats
 import six
 
 # 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
@@ -49,7 +50,7 @@ try:
   from ssl import match_hostname, CertificateError
 
 except ImportError: # pragma: no cover
-  from tuf._vendor.ssl_match_hostname import match_hostname, CertificateError
+  from tuf.ssl_crypto._vendor.ssl_match_hostname import match_hostname, CertificateError
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
@@ -65,54 +66,56 @@ def safe_download(url, required_length):
     tuf.download.unsafe_download() may be called if an upper download limit is
     preferred.
  
-    'tuf.util.TempFile', the file-like object returned, is used instead of
-    regular tempfile object because of additional functionality provided, such
-    as handling compressed metadata and automatically closing files after
-    moving to final destination.
+    'tuf.ssl_crypto.util.TempFile', the file-like object returned, is used
+    instead of regular tempfile object because of additional functionality
+    provided, such as handling compressed metadata and automatically closing
+    files after moving to final destination.
   
   <Arguments>
     url:
       A URL string that represents the location of the file.  The URI scheme
-      component must be one of 'tuf.conf.SUPPORTED_URI_SCHEMES'.
+      component must be one of 'settings.SUPPORTED_URI_SCHEMES'.
   
     required_length:
       An integer value representing the length of the file.  This is an exact
       limit.
 
   <Side Effects>
-    A 'tuf.util.TempFile' object is created on disk to store the contents of
-    'url'.
+    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the
+    contents of 'url'.
  
   <Exceptions>
-    tuf.DownloadLengthMismatchError, if there was a mismatch of observed vs
-    expected lengths while downloading the file.
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
+    mismatch of observed vs expected lengths while downloading the file.
  
-    tuf.FormatError, if any of the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are
+    improperly formatted.
 
     Any other unforeseen runtime exception.
  
   <Returns>
-    A 'tuf.util.TempFile' file-like object that points to the contents of 'url'.
+    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the
+    contents of 'url'.
   """
   
   # Do all of the arguments have the appropriate format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(url)
+  tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
 
   # Ensure 'url' specifies one of the URI schemes in
-  # 'tuf.conf.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
+  # 'settings.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
   # supported.  If the URI scheme of 'url' is empty or "file", files on the
   # local system can be accessed.  Unexpected files may be accessed by
   # compromised metadata (unlikely to happen if targets.json metadata is signed
   # with offline keys).  
   parsed_url = six.moves.urllib.parse.urlparse(url)
 
-  if parsed_url.scheme not in tuf.conf.SUPPORTED_URI_SCHEMES:
+  if parsed_url.scheme not in settings.SUPPORTED_URI_SCHEMES:
     message = \
       repr(url) + ' specifies an unsupported URI scheme.  Supported ' + \
-      ' URI Schemes: ' + repr(tuf.conf.SUPPORTED_URI_SCHEMES)
-    raise tuf.FormatError(message)
+      ' URI Schemes: ' + repr(settings.SUPPORTED_URI_SCHEMES)
+    raise tuf.ssl_commons.exceptions.FormatError(message)
   
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True)
 
@@ -129,54 +132,56 @@ def unsafe_download(url, required_length):
     tuf.download.safe_download() may be called if an exact download limit is
     preferred.
  
-    'tuf.util.TempFile', the file-like object returned, is used instead of
-    regular tempfile object because of additional functionality provided, such
-    as handling compressed metadata and automatically closing files after
-    moving to final destination.
+    'tuf.ssl_crypto.util.TempFile', the file-like object returned, is used
+    instead of regular tempfile object because of additional functionality
+    provided, such as handling compressed metadata and automatically closing
+    files after moving to final destination.
   
   <Arguments>
     url:
       A URL string that represents the location of the file.  The URI scheme
-      component must be one of 'tuf.conf.SUPPORTED_URI_SCHEMES'.
+      component must be one of 'settings.SUPPORTED_URI_SCHEMES'.
   
     required_length:
       An integer value representing the length of the file.  This is an upper
       limit.
 
   <Side Effects>
-    A 'tuf.util.TempFile' object is created on disk to store the contents of
-    'url'.
+    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the
+    contents of 'url'.
  
   <Exceptions>
-    tuf.DownloadLengthMismatchError, if there was a mismatch of observed vs
-    expected lengths while downloading the file.
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
+    mismatch of observed vs expected lengths while downloading the file.
  
-    tuf.FormatError, if any of the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are
+    improperly formatted.
 
     Any other unforeseen runtime exception.
  
   <Returns>
-    A 'tuf.util.TempFile' file-like object that points to the contents of 'url'.
+    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the
+    contents of 'url'.
   """
   
   # Do all of the arguments have the appropriate format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(url)
+  tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
   
   # Ensure 'url' specifies one of the URI schemes in
-  # 'tuf.conf.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
+  # 'settings.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
   # supported.  If the URI scheme of 'url' is empty or "file", files on the
   # local system can be accessed.  Unexpected files may be accessed by
   # compromised metadata (unlikely to happen if targets.json metadata is signed
   # with offline keys).  
   parsed_url = six.moves.urllib.parse.urlparse(url)
 
-  if parsed_url.scheme not in tuf.conf.SUPPORTED_URI_SCHEMES:
+  if parsed_url.scheme not in settings.SUPPORTED_URI_SCHEMES:
     message = \
       repr(url) + ' specifies an unsupported URI scheme.  Supported ' + \
-      ' URI Schemes: ' + repr(tuf.conf.SUPPORTED_URI_SCHEMES) 
-    raise tuf.FormatError(message)
+      ' URI Schemes: ' + repr(settings.SUPPORTED_URI_SCHEMES) 
+    raise tuf.ssl_commons.exceptions.FormatError(message)
   
   return _download_file(url, required_length, STRICT_REQUIRED_LENGTH=False)
 
@@ -191,8 +196,9 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     opens a connection to 'url' and downloads the file while ensuring its
     length and hashes match 'required_hashes' and 'required_length'. 
  
-    tuf.util.TempFile is used instead of regular tempfile object because of 
-    additional functionality provided by 'tuf.util.TempFile'.
+    tuf.ssl_crypto.util.TempFile is used instead of regular tempfile object
+    because of additional functionality provided by
+    'tuf.ssl_crypto.util.TempFile'.
   
   <Arguments>
     url:
@@ -208,25 +214,27 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
       timestamp metadata, which has no signed required_length.
 
   <Side Effects>
-    A 'tuf.util.TempFile' object is created on disk to store the contents of
-    'url'.
+    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the
+    contents of 'url'.
  
   <Exceptions>
-    tuf.DownloadLengthMismatchError, if there was a mismatch of observed vs
-    expected lengths while downloading the file.
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
+    mismatch of observed vs expected lengths while downloading the file.
  
-    tuf.FormatError, if any of the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arguments are
+    improperly formatted.
 
     Any other unforeseen runtime exception.
  
   <Returns>
-    A 'tuf.util.TempFile' file-like object that points to the contents of 'url'.
+    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the
+    contents of 'url'.
   """
 
   # Do all of the arguments have the appropriate format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.URL_SCHEMA.check_match(url)
-  tuf.formats.LENGTH_SCHEMA.check_match(required_length)
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(url)
+  tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
 
   # 'url.replace()' is for compatibility with Windows-based systems because
   # they might put back-slashes in place of forward-slashes.  This converts it
@@ -236,7 +244,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
   # This is the temporary file that we will return to contain the contents of
   # the downloaded file.
-  temp_file = tuf.util.TempFile()
+  temp_file = tuf.ssl_crypto.util.TempFile()
 
   try:
     # Open the connection to the remote file.
@@ -308,10 +316,10 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
   """
   
   # Tolerate servers with a slow start by ignoring their delivery speed for
-  # 'tuf.conf.SLOW_START_GRACE_PERIOD' seconds.  Set 'seconds_spent_receiving'
+  # 'settings.SLOW_START_GRACE_PERIOD' seconds.  Set 'seconds_spent_receiving'
   # to negative SLOW_START_GRACE_PERIOD seconds, and begin checking the average
   # download speed once it is positive.
-  grace_period = -tuf.conf.SLOW_START_GRACE_PERIOD
+  grace_period = -settings.SLOW_START_GRACE_PERIOD
 
   # Keep track of total bytes downloaded.
   number_of_bytes_received = 0
@@ -328,7 +336,7 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       # in the while loop.
       time.sleep(0.05)
       data = b'' 
-      read_amount = min(tuf.conf.CHUNK_SIZE,
+      read_amount = min(settings.CHUNK_SIZE,
                         required_length - number_of_bytes_received)
      
       try: 
@@ -355,14 +363,14 @@ def _download_fixed_amount_of_data(connection, temp_file, required_length):
       # Measure the average download speed.
       average_download_speed = number_of_bytes_received / seconds_spent_receiving
       
-      if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
         logger.debug('The average download speed dropped below the minimum'
-          ' average download speed set in conf.py.') 
+          ' average download speed set in settings.py.') 
         break
       
       else:
         logger.debug('The average download speed has not dipped below the'
-          ' mimimum average download speed set in conf.py.')
+          ' mimimum average download speed set in settings.py.')
 
       # We might have no more data to read. Check number of bytes downloaded. 
       if not data:
@@ -411,7 +419,7 @@ def _get_opener(scheme=None):
   """
 
   if scheme == "https":
-    assert os.path.isfile(tuf.conf.ssl_certificates)
+    assert os.path.isfile(settings.ssl_certificates)
 
     # If we are going over https, use an opener which will provide SSL
     # certificate verification.
@@ -470,7 +478,7 @@ def _open_connection(url):
   opener = _get_opener(scheme=parsed_url.scheme)
   request = _get_request(url)
   
-  return opener.open(request, timeout = tuf.conf.SOCKET_TIMEOUT)
+  return opener.open(request, timeout = settings.SOCKET_TIMEOUT)
 
 
 
@@ -604,11 +612,13 @@ def _check_downloaded_length(total_downloaded, required_length,
     None.
  
   <Exceptions>
-    tuf.DownloadLengthMismatchError, if STRICT_REQUIRED_LENGTH is True and
-    total_downloaded is not equal required_length.
+    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if
+    STRICT_REQUIRED_LENGTH is True and total_downloaded is not equal
+    required_length.
 
-    tuf.SlowRetrievalError, if the total downloaded was done in in less than
-    the acceptable download speed (as set in tuf.conf.py).
+    tuf.ssl_commons.exceptions.SlowRetrievalError, if the total downloaded was
+    done in in less than the acceptable download speed (as set in
+    tuf.settings.py).
 
   <Returns>
     None.
@@ -631,24 +641,24 @@ def _check_downloaded_length(total_downloaded, required_length,
       # If the average download speed is below a certain threshold, we flag
       # this as a possible slow-retrieval attack.
       logger.debug('Average download speed: ' + repr(average_download_speed))
-      logger.debug('Minimum average download speed: ' + repr(tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED))
+      logger.debug('Minimum average download speed: ' + repr(settings.MIN_AVERAGE_DOWNLOAD_SPEED))
       
-      if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.SlowRetrievalError(average_download_speed)
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+        raise tuf.ssl_commons.exceptions.SlowRetrievalError(average_download_speed)
 
       else:
         logger.debug('Good average download speed: ' +
                      repr(average_download_speed) + ' bytes per second')
           
-      raise tuf.DownloadLengthMismatchError(required_length, total_downloaded)
+      raise tuf.ssl_commons.exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
     
     else:
       # We specifically disabled strict checking of required length, but we
       # will log a warning anyway. This is useful when we wish to download the
       # Timestamp or Root metadata, for which we have no signed metadata; so,
       # we must guess a reasonable required_length for it.
-      if average_download_speed < tuf.conf.MIN_AVERAGE_DOWNLOAD_SPEED:
-        raise tuf.SlowRetrievalError(average_download_speed)
+      if average_download_speed < settings.MIN_AVERAGE_DOWNLOAD_SPEED:
+        raise tuf.ssl_commons.exceptions.SlowRetrievalError(average_download_speed)
 
       else:
         logger.debug('Good average download speed: ' +
@@ -688,8 +698,8 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
       self._tunnel()
 
     # set location of certificate authorities
-    assert os.path.isfile(tuf.conf.ssl_certificates)
-    cert_path = tuf.conf.ssl_certificates
+    assert os.path.isfile(settings.ssl_certificates)
+    cert_path = settings.ssl_certificates
 
     # TODO: Disallow SSLv2.
     # http://docs.python.org/dev/library/ssl.html#protocol-versions

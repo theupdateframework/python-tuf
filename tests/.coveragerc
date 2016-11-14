@@ -13,7 +13,8 @@ exclude_lines =
 
 omit =
     */tuf/interposition/*
-    */tuf/_vendor/*
+    */tuf/ssl_crypto/_vendor/*
     
     # Command-line tool and integration example that calls core TUF.
-    */tuf/client/basic_client.py
+    */tuf/scripts/basic_client.py
+    */tuf/scripts/tufcli.py

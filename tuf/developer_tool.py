@@ -38,20 +38,20 @@ import json
 
 import tuf
 import tuf.formats
-import tuf.util
-import tuf.keydb
+import tuf.ssl_crypto.util
+import tuf.ssl_crypto.keydb
 import tuf.roledb
-import tuf.keys
+import tuf.ssl_crypto.keys
 import tuf.sig
 import tuf.log
-import tuf.conf
+from simple_settings import settings
 import tuf.repository_tool
 import six
 
 # These imports provide the interface for 'developer_tool.py', since the imports
 # are made there. 
-from tuf.keys import format_keyval_to_metadata
-from tuf.keys import format_metadata_to_key
+from tuf.ssl_crypto.keys import format_keyval_to_metadata
+from tuf.ssl_crypto.keys import format_metadata_to_key
 
 from tuf.repository_tool import Targets
 from tuf.repository_lib import get_metadata_fileinfo
@@ -177,7 +177,7 @@ class Project(Targets):
       targets location in the upstream repository.
 
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted.
 
   <Side Effects>
     Creates a project Targets role object, with the same object attributes of
@@ -193,11 +193,11 @@ class Project(Targets):
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
-    # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.NAME_SCHEMA.check_match(project_name)
-    tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
-    tuf.formats.PATH_SCHEMA.check_match(targets_directory)
-    tuf.formats.PATH_SCHEMA.check_match(file_prefix)
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(project_name)
+    tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(metadata_directory)
+    tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(targets_directory)
+    tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(file_prefix)
 
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
@@ -233,7 +233,7 @@ class Project(Targets):
         signatures.
 
     <Exceptions>
-      tuf.Error, if any of the project roles do not have a minimum threshold of
+      tuf.ssl_commons.exceptions.Error, if any of the project roles do not have a minimum threshold of
       signatures.
 
     <Side Effects>
@@ -246,10 +246,10 @@ class Project(Targets):
     # Does 'write_partial' have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
-    # Raise 'tuf.FormatError' if any are improperly formatted.
-    tuf.formats.BOOLEAN_SCHEMA.check_match(write_partial)
+    # Raise 'tuf.ssl_commons.exceptions.FormatError' if any are improperly formatted.
+    tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(write_partial)
     
-    # At this point the tuf.keydb and tuf.roledb stores must be fully
+    # At this point the tuf.ssl_crypto.keydb and tuf.roledb stores must be fully
     # populated, otherwise write() throwns a 'tuf.Repository' exception if 
     # any of the project roles are missing signatures, keys, etc.
 
@@ -265,7 +265,7 @@ class Project(Targets):
       # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
       # IO exception is raised if 'metadata_filepath' is written to a
       # sub-directory.
-      tuf.util.ensure_parent_dir(delegated_filename)
+      tuf.ssl_crypto.util.ensure_parent_dir(delegated_filename)
       
       _generate_and_write_metadata(delegated_rolename, delegated_filename,
                                    write_partial, self._targets_directory,
@@ -300,17 +300,17 @@ class Project(Targets):
 
       <Arguments>
         key:
-          The role key to be added, conformant to 'tuf.formats.ANYKEY_SCHEMA'.
+          The role key to be added, conformant to 'tuf.ssl_crypto.formats.ANYKEY_SCHEMA'.
           Adding a public key to a role means that its corresponding private
           key must generate and add its signture to the role. 
 
       <Exceptions>
-        tuf.FormatError, if the 'key' argument is improperly formatted.
+        tuf.ssl_commons.exceptions.FormatError, if the 'key' argument is improperly formatted.
 
-        tuf.Error, if the project already contains a key.
+        tuf.ssl_commons.exceptions.Error, if the project already contains a key.
 
       <Side Effects>
-        The role's entries in 'tuf.keydb.py' and 'tuf.roledb.py' are updated.
+        The role's entries in 'tuf.ssl_crypto.keydb.py' and 'tuf.roledb.py' are updated.
 
       <Returns>
         None
@@ -321,12 +321,12 @@ class Project(Targets):
     # more than one key.
     # TODO: Add condition check for the requirement stated above.
     if len(self.keys) > 0:
-      raise tuf.Error("This project already contains a key.")
+      raise tuf.ssl_commons.exceptions.Error("This project already contains a key.")
 
     try:
       super(Project, self).add_verification_key(key)
     
-    except tuf.FormatError:
+    except tuf.ssl_commons.exceptions.FormatError:
       raise
 
 
@@ -348,7 +348,7 @@ class Project(Targets):
       None.
 
     <Exceptions>
-      tuf.Error, if the project, or any of its delegated roles, do not have a
+      tuf.ssl_commons.exceptions.Error, if the project, or any of its delegated roles, do not have a
       minimum threshold of signatures.
 
     <Side Effects>
@@ -382,7 +382,7 @@ class Project(Targets):
         try: 
           _check_role_keys(delegated_role)
         
-        except tuf.InsufficientKeysError:
+        except tuf.ssl_commons.exceptions.InsufficientKeysError:
           insufficient_keys.append(delegated_role)
           continue
         
@@ -395,7 +395,7 @@ class Project(Targets):
                                                 False)
           self._log_status(delegated_role, signable[0])
         
-        except tuf.Error:
+        except tuf.ssl_commons.exceptions.Error:
           insufficient_signatures.append(delegated_role)
       
       if len(insufficient_keys):
@@ -414,7 +414,7 @@ class Project(Targets):
       try: 
         _check_role_keys(self.rolename)
       
-      except tuf.InsufficientKeysError as e:
+      except tuf.ssl_commons.exceptions.InsufficientKeysError as e:
         logger.info(str(e))
         return
       
@@ -426,7 +426,7 @@ class Project(Targets):
                                                 False)
         self._log_status(self._project_name, signable)
       
-      except tuf.Error as e:
+      except tuf.ssl_commons.exceptions.Error as e:
         signable = e[1]
         self._log_status(self._project_name, signable)
         return
@@ -528,7 +528,7 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # 'signable' contains an invalid threshold of signatures. 
   else:
     message = 'Not enough signatures for ' + repr(metadata_filename)
-    raise tuf.Error(message, signable)
+    raise tuf.ssl_commons.exceptions.Error(message, signable)
 
   return signable, filename 
 
@@ -578,7 +578,7 @@ def create_new_project(project_name, metadata_directory,
       key it should be removed and updated. 
   
   <Exceptions>
-    tuf.FormatError, if the arguments are improperly formatted or if the public
+    tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly formatted or if the public
       key is not a valid one (if it's not none.)
 
     OSError, if the filepaths provided do not have write permissions.
@@ -594,13 +594,13 @@ def create_new_project(project_name, metadata_directory,
   # Does 'metadata_directory' have the correct format?
   # Ensure the arguments have the appropriate number of objects and object
   # types, and that all dict keys are properly named.
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(metadata_directory)
  
   # Do the same for the location in the repo and the project name, we must
   # ensure they are valid pathnames.
-  tuf.formats.NAME_SCHEMA.check_match(project_name)
-  tuf.formats.PATH_SCHEMA.check_match(location_in_repository)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(project_name)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(location_in_repository)
 
   # for the targets directory we do the same, but first, let's find out what
   # layout the user needs, layout_type is a variable that is usually set to
@@ -616,10 +616,10 @@ def create_new_project(project_name, metadata_directory,
     layout_type = 'repo-like'
 
   if targets_directory is not None:
-    tuf.formats.PATH_SCHEMA.check_match(targets_directory);
+    tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(targets_directory);
 
   if key is not None:
-    tuf.formats.KEY_SCHEMA.check_match(key)
+    tuf.ssl_crypto.formats.KEY_SCHEMA.check_match(key)
 
   # Set the metadata and targets directories.  These directories
   # are created if they do not exist.
@@ -711,7 +711,7 @@ def _save_project_configuration(metadata_directory, targets_directory,
       matches the one stored in upstream.
 
   <Exceptions>
-    tuf.FormatError are also expected if any of the arguments are malformed.
+    tuf.ssl_commons.exceptions.FormatError are also expected if any of the arguments are malformed.
     
     OSError may rise if the metadata_directory/project.cfg file exists and
     is non-writeable
@@ -724,10 +724,10 @@ def _save_project_configuration(metadata_directory, targets_directory,
   """
 
   # Schema check for the arguments. 
-  tuf.formats.PATH_SCHEMA.check_match(metadata_directory)
-  tuf.formats.PATH_SCHEMA.check_match(prefix)
-  tuf.formats.PATH_SCHEMA.check_match(targets_directory)
-  tuf.formats.RELPATH_SCHEMA.check_match(project_name)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(metadata_directory)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(prefix)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(targets_directory)
+  tuf.ssl_crypto.formats.RELPATH_SCHEMA.check_match(project_name)
 
   cfg_file_directory = metadata_directory
 
@@ -754,7 +754,7 @@ def _save_project_configuration(metadata_directory, targets_directory,
 
   # Build a dictionary containing the actual keys.
   for key in public_keys:
-    key_info = tuf.keydb.get_key(key)
+    key_info = tuf.ssl_crypto.keydb.get_key(key)
     key_metadata = format_keyval_to_metadata(key_info['keytype'],
                                              key_info['keyval'])
     project_config['public_keys'][key] = key_metadata
@@ -787,7 +787,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
       previous path to search for the target files.
 
   <Exceptions>
-    tuf.FormatError, if 'project_directory' or any of the metadata files
+    tuf.ssl_commons.exceptions.FormatError, if 'project_directory' or any of the metadata files
     are improperly formatted. 
 
   <Side Effects>
@@ -799,15 +799,15 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   """
   
   # Does 'repository_directory' have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.PATH_SCHEMA.check_match(project_directory)
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(project_directory)
   
   # Do the same for the prefix
-  tuf.formats.PATH_SCHEMA.check_match(prefix)
+  tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(prefix)
 
   # Clear the role and key databases since we are loading in a new project.
   tuf.roledb.clear_roledb() 
-  tuf.keydb.clear_keydb()
+  tuf.ssl_crypto.keydb.clear_keydb()
 
   # Locate metadata filepaths and targets filepath.
   project_directory = os.path.abspath(project_directory)
@@ -816,10 +816,10 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   config_filename = os.path.join(project_directory, PROJECT_FILENAME)
   
   try:
-    project_configuration = tuf.util.load_json_file(config_filename)
-    tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration) 
+    project_configuration = tuf.ssl_crypto.util.load_json_file(config_filename)
+    tuf.ssl_crypto.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration) 
   
-  except (OSError, IOError, tuf.FormatError):
+  except (OSError, IOError, tuf.ssl_commons.exceptions.FormatError):
     raise
  
   targets_directory = os.path.join(project_directory,
@@ -857,13 +857,13 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   keydict = project_configuration['public_keys']
   
   for keyid in keydict:
-    key, junk = tuf.keys.format_metadata_to_key(keydict[keyid]) 
+    key, junk = tuf.ssl_crypto.keys.format_metadata_to_key(keydict[keyid]) 
     project.add_verification_key(key)
  
   # Load the project's metadata.
   targets_metadata_path = os.path.join(project_directory, metadata_directory,
       project_filename)
-  signable = tuf.util.load_json_file(targets_metadata_path)
+  signable = tuf.ssl_crypto.util.load_json_file(targets_metadata_path)
   tuf.formats.check_signable_object_format(signable)
   targets_metadata = signable['signed']
   
@@ -890,8 +890,8 @@ def load_project(project_directory, prefix='', new_targets_location=None):
 
   
   for key_metadata in targets_metadata['delegations']['keys'].values():
-    key_object, junk = tuf.keys.format_metadata_to_key(key_metadata)
-    tuf.keydb.add_key(key_object)
+    key_object, junk = tuf.ssl_crypto.keys.format_metadata_to_key(key_metadata)
+    tuf.ssl_crypto.keydb.add_key(key_object)
 
   for role in targets_metadata['delegations']['roles']:
     rolename = role['name']
@@ -929,9 +929,9 @@ def load_project(project_directory, prefix='', new_targets_location=None):
 
       signable = None
       try:
-        signable = tuf.util.load_json_file(metadata_path)
+        signable = tuf.ssl_crypto.util.load_json_file(metadata_path)
       
-      except (ValueError, IOError, tuf.Error):
+      except (ValueError, IOError, tuf.ssl_commons.exceptions.Error):
         raise
       
       # Strip the prefix from the local working copy, it will be added again
@@ -972,12 +972,12 @@ def load_project(project_directory, prefix='', new_targets_location=None):
       
       # Add the keys specified in the delegations field of the Targets role.
       for key_metadata in metadata_object['delegations']['keys'].values():
-        key_object, junk = tuf.keys.format_metadata_to_key(key_metadata)
+        key_object, junk = tuf.ssl_crypto.keys.format_metadata_to_key(key_metadata)
         
         try: 
-          tuf.keydb.add_key(key_object)
+          tuf.ssl_crypto.keydb.add_key(key_object)
         
-        except tuf.KeyAlreadyExistsError:
+        except tuf.ssl_commons.exceptions.KeyAlreadyExistsError:
           pass
       
       for role in metadata_object['delegations']['roles']:

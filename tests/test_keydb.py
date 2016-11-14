@@ -30,9 +30,10 @@ import logging
 
 import tuf
 import tuf.formats
-import tuf.keys
-import tuf.keydb
+import tuf.ssl_crypto.keys
+import tuf.ssl_crypto.keydb
 import tuf.log
+from simple_settings import settings
 
 logger = logging.getLogger('tuf.test_keydb')
 
@@ -40,20 +41,20 @@ logger = logging.getLogger('tuf.test_keydb')
 # Generate the three keys to use in our test cases.
 KEYS = []
 for junk in range(3):
-  rsa_key = tuf.keys.generate_rsa_key(2048)
-  rsa_key['keyid_hash_algorithms'] = tuf.conf.REPOSITORY_HASH_ALGORITHMS
+  rsa_key = tuf.ssl_crypto.keys.generate_rsa_key(2048)
+  rsa_key['keyid_hash_algorithms'] = settings.REPOSITORY_HASH_ALGORITHMS
   KEYS.append(rsa_key)
 
 
 
 class TestKeydb(unittest.TestCase):
   def setUp(self):
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
 
   def tearDown(self):
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
 
@@ -62,19 +63,19 @@ class TestKeydb(unittest.TestCase):
     repository_name = 'example_repository'
     
     # The keydb dictionary should contain only the 'default' repository entry.
-    self.assertTrue('default' in tuf.keydb._keydb_dict)
-    self.assertEqual(1, len(tuf.keydb._keydb_dict))
+    self.assertTrue('default' in tuf.ssl_crypto.keydb._keydb_dict)
+    self.assertEqual(1, len(tuf.ssl_crypto.keydb._keydb_dict))
 
     
-    tuf.keydb.create_keydb(repository_name)
-    self.assertEqual(2, len(tuf.keydb._keydb_dict))
+    tuf.ssl_crypto.keydb.create_keydb(repository_name)
+    self.assertEqual(2, len(tuf.ssl_crypto.keydb._keydb_dict))
 
     # Verify that a keydb cannot be created for a name that already exists.
-    self.assertRaises(tuf.InvalidNameError, tuf.keydb.create_keydb, repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.ssl_crypto.keydb.create_keydb, repository_name)
 
     # Ensure that the key database for 'example_repository' is deleted so that
     # the key database is returned to its original, default state.
-    tuf.keydb.remove_keydb(repository_name)
+    tuf.ssl_crypto.keydb.remove_keydb(repository_name)
 
 
 
@@ -84,41 +85,41 @@ class TestKeydb(unittest.TestCase):
     keyid = KEYS[0]['keyid']
     
     repository_name = 'example_repository'
-    self.assertRaises(tuf.InvalidNameError, tuf.keydb.remove_keydb, 'default')
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.ssl_crypto.keydb.remove_keydb, 'default')
    
-    tuf.keydb.create_keydb(repository_name)
-    tuf.keydb.remove_keydb(repository_name)
+    tuf.ssl_crypto.keydb.create_keydb(repository_name)
+    tuf.ssl_crypto.keydb.remove_keydb(repository_name)
 
-    # tuf.keydb.remove_keydb() logs a warning if a keydb for a non-existent
+    # tuf.ssl_crypto.keydb.remove_keydb() logs a warning if a keydb for a non-existent
     # repository is specified.
-    tuf.keydb.remove_keydb(repository_name)
+    tuf.ssl_crypto.keydb.remove_keydb(repository_name)
 
     # Test condition for improperly formatted argument, and unexpected argument.
-    self.assertRaises(tuf.FormatError, tuf.keydb.remove_keydb, 123)
-    self.assertRaises(TypeError, tuf.keydb.remove_keydb, rsakey, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.remove_keydb, 123)
+    self.assertRaises(TypeError, tuf.ssl_crypto.keydb.remove_keydb, rsakey, 123)
 
 
 
   def test_clear_keydb(self):
     # Test condition ensuring 'clear_keydb()' clears the keydb database.
     # Test the length of the keydb before and after adding a key.
-    self.assertEqual(0, len(tuf.keydb._keydb_dict['default']))
+    self.assertEqual(0, len(tuf.ssl_crypto.keydb._keydb_dict['default']))
     rsakey = KEYS[0]
     keyid = KEYS[0]['keyid']
-    tuf.keydb._keydb_dict['default'][keyid] = rsakey
-    self.assertEqual(1, len(tuf.keydb._keydb_dict['default']))
-    tuf.keydb.clear_keydb()
-    self.assertEqual(0, len(tuf.keydb._keydb_dict['default']))
+    tuf.ssl_crypto.keydb._keydb_dict['default'][keyid] = rsakey
+    self.assertEqual(1, len(tuf.ssl_crypto.keydb._keydb_dict['default']))
+    tuf.ssl_crypto.keydb.clear_keydb()
+    self.assertEqual(0, len(tuf.ssl_crypto.keydb._keydb_dict['default']))
 
     # Test condition for unexpected argument.
-    self.assertRaises(TypeError, tuf.keydb.clear_keydb, 'default', False, 'unexpected_argument')
+    self.assertRaises(TypeError, tuf.ssl_crypto.keydb.clear_keydb, 'default', False, 'unexpected_argument')
 
     # Test condition for improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, tuf.keydb.clear_keydb, 0)
-    self.assertRaises(tuf.FormatError, tuf.keydb.clear_keydb, 'default', 0)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.clear_keydb, 0)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.clear_keydb, 'default', 0)
 
     # Test condition for non-existent repository name.
-    self.assertRaises(tuf.InvalidNameError, tuf.keydb.clear_keydb, 'non-existent')
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.ssl_crypto.keydb.clear_keydb, 'non-existent')
 
     # Test condition for keys added to a non-default key database.  Unlike the
     # test conditions above, this test makes use of the public functions
@@ -127,17 +128,17 @@ class TestKeydb(unittest.TestCase):
     rsakey = KEYS[0]
     keyid = KEYS[0]['keyid']
     repository_name = 'example_repository'
-    tuf.keydb.create_keydb(repository_name)
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid, repository_name) 
-    tuf.keydb.add_key(rsakey, keyid, repository_name)
-    self.assertEqual(rsakey, tuf.keydb.get_key(keyid, repository_name))
+    tuf.ssl_crypto.keydb.create_keydb(repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.get_key, keyid, repository_name) 
+    tuf.ssl_crypto.keydb.add_key(rsakey, keyid, repository_name)
+    self.assertEqual(rsakey, tuf.ssl_crypto.keydb.get_key(keyid, repository_name))
     
-    tuf.keydb.clear_keydb(repository_name)
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid, repository_name)
+    tuf.ssl_crypto.keydb.clear_keydb(repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.get_key, keyid, repository_name)
 
     # Remove 'repository_name' from the key database to revert it back to its
     # original, default state (i.e., only the 'default' repository exists).
-    tuf.keydb.remove_keydb(repository_name)
+    tuf.ssl_crypto.keydb.remove_keydb(repository_name)
 
 
 
@@ -145,46 +146,46 @@ class TestKeydb(unittest.TestCase):
     # Test conditions using valid 'keyid' arguments.
     rsakey = KEYS[0]
     keyid = KEYS[0]['keyid']
-    tuf.keydb._keydb_dict['default'][keyid] = rsakey
+    tuf.ssl_crypto.keydb._keydb_dict['default'][keyid] = rsakey
     rsakey2 = KEYS[1]
     keyid2 = KEYS[1]['keyid']
-    tuf.keydb._keydb_dict['default'][keyid2] = rsakey2
+    tuf.ssl_crypto.keydb._keydb_dict['default'][keyid2] = rsakey2
     
-    self.assertEqual(rsakey, tuf.keydb.get_key(keyid))
-    self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))
-    self.assertNotEqual(rsakey2, tuf.keydb.get_key(keyid))
-    self.assertNotEqual(rsakey, tuf.keydb.get_key(keyid2))
+    self.assertEqual(rsakey, tuf.ssl_crypto.keydb.get_key(keyid))
+    self.assertEqual(rsakey2, tuf.ssl_crypto.keydb.get_key(keyid2))
+    self.assertNotEqual(rsakey2, tuf.ssl_crypto.keydb.get_key(keyid))
+    self.assertNotEqual(rsakey, tuf.ssl_crypto.keydb.get_key(keyid2))
 
     # Test conditions using invalid arguments.
-    self.assertRaises(tuf.FormatError, tuf.keydb.get_key, None)
-    self.assertRaises(tuf.FormatError, tuf.keydb.get_key, 123)
-    self.assertRaises(tuf.FormatError, tuf.keydb.get_key, ['123'])
-    self.assertRaises(tuf.FormatError, tuf.keydb.get_key, {'keyid': '123'})
-    self.assertRaises(tuf.FormatError, tuf.keydb.get_key, '')
-    self.assertRaises(tuf.FormatError, tuf.keydb.get_key, keyid, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.get_key, None)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.get_key, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.get_key, ['123'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.get_key, {'keyid': '123'})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.get_key, '')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.get_key, keyid, 123)
 
     # Test condition using a 'keyid' that has not been added yet.
     keyid3 = KEYS[2]['keyid']
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.get_key, keyid3)
 
     # Test condition for a key added to a non-default repository.
     repository_name = 'example_repository'
     rsakey3 = KEYS[2]
-    tuf.keydb.create_keydb(repository_name)
-    tuf.keydb.add_key(rsakey3, keyid3, repository_name)
+    tuf.ssl_crypto.keydb.create_keydb(repository_name)
+    tuf.ssl_crypto.keydb.add_key(rsakey3, keyid3, repository_name)
 
     # Test condition for a key added to a non-existent repository.
-    self.assertRaises(tuf.InvalidNameError, tuf.keydb.get_key,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.ssl_crypto.keydb.get_key,
                       keyid, 'non-existent')
 
     # Verify that 'rsakey3' is added to the expected repository name.
     # If not supplied, the 'default' repository name is searched.
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3)
-    self.assertEqual(rsakey3, tuf.keydb.get_key(keyid3, repository_name)) 
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.get_key, keyid3)
+    self.assertEqual(rsakey3, tuf.ssl_crypto.keydb.get_key(keyid3, repository_name)) 
 
     # Remove the 'example_repository' so that other test functions have access
     # to a default state of the keydb.
-    tuf.keydb.remove_keydb(repository_name)
+    tuf.ssl_crypto.keydb.remove_keydb(repository_name)
 
 
 
@@ -196,55 +197,55 @@ class TestKeydb(unittest.TestCase):
     keyid2 = KEYS[1]['keyid']
     rsakey3 = KEYS[2]
     keyid3 = KEYS[2]['keyid']
-    self.assertEqual(None, tuf.keydb.add_key(rsakey, keyid))
-    self.assertEqual(None, tuf.keydb.add_key(rsakey2, keyid2))
-    self.assertEqual(None, tuf.keydb.add_key(rsakey3))
+    self.assertEqual(None, tuf.ssl_crypto.keydb.add_key(rsakey, keyid))
+    self.assertEqual(None, tuf.ssl_crypto.keydb.add_key(rsakey2, keyid2))
+    self.assertEqual(None, tuf.ssl_crypto.keydb.add_key(rsakey3))
     
-    self.assertEqual(rsakey, tuf.keydb.get_key(keyid))
-    self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))
-    self.assertEqual(rsakey3, tuf.keydb.get_key(keyid3))
+    self.assertEqual(rsakey, tuf.ssl_crypto.keydb.get_key(keyid))
+    self.assertEqual(rsakey2, tuf.ssl_crypto.keydb.get_key(keyid2))
+    self.assertEqual(rsakey3, tuf.ssl_crypto.keydb.get_key(keyid3))
 
     # Test conditions using arguments with invalid formats.
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     rsakey3['keytype'] = 'bad_keytype'
 
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, None, keyid)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, '', keyid)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, ['123'], keyid)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, {'a': 'b'}, keyid)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey, {'keyid': ''})
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey, 123)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey, False)
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey, ['keyid'])
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey3, keyid3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.add_key, None, keyid)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.add_key, '', keyid)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.add_key, ['123'], keyid)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.add_key, {'a': 'b'}, keyid)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.add_key, rsakey, {'keyid': ''})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.add_key, rsakey, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.add_key, rsakey, False)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.add_key, rsakey, ['keyid'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.add_key, rsakey3, keyid3)
     rsakey3['keytype'] = 'rsa'
-    self.assertRaises(tuf.FormatError, tuf.keydb.add_key, rsakey3, keyid3, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.add_key, rsakey3, keyid3, 123)
     
     # Test conditions where keyid does not match the rsakey.
-    self.assertRaises(tuf.Error, tuf.keydb.add_key, rsakey, keyid2)
-    self.assertRaises(tuf.Error, tuf.keydb.add_key, rsakey2, keyid)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.ssl_crypto.keydb.add_key, rsakey, keyid2)
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.ssl_crypto.keydb.add_key, rsakey2, keyid)
 
     # Test conditions using keyids that have already been added.
-    tuf.keydb.add_key(rsakey, keyid)
-    tuf.keydb.add_key(rsakey2, keyid2)
-    self.assertRaises(tuf.KeyAlreadyExistsError, tuf.keydb.add_key, rsakey)
-    self.assertRaises(tuf.KeyAlreadyExistsError, tuf.keydb.add_key, rsakey2)
+    tuf.ssl_crypto.keydb.add_key(rsakey, keyid)
+    tuf.ssl_crypto.keydb.add_key(rsakey2, keyid2)
+    self.assertRaises(tuf.ssl_commons.exceptions.KeyAlreadyExistsError, tuf.ssl_crypto.keydb.add_key, rsakey)
+    self.assertRaises(tuf.ssl_commons.exceptions.KeyAlreadyExistsError, tuf.ssl_crypto.keydb.add_key, rsakey2)
 
     # Test condition for key added to the keydb of a non-default repository.
     repository_name = 'example_repository'
-    tuf.keydb.create_keydb(repository_name)
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3, repository_name)
-    tuf.keydb.add_key(rsakey3, keyid3, repository_name)
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3)
-    self.assertEqual(rsakey3, tuf.keydb.get_key(keyid3, repository_name))
+    tuf.ssl_crypto.keydb.create_keydb(repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.get_key, keyid3, repository_name)
+    tuf.ssl_crypto.keydb.add_key(rsakey3, keyid3, repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.get_key, keyid3)
+    self.assertEqual(rsakey3, tuf.ssl_crypto.keydb.get_key(keyid3, repository_name))
 
     # Test condition for key added to the keydb of a non-existent repository.
-    self.assertRaises(tuf.InvalidNameError, tuf.keydb.add_key,
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.ssl_crypto.keydb.add_key,
                       rsakey3, keyid3, 'non-existent')
     
     # Reset the keydb to its original, default state.  Other test functions
     # expect only the 'default' repository to exist.
-    tuf.keydb.remove_keydb(repository_name)
+    tuf.ssl_crypto.keydb.remove_keydb(repository_name)
 
 
   
@@ -256,43 +257,43 @@ class TestKeydb(unittest.TestCase):
     keyid2 = KEYS[1]['keyid']
     rsakey3 = KEYS[2]
     keyid3 = KEYS[2]['keyid']
-    tuf.keydb.add_key(rsakey, keyid)
-    tuf.keydb.add_key(rsakey2, keyid2)
-    tuf.keydb.add_key(rsakey3, keyid3)
+    tuf.ssl_crypto.keydb.add_key(rsakey, keyid)
+    tuf.ssl_crypto.keydb.add_key(rsakey2, keyid2)
+    tuf.ssl_crypto.keydb.add_key(rsakey3, keyid3)
 
-    self.assertEqual(None, tuf.keydb.remove_key(keyid))
-    self.assertEqual(None, tuf.keydb.remove_key(keyid2))
+    self.assertEqual(None, tuf.ssl_crypto.keydb.remove_key(keyid))
+    self.assertEqual(None, tuf.ssl_crypto.keydb.remove_key(keyid2))
     
     # Ensure the keys were actually removed.
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid)
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid2)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.get_key, keyid)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.get_key, keyid2)
 
     # Test for 'keyid' not in keydb.
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, keyid)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.remove_key, keyid)
     
     # Test condition for unknown key argument.
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, '1')
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.remove_key, '1')
 
     # Test condition for removal of keys from a non-default repository.
     repository_name = 'example_repository'
-    tuf.keydb.create_keydb(repository_name)
-    tuf.keydb.add_key(rsakey, keyid, repository_name)
-    self.assertRaises(tuf.InvalidNameError, tuf.keydb.remove_key, keyid, 'non-existent')
-    tuf.keydb.remove_key(keyid, repository_name)
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.remove_key, keyid, repository_name)
+    tuf.ssl_crypto.keydb.create_keydb(repository_name)
+    tuf.ssl_crypto.keydb.add_key(rsakey, keyid, repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.InvalidNameError, tuf.ssl_crypto.keydb.remove_key, keyid, 'non-existent')
+    tuf.ssl_crypto.keydb.remove_key(keyid, repository_name)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.remove_key, keyid, repository_name)
     
     # Reset the keydb so that subsequent tests have access to the original,
     # default keydb.
-    tuf.keydb.remove_keydb(repository_name)
+    tuf.ssl_crypto.keydb.remove_keydb(repository_name)
 
     # Test conditions for arguments with invalid formats.
-    self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, None)
-    self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, '')
-    self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, 123)
-    self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, ['123'])
-    self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, keyid, 123)
-    self.assertRaises(tuf.FormatError, tuf.keydb.remove_key, {'bad': '123'})
-    self.assertRaises(tuf.Error, tuf.keydb.remove_key, rsakey3)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.remove_key, None)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.remove_key, '')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.remove_key, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.remove_key, ['123'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.remove_key, keyid, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.keydb.remove_key, {'bad': '123'})
+    self.assertRaises(tuf.ssl_commons.exceptions.Error, tuf.ssl_crypto.keydb.remove_key, rsakey3)
 
 
 
@@ -317,44 +318,44 @@ class TestKeydb(unittest.TestCase):
                                                        keydict, roledict,
                                                        consistent_snapshot,
                                                        compression_algorithms)
-    self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
-    tuf.keydb.create_keydb_from_root_metadata(root_metadata)
+    self.assertEqual(None, tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(root_metadata))
+    tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(root_metadata)
 
     # Ensure 'keyid' and 'keyid2' were added to the keydb database.
-    self.assertEqual(rsakey, tuf.keydb.get_key(keyid))
-    self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))
+    self.assertEqual(rsakey, tuf.ssl_crypto.keydb.get_key(keyid))
+    self.assertEqual(rsakey2, tuf.ssl_crypto.keydb.get_key(keyid2))
     
     # Verify that the keydb is populated for a non-default repository.
     repository_name = 'example_repository'
-    tuf.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
+    tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
 
     # Test conditions for arguments with invalid formats.
-    self.assertRaises(tuf.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, None)
-    self.assertRaises(tuf.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, '')
-    self.assertRaises(tuf.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, 123)
-    self.assertRaises(tuf.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, ['123'])
-    self.assertRaises(tuf.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, {'bad': '123'})
-    self.assertRaises(tuf.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, root_metadata, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      tuf.ssl_crypto.keydb.create_keydb_from_root_metadata, None)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      tuf.ssl_crypto.keydb.create_keydb_from_root_metadata, '')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      tuf.ssl_crypto.keydb.create_keydb_from_root_metadata, 123)
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      tuf.ssl_crypto.keydb.create_keydb_from_root_metadata, ['123'])
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      tuf.ssl_crypto.keydb.create_keydb_from_root_metadata, {'bad': '123'})
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      tuf.ssl_crypto.keydb.create_keydb_from_root_metadata, root_metadata, 123)
 
     # Verify that a keydb cannot be created for a non-existent repository name.
-    tuf.keydb.create_keydb_from_root_metadata(root_metadata, 'non-existent')
+    tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(root_metadata, 'non-existent')
 
     # Remove the 'non-existent' and 'example_repository' key database so that
     # subsequent test functions have access to a default keydb.
-    tuf.keydb.remove_keydb(repository_name)
-    tuf.keydb.remove_keydb('non-existent')
+    tuf.ssl_crypto.keydb.remove_keydb(repository_name)
+    tuf.ssl_crypto.keydb.remove_keydb('non-existent')
 
 
     # Test conditions for correctly formatted 'root_metadata' arguments but
     # containing incorrect keyids or key types.  In these conditions, the keys
     # should not be added to the keydb database and a warning should be logged.
-    tuf.keydb.clear_keydb()
+    tuf.ssl_crypto.keydb.clear_keydb()
     
     # 'keyid' does not match 'rsakey2'.
     keydict[keyid] = rsakey2
@@ -373,13 +374,13 @@ class TestKeydb(unittest.TestCase):
                                                        keydict, roledict,
                                                        consistent_snapshot,
                                                        compression_algorithms)
-    self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
+    self.assertEqual(None, tuf.ssl_crypto.keydb.create_keydb_from_root_metadata(root_metadata))
 
     # Ensure only 'keyid2' was added to the keydb database.  'keyid' and
     # 'keyid3' should not be stored.
-    self.assertEqual(rsakey2, tuf.keydb.get_key(keyid2))
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid)
-    self.assertRaises(tuf.UnknownKeyError, tuf.keydb.get_key, keyid3)
+    self.assertEqual(rsakey2, tuf.ssl_crypto.keydb.get_key(keyid2))
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.get_key, keyid)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownKeyError, tuf.ssl_crypto.keydb.get_key, keyid3)
     rsakey3['keytype'] = 'rsa'
 
 

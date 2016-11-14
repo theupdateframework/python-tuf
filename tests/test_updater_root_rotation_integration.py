@@ -56,15 +56,16 @@ else:
   import unittest2 as unittest 
 
 import tuf
-import tuf.util
-import tuf.conf
+import tuf.ssl_commons.exceptions
+import tuf.ssl_crypto.util
+from simple_settings import settings
 import tuf.log
-import tuf.formats
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.roledb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
+
 import six
 
 logger = logging.getLogger('tuf.test_updater_root_rotation_integration')
@@ -82,10 +83,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # temporary files are always removed, even when exceptions occur. 
     cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
     
-    # Launch a SimpleHTTPServer (serves files in the current directory).
-    # Test cases will request metadata and target files that have been
-    # pre-generated in 'tuf/tests/repository_data', which will be served
-    # by the SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
+    # Launch a SimpleHTTPServer (serves files in the current directory).  Test
+    # cases will request metadata and target files that have been pre-generated
+    # in 'tuf/tests/repository_data', which will be served by the
+    # SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
     # assume the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
@@ -159,9 +160,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
@@ -185,7 +186,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True) 
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True) 
 
 
 
@@ -199,7 +200,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
 
     # Errors, not enough signing keys to satisfy root's threshold.
-    self.assertRaises(tuf.UnsignedMetadataError, repository.writeall)
+    self.assertRaises(tuf.ssl_commons.exceptions.UnsignedMetadataError, repository.writeall)
 
     repository.root.add_verification_key(self.role_keys['role1']['public'])
     repository.root.load_signing_key(self.role_keys['root']['private'])
@@ -256,14 +257,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     try:
       self.repository_updater.refresh()
     
-    except tuf.NoWorkingMirrorError as exception:                               
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:                               
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):   
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']           
         url_file = os.path.join(url_prefix, 'metadata', '2.root.json')       
                                                    
         # Verify that '2.root.json' is the culprit.                          
         self.assertEqual(url_file, mirror_url)                                  
-        self.assertTrue(isinstance(mirror_error, tuf.BadSignatureError))
+        self.assertTrue(isinstance(mirror_error,
+                        tuf.ssl_commons.exceptions.BadSignatureError))
 
 
 
@@ -304,7 +306,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
     
-    self.assertRaises(tuf.NoWorkingMirrorError, self.repository_updater.refresh)
+    self.assertRaises(tuf.ssl_commons.exceptions.NoWorkingMirrorError,
+                      self.repository_updater.refresh)
 
 
 
@@ -314,8 +317,8 @@ def _load_role_keys(keystore_directory):
   # keys of 'tuf/tests/repository_data/'.  The role keys are needed when
   # modifying the remote repository used by the test cases in this unit test.
 
-  # The pre-generated key files in 'repository_data/keystore' are all encrypted with
-  # a 'password' passphrase.
+  # The pre-generated key files in 'repository_data/keystore' are all encrypted
+  # with a 'password' passphrase.
   EXPECTED_KEYFILE_PASSWORD = 'password'
 
   # Store and return the cryptography keys of the top-level roles, including 1

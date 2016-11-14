@@ -30,13 +30,14 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.formats
-import tuf.pyca_crypto_keys as crypto_keys
+import tuf.ssl_crypto.formats
+import tuf.ssl_crypto.pyca_crypto_keys as crypto_keys
 
 logger = logging.getLogger('tuf.test_pyca_crypto_keys')
 
 public_rsa, private_rsa = crypto_keys.generate_rsa_public_and_private()
-FORMAT_ERROR_MSG = 'tuf.FormatError raised.  Check object\'s format.'
+FORMAT_ERROR_MSG = 'tuf.ssl_commons.exceptions.FormatError raised.' + \
+  '  Check object\'s format.'
 
 
 class TestPyca_crypto_keys(unittest.TestCase):
@@ -48,16 +49,16 @@ class TestPyca_crypto_keys(unittest.TestCase):
     pub, priv = crypto_keys.generate_rsa_public_and_private()
     
     # Check format of 'pub' and 'priv'.
-    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(pub),
+    self.assertEqual(None, tuf.ssl_crypto.formats.PEMRSA_SCHEMA.check_match(pub),
                      FORMAT_ERROR_MSG)
-    self.assertEqual(None, tuf.formats.PEMRSA_SCHEMA.check_match(priv),
+    self.assertEqual(None, tuf.ssl_crypto.formats.PEMRSA_SCHEMA.check_match(priv),
                      FORMAT_ERROR_MSG)
 
     # Check for an invalid "bits" argument.  bits >= 2048.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       crypto_keys.generate_rsa_public_and_private, 1024)
    
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       crypto_keys.generate_rsa_public_and_private, '2048')
   
   
@@ -70,26 +71,26 @@ class TestPyca_crypto_keys(unittest.TestCase):
 
     # Verify format of returned values.
     self.assertNotEqual(None, signature)
-    self.assertEqual(None, tuf.formats.NAME_SCHEMA.check_match(method),
+    self.assertEqual(None, tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(method),
                      FORMAT_ERROR_MSG)
     self.assertEqual('RSASSA-PSS', method)
 
     # Check for improperly formatted arguments.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       crypto_keys.create_rsa_signature, 123, data)
     
     self.assertRaises(ValueError,
                       crypto_keys.create_rsa_signature, '', data)
    
     # Check for invalid 'data'.
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       crypto_keys.create_rsa_signature, private_rsa, '')
     
-    self.assertRaises(tuf.FormatError,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
                       crypto_keys.create_rsa_signature, private_rsa, 123)
 
     # Check for missing private key.
-    self.assertRaises(tuf.CryptoError,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError,
                       crypto_keys.create_rsa_signature, public_rsa, data)
 
 
@@ -105,26 +106,26 @@ class TestPyca_crypto_keys(unittest.TestCase):
     self.assertEqual(True, valid_signature)
 
     # Check for improperly formatted arguments.
-    self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature, 123, method,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, crypto_keys.verify_rsa_signature, 123, method,
                                        public_rsa, data)
     
-    self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature, signature,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, crypto_keys.verify_rsa_signature, signature,
                                        123, public_rsa, data)
     
-    self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature, signature,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, crypto_keys.verify_rsa_signature, signature,
                                        method, 123, data)
     
     
-    self.assertRaises(tuf.UnknownMethodError, crypto_keys.verify_rsa_signature,
+    self.assertRaises(tuf.ssl_commons.exceptions.UnknownMethodError, crypto_keys.verify_rsa_signature,
                                                       signature,
                                                       'invalid_method',
                                                       public_rsa, data)
     
     # Check for invalid 'signature', 'public_key', and 'data' arguments.
-    self.assertRaises(tuf.FormatError, crypto_keys.verify_rsa_signature,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, crypto_keys.verify_rsa_signature,
                       signature, method, public_rsa, 123)
 
-    self.assertRaises(tuf.CryptoError, crypto_keys.verify_rsa_signature,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, crypto_keys.verify_rsa_signature,
                       signature, method, 'bad_key', data)
   
     self.assertEqual(False, crypto_keys.verify_rsa_signature(signature, method,
@@ -140,7 +141,7 @@ class TestPyca_crypto_keys(unittest.TestCase):
 
   def test__decrypt(self):
     # Verify that invalid encrypted file is detected. 
-    self.assertRaises(tuf.CryptoError, crypto_keys._decrypt,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, crypto_keys._decrypt,
                       'bad encrypted file', 'password')
 
 
@@ -156,7 +157,7 @@ class TestPyca_crypto_keys(unittest.TestCase):
     
     # Verify that a key with a missing 'private' key is rejected.
     del ed25519_key['keyval']['private']
-    self.assertRaises(tuf.FormatError, crypto_keys.encrypt_key,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, crypto_keys.encrypt_key,
                       ed25519_key, 'password')
 
 
@@ -175,13 +176,13 @@ class TestPyca_crypto_keys(unittest.TestCase):
 
     encrypted_key_invalid_hmac = encrypted_key.replace(hmac, '123abc')
 
-    self.assertRaises(tuf.CryptoError, crypto_keys._decrypt,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, crypto_keys._decrypt,
                       encrypted_key_invalid_hmac, 'password')
 
 
 
   def test_create_rsa_public_and_private_from_encrypted_pem(self):
-    self.assertRaises(tuf.CryptoError,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError,
               crypto_keys.create_rsa_public_and_private_from_encrypted_pem,
               'bad_encrypted_key', 'password')
 
@@ -194,18 +195,18 @@ class TestPyca_crypto_keys(unittest.TestCase):
     # Verify normal case.
     encrypted_pem = crypto_keys.create_rsa_encrypted_pem(private_rsa, passphrase)
    
-    self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
+    self.assertTrue(tuf.ssl_crypto.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
 
     # Test for invalid arguments.
-    self.assertRaises(tuf.FormatError, crypto_keys.create_rsa_encrypted_pem,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, crypto_keys.create_rsa_encrypted_pem,
                       1, passphrase)
-    self.assertRaises(tuf.FormatError, crypto_keys.create_rsa_encrypted_pem,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, crypto_keys.create_rsa_encrypted_pem,
                       private_rsa, 2)
 
     self.assertRaises(TypeError, crypto_keys.create_rsa_encrypted_pem,
                       '', passphrase)
 
-    self.assertRaises(tuf.CryptoError, crypto_keys.create_rsa_encrypted_pem,
+    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, crypto_keys.create_rsa_encrypted_pem,
                       'bad_private_pem', passphrase)
 
 

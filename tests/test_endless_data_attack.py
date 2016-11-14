@@ -55,13 +55,13 @@ else:
 
 import tuf
 import tuf.formats
-import tuf.util
+import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.roledb
-import tuf.keydb
-
+import tuf.ssl_crypto.keydb
+from simple_settings import settings
 import six
 
 logger = logging.getLogger('tuf.test_endless_data_attack')
@@ -148,9 +148,9 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -167,7 +167,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
 
 
   def test_without_tuf(self):
@@ -176,7 +176,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     # a non-TUF client that does not verify hashes, detect mix-and-mix attacks,
     # etc.)  A tuf client, on the other hand, should only download target files
     # up to their expected lengths, as explicitly specified in metadata, or 
-    # 'tuf/conf.py' (when retrieving 'timestamp.json' and 'root.json unsafely'.)
+    # 'tuf/settings.py' (when retrieving 'timestamp.json' and 'root.json unsafely'.)
    
     # Test: Download a valid target file from the repository.
     # Ensure the target file to be downloaded has not already been downloaded,
@@ -185,7 +185,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
     client_target_path = os.path.join(self.client_directory, 'file1.txt') 
     self.assertFalse(os.path.exists(client_target_path))
-    length, hashes = tuf.util.get_file_details(target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
     fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
@@ -193,7 +193,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
     self.assertTrue(os.path.exists(client_target_path))
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     self.assertEqual(fileinfo, download_fileinfo)
   
@@ -202,7 +202,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     with open(target_path, 'r+t') as file_object:
       original_content = file_object.read() 
       file_object.write(original_content+('append large amount of data' * 100000))
-    large_length, hashes = tuf.util.get_file_details(target_path)
+    large_length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
     malicious_fileinfo = tuf.formats.make_fileinfo(large_length, hashes)
     
     # Is the modified file actually larger? 
@@ -210,7 +210,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     
     six.moves.urllib.request.urlretrieve(url_file, client_target_path)
     
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
     # Verify 'download_fileinfo' is unequal to the original trusted version.
@@ -226,7 +226,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     # attacker, to contain a large amount of extra data, is not downloaded by
     # the TUF client.  First test that the valid target file is successfully
     # downloaded.
-    file1_fileinfo = self.repository_updater.target('file1.txt')
+    file1_fileinfo = self.repository_updater.get_one_valid_targetinfo('file1.txt')
     destination = os.path.join(self.client_directory)
     self.repository_updater.download_target(file1_fileinfo, destination)
     client_target_path = os.path.join(destination, 'file1.txt')
@@ -234,10 +234,10 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
    
     # Verify the client's downloaded file matches the repository's.
     target_path = os.path.join(self.repository_directory, 'targets', 'file1.txt')
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     fileinfo = tuf.formats.make_fileinfo(length, hashes)
     
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     self.assertEqual(fileinfo, download_fileinfo)
 
@@ -248,7 +248,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
       file_object.write(original_content+('append large amount of data' * 10000))
    
     # Is the modified file actually larger?
-    large_length, hashes = tuf.util.get_file_details(target_path)
+    large_length, hashes = tuf.ssl_crypto.util.get_file_details(target_path)
     self.assertTrue(large_length > length)
     
     os.remove(client_target_path)
@@ -257,7 +257,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     # A large amount of data has been appended to the original content.  The
     # extra data appended should be discarded by the client, so the downloaded
     # file size and hash should not have changed.
-    length, hashes = tuf.util.get_file_details(client_target_path)
+    length, hashes = tuf.ssl_crypto.util.get_file_details(client_target_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
     self.assertEqual(fileinfo, download_fileinfo)
     
@@ -265,27 +265,27 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
                                   'timestamp.json')
    
-    original_length, hashes = tuf.util.get_file_details(timestamp_path)
+    original_length, hashes = tuf.ssl_crypto.util.get_file_details(timestamp_path)
     
     with open(timestamp_path, 'r+') as file_object:
-      timestamp_content = tuf.util.load_json_file(timestamp_path) 
+      timestamp_content = tuf.ssl_crypto.util.load_json_file(timestamp_path) 
       large_data = 'LargeTimestamp' * 10000
       timestamp_content['signed']['_type'] = large_data 
       json.dump(timestamp_content, file_object, indent=1, sort_keys=True)
 
     
-    modified_length, hashes = tuf.util.get_file_details(timestamp_path)
+    modified_length, hashes = tuf.ssl_crypto.util.get_file_details(timestamp_path)
     self.assertTrue(modified_length > original_length)
 
     # Does the TUF client download the upper limit of an unsafely fetched
     # 'timestamp.json'?  'timestamp.json' must not be greater than
-    # 'tuf.conf.DEFAULT_TIMESTAMP_REQUIRED_LENGTH'.
+    # 'settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH'.
     try:
       self.repository_updater.refresh()
     
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
-        self.assertTrue(isinstance(mirror_error, tuf.Error))
+        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.Error))
     
     else:
       self.fail('TUF did not prevent an endless data attack.')

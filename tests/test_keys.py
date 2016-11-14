@@ -30,13 +30,15 @@ import logging
 
 import tuf
 import tuf.log
-import tuf.formats
-import tuf.keys
+import tuf.ssl_crypto.pycrypto_keys
+import tuf.ssl_crypto.formats
+import tuf.ssl_crypto.keys
 
 logger = logging.getLogger('tuf.test_keys')
 
-KEYS = tuf.keys
-FORMAT_ERROR_MSG = 'tuf.FormatError was raised! Check object\'s format.'
+KEYS = tuf.ssl_crypto.keys
+FORMAT_ERROR_MSG = 'tuf.ssl_commons.exceptions.FormatError was raised!' + \
+  '  Check object\'s format.'
 DATA = 'SOME DATA REQUIRING AUTHENTICITY.'
 
 
@@ -58,20 +60,20 @@ class TestKeys(unittest.TestCase):
 
       # Check if the format of the object returned by generate() corresponds
       # to RSAKEY_SCHEMA format.
-      self.assertEqual(None, tuf.formats.RSAKEY_SCHEMA.check_match(_rsakey_dict),
+      self.assertEqual(None, tuf.ssl_crypto.formats.RSAKEY_SCHEMA.check_match(_rsakey_dict),
                        FORMAT_ERROR_MSG)
 
       # Passing a bit value that is <2048 to generate() - should raise 
-      # 'tuf.FormatError'.
-      self.assertRaises(tuf.FormatError, KEYS.generate_rsa_key, 555)
+      # 'tuf.ssl_commons.exceptions.FormatError'.
+      self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.generate_rsa_key, 555)
 
       # Passing a string instead of integer for a bit value.
-      self.assertRaises(tuf.FormatError, KEYS.generate_rsa_key, 'bits')
+      self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.generate_rsa_key, 'bits')
 
       # NOTE if random bit value >=2048 (not 4096) is passed generate(bits) 
       # does not raise any errors and returns a valid key.
-      self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(2048)))
-      self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(4096)))
+      self.assertTrue(tuf.ssl_crypto.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(2048)))
+      self.assertTrue(tuf.ssl_crypto.formats.RSAKEY_SCHEMA.matches(KEYS.generate_rsa_key(4096)))
 
     # Reset to originally set RSA crypto library.
     KEYS._RSA_CRYPTO_LIBRARY = default_rsa_library
@@ -85,30 +87,30 @@ class TestKeys(unittest.TestCase):
     # Check if the format of the object returned by this function corresponds
     # to KEY_SCHEMA format.
     self.assertEqual(None, 
-                     tuf.formats.KEY_SCHEMA.check_match(key_meta), 
+                     tuf.ssl_crypto.formats.KEY_SCHEMA.check_match(key_meta), 
                      FORMAT_ERROR_MSG)    
     key_meta = KEYS.format_keyval_to_metadata(keytype, keyvalue, private=True)
 
     # Check if the format of the object returned by this function corresponds
     # to KEY_SCHEMA format.
-    self.assertEqual(None, tuf.formats.KEY_SCHEMA.check_match(key_meta), 
+    self.assertEqual(None, tuf.ssl_crypto.formats.KEY_SCHEMA.check_match(key_meta), 
                      FORMAT_ERROR_MSG) 
     
     # Supplying a 'bad' keyvalue.
-    self.assertRaises(tuf.FormatError, KEYS.format_keyval_to_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.format_keyval_to_metadata,
                       'bad_keytype', keyvalue)
 
     # Test for missing 'public' entry.
     public = keyvalue['public']
     del keyvalue['public']
-    self.assertRaises(tuf.FormatError, KEYS.format_keyval_to_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.format_keyval_to_metadata,
                       keytype, keyvalue)
     keyvalue['public'] = public
 
     # Test for missing 'private' entry.
     private = keyvalue['private']
     del keyvalue['private']
-    self.assertRaises(tuf.FormatError, KEYS.format_keyval_to_metadata,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.format_keyval_to_metadata,
                       keytype, keyvalue, private=True)
     keyvalue['private'] = private
 
@@ -119,23 +121,23 @@ class TestKeys(unittest.TestCase):
     rsa_key = KEYS.format_rsakey_from_pem(pem)
     
     # Check if the format of the object returned by this function corresponds
-    # to 'tuf.formats.RSAKEY_SCHEMA' format.
-    self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(rsa_key)) 
+    # to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' format.
+    self.assertTrue(tuf.ssl_crypto.formats.RSAKEY_SCHEMA.matches(rsa_key)) 
     
     # Verify whitespace is stripped.
     self.assertEqual(rsa_key, KEYS.format_rsakey_from_pem(pem + '\n'))
 
     # Supplying a 'bad_pem' argument.
-    self.assertRaises(tuf.FormatError, KEYS.format_rsakey_from_pem, 'bad_pem')
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.format_rsakey_from_pem, 'bad_pem')
 
     # Supplying an improperly formatted PEM.
     # Strip the PEM header and footer.
     pem_header = '-----BEGIN PUBLIC KEY-----'
-    self.assertRaises(tuf.FormatError, KEYS.format_rsakey_from_pem,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.format_rsakey_from_pem,
                       pem[len(pem_header):])
                       
     pem_footer = '-----END PUBLIC KEY-----'
-    self.assertRaises(tuf.FormatError, KEYS.format_rsakey_from_pem,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.format_rsakey_from_pem,
                       pem[:-len(pem_footer)])
 
 
@@ -151,7 +153,7 @@ class TestKeys(unittest.TestCase):
     # Check if the format of the object returned by this function corresponds
     # to RSAKEY_SCHEMA format.
     self.assertEqual(None, 
-           tuf.formats.RSAKEY_SCHEMA.check_match(rsakey_dict_from_meta),
+           tuf.ssl_crypto.formats.RSAKEY_SCHEMA.check_match(rsakey_dict_from_meta),
            FORMAT_ERROR_MSG)
     self.rsakey_dict['keyid'] = keyid
     
@@ -163,7 +165,7 @@ class TestKeys(unittest.TestCase):
     # Supplying a malformed argument to the function - should get FormatError
     keyval = self.rsakey_dict['keyval']  
     del self.rsakey_dict['keyval']
-    self.assertRaises(tuf.FormatError, KEYS.format_metadata_to_key,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.format_metadata_to_key,
                       self.rsakey_dict)   
     self.rsakey_dict['keyval'] = keyval
 
@@ -174,17 +176,17 @@ class TestKeys(unittest.TestCase):
     keyvalue = self.rsakey_dict['keyval']
     
     # Check format of 'keytype'.
-    self.assertEqual(None, tuf.formats.KEYTYPE_SCHEMA.check_match(keytype),
+    self.assertEqual(None, tuf.ssl_crypto.formats.KEYTYPE_SCHEMA.check_match(keytype),
                      FORMAT_ERROR_MSG)
     
     # Check format of 'keyvalue'.
-    self.assertEqual(None, tuf.formats.KEYVAL_SCHEMA.check_match(keyvalue),
+    self.assertEqual(None, tuf.ssl_crypto.formats.KEYVAL_SCHEMA.check_match(keyvalue),
                      FORMAT_ERROR_MSG)
 
     keyid = KEYS._get_keyid(keytype, keyvalue)    
 
     # Check format of 'keyid' - the output of '_get_keyid()' function.
-    self.assertEqual(None, tuf.formats.KEYID_SCHEMA.check_match(keyid),
+    self.assertEqual(None, tuf.ssl_crypto.formats.KEYID_SCHEMA.check_match(keyid),
                      FORMAT_ERROR_MSG)
 
 
@@ -199,10 +201,10 @@ class TestKeys(unittest.TestCase):
       
       # Check format of output.
       self.assertEqual(None, 
-                       tuf.formats.SIGNATURE_SCHEMA.check_match(rsa_signature),
+                       tuf.ssl_crypto.formats.SIGNATURE_SCHEMA.check_match(rsa_signature),
                        FORMAT_ERROR_MSG)
       self.assertEqual(None, 
-                       tuf.formats.SIGNATURE_SCHEMA.check_match(ed25519_signature),
+                       tuf.ssl_crypto.formats.SIGNATURE_SCHEMA.check_match(ed25519_signature),
                        FORMAT_ERROR_MSG)
 
       # Removing private key from 'rsakey_dict' - should raise a TypeError.
@@ -254,13 +256,13 @@ class TestKeys(unittest.TestCase):
       rsa_signature['method'] = 'Biff'
 
       args = (self.rsakey_dict, rsa_signature, DATA)
-      self.assertRaises(tuf.UnknownMethodError, KEYS.verify_signature, *args) 
+      self.assertRaises(tuf.ssl_commons.exceptions.UnknownMethodError, KEYS.verify_signature, *args) 
 
       # Passing incorrect number of arguments.
       self.assertRaises(TypeError, KEYS.verify_signature)
    
       # Verify that the pure python 'ed25519' base case (triggered if 'pynacl' is
-      # unavailable) is executed in tuf.keys.verify_signature().
+      # unavailable) is executed in tuf.ssl_crypto.keys.verify_signature().
       KEYS._ED25519_CRYPTO_LIBRARY = 'invalid'
       KEYS._available_crypto_libraries = ['invalid']
       verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
@@ -283,22 +285,22 @@ class TestKeys(unittest.TestCase):
       private = self.rsakey_dict['keyval']['private']
       passphrase = 'secret'
       encrypted_pem = KEYS.create_rsa_encrypted_pem(private, passphrase)
-      self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
+      self.assertTrue(tuf.ssl_crypto.formats.PEMRSA_SCHEMA.matches(encrypted_pem))
 
       # Try to import the encryped PEM file.
       rsakey = KEYS.import_rsakey_from_encrypted_pem(encrypted_pem, passphrase)
-      self.assertTrue(tuf.formats.RSAKEY_SCHEMA.matches(rsakey))
+      self.assertTrue(tuf.ssl_crypto.formats.RSAKEY_SCHEMA.matches(rsakey))
 
       # Test improperly formatted arguments.
-      self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
+      self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.create_rsa_encrypted_pem,
                         8, passphrase)
       
-      self.assertRaises(tuf.FormatError, KEYS.create_rsa_encrypted_pem,
+      self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.create_rsa_encrypted_pem,
                         private, 8)
 
       # Test for missing required library.
       KEYS._RSA_CRYPTO_LIBRARY = 'invalid'
-      self.assertRaises(tuf.UnsupportedLibraryError, KEYS.create_rsa_encrypted_pem,
+      self.assertRaises(tuf.ssl_commons.exceptions.UnsupportedLibraryError, KEYS.create_rsa_encrypted_pem,
                         private, passphrase)
       KEYS._RSA_CRYPTO_LIBRARY = 'pycrypto'
   
@@ -316,18 +318,18 @@ class TestKeys(unittest.TestCase):
       encrypted_key = KEYS.encrypt_key(self.rsakey_dict, passphrase).encode('utf-8')
       decrypted_key = KEYS.decrypt_key(encrypted_key, passphrase)
 
-      self.assertTrue(tuf.formats.ANYKEY_SCHEMA.matches(decrypted_key))
+      self.assertTrue(tuf.ssl_crypto.formats.ANYKEY_SCHEMA.matches(decrypted_key))
       
       # Test improperly formatted arguments.
-      self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
+      self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.decrypt_key,
                         8, passphrase)
       
-      self.assertRaises(tuf.FormatError, KEYS.decrypt_key,
+      self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.decrypt_key,
                         encrypted_key, 8)
 
       # Test for missing required library.
       KEYS._GENERAL_CRYPTO_LIBRARY = 'invalid'
-      self.assertRaises(tuf.UnsupportedLibraryError, KEYS.decrypt_key,
+      self.assertRaises(tuf.ssl_commons.exceptions.UnsupportedLibraryError, KEYS.decrypt_key,
                         encrypted_key, passphrase)
       KEYS._GENERAL_CRYPTO_LIBRARY = 'pycrypto' 
 
@@ -339,7 +341,7 @@ class TestKeys(unittest.TestCase):
     # Normal case.
     private_pem = KEYS.extract_pem(self.rsakey_dict['keyval']['private'],
                                    private_pem=True) 
-    self.assertTrue(tuf.formats.PEMRSA_SCHEMA.matches(private_pem))
+    self.assertTrue(tuf.ssl_crypto.formats.PEMRSA_SCHEMA.matches(private_pem))
     
     # Test for an invalid PEM.
     pem_header = '-----BEGIN RSA PRIVATE KEY-----' 
@@ -353,13 +355,13 @@ class TestKeys(unittest.TestCase):
     #print('missing header: ' + repr(missing_header))
     #print('missing footer: ' + repr(missing_footer))
 
-    self.assertRaises(tuf.FormatError, KEYS.extract_pem,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.extract_pem,
                       'invalid_pem', private_pem=True) 
     
-    self.assertRaises(tuf.FormatError, KEYS.extract_pem,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.extract_pem,
                       missing_header, private_pem=True) 
     
-    self.assertRaises(tuf.FormatError, KEYS.extract_pem,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, KEYS.extract_pem,
                       missing_footer, private_pem=True) 
 
 

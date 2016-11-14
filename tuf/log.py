@@ -68,8 +68,8 @@ import logging
 import time
 
 import tuf
-import tuf.formats
-import tuf.conf
+import tuf.ssl_crypto.formats
+from simple_settings import settings
 
 # Setting a handler's log level filters only logging messages of that level
 # (and above).  For example, setting the built-in StreamHandler's log level to
@@ -108,12 +108,12 @@ logger = logging.getLogger('tuf')
 logger.setLevel(_DEFAULT_LOG_LEVEL)
 
 # Set the built-in file handler.  Messages will be logged to
-# 'tuf.conf.LOG_FILENAME', and only those messages with a log level of
+# 'settings.LOG_FILENAME', and only those messages with a log level of
 # '_DEFAULT_LOG_LEVEL'.  The log level of messages handled by 'file_handler'
-# may be modified with 'set_filehandler_log_level()'.  'tuf.conf.LOG_FILENAME'
+# may be modified with 'set_filehandler_log_level()'.  'settings.LOG_FILENAME'
 # will be opened in append mode.
-if tuf.conf.ENABLE_FILE_LOGGING:
-  file_handler = logging.FileHandler(tuf.conf.LOG_FILENAME)
+if settings.ENABLE_FILE_LOGGING:
+  file_handler = logging.FileHandler(settings.LOG_FILENAME)
   file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
   file_handler.setFormatter(formatter)
   logger.addHandler(file_handler)
@@ -198,8 +198,8 @@ def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
   """
   
   # Does 'log_level' have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  tuf.ssl_crypto.formats.LOGLEVEL_SCHEMA.check_match(log_level)
   
   logger.setLevel(log_level)
 
@@ -229,8 +229,8 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
   """
   
   # Does 'log_level' have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  tuf.ssl_crypto.formats.LOGLEVEL_SCHEMA.check_match(log_level)
   
   file_handler.setLevel(log_level)
 
@@ -250,8 +250,8 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
       'log_level' examples: logging.INFO; logging.CRITICAL.
       
   <Exceptions>
-    tuf.Error, if the 'log.py' console handler has not been set yet with
-    add_console_handler().
+    tuf.ssl_commons.exceptions.Error, if the 'log.py' console handler has not
+    been set yet with add_console_handler().
 
   <Side Effects>
     Overrides the logging level for the console handler.
@@ -261,8 +261,8 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   """
   
   # Does 'log_level' have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  tuf.ssl_crypto.formats.LOGLEVEL_SCHEMA.check_match(log_level)
   
   # Assign to the global console_handler object.
   global console_handler
@@ -272,7 +272,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   
   else:
     message = 'The console handler has not been set with add_console_handler().'
-    raise tuf.Error(message)
+    raise tuf.ssl_commons.exceptions.Error(message)
 
 
 
@@ -300,8 +300,8 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   """
   
   # Does 'log_level' have the correct format?
-  # Raise 'tuf.FormatError' if there is a mismatch.
-  tuf.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  tuf.ssl_crypto.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   # Assign to the global console_handler object.
   global console_handler

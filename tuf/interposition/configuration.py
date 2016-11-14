@@ -180,7 +180,7 @@ class ConfigurationParser(object):
     if len(network_location_tokens) > 1:
       port = int(network_location_tokens[1], 10)
       if port <= 0 or port >= 2**16:
-        raise tuf.InvalidConfigurationError(INVALID_NETWORK_LOCATION.format(
+        raise tuf.ssl_commons.exceptions.InvalidConfigurationError(INVALID_NETWORK_LOCATION.format(
           network_location=self.network_location))
 
     return hostname, port
@@ -217,7 +217,7 @@ class ConfigurationParser(object):
         # TODO: assert os.path.isdir(repository_directory)
 
       else:
-        raise tuf.InvalidConfigurationError(INVALID_PARENT_REPOSITORY_DIRECTORY.format(
+        raise tuf.ssl_commons.exceptions.InvalidConfigurationError(INVALID_PARENT_REPOSITORY_DIRECTORY.format(
           network_location=self.network_location))
 
     return repository_directory
@@ -256,11 +256,11 @@ class ConfigurationParser(object):
                                           ssl_certificates)
 
           if not os.path.isfile(ssl_certificates):
-            raise tuf.InvalidConfigurationError(INVALID_SSL_CERTIFICATES.format(
+            raise tuf.ssl_commons.exceptions.InvalidConfigurationError(INVALID_SSL_CERTIFICATES.format(
                 network_location=self.network_location))
 
         else:
-          raise tuf.InvalidConfigurationError(
+          raise tuf.ssl_commons.exceptions.InvalidConfigurationError(
             INVALID_PARENT_SSL_CERTIFICATES_DIRECTORY.format(
               network_location=self.network_location))
 
@@ -326,7 +326,7 @@ class ConfigurationParser(object):
         error_message = \
           INVALID_REPOSITORY_MIRROR.format(repository_mirror=repository_mirror)
         logger.exception(error_message)
-        raise tuf.InvalidConfigurationError(error_message)
+        raise tuf.ssl_commons.exceptions.InvalidConfigurationError(error_message)
 
     return repository_mirrors
 
@@ -371,7 +371,7 @@ class ConfigurationParser(object):
         error_message = \
           INVALID_TARGET_PATH.format(network_location=self.network_location)
         logger.exception(error_message)
-        raise tuf.InvalidConfigurationError(error_message)
+        raise tuf.ssl_commons.exceptions.InvalidConfigurationError(error_message)
 
     return target_paths
 

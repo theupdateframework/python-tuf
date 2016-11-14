@@ -53,9 +53,9 @@ else:
 
 import tuf
 import tuf.log
-import tuf.conf
+from simple_settings import settings
 import tuf.roledb
-import tuf.keydb
+import tuf.ssl_crypto.keydb
 import tuf.repository_tool as repo_tool
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
@@ -153,9 +153,9 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
     
-    # Setting 'tuf.conf.repository_directory' with the temporary client
+    # Setting 'settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.conf.repository_directory = self.client_directory 
+    settings.repository_directory = self.client_directory 
     
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
@@ -179,7 +179,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True) 
+    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True) 
 
 
 
@@ -365,7 +365,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     
     # Note: We added the Snapshot, Targets, and Timetamp keys to the Root role.
     # The Root's expected private key has not been loaded yet, so that
-    # we can verify that refresh() correctly raises a tuf.BadSignatureError
+    # we can verify that refresh() correctly raises a tuf.ssl_commons.exceptions.BadSignatureError
     # exception.
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -383,9 +383,9 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     try: 
       self.repository_updater.refresh()
     
-    except tuf.NoWorkingMirrorError as exception:
+    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
       for mirror_exception in exception.mirror_errors.values():
-        self.assertTrue(isinstance(mirror_exception, tuf.BadSignatureError))
+        self.assertTrue(isinstance(mirror_exception, tuf.ssl_commons.exceptions.BadSignatureError))
 
     repository.root.add_verification_key(self.role_keys['root']['public'])
     repository.root.load_signing_key(self.role_keys['root']['private'])

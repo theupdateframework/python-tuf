@@ -54,10 +54,10 @@ can decide how to proceed rather than automatically downloading a new Root file.
 # from this module.
 import tuf.client.updater
 
-# The only other module the client interacts with is 'tuf.conf'.  The
+# The only other module the client interacts with is 'settings'.  The
 # client accesses this module solely to set the repository directory.
 # This directory will hold the files downloaded from a remote repository.
-tuf.conf.repository_directory = 'path/to/local_repository'
+settings.repository_directory = 'path/to/local_repository'
 
 # Next, the client creates a dictionary object containing the repository
 # mirrors.  The client may download content from any one of these mirrors.
@@ -135,9 +135,11 @@ for target in updated_targets:
 # Refresh the metadata of the top-level roles (i.e., Root, Targets, Snapshot, Timestamp).           
 updater.refresh()
 
-# target() updates role metadata when required.
-target = updater.target('LICENSE.txt')                                          
-updated_target = updater.updated_targets([target], destination_directory)       
+# get_one_valid_targetinfo() updates role metadata when required.  In other
+# words, if the client doesn't possess the metadata that lists 'LICENSE.txt',
+# get_one_valid_targetinfo() will try to fetch / update it.
+target = updater.get_one_valid_targetinfo('LICENSE.txt')
+updated_target = updater.updated_targets([target], destination_directory)
                                                                                  
 for target in updated_target:                                                   
   updater.download_target(target, destination_directory)

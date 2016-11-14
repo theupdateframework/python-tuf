@@ -1,6 +1,6 @@
 """
 <Program Name>
-  conf.py
+  settings.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
@@ -88,7 +88,7 @@ SLOW_START_GRACE_PERIOD = 3 #seconds
 
 # The current "good enough" number of PBKDF2 passphrase iterations.
 # We recommend that important keys, such as root, be kept offline.
-# 'tuf.conf.PBKDF2_ITERATIONS' should increase as CPU speeds increase, set here
+# 'settings.PBKDF2_ITERATIONS' should increase as CPU speeds increase, set here
 # at 100,000 iterations by default (in 2013).  The repository maintainer may opt
 # to modify the default setting according to their security needs and
 # computational restrictions.  A strong user password is still important.
