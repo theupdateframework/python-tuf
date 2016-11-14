@@ -793,11 +793,11 @@ class MirrorsFile(MetaFile):
 
 # A dict holding the recognized schemas for the top-level roles.
 SCHEMAS_BY_TYPE = {
-  'root' : ROOT_SCHEMA,
-  'targets' : TARGETS_SCHEMA,
-  'snapshot' : SNAPSHOT_SCHEMA,
-  'timestamp' : TIMESTAMP_SCHEMA,
-  'mirrors' : MIRRORLIST_SCHEMA}
+  'Root' : ROOT_SCHEMA,
+  'Targets' : TARGETS_SCHEMA,
+  'Snapshot' : SNAPSHOT_SCHEMA,
+  'Timestamp' : TIMESTAMP_SCHEMA,
+  'Mirrors' : MIRRORLIST_SCHEMA}
 
 # A dict holding the recognized class names for the top-level roles.
 # That is, the role classes listed in this module (e.g., class TargetsFile()).
