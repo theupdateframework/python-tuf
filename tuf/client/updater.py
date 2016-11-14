@@ -1089,10 +1089,9 @@ class Updater(object):
           # Verify that the downloaded version matches the version expected by
           # the caller.
           if version_downloaded != expected_version:
-            message = \
-              'Downloaded version number: ' + repr(version_downloaded) + '.' \
-              ' Version number MUST be: ' + repr(expected_version)
-            raise tuf.ssl_commons.exceptions.BadVersionNumberError(message) 
+            raise tuf.ssl_commons.exceptions.BadVersionNumberError('Downloaded'
+              ' version number: ' + repr(version_downloaded) + '.  Version'
+              ' number MUST be: ' + repr(expected_version))
          
         # The caller does not know which version to download.  Verify that the
         # downloaded version is at least greater than the one locally available.
@@ -1152,9 +1151,6 @@ class Updater(object):
 
 
 
-  # TODO: Instead of the more fragile 'download_safely' switch, unroll the
-  # function into two separate ones: one for "safe" download, and the other one
-  # for "unsafe" download? This should induce safer and more readable code.
   def _get_file(self, filepath, verify_file_function, file_type,
                 file_length, compression=None,
                 verify_compressed_file_function=None, download_safely=True):
@@ -1210,7 +1206,7 @@ class Updater(object):
       A 'tuf.ssl_crypto.util.TempFile' file-like object containing the metadata
       or target.
     """
-
+    
     file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
                                                    self.mirrors)
     # file_mirror (URL): error (Exception)
@@ -1219,6 +1215,9 @@ class Updater(object):
 
     for file_mirror in file_mirrors:
       try:
+        # TODO: Instead of the more fragile 'download_safely' switch, unroll the
+        # function into two separate ones: one for "safe" download, and the other one
+        # for "unsafe" download? This should induce safer and more readable code.
         if download_safely:
           file_object = tuf.download.safe_download(file_mirror,
                                                    file_length)
@@ -2090,11 +2089,11 @@ class Updater(object):
       
       for role in six.iterkeys(self.metadata['current']['snapshot']['meta']):
         # snapshot.json keeps track of root.json, targets.json, and delegated
-        # roles (e.g., django.json, unclaimed.json).
-        # Remove the 'targets' role because it gets updated when the targets.json
-        # file is updated in _update_metadata_if_changed('targets') and root.
+        # roles (e.g., django.json, unclaimed.json).  Remove the 'targets' role
+        # because it gets updated when the targets.json file is updated in
+        # _update_metadata_if_changed('targets') and root.
         if role.endswith('.json'):
-          role = role[:-len('.json')] 
+          role = role[:-len('.json')]
           if role not in ['root', 'targets', rolename]:
             roles_to_update.append(role)
         
