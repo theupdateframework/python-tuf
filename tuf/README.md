@@ -101,10 +101,6 @@ To start, a public and private RSA key pair is generated with the
 `generate_and_write_rsa_keypair()` function.  The keys generated next are
 needed to sign the repository metadata files created in upcoming sub-sections.
 
-Note:  In the instructions below, lines that start with `>>>` denote commands
-that should be entered by the reader, `#` begins the start of a comment, and
-text without prepended symbols is the output of a command. 
-
 #### Create RSA Keys ####
 ```python
 >>> from tuf.repository_tool import *
