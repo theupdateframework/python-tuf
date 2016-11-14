@@ -2642,8 +2642,8 @@ class Updater(object):
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
     tuf.ssl_crypto.formats.PATH_SCHEMA.check_match(destination_directory)
 
-    # Iterate through the rolenames and verify whether the 'previous'
-    # directory contains a target no longer found in 'current'.
+    # Iterate the rolenames and verify whether the 'previous' directory
+    # contains a target no longer found in 'current'.
     for role in tuf.roledb.get_rolenames(self.updater_name):
       if role.startswith('targets'):
         if role in self.metadata['previous'] and self.metadata['previous'][role] != None:
@@ -2651,21 +2651,28 @@ class Updater(object):
             if target not in self.metadata['current'][role]['targets']:
               # 'target' is only in 'previous', so remove it.
               logger.warning('Removing obsolete file: ' + repr(target) + '.')
+              
               # Remove the file if it hasn't been removed already.
-              destination = os.path.join(destination_directory, target.lstrip(os.sep))
+              destination = \
+                os.path.join(destination_directory, target.lstrip(os.sep))
               try:
                 os.remove(destination)
               
               except OSError as e:
                 # If 'filename' already removed, just log it.
                 if e.errno == errno.ENOENT:
-                  logger.info('File ' + repr(destination) + ' was already removed.')
+                  logger.info('File ' + repr(destination) + ' was already'
+                    ' removed.')
                 
                 else:
                   logger.error(str(e))
-              
-              except Exception as e:
-                logger.error(str(e))
+            
+            else:
+              logger.debug('Skipping: ' + repr(target) + '.  It is still'
+                ' a current target.')
+        else:
+          logger.debug('Skipping: ' + repr(role) + '.  Not in the previous'
+            ' metadata')
 
 
 
