@@ -960,9 +960,10 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   with open(filepath, 'rb') as file_object:
     encrypted_pem = file_object.read().decode('utf-8')
 
-  # Convert 'encrypted_pem' to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' format.  Raise
-  # 'tuf.ssl_commons.exceptions.CryptoError' if 'encrypted_pem' is invalid.
-  rsa_key = tuf.ssl_crypto.keys.import_rsakey_from_encrypted_pem(encrypted_pem, password)
+  # Convert 'encrypted_pem' to 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' format.
+  # Raise 'tuf.ssl_commons.exceptions.CryptoError' if 'encrypted_pem' is
+  # invalid.
+  rsa_key = tuf.ssl_crypto.keys.import_rsakey_from_pem(encrypted_pem, password)
   
   return rsa_key
 

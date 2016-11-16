@@ -28,15 +28,14 @@ from __future__ import unicode_literals
 import unittest
 import logging
 
-import tuf
-import tuf.log
-import tuf.ssl_crypto.formats
-import tuf.ssl_crypto.pycrypto_keys as pycrypto
+import tuf.ssl_commons.exceptions as ssl_commons_exceptions
+import tuf.ssl_crypto.formats as ssl_crypto_formats
+import tuf.ssl_crypto.pycrypto_keys as ssl_crypto_pycrypto_keys
 
-logger = logging.getLogger('tuf.test_pycrypto_keys')
+logger = logging.getLogger('ssl_crypto_test_pycrypto_keys')
 
-public_rsa, private_rsa = pycrypto.generate_rsa_public_and_private()
-FORMAT_ERROR_MSG = 'tuf.ssl_commons.exceptions.FormatError raised.  Check object\'s format.'
+public_rsa, private_rsa = ssl_crypto_pycrypto_keys.generate_rsa_public_and_private()
+FORMAT_ERROR_MSG = 'ssl_commons_exceptions.FormatError raised.  Check object\'s format.'
 
 
 class TestPycrypto_keys(unittest.TestCase):
@@ -45,104 +44,95 @@ class TestPycrypto_keys(unittest.TestCase):
 
 
   def test_generate_rsa_public_and_private(self):
-    pub, priv = pycrypto.generate_rsa_public_and_private()
+    pub, priv = ssl_crypto_pycrypto_keys.generate_rsa_public_and_private()
     
     # Check format of 'pub' and 'priv'.
-    self.assertEqual(None, tuf.ssl_crypto.formats.PEMRSA_SCHEMA.check_match(pub),
+    self.assertEqual(None, ssl_crypto_formats.PEMRSA_SCHEMA.check_match(pub),
                      FORMAT_ERROR_MSG)
-    self.assertEqual(None, tuf.ssl_crypto.formats.PEMRSA_SCHEMA.check_match(priv),
+    self.assertEqual(None, ssl_crypto_formats.PEMRSA_SCHEMA.check_match(priv),
                      FORMAT_ERROR_MSG)
 
     # Check for invalid bits argument.  bit >= 2048 and a multiple of 256.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
-                      pycrypto.generate_rsa_public_and_private, 1024)
+    self.assertRaises(ssl_commons_exceptions.FormatError,
+                      ssl_crypto_pycrypto_keys.generate_rsa_public_and_private, 1024)
     
     self.assertRaises(ValueError,
-                      pycrypto.generate_rsa_public_and_private, 2049)
+                      ssl_crypto_pycrypto_keys.generate_rsa_public_and_private, 2049)
 
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
-                      pycrypto.generate_rsa_public_and_private, '2048')
+    self.assertRaises(ssl_commons_exceptions.FormatError,
+                      ssl_crypto_pycrypto_keys.generate_rsa_public_and_private, '2048')
     
 
   def test_create_rsa_signature(self):
     global private_rsa
     global public_rsa
-    
     data = 'The quick brown fox jumps over the lazy dog'.encode('utf-8')
-    signature, method = pycrypto.create_rsa_signature(private_rsa, data)
+    signature, method = ssl_crypto_pycrypto_keys.create_rsa_signature(private_rsa, data)
 
     # Verify format of returned values.
     self.assertNotEqual(None, signature)
-    self.assertEqual(None, tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(method),
+    self.assertEqual(None, ssl_crypto_formats.NAME_SCHEMA.check_match(method),
                      FORMAT_ERROR_MSG)
     self.assertEqual('RSASSA-PSS', method)
 
     # Check for improperly formatted arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
-                      pycrypto.create_rsa_signature, 123, data)
+    self.assertRaises(ssl_commons_exceptions.FormatError,
+                      ssl_crypto_pycrypto_keys.create_rsa_signature, 123, data)
     
     self.assertRaises(ValueError,
-                      pycrypto.create_rsa_signature, '', data)
+                      ssl_crypto_pycrypto_keys.create_rsa_signature, '', data)
    
     # Check for invalid 'data'.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
-                      pycrypto.create_rsa_signature, private_rsa, '')
+    self.assertRaises(ssl_commons_exceptions.FormatError,
+                      ssl_crypto_pycrypto_keys.create_rsa_signature, private_rsa, '')
    
     # create_rsa_signature should reject non-string data.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
-                      pycrypto.create_rsa_signature, private_rsa, 123)
-
-    # Verify that a valid private key is needed.
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError,
-                      pycrypto.create_rsa_signature, 'bad_key', data)
+    self.assertRaises(ssl_commons_exceptions.FormatError,
+                      ssl_crypto_pycrypto_keys.create_rsa_signature, private_rsa, 123)
 
     # Check for missing private key.
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError,
-                      pycrypto.create_rsa_signature, public_rsa, data)
+    self.assertRaises(ssl_commons_exceptions.CryptoError,
+                      ssl_crypto_pycrypto_keys.create_rsa_signature, public_rsa, data)
 
 
   def test_verify_rsa_signature(self):
     global public_rsa
     global private_rsa
     data = 'The quick brown fox jumps over the lazy dog'.encode('utf-8')
-    signature, method = pycrypto.create_rsa_signature(private_rsa, data)
+    signature, method = ssl_crypto_pycrypto_keys.create_rsa_signature(private_rsa, data)
 
-    valid_signature = pycrypto.verify_rsa_signature(signature, method, public_rsa,
+    valid_signature = ssl_crypto_pycrypto_keys.verify_rsa_signature(signature, method, public_rsa,
                                                 data)
     self.assertEqual(True, valid_signature)
 
     # Check for improperly formatted arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, pycrypto.verify_rsa_signature, signature,
+    self.assertRaises(ssl_commons_exceptions.FormatError, ssl_crypto_pycrypto_keys.verify_rsa_signature, signature,
                                        123, public_rsa, data)
     
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, pycrypto.verify_rsa_signature, signature,
+    self.assertRaises(ssl_commons_exceptions.FormatError, ssl_crypto_pycrypto_keys.verify_rsa_signature, signature,
                                        method, 123, data)
     
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, pycrypto.verify_rsa_signature, 123, method,
+    self.assertRaises(ssl_commons_exceptions.FormatError, ssl_crypto_pycrypto_keys.verify_rsa_signature, 123, method,
                                        public_rsa, data)
     
-    self.assertRaises(tuf.ssl_commons.exceptions.UnknownMethodError, pycrypto.verify_rsa_signature,
+    self.assertRaises(ssl_commons_exceptions.UnknownMethodError, ssl_crypto_pycrypto_keys.verify_rsa_signature,
                                                       signature,
                                                       'invalid_method',
                                                       public_rsa, data)
-
+    
     # Check for invalid signature and data.
     # Verify_rsa_signature should reject non-string data.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, pycrypto.verify_rsa_signature, signature,
+    self.assertRaises(ssl_commons_exceptions.FormatError, ssl_crypto_pycrypto_keys.verify_rsa_signature, signature,
                                        method, public_rsa, 123)
    
-    self.assertEqual(False, pycrypto.verify_rsa_signature(signature, method,
+    self.assertEqual(False, ssl_crypto_pycrypto_keys.verify_rsa_signature(signature, method,
                             public_rsa, b'mismatched data'))
 
-    mismatched_signature, method = pycrypto.create_rsa_signature(private_rsa,
+    mismatched_signature, method = ssl_crypto_pycrypto_keys.create_rsa_signature(private_rsa,
                                                              b'mismatched data')
     
-    self.assertEqual(False, pycrypto.verify_rsa_signature(mismatched_signature,
+    self.assertEqual(False, ssl_crypto_pycrypto_keys.verify_rsa_signature(mismatched_signature,
                             method, public_rsa, data))
-    
-    # Verify that a valid public key is needed.
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, pycrypto.verify_rsa_signature,
-                      signature, method, 'bad_public_key', data)
 
 
   def test_create_rsa_encrypted_pem(self):
@@ -151,54 +141,54 @@ class TestPycrypto_keys(unittest.TestCase):
     passphrase = 'pw'
 
     # Check format of 'public_rsa'.
-    self.assertEqual(None, tuf.ssl_crypto.formats.PEMRSA_SCHEMA.check_match(public_rsa),
+    self.assertEqual(None, ssl_crypto_formats.PEMRSA_SCHEMA.check_match(public_rsa),
                      FORMAT_ERROR_MSG)
     
     # Check format of 'passphrase'.
-    self.assertEqual(None, tuf.ssl_crypto.formats.PASSWORD_SCHEMA.check_match(passphrase),
+    self.assertEqual(None, ssl_crypto_formats.PASSWORD_SCHEMA.check_match(passphrase),
                      FORMAT_ERROR_MSG)
 
     # Generate the encrypted PEM string of 'public_rsa'.
-    pem_rsakey = pycrypto.create_rsa_encrypted_pem(private_rsa, passphrase)
+    pem_rsakey = ssl_crypto_pycrypto_keys.create_rsa_encrypted_pem(private_rsa, passphrase)
 
     # Check format of 'pem_rsakey'.
-    self.assertEqual(None, tuf.ssl_crypto.formats.PEMRSA_SCHEMA.check_match(pem_rsakey),
+    self.assertEqual(None, ssl_crypto_formats.PEMRSA_SCHEMA.check_match(pem_rsakey),
                      FORMAT_ERROR_MSG)
 
     # Check for invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
-                      pycrypto.create_rsa_encrypted_pem, 1, passphrase)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
-                      pycrypto.create_rsa_encrypted_pem, private_rsa, ['pw'])
+    self.assertRaises(ssl_commons_exceptions.FormatError,
+                      ssl_crypto_pycrypto_keys.create_rsa_encrypted_pem, 1, passphrase)
+    self.assertRaises(ssl_commons_exceptions.FormatError,
+                      ssl_crypto_pycrypto_keys.create_rsa_encrypted_pem, private_rsa, ['pw'])
  
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, pycrypto.create_rsa_encrypted_pem,
+    self.assertRaises(ssl_commons_exceptions.CryptoError, ssl_crypto_pycrypto_keys.create_rsa_encrypted_pem,
                                        'abc', passphrase)
-    self.assertRaises(TypeError, pycrypto.create_rsa_encrypted_pem, '', passphrase)
+    self.assertRaises(TypeError, ssl_crypto_pycrypto_keys.create_rsa_encrypted_pem, '', passphrase)
  
 
 
-  def test_create_rsa_public_and_private_from_encrypted_pem(self):
+  def test_create_rsa_public_and_private_from_pem(self):
     global private_rsa
     passphrase = 'pw'
 
     # Generate the encrypted PEM string of 'private_rsa'.
-    pem_rsakey = pycrypto.create_rsa_encrypted_pem(private_rsa, passphrase)
+    pem_rsakey = ssl_crypto_pycrypto_keys.create_rsa_encrypted_pem(private_rsa, passphrase)
    
     # Check format of 'passphrase'.
-    self.assertEqual(None, tuf.ssl_crypto.formats.PASSWORD_SCHEMA.check_match(passphrase),
+    self.assertEqual(None, ssl_crypto_formats.PASSWORD_SCHEMA.check_match(passphrase),
                      FORMAT_ERROR_MSG)
 
     # Decrypt 'pem_rsakey' and verify the decrypted object is properly
     # formatted.
     public_decrypted, private_decrypted = \
-    pycrypto.create_rsa_public_and_private_from_encrypted_pem(pem_rsakey,
+    ssl_crypto_pycrypto_keys.create_rsa_public_and_private_from_pem(pem_rsakey,
                                                              passphrase)
     self.assertEqual(None,
-                     tuf.ssl_crypto.formats.PEMRSA_SCHEMA.check_match(public_decrypted),
+                     ssl_crypto_formats.PEMRSA_SCHEMA.check_match(public_decrypted),
                      FORMAT_ERROR_MSG)
     
     self.assertEqual(None,
-                     tuf.ssl_crypto.formats.PEMRSA_SCHEMA.check_match(private_decrypted),
+                     ssl_crypto_formats.PEMRSA_SCHEMA.check_match(private_decrypted),
                      FORMAT_ERROR_MSG)
 
     # Does 'public_decrypted' and 'private_decrypted' match the originals?
@@ -206,31 +196,31 @@ class TestPycrypto_keys(unittest.TestCase):
     self.assertEqual(private_rsa, private_decrypted)
 
     # Attempt decryption of 'pem_rsakey' using an incorrect passphrase.
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError,
-                      pycrypto.create_rsa_public_and_private_from_encrypted_pem,
+    self.assertRaises(ssl_commons_exceptions.CryptoError,
+                      ssl_crypto_pycrypto_keys.create_rsa_public_and_private_from_pem,
                       pem_rsakey, 'bad_pw')
 
     # Check for non-encrypted PEM strings.
-    # create_rsa_public_and_private_from_encrypted_pem()
-    # returns a tuple of tuf.ssl_crypto.formats.PEMRSA_SCHEMA objects if the PEM formatted
-    # string is not actually encrypted but still a valid PEM string.
-    pub, priv = pycrypto.create_rsa_public_and_private_from_encrypted_pem(
+    # create_rsa_public_and_private_from_pem() returns a tuple of
+    # ssl_crypto_formats.PEMRSA_SCHEMA objects if the PEM formatted string is
+    # not actually encrypted but still a valid PEM string.
+    pub, priv = ssl_crypto_pycrypto_keys.create_rsa_public_and_private_from_pem(
                               private_rsa, passphrase)
-    self.assertEqual(None, tuf.ssl_crypto.formats.PEMRSA_SCHEMA.check_match(pub),
+    self.assertEqual(None, ssl_crypto_formats.PEMRSA_SCHEMA.check_match(pub),
                      FORMAT_ERROR_MSG)
-    self.assertEqual(None, tuf.ssl_crypto.formats.PEMRSA_SCHEMA.check_match(priv),
+    self.assertEqual(None, ssl_crypto_formats.PEMRSA_SCHEMA.check_match(priv),
                      FORMAT_ERROR_MSG)
 
     # Check for invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
-                      pycrypto.create_rsa_public_and_private_from_encrypted_pem,
+    self.assertRaises(ssl_commons_exceptions.FormatError,
+                      ssl_crypto_pycrypto_keys.create_rsa_public_and_private_from_pem,
                       123, passphrase)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
-                      pycrypto.create_rsa_public_and_private_from_encrypted_pem,
+    self.assertRaises(ssl_commons_exceptions.FormatError,
+                      ssl_crypto_pycrypto_keys.create_rsa_public_and_private_from_pem,
                       pem_rsakey, ['pw'])
     
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError,
-                      pycrypto.create_rsa_public_and_private_from_encrypted_pem,
+    self.assertRaises(ssl_commons_exceptions.CryptoError,
+                      ssl_crypto_pycrypto_keys.create_rsa_public_and_private_from_pem,
                       'invalid_pem', passphrase)
 
 
@@ -245,11 +235,11 @@ class TestPycrypto_keys(unittest.TestCase):
     'keyid': 'd62247f817883f593cf6c66a5a55292488d457bcf638ae03207dbbba9dbe457d',
     'keyval': {'public': public_rsa, 'private': private_rsa}}
 
-    encrypted_rsa_key = tuf.ssl_crypto.pycrypto_keys.encrypt_key(rsa_key, passphrase)
+    encrypted_rsa_key = ssl_crypto_pycrypto_keys.encrypt_key(rsa_key, passphrase)
 
     # Test for invalid arguments.
     rsa_key['keyval']['private'] = ''
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, tuf.ssl_crypto.pycrypto_keys.encrypt_key, rsa_key,
+    self.assertRaises(ssl_commons_exceptions.FormatError, ssl_crypto_pycrypto_keys.encrypt_key, rsa_key,
                                        'passphrase')
 
 
@@ -263,29 +253,29 @@ class TestPycrypto_keys(unittest.TestCase):
     'keyid': 'd62247f817883f593cf6c66a5a55292488d457bcf638ae03207dbbba9dbe457d',
     'keyval': {'public': public_rsa, 'private': private_rsa}}
 
-    encrypted_rsa_key = tuf.ssl_crypto.pycrypto_keys.encrypt_key(rsa_key, passphrase).encode('utf-8')
+    encrypted_rsa_key = ssl_crypto_pycrypto_keys.encrypt_key(rsa_key, passphrase).encode('utf-8')
     
-    decrypted_rsa_key = tuf.ssl_crypto.pycrypto_keys.decrypt_key(encrypted_rsa_key, passphrase)
+    decrypted_rsa_key = ssl_crypto_pycrypto_keys.decrypt_key(encrypted_rsa_key, passphrase)
 
 
     # Test for invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.ssl_crypto.pycrypto_keys.decrypt_key, b'bad',
+    self.assertRaises(ssl_commons_exceptions.CryptoError, ssl_crypto_pycrypto_keys.decrypt_key, b'bad',
                                        passphrase)
 
     # Test for invalid encrypted content (i.e., invalid hmac and ciphertext.)
-    encryption_delimiter = tuf.ssl_crypto.pycrypto_keys._ENCRYPTION_DELIMITER 
+    encryption_delimiter = ssl_crypto_pycrypto_keys._ENCRYPTION_DELIMITER 
     salt, iterations, hmac, iv, ciphertext = \
       encrypted_rsa_key.decode('utf-8').split(encryption_delimiter)
    
-    # Set an invalid hmac.  The decryption routine sould raise a tuf.ssl_commons.exceptions.CryptoError
-    # exception because 'hmac' does not match the hmac calculated by the
-    # decryption routine.
+    # Set an invalid hmac.  The decryption routine sould raise a
+    # ssl_commons_exceptions.CryptoError exception because 'hmac' does not
+    # match the hmac calculated by the decryption routine.
     bad_hmac = '12345abcd'
     invalid_encrypted_rsa_key = \
       salt + encryption_delimiter + iterations + encryption_delimiter + \
       bad_hmac + encryption_delimiter + iv + encryption_delimiter + ciphertext
       
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.ssl_crypto.pycrypto_keys.decrypt_key,
+    self.assertRaises(ssl_commons_exceptions.CryptoError, ssl_crypto_pycrypto_keys.decrypt_key,
                       invalid_encrypted_rsa_key.encode('utf-8'), passphrase)
 
     # Test for invalid 'ciphertext'
@@ -294,18 +284,18 @@ class TestPycrypto_keys(unittest.TestCase):
       salt + encryption_delimiter + iterations + encryption_delimiter + \
       hmac + encryption_delimiter + iv + encryption_delimiter + bad_ciphertext
     
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.ssl_crypto.pycrypto_keys.decrypt_key,
+    self.assertRaises(ssl_commons_exceptions.CryptoError, ssl_crypto_pycrypto_keys.decrypt_key,
                       invalid_encrypted_rsa_key.encode('utf-8'), passphrase)
 
 
 
   def test__decrypt_key(self):
     # Test for invalid arguments.
-    salt, iterations, derived_key = tuf.ssl_crypto.pycrypto_keys._generate_derived_key('pw')
+    salt, iterations, derived_key = ssl_crypto_pycrypto_keys._generate_derived_key('pw')
     derived_key_information = {'salt': salt, 'derived_key': derived_key,
                                'iterations': iterations}
     
-    self.assertRaises(tuf.ssl_commons.exceptions.CryptoError, tuf.ssl_crypto.pycrypto_keys._encrypt,
+    self.assertRaises(ssl_commons_exceptions.CryptoError, ssl_crypto_pycrypto_keys._encrypt,
                           8, derived_key_information)
 
 
