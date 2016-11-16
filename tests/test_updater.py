@@ -55,6 +55,7 @@ import logging
 import random
 import subprocess
 import sys
+import errno
 
 # 'unittest2' required for testing under Python < 2.7.
 if sys.version_info >= (2, 7):
@@ -1084,7 +1085,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     download_filepath = \
       os.path.join(destination_directory, target_filepath1.lstrip('/'))
     self.assertTrue(os.path.exists(download_filepath))
-    length, hashes = tuf.ssl_crypto.util.get_file_details(download_filepath, settings.REPOSITORY_HASH_ALGORITHMS)
+    length, hashes = \
+      tuf.ssl_crypto.util.get_file_details(download_filepath,
+                                           settings.REPOSITORY_HASH_ALGORITHMS)
     download_targetfileinfo = tuf.formats.make_fileinfo(length, hashes)
    
     # Add any 'custom' data from the repository's target fileinfo to the
@@ -1127,9 +1130,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targetinfo2 = self.repository_updater.get_one_valid_targetinfo(target_filepath2)
     self.repository_updater.download_target(targetinfo2,
                                             destination_directory)
+    
+    # Test for a destination that cannot be written to (apart from a target
+    # file that already exists at the destination) and which raises an
+    # exception.
+    bad_destination_directory = 'bad' * 2000 
+    
+    try:
+      self.repository_updater.download_target(targetinfo, bad_destination_directory) 
+    
+    except OSError as e:
+      self.assertTrue(e.errno == errno.ENAMETOOLONG)
 
     # Test: Invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.repository_updater.download_target,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      self.repository_updater.download_target,
                       8, destination_directory)
 
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
@@ -1155,8 +1170,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       # directories.  get_list_of_mirrors() returns an empty list in this case,
       # which does not generate specific exception errors.
       self.assertEqual(len(exception.mirror_errors), 0)
-
-
 
 
 
@@ -1212,10 +1225,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     
     # Test: Invalid arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.repository_updater.updated_targets,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      self.repository_updater.updated_targets,
                       8, destination_directory)
 
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, self.repository_updater.updated_targets,
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError,
+                      self.repository_updater.updated_targets,
                       all_targets, 8)
 
     # Modify one target file on the remote repository.
@@ -1277,9 +1292,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Remove two target files from the server's repository.
     repository = repo_tool.load_repository(self.repository_directory)
     target1 = os.path.join(self.repository_directory, 'targets', 'file1.txt')
-    target2 = os.path.join(self.repository_directory, 'targets', 'file2.txt')
     repository.targets.remove_target(target1)
-    repository.targets.remove_target(target2)
 
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
@@ -1310,14 +1323,26 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     
     self.assertEqual(len(os.listdir(destination_directory)), 3)
     self.repository_updater.remove_obsolete_targets(destination_directory)
-    self.assertEqual(len(os.listdir(destination_directory)), 1)
+    self.assertEqual(len(os.listdir(destination_directory)), 2)
 
     #  Verify that, if there are no obsolete files, the number of files
     #  in 'destination_directory' remains the same.
     self.repository_updater.remove_obsolete_targets(destination_directory)
-    self.assertEqual(len(os.listdir(destination_directory)), 1)    
- 
+    self.assertEqual(len(os.listdir(destination_directory)), 2)    
 
+    # Test coverage for a destination path that causes an exception not due
+    # to an already removed target.
+    bad_destination_directory = 'bad' * 2000
+    self.repository_updater.remove_obsolete_targets(bad_destination_directory)
+
+    # Test coverage for a target that is not specified in current metadata.
+    del self.repository_updater.metadata['current']['targets']['targets']['/file2.txt']
+    self.repository_updater.remove_obsolete_targets(destination_directory)
+
+    # Test coverage for a role that doesn't exist in the previously trusted set
+    # of metadata.
+    del self.repository_updater.metadata['previous']['targets']
+    self.repository_updater.remove_obsolete_targets(destination_directory)
 
 
 
