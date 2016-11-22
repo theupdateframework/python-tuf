@@ -45,8 +45,8 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- Information, e.g., serial numbers, that ECUs may use to identify metadata
     -- intended by the director for them.
     ecuIdentifier         Identifier,
-    -- Optional attribute: use only if director encrypts images for this ECU
-    -- these encrypted images are on the director repository.
+    -- Optional attribute: use only if director encrypts images for this ECU.
+    -- These encrypted images are on the director repository.
     encryptedTarget       Target OPTIONAL,
     -- Optional attribute: use only if ECU keys are asymmetric, and director
     -- uses symmetric keys to encrypt the image decryption key.
