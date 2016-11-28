@@ -569,14 +569,14 @@ class Updater(object):
           # repository in this pinning, and we save the target info.
           matching_tentative_targets[repo_name] = [new_tentative_target]
 
-        elif not _target_info_is_equal(
+        elif not target_info_is_equal(
             next(six.itervalues(matching_tentative_targets))['fileinfo'],
             new_tentative_target['fileinfo']):
           # That compared an arbitrary item from the matching_tentative_targets
           # dict to the new tentative target fileinfo (in a way that works in
           # both Python2 and Python3). Note that we only had to compare the
           # first target info dict in matching_tentative_targets, since they
-          # all have to be "equal" per _target_info_is_equal in order to get
+          # all have to be "equal" per target_info_is_equal in order to get
           # into that list in the first place.
 
           # If we already have target info from a previous repository and it's
@@ -825,7 +825,7 @@ class Updater(object):
     metadata_set is either 'current' or 'previous'
     """
     self._validate_repo_name(repo_name)
-    _validate_metadata_set(metadata_set)
+    validate_metadata_set(metadata_set)
 
     return self.repositories[repo_name].metadata[metadata_set]
 
@@ -1125,7 +1125,7 @@ class SingleRepoUpdater(object):
     """
 
     # Ensure we have a valid metadata set.
-    _validate_metadata_set(metadata_set)
+    validate_metadata_set(metadata_set)
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
@@ -1440,141 +1440,37 @@ class SingleRepoUpdater(object):
 
 
 
-
+  # Pulling code out of this, as it's not really a class method: it's entirely
+  # static.
   def _check_hashes(self, file_object, trusted_hashes):
     """
-    <Purpose>
-      Non-public method that verifies multiple secure hashes of the downloaded
-      file 'file_object'.  If any of these fail it raises an exception.  This is
-      to conform with the TUF spec, which support clients with different hashing
-      algorithms. The 'hash.py' module is used to compute the hashes of
-      'file_object'.
-
-    <Arguments>
-      file_object:
-        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
-        read() without a size argument properly reads the entire file.
-
-      trusted_hashes:
-        A dictionary with hash-algorithm names as keys and hashes as dict values.
-        The hashes should be in the hexdigest format.  Should be Conformant to
-        'tuf.formats.HASHDICT_SCHEMA'.
-
-    <Exceptions>
-      tuf.BadHashError, if the hashes don't match.
-
-    <Side Effects>
-      Hash digest object is created using the 'tuf.hash' module.
-
-    <Returns>
-      None.
+    See docstring for non-class-method function called by this method.
     """
-
-    # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
-    # return.
-    for algorithm, trusted_hash in six.iteritems(trusted_hashes):
-      digest_object = tuf.hash.digest(algorithm)
-      digest_object.update(file_object.read())
-      computed_hash = digest_object.hexdigest()
-      
-      # Raise an exception if any of the hashes are incorrect.
-      if trusted_hash != computed_hash:
-        raise tuf.BadHashError(trusted_hash, computed_hash)
-      else:
-        logger.info('The file\'s '+algorithm+' hash is correct: '+trusted_hash)
+    assert False, 'This method should no longer be used.'
+    check_hashes(file_object, trusted_hashes)
 
 
 
-
-
+  # Pulling code out of this, as it's not really a class method: it's entirely
+  # static.
   def _hard_check_file_length(self, file_object, trusted_file_length):
     """
-    <Purpose>
-      Non-public method that ensures the length of 'file_object' is strictly
-      equal to 'trusted_file_length'.  This is a deliberately redundant
-      implementation designed to complement
-      tuf.download._check_downloaded_length().
-
-    <Arguments>
-      file_object:
-        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
-        read() without a size argument properly reads the entire file.
-
-      trusted_file_length:
-        A non-negative integer that is the trusted length of the file.
-
-    <Exceptions>
-      tuf.DownloadLengthMismatchError, if the lengths do not match.
-
-    <Side Effects>
-      Reads the contents of 'file_object' and logs a message if 'file_object'
-      matches the trusted length.
-
-    <Returns>
-      None.
+    See docstring for non-class-method function called by this method.
     """
-
-    # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
-    # object that ensures the entire file is read.
-    observed_length = len(file_object.read())
-   
-    # Return and log a message if the length 'file_object' is equal to
-    # 'trusted_file_length', otherwise raise an exception.  A hard check
-    # ensures that a downloaded file strictly matches a known, or trusted,
-    # file length.
-    if observed_length != trusted_file_length:
-      raise tuf.DownloadLengthMismatchError(trusted_file_length,
-                                            observed_length)
-    else:
-      logger.debug('Observed length ('+str(observed_length)+\
-                   ') == trusted length ('+str(trusted_file_length)+')')
+    assert False, 'This method should no longer be used.'
+    hard_check_file_length(file_object, trusted_file_length)
 
 
 
 
-
+  # Pulling code out of this, as it's not really a class method: it's entirely
+  # static.
   def _soft_check_file_length(self, file_object, trusted_file_length):
     """
-    <Purpose>
-      Non-public method that checks the trusted file length of a
-      'tuf.util.TempFile' file-like object. The length of the file must be less
-      than or equal to the expected length. This is a deliberately redundant
-      implementation designed to complement
-      tuf.download._check_downloaded_length().
-
-    <Arguments>
-      file_object:
-        A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
-        read() without a size argument properly reads the entire file.
-
-      trusted_file_length:
-        A non-negative integer that is the trusted length of the file.
-
-    <Exceptions>
-      tuf.DownloadLengthMismatchError, if the lengths do not match.
-
-    <Side Effects>
-      Reads the contents of 'file_object' and logs a message if 'file_object'
-      is less than or equal to the trusted length.
-
-    <Returns>
-      None.
+    See docstring for non-class-method function called by this method.
     """
-
-    # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
-    # object that ensures the entire file is read.
-    observed_length = len(file_object.read()) 
-   
-    # Return and log a message if 'file_object' is less than or equal to
-    # 'trusted_file_length', otherwise raise an exception.  A soft check
-    # ensures that an upper bound restricts how large a file is downloaded.
-    if observed_length > trusted_file_length:
-      raise tuf.DownloadLengthMismatchError(trusted_file_length,
-                                            observed_length)
-    else:
-      logger.debug('Observed length ('+str(observed_length)+\
-                   ') <= trusted length ('+str(trusted_file_length)+')')
-
+    assert False, 'This method should no longer be used.'
+    soft_check_file_length(file_object, trusted_file_length)
 
 
 
@@ -1618,8 +1514,8 @@ class SingleRepoUpdater(object):
     def verify_target_file(target_file_object):
       
       # Every target file must have its length and hashes inspected.
-      self._hard_check_file_length(target_file_object, file_length)
-      self._check_hashes(target_file_object, file_hashes)
+      hard_check_file_length(target_file_object, file_length)
+      check_hashes(target_file_object, file_hashes)
 
     # Target files, unlike metadata files, are not decompressed; the
     # 'compression' argument to _get_file() is needed only for decompression of
@@ -1770,15 +1666,15 @@ class SingleRepoUpdater(object):
       download_file_length = compressed_file_length
 
     def unsafely_verify_uncompressed_metadata_file(metadata_file_object):
-      self._soft_check_file_length(metadata_file_object,
+      soft_check_file_length(metadata_file_object,
                                    uncompressed_file_length)
-      self._check_hashes(metadata_file_object, uncompressed_file_hashes)
+      check_hashes(metadata_file_object, uncompressed_file_hashes)
       self._verify_uncompressed_metadata_file(metadata_file_object,
                                               metadata_role)
       
     def unsafely_verify_compressed_metadata_file(metadata_file_object):
-      self._hard_check_file_length(metadata_file_object, compressed_file_length) 
-      self._check_hashes(metadata_file_object, compressed_file_hashes)
+      hard_check_file_length(metadata_file_object, compressed_file_length)
+      check_hashes(metadata_file_object, compressed_file_hashes)
 
     if compression is None:
       unsafely_verify_compressed_metadata_file = None
@@ -1973,15 +1869,15 @@ class SingleRepoUpdater(object):
       download_file_length = compressed_file_length
     
     def safely_verify_uncompressed_metadata_file(metadata_file_object):
-      self._hard_check_file_length(metadata_file_object,
+      hard_check_file_length(metadata_file_object,
                                    uncompressed_file_length)
-      self._check_hashes(metadata_file_object, uncompressed_file_hashes)
+      check_hashes(metadata_file_object, uncompressed_file_hashes)
       self._verify_uncompressed_metadata_file(metadata_file_object,
                                               metadata_role)
 
     def safely_verify_compressed_metadata_file(metadata_file_object):
-      self._hard_check_file_length(metadata_file_object, compressed_file_length) 
-      self._check_hashes(metadata_file_object, compressed_file_hashes)
+      hard_check_file_length(metadata_file_object, compressed_file_length) 
+      check_hashes(metadata_file_object, compressed_file_hashes)
 
     if compression is None:
       safely_verify_compressed_metadata_file = None
@@ -3513,7 +3409,7 @@ class SingleRepoUpdater(object):
 
         else:
 
-          if not _target_info_is_equal(
+          if not target_info_is_equal(
               tentative_target['fileinfo'], new_tentative_target['fileinfo']):
             # If any two of the required roles don't provide the same target
             # info, then this multi-role delegation cannot validate the file.
@@ -3881,7 +3777,9 @@ class SingleRepoUpdater(object):
 
 
 
-def _validate_metadata_set(metadata_set):
+# Utility functions.
+
+def validate_metadata_set(metadata_set):
   """
   TODO: Docstring.
   Raises a tuf.Error if metadata_set is not 'current' or 'previous'.
@@ -3895,7 +3793,7 @@ def _validate_metadata_set(metadata_set):
 
 
 
-def _target_info_is_equal(info1, info2):
+def target_info_is_equal(info1, info2):
   """
   TODO: Docstring.
 
@@ -3937,3 +3835,156 @@ def _target_info_is_equal(info1, info2):
       return False
 
   return True
+
+
+
+
+
+def check_hashes(file_object, trusted_hashes, reset_fpointer=False):
+  """
+  <Purpose>
+    Function that verifies multiple secure hashes of the downloaded
+    file 'file_object'.  If any of these fail it raises an exception.  This is
+    to conform with the TUF spec, which support clients with different hashing
+    algorithms. The 'hash.py' module is used to compute the hashes of
+    'file_object'.
+
+  <Arguments>
+    file_object:
+      A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+      read() without a size argument properly reads the entire file.
+
+    reset_fpointer:
+      If True, every time the file is read, its pointer will be reset to the
+      start of the file. This is of use when calculating multiple hashes and
+      using file objects whose read() functions are not overridden to always
+      reset the file pointer after read has read the full file. (This is done
+      for tuf.util.TempFile, but tuf.util.TempFile need not always be used,
+      if this optional parameter is set to True.)
+
+    trusted_hashes:
+      A dictionary with hash-algorithm names as keys and hashes as dict values.
+      The hashes should be in the hexdigest format.  Should be Conformant to
+      'tuf.formats.HASHDICT_SCHEMA'.
+
+  <Exceptions>
+    tuf.BadHashError, if the hashes don't match.
+
+  <Side Effects>
+    Hash digest object is created using the 'tuf.hash' module.
+
+  <Returns>
+    None.
+  """
+
+  # Verify each trusted hash of 'trusted_hashes'.  If all are valid, simply
+  # return.
+  for algorithm, trusted_hash in six.iteritems(trusted_hashes):
+    digest_object = tuf.hash.digest(algorithm)
+    digest_object.update(file_object.read())
+    computed_hash = digest_object.hexdigest()
+
+    # Raise an exception if any of the hashes are incorrect.
+    if trusted_hash != computed_hash:
+      raise tuf.BadHashError(trusted_hash, computed_hash)
+    else:
+      logger.info('The file\'s ' + repr(algorithm) + ' hash is correct: ' +
+          repr(trusted_hash))
+
+    if reset_fpointer:
+      file_object.seek(0)
+
+
+
+
+
+def hard_check_file_length(file_object, trusted_file_length):
+  """
+  <Purpose>
+    Function that ensures the length of 'file_object' is strictly
+    equal to 'trusted_file_length'.  This is a deliberately redundant
+    implementation designed to complement
+    tuf.download._check_downloaded_length().
+
+  <Arguments>
+    file_object:
+      A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+      read() without a size argument properly reads the entire file.
+
+    trusted_file_length:
+      A non-negative integer that is the trusted length of the file.
+
+  <Exceptions>
+    tuf.DownloadLengthMismatchError, if the lengths do not match.
+
+  <Side Effects>
+    Reads the contents of 'file_object' and logs a message if 'file_object'
+    matches the trusted length.
+
+  <Returns>
+    None.
+  """
+
+  # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
+  # object that ensures the entire file is read.
+  observed_length = len(file_object.read())
+
+  # Return and log a message if the length 'file_object' is equal to
+  # 'trusted_file_length', otherwise raise an exception.  A hard check
+  # ensures that a downloaded file strictly matches a known, or trusted,
+  # file length.
+  if observed_length != trusted_file_length:
+    raise tuf.DownloadLengthMismatchError(
+        trusted_file_length, observed_length)
+  else:
+    logger.debug('Observed length (' + repr(observed_length) +
+        ') == trusted length (' + repr(trusted_file_length) + ')')
+
+
+
+
+
+def soft_check_file_length(file_object, trusted_file_length):
+  """
+  <Purpose>
+    Function that checks the trusted file length of a
+    'tuf.util.TempFile' file-like object. The length of the file must be less
+    than or equal to the expected length. This is a deliberately redundant
+    implementation designed to complement
+    tuf.download._check_downloaded_length().
+
+  <Arguments>
+    file_object:
+      A 'tuf.util.TempFile' file-like object.  'file_object' ensures that a
+      read() without a size argument properly reads the entire file.
+
+    trusted_file_length:
+      A non-negative integer that is the trusted length of the file.
+
+  <Exceptions>
+    tuf.DownloadLengthMismatchError, if the lengths do not match.
+
+  <Side Effects>
+    Reads the contents of 'file_object' and logs a message if 'file_object'
+    is less than or equal to the trusted length.
+
+  <Returns>
+    None.
+  """
+
+  # Read the entire contents of 'file_object', a 'tuf.util.TempFile' file-like
+  # object that ensures the entire file is read.
+  observed_length = len(file_object.read())
+
+  # Return and log a message if 'file_object' is less than or equal to
+  # 'trusted_file_length', otherwise raise an exception.  A soft check
+  # ensures that an upper bound restricts how large a file is downloaded.
+  if observed_length > trusted_file_length:
+    raise tuf.DownloadLengthMismatchError(
+        trusted_file_length, observed_length)
+  else:
+    logger.debug('Observed length (' + repr(observed_length) +
+        ') <= trusted length (' + repr(trusted_file_length) + ')')
+
+
+
