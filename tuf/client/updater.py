@@ -1440,40 +1440,6 @@ class SingleRepoUpdater(object):
 
 
 
-  # Pulling code out of this, as it's not really a class method: it's entirely
-  # static.
-  def _check_hashes(self, file_object, trusted_hashes):
-    """
-    See docstring for non-class-method function called by this method.
-    """
-    assert False, 'This method should no longer be used.'
-    check_hashes(file_object, trusted_hashes)
-
-
-
-  # Pulling code out of this, as it's not really a class method: it's entirely
-  # static.
-  def _hard_check_file_length(self, file_object, trusted_file_length):
-    """
-    See docstring for non-class-method function called by this method.
-    """
-    assert False, 'This method should no longer be used.'
-    hard_check_file_length(file_object, trusted_file_length)
-
-
-
-
-  # Pulling code out of this, as it's not really a class method: it's entirely
-  # static.
-  def _soft_check_file_length(self, file_object, trusted_file_length):
-    """
-    See docstring for non-class-method function called by this method.
-    """
-    assert False, 'This method should no longer be used.'
-    soft_check_file_length(file_object, trusted_file_length)
-
-
-
 
   def _get_target_file(self, target_filepath, file_length, file_hashes):
     """
