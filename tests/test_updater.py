@@ -1445,27 +1445,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_10__hard_check_file_length(self):
+  def test_10_hard_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
     temp_file_object = tuf.util.TempFile()
     temp_file_object.write(b'X')
     temp_file_object.seek(0)
     self.assertRaises(tuf.DownloadLengthMismatchError,
-                     self.repository_updater.repositories['defaultrepo'].
-                     _hard_check_file_length, temp_file_object, 10) 
+                     updater.hard_check_file_length, temp_file_object, 10)
 
 
 
 
 
-  def test_10__soft_check_file_length(self):
+  def test_10_soft_check_file_length(self):
     # Test for exception if file object is not equal to trusted file length.
     temp_file_object = tuf.util.TempFile()
     temp_file_object.write(b'XXX')
     temp_file_object.seek(0)
     self.assertRaises(tuf.DownloadLengthMismatchError,
-        self.repository_updater.repositories['defaultrepo'].
-        _soft_check_file_length, temp_file_object, 1)
+        updater.soft_check_file_length, temp_file_object, 1)
 
 
 
