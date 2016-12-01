@@ -89,7 +89,7 @@ import six
 # number of the specification changes.  All metadata should list this version
 # number.
 TUF_VERSION_NUMBER = '1.0'
-SPECIFICATION_VERSION_SCHEMA = SCHEMA.String()
+SPECIFICATION_VERSION_SCHEMA = SCHEMA.AnyString()
 
 # A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator
 # for the zero UTC offset is always used (i.e., a numerical offset is not

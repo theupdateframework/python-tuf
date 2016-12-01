@@ -54,94 +54,94 @@ class TestFormats(unittest.TestCase):
                                   '1985-10-21T13:20:00Z'),
 
       'UNIX_TIMESTAMP_SCHEMA': (tuf.ssl_crypto.formats.UNIX_TIMESTAMP_SCHEMA, 499137720),
-      
+
       'HASH_SCHEMA': (tuf.ssl_crypto.formats.HASH_SCHEMA, 'A4582BCF323BCEF'),
-      
+
       'HASHDICT_SCHEMA': (tuf.ssl_crypto.formats.HASHDICT_SCHEMA,
                           {'sha256': 'A4582BCF323BCEF'}),
-      
+
       'HEX_SCHEMA': (tuf.ssl_crypto.formats.HEX_SCHEMA, 'A4582BCF323BCEF'),
-      
+
       'KEYID_SCHEMA': (tuf.ssl_crypto.formats.KEYID_SCHEMA, '123456789abcdef'),
-      
+
       'KEYIDS_SCHEMA': (tuf.ssl_crypto.formats.KEYIDS_SCHEMA,
                         ['123456789abcdef', '123456789abcdef']),
-      
+
       'SIG_METHOD_SCHEMA': (tuf.ssl_crypto.formats.SIG_METHOD_SCHEMA, 'ed25519'),
-      
+
       'RELPATH_SCHEMA': (tuf.ssl_crypto.formats.RELPATH_SCHEMA, 'metadata/root/'),
-      
+
       'RELPATHS_SCHEMA': (tuf.ssl_crypto.formats.RELPATHS_SCHEMA,
                           ['targets/role1/', 'targets/role2/']),
-      
+
       'PATH_SCHEMA': (tuf.ssl_crypto.formats.PATH_SCHEMA, '/home/someuser/'),
-      
+
       'PATHS_SCHEMA': (tuf.ssl_crypto.formats.PATHS_SCHEMA,
                        ['/home/McFly/', '/home/Tannen/']),
-      
+
       'URL_SCHEMA': (tuf.ssl_crypto.formats.URL_SCHEMA,
                      'https://www.updateframework.com/'),
-      
+
       'VERSION_SCHEMA': (tuf.ssl_crypto.formats.VERSION_SCHEMA,
                          {'major': 1, 'minor': 0, 'fix': 8}),
-      
+
       'LENGTH_SCHEMA': (tuf.ssl_crypto.formats.LENGTH_SCHEMA, 8),
-      
+
       'NAME_SCHEMA': (tuf.ssl_crypto.formats.NAME_SCHEMA, 'Marty McFly'),
-      
+
       'BOOLEAN_SCHEMA': (tuf.ssl_crypto.formats.BOOLEAN_SCHEMA, True),
-      
+
       'THRESHOLD_SCHEMA': (tuf.ssl_crypto.formats.THRESHOLD_SCHEMA, 1),
-      
+
       'ROLENAME_SCHEMA': (tuf.ssl_crypto.formats.ROLENAME_SCHEMA, 'Root'),
-      
+
       'RSAKEYBITS_SCHEMA': (tuf.ssl_crypto.formats.RSAKEYBITS_SCHEMA, 4096),
-      
+
       'PASSWORD_SCHEMA': (tuf.ssl_crypto.formats.PASSWORD_SCHEMA, 'secret'),
-      
+
       'PASSWORDS_SCHEMA': (tuf.ssl_crypto.formats.PASSWORDS_SCHEMA, ['pass1', 'pass2']),
-      
+
       'KEYVAL_SCHEMA': (tuf.ssl_crypto.formats.KEYVAL_SCHEMA,
                         {'public': 'pubkey', 'private': 'privkey'}),
-      
+
       'KEY_SCHEMA': (tuf.ssl_crypto.formats.KEY_SCHEMA,
                      {'keytype': 'rsa',
                       'keyval': {'public': 'pubkey',
                                  'private': 'privkey'}}),
-      
+
       'RSAKEY_SCHEMA': (tuf.ssl_crypto.formats.RSAKEY_SCHEMA,
                         {'keytype': 'rsa',
                          'keyid': '123456789abcdef',
                          'keyval': {'public': 'pubkey',
                                     'private': 'privkey'}}),
-      
+
       'FILEINFO_SCHEMA': (tuf.ssl_crypto.formats.FILEINFO_SCHEMA,
                           {'length': 1024,
                            'hashes': {'sha256': 'A4582BCF323BCEF'},
                            'custom': {'type': 'paintjob'}}),
-      
+
       'FILEDICT_SCHEMA': (tuf.ssl_crypto.formats.FILEDICT_SCHEMA,
                           {'metadata/root.json': {'length': 1024,
                                                  'hashes': {'sha256': 'ABCD123'},
                                                  'custom': {'type': 'metadata'}}}),
-      
+
       'TARGETINFO_SCHEMA': (tuf.ssl_crypto.formats.TARGETINFO_SCHEMA,
                             {'filepath': 'targets/target1.gif',
                              'fileinfo': {'length': 1024,
                                           'hashes': {'sha256': 'ABCD123'},
                                           'custom': {'type': 'target'}}}),
-      
+
       'TARGETINFOS_SCHEMA': (tuf.ssl_crypto.formats.TARGETINFOS_SCHEMA,
                              [{'filepath': 'targets/target1.gif',
                                'fileinfo': {'length': 1024,
                                             'hashes': {'sha256': 'ABCD123'},
                                             'custom': {'type': 'target'}}}]),
-      
+
       'SIGNATURE_SCHEMA': (tuf.ssl_crypto.formats.SIGNATURE_SCHEMA,
                            {'keyid': '123abc',
                             'method': 'evp',
                             'sig': 'A4582BCF323BCEF'}),
-      
+
       'SIGNATURESTATUS_SCHEMA': (tuf.ssl_crypto.formats.SIGNATURESTATUS_SCHEMA,
                                  {'threshold': 1,
                                   'good_sigs': ['123abc'],
@@ -149,13 +149,13 @@ class TestFormats(unittest.TestCase):
                                   'unknown_sigs': ['123abc'],
                                   'untrusted_sigs': ['123abc'],
                                   'unknown_method_sigs': ['123abc']}),
-      
+
       'SIGNABLE_SCHEMA': (tuf.ssl_crypto.formats.SIGNABLE_SCHEMA,
                           {'signed': 'signer',
                            'signatures': [{'keyid': '123abc',
                                            'method': 'evp',
                                            'sig': 'A4582BCF323BCEF'}]}),
-      
+
       'KEYDICT_SCHEMA': (tuf.ssl_crypto.formats.KEYDICT_SCHEMA,
                          {'123abc': {'keytype': 'rsa',
                                      'keyval': {'public': 'pubkey',
@@ -166,7 +166,7 @@ class TestFormats(unittest.TestCase):
                                    'keyid': '123456789abcdef',
                                    'keyval': {'public': 'pubkey',
                                               'private': 'privkey'}}}),
-      
+
       'SCPCONFIG_SCHEMA': (tuf.ssl_crypto.formats.SCPCONFIG_SCHEMA,
                            {'general': {'transfer_module': 'scp',
                                         'metadata_path': '/path/meta.json',
@@ -196,6 +196,7 @@ class TestFormats(unittest.TestCase):
 
       'ROOT_SCHEMA': (tuf.ssl_crypto.formats.ROOT_SCHEMA,
                       {'_type': 'Root',
+                       'spec_version': '1.0',
                        'version': 8,
                        'consistent_snapshot': False,
                        'compression_algorithms': ['gz'],
@@ -209,6 +210,7 @@ class TestFormats(unittest.TestCase):
 
       'TARGETS_SCHEMA': (tuf.ssl_crypto.formats.TARGETS_SCHEMA,
         {'_type': 'Targets',
+         'spec_version': '1.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'targets': {'metadata/targets.json': {'length': 1024,
@@ -223,12 +225,14 @@ class TestFormats(unittest.TestCase):
 
       'SNAPSHOT_SCHEMA': (tuf.formats.SNAPSHOT_SCHEMA,
         {'_type': 'Snapshot',
+         'spec_version': '1.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'snapshot.json': {'version': 1024}}}),
 
       'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
         {'_type': 'Timestamp',
+         'spec_version': '1.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'metadattimestamp.json': {'length': 1024,
@@ -251,24 +255,25 @@ class TestFormats(unittest.TestCase):
       'MIRRORLIST_SCHEMA': (tuf.ssl_crypto.formats.MIRRORLIST_SCHEMA,
         {'_type': 'Mirrors',
          'version': 8,
+         'spec_version': '1.0',
          'expires': '1985-10-21T13:20:00Z',
          'mirrors': [{'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
          'targets_path': 'targets/',
          'confined_target_dirs': ['path1/', 'path2/'],
          'custom': {'type': 'mirror'}}]})}
-   
+
     # Iterate 'valid_schemas', ensuring each 'valid_schema' correctly matches
     # its respective 'schema_type'.
     for schema_name, (schema_type, valid_schema) in six.iteritems(valid_schemas):
       self.assertEqual(True, schema_type.matches(valid_schema))
-   
+
     # Test conditions for invalid schemas.
     # Set the 'valid_schema' of 'valid_schemas' to an invalid
     # value and test that it does not match 'schema_type'.
     for schema_name, (schema_type, valid_schema) in six.iteritems(valid_schemas):
       invalid_schema = 0xBAD
-      if isinstance(schema_type, tuf.ssl_commons.schema.Integer): 
+      if isinstance(schema_type, tuf.ssl_commons.schema.Integer):
         invalid_schema = 'BAD'
       self.assertEqual(False, schema_type.matches(invalid_schema))
 
@@ -282,16 +287,16 @@ class TestFormats(unittest.TestCase):
         self.info = {}
         self.info['version'] = version
         self.info['expires'] = expires
-    
+
     metadata = NewMetadataFile(123, 456)
     metadata2 = NewMetadataFile(123, 456)
     metadata3 = NewMetadataFile(333, 333)
 
     # Test the comparison operators.
     self.assertTrue(metadata == metadata2)
-    self.assertFalse(metadata != metadata2) 
+    self.assertFalse(metadata != metadata2)
     self.assertFalse(metadata == metadata3)
-    
+
     # Test the 'getattr' method.
     self.assertEqual(123, getattr(metadata, 'version'))
     self.assertRaises(AttributeError, getattr, metadata, 'bad')
@@ -300,7 +305,7 @@ class TestFormats(unittest.TestCase):
 
   def test_TimestampFile(self):
     # Test conditions for valid instances of 'tuf.formats.TimestampFile'.
-    version = 8 
+    version = 8
     length = 88
     hashes = {'sha256': '3c7fe3eeded4a34'}
     expires = '1985-10-21T13:20:00Z'
@@ -325,7 +330,7 @@ class TestFormats(unittest.TestCase):
                                                       bad_expires, filedict)
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version,
                                                       expires, bad_filedict)
-    
+
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, from_metadata, 123)
 
 
@@ -344,7 +349,7 @@ class TestFormats(unittest.TestCase):
     roledict = {'root': {'keyids': ['123abc'],
                          'threshold': 1,
                          'paths': ['path1/', 'path2']}}
-    
+
     compression_algorithms = ['gz']
 
     make_metadata = tuf.formats.RootFile.make_metadata
@@ -396,7 +401,7 @@ class TestFormats(unittest.TestCase):
     version = 8
     expires = '1985-10-21T13:20:00Z'
     versiondict = {'targets.json' : {'version': version}}
-  
+
     make_metadata = tuf.formats.SnapshotFile.make_metadata
     from_metadata = tuf.formats.SnapshotFile.from_metadata
     SNAPSHOT_SCHEMA = tuf.formats.SNAPSHOT_SCHEMA
@@ -412,11 +417,11 @@ class TestFormats(unittest.TestCase):
     bad_versiondict = 123
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version,
                                                       expires, bad_versiondict)
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, bad_version, expires, 
+    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, bad_version, expires,
                                                       versiondict)
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_metadata, version, bad_expires,
                                                       bad_versiondict)
-    
+
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, from_metadata, 123)
 
 
@@ -446,15 +451,15 @@ class TestFormats(unittest.TestCase):
 
     metadata = make_metadata(version, expires, filedict, delegations)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
-    
+
     # Test conditions for different combination of required arguments (i.e.,
     # a filedict or delegations argument is required.)
     metadata = make_metadata(version, expires, filedict)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
-    
+
     metadata = make_metadata(version, expires, delegations=delegations)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.TargetsFile))
-    
+
     # Directly instantiating a TargetsFile object.
     tuf.formats.TargetsFile(version, expires)
     tuf.formats.TargetsFile(version, expires, filedict)
@@ -476,16 +481,16 @@ class TestFormats(unittest.TestCase):
     self.assertRaises(tuf.ssl_commons.exceptions.Error, make_metadata, version, expires)
 
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, from_metadata, 123)
-    
+
 
 
   def test_MirrorsFile(self):
     # Test normal case.
     version = 8
     expires = '1985-10-21T13:20:00Z'
-    
+
     mirrors_file = tuf.formats.MirrorsFile(version, expires)
-    
+
     make_metadata = tuf.formats.MirrorsFile.make_metadata
     from_metadata = tuf.formats.MirrorsFile.from_metadata
 
@@ -496,7 +501,7 @@ class TestFormats(unittest.TestCase):
 
   def test_unix_timestamp_to_datetime(self):
     # Test conditions for valid arguments.
-    UNIX_TIMESTAMP_SCHEMA = tuf.ssl_crypto.formats.UNIX_TIMESTAMP_SCHEMA 
+    UNIX_TIMESTAMP_SCHEMA = tuf.ssl_crypto.formats.UNIX_TIMESTAMP_SCHEMA
     self.assertTrue(datetime.datetime, tuf.formats.unix_timestamp_to_datetime(499137720))
     datetime_object = datetime.datetime(1985, 10, 26, 1, 22)
     self.assertEqual(datetime_object, tuf.formats.unix_timestamp_to_datetime(499137720))
@@ -565,22 +570,22 @@ class TestFormats(unittest.TestCase):
     self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.ssl_crypto.formats.make_signable(root)))
     signable = tuf.ssl_crypto.formats.make_signable(root)
     self.assertEqual('root', tuf.formats.check_signable_object_format(signable))
-    
+
     self.assertEqual(signable, tuf.ssl_crypto.formats.make_signable(signable))
 
-    # Test conditions for miscellaneous arguments. 
+    # Test conditions for miscellaneous arguments.
     self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.ssl_crypto.formats.make_signable('123')))
     self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.ssl_crypto.formats.make_signable(123)))
 
 
 
   def test_make_fileinfo(self):
-    # Test conditions for valid arguments. 
+    # Test conditions for valid arguments.
     length = 1024
     hashes = {'sha256': 'A4582BCF323BCEF', 'sha512': 'A4582BCF323BFEF'}
     version = 8
     custom = {'type': 'paintjob'}
-   
+
     FILEINFO_SCHEMA = tuf.ssl_crypto.formats.FILEINFO_SCHEMA
     make_fileinfo = tuf.formats.make_fileinfo
     self.assertTrue(FILEINFO_SCHEMA.matches(make_fileinfo(length, hashes, version, custom)))
@@ -598,9 +603,9 @@ class TestFormats(unittest.TestCase):
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_fileinfo, length, bad_hashes)
 
 
-  
+
   def test_make_versioninfo(self):
-    # Test conditions for valid arguments. 
+    # Test conditions for valid arguments.
     version_number = 8
     versioninfo = {'version': version_number}
 
@@ -612,11 +617,11 @@ class TestFormats(unittest.TestCase):
     bad_version_number = '8'
 
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_versioninfo, bad_version_number)
-    
+
 
 
   def test_make_role_metadata(self):
-    # Test conditions for valid arguments. 
+    # Test conditions for valid arguments.
     keyids = ['123abc', 'abc123']
     threshold = 2
     paths = ['path1/', 'path2']
@@ -632,7 +637,7 @@ class TestFormats(unittest.TestCase):
     self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, name=name, paths=paths)))
     self.assertTrue(ROLE_SCHEMA.matches(make_role(keyids, threshold, name=name,
                                         path_hash_prefixes=path_hash_prefixes)))
-  
+
     # Test conditions for invalid arguments.
     bad_keyids = 'bad'
     bad_threshold = 'bad'
@@ -654,14 +659,14 @@ class TestFormats(unittest.TestCase):
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, bad_threshold, name=name, paths=paths)
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, threshold, name=bad_name, paths=paths)
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, threshold, name=name, paths=bad_paths)
- 
+
     # 'paths' and 'path_hash_prefixes' cannot both be specified.
     self.assertRaises(tuf.ssl_commons.exceptions.FormatError, make_role, keyids, threshold, name, paths, path_hash_prefixes)
 
   def test_get_role_class(self):
     # Test conditions for valid arguments.
     get_role_class = tuf.formats.get_role_class
-    
+
     self.assertEqual(tuf.formats.RootFile, get_role_class('Root'))
     self.assertEqual(tuf.formats.TargetsFile, get_role_class('Targets'))
     self.assertEqual(tuf.formats.SnapshotFile, get_role_class('Snapshot'))
@@ -709,7 +714,7 @@ class TestFormats(unittest.TestCase):
             'roles': {'root': {'keyids': ['123abc'],
                                'threshold': 1,
                                'paths': ['path1/', 'path2']}}}
-    
+
     root = tuf.ssl_crypto.formats.make_signable(root)
     self.assertEqual('root', tuf.formats.check_signable_object_format(root))
 
@@ -737,7 +742,7 @@ class TestFormats(unittest.TestCase):
   def test_encode_canonical(self):
     # Test conditions for valid arguments.
     encode = tuf.ssl_crypto.formats.encode_canonical
-    result = [] 
+    result = []
     output = result.append
     bad_output = 123
 
@@ -747,7 +752,7 @@ class TestFormats(unittest.TestCase):
     self.assertEqual('[]', encode([]))
     self.assertEqual('{"A":[99]}', encode({"A": [99]}))
     self.assertEqual('{"x":3,"y":2}', encode({"x": 3, "y": 2}))
-    
+
     self.assertEqual('{"x":3,"y":null}', encode({"x": 3, "y": None}))
 
     # Condition where 'encode()' sends the result to the callable
