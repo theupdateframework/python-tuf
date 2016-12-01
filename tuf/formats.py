@@ -35,7 +35,7 @@
   Example:
 
   rsa_key = {'keytype': 'rsa'
-             'keyid': 34892fc465ac76bc3232fab 
+             'keyid': 34892fc465ac76bc3232fab
              'keyval': {'public': 'public_key',
                         'private': 'private_key'}
 
@@ -49,7 +49,7 @@
   The second section deals with the role metadata classes.  There are
   multiple top-level roles, each with differing metadata formats.
   Example:
-  
+
   root_object = tuf.formats.RootFile.from_metadata(root_metadata_file)
   targets_metadata = tuf.formats.TargetsFile.make_metadata(...)
 
@@ -58,8 +58,8 @@
 
   The last section contains miscellaneous functions related to the format of
   TUF objects.
-  Example: 
-  
+  Example:
+
   signable_object = make_signable(unsigned_object)
 """
 
@@ -83,6 +83,12 @@ import tuf.ssl_crypto.formats
 import tuf.ssl_commons.schema as SCHEMA
 
 import six
+
+# A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator
+# for the zero UTC offset is always used (i.e., a numerical offset is not
+# supported.)  Example: '2015-10-21T13:20:00Z'.  Note:  This is a simple format
+# check, and an ISO8601 string should be fully verified when it is parsed.
+ISO8601_DATETIME_SCHEMA = SCHEMA.RegularExpression(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z')
 
 # A dict holding the version or file information for a particular metadata
 # role.  The dict keys hold the relative file paths, and the dict values the
@@ -115,7 +121,147 @@ ROLEDICTDB_SCHEMA = SCHEMA.DictOf(
 # Example: {'keytype': ed25519, 'expires': 365,}
 COMMAND_SCHEMA = SCHEMA.DictOf(
   key_schema = tuf.ssl_crypto.formats.NAME_SCHEMA,
-  value_schema = SCHEMA.Any()) 
+  value_schema = SCHEMA.Any())
+
+# A dictionary holding version information.
+VERSION_SCHEMA = SCHEMA.Object(
+  object_name = 'VERSION_SCHEMA',
+  major = SCHEMA.Integer(lo=0),
+  minor = SCHEMA.Integer(lo=0),
+  fix = SCHEMA.Integer(lo=0))
+
+# An integer representing the numbered version of a metadata file.
+# Must be 1, or greater.
+METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=0)
+
+# A value that is either True or False, on or off, etc.
+BOOLEAN_SCHEMA = SCHEMA.Boolean()
+
+# List of supported compression extensions.
+COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
+  SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
+
+# A string representing a role's name.
+ROLENAME_SCHEMA = SCHEMA.AnyString()
+
+# A role's threshold value (i.e., the minimum number
+# of signatures required to sign a metadata file).
+# Must be 1 and greater.
+THRESHOLD_SCHEMA = SCHEMA.Integer(lo=1)
+
+# A hexadecimal value in '23432df87ab..' format.
+HASH_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
+
+# A hexadecimal value in '23432df87ab..' format.
+HEX_SCHEMA = SCHEMA.RegularExpression(r'[a-fA-F0-9]+')
+
+# A key identifier (e.g., a hexadecimal value identifying an RSA key).
+KEYID_SCHEMA = HASH_SCHEMA
+
+# A list of KEYID_SCHEMA.
+KEYIDS_SCHEMA = SCHEMA.ListOf(KEYID_SCHEMA)
+
+# The actual values of a key, as opposed to meta data such as a key type and
+# key identifier ('rsa', 233df889cb).  For RSA keys, the key value is a pair of
+# public and private keys in PEM Format stored as strings.
+KEYVAL_SCHEMA = SCHEMA.Object(
+  object_name = 'KEYVAL_SCHEMA',
+  public = SCHEMA.AnyString(),
+  private = SCHEMA.Optional(SCHEMA.AnyString()))
+
+# A generic TUF key.  All TUF keys should be saved to metadata files in this
+# format.
+KEY_SCHEMA = SCHEMA.Object(
+  object_name = 'KEY_SCHEMA',
+  keytype = SCHEMA.AnyString(),
+  keyval = KEYVAL_SCHEMA,
+  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA))
+
+# A dict where the dict keys hold a keyid and the dict values a key object.
+KEYDICT_SCHEMA = SCHEMA.DictOf(
+  key_schema = KEYID_SCHEMA,
+  value_schema = KEY_SCHEMA)
+
+
+# A relative file path (e.g., 'metadata/root/').
+RELPATH_SCHEMA = SCHEMA.AnyString()
+RELPATHS_SCHEMA = SCHEMA.ListOf(RELPATH_SCHEMA)
+
+# A path hash prefix is a hexadecimal string.
+PATH_HASH_PREFIX_SCHEMA = HEX_SCHEMA
+
+# A list of path hash prefixes.
+PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
+
+# Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
+# 'paths':[filepaths..]} format.
+ROLE_SCHEMA = SCHEMA.Object(
+  object_name = 'ROLE_SCHEMA',
+  name = SCHEMA.Optional(ROLENAME_SCHEMA),
+  keyids = KEYIDS_SCHEMA,
+  threshold = THRESHOLD_SCHEMA,
+  backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
+  paths = SCHEMA.Optional(RELPATHS_SCHEMA),
+  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
+
+# A dict of roles where the dict keys are role names and the dict values holding
+# the role data/information.
+ROLEDICT_SCHEMA = SCHEMA.DictOf(
+  key_schema = ROLENAME_SCHEMA,
+  value_schema = ROLE_SCHEMA)
+
+# An integer representing length.  Must be 0, or greater.
+LENGTH_SCHEMA = SCHEMA.Integer(lo=0)
+
+# A dict in {'sha256': '23432df87ab..', 'sha512': '34324abc34df..', ...} format.
+HASHDICT_SCHEMA = SCHEMA.DictOf(
+  key_schema = SCHEMA.AnyString(),
+  value_schema = HASH_SCHEMA)
+
+# Information about target files, like file length and file hash(es).  This
+# schema allows the storage of multiple hashes for the same file (e.g., sha256
+# and sha512 may be computed for the same file and stored).
+FILEINFO_SCHEMA = SCHEMA.Object(
+  object_name = 'FILEINFO_SCHEMA',
+  length = LENGTH_SCHEMA,
+  hashes = HASHDICT_SCHEMA,
+  version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
+  custom = SCHEMA.Optional(SCHEMA.Object()))
+
+# A dict holding the information for a particular target / file.  The dict keys
+# hold the relative file paths, and the dict values the corresponding file
+# information.
+FILEDICT_SCHEMA = SCHEMA.DictOf(
+  key_schema = RELPATH_SCHEMA,
+  value_schema = FILEINFO_SCHEMA)
+
+# Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
+ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
+
+# The delegated roles of a Targets role (a parent).
+DELEGATIONS_SCHEMA = SCHEMA.Object(
+  keys = KEYDICT_SCHEMA,
+  roles = ROLELIST_SCHEMA)
+
+# Root role: indicates root keys and top-level roles.
+ROOT_SCHEMA = SCHEMA.Object(
+  object_name = 'ROOT_SCHEMA',
+  _type = SCHEMA.String('Root'),
+  version = METADATAVERSION_SCHEMA,
+  consistent_snapshot = BOOLEAN_SCHEMA,
+  compression_algorithms = COMPRESSIONS_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
+  keys = KEYDICT_SCHEMA,
+  roles = ROLEDICT_SCHEMA)
+
+# Targets role: Indicates targets and delegates target paths to other roles.
+TARGETS_SCHEMA = SCHEMA.Object(
+  object_name = 'TARGETS_SCHEMA',
+  _type = SCHEMA.String('Targets'),
+  version = METADATAVERSION_SCHEMA,
+  expires = ISO8601_DATETIME_SCHEMA,
+  targets = FILEDICT_SCHEMA,
+  delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA))
 
 # Snapshot role: indicates the latest versions of all metadata (except
 # timestamp).
@@ -150,7 +296,7 @@ class MetaFile(object):
 
   def __eq__(self, other):
     return isinstance(other, MetaFile) and self.info == other.info
-  
+
   __hash__ = None
 
   def __ne__(self, other):
@@ -163,10 +309,10 @@ class MetaFile(object):
       referred to directly without the info dict. The info dict is just
       to be able to do the __eq__ comparison generically.
     """
-   
+
     if name in self.info:
       return self.info[name]
-    
+
     else:
       raise AttributeError(name)
 
@@ -184,19 +330,19 @@ class TimestampFile(MetaFile):
   def from_metadata(object):
     # Is 'object' a Timestamp metadata file?
     # Raise tuf.ssl_commons.exceptions.FormatError if not.
-    TIMESTAMP_SCHEMA.check_match(object) 
+    TIMESTAMP_SCHEMA.check_match(object)
 
     version = object['version']
     expires = object['expires']
     filedict = object['meta']
-    
+
     return TimestampFile(version, expires, filedict)
-    
-    
+
+
   @staticmethod
   def make_metadata(version, expiration_date, filedict):
     result = {'_type' : 'Timestamp'}
-    result['version'] = version 
+    result['version'] = version
     result['expires'] = expiration_date
     result['meta'] = filedict
 
@@ -224,15 +370,15 @@ class RootFile(MetaFile):
   def from_metadata(object):
     # Is 'object' a Root metadata file?
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
-    tuf.ssl_crypto.formats.ROOT_SCHEMA.check_match(object) 
-    
+    tuf.ssl_crypto.formats.ROOT_SCHEMA.check_match(object)
+
     version = object['version']
     expires = object['expires']
     keys = object['keys']
     roles = object['roles']
     consistent_snapshot = object['consistent_snapshot']
     compression_algorithms = object['compression_algorithms']
-    
+
     return RootFile(version, expires, keys, roles, consistent_snapshot,
                     compression_algorithms)
 
@@ -247,11 +393,11 @@ class RootFile(MetaFile):
     result['roles'] = roledict
     result['consistent_snapshot'] = consistent_snapshot
     result['compression_algorithms'] = compression_algorithms
-    
+
     # Is 'result' a Root metadata file?
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     tuf.ssl_crypto.formats.ROOT_SCHEMA.check_match(result)
-    
+
     return result
 
 
@@ -270,25 +416,25 @@ class SnapshotFile(MetaFile):
     # Is 'object' a Snapshot metadata file?
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     SNAPSHOT_SCHEMA.check_match(object)
-    
+
     version = object['version']
     expires = object['expires']
     versiondict = object['meta']
-    
+
     return SnapshotFile(version, expires, versiondict)
 
 
   @staticmethod
   def make_metadata(version, expiration_date, versiondict):
     result = {'_type' : 'Snapshot'}
-    result['version'] = version 
+    result['version'] = version
     result['expires'] = expiration_date
     result['meta'] = versiondict
 
     # Is 'result' a Snapshot metadata file?
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     SNAPSHOT_SCHEMA.check_match(result)
-    
+
     return result
 
 
@@ -312,12 +458,12 @@ class TargetsFile(MetaFile):
     # Is 'object' a Targets metadata file?
     # Raise tuf.ssl_commons.exceptions.FormatError if not.
     tuf.ssl_crypto.formats.TARGETS_SCHEMA.check_match(object)
-    
+
     version = object['version']
     expires = object['expires']
     filedict = object.get('targets')
     delegations = object.get('delegations')
-    
+
     return TargetsFile(version, expires, filedict, delegations)
 
 
@@ -330,7 +476,7 @@ class TargetsFile(MetaFile):
     result = {'_type' : 'Targets'}
     result['version'] = version
     result['expires'] = expiration_date
-    result['targets'] = {} 
+    result['targets'] = {}
     if filedict is not None:
       result['targets'] = filedict
     if delegations is not None:
@@ -339,7 +485,7 @@ class TargetsFile(MetaFile):
     # Is 'result' a Targets metadata file?
     # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
     tuf.ssl_crypto.formats.TARGETS_SCHEMA.check_match(result)
-    
+
     return result
 
 
@@ -390,7 +536,7 @@ def datetime_to_unix_timestamp(datetime_object):
 
     >>> datetime_object = datetime.datetime(1985, 10, 26, 1, 22)
     >>> timestamp = datetime_to_unix_timestamp(datetime_object)
-    >>> timestamp 
+    >>> timestamp
     499137720
 
   <Arguments>
@@ -407,15 +553,15 @@ def datetime_to_unix_timestamp(datetime_object):
   <Returns>
     A unix (posix) timestamp (e.g., 499137660).
   """
-  
+
   # Is 'datetime_object' a datetime.datetime() object?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if not.
   if not isinstance(datetime_object, datetime.datetime):
     message = repr(datetime_object) + ' is not a datetime.datetime() object.'
-    raise tuf.ssl_commons.exceptions.FormatError(message) 
-   
+    raise tuf.ssl_commons.exceptions.FormatError(message)
+
   unix_timestamp = calendar.timegm(datetime_object.timetuple())
-  
+
   return unix_timestamp
 
 
@@ -428,9 +574,9 @@ def unix_timestamp_to_datetime(unix_timestamp):
     Convert 'unix_timestamp' (i.e., POSIX time, in UNIX_TIMESTAMP_SCHEMA format)
     to a datetime.datetime() object.  'unix_timestamp' is the number of seconds
     since the epoch (January 1, 1970.)
-   
+
     >>> datetime_object = unix_timestamp_to_datetime(1445455680)
-    >>> datetime_object 
+    >>> datetime_object
     datetime.datetime(2015, 10, 21, 19, 28)
 
   <Arguments>
@@ -448,7 +594,7 @@ def unix_timestamp_to_datetime(unix_timestamp):
   <Returns>
     A datetime.datetime() object corresponding to 'unix_timestamp'.
   """
-  
+
   # Is 'unix_timestamp' properly formatted?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.ssl_crypto.formats.UNIX_TIMESTAMP_SCHEMA.check_match(unix_timestamp)
@@ -458,7 +604,7 @@ def unix_timestamp_to_datetime(unix_timestamp):
   # used because it returns a local datetime.
   struct_time = time.gmtime(unix_timestamp)
 
-  # Extract the (year, month, day, hour, minutes, seconds) arguments for the 
+  # Extract the (year, month, day, hour, minutes, seconds) arguments for the
   # datetime object to be returned.
   datetime_object = datetime.datetime(*struct_time[:6])
 
@@ -485,10 +631,10 @@ def format_base64(data):
   <Returns>
     A base64-encoded string.
   """
-  
+
   try:
     return binascii.b2a_base64(data).decode('utf-8').rstrip('=\n ')
-  
+
   except (TypeError, binascii.Error) as e:
     raise tuf.ssl_commons.exceptions.FormatError('Invalid base64'
       ' encoding: ' + str(e))
@@ -500,7 +646,7 @@ def parse_base64(base64_string):
   """
   <Purpose>
     Parse a base64 encoding with whitespace and '=' signs omitted.
-  
+
   <Arguments>
     base64_string:
       A string holding a base64 value.
@@ -528,7 +674,7 @@ def parse_base64(base64_string):
 
   try:
     return binascii.a2b_base64(base64_string.encode('utf-8'))
-  
+
   except (TypeError, binascii.Error) as e:
     raise tuf.ssl_commons.exceptions.FormatError('Invalid base64'
       ' encoding: ' + str(e))
@@ -572,7 +718,7 @@ def make_fileinfo(length, hashes, version=None, custom=None):
   fileinfo = {'length' : length, 'hashes' : hashes}
 
   if version is not None:
-    fileinfo['version'] = version 
+    fileinfo['version'] = version
 
   if custom is not None:
     fileinfo['custom'] = custom
@@ -612,12 +758,12 @@ def make_versioninfo(version_number):
 
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'versioninfo' is
   # improperly formatted.
-  try: 
+  try:
     tuf.ssl_crypto.formats.VERSIONINFO_SCHEMA.check_match(versioninfo)
-  
+
   except:
     raise
-  
+
   else:
     return versioninfo
 
@@ -721,22 +867,22 @@ def get_role_class(expected_rolename):
   <Returns>
     The class corresponding to 'expected_rolename'.
     E.g., 'Snapshot' as an argument to this function causes
-    SnapshotFile' to be returned. 
+    SnapshotFile' to be returned.
   """
- 
+
   # Does 'expected_rolename' have the correct type?
   # This check ensures 'expected_rolename' conforms to
   # 'tuf.ssl_crypto.formats.NAME_SCHEMA'.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(expected_rolename)
-  
+
   try:
     role_class = ROLE_CLASSES_BY_TYPE[expected_rolename]
-  
+
   except KeyError:
     raise tuf.ssl_commons.exceptions.FormatError(repr(expected_rolename) + ' '
      'not supported.')
-  
+
   else:
     return role_class
 
@@ -767,13 +913,13 @@ def expected_meta_rolename(meta_rolename):
   <Returns>
     A string (e.g., 'Root', 'Targets').
   """
-   
+
   # Does 'meta_rolename' have the correct type?
   # This check ensures 'meta_rolename' conforms to
   # 'tuf.ssl_crypto.formats.NAME_SCHEMA'.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(meta_rolename)
-  
+
   return string.capwords(meta_rolename)
 
 
@@ -791,7 +937,7 @@ def check_signable_object_format(object):
 
   <Arguments>
     object:
-     The object compare against 'SIGNABLE.SCHEMA'. 
+     The object compare against 'SIGNABLE.SCHEMA'.
 
   <Exceptions>
     tuf.ssl_commons.exceptions.FormatError, if 'object' does not have the
@@ -804,7 +950,7 @@ def check_signable_object_format(object):
     A string representing the signing role (e.g., 'root', 'targets').
     The role string is returned with characters all lower case.
   """
-  
+
   # Does 'object' have the correct type?
   # This check ensures 'object' conforms to
   # 'tuf.ssl_crypto.formats.SIGNABLE_SCHEMA'.
@@ -812,23 +958,22 @@ def check_signable_object_format(object):
 
   try:
     role_type = object['signed']['_type']
-  
+
   except (KeyError, TypeError):
     raise tuf.ssl_commons.exceptions.FormatError('Untyped object')
-  
+
   try:
     schema = SCHEMAS_BY_TYPE[role_type]
-  
+
   except KeyError:
     raise tuf.ssl_commons.exceptions.FormatError('Unrecognized'
       ' type ' + repr(role_type))
-  
+
   # 'tuf.ssl_commons.exceptions.FormatError' raised if 'object' does not have a
   # properly formatted role schema.
   schema.check_match(object['signed'])
 
   return role_type.lower()
-
 
 
 
