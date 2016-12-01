@@ -84,6 +84,13 @@ import tuf.ssl_commons.schema as SCHEMA
 
 import six
 
+
+# TUF specification version.  The constant should be updated when the version
+# number of the specification changes.  All metadata should list this version
+# number.
+TUF_VERSION_NUMBER = '1.0'
+SPECIFICATION_VERSION_SCHEMA = SCHEMA.String()
+
 # A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator
 # for the zero UTC offset is always used (i.e., a numerical offset is not
 # supported.)  Example: '2015-10-21T13:20:00Z'.  Note:  This is a simple format
@@ -247,6 +254,7 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
 ROOT_SCHEMA = SCHEMA.Object(
   object_name = 'ROOT_SCHEMA',
   _type = SCHEMA.String('Root'),
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = METADATAVERSION_SCHEMA,
   consistent_snapshot = BOOLEAN_SCHEMA,
   compression_algorithms = COMPRESSIONS_SCHEMA,
@@ -258,6 +266,7 @@ ROOT_SCHEMA = SCHEMA.Object(
 TARGETS_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETS_SCHEMA',
   _type = SCHEMA.String('Targets'),
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   targets = FILEDICT_SCHEMA,
@@ -268,6 +277,7 @@ TARGETS_SCHEMA = SCHEMA.Object(
 SNAPSHOT_SCHEMA = SCHEMA.Object(
   object_name = 'SNAPSHOT_SCHEMA',
   _type = SCHEMA.String('Snapshot'),
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = tuf.ssl_crypto.formats.METADATAVERSION_SCHEMA,
   expires = tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA,
   meta = FILEINFODICT_SCHEMA)
@@ -276,6 +286,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
 TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
   _type = SCHEMA.String('Timestamp'),
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = tuf.ssl_crypto.formats.METADATAVERSION_SCHEMA,
   expires = tuf.ssl_crypto.formats.ISO8601_DATETIME_SCHEMA,
   meta = tuf.ssl_crypto.formats.FILEDICT_SCHEMA)
@@ -342,6 +353,7 @@ class TimestampFile(MetaFile):
   @staticmethod
   def make_metadata(version, expiration_date, filedict):
     result = {'_type' : 'Timestamp'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['meta'] = filedict
@@ -387,6 +399,7 @@ class RootFile(MetaFile):
   def make_metadata(version, expiration_date, keydict, roledict,
                     consistent_snapshot, compression_algorithms):
     result = {'_type' : 'Root'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['keys'] = keydict
@@ -427,6 +440,7 @@ class SnapshotFile(MetaFile):
   @staticmethod
   def make_metadata(version, expiration_date, versiondict):
     result = {'_type' : 'Snapshot'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['meta'] = versiondict
@@ -474,6 +488,7 @@ class TargetsFile(MetaFile):
         ' empty targets metadata.')
 
     result = {'_type' : 'Targets'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['targets'] = {}
