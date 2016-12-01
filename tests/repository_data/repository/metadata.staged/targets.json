@@ -3,7 +3,7 @@
   {
    "keyid": "a0a0f0cf08daff7afd1eb6582756d43987aa73f028044836a5519259706ca19b",
    "method": "ed25519",
-   "sig": "74ee9970ed709ab65586ef99c0005102676a92f11e2a448bb685875b641d2efe3fd2bdefaa90e1a050bfbb34163834aadb43d13ac0c7452aa7df27c454c34507"
+   "sig": "41b1b8f248f86781fa05b41f5dbd1bcafff3bec2fea24aad7eca6b92021f58a4e380b52e8c212eb591a1b423a2b5a5b57cea8abdadd08000010c6007c4c94106"
   }
  ],
  "signed": {
@@ -36,6 +36,7 @@
    ]
   },
   "expires": "2030-01-01T00:00:00Z",
+  "spec_version": "1.0",
   "targets": {
    "/file1.txt": {
     "custom": {
