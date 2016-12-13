@@ -181,7 +181,7 @@ class TestDownload(unittest_toolbox.Modified_TestCase):
                       self.target_data_length)
 
     # Specify an unsupported URI scheme.
-    url_with_unsupported_uri = self.url.replace('http', 'file')
+    url_with_unsupported_uri = self.url.replace('http', 'imap')
     self.assertRaises(tuf.FormatError, download_file, url_with_unsupported_uri,
                       self.target_data_length)
     self.assertRaises(tuf.FormatError, unsafe_download_file,
