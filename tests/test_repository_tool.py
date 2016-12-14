@@ -381,11 +381,12 @@ class TestMetadata(unittest.TestCase):
     # to be tested in TestMetadata require at least 1 role, so create it here
     # and set its roleinfo.
     class MetadataRole(repo_tool.Metadata):
-      
-      def __init__(self):
+
+      def __init__(self, repository_name='default'):
         super(MetadataRole, self).__init__() 
         
         self._rolename = 'metadata_role'
+        self._repository_name = repository_name
         
         # Expire in 86400 seconds (1 day).
         expiration = \
@@ -396,9 +397,9 @@ class TestMetadata(unittest.TestCase):
                     'consistent_snapshot': False,
                     'compressions': [''], 'expires': expiration,
                     'partial_loaded': False}
-        
-        tuf.roledb.add_role(self._rolename, roleinfo)
-    
+
+        tuf.roledb.add_role(self._rolename, roleinfo, self.repository_name)
+
     self.metadata = MetadataRole() 
 
 
