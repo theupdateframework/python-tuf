@@ -21,7 +21,7 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   Path            ::= VisibleString (SIZE(1..32))
                                     (PATTERN "[\w\*\\/]+")
   -- Adjust length of SEQUENCE OF to your needs.
-  URLs            ::= SEQUENCE (SIZE(1..8)) OF URL
+  URLs            ::= SEQUENCE (SIZE(0..8)) OF URL
   URL             ::= VisibleString (SIZE(1..1024))
   -- A generic identifier for vehicles, primaries, secondaries.
   Identifier      ::= VisibleString (SIZE(1..32))
