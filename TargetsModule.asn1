@@ -42,9 +42,16 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     hashes          Hashes
   }
   Custom ::= SEQUENCE {
-    -- Information, e.g., serial numbers, that ECUs may use to identify metadata
-    -- intended by the director for them.
-    ecuIdentifier         Identifier,
+    -- Optional attribute: OEM and / or suppliers would use this string to
+    -- specify a version number associated with this image, so that ECUs can
+    -- prevent rollback attacks. The version number can also be included in the
+    -- image filename, and this attribute is provided as a convenience, so that
+    -- partial verification secondaries do not have to parse the filename to
+    -- extract the version number.
+    versionNumber         VisibleString (SIZE(1..32)) OPTIONAL,
+    -- Optional attribute: information, e.g., serial numbers, that the director
+    -- uses to point ECUs as to which images they should install.
+    ecuIdentifier         Identifier OPTIONAL,
     -- Optional attribute: use only if director encrypts images for this ECU.
     -- These encrypted images are on the director repository.
     encryptedTarget       Target OPTIONAL,
@@ -64,48 +71,39 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   -- https://github.com/theupdateframework/taps/blob/master/tap3.md
   TargetsDelegations  ::= SEQUENCE {
     -- The public keys of all delegatees.
-    numberOfKeys                    Length,
-    keys                            PublicKeys,
+    numberOfKeys        Length,
+    keys                PublicKeys,
     -- The role name, filename, public keys, and threshold of a delegatee.
-    numberOfRoles                   Length,
-    roles                           DelegatedTargetsRoles,
+    numberOfDelegations Length,
     -- A list of paths to roles, listed in order of priority.
-    numberOfPrioritizedPathsToRoles Length,
-    prioritizedPathsToRoles         PrioritizedPathsToRoles
+    delegations         PrioritizedPathsToRoles
   }
 
   -- Adjust length of SEQUENCE OF to your needs.
-  DelegatedTargetsRoles ::= SEQUENCE (SIZE(1..8)) OF DelegatedTargetsRole
-  DelegatedTargetsRole  ::= SEQUENCE {
+  PrioritizedPathsToRoles ::= SEQUENCE (SIZE(1..8)) OF PathsToRoles
+  PathsToRoles ::= SEQUENCE {
+    -- A list of image/target paths entrusted to these roles.
+    numberOfPaths   Length,
+    paths           Paths,
+    -- A list of roles required to sign the same metadata about the matching
+    -- targets/images.
+    numberOfRoles   Length,
+    roles           MultiRoles,
+    -- Whether or not this delegation is terminating.
+    terminating     BOOLEAN DEFAULT FALSE
+  }
+
+  -- Adjust length of SEQUENCE OF to your needs.
+  MultiRoles ::= SEQUENCE (SIZE(1..8)) OF MultiRole
+  MultiRole ::= SEQUENCE {
     -- The rolename (e.g., "supplierA-dev").
-    rolename        RoleName,
-    -- An explicit filename for the role (e.g., "supplierA.ext").
-    -- Otherwise, it is implicitly assumed to be ROLENAME.EXT (e.g.,
-    -- "supplierA-dev.ext").
-    -- Different rolenames MAY use the same filename.
-    filename        StrictFilename OPTIONAL,
+    -- No known path separator allowed in a rolename.
+    rolename        StrictFilename,
     -- The public keys used by this role.
     numberOfKeyids  Length,
     keyids          Keyids,
     -- The threshold number of these keys.
     threshold       Threshold
-  }
-  -- Adjust length of SEQUENCE OF to your needs.
-  RoleNames               ::= SEQUENCE (SIZE(1..8)) OF RoleName
-  -- No known path separator allowed in a rolename.
-  RoleName                ::= StrictFilename
-  -- Adjust length of SEQUENCE OF to your needs.
-  PrioritizedPathsToRoles ::= SEQUENCE (SIZE(1..8)) OF PathsToRoles
-  PathsToRoles            ::= SEQUENCE {
-    -- A list of image/target paths entrusted to these roles.
-    numberOfPaths Length,
-    paths         Paths,
-    -- A list of roles required to sign the same metadata about the matching
-    -- targets/images.
-    numberOfRoles Length,
-    roles         RoleNames,
-    -- Whether or not this delegation is terminating.
-    terminating BOOLEAN DEFAULT FALSE
   }
 
 END

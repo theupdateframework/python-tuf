@@ -29,7 +29,7 @@ Paths ::= SEQUENCE (SIZE(1..8)) OF Path
 
 Path ::= VisibleString (SIZE(1..32))
 
-URLs ::= SEQUENCE (SIZE(1..8)) OF URL
+URLs ::= SEQUENCE (SIZE(0..8)) OF URL
 
 URL ::= VisibleString (SIZE(1..1024))
 
@@ -166,9 +166,10 @@ Target ::= SEQUENCE {
 }
 
 Custom ::= SEQUENCE {
-    ecuIdentifier	 [0] IMPLICIT Identifier,
-    encryptedTarget	 [1] IMPLICIT Target OPTIONAL,
-    encryptedSymmetricKey	 [2] IMPLICIT EncryptedSymmetricKey OPTIONAL,
+    versionNumber	 [0] IMPLICIT VisibleString (SIZE(1..32)) OPTIONAL,
+    ecuIdentifier	 [1] IMPLICIT Identifier OPTIONAL,
+    encryptedTarget	 [2] IMPLICIT Target OPTIONAL,
+    encryptedSymmetricKey	 [3] IMPLICIT EncryptedSymmetricKey OPTIONAL,
     ...
 }
 
@@ -187,25 +188,9 @@ EncryptedSymmetricKeyType ::= ENUMERATED {
 TargetsDelegations ::= SEQUENCE {
     numberOfKeys	 [0] IMPLICIT Length,
     keys	 [1] IMPLICIT PublicKeys,
-    numberOfRoles	 [2] IMPLICIT Length,
-    roles	 [3] IMPLICIT DelegatedTargetsRoles,
-    numberOfPrioritizedPathsToRoles	 [4] IMPLICIT Length,
-    prioritizedPathsToRoles	 [5] IMPLICIT PrioritizedPathsToRoles
+    numberOfDelegations	 [2] IMPLICIT Length,
+    delegations	 [3] IMPLICIT PrioritizedPathsToRoles
 }
-
-DelegatedTargetsRoles ::= SEQUENCE (SIZE(1..8)) OF DelegatedTargetsRole
-
-DelegatedTargetsRole ::= SEQUENCE {
-    rolename	 [0] IMPLICIT RoleName,
-    filename	 [1] IMPLICIT StrictFilename OPTIONAL,
-    numberOfKeyids	 [2] IMPLICIT Length,
-    keyids	 [3] IMPLICIT Keyids,
-    threshold	 [4] IMPLICIT Threshold
-}
-
-RoleNames ::= SEQUENCE (SIZE(1..8)) OF RoleName
-
-RoleName ::= StrictFilename
 
 PrioritizedPathsToRoles ::= SEQUENCE (SIZE(1..8)) OF PathsToRoles
 
@@ -213,8 +198,17 @@ PathsToRoles ::= SEQUENCE {
     numberOfPaths	 [0] IMPLICIT Length,
     paths	 [1] IMPLICIT Paths,
     numberOfRoles	 [2] IMPLICIT Length,
-    roles	 [3] IMPLICIT RoleNames,
+    roles	 [3] IMPLICIT MultiRoles,
     terminating	 [4] IMPLICIT BOOLEAN DEFAULT FALSE
+}
+
+MultiRoles ::= SEQUENCE (SIZE(1..8)) OF MultiRole
+
+MultiRole ::= SEQUENCE {
+    rolename	 [0] IMPLICIT StrictFilename,
+    numberOfKeyids	 [1] IMPLICIT Length,
+    keyids	 [2] IMPLICIT Keyids,
+    threshold	 [3] IMPLICIT Threshold
 }
 
 SnapshotMetadata ::= SEQUENCE {

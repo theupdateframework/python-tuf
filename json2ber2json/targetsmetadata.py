@@ -59,7 +59,6 @@ def set_asn_delegations(json_signed, targetsMetadata):
                                                tag.tagFormatSimple, 2))
     set_asn_keys(json_signed, delegations)
     set_asn_roles(json_signed, delegations)
-    set_asn_prioritizedPathsToRoles(json_signed, delegations)
     targetsMetadata['delegations'] = delegations
 
 
@@ -86,12 +85,12 @@ def set_asn_keys(json_signed, delegations):
   delegations['keys'] = keys
 
 
-def set_asn_prioritizedPathsToRoles(json_signed, delegations):
-  prioritizedPathsToRoles = PrioritizedPathsToRoles()\
-                            .subtype(implicitTag=tag.Tag(tag.tagClassContext,
-                                                         tag.tagFormatSimple,
-                                                         5))
-  numberOfPrioritizedPathsToRoles = 0
+def set_asn_roles(json_signed, delegations):
+  prioritizedPathsToRoles = \
+    PrioritizedPathsToRoles().subtype(implicitTag=tag.Tag(tag.tagClassContext,
+                                                          tag.tagFormatSimple,
+                                                          3))
+  numberOfDelegations = 0
 
   for json_role in json_signed['delegations']['roles']:
     pathsToRoles = PathsToRoles()
@@ -109,39 +108,16 @@ def set_asn_prioritizedPathsToRoles(json_signed, delegations):
     pathsToRoles['numberOfPaths'] = 1
     pathsToRoles['paths'] = paths
 
-    roles = RoleNames().subtype(implicitTag=tag.Tag(tag.tagClassContext,
-                                                    tag.tagFormatSimple, 3))
+    roles = MultiRoles().subtype(implicitTag=tag.Tag(tag.tagClassContext,
+                                                     tag.tagFormatSimple, 3))
     numberOfRoles = 0
 
     # NOTE: There are no multi-role delegations (TAP 3) yet in TUF.
-    role = RoleName(json_role['name'])
-    # Some damned bug in pyasn1 I could not care less to fix right now.
-    roles.setComponentByPosition(0, role, False)
-    pathsToRoles['numberOfRoles'] = 1
-    pathsToRoles['roles'] = roles
-
-    pathsToRoles['terminating'] = json_role['backtrack']
-
-    prioritizedPathsToRoles[numberOfPrioritizedPathsToRoles] = pathsToRoles
-    numberOfPrioritizedPathsToRoles += 1
-
-  delegations['numberOfPrioritizedPathsToRoles'] = \
-                                                numberOfPrioritizedPathsToRoles
-  delegations['prioritizedPathsToRoles'] = prioritizedPathsToRoles
-
-
-def set_asn_roles(json_signed, delegations):
-  roles = DelegatedTargetsRoles()\
-          .subtype(implicitTag=tag.Tag(tag.tagClassContext,
-                                       tag.tagFormatSimple, 3))
-  numberOfRoles = 0
-
-  for json_role in json_signed['delegations']['roles']:
-    role = DelegatedTargetsRole()
+    role = MultiRole()
     role['rolename'] = json_role['name']
 
     keyids = Keyids().subtype(implicitTag=tag.Tag(tag.tagClassContext,
-                                                  tag.tagFormatSimple, 3))
+                                                  tag.tagFormatSimple, 2))
     numberOfKeyids = 0
 
     for json_keyid in json_role['keyids']:
@@ -152,13 +128,21 @@ def set_asn_roles(json_signed, delegations):
 
     role['numberOfKeyids'] = numberOfKeyids
     role['keyids'] = keyids
-
     role['threshold'] = json_role['threshold']
+
     roles[numberOfRoles] = role
     numberOfRoles += 1
 
-  delegations['numberOfRoles'] = numberOfRoles
-  delegations['roles'] = roles
+    pathsToRoles['numberOfRoles'] = numberOfRoles
+    pathsToRoles['roles'] = roles
+
+    pathsToRoles['terminating'] = json_role['backtrack']
+
+    prioritizedPathsToRoles[numberOfDelegations] = pathsToRoles
+    numberOfDelegations += 1
+
+  delegations['numberOfDelegations'] = numberOfDelegations
+  delegations['delegations'] = prioritizedPathsToRoles
 
 
 def set_asn_targets(json_signed, targetsMetadata):
@@ -251,35 +235,11 @@ def set_json_keys(json_signed, delegations):
 def set_json_roles(json_signed, delegations):
   json_roles = []
 
-  numberOfRoles = int(delegations['numberOfRoles'])
-  roles = delegations['roles']
+  numberOfDelegations = int(delegations['numberOfDelegations'])
+  delegations = delegations['delegations']
 
-  for i in range(numberOfRoles):
-    role = roles[i]
-    name = str(role['rolename'])
-
-    numberOfKeyids = int(role['numberOfKeyids'])
-    keyids = role['keyids']
-    json_keyids = []
-
-    for j in range(numberOfKeyids):
-      keyid = keyids[j]
-      json_keyids.append(str(keyid))
-
-    threshold = int(role['threshold'])
-    json_role = {
-      'keyids': json_keyids,
-      'name': name,
-      'threshold': threshold
-    }
-    json_roles.append(json_role)
-
-  numberOfPrioritizedPathsToRoles = \
-                            int(delegations['numberOfPrioritizedPathsToRoles'])
-  prioritizedPathsToRoles = delegations['prioritizedPathsToRoles']
-
-  for i in range(numberOfPrioritizedPathsToRoles):
-    pathsToRoles = prioritizedPathsToRoles[i]
+  for i in range(numberOfDelegations):
+    pathsToRoles = delegations[i]
 
     numberOfPaths = int(pathsToRoles['numberOfPaths'])
     paths = pathsToRoles['paths']
@@ -292,15 +252,29 @@ def set_json_roles(json_signed, delegations):
     # FIXME: Multi-role delegations (i.e., TAP 3) not yet allowed!
     assert numberOfRoles == 1
     roles = pathsToRoles['roles']
-    name = str(roles[0])
+    role = roles[0]
+
+    name = str(role['rolename'])
+
+    numberOfKeyids = int(role['numberOfKeyids'])
+    keyids = role['keyids']
+    json_keyids = []
+    for j in range(numberOfKeyids):
+      keyid = keyids[j]
+      json_keyids.append(str(keyid))
+
+    threshold = int(role['threshold'])
+
     backtrack = bool(pathsToRoles['terminating'])
 
-    # FIXME: O(n^2).
-    for json_role in json_roles:
-      if json_role['name'] == name:
-        json_role['backtrack'] = backtrack
-        json_role['paths'] = json_paths
-        break
+    json_role = {
+      'backtrack': backtrack,
+      'keyids': json_keyids,
+      'name': name,
+      'paths': json_paths,
+      'threshold': threshold
+    }
+    json_roles.append(json_role)
 
   return json_roles
 
