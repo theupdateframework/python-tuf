@@ -37,18 +37,15 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   }
   Target ::= SEQUENCE {
     filename        Filename,
+    -- An OEM and / or its suppliers would use this string to specify a version
+    -- number associated with this image, so that ECUs can prevent rollback
+    -- attacks. It is up to the OEM to define how version numbers are sorted.
+    versionNumber   VisibleString (SIZE(1..32)),
     length          Length,
     numberOfHashes  Length,
     hashes          Hashes
   }
   Custom ::= SEQUENCE {
-    -- Optional attribute: OEM and / or suppliers would use this string to
-    -- specify a version number associated with this image, so that ECUs can
-    -- prevent rollback attacks. The version number can also be included in the
-    -- image filename, and this attribute is provided as a convenience, so that
-    -- partial verification secondaries do not have to parse the filename to
-    -- extract the version number.
-    versionNumber         VisibleString (SIZE(1..32)) OPTIONAL,
     -- Optional attribute: information, e.g., serial numbers, that the director
     -- uses to point ECUs as to which images they should install.
     ecuIdentifier         Identifier OPTIONAL,
