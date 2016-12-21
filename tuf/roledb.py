@@ -809,7 +809,7 @@ def get_delegated_rolenames(rolename, repository_name='default'):
   tuf.formats.NAME_SCHEMA.check_match(repository_name) 
  
   # Raises tuf.FormatError, tuf.UnknownRoleError, or tuf.InvalidNameError.
-  _check_rolename(rolename)
+  _check_rolename(rolename, repository_name)
 
   global _roledb_dict
   global _dirty_roles
