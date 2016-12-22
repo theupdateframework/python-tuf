@@ -160,16 +160,17 @@ TargetAndCustom ::= SEQUENCE {
 
 Target ::= SEQUENCE {
     filename	 [0] IMPLICIT Filename,
-    versionNumber	 [1] IMPLICIT VisibleString (SIZE(1..32)),
-    length	 [2] IMPLICIT Length,
-    numberOfHashes	 [3] IMPLICIT Length,
-    hashes	 [4] IMPLICIT Hashes
+    length	 [1] IMPLICIT Length,
+    numberOfHashes	 [2] IMPLICIT Length,
+    hashes	 [3] IMPLICIT Hashes
 }
 
 Custom ::= SEQUENCE {
-    ecuIdentifier	 [0] IMPLICIT Identifier OPTIONAL,
-    encryptedTarget	 [1] IMPLICIT Target OPTIONAL,
-    encryptedSymmetricKey	 [2] IMPLICIT EncryptedSymmetricKey OPTIONAL,
+    releaseCounter	 [0] IMPLICIT Positive OPTIONAL,
+    ecuHardwareType	 [1] IMPLICIT VisibleString (SIZE(1..32)) OPTIONAL,
+    ecuIdentifier	 [2] IMPLICIT Identifier OPTIONAL,
+    encryptedTarget	 [3] IMPLICIT Target OPTIONAL,
+    encryptedSymmetricKey	 [4] IMPLICIT EncryptedSymmetricKey OPTIONAL,
     ...
 }
 

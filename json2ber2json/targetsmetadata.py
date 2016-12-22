@@ -156,13 +156,10 @@ def set_asn_targets(json_signed, targetsMetadata):
     target = Target().subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                   tag.tagFormatConstructed, 0))
     target['filename'] = filename
-    # NOTE: TUF does not yet have a version number, so we'll use the filename as
-    # a default.
-    target['versionNumber'] = filename
     target['length'] = filemeta['length']
 
     hashes = Hashes().subtype(implicitTag=tag.Tag(tag.tagClassContext,
-                                                  tag.tagFormatSimple, 4))
+                                                  tag.tagFormatSimple, 3))
     numberOfHashes = 0
 
     for hash_function, hash_value in filemeta['hashes'].items():

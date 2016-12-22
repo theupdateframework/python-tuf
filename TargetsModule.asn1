@@ -14,7 +14,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           PublicKeys,
           StrictFilename,
           Threshold FROM CommonModule;
-cd
+
   TargetsMetadata ::= SEQUENCE {
     -- Allowed to have no targets at all.
     numberOfTargets Natural,
