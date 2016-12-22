@@ -10,10 +10,11 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           Length,
           Natural,
           Paths,
+          Positive,
           PublicKeys,
           StrictFilename,
           Threshold FROM CommonModule;
-
+cd
   TargetsMetadata ::= SEQUENCE {
     -- Allowed to have no targets at all.
     numberOfTargets Natural,
@@ -30,30 +31,46 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   TargetAndCustom   ::= SEQUENCE {
     -- The filename, length, and hashes of unencrypted images on a repository.
     target  Target,
-    -- This optional attribute is used by the director repository to specify
-    -- additional information, such as which images should be installed by
-    -- which ECUs, and metadata about encrypted images.
+    -- This attribute is used to specify additional information, such as which
+    -- images should be installed by which ECUs, and metadata about encrypted
+    -- images.
     custom  Custom OPTIONAL
   }
   Target ::= SEQUENCE {
     filename        Filename,
-    -- An OEM and / or its suppliers would use this string to specify a version
-    -- number associated with this image, so that ECUs can prevent rollback
-    -- attacks. It is up to the OEM to define how version numbers are sorted.
-    versionNumber   VisibleString (SIZE(1..32)),
     length          Length,
     numberOfHashes  Length,
     hashes          Hashes
   }
   Custom ::= SEQUENCE {
-    -- Optional attribute: information, e.g., serial numbers, that the director
-    -- uses to point ECUs as to which images they should install.
+    -- NOTE: The following attributes are specified by both the supplier and
+    -- director repositories.
+    -- The release counter is used to prevent rollback attacks on images when
+    -- only the director repository is compromised.
+    -- Every ECU should check that the release counter of its latest image is
+    -- greater than or equal to the release counter of its previous image.
+    releaseCounter        Positive OPTIONAL,
+    -- The ECU hardware type is used to prevent the director repository, when it
+    -- is compromised, from choosing images for an ECU that were not meant for
+    -- it.
+    -- Every ECU should check that the ECU hardware type of its latest image
+    -- matches its own hardware type.
+    -- An OEM MAY define other types of information to further restrict the
+    -- choices that can be made by a compromised director repository.
+    ecuHardwareType       VisibleString (SIZE(1..32)) OPTIONAL,
+    -- NOTE: The following attributes are specified only by the director
+    -- repository.
+    -- The ECU identifier specifies information, e.g., serial numbers, that the
+    -- director uses to point ECUs as to which images they should install.
+    -- Every ECU should check that the ECU identifier of its latest image
+    -- matches its own ECU identifier.
     ecuIdentifier         Identifier OPTIONAL,
-    -- Optional attribute: use only if director encrypts images for this ECU.
-    -- These encrypted images are on the director repository.
+    -- This attribute MAY be used by the director to encrypt images per ECU.
     encryptedTarget       Target OPTIONAL,
-    -- Optional attribute: use only if ECU keys are asymmetric, and director
-    -- uses symmetric keys to encrypt the image decryption key.
+    -- This attribute MAY be used if ECU keys are asymmetric, and a per-image
+    -- symmetric encryption key is desired for faster decryption of images.
+    -- In that case, the director would use the asymmetric ECU key to encrypt
+    -- this symmetric key.
     encryptedSymmetricKey EncryptedSymmetricKey OPTIONAL,
     ...
   }
