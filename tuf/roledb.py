@@ -7,7 +7,7 @@
 
 <Started>
   March 21, 2012.  Based on a previous version of this module by Geremy Condra.
-  
+
 <Copyright>
   See LICENSE for licensing information.
 
@@ -23,7 +23,7 @@
 
   The role database is a dictionary conformant to
   'tuf.ssl_crypto.formats.ROLEDICT_SCHEMA' and has the form:
-  
+
   {'repository_name': {
       'rolename': {'keyids': ['34345df32093bd12...'],
           'threshold': 1
@@ -31,7 +31,7 @@
           'paths': ['role.json'],
           'path_hash_prefixes': ['ab34df13'],
           'delegations': {'keys': {}, 'roles': {}}}
-  
+
   The 'name', 'paths', 'path_hash_prefixes', and 'delegations' dict keys are
   optional.
 """
@@ -98,7 +98,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   """
 
   # Does 'root_metadata' have the correct object format?
-  # This check will ensure 'root_metadata' has the appropriate number of objects 
+  # This check will ensure 'root_metadata' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   # Raises tuf.ssl_commons.exceptions.FormatError.
   tuf.ssl_crypto.formats.ROOT_SCHEMA.check_match(root_metadata)
@@ -110,7 +110,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
   global _dirty_roles
 
   # Clear the role database.
-  if repository_name in _roledb_dict: 
+  if repository_name in _roledb_dict:
     _roledb_dict[repository_name].clear()
 
   # Ensure _roledb_dict and _dirty_roles contains an entry for
@@ -120,7 +120,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
 
   # Do not modify the contents of the 'root_metadata' argument.
   root_metadata = copy.deepcopy(root_metadata)
-  
+
   # Iterate the roles found in 'root_metadata' and add them to '_roledb_dict'.
   # Duplicates are avoided.
   for rolename, roleinfo in six.iteritems(root_metadata['roles']):
@@ -128,17 +128,17 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
       roleinfo['version'] = root_metadata['version']
       roleinfo['expires'] = root_metadata['expires']
       roleinfo['previous_keyids'] = roleinfo['keyids']
-      roleinfo['previous_threshold'] = roleinfo['threshold'] 
-    
+      roleinfo['previous_threshold'] = roleinfo['threshold']
+
     roleinfo['signatures'] = []
     roleinfo['signing_keyids'] = []
     roleinfo['compressions'] = ['']
     roleinfo['partial_loaded'] = False
-    
+
     if rolename.startswith('targets'):
       roleinfo['paths'] = {}
       roleinfo['delegations'] = {'keys': {}, 'roles': []}
-  
+
     add_role(rolename, roleinfo, repository_name)
 
 
@@ -153,7 +153,7 @@ def create_roledb(repository_name):
 
   <Arguments>
     repository_name:
-      The name of the repository to create. An empty roledb is created, and 
+      The name of the repository to create. An empty roledb is created, and
       roles may be added via add_role(rolename, roleinfo, repository_name) or
       create_roledb_from_root_metadata(root_metadata, repository_name).
 
@@ -174,7 +174,7 @@ def create_roledb(repository_name):
   # Is 'repository_name' properly formatted?  If not, raise
   # 'tuf.ssl_commons.exceptions.FormatError'.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
- 
+
   global _roledb_dict
   global _dirty_roles
 
@@ -247,7 +247,7 @@ def add_role(rolename, roleinfo, repository_name='default'):
 
     roleinfo:
       An object representing the role associated with 'rolename', conformant to
-      ROLEDB_SCHEMA.  'roleinfo' has the form: 
+      ROLEDB_SCHEMA.  'roleinfo' has the form:
       {'keyids': ['34345df32093bd12...'],
        'threshold': 1,
        'signatures': ['ab23dfc32']
@@ -257,14 +257,14 @@ def add_role(rolename, roleinfo, repository_name='default'):
 
       The 'paths', 'path_hash_prefixes', and 'delegations' dict keys are
       optional.
-      
+
       The 'target' role has an additional 'paths' key.  Its value is a list of
       strings representing the path of the target file(s).
 
     repository_name:
       The name of the repository to store 'rolename'.  If not supplied,
       'rolename' is added to the 'default' repository.
-  
+
   <Exceptions>
     tuf.ssl_commons.exceptions.FormatError, if 'rolename' or 'roleinfo' does
     not have the correct object format.
@@ -283,7 +283,7 @@ def add_role(rolename, roleinfo, repository_name='default'):
   """
 
   # Does 'rolename' have the correct object format?
-  # This check will ensure 'rolename' has the appropriate number of objects 
+  # This check will ensure 'rolename' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(rolename)
 
@@ -291,7 +291,7 @@ def add_role(rolename, roleinfo, repository_name='default'):
   tuf.ssl_crypto.formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
   # Is 'repository_name' correctly formatted?
-  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name) 
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
 
   global _roledb_dict
 
@@ -325,7 +325,7 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
 
     roleinfo:
       An object representing the role associated with 'rolename', conformant to
-      ROLEDB_SCHEMA.  'roleinfo' has the form: 
+      ROLEDB_SCHEMA.  'roleinfo' has the form:
       {'name': 'role_name',
        'keyids': ['34345df32093bd12...'],
        'threshold': 1,
@@ -336,7 +336,7 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
 
       The 'target' role has an additional 'paths' key.  Its value is a list of
       strings representing the path of the target file(s).
-    
+
     mark_role_as_dirty:
       A boolean indicating whether the updated 'roleinfo' for 'rolename' should
       be marked as dirty.  The caller might not want to mark 'rolename' as
@@ -348,14 +348,14 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
     repository_name:
       The name of the repository to update the roleinfo of 'rolename'.  If not
       supplied, the 'default' repository is searched.
-  
+
   <Exceptions>
     tuf.ssl_commons.exceptions.FormatError, if 'rolename' or 'roleinfo' does
     not have the correct object format.
 
     tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found
     in the role database.
-    
+
     tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is improperly
     formatted, or 'repository_name' does not exist in the role database.
 
@@ -367,7 +367,7 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
   """
 
   # Does the arguments have the correct object format?
-  # This check will ensure arguments have the appropriate number of objects 
+  # This check will ensure arguments have the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(rolename)
   tuf.ssl_crypto.formats.BOOLEAN_SCHEMA.check_match(mark_role_as_dirty)
@@ -375,7 +375,7 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
 
   # Does 'roleinfo' have the correct object format?
   tuf.ssl_crypto.formats.ROLEDB_SCHEMA.check_match(roleinfo)
-  
+
   # Raises tuf.ssl_commons.exceptions.InvalidNameError.
   _validate_rolename(rolename)
 
@@ -393,8 +393,8 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
   # the latest 'roleinfo' is available to other modules, and the repository
   # tools know which roles should be saved to disk.
   _roledb_dict[repository_name][rolename] = copy.deepcopy(roleinfo)
-  
-  if mark_role_as_dirty: 
+
+  if mark_role_as_dirty:
     _dirty_roles[repository_name].add(rolename)
 
 
@@ -426,11 +426,11 @@ def get_dirty_roles(repository_name='default'):
   <Returns>
     A list of the roles that have been modified.
   """
-  
+
   # Does 'repository_name' have the correct format?  Raise
   # 'tuf.ssl_commons.exceptions.FormatError' if not.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
-  
+
   global _roledb_dict
   global _dirty_roles
 
@@ -473,7 +473,7 @@ def mark_dirty(roles, repository_name='default'):
   # tuf.ssl_commons.exceptions.FormatError.
   tuf.ssl_crypto.formats.NAMES_SCHEMA.check_match(roles)
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
-  
+
   global _roledb_dict
   global _dirty_roles
 
@@ -511,12 +511,12 @@ def unmark_dirty(roles, repository_name='default'):
   <Returns>
     None.
   """
-  
+
   # Are the arguments properly formatted?  If not, raise
   # tuf.ssl_commons.exceptions.FormatError.
   tuf.ssl_crypto.formats.NAMES_SCHEMA.check_match(roles)
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
-  
+
   global _roledb_dict
   global _dirty_roles
 
@@ -525,11 +525,11 @@ def unmark_dirty(roles, repository_name='default'):
       ' not exist: ' + repository_name)
 
   for role in roles:
-    try: 
+    try:
       _dirty_roles[repository_name].remove(role)
 
     except (KeyError, ValueError):
-      logger.debug(repr(role) + ' is not dirty.') 
+      logger.debug(repr(role) + ' is not dirty.')
 
 
 
@@ -542,7 +542,7 @@ def role_exists(rolename, repository_name='default'):
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
       (e.g., 'root', 'snapshot', 'timestamp').
-    
+
     repository_name:
       The name of the repository to check whether 'rolename' exists.  If not
       supplied, the 'default' repository is searched.
@@ -563,15 +563,15 @@ def role_exists(rolename, repository_name='default'):
 
   # Raise tuf.ssl_commons.exceptions.FormatError,
   # tuf.ssl_commons.exceptions.InvalidNameError if the arguments are invalid.
-  try: 
+  try:
     _check_rolename(rolename, repository_name)
-  
+
   except (tuf.ssl_commons.exceptions.FormatError, tuf.ssl_commons.exceptions.InvalidNameError):
     raise
-  
+
   except tuf.ssl_commons.exceptions.UnknownRoleError:
     return False
-  
+
   return True
 
 
@@ -613,7 +613,7 @@ def remove_role(rolename, repository_name='default'):
   <Returns>
     None.
   """
-  
+
   # Does 'repository_name' have the correct format?  Raise
   # 'tuf.ssl_commons.exceptions.FormatError' if it is improperly formatted.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
@@ -622,7 +622,7 @@ def remove_role(rolename, repository_name='default'):
   # tuf.ssl_commons.exceptions.UnknownRoleError, or
   # tuf.ssl_commons.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
-  
+
   global _roledb_dict
   global _dirty_roles
 
@@ -653,11 +653,11 @@ def get_rolenames(repository_name='default'):
 
   <Side Effects>
     None.
-  
+
   <Returns>
     A list of rolenames.
   """
- 
+
   # Does 'repository_name' have the correct format?  Raise
   # 'tuf.ssl_commons.exceptions.FormatError' if it is improperly formatted.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
@@ -668,7 +668,7 @@ def get_rolenames(repository_name='default'):
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does'
       ' not' ' exist: ' + repository_name)
-  
+
   return list(_roledb_dict[repository_name].keys())
 
 
@@ -702,7 +702,7 @@ def get_roleinfo(rolename, repository_name='default'):
   <Exceptions>
     tuf.ssl_commons.exceptions.FormatError, if the arguments are improperly
     formatted.
-    
+
     tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' does not exist.
 
     tuf.ssl_commons.exceptions.InvalidNameError, if 'rolename' is incorrectly
@@ -711,15 +711,15 @@ def get_roleinfo(rolename, repository_name='default'):
 
   <Side Effects>
     None.
-  
+
   <Returns>
     The roleinfo of 'rolename'.
   """
- 
+
   # Is 'repository_name' properly formatted?  If not, raise
   # 'tuf.ssl_commons.exceptions.FormatError'.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
-  
+
   # Raises tuf.ssl_commons.exceptions.FormatError,
   # tuf.ssl_commons.exceptions.UnknownRoleError, or
   # tuf.ssl_commons.exceptions.InvalidNameError.
@@ -727,7 +727,7 @@ def get_roleinfo(rolename, repository_name='default'):
 
   global _roledb_dict
   global _dirty_roles
-  
+
   return copy.deepcopy(_roledb_dict[repository_name][rolename])
 
 
@@ -754,7 +754,7 @@ def get_role_keyids(rolename, repository_name='default'):
 
   <Exceptions>
     tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the
-    correct object format. 
+    correct object format.
 
     tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found
     in the role database.
@@ -768,21 +768,21 @@ def get_role_keyids(rolename, repository_name='default'):
   <Returns>
     A list of keyids.
   """
-  
+
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'repository_name' is
   # improperly formatted.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
-  
+
   # Raises tuf.ssl_commons.exceptions.FormatError,
   # tuf.ssl_commons.exceptions.UnknownRoleError, or
   # tuf.ssl_commons.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
-  
+
   global _roledb_dit
   global _dirty_roles
 
   roleinfo = _roledb_dict[repository_name][rolename]
-  
+
   return roleinfo['keyids']
 
 
@@ -802,11 +802,11 @@ def get_role_threshold(rolename, repository_name='default'):
     repository_name:
       The name of the repository to get the role threshold.  If not supplied,
       the 'default' repository is searched.
-      
+
 
   <Exceptions>
     tuf.ssl_commons.exceptions.FormatError, if the arguments do not have the
-    correct object format. 
+    correct object format.
 
     tuf.ssl_commons.exceptions.UnknownRoleError, if 'rolename' cannot be found
     in in the role database.
@@ -828,12 +828,12 @@ def get_role_threshold(rolename, repository_name='default'):
   # tuf.ssl_commons.exceptions.UnknownRoleError, or
   # tuf.ssl_commons.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
-  
+
   global _roledb_dict
   global _dirty_roles
-  
+
   roleinfo = _roledb_dict[repository_name][rolename]
-  
+
   return roleinfo['threshold']
 
 
@@ -874,25 +874,25 @@ def get_role_paths(rolename, repository_name='default'):
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'repository_name' is
   # improperly formatted.
   tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
-  
+
   # Raises tuf.ssl_commons.exceptions.FormatError,
   # tuf.ssl_commons.exceptions.UnknownRoleError, or
   # tuf.ssl_commons.exceptions.InvalidNameError.
-  _check_rolename(rolename)
- 
+  _check_rolename(rolename, repository_name)
+
   global _roledb_dict
   global _dirty_roles
- 
+
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not' ' exist: ' +
       repository_name)
-  
+
   roleinfo = _roledb_dict[repository_name][rolename]
-  
+
   # Paths won't exist for non-target roles.
   try:
     return roleinfo['paths']
-  
+
   except KeyError:
     return dict()
 
@@ -937,16 +937,16 @@ def get_delegated_rolenames(rolename, repository_name='default'):
 
   # Does 'repository_name' have the correct format?  Raise
   # 'tuf.ssl_commons.exceptions.FormatError' if it does not.
-  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name) 
- 
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
+
   # Raises tuf.ssl_commons.exceptions.FormatError,
   # tuf.ssl_commons.exceptions.UnknownRoleError, or
   # tuf.ssl_commons.exceptions.InvalidNameError.
-  _check_rolename(rolename)
+  _check_rolename(rolename, repository_name)
 
   global _roledb_dict
   global _dirty_roles
-  
+
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not'
       ' exist: ' + repository_name)
@@ -955,7 +955,7 @@ def get_delegated_rolenames(rolename, repository_name='default'):
   # 'repository_name' does not exist in the role database.
   roleinfo = get_roleinfo(rolename, repository_name)
   delegated_roles = []
- 
+
   for delegated_role in roleinfo['delegations']['roles']:
     delegated_roles.append(delegated_role['name'])
 
@@ -1010,7 +1010,7 @@ def clear_roledb(repository_name='default', clear_all=False):
     _dirty_roles = {}
     _dirty_roles['default'] = set()
     return
-  
+
   _roledb_dict[repository_name] = {}
   _dirty_roles[repository_name] = set()
 
@@ -1025,9 +1025,9 @@ def _check_rolename(rolename, repository_name='default'):
   role database, or tuf.ssl_commons.exceptions.InvalidNameError if
   'repository_name' does not exist in the role database.
   """
-  
+
   # Does 'rolename' have the correct object format?
-  # This check will ensure 'rolename' has the appropriate number of objects 
+  # This check will ensure 'rolename' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(rolename)
 
@@ -1043,7 +1043,7 @@ def _check_rolename(rolename, repository_name='default'):
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise tuf.ssl_commons.exceptions.InvalidNameError('Repository name does not'
       ' exist: ' + repository_name)
- 
+
   if rolename not in _roledb_dict[repository_name]:
     raise tuf.ssl_commons.exceptions.UnknownRoleError('Role name does not'
       ' exist: ' + rolename)
@@ -1059,7 +1059,7 @@ def _validate_rolename(rolename):
   'ROLENAME_SCHEMA' prior to calling this function.  """
 
   if rolename == '':
-    raise tuf.ssl_commons.exceptions.InvalidNameError('Rolename must *not* be'  
+    raise tuf.ssl_commons.exceptions.InvalidNameError('Rolename must *not* be'
       ' an empty string.')
 
   if rolename != rolename.strip():
