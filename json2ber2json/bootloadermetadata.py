@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+"""
+<Author>
+  Trishank Karthik Kuppusamy
+"""
+
 from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
 from bootloadermodule import *

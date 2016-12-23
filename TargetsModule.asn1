@@ -49,21 +49,21 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- only the director repository is compromised.
     -- Every ECU should check that the release counter of its latest image is
     -- greater than or equal to the release counter of its previous image.
-    releaseCounter        Positive OPTIONAL,
-    -- The ECU hardware type is used to prevent the director repository, when it
-    -- is compromised, from choosing images for an ECU that were not meant for
-    -- it.
-    -- Every ECU should check that the ECU hardware type of its latest image
-    -- matches its own hardware type.
+    releaseCounter        Natural OPTIONAL,
+    -- The hardware identifier is used to prevent the director repository,
+    -- when it is compromised, from choosing images for an ECU that were not
+    -- meant for it.
+    -- Every ECU should check that the hardware ID of its latest image matches
+    -- its hardware ID.
     -- An OEM MAY define other types of information to further restrict the
     -- choices that can be made by a compromised director repository.
-    ecuHardwareType       VisibleString (SIZE(1..32)) OPTIONAL,
+    hardwareIdentifier    Natural OPTIONAL,
     -- NOTE: The following attributes are specified only by the director
     -- repository.
     -- The ECU identifier specifies information, e.g., serial numbers, that the
     -- director uses to point ECUs as to which images they should install.
-    -- Every ECU should check that the ECU identifier of its latest image
-    -- matches its own ECU identifier.
+    -- Every ECU should check that the ECU ID of its latest image matches its
+    -- own ECU ID.
     ecuIdentifier         Identifier OPTIONAL,
     -- This attribute MAY be used by the director to encrypt images per ECU.
     encryptedTarget       Target OPTIONAL,
