@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+"""
+<Author>
+  Trishank Karthik Kuppusamy
+"""
+
 import hashlib
 import json
 
