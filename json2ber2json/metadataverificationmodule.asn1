@@ -245,8 +245,8 @@ Repositories ::= SEQUENCE (SIZE(2)) OF Repository
 
 Repository ::= SEQUENCE {
     name	 [0] IMPLICIT RepositoryName,
-    numberOfMirrors	 [1] IMPLICIT Length,
-    mirrors	 [2] IMPLICIT URLs,
+    numberOfServers	 [1] IMPLICIT Length,
+    servers	 [2] IMPLICIT URLs,
     ...
 }
 
