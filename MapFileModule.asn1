@@ -21,9 +21,9 @@ MapFileModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- A shorthand name for the repository, which also specifies the name of the
     -- directory on the client which contains previous and latest metadata.
     name              RepositoryName,
-    -- The base URL to the repository.
-    numberOfMirrors   Length,
-    mirrors           URLs,
+    -- A list of servers where metadata and targets may be downloaded from.
+    numberOfServers   Length,
+    servers           URLs,
     -- https://tools.ietf.org/html/rfc6025#section-2.4.2
     ...
   }
