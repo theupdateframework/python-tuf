@@ -1,4 +1,4 @@
-TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+MapFileModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   IMPORTS Length,
           Paths,
@@ -6,42 +6,44 @@ TrustPinningModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
           URLs FROM CommonModule;
 
   -- https://github.com/theupdateframework/taps/blob/master/tap4.md
-  TrustPinning ::= SEQUENCE {
+  MapFile ::= SEQUENCE {
     -- A list of repositories.
     numberOfRepositories  Length,
     repositories          Repositories,
-    --A list of multi-repository delegations.
-    numberOfDelegations   Length,
-    delegations           RepositoryDelegations
+    --A list of mapping of images to repositories.
+    numberOfMappings      Length,
+    mappings              Mappings
   }
 
   -- Adjust length of SEQUENCE OF to your needs.
-  Repositories    ::= SEQUENCE (SIZE(1..8)) OF Repository
+  Repositories    ::= SEQUENCE (SIZE(2)) OF Repository
   Repository      ::= SEQUENCE {
-    -- A shorthand name for the repository.
+    -- A shorthand name for the repository, which also specifies the name of the
+    -- directory on the client which contains previous and latest metadata.
     name              RepositoryName,
     -- The base URL to the repository.
     numberOfMirrors   Length,
     mirrors           URLs,
-    -- The name of the directory on the client which contains previous and
-    -- current metadata.
-    metadataDirectory StrictFilename
+    -- https://tools.ietf.org/html/rfc6025#section-2.4.2
+    ...
   }
   -- Adjust length of SEQUENCE OF to your needs.
   RepositoryNames ::= SEQUENCE (SIZE(2)) OF RepositoryName
   RepositoryName  ::= StrictFilename
 
   -- Adjust length of SEQUENCE OF to your needs.
-  RepositoryDelegations ::= SEQUENCE (SIZE(1)) OF RepositoryDelegation
-  RepositoryDelegation  ::= SEQUENCE {
+  Mappings ::= SEQUENCE (SIZE(1)) OF Mapping
+  Mapping  ::= SEQUENCE {
     -- The list of targets delegated to the following repositories.
-    numberOfPaths Length,
-    paths         Paths,
+    numberOfPaths         Length,
+    paths                 Paths,
     -- The repositories which MUST all sign the preceeding targets.
     numberOfRepositories  Length,
     repositories          RepositoryNames,
     -- Whether or not this delegation is terminating.
-    terminating   BOOLEAN DEFAULT FALSE
+    terminating           BOOLEAN DEFAULT FALSE,
+    -- https://tools.ietf.org/html/rfc6025#section-2.4.2
+    ...
   }
 
 END

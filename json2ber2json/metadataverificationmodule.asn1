@@ -1,4 +1,4 @@
--- $ asn1c -EF CommonModule.asn1 MetadataModule.asn1 RootModule.asn1 TargetsModule.asn1 SnapshotModule.asn1 TimestampModule.asn1  TrustPinningModule.asn1 > metadataverificationmodule.asn1
+-- $ asn1c -EF CommonModule.asn1 MetadataModule.asn1 RootModule.asn1 TargetsModule.asn1 SnapshotModule.asn1 TimestampModule.asn1 MapFileModule.asn1 > metadataverificationmodule.asn1
 -- To keep asn1ate happy, had to remove:
 -- 1. PATTERN constraints on VisibleString.
 -- 2. Module definitions in between.
@@ -222,9 +222,6 @@ SnapshotMetadataFiles ::= SEQUENCE (SIZE(1..128)) OF SnapshotMetadataFile
 SnapshotMetadataFile ::= SEQUENCE {
     filename	 [0] IMPLICIT StrictFilename,
     version	 [1] IMPLICIT Version,
-    length	 [2] IMPLICIT Length OPTIONAL,
-    numberOfHashes	 [3] IMPLICIT Length OPTIONAL,
-    hashes	 [4] IMPLICIT Hashes OPTIONAL,
     ...
 }
 
@@ -237,34 +234,35 @@ TimestampMetadata ::= SEQUENCE {
     ...
 }
 
-TrustPinning ::= SEQUENCE {
+MapFile ::= SEQUENCE {
     numberOfRepositories	 [0] IMPLICIT Length,
     repositories	 [1] IMPLICIT Repositories,
-    numberOfDelegations	 [2] IMPLICIT Length,
-    delegations	 [3] IMPLICIT RepositoryDelegations
+    numberOfMappings	 [2] IMPLICIT Length,
+    mappings	 [3] IMPLICIT Mappings
 }
 
-Repositories ::= SEQUENCE (SIZE(1..8)) OF Repository
+Repositories ::= SEQUENCE (SIZE(2)) OF Repository
 
 Repository ::= SEQUENCE {
     name	 [0] IMPLICIT RepositoryName,
     numberOfMirrors	 [1] IMPLICIT Length,
     mirrors	 [2] IMPLICIT URLs,
-    metadataDirectory	 [3] IMPLICIT StrictFilename
+    ...
 }
 
 RepositoryNames ::= SEQUENCE (SIZE(2)) OF RepositoryName
 
 RepositoryName ::= StrictFilename
 
-RepositoryDelegations ::= SEQUENCE (SIZE(1)) OF RepositoryDelegation
+Mappings ::= SEQUENCE (SIZE(1)) OF Mapping
 
-RepositoryDelegation ::= SEQUENCE {
+Mapping ::= SEQUENCE {
     numberOfPaths	 [0] IMPLICIT Length,
     paths	 [1] IMPLICIT Paths,
     numberOfRepositories	 [2] IMPLICIT Length,
     repositories	 [3] IMPLICIT RepositoryNames,
-    terminating	 [4] IMPLICIT BOOLEAN DEFAULT FALSE
+    terminating	 [4] IMPLICIT BOOLEAN DEFAULT FALSE,
+    ...
 }
 
 END

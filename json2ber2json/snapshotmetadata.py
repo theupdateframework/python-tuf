@@ -20,27 +20,13 @@ def get_asn_signed(json_signed):
   numberOfSnapshotMetadataFiles = 0
 
   for filename, filemeta in meta.items():
+    # No more root metadata file in snapshot metadata.
+    # See https://github.com/theupdateframework/taps/blob/master/tap4.md
+    assert filename != 'root.json'
+
     snapshotMetadataFile = SnapshotMetadataFile()
     snapshotMetadataFile['filename'] = filename
     snapshotMetadataFile['version'] = filemeta['version']
-
-    # Optional bits.
-    if filename == 'root.json':
-      snapshotMetadataFile['length'] = filemeta['length']
-      snapshotMetadataFile['numberOfHashes'] = 1
-      snapshotMetadataFileHashes = \
-                  Hashes().subtype(implicitTag=tag.Tag(tag.tagClassContext,
-                                                       tag.tagFormatSimple, 4))
-      snapshotMetadataFileHash = Hash()
-      snapshotMetadataFileHash['function'] = int(HashFunction('sha256'))
-      snapshotMetadataFileDigest = \
-        BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext,
-                                                 tag.tagFormatConstructed, 1))
-      snapshotMetadataFileDigest['hexString'] = filemeta['hashes']['sha256']
-      snapshotMetadataFileHash['digest'] = snapshotMetadataFileDigest
-      snapshotMetadataFileHashes[0] = snapshotMetadataFileHash
-      snapshotMetadataFile['hashes'] = snapshotMetadataFileHashes
-
     snapshotMetadataFiles[numberOfSnapshotMetadataFiles] = snapshotMetadataFile
     numberOfSnapshotMetadataFiles += 1
 
@@ -84,14 +70,10 @@ def get_json_signed(asn_metadata):
   for i in range(numberOfSnapshotMetadataFiles):
     snapshotMetadataFile = snapshotMetadataFiles[i]
     filename = str(snapshotMetadataFile['filename'])
+    # No more root metadata file in snapshot metadata.
+    # See https://github.com/theupdateframework/taps/blob/master/tap4.md
+    assert filename != 'root.json'
     filemeta = {'version': int(snapshotMetadataFile['version'])}
-
-    if filename == 'root.json':
-      filemeta['length'] = int(snapshotMetadataFile['length'])
-      filemeta['hashes'] = {
-        'sha256': str(snapshotMetadataFile['hashes'][0]['digest']['hexString'])
-      }
-
     json_meta[filename] = filemeta
 
   json_signed['meta'] = json_meta
