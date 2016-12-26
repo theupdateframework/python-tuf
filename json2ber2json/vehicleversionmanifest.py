@@ -7,12 +7,11 @@
 
 from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
-from applicationmodule import *
+from ecumodule import *
 
 import metadata
 
-import bootloadermodule
-import bootloadermetadata
+import ecuversionmanifest
 
 
 def get_asn_signed(json_signed):
@@ -31,11 +30,11 @@ def get_asn_signed(json_signed):
   for manifest in json_signed['ecu_version_manifests']:
     json_signed, json_signatures = manifest['signed'], manifest['signatures']
     asn_signed, ber_signed = \
-              metadata.get_asn_and_ber_signed(bootloadermetadata.get_asn_signed,
+              metadata.get_asn_and_ber_signed(ecuversionmanifest.get_asn_signed,
                                               json_signed)
     ecuVersionManifest = \
         metadata.json_to_asn_metadata(asn_signed, ber_signed, json_signatures,
-                                      bootloadermodule.ECUVersionManifest)
+                                      ECUVersionManifest)
     ecuVersionManifests[numberOfECUVersionManifests] = ecuVersionManifest
     numberOfECUVersionManifests += 1
 
@@ -59,7 +58,7 @@ def get_json_signed(asn_metadata):
   for i in range(numberOfECUVersionManifests):
     manifest = ecuVersionManifests[i]
     json_manifest = \
-              metadata.asn_to_json_metadata(bootloadermetadata.get_json_signed,
+              metadata.asn_to_json_metadata(ecuversionmanifest.get_json_signed,
                                             manifest)
     json_manifests.append(json_manifest)
   json_signed['ecu_version_manifests'] = json_manifests
