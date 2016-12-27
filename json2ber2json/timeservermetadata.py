@@ -13,18 +13,18 @@ import metadata
 
 
 def get_asn_signed(json_signed):
-  signed = NoncesAndTimestamp()\
+  signed = TokensAndTimestamp()\
            .subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                         tag.tagFormatConstructed, 0))
-  numberOfNonces = 0
-  nonces = Nonces().subtype(implicitTag=tag.Tag(tag.tagClassContext,
+  numberOfTokens = 0
+  tokens = Tokens().subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                 tag.tagFormatSimple, 1))
-  for nonce in json_signed['nonces']:
+  for token in json_signed['tokens']:
     # Some damned bug in pyasn1 I could not care less to fix right now.
-    nonces.setComponentByPosition(numberOfNonces, nonce, False)
-    numberOfNonces += 1
-  signed['numberOfNonces'] = numberOfNonces
-  signed['nonces'] = nonces
+    tokens.setComponentByPosition(numberOfTokens, token, False)
+    numberOfTokens += 1
+  signed['numberOfTokens'] = numberOfTokens
+  signed['tokens'] = tokens
   signed['timestamp'] = metadata.iso8601_to_epoch(json_signed['time'])
   return signed
 
@@ -36,12 +36,12 @@ def get_json_signed(asn_metadata):
     'time': metadata.epoch_to_iso8601(asn_signed['timestamp'])
   }
 
-  numberOfNonces = int(asn_signed['numberOfNonces'])
-  nonces = asn_signed['nonces']
-  json_nonces = []
-  for i in range(numberOfNonces):
-    json_nonces.append(int(nonces[i]))
-  json_signed['nonces'] = json_nonces
+  numberOfTokens = int(asn_signed['numberOfTokens'])
+  tokens = asn_signed['tokens']
+  json_tokens = []
+  for i in range(numberOfTokens):
+    json_tokens.append(int(tokens[i]))
+  json_signed['tokens'] = json_tokens
 
   return json_signed
 

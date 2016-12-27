@@ -29,7 +29,7 @@ Paths ::= SEQUENCE (SIZE(1..8)) OF Path
 
 Path ::= VisibleString (SIZE(1..32))
 
-URLs ::= SEQUENCE (SIZE(1..8)) OF URL
+URLs ::= SEQUENCE (SIZE(0..8)) OF URL
 
 URL ::= VisibleString (SIZE(1..1024))
 
@@ -104,24 +104,24 @@ PublicKeyType ::= ENUMERATED {
     ...
 }
 
-SequenceOfNonces ::= SEQUENCE {
-    numberOfNonces	 [0] IMPLICIT Length,
-    nonces	 [1] IMPLICIT Nonces
+SequenceOfTokens ::= SEQUENCE {
+    numberOfTokens	 [0] IMPLICIT Length,
+    tokens	 [1] IMPLICIT Tokens
 }
 
-Nonces ::= SEQUENCE (SIZE(1..128)) OF Nonce
+Tokens ::= SEQUENCE (SIZE(1..128)) OF Token
 
-Nonce ::= INTEGER
+Token ::= INTEGER
 
 CurrentTime ::= SEQUENCE {
-    signed	 [0] IMPLICIT NoncesAndTimestamp,
+    signed	 [0] IMPLICIT TokensAndTimestamp,
     numberOfSignatures	 [1] IMPLICIT Length,
     signatures	 [2] IMPLICIT Signatures
 }
 
-NoncesAndTimestamp ::= SEQUENCE {
-    numberOfNonces	 [0] IMPLICIT Length,
-    nonces	 [1] IMPLICIT Nonces,
+TokensAndTimestamp ::= SEQUENCE {
+    numberOfTokens	 [0] IMPLICIT Length,
+    tokens	 [1] IMPLICIT Tokens,
     timestamp	 [2] IMPLICIT UTCDateTime,
     ...
 }

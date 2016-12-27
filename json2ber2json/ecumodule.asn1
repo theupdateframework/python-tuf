@@ -234,24 +234,24 @@ TimestampMetadata ::= SEQUENCE {
     ...
 }
 
-SequenceOfNonces ::= SEQUENCE {
-    numberOfNonces	 [0] IMPLICIT Length,
-    nonces	 [1] IMPLICIT Nonces
+SequenceOfTokens ::= SEQUENCE {
+    numberOfTokens	 [0] IMPLICIT Length,
+    tokens	 [1] IMPLICIT Tokens
 }
 
-Nonces ::= SEQUENCE (SIZE(1..128)) OF Nonce
+Tokens ::= SEQUENCE (SIZE(1..128)) OF Token
 
-Nonce ::= INTEGER
+Token ::= INTEGER
 
 CurrentTime ::= SEQUENCE {
-    signed	 [0] IMPLICIT NoncesAndTimestamp,
+    signed	 [0] IMPLICIT TokensAndTimestamp,
     numberOfSignatures	 [1] IMPLICIT Length,
     signatures	 [2] IMPLICIT Signatures
 }
 
-NoncesAndTimestamp ::= SEQUENCE {
-    numberOfNonces	 [0] IMPLICIT Length,
-    nonces	 [1] IMPLICIT Nonces,
+TokensAndTimestamp ::= SEQUENCE {
+    numberOfTokens	 [0] IMPLICIT Length,
+    tokens	 [1] IMPLICIT Tokens,
     timestamp	 [2] IMPLICIT UTCDateTime,
     ...
 }
@@ -274,7 +274,7 @@ VehicleVersionManifestSigned ::= SEQUENCE {
 ECUVersionManifests ::= SEQUENCE (SIZE(1..128)) OF ECUVersionManifest
 
 VersionReport ::= SEQUENCE {
-    nonceForTimeServer	 [0] IMPLICIT Nonce,
+    tokenForTimeServer	 [0] IMPLICIT Token,
     ecuVersionManifest	 [1] IMPLICIT ECUVersionManifest,
     ...
 }
