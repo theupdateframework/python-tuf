@@ -167,7 +167,7 @@ Target ::= SEQUENCE {
 
 Custom ::= SEQUENCE {
     releaseCounter	 [0] IMPLICIT Natural OPTIONAL,
-    hardwareIdentifier	 [1] IMPLICIT Natural OPTIONAL,
+    hardwareIdentifier	 [1] IMPLICIT Identifier OPTIONAL,
     ecuIdentifier	 [2] IMPLICIT Identifier OPTIONAL,
     encryptedTarget	 [3] IMPLICIT Target OPTIONAL,
     encryptedSymmetricKey	 [4] IMPLICIT EncryptedSymmetricKey OPTIONAL,

@@ -57,7 +57,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- its hardware ID.
     -- An OEM MAY define other types of information to further restrict the
     -- choices that can be made by a compromised director repository.
-    hardwareIdentifier    Natural OPTIONAL,
+    hardwareIdentifier    Identifier OPTIONAL,
     -- NOTE: The following attributes are specified only by the director
     -- repository.
     -- The ECU identifier specifies information, e.g., serial numbers, that the
