@@ -68,25 +68,26 @@ import logging
 import time
 
 import tuf
-import tuf.ssl_crypto.formats
-from simple_settings import settings
+import tuf.settings
+
+import securesystemslib.formats
 
 # Setting a handler's log level filters only logging messages of that level
 # (and above).  For example, setting the built-in StreamHandler's log level to
 # 'logging.WARNING' will cause the stream handler to only process messages
-# of levels: WARNING, ERROR, and CRITICAL. 
+# of levels: WARNING, ERROR, and CRITICAL.
 _DEFAULT_LOG_LEVEL = logging.DEBUG
 _DEFAULT_CONSOLE_LOG_LEVEL = logging.INFO
 _DEFAULT_FILE_LOG_LEVEL = logging.DEBUG
 
 # Set the format for logging messages.
-# Example format for '_FORMAT_STRING': 
+# Example format for '_FORMAT_STRING':
 # [2013-08-13 15:21:18,068 localtime] [tuf] [INFO][_update_metadata:851@updater.py]
 _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s] '+\
   '[%(funcName)s:%(lineno)s@%(filename)s]\n%(message)s\n'
 
 # Ask all Formatter instances to talk GMT.  Set the 'converter' attribute of
-# 'logging.Formatter' so that all formatters use Greenwich Mean Time. 
+# 'logging.Formatter' so that all formatters use Greenwich Mean Time.
 # http://docs.python.org/2/library/logging.html#logging.Formatter.formatTime
 # The 2nd paragraph in the link above contains the relevant information.
 # GMT = UTC (Coordinated Universal Time). TUF metadata stores timestamps in UTC.
@@ -112,8 +113,8 @@ logger.setLevel(_DEFAULT_LOG_LEVEL)
 # '_DEFAULT_LOG_LEVEL'.  The log level of messages handled by 'file_handler'
 # may be modified with 'set_filehandler_log_level()'.  'settings.LOG_FILENAME'
 # will be opened in append mode.
-if settings.ENABLE_FILE_LOGGING:
-  file_handler = logging.FileHandler(settings.LOG_FILENAME)
+if tuf.settings.ENABLE_FILE_LOGGING:
+  file_handler = logging.FileHandler(tuf.settings.LOG_FILENAME)
   file_handler.setLevel(_DEFAULT_FILE_LOG_LEVEL)
   file_handler.setFormatter(formatter)
   logger.addHandler(file_handler)
@@ -165,7 +166,7 @@ class ConsoleFilter(logging.Filter):
       # original exception traceback. The exc_info is explained here:
       # http://docs.python.org/2/library/sys.html#sys.exc_info
       exc_type, exc_value, exc_traceback = record.exc_info
-      
+
       # Simply set the class name as the exception text.
       record.exc_text = exc_type.__name__
 
@@ -180,13 +181,13 @@ def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
   """
   <Purpose>
     Allow the default log level to be overridden.  If 'log_level' is not
-    provided, log level defaults to 'logging.DEBUG'. 
+    provided, log level defaults to 'logging.DEBUG'.
 
   <Arguments>
     log_level:
       The log level to set for the 'log.py' file handler.
       'log_level' examples: logging.INFO; logging.CRITICAL.
-      
+
   <Exceptions>
     None.
 
@@ -196,11 +197,11 @@ def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
   <Returns>
     None.
   """
-  
+
   # Does 'log_level' have the correct format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.ssl_crypto.formats.LOGLEVEL_SCHEMA.check_match(log_level)
-  
+  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+
   logger.setLevel(log_level)
 
 
@@ -211,13 +212,13 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
   """
   <Purpose>
     Allow the default file handler log level to be overridden.  If 'log_level'
-    is not provided, log level defaults to 'logging.DEBUG'. 
+    is not provided, log level defaults to 'logging.DEBUG'.
 
   <Arguments>
     log_level:
       The log level to set for the 'log.py' file handler.
       'log_level' examples: logging.INFO; logging.CRITICAL.
-      
+
   <Exceptions>
     None.
 
@@ -227,11 +228,11 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
   <Returns>
     None.
   """
-  
+
   # Does 'log_level' have the correct format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.ssl_crypto.formats.LOGLEVEL_SCHEMA.check_match(log_level)
-  
+  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+
   file_handler.setLevel(log_level)
 
 
@@ -242,13 +243,13 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   """
   <Purpose>
     Allow the default log level for console messages to be overridden.  If
-    'log_level' is not provided, log level defaults to 'logging.INFO'. 
+    'log_level' is not provided, log level defaults to 'logging.INFO'.
 
   <Arguments>
     log_level:
       The log level to set for the console handler.
       'log_level' examples: logging.INFO; logging.CRITICAL.
-      
+
   <Exceptions>
     tuf.ssl_commons.exceptions.Error, if the 'log.py' console handler has not
     been set yet with add_console_handler().
@@ -259,17 +260,17 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   <Returns>
     None.
   """
-  
+
   # Does 'log_level' have the correct format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.ssl_crypto.formats.LOGLEVEL_SCHEMA.check_match(log_level)
-  
+  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+
   # Assign to the global console_handler object.
   global console_handler
-  
+
   if console_handler is not None:
     console_handler.setLevel(log_level)
-  
+
   else:
     message = 'The console handler has not been set with add_console_handler().'
     raise tuf.ssl_commons.exceptions.Error(message)
@@ -287,7 +288,7 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
     log_level:
       The log level to set for the console handler.
       'log_level' examples: logging.INFO; logging.CRITICAL.
-      
+
   <Exceptions>
     None.
 
@@ -298,22 +299,22 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   <Returns>
     None.
   """
-  
+
   # Does 'log_level' have the correct format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.ssl_crypto.formats.LOGLEVEL_SCHEMA.check_match(log_level)
+  securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   # Assign to the global console_handler object.
   global console_handler
- 
+
   if not console_handler:
     # Set the console handler for the logger. The built-in console handler will
     # log messages to 'sys.stderr' and capture 'log_level' messages.
     console_handler = logging.StreamHandler()
-    
+
     # Get our filter for the console handler.
     console_filter = ConsoleFilter()
-    console_format_string = '%(message)s' 
+    console_format_string = '%(message)s'
     formatter = logging.Formatter(console_format_string)
 
     console_handler.setLevel(log_level)
@@ -321,7 +322,7 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
     console_handler.addFilter(console_filter)
     logger.addHandler(console_handler)
     logger.debug('Added a console handler.')
-  
+
   else:
     logger.warning('We already have a console handler.')
 
@@ -347,7 +348,7 @@ def remove_console_handler():
   <Returns>
     None.
   """
-  
+
   # Assign to the global 'console_handler' object.
   global console_handler
 
@@ -355,6 +356,6 @@ def remove_console_handler():
     logger.removeHandler(console_handler)
     console_handler = None
     logger.debug('Removed a console handler.')
-  
+
   else:
     logger.warning('We do not have a console handler.')
