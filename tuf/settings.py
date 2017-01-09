@@ -67,11 +67,11 @@ DEFAULT_ROOT_REQUIRED_LENGTH = 512000 #bytes
 
 # Set a default, but sane, upper bound for the number of bytes required to
 # download Snapshot metadata.
-DEFAULT_SNAPSHOT_REQUIRED_LENGTH = 2000000 #bytes 
+DEFAULT_SNAPSHOT_REQUIRED_LENGTH = 2000000 #bytes
 
 # Set a default, but sane, upper bound for the number of bytes required to
 # download Targets metadata.
-DEFAULT_TARGETS_REQUIRED_LENGTH = 5000000 #bytes 
+DEFAULT_TARGETS_REQUIRED_LENGTH = 5000000 #bytes
 
 # Set a timeout value in seconds (float) for non-blocking socket operations.
 SOCKET_TIMEOUT = 2 #seconds
@@ -126,7 +126,7 @@ GENERAL_CRYPTO_LIBRARY = 'pyca-cryptography'
 # supporting multiple hash algorithms via the REPOSITORY_HASH_ALGORITHM
 # configuration.  When multiple hash algorithms (and thus multiple key IDs)
 # are used, the "keys" field lists one single key ID
-# (generated with DEFAULT_HASH_ALGORITHM) for each unique key, and also lists 
+# (generated with DEFAULT_HASH_ALGORITHM) for each unique key, and also lists
 # the recognized hash algorithms.  For example:
 # {keyid: '1234abc', "keyid_multihash_algorithms": 'sha256', 'sha512', ...}
 DEFAULT_HASH_ALGORITHM = 'sha256'
