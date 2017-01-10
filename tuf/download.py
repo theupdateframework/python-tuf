@@ -17,7 +17,7 @@
   length of a downloaded file has to match the hash and length supplied by the
   metadata of that file.  The downloaded file is technically a  file-like
   object that will automatically destroys itself once closed.  Note that the
-  file-like object, 'tuf.ssl_crypto.util.TempFile', is returned by the
+  file-like object, 'securesystemslib.util.TempFile', is returned by the
   '_download_file()' function.
 """
 
@@ -38,10 +38,8 @@ import ssl
 import time
 
 import tuf
-from simple_settings import settings
-import tuf.ssl_crypto.hash
-import tuf.ssl_crypto.util
-import tuf.ssl_crypto.formats
+
+import securesystemslib
 import six
 
 # 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
@@ -66,7 +64,7 @@ def safe_download(url, required_length):
     tuf.download.unsafe_download() may be called if an upper download limit is
     preferred.
 
-    'tuf.ssl_crypto.util.TempFile', the file-like object returned, is used
+    'securesystemslib.util.TempFile', the file-like object returned, is used
     instead of regular tempfile object because of additional functionality
     provided, such as handling compressed metadata and automatically closing
     files after moving to final destination.
@@ -81,7 +79,7 @@ def safe_download(url, required_length):
       limit.
 
   <Side Effects>
-    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the
+    A 'securesystemslib.util.TempFile' object is created on disk to store the
     contents of 'url'.
 
   <Exceptions>
@@ -94,14 +92,14 @@ def safe_download(url, required_length):
     Any other unforeseen runtime exception.
 
   <Returns>
-    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the
+    A 'securesystemslib.util.TempFile' file-like object that points to the
     contents of 'url'.
   """
 
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(url)
-  tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
+  securesystemslib.formats.URL_SCHEMA.check_match(url)
+  securesystemslib.formats.LENGTH_SCHEMA.check_match(required_length)
 
   # Ensure 'url' specifies one of the URI schemes in
   # 'settings.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
@@ -132,7 +130,7 @@ def unsafe_download(url, required_length):
     tuf.download.safe_download() may be called if an exact download limit is
     preferred.
 
-    'tuf.ssl_crypto.util.TempFile', the file-like object returned, is used
+    'securesystemslib.util.TempFile', the file-like object returned, is used
     instead of regular tempfile object because of additional functionality
     provided, such as handling compressed metadata and automatically closing
     files after moving to final destination.
@@ -147,7 +145,7 @@ def unsafe_download(url, required_length):
       limit.
 
   <Side Effects>
-    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the
+    A 'securesystemslib.util.TempFile' object is created on disk to store the
     contents of 'url'.
 
   <Exceptions>
@@ -160,14 +158,14 @@ def unsafe_download(url, required_length):
     Any other unforeseen runtime exception.
 
   <Returns>
-    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the
+    A 'securesystemslib.util.TempFile' file-like object that points to the
     contents of 'url'.
   """
 
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(url)
-  tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
+  securesystemslib.formats.URL_SCHEMA.check_match(url)
+  securesystemslib.formats.LENGTH_SCHEMA.check_match(required_length)
 
   # Ensure 'url' specifies one of the URI schemes in
   # 'settings.SUPPORTED_URI_SCHEMES'.  Be default, ['http', 'https'] is
@@ -198,9 +196,9 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     the file's length is not checked and a slow retrieval exception is raised
     if the downloaded rate falls below the acceptable rate).
 
-    tuf.ssl_crypto.util.TempFile is used instead of regular tempfile object
+    securesystemslib.util.TempFile is used instead of regular tempfile object
     because of additional functionality provided by
-    'tuf.ssl_crypto.util.TempFile'.
+    'securesystemslib.util.TempFile'.
 
   <Arguments>
     url:
@@ -216,7 +214,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
       timestamp metadata, which has no signed required_length.
 
   <Side Effects>
-    A 'tuf.ssl_crypto.util.TempFile' object is created on disk to store the
+    A 'securesystemslib.util.TempFile' object is created on disk to store the
     contents of 'url'.
 
   <Exceptions>
@@ -229,14 +227,14 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     Any other unforeseen runtime exception.
 
   <Returns>
-    A 'tuf.ssl_crypto.util.TempFile' file-like object that points to the
+    A 'securesystemslib.util.TempFile' file-like object that points to the
     contents of 'url'.
   """
 
   # Do all of the arguments have the appropriate format?
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
-  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(url)
-  tuf.ssl_crypto.formats.LENGTH_SCHEMA.check_match(required_length)
+  securesystemslib.formats.URL_SCHEMA.check_match(url)
+  securesystemslib.formats.LENGTH_SCHEMA.check_match(required_length)
 
   # 'url.replace()' is for compatibility with Windows-based systems because
   # they might put back-slashes in place of forward-slashes.  This converts it
@@ -246,7 +244,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
 
   # This is the temporary file that we will return to contain the contents of
   # the downloaded file.
-  temp_file = tuf.ssl_crypto.util.TempFile()
+  temp_file = securesystemslib.util.TempFile()
 
   try:
     # Open the connection to the remote file.
