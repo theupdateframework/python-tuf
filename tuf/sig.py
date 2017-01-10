@@ -28,7 +28,7 @@
   system must securely and efficiently verify the status of these signatures.
   For instance, a bunch of keys have recently expired. How many valid keys
   are now available to the Snapshot role?  This question can be answered by
-  get_signature_status(), which will return a full 'status report' of these 
+  get_signature_status(), which will return a full 'status report' of these
   'signable' dicts.  This module also provides a convenient verify() function
   that will determine if a role still has a sufficient number of valid keys.
   If a caller needs to update the signatures of a 'signable' object, there
@@ -46,18 +46,19 @@ from __future__ import unicode_literals
 import logging
 
 import tuf
-import tuf.ssl_crypto.formats
-import tuf.ssl_crypto.keydb
+import tuf.keydb
 import tuf.roledb
+import tuf.formats
 
+import securesystemslib
 
-# See 'log.py' to learn how logging is handled in TUF.                          
-logger = logging.getLogger('tuf.sig')                                
-                                                                                
-# Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the      
-# log file.                                                                     
-iso8601_logger = logging.getLogger('iso8601')                                   
-iso8601_logger.disabled = True                                   
+# See 'log.py' to learn how logging is handled in TUF.
+logger = logging.getLogger('tuf.sig')
+
+# Disable 'iso8601' logger messages to prevent 'iso8601' from clogging the
+# log file.
+iso8601_logger = logging.getLogger('iso8601')
+iso8601_logger.disabled = True
 
 
 def get_signature_status(signable, role=None, repository_name='default',
@@ -66,7 +67,7 @@ def get_signature_status(signable, role=None, repository_name='default',
   <Purpose>
     Return a dictionary representing the status of the signatures listed in
     'signable'.  Given an object conformant to SIGNABLE_SCHEMA, a set of public
-    keys in 'tuf.ssl_crypto.keydb', a set of roles in 'tuf.roledb', and a role,
+    keys in 'tuf.keydb', a set of roles in 'tuf.roledb', and a role,
     the status of these signatures can be determined.  This method will iterate
     the signatures in 'signable' and enumerate all the keys that are valid,
     invalid, unrecognized, unauthorized, or generated using an unknown method.
@@ -78,12 +79,12 @@ def get_signature_status(signable, role=None, repository_name='default',
                   'signatures': [{'keyid': keyid,
                                   'method': 'evp',
                                   'sig': sig}]}
-      
-      Conformant to tuf.ssl_crypto.formats.SIGNABLE_SCHEMA.
+
+      Conformant to tuf.formats.SIGNABLE_SCHEMA.
 
     role:
       TUF role (e.g., 'root', 'targets', 'snapshot').
-    
+
     threshold:
       Rather than reference the role's threshold as set in tuf.roledb.py, use
       the given 'threshold' to calculate the signature status of 'signable'.
@@ -107,25 +108,25 @@ def get_signature_status(signable, role=None, repository_name='default',
 
   <Returns>
     A dictionary representing the status of the signatures in 'signable'.
-    Conformant to tuf.ssl_crypto.formats.SIGNATURESTATUS_SCHEMA.
+    Conformant to tuf.formats.SIGNATURESTATUS_SCHEMA.
   """
 
   # Do the arguments have the correct format?  This check will ensure that
   # arguments have the appropriate number of objects and object types, and that
   # all dict keys are properly named.  Raise
   # 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
-  tuf.ssl_crypto.formats.SIGNABLE_SCHEMA.check_match(signable)
-  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
+  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   if role is not None:
-    tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(role)
+    tuf.formats.ROLENAME_SCHEMA.check_match(role)
 
   if threshold is not None:
-    tuf.ssl_crypto.formats.THRESHOLD_SCHEMA.check_match(threshold) 
-  
+    securesystemslib.formats.THRESHOLD_SCHEMA.check_match(threshold)
+
   if keyids is not None:
-    tuf.ssl_crypto.formats.KEYIDS_SCHEMA.check_match(keyids)
-  
+    securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
+
   # The signature status dictionary returned.
   signature_status = {}
 
@@ -159,8 +160,8 @@ def get_signature_status(signable, role=None, repository_name='default',
 
     # Does the signature use an unrecognized key?
     try:
-      key = tuf.ssl_crypto.keydb.get_key(keyid, repository_name)
-    
+      key = tuf.keydb.get_key(keyid, repository_name)
+
     except tuf.ssl_commons.exceptions.UnknownKeyError:
       unknown_sigs.append(keyid)
       continue
@@ -168,28 +169,28 @@ def get_signature_status(signable, role=None, repository_name='default',
     # Does the signature use an unknown key signing method?
     try:
       valid_sig = tuf.ssl_crypto.keys.verify_signature(key, signature, signed)
-    
+
     except tuf.ssl_commons.exceptions.UnknownMethodError:
       unknown_method_sigs.append(keyid)
       continue
 
-    # We are now dealing with either a trusted or untrusted key... 
+    # We are now dealing with either a trusted or untrusted key...
     if valid_sig:
       if role is not None:
-        
+
         try:
           # Is this an unauthorized key? (a keyid associated with 'role')
           if keyids is None:
-            keyids = tuf.roledb.get_role_keyids(role, repository_name) 
-          
+            keyids = tuf.roledb.get_role_keyids(role, repository_name)
+
           if keyid not in keyids:
             untrusted_sigs.append(keyid)
             continue
-        
-        # Unknown role, re-raise exception. 
+
+        # Unknown role, re-raise exception.
         except tuf.ssl_commons.exceptions.UnknownRoleError:
           raise
-      
+
       # This is an unset role, thus an unknown signature.
       else:
         unknown_sigs.append(keyid)
@@ -197,11 +198,11 @@ def get_signature_status(signable, role=None, repository_name='default',
 
       # Identify good/authorized key.
       good_sigs.append(keyid)
-    
+
     else:
       # This is a bad signature for a trusted key.
-      bad_sigs.append(keyid) 
-  
+      bad_sigs.append(keyid)
+
   # Retrieve the threshold value for 'role'.  Raise
   # tuf.ssl_commons.exceptions.UnknownRoleError if we were given an invalid
   # role.
@@ -209,10 +210,10 @@ def get_signature_status(signable, role=None, repository_name='default',
     try:
       threshold = \
         tuf.roledb.get_role_threshold(role, repository_name=repository_name)
-    
+
     except tuf.ssl_commons.exceptions.UnknownRoleError:
       raise
-  
+
   else:
     threshold = 0
 
@@ -233,7 +234,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 def verify(signable, role, repository_name='default',
            threshold=None, keyids=None):
   """
-  <Purpose> 
+  <Purpose>
     Verify whether the authorized signatures of 'signable' meet the minimum
     required by 'role'.  Authorized signatures are those with valid keys
     associated with 'role'.  'signable' must conform to SIGNABLE_SCHEMA
@@ -246,7 +247,7 @@ def verify(signable, role, repository_name='default',
 
     role:
       TUF role (e.g., 'root', 'targets', 'snapshot').
-    
+
     threshold:
       Rather than reference the role's threshold as set in tuf.roledb.py, use
       the given 'threshold' to calculate the signature status of 'signable'.
@@ -275,17 +276,17 @@ def verify(signable, role, repository_name='default',
     Boolean.  True if the number of good signatures >= the role's threshold,
     False otherwise.
   """
-    
-  tuf.ssl_crypto.formats.SIGNABLE_SCHEMA.check_match(signable)
-  tuf.ssl_crypto.formats.ROLENAME_SCHEMA.check_match(role)
-  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(repository_name)
+
+  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+  tuf.formats.ROLENAME_SCHEMA.check_match(role)
+  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Retrieve the signature status.  tuf.sig.get_signature_status() raises:
   # tuf.ssl_commons.exceptions.UnknownRoleError
   # tuf.ssl_commons.exceptions.FormatError.  'threshold' and 'keyids' are also
   # validated.
   status = get_signature_status(signable, role, repository_name, threshold, keyids)
-        
+
   # Retrieve the role's threshold and the authorized keys of 'status'
   threshold = status['threshold']
   good_sigs = status['good_sigs']
@@ -305,7 +306,7 @@ def verify(signable, role, repository_name='default',
 
 def may_need_new_keys(signature_status):
   """
-  <Purpose> 
+  <Purpose>
     Return true iff downloading a new set of keys might tip this
     signature status over to valid.  This is determined by checking
     if either the number of unknown or untrused keys is > 0.
@@ -329,7 +330,7 @@ def may_need_new_keys(signature_status):
   # This check will ensure 'signature_status' has the appropriate number
   # of objects and object types, and that all dict keys are properly named.
   # Raise 'tuf.ssl_commons.exceptions.FormatError' if the check fails.
-  tuf.ssl_crypto.formats.SIGNATURESTATUS_SCHEMA.check_match(signature_status)
+  tuf.formats.SIGNATURESTATUS_SCHEMA.check_match(signature_status)
 
   unknown = signature_status['unknown_sigs']
   untrusted = signature_status['untrusted_sigs']
@@ -363,7 +364,7 @@ def generate_rsa_signature(signed, rsakey_dict):
       signatures.  It is stored in the 'signed' field of 'signable'.
 
     rsakey_dict:
-      The RSA key, a 'tuf.ssl_crypto.formats.RSAKEY_SCHEMA' dictionary.
+      The RSA key, a 'securesystemslib.formats.RSAKEY_SCHEMA' dictionary.
       Used here to produce 'keyid', 'method', and 'sig'.
 
   <Exceptions>
@@ -376,14 +377,14 @@ def generate_rsa_signature(signed, rsakey_dict):
     None.
 
   <Returns>
-    Signature dictionary conformant to tuf.ssl_crypto.formats.SIGNATURE_SCHEMA.
+    Signature dictionary conformant to securesystemslib.formats.SIGNATURE_SCHEMA.
     Has the form:
     {'keyid': keyid, 'method': 'evp', 'sig': sig}
   """
 
   # We need 'signed' in canonical JSON format to generate
   # the 'method' and 'sig' fields of the signature.
-  signed = tuf.ssl_crypto.formats.encode_canonical(signed)
+  signed = securesystemslib.formats.encode_canonical(signed)
 
   # Generate the RSA signature.
   # Raises tuf.ssl_commons.exceptions.FormatError and TypeError.
