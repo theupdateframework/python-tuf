@@ -79,6 +79,7 @@ import datetime
 import time
 
 import tuf
+import tuf.formats
 
 import securesystemslib.formats
 import securesystemslib.schema as SCHEMA
@@ -244,6 +245,51 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
   keys = KEYDICT_SCHEMA,
   roles = ROLELIST_SCHEMA)
 
+# The number of hashed bins, or the number of delegated roles.  See
+# delegate_hashed_bins() in 'repository_tool.py' for an example.  Note:
+# Tools may require further restrictions on the number of bins, such
+# as requiring them to be a power of 2.
+NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
+
+# Supported compression extension (e.g., 'gz').
+COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
+
+# List of supported compression extensions.
+COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
+  SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
+
+# The fileinfo format of targets specified in the repository and
+# developer tools.  The second element of this list holds custom data about the
+# target, such as file permissions, author(s), last modified, etc.
+CUSTOM_SCHEMA = SCHEMA.Object()
+
+PATH_FILEINFO_SCHEMA = SCHEMA.DictOf(
+  key_schema = RELPATH_SCHEMA,
+  value_schema = CUSTOM_SCHEMA)
+
+# TUF roledb
+ROLEDB_SCHEMA = SCHEMA.Object(
+  object_name = 'ROLEDB_SCHEMA',
+  keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
+  signing_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
+  previous_keyids = SCHEMA.Optional(KEYIDS_SCHEMA),
+  threshold = SCHEMA.Optional(THRESHOLD_SCHEMA),
+  previous_threshold = SCHEMA.Optional(THRESHOLD_SCHEMA),
+  version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
+  expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
+  signatures = SCHEMA.Optional(securesystemslib.formats.SIGNATURES_SCHEMA),
+  compressions = SCHEMA.Optional(COMPRESSIONS_SCHEMA),
+  paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
+  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
+  delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
+  partial_loaded = SCHEMA.Optional(BOOLEAN_SCHEMA))
+
+# A signable object.  Holds the signing role and its associated signatures.
+SIGNABLE_SCHEMA = SCHEMA.Object(
+  object_name = 'SIGNABLE_SCHEMA',
+  signed = SCHEMA.Any(),
+  signatures = SCHEMA.ListOf(securesystemslib.formats.SIGNATURE_SCHEMA))
+
 # Root role: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(
   object_name = 'ROOT_SCHEMA',
@@ -324,6 +370,41 @@ MIRRORLIST_SCHEMA = SCHEMA.Object(
 # Any of the role schemas (e.g., TIMESTAMP_SCHEMA, SNAPSHOT_SCHEMA, etc.)
 ANYROLE_SCHEMA = SCHEMA.OneOf([ROOT_SCHEMA, TARGETS_SCHEMA, SNAPSHOT_SCHEMA,
                                TIMESTAMP_SCHEMA, MIRROR_SCHEMA])
+
+
+
+def make_signable(object):
+  """
+  <Purpose>
+    Return the role metadata 'object' in 'SIGNABLE_SCHEMA' format.
+    'object' is added to the 'signed' key, and an empty list
+    initialized to the 'signatures' key.  The caller adds signatures
+    to this second field.
+    Note: check_signable_object_format() should be called after
+    make_signable() and signatures added to ensure the final
+    signable object has a valid format (i.e., a signable containing
+    a supported role metadata).
+
+  <Arguments>
+    object:
+      A role schema dict (e.g., 'ROOT_SCHEMA', 'SNAPSHOT_SCHEMA').
+
+  <Exceptions>
+    None.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    A dict in 'SIGNABLE_SCHEMA' format.
+  """
+
+  if not isinstance(object, dict) or 'signed' not in object:
+    return { 'signed' : object, 'signatures' : [] }
+
+  else:
+    return object
+
 
 
 
@@ -415,7 +496,7 @@ class RootFile(MetaFile):
   def from_metadata(object):
     # Is 'object' a Root metadata file?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
-    tuf.ssl_crypto.formats.ROOT_SCHEMA.check_match(object)
+    tuf.formats.ROOT_SCHEMA.check_match(object)
 
     version = object['version']
     expires = object['expires']
@@ -502,7 +583,7 @@ class TargetsFile(MetaFile):
   def from_metadata(object):
     # Is 'object' a Targets metadata file?
     # Raise securesystemslib.exceptions.FormatError if not.
-    tuf.ssl_crypto.formats.TARGETS_SCHEMA.check_match(object)
+    tuf.formats.TARGETS_SCHEMA.check_match(object)
 
     version = object['version']
     expires = object['expires']
@@ -529,7 +610,7 @@ class TargetsFile(MetaFile):
 
     # Is 'result' a Targets metadata file?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
-    tuf.ssl_crypto.formats.TARGETS_SCHEMA.check_match(result)
+    tuf.formats.TARGETS_SCHEMA.check_match(result)
 
     return result
 
@@ -804,7 +885,7 @@ def make_versioninfo(version_number):
   # Raise 'securesystemslib.exceptions.FormatError' if 'versioninfo' is
   # improperly formatted.
   try:
-    tuf.ssl_crypto.formats.VERSIONINFO_SCHEMA.check_match(versioninfo)
+    tuf.formats.VERSIONINFO_SCHEMA.check_match(versioninfo)
 
   except:
     raise
