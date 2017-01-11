@@ -124,6 +124,7 @@ import tuf.log
 import tuf.mirrors
 import tuf.roledb
 import tuf.sig
+import tuf.exceptions
 
 import securesystemslib.hash
 import securesystemslib.keys
