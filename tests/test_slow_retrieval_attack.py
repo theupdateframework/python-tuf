@@ -161,7 +161,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # error.  "sufficient number of bytes" assumed to be
     # >> 'settings.SLOW_START_GRACE_PERIOD' bytes.
     extra_bytes = 8
-    total_bytes = settings.SLOW_START_GRACE_PERIOD + extra_bytes
+    total_bytes = tuf.settings.SLOW_START_GRACE_PERIOD + extra_bytes
 
     repository = repo_tool.load_repository(self.repository_directory)
     file1_filepath = os.path.join(self.repository_directory, 'targets',

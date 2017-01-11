@@ -1443,7 +1443,7 @@ class Root(Metadata):
     try:
       tuf.roledb.add_role(self._rolename, roleinfo)
 
-    except securesystemslib.exceptions.RoleAlreadyExistsError:
+    except tuf.exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1505,7 +1505,7 @@ class Timestamp(Metadata):
     try:
       tuf.roledb.add_role(self.rolename, roleinfo)
 
-    except securesystemslib.exceptions.RoleAlreadyExistsError:
+    except tuf.exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1561,7 +1561,7 @@ class Snapshot(Metadata):
     try:
       tuf.roledb.add_role(self._rolename, roleinfo)
 
-    except securesystemslib.exceptions.RoleAlreadyExistsError:
+    except tuf.exceptions.RoleAlreadyExistsError:
       pass
 
 
@@ -1663,7 +1663,7 @@ class Targets(Metadata):
     try:
       tuf.roledb.add_role(self.rolename, roleinfo)
 
-    except securesystemslib.exceptions.RoleAlreadyExistsError:
+    except tuf.exceptions.RoleAlreadyExistsError:
       pass
 
 
