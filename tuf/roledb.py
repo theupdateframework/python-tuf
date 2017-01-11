@@ -1047,7 +1047,7 @@ def _check_rolename(rolename, repository_name='default'):
       ' exist: ' + repository_name)
 
   if rolename not in _roledb_dict[repository_name]:
-    raise securesystemslib.exceptions.UnknownRoleError('Role name does not'
+    raise tuf.exceptions.UnknownRoleError('Role name does not'
       ' exist: ' + rolename)
 
 
