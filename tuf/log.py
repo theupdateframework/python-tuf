@@ -199,7 +199,7 @@ def set_log_level(log_level=_DEFAULT_LOG_LEVEL):
   """
 
   # Does 'log_level' have the correct format?
-  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   logger.setLevel(log_level)
@@ -230,7 +230,7 @@ def set_filehandler_log_level(log_level=_DEFAULT_FILE_LOG_LEVEL):
   """
 
   # Does 'log_level' have the correct format?
-  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   file_handler.setLevel(log_level)
@@ -251,7 +251,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
       'log_level' examples: logging.INFO; logging.CRITICAL.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.Error, if the 'log.py' console handler has not
+    securesystems.exceptions.Error, if the 'log.py' console handler has not
     been set yet with add_console_handler().
 
   <Side Effects>
@@ -262,7 +262,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   """
 
   # Does 'log_level' have the correct format?
-  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   # Assign to the global console_handler object.
@@ -273,7 +273,7 @@ def set_console_log_level(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
 
   else:
     message = 'The console handler has not been set with add_console_handler().'
-    raise tuf.ssl_commons.exceptions.Error(message)
+    raise securesystemslib.exceptions.Error(message)
 
 
 
@@ -301,7 +301,7 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
   """
 
   # Does 'log_level' have the correct format?
-  # Raise 'tuf.ssl_commons.exceptions.FormatError' if there is a mismatch.
+  # Raise 'securesystems.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.LOGLEVEL_SCHEMA.check_match(log_level)
 
   # Assign to the global console_handler object.
