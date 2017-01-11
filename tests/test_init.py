@@ -4,11 +4,11 @@
 <Program Name>
   test_init.py
 
-<Author> 
+<Author>
   Vladimir Diaz
 
 <Started>
-  March 30, 2015. 
+  March 30, 2015.
 
 <Copyright>
   See LICENSE for licensing information.
@@ -29,7 +29,10 @@ import unittest
 import logging
 
 import tuf
+import tuf.exceptions
 import tuf.log
+
+import securesystemslib
 
 logger = logging.getLogger('tuf.test_init')
 
@@ -43,27 +46,27 @@ class TestInit(unittest.TestCase):
 
 
   def test_bad_signature_error(self):
-    bad_signature_error = tuf.ssl_commons.exceptions.BadSignatureError('bad_role')
+    bad_signature_error = securesystemslib.exceptions.BadSignatureError('bad_role')
     logger.error(bad_signature_error)
 
 
   def test_slow_retrieval_error(self):
-    slow_signature_error = tuf.ssl_commons.exceptions.SlowRetrievalError('bad_role')
+    slow_signature_error = tuf.exceptions.SlowRetrievalError('bad_role')
     logger.error(slow_signature_error)
 
 
   def test_bad_hash_error(self):
-    bad_hash_error = tuf.ssl_commons.exceptions.BadHashError('01234', '56789')
+    bad_hash_error = securesystemslib.exceptions.BadHashError('01234', '56789')
     logger.error(bad_hash_error)
 
 
   def test_invalid_metadata_json_error(self):
-    format_error = tuf.ssl_commons.exceptions.FormatError('Improperly formatted JSON')
-    invalid_metadata_json_error = tuf.ssl_commons.exceptions.InvalidMetadataJSONError(format_error)
+    format_error = securesystemslib.exceptions.FormatError('Improperly formatted JSON')
+    invalid_metadata_json_error = tuf.exceptions.InvalidMetadataJSONError(format_error)
     logger.error(invalid_metadata_json_error)
-  
 
-  
+
+
 # Run the unit tests.
 if __name__ == '__main__':
   unittest.main()
