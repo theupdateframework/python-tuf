@@ -100,6 +100,9 @@ FILEINFODICT_SCHEMA = SCHEMA.DictOf(
   value_schema = SCHEMA.OneOf([securesystemslib.formats.VERSIONINFO_SCHEMA,
                               securesystemslib.formats.FILEINFO_SCHEMA]))
 
+# A string representing a role's name.
+ROLENAME_SCHEMA = SCHEMA.AnyString()
+
 # Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
 # 'paths':[filepaths..]} format.
 ROLE_SCHEMA = SCHEMA.Object(
@@ -111,13 +114,19 @@ ROLE_SCHEMA = SCHEMA.Object(
   paths = SCHEMA.Optional(securesystemslib.formats.RELPATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(securesystemslib.formats.PATH_HASH_PREFIXES_SCHEMA))
 
+# A dict of roles where the dict keys are role names and the dict values holding
+# the role data/information.
+ROLEDICT_SCHEMA = SCHEMA.DictOf(
+  key_schema = ROLENAME_SCHEMA,
+  value_schema = ROLE_SCHEMA)
+
 # A dictionary of ROLEDICT, where dictionary keys can be repository names, and
 # dictionary values containing information for each role available on the
 # repository (corresponding to the repository belonging to named repository in
 # the dictionary key)
 ROLEDICTDB_SCHEMA = SCHEMA.DictOf(
   key_schema = securesystemslib.formats.NAME_SCHEMA,
-  value_schema = securesystemslib.formats.ROLEDICT_SCHEMA)
+  value_schema = ROLEDICT_SCHEMA)
 
 # Command argument list, as used by the CLI tool.
 # Example: {'keytype': ed25519, 'expires': 365,}
@@ -236,6 +245,15 @@ FILEINFO_SCHEMA = SCHEMA.Object(
 FILEDICT_SCHEMA = SCHEMA.DictOf(
   key_schema = RELPATH_SCHEMA,
   value_schema = FILEINFO_SCHEMA)
+
+# A dict holding a target info.
+TARGETINFO_SCHEMA = SCHEMA.Object(
+  object_name = 'TARGETINFO_SCHEMA',
+  filepath = RELPATH_SCHEMA,
+  fileinfo = FILEINFO_SCHEMA)
+
+# A list of TARGETINFO_SCHEMA.
+TARGETINFOS_SCHEMA = SCHEMA.ListOf(TARGETINFO_SCHEMA)
 
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
@@ -370,6 +388,40 @@ MIRRORLIST_SCHEMA = SCHEMA.Object(
 # Any of the role schemas (e.g., TIMESTAMP_SCHEMA, SNAPSHOT_SCHEMA, etc.)
 ANYROLE_SCHEMA = SCHEMA.OneOf([ROOT_SCHEMA, TARGETS_SCHEMA, SNAPSHOT_SCHEMA,
                                TIMESTAMP_SCHEMA, MIRROR_SCHEMA])
+
+# The format of the resulting "scp config dict" after extraction from the
+# push configuration file (i.e., push.cfg).  In the case of a config file
+# utilizing the scp transfer module, it must contain the 'general' and 'scp'
+# sections, where 'general' must contain a 'transfer_module' and
+# 'metadata_path' entry, and 'scp' the 'host', 'user', 'identity_file', and
+# 'remote_directory' entries.
+SCPCONFIG_SCHEMA = SCHEMA.Object(
+  object_name = 'SCPCONFIG_SCHEMA',
+  general = SCHEMA.Object(
+    object_name = '[general]',
+    transfer_module = SCHEMA.String('scp'),
+    metadata_path = securesystemslib.formats.PATH_SCHEMA,
+    targets_directory = securesystemslib.formats.PATH_SCHEMA),
+  scp=SCHEMA.Object(
+    object_name = '[scp]',
+    host = securesystemslib.formats.URL_SCHEMA,
+    user = securesystemslib.formats.NAME_SCHEMA,
+    identity_file = securesystemslib.formats.PATH_SCHEMA,
+    remote_directory = securesystemslib.formats.PATH_SCHEMA))
+
+# The format of the resulting "receive config dict" after extraction from the
+# receive configuration file (i.e., receive.cfg).  The receive config file
+# must contain a 'general' section, and this section the 'pushroots',
+# 'repository_directory', 'metadata_directory', 'targets_directory', and
+# 'backup_directory' entries.
+RECEIVECONFIG_SCHEMA = SCHEMA.Object(
+  object_name = 'RECEIVECONFIG_SCHEMA', general=SCHEMA.Object(
+    object_name = '[general]',
+    pushroots = SCHEMA.ListOf(securesystemslib.formats.PATH_SCHEMA),
+    repository_directory = securesystemslib.formats.PATH_SCHEMA,
+    metadata_directory = securesystemslib.formats.PATH_SCHEMA,
+    targets_directory = securesystemslib.formats.PATH_SCHEMA,
+    backup_directory = securesystemslib.formats.PATH_SCHEMA))
 
 
 
@@ -885,7 +937,7 @@ def make_versioninfo(version_number):
   # Raise 'securesystemslib.exceptions.FormatError' if 'versioninfo' is
   # improperly formatted.
   try:
-    tuf.formats.VERSIONINFO_SCHEMA.check_match(versioninfo)
+    securesystemslib.formats.VERSIONINFO_SCHEMA.check_match(versioninfo)
 
   except:
     raise
