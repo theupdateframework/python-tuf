@@ -304,7 +304,7 @@ def add_role(rolename, roleinfo, repository_name='default'):
     raise securesystemslib.exceptions.InvalidNameError('Repository name does not exist: ' + repository_name)
 
   if rolename in _roledb_dict[repository_name]:
-    raise securesystemslib.exceptions.RoleAlreadyExistsError('Role already exists: ' + rolename)
+    raise tuf.exceptions.RoleAlreadyExistsError('Role already exists: ' + rolename)
 
   _roledb_dict[repository_name][rolename] = copy.deepcopy(roleinfo)
 
@@ -389,7 +389,7 @@ def update_roleinfo(rolename, roleinfo, mark_role_as_dirty=True, repository_name
       repository_name)
 
   if rolename not in _roledb_dict[repository_name]:
-    raise securesystemslib.exceptions.UnknownRoleError('Role does not exist: ' + rolename)
+    raise tuf.exceptions.UnknownRoleError('Role does not exist: ' + rolename)
 
   # Update the global _roledb_dict and _dirty_roles structures so that
   # the latest 'roleinfo' is available to other modules, and the repository
@@ -571,7 +571,7 @@ def role_exists(rolename, repository_name='default'):
   except (securesystemslib.exceptions.FormatError, securesystemslib.exceptions.InvalidNameError):
     raise
 
-  except securesystemslib.exceptions.UnknownRoleError:
+  except tuf.exceptions.UnknownRoleError:
     return False
 
   return True
@@ -1047,8 +1047,7 @@ def _check_rolename(rolename, repository_name='default'):
       ' exist: ' + repository_name)
 
   if rolename not in _roledb_dict[repository_name]:
-    raise tuf.exceptions.UnknownRoleError('Role name does not'
-      ' exist: ' + rolename)
+    raise tuf.exceptions.UnknownRoleError('Role name does not exist: ' + rolename)
 
 
 
