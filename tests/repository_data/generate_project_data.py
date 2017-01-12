@@ -20,8 +20,9 @@ import datetime
 import optparse
 import os
 
-import tuf.ssl_crypto.util
 from tuf.developer_tool import *
+
+import securesystemslib
 
 parser = optparse.OptionParser()
 
@@ -31,7 +32,7 @@ parser.add_option("-d","--dry-run", action='store_true', dest="dry_run",
 
 
 project_key_file = 'keystore/root_key'
-targets_key_file = 'keystore/targets_key' 
+targets_key_file = 'keystore/targets_key'
 delegation_key_file = 'keystore/delegation_key'
 
 # The files we use for signing in the unit tests should exist, if they are not
@@ -59,11 +60,11 @@ os.mkdir("project/targets")
 # Create the target files (downloaded by clients) whose file size and digest
 # are specified in the 'targets.json' file.
 target1_filepath = 'project/targets/file1.txt'
-tuf.ssl_crypto.util.ensure_parent_dir(target1_filepath)
+securesystemslib.util.ensure_parent_dir(target1_filepath)
 target2_filepath = 'project/targets/file2.txt'
-tuf.ssl_crypto.util.ensure_parent_dir(target2_filepath)
+securesystemslib.util.ensure_parent_dir(target2_filepath)
 target3_filepath = 'project/targets/file3.txt'
-tuf.ssl_crypto.util.ensure_parent_dir(target2_filepath)
+securesystemslib.util.ensure_parent_dir(target2_filepath)
 
 if not options.dry_run:
   with open(target1_filepath, 'wt') as file_object:
@@ -101,6 +102,6 @@ project('role1').expiration = datetime.datetime(2030, 1, 1, 0, 0)
 # example of compressed metadata.
 project.compressions = ['gz']
 
-# Create the actual metadata files, which are saved to 'metadata.staged'. 
+# Create the actual metadata files, which are saved to 'metadata.staged'.
 if not options.dry_run:
   project.write()
