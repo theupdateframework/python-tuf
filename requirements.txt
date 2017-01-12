@@ -1,7 +1,7 @@
-simple-settings
 cryptography
 pynacl
 pycrypto
+securesystemslib
 six
 iso8601
 coverage
