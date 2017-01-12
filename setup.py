@@ -19,12 +19,12 @@
   The following shell command generates a TUF source archive that can be
   distributed to other users.  The packaged source is saved to the 'dist'
   folder in the current directory.
-  
+
   $ python setup.py sdist
 
 
   INSTALLATION OPTIONS
-   
+
   pip - installing and managing Python packages (recommended):
 
   # Installing from Python Package Index (https://pypi.python.org/pypi).
@@ -32,10 +32,10 @@
 
   # Installing from local source archive.
   $ pip install <path to archive>
-  
+
   # Or from the root directory of the unpacked archive.
-  $ pip install . 
-    
+  $ pip install .
+
   # Installing optional requirements (i.e., after installing tuf).
   # The 'tools' optional requirement is currently supported, which enables
   # fast and secure ed25519 key generation, and signature verification
@@ -49,7 +49,7 @@
 
   Navigate to the root directory of the unpacked archive and
   run one of the following shell commands:
- 
+
   Install to the global site-packages directory.
   $ python setup.py install
 
@@ -59,7 +59,7 @@
   Install to a chosen directory.
   $ python setup.py install --home=<directory>
 
-  
+
   Note: The last two installation options may require modification of
   Python's search path (i.e., 'sys.path') or updating an OS environment
   variable.  For example, installing to the user site-packages directory might
@@ -72,7 +72,8 @@ from setuptools import setup
 from setuptools import find_packages
 
 extras = {
-  'tools': ['cryptography>=1.4.0', 'pycrypto>=2.6.1', 'pynacl>=0.2.3']
+  'tools': ['cryptography>=1.4.0', 'pycrypto>=2.6.1', 'pynacl>=0.2.3',
+    'securesystemslib>=0.10.0']
 }
 
 with open('README.rst') as file_object:
@@ -108,7 +109,7 @@ setup(
     'Topic :: Security',
     'Topic :: Software Development'
   ],
-  install_requires = ['iso8601', 'six', 'simple-settings'],
+  install_requires = ['iso8601', 'six', 'securesystemslib'],
   packages = find_packages(exclude=['tests']),
   extras_require = extras,
   scripts = [
