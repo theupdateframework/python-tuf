@@ -14,7 +14,7 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Test root versioning for efficient root key rotation. 
+  Test root versioning for efficient root key rotation.
 """
 
 from __future__ import print_function
@@ -37,10 +37,12 @@ else:
 import tuf
 import tuf.log
 import tuf.formats
+import tuf.exceptions
 import tuf.roledb
-import tuf.ssl_crypto.keydb
-import tuf.ssl_crypto.hash
+import tuf.keydb
 import tuf.repository_tool as repo_tool
+
+import securesystemslib
 
 logger = logging.getLogger('tuf.test_root_versioning')
 
@@ -59,7 +61,7 @@ class TestRepository(unittest.TestCase):
 
   def tearDown(self):
     tuf.roledb.clear_roledb()
-    tuf.ssl_crypto.keydb.clear_keydb()
+    tuf.keydb.clear_keydb()
 
   def test_init(self):
     # Test normal case.
@@ -72,11 +74,11 @@ class TestRepository(unittest.TestCase):
     self.assertTrue(isinstance(repository.targets, repo_tool.Targets))
 
     # Test improperly formatted arguments.
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository, 3,
+    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository, 3,
                       'metadata_directory/', 'targets_directory')
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository,
+    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
                       'repository_directory', 3, 'targets_directory')
-    self.assertRaises(tuf.ssl_commons.exceptions.FormatError, repo_tool.Repository,
+    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.Repository,
                       'repository_directory', 'metadata_directory', 3)
 
 
@@ -113,14 +115,14 @@ class TestRepository(unittest.TestCase):
     # (1) Load the public and private keys of the top-level roles, and one
     # delegated role.
     keystore_directory = os.path.join('repository_data', 'keystore')
-    
+
     # Load the public keys.
     root_pubkey_path = os.path.join(keystore_directory, 'root_key.pub')
     targets_pubkey_path = os.path.join(keystore_directory, 'targets_key.pub')
     snapshot_pubkey_path = os.path.join(keystore_directory, 'snapshot_key.pub')
     timestamp_pubkey_path = os.path.join(keystore_directory, 'timestamp_key.pub')
     role1_pubkey_path = os.path.join(keystore_directory, 'delegation_key.pub')
-    
+
     root_pubkey = repo_tool.import_rsa_publickey_from_file(root_pubkey_path)
     targets_pubkey = repo_tool.import_ed25519_publickey_from_file(targets_pubkey_path)
     snapshot_pubkey = \
@@ -128,14 +130,14 @@ class TestRepository(unittest.TestCase):
     timestamp_pubkey = \
       repo_tool.import_ed25519_publickey_from_file(timestamp_pubkey_path)
     role1_pubkey = repo_tool.import_ed25519_publickey_from_file(role1_pubkey_path)
-    
+
     # Load the private keys.
     root_privkey_path = os.path.join(keystore_directory, 'root_key')
     targets_privkey_path = os.path.join(keystore_directory, 'targets_key')
     snapshot_privkey_path = os.path.join(keystore_directory, 'snapshot_key')
     timestamp_privkey_path = os.path.join(keystore_directory, 'timestamp_key')
     role1_privkey_path = os.path.join(keystore_directory, 'delegation_key')
-    
+
     root_privkey = \
       repo_tool.import_rsa_privatekey_from_file(root_privkey_path, 'password')
     targets_privkey = \
@@ -149,81 +151,81 @@ class TestRepository(unittest.TestCase):
     role1_privkey = \
       repo_tool.import_ed25519_privatekey_from_file(role1_privkey_path,
                                                 'password')
-    
-    
+
+
     # (2) Add top-level verification keys.
     repository.root.add_verification_key(root_pubkey)
     repository.targets.add_verification_key(targets_pubkey)
     repository.snapshot.add_verification_key(snapshot_pubkey)
     repository.timestamp.add_verification_key(timestamp_pubkey)
-    
-    
+
+
     # (3) Load top-level signing keys.
     repository.root.load_signing_key(root_privkey)
     repository.targets.load_signing_key(targets_privkey)
     repository.snapshot.load_signing_key(snapshot_privkey)
     repository.timestamp.load_signing_key(timestamp_privkey)
-    
+
     # (4) Add target files.
     target1 = os.path.join(targets_directory, 'file1.txt')
     target2 = os.path.join(targets_directory, 'file2.txt')
     target3 = os.path.join(targets_directory, 'file3.txt')
     repository.targets.add_target(target1)
     repository.targets.add_target(target2)
-    
-    
+
+
     # (5) Perform delegation.
     repository.targets.delegate('role1', [role1_pubkey], [target3])
     repository.targets('role1').load_signing_key(role1_privkey)
-    
+
     # (6) Write repository.
     repository.targets.compressions = ['gz']
     repository.writeall()
-    
+
     self.assertTrue(os.path.exists(os.path.join(metadata_directory, 'root.json')))
     self.assertTrue(os.path.exists(os.path.join(metadata_directory, '1.root.json')))
-    
-    
+
+
     # Verify that the expected metadata is written.
     root_filepath = os.path.join(metadata_directory, 'root.json')
     root_1_filepath = os.path.join(metadata_directory, '1.root.json')
     root_2_filepath = os.path.join(metadata_directory, '2.root.json')
-    old_root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
-    root_1_signable = tuf.ssl_crypto.util.load_json_file(root_1_filepath)
-    
+    old_root_signable = securesystemslib.util.load_json_file(root_filepath)
+    root_1_signable = securesystemslib.util.load_json_file(root_1_filepath)
+
     # Make a change to the root keys
     repository.root.add_verification_key(targets_pubkey)
     repository.root.load_signing_key(targets_privkey)
     repository.root.threshold = 2
     repository.writeall()
 
-    new_root_signable = tuf.ssl_crypto.util.load_json_file(root_filepath)
-    root_2_signable = tuf.ssl_crypto.util.load_json_file(root_2_filepath)
-    
+    new_root_signable = securesystemslib.util.load_json_file(root_filepath)
+    root_2_signable = securesystemslib.util.load_json_file(root_2_filepath)
+
     for role_signable in [old_root_signable, new_root_signable, root_1_signable, root_2_signable]:
-      # Raise 'tuf.ssl_commons.exceptions.FormatError' if 'role_signable' is an
+      # Raise 'securesystemslib.exceptions.FormatError' if 'role_signable' is an
       # invalid signable.
       tuf.formats.check_signable_object_format(role_signable)
-    
+
     # Verify contents of versioned roots
     self.assertEqual(old_root_signable, root_1_signable)
     self.assertEqual(new_root_signable, root_2_signable)
-    
+
     self.assertEqual(root_1_signable['signed']['version'], 1)
     self.assertEqual(root_2_signable['signed']['version'], 2)
-    
+
     repository.root.remove_verification_key(root_pubkey)
     repository.root.unload_signing_key(root_privkey)
     repository.root.threshold = 2
-   
-    # Errors, not enough signing keys to satisfy old threshold 
-    self.assertRaises(tuf.ssl_commons.exceptions.UnsignedMetadataError, repository.writeall)
-    
+
+    # Errors, not enough signing keys to satisfy old threshold
+    self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall)
+
     # No error, write() ignore's root's threshold and allows it to be written
     # to disk partially signed.
     repository.write('root')
-    
-    
-      
+
+
+
 if __name__ == '__main__':
   unittest.main()
