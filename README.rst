@@ -72,7 +72,7 @@ TUF is designed to perform the first two steps of the above update procedure,
 while guarding against the majority of attacks that malicious actors have at
 their disposal; especially those attacks that are overlooked by security-conscious
 developers.
- 
+
 
 Background
 ----------
@@ -169,7 +169,7 @@ Installation
     $ pip install <path to archive>
 
     Or from the root directory of the unpacked archive.
-    $ pip install . 
+    $ pip install .
 
 Installation of Optional Requirements (after minimal install)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -225,7 +225,7 @@ development header files. Debian-based distributions can install these header
 libraries with apt (Advanced Package Tool.)
 ::
 
-    $ apt-get install build-essential libssl-dev libffi-dev python-dev 
+    $ apt-get install build-essential libssl-dev libffi-dev python-dev
 
 Fedora-based distributions can install these libraries with dnf.
 ::
@@ -237,22 +237,6 @@ OS X users can install these header libraries with the `Homebrew <http://brew.sh
 
     $ brew install python
     $ brew install libffi
-
-Cloning Git Repository
-======================
-
-Since this Git repository uses submodules, the --recursive option should be
-used when cloning:
-::
-    $ git clone --recursive git@github.com:theupdateframework/tuf.git
-    (or https for the transfer protocol)
-
-The command above works for Git version 1.6.5 and later.  For older versions
-or already cloned repositories, please use:
-::
-
-    $ git clone git@github.com:theupdateframework/tuf.git
-    $ git submodule update --init --recursive
 
 Development Installation
 ========================
