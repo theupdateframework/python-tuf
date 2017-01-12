@@ -191,7 +191,7 @@ class TestRepository(unittest.TestCase):
 
     # Verify that repository.writeall() fails for insufficient threshold
     # of signatures (default threshold = 1).
-    self.assertRaises(securesystemslib.exceptions.UnsignedMetadataError, repository.writeall)
+    self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall)
 
     repository.timestamp.add_verification_key(timestamp_pubkey)
 
@@ -207,7 +207,7 @@ class TestRepository(unittest.TestCase):
 
     # Verify that repository.writeall() fails for insufficient threshold
     # of signatures (default threshold = 1).
-    self.assertRaises(securesystemslib.exceptions.UnsignedMetadataError, repository.writeall)
+    self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall)
 
     repository.timestamp.load_signing_key(timestamp_privkey)
 
@@ -279,7 +279,7 @@ class TestRepository(unittest.TestCase):
     role1_roleinfo['threshold'] = old_role1_threshold
     tuf.roledb.update_roleinfo('role1', role1_roleinfo)
 
-    # Verify status() does not raise 'securesystemslib.exceptions.UnsignedMetadataError' if any of the
+    # Verify status() does not raise 'tuf.exceptions.UnsignedMetadataError' if any of the
     # the top-level roles. Test that 'root' is improperly signed.
     repository.root.unload_signing_key(root_privkey)
     repository.root.load_signing_key(targets_privkey)
@@ -321,7 +321,7 @@ class TestRepository(unittest.TestCase):
     repo_tool.load_repository(repository_directory)
 
     repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 12, 0)
-    self.assertRaises(securesystemslib.exceptions.UnsignedMetadataError, repository.writeall)
+    self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall)
 
     # Next, perform a writeall() with consistent snapshots enabled.
     # Since the timestamp was modified, load its private key.
@@ -331,7 +331,7 @@ class TestRepository(unittest.TestCase):
     # snapshot modifies the Root metadata, which specifies whether a repository
     # supports consistent snapshots.  Verify that an exception is raised due to
     # the missing signatures of Root and Snapshot.
-    self.assertRaises(securesystemslib.exceptions.UnsignedMetadataError, repository.writeall, True)
+    self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall, True)
 
     # Load the private keys of Root and Snapshot (new version required since
     # Root will change to enable consistent snapshots.

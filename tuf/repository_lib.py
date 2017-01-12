@@ -43,7 +43,7 @@ import random
 
 import tuf
 import tuf.formats
-
+import tuf.exceptions
 import tuf.keydb
 import tuf.roledb
 import tuf.sig
@@ -237,7 +237,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       tuf.roledb.update_roleinfo(rolename, roleinfo)
 
       # Note that 'signable' is an argument to tuf.UnsignedMetadataError().
-      raise securesystemslib.exceptions.UnsignedMetadataError('Not enough'
+      raise tuf.exceptions.UnsignedMetadataError('Not enough'
         ' signatures for ' + repr(metadata_filename), signable)
 
   # 'rolename' is a delegated role or a top-level role that is partially
@@ -1926,16 +1926,15 @@ def sign_metadata(metadata_object, keyids, filename):
 
     # Load the signing key.
     key = tuf.keydb.get_key(keyid)
-
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
         signed = signable['signed']
         try:
-          signature = securesystemslib.create_signature(key, signed)
+          signature = securesystemslib.keys.create_signature(key, signed)
           signable['signatures'].append(signature)
 
-        except Exception:
+        except Exception as e:
           logger.warning('Unable to create signature for keyid: ' + repr(keyid))
 
       else:
@@ -2244,9 +2243,9 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
                                    targets_directory, metadata_directory)
     _log_status('root', signable)
 
-  # 'securesystemslib.exceptions.UnsignedMetadataError' raised if metadata contains an invalid threshold
+  # 'tuf.exceptions.UnsignedMetadataError' raised if metadata contains an invalid threshold
   # of signatures.  log the valid/threshold message, where valid < threshold.
-  except securesystemslib.exceptions.UnsignedMetadataError as e:
+  except tuf.exceptions.UnsignedMetadataError as e:
     _log_status('root', e.signable)
     return
 
@@ -2270,7 +2269,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
                                    targets_directory, metadata_directory)
     _log_status('targets', signable)
 
-  except securesystemslib.exceptions.UnsignedMetadataError as e:
+  except tuf.exceptions.UnsignedMetadataError as e:
     _log_status('targets', e.signable)
     return
 
@@ -2296,7 +2295,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
                                    False, filenames)
     _log_status('snapshot', signable)
 
-  except securesystemslib.exceptions.UnsignedMetadataError as e:
+  except tuf.exceptions.UnsignedMetadataError as e:
     _log_status('snapshot', e.signable)
     return
 
@@ -2322,7 +2321,7 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory):
                                    False, filenames)
     _log_status('timestamp', signable)
 
-  except securesystemslib.exceptions.UnsignedMetadataError as e:
+  except tuf.exceptions.UnsignedMetadataError as e:
     _log_status('timestamp', e.signable)
     return
 

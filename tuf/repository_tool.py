@@ -200,7 +200,7 @@ class Repository(object):
         By default, all metadata is compressed with gzip.
 
     <Exceptions>
-      securesystemslib.exceptions.UnsignedMetadataError, if any of the top-level
+      tuf.exceptions.UnsignedMetadataError, if any of the top-level
       and delegated roles do not have the minimum threshold of signatures.
 
     <Side Effects>
@@ -212,16 +212,16 @@ class Repository(object):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'securesystemslib.exceptions.FormatError' if any are improperly
+    # formatted.
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
     tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
 
-    # At this point, tuf.keydb and tuf.roledb must be fully
-    # populated, otherwise writeall() throws a
-    # 'securesystemslib.exceptions.UnsignedMetadataError' for the top-level
-    # roles.  exception if any of the top-level roles are missing signatures,
-    # keys, etc.
+    # At this point, tuf.keydb and tuf.roledb must be fully populated,
+    # otherwise writeall() throws a 'tuf.exceptions.UnsignedMetadataError' for
+    # the top-level roles.  exception if any of the top-level roles are missing
+    # signatures, keys, etc.
 
     # Write the metadata files of all the Targets roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
