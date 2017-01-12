@@ -63,6 +63,7 @@ import optparse
 import logging
 
 import tuf
+from simple_settings import settings
 import tuf.ssl_commons.exceptions
 import tuf.client.updater
 import tuf.log
