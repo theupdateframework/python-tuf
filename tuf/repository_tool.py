@@ -43,6 +43,7 @@ import tuf.formats
 import tuf.roledb
 import tuf.sig
 import tuf.log
+import tuf.exceptions
 import tuf.repository_lib as repo_lib
 
 from tuf.repository_lib import generate_and_write_rsa_keypair
