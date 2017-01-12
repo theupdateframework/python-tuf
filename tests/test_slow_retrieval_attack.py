@@ -25,7 +25,7 @@
   never complete.  Test cases included for two types of slow retrievals: data
   that slowly trickles in, and data that is only returned after a long time
   delay.  TUF prevents slow retrieval attacks by ensuring the download rate
-  does not fall below a required rate (settings.MIN_AVERAGE_DOWNLOAD_SPEED).
+  does not fall below a required rate (tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED).
 
   Note: There is no difference between 'updates' and 'target' files.
 """
@@ -159,7 +159,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # sleep for a  total of (target file size) seconds.  Add a target file
     # that contains sufficient number of bytes to trigger a slow retrieval
     # error.  "sufficient number of bytes" assumed to be
-    # >> 'settings.SLOW_START_GRACE_PERIOD' bytes.
+    # >> 'tuf.settings.SLOW_START_GRACE_PERIOD' bytes.
     extra_bytes = 8
     total_bytes = tuf.settings.SLOW_START_GRACE_PERIOD + extra_bytes
 
@@ -197,9 +197,9 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath
 
-    # Setting 'settings.repository_directory' with the temporary client
+    # Setting 'tuf.settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    settings.repository_directory = self.client_directory
+    tuf.settings.repository_directory = self.client_directory
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -217,7 +217,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.util.clear_keydb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
   def test_with_tuf_mode_1(self):
@@ -234,16 +234,16 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
       file1_target = self.repository_updater.get_one_valid_targetinfo('file1.txt')
       self.repository_updater.download_target(file1_target, self.client_directory)
 
-    # Verify that the specific 'tuf.ssl_commons.exceptions.SlowRetrievalError' exception is raised by
+    # Verify that the specific 'tuf.exceptions.SlowRetrievalError' exception is raised by
     # each mirror.
-    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
+    except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.SlowRetrievalError))
+        self.assertTrue(isinstance(mirror_error, tuf.exceptions.SlowRetrievalError))
 
     else:
       self.fail('TUF did not prevent a slow retrieval attack.')
@@ -260,25 +260,25 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
     server_process = self._start_slow_server('mode_2')
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
-    original_average_download_speed = settings.MIN_AVERAGE_DOWNLOAD_SPEED
-    settings.MIN_AVERAGE_DOWNLOAD_SPEED = 3
+    original_average_download_speed = tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED
+    tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED = 3
 
     try:
       file1_target = self.repository_updater.get_one_valid_targetinfo('file1.txt')
       self.repository_updater.download_target(file1_target, self.client_directory)
 
-    # Verify that the specific 'tuf.ssl_commons.exceptions.SlowRetrievalError' exception is raised by
+    # Verify that the specific 'tuf.exceptions.SlowRetrievalError' exception is raised by
     # each mirror.  'file1.txt' should be large enough to trigger a slow
     # retrieval attack, otherwise the expected exception may not be
     # consistently raised.
-    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
+    except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
 
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.SlowRetrievalError))
+        self.assertTrue(isinstance(mirror_error, tuf.exceptions.SlowRetrievalError))
 
     else:
       # Another possibility is to check for a successfully downloaded
@@ -287,7 +287,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
     finally:
       self._stop_slow_server(server_process)
-      settings.MIN_AVERAGE_DOWNLOAD_SPEED = original_average_download_speed
+      tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED = original_average_download_speed
 
 
 if __name__ == '__main__':
