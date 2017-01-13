@@ -71,11 +71,6 @@
 from setuptools import setup
 from setuptools import find_packages
 
-extras = {
-  'tools': ['cryptography>=1.4.0', 'pycrypto>=2.6.1', 'pynacl>=0.2.3',
-    'securesystemslib>=0.10.0']
-}
-
 with open('README.rst') as file_object:
   long_description = file_object.read()
 
@@ -111,7 +106,6 @@ setup(
   ],
   install_requires = ['iso8601', 'six', 'securesystemslib'],
   packages = find_packages(exclude=['tests']),
-  extras_require = extras,
   scripts = [
     'tuf/scripts/basic_client.py',
     'tuf/scripts/tufcli.py'
