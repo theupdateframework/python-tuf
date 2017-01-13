@@ -72,7 +72,7 @@ TUF is designed to perform the first two steps of the above update procedure,
 while guarding against the majority of attacks that malicious actors have at
 their disposal; especially those attacks that are overlooked by security-conscious
 developers.
- 
+
 
 Background
 ----------
@@ -169,31 +169,7 @@ Installation
     $ pip install <path to archive>
 
     Or from the root directory of the unpacked archive.
-    $ pip install . 
-
-Installation of Optional Requirements (after minimal install)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The optional ``tuf[tools]`` can be installed by repository maintainers
-that need to generate TUF repository files, such as metadata,
-cryptographic keys, and signatures. Whereas the minimal install can only
-verify ed25519 signatures and is intended for sofware updater clients,
-``tuf[tools]`` provides repository maintainers secure ed25519 key and
-signature verification with `PyNaCl <https://pynacl.readthedocs.io/en/latest/>`_,
-a Python binding to the Networking and Cryptography (NaCl) library.
-
-TUF tools also enable general-purpose cryptography with PyCrypto
-and/or PyCA's Cryptography.  Software updaters that want to support
-verification of RSASSA-PSS signatures should require their clients
-to install ``tuf[tools]``.
-
-Installing extras does not work if minimal install was a wheel (pip <= 1.5.6.)
-`https://github.com/pypa/pip/issues/1885 <https://github.com/pypa/pip/issues/1885>`_
-
-::
-
-    $ pip install --no-use-wheel tuf
-    $ pip install tuf[tools]
+    $ pip install .
 
 Instructions for Contributors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -225,7 +201,7 @@ development header files. Debian-based distributions can install these header
 libraries with apt (Advanced Package Tool.)
 ::
 
-    $ apt-get install build-essential libssl-dev libffi-dev python-dev 
+    $ apt-get install build-essential libssl-dev libffi-dev python-dev
 
 Fedora-based distributions can install these libraries with dnf.
 ::
@@ -237,22 +213,6 @@ OS X users can install these header libraries with the `Homebrew <http://brew.sh
 
     $ brew install python
     $ brew install libffi
-
-Cloning Git Repository
-======================
-
-Since this Git repository uses submodules, the --recursive option should be
-used when cloning:
-::
-    $ git clone --recursive git@github.com:theupdateframework/tuf.git
-    (or https for the transfer protocol)
-
-The command above works for Git version 1.6.5 and later.  For older versions
-or already cloned repositories, please use:
-::
-
-    $ git clone git@github.com:theupdateframework/tuf.git
-    $ git submodule update --init --recursive
 
 Development Installation
 ========================

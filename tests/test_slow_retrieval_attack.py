@@ -25,7 +25,7 @@
   never complete.  Test cases included for two types of slow retrievals: data
   that slowly trickles in, and data that is only returned after a long time
   delay.  TUF prevents slow retrieval attacks by ensuring the download rate
-  does not fall below a required rate (settings.MIN_AVERAGE_DOWNLOAD_SPEED).
+  does not fall below a required rate (tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED).
 
   Note: There is no difference between 'updates' and 'target' files.
 """
@@ -54,16 +54,15 @@ if sys.version_info >= (2, 7):
   import unittest
 
 else:
-  import unittest2 as unittest 
+  import unittest2 as unittest
 
-import tuf.ssl_crypto.util
 import tuf.log
 import tuf.client.updater as updater
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
 import tuf.roledb
-import tuf.ssl_crypto.keydb
-from simple_settings import settings
+import tuf.keydb
+
 import six
 
 logger = logging.getLogger('tuf.test_slow_retrieval_attack')
@@ -75,20 +74,20 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
   @classmethod
   def setUpClass(cls):
     # setUpClass() is called before any of the test cases are executed.
-    
+
     # Create a temporary directory to store the repository, metadata, and target
     # files.  'temporary_directory' must be deleted in TearDownModule() so that
-    # temporary files are always removed, even when exceptions occur. 
+    # temporary files are always removed, even when exceptions occur.
     cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
     cls.SERVER_PORT = random.randint(30000, 45000)
 
 
 
-  @classmethod 
+  @classmethod
   def tearDownClass(cls):
     # tearDownModule() is called after all the test cases have run.
     # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
-   
+
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated of all the test cases.
     shutil.rmtree(cls.temporary_directory)
@@ -99,7 +98,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # Launch a SimpleHTTPServer (serves files in the current directory).
     # Test cases will request metadata and target files that have been
     # pre-generated in 'tuf/tests/repository_data', which will be served by the
-    # SimpleHTTPServer launched here.  The test cases of this unit test assume 
+    # SimpleHTTPServer launched here.  The test cases of this unit test assume
     # the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
@@ -115,7 +114,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     time.sleep(1)
 
     return server_process
-   
+
 
 
   def _stop_slow_server(self, server_process):
@@ -123,46 +122,46 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     if server_process.returncode is None:
       logger.info('Server process '+str(server_process.pid)+' terminated.')
       server_process.kill()
-    
+
 
 
   def setUp(self):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
-  
+
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
     # The 'repository_data' directory is expected to exist in 'tuf/tests/'.
-    original_repository_files = os.path.join(os.getcwd(), 'repository_data') 
+    original_repository_files = os.path.join(os.getcwd(), 'repository_data')
     temporary_repository_root = \
       self.make_temp_directory(directory=self.temporary_directory)
-  
+
     # The original repository, keystore, and client directories will be copied
-    # for each test case. 
+    # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
     original_client = os.path.join(original_repository_files, 'client')
     original_keystore = os.path.join(original_repository_files, 'keystore')
-    
+
     # Save references to the often-needed client repository directories.
-    # Test cases need these references to access metadata and target files. 
+    # Test cases need these references to access metadata and target files.
     self.repository_directory = \
       os.path.join(temporary_repository_root, 'repository')
     self.client_directory = os.path.join(temporary_repository_root, 'client')
     self.keystore_directory = os.path.join(temporary_repository_root, 'keystore')
-    
+
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
     shutil.copytree(original_repository, self.repository_directory)
     shutil.copytree(original_client, self.client_directory)
     shutil.copytree(original_keystore, self.keystore_directory)
-    
+
     # The slow retrieval server, in mode 2 (1 byte per second), will only
     # sleep for a  total of (target file size) seconds.  Add a target file
     # that contains sufficient number of bytes to trigger a slow retrieval
     # error.  "sufficient number of bytes" assumed to be
-    # >> 'settings.SLOW_START_GRACE_PERIOD' bytes.
+    # >> 'tuf.settings.SLOW_START_GRACE_PERIOD' bytes.
     extra_bytes = 8
-    total_bytes = settings.SLOW_START_GRACE_PERIOD + extra_bytes 
+    total_bytes = tuf.settings.SLOW_START_GRACE_PERIOD + extra_bytes
 
     repository = repo_tool.load_repository(self.repository_directory)
     file1_filepath = os.path.join(self.repository_directory, 'targets',
@@ -171,36 +170,36 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
       data = 'a' * total_bytes
       file_object.write(data.encode('utf-8'))
 
-    key_file = os.path.join(self.keystore_directory, 'timestamp_key') 
+    key_file = os.path.join(self.keystore_directory, 'timestamp_key')
     timestamp_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
-    key_file = os.path.join(self.keystore_directory, 'snapshot_key') 
+    key_file = os.path.join(self.keystore_directory, 'snapshot_key')
     snapshot_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
-    key_file = os.path.join(self.keystore_directory, 'targets_key') 
+    key_file = os.path.join(self.keystore_directory, 'targets_key')
     targets_private = repo_tool.import_ed25519_privatekey_from_file(key_file,
                                                                   'password')
 
     repository.targets.load_signing_key(targets_private)
     repository.snapshot.load_signing_key(snapshot_private)
     repository.timestamp.load_signing_key(timestamp_private)
-    
+
     repository.writeall()
-    
+
     # Move the staged metadata to the "live" metadata.
     shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
-    
+
     # Set the url prefix required by the 'tuf/client/updater.py' updater.
-    # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'. 
+    # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
     url_prefix = \
-      'http://localhost:' + str(self.SERVER_PORT) + repository_basepath 
-    
-    # Setting 'settings.repository_directory' with the temporary client
+      'http://localhost:' + str(self.SERVER_PORT) + repository_basepath
+
+    # Setting 'tuf.settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    settings.repository_directory = self.client_directory 
+    tuf.settings.repository_directory = self.client_directory
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -210,7 +209,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # updater to refresh metadata, fetch target files, etc.
     self.repository_updater = updater.Updater('test_repository',
                                               self.repository_mirrors)
-    
+
 
 
   def tearDown(self):
@@ -218,7 +217,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
     tuf.roledb.clear_roledb(clear_all=True)
-    tuf.ssl_crypto.keydb.clear_keydb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
   def test_with_tuf_mode_1(self):
@@ -227,25 +226,25 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
     # time by doing nothing before it sends the first byte of data.
 
     server_process = self._start_slow_server('mode_1')
-   
+
     # Verify that the TUF client detects replayed metadata and refuses to
     # continue the update process.
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
     try:
       file1_target = self.repository_updater.get_one_valid_targetinfo('file1.txt')
       self.repository_updater.download_target(file1_target, self.client_directory)
-     
-    # Verify that the specific 'tuf.ssl_commons.exceptions.SlowRetrievalError' exception is raised by
+
+    # Verify that the specific 'tuf.exceptions.SlowRetrievalError' exception is raised by
     # each mirror.
-    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
+    except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
-       
+
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.SlowRetrievalError))
-    
+        self.assertTrue(isinstance(mirror_error, tuf.exceptions.SlowRetrievalError))
+
     else:
       self.fail('TUF did not prevent a slow retrieval attack.')
 
@@ -256,31 +255,31 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
   def test_with_tuf_mode_2(self):
     # Simulate a slow retrieval attack.
-    # 'mode_2': During the download process, the server blocks the download 
+    # 'mode_2': During the download process, the server blocks the download
     # by sending just several characters every few seconds.
 
     server_process = self._start_slow_server('mode_2')
     client_filepath = os.path.join(self.client_directory, 'file1.txt')
-    original_average_download_speed = settings.MIN_AVERAGE_DOWNLOAD_SPEED 
-    settings.MIN_AVERAGE_DOWNLOAD_SPEED = 3
+    original_average_download_speed = tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED
+    tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED = 3
 
     try:
       file1_target = self.repository_updater.get_one_valid_targetinfo('file1.txt')
       self.repository_updater.download_target(file1_target, self.client_directory)
 
-    # Verify that the specific 'tuf.ssl_commons.exceptions.SlowRetrievalError' exception is raised by
+    # Verify that the specific 'tuf.exceptions.SlowRetrievalError' exception is raised by
     # each mirror.  'file1.txt' should be large enough to trigger a slow
     # retrieval attack, otherwise the expected exception may not be
     # consistently raised.
-    except tuf.ssl_commons.exceptions.NoWorkingMirrorError as exception:
+    except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
         url_file = os.path.join(url_prefix, 'targets', 'file1.txt')
-       
+
         # Verify that 'file1.txt' is the culprit.
         self.assertEqual(url_file, mirror_url)
-        self.assertTrue(isinstance(mirror_error, tuf.ssl_commons.exceptions.SlowRetrievalError))
-    
+        self.assertTrue(isinstance(mirror_error, tuf.exceptions.SlowRetrievalError))
+
     else:
       # Another possibility is to check for a successfully downloaded
       # 'file1.txt' at this point.
@@ -288,7 +287,7 @@ class TestSlowRetrievalAttack(unittest_toolbox.Modified_TestCase):
 
     finally:
       self._stop_slow_server(server_process)
-      settings.MIN_AVERAGE_DOWNLOAD_SPEED = original_average_download_speed 
+      tuf.settings.MIN_AVERAGE_DOWNLOAD_SPEED = original_average_download_speed
 
 
 if __name__ == '__main__':

@@ -28,10 +28,9 @@ from __future__ import unicode_literals
 import os
 
 import tuf
-import tuf.ssl_crypto.util
-import tuf.ssl_crypto.formats
-import tuf.ssl_commons.exceptions
+import tuf.formats
 
+import securesystemslib
 import six
 
 # The type of file to be downloaded from a repository.  The
@@ -70,9 +69,9 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       The 'custom' field is optional.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.Error, on unsupported 'file_type'.
-    
-    tuf.ssl_commons.exceptions.FormatError, on bad argument.
+    securesystemslib.exceptions.Error, on unsupported 'file_type'.
+
+    securesystemslib.exceptions.FormatError, on bad argument.
 
   <Return>
     List of mirror urls corresponding to the file_type and file_path.  If no
@@ -80,22 +79,22 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   """
 
   # Checking if all the arguments have appropriate format.
-  tuf.ssl_crypto.formats.RELPATH_SCHEMA.check_match(file_path)
-  tuf.ssl_crypto.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
-  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(file_type)
+  securesystemslib.formats.RELPATH_SCHEMA.check_match(file_path)
+  tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
+  securesystemslib.formats.NAME_SCHEMA.check_match(file_type)
 
   # Verify 'file_type' is supported.
   if file_type not in _SUPPORTED_FILE_TYPES:
-    raise tuf.ssl_commons.exceptions.Error('Invalid file_type argument.'
+    raise securesystemslib.exceptions.Error('Invalid file_type argument.'
       '  Supported file types: ' + repr(_SUPPORTED_FILE_TYPES))
 
-  # Reference to 'tuf.ssl_crypto.util.file_in_confined_directories()' (improve
+  # Reference to 'securesystemslib.util.file_in_confined_directories()' (improve
   # readability).  This function checks whether a mirror should serve a file to
   # the client.  A client may be confined to certain paths on a repository
   # mirror when fetching target files.  This field may be set by the client
   # when the repository mirror is added to the 'tuf.client.updater.Updater'
   # object.
-  in_confined_directory = tuf.ssl_crypto.util.file_in_confined_directories
+  in_confined_directory = securesystemslib.util.file_in_confined_directories
 
   list_of_mirrors = []
   for mirror_name, mirror_info in six.iteritems(mirrors_dict):
@@ -118,7 +117,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # the URL as UTF-8. We need a long-term solution with #61.
     # http://bugs.python.org/issue1712522
     file_path = six.moves.urllib.parse.quote(file_path)
-    url = base + '/' + file_path.lstrip(os.sep) 
+    url = base + '/' + file_path.lstrip(os.sep)
     list_of_mirrors.append(url)
 
   return list_of_mirrors

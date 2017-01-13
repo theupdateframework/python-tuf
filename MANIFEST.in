@@ -9,8 +9,6 @@ include tests/repository_data/keystore/root_key
 include tests/repository_data/keystore/snapshot_key
 include tests/repository_data/keystore/targets_key
 include tests/repository_data/keystore/timestamp_key
-include ssl_crypto/_vendor/ed25519/test_data/ed25519
-include ssl_crypto/_vendor/ed25519/LICENSE
 
 recursive-include docs *.txt
 recursive-include docs/papers *.pdf
