@@ -71,6 +71,7 @@
 from setuptools import setup
 from setuptools import find_packages
 
+
 with open('README.rst') as file_object:
   long_description = file_object.read()
 
@@ -104,7 +105,7 @@ setup(
     'Topic :: Security',
     'Topic :: Software Development'
   ],
-  install_requires = ['iso8601', 'six', 'securesystemslib'],
+  install_requires = ['iso8601', 'six', 'securesystemslib>=0.10.2'],
   packages = find_packages(exclude=['tests']),
   scripts = [
     'tuf/scripts/basic_client.py',
