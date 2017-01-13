@@ -1236,7 +1236,8 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   # 'password'.  Raise 'securesystemslib.exceptions.CryptoError' or
   # 'securesystemslib.exceptions.UnsupportedLibraryError' if the decryption
   # fails.
-  key_object = securesystemslib.keys.decrypt_key(encrypted_key, password)
+  key_object = securesystemslib.keys.decrypt_key(encrypted_key.decode('utf-8'),
+    password)
 
   # Raise an exception if an unexpected key type is imported.
   if key_object['keytype'] != 'ed25519':
