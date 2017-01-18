@@ -43,7 +43,7 @@ TargetsModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     hashes          Hashes
   }
   Custom ::= SEQUENCE {
-    -- NOTE: The following attributes are specified by both the supplier and
+    -- NOTE: The following attributes are specified by both the image and
     -- director repositories.
     -- The release counter is used to prevent rollback attacks on images when
     -- only the director repository is compromised.
