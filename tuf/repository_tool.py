@@ -463,10 +463,17 @@ class Repository(object):
         str(tuf.roledb.get_dirty_roles(self.repository_name)))
 
 
+  def mark_dirty(self, roles):
+    # Fixing bug in this version of TUF. This is handled in more recent versions
+    # of TUF. (Bug results in more role writes than necessary.)
+    # This code is excerpted from more recent TUF versions.
+    # TODO: When merging, mind this.
+    tuf.roledb.mark_dirty(roles, self.repository_name)
+
 
   def unmark_dirty(self, roles):
     # Fixing bug in this version of TUF. This is handled in more recent versions
-    # of TUF. (Bug results in many more role writes than necessary.)
+    # of TUF. (Bug results in more role writes than necessary.)
     # This code is excerpted from more recent TUF versions.
     # TODO: When merging, mind this.
     tuf.roledb.unmark_dirty(roles, self.repository_name)
