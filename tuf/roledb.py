@@ -430,6 +430,29 @@ def get_dirty_roles(repository_name='default'):
 
 
 
+def unmark_dirty(roles, repository_name='default'):
+  # Fixing bug in this version of TUF. This is handled in more recent versions
+  # of TUF. (Bug results in many more role writes than necessary.)
+  # This code is excerpted from more recent TUF versions.
+  # TODO: When merging, mind this.
+  global _roledb_dict
+  global _dirty_roles
+
+  if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
+    raise securesystemslib.exceptions.InvalidNameError('Repository name does'
+      ' not exist: ' + repository_name)
+
+  for role in roles:
+    try:
+      _dirty_roles[repository_name].remove(role)
+
+    except (KeyError, ValueError):
+      logger.debug(repr(role) + ' is not dirty.')
+
+
+
+
+
 def role_exists(rolename, repository_name='default'):
   """
   <Purpose>
