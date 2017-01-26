@@ -65,14 +65,14 @@ import tuf.client.updater
 import tuf.settings
 import tuf.log
 
-import pyyaml
+import yaml
 import securesystemslib
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.conformance_tester')
 
 
-def run_compliance_testing(config_file):
+def run_conformance_testing(config_file):
   """
   <Purpose>
 
@@ -90,6 +90,11 @@ def run_compliance_testing(config_file):
     None.
   """
 
+  with open(config_file, 'r') as file_object:
+    configuration = yaml.load(file_object.read())
+
+  print('configuration: ' + repr(configuration))
+
 
 
 
@@ -100,8 +105,8 @@ def parse_options():
     Parse the command-line options and set the logging level as specified by
     the user through the --verbose option.
 
-    'test_updater.py' expects the --config command-line option to be set by the
-    user.  --verbose is optional.
+    'conformance_tester.py' expects the --config command-line option to be set
+    by the user.  --verbose is optional.
 
     Example:
       $ python conformance_tester.py --config /tmp/.tuf-tester.yml
@@ -128,6 +133,10 @@ def parse_options():
   parser.add_option('--config', dest='CONFIG_FILE', type='string',
                     help='Specify the configuration file that includes the'
                     ' tuf-compliant command to execute.')
+
+  parser.add_option('--verbose', dest='VERBOSE', type=int, default=2,
+                    help='Set the verbosity level of logging messages.'
+                    '  The lower the setting, the greater the verbosity.')
 
   options, args = parser.parse_args()
 
@@ -164,7 +173,7 @@ if __name__ == '__main__':
   # Parse the options and set the logging level.
   configuration_file = parse_options()
 
-  # Return codes for test_updater.py.  This list is not yet finalized.
+  # Return codes for conformance_tester.py.
   SUCCESS = 0
   FAILURE = 1
 
@@ -176,4 +185,4 @@ if __name__ == '__main__':
     sys.exit(FAILURE)
 
   # Successfully updated the target file.
-  sys.exit(SUCESS)
+  sys.exit(SUCCESS)
