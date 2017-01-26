@@ -182,28 +182,25 @@ def parse_options():
 
   # Add the options supported by 'test_updater' to the option parser.
   parser.add_option('--file', dest='TARGET_FILE', type='string',
-                    help='Specify the repository mirror\'s URL prefix '
-                    '(e.g., http://www.example.com:8001/tuf/).'
-                    ' The client will download updates from this mirror.')
+                    help='Specify the target file to request'
+                    ' from the repository mirror.')
 
   parser.add_option('--repo', dest='REPOSITORY_MIRROR', type='string',
                     help='Specify the repository mirror\'s URL prefix '
                     '(e.g., http://www.example.com:8001/tuf/).'
-                    ' The client will download updates from this mirror.')
+                    ' The client will download the target file from this mirror.')
 
   parser.add_option('--metadata', dest='METADATA_DIRECTORY', type='string',
-                    help='Specify the repository mirror\'s URL prefix '
-                    '(e.g., http://www.example.com:8001/tuf/).'
-                    ' The client will download updates from this mirror.')
+                    help='Specify the local metadata directory'
+                    ' to save metadata.')
 
   parser.add_option('--targets', dest='TARGETS_DIRECTORY', type='string',
-                    help='Specify the repository mirror\'s URL prefix '
-                    '(e.g., http://www.example.com:8001/tuf/).'
-                    ' The client will download updates from this mirror.')
+                    help='Specify the local targets directory'
+                    ' to save the target file.')
 
   parser.add_option('--verbose', dest='VERBOSE', type=int, default=2,
                     help='Set the verbosity level of logging messages.'
-                         'The lower the setting, the greater the verbosity.')
+                    '  The lower the setting, the greater the verbosity.')
 
   options, args = parser.parse_args()
 
