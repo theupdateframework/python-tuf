@@ -1,6 +1,6 @@
 # conformance testing with specification
 
-## compliant program
+## tuf-compliant program
 `test_updater.py` is a program that performs a software update and follows the
 requirements outlined in TAP 7.  Note: It presently returns status code 5 (for
 slow retrieval error).  This is a WIP.
@@ -13,7 +13,7 @@ $ echo $?
 5
 ```
 
-## conformance testing
+## conformance testing the program
 
 ```Bash
 TODO
