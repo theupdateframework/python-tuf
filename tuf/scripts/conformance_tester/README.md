@@ -1,4 +1,4 @@
-# conformance testing with specification
+# conformance testing with the specification
 
 ## tuf-compliant program
 `test_updater.py` is a program that performs a software update and follows the
