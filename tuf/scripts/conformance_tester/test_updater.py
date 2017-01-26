@@ -14,9 +14,11 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Provide a tool for conformance testing with the specification.  The tool's
-  behavior is governed by the design requisites defined in TAP 7 (Conformance
-  testing), available at https://github.com/theupdateframework/taps.
+  Provide a program that can be used for conformance testing with the
+  specification.  The program's behavior is governed by the design requisites
+  defined in TAP 7 (Conformance testing), available at
+  https://github.com/theupdateframework/taps.  This program is expected
+  to be executed by the official conformance tester.
 
 <Usage>
   $ python test_updater.py --file foo.tgz --repo http://localhost:8001
