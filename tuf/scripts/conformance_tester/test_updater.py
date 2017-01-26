@@ -61,6 +61,7 @@ import tuf.client.updater
 import tuf.settings
 import tuf.log
 
+import six
 import securesystemslib
 
 # See 'log.py' to learn how logging is handled in TUF.
@@ -134,16 +135,11 @@ def update_client(target, repository_mirror, metadata_directory, targets_directo
   # Refresh the repository's top-level roles, store the target information for
   # all the targets tracked, and determine which of these targets have been
   # updated.
-  try:
-    updater.refresh(unsafely_update_root_if_necessary=False)
+  updater.refresh(unsafely_update_root_if_necessary=False)
 
-    # Retrieve the target info of 'target', which contains its length, hash, etc.
-    file_targetinfo = updater.get_one_valid_targetinfo(target)
-    updated_targets = updater.updated_targets([file_targetinfo], destination_directory)
-
-  except (tuf.exceptions.NoWorkingMirrorError) as exception:
-    mirror_error = exception.mirror_errors[os.path.join(repository_mirror, 'metadata', 'root.json')]
-    raise mirror_error
+  # Retrieve the target info of 'target', which contains its length, hash, etc.
+  file_targetinfo = updater.get_one_valid_targetinfo(target)
+  updated_targets = updater.updated_targets([file_targetinfo], destination_directory)
 
   # Download each of these updated targets and save them locally.
   updater.download_target(file_targetinfo, destination_directory)
@@ -263,6 +259,7 @@ if __name__ == '__main__':
   SLOW_RETRIEVAL_ERROR = 5
   ENDLESS_DATA_ERROR = 6
   REPOSITORY_ERROR = 7
+  UNKNOWN_ERROR = 8
 
   # Perform an update from 'repository_mirror' for 'target'.  The updated
   # target is saved to 'targets_directory', and refreshed metadata to
@@ -271,13 +268,21 @@ if __name__ == '__main__':
   try:
     update_client(target, repository_mirror, metadata_directory, targets_directory)
 
-  except (tuf.exceptions.SlowRetrievalError) as e:
-    sys.stderr.write('Error: ' + str(e) + '\n')
-    sys.exit(SLOW_RETRIEVAL_ERROR)
+  except (tuf.exceptions.NoWorkingMirrorError) as exception:
 
-  except (tuf.exceptions.RepositoryError) as e:
-    sys.stderr.write('Error: ' + str(e) + '\n')
-    sys.exit(REPOSITORY_ERROR)
+    # 'exception.mirror_errors' should only contain one (key, value) dict
+    # entry, since only a single mirror is queried.
+    for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
+      sys.stderr.write('Error: ' + str(mirror_error) + '\n')
+
+      if isinstance(mirror_error, tuf.exceptions.SlowRetrievalError):
+        sys.exit(SLOW_RETRIEVAL_ERROR)
+
+      elif isinstance(mirror_error, tuf.exceptions.RepositoryError):
+        sys.exit(REPOSITORY_ERROR)
+
+      else:
+        sys.exit(UNKNOWN_ERROR)
 
   # Successfully updated the target file.
   sys.exit(SUCESS)
