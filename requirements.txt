@@ -1,7 +1,8 @@
 cryptography
 pynacl
 pycrypto
-securesystemslib
+#securesystemslib
+-e git://github.com/lukpueh/securesystemslib.git@update-import-keys#egg=securesystemslib
 six
 iso8601
 coverage
