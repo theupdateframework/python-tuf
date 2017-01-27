@@ -25,10 +25,12 @@ import shutil
 
 import tuf
 import tuf.log
-import tuf.formats
 import tuf.roledb
 import tuf.keydb
 import tuf.developer_tool as developer_tool
+import tuf.exceptions
+
+import securesystemslib
 
 from tuf.developer_tool import METADATA_DIRECTORY_NAME
 from tuf.developer_tool import TARGETS_DIRECTORY_NAME
@@ -64,7 +66,7 @@ class TestProject(unittest.TestCase):
     # check input, correct file creation and format. We also check
     # that a proper object is generated. We will use the normal layout for this
     # test suite.
-  
+
     # Create a local subfolder for this test.
     local_tmp = tempfile.mkdtemp(dir = self.tmp_dir)
 
@@ -72,22 +74,22 @@ class TestProject(unittest.TestCase):
     # we will swap these for nulls or malformed values every now and then to
     # test input.
     project_name = 'test_suite'
-    metadata_directory = local_tmp 
+    metadata_directory = local_tmp
     location_in_repository = '/prefix'
-    targets_directory = None 
+    targets_directory = None
     key = None
 
     # Create a blank project.
-    project = developer_tool.create_new_project(project_name, metadata_directory, 
+    project = developer_tool.create_new_project(project_name, metadata_directory,
         location_in_repository)
 
     self.assertTrue(isinstance(project, developer_tool.Project))
     self.assertTrue(project.layout_type == 'repo-like')
     self.assertTrue(project._prefix == location_in_repository)
     self.assertTrue(project._project_name == project_name)
-    self.assertTrue(project._metadata_directory == 
+    self.assertTrue(project._metadata_directory ==
         os.path.join(metadata_directory,METADATA_DIRECTORY_NAME))
-    self.assertTrue(project._targets_directory == 
+    self.assertTrue(project._targets_directory ==
         os.path.join(metadata_directory,TARGETS_DIRECTORY_NAME))
 
     # Create a blank project without a prefix.
@@ -96,18 +98,18 @@ class TestProject(unittest.TestCase):
     self.assertTrue(project.layout_type == 'repo-like')
     self.assertTrue(project._prefix == '')
     self.assertTrue(project._project_name == project_name)
-    self.assertTrue(project._metadata_directory == 
+    self.assertTrue(project._metadata_directory ==
         os.path.join(metadata_directory,METADATA_DIRECTORY_NAME))
-    self.assertTrue(project._targets_directory == 
+    self.assertTrue(project._targets_directory ==
         os.path.join(metadata_directory,TARGETS_DIRECTORY_NAME))
 
     # Create a blank project without a valid metadata directory.
-    self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
-       0, metadata_directory, location_in_repository) 
-    self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
-       project_name, 0, location_in_repository) 
-    self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
-       project_name, metadata_directory, 0) 
+    self.assertRaises(securesystemslib.exceptions.FormatError, developer_tool.create_new_project,
+       0, metadata_directory, location_in_repository)
+    self.assertRaises(securesystemslib.exceptions.FormatError, developer_tool.create_new_project,
+       project_name, 0, location_in_repository)
+    self.assertRaises(securesystemslib.exceptions.FormatError, developer_tool.create_new_project,
+       project_name, metadata_directory, 0)
 
 
     # Create a new project with a flat layout.
@@ -123,9 +125,9 @@ class TestProject(unittest.TestCase):
     self.assertTrue(project._targets_directory == targets_directory)
 
     # Finally, check that if targets_directory is set, it is valid.
-    self.assertRaises(tuf.FormatError, developer_tool.create_new_project,
+    self.assertRaises(securesystemslib.exceptions.FormatError, developer_tool.create_new_project,
         project_name, metadata_directory, location_in_repository, 0)
-   
+
     # Copy a key to our workspace and create a new project with it.
     keystore_path = os.path.join('repository_data','keystore')
 
@@ -137,7 +139,7 @@ class TestProject(unittest.TestCase):
     # Test create new project with a key added by default.
     project = developer_tool.create_new_project(project_name, metadata_directory,
         location_in_repository, targets_directory, project_key)
-    
+
     self.assertTrue(isinstance(project, developer_tool.Project))
     self.assertTrue(project.layout_type == 'flat')
     self.assertTrue(project._prefix == location_in_repository)
@@ -171,7 +173,7 @@ class TestProject(unittest.TestCase):
 
     os.chmod(local_tmp, 0o0777)
     shutil.rmtree(local_tmp)
-    
+
 
 
   def test_load_project(self):
@@ -199,7 +201,7 @@ class TestProject(unittest.TestCase):
         new_targets_location = new_targets_path)
     self.assertTrue(project._targets_directory == new_targets_path)
     self.assertTrue(project.layout_type == 'flat')
-    
+
     # Load a project overwriting the prefix.
     project = developer_tool.load_project(repo_filepath, prefix='new')
     self.assertTrue(project._prefix == 'new')
@@ -208,27 +210,27 @@ class TestProject(unittest.TestCase):
     file_to_corrupt = os.path.join(repo_filepath, 'test-flat.json')
     with open(file_to_corrupt, 'wt') as fp:
       fp.write('this is not a json file')
-   
-    self.assertRaises(tuf.Error, developer_tool.load_project, repo_filepath)
 
-    
+    self.assertRaises(securesystemslib.exceptions.Error, developer_tool.load_project, repo_filepath)
+
+
 
 
   def test_add_verification_keys(self):
-    # Create a new project instance. 
+    # Create a new project instance.
     project = developer_tool.Project('test_verification_keys', 'somepath',
         'someotherpath', 'prefix')
 
     # Add invalid verification key.
-    self.assertRaises(tuf.FormatError, project.add_verification_key, 'invalid')
+    self.assertRaises(securesystemslib.exceptions.FormatError, project.add_verification_key, 'invalid')
 
     # Add verification key.
-    #  - load it first 
+    #  - load it first
     keystore_path = os.path.join('repository_data', 'keystore')
     first_verification_key_path = os.path.join(keystore_path,'root_key.pub')
     first_verification_key = \
       developer_tool.import_rsa_publickey_from_file(first_verification_key_path)
-    
+
     project.add_verification_key(first_verification_key)
 
 
@@ -236,12 +238,12 @@ class TestProject(unittest.TestCase):
     second_verification_key_path = os.path.join(keystore_path, 'snapshot_key.pub')
     second_verification_key = \
       developer_tool.import_ed25519_publickey_from_file(second_verification_key_path)
-    
-    self.assertRaises(tuf.Error,
+
+    self.assertRaises(securesystemslib.exceptions.Error,
         project.add_verification_key,(second_verification_key))
 
 
-    
+
     # Add a verification key for the delegation.
     project.delegate('somedelegation', [], [])
     project('somedelegation').add_verification_key(first_verification_key)
@@ -260,14 +262,14 @@ class TestProject(unittest.TestCase):
     local_tmp = tempfile.mkdtemp(dir=self.tmp_dir)
 
     # Create new project inside tmp directory.
-    project = developer_tool.create_new_project('new_project', local_tmp, 
+    project = developer_tool.create_new_project('new_project', local_tmp,
         'prefix');
 
     # Create some target files inside the tmp directory.
     target_filepath = os.path.join(local_tmp, 'targets', 'test_target')
     with open(target_filepath, 'wt') as fp:
       fp.write('testing file')
-    
+
 
     # Add the targets.
     project.add_target(target_filepath)
@@ -279,10 +281,10 @@ class TestProject(unittest.TestCase):
       developer_tool.import_rsa_publickey_from_file(project_key_path)
 
 
-    # Call status (for the sake of doing it and to improve test coverage by 
+    # Call status (for the sake of doing it and to improve test coverage by
     # executing its statements.)
     project.status()
-  
+
     project.add_verification_key(project_key)
 
 
@@ -295,17 +297,17 @@ class TestProject(unittest.TestCase):
     subdelegation_key_path = os.path.join(keystore_path, 'timestamp_key.pub')
     subdelegation_key = \
         developer_tool.import_ed25519_publickey_from_file(subdelegation_key_path)
-    
+
     # Add a delegation.
     project.delegate('delegation', [delegation_key], [])
     project('delegation').delegate('subdelegation', [subdelegation_key], [])
 
     # call write (except)
-    self.assertRaises(tuf.Error, project.write, ())
+    self.assertRaises(securesystemslib.exceptions.Error, project.write, ())
 
     # Call status (for the sake of doing it and executing its statements.)
     project.status()
-  
+
     # Load private keys.
     project_private_key_path = os.path.join(keystore_path, 'root_key')
     project_private_key = \
@@ -341,16 +343,16 @@ class TestProject(unittest.TestCase):
 
     # + backup the prefix.
     prefix_backup = project._prefix
-    
-    # + backup the name. 
+
+    # + backup the name.
     name_backup = project._project_name
- 
+
     # Set the compressions.  We will be checking this part here too.
     project.compressions = ['gz']
     project('delegation').compressions = project.compressions
 
     # Write and reload.
-    self.assertRaises(tuf.Error, project.write)
+    self.assertRaises(securesystemslib.exceptions.Error, project.write)
     project.write(write_partial=True)
 
     project = developer_tool.load_project(local_tmp)
@@ -361,9 +363,9 @@ class TestProject(unittest.TestCase):
     self.assertEqual(new_delegations, delegations_backup)
     self.assertEqual(project.layout_type, layout_type_backup)
     self.assertEqual(project.keys, keys_backup)
-    
+
     self.assertEqual(project('delegation').keys, delegation_keys_backup)
-    
+
     self.assertEqual(project._prefix, prefix_backup)
     self.assertEqual(project._project_name, name_backup)
 
@@ -397,7 +399,7 @@ class TestProject(unittest.TestCase):
 
     # + backup the prefix.
     prefix_backup = project._prefix
-    
+
     # + backup the name.
     name_backup = project._project_name
 

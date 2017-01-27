@@ -29,8 +29,8 @@ import optparse
 import stat
 
 from tuf.repository_tool import *
-import tuf.util
 
+import securesystemslib
 
 parser = optparse.OptionParser()
 parser.add_option("-k","--keys", action='store_true',  dest="should_generate_keys",
@@ -43,7 +43,7 @@ parser.add_option("-d","--dry-run", action='store_true', dest="dry_run",
 repository = create_new_repository('repository')
 
 root_key_file = 'keystore/root_key'
-targets_key_file = 'keystore/targets_key' 
+targets_key_file = 'keystore/targets_key'
 snapshot_key_file = 'keystore/snapshot_key'
 timestamp_key_file = 'keystore/timestamp_key'
 delegation_key_file = 'keystore/delegation_key'
@@ -86,7 +86,7 @@ repository.snapshot.add_verification_key(snapshot_public)
 repository.timestamp.add_verification_key(timestamp_public)
 
 # Load the signing keys, previously imported, for the top-level roles so that
-# valid metadata can be written.  
+# valid metadata can be written.
 repository.root.load_signing_key(root_private)
 repository.targets.load_signing_key(targets_private)
 repository.snapshot.load_signing_key(snapshot_private)
@@ -95,11 +95,11 @@ repository.timestamp.load_signing_key(timestamp_private)
 # Create the target files (downloaded by clients) whose file size and digest
 # are specified in the 'targets.json' file.
 target1_filepath = 'repository/targets/file1.txt'
-tuf.util.ensure_parent_dir(target1_filepath)
+securesystemslib.util.ensure_parent_dir(target1_filepath)
 target2_filepath = 'repository/targets/file2.txt'
-tuf.util.ensure_parent_dir(target2_filepath)
+securesystemslib.util.ensure_parent_dir(target2_filepath)
 target3_filepath = 'repository/targets/file3.txt'
-tuf.util.ensure_parent_dir(target2_filepath)
+securesystemslib.util.ensure_parent_dir(target2_filepath)
 
 if not options.dry_run:
   with open(target1_filepath, 'wt') as file_object:
@@ -142,7 +142,7 @@ repository.targets.compressions = ['gz']
 repository.snapshot.compressions = ['gz']
 repository.timestamp.compressions = ['gz']
 
-# Create the actual metadata files, which are saved to 'metadata.staged'. 
+# Create the actual metadata files, which are saved to 'metadata.staged'.
 if not options.dry_run:
   repository.writeall()
 

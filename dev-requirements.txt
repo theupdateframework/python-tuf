@@ -1,7 +1,7 @@
 # This is a requirements file executed by pip and may be used during TUF
 # development, and installation.  It can be executed as follows:
 # $ pip install --requirement dev-requirements.txt
-# 
+#
 # pip install TUF (minimal install) in editable mode (i.e., setuptools
 # "develop mode").  The current working directory must contain 'setup.py'.
 --editable .
@@ -19,6 +19,7 @@ cffi==1.7.0
 pycrypto==2.6.1
 pynacl==1.0.1
 cryptography==1.4.0
+securesystemslib==0.10.1
 
 # Testing requirements.  The rest of the testing dependencies available in
 # 'tox.ini'

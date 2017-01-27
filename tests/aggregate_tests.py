@@ -14,7 +14,7 @@
   August 2013.
   Modified previous behavior that explicitly imported individual
   unit tests. -Zane Fisher
- 
+
 <Copyright>
   See LICENSE for licensing information.
 
@@ -41,8 +41,7 @@ if sys.version_info >= (2, 7):
   import unittest
 
 else:
-  import unittest2 as unittest 
-
+  import unittest2 as unittest
 
 # Generate a list of pathnames that match a pattern (i.e., that begin with
 # 'test_' and end with '.py'.  A shell-style wildcard is used with glob() to

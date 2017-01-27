@@ -73,7 +73,7 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
         # Throttle the file by sending a character every few seconds.
         # NOTE: The for-loop below completes early if the download file
         # (len(data)) is small.  'download.py' waits at least
-        # 'tuf.conf.SLOW_START_GRACE_PERIOD' seconds before triggering a
+        # 'settings.SLOW_START_GRACE_PERIOD' seconds before triggering a
         # potential slow retrieval error.
         for i in range(len(data)):
           self.wfile.write(data[i].encode('utf-8'))

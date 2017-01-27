@@ -23,15 +23,15 @@
   Normally, a software updater integrating TUF will develop their own costum
   client module by importing 'tuf.client.updater', instantiating the required
   object, and calling the desired methods to perform an update.  This basic
-  client is provided to users who wish to give TUF a quick test run without
-  the hassle of writing client code.  This module can also used by updaters that
-  do not need the customization and only require their clients to perform an
+  client is provided to users who wish to give TUF a quick test run without the
+  hassle of writing client code.  This module can also used by updaters that do
+  not need the customization and only require their clients to perform an
   update of all the files provided by their repository mirror(s).
 
-  For software updaters that DO require customization, see the 'example_client.py'
-  script.  The 'example_client.py' script provides an outline of the client code
-  that software updaters may develop and then tailor to their specific software
-  updater or package manager.
+  For software updaters that DO require customization, see the
+  'example_client.py' script.  The 'example_client.py' script provides an
+  outline of the client code that software updaters may develop and then tailor
+  to their specific software updater or package manager.
 
   Additional tools for clients running legacy applications will also be made
   available.  These tools will allow secure software updates using The Update
@@ -63,9 +63,11 @@ import optparse
 import logging
 
 import tuf
-import tuf.formats
 import tuf.client.updater
+import tuf.settings
 import tuf.log
+
+import securesystemslib
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.basic_client')
@@ -87,7 +89,8 @@ def update_client(repository_mirror):
       files.  E.g., 'http://localhost:8001'
 
   <Exceptions>
-    tuf.RepositoryError, if 'repository_mirror' is improperly formatted.
+    tuf.exceptions.RepositoryError, if 'repository_mirror' is
+    improperly formatted.
 
   <Side Effects>
     Connects to a repository mirror and updates the metadata files and
@@ -99,13 +102,14 @@ def update_client(repository_mirror):
 
   # Does 'repository_mirror' have the correct format?
   try:
-    tuf.formats.URL_SCHEMA.check_match(repository_mirror)
-  except tuf.FormatError as e:
-    message = 'The repository mirror supplied is invalid.' 
-    raise tuf.RepositoryError(message)
-  
+    securesystemslib.formats.URL_SCHEMA.check_match(repository_mirror)
+
+  except tuf.securesystemslib.exceptions.FormatError:
+    raise tuf.exceptions.RepositoryError('The repository mirror'
+      ' supplied is invalid.')
+
   # Set the local repository directory containing all of the metadata files.
-  tuf.conf.repository_directory = '.'
+  tuf.settings.repository_directory = '.'
 
   # Set the repository mirrors.  This dictionary is needed by the Updater
   # class of updater.py.
@@ -130,10 +134,10 @@ def update_client(repository_mirror):
 
   # Download each of these updated targets and save them locally.
   for target in updated_targets:
-    try: 
+    try:
       updater.download_target(target, destination_directory)
-    
-    except tuf.DownloadError:
+
+    except tuf.exceptions.DownloadError:
       pass
 
   # Remove any files from the destination directory that are no longer being
@@ -200,16 +204,15 @@ def parse_options():
 
   # Ensure the '--repo' option was set by the user.
   if options.REPOSITORY_MIRROR is None:
-    message = '"--repo" must be set on the command-line.'
-    parser.error(message)
-    
+    parser.error('"--repo" must be set on the command-line.')
+
   # Return the repository mirror containing the metadata and target files.
   return options.REPOSITORY_MIRROR
 
 
 
 if __name__ == '__main__':
-  
+
   # Parse the options and set the logging level.
   repository_mirror = parse_options()
 
@@ -217,9 +220,9 @@ if __name__ == '__main__':
   # the current directory.
   try:
     update_client(repository_mirror)
-  
-  except (tuf.NoWorkingMirrorError, tuf.RepositoryError) as e:
-    sys.stderr.write('Error: '+str(e)+'\n')
+
+  except (tuf.exceptions.NoWorkingMirrorError, tuf.exceptions.RepositoryError) as e:
+    sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
 
   # Successfully updated the client's target files.

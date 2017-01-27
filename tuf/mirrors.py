@@ -28,9 +28,9 @@ from __future__ import unicode_literals
 import os
 
 import tuf
-import tuf.util
 import tuf.formats
 
+import securesystemslib
 import six
 
 # The type of file to be downloaded from a repository.  The
@@ -69,9 +69,9 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
       The 'custom' field is optional.
 
   <Exceptions>
-    tuf.Error, on unsupported 'file_type'.
-    
-    tuf.FormatError, on bad argument.
+    securesystemslib.exceptions.Error, on unsupported 'file_type'.
+
+    securesystemslib.exceptions.FormatError, on bad argument.
 
   <Return>
     List of mirror urls corresponding to the file_type and file_path.  If no
@@ -79,37 +79,37 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   """
 
   # Checking if all the arguments have appropriate format.
-  tuf.formats.RELPATH_SCHEMA.check_match(file_path)
+  securesystemslib.formats.RELPATH_SCHEMA.check_match(file_path)
   tuf.formats.MIRRORDICT_SCHEMA.check_match(mirrors_dict)
-  tuf.formats.NAME_SCHEMA.check_match(file_type)
+  securesystemslib.formats.NAME_SCHEMA.check_match(file_type)
 
   # Verify 'file_type' is supported.
   if file_type not in _SUPPORTED_FILE_TYPES:
-    message = 'Invalid file_type argument.  '+ \
-      'Supported file types: '+repr(_SUPPORTED_FILE_TYPES)
-    raise tuf.Error(message)
+    raise securesystemslib.exceptions.Error('Invalid file_type argument.'
+      '  Supported file types: ' + repr(_SUPPORTED_FILE_TYPES))
 
-  # Reference to 'tuf.util.file_in_confined_directories()' (improve readability).
-  # This function checks whether a mirror should serve a file to the client.
-  # A client may be confined to certain paths on a repository mirror
-  # when fetching target files.  This field may be set by the client when
-  # the repository mirror is added to the 'tuf.client.updater.Updater' object.
-  in_confined_directory = tuf.util.file_in_confined_directories
+  # Reference to 'securesystemslib.util.file_in_confined_directories()' (improve
+  # readability).  This function checks whether a mirror should serve a file to
+  # the client.  A client may be confined to certain paths on a repository
+  # mirror when fetching target files.  This field may be set by the client
+  # when the repository mirror is added to the 'tuf.client.updater.Updater'
+  # object.
+  in_confined_directory = securesystemslib.util.file_in_confined_directories
 
   list_of_mirrors = []
   for mirror_name, mirror_info in six.iteritems(mirrors_dict):
     if file_type == 'meta':
-      base = mirror_info['url_prefix']+'/'+mirror_info['metadata_path']
+      base = mirror_info['url_prefix'] + '/' + mirror_info['metadata_path']
 
-    # 'file_type' == 'target'.  'file_type' should have been verified to contain
-    # a supported string value above (either 'meta' or 'target').
+    # 'file_type' == 'target'.  'file_type' should have been verified to
+    # contain a supported string value above (either 'meta' or 'target').
     else:
       targets_path = mirror_info['targets_path']
       full_filepath = os.path.join(targets_path, file_path)
       if not in_confined_directory(full_filepath,
                                    mirror_info['confined_target_dirs']):
         continue
-      base = mirror_info['url_prefix']+'/'+mirror_info['targets_path']
+      base = mirror_info['url_prefix'] + '/' + mirror_info['targets_path']
 
     # urllib.quote(string) replaces special characters in string using the %xx
     # escape.  This is done to avoid parsing issues of the URL on the server
@@ -117,7 +117,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
     # the URL as UTF-8. We need a long-term solution with #61.
     # http://bugs.python.org/issue1712522
     file_path = six.moves.urllib.parse.quote(file_path)
-    url = base + '/' + file_path.lstrip(os.sep) 
+    url = base + '/' + file_path.lstrip(os.sep)
     list_of_mirrors.append(url)
 
   return list_of_mirrors

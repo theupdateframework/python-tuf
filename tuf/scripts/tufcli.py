@@ -92,7 +92,7 @@ def update_repository(repository_path, command, command_arguments):
     command_arguments:
 
   <Exceptions>
-    tuf.FormatError, if any of the arugments are improperly formatted.
+    tuf.ssl_commons.exceptions.FormatError, if any of the arugments are improperly formatted.
 
   <Side Effects>
     The TUF repository at 'repository_path' is either created or modified. 
@@ -102,12 +102,12 @@ def update_repository(repository_path, command, command_arguments):
   """
 
   # Do the arguments have the correct format?
-  tuf.formats.URL_SCHEMA.check_match(repository_path)
-  tuf.formats.NAME_SCHEMA.check_match(command)
+  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(repository_path)
+  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(command)
   tuf.formats.COMMAND_SCHEMA.check_match(command_arguments)
   
   # Set the local repository directory containing all of the metadata files.
-  tuf.conf.repository_directory = repository_path 
+  settings.repository_directory = repository_path 
 
   if command == 'init':
     repository = create_new_repository(repository_path)
@@ -241,7 +241,7 @@ if __name__ == '__main__':
   try:
     update_repository(repository_path, command, command_arguments)
   
-  except (tuf.Error) as e:
+  except (tuf.ssl_commons.exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
 

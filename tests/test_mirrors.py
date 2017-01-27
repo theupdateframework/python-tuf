@@ -28,17 +28,18 @@ from __future__ import unicode_literals
 import unittest
 
 import tuf
-import tuf.formats as formats
 import tuf.mirrors as mirrors
 import tuf.unittest_toolbox as unittest_toolbox
 
+import securesystemslib
+import securesystemslib.util
 import six
 
 
 class TestMirrors(unittest_toolbox.Modified_TestCase):
 
   def setUp(self):
-    
+
     unittest_toolbox.Modified_TestCase.setUp(self)
 
     self.mirrors = \
@@ -61,18 +62,18 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
 
   def test_get_list_of_mirrors(self):
     # Test: Normal case.
-    mirror_list = mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors) 
+    mirror_list = mirrors.get_list_of_mirrors('meta', 'release.txt', self.mirrors)
     self.assertEqual(len(mirror_list), 3)
     for mirror, mirror_info in six.iteritems(self.mirrors):
       url = mirror_info['url_prefix']+'/metadata/release.txt'
       self.assertTrue(url in mirror_list)
 
-    mirror_list = mirrors.get_list_of_mirrors('target', 'a.txt', self.mirrors) 
+    mirror_list = mirrors.get_list_of_mirrors('target', 'a.txt', self.mirrors)
     self.assertEqual(len(mirror_list), 1)
     self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a.txt' in \
                     mirror_list)
 
-    mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors) 
+    mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors)
     self.assertEqual(len(mirror_list), 1)
     self.assertTrue(self.mirrors['mirror1']['url_prefix']+'/targets/a/b' in \
                     mirror_list)
@@ -81,27 +82,27 @@ class TestMirrors(unittest_toolbox.Modified_TestCase):
     del self.mirrors['mirror1']
     mirror_list = mirrors.get_list_of_mirrors('target', 'a/b', self.mirrors)
     self.assertFalse(mirror_list)
-    self.mirrors['mirror1'] = mirror1 
+    self.mirrors['mirror1'] = mirror1
 
     # Test: Invalid 'file_type'.
-    self.assertRaises(tuf.Error, mirrors.get_list_of_mirrors,
+    self.assertRaises(securesystemslib.exceptions.Error, mirrors.get_list_of_mirrors,
                       self.random_string(), 'a', self.mirrors)
 
-    self.assertRaises(tuf.Error, mirrors.get_list_of_mirrors,
+    self.assertRaises(securesystemslib.exceptions.Error, mirrors.get_list_of_mirrors,
                       12345, 'a', self.mirrors)
 
     # Test: Improperly formatted 'file_path'.
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    self.assertRaises(securesystemslib.exceptions.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 12345, self.mirrors)
 
     # Test: Improperly formatted 'mirrors_dict' object.
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    self.assertRaises(securesystemslib.exceptions.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 'a', 12345)
 
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    self.assertRaises(securesystemslib.exceptions.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 'a', ['a'])
 
-    self.assertRaises(tuf.FormatError, mirrors.get_list_of_mirrors,
+    self.assertRaises(securesystemslib.exceptions.FormatError, mirrors.get_list_of_mirrors,
                       'meta', 'a', {'a':'b'})
 
 
