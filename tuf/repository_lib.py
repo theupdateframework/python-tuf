@@ -51,6 +51,7 @@ import tuf.log
 import tuf.settings
 
 import securesystemslib
+import securesystemslib.interface
 import iso8601
 import six
 
@@ -259,45 +260,6 @@ def _generate_and_write_metadata(rolename, metadata_filename,
                           consistent_snapshot)
 
   return signable, filename
-
-
-
-
-
-def _prompt(message, result_type=str):
-  """
-    Non-public function that prompts the user for input by logging 'message',
-    converting the input to 'result_type', and returning the value to the
-    caller.
-  """
-
-  return result_type(six.moves.input(message))
-
-
-
-
-
-def _get_password(prompt='Password: ', confirm=False):
-  """
-    Non-public function that returns the password entered by the user.  If
-    'confirm' is True, the user is asked to enter the previously entered
-    password once again.  If they match, the password is returned to the caller.
-  """
-
-  while True:
-    # getpass() prompts the user for a password without echoing
-    # the user input.
-    password = getpass.getpass(prompt, sys.stderr)
-
-    if not confirm:
-      return password
-    password2 = getpass.getpass('Confirm: ', sys.stderr)
-
-    if password == password2:
-      return password
-
-    else:
-      print('Mismatch; try again.')
 
 
 
@@ -854,50 +816,8 @@ def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
     None.
   """
 
-  # Do the arguments have the correct format?
-  # This check ensures arguments have the appropriate number of
-  # objects and object types, and that all dict keys are properly named.
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(filepath)
-
-  # Does 'bits' have the correct format?
-  securesystemslib.formats.RSAKEYBITS_SCHEMA.check_match(bits)
-
-  # If the caller does not provide a password argument, prompt for one.
-  if password is None: # pragma: no cover
-    message = 'Enter a password for the RSA key file: '
-    password = _get_password(message, confirm=True)
-
-  # Does 'password' have the correct format?
-  securesystemslib.formats.PASSWORD_SCHEMA.check_match(password)
-
-  #  Generate public and private RSA keys, encrypted the private portion
-  # and store them in PEM format.
-  rsa_key = securesystemslib.keys.generate_rsa_key(bits)
-  public = rsa_key['keyval']['public']
-  private = rsa_key['keyval']['private']
-  encrypted_pem = securesystemslib.keys.create_rsa_encrypted_pem(private, password)
-
-  # Write public key (i.e., 'public', which is in PEM format) to
-  # '<filepath>.pub'.  If the parent directory of filepath does not exist,
-  # create it (and all its parent directories, if necessary).
-  securesystemslib.util.ensure_parent_dir(filepath)
-
-  # Create a tempororary file, write the contents of the public key, and move
-  # to final destination.
-  file_object = securesystemslib.util.TempFile()
-  file_object.write(public.encode('utf-8'))
-
-  # The temporary file is closed after the final move.
-  file_object.move(filepath + '.pub')
-
-  # Write the private key in encrypted PEM format to '<filepath>'.
-  # Unlike the public key file, the private key does not have a file
-  # extension.
-  file_object = securesystemslib.util.TempFile()
-  file_object.write(encrypted_pem.encode('utf-8'))
-  file_object.move(filepath)
-
+  securesystemslib.interface.generate_and_write_rsa_keypair(
+      filepath, bits, password)
 
 
 
@@ -937,35 +857,8 @@ def import_rsa_privatekey_from_file(filepath, password=None):
     An RSA key object, conformant to 'securesystemslib.RSAKEY_SCHEMA'.
   """
 
-  # Does 'filepath' have the correct format?
-  # Ensure the arguments have the appropriate number of objects and object
-  # types, and that all dict keys are properly named.
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(filepath)
-
-  # If the caller does not provide a password argument, prompt for one.
-  # Password confirmation disabled here, which should ideally happen only
-  # when creating encrypted key files (i.e., improve usability).
-  if password is None: # pragma: no cover
-    message = 'Enter a password for the encrypted RSA file: '
-    password = _get_password(message, confirm=False)
-
-  # Does 'password' have the correct format?
-  securesystemslib.formats.PASSWORD_SCHEMA.check_match(password)
-
-  encrypted_pem = None
-
-  # Read the contents of 'filepath' that should be an encrypted PEM.
-  with open(filepath, 'rb') as file_object:
-    encrypted_pem = file_object.read().decode('utf-8')
-
-  # Convert 'encrypted_pem' to 'securesystemslib.RSAKEY_SCHEMA' format.
-  # Raise 'securesystemslib.exceptions.CryptoError' if 'encrypted_pem' is
-  # invalid.
-  rsa_key = securesystemslib.keys.import_rsakey_from_private_pem(encrypted_pem,
-    password)
-
-  return rsa_key
+  return securesystemslib.interface.import_rsa_privatekey_from_file(
+    filepath, password)
 
 
 
@@ -999,27 +892,7 @@ def import_rsa_publickey_from_file(filepath):
   <Returns>
     An RSA key object conformant to 'securesystemslib.RSAKEY_SCHEMA'.
   """
-
-  # Does 'filepath' have the correct format?
-  # Ensure the arguments have the appropriate number of objects and object
-  # types, and that all dict keys are properly named.
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(filepath)
-
-  # Read the contents of the key file that should be in PEM format and contains
-  # the public portion of the RSA key.
-  with open(filepath, 'rb') as file_object:
-    rsa_pubkey_pem = file_object.read().decode('utf-8')
-
-  # Convert 'rsa_pubkey_pem' to 'securesystemslib.RSAKEY_SCHEMA' format.
-  try:
-    rsakey_dict = securesystemslib.keys.import_rsakey_from_public_pem(rsa_pubkey_pem)
-
-  except securesystemslib.exceptions.FormatError as e:
-    raise securesystemslib.exceptions.Error('Cannot import improperly formatted'
-      ' PEM file.' + repr(str(e)))
-
-  return rsakey_dict
+  return securesystemslib.interface.import_rsa_publickey_from_file(filepath)
 
 
 
@@ -1064,54 +937,8 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
   <Returns>
     None.
   """
-
-  # Does 'filepath' have the correct format?
-  # Ensure the arguments have the appropriate number of objects and object
-  # types, and that all dict keys are properly named.
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(filepath)
-
-  # If the caller does not provide a password argument, prompt for one.
-  if password is None: # pragma: no cover
-    message = 'Enter a password for the Ed25519 key: '
-    password = _get_password(message, confirm=True)
-
-  # Does 'password' have the correct format?
-  securesystemslib.formats.PASSWORD_SCHEMA.check_match(password)
-
-  # Generate a new ED25519 key object and encrypt it.  The cryptography library
-  # used is determined by the user, or by default (set in
-  # 'settings.ED25519_CRYPTO_LIBRARY').  Raise
-  # 'securesystemslib.exceptions.CryptoError' or
-  # 'securesystemslib.exceptions.UnsupportedLibraryError', if 'ed25519_key'
-  # cannot be encrypted.
-  ed25519_key = securesystemslib.keys.generate_ed25519_key()
-  encrypted_key = securesystemslib.keys.encrypt_key(ed25519_key, password)
-
-  # ed25519 public key file contents in metadata format (i.e., does not include
-  # the keyid portion).
-  keytype = ed25519_key['keytype']
-  keyval = ed25519_key['keyval']
-  ed25519key_metadata_format = \
-    securesystemslib.keys.format_keyval_to_metadata(keytype, keyval, private=False)
-
-  # Write the public key, conformant to 'securesystemslib.KEY_SCHEMA', to
-  # '<filepath>.pub'.
-  securesystemslib.util.ensure_parent_dir(filepath)
-
-  # Create a tempororary file, write the contents of the public key, and move
-  # to final destination.
-  file_object = securesystemslib.util.TempFile()
-  file_object.write(json.dumps(ed25519key_metadata_format).encode('utf-8'))
-
-  # The temporary file is closed after the final move.
-  file_object.move(filepath + '.pub')
-
-  # Write the encrypted key string, conformant to
-  # 'securesystemslib.ENCRYPTEDKEY_SCHEMA', to '<filepath>'.
-  file_object = securesystemslib.util.TempFile()
-  file_object.write(encrypted_key.encode('utf-8'))
-  file_object.move(filepath)
+  securesystemslib.interface.generate_and_write_ed25519_keypair(
+      filepath, password)
 
 
 
@@ -1142,26 +969,7 @@ def import_ed25519_publickey_from_file(filepath):
     'securesystemslib.ED25519KEY_SCHEMA'.
   """
 
-  # Does 'filepath' have the correct format?
-  # Ensure the arguments have the appropriate number of objects and object
-  # types, and that all dict keys are properly named.
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(filepath)
-
-  # ED25519 key objects are saved in json and metadata format.  Return the
-  # loaded key object in securesystemslib.ED25519KEY_SCHEMA' format that
-  # also includes the keyid.
-  ed25519_key_metadata = securesystemslib.util.load_json_file(filepath)
-  ed25519_key, junk = securesystemslib.keys.format_metadata_to_key(ed25519_key_metadata)
-
-  # Raise an exception if an unexpected key type is imported.  Redundant
-  # validation of 'keytype'.  'securesystemslib.keys.format_metadata_to_key()'
-  # should have fully validated 'ed25519_key_metadata'.
-  if ed25519_key['keytype'] != 'ed25519': # pragma: no cover
-    message = 'Invalid key type loaded: ' + repr(ed25519_key['keytype'])
-    raise securesystemslib.exceptions.FormatError(message)
-
-  return ed25519_key
+  return securesystemslib.interface.import_ed25519_publickey_from_file(filepath)
 
 
 
@@ -1207,45 +1015,8 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
   <Returns>
     An ed25519 key object of the form: 'securesystemslib.ED25519KEY_SCHEMA'.
   """
-
-  # Does 'filepath' have the correct format?
-  # Ensure the arguments have the appropriate number of objects and object
-  # types, and that all dict keys are properly named.
-  # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-  securesystemslib.formats.PATH_SCHEMA.check_match(filepath)
-
-  # If the caller does not provide a password argument, prompt for one.
-  # Password confirmation disabled here, which should ideally happen only
-  # when creating encrypted key files (i.e., improve usability).
-  if password is None: # pragma: no cover
-    message = 'Enter a password for the encrypted Ed25519 key: '
-    password = _get_password(message, confirm=False)
-
-  # Does 'password' have the correct format?
-  securesystemslib.formats.PASSWORD_SCHEMA.check_match(password)
-
-  # Store the encrypted contents of 'filepath' prior to calling the decryption
-  # routine.
-  encrypted_key = None
-
-  with open(filepath, 'rb') as file_object:
-    encrypted_key = file_object.read()
-
-  # Decrypt the loaded key file, calling the appropriate cryptography library
-  # (i.e., set by the user) and generating the derived encryption key from
-  # 'password'.  Raise 'securesystemslib.exceptions.CryptoError' or
-  # 'securesystemslib.exceptions.UnsupportedLibraryError' if the decryption
-  # fails.
-  key_object = securesystemslib.keys.decrypt_key(encrypted_key.decode('utf-8'),
-    password)
-
-  # Raise an exception if an unexpected key type is imported.
-  if key_object['keytype'] != 'ed25519':
-    message = 'Invalid key type loaded: ' + repr(key_object['keytype'])
-    raise securesystemslib.exceptions.FormatError(message)
-
-  return key_object
-
+  return securesystemslib.interface.import_ed25519_privatekey_from_file(
+      filepath, password)
 
 
 
