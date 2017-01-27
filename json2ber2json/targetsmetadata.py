@@ -187,7 +187,7 @@ def set_asn_targets(json_signed, targetsMetadata):
       custom = Custom().subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                     tag.tagFormatConstructed,
                                                     1))
-      custom['ecuIdentifier'] = filemeta['custom']['ecu-serial-number']
+      custom['ecuIdentifier'] = filemeta['custom']['ecu_serial']
       targetAndCustom['custom'] = custom
 
     targets[numberOfTargets] = targetAndCustom
@@ -315,9 +315,7 @@ def set_json_targets(json_signed, targetsMetadata):
     custom = targetAndCustom['custom']
     if custom:
       json_custom = {
-        'ecu-serial-number': str(custom['ecuIdentifier']),
-        # FIXME: Hard-coded for now!
-        'type': 'application'
+        'ecu_serial': str(custom['ecuIdentifier'])
       }
       filemeta['custom'] = json_custom
 
