@@ -29,21 +29,31 @@ def asn_to_json_metadata(get_json_signed, asn_metadata):
 
   for i in range(asn_metadata['numberOfSignatures']):
     asn_signature = asn_signatures[i]
-    asn_digest = asn_signature['hash']['digest']['hexString']
+    asn_digest = asn_signature['hash']['digest']['octetString'].prettyPrint()
+    assert asn_digest.startswith('0x')
+    asn_digest = asn_digest[2:]
     # NOTE: Ensure that hash(BER(Metadata.signed)==Metadata.signatures[i].hash).
     assert asn_digest == ber_signed_digest
+
+    keyid = asn_signature['keyid']['octetString'].prettyPrint()
+    assert keyid.startswith('0x')
+    keyid = keyid[2:]
 
     # Cheap hack.
     method = int(asn_signature['method'])
     assert method == 1
     method = 'ed25519'
 
+    value = asn_signature['value']['octetString'].prettyPrint()
+    assert value.startswith('0x')
+    value = value[2:]
+
     json_signature = {
       # NOTE: Check that signatures are for hash instead of signed.
       'hash': ber_signed_digest,
-      'keyid': str(asn_signature['keyid']),
+      'keyid': keyid,
       'method': method,
-      'sig': str(asn_signature['value'])
+      'sig': value
     }
     json_signatures.append(json_signature)
 
@@ -94,7 +104,12 @@ def json_to_asn_metadata(asn_signed, ber_signed, json_signatures, asn1Spec):
 
   for json_signature in json_signatures:
     asn_signature = Signature()
-    asn_signature['keyid'] = json_signature['keyid']
+    keyid = Keyid().subtype(explicitTag=tag.Tag(tag.tagClassContext,
+                                                tag.tagFormatConstructed, 0))
+    keyid['octetString'] = univ.OctetString(hexValue=json_signature['keyid'])\
+                           .subtype(implicitTag=tag.Tag(tag.tagClassContext,
+                                                        tag.tagFormatSimple, 1))
+    asn_signature['keyid'] = keyid
     asn_signature['method'] = \
                   int(SignatureMethod(json_signature['method'].encode('ascii')))
     asn_hash = Hash().subtype(implicitTag=tag.Tag(tag.tagClassContext,
@@ -103,10 +118,18 @@ def json_to_asn_metadata(asn_signed, ber_signed, json_signatures, asn1Spec):
     asn_digest = BinaryData()\
                  .subtype(explicitTag=tag.Tag(tag.tagClassContext,
                                               tag.tagFormatConstructed, 1))
-    asn_digest['hexString'] = signedDigest
+    asn_digest['octetString'] = \
+      univ.OctetString(hexValue=signedDigest)\
+      .subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
     asn_hash['digest'] = asn_digest
     asn_signature['hash'] = asn_hash
-    asn_signature['value'] = json_signature['sig']
+    value = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext,
+                                                     tag.tagFormatConstructed,
+                                                     3))
+    value['octetString'] = univ.OctetString(hexValue=json_signature['sig'])\
+                           .subtype(implicitTag=tag.Tag(tag.tagClassContext,
+                                                tag.tagFormatSimple, 1))
+    asn_signature['value'] = value
     asn_signatures[numberOfSignatures] = asn_signature
     numberOfSignatures += 1
 

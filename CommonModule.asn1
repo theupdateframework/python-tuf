@@ -11,11 +11,6 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
                                     (PATTERN "[^/\\]+")
   BitString       ::= BIT STRING    (SIZE(1..1024))
   OctetString     ::= OCTET STRING  (SIZE(1..1024))
-  HexString       ::= VisibleString (SIZE(1..1024))
-                                    (PATTERN "[0-9a-f]+")
-  -- Table 1 of RFC 4648.
-  Base64String    ::= VisibleString (SIZE(1..1024))
-                                    (PATTERN "[A-Za-z0-9\+/=]+")
   -- Adjust length of SEQUENCE OF to your needs.
   Paths           ::= SEQUENCE (SIZE(1..8)) OF Path
   Path            ::= VisibleString (SIZE(1..32))
@@ -36,9 +31,7 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 
   BinaryData      ::= CHOICE {
     bitString     BitString,
-    octetString   OctetString,
-    hexString     HexString,
-    base64String  Base64String
+    octetString   OctetString
   }
 
   -- Adjust length of SEQUENCE OF to your needs.
@@ -53,7 +46,7 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
   -- Adjust length of SEQUENCE OF to your needs.
   Keyids          ::= SEQUENCE (SIZE(1..8)) OF Keyid
   -- Usually, a hash of a public key.
-  Keyid           ::= HexString
+  Keyid           ::= BinaryData
 
   -- Adjust length of SEQUENCE OF to your needs.
   Signatures      ::= SEQUENCE (SIZE(1..8)) OF Signature
@@ -64,7 +57,7 @@ CommonModule DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     -- message itself.
     hash          Hash,
     -- The signature itself.
-    value         HexString
+    value         BinaryData
   }
   SignatureMethod ::= ENUMERATED {rsassa-pss, ed25519, ...}
 

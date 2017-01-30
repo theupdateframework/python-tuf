@@ -20,10 +20,6 @@ def get_asn_signed(json_signed):
   numberOfSnapshotMetadataFiles = 0
 
   for filename, filemeta in meta.items():
-    # No more root metadata file in snapshot metadata.
-    # See https://github.com/theupdateframework/taps/blob/master/tap4.md
-    assert filename != 'root.json'
-
     snapshotMetadataFile = SnapshotMetadataFile()
     snapshotMetadataFile['filename'] = filename
     snapshotMetadataFile['version'] = filemeta['version']
@@ -70,9 +66,6 @@ def get_json_signed(asn_metadata):
   for i in range(numberOfSnapshotMetadataFiles):
     snapshotMetadataFile = snapshotMetadataFiles[i]
     filename = str(snapshotMetadataFile['filename'])
-    # No more root metadata file in snapshot metadata.
-    # See https://github.com/theupdateframework/taps/blob/master/tap4.md
-    assert filename != 'root.json'
     filemeta = {'version': int(snapshotMetadataFile['version'])}
     json_meta[filename] = filemeta
 

@@ -29,7 +29,10 @@ def get_asn_signed(json_signed):
   digest = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext,
                                                     tag.tagFormatConstructed,
                                                     1))
-  digest['hexString'] = meta['hashes']['sha256']
+  octetString = univ.OctetString(hexValue=meta['hashes']['sha256'])\
+                .subtype(implicitTag=tag.Tag(tag.tagClassContext,
+                                             tag.tagFormatSimple, 1))
+  digest['octetString'] = octetString
   hash['digest'] = digest
   hashes[0] = hash
   timestampMetadata['hashes'] = hashes
@@ -59,10 +62,13 @@ def get_json_signed(asn_metadata):
   json_signed['version'] = int(asn_signed['version'])
 
   timestampMetadata = asn_signed['body']['timestampMetadata']
+  sha256 = timestampMetadata['hashes'][0]['digest']['octetString'].prettyPrint()
+  assert sha256.startswith('0x')
+  sha256 = sha256[2:]
   json_signed['meta'] = {
     'snapshot.json' : {
       'hashes': {
-        'sha256': str(timestampMetadata['hashes'][0]['digest']['hexString'])
+        'sha256': sha256
       },
       'length': int(timestampMetadata['length']),
       'version': int(timestampMetadata['version'])

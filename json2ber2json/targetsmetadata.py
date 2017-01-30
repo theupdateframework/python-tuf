@@ -81,7 +81,10 @@ def set_asn_keys(json_signed, delegations):
     value = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext,
                                                      tag.tagFormatConstructed,
                                                      2))
-    value['hexString'] = keymeta['keyval']['public']
+    octetString = univ.OctetString(hexValue=keymeta['keyval']['public'])\
+                  .subtype(implicitTag=tag.Tag(tag.tagClassContext,
+                                               tag.tagFormatSimple, 1))
+    value['octetString'] = octetString
     key['publicKeyValue'] = value
     keys[numberOfKeys] = key
     numberOfKeys += 1
@@ -173,7 +176,10 @@ def set_asn_targets(json_signed, targetsMetadata):
       digest = BinaryData()\
                .subtype(explicitTag=tag.Tag(tag.tagClassContext,
                                             tag.tagFormatConstructed, 1))
-      digest['hexString'] = hash_value
+      octetString = univ.OctetString(hexValue=hash_value)\
+                    .subtype(implicitTag=tag.Tag(tag.tagClassContext,
+                                                 tag.tagFormatSimple, 1))
+      digest['octetString'] = octetString
       hash['digest'] = digest
       hashes[numberOfHashes] = hash
       numberOfHashes += 1
@@ -222,7 +228,9 @@ def set_json_keys(json_signed, delegations):
     # FIXME: Only ed25519 keys allowed for now.
     assert keytype == 1
     keytype = 'ed25519'
-    keyval = str(key['publicKeyValue']['hexString'])
+    octetString =  key['publicKeyValue']['octetString'].prettyPrint()
+    assert octetString.startswith('0x')
+    keyval = octetString[2:]
     json_keys[keyid] = {
       "keyid_hash_algorithms": [
         "sha256",
@@ -307,7 +315,9 @@ def set_json_targets(json_signed, targetsMetadata):
     for j in range(numberOfHashes):
       hash = hashes[j]
       hash_function = hashenum_to_hashfunction[int(hash['function'])]
-      hash_value = str(hash['digest']['hexString'])
+      octetString = hash['digest']['octetString'].prettyPrint()
+      assert octetString.startswith('0x')
+      hash_value = octetString[2:]
       json_hashes[hash_function] = hash_value
     filemeta['hashes'] = json_hashes
 
