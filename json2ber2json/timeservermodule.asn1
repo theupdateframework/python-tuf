@@ -3,7 +3,7 @@
 -- 1. PATTERN constraints on VisibleString.
 -- 2. Module definitions in between.
 
-CommonModule DEFINITIONS AUTOMATIC TAGS ::=
+TimeServerModule DEFINITIONS AUTOMATIC TAGS ::=
 BEGIN
 
 RoleType ::= ENUMERATED {
@@ -20,10 +20,6 @@ StrictFilename ::= VisibleString (SIZE(1..32))
 BitString ::= BIT STRING (SIZE(1..1024))
 
 OctetString ::= OCTET STRING (SIZE(1..1024))
-
-HexString ::= VisibleString (SIZE(1..1024))
-
-Base64String ::= VisibleString (SIZE(1..1024))
 
 Paths ::= SEQUENCE (SIZE(1..8)) OF Path
 
@@ -49,9 +45,7 @@ UTCDateTime ::= Positive
 
 BinaryData ::= CHOICE {
     bitString	 [0] IMPLICIT BitString,
-    octetString	 [1] IMPLICIT OctetString,
-    hexString	 [2] IMPLICIT HexString,
-    base64String	 [3] IMPLICIT Base64String
+    octetString	 [1] IMPLICIT OctetString
 }
 
 Hashes ::= SEQUENCE (SIZE(1..8)) OF Hash
@@ -73,15 +67,15 @@ HashFunction ::= ENUMERATED {
 
 Keyids ::= SEQUENCE (SIZE(1..8)) OF Keyid
 
-Keyid ::= HexString
+Keyid ::= BinaryData
 
 Signatures ::= SEQUENCE (SIZE(1..8)) OF Signature
 
 Signature ::= SEQUENCE {
-    keyid	 [0] IMPLICIT Keyid,
+    keyid	 [0] EXPLICIT Keyid,
     method	 [1] IMPLICIT SignatureMethod,
     hash	 [2] IMPLICIT Hash,
-    value	 [3] IMPLICIT HexString
+    value	 [3] EXPLICIT BinaryData
 }
 
 SignatureMethod ::= ENUMERATED {
@@ -93,7 +87,7 @@ SignatureMethod ::= ENUMERATED {
 PublicKeys ::= SEQUENCE (SIZE(1..8)) OF PublicKey
 
 PublicKey ::= SEQUENCE {
-    publicKeyid	 [0] IMPLICIT Keyid,
+    publicKeyid	 [0] EXPLICIT Keyid,
     publicKeyType	 [1] IMPLICIT PublicKeyType,
     publicKeyValue	 [2] EXPLICIT BinaryData
 }

@@ -47,7 +47,10 @@ def get_asn_signed(json_signed):
     digest = BinaryData()\
              .subtype(explicitTag=tag.Tag(tag.tagClassContext,
                                           tag.tagFormatConstructed, 1))
-    digest['hexString'] = hash_value
+    octetString = univ.OctetString(hexValue=hash_value)\
+                  .subtype(implicitTag=tag.Tag(tag.tagClassContext,
+                                               tag.tagFormatSimple, 1))
+    digest['octetString'] = octetString
     hash['digest'] = digest
     hashes[numberOfHashes] = hash
     numberOfHashes += 1
@@ -82,7 +85,9 @@ def get_json_signed(asn_metadata):
   for j in range(numberOfHashes):
     hash = hashes[j]
     hash_function = hashenum_to_hashfunction[int(hash['function'])]
-    hash_value = str(hash['digest']['hexString'])
+    hash_value = hash['digest']['octetString'].prettyPrint()
+    assert hash_value.startswith('0x')
+    hash_value = hash_value[2:]
     json_hashes[hash_function] = hash_value
   fileinfo['hashes'] = json_hashes
 
