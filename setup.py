@@ -109,6 +109,7 @@ setup(
   packages = find_packages(exclude=['tests']),
   scripts = [
     'tuf/scripts/basic_client.py',
-    'tuf/scripts/tufcli.py'
+    'tuf/scripts/tufcli.py',
+    'tuf/scripts/conformance_tester/slow_retrieval_server.py'
   ]
 )

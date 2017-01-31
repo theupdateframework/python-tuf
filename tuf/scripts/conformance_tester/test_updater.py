@@ -106,6 +106,8 @@ def update_client(target, repository_mirror, metadata_directory, targets_directo
     None.
   """
 
+  REPOSITORY_MIRROR = 'http://localhost:8001'
+
   # Do the arguments have the correct format?
   try:
     securesystemslib.formats.RELPATH_SCHEMA.check_match(target)
@@ -122,7 +124,7 @@ def update_client(target, repository_mirror, metadata_directory, targets_directo
 
   # Set the repository mirrors.  This dictionary is needed by the Updater
   # class of updater.py.
-  repository_mirrors = {'mirror': {'url_prefix': repository_mirror,
+  repository_mirrors = {'mirror': {'url_prefix': REPOSITORY_MIRROR,
                                   'metadata_path': 'metadata',
                                   'targets_path': 'targets',
                                   'confined_target_dirs': ['']}}

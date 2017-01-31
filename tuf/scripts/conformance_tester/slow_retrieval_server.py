@@ -54,19 +54,19 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
       data = None
       with open(filepath, 'r') as fileobj:
         data = fileobj.read()
-      
+
       self.send_response(200)
       self.send_header('Content-length', str(len(data)))
       self.end_headers()
-      
+
       if self.server.test_mode == 'mode_1':
         # Before sending any data, the server does nothing for a long time.
-        DELAY = 40 
+        DELAY = 40
         time.sleep(DELAY)
         self.wfile.write(data)
 
         return
-      
+
       # 'mode_2'
       else:
         DELAY = 1
@@ -78,7 +78,7 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
         for i in range(len(data)):
           self.wfile.write(data[i].encode('utf-8'))
           time.sleep(DELAY)
-        
+
         return
 
     except IOError as e:

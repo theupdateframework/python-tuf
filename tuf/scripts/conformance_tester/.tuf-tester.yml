@@ -1,1 +1,5 @@
 command: "python test_updater.py --file file1.txt --repo http://localhost:8001 --metadata /tmp/ --targets /tmp/targets"
+repo: "http://localhost:8001"
+metadata: "/tmp/"
+targets: "/tmp/targets"
+

@@ -22,7 +22,7 @@
 
   This tool launches an HTTP server that listens for requests for metadata and
   targets.  It initially generates a root.json, according to the restrictions
-  set in tuf-tester.yml, and stores it in the metadata directory of the
+  set in .tuf-tester.yml, and stores it in the metadata directory of the
   tuf-compliant program.  The tuf-compliant program is expected to make an
   update and save metadata and target requests to specified directories.  This
   tool runs a series of tests that validate the downloaded metadata, targets,
@@ -60,6 +60,12 @@ import optparse
 import logging
 import os
 
+#TODO: import statements for repository writing
+import shutil
+import datetime
+import tempfile
+import subprocess
+
 import tuf
 import tuf.client.updater
 import tuf.settings
@@ -67,6 +73,8 @@ import tuf.log
 
 import yaml
 import securesystemslib
+
+from tuf.repository_tool import *
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.conformance_tester')
@@ -95,8 +103,106 @@ def run_conformance_testing(config_file):
 
   print('configuration: ' + repr(configuration))
 
+  # (1) Create TUF repository
+  # (2) Copy root.json to the updater's metadata store
+  # (3) Test for normal update
+  # (4) Test for update under attacks:
+  # arbitrary installation, endless data, extraneous dependencies,
+  # fast-forward, indefinite freeze, malicious mirrors, mix-and-match,
+  # rollback, slow retrieval, and key compromise attacks
+
+  command = configuration['command']
+  print('command: ' + repr(command))
+
+  """
+  metadata_directory = configuration['metadata']
+  targets_directory = configuration['targets']
+  """
+
+  server_process = None
+  client_process = None
+
+  try:
+    pass
+    server_process = subprocess.Popen(["slow_retrieval_server.py", "8001", "mode_1"])
+    #client_process = subprocess.Popen([command])
+
+  except:
+    pass
+
+  finally:
+    if server_process is None:
+      server_process.kill()
+
+    """
+    if client_process is None:
+      client_process.kill()
+    """
+
+def create_repository():
+  """
+
+  """
+
+  """
+  #temp_directory = tempfile.mkdtemp(
+  root_key_file = 'keystore/root_key'
+  targets_key_file = 'keystore/targets_key'
+  snapshot_key_file = 'keystore/snapshot_key'
+  timestamp_key_file = 'keystore/timestamp_key'
+  delegation_key_file = 'keystore/delegation_key'
 
 
+  repository = create_new_repository('repository')
+
+  # TODO: The following key types and number of keys are currently fixed, but
+  # they should depend on the restrictions set in the configuration file.
+  # Generate keys for the top-level roles. One key is generated for two
+  # deletated roles.
+  generate_and_write_rsa_keypair(root_key_file, password='password')
+  generate_and_write_ed25519_keypair(targets_key_file, password='password')
+  generate_and_write_ed25519_keypair(snapshot_key_file, password='password')
+  generate_and_write_ed25519_keypair(timestamp_key_file, password='password')
+  generate_and_write_ed25519_keypair(delegation_key_file, password='password')
+
+  root_public = import_rsa_publickey_from_file(root_key_file + '.pub')
+  targets_public = import_ed25519_publickey_from_file(targets_key_file + '.pub')
+  snapshot_public = import_ed25519_publickey_from_file(snapshot_key_file + '.pub')
+  timestamp_public = import_ed25519_publickey_from_file(timestamp_key_file + '.pub')
+  delegation_public = import_ed25519_publickey_from_file(delegation_key_file + '.pub')
+
+  root_private = import_rsa_privatekey_from_file(root_key_file, 'password')
+  targets_private = import_ed25519_privatekey_from_file(targets_key_file, 'password')
+  snapshot_private = import_ed25519_privatekey_from_file(snapshot_key_file, 'password')
+  timestamp_private = import_ed25519_privatekey_from_file(timestamp_key_file, 'password')
+  delegation_private = import_ed25519_privatekey_from_file(delegation_key_file, 'password')
+
+  repository.root.add_verification_key(root_public)
+  repository.targets.add_verification_key(targets_public)
+  repository.snapshot.add_verification_key(snapshot_public)
+  repository.timestamp.add_verification_key(timestamp_public)
+
+  repository.root.load_signing_key(root_private)
+  repository.targets.load_signing_key(targets_private)
+  repository.snapshot.load_signing_key(snapshot_private)
+  repository.timestamp.load_signing_key(timestamp_private)
+
+  repository.targets.delegate('role1', [delegation_public], [target3_filepath])
+  repository.targets('role1').load_signing_key(delegation_private)
+
+  repository.targets('role1').delegate('role2', [delegation_public], [])
+  repository.targets('role2').load_signing_key(delegation_private)
+
+  repository.targets.compressions = ['gz']
+  repository.snapshot.compressions = ['gz']
+
+
+  repository.writeall()
+  staged_metadata_directory = 'repository/metadata.staged'
+  metadata_directory = 'repository/metadata'
+
+  shutil.copytree(staged_metadata_directory, metadata_directory)
+  """
 
 
 def parse_options():
@@ -178,6 +284,8 @@ if __name__ == '__main__':
   FAILURE = 1
 
   # Execute the tests..
+
+
   try:
     run_conformance_testing(configuration_file)
 
