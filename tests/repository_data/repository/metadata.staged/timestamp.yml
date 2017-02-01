@@ -1,14 +1,14 @@
 signatures:
 - keyid: 3f09f6468a522bea0364a23315872d8400875dfdb24ff4ecd32f27164d5c23c1
   method: ed25519
-  sig: e62bd7bfddc31a56db0c97d9fe0fefc53606abdf09609f0fd73c3da02ab047a6076ab4a6161af7702877f7826a9033361319c41252c9e022d87eec63df2d320a
+  sig: 3ecc1d570cb29468c824bb544b3593d97ad1e79078f0403e3e4afe72f69e0946b5b0af524c78af7141ef1a5f6bb9d45cca21b6e70060c7e19ccf031f0a916e0b
 signed:
   _type: Timestamp
   expires: '2030-01-01T00:00:00Z'
   meta:
     snapshot.yml:
       hashes:
-        sha256: 648694ed1935eba90b98442748e353b5b8d758078061e45e2d068931ccbb3294
+        sha256: c68e0564f56c4b4552649edf1da78b29c96a751f89a3c20daf910c64f9710b53
       length: 564
       version: 1
   version: 1
