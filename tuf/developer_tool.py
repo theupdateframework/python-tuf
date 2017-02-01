@@ -865,7 +865,12 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   # Load the project's metadata.
   targets_metadata_path = os.path.join(project_directory, metadata_directory,
       project_filename)
-  signable = securesystemslib.util.load_json_file(targets_metadata_path)
+  if targets_metadata_path.endswith('.yml'):
+    signable = securesystemslib.util.load_yaml_file(targets_metadata_path)
+
+  else:
+    signable = securesystemslib.util.load_json_file(targets_metadata_path)
+
   tuf.formats.check_signable_object_format(signable)
   targets_metadata = signable['signed']
 
@@ -931,7 +936,11 @@ def load_project(project_directory, prefix='', new_targets_location=None):
 
       signable = None
       try:
-        signable = securesystemslib.util.load_json_file(metadata_path)
+        if metadata_path.endswith('.yml'):
+          signable = securesystemslib.util.load_yaml_file(metadata_path)
+
+        else:
+          signable = securesystemslib.util.load_json_file(metadata_path)
 
       except (ValueError, IOError, securesystemslib.exceptions.Error):
         raise

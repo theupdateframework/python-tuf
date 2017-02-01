@@ -80,7 +80,7 @@ METADATA_DIRECTORY_NAME = 'metadata'
 TARGETS_DIRECTORY_NAME = 'targets'
 
 # The extension of TUF metadata.
-METADATA_EXTENSION = '.json'
+METADATA_EXTENSION = '.' + tuf.settings.METADATA_FORMAT
 
 # Expiration date delta, in seconds, of the top-level roles.  A metadata
 # expiration date is set by taking the current time and adding the expiration
@@ -1439,7 +1439,7 @@ class Root(Metadata):
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0, 'consistent_snapshot': False,
-                'compressions': [''], 'expires': expiration,
+                'compressions': ['gz'], 'expires': expiration,
                 'partial_loaded': False}
     try:
       tuf.roledb.add_role(self._rolename, roleinfo)
@@ -1500,7 +1500,7 @@ class Timestamp(Metadata):
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                'signatures': [], 'version': 0, 'compressions': [''],
+                'signatures': [], 'version': 0, 'compressions': ['gz'],
                 'expires': expiration, 'partial_loaded': False}
 
     try:
@@ -1556,7 +1556,7 @@ class Snapshot(Metadata):
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                'signatures': [], 'version': 0, 'compressions': [''],
+                'signatures': [], 'version': 0, 'compressions': ['gz'],
                 'expires': expiration, 'partial_loaded': False}
 
     try:
@@ -1655,7 +1655,7 @@ class Targets(Metadata):
     # If 'roleinfo' is not provided, set an initial default.
     if roleinfo is None:
       roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                  'version': 0, 'compressions': [''], 'expires': expiration,
+                  'version': 0, 'compressions': ['gz'], 'expires': expiration,
                   'signatures': [], 'paths': {}, 'path_hash_prefixes': [],
                   'partial_loaded': False, 'delegations': {'keys': {},
                                                            'roles': []}}
@@ -2323,7 +2323,7 @@ class Targets(Metadata):
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
-                'threshold': threshold, 'version': 0, 'compressions': [''],
+                'threshold': threshold, 'version': 0, 'compressions': ['gz'],
                 'expires': expiration, 'signatures': [], 'partial_loaded': False,
                 'paths': relative_targetpaths, 'delegations': {'keys': {},
                 'roles': []}}
@@ -2990,7 +2990,7 @@ def load_repository(repository_directory):
     # or if 'metadata_role' is Root.
     # Example:  '10.django.json' --> 'django.json'
     consistent_snapshot = \
-      metadata_role.endswith('root.json') or consistent_snapshot == True
+      metadata_role.endswith('root' + METADATA_EXTENSION) or consistent_snapshot == True
     metadata_name, version_number_junk = \
       repo_lib._strip_version_number(metadata_name, consistent_snapshot)
 
@@ -3018,7 +3018,11 @@ def load_repository(repository_directory):
     signable = None
 
     try:
-      signable = securesystemslib.util.load_json_file(metadata_path)
+      if metadata_path.endswith('.yml'):
+        signable = securesystemslib.util.load_yaml_file(metadata_path)
+
+      else:
+        signable = securesystemslib.util.load_json_file(metadata_path)
 
     except (securesystemslib.exceptions.Error, ValueError, IOError):
       logger.debug('Tried to load metadata with invalid JSON'
@@ -3033,7 +3037,7 @@ def load_repository(repository_directory):
                 'signing_keyids': [],
                 'signatures': [],
                 'partial_loaded': False,
-                'compressions': [],
+                'compressions': ['gz'],
                 'paths': {},
                }
 

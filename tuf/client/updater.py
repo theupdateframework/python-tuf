@@ -129,8 +129,10 @@ import tuf.exceptions
 import securesystemslib.hash
 import securesystemslib.keys
 import securesystemslib.util
+
 import six
 import iso8601
+import yaml
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.client.updater')
@@ -416,7 +418,7 @@ class Updater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
-    metadata_filename = metadata_role + '.json'
+    metadata_filename = metadata_role + '.' + tuf.settings.METADATA_FORMAT
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
 
     # Ensure the metadata path is valid/exists, else ignore the call.
@@ -424,7 +426,12 @@ class Updater(object):
       # Load the file.  The loaded object should conform to
       # 'tuf.formats.SIGNABLE_SCHEMA'.
       try:
-        metadata_signable = securesystemslib.util.load_json_file(metadata_filepath)
+        if metadata_filepath.endswith('.yml'):
+          metadata_signable = securesystemslib.util.load_yaml_file(metadata_filepath)
+
+        else:
+          metadata_signable = securesystemslib.util.load_json_file(metadata_filepath)
+
 
       # Although the metadata file may exist locally, it may not
       # be a valid json file.  On the next refresh cycle, it will be
@@ -716,11 +723,15 @@ class Updater(object):
 
     # Retrieve the latest, remote root.json.
     latest_root_metadata_file = \
-      self._get_metadata_file('root', 'root.json',
+      self._get_metadata_file('root', 'root.' + tuf.settings.METADATA_FORMAT,
                               tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH, None,
                               compression_algorithm=compression_algorithm)
-    latest_root_metadata = \
-      securesystemslib.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
+    if tuf.settings.METADATA_FORMAT == 'yml':
+      latest_root_metadata = yaml.load(latest_root_metadata_file.read().decode('utf-8'))
+
+    else:
+      latest_root_metadata = \
+        securesystemslib.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
 
 
     next_version = current_root_metadata['version'] + 1
@@ -986,7 +997,11 @@ class Updater(object):
     metadata = metadata_file_object.read().decode('utf-8')
 
     try:
-      metadata_signable = securesystemslib.util.load_json_string(metadata)
+      if tuf.settings.METADATA_FORMAT == 'yml':
+        metadata_signable = yaml.load(metadata)
+
+      else:
+        metadata_signable = securesystemslib.util.load_json_string(metadata)
 
     except Exception as exception:
       raise tuf.exceptions.InvalidMetadataJSONError(exception)
@@ -1078,7 +1093,11 @@ class Updater(object):
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
-        metadata_signable = \
+        if tuf.settings.METADATA_FORMAT == 'yml':
+          metadata_signable = yaml.load(file_object.read().decode('utf-8'))
+
+        else:
+          metadata_signable = \
           securesystemslib.util.load_json_string(file_object.read().decode('utf-8'))
 
         # If the version number is unspecified, ensure that the version number
@@ -1306,7 +1325,7 @@ class Updater(object):
     """
 
     # Construct the metadata filename as expected by the download/mirror modules.
-    metadata_filename = metadata_role + '.json'
+    metadata_filename = metadata_role + '.' + tuf.settings.METADATA_FORMAT
     uncompressed_metadata_filename = metadata_filename
 
     # The 'snapshot' or Targets metadata may be compressed.  Add the appropriate
@@ -1367,8 +1386,12 @@ class Updater(object):
     # Next, move the verified updated metadata file to the 'current' directory.
     # Note that the 'move' method comes from securesystemslib.util's TempFile class.
     # 'metadata_file_object' is an instance of securesystemslib.util.TempFile.
-    metadata_signable = \
-      securesystemslib.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+    if tuf.settings.METADATA_FORMAT == 'yml':
+      metadata_signable = yaml.load(metadata_file_object.read().decode('utf-8'))
+
+    else:
+      metadata_signable = \
+        securesystemslib.util.load_json_string(metadata_file_object.read().decode('utf-8'))
 
     if compression_algorithm == 'gzip':
       current_uncompressed_filepath = \
@@ -1468,7 +1491,7 @@ class Updater(object):
       None.
     """
 
-    uncompressed_metadata_filename = metadata_role + '.json'
+    uncompressed_metadata_filename = metadata_role + '.' + tuf.settings.METADATA_FORMAT
     expected_versioninfo = None
     expected_fileinfo = None
 
@@ -1686,7 +1709,7 @@ class Updater(object):
 
     # Extract the version information from the trusted snapshot role and save
     # it to the 'self.versioninfo' store.
-    if metadata_filename == 'timestamp.json':
+    if metadata_filename == 'timestamp.' + tuf.settings.METADATA_FORMAT:
       trusted_versioninfo = \
         self.metadata['current']['timestamp']['version']
 
@@ -1695,7 +1718,7 @@ class Updater(object):
     # downloading timestamp.json.  Note: Clients are allowed to have only
     # root.json initially, and perform a refresh of top-level metadata to
     # obtain the remaining roles.
-    elif metadata_filename == 'snapshot.json':
+    elif metadata_filename == 'snapshot.' + tuf.settings.METADATA_FORMAT:
 
       # Verify the version number of the currently trusted snapshot.json in
       # snapshot.json itself.  Checking the version number specified in
@@ -1707,7 +1730,7 @@ class Updater(object):
 
       except KeyError:
         trusted_versioninfo = \
-          self.metadata['current']['timestamp']['meta']['snapshot.json']
+          self.metadata['current']['timestamp']['meta']['snapshot.' + tuf.settings.METADATA_FORMAT]
 
     else:
 
@@ -1716,7 +1739,7 @@ class Updater(object):
         # extension.  Strip the '.json' extension when checking if
         # 'metadata_filename' currently exists.
         targets_version_number = \
-          self.metadata['current'][metadata_filename[:-len('.json')]]['version']
+          self.metadata['current'][metadata_filename[:-len('.' + tuf.settings.METADATA_FORMAT)]]['version']
         trusted_versioninfo = \
           tuf.formats.make_versioninfo(targets_version_number)
 
@@ -1875,7 +1898,7 @@ class Updater(object):
     """
 
     # Get the 'current' and 'previous' full file paths for 'metadata_role'
-    metadata_filepath = metadata_role + '.json'
+    metadata_filepath = metadata_role + '.' + tuf.settings.METADATA_FORMAT
     previous_filepath = os.path.join(self.metadata_directory['previous'],
                                      metadata_filepath)
     current_filepath = os.path.join(self.metadata_directory['current'],
@@ -2083,7 +2106,7 @@ class Updater(object):
 
     roles_to_update = []
 
-    if rolename + '.json' in self.metadata['current']['snapshot']['meta']:
+    if rolename + '.' + tuf.settings.METADATA_FORMAT in self.metadata['current']['snapshot']['meta']:
       roles_to_update.append(rolename)
 
     if refresh_all_delegated_roles:
@@ -2093,8 +2116,8 @@ class Updater(object):
         # roles (e.g., django.json, unclaimed.json).  Remove the 'targets' role
         # because it gets updated when the targets.json file is updated in
         # _update_metadata_if_changed('targets') and root.
-        if role.endswith('.json'):
-          role = role[:-len('.json')]
+        if role.endswith('.' + tuf.settings.METADATA_FORMAT):
+          role = role[:-len('.' + tuf.settings.METADATA_FORMAT)]
           if role not in ['root', 'targets', rolename]:
             roles_to_update.append(role)
 

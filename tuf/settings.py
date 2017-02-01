@@ -80,9 +80,6 @@ MIN_AVERAGE_DOWNLOAD_SPEED = 100 #bytes/second
 # The time (in seconds) we ignore a server with a slow initial retrieval speed.
 SLOW_START_GRACE_PERIOD = 3 #seconds
 
-
-
-
 # Software updaters that integrate the framework are required to specify
 # the URL prefix for the mirrors that clients can contact to download updates.
 # The following URI schemes are those that download.py support.  By default,
@@ -100,3 +97,7 @@ MAX_NUMBER_OF_DELEGATIONS = 2**5
 # a hard link to 2.root.json (for example).  This approach is more efficient in
 # terms of disk space usage.  By default, we use 'copy'.
 CONSISTENT_METHOD = 'copy'
+
+# Format of the TUF metadata written to disk.
+# Supported formats: ['json', 'yml']
+METADATA_FORMAT = 'yml'
