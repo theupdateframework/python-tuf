@@ -3020,13 +3020,15 @@ def load_repository(repository_directory):
     try:
       if metadata_path.endswith('.yml'):
         signable = securesystemslib.util.load_yaml_file(metadata_path)
+        # Try to access the 'signed' value for TypeErrors.
+        signable['signed']
 
       else:
         signable = securesystemslib.util.load_json_file(metadata_path)
 
-    except (securesystemslib.exceptions.Error, ValueError, IOError):
-      logger.debug('Tried to load metadata with invalid JSON'
-        ' content: ' + repr(metadata_path))
+    except (securesystemslib.exceptions.Error, ValueError, IOError, TypeError) as exception:
+      logger.debug('Tried to load metadata with invalid'
+        ' content: ' + repr(metadata_path) + ': ' + str(exception))
       continue
 
     metadata_object = signable['signed']

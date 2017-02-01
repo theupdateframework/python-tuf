@@ -1094,7 +1094,7 @@ class Updater(object):
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
         if tuf.settings.METADATA_FORMAT == 'yml':
-          metadata_signable = yaml.load(file_object.read().decode('utf-8'))
+          metadata_signable = securesystemslib.util.load_yaml_string(file_object.read().decode('utf-8'))
 
         else:
           metadata_signable = \

@@ -419,6 +419,12 @@ def _remove_invalid_and_duplicate_signatures(signable):
 
   for signature in signable['signatures']:
     signed = signable['signed']
+    if tuf.settings.METADATA_FORMAT == 'yml':
+      signed = yaml.safe_dump(signed)
+
+    else:
+      logger.debug('Signing over YAML.')
+
     keyid = signature['keyid']
     key = None
 
@@ -477,7 +483,7 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         # If we encounter 'root.METADATA_EXTENSION', skip it.  We don't ever
         # delete root.METADATA_EXTENSION files, since they should it always
         # exist.
-        if basename.endswith('root.METADATA_EXTENSION'):
+        if basename.endswith('root' + METADATA_EXTENSION):
           continue
 
         metadata_path = os.path.join(directory_path, basename)
@@ -1963,6 +1969,12 @@ def sign_metadata(metadata_object, keyids, filename):
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
         signed = signable['signed']
+        if tuf.settings.METADATA_FORMAT == 'yml':
+          signed = yaml.safe_dump(signed)
+
+        else:
+          logger.debug('Signing over the native format (JSON).')
+
         try:
           signature = securesystemslib.keys.create_signature(key, signed)
           signable['signatures'].append(signature)
@@ -2208,10 +2220,10 @@ def _write_compressed_metadata(file_object, compressed_filename,
       else:
         logger.debug('Skipping compression extension: ' + repr(compression_extension))
 
-    # Move the 'securesystemslib.util.TempFile' object to one of the filenames so that it is
-    # saved and the temporary file closed.
+    # Move the 'securesystemslib.util.TempFile' object to one of the filenames
+    # so that it is saved and the temporary file closed.
     if not os.path.exists(consistent_filename):
-      logger.debug('Saving ' + repr(consistent_filename))
+      logger.debug('Saving compressed ' + repr(consistent_filename))
       file_object.move(consistent_filename)
 
     else:

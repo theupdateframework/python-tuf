@@ -51,6 +51,7 @@ import tuf.roledb
 import tuf.formats
 
 import securesystemslib
+import yaml
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.sig')
@@ -149,6 +150,13 @@ def get_signature_status(signable, role=None, repository_name='default',
   # Extract the relevant fields from 'signable' that will allow us to identify
   # the different classes of keys (i.e., good_sigs, bad_sigs, etc.).
   signed = signable['signed']
+
+  if tuf.settings.METADATA_FORMAT == 'yml':
+    signed = yaml.safe_dump(signed)
+
+  else:
+    logger.debug('Verifying signature over YAML')
+
   signatures = signable['signatures']
 
   # Iterate the signatures and enumerate the signature_status fields.
