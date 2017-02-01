@@ -19,7 +19,8 @@ cffi==1.7.0
 pycrypto==2.6.1
 pynacl==1.0.1
 cryptography==1.4.0
-securesystemslib==0.10.1
+#securesystemslib==0.10.1
+-e git://github.com/secure-systems-lab/securesystemslib.git@load_yaml#egg=securesystemslib
 
 # Testing requirements.  The rest of the testing dependencies available in
 # 'tox.ini'
