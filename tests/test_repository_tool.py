@@ -391,11 +391,11 @@ class TestRepository(unittest.TestCase):
     metadata_files = repo.get_filepaths_in_directory(metadata_directory)
     EXTENSION = tuf.settings.METADATA_FORMAT
     EXTENSION_GZ = EXTENSION + '.gz'
-    expected_files = ['1.root.' + EXTENSION, '1.root.' + EXTENSION_GZ, 'root.json',
-                      'root.json.gz', 'targets.json', 'targets.json.gz',
-                      'snapshot.json', 'snapshot.json.gz', 'timestamp.json',
-                      'timestamp.json.gz', 'role1.json', 'role1.json.gz',
-                      'role2.json', 'role2.json.gz']
+    expected_files = ['1.root.' + EXTENSION, '1.root.' + EXTENSION_GZ, 'root.' + EXTENSION,
+                      'targets.' + EXTENSION, 'targets.' + EXTENSION_GZ,
+                      'snapshot.' + EXTENSION, 'snapshot.' + EXTENSION_GZ, 'timestamp.' + EXTENSION,
+                      'timestamp.' + EXTENSION_GZ, 'role1.' + EXTENSION, 'role1.' + EXTENSION_GZ,
+                      'role2.' + EXTENSION, 'role2.' + EXTENSION_GZ]
 
     basenames = []
     for filepath in metadata_files:
@@ -417,7 +417,7 @@ class TestRepository(unittest.TestCase):
     # Test invalid directory argument.
     # A non-directory.
     self.assertRaises(securesystemslib.exceptions.Error, repo.get_filepaths_in_directory,
-                      os.path.join(metadata_directory, 'root.json'))
+                      os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT))
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     nonexistent_directory = os.path.join(temporary_directory, 'nonexistent/')
     self.assertRaises(securesystemslib.exceptions.Error, repo.get_filepaths_in_directory,
@@ -1697,7 +1697,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     shutil.copytree(original_repository_directory, repository_directory)
 
     # For testing purposes, add a metadata file with an extension that is
-    # not supported, and another with invalid JSON content.
+    # not supported, and another with invalid JSON/YAML/etc. content.
     EXTENSION = tuf.settings.METADATA_FORMAT
     invalid_metadata_file = os.path.join(metadata_directory, 'root.bad')
     root_file = os.path.join(metadata_directory, 'root.' + EXTENSION)
@@ -1742,7 +1742,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # minimum required metadata.
     root_filepath = \
       os.path.join(repository_directory,
-                   repo_tool.METADATA_STAGED_DIRECTORY_NAME, 'root.json')
+                   repo_tool.METADATA_STAGED_DIRECTORY_NAME, 'root.' + tuf.settings.METADATA_FORMAT)
     os.remove(root_filepath)
     self.assertRaises(securesystemslib.exceptions.RepositoryError, repo_tool.load_repository,
                       repository_directory)

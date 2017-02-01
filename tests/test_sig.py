@@ -39,6 +39,7 @@ import tuf.exceptions
 
 import securesystemslib
 import securesystemslib.keys
+import yaml
 
 logger = logging.getLogger('tuf.test_sig')
 
@@ -160,8 +161,12 @@ class TestSig(unittest.TestCase):
   def test_get_signature_status_single_key(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
+    signed = signable['signed']
+    if tuf.settings.METADATA_FORMAT == 'yml':
+      signed = yaml.safe_dump(signed)
+
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     threshold = 1
     roleinfo = tuf.formats.make_role_metadata(
@@ -199,9 +204,13 @@ class TestSig(unittest.TestCase):
 
   def test_get_signature_status_below_threshold(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = signable['signed']
+
+    if tuf.settings.METADATA_FORMAT == 'yml':
+      signed = yaml.safe_dump(signed)
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 2
@@ -230,12 +239,16 @@ class TestSig(unittest.TestCase):
 
   def test_get_signature_status_below_threshold_unrecognized_sigs(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = signable['signed']
+
+    if tuf.settings.METADATA_FORMAT == 'yml':
+      signed = yaml.safe_dump(signed)
 
     # Two keys sign it, but only one of them will be trusted.
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[2], signable['signed']))
+                                  KEYS[2], signed))
 
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
@@ -266,13 +279,17 @@ class TestSig(unittest.TestCase):
 
   def test_get_signature_status_below_threshold_unauthorized_sigs(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = signable['signed']
+
+    if tuf.settings.METADATA_FORMAT == 'yml':
+      signed = yaml.safe_dump(signed)
 
     # Two keys sign it, but one of them is only trusted for a different
     # role.
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[1], signable['signed']))
+                                  KEYS[1], signed))
 
     tuf.keydb.add_key(KEYS[0])
     tuf.keydb.add_key(KEYS[1])
@@ -329,8 +346,13 @@ class TestSig(unittest.TestCase):
 
   def test_verify_single_key(self):
     signable = {'signed' : 'test', 'signatures' : []}
+    signed = signable['signed']
+
+    if tuf.settings.METADATA_FORMAT == 'yml':
+      signed = yaml.safe_dump(signed)
+
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+                                  KEYS[0], signed))
 
     tuf.keydb.add_key(KEYS[0])
     threshold = 1

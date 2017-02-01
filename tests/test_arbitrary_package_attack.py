@@ -294,9 +294,6 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       self.assertTrue(len(exception.mirror_errors), 1)
 
       # Verify that the specific and expected mirror exception is raised.
-      print('url_file: ' + repr(url_file))
-      print('mirror_errors: ' + repr(exception.mirror_errors))
-
       self.assertTrue(url_file in exception.mirror_errors)
       self.assertTrue(isinstance(exception.mirror_errors[url_file],
                                  securesystemslib.exceptions.BadHashError))

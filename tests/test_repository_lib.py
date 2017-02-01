@@ -736,9 +736,9 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.sign_metadata, 3, root_keyids,
-                      'root.json')
+                      'root.' + tuf.settings.METADATA_FORMAT)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.sign_metadata, root_metadata,
-                      3, 'root.json')
+                      3, 'root.' + tuf.settings.METADATA_FORMAT)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.sign_metadata, root_metadata,
                       root_keyids, 3)
 
@@ -854,7 +854,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # 'write_new_metadata' to False.
     file_object = securesystemslib.util.TempFile()
     existing_filename = os.path.join('repository_data', 'repository',
-                                     'metadata', 'root.json')
+                                     'metadata', 'root.' + tuf.settings.METADATA_FORMAT)
 
     write_new_metadata = False
     repo_lib._write_compressed_metadata(file_object,
@@ -865,10 +865,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test writing of compressed metadata when consistent snapshots is enabled.
     file_object = securesystemslib.util.TempFile()
-    shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.json.gz'))
-    shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.json.zip'))
-    shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.zip'))
-    compressed_filename = os.path.join(self.temporary_directory, 'root.json.gz')
+    shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.' + tuf.settings.METADATA_FORMAT + '.gz'))
+    shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.' + tuf.settings.METADATA_FORMAT + '.zip'))
+    shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.' + tuf.settings.METADATA_FORMAT + '.zip'))
+    compressed_filename = os.path.join(self.temporary_directory, 'root.' + tuf.settings.METADATA_FORMAT + '.gz')
 
     # For testing purposes, add additional compression algorithms to
     # repo_lib.SUPPORTED_COMPRESSION_EXTENSIONS.
