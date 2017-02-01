@@ -1,0 +1,71 @@
+signatures:
+- keyid: 5602f4df0cd26b2112f0833b1ce8d5fcbb595754961d3a04f37b9815e2ced503
+  method: RSASSA-PSS
+  sig: b00aaad32d1e7636b66649ba6203c38d0709205d33a29ee0dc6e144eca796dcc5d33a4b9af73d5383f83a6969dcaef2ab2b3fef982303119169cc243776e07c4df96768006d32b073a1038e6d804ec921d868ade3748b15f1356f359efc4665b7a0bd4d99d095c3f0b1953752c261496cd047f70d9221523a65c0fa6b520b010e285e7fc455f468dade837f514754959e025b3bbd5bf62c90b18aad031040988cd4806d8256985109d2985097da7a2d2297603ce73df9d23baafbe3dcc2e1a45d11659faa8a225928001ea3eef9d83c5a3950e60684b9f0a56afd7e403723dae674107f6b405964dfe30ef4b92394df351857c3d05f51d0954b51525b5d4886aefbdcd96a8c9567cf42c6eac772bd6305b0f0a559b4b63ff1824ad3e7e14f930fe74d800c8d19e4d40e2e232362d1c21e06afb262acbe64b9587751f96bc9d2ff0bd0fb2c69e83b8ae49a8e0cfa1d7e7f86b4cbe3c30f1952dda218118ccfc80c69af3ff8e2d98ebad3ffbe8cb00a78b20bf98950104bf4bb92c17fabca4e55c
+signed:
+  _type: Root
+  compression_algorithms:
+  - gz
+  consistent_snapshot: false
+  expires: '2030-01-01T00:00:00Z'
+  keys:
+    182216b8800c50ddf000043b31ddf90d815c754ab4e0b31a5952a839b371bed9:
+      keyid_hash_algorithms: &id001
+      - sha256
+      - sha512
+      keytype: ed25519
+      keyval:
+        public: e8bd29d20025d3ac755a27b8d8efe185e368244000d9d3b76e32afb968cb0ea8
+    3f09f6468a522bea0364a23315872d8400875dfdb24ff4ecd32f27164d5c23c1:
+      keyid_hash_algorithms: *id001
+      keytype: ed25519
+      keyval:
+        public: 52de9284608be6b718a9d88c7c5d8d9d93b33732e00d670dd4ebe4bce8bbc83c
+    5602f4df0cd26b2112f0833b1ce8d5fcbb595754961d3a04f37b9815e2ced503:
+      keyid_hash_algorithms: *id001
+      keytype: rsa
+      keyval:
+        public: '-----BEGIN PUBLIC KEY-----
+
+          MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAsDqUoiFJZX+5gm5pyI1l
+
+          Vc/N3yjJVOIl9GyiK0mRyzV3IzUQzhjq8nhk0eLfzXw2XwIAYOJC6dR/tGRG4JDx
+
+          Jkez5FFH4zLosr/XzT7CG5zxJ3kKICLD1v9rZQr5ZgARQDOpkxzPz46rGnE0sHd7
+
+          MpnpPMScA1pMIzwM1RoPS4ntZipI1cl9M7HMQ6mkBp8/DNKCqaDWixJqaGgWrhhK
+
+          hI/1mzBliMKriNxPKSCGVlOk/QpZft+y1fs42s0DMd5BOFBo+ZcoXLYRncg9S3A2
+
+          xx/jT69Bt3ceiAZqnp7f6M+ZzoUifSelaoL7QIYg/GkEl+0oxTD0yRphGiCKwn9c
+
+          pSbn7NgnbjqSgIMeEtlf/5Coyrs26pyFf/9GbusddPSxxxwIJ/7IJuF7P1Yy0WpZ
+
+          kMeY83h9n2IdnEYi+rpdbLJPQd7Fpu2xrdA3Fokj8AvCpcmxn8NIXZuK++r8/xsE
+
+          AUL30HH7dgVn50AvdPaJnqAORT3OlabW0DK9prcwKnyzAgMBAAE=
+
+          -----END PUBLIC KEY-----'
+    a0a0f0cf08daff7afd1eb6582756d43987aa73f028044836a5519259706ca19b:
+      keyid_hash_algorithms: *id001
+      keytype: ed25519
+      keyval:
+        public: 0692a846935833d685168ae8c98fee951d52d8aa76685b8ba55b8e1eada217c2
+  roles:
+    root:
+      keyids:
+      - 5602f4df0cd26b2112f0833b1ce8d5fcbb595754961d3a04f37b9815e2ced503
+      threshold: 1
+    snapshot:
+      keyids:
+      - 182216b8800c50ddf000043b31ddf90d815c754ab4e0b31a5952a839b371bed9
+      threshold: 1
+    targets:
+      keyids:
+      - a0a0f0cf08daff7afd1eb6582756d43987aa73f028044836a5519259706ca19b
+      threshold: 1
+    timestamp:
+      keyids:
+      - 3f09f6468a522bea0364a23315872d8400875dfdb24ff4ecd32f27164d5c23c1
+      threshold: 1
+  version: 1
