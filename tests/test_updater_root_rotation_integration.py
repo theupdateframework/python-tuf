@@ -259,7 +259,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-        url_file = os.path.join(url_prefix, 'metadata', '2.root.json')
+        url_file = os.path.join(url_prefix, 'metadata', '2.root.' + tuf.settings.METADATA_FORMAT)
 
         # Verify that '2.root.json' is the culprit.
         self.assertEqual(url_file, mirror_url)

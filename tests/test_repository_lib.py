@@ -350,20 +350,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test normal case.
     metadata_directory = os.path.join('metadata/')
-    filenames = {'root.json': metadata_directory + 'root.json',
-                 'targets.json': metadata_directory + 'targets.json',
-                 'snapshot.json': metadata_directory + 'snapshot.json',
-                 'timestamp.json': metadata_directory + 'timestamp.json'}
+    filenames = {'root.' + tuf.settings.METADATA_FORMAT: metadata_directory + 'root.' + tuf.settings.METADATA_FORMAT,
+                 'targets.' + tuf.settings.METADATA_FORMAT: metadata_directory + 'targets.' + tuf.settings.METADATA_FORMAT,
+                 'snapshot.' + tuf.settings.METADATA_FORMAT: metadata_directory + 'snapshot.' + tuf.settings.METADATA_FORMAT,
+                 'timestamp.' + tuf.settings.METADATA_FORMAT: metadata_directory + 'timestamp.' + tuf.settings.METADATA_FORMAT}
 
     self.assertEqual(filenames, repo_lib.get_metadata_filenames('metadata/'))
 
     # If a directory argument is not specified, the current working directory
     # is used.
     metadata_directory = os.getcwd()
-    filenames = {'root.json': os.path.join(metadata_directory, 'root.json'),
-                 'targets.json': os.path.join(metadata_directory, 'targets.json'),
-                 'snapshot.json': os.path.join(metadata_directory, 'snapshot.json'),
-                 'timestamp.json': os.path.join(metadata_directory, 'timestamp.json')}
+    filenames = {'root.' + tuf.settings.METADATA_FORMAT: os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT),
+                 'targets.' + tuf.settings.METADATA_FORMAT: os.path.join(metadata_directory, 'targets.' + tuf.settings.METADATA_FORMAT),
+                 'snapshot.' + tuf.settings.METADATA_FORMAT: os.path.join(metadata_directory, 'snapshot.' + tuf.settings.METADATA_FORMAT),
+            'timestamp.' + tuf.settings.METADATA_FORMAT: os.path.join(metadata_directory, 'timestamp.' + tuf.settings.METADATA_FORMAT)}
     self.assertEqual(filenames, repo_lib.get_metadata_filenames())
 
 
@@ -425,8 +425,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test normal case.
     # Load the root metadata provided in 'tuf/tests/repository_data/'.
     root_filepath = os.path.join('repository_data', 'repository',
-                                 'metadata', 'root.json')
-    root_signable = securesystemslib.util.load_json_file(root_filepath)
+                                 'metadata', 'root.' + tuf.settings.METADATA_FORMAT)
+
+    if root_filepath.endswith('.yml'):
+      root_signable = securesystemslib.util.load_yaml_file(root_filepath)
+
+    else:
+      root_signable = securesystemslib.util.load_json_file(root_filepath)
 
     # generate_root_metadata() expects the top-level roles and keys to be
     # available in 'tuf.keydb' and 'tuf.roledb'.
@@ -677,10 +682,19 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                  'repository', 'metadata')
     keystore_path = os.path.join('repository_data',
                                  'keystore')
-    root_filename = os.path.join(metadata_path, 'root.json')
-    root_metadata = securesystemslib.util.load_json_file(root_filename)['signed']
-    targets_filename = os.path.join(metadata_path, 'targets.json')
-    targets_metadata = securesystemslib.util.load_json_file(targets_filename)['signed']
+    root_filename = os.path.join(metadata_path, 'root.' + tuf.settings.METADATA_FORMAT)
+    if root_filename.endswith('.yml'):
+      root_metadata = securesystemslib.util.load_yaml_file(root_filename)['signed']
+
+    else:
+      root_metadata = securesystemslib.util.load_json_file(root_filename)['signed']
+
+    targets_filename = os.path.join(metadata_path, 'targets.' + tuf.settings.METADATA_FORMAT)
+    if targets_filename.endswith('.yml'):
+      targets_metadata = securesystemslib.util.load_yaml_file(targets_filename)['signed']
+
+    else:
+      targets_metadata = securesystemslib.util.load_json_file(targets_filename)['signed']
 
     tuf.keydb.create_keydb_from_root_metadata(root_metadata)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata)
@@ -735,10 +749,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
-    root_filename = os.path.join(metadata_directory, 'root.json')
-    root_signable = securesystemslib.util.load_json_file(root_filename)
+    root_filename = os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT)
+    if root_filename.endswith('.yml'):
+      root_signable = securesystemslib.util.load_yaml_file(root_filename)
 
-    output_filename = os.path.join(temporary_directory, 'root.json')
+    else:
+      root_signable = securesystemslib.util.load_json_file(root_filename)
+
+    output_filename = os.path.join(temporary_directory, 'root.' + tuf.settings.METADATA_FORMAT)
     compression_algorithms = ['gz']
     version_number = root_signable['signed']['version'] + 1
 
@@ -768,8 +786,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                  consistent_snapshot=True)
 
     # Test if the consistent files are properly named
-    # Filename format of a consistent file: <version number>.rolename.json
-    version_and_filename = str(version_number) + '.' + 'root.json'
+    # Filename format of a consistent file: <version number>.rolename.METADATA_FORMAT
+    version_and_filename = str(version_number) + '.' + 'root.' + tuf.settings.METADATA_FORMAT
     first_version_output_file = os.path.join(temporary_directory, version_and_filename)
     self.assertTrue(os.path.exists(first_version_output_file))
 
@@ -782,7 +800,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test if the the latest root.json points to the expected consistent file
     # and consistent metadata do not all point to the same root.json
-    version_and_filename = str(version_number) + '.' + 'root.json'
+    version_and_filename = str(version_number) + '.' + 'root.' + tuf.settings.METADATA_FORMAT
     second_version_output_file = os.path.join(temporary_directory, version_and_filename)
     self.assertTrue(os.path.exists(second_version_output_file))
     self.assertNotEqual(os.stat(output_filename).st_ino, os.stat(first_version_output_file).st_ino)
@@ -922,8 +940,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test for invalid, or unsupported, rolename.
     # Load the root metadata provided in 'tuf/tests/repository_data/'.
     root_filepath = os.path.join('repository_data', 'repository',
-                                 'metadata', 'root.json')
-    root_signable = securesystemslib.util.load_json_file(root_filepath)
+                                 'metadata', 'root.' + tuf.settings.METADATA_FORMAT)
+    if root_filepath.endswith('yml'):
+      root_signable = securesystemslib.util.load_yaml_file(root_filepath)
+
+    else:
+      root_signable = securesystemslib.util.load_json_file(root_filepath)
 
     # _generate_and_write_metadata() expects the top-level roles
     # (specifically 'snapshot') and keys to be available in 'tuf.roledb'.
@@ -935,7 +957,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     metadata_directory = os.path.join(repository_directory,
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     targets_metadata = os.path.join('repository_data', 'repository', 'metadata',
-                                    'targets.json')
+                                    'targets.' + tuf.settings.METADATA_FORMAT)
     obsolete_metadata = os.path.join(metadata_directory,
                                             'obsolete_role.json')
     securesystemslib.util.ensure_parent_dir(obsolete_metadata)
@@ -959,15 +981,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                           compression_algorithms=['gz'])
 
     snapshot_filepath = os.path.join('repository_data', 'repository',
-                                     'metadata', 'snapshot.json')
-    snapshot_signable = securesystemslib.util.load_json_file(snapshot_filepath)
+                                     'metadata', 'snapshot.' + tuf.settings.METADATA_FORMAT)
+    if snapshot_filepath.endswith('.yml'):
+      snapshot_signable = securesystemslib.util.load_yaml_file(snapshot_filepath)
+
+    else:
+      snapshot_signable = securesystemslib.util.load_json_file(snapshot_filepath)
+
     tuf.roledb.remove_role('obsolete_role')
     self.assertTrue(os.path.exists(os.path.join(metadata_directory,
                                                 'obsolete_role.json')))
     tuf.repository_lib._delete_obsolete_metadata(metadata_directory,
                                                  snapshot_signable['signed'],
                                                  False)
-    self.assertFalse(os.path.exists(metadata_directory + 'obsolete_role.json'))
+    self.assertFalse(os.path.exists(metadata_directory + 'obsolete_role.' + tuf.settings.METADATA_FORMAT))
     shutil.copyfile(targets_metadata, obsolete_metadata)
 
 
@@ -979,13 +1006,17 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                                       repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     os.makedirs(metadata_directory)
     snapshot_filepath = os.path.join('repository_data', 'repository',
-                                     'metadata', 'snapshot.json')
-    snapshot_signable = securesystemslib.util.load_json_file(snapshot_filepath)
+                                     'metadata', 'snapshot.' + tuf.settings.METADATA_FORMAT)
+    if snapshot_filepath.endswith('.yml'):
+      snapshot_signable = securesystemslib.util.load_yaml_file(snapshot_filepath)
 
-    # Create role metadata that should not exist in snapshot.json.
+    else:
+      snapshot_signable = securesystemslib.util.load_json_file(snapshot_filepath)
+
+    # Create role metadata that should not exist in snapshot..
     role1_filepath = os.path.join('repository_data', 'repository',
-                                  'metadata', 'role1.json')
-    shutil.copyfile(role1_filepath, os.path.join(metadata_directory, 'role2.json'))
+                                  'metadata', 'role1.' + tuf.settings.METADATA_FORMAT)
+    shutil.copyfile(role1_filepath, os.path.join(metadata_directory, 'role2.' + tuf.settings.METADATA_FORMAT))
 
     repo_lib._delete_obsolete_metadata(metadata_directory,
                                        snapshot_signable['signed'],
@@ -993,12 +1024,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # _delete_obsolete_metadata should never delete root.json.
     root_filepath = os.path.join('repository_data', 'repository',
-                                 'metadata', 'root.json')
-    shutil.copyfile(root_filepath, os.path.join(metadata_directory, 'root.json'))
+                                 'metadata', 'root.' + tuf.settings.METADATA_FORMAT)
+    shutil.copyfile(root_filepath, os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT))
     repo_lib._delete_obsolete_metadata(metadata_directory,
                                        snapshot_signable['signed'],
                                        True)
-    self.assertTrue(os.path.exists(os.path.join(metadata_directory, 'root.json')))
+    self.assertTrue(os.path.exists(os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT)))
 
     # Verify what happens for a non-existent metadata directory (a debug
     # message is logged).
@@ -1023,8 +1054,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
                     targets_directory)
 
     # Add a duplicate signature to the Root file for testing purposes).
-    root_file = os.path.join(metadata_directory, 'root.json')
-    signable = securesystemslib.util.load_json_file(os.path.join(metadata_directory, 'root.json'))
+    root_file = os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT)
+    if root_file.endswith('.yml'):
+      signable = securesystemslib.util.load_yaml_file(root_file)
+
+    else:
+      signable = securesystemslib.util.load_json_file(root_file)
+
     signable['signatures'].append(signable['signatures'][0])
 
     repo_lib.write_metadata_file(signable, root_file, 8, ['gz'], False)
@@ -1061,7 +1097,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     repo_lib._load_top_level_metadata(repository, filenames)
 
     # Remove the required Root file and verify that an exception is raised.
-    os.remove(os.path.join(metadata_directory, 'root.json'))
+    os.remove(os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT))
     self.assertRaises(securesystemslib.exceptions.RepositoryError, repo_lib._load_top_level_metadata,
                       repository, filenames)
 
@@ -1071,8 +1107,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Remove duplicate PSS signatures (same key generates valid, but different
     # signatures).  First load a valid signable (in this case, the root role).
     root_filepath = os.path.join('repository_data', 'repository',
-                                 'metadata', 'root.json')
-    root_signable = securesystemslib.util.load_json_file(root_filepath)
+                                 'metadata', 'root.' + tuf.settings.METADATA_FORMAT)
+    if root_filepath.endswith('.yml'):
+      root_signable = securesystemslib.util.load_yaml_file(root_filepath)
+
+    else:
+      root_signable = securesystemslib.util.load_json_file(root_filepath)
+
     key_filepath = os.path.join('repository_data', 'keystore', 'root_key')
     root_rsa_key = repo_lib.import_rsa_privatekey_from_file(key_filepath,
                                                             'password')

@@ -182,16 +182,26 @@ class TestRepository(unittest.TestCase):
     repository.targets.compressions = ['gz']
     repository.writeall()
 
-    self.assertTrue(os.path.exists(os.path.join(metadata_directory, 'root.json')))
-    self.assertTrue(os.path.exists(os.path.join(metadata_directory, '1.root.json')))
+    self.assertTrue(os.path.exists(os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT)))
+    self.assertTrue(os.path.exists(os.path.join(metadata_directory, '1.root.' + tuf.settings.METADATA_FORMAT)))
 
 
     # Verify that the expected metadata is written.
-    root_filepath = os.path.join(metadata_directory, 'root.json')
-    root_1_filepath = os.path.join(metadata_directory, '1.root.json')
-    root_2_filepath = os.path.join(metadata_directory, '2.root.json')
-    old_root_signable = securesystemslib.util.load_json_file(root_filepath)
-    root_1_signable = securesystemslib.util.load_json_file(root_1_filepath)
+    root_filepath = os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT)
+    root_1_filepath = os.path.join(metadata_directory, '1.root.' + tuf.settings.METADATA_FORMAT)
+    root_2_filepath = os.path.join(metadata_directory, '2.root.' + tuf.settings.METADATA_FORMAT)
+
+    if root_filepath.endswith('.yml'):
+      old_root_signable = securesystemslib.util.load_yaml_file(root_filepath)
+
+    else:
+      old_root_signable = securesystemslib.util.load_json_file(root_filepath)
+
+    if root_1_filepath.endswith('.yml'):
+      root_1_signable = securesystemslib.util.load_yaml_file(root_1_filepath)
+
+    else:
+      root_1_signable = securesystemslib.util.load_json_file(root_1_filepath)
 
     # Make a change to the root keys
     repository.root.add_verification_key(targets_pubkey)
@@ -199,8 +209,17 @@ class TestRepository(unittest.TestCase):
     repository.root.threshold = 2
     repository.writeall()
 
-    new_root_signable = securesystemslib.util.load_json_file(root_filepath)
-    root_2_signable = securesystemslib.util.load_json_file(root_2_filepath)
+    if root_filepath.endswith('.yml'):
+      new_root_signable = securesystemslib.util.load_yaml_file(root_filepath)
+
+    else:
+      new_root_signable = securesystemslib.util.load_json_file(root_filepath)
+
+    if root_2_filepath.endswith('.yml'):
+      root_2_signable = securesystemslib.util.load_yaml_file(root_2_filepath)
+
+    else:
+      root_2_signable = securesystemslib.util.load_json_file(root_2_filepath)
 
     for role_signable in [old_root_signable, new_root_signable, root_1_signable, root_2_signable]:
       # Raise 'securesystemslib.exceptions.FormatError' if 'role_signable' is an

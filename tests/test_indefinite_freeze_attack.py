@@ -208,9 +208,14 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
     # and hash as the one available locally.
 
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
-                                  'timestamp.json')
+                                  'timestamp.' + tuf.settings.METADATA_FORMAT)
 
-    timestamp_metadata = securesystemslib.util.load_json_file(timestamp_path)
+    if timestamp_path.endswith('.yml'):
+      timestamp_metadata = securesystemslib.util.load_yaml_file(timestamp_path)
+
+    else:
+      timestamp_metadata = securesystemslib.util.load_json_file(timestamp_path)
+
     expiry_time = time.time() - 10
     expires = tuf.formats.unix_timestamp_to_datetime(int(expiry_time))
     expires = expires.isoformat() + 'Z'
@@ -225,14 +230,14 @@ class TestIndefiniteFreezeAttack(unittest_toolbox.Modified_TestCase):
       file_object.write(timestamp_content)
 
     client_timestamp_path = os.path.join(self.client_directory,
-                                         'timestamp.json')
+                                         'timestamp.' + tuf.settings.METADATA_FORMAT)
     shutil.copy(timestamp_path, client_timestamp_path)
 
     length, hashes = securesystemslib.util.get_file_details(timestamp_path)
     fileinfo = tuf.formats.make_fileinfo(length, hashes)
 
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-    url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
+    url_file = os.path.join(url_prefix, 'metadata', 'timestamp.' + tuf.settings.METADATA_FORMAT)
 
     six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
 

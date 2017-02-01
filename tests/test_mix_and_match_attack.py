@@ -186,8 +186,8 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     # the repository after modifying a target file of 'role1.json'.
     # Backup 'role1.json' (the delegated role to be updated, and then inserted
     # again for the mix-and-match attack.)
-    role1_path = os.path.join(self.repository_directory, 'metadata', 'role1.json')
-    backup_role1 = os.path.join(self.repository_directory, 'role1.json.backup')
+    role1_path = os.path.join(self.repository_directory, 'metadata', 'role1.' + tuf.settings.METADATA_FORMAT)
+    backup_role1 = os.path.join(self.repository_directory, 'role1.' + tuf.settings.METADATA_FORMAT + '.backup')
     shutil.copy(role1_path, backup_role1)
 
     # Backup 'file3.txt', specified by 'role1.json'.
@@ -246,7 +246,7 @@ class TestMixAndMatchAttack(unittest_toolbox.Modified_TestCase):
     except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-        url_file = os.path.join(url_prefix, 'metadata', 'role1.json')
+        url_file = os.path.join(url_prefix, 'metadata', 'role1.' + tuf.settings.METADATA_FORMAT)
 
         # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file, mirror_url)

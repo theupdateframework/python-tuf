@@ -198,9 +198,9 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # obsolete metadadata, so do *not* save the backup version in the
     # repository's metadata directory.
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
-                                  'timestamp.json')
+                                  'timestamp.' + tuf.settings.METADATA_FORMAT)
     backup_timestamp = os.path.join(self.repository_directory,
-                                    'timestamp.json.backup')
+                                    'timestamp.' + tuf.settings.METADATA_FORMAT + '.backup')
     shutil.copy(timestamp_path, backup_timestamp)
 
     # The fileinfo of the previous version is saved to verify that it is indeed
@@ -231,9 +231,9 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     new_fileinfo = tuf.formats.make_fileinfo(length, hashes)
 
     url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-    url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
+    url_file = os.path.join(url_prefix, 'metadata', 'timestamp.' + tuf.settings.METADATA_FORMAT)
     client_timestamp_path = os.path.join(self.client_directory, 'metadata',
-                                         'current', 'timestamp.json')
+                                         'current', 'timestamp.' + tuf.settings.METADATA_FORMAT)
 
     six.moves.urllib.request.urlretrieve(url_file, client_timestamp_path)
 
@@ -269,9 +269,9 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     # obsolete metadadata, so do *not* save the backup version in the
     # repository's metadata directory.
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
-                                  'timestamp.json')
+                                  'timestamp.' + tuf.settings.METADATA_FORMAT)
     backup_timestamp = os.path.join(self.repository_directory,
-                                    'timestamp.json.backup')
+                                    'timestamp.' + tuf.settings.METADATA_FORMAT + '.backup')
     shutil.copy(timestamp_path, backup_timestamp)
 
     # The fileinfo of the previous version is saved to verify that it is indeed
@@ -306,7 +306,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     self.repository_updater.refresh()
 
     client_timestamp_path = os.path.join(self.client_directory, 'metadata',
-                                         'current', 'timestamp.json')
+                                         'current', 'timestamp.' + tuf.settings.METADATA_FORMAT)
     length, hashes = securesystemslib.util.get_file_details(client_timestamp_path)
     download_fileinfo = tuf.formats.make_fileinfo(length, hashes)
 
@@ -328,7 +328,7 @@ class TestReplayAttack(unittest_toolbox.Modified_TestCase):
     except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-        url_file = os.path.join(url_prefix, 'metadata', 'timestamp.json')
+        url_file = os.path.join(url_prefix, 'metadata', 'timestamp.' + tuf.settings.METADATA_FORMAT)
 
         # Verify that 'timestamp.json' is the culprit.
         self.assertEqual(url_file, mirror_url)

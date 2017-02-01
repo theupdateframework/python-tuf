@@ -228,22 +228,32 @@ class TestRepository(unittest.TestCase):
     repository.writeall()
 
     # Verify that the expected metadata is written.
-    for role in ['root.json', 'targets.json', 'snapshot.json', 'timestamp.json']:
+    EXTENSION = tuf.settings.METADATA_FORMAT
+    for role in ['root.' + EXTENSION, 'targets.' + EXTENSION, 'snapshot.' + EXTENSION, 'timestamp.' + EXTENSION]:
       role_filepath = os.path.join(metadata_directory, role)
-      role_signable = securesystemslib.util.load_json_file(role_filepath)
+      if role_filepath.endswith('.yml'):
+        role_signable = securesystemslib.util.load_yaml_file(role_filepath)
+
+      else:
+        role_signable = securesystemslib.util.load_json_file(role_filepath)
 
       # Raise 'securesystemslib.exceptions.FormatError' if 'role_signable' is an invalid signable.
       tuf.formats.check_signable_object_format(role_signable)
 
       self.assertTrue(os.path.exists(role_filepath))
 
-      if role == 'targets.json':
+      if role == 'targets.' + EXTENSION:
         compressed_filepath = role_filepath + '.gz'
         self.assertTrue(os.path.exists(compressed_filepath))
 
     # Verify the 'role1.json' delegation is also written.
-    role1_filepath = os.path.join(metadata_directory, 'role1.json')
-    role1_signable = securesystemslib.util.load_json_file(role1_filepath)
+    role1_filepath = os.path.join(metadata_directory, 'role1.' + EXTENSION)
+    if role1_filepath.endswith('.yml'):
+      role1_signable = securesystemslib.util.load_yaml_file(role1_filepath)
+
+    else:
+      role1_signable = securesystemslib.util.load_json_file(role1_filepath)
+
     tuf.formats.check_signable_object_format(role1_signable)
 
     # Verify that an exception is *not* raised for multiple
@@ -379,7 +389,9 @@ class TestRepository(unittest.TestCase):
     # Verify the expected filenames.  get_filepaths_in_directory() returns
     # a list of absolute paths.
     metadata_files = repo.get_filepaths_in_directory(metadata_directory)
-    expected_files = ['1.root.json', '1.root.json.gz', 'root.json',
+    EXTENSION = tuf.settings.METADATA_FORMAT
+    EXTENSION_GZ = EXTENSION + '.gz'
+    expected_files = ['1.root.' + EXTENSION, '1.root.' + EXTENSION_GZ, 'root.json',
                       'root.json.gz', 'targets.json', 'targets.json.gz',
                       'snapshot.json', 'snapshot.json.gz', 'timestamp.json',
                       'timestamp.json.gz', 'role1.json', 'role1.json.gz',
@@ -716,8 +728,13 @@ class TestMetadata(unittest.TestCase):
     # testing.
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
-    root_filepath = os.path.join(metadata_directory, 'root.json')
-    root_signable = securesystemslib.util.load_json_file(root_filepath)
+    root_filepath = os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT)
+    if root_filepath.endswith('.yml'):
+      root_signable = securesystemslib.util.load_yaml_file(root_filepath)
+
+    else:
+      root_signable = securesystemslib.util.load_json_file(root_filepath)
+
     signatures = root_signable['signatures']
 
     # Add the first signature from the list, as only one is needed.
@@ -744,8 +761,13 @@ class TestMetadata(unittest.TestCase):
     # Add a signature so remove_signature() has some signature to remove.
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
-    root_filepath = os.path.join(metadata_directory, 'root.json')
-    root_signable = securesystemslib.util.load_json_file(root_filepath)
+    root_filepath = os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT)
+    if root_filepath.endswith('.yml'):
+      root_signable = securesystemslib.util.load_yaml_file(root_filepath)
+
+    else:
+      root_signable = securesystemslib.util.load_json_file(root_filepath)
+
     signatures = root_signable['signatures']
     self.metadata.add_signature(signatures[0])
 
@@ -759,8 +781,13 @@ class TestMetadata(unittest.TestCase):
 
     # Test invalid signature argument (i.e., signature that has not been added.)
     # Load an unused signature to be tested.
-    targets_filepath = os.path.join(metadata_directory, 'targets.json')
-    targets_signable = securesystemslib.util.load_json_file(targets_filepath)
+    targets_filepath = os.path.join(metadata_directory, 'targets.' + tuf.settings.METADATA_FORMAT)
+    if targets_filepath.endswith('.yml'):
+      targets_signable = securesystemslib.util.load_yaml_file(targets_filepath)
+
+    else:
+      targets_signable = securesystemslib.util.load_json_file(targets_filepath)
+
     signatures = targets_signable['signatures']
 
     self.assertRaises(securesystemslib.exceptions.Error,
@@ -776,8 +803,13 @@ class TestMetadata(unittest.TestCase):
     # Test getter after adding an example signature.
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
-    root_filepath = os.path.join(metadata_directory, 'root.json')
-    root_signable = securesystemslib.util.load_json_file(root_filepath)
+    root_filepath = os.path.join(metadata_directory, 'root.' + tuf.settings.METADATA_FORMAT)
+    if root_filepath.endswith('.yml'):
+      root_signable = securesystemslib.util.load_yaml_file(root_filepath)
+
+    else:
+      root_signable = securesystemslib.util.load_json_file(root_filepath)
+
     signatures = root_signable['signatures']
 
     # Add the first signature from the list, as only need one is needed.
@@ -1666,17 +1698,18 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # For testing purposes, add a metadata file with an extension that is
     # not supported, and another with invalid JSON content.
-    invalid_metadata_file = os.path.join(metadata_directory, 'root.xml')
-    root_file = os.path.join(metadata_directory, 'root.json')
+    EXTENSION = tuf.settings.METADATA_FORMAT
+    invalid_metadata_file = os.path.join(metadata_directory, 'root.bad')
+    root_file = os.path.join(metadata_directory, 'root.' + EXTENSION)
     shutil.copyfile(root_file, invalid_metadata_file)
-    bad_root_content = os.path.join(metadata_directory, 'root_bad.json')
+    bad_root_content = os.path.join(metadata_directory, 'root_bad.' + EXTENSION)
 
     with open(bad_root_content, 'wb') as file_object:
       file_object.write(b'bad')
 
     # Remove the compressed version of role1 to test whether the
     # load_repository() complains or not (it logs a message).
-    role1_path = os.path.join(metadata_directory, 'role1.json.gz')
+    role1_path = os.path.join(metadata_directory, 'role1.' + EXTENSION + '.gz')
     os.remove(role1_path)
 
     repository = repo_tool.load_repository(repository_directory)

@@ -186,12 +186,17 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     # simply adds the extraneous target file to 'role1.json', which the TUF
     # client should reject as improperly signed.
     role1_filepath = os.path.join(self.repository_directory, 'metadata',
-                                  'role1.json')
+                                  'role1.' + tuf.settings.METADATA_FORMAT)
     file1_filepath = os.path.join(self.repository_directory, 'targets',
                                   'file1.txt')
     length, hashes = securesystemslib.util.get_file_details(file1_filepath)
 
-    role1_metadata = securesystemslib.util.load_json_file(role1_filepath)
+    if role1_filepath.endswith('.yml'):
+      role1_metadata = securesystemslib.util.load_yaml_file(role1_filepath)
+
+    else:
+      role1_metadata = securesystemslib.util.load_json_file(role1_filepath)
+
     role1_metadata['signed']['targets']['/file2.txt'] = {}
     role1_metadata['signed']['targets']['/file2.txt']['hashes'] = hashes
     role1_metadata['signed']['targets']['/file2.txt']['length'] = length
@@ -204,13 +209,13 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     # Un-install the metadata of the top-level roles so that the client can
     # download and detect the invalid 'role1.json'.
     os.remove(os.path.join(self.client_directory, 'metadata', 'current',
-                           'snapshot.json'))
+                           'snapshot.' + tuf.settings.METADATA_FORMAT))
     os.remove(os.path.join(self.client_directory, 'metadata', 'current',
-                           'targets.json'))
+                           'targets.' + tuf.settings.METADATA_FORMAT))
     os.remove(os.path.join(self.client_directory, 'metadata', 'current',
-                           'timestamp.json'))
+                           'timestamp.' + tuf.settings.METADATA_FORMAT))
     os.remove(os.path.join(self.client_directory, 'metadata', 'current',
-                           'role1.json'))
+                           'role1.' + tuf.settings.METADATA_FORMAT))
 
     # Verify that the TUF client rejects the invalid metadata and refuses to
     # continue the update process.
@@ -224,7 +229,7 @@ class TestExtraneousDependenciesAttack(unittest_toolbox.Modified_TestCase):
     except tuf.exceptions.NoWorkingMirrorError as exception:
       for mirror_url, mirror_error in six.iteritems(exception.mirror_errors):
         url_prefix = self.repository_mirrors['mirror1']['url_prefix']
-        url_file = os.path.join(url_prefix, 'metadata', 'role1.json')
+        url_file = os.path.join(url_prefix, 'metadata', 'role1.' + tuf.settings.METADATA_FORMAT)
 
         # Verify that 'role1.json' is the culprit.
         self.assertEqual(url_file, mirror_url)

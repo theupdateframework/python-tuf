@@ -262,12 +262,17 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
     # Test that the TUF client does not download large metadata files, as well.
     timestamp_path = os.path.join(self.repository_directory, 'metadata',
-                                  'timestamp.json')
+                                  'timestamp.' + tuf.settings.METADATA_FORMAT)
 
     original_length, hashes = securesystemslib.util.get_file_details(timestamp_path)
 
     with open(timestamp_path, 'r+') as file_object:
-      timestamp_content = securesystemslib.util.load_json_file(timestamp_path)
+      if timestamp_path.endswith('.yml'):
+        timestamp_content = securesystemslib.util.load_yaml_file(timestamp_path)
+
+      else:
+        timestamp_content = securesystemslib.util.load_json_file(timestamp_path)
+
       large_data = 'LargeTimestamp' * 10000
       timestamp_content['signed']['_type'] = large_data
       json.dump(timestamp_content, file_object, indent=1, sort_keys=True)

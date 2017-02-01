@@ -268,13 +268,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                       self.repository_mirrors)
     shutil.move(previous_backup, self.client_metadata_previous)
 
-    # Test:  repository missing the required 'root.json' file.
-    client_root_file = os.path.join(self.client_metadata_current, 'root.json')
+    # Test:  repository missing the required Root file.
+    client_root_file = os.path.join(self.client_metadata_current, 'root.' + tuf.settings.METADATA_FORMAT)
     backup_root_file = client_root_file + '.backup'
     shutil.move(client_root_file, backup_root_file)
     self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
                       self.repository_mirrors)
-    # Restore the client's 'root.json file.
+    # Restore the client's Root file.
     shutil.move(backup_root_file, client_root_file)
 
     # Test: Normal 'tuf.client.updater.Updater' instantiation.
@@ -287,11 +287,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
   def test_1__load_metadata_from_file(self):
 
     # Setup
-    # Get the 'role1.json' filepath.  Manually load the role metadata, and
+    # Get the role1 filepath.  Manually load the role metadata, and
     # compare it against the loaded metadata by '_load_metadata_from_file()'.
     role1_filepath = \
-      os.path.join(self.client_metadata_current, 'role1.json')
-    role1_meta = securesystemslib.util.load_json_file(role1_filepath)
+      os.path.join(self.client_metadata_current, 'role1.' + tuf.settings.METADATA_FORMAT)
+    if role1_filepath.endswith('.yml'):
+      role1_meta = securesystemslib.util.load_yaml_file(role1_filepath)
+
+    else:
+      role1_meta = securesystemslib.util.load_json_file(role1_filepath)
+
 
     # Load the 'role1.json' file with _load_metadata_from_file, which should
     # store the loaded metadata in the 'self.repository_updater.metadata'
@@ -372,31 +377,36 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Load the versioninfo of the top-level Targets role.  This action
     # populates the 'self.versioninfo' dictionary.
-    self.repository_updater._update_versioninfo('targets.json')
+    self.repository_updater._update_versioninfo('targets.' + tuf.settings.METADATA_FORMAT)
     self.assertEqual(len(versioninfo_dict), 1)
     self.assertTrue(tuf.formats.FILEINFODICT_SCHEMA.matches(versioninfo_dict))
 
     # The Snapshot role stores the version numbers of all the roles available
     # on the repository.  Load Snapshot to extract Root's version number
     # and compare it against the one loaded by 'self.repository_updater'.
-    snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
-    snapshot_signable = securesystemslib.util.load_json_file(snapshot_filepath)
-    targets_versioninfo = snapshot_signable['signed']['meta']['targets.json']
+    snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.' + tuf.settings.METADATA_FORMAT)
+    if snapshot_filepath.endswith('.yml'):
+      snapshot_signable = securesystemslib.util.load_yaml_file(snapshot_filepath)
+
+    else:
+      snapshot_signable = securesystemslib.util.load_json_file(snapshot_filepath)
+
+    targets_versioninfo = snapshot_signable['signed']['meta']['targets.' + tuf.settings.METADATA_FORMAT]
 
     # Verify that the manually loaded version number of root.json matches
     # the one loaded by the updater object.
-    self.assertTrue('targets.json' in versioninfo_dict)
-    self.assertEqual(versioninfo_dict['targets.json'], targets_versioninfo)
+    self.assertTrue('targets.' + tuf.settings.METADATA_FORMAT in versioninfo_dict)
+    self.assertEqual(versioninfo_dict['targets.' + tuf.settings.METADATA_FORMAT], targets_versioninfo)
 
     # Verify that 'self.versioninfo' is incremented if another role is updated.
-    self.repository_updater._update_versioninfo('role1.json')
+    self.repository_updater._update_versioninfo('role1.' + tuf.settings.METADATA_FORMAT)
     self.assertEqual(len(versioninfo_dict), 2)
 
     # Verify that 'self.versioninfo' is incremented if a non-existent role is
     # requested, and has its versioninfo entry set to 'None'.
-    self.repository_updater._update_versioninfo('bad_role.json')
+    self.repository_updater._update_versioninfo('bad_role.' + tuf.settings.METADATA_FORMAT)
     self.assertEqual(len(versioninfo_dict), 3)
-    self.assertEqual(versioninfo_dict['bad_role.json'], None)
+    self.assertEqual(versioninfo_dict['bad_role.' + tuf.settings.METADATA_FORMAT], None)
 
 
 
@@ -410,45 +420,45 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
       # Load the fileinfo of the top-level root role.  This populates the
       # 'self.fileinfo' dictionary.
-      self.repository_updater._update_fileinfo('root.json')
+      self.repository_updater._update_fileinfo('root.' + tuf.settings.METADATA_FORMAT)
       self.assertEqual(len(fileinfo_dict), 1)
       self.assertTrue(tuf.formats.FILEDICT_SCHEMA.matches(fileinfo_dict))
-      root_filepath = os.path.join(self.client_metadata_current, 'root.json')
+      root_filepath = os.path.join(self.client_metadata_current, 'root.' + tuf.settings.METADATA_FORMAT)
       length, hashes = securesystemslib.util.get_file_details(root_filepath)
       root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
-      self.assertTrue('root.json' in fileinfo_dict)
-      self.assertEqual(fileinfo_dict['root.json'], root_fileinfo)
+      self.assertTrue('root.' + tuf.settings.METADATA_FORMAT in fileinfo_dict)
+      self.assertEqual(fileinfo_dict['root.' + tuf.settings.METADATA_FORMAT], root_fileinfo)
 
       # Verify that 'self.fileinfo' is incremented if another role is updated.
-      self.repository_updater._update_fileinfo('targets.json')
+      self.repository_updater._update_fileinfo('targets.' + tuf.settings.METADATA_FORMAT)
       self.assertEqual(len(fileinfo_dict), 2)
 
       # Verify that 'self.fileinfo' is inremented if a non-existent role is
       # requested, and has its fileinfo entry set to 'None'.
-      self.repository_updater._update_fileinfo('bad_role.json')
+      self.repository_updater._update_fileinfo('bad_role.' + tuf.settings.METADATA_FORMAT)
       self.assertEqual(len(fileinfo_dict), 3)
-      self.assertEqual(fileinfo_dict['bad_role.json'], None)
+      self.assertEqual(fileinfo_dict['bad_role.' + tuf.settings.METADATA_FORMAT], None)
 
 
 
 
   def test_2__fileinfo_has_changed(self):
       #  Verify that the method returns 'False' if file info was not changed.
-      root_filepath = os.path.join(self.client_metadata_current, 'root.json')
+      root_filepath = os.path.join(self.client_metadata_current, 'root.' + tuf.settings.METADATA_FORMAT)
       length, hashes = securesystemslib.util.get_file_details(root_filepath)
       root_fileinfo = tuf.formats.make_fileinfo(length, hashes)
-      self.assertFalse(self.repository_updater._fileinfo_has_changed('root.json',
+      self.assertFalse(self.repository_updater._fileinfo_has_changed('root.' + tuf.settings.METADATA_FORMAT,
                                                              root_fileinfo))
 
       # Verify that the method returns 'True' if length or hashes were changed.
       new_length = 8
       new_root_fileinfo = tuf.formats.make_fileinfo(new_length, hashes)
-      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.' + tuf.settings.METADATA_FORMAT,
                                                              new_root_fileinfo))
       # Hashes were changed.
       new_hashes = {'sha256': self.random_string()}
       new_root_fileinfo = tuf.formats.make_fileinfo(length, new_hashes)
-      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.' + tuf.settings.METADATA_FORMAT,
                                                              new_root_fileinfo))
 
 
@@ -499,9 +509,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertTrue('role1' in tuf.roledb._roledb_dict[repository_name])
 
     # Verify that keydb dictionary was updated.
-    role1_signable = \
-      securesystemslib.util.load_json_file(os.path.join(self.client_metadata_current,
-                                           'role1.json'))
+    role1_filepath = os.path.join(self.client_metadata_current, 'role1.' + tuf.settings.METADATA_FORMAT)
+    role1_filepath.endswith('.yml'):
+      role1_signable = securesystemslib.util.load_yaml_file(role1_filepath)
+
+    else:
+      role1_signable = securesystemslib.util.load_json_file(role1_filepath)
+
     keyids = []
     for signature in role1_signable['signatures']:
       keyids.append(signature['keyid'])
@@ -517,7 +531,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       ['delegations']['keys'][existing_keyid]['keytype'] = 'bad_keytype'
     self.repository_updater._import_delegations('targets')
 
-    # Restore the keytype of 'existing_keyid'.
+   # Restore the keytype of 'existing_keyid'.
     self.repository_updater.metadata['current']['targets']\
       ['delegations']['keys'][existing_keyid]['keytype'] = 'ed25519'
 
@@ -544,16 +558,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
   def test_2__versioninfo_has_been_updated(self):
     # Verify that the method returns 'False' if a versioninfo was not changed.
-    snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.json')
-    snapshot_signable = securesystemslib.util.load_json_file(snapshot_filepath)
-    targets_versioninfo = snapshot_signable['signed']['meta']['targets.json']
+    snapshot_filepath = os.path.join(self.client_metadata_current, 'snapshot.' + tuf.settings.METADATA_FORMAT)
+    if snapshot_filepath.endswith('.yml'):
+      snapshot_signable = securesystemslib.util.load_yaml_file(snapshot_filepath)
 
-    self.assertFalse(self.repository_updater._versioninfo_has_been_updated('targets.json',
+    else:
+      snapshot_signable = securesystemslib.util.load_json_file(snapshot_filepath)
+
+    targets_versioninfo = snapshot_signable['signed']['meta']['targets.' + tuf.settings.METADATA_FORMAT]
+
+    self.assertFalse(self.repository_updater._versioninfo_has_been_updated('targets.' + tuf.settings.METADATA_FORMAT,
                                                            targets_versioninfo))
 
     # Verify that the method returns 'True' if Root's version number changes.
     targets_versioninfo['version'] = 8
-    self.assertTrue(self.repository_updater._versioninfo_has_been_updated('targets.json',
+    self.assertTrue(self.repository_updater._versioninfo_has_been_updated('targets.' + tuf.settings.METADATA_FORMAT,
                                                            targets_versioninfo))
 
 
@@ -566,7 +585,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # and then verifying that the 'previous' directory contains the snapshot
     # file.
     previous_snapshot_filepath = os.path.join(self.client_metadata_previous,
-                                              'snapshot.json')
+                                              'snapshot.' + tuf.settings.METADATA_FORMAT)
     os.remove(previous_snapshot_filepath)
     self.assertFalse(os.path.exists(previous_snapshot_filepath))
 
@@ -632,7 +651,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # with _update_metadata().
     targets_versioninfo = \
       self.repository_updater.metadata['current']['snapshot']['meta']\
-                                      ['targets.json']
+                                      ['targets.' + tuf.settings.METADATA_FORMAT]
 
     # Remove the currently installed metadata from the store and disk.  Verify
     # that the metadata dictionary is re-populated after calling
@@ -641,9 +660,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     del self.repository_updater.metadata['current']['targets']
 
     timestamp_filepath = \
-      os.path.join(self.client_metadata_current, 'timestamp.json')
-    targets_filepath = os.path.join(self.client_metadata_current, 'targets.json')
-    root_filepath = os.path.join(self.client_metadata_current, 'root.json')
+      os.path.join(self.client_metadata_current, 'timestamp.' + tuf.settings.METADATA_FORMAT)
+    targets_filepath = os.path.join(self.client_metadata_current, 'targets.' + tuf.settings.METADATA_FORMAT)
+    root_filepath = os.path.join(self.client_metadata_current, 'root.' + tuf.settings.METADATA_FORMAT)
     os.remove(timestamp_filepath)
     os.remove(targets_filepath)
 
@@ -664,7 +683,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                                 targets_versioninfo['version'])
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
 
-    targets_signable = securesystemslib.util.load_json_file(targets_filepath)
+    if targets_filepath.endswith('.yml'):
+      targets_signable = securesystemslib.util.load_yaml_file(targets_filepath)
+
+    else:
+      targets_signable = securesystemslib.util.load_json_file(targets_filepath)
+
     loaded_targets_version = targets_signable['signed']['version']
     self.assertEqual(targets_versioninfo['version'], loaded_targets_version)
 
@@ -729,7 +753,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # roles before updating the metadata of 'targets.json'.
     self.assertEqual(len(self.repository_updater.metadata['current']), 4)
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
-    targets_path = os.path.join(self.client_metadata_current, 'targets.json')
+    targets_path = os.path.join(self.client_metadata_current, 'targets.' + tuf.settings.METADATA_FORMAT)
     self.assertTrue(os.path.exists(targets_path))
     self.assertEqual(self.repository_updater.metadata['current']['targets']['version'], 1)
 
@@ -763,7 +787,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILELENGTH)
     self.repository_updater._update_metadata_if_changed('snapshot', 'timestamp')
     self.repository_updater._update_metadata_if_changed('targets')
-    targets_path = os.path.join(self.client_metadata_current, 'targets.json')
+    targets_path = os.path.join(self.client_metadata_current, 'targets.' + tuf.settings.METADATA_FORMAT)
     self.assertTrue(os.path.exists(targets_path))
     self.assertTrue(self.repository_updater.metadata['current']['targets'])
     self.assertEqual(self.repository_updater.metadata['current']['targets']['version'], 2)
@@ -877,8 +901,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(self.repository_updater.metadata['current']), 6)
 
     # Test for compressed metadata roles.
-    self.repository_updater.metadata['current']['snapshot']['meta']['targets.json.gz'] = \
-      self.repository_updater.metadata['current']['snapshot']['meta']['targets.json']
+    self.repository_updater.metadata['current']['snapshot']['meta']['targets.' + tuf.settings.METADATA_FORMAT + '.gz'] = \
+      self.repository_updater.metadata['current']['snapshot']['meta']['targets.' + tuf.settings.METADATA_FORMAT]
     self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
 
@@ -927,13 +951,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Remove the metadata of the delegated roles.
     #shutil.rmtree(os.path.join(self.client_metadata, 'targets'))
-    os.remove(os.path.join(self.client_metadata_current, 'targets.json'))
+    os.remove(os.path.join(self.client_metadata_current, 'targets.' + tuf.settings.METADATA_FORMAT))
 
     # Extract the target files specified by the delegated role, 'role1.json',
     # as available on the server-side version of the role.
     role1_filepath = os.path.join(self.repository_directory, 'metadata',
-                                  'role1.json')
-    role1_signable = securesystemslib.util.load_json_file(role1_filepath)
+                                  'role1.' + tuf.settings.METADATA_FORMAT)
+    if role1_filepath.endswith('.yml'):
+      role1_signable = securesystemslib.util.load_yaml_file(role1_filepath)
+
+    else:
+      role1_signable = securesystemslib.util.load_json_file(role1_filepath)
+
     expected_targets = role1_signable['signed']['targets']
 
 
@@ -941,9 +970,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targetinfos = self.repository_updater.targets_of_role('role1')
 
     # Verify that the expected role files were downloaded and installed.
-    os.path.exists(os.path.join(self.client_metadata_current, 'targets.json'))
+    os.path.exists(os.path.join(self.client_metadata_current, 'targets.' + tuf.settings.METADATA_FORMAT))
     os.path.exists(os.path.join(self.client_metadata_current, 'targets',
-                   'role1.json'))
+                   'role1.' + tuf.settings.METADATA_FORMAT))
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
     self.assertTrue('role1' in self.repository_updater.metadata['current'])
 

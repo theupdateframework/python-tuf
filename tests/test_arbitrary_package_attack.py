@@ -261,9 +261,14 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     length, hashes = securesystemslib.util.get_file_details(target_path)
 
     metadata_path = \
-      os.path.join(self.repository_directory, 'metadata', 'targets.json')
+      os.path.join(self.repository_directory, 'metadata', 'targets.' + tuf.settings.METADATA_FORMAT)
 
-    metadata = securesystemslib.util.load_json_file(metadata_path)
+    if metadata_path.endswith('.yml'):
+      metadata = securesystemslib.util.load_yaml_file(metadata_path)
+
+    else:
+      metadata = securesystemslib.util.load_json_file(metadata_path)
+
     metadata['signed']['targets']['/file1.txt']['hashes'] = hashes
     metadata['signed']['targets']['/file1.txt']['length'] = length
 
@@ -289,6 +294,9 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
       self.assertTrue(len(exception.mirror_errors), 1)
 
       # Verify that the specific and expected mirror exception is raised.
+      print('url_file: ' + repr(url_file))
+      print('mirror_errors: ' + repr(exception.mirror_errors))
+
       self.assertTrue(url_file in exception.mirror_errors)
       self.assertTrue(isinstance(exception.mirror_errors[url_file],
                                  securesystemslib.exceptions.BadHashError))
