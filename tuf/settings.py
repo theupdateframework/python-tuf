@@ -35,6 +35,14 @@ from __future__ import unicode_literals
 # unusable.
 temporary_directory = None
 
+# Set a local directory to store metadata that is requested from mirrors.  This
+# directory contains subdirectories for different repositories, where each
+# subdirectory contains a different set of metadata.  For example:
+# tuf.settings.repositories_directory = /tmp/repositories.  The root file for a
+# repository named 'django_repo' can be found at:
+# /tmp/repositories/django_repo/metadata/current/root.METADATA_EXTENSION
+repositories_directory = None
+
 # A PEM (RFC 1422) file where you may find SSL certificate authorities
 # https://en.wikipedia.org/wiki/Certificate_authority
 # http://docs.python.org/2/library/ssl.html#certificates
@@ -79,9 +87,6 @@ MIN_AVERAGE_DOWNLOAD_SPEED = 100 #bytes/second
 
 # The time (in seconds) we ignore a server with a slow initial retrieval speed.
 SLOW_START_GRACE_PERIOD = 3 #seconds
-
-
-
 
 # Software updaters that integrate the framework are required to specify
 # the URL prefix for the mirrors that clients can contact to download updates.
