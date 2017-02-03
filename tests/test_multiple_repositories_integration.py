@@ -14,6 +14,10 @@
   See LICENSE for licensing information.
 
 <Purpose>
+  Verify that clients are able to keep track of multiple repositories and
+  separate sets of metadata for each.
+
+  TODO: Verify that multiple repositories can be set for the repository tool.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -180,20 +184,23 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
 
   def test_update(self):
-    print('updater 1 name: ' + str(self.repository_updater))
-    print('updater 2 name: ' + str(self.repository_updater2))
+    self.assertEqual('repository1', str(self.repository_updater))
+    self.assertEqual('repository2', str(self.repository_updater2))
 
-    print('rolenames for up1: ' + repr(tuf.roledb.get_rolenames(str(self.repository_updater))))
-    print('rolenames for up2: ' + repr(tuf.roledb.get_rolenames(str(self.repository_updater2))))
+    self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
+        sorted(tuf.roledb.get_rolenames('repository1')))
+
+    self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
+        sorted(tuf.roledb.get_rolenames('repository2')))
+
+    #self.repository_updater.refresh()
 
     # 'role1.json' should be downloaded, because it provides info for the
     # requested 'file3.txt'.
     valid_targetinfo = self.repository_updater.get_one_valid_targetinfo('file3.txt')
 
-    print('rolenames for up1 after update: ' + repr(tuf.roledb.get_rolenames(str(self.repository_updater))))
-    print('rolenames for up2 after update: ' + repr(tuf.roledb.get_rolenames(str(self.repository_updater2))))
-
-    #self.repository_updater.download_target
+    self.assertEqual(sorted(['role2', 'role1', 'root', 'snapshot', 'targets', 'timestamp']),
+        sorted(tuf.roledb.get_rolenames('repository1')))
 
 
 if __name__ == '__main__':
