@@ -157,4 +157,4 @@ if not options.dry_run:
 # Create the client files (required directory structure and minimal metadata)
 # required by the 'tuf.interposition' and 'tuf.client.updater.py' updaters.
 if not options.dry_run:
-  create_tuf_client_directory('repository', 'client')
+  create_tuf_client_directory('repository', os.path.join('client', 'test_repository'))
