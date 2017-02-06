@@ -125,14 +125,14 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # The original repository, keystore, and client directories will be copied
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
-    original_client = os.path.join(original_repository_files, 'client')
+    original_client = os.path.join(original_repository_files, 'client', 'test_repository')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
     self.repository_directory = os.path.join(temporary_repository_root,
         'repository')
 
-    # Setting 'tuf.settings.repository_directory' with the temporary client
+    # Setting 'tuf.settings.repositories_directory' with the temporary client
     # directory copied from the original repository files.
     tuf.settings.repositories_directory = temporary_repository_root
 

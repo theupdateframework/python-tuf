@@ -380,8 +380,8 @@ class TestRepository(unittest.TestCase):
     # a list of absolute paths.
     metadata_files = repo.get_filepaths_in_directory(metadata_directory)
     expected_files = ['1.root.json', '1.root.json.gz', 'root.json',
-                      'root.json.gz', 'targets.json', 'targets.json.gz',
-                      'snapshot.json', 'snapshot.json.gz', 'timestamp.json',
+                      'targets.json', 'targets.json.gz', 'snapshot.json',
+                      'snapshot.json.gz', 'timestamp.json',
                       'timestamp.json.gz', 'role1.json', 'role1.json.gz',
                       'role2.json', 'role2.json.gz']
 

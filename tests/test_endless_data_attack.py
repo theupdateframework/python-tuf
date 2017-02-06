@@ -118,6 +118,8 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
 
+    self.repository_name = 'test_repository'
+
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
     # The 'repository_data' directory is expected to exist in 'tuf/tests/'.
@@ -149,7 +151,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.settings.repository_directory = self.client_directory
+    tuf.settings.repositories_directory = self.client_directory
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -157,7 +159,7 @@ class TestEndlessDataAttack(unittest_toolbox.Modified_TestCase):
 
     # Create the repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_updater = updater.Updater('test_repository',
+    self.repository_updater = updater.Updater(self.repository_name,
                                               self.repository_mirrors)
 
 
