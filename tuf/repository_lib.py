@@ -50,6 +50,7 @@ import tuf.keys
 import tuf.sig
 import tuf.log
 import tuf.conf
+import tuf.asn1_ber_codec as asn1_ber_codec
 
 import iso8601
 import six
@@ -71,7 +72,7 @@ iso8601_logger.disabled = True
 DEFAULT_RSA_KEY_BITS = 3072
 
 # The extension of TUF metadata.
-METADATA_EXTENSION = '.json'
+METADATA_EXTENSION = '.' + tuf.conf.METADATA_FORMAT # '.json'
 
 # The targets and metadata directory names.  Metadata files are written
 # to the staged metadata directory instead of the "live" one.
@@ -99,7 +100,13 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
 
 # The full list of supported TUF metadata extensions.
-METADATA_EXTENSIONS = ['.json']
+# TODO: <~> TUF should be blind to Uptane. For now, the supported encodings
+# are 'json' and 'ber', but BER is currently only supported for Targets
+# metadata, and only in an Uptane-compliant format. Support for BER needs to
+# be total, for all metadata types, and should not have non-TUF requirements
+# (e.g. Uptane pieces), nor should it break when Uptane pieces are present....
+# Hopefully, that's not too hard to achieve in the JSON-to-ASN.1 conversion.
+METADATA_EXTENSIONS = ['.json', '.ber']
 
 
 def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
@@ -496,10 +503,18 @@ def _get_written_metadata(metadata_signable):
   """
 
   # Explicitly specify the JSON separators for Python 2 + 3 consistency.
-  written_metadata_content = \
-    json.dumps(metadata_signable, indent=1, separators=(',', ': '),
-               sort_keys=True).encode('utf-8')
-  
+  if tuf.conf.METADATA_FORMAT == 'json':
+    written_metadata_content = json.dumps(
+        metadata_signable, indent=1, separators=(',', ': '),
+        sort_keys=True).encode('utf-8')
+
+  elif tuf.conf.METADATA_FORMAT == 'ber':
+    written_metadata_content = asn1_ber_codec.convert_signed_metadata_to_ber(
+        metadata_signable) # TODO: <~> CURRENTLY WORKING HERE
+  else:
+    raise tuf.Error('Unsupported metadata format in configuration. Unable to '
+        'write metadata in format: ' + repr(tuf.conf.METADATA_FORMAT))
+
   return written_metadata_content
 
 
@@ -551,7 +566,7 @@ def _load_top_level_metadata(
   # written. 
   if os.path.exists(root_filename):
     # Initialize the key and role metadata of the top-level roles.
-    signable = tuf.util.load_json_file(root_filename)
+    signable = tuf.util.load_file(root_filename)
     tuf.formats.check_signable_object_format(signable)
     root_metadata = signable['signed']  
     tuf.keydb.create_keydb_from_root_metadata(root_metadata)
@@ -590,7 +605,7 @@ def _load_top_level_metadata(
   # Load 'timestamp.json'.  A Timestamp role file without a version number is
   # always written. 
   if os.path.exists(timestamp_filename):
-    signable = tuf.util.load_json_file(timestamp_filename)
+    signable = tuf.util.load_file(timestamp_filename)
     timestamp_metadata = signable['signed']
     for signature in signable['signatures']:
       repository.timestamp.add_signature(signature, mark_role_as_dirty=False)
@@ -628,7 +643,7 @@ def _load_top_level_metadata(
     snapshot_filename = os.path.join(dirname, str(snapshot_version) + '.' + basename + METADATA_EXTENSION)
 
   if os.path.exists(snapshot_filename):
-    signable = tuf.util.load_json_file(snapshot_filename)
+    signable = tuf.util.load_file(snapshot_filename)
     tuf.formats.check_signable_object_format(signable)
     snapshot_metadata = signable['signed']  
     
@@ -663,7 +678,7 @@ def _load_top_level_metadata(
     targets_filename = os.path.join(dirname, str(targets_version) + '.' + basename)
   
   if os.path.exists(targets_filename):
-    signable = tuf.util.load_json_file(targets_filename)
+    signable = tuf.util.load_file(targets_filename)
     tuf.formats.check_signable_object_format(signable)
     targets_metadata = signable['signed']
 
@@ -1673,7 +1688,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   # 'targets.json'.  'fileinfodict' shall contain the version number of all
   # available delegated roles on the repository.
   fileinfodict = {}
-  root_path = os.path.join(metadata_directory, root_filename + '.json')
+  root_path = os.path.join(
+      metadata_directory, root_filename + METADATA_EXTENSION)
   length, hashes = tuf.util.get_file_details(root_path)
   root_version = get_metadata_versioninfo('root', repository_name)
   fileinfodict[ROOT_FILENAME] = tuf.formats.make_fileinfo(length, hashes, version=root_version['version'])

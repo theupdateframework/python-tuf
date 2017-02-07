@@ -826,9 +826,9 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   config_filename = os.path.join(project_directory, PROJECT_FILENAME)
   
   try:
-    project_configuration = tuf.util.load_json_file(config_filename)
-    tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration) 
-  
+    project_configuration = tuf.util.load_file(config_filename)
+    tuf.formats.PROJECT_CFG_SCHEMA.check_match(project_configuration)
+
   except (OSError, IOError, tuf.FormatError):
     raise
  
@@ -873,7 +873,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   # Load the project's metadata.
   targets_metadata_path = os.path.join(project_directory, metadata_directory,
       project_filename)
-  signable = tuf.util.load_json_file(targets_metadata_path)
+  signable = tuf.util.load_file(targets_metadata_path)
   tuf.formats.check_signable_object_format(signable)
   targets_metadata = signable['signed']
   
@@ -941,8 +941,8 @@ def load_project(project_directory, prefix='', new_targets_location=None,
 
       signable = None
       try:
-        signable = tuf.util.load_json_file(metadata_path)
-      
+        signable = tuf.util.load_file(metadata_path)
+
       except (ValueError, IOError, tuf.Error):
         raise
       

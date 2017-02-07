@@ -81,7 +81,7 @@ METADATA_DIRECTORY_NAME = 'metadata'
 TARGETS_DIRECTORY_NAME = 'targets' 
 
 # The extension of TUF metadata.
-METADATA_EXTENSION = '.json'
+METADATA_EXTENSION = '.' + tuf.conf.METADATA_FORMAT
 
 # Expiration date delta, in seconds, of the top-level roles.  A metadata
 # expiration date is set by taking the current time and adding the expiration
@@ -3029,7 +3029,7 @@ def load_repository(repository_directory, repository_name='default'):
     signable = None
     
     try:
-      signable = tuf.util.load_json_file(metadata_path)
+      signable = tuf.util.load_file(metadata_path)
     
     except (ValueError, IOError):
       continue
