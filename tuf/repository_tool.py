@@ -56,6 +56,7 @@ from tuf.repository_lib import create_tuf_client_directory
 from tuf.repository_lib import disable_console_log_messages
 
 import securesystemslib.keys
+import securesystemslib.formats
 import iso8601
 import six
 
@@ -678,7 +679,7 @@ class Metadata(object):
     # Keys may be shared, so do not raise an exception if 'key' has already
     # been loaded.
     try:
-      tuf.keydb.add_key(key, self._repository_name)
+      tuf.keydb.add_key(key, repository_name=self._repository_name)
 
     except securesystemslib.exceptions.KeyAlreadyExistsError:
       logger.warning('Adding a verification key that has already been used.')
@@ -793,18 +794,19 @@ class Metadata(object):
     # Has the key, with the private portion included, been added to the keydb?
     # The public version of the key may have been previously added.
     try:
-      tuf.keydb.add_key(key, self._repository_name)
+      tuf.keydb.add_key(key, repository_name=self._repository_name)
 
     except securesystemslib.exceptions.KeyAlreadyExistsError:
       tuf.keydb.remove_key(key['keyid'], self._repository_name)
-      tuf.keydb.add_key(key, self._repository_name)
+      tuf.keydb.add_key(key, repository_name=self._repository_name)
 
     # Update the role's 'signing_keys' field in 'tuf.roledb.py'.
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
     if key['keyid'] not in roleinfo['signing_keyids']:
       roleinfo['signing_keyids'].append(key['keyid'])
 
-      tuf.roledb.update_roleinfo(self.rolename, roleinfo, self._repository_name)
+      tuf.roledb.update_roleinfo(self.rolename, roleinfo,
+          repository_name=self._repository_name)
 
 
 
@@ -1521,7 +1523,7 @@ class Timestamp(Metadata):
 
     # Is 'repository_name' properly formatted?  Otherwise, raise a
     # tuf.exceptions.FormatError exception.
-    tuf.formats.NAME_SCHEMA.check_match(repository_name)
+    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
     # By default, 'root' metadata is set to expire 1 year from the current
     # time.  The expiration may be modified.
@@ -1584,7 +1586,7 @@ class Snapshot(Metadata):
 
     # Is 'repository_name' properly formatted?  Otherwise, raise a
     # tuf.exceptions.FormatError exception.
-    tuf.formats.NAME_SCHEMA.check_match(repository_name)
+    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
@@ -1670,8 +1672,7 @@ class Targets(Metadata):
     # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
     securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
     tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
-    tuf.formats.NAME_SCHEMA.check_match(repository_name)
-
+    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
     if roleinfo is not None:
       tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
@@ -1682,6 +1683,7 @@ class Targets(Metadata):
     self._target_files = []
     self._delegated_roles = {}
     self._parent_targets_object = self
+    self._repository_name = repository_name
 
     # Keep a reference to the top-level 'targets' object.  Any delegated roles
     # that may be created, can be added to and accessed via the top-level
@@ -2378,8 +2380,9 @@ class Targets(Metadata):
                 'roles': []}}
 
     # The new targets object is added as an attribute to this Targets object.
-    new_targets_object = Targets(self._targets_directory, rolename,
-                                 roleinfo, parent_targets_object=self._parent_targets_object)
+    new_targets_object = Targets(self._targets_directory, rolename, roleinfo,
+        parent_targets_object=self._parent_targets_object,
+        repository_name=self._repository_name)
 
     # Update the 'delegations' field of the current role.
     current_roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
@@ -3114,13 +3117,13 @@ def load_repository(repository_directory, repository_name='default'):
     else:
       logger.debug('A compressed version does not exist.')
 
-    tuf.roledb.add_role(metadata_name, roleinfo, self._repository_name)
+    tuf.roledb.add_role(metadata_name, roleinfo, repository_name)
     loaded_metadata.append(metadata_name)
 
     # Generate the Targets objects of the delegated roles of 'metadata_name'
     # and add it to the top-level 'targets' object.
     new_targets_object = Targets(targets_directory, metadata_name, roleinfo,
-        repository_name=self._repository_name)
+        repository_name=repository_name)
     targets_object = targets_objects['targets']
     targets_objects[metadata_name] = new_targets_object
 
@@ -3137,7 +3140,7 @@ def load_repository(repository_directory, repository_name='default'):
     for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
       key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
       try:
-        tuf.keydb.add_key(key_object, self._repository_name)
+        tuf.keydb.add_key(key_object, repository_name=repository_name)
 
       except securesystemslib.exceptions.KeyAlreadyExistsError:
         pass

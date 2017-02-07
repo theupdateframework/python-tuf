@@ -71,7 +71,6 @@ class TestRepository(unittest.TestCase):
     cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
 
 
-
   @classmethod
   def tearDownClass(cls):
 
@@ -85,7 +84,8 @@ class TestRepository(unittest.TestCase):
 
 
   def setUp(self):
-    pass
+    tuf.roledb.create_roledb('test_repository')
+    tuf.keydb.create_keydb('test_repository')
 
 
 
@@ -95,11 +95,10 @@ class TestRepository(unittest.TestCase):
 
 
   def test_init(self):
-
     # Test normal case.
+    repository_name = 'test_repository'
     repository = repo_tool.Repository('repository_directory/',
-                                      'metadata_directory/',
-                                      'targets_directory/')
+        'metadata_directory/', 'targets_directory/', repository_name)
     self.assertTrue(isinstance(repository.root, repo_tool.Root))
     self.assertTrue(isinstance(repository.snapshot, repo_tool.Snapshot))
     self.assertTrue(isinstance(repository.timestamp, repo_tool.Timestamp))
@@ -127,6 +126,7 @@ class TestRepository(unittest.TestCase):
     #
     # Copy the target files from 'tuf/tests/repository_data' so that writeall()
     # has target fileinfo to include in metadata.
+    repository_name = 'test_repository'
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     targets_directory = os.path.join(temporary_directory, 'repository',
                                      repo_tool.TARGETS_DIRECTORY_NAME)
@@ -139,7 +139,7 @@ class TestRepository(unittest.TestCase):
     repository_directory = os.path.join(temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory,
                                       repo_tool.METADATA_STAGED_DIRECTORY_NAME)
-    repository = repo_tool.create_new_repository(repository_directory)
+    repository = repo_tool.create_new_repository(repository_directory, repository_name)
 
     # (1) Load the public and private keys of the top-level roles, and one
     # delegated role.
@@ -253,31 +253,36 @@ class TestRepository(unittest.TestCase):
     # Verify that status() does not raise an exception.
     repository.status()
 
-    # Verify that status() does not raise 'securesystemslib.exceptions.InsufficientKeysError' if a
-    # top-level role does not contain a threshold of keys.
-    targets_roleinfo = tuf.roledb.get_roleinfo('targets')
+    # Verify that status() does not raise
+    # 'securesystemslib.exceptions.InsufficientKeysError' if a top-level role
+    # does not contain a threshold of keys.
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
     old_threshold = targets_roleinfo['threshold']
     targets_roleinfo['threshold'] = 10
-    tuf.roledb.update_roleinfo('targets', targets_roleinfo)
+    tuf.roledb.update_roleinfo('targets', targets_roleinfo, repository_name)
     repository.status()
 
     # Restore the original threshold values.
-    targets_roleinfo = tuf.roledb.get_roleinfo('targets')
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
     targets_roleinfo['threshold'] = old_threshold
-    tuf.roledb.update_roleinfo('targets', targets_roleinfo)
+    tuf.roledb.update_roleinfo('targets', targets_roleinfo,
+        repository_name=repository_name)
 
-    # Verify that status() does not raise 'securesystemslib.exceptions.InsufficientKeysError' if a
-    # delegated role does not contain a threshold of keys.
-    role1_roleinfo = tuf.roledb.get_roleinfo('role1')
+    # Verify that status() does not raise
+    # 'securesystemslib.exceptions.InsufficientKeysError' if a delegated role
+    # does not contain a threshold of keys.
+    role1_roleinfo = tuf.roledb.get_roleinfo('role1', repository_name)
     old_role1_threshold = role1_roleinfo['threshold']
     role1_roleinfo['threshold'] = 10
-    tuf.roledb.update_roleinfo('role1', role1_roleinfo)
+    tuf.roledb.update_roleinfo('role1', role1_roleinfo,
+        repository_name=repository_name)
     repository.status()
 
     # Restore role1's threshold.
-    role1_roleinfo = tuf.roledb.get_roleinfo('role1')
+    role1_roleinfo = tuf.roledb.get_roleinfo('role1', repository_name)
     role1_roleinfo['threshold'] = old_role1_threshold
-    tuf.roledb.update_roleinfo('role1', role1_roleinfo)
+    tuf.roledb.update_roleinfo('role1', role1_roleinfo,
+        repository_name=repository_name)
 
     # Verify status() does not raise 'tuf.exceptions.UnsignedMetadataError' if any of the
     # the top-level roles. Test that 'root' is improperly signed.
@@ -318,7 +323,7 @@ class TestRepository(unittest.TestCase):
 
     # Verify that a writeall() fails if a repository is loaded and a change
     # is made to a role.
-    repo_tool.load_repository(repository_directory)
+    repo_tool.load_repository(repository_directory, repository_name)
 
     repository.timestamp.expiration = datetime.datetime(2030, 1, 1, 12, 0)
     self.assertRaises(tuf.exceptions.UnsignedMetadataError, repository.writeall)
@@ -343,25 +348,25 @@ class TestRepository(unittest.TestCase):
     # Verify that a consistent snapshot can be written and loaded.  The
     # 'targets' and 'role1' roles must be marked as dirty, otherwise writeall()
     # will not create consistent snapshots for them.
-    repository.mark_dirty(['targets', 'role1'])
+    repository.mark_dirty(['targets', 'role1'], repository_name)
     repository.writeall(consistent_snapshot=True)
 
     # Verify that the newly written consistent snapshot can be loaded
     # successfully.
-    repo_tool.load_repository(repository_directory)
+    repo_tool.load_repository(repository_directory, repository_name)
 
     # Verify the behavior of marking and unmarking roles as dirty.
     # We begin by ensuring that writeall() cleared the list of dirty roles..
-    self.assertEqual([], tuf.roledb.get_dirty_roles())
+    self.assertEqual([], tuf.roledb.get_dirty_roles(repository_name))
 
-    repository.mark_dirty(['root', 'timestamp'])
+    repository.mark_dirty(['root', 'timestamp'], repository_name)
     self.assertEqual(['root', 'timestamp'], sorted(tuf.roledb.get_dirty_roles()))
-    repository.unmark_dirty(['root'])
-    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles())
+    repository.unmark_dirty(['root'], repository_name)
+    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name))
 
     # Ensure status() does not leave behind any dirty roles.
     repository.status()
-    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles())
+    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name))
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repository.writeall, 3, False)
@@ -421,12 +426,16 @@ class TestMetadata(unittest.TestCase):
     # Inherit from the repo_tool.Metadata() base class.  All of the methods
     # to be tested in TestMetadata require at least 1 role, so create it here
     # and set its roleinfo.
-    class MetadataRole(repo_tool.Metadata):
 
+    tuf.roledb.create_roledb('test_repository')
+    tuf.keydb.create_keydb('test_repository')
+
+    class MetadataRole(repo_tool.Metadata):
       def __init__(self):
         super(MetadataRole, self).__init__()
 
         self._rolename = 'metadata_role'
+        self._repository_name = 'test_repository'
 
         # Expire in 86400 seconds (1 day).
         expiration = \
@@ -438,15 +447,16 @@ class TestMetadata(unittest.TestCase):
                     'compressions': [''], 'expires': expiration,
                     'partial_loaded': False}
 
-        tuf.roledb.add_role(self._rolename, roleinfo)
+        tuf.roledb.add_role(self._rolename, roleinfo,
+            repository_name='test_repository')
 
     self.metadata = MetadataRole()
 
 
 
   def tearDown(self):
-    tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
     self.metadata = None
 
 
@@ -598,10 +608,10 @@ class TestMetadata(unittest.TestCase):
                 'compressions': [''], 'expires': expiration,
                 'partial_loaded': False}
 
-    tuf.roledb.add_role('Root', roleinfo)
-    tuf.roledb.add_role('Targets', roleinfo)
-    tuf.roledb.add_role('Snapshot', roleinfo)
-    tuf.roledb.add_role('Timestamp', roleinfo)
+    tuf.roledb.add_role('Root', roleinfo, 'test_repository')
+    tuf.roledb.add_role('Targets', roleinfo, 'test_repository')
+    tuf.roledb.add_role('Snapshot', roleinfo, 'test_repository')
+    tuf.roledb.add_role('Timestamp', roleinfo, 'test_repository')
 
     # Test for different top-level role names.
     self.metadata._rolename = 'Targets'
@@ -725,8 +735,8 @@ class TestMetadata(unittest.TestCase):
     self.assertEqual(signatures, self.metadata.signatures)
 
     # Verify that a signature is added if a 'signatures' entry is not present.
-    tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'])
-    del tuf.roledb._roledb_dict['default']['root']['signatures']
+    tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'], repository_name='test_repository')
+    del tuf.roledb._roledb_dict['test_repository']['root']['signatures']
     self.metadata._rolename = 'root'
     self.metadata.add_signature(signatures[0])
 
@@ -788,13 +798,14 @@ class TestMetadata(unittest.TestCase):
 
 class TestRoot(unittest.TestCase):
   def setUp(self):
-    pass
+    tuf.roledb.create_roledb('test_repository')
+    tuf.keydb.create_keydb('test_repository')
 
 
 
   def tearDown(self):
-    tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
 
@@ -802,15 +813,17 @@ class TestRoot(unittest.TestCase):
 
     # Test normal case.
     # Root() subclasses Metadata(), and creates a 'root' role in 'tuf.roledb'.
-    root_object = repo_tool.Root()
+    repository_name = 'test_repository'
+    root_object = repo_tool.Root(repository_name)
     self.assertTrue(isinstance(root_object, repo_tool.Metadata))
-    self.assertTrue(tuf.roledb.role_exists('root'))
+    self.assertTrue(tuf.roledb.role_exists('root', repository_name))
 
 
 
 class TestTimestamp(unittest.TestCase):
   def setUp(self):
-    pass
+    tuf.roledb.create_roledb('test_repository')
+    tuf.keydb.create_keydb('test_repository')
 
 
 
@@ -825,9 +838,9 @@ class TestTimestamp(unittest.TestCase):
     # Test normal case.
     # Timestamp() subclasses Metadata(), and creates a 'timestamp' role in
     # 'tuf.roledb'.
-    timestamp_object = repo_tool.Timestamp()
+    timestamp_object = repo_tool.Timestamp('test_repository')
     self.assertTrue(isinstance(timestamp_object, repo_tool.Metadata))
-    self.assertTrue(tuf.roledb.role_exists('timestamp'))
+    self.assertTrue(tuf.roledb.role_exists('timestamp', 'test_repository'))
 
 
 
@@ -835,13 +848,14 @@ class TestTimestamp(unittest.TestCase):
 
 class TestSnapshot(unittest.TestCase):
   def setUp(self):
-    pass
+    tuf.roledb.create_roledb('test_repository')
+    tuf.keydb.create_keydb('test_repository')
 
 
 
   def tearDown(self):
-    tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
 
@@ -850,9 +864,9 @@ class TestSnapshot(unittest.TestCase):
     # Test normal case.
     # Snapshot() subclasses Metadata(), and creates a 'snapshot' role in
     # 'tuf.roledb'.
-    snapshot_object = repo_tool.Snapshot()
+    snapshot_object = repo_tool.Snapshot('test_repository')
     self.assertTrue(isinstance(snapshot_object, repo_tool.Metadata))
-    self.assertTrue(tuf.roledb.role_exists('snapshot'))
+    self.assertTrue(tuf.roledb.role_exists('snapshot', 'test_repository'))
 
 
 
@@ -884,19 +898,22 @@ class TestTargets(unittest.TestCase):
 
 
   def setUp(self):
+    tuf.roledb.create_roledb('test_repository')
+    tuf.keydb.create_keydb('test_repository')
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     self.targets_directory = os.path.join(temporary_directory, 'repository',
                                           'targets')
     original_targets_directory = os.path.join('repository_data',
                                               'repository', 'targets')
     shutil.copytree(original_targets_directory, self.targets_directory)
-    self.targets_object = repo_tool.Targets(self.targets_directory)
+    self.targets_object = repo_tool.Targets(self.targets_directory,
+        repository_name='test_repository')
 
 
 
   def tearDown(self):
-    tuf.roledb.clear_roledb()
-    tuf.keydb.clear_keydb()
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
     self.targets_object = None
 
 
@@ -1316,6 +1333,7 @@ class TestTargets(unittest.TestCase):
   def test_add_target_to_bin(self):
     # Test normal case.
     # Delegate the hashed bins so that add_target_to_bin() can be tested.
+    repository_name = 'test_repository'
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'targets_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
@@ -1348,29 +1366,35 @@ class TestTargets(unittest.TestCase):
 
     # Verify that 'path_hash_prefixes' must exist for hashed bin delegations.
 
-    roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
+    roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename,
+        repository_name)
+
     for delegated_role in roleinfo['delegations']['roles']:
       delegated_role['path_hash_prefixes'] = []
 
-    tuf.roledb.update_roleinfo(self.targets_object.rolename, roleinfo)
+    tuf.roledb.update_roleinfo(self.targets_object.rolename, roleinfo,
+        repository_name=repository_name)
     self.assertRaises(securesystemslib.exceptions.Error,
                       self.targets_object.add_target_to_bin, target1_filepath)
 
     # Verify that an exception is raised if a target does not match with
     # any of the 'path_hash_prefixes'.
-    roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
+    roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename,
+        repository_name)
     delegated_role = roleinfo['delegations']['roles'][0]
     delegated_role['path_hash_prefixes'] = ['faac']
     delegated_roles = list()
     delegated_roles.append(delegated_role)
     roleinfo['delegations']['roles'] = delegated_roles
-    tuf.roledb.update_roleinfo(self.targets_object.rolename, roleinfo)
+    tuf.roledb.update_roleinfo(self.targets_object.rolename, roleinfo,
+        repository_name=repository_name)
 
     self.assertRaises(securesystemslib.exceptions.Error,
                       self.targets_object.add_target_to_bin, target1_filepath)
 
     # Test for non-existent delegations and hashed bins.
-    empty_targets_role = repo_tool.Targets(self.targets_directory, 'empty')
+    empty_targets_role = repo_tool.Targets(self.targets_directory, 'empty',
+        repository_name=repository_name)
 
     self.assertRaises(securesystemslib.exceptions.Error,
                       empty_targets_role.add_target_to_bin,
@@ -1475,7 +1499,8 @@ class TestTargets(unittest.TestCase):
 
     # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains
     # the expected restricted paths of the delegated role.  Only
-    targets_object_roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename)
+    targets_object_roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename,
+        'test_repository')
 
     delegated_role = targets_object_roleinfo['delegations']['roles'][0]
     self.assertEqual(['/tuf_files/*'], delegated_role['paths'])
@@ -1485,25 +1510,26 @@ class TestTargets(unittest.TestCase):
     self.targets_object.add_restricted_paths(restricted_paths, 'tuf')
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.add_restricted_paths,
-                      3, 'tuf')
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.add_restricted_paths,
-                      restricted_paths, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.add_restricted_paths, 3, 'tuf')
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.add_restricted_paths, restricted_paths, 3)
 
 
     # Test invalid arguments.
     # A non-delegated child role.
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.add_restricted_paths,
-                      restricted_paths, 'non_delegated_rolename')
+    self.assertRaises(securesystemslib.exceptions.Error,
+        self.targets_object.add_restricted_paths, restricted_paths,
+        'non_delegated_rolename')
 
     # Non-existent 'restricted_paths'.
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.add_restricted_paths,
-                      ['/non-existent'], 'tuf')
+    self.assertRaises(securesystemslib.exceptions.Error,
+        self.targets_object.add_restricted_paths, ['/non-existent'], 'tuf')
 
     # Directory not under the repository's targets directory.
     repository_directory = os.path.join('repository_data', 'repository')
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.add_restricted_paths,
-                      [repository_directory], 'tuf')
+    self.assertRaises(securesystemslib.exceptions.Error,
+        self.targets_object.add_restricted_paths, [repository_directory], 'tuf')
 
 
 
@@ -1563,11 +1589,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def setUp(self):
-    pass
+    tuf.roledb.create_roledb('test_repository')
+    tuf.keydb.create_keydb('test_repository')
 
 
   def tearDown(self):
-    pass
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
 
 
 
@@ -1575,6 +1603,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test normal case.
     # Setup the temporary repository directories needed by
     # create_new_repository().
+    repository_name = 'test_repository'
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     repository_directory = os.path.join(temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory,
@@ -1582,7 +1611,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     targets_directory = os.path.join(repository_directory,
                                      repo_tool.TARGETS_DIRECTORY_NAME)
 
-    repository = repo_tool.create_new_repository(repository_directory)
+    repository = repo_tool.create_new_repository(repository_directory,
+        repository_name)
     self.assertTrue(isinstance(repository, repo_tool.Repository))
 
     # Verify that the 'repository/', 'repository/metadata', and
@@ -1596,8 +1626,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # the non-existent directory.
     shutil.rmtree(repository_directory)
 
-    repository = repo_tool.create_new_repository(repository_directory)
-    repository = repo_tool.create_new_repository(repository_directory)
+    repository = repo_tool.create_new_repository(repository_directory,
+        repository_name)
     self.assertTrue(isinstance(repository, repo_tool.Repository))
 
     # Verify that the 'repository/', 'repository/metadata', and
@@ -1609,13 +1639,13 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      repo_tool.create_new_repository, 3)
+                      repo_tool.create_new_repository, 3, repository_name)
 
     # For testing purposes, try to create a repository directory that
     # fails due to a non-errno.EEXIST exception raised.  create_new_repository()
     # should only pass for OSError (errno.EEXIST).
     try:
-      repo_tool.create_new_repository('bad' * 2000)
+      repo_tool.create_new_repository('bad' * 2000, repository_name)
 
     except OSError as e:
       self.assertTrue(e.errno == errno.ENAMETOOLONG)
@@ -1630,7 +1660,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.repository_tool.METADATA_STAGED_DIRECTORY_NAME = 'bad' * 2000
 
     try:
-      repo_tool.create_new_repository(repository_directory)
+      repo_tool.create_new_repository(repository_directory, repository_name)
 
     except OSError as e:
       self.assertTrue(e.errno == errno.ENAMETOOLONG)
@@ -1644,7 +1674,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.repository_tool.TARGETS_DIRECTORY_NAME = 'bad' * 2000
 
     try:
-      repo_tool.create_new_repository(repository_directory)
+      repo_tool.create_new_repository(repository_directory, repository_name)
 
     except OSError as e:
       self.assertTrue(e.errno == errno.ENAMETOOLONG)
@@ -1717,9 +1747,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_dirty_roles(self):
+    repository_name = 'test_repository'
     original_repository_directory = os.path.join('repository_data',
                                                  'repository')
-    repository = repo_tool.load_repository(original_repository_directory)
+    repository = repo_tool.load_repository(original_repository_directory,
+        repository_name)
 
     # dirty_roles() only logs the list of dirty roles.
     repository.dirty_roles()
