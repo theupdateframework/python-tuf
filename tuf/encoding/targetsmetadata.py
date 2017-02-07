@@ -27,7 +27,7 @@ def get_asn_signed(json_signed):
 
   signed = Signed().subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                 tag.tagFormatConstructed, 0))
-  signed['type'] = int(RoleType('snapshot'))
+  signed['type'] = int(RoleType('targets'))
   signed['expires'] = metadata.iso8601_to_epoch(json_signed['expires'])
   signed['version'] = json_signed['version']
   signed['body'] = signedBody
