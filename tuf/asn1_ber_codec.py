@@ -15,12 +15,12 @@ try:
   import pyasn1.codec.ber.decoder as p_ber_decoder
   import pyasn1.type.tag as p_type_tag
 
-  # Uptane/TUF data specification modules that convert ASN.1 to JSON and back.
-  import uptane.encoding.rootmetadata as root_asn1_spec # Must pull out of Uptane.
-  import uptane.encoding.snapshotmetadata as snapshot_asn1_spec # Must pull out of Uptane.
-  import uptane.encoding.timestampmetadata as timestamp_asn1_spec # Must pull out of Uptane.
-  import uptane.encoding.targetsmetadata as targets_asn1_spec # Must pull out of Uptane.
-  import uptane.encoding.metadataverificationmodule as metadata_asn1_spec
+  # ASN.1 data specification modules that convert ASN.1 to JSON and back.
+  import tuf.encoding.rootmetadata as root_asn1_spec
+  import tuf.encoding.snapshotmetadata as snapshot_asn1_spec
+  import tuf.encoding.timestampmetadata as timestamp_asn1_spec
+  import tuf.encoding.targetsmetadata as targets_asn1_spec
+  import tuf.encoding.metadataverificationmodule as metadata_asn1_spec
 
   # This maps metadata type ('_type') to the module that lays out the
   # ASN.1 format for that type.
