@@ -7,9 +7,9 @@
 
 from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
-from metadataverificationmodule import *
+from uptane.encoding.metadataverificationmodule import *
 
-import metadata
+import uptane.encoding.metadata as metadata
 
 
 def get_asn_signed(json_signed):
