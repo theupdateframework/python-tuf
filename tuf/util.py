@@ -40,22 +40,7 @@ import tuf.conf
 import tuf.formats
 import six
 
-PYASN1_EXISTS = False
-try:
-  import pyasn1.codec.ber.encoder as p_ber_encoder
-  import pyasn1.codec.ber.decoder as p_ber_decoder
-  import uptane.encoding.timestampmetadata as timestampmetadata # Must pull out of Uptane.
-  import uptane.encoding.targetsmetadata as targetsmetadata # Must pull out of Uptane.
-  import uptane.encoding.metadataverificationmodule as metadata_asn1_spec
-  # This maps metadata type ('_type') to the module that lays out the
-  # ASN.1 format for that type.
-  SUPPORTED_ASN1_METADATA_MODULES = {
-      'timestamp': timestampmetadata,
-      'targets': targetsmetadata}
-except ImportError:
-  print('Minor: pyasn1 library not found. Proceeding using JSON only.')
-else:
-  PYASN1_EXISTS = True
+import tuf.asn1_ber_codec as asn1_ber_codec
 
 
 # The algorithm used by the repository to generate the digests of the
@@ -916,6 +901,42 @@ def load_json_string(data):
 
 
 
+
+
+
+def load_ber_string(data):
+  """
+  <Purpose>
+    Deserialize 'data' (BER string) to a Python object. This supports only
+    what tuf.asn1_ber_codec supports, which at the time of this writing is
+    signed role metadata (timestamp, snapshot, root, or targets) converted into
+    ASN.1 and then encoded as BER.
+
+  <Arguments>
+    data:
+      A BER string, as would be output by e.g.
+      asn1_ber_codec.convert_signed_metadata_to_ber()
+
+  <Exceptions>
+    tuf.Error, if 'data' cannot be deserialized to a Python object.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    Deserialized object.  For example, a dictionary.
+  """
+  try:
+    return asn1_ber_codec.convert_signed_ber_to_bersigned_json(ber_data)
+  except Exception as e:
+    raise tuf.Error('An exception was encountered in an attempt to convert '
+        'the given data from BER to a Python dictionary containing role '
+        'metadata. The exception reads: ' + repr(e))
+
+
+
+
+
 def load_json_file(filepath):
   """
   <Purpose>
@@ -998,10 +1019,6 @@ def load_ber_file(filepath):
     BER file whose filename was provided.
   """
 
-  if not PYASN1_EXISTS:
-    raise tuf.Error('Request was made to load a BER file, but the required '
-        'pyasn1 library failed to import.')
-
   # Making sure that the format of 'filepath' is a path string.
   # tuf.FormatError is raised on incorrect format.
   tuf.formats.PATH_SCHEMA.check_match(filepath)
@@ -1028,102 +1045,61 @@ def load_ber_file(filepath):
   # Decode the BER into an abstract ASN.1 representation of its data,
   # then convert that into a basic Python dictionary representation of the
   # data within.
-  return convert_signed_ber_to_bersigned_json(ber_data)
+  #return asn1_ber_codec.convert_signed_ber_to_bersigned_json(ber_data)
+  return load_ber_string(ber_data)
 
 
 
 
-
-def convert_signed_ber_to_bersigned_json(ber_data):
+def load_file(filepath):
   """
-  Convert the given ber_data to a Python dictionary representation consistent
-  with TUF's typical JSON encoding.
+  Loads the given BER or JSON file into TUF's standard Python dictionary
+  format (return value conforms with tuf.formats.SIGNABLE_SCHEMA, with the
+  value of 'signed' conforming to tuf.formats.ANYROLE_SCHEMA
 
-  The 'signed' portion will be a JSON-style (essentially Python dict)
-  translation of the ber data's 'signed' portion. Likewise for the 'signatures'
-  portion. The result will be a dict containing a 'signatures' section that has
-  signatures over not what is in the 'signed' section, but rather over a
-  different format and encoding of what is in the 'signed' section. Please take
-  care.
-
+  A simple wrapper for load_ber_file and load_json_file. Please see comments in
+  those functions.
   """
-  # "_signed" here refers to the portion of the metadata that will be signed.
-  # The metadata is divided into "signed" and "signature" portions. The
-  # signatures are signatures over the "signed" portion. "json_signed" below
-  # is actually not signed - it is simply the portion that will be put into
-  # the "signed" section - the portion to be signed. The nomenclature is
-  # unfortunate....
-  asn_metadata = p_ber_decoder.decode(
-      ber_data, asn1Spec=metadata_asn1_spec.Metadata())[0] # why 0? Magic.
 
-  # asn_metadata here now has three components, indexed by integer 0, 1, 2.
-  # 0 is the signed component (Signed())
-  # 1 i the numberOfSignatures component (Length())
-  # 2 is the signatures component (Signatures())
+  if filepath.endswith('.ber'):
+    return load_ber_file(filepath)
 
-  asn_signed_metadata = asn_metadata[0]
+  elif filepath.endswith('.json'):
+    return load_json_file(filepath)
 
-  # TODO: <~> The 'signed' component here should probably already be BER, since
-  # that is what the signature is over. Because this would entail some changes
-  # changes to the ASN.1 data specifications in metadataverificationmodule.py,
-  # I'm not doing this yet (though I expect to).
-  # So, for the time being, if we wanted to check the signature, we'd have to
-  # encode this thing into BER again.
-  # ber_signed_metadata = p_ber_encoder.encode(asn_signed)
-
-
-  # Now we have to figure out what type of metadata the ASN.1 metadata is
-  # so that we can use the appropriate spec to convert it back to JSON.
-
-  # (Even though this takes asn_metadata, it only uses asn_metadata[0],
-  # asn_signed_metadata....)
-  asn_type_data = asn_signed_metadata[0] # This is the RoleType info, a class.
-
-  # This is how we'd extract the name of the type from the enumeration that is
-  # in the class (namedValues), indexed by the underlying "value" of
-  # asn_type_data.
-  # We call lower() on it because I don't care about the casing, which has
-  # varied somewhat in TUF history, and I don't want casing to ruin this
-  # detection.
-  metadata_type = asn_type_data.namedValues[asn_type_data._value][0].lower()
-
-  # Make sure it's a supported type of metadata for ASN.1 to Python dict
-  # translation. (Throw an exception if not.)
-  ensure_valid_metadata_type_for_asn1(metadata_type)
-
-  # Handle for the corresponding module.
-  relevant_asn_module = SUPPORTED_ASN1_METADATA_MODULES[metadata_type]
-
-  # Convert into the basic Python dict we use in the JSON encoding.
-  json_signed = relevant_asn_module.get_json_signed(asn_metadata)
-
-  # Extract the signatures from the ASN.1 representation.
-  asn_signatures = asn_metadata[2]
-  json_signatures = []
-
-  for asn_signature in asn_signatures:
-    import pdb; pdb.set_trace()
-    json_signatures.append({
-        'keyid': str(asn_signature['keyid']),
-        # TODO: <~> See if it's possible to tweak the definition of 'method' so that str(method) returns what we want rather here than the enum, so that we don't have to do make this weird enum translation call?
-        'method': asn_signature['method'].namedValues[asn_signature['method']._value][0], #str(asn_signature['method']),
-        'sig': str(asn_signature['value'])})
-
-  return {'signatures': json_signatures, 'signed': json_signed}
+  else:
+    raise tuf.Error('The provided file does not have a supported extension: '
+        '.ber or .json. Filepath: ' + repr(filepath))
 
 
 
 
 
-def ensure_valid_metadata_type_for_asn1(metadata_type):
-  if metadata_type not in SUPPORTED_ASN1_METADATA_MODULES:
-    # TODO: Choose/make better exception class.
-    raise tuf.Error('This is not one of the metadata types configured for '
-        'translation from JSON to BER. Type of given metadata: ' +
-        repr(metadata_type) + '; types accepted: ' +
-        repr([t for t in SUPPORTED_ASN1_METADATA_MODULES]))
+def load_string(filepath):
+  """
+  Loads the given BER or JSON string into TUF's standard Python dictionary
+  format (return value conforms with tuf.formats.SIGNABLE_SCHEMA, with the
+  value of 'signed' conforming to tuf.formats.ANYROLE_SCHEMA
+
+  A simple wrapper for load_ber_string and load_json_string. Please see
+  comments in those functions.
+  """
+  if tuf.conf.METADATA_FORMAT == 'ber':
+    return load_ber_string()
+
+  elif tuf.conf.METADATA_FORMAT == 'json':
+    return load_json_string()
+
+  else:
+    raise tuf.Error('tuf.util.load_string() only supports ber or json, but '
+        'tuf.conf.METADATA_FORMAT is set to neither. It is instead set to: ' +
+        repr(tuf.conf.METADATA_FORMAT))
 
 
+
+
+# Moved convert_signed_ber_to_bersigned_json and
+# ensure_valid_metadata_type_for_asn1 into new module: tuf.asn1_ber_codec.py
 
 
 
