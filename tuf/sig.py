@@ -47,7 +47,7 @@ import tuf
 import tuf.formats
 import tuf.keydb
 import tuf.roledb
-
+import tuf.asn1_ber_codec as asn1_ber_codec
 
 def get_signature_status(signable, role=None, repository_name='default'):
   """
@@ -59,6 +59,21 @@ def get_signature_status(signable, role=None, repository_name='default'):
     method will iterate through the signatures in 'signable' and enumerate
     all the keys that are valid, invalid, unrecognized, unauthorized, or
     generated using an unknown method.
+
+    PLEASE NOTE that when running TUF with BER metadata (setting
+    tuf.conf.METADATA_FORMAT == 'BER'), this function can only be called
+    on a SIGNABLE_SCHEMA in which the 'signed' entry is role metadata
+    (i.e. 'signed' entry conforms to tuf.formats.ANYROLE_SCHEMA).
+    This is because checking the signature of a signed metadata role in BER
+    involves converting the 'signed' element (the role) back into BER to check
+    the signature, and conversion from role metadata in a Python dictionary
+    into an ASN.1 format requires special conversion code for that metadata
+    type. Thus, when TUF is in BER metadata mode, this function will only
+    operate for timestamp, snapshot, root, and targets metadata types, and not
+    any other signature.
+    # TODO: <~> Consider an optional parameter to force raw signature checking,
+    # or, better, using an optional parameter instead of checking
+    # tuf.conf.METADATA_FORMAT.
 
   <Arguments>
     signable:
@@ -122,6 +137,14 @@ def get_signature_status(signable, role=None, repository_name='default'):
   # the different classes of keys (i.e., good_sigs, bad_sigs, etc.).
   signed = signable['signed']
   signatures = signable['signatures']
+
+  # If we are using BER metadata, the 'signed' field must be converted into
+  # BER so that the signature (which was signed into BER) can match it.
+  # If the format or encoding are different, this verification will fail,
+  # since we're re-encoding to check the signature....
+  if tuf.conf.METADATA_FORMAT == 'ber':
+    signed = asn1_ber_codec.convert_signed_metadata_to_ber(
+        signable, only_signed=True)
 
   # Iterate through the signatures and enumerate the signature_status fields.
   # (i.e., good_sigs, bad_sigs, etc.).
