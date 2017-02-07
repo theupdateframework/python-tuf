@@ -16,7 +16,15 @@ def get_asn_signed(json_signed):
   timestampMetadata = TimestampMetadata()\
                       .subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                    tag.tagFormatConstructed, 3))
-  filename = 'snapshot.json'
+  if len(json_signed['meta']) != 1:
+    raise tuf.Error('Expecting only one file to be identified in timestamp '
+        'metadata: snapshot. Contents of timestamp metadata: ' +
+        repr(json_signed['meta']))
+
+  # Get the only key in the dictionary, the filename of the file timestamp
+  # contains a hash for (snapshot.*).
+  filename = list(json_signed['meta'])[0]
+
   meta = json_signed['meta'][filename]
   timestampMetadata['filename'] = filename
   timestampMetadata['version'] = meta['version']
@@ -62,11 +70,13 @@ def get_json_signed(asn_metadata):
   json_signed['version'] = int(asn_signed['version'])
 
   timestampMetadata = asn_signed['body']['timestampMetadata']
-  sha256 = timestampMetadata['hashes'][0]['digest']['octetString'].prettyPrint()
+  filename = timestampMetadata['filename']
+
+  sha256 = timestampMetadata['hashes'][0]['digest']['octetString'].prettyPrint() # TODO: Probably not the way to go long-term.
   assert sha256.startswith('0x')
   sha256 = sha256[2:]
   json_signed['meta'] = {
-    'snapshot.json' : {
+    filename : {
       'hashes': {
         'sha256': sha256
       },
