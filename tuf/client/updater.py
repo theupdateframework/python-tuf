@@ -140,6 +140,9 @@ logger = logging.getLogger('tuf.client.updater')
 iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
 
+# The extension of TUF metadata.
+METADATA_EXTENSION = '.' + tuf.conf.METADATA_EXTENSION # '.json'
+
 
 class Updater(object):
   """
@@ -271,6 +274,8 @@ class Updater(object):
     DEFAULT_VALUE_OF_TERMINATING_FLAG = False # TODO: see below, find better place for this
 
     # Read in pinned.json.
+    # Unique among TUF metadata, pinned.json currently remains in JSON, never
+    # BER. It is never transfered anywhere.
     pinned_metadata = tuf.util.load_json_file(pinned_metadata_fname)
 
     # Make sure the pinned file matches format expectations.
@@ -1129,14 +1134,14 @@ class SingleRepoUpdater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
-    metadata_filename = metadata_role + '.json'
+    metadata_filename = metadata_role + METADATA_EXTENSION
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
     
     # Ensure the metadata path is valid/exists, else ignore the call. 
     if os.path.exists(metadata_filepath):
       # Load the file.  The loaded object should conform to
       # 'tuf.formats.SIGNABLE_SCHEMA'.
-      metadata_signable = tuf.util.load_json_file(metadata_filepath)
+      metadata_signable = tuf.util.load_file(metadata_filepath)
 
       tuf.formats.check_signable_object_format(metadata_signable)
 
@@ -1544,15 +1549,15 @@ class SingleRepoUpdater(object):
     metadata = metadata_file_object.read().decode('utf-8')
     
     try:
-      metadata_signable = tuf.util.load_json_string(metadata)
-    
+      metadata_signable = tuf.util.load_string(metadata) # TODO: <~> VERIFY THIS.
+
     except Exception as exception:
       raise tuf.InvalidMetadataJSONError(exception)
     
     else:
       # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
       # 'tuf.FormatError' if not.
-      tuf.formats.check_signable_object_format(metadata_signable)
+      tuf.formats.check_signable_object_format(metadata_signable) # TODO: <~> This needs some way of knowing that it has a piece of BER-signed data so that it can re-encode 'signed' as BER before checking it.
 
     # Is 'metadata_signable' expired?
     self._ensure_not_expired(metadata_signable['signed'], metadata_role)
@@ -1720,8 +1725,8 @@ class SingleRepoUpdater(object):
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
         metadata_signable = \
-          tuf.util.load_json_string(file_object.read().decode('utf-8'))
-       
+          tuf.util.load_string(file_object.read().decode('utf-8'))
+
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number for
         # 'metadata_role'.
@@ -2010,8 +2015,9 @@ class SingleRepoUpdater(object):
       None.
     """
 
-    # Construct the metadata filename as expected by the download/mirror modules.
-    metadata_filename = metadata_role + '.json'
+    metadata_filename = metadata_role + METADATA_EXTENSION
+
+
     uncompressed_metadata_filename = metadata_filename
    
     # The 'snapshot' or Targets metadata may be compressed.  Add the appropriate
@@ -2074,7 +2080,7 @@ class SingleRepoUpdater(object):
     # Note that the 'move' method comes from tuf.util's TempFile class.
     # 'metadata_file_object' is an instance of tuf.util.TempFile.
     metadata_signable = \
-      tuf.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+      tuf.util.load_string(metadata_file_object.read().decode('utf-8'))
     if compression_algorithm == 'gzip':
       current_uncompressed_filepath = \
         os.path.join(self.metadata_directory['current'],
@@ -2165,7 +2171,7 @@ class SingleRepoUpdater(object):
       """
 
       # Construct the metadata filename as expected by the download/mirror modules.
-      metadata_filename = metadata_role + '.json'
+      metadata_filename = metadata_role + METADATA_EXTENSION
       uncompressed_metadata_filename = metadata_filename
      
       # The 'snapshot' or Targets metadata may be compressed.  Add the appropriate
@@ -2243,7 +2249,7 @@ class SingleRepoUpdater(object):
       # Next, move the verified updated metadata file to the 'current' directory.
       # Note that the 'move' method comes from tuf.util's TempFile class.
       # 'metadata_file_object' is an instance of tuf.util.TempFile.
-      metadata_signable = tuf.util.load_json_string(metadata_file_object.read().decode('utf-8'))
+      metadata_signable = tuf.util.load_string(metadata_file_object.read().decode('utf-8'))
       if compression == 'gzip':
         current_uncompressed_filepath = \
           os.path.join(self.metadata_directory['current'],
@@ -2339,7 +2345,7 @@ class SingleRepoUpdater(object):
       None.
     """
         
-    uncompressed_metadata_filename = metadata_role + '.json'
+    uncompressed_metadata_filename = metadata_role + METADATA_EXTENSION
     expected_versioninfo = None
     expected_fileinfo = None
 
@@ -2577,7 +2583,7 @@ class SingleRepoUpdater(object):
    
     # Extract the version information from the trusted snapshot role and save
     # it to the 'self.versioninfo' store.
-    if metadata_filename == 'timestamp.json':
+    if metadata_filename == 'timestamp' + METADATA_EXTENSION: # Clumsy
       trusted_versioninfo = \
         self.metadata['current']['timestamp']['version']
 
@@ -2586,8 +2592,8 @@ class SingleRepoUpdater(object):
     # downloading timestamp.json.  Note: Clients are allowed to have only
     # root.json initially, and perform a refresh of top-level metadata to
     # obtain the remaining roles.
-    elif metadata_filename == 'snapshot.json':
-      
+    elif metadata_filename == 'snapshot' + METADATA_EXTENSION: # Clumsy
+
       # Verify the version number of the currently trusted snapshot.json in
       # snapshot.json itself.  Checking the version number specified in
       # timestamp.json may be greater than the version specified in the
@@ -2597,9 +2603,9 @@ class SingleRepoUpdater(object):
         trusted_versioninfo = tuf.formats.make_versioninfo(timestamp_version_number)
       
       except KeyError:
-        trusted_versioninfo = \
-          self.metadata['current']['timestamp']['meta']['snapshot.json']
-      
+        trusted_versioninfo = self.metadata[
+            'current']['timestamp']['meta']['snapshot' + METADATA_EXTENSION] # Clumsy.
+
     else:
       
       try:
@@ -2607,7 +2613,7 @@ class SingleRepoUpdater(object):
         # extension.  Strip the '.json' extension when checking if
         # 'metadata_filename' currently exists.
         targets_version_number = \
-          self.metadata['current'][metadata_filename[:-len('.json')]]['version']
+          self.metadata['current'][metadata_filename[:-len(METADATA_EXTENSION)]]['version']
         trusted_versioninfo = \
           tuf.formats.make_versioninfo(targets_version_number)
       
@@ -2765,7 +2771,7 @@ class SingleRepoUpdater(object):
     """
 
     # Get the 'current' and 'previous' full file paths for 'metadata_role'
-    metadata_filepath = metadata_role + '.json'
+    metadata_filepath = metadata_role + METADATA_EXTENSION
     previous_filepath = os.path.join(self.metadata_directory['previous'],
                                      metadata_filepath)
     current_filepath = os.path.join(self.metadata_directory['current'],
@@ -2972,7 +2978,7 @@ class SingleRepoUpdater(object):
 
     roles_to_update = []
    
-    if rolename + '.json' in self.metadata['current']['snapshot']['meta']:
+    if rolename + METADATA_EXTENSION in self.metadata['current']['snapshot']['meta']:
       roles_to_update.append(rolename)
     
     if refresh_all_delegated_roles:
@@ -2982,8 +2988,8 @@ class SingleRepoUpdater(object):
         # roles (e.g., django.json, unclaimed.json).
         # Remove the 'targets' role because it gets updated when the targets.json
         # file is updated in _update_metadata_if_changed('targets') and root.
-        if role.endswith('.json'):
-          role = role[:-len('.json')] 
+        if role.endswith(METADATA_EXTENSION):
+          role = role[:-len(METADATA_EXTENSION)]
           if role not in ['root', 'targets', rolename]:
             roles_to_update.append(role)
         
