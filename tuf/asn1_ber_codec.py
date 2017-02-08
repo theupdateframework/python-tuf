@@ -18,6 +18,7 @@ try:
   import pyasn1.codec.ber.encoder as p_ber_encoder
   import pyasn1.codec.ber.decoder as p_ber_decoder
   import pyasn1.type.tag as p_type_tag
+  import pyasn1.type.univ as p_type_univ
 
   # ASN.1 data specification modules that convert ASN.1 to JSON and back.
   import tuf.encoding.rootmetadata as root_asn1_spec
@@ -289,11 +290,35 @@ def convert_signed_metadata_to_ber(
 
     # Construct an ASN.1 representation of the signature and populate it.
     asn_sig = metadata_asn1_spec.Signature()
-    asn_sig['keyid'] = pydict_sig['keyid']
-    # Because 'method' is an enum, extacting the string value is a bit messier.
+
+    # This hideous stuff constructs a Keyid() object and assigns it the
+    # value from pydict_sig['keyid'] through pyasn1. I'm sure that some
+    # methods added to the class could ameliorate this.
+    # asn_sig['keyid'] = pydict_sig['keyid'] # <- used to just be this
+    asn_sig['keyid'] = metadata_asn1_spec.Keyid().subtype(
+        explicitTag=p_type_tag.Tag(p_type_tag.tagClassContext,
+        p_type_tag.tagFormatConstructed, 0))
+    asn_sig['keyid']['octetString'] = p_type_univ.OctetString(
+        hexValue=pydict_sig['keyid']).subtype(implicitTag=p_type_tag.Tag(
+        p_type_tag.tagClassContext, p_type_tag.tagFormatSimple, 1))
+
+
+    # Because 'method' is an enum, extracting the string value is a bit messy.
     asn_sig['method'] = int(metadata_asn1_spec.SignatureMethod(
         pydict_sig['method'].encode('ascii')))
-    asn_sig['value'] = pydict_sig['sig']
+
+    # This hideous stuff constructs a BinaryData() object to hold the actual
+    # signature itself, and assigns it the value from pydict_sig['sig'] through
+    # pyasn1. I'm sure that some methods added to the class could ameliorate
+    # this.
+    #asn_sig['value'] = pydict_sig['sig'] # <- used to just be this
+    asn_sig['value'] = metadata_asn1_spec.BinaryData().subtype(
+        explicitTag=p_type_tag.Tag(p_type_tag.tagClassContext,
+        p_type_tag.tagFormatConstructed, 3))
+    asn_sig['value']['octetString'] = p_type_univ.OctetString(
+        hexValue=pydict_sig['sig']).subtype(implicitTag=p_type_tag.Tag(
+        p_type_tag.tagClassContext, p_type_tag.tagFormatSimple, 1))
+
 
     # Add to the Signatures() list.
     asn_signatures_list[i] = asn_sig # has no append method
