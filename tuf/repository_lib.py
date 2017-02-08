@@ -1983,7 +1983,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
 
 
 def write_metadata_file(metadata, filename, version_number,
-                        compression_algorithms, consistent_snapshot):
+    compression_algorithms, consistent_snapshot):
   """
   <Purpose>
     If necessary, write the 'metadata' signable object to 'filename', and the

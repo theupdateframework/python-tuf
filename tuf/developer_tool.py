@@ -178,8 +178,13 @@ class Project(Targets):
       (e.g., targets/foo -> targets/prefix/foo) so that it matches the actual
       targets location in the upstream repository.
 
+    repository_name:
+      The name of the repository.  If not supplied, 'rolename' is added to the
+      'default' repository.
+
   <Exceptions>
-    securesystemslib.exceptions.FormatError, if the arguments are improperly formatted.
+    securesystemslib.exceptions.FormatError, if the arguments are improperly
+    formatted.
 
   <Side Effects>
     Creates a project Targets role object, with the same object attributes of
@@ -190,21 +195,24 @@ class Project(Targets):
   """
 
   def __init__(self, project_name, metadata_directory, targets_directory,
-      file_prefix):
+      file_prefix, repository_name='default'):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.
-    # Raise 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
+    # types, and that all dict keys are properly named.  Raise
+    # 'securesystemslib.exceptions.FormatError' if any are improperly
+    # formatted.
     securesystemslib.formats.NAME_SCHEMA.check_match(project_name)
     securesystemslib.formats.PATH_SCHEMA.check_match(metadata_directory)
     securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
     securesystemslib.formats.PATH_SCHEMA.check_match(file_prefix)
+    securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
     self._metadata_directory = metadata_directory
     self._targets_directory = targets_directory
     self._project_name = project_name
     self._prefix = file_prefix
+    self._repository_name = repository_name
 
     # Layout type defaults to "flat" unless explicitly specified in
     # create_new_project().
@@ -235,8 +243,8 @@ class Project(Targets):
         signatures.
 
     <Exceptions>
-      securesystemslib.exceptions.Error, if any of the project roles do not have a minimum threshold of
-      signatures.
+      securesystemslib.exceptions.Error, if any of the project roles do not
+      have a minimum threshold of signatures.
 
     <Side Effects>
       Creates metadata files in the project's metadata directory.
@@ -256,13 +264,13 @@ class Project(Targets):
     # any of the project roles are missing signatures, keys, etc.
 
     # Write the metadata files of all the delegated roles of the project.
-    delegated_rolenames = \
-      tuf.roledb.get_delegated_rolenames(self._project_name)
+    delegated_rolenames = tuf.roledb.get_delegated_rolenames(self._project_name,
+        self._repository_name)
 
     for delegated_rolename in delegated_rolenames:
-      roleinfo = tuf.roledb.get_roleinfo(delegated_rolename)
+      roleinfo = tuf.roledb.get_roleinfo(delegated_rolename, self._repository_name)
       delegated_filename = os.path.join(self._metadata_directory,
-                                        delegated_rolename + METADATA_EXTENSION)
+          delegated_rolename + METADATA_EXTENSION)
 
       # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
       # IO exception is raised if 'metadata_filepath' is written to a
@@ -270,25 +278,23 @@ class Project(Targets):
       securesystemslib.util.ensure_parent_dir(delegated_filename)
 
       _generate_and_write_metadata(delegated_rolename, delegated_filename,
-                                   write_partial, self._targets_directory,
-                                   self._metadata_directory,
-                                   prefix=self._prefix)
+          write_partial, self._targets_directory, self._metadata_directory,
+          prefix=self._prefix, repository_name=self._repository_name)
 
 
     # Generate the 'project_name' metadata file.
     targets_filename = self._project_name + METADATA_EXTENSION
     targets_filename = os.path.join(self._metadata_directory, targets_filename)
-    project_signable, targets_filename = \
-      _generate_and_write_metadata(self._project_name, targets_filename,
-                                   write_partial, self._targets_directory,
-                                   self._metadata_directory, prefix=self._prefix)
+    project_signable, targets_filename = _generate_and_write_metadata(self._project_name,
+        targets_filename, write_partial, self._targets_directory,
+        self._metadata_directory, prefix=self._prefix,
+        repository_name=self._repository_name)
 
     # Save configuration information that is not stored in the project's
     # metadata
     _save_project_configuration(self._metadata_directory,
-                                self._targets_directory, self.keys, self._prefix,
-                                self.threshold, self.layout_type,
-                                self._project_name)
+        self._targets_directory, self.keys, self._prefix, self.threshold,
+        self.layout_type, self._project_name)
 
 
 
@@ -302,12 +308,14 @@ class Project(Targets):
 
       <Arguments>
         key:
-          The role key to be added, conformant to 'securesystemslib.formats.ANYKEY_SCHEMA'.
-          Adding a public key to a role means that its corresponding private
-          key must generate and add its signture to the role.
+          The role key to be added, conformant to
+          'securesystemslib.formats.ANYKEY_SCHEMA'.  Adding a public key to a
+          role means that its corresponding private key must generate and add
+          its signture to the role.
 
       <Exceptions>
-        securesystemslib.exceptions.FormatError, if the 'key' argument is improperly formatted.
+        securesystemslib.exceptions.FormatError, if the 'key' argument is
+        improperly formatted.
 
         securesystemslib.exceptions.Error, if the project already contains a key.
 
@@ -350,8 +358,8 @@ class Project(Targets):
       None.
 
     <Exceptions>
-      securesystemslib.exceptions.Error, if the project, or any of its delegated roles, do not have a
-      minimum threshold of signatures.
+      securesystemslib.exceptions.Error, if the project, or any of its
+      delegated roles, do not have a minimum threshold of signatures.
 
     <Side Effects>
       Generates and writes temporary metadata files.
@@ -376,26 +384,25 @@ class Project(Targets):
       filenames['targets'] = os.path.join(metadata_directory, self._project_name)
 
       # Delegated roles.
-      delegated_roles = tuf.roledb.get_delegated_rolenames(self._project_name)
+      delegated_roles = tuf.roledb.get_delegated_rolenames(self._project_name,
+          self._repository_name)
       insufficient_keys = []
       insufficient_signatures = []
 
       for delegated_role in delegated_roles:
         try:
-          _check_role_keys(delegated_role)
+          _check_role_keys(delegated_role, self._repository_name)
 
         except securesystemslib.exceptions.InsufficientKeysError:
           insufficient_keys.append(delegated_role)
           continue
 
-        roleinfo = tuf.roledb.get_roleinfo(delegated_role)
+        roleinfo = tuf.roledb.get_roleinfo(delegated_role, self._repository_name)
         try:
           signable =  _generate_and_write_metadata(delegated_role,
-                                                filenames['targets'], False,
-                                                targets_directory,
-                                                metadata_directory,
-                                                False)
-          self._log_status(delegated_role, signable[0])
+              filenames['targets'], False, targets_directory, metadata_directory,
+              False, repository_name=self._repository_name)
+          self._log_status(delegated_role, signable[0], self._repository_name)
 
         except securesystemslib.exceptions.Error:
           insufficient_signatures.append(delegated_role)
@@ -414,7 +421,7 @@ class Project(Targets):
 
       # Targets role.
       try:
-        _check_role_keys(self.rolename)
+        _check_role_keys(self.rolename, self._repository_name)
 
       except securesystemslib.exceptions.InsufficientKeysError as e:
         logger.info(str(e))
@@ -422,15 +429,13 @@ class Project(Targets):
 
       try:
         signable, filename =  _generate_and_write_metadata(self._project_name,
-                                                filenames['targets'], False,
-                                                targets_directory,
-                                                metadata_directory,
-                                                False)
-        self._log_status(self._project_name, signable)
+            filenames['targets'], False, targets_directory, metadata_directory,
+            False, self._repository_name)
+        self._log_status(self._project_name, signable, self._repository_name)
 
       except securesystemslib.exceptions.Error as e:
         signable = e[1]
-        self._log_status(self._project_name, signable)
+        self._log_status(self._project_name, signable, repository_name)
         return
 
     finally:
@@ -440,13 +445,13 @@ class Project(Targets):
 
 
 
-  def _log_status(self, rolename, signable):
+  def _log_status(self, rolename, signable, repository_name):
     """
     Non-public function prints the number of (good/threshold) signatures of
     'rolename'.
     """
 
-    status = tuf.sig.get_signature_status(signable, rolename)
+    status = tuf.sig.get_signature_status(signable, rolename, repository_name)
 
     message = repr(rolename) + ' role contains ' +\
       repr(len(status['good_sigs'])) + ' / ' + repr(status['threshold']) +\
@@ -458,9 +463,8 @@ class Project(Targets):
 
 
 def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
-                                 targets_directory, metadata_directory,
-                                 filenames=None,
-                                 prefix=''):
+    targets_directory, metadata_directory, filenames=None, prefix='',
+    repository_name='default'):
   """
     Non-public function that can generate and write the metadata of the
     specified 'rolename'.  It also increments version numbers if:
@@ -475,14 +479,11 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
-  roleinfo = tuf.roledb.get_roleinfo(rolename)
+  roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
 
-  metadata = generate_targets_metadata(targets_directory,
-                                       roleinfo['paths'],
-                                       roleinfo['version'],
-                                       roleinfo['expires'],
-                                       roleinfo['delegations'],
-                                       False)
+  metadata = generate_targets_metadata(targets_directory, roleinfo['paths'],
+      roleinfo['version'], roleinfo['expires'], roleinfo['delegations'],
+      False)
 
   # Prepend the prefix to the project's filepath to avoid signature errors in
   # upstream.
@@ -495,37 +496,38 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
       del(metadata['targets'][element])
 
   signable = sign_metadata(metadata, roleinfo['signing_keyids'],
-                           metadata_filename)
+      metadata_filename, repository_name)
 
   # Check if the version number of 'rolename' may be automatically incremented,
   # depending on whether if partial metadata is loaded or if the metadata is
   # written with write() / write_partial().
   # Increment the version number if this is the first partial write.
   if write_partial:
-    temp_signable = sign_metadata(metadata, [], metadata_filename)
+    temp_signable = sign_metadata(metadata, [], metadata_filename,
+        repository_name)
     temp_signable['signatures'].extend(roleinfo['signatures'])
-    status = tuf.sig.get_signature_status(temp_signable, rolename)
+    status = tuf.sig.get_signature_status(temp_signable, rolename,
+        repository_name)
     if len(status['good_sigs']) == 0:
       metadata['version'] = metadata['version'] + 1
       signable = sign_metadata(metadata, roleinfo['signing_keyids'],
-                               metadata_filename)
+          metadata_filename, repository_name)
 
   # non-partial write()
   else:
-    if tuf.sig.verify(signable, rolename): #and not roleinfo['partial_loaded']:
+    if tuf.sig.verify(signable, rolename, repository_name):
       metadata['version'] = metadata['version'] + 1
       signable = sign_metadata(metadata, roleinfo['signing_keyids'],
-                               metadata_filename)
+          metadata_filename, repository_name)
 
   # Write the metadata to file if contains a threshold of signatures.
   signable['signatures'].extend(roleinfo['signatures'])
 
-  if tuf.sig.verify(signable, rolename) or write_partial:
-    _remove_invalid_and_duplicate_signatures(signable)
+  if tuf.sig.verify(signable, rolename, repository_name) or write_partial:
+    _remove_invalid_and_duplicate_signatures(signable, repository_name)
     compressions = roleinfo['compressions']
     filename = write_metadata_file(signable, metadata_filename,
-                                   metadata['version'], compressions,
-                                   False)
+        metadata['version'], compressions, False)
 
   # 'signable' contains an invalid threshold of signatures.
   else:
@@ -538,8 +540,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
 
 def create_new_project(project_name, metadata_directory,
-                       location_in_repository = '', targets_directory=None,
-                       key=None):
+    location_in_repository = '', targets_directory=None, key=None,
+    repository_name='default'):
   """
   <Purpose>
     Create a new project object, instantiate barebones metadata for the
@@ -579,9 +581,13 @@ def create_new_project(project_name, metadata_directory,
       handle one key with a threshold of one. If a project were to modify it's
       key it should be removed and updated.
 
+    repository_name:
+      The name of the repository.  If not supplied, 'rolename' is added to the
+      'default' repository.
+
   <Exceptions>
-    securesystemslib.exceptions.FormatError, if the arguments are improperly formatted or if the public
-      key is not a valid one (if it's not none.)
+    securesystemslib.exceptions.FormatError, if the arguments are improperly
+    formatted or if the public key is not a valid one (if it's not none.)
 
     OSError, if the filepaths provided do not have write permissions.
 
@@ -603,6 +609,7 @@ def create_new_project(project_name, metadata_directory,
   # ensure they are valid pathnames.
   securesystemslib.formats.NAME_SCHEMA.check_match(project_name)
   securesystemslib.formats.PATH_SCHEMA.check_match(location_in_repository)
+  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # for the targets directory we do the same, but first, let's find out what
   # layout the user needs, layout_type is a variable that is usually set to
@@ -661,7 +668,7 @@ def create_new_project(project_name, metadata_directory,
   # Create the bare bones project object, where project role contains default
   # values (e.g., threshold of 1, expires 1 year into the future, etc.)
   project = Project(project_name, metadata_directory, targets_directory,
-      location_in_repository)
+      location_in_repository, repository_name)
 
   # Add 'key' to the project.
   # TODO: Add check for expected number of keys for the project (must be 1) and
@@ -680,8 +687,7 @@ def create_new_project(project_name, metadata_directory,
 
 
 def _save_project_configuration(metadata_directory, targets_directory,
-                                public_keys, prefix, threshold, layout_type,
-                                project_name):
+    public_keys, prefix, threshold, layout_type, project_name):
   """
   <Purpose>
     Persist the project's information to a file. The saved project information
@@ -769,7 +775,8 @@ def _save_project_configuration(metadata_directory, targets_directory,
 
 
 
-def load_project(project_directory, prefix='', new_targets_location=None):
+def load_project(project_directory, prefix='', new_targets_location=None,
+    repository_name='default'):
   """
   <Purpose>
     Return a Project object initialized with the contents of the metadata
@@ -788,9 +795,13 @@ def load_project(project_directory, prefix='', new_targets_location=None):
       project with a new location for the target files. This overwrites the
       previous path to search for the target files.
 
+    repository_name:
+      The name of the repository.  If not supplied, 'rolename' is added to the
+      'default' repository.
+
   <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'project_directory' or any of the metadata files
-    are improperly formatted.
+    securesystemslib.exceptions.FormatError, if 'project_directory' or any of
+    the metadata files are improperly formatted.
 
   <Side Effects>
     All the metadata files found in the project are loaded and their contents
@@ -803,13 +814,14 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   # Does 'repository_directory' have the correct format?
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.PATH_SCHEMA.check_match(project_directory)
+  securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # Do the same for the prefix
   securesystemslib.formats.PATH_SCHEMA.check_match(prefix)
 
   # Clear the role and key databases since we are loading in a new project.
-  tuf.roledb.clear_roledb()
-  tuf.keydb.clear_keydb()
+  tuf.roledb.clear_roledb(clear_all=True)
+  tuf.keydb.clear_keydb(clear_all=True)
 
   # Locate metadata filepaths and targets filepath.
   project_directory = os.path.abspath(project_directory)
@@ -849,7 +861,8 @@ def load_project(project_directory, prefix='', new_targets_location=None):
   project_filename = project_name + METADATA_EXTENSION
 
   # Create a blank project on the target directory.
-  project = Project(project_name, metadata_directory, targets_directory, prefix)
+  project = Project(project_name, metadata_directory, targets_directory, prefix,
+      repository_name)
 
   project.threshold = project_configuration['threshold']
   project._prefix = project_configuration['prefix']
@@ -876,7 +889,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
     project.add_signature(signature)
 
   # Update roledb.py containing the loaded project attributes.
-  roleinfo = tuf.roledb.get_roleinfo(project_name)
+  roleinfo = tuf.roledb.get_roleinfo(project_name, repository_name)
   roleinfo['signatures'].extend(signable['signatures'])
   roleinfo['version'] = targets_metadata['version']
   roleinfo['paths'] = targets_metadata['targets']
@@ -885,15 +898,16 @@ def load_project(project_directory, prefix='', new_targets_location=None):
 
   # Check if the loaded metadata was partially written and update the
   # flag in 'roledb.py'.
-  if _metadata_is_partially_loaded(project_name, signable, roleinfo):
+  if _metadata_is_partially_loaded(project_name, signable, roleinfo,
+      repository_name=repository_name):
     roleinfo['partial_loaded'] = True
 
-  tuf.roledb.update_roleinfo(project_name, roleinfo, mark_role_as_dirty=False)
-
+  tuf.roledb.update_roleinfo(project_name, roleinfo, mark_role_as_dirty=False,
+      repository_name=repository_name)
 
   for key_metadata in targets_metadata['delegations']['keys'].values():
     key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
-    tuf.keydb.add_key(key_object)
+    tuf.keydb.add_key(key_object, repository_name=repository_name)
 
   for role in targets_metadata['delegations']['roles']:
     rolename = role['name']
@@ -902,7 +916,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
                 'signing_keyids': [], 'signatures': [], 'partial_loaded':False,
                 'delegations': {'keys':{}, 'roles':[]}
                 }
-    tuf.roledb.add_role(rolename, roleinfo)
+    tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
 
   # Load the delegated metadata and generate their fileinfo.
   targets_objects = {}
@@ -942,7 +956,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
       metadata_object = _strip_prefix_from_targets_metadata(metadata_object,
                                            prefix)
 
-      roleinfo = tuf.roledb.get_roleinfo(metadata_name)
+      roleinfo = tuf.roledb.get_roleinfo(metadata_name, repository_name)
       roleinfo['signatures'].extend(signable['signatures'])
       roleinfo['version'] = metadata_object['version']
       roleinfo['expires'] = metadata_object['expires']
@@ -957,17 +971,20 @@ def load_project(project_directory, prefix='', new_targets_location=None):
         roleinfo['compressions'].append('gz')
 
       # If the metadata was partially loaded, update the roleinfo flag.
-      if _metadata_is_partially_loaded(metadata_name, signable, roleinfo):
+      if _metadata_is_partially_loaded(metadata_name, signable, roleinfo,
+          repository_name=repository_name):
         roleinfo['partial_loaded'] = True
 
 
-      tuf.roledb.update_roleinfo(metadata_name, roleinfo, mark_role_as_dirty=False)
+      tuf.roledb.update_roleinfo(metadata_name, roleinfo,
+          mark_role_as_dirty=False, repository_name=repository_name)
 
       # Append to list of elements to avoid reloading repeated metadata.
       loaded_metadata.append(metadata_name)
 
       # Generate the Targets objects of the delegated roles.
-      new_targets_object = Targets(targets_directory, metadata_name, roleinfo)
+      new_targets_object = Targets(targets_directory, metadata_name, roleinfo,
+          repository_name=repository_name)
       targets_object = targets_objects[project_name]
 
       targets_object._delegated_roles[metadata_name] = new_targets_object
@@ -977,7 +994,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
         key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
 
         try:
-          tuf.keydb.add_key(key_object)
+          tuf.keydb.add_key(key_object, repository_name=repository_name)
 
         except securesystemslib.exceptions.KeyAlreadyExistsError:
           pass
@@ -991,7 +1008,7 @@ def load_project(project_directory, prefix='', new_targets_location=None):
                     'partial_loaded': False,
                     'delegations': {'keys': {},
                                     'roles': []}}
-        tuf.roledb.add_role(rolename, roleinfo)
+        tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
 
   if new_prefix:
     project._prefix = new_prefix
