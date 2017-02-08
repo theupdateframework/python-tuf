@@ -74,7 +74,7 @@ class Positive(univ.Integer):
 Positive.subtypeSpec = constraint.ValueRangeConstraint(1, MAX)
 
 
-class Length(Positive):
+class Length(Natural):
     pass
 
 
@@ -272,7 +272,7 @@ class Signature(univ.Sequence):
 Signature.componentType = namedtype.NamedTypes(
     namedtype.NamedType('keyid', Keyid().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 0))),
     namedtype.NamedType('method', SignatureMethod().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))),
-    namedtype.NamedType('hash', Hash().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))),
+    #namedtype.NamedType('hash', Hash().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2))),
     namedtype.NamedType('value', BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3)))
 )
 
@@ -301,7 +301,12 @@ class UTCDateTime(Positive):
     pass
 
 
-class Version(Positive):
+# The next class, 'Version', should ideally inherit from class Positive instead
+# of Natural; however there is a point during the initial write of metadata
+# during which the version may be 0 and signature checks may occur, in which
+# case conversions must succeed - so we allow 0 for version, but do not expect
+# a version 0 to be final / written to disk / transmitted.
+class Version(Natural): # Should be positive, but TUF has a certain point during an initial write during which the version is 0 and signature checks may still occur, in which case conversions must succeed.
     pass
 
 
@@ -514,7 +519,12 @@ class Signed(univ.Sequence):
 Signed.componentType = namedtype.NamedTypes(
     namedtype.NamedType('type', RoleType().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0))),
     namedtype.NamedType('expires', UTCDateTime().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))),
-    namedtype.NamedType('version', Positive().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))),
+    # The next field, 'version', should ideally use Positive() instead of
+    # Natural(); however there is a point during the initial write of metadata
+    # during which the version may be 0 and signature checks may occur, in
+    # which case conversions must succeed - so we allow 0 for version, but
+    # do not expect a version 0 to be final / written to disk / transmitted.
+    namedtype.NamedType('version', Natural().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))),
     namedtype.NamedType('body', SignedBody().subtype(explicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 3)))
 )
 
