@@ -145,6 +145,8 @@ def get_signature_status(signable, role=None, repository_name='default',
   unknown_sigs = []
   untrusted_sigs = []
   unknown_method_sigs = []
+  # List all the methods we use now
+  known_methods = ['RSASSA-PSS', 'ed25519', 'ecdsa-sha2-nistp256']
 
   # Extract the relevant fields from 'signable' that will allow us to identify
   # the different classes of keys (i.e., good_sigs, bad_sigs, etc.).
@@ -166,8 +168,33 @@ def get_signature_status(signable, role=None, repository_name='default',
       unknown_sigs.append(keyid)
       continue
 
+    # Is the method a known signing method?
+    try:
+      if method not in known_methods:
+        raise securesystemslib.exceptions.UnknownMethodError('Unknown Signing Method Detected')
+
+    except securesystemslib.exceptions.UnknownMethodError:
+      unknown_method_sigs.append(keyid)
+      continue
+
     # Does the signature use an unknown key signing method?
     try:
+      # TODO: How about directly detect whether the method has been changed or not?
+      # If changed, raise an error: cause there should be a forge happened to the signature
+      # if key['keytype'] == 'rsa':
+      #   if method != 'RSASSA-PSS' and in known_methods:
+      #     raise securesystemslib.exceptions.Error('Method could be forged!!') # Maybe a new Error type
+      # elif key['keytype'] == 'ed25519':
+      #   if method != 'ed25519' and in known_methods:
+      #     raise securesystemslib.exceptions.Error('Method could be forged!!')
+      # elif key['keytype'] == 'ecdsa-sha2-nistp256':
+      #   if method != 'ecdsa-sha2-nistp256' and in knwon_methods:
+      #     raise securesystemslib.exceptions.Error('Method could be forged!!')
+      # else:
+      #   raise securesystemslib.exceptions.UnknownKeyError
+
+      # Right now, I change the method to correct one regardless of it's correct or not.
+      signature['method'] = method_type_to_keytype(key['keytype'])
       valid_sig = securesystemslib.keys.verify_signature(key, signature, signed)
 
     except securesystemslib.exceptions.UnknownMethodError:
@@ -226,6 +253,22 @@ def get_signature_status(signable, role=None, repository_name='default',
   signature_status['unknown_method_sigs'] = unknown_method_sigs
 
   return signature_status
+
+
+
+
+
+# Make the method correspond to correct key type.
+def method_type_to_keytype(keytype):
+
+  if keytype == 'rsa':
+    return 'RSASSA-PSS'
+  elif keytype == 'ed25519':
+    return 'ed25519'
+  elif keytype == 'ecdsa-sha2-nistp256':
+    return 'ecdsa-sha2-nistp256'
+  else:
+    raise securesystemslib.exceptions.UnknownKeyError('Unknown Key Detected')
 
 
 
