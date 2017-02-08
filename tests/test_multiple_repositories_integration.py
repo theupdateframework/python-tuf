@@ -39,9 +39,11 @@ import shutil
 
 import tuf
 import tuf.log
+import tuf.roledb
 import tuf.client.updater as updater
 import tuf.settings
 import tuf.unittest_toolbox as unittest_toolbox
+import tuf.repository_tool as repo_tool
 
 # 'unittest2' required for testing under Python < 2.7.
 if sys.version_info >= (2, 7):
@@ -51,6 +53,7 @@ else:
   import unittest2 as unittest
 
 logger = logging.getLogger('test_multiple_repositories_integration')
+repo_tool.disable_console_log_messages()
 
 
 class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
@@ -130,7 +133,9 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
     self.repository_directory = os.path.join(temporary_repository_root,
-        'repository')
+        'repository_server1')
+    self.repository_directory2 = os.path.join(temporary_repository_root,
+        'repository_server2')
 
     # Setting 'tuf.settings.repositories_directory' with the temporary client
     # directory copied from the original repository files.
@@ -144,6 +149,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
     shutil.copytree(original_repository, self.repository_directory)
+    shutil.copytree(original_repository, self.repository_directory2)
     shutil.copytree(original_client, self.client_directory)
     shutil.copytree(original_client, self.client_directory2)
 
@@ -168,9 +174,9 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # Create the repository instances.  The test cases will use these client
     # updaters to refresh metadata, fetch target files, etc.
     self.repository_updater = updater.Updater(repository_name,
-                                              self.repository_mirrors)
+        self.repository_mirrors)
     self.repository_updater2 = updater.Updater(repository_name2,
-                                              self.repository_mirrors2)
+        self.repository_mirrors2)
 
 
   def tearDown(self):
@@ -193,7 +199,12 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
         sorted(tuf.roledb.get_rolenames('repository2')))
 
-    #self.repository_updater.refresh()
+    self.repository_updater.refresh()
+
+    self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
+        sorted(tuf.roledb.get_rolenames('repository1')))
+    self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
+        sorted(tuf.roledb.get_rolenames('repository2')))
 
     # 'role1.json' should be downloaded, because it provides info for the
     # requested 'file3.txt'.
@@ -201,6 +212,21 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
     self.assertEqual(sorted(['role2', 'role1', 'root', 'snapshot', 'targets', 'timestamp']),
         sorted(tuf.roledb.get_rolenames('repository1')))
+
+
+  def test_repository_tool(self):
+    repository_name1 = 'repository1'
+    repository_name2 = 'repository2'
+
+    self.assertEqual(repository_name1, str(self.repository_updater))
+    self.assertEqual(repository_name2, str(self.repository_updater2))
+
+    repository1 = repo_tool.load_repository(self.repository_directory, repository_name1)
+    repository2 = repo_tool.load_repository(self.repository_directory2, repository_name2)
+
+    repository2.timestamp.version = 2
+    self.assertEqual([], tuf.roledb.get_dirty_roles(repository_name1))
+    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name2))
 
 
 if __name__ == '__main__':
