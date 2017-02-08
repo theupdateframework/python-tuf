@@ -8,6 +8,10 @@
 import tuf
 import tuf.conf
 import tuf.formats
+import logging
+
+# See 'log.py' to learn how logging is handled in TUF.
+logger = logging.getLogger('tuf.asn1_ber_codec')
 
 try:
   # pyasn1 modules
@@ -126,7 +130,6 @@ def convert_signed_ber_to_bersigned_json(ber_data):
   json_signatures = []
 
   for asn_signature in asn_signatures:
-    import pdb; pdb.set_trace()
     json_signatures.append({
         'keyid': str(asn_signature['keyid']),
         # TODO: <~> See if it's possible to tweak the definition of 'method' so that str(method) returns what we want rather here than the enum, so that we don't have to do make this weird enum translation call?
