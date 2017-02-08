@@ -927,7 +927,7 @@ def load_ber_string(data):
     Deserialized object.  For example, a dictionary.
   """
   try:
-    return asn1_ber_codec.convert_signed_ber_to_bersigned_json(ber_data)
+    return asn1_ber_codec.convert_signed_ber_to_bersigned_json(data)
   except Exception as e:
     raise tuf.Error('An exception was encountered in an attempt to convert '
         'the given data from BER to a Python dictionary containing role '
