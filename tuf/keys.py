@@ -736,17 +736,18 @@ def create_signature(key_dict, data):
   # generated across different platforms and Python key dictionaries.  The
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
-  data = tuf.formats.encode_canonical(data)
+  if tuf.conf.METADATA_FORMAT == 'json': # TODO: Consider canonical needs for BER.
+    data = tuf.formats.encode_canonical(data).encode('utf-8')
 
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
   if keytype == 'rsa':
     if _RSA_CRYPTO_LIBRARY == 'pycrypto':
-      sig, method = tuf.pycrypto_keys.create_rsa_signature(private, data.encode('utf-8'))
-   
+      sig, method = tuf.pycrypto_keys.create_rsa_signature(private, data)
+
     elif _RSA_CRYPTO_LIBRARY == 'pyca-cryptography':
-      sig, method = tuf.pyca_crypto_keys.create_rsa_signature(private, data.encode('utf-8'))
-    
+      sig, method = tuf.pyca_crypto_keys.create_rsa_signature(private, data)
+
     else: # pragma: no cover
       raise tuf.UnsupportedLibraryError('Unsupported'
         ' "tuf.conf.RSA_CRYPTO_LIBRARY": ' + repr(_RSA_CRYPTO_LIBRARY) + '.')
@@ -755,8 +756,8 @@ def create_signature(key_dict, data):
     public = binascii.unhexlify(public.encode('utf-8'))
     private = binascii.unhexlify(private.encode('utf-8'))
     if 'pynacl' in _available_crypto_libraries:
-      sig, method = tuf.ed25519_keys.create_signature(public, private, data.encode('utf-8'))
-    
+      sig, method = tuf.ed25519_keys.create_signature(public, private, data)
+
     else: # pragma: no cover
       raise tuf.UnsupportedLibraryError('The required PyNaCl library'
         ' is unavailable.')
@@ -867,8 +868,9 @@ def verify_signature(key_dict, signature, data):
   # generated across different platforms and Python key dictionaries.  The
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
-  data = tuf.formats.encode_canonical(data).encode('utf-8')
-  
+  if tuf.conf.METADATA_FORMAT == 'json': # TODO: Consider canonical needs for BER.
+    data = tuf.formats.encode_canonical(data).encode('utf-8')
+
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
   if keytype == 'rsa':
