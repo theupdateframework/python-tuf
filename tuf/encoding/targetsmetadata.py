@@ -75,7 +75,13 @@ def set_asn_keys(json_signed, delegations):
 
   for keyid, keymeta in json_signed['delegations']['keys'].items():
     key = PublicKey()
-    key['publicKeyid'] = keyid
+
+    key['publicKeyid'] = Keyid().subtype(explicitTag=tag.Tag(
+        tag.tagClassContext, tag.tagFormatConstructed, 0))
+    key['publicKeyid']['octetString'] = univ.OctetString(
+        hexValue=keyid).subtype(implicitTag=tag.Tag(tag.tagClassContext,
+        tag.tagFormatSimple, 1))
+
     key['publicKeyType'] = \
                           int(PublicKeyType(keymeta['keytype'].encode('ascii')))
     value = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext,
@@ -129,7 +135,12 @@ def set_asn_roles(json_signed, delegations):
     numberOfKeyids = 0
 
     for json_keyid in json_role['keyids']:
-      keyid = Keyid(json_keyid)
+
+      keyid = Keyid().subtype(explicitTag=tag.Tag(
+          tag.tagClassContext, tag.tagFormatConstructed, 0))
+      keyid['octetString'] = univ.OctetString(hexValue=json_keyid).subtype(
+          implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))
+
       # Some damned bug in pyasn1 I could not care less to fix right now.
       keyids.setComponentByPosition(numberOfKeyids, keyid, False)
       numberOfKeyids += 1
