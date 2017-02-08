@@ -420,7 +420,7 @@ def _remove_invalid_and_duplicate_signatures(signable, repository_name):
     # Remove 'signature' from 'signable' if the listed keyid does not exist
     # in 'tuf.keydb'.
     try:
-      key = tuf.keydb.get_key(keyid, repository_name)
+      key = tuf.keydb.get_key(keyid, repository_name=repository_name)
 
     except securesystemslib.exceptions.UnknownKeyError:
       signable['signatures'].remove(signature)
@@ -775,7 +775,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
       # repository maintainer should have also been made aware of the duplicate
       # key when it was added.
       try:
-        tuf.keydb.add_key(key_object)
+        tuf.keydb.add_key(key_object, repository_name=repository_name)
         for keyid in keyids: #pragma: no branch
           key_object['keyid'] = keyid
           tuf.keydb.add_key(key_object, keyid=None,
@@ -1530,7 +1530,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
     # Generate keys for the keyids listed by the role being processed.
     for keyid in tuf.roledb.get_role_keyids(rolename, repository_name):
-      key = tuf.keydb.get_key(keyid, repository_name)
+      key = tuf.keydb.get_key(keyid, repository_name=repository_name)
 
       # If 'key' is an RSA key, it would conform to
       # 'securesystemslib.formats.RSAKEY_SCHEMA', and have the form:
@@ -1953,7 +1953,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
   for keyid in keyids:
 
     # Load the signing key.
-    key = tuf.keydb.get_key(keyid, repository_name)
+    key = tuf.keydb.get_key(keyid, repository_name=repository_name)
     # Generate the signature using the appropriate signing method.
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
