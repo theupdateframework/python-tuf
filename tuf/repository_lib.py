@@ -394,6 +394,8 @@ def _remove_invalid_and_duplicate_signatures(
 
   for signature in signable['signatures']:
     signed = signable['signed']
+    if tuf.conf.METADATA_FORMAT == 'ber': # Encode as BER before signing.
+      signed = asn1_ber_codec.convert_signed_metadata_to_ber(signable, only_signed=True) # TODO: These three lines, from signed = through this one, should be moved out of the for loop, to just before. There's no need to do them repeatedly. Also, this line is now clumsy, taking in more than it needs and using a parameter to get back only what it wants.
     keyid = signature['keyid']
     key = None
 
@@ -1869,6 +1871,23 @@ def sign_metadata(metadata_object, keyids, filename,
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
         signed = signable['signed']
+        if tuf.conf.METADATA_FORMAT == 'ber':
+          # If we're using BER format, then we need to convert our current
+          # representation, a Python dictionary in TUF's customary format
+          # (per TUF's current specification) into ASN.1 and then encode it into
+          # BER. We have to do this before signing, as we want the signature to
+          # be over the finished BER encoding, which is what some clients may
+          # want to operate with (and check signatures on).
+          # TODO: The section of code here that deals with signed (two lines of
+          # code up) should be moved out of this for loop, as it does not change
+          # on each iteration (for each signature). There's no need to assign
+          # it to a temp multiple times, but it's even less ideal to convert
+          # it to BER multiple times.
+          # TODO: Also, this line is now clumsy, taking in more than it needs
+          # and using a parameter to only get back what it wants. Fix that,
+          # starting by splitting convert_signed_metadata_to_ber into multiple
+          # modular functions.
+          signed = asn1_ber_codec.convert_signed_metadata_to_ber(signable, only_signed=True)
         signature = tuf.keys.create_signature(key, signed)
         signable['signatures'].append(signature)
       
