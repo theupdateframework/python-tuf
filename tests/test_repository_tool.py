@@ -259,7 +259,8 @@ class TestRepository(unittest.TestCase):
     targets_roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
     old_threshold = targets_roleinfo['threshold']
     targets_roleinfo['threshold'] = 10
-    tuf.roledb.update_roleinfo('targets', targets_roleinfo, repository_name)
+    tuf.roledb.update_roleinfo('targets', targets_roleinfo,
+        repository_name=repository_name)
     repository.status()
 
     # Restore the original threshold values.
@@ -348,7 +349,7 @@ class TestRepository(unittest.TestCase):
     # Verify that a consistent snapshot can be written and loaded.  The
     # 'targets' and 'role1' roles must be marked as dirty, otherwise writeall()
     # will not create consistent snapshots for them.
-    repository.mark_dirty(['targets', 'role1'], repository_name)
+    repository.mark_dirty(['targets', 'role1'])
     repository.writeall(consistent_snapshot=True)
 
     # Verify that the newly written consistent snapshot can be loaded
@@ -359,9 +360,9 @@ class TestRepository(unittest.TestCase):
     # We begin by ensuring that writeall() cleared the list of dirty roles..
     self.assertEqual([], tuf.roledb.get_dirty_roles(repository_name))
 
-    repository.mark_dirty(['root', 'timestamp'], repository_name)
-    self.assertEqual(['root', 'timestamp'], sorted(tuf.roledb.get_dirty_roles()))
-    repository.unmark_dirty(['root'], repository_name)
+    repository.mark_dirty(['root', 'timestamp'])
+    self.assertEqual(['root', 'timestamp'], sorted(tuf.roledb.get_dirty_roles(repository_name)))
+    repository.unmark_dirty(['root'])
     self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name))
 
     # Ensure status() does not leave behind any dirty roles.

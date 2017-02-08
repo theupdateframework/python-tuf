@@ -234,10 +234,11 @@ class Repository(object):
 
     # Write the metadata files of all the Targets roles that are dirty (i.e.,
     # have been modified via roledb.update_roleinfo()).
-    filenames = {'root': os.path.join(self._metadata_directory, repo_lib.ROOT_FILENAME),
-                 'targets': os.path.join(self._metadata_directory, repo_lib.TARGETS_FILENAME),
-                 'snapshot': os.path.join(self._metadata_directory, repo_lib.SNAPSHOT_FILENAME),
-                 'timestamp': os.path.join(self._metadata_directory, repo_lib.TIMESTAMP_FILENAME)}
+    filenames = {'root': os.path.join(self._metadata_directory,
+        repo_lib.ROOT_FILENAME), 'targets': os.path.join(self._metadata_directory,
+        repo_lib.TARGETS_FILENAME), 'snapshot': os.path.join(self._metadata_directory,
+        repo_lib.SNAPSHOT_FILENAME), 'timestamp': os.path.join(self._metadata_directory,
+        repo_lib.TIMESTAMP_FILENAME)}
 
     snapshot_signable = None
     dirty_rolenames = tuf.roledb.get_dirty_roles(self._repository_name)
@@ -250,12 +251,9 @@ class Repository(object):
 
       dirty_filename = os.path.join(self._metadata_directory,
                                     dirty_rolename + METADATA_EXTENSION)
-      repo_lib._generate_and_write_metadata(dirty_rolename,
-                                            dirty_filename,
-                                            self._targets_directory,
-                                            self._metadata_directory,
-                                            consistent_snapshot,
-                                            filenames)
+      repo_lib._generate_and_write_metadata(dirty_rolename, dirty_filename,
+          self._targets_directory, self._metadata_directory,
+          consistent_snapshot, filenames, repository_name=self._repository_name)
 
     # Metadata should be written in (delegated targets -> root -> targets ->
     # snapshot -> timestamp) order.  Begin by generating the 'root.json'
@@ -264,32 +262,27 @@ class Repository(object):
     # written.
     if 'root' in dirty_rolenames or consistent_snapshot:
       repo_lib._generate_and_write_metadata('root', filenames['root'],
-                                            self._targets_directory,
-                                            self._metadata_directory,
-                                            consistent_snapshot,
-                                            filenames)
+          self._targets_directory, self._metadata_directory,
+          consistent_snapshot, filenames, repository_name=self._repository_name)
 
     # Generate the 'targets.json' metadata file.
     if 'targets' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('targets', filenames['targets'],
-                                            self._targets_directory,
-                                            self._metadata_directory,
-                                            consistent_snapshot)
+          self._targets_directory, self._metadata_directory,
+          consistent_snapshot, repository_name=self._repository_name)
 
     # Generate the 'snapshot.json' metadata file.
     if 'snapshot' in dirty_rolenames:
-      snapshot_signable, junk = \
-        repo_lib._generate_and_write_metadata('snapshot', filenames['snapshot'],
-                                              self._targets_directory,
-                                              self._metadata_directory,
-                                              consistent_snapshot, filenames)
+      snapshot_signable, junk = repo_lib._generate_and_write_metadata('snapshot',
+          filenames['snapshot'], self._targets_directory,
+          self._metadata_directory, consistent_snapshot, filenames,
+          repository_name=self._repository_name)
 
     # Generate the 'timestamp.json' metadata file.
     if 'timestamp' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
-                                            self._targets_directory,
-                                            self._metadata_directory,
-                                            consistent_snapshot, filenames)
+          self._targets_directory, self._metadata_directory, consistent_snapshot,
+          filenames, repository_name=self._repository_name)
 
     tuf.roledb.unmark_dirty(dirty_rolenames, self._repository_name)
 
@@ -299,8 +292,7 @@ class Repository(object):
     # load them.
     if snapshot_signable is not None:
       repo_lib._delete_obsolete_metadata(self._metadata_directory,
-                                         snapshot_signable['signed'],
-                                         consistent_snapshot)
+          snapshot_signable['signed'], consistent_snapshot, self._repository_name)
 
 
 
@@ -344,14 +336,11 @@ class Repository(object):
                  'snapshot': os.path.join(self._metadata_directory, repo_lib.SNAPSHOT_FILENAME),
                  'timestamp': os.path.join(self._metadata_directory, repo_lib.TIMESTAMP_FILENAME)}
 
-    repo_lib._generate_and_write_metadata(rolename,
-                                          rolename_filename,
-                                          self._targets_directory,
-                                          self._metadata_directory,
-                                          consistent_snapshot,
-                                          filenames=filenames,
-                                          allow_partially_signed=True,
-                                          increment_version_number=increment_version_number)
+    repo_lib._generate_and_write_metadata(rolename, rolename_filename,
+        self._targets_directory, self._metadata_directory, consistent_snapshot,
+        filenames=filenames, allow_partially_signed=True,
+        increment_version_number=increment_version_number,
+        repository_name=self._repository_name)
 
     # Ensure 'rolename' is no longer marked as dirty after the successful write().
     tuf.roledb.unmark_dirty([rolename], self._repository_name)
@@ -399,7 +388,7 @@ class Repository(object):
 
       # Verify the top-level roles and log the results.
       repo_lib._log_status_of_top_level_roles(targets_directory,
-                                              metadata_directory)
+          metadata_directory, self._repository_name)
 
     finally:
       shutil.rmtree(temp_repository_directory, ignore_errors=True)
@@ -3037,7 +3026,7 @@ def load_repository(repository_directory, repository_name='default'):
   # Load the metadata of the top-level roles (i.e., Root, Timestamp, Targets,
   # and Snapshot).
   repository, consistent_snapshot = repo_lib._load_top_level_metadata(repository,
-    filenames)
+    filenames, repository_name)
 
   # Load the delegated targets metadata and generate their fileinfo.  The
   # extracted fileinfo is stored in the 'meta' field of the snapshot metadata
