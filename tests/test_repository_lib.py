@@ -87,7 +87,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def setUp(self):
-    pass
+    tuf.roledb.create_roledb('test_repository')
+    tuf.keydb.create_keydb('test_repository')
 
 
   def tearDown(self):
@@ -629,6 +630,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test_generate_timestamp_metadata(self):
     # Test normal case.
+    repository_name = 'test_repository'
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     original_repository_path = os.path.join('repository_data',
                                             'repository')
@@ -648,23 +650,26 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Load a valid repository so that top-level roles exist in roledb and
     # generate_snapshot_metadata() has roles to specify in snapshot metadata.
     repository = repo_tool.Repository(repository_directory, metadata_directory,
-                                      targets_directory)
+        targets_directory, repository_name)
 
-    repository_junk = repo_tool.load_repository(repository_directory)
+    repository_junk = repo_tool.load_repository(repository_directory,
+        repository_name)
 
-    timestamp_metadata = \
-      repo_lib.generate_timestamp_metadata(snapshot_filename, version,
-                                           expiration_date)
+    timestamp_metadata = repo_lib.generate_timestamp_metadata(snapshot_filename,
+        version, expiration_date, repository_name)
     self.assertTrue(tuf.formats.TIMESTAMP_SCHEMA.matches(timestamp_metadata))
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_timestamp_metadata,
-                      3, version, expiration_date)
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_timestamp_metadata,
-                      snapshot_filename, '3', expiration_date)
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.generate_timestamp_metadata,
-                      snapshot_filename, version, '3')
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_lib.generate_timestamp_metadata, 3, version, expiration_date,
+        repository_name)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_lib.generate_timestamp_metadata, snapshot_filename, '3',
+        expiration_date, repository_name)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_lib.generate_timestamp_metadata, snapshot_filename, version, '3',
+        repository_name)
 
 
 
@@ -672,24 +677,23 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test_sign_metadata(self):
     # Test normal case.
+    repository_name = 'test_repository'
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-    metadata_path = os.path.join('repository_data',
-                                 'repository', 'metadata')
-    keystore_path = os.path.join('repository_data',
-                                 'keystore')
+    metadata_path = os.path.join('repository_data', 'repository', 'metadata')
+    keystore_path = os.path.join('repository_data', 'keystore')
     root_filename = os.path.join(metadata_path, 'root.json')
     root_metadata = securesystemslib.util.load_json_file(root_filename)['signed']
     targets_filename = os.path.join(metadata_path, 'targets.json')
     targets_metadata = securesystemslib.util.load_json_file(targets_filename)['signed']
 
-    tuf.keydb.create_keydb_from_root_metadata(root_metadata)
-    tuf.roledb.create_roledb_from_root_metadata(root_metadata)
-    root_keyids = tuf.roledb.get_role_keyids('root')
-    targets_keyids = tuf.roledb.get_role_keyids('targets')
+    tuf.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
+    tuf.roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
+    root_keyids = tuf.roledb.get_role_keyids('root', repository_name)
+    targets_keyids = tuf.roledb.get_role_keyids('targets', repository_name)
 
     root_private_keypath = os.path.join(keystore_path, 'root_key')
-    root_private_key = \
-      repo_lib.import_rsa_privatekey_from_file(root_private_keypath, 'password')
+    root_private_key = repo_lib.import_rsa_privatekey_from_file(root_private_keypath,
+        'password')
 
     # Sign with a valid, but not a threshold, key.
     targets_public_keypath = os.path.join(keystore_path, 'targets_key.pub')
@@ -700,41 +704,41 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # 'tuf.keydb'.  Remove any public keys that may be loaded before
     # adding private key, otherwise a 'tuf.KeyAlreadyExists' exception is
     # raised.
-    tuf.keydb.remove_key(root_private_key['keyid'])
-    tuf.keydb.add_key(root_private_key)
-    tuf.keydb.remove_key(targets_public_key['keyid'])
-    tuf.keydb.add_key(targets_public_key)
+    tuf.keydb.remove_key(root_private_key['keyid'],
+        repository_name=repository_name)
+    tuf.keydb.add_key(root_private_key, repository_name=repository_name)
+    tuf.keydb.remove_key(targets_public_key['keyid'], repository_name=repository_name)
+    tuf.keydb.add_key(targets_public_key, repository_name=repository_name)
 
     # Verify that a valid root signable is generated.
     root_signable = repo_lib.sign_metadata(root_metadata, root_keyids,
-                                           root_filename)
+        root_filename, repository_name)
     self.assertTrue(tuf.formats.SIGNABLE_SCHEMA.matches(root_signable))
 
     # Test for an unset private key (in this case, target's).
-    repo_lib.sign_metadata(targets_metadata, targets_keyids,
-                           targets_filename)
+    repo_lib.sign_metadata(targets_metadata, targets_keyids, targets_filename,
+        repository_name)
 
     # Add an invalid keytype to one of the root keys.
     root_keyid = root_keyids[0]
-    tuf.keydb._keydb_dict['default'][root_keyid]['keytype'] = 'bad_keytype'
-    self.assertRaises(securesystemslib.exceptions.Error, repo_lib.sign_metadata, root_metadata,
-                      root_keyids, root_filename)
+    tuf.keydb._keydb_dict[repository_name][root_keyid]['keytype'] = 'bad_keytype'
+    self.assertRaises(securesystemslib.exceptions.Error, repo_lib.sign_metadata,
+        root_metadata, root_keyids, root_filename, repository_name)
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.sign_metadata, 3, root_keyids,
-                      'root.json')
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.sign_metadata, root_metadata,
-                      3, 'root.json')
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.sign_metadata, root_metadata,
-                      root_keyids, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_lib.sign_metadata, 3, root_keyids, 'root.json', repository_name)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_lib.sign_metadata, root_metadata, 3, 'root.json', repository_name)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_lib.sign_metadata, root_metadata, root_keyids, 3, repository_name)
 
 
 
   def test_write_metadata_file(self):
     # Test normal case.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-    metadata_directory = os.path.join('repository_data',
-                                      'repository', 'metadata')
+    metadata_directory = os.path.join('repository_data', 'repository', 'metadata')
     root_filename = os.path.join(metadata_directory, 'root.json')
     root_signable = securesystemslib.util.load_json_file(root_filename)
 
@@ -743,29 +747,23 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     version_number = root_signable['signed']['version'] + 1
 
     self.assertFalse(os.path.exists(output_filename))
-    repo_lib.write_metadata_file(root_signable, output_filename,
-                                 version_number,
-                                 compression_algorithms,
-                                 consistent_snapshot=False)
+    repo_lib.write_metadata_file(root_signable, output_filename, version_number,
+        compression_algorithms, consistent_snapshot=False)
     self.assertTrue(os.path.exists(output_filename))
     self.assertTrue(os.path.exists(output_filename + '.gz'))
 
     # Attempt to over-write the previously written metadata file.  An exception
     # is not raised in this case, only a debug message is logged.
-    repo_lib.write_metadata_file(root_signable, output_filename,
-                                 version_number,
-                                 compression_algorithms,
-                                 consistent_snapshot=False)
+    repo_lib.write_metadata_file(root_signable, output_filename, version_number,
+        compression_algorithms, consistent_snapshot=False)
 
     # Try to write a consistent metadate file. An exception is not raised in
     # this case.  For testing purposes, root.json should be a hard link to the
     # consistent metadata file.  We should verify that root.json points to
     # the latest consistent files.
     tuf.settings.CONSISTENT_METHOD = 'hard_link'
-    repo_lib.write_metadata_file(root_signable, output_filename,
-                                 version_number,
-                                 compression_algorithms,
-                                 consistent_snapshot=True)
+    repo_lib.write_metadata_file(root_signable, output_filename, version_number,
+        compression_algorithms, consistent_snapshot=True)
 
     # Test if the consistent files are properly named
     # Filename format of a consistent file: <version number>.rolename.json
@@ -790,30 +788,24 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Test for an improper settings.CONSISTENT_METHOD string value.
     tuf.settings.CONSISTENT_METHOD = 'somebadidea'
-    self.assertRaises(securesystemslib.exceptions.InvalidConfigurationError, repo_lib.write_metadata_file,
-                                                     root_signable, output_filename,
-                                                     version_number,
-                                                     compression_algorithms,
-                                                     consistent_snapshot=True)
+    self.assertRaises(securesystemslib.exceptions.InvalidConfigurationError,
+        repo_lib.write_metadata_file, root_signable, output_filename,
+        version_number, compression_algorithms, consistent_snapshot=True)
 
     # Try to create a link to root.json when root.json doesn't exist locally.
     # repository_lib should log a message if this is the case.
     tuf.settings.CONSISTENT_METHOD = 'hard_link'
     os.remove(output_filename)
-    repo_lib.write_metadata_file(root_signable, output_filename,
-                                 version_number,
-                                 compression_algorithms,
-                                 consistent_snapshot=True)
+    repo_lib.write_metadata_file(root_signable, output_filename, version_number,
+        compression_algorithms, consistent_snapshot=True)
 
     # Reset CONSISTENT_METHOD so that subsequent tests work as expected.
     tuf.settings.CONSISTENT_METHOD = 'copy'
 
     # Test for unknown compression algorithm.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.write_metadata_file,
-                                       root_signable, output_filename,
-                                       version_number,
-                                       compression_algorithms=['bad_algo'],
-                                       consistent_snapshot=False)
+        root_signable, output_filename, version_number, compression_algorithms=['bad_algo'],
+        consistent_snapshot=False)
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.write_metadata_file,
@@ -921,106 +913,103 @@ class TestRepositoryToolFunctions(unittest.TestCase):
   def test__generate_and_write_metadata(self):
     # Test for invalid, or unsupported, rolename.
     # Load the root metadata provided in 'tuf/tests/repository_data/'.
+    repository_name = 'repository_name'
     root_filepath = os.path.join('repository_data', 'repository',
                                  'metadata', 'root.json')
     root_signable = securesystemslib.util.load_json_file(root_filepath)
 
     # _generate_and_write_metadata() expects the top-level roles
     # (specifically 'snapshot') and keys to be available in 'tuf.roledb'.
-    tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'])
+    tuf.roledb.create_roledb_from_root_metadata(root_signable['signed'],
+        repository_name)
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     targets_directory = os.path.join(temporary_directory, 'targets')
     os.mkdir(targets_directory)
     repository_directory = os.path.join(temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory,
-                                      repo_lib.METADATA_STAGED_DIRECTORY_NAME)
+        repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     targets_metadata = os.path.join('repository_data', 'repository', 'metadata',
-                                    'targets.json')
-    obsolete_metadata = os.path.join(metadata_directory,
-                                            'obsolete_role.json')
+        'targets.json')
+    obsolete_metadata = os.path.join(metadata_directory, 'obsolete_role.json')
     securesystemslib.util.ensure_parent_dir(obsolete_metadata)
     shutil.copyfile(targets_metadata, obsolete_metadata)
 
     # Verify that obsolete metadata (a metadata file exists on disk, but the
     # role is unavailable in 'tuf.roledb').  First add the obsolete
     # role to 'tuf.roledb' so that its metadata file can be written to disk.
-    targets_roleinfo = tuf.roledb.get_roleinfo('targets')
+    targets_roleinfo = tuf.roledb.get_roleinfo('targets', repository_name)
     targets_roleinfo['version'] = 1
     expiration = \
       tuf.formats.unix_timestamp_to_datetime(int(time.time() + 86400))
     expiration = expiration.isoformat() + 'Z'
     targets_roleinfo['expires'] = expiration
-    tuf.roledb.add_role('obsolete_role', targets_roleinfo)
+    tuf.roledb.add_role('obsolete_role', targets_roleinfo,
+        repository_name=repository_name)
 
     repo_lib._generate_and_write_metadata('obsolete_role', obsolete_metadata,
-                                          targets_directory, metadata_directory,
-                                          consistent_snapshot=False,
-                                          filenames=None,
-                                          compression_algorithms=['gz'])
+        targets_directory, metadata_directory, consistent_snapshot=False,
+        filenames=None, compression_algorithms=['gz'],
+        repository_name=repository_name)
 
     snapshot_filepath = os.path.join('repository_data', 'repository',
                                      'metadata', 'snapshot.json')
     snapshot_signable = securesystemslib.util.load_json_file(snapshot_filepath)
-    tuf.roledb.remove_role('obsolete_role')
+    tuf.roledb.remove_role('obsolete_role', repository_name)
     self.assertTrue(os.path.exists(os.path.join(metadata_directory,
                                                 'obsolete_role.json')))
     tuf.repository_lib._delete_obsolete_metadata(metadata_directory,
-                                                 snapshot_signable['signed'],
-                                                 False)
+        snapshot_signable['signed'], False, repository_name)
     self.assertFalse(os.path.exists(metadata_directory + 'obsolete_role.json'))
     shutil.copyfile(targets_metadata, obsolete_metadata)
 
 
 
   def test__delete_obsolete_metadata(self):
+    repository_name = 'test_repository'
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     repository_directory = os.path.join(temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory,
-                                      repo_lib.METADATA_STAGED_DIRECTORY_NAME)
+        repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     os.makedirs(metadata_directory)
     snapshot_filepath = os.path.join('repository_data', 'repository',
-                                     'metadata', 'snapshot.json')
+        'metadata', 'snapshot.json')
     snapshot_signable = securesystemslib.util.load_json_file(snapshot_filepath)
 
     # Create role metadata that should not exist in snapshot.json.
-    role1_filepath = os.path.join('repository_data', 'repository',
-                                  'metadata', 'role1.json')
+    role1_filepath = os.path.join('repository_data', 'repository', 'metadata',
+        'role1.json')
     shutil.copyfile(role1_filepath, os.path.join(metadata_directory, 'role2.json'))
 
     repo_lib._delete_obsolete_metadata(metadata_directory,
-                                       snapshot_signable['signed'],
-                                       True)
+        snapshot_signable['signed'], True, repository_name)
 
     # _delete_obsolete_metadata should never delete root.json.
-    root_filepath = os.path.join('repository_data', 'repository',
-                                 'metadata', 'root.json')
+    root_filepath = os.path.join('repository_data', 'repository', 'metadata',
+        'root.json')
     shutil.copyfile(root_filepath, os.path.join(metadata_directory, 'root.json'))
     repo_lib._delete_obsolete_metadata(metadata_directory,
-                                       snapshot_signable['signed'],
-                                       True)
+        snapshot_signable['signed'], True, repository_name)
     self.assertTrue(os.path.exists(os.path.join(metadata_directory, 'root.json')))
 
     # Verify what happens for a non-existent metadata directory (a debug
     # message is logged).
     repo_lib._delete_obsolete_metadata('non-existent',
-                                       snapshot_signable['signed'],
-                                       True)
+        snapshot_signable['signed'], True, repository_name)
 
 
   def test__load_top_level_metadata(self):
-    tuf.roledb.clear_roledb(clear_all=True)
-    tuf.keydb.clear_keydb(clear_all=True)
+    repository_name = 'test_repository'
 
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     repository_directory = os.path.join(temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory,
-                                      repo_lib.METADATA_STAGED_DIRECTORY_NAME)
+        repo_lib.METADATA_STAGED_DIRECTORY_NAME)
     targets_directory = os.path.join(repository_directory,
-                                     repo_lib.TARGETS_DIRECTORY_NAME)
+        repo_lib.TARGETS_DIRECTORY_NAME)
     shutil.copytree(os.path.join('repository_data', 'repository', 'metadata'),
-                    metadata_directory)
+        metadata_directory)
     shutil.copytree(os.path.join('repository_data', 'repository', 'targets'),
-                    targets_directory)
+        targets_directory)
 
     # Add a duplicate signature to the Root file for testing purposes).
     root_file = os.path.join(metadata_directory, 'root.json')
@@ -1037,8 +1026,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
         os.remove(role_filename)
 
     filenames = repo_lib.get_metadata_filenames(metadata_directory)
-    repository = repo_tool.create_new_repository(repository_directory)
-    repo_lib._load_top_level_metadata(repository, filenames)
+    repository = repo_tool.create_new_repository(repository_directory, repository_name)
+    repo_lib._load_top_level_metadata(repository, filenames, repository_name)
 
     # Partially write all top-level roles (we increase the threshold of each
     # top-level role so that they are flagged as partially written.
@@ -1051,51 +1040,55 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     repository.write('targets')
     repository.write('timestamp')
 
-    repo_lib._load_top_level_metadata(repository, filenames)
+    repo_lib._load_top_level_metadata(repository, filenames, repository_name)
 
     # Attempt to load a repository with missing top-level metadata.
     for role_file in os.listdir(metadata_directory):
       if role_file.endswith('.json') and not role_file.startswith('root'):
         role_filename = os.path.join(metadata_directory, role_file)
         os.remove(role_filename)
-    repo_lib._load_top_level_metadata(repository, filenames)
+    repo_lib._load_top_level_metadata(repository, filenames, repository_name)
 
     # Remove the required Root file and verify that an exception is raised.
     os.remove(os.path.join(metadata_directory, 'root.json'))
-    self.assertRaises(securesystemslib.exceptions.RepositoryError, repo_lib._load_top_level_metadata,
-                      repository, filenames)
+    self.assertRaises(securesystemslib.exceptions.RepositoryError,
+        repo_lib._load_top_level_metadata, repository, filenames,
+        repository_name)
 
 
 
   def test__remove_invalid_and_duplicate_signatures(self):
     # Remove duplicate PSS signatures (same key generates valid, but different
     # signatures).  First load a valid signable (in this case, the root role).
+    repository_name = 'test_repository'
     root_filepath = os.path.join('repository_data', 'repository',
-                                 'metadata', 'root.json')
+        'metadata', 'root.json')
     root_signable = securesystemslib.util.load_json_file(root_filepath)
     key_filepath = os.path.join('repository_data', 'keystore', 'root_key')
     root_rsa_key = repo_lib.import_rsa_privatekey_from_file(key_filepath,
-                                                            'password')
+        'password')
 
     # Add 'root_rsa_key' to tuf.keydb, since
     # _remove_invalid_and_duplicate_signatures() checks for unknown keys in
     # tuf.keydb.
-    tuf.keydb.add_key(root_rsa_key)
+    tuf.keydb.add_key(root_rsa_key, repository_name=repository_name)
 
     # Append the new valid, but duplicate PSS signature, and test that
     # duplicates are removed.  create_signature() generates a key for the
     # key type of the first argument (i.e., root_rsa_key).
     new_pss_signature = securesystemslib.keys.create_signature(root_rsa_key,
-                                                  root_signable['signed'])
+        root_signable['signed'])
     root_signable['signatures'].append(new_pss_signature)
 
     expected_number_of_signatures = len(root_signable['signatures'])
-    tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
+    tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable,
+        repository_name)
     self.assertEqual(len(root_signable), expected_number_of_signatures)
 
     # Test for an invalid keyid.
     root_signable['signatures'][0]['keyid'] = '404'
-    tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
+    tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable,
+        repository_name)
 
     # Re-add a valid signature for the following test condition.
     root_signable['signatures'].append(new_pss_signature)
@@ -1104,7 +1097,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # and that the duplicate key is removed 'root_signable'.
     root_signable['signatures'][0]['sig'] = '4040'
     invalid_keyid = root_signable['signatures'][0]['keyid']
-    tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable)
+    tuf.repository_lib._remove_invalid_and_duplicate_signatures(root_signable,
+        repository_name)
 
     for signature in root_signable['signatures']:
       self.assertFalse(invalid_keyid == signature['keyid'])
