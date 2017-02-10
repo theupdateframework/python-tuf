@@ -1,0 +1,17 @@
+{
+  "repositories": {
+    "test_repository": ["http://localhost:8001"],
+    "test_repository2":   ["http://localhost:8002"]
+  },
+  "mapping": [
+    {
+      "paths":        ["*3.txt"],
+      "repositories": ["test_repository", "test_repository2"],
+      "terminating":  false,
+    },
+    {
+      "paths":        ["*"],
+      "repositories": ["test_repository2"]
+    }
+  ]
+}
