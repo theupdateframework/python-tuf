@@ -145,11 +145,13 @@ class MultiRepoUpdater(object):
   """
   <Purpose>
     Provide a way for clients to request a target file from multiple
-    repositories.  Which repositories to query is determined by a map
+    repositories.  Which repositories to query is determined by the map
     file (i.e,. map.json).
 
     See TAP 4 for more information on the map file and requesting updates from
-    multiple repositories.
+    multiple repositories.  TAP 4 describes how users may specify that a
+    certain repository should be used for some targets, while other
+    repositories should be used for other targets.
 
   <Arguments>
     map_file:
@@ -232,7 +234,7 @@ class MultiRepoUpdater(object):
       else:
         logger.debug('Found Root file at ' + repr(root_file))
 
-    # Iterate over mappings.
+    # Iterate mappings.
     # [{"paths": [], "repositories": [], "terminating": Boolean}, ...]
     for mapping in self.map_file['mappings']:
       # If this mapping is relevant to the target...
@@ -242,7 +244,7 @@ class MultiRepoUpdater(object):
         # Use the *unmodified* TUF updater for a single repository to fetch the
         # targetinfo from each repository.
         for repository_name in mapping['repositories']:
-          targetinfo = update_from_repository(repository_name,
+          targetinfo = _update_from_repository(repository_name,
               repository_names_to_mirrors, target_filename)
           targetinfos.append(targetinfo)
 
@@ -291,7 +293,8 @@ class MultiRepoUpdater(object):
     updater = self.repository_names_to_updaters.get(repository_name)
 
     if not updater:
-      # Unimportant: some massaging for unmodified TUF client.
+      # Create repository mirrors object needed by the tuf.client.updater.Updater().
+      # Each 'repository_name' can have more than one mirror.
       mirrors = {}
       for url in repository_names_to_mirrors[repository_name]:
         mirrors[url] = {
@@ -319,10 +322,10 @@ class MultiRepoUpdater(object):
 
 
 
-  def _update_from_repository(dirname, dirname_to_mirrors, target_filename):
+  def _update_from_repository(repository_name, repository_names_to_mirrors,
+      target_filename):
     # Set the repository directory containing the metadata.
-    tuf.settings.repository_directory = dirname
-    updater = get_updater(dirname, dirname_to_mirrors)
+    updater = get_updater(repository_name, repository_names_to_mirrors)
 
     try:
       return updater.get_one_valid_targetinfo(target_filename)
@@ -348,26 +351,33 @@ class MultiRepoUpdater(object):
       prev_targetinfo = targetinfos[0]
 
     # Target is empty.
-    if not prev_targetinfo: return False
+    if not prev_targetinfo:
+      return False
+
     else:
       for curr_targetinfo in targetinfos[1:]:
         # Target is empty.
-        if not curr_targetinfo: return False
+        if not curr_targetinfo:
+          return False
+
         else:
           prev_length = prev_targetinfo['length']
           curr_length = curr_targetinfo['length']
-          if prev_length != curr_length: return False
+          if prev_length != curr_length:
+            return False
 
           prev_hashes = prev_targetinfo['hashes']
           curr_hashes = curr_targetinfo['hashes']
-          if prev_hashes.keys() != curr_hashes.keys(): return False
+          if prev_hashes.keys() != curr_hashes.keys():
+            return False
 
           for function, prev_digest in prev_hashes.items():
-            if prev_digest != curr_hashes[function]: return False
+            if prev_digest != curr_hashes[function]:
+              return False
 
           prev_targetinfo = curr_targetinfo
-      # If we are here, then all the targets are equal.
 
+    # If we are here, then all the targets are equal.
     return True
 
 
