@@ -193,7 +193,7 @@ class MultiRepoUpdater(object):
 
 
 
-  def get_one_valid_targetinfo(target_filename):
+  def get_one_valid_targetinfo(self, target_filename):
     """
     <Purpose>
       Return the targetinfo, if any, for the given 'target_filename'.
@@ -230,8 +230,8 @@ class MultiRepoUpdater(object):
         logger.debug('Found local directory for ' + repr(repository_name))
 
       # The latest known root metadata file must already be on disk.
-      root_file = os.path.isfile(os.path.join(repository_directory,
-          'current', 'root.json'))
+      root_file = os.path.join(repository_directory,
+          'current', 'root.json')
       if not os.path.isfile(root_file):
         raise tuf.exceptions.Error('The Root file must exist at ' + repr(root_file))
 
