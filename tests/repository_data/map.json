@@ -1,17 +1,1 @@
-{
-  "repositories": {
-    "test_repository": ["http://localhost:8001"],
-    "test_repositiory2":   ["http://localhost:8002"]
-  },
-  "mapping": [
-    {
-      "paths":        ["*django*"],
-      "repositories": ["test_repository", "test_repository2"],
-      "terminating":  false,
-    },
-    {
-      "paths":        ["*"],
-      "repositories": ["test_repository2"]
-    }
-  ]
-}
+{"repositories": {"repository1": ["http://localhost:30001"], "repository2": ["http://localhost:30002"]}, "mapping": [{"paths": ["*3.txt"], "terminating": false, "repositories": ["repository1", "repository2"]}, {"paths": ["*"], "repositories": ["repository2"]}]}
