@@ -14,10 +14,8 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Verify that clients are able to keep track of multiple repositories and
-  separate sets of metadata for each.
-
-  TODO: Verify that multiple repositories can be set for the repository tool.
+  Verify that clients and the repository tools are able to keep track of
+  multiple repositories and separate sets of metadata for each.
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -74,8 +72,8 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
-    cls.SERVER_PORT = random.randint(30000, 45000)
-    cls.SERVER_PORT2 = random.randint(30000, 45000)
+    cls.SERVER_PORT = 30001
+    cls.SERVER_PORT2 = 30002
     command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
     command2 = ['python', 'simple_server.py', str(cls.SERVER_PORT2)]
     cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
@@ -83,8 +81,9 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     logger.info('Server processes started.')
     logger.info('Server process id: ' + str(cls.server_process.pid))
     logger.info('Serving on port: ' + str(cls.SERVER_PORT))
+
     logger.info('Server 2 process id: ' + str(cls.server_process2.pid))
-    logger.info('Serving 2  on port: ' + str(cls.SERVER_PORT2))
+    logger.info('Serving 2 on port: ' + str(cls.SERVER_PORT2))
     cls.url = 'http://localhost:' + str(cls.SERVER_PORT) + os.path.sep
     cls.url2 = 'http://localhost:' + str(cls.SERVER_PORT2) + os.path.sep
 
@@ -129,6 +128,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
     original_client = os.path.join(original_repository_files, 'client', 'test_repository')
+    original_keystore = os.path.join(original_repository_files, 'keystore')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
@@ -146,6 +146,8 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     self.client_directory = os.path.join(temporary_repository_root, repository_name)
     self.client_directory2 = os.path.join(temporary_repository_root, repository_name2)
 
+    self.keystore_directory = os.path.join(temporary_repository_root, 'keystore')
+
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
     shutil.copytree(original_repository, self.repository_directory)
@@ -153,13 +155,16 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     shutil.copytree(original_client, self.client_directory)
     shutil.copytree(original_client, self.client_directory2)
 
+    shutil.copytree(original_keystore, self.keystore_directory)
+
     # Set the url prefix required by the 'tuf/client/updater.py' updater.
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
     repository_basepath = self.repository_directory[len(os.getcwd()):]
+    repository_basepath2 = self.repository_directory2[len(os.getcwd()):]
     url_prefix = \
       'http://localhost:' + str(self.SERVER_PORT) + repository_basepath
     url_prefix2 = \
-      'http://localhost:' + str(self.SERVER_PORT2) + repository_basepath
+      'http://localhost:' + str(self.SERVER_PORT2) + repository_basepath2
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
@@ -215,18 +220,50 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
 
   def test_repository_tool(self):
-    repository_name1 = 'repository1'
+    repository_name = 'repository1'
     repository_name2 = 'repository2'
 
-    self.assertEqual(repository_name1, str(self.repository_updater))
+    self.assertEqual(repository_name, str(self.repository_updater))
     self.assertEqual(repository_name2, str(self.repository_updater2))
 
-    repository1 = repo_tool.load_repository(self.repository_directory, repository_name1)
+    repository = repo_tool.load_repository(self.repository_directory, repository_name)
     repository2 = repo_tool.load_repository(self.repository_directory2, repository_name2)
 
-    repository2.timestamp.version = 2
-    self.assertEqual([], tuf.roledb.get_dirty_roles(repository_name1))
+    repository.timestamp.version = 88
+    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name))
+    self.assertEqual([], tuf.roledb.get_dirty_roles(repository_name2))
+
+    repository2.timestamp.version = 100
     self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name2))
+
+    key_file = os.path.join(self.keystore_directory, 'timestamp_key')
+    timestamp_private = repo_tool.import_ed25519_privatekey_from_file(key_file, "password")
+
+    repository.timestamp.load_signing_key(timestamp_private)
+    repository2.timestamp.load_signing_key(timestamp_private)
+
+    repository.write('timestamp', increment_version_number=False)
+    repository2.write('timestamp', increment_version_number=False)
+
+    # And move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.rmtree(os.path.join(self.repository_directory2, 'metadata'))
+
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+        os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory2, 'metadata.staged'),
+        os.path.join(self.repository_directory2, 'metadata'))
+
+    # Verify that the client retrieves the expected updates.
+    logger.info('Downloading timestamp from server 1.')
+    self.repository_updater.refresh()
+
+    self.assertEqual(88, self.repository_updater.metadata['current']['timestamp']['version'])
+    logger.info('Downloading timestamp from server 2.')
+    self.repository_updater2.refresh()
+
+    self.assertEqual(100, self.repository_updater2.metadata['current']['timestamp']['version'])
+
 
 
 if __name__ == '__main__':
