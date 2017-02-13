@@ -129,6 +129,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     original_repository = os.path.join(original_repository_files, 'repository')
     original_client = os.path.join(original_repository_files, 'client', 'test_repository')
     original_keystore = os.path.join(original_repository_files, 'keystore')
+    original_map_file = os.path.join(original_repository_files, 'map.json')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
@@ -147,6 +148,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     self.client_directory2 = os.path.join(temporary_repository_root, repository_name2)
 
     self.keystore_directory = os.path.join(temporary_repository_root, 'keystore')
+    self.map_file = os.path.join(self.client_directory, 'map.json')
 
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
@@ -154,7 +156,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     shutil.copytree(original_repository, self.repository_directory2)
     shutil.copytree(original_client, self.client_directory)
     shutil.copytree(original_client, self.client_directory2)
-
+    shutil.copyfile(original_map_file, self.map_file)
     shutil.copytree(original_keystore, self.keystore_directory)
 
     # Set the url prefix required by the 'tuf/client/updater.py' updater.
@@ -264,6 +266,8 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
     self.assertEqual(100, self.repository_updater2.metadata['current']['timestamp']['version'])
 
+    multi_repo_updater = updater.MultiRepoUpdater(self.map_file)
+    targetinfo = multi_repo_updater.get_one_valid_targetinfo('file3.txt')
 
 
 if __name__ == '__main__':

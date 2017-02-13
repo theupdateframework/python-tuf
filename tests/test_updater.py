@@ -1549,7 +1549,6 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
                                            'confined_target_dirs': ['']}}
 
     self.map_file = os.path.join(self.client_directory, 'map.json')
-    print('map_file: ' + repr(self.map_file))
 
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
@@ -1572,83 +1571,25 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
 
   # UNIT TESTS.
-  def test_get_one_valid_targetinfo(self):
+  def test__init__(self):
     # The client's repository requires a metadata directory (and the 'current'
     # and 'previous' sub-directories), and at least the 'root.json' file.
     # setUp(), called before each test case, instantiates the required updater
     # objects and keys.  The needed objects/data is available in
     # 'self.repository_updater', 'self.client_directory', etc.
 
-
     # Test: Invalid arguments.
     # Invalid 'updater_name' argument.  String expected.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-        updater.MultiRepoUpdater, 8, self.repository_mirrors)
+        updater.MultiRepoUpdater, 8)
 
-    # Invalid 'repository_mirrors' argument.  'tuf.formats.MIRRORDICT_SCHEMA'
-    # expected.
-    self.assertRaises(securesystemslib.exceptions.FormatError,
-        updater.Updater, updater.Updater, 8)
-
-
-    # 'tuf.client.updater.py' requires that the client's repositories directory
-    # be configured in 'tuf.settings.py'.
-    tuf.settings.repositories_directory = None
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
-                      self.repository_mirrors)
     # Restore 'tuf.settings.repositories_directory' to the original client
     # directory.
     tuf.settings.repositories_directory = self.client_directory
 
-
-    # Test: empty client repository (i.e., no metadata directory).
-    metadata_backup = self.client_metadata + '.backup'
-    shutil.move(self.client_metadata, metadata_backup)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
-                      self.repository_mirrors)
-    # Restore the client's metadata directory.
-    shutil.move(metadata_backup, self.client_metadata)
-
-
-    # Test: repository with only a '{repository_directory}/metadata' directory.
-    # (i.e., missing the required 'current' and 'previous' sub-directories).
-    current_backup = self.client_metadata_current + '.backup'
-    previous_backup = self.client_metadata_previous + '.backup'
-
-    shutil.move(self.client_metadata_current, current_backup)
-    shutil.move(self.client_metadata_previous, previous_backup)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
-                      self.repository_mirrors)
-
-    # Restore the client's previous directory.  The required 'current' directory
-    # is still missing.
-    shutil.move(previous_backup, self.client_metadata_previous)
-
-    # Test: repository with only a '{repository_directory}/metadata/previous'
-    # directory.
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
-                      self.repository_mirrors)
-    # Restore the client's current directory.
-    shutil.move(current_backup, self.client_metadata_current)
-
-    # Test: repository with a '{repository_directory}/metadata/current'
-    # directory, but the 'previous' directory is missing.
-    shutil.move(self.client_metadata_previous, previous_backup)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
-                      self.repository_mirrors)
-    shutil.move(previous_backup, self.client_metadata_previous)
-
-    # Test:  repository missing the required 'root.json' file.
-    client_root_file = os.path.join(self.client_metadata_current, 'root.json')
-    backup_root_file = client_root_file + '.backup'
-    shutil.move(client_root_file, backup_root_file)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
-                      self.repository_mirrors)
-    # Restore the client's 'root.json file.
-    shutil.move(backup_root_file, client_root_file)
-
-    # Test: Normal 'tuf.client.updater.Updater' instantiation.
-    updater.Updater('test_repository', self.repository_mirrors)
+    # Test for valid instantiation.
+    map_file = os.path.join(self.client_directory, 'map.json')
+    multi_repo_updater = updater.MultiRepoUpdater(map_file)
 
 
 
