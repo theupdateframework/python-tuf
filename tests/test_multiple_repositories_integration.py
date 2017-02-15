@@ -270,8 +270,9 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     multi_repo_updater = updater.MultiRepoUpdater(self.map_file)
     targetinfo, my_updater = multi_repo_updater.get_one_valid_targetinfo('file3.txt')
 
-    my_updater.download_target(targetinfo, 'targets')
-    self.assertTrue(os.path.exists(os.path.join('targets', 'file3.txt')))
+
+    my_updater.download_target(targetinfo, self.temporary_directory)
+    self.assertTrue(os.path.exists(os.path.join(self.temporary_directory, 'file3.txt')))
 
 
 
