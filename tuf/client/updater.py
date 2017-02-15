@@ -215,7 +215,7 @@ class MultiRepoUpdater(object):
     repositories_directory = tuf.settings.repositories_directory
 
     for repository_name in repository_names_to_mirrors:
-
+      logger.debug('Interrogating repository: ' + repr(repository_name))
       # Each repository must cache its metadata in a separate location.
       repository_directory = os.path.join(repositories_directory, repository_name)
       if not os.path.isdir(repository_directory):
@@ -226,32 +226,37 @@ class MultiRepoUpdater(object):
         logger.debug('Found local directory for ' + repr(repository_name))
 
       # The latest known root metadata file must already be on disk.
-      root_file = os.path.join(repository_directory,
+      root_file = os.path.join(repository_directory, 'metadata',
           'current', 'root.json')
       if not os.path.isfile(root_file):
         raise tuf.exceptions.Error('The Root file must exist at ' + repr(root_file))
 
       else:
-        logger.debug('Found Root file at ' + repr(root_file))
+        logger.debug('Found local Root file at ' + repr(root_file))
 
     # Iterate mappings.
     # [{"paths": [], "repositories": [], "terminating": Boolean}, ...]
-    for mapping in self.map_file['mappings']:
+    for mapping in self.map_file['mapping']:
+      logger.debug('Interrogating mappings..' + repr(mapping))
       # If this mapping is relevant to the target...
-      if paths_match_target(mapping['paths'], target_filename):
+      if self.paths_match_target(mapping['paths'], target_filename):
         targetinfos = []
 
         # Use the *unmodified* TUF updater for a single repository to fetch the
         # targetinfo from each repository.
         for repository_name in mapping['repositories']:
-          targetinfo = _update_from_repository(repository_name,
+          logger.debug('Updating from repository...')
+          targetinfo, updater = self._update_from_repository(repository_name,
               repository_names_to_mirrors, target_filename)
+          logger.debug('Adding targetinfo: ' + repr(targetinfo))
           targetinfos.append(targetinfo)
 
         # If the targetinfo on each repository is equal to the others, and it
         # is not empty, then return the targetinfo.
-        if targets_are_equal_and_not_empty(targetinfos):
-          return targetinfo
+        logger.debug('Verifying that all targetinfo are equal')
+        if self._targets_are_equal_and_not_empty(targetinfos):
+
+          return targetinfo, updater
 
       else:
         continue
@@ -266,21 +271,26 @@ class MultiRepoUpdater(object):
 
     # If we are here, it means either there were no mappings, or none of the
     # mappings provided the target.
+    logger.debug('Did not find the target.')
     return None
 
 
 
 
 
-  def paths_match_target(paths, target_filename):
+  def paths_match_target(self, paths, target_filename):
     for path in paths:
-      if fnmatch.fnmatch(path, target_filename):
+      logger.debug('Interrogating path ' + repr(path) + 'for target: ' + repr(target_filename))
+      if fnmatch.fnmatch(target_filename, path):
+        logger.debug('Found a match for ' + repr(target_filename))
         return True
 
       else:
+        logger.debug('Continue searching for relevant paths.')
         continue
 
     # If we are here, then none of the paths are relevant to the target.
+    logger.debug('None of the paths are relevant.')
     return False
 
 
@@ -288,7 +298,7 @@ class MultiRepoUpdater(object):
 
 
 
-  def get_updater(repository_name, repository_names_to_mirrors):
+  def get_updater(self, repository_name, repository_names_to_mirrors):
     # NOTE: Do not refresh metadata for a repository that has been visited.
     updater = self.repository_names_to_updaters.get(repository_name)
 
@@ -322,13 +332,13 @@ class MultiRepoUpdater(object):
 
 
 
-  def _update_from_repository(repository_name, repository_names_to_mirrors,
+  def _update_from_repository(self, repository_name, repository_names_to_mirrors,
       target_filename):
     # Set the repository directory containing the metadata.
-    updater = get_updater(repository_name, repository_names_to_mirrors)
+    updater = self.get_updater(repository_name, repository_names_to_mirrors)
 
     try:
-      return updater.get_one_valid_targetinfo(target_filename)
+      return updater.get_one_valid_targetinfo(target_filename), updater
 
     except:
       return None
@@ -337,7 +347,7 @@ class MultiRepoUpdater(object):
 
 
 
-  def _targets_are_equal_and_not_empty(targetinfos):
+  def _targets_are_equal_and_not_empty(self, targetinfos):
     """
     If not empty, check only that length and hashes are equal; ignore custom
     targets metadata.
@@ -361,13 +371,13 @@ class MultiRepoUpdater(object):
           return False
 
         else:
-          prev_length = prev_targetinfo['length']
-          curr_length = curr_targetinfo['length']
+          prev_length = prev_targetinfo['fileinfo']['length']
+          curr_length = curr_targetinfo['fileinfo']['length']
           if prev_length != curr_length:
             return False
 
-          prev_hashes = prev_targetinfo['hashes']
-          curr_hashes = curr_targetinfo['hashes']
+          prev_hashes = prev_targetinfo['fileinfo']['hashes']
+          curr_hashes = curr_targetinfo['fileinfo']['hashes']
           if prev_hashes.keys() != curr_hashes.keys():
             return False
 
