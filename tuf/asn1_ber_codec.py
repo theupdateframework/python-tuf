@@ -132,10 +132,14 @@ def convert_signed_ber_to_bersigned_json(ber_data):
 
   for asn_signature in asn_signatures:
     json_signatures.append({
-        'keyid': str(asn_signature['keyid']),
+        # Next lines are not ideal: prettyPrint and having to manually skip the
+        # first two characters (which we expect to be '0x' indicating a hex
+        # string). See if there's a better method of converting from the
+        # octetString to what TUF expects.
+        'keyid': asn_signature['keyid']['octetString'].prettyPrint()[2:],
         # TODO: <~> See if it's possible to tweak the definition of 'method' so that str(method) returns what we want rather here than the enum, so that we don't have to do make this weird enum translation call?
         'method': asn_signature['method'].namedValues[asn_signature['method']._value][0], #str(asn_signature['method']),
-        'sig': str(asn_signature['value'])})
+        'sig': asn_signature['value']['octetString'].prettyPrint()[2:]})
 
   return {'signatures': json_signatures, 'signed': json_signed}
 
@@ -314,7 +318,7 @@ def convert_signed_metadata_to_ber(
     #asn_sig['value'] = pydict_sig['sig'] # <- used to just be this
     asn_sig['value'] = metadata_asn1_spec.BinaryData().subtype(
         explicitTag=p_type_tag.Tag(p_type_tag.tagClassContext,
-        p_type_tag.tagFormatConstructed, 3))
+        p_type_tag.tagFormatConstructed, 2))
     asn_sig['value']['octetString'] = p_type_univ.OctetString(
         hexValue=pydict_sig['sig']).subtype(implicitTag=p_type_tag.Tag(
         p_type_tag.tagClassContext, p_type_tag.tagFormatSimple, 1))
