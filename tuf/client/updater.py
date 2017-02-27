@@ -1546,8 +1546,7 @@ class SingleRepoUpdater(object):
       None.
     """
 
-    metadata = metadata_file_object.read().decode('utf-8')
-    
+    metadata = metadata_file_object.read()
     try:
       metadata_signable = tuf.util.load_string(metadata) # TODO: <~> VERIFY THIS.
 
@@ -1724,8 +1723,7 @@ class SingleRepoUpdater(object):
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
-        metadata_signable = \
-          tuf.util.load_string(file_object.read().decode('utf-8'))
+        metadata_signable = tuf.util.load_string(file_object.read())
 
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number for
@@ -2079,8 +2077,8 @@ class SingleRepoUpdater(object):
     # Next, move the verified updated metadata file to the 'current' directory.
     # Note that the 'move' method comes from tuf.util's TempFile class.
     # 'metadata_file_object' is an instance of tuf.util.TempFile.
-    metadata_signable = \
-      tuf.util.load_string(metadata_file_object.read().decode('utf-8'))
+    metadata_signable = tuf.util.load_string(metadata_file_object.read())
+
     if compression_algorithm == 'gzip':
       current_uncompressed_filepath = \
         os.path.join(self.metadata_directory['current'],
@@ -2249,7 +2247,7 @@ class SingleRepoUpdater(object):
       # Next, move the verified updated metadata file to the 'current' directory.
       # Note that the 'move' method comes from tuf.util's TempFile class.
       # 'metadata_file_object' is an instance of tuf.util.TempFile.
-      metadata_signable = tuf.util.load_string(metadata_file_object.read().decode('utf-8'))
+      metadata_signable = tuf.util.load_string(metadata_file_object.read())
       if compression == 'gzip':
         current_uncompressed_filepath = \
           os.path.join(self.metadata_directory['current'],
