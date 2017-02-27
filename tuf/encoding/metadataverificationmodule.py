@@ -339,22 +339,35 @@ class Version(Natural): # Should be positive, but TUF has a certain point during
     pass
 
 
-class SnapshotMetadataFile(univ.Sequence):
+class TargetRoleFileInfo(univ.Sequence):
     pass
 
 
-SnapshotMetadataFile.componentType = namedtype.NamedTypes(
+TargetRoleFileInfo.componentType = namedtype.NamedTypes(
     namedtype.NamedType('filename', StrictFilename().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0))),
     namedtype.NamedType('version', Version().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1)))
 )
 
 
-class SnapshotMetadataFiles(univ.SequenceOf):
+class TargetRoleFileInfos(univ.SequenceOf):
     pass
 
 
-SnapshotMetadataFiles.componentType = SnapshotMetadataFile()
-SnapshotMetadataFiles.subtypeSpec=constraint.ValueSizeConstraint(1, 128)
+TargetRoleFileInfos.componentType = TargetRoleFileInfo()
+TargetRoleFileInfos.subtypeSpec=constraint.ValueSizeConstraint(1, 128)
+
+
+class RootRoleFileInfo(univ.Sequence):
+    pass
+
+
+RootRoleFileInfo.componentType = namedtype.NamedTypes(
+    namedtype.NamedType('filename', StrictFilename().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0))),
+    namedtype.NamedType('version', Version().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))),
+    namedtype.NamedType('length', Length().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 2))),
+    namedtype.NamedType('numberOfHashes', Length().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 3))),
+    namedtype.NamedType('hashes', Hashes().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 4)))
+)
 
 
 class SnapshotMetadata(univ.Sequence):
@@ -362,8 +375,9 @@ class SnapshotMetadata(univ.Sequence):
 
 
 SnapshotMetadata.componentType = namedtype.NamedTypes(
-    namedtype.NamedType('numberOfSnapshotMetadataFiles', Length().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0))),
-    namedtype.NamedType('snapshotMetadataFiles', SnapshotMetadataFiles().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1)))
+    namedtype.NamedType('numberOfTargetRoleFiles', Length().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 0))),
+    namedtype.NamedType('targetRoleFileInfos', TargetRoleFileInfos().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatSimple, 1))),
+    namedtype.NamedType('rootRoleFileInfo', RootRoleFileInfo().subtype(implicitTag=tag.Tag(tag.tagClassContext, tag.tagFormatConstructed, 2)))
 )
 
 
