@@ -55,7 +55,7 @@ def get_json_signed(asn_metadata):
 
   rootMetadata = asn_signed['body']['rootMetadata']
 
-  assert rootMetadata['numberOfKeys'] == 4
+  assert rootMetadata['numberOfKeys'] == 4 # TODO: <~> Remove this hardcoding. This has to be TUF-compliant. It can't assume no Targets delegations.
   keys = rootMetadata['keys']
   json_keys = {}
   for i in range(4):
@@ -71,7 +71,7 @@ def get_json_signed(asn_metadata):
     assert publicKeyValue.startswith('0x')
     publicKeyValue = publicKeyValue[2:]
     json_keys[publicKeyid] = {
-      'keyid_hash_algorithms': ['sha256', 'sha512'],
+      'keyid_hash_algorithms': ['sha256', 'sha512'], # TODO: <~> This was hard-coded. Fix it.
       'keytype': publicKeyType,
       'keyval': {
         'public': publicKeyValue

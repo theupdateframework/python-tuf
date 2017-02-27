@@ -52,7 +52,7 @@ def ensure_valid_metadata_type_for_asn1(metadata_type):
     raise tuf.Error('This is not one of the metadata types configured for '
         'translation from JSON to BER. Type of given metadata: ' +
         repr(metadata_type) + '; types accepted: ' +
-        repr([t for t in SUPPORTED_ASN1_METADATA_MODULES])) # TODO: <~> Kill this list comprehension. Make nicer.
+        repr(list(SUPPORTED_ASN1_METADATA_MODULES)))
 
 
 
@@ -83,7 +83,7 @@ def convert_signed_ber_to_bersigned_json(ber_data):
   # the "signed" section - the portion to be signed. The nomenclature is
   # unfortunate....
   asn_metadata = p_ber_decoder.decode(
-      ber_data, asn1Spec=metadata_asn1_spec.Metadata())[0] # why 0? Magic.
+      ber_data, asn1Spec=metadata_asn1_spec.Metadata())[0] # TODO: <~> Why 0?? Magic. Provide proper explanation.
 
   # asn_metadata here now has three components, indexed by integer 0, 1, 2.
   # 0 is the signed component (Signed())
