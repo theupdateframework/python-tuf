@@ -773,21 +773,20 @@ Version 1.0 (Draft)
    "targets/foo.txt".  Likewise, path pattern "foo-version-?.tgz" matches
    foo-version-2.tgz", but not "foo-version-alpha.tgz".
 
-   We are currently investigating a few "priority tag" schemes to resolve
-   conflicts between delegated roles that share responsibility for overlapping
-   target paths. One of the simplest of such schemes is for the client to
-   consider metadata in order of appearance of delegations; we treat the order
-   of delegations such that the first delegation is trusted more than the
-   second one, the second delegation is trusted more than the third one, and so
-   on. The metadata of the first delegation will override that of the second
-   delegation, the metadata of the second delegation will override that of the
-   third delegation, and so on. In order to accommodate this scheme, the
-   "roles" key in the DELEGATIONS object above points to an array, instead of a
-   hash table, of delegated roles.
+   Several schemes exist to resolve conflicts between delegated roles that
+   share responsibility for overlapping target paths. One of the simplest of
+   such schemes is for the client to consider metadata in order of appearance
+   of delegations; we treat the order of delegations such that the first
+   delegation is trusted more than the second one, the second delegation is
+   trusted more than the third one, and so on. The metadata of the first
+   delegation will override that of the second delegation, the metadata of the
+   second delegation will override that of the third delegation, and so on. In
+   order to accommodate this scheme, the "roles" key in the DELEGATIONS object
+   above points to an array, instead of a hash table, of delegated roles.
 
-   Another priority tag scheme would have the clients prefer the delegated role
-   with the latest metadata for a conflicting target path. Similar ideas were
-   explored in the Stork package manager (University of Arizona Tech Report
+   Another scheme would have the clients prefer the delegated role with the
+   latest metadata for a conflicting target path. Similar ideas were explored
+   in the Stork package manager (University of Arizona Tech Report
    08-04)[https://isis.poly.edu/~jcappos/papers/cappos_stork_dissertation_08.pdf].
 
    The metadata files for delegated target roles has the same format as the
