@@ -639,7 +639,7 @@ def check_crypto_libraries(required_libraries):
 
 
 
-def create_signature(key_dict, data):
+def create_signature(key_dict, data, force_treat_as_pydict=False):
   """
   <Purpose>
     Return a signature dictionary of the form:
@@ -736,7 +736,19 @@ def create_signature(key_dict, data):
   # generated across different platforms and Python key dictionaries.  The
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
-  if tuf.conf.METADATA_FORMAT == 'json': # TODO: Consider canonical needs for BER.
+  # TODO: Consider canonical needs for BER.
+  # TODO: <~> Find way around having to use this flag. (Reason it is needed:
+  # sometimes, even when tuf's metadata format (tuf.conf.METADATA_FORMAT) is
+  # not set to JSON, we still want to sign basic python dictionaries (instead
+  # of always signing things as BER, say). So we need a way of telling this
+  # function that even though tuf's metadata format is something else,
+  # we still need to do the canonical JSON encoding here.
+  # A better way of doing this might be doing the canonical encoding before data
+  # is passed here.... But then it may be done twice, if tuf happens to be in
+  # JSON mode, which breaks it. (We end up with extraneous junk like
+  # '{\\"a\\":1,\\"b\\":2} instead of '{"a":1,"b":2}'.) I could fix *that*,
+  # I suppose....
+  if tuf.conf.METADATA_FORMAT == 'json' or force_treat_as_pydict:
     data = tuf.formats.encode_canonical(data).encode('utf-8')
 
   # Call the appropriate cryptography libraries for the supported key types,
@@ -778,7 +790,7 @@ def create_signature(key_dict, data):
 
 
 
-def verify_signature(key_dict, signature, data):
+def verify_signature(key_dict, signature, data, force_treat_as_pydict=False):
   """
   <Purpose>
     Determine whether the private key belonging to 'key_dict' produced
@@ -868,7 +880,10 @@ def verify_signature(key_dict, signature, data):
   # generated across different platforms and Python key dictionaries.  The
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
-  if tuf.conf.METADATA_FORMAT == 'json': # TODO: Consider canonical needs for BER.
+  # TODO: Consider canonical needs for BER.
+  # TODO: <~> Find way around having to use this flag. See similar comment
+  # in create_signature() above for more information.
+  if tuf.conf.METADATA_FORMAT == 'json'  or force_treat_as_pydict:
     data = tuf.formats.encode_canonical(data).encode('utf-8')
 
   # Call the appropriate cryptography libraries for the supported key types,
