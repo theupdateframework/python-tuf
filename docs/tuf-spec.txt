@@ -765,14 +765,13 @@ Version 1.0 (Draft)
    The "paths" list describes paths that the role is trusted to provide.
    Clients MUST check that a target is in one of the trusted paths of all roles
    in a delegation chain, not just in a trusted path of the role that describes
-   the target file.  The format of a PATHPATTERN may be either a path to a
-   single file, or a path to a directory to indicate all files and/or
-   subdirectories under that directory.
-
-   A path to a directory is used to indicate all possible targets sharing that
-   directory as a prefix; e.g. if the directory is "targets/A", then targets
-   which match that directory include "targets/A/B.json" and
-   "targets/A/B/C.json".
+   the target file.  PATHPATTERN can include shell-style wildcards and supports
+   the Unix filename pattern matching convention.  Its format may either
+   indicate a path to a single file, or to multiple paths with the use of
+   shell-style wildcards.  For example, the path pattern "targets/*.tgz" would
+   match file paths "targets/foo.tgz" and "targets/bar.tgz", but not
+   "targets/foo.txt".  Likewise, path pattern "foo-version-?.tgz" matches
+   foo-version-2.tgz", but not "foo-version-alpha.tgz".
 
    We are currently investigating a few "priority tag" schemes to resolve
    conflicts between delegated roles that share responsibility for overlapping
