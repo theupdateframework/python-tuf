@@ -204,7 +204,23 @@ def set_asn_targets(json_signed, targetsMetadata):
       custom = Custom().subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                     tag.tagFormatConstructed,
                                                     1))
-      custom['ecuIdentifier'] = filemeta['custom']['ecu_serial']
+
+      for customkey in filemeta['custom']:
+        #
+        #   # TODO: Support arbitrary custom keys....
+        #
+        if customkey == 'ecu_serial':
+          # ecu_serial field name currently goes from ecu_serial to ecuIdentifier
+          custom['ecuIdentifier'] = filemeta['custom'][customkey]
+        # TODO: Include other cases specific to Uptane here (release counter
+        # and hardware identifier.)
+        # elif customkey == 'release_counter':
+        #   pass
+        # elif customkey == 'hardware_identifier':
+        #   pass
+        else:
+          custom[customkey] = filemeta['custom'][customkey] # Will probably break.
+
       targetAndCustom['custom'] = custom
 
     targets[numberOfTargets] = targetAndCustom
