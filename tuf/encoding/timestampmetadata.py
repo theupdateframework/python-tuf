@@ -33,6 +33,8 @@ def get_asn_signed(json_signed):
   hashes = Hashes().subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                 tag.tagFormatSimple, 4))
   hash = Hash()
+  # TODO: Remove hardcoded hash assumptions here: type and number.
+  # Model on code added to snapshotmetadata.py
   hash['function'] = int(HashFunction('sha256'))
   digest = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext,
                                                     tag.tagFormatConstructed,
@@ -70,8 +72,8 @@ def get_json_signed(asn_metadata):
   json_signed['version'] = int(asn_signed['version'])
 
   timestampMetadata = asn_signed['body']['timestampMetadata']
-  filename = timestampMetadata['filename']
-
+  filename = str(timestampMetadata['filename'])
+  # TODO: Remove hardcoded hash assumptions here.
   sha256 = timestampMetadata['hashes'][0]['digest']['octetString'].prettyPrint() # TODO: Probably not the way to go long-term.
   assert sha256.startswith('0x')
   sha256 = sha256[2:]
