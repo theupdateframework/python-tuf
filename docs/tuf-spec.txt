@@ -742,12 +742,27 @@ Version 1.0 (Draft)
            "keyids" : [ KEYID, ... ] ,
            "threshold" : THRESHOLD,
            ("path_hash_prefixes" : [ HEX_DIGEST, ... ] |
-            "paths" : [ PATHPATTERN, ... ])
+            "paths" : [ PATHPATTERN, ... ]),
+           "terminating": TERMINATING,
        }, ... ]
      }
 
    ROLENAME is the full name of the delegated role.  For example,
-   "targets/projects"
+   "targets/projects".
+
+   TERMINATING is a boolean indicating whether subsequent delegations should be
+   considered.
+
+   As explained in the Diplomat paper
+   (https://github.com/theupdateframework/tuf/blob/develop/docs/papers/protect-community-repositories-nsdi2016.pdf),
+   terminating delegations instruct the client not to consider future trust
+   statements that match the delegation's pattern. This stops the delegation
+   processing once this delegation (and its descendants) have been processed.
+   (Handling this case is conceptually similar to the use of the cut operator
+   in Prolog to stop computation, except that TUF uses this technique for
+   security instead of efficiency.) A terminating delegation for a package
+   causes any further statements about a package that are not made by the
+   delegated party or its descendants to be ignored.
 
    In order to discuss target paths, a role MUST specify only one of the
    "path_hash_prefixes" or "paths" attributes, each of which we discuss next.
