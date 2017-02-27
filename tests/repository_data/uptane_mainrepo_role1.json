@@ -1,0 +1,34 @@
+{
+ "signatures": [
+  {
+   "keyid": "8650aed05799a74f5febc9070c5d3e58d62797662d48062614b1ce0a643ee368",
+   "method": "ed25519",
+   "sig": "8539db3e2650e2b9a5d3fbd1b99f018ebe35f837986545389e4f3dbb73fa3ed1f32563943fdd4cd8a600a520def711adc7afbe4a0f807cf08124092de9f92403"
+  }
+ ],
+ "signed": {
+  "_type": "Targets",
+  "delegations": {
+   "keys": {},
+   "roles": []
+  },
+  "expires": "2017-05-25T14:43:13Z",
+  "targets": {
+   "/file1.txt": {
+    "hashes": {
+     "sha256": "1afd3c7dc6b40bd41e43befe8d03f7ddbf22349aea3bfdf038d87fd9a5b64cbb",
+     "sha512": "5fa900c0d81a4990124f5276d0cfd7efee37e19c306b16a33f06cba7275e35cb3bb955e0906af7b8848f09ca3786b285282f64379f8c4bc505151bb3bd2aa8ce"
+    },
+    "length": 21
+   },
+   "/infotainment_firmware.txt": {
+    "hashes": {
+     "sha256": "6b9f987226610bfed08b824c93bf8b2f59521fce9a2adef80c495f363c1c9c44",
+     "sha512": "706c283972c5ae69864b199e1cdd9b4b8babc14f5a454d0fd4d3b35396a04ca0b40af731671b74020a738b5108a78deb032332c36d6ae9f31fae2f8a70f7e1ce"
+    },
+    "length": 37
+   }
+  },
+  "version": 1
+ }
+}

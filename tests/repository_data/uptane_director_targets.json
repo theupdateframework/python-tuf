@@ -1,0 +1,30 @@
+{
+ "signatures": [
+  {
+   "keyid": "630cf584f392430b2119a4395e39624e86f5e5c5374507a789be5cf35bf090d6",
+   "method": "ed25519",
+   "sig": "2c666bef10bed0044996b20ed4ad58bc857933f70a4e8a8a39ddda333b966adc80d4145550cc9655d8a1f417389e6aef4a66f7b0fcefd87a301d2e08ba591c04"
+  }
+ ],
+ "signed": {
+  "_type": "Targets",
+  "delegations": {
+   "keys": {},
+   "roles": []
+  },
+  "expires": "2017-05-25T15:48:19Z",
+  "targets": {
+   "/file5.txt": {
+    "custom": {
+     "ecu_serial": "22222"
+    },
+    "hashes": {
+     "sha256": "4454deec0e2677f07ff94a2e2ad61257858dd2e30d1998589bbd29cda235819b",
+     "sha512": "03883cb480f0bab47137f53930dfc6a2bb6a99ff78876dbb55b6471f4b47d8f827e7b429cf50c1663a267da99a64cc0c53cacd77ab594cfea00dc64d817bf7a0"
+    },
+    "length": 23
+   }
+  },
+  "version": 4
+ }
+}

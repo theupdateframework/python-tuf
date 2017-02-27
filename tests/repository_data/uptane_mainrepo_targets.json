@@ -1,0 +1,50 @@
+{
+ "signatures": [
+  {
+   "keyid": "c24b457b2ca4b3c2f415efdbbebb914a0d05c5345b9889bda044362589d6f596",
+   "method": "ed25519",
+   "sig": "3c2721e2b761841960787e75529fce8d80d2a2796344b88e3da6fad3d8eb4c46463bc15f60012ca2654f50ba30b3d7cb4697b5b09b2349c33d234a732f264e0b"
+  }
+ ],
+ "signed": {
+  "_type": "Targets",
+  "delegations": {
+   "keys": {
+    "8650aed05799a74f5febc9070c5d3e58d62797662d48062614b1ce0a643ee368": {
+     "keyid_hash_algorithms": [
+      "sha256",
+      "sha512"
+     ],
+     "keytype": "ed25519",
+     "keyval": {
+      "public": "c5a78db3f3ba96462525664e502f2e7893b81e7e270d75ffb9a6bb95b56857ca"
+     }
+    }
+   },
+   "roles": [
+    {
+     "backtrack": true,
+     "keyids": [
+      "8650aed05799a74f5febc9070c5d3e58d62797662d48062614b1ce0a643ee368"
+     ],
+     "name": "role1",
+     "paths": [
+      "/*"
+     ],
+     "threshold": 1
+    }
+   ]
+  },
+  "expires": "2017-05-25T14:43:02Z",
+  "targets": {
+   "/file5.txt": {
+    "hashes": {
+     "sha256": "4454deec0e2677f07ff94a2e2ad61257858dd2e30d1998589bbd29cda235819b",
+     "sha512": "03883cb480f0bab47137f53930dfc6a2bb6a99ff78876dbb55b6471f4b47d8f827e7b429cf50c1663a267da99a64cc0c53cacd77ab594cfea00dc64d817bf7a0"
+    },
+    "length": 23
+   }
+  },
+  "version": 2
+ }
+}
