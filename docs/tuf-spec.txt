@@ -747,8 +747,8 @@ Version 1.0 (Draft)
        }, ... ]
      }
 
-   ROLENAME is the full name of the delegated role.  For example,
-   "targets/projects".
+   ROLENAME is the name of the delegated role.  For example,
+   "projects".
 
    TERMINATING is a boolean indicating whether subsequent delegations should be
    considered.
@@ -834,7 +834,7 @@ Version 1.0 (Draft)
        "keyids": [
         "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba"
        ],
-       "name": "targets/project",
+       "name": "project",
        "paths": [
         "/project/file3.txt"
        ],
