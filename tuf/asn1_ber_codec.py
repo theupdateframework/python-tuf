@@ -15,8 +15,8 @@ logger = logging.getLogger('tuf.asn1_ber_codec')
 
 try:
   # pyasn1 modules
-  import pyasn1.codec.ber.encoder as p_ber_encoder
-  import pyasn1.codec.ber.decoder as p_ber_decoder
+  import pyasn1.codec.der.encoder as p_der_encoder
+  import pyasn1.codec.der.decoder as p_der_decoder
   import pyasn1.type.tag as p_type_tag
   import pyasn1.type.univ as p_type_univ
 
@@ -50,7 +50,7 @@ def ensure_valid_metadata_type_for_asn1(metadata_type):
   if metadata_type not in SUPPORTED_ASN1_METADATA_MODULES:
     # TODO: Choose/make better exception class.
     raise tuf.Error('This is not one of the metadata types configured for '
-        'translation from JSON to BER. Type of given metadata: ' +
+        'translation from JSON to BER/DER. Type of given metadata: ' +
         repr(metadata_type) + '; types accepted: ' +
         repr(list(SUPPORTED_ASN1_METADATA_MODULES)))
 
@@ -82,7 +82,7 @@ def convert_signed_ber_to_bersigned_json(ber_data):
   # is actually not signed - it is simply the portion that will be put into
   # the "signed" section - the portion to be signed. The nomenclature is
   # unfortunate....
-  asn_metadata = p_ber_decoder.decode(
+  asn_metadata = p_der_decoder.decode(
       ber_data, asn1Spec=metadata_asn1_spec.Metadata())[0] # TODO: <~> Why 0?? Magic. Provide proper explanation.
 
   # asn_metadata here now has three components, indexed by integer 0, 1, 2.
@@ -251,14 +251,14 @@ def convert_signed_metadata_to_ber(
     # If the caller doesn't want any signatures included in the returned
     # BER object, then we need go no further and may encode what we already
     # have.
-    ber_signed = p_ber_encoder.encode(asn_signed)
+    ber_signed = p_der_encoder.encode(asn_signed)
     return ber_signed
 
 
   if resign:
 
     # Encode the ASN.1 as BER using pyasn1.
-    ber_signed = p_ber_encoder.encode(asn_signed)
+    ber_signed = p_der_encoder.encode(asn_signed)
 
     # This hashing is redundant and temporary. Eventually, the hash will
     # consistently be performed in securesystemslib/keys.py in the
@@ -336,7 +336,7 @@ def convert_signed_metadata_to_ber(
   metadata['numberOfSignatures'] = len(asn_signatures_list)
 
   # Encode our new (py)ASN.1 object as BER (Basic Encoding Rules).
-  return p_ber_encoder.encode(metadata)
+  return p_der_encoder.encode(metadata)
 
 
 
