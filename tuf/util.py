@@ -886,8 +886,8 @@ def load_json_string(data):
   deserialized_object = None
   
   try:
-    deserialized_object = json.loads(data)
- 
+    deserialized_object = json.loads(data.decode('utf-8'))
+
   except TypeError:
     message = 'Invalid JSON string: ' + repr(data)
     raise tuf.Error(message)
@@ -1075,7 +1075,7 @@ def load_file(filepath):
 
 
 
-def load_string(filepath):
+def load_string(data):
   """
   Loads the given BER or JSON string into TUF's standard Python dictionary
   format (return value conforms with tuf.formats.SIGNABLE_SCHEMA, with the
@@ -1085,10 +1085,10 @@ def load_string(filepath):
   comments in those functions.
   """
   if tuf.conf.METADATA_FORMAT == 'ber':
-    return load_ber_string()
+    return load_ber_string(data)
 
   elif tuf.conf.METADATA_FORMAT == 'json':
-    return load_json_string()
+    return load_json_string(data)
 
   else:
     raise tuf.Error('tuf.util.load_string() only supports ber or json, but '
