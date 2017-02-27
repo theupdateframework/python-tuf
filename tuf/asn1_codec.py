@@ -1,9 +1,9 @@
 """
 <Program Name>
-  asn1_ber_codec.py
+  asn1_codec.py
 
 <Purpose>
-  Provides functions to allow use of ASN.1/BER-encoded metadata with TUF.
+  Provides functions to allow use of ASN.1/DER-encoded metadata with TUF.
 """
 import tuf
 import tuf.conf
@@ -11,7 +11,7 @@ import tuf.formats
 import logging
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.asn1_ber_codec')
+logger = logging.getLogger('tuf.asn1_codec')
 
 try:
   # pyasn1 modules
@@ -50,7 +50,7 @@ def ensure_valid_metadata_type_for_asn1(metadata_type):
   if metadata_type not in SUPPORTED_ASN1_METADATA_MODULES:
     # TODO: Choose/make better exception class.
     raise tuf.Error('This is not one of the metadata types configured for '
-        'translation from JSON to BER/DER. Type of given metadata: ' +
+        'translation from JSON to DER-encoded ASN1. Type of given metadata: ' +
         repr(metadata_type) + '; types accepted: ' +
         repr(list(SUPPORTED_ASN1_METADATA_MODULES)))
 
@@ -58,13 +58,13 @@ def ensure_valid_metadata_type_for_asn1(metadata_type):
 
 
 
-def convert_signed_ber_to_bersigned_json(ber_data):
+def convert_signed_der_to_dersigned_json(der_data):
   """
-  Convert the given ber_data to a Python dictionary representation consistent
+  Convert the given der_data to a Python dictionary representation consistent
   with TUF's typical JSON encoding.
 
   The 'signed' portion will be a JSON-style (essentially Python dict)
-  translation of the ber data's 'signed' portion. Likewise for the 'signatures'
+  translation of the der data's 'signed' portion. Likewise for the 'signatures'
   portion. The result will be a dict containing a 'signatures' section that has
   signatures over not what is in the 'signed' section, but rather over a
   different format and encoding of what is in the 'signed' section. Please take
@@ -73,7 +73,7 @@ def convert_signed_ber_to_bersigned_json(ber_data):
   """
 
   if not PYASN1_EXISTS:
-    raise tuf.Error('Request was made to load a BER file, but the required '
+    raise tuf.Error('Request was made to load a DER file, but the required '
         'pyasn1 library failed to import.')
 
   # "_signed" here refers to the portion of the metadata that will be signed.
@@ -83,7 +83,7 @@ def convert_signed_ber_to_bersigned_json(ber_data):
   # the "signed" section - the portion to be signed. The nomenclature is
   # unfortunate....
   asn_metadata = p_der_decoder.decode(
-      ber_data, asn1Spec=metadata_asn1_spec.Metadata())[0] # TODO: <~> Why 0?? Magic. Provide proper explanation.
+      der_data, asn1Spec=metadata_asn1_spec.Metadata())[0] # TODO: <~> Why 0?? Magic. Provide proper explanation.
 
   # asn_metadata here now has three components, indexed by integer 0, 1, 2.
   # 0 is the signed component (Signed())
@@ -92,13 +92,13 @@ def convert_signed_ber_to_bersigned_json(ber_data):
 
   asn_signed_metadata = asn_metadata[0]
 
-  # TODO: <~> The 'signed' component here should probably already be BER, since
+  # TODO: <~> The 'signed' component here should probably already be DER, since
   # that is what the signature is over. Because this would entail some changes
   # changes to the ASN.1 data specifications in metadataverificationmodule.py,
   # I'm not doing this yet (though I expect to).
   # So, for the time being, if we wanted to check the signature, we'd have to
-  # encode this thing into BER again.
-  # ber_signed_metadata = p_ber_encoder.encode(asn_signed)
+  # encode this thing into DER again.
+  # der_signed_metadata = p_der_encoder.encode(asn_signed)
 
 
   # Now we have to figure out what type of metadata the ASN.1 metadata is
@@ -146,12 +146,12 @@ def convert_signed_ber_to_bersigned_json(ber_data):
 
 
 
-def convert_signed_metadata_to_ber(
+def convert_signed_metadata_to_der(
     signed_metadata, private_key=None, resign=False, only_signed=False):
   """
   Normal behavior ("resign" (re-sign) parameter being False) converts the
   basic Python dictionary format of signed_metadata provided into ASN.1 and
-  encodes it as BER, returning the resulting BER encoding of the given metadata.
+  encodes it as DER, returning the resulting DER encoding of the given metadata.
 
   "_signed" here refers to the portion of the metadata that will be signed.
   The metadata is divided into "signed" and "signature" portions. The
@@ -171,15 +171,15 @@ def convert_signed_metadata_to_ber(
 
     resign
       ("re-sign"). Normally False, resulting in the signatures in
-      signed_metadata being formatted as ASN.1 and encoded as BER, but otherwise
+      signed_metadata being formatted as ASN.1 and encoded as DER, but otherwise
       preserved.
       If resign is instead True, any signatures provided are
       discarded, and a new signature is generated. This new signature will be
-      over the BER encoding of the data provided in signed_metadata['signed'].
+      over the DER encoding of the data provided in signed_metadata['signed'].
       In other words, 'signed' will first be converted into ASN.1 and then
-      encoded as BER, and a signature will be made using the given private_key,
-      over that BER encoding.
-      If the given signatures are already over BER encoding before reaching
+      encoded as DER, and a signature will be made using the given private_key,
+      over that DER encoding.
+      If the given signatures are already over DER encoding before reaching
       this point (as may happen in the current design), then you will not
       need this to be True....
       # TODO: <~> Revise above comment after you're finished.
@@ -193,21 +193,21 @@ def convert_signed_metadata_to_ber(
       tuf.repository_tool.import_*_private_key() functions.
 
     only_signed
-      Default False. If this is set to True, instead of returning the BER
+      Default False. If this is set to True, instead of returning the DER
       encoding of the full {'signed': {"abc..."}, 'signatures': [{"xyz..."}]}
-      object, the BER encoding of only the 'signed' entry will be returned
+      object, the DER encoding of only the 'signed' entry will be returned
       {"abc..."}.
 
   <Returns>
-    By default (only_signed=False, resign=False), the returned value is the BER
+    By default (only_signed=False, resign=False), the returned value is the DER
     encoding of the full signed_metadata dictionary.
 
-    If only_signed is True, the returned value is the BER encoding of only the
+    If only_signed is True, the returned value is the DER encoding of only the
     'signed' entry in the signed_metadata dictionary.
 
-    Otherwise, if resign is True, the returned value is the BER encoding of the
+    Otherwise, if resign is True, the returned value is the DER encoding of the
     full signed_metadata dictionary, but with the 'signatures' entry
-    discarded and rebuilt anew with a new signature over the BER ENCODING of the
+    discarded and rebuilt anew with a new signature over the DER ENCODING of the
     'signed' entry in the signed_metadata dictionary.
 
   """
@@ -216,7 +216,7 @@ def convert_signed_metadata_to_ber(
   tuf.formats.BOOLEAN_SCHEMA.check_match(resign)
   if resign != (private_key is not None):
     raise tuf.Error('Inconsistent arguments: a private key should be provided '
-        'to convert_signed_json_to_signed_ber if and only if the resign '
+        'to convert_signed_json_to_signed_der if and only if the resign '
         'argument is True.')
 
   if only_signed and resign:
@@ -249,29 +249,29 @@ def convert_signed_metadata_to_ber(
 
   if only_signed:
     # If the caller doesn't want any signatures included in the returned
-    # BER object, then we need go no further and may encode what we already
+    # DER object, then we need go no further and may encode what we already
     # have.
-    ber_signed = p_der_encoder.encode(asn_signed)
-    return ber_signed
+    der_signed = p_der_encoder.encode(asn_signed)
+    return der_signed
 
 
   if resign:
 
-    # Encode the ASN.1 as BER using pyasn1.
-    ber_signed = p_der_encoder.encode(asn_signed)
+    # Encode the ASN.1 as DER using pyasn1.
+    der_signed = p_der_encoder.encode(asn_signed)
 
     # This hashing is redundant and temporary. Eventually, the hash will
     # consistently be performed in securesystemslib/keys.py in the
     # create_signature() function, so we shouldn't be taking a hash here.
     # For the time being, I do this so that it always uses a hash even for ed25519
     # and also so that the canonicalization that is currently called by
-    # create_signature() doesn't choke on the BER I want to sign.
-    hash_of_ber = hashlib.sha256(ber_signed).hexdigest()
+    # create_signature() doesn't choke on the DER I want to sign.
+    hash_of_der = hashlib.sha256(der_signed).hexdigest()
 
     # Now sign the metadata. (This signs a cryptographic hash of the metadata.)
     # The returned value is a basic Python dict writable into JSON.
-    # This is a signature over the hash of the BER encoding.
-    pydict_signatures = [tuf.keys.create_signature(private_key, hash_of_ber)]#ber_signed)
+    # This is a signature over the hash of the DER encoding.
+    pydict_signatures = [tuf.keys.create_signature(private_key, hash_of_der)]#der_signed)
 
   else:
     pydict_signatures = signed_metadata['signatures']
@@ -331,11 +331,11 @@ def convert_signed_metadata_to_ber(
   # Now construct an ASN.1 representation of the signed/signatures-encapsulated
   # metadata, populating it.
   metadata = metadata_asn1_spec.Metadata()
-  metadata['signed'] = asn_signed #considering using ber_signed instead - requires changes
+  metadata['signed'] = asn_signed #considering using der_signed instead - requires changes
   metadata['signatures'] = asn_signatures_list # TODO: Support multiple sigs, or integrate with TUF.
   metadata['numberOfSignatures'] = len(asn_signatures_list)
 
-  # Encode our new (py)ASN.1 object as BER (Basic Encoding Rules).
+  # Encode our new (py)ASN.1 object as DER (Distinguished Encoding Rules).
   return p_der_encoder.encode(metadata)
 
 

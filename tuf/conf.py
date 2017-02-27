@@ -55,8 +55,8 @@ ENABLE_FILE_LOGGING = True
 LOG_FILENAME = 'tuf.log'
 
 # This is the format/encoding of metadata that TUF will use. The options are
-# 'json' and 'ber'. BER is an encoding of ASN.1 used for the Uptane project.
-METADATA_FORMAT = 'ber' # 'json'
+# 'json' and 'der'. DER is an encoding of ASN.1 used for the Uptane project.
+METADATA_FORMAT = 'der' # 'json'
 
 # Since the timestamp role does not have signed metadata about itself, we set a
 # default but sane upper bound for the number of bytes required to download it.

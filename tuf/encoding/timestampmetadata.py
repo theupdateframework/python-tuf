@@ -91,6 +91,6 @@ def get_json_signed(asn_metadata):
 
 
 if __name__ == '__main__':
-  metadata.test('timestamp.json', 'timestamp.ber', get_asn_signed,
+  metadata.test('timestamp.json', 'timestamp.der', get_asn_signed,
                 get_json_signed, metadata.identity_update_json_signature,
                 Metadata)

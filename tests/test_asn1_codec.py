@@ -1,6 +1,6 @@
 import tuf
 import tuf.util
-import tuf.asn1_ber_codec as asn1_ber_codec
+import tuf.asn1_codec as asn1_codec
 import tuf.conf
 import unittest
 
@@ -18,27 +18,27 @@ class TestASN1Conversion(unittest.TestCase):
   # KEY------\nMIIBojANBgk...\n...'
   def test_1_root_partial_convert(self):
     # Test 1: only_signed conversion PyDict -> ASN1 BER of Root
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/repository/metadata/root.json', self)
 
   def test_2_tuf_sample_timestamp_partial_convert(self):
     """Test 2: only_signed conversion PyDict -> ASN1 BER of Timestamp"""
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/repository/metadata/timestamp.json', self)
 
   def test_3_snapshot_partial_convert(self):
     # Test 3: only_signed conversion PyDict -> ASN1 BER of Snapshot
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/repository/metadata/snapshot.json', self)
 
   def test_4_simple_targets_partial_convert(self):
     """Test 4: only_signed conversion PyDict -> ASN1 BER of simple Targets"""
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/targets_simpler.json', self)
 
   def test_5_delegated_partial_convert(self):
     """Test 5: only_signed conversion PyDict -> ASN1 BER of delegated role"""
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/repository/metadata/role1.json', self)
 
 
@@ -53,7 +53,7 @@ class TestASN1Conversion(unittest.TestCase):
   # preserved, in a dict of some sort....
   def test_6_targets_w_custom_partial_convert(self):
     """Test 5: only_signed conversion PyDict -> ASN1 BER of Targets"""
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/repository/metadata/targets.json', self)
 
 
@@ -62,35 +62,35 @@ class TestASN1Conversion(unittest.TestCase):
 
   def test_11_root_uptane_partial_convert(self):
     """Test 11: only_signed conversion PyDict -> ASN1 BER of Root"""
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/uptane_mainrepo_root.json', self)
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/uptane_director_root.json', self)
 
   def test_12_snapshot_uptane_partial_convert(self):
     """Test 12: only_signed conversion PyDict -> ASN1 BER of Snapshot"""
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/uptane_mainrepo_snapshot.json', self)
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/uptane_director_snapshot.json', self)
 
   def test_13_timestamp_uptane_partial_convert(self):
     """Test 13: only_signed conversion PyDict -> ASN1 BER of Snapshot"""
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/uptane_mainrepo_snapshot.json', self)
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/uptane_director_snapshot.json', self)
 
   def test_14_targets_uptane_partial_convert(self):
     """Test 14: only_signed conversion PyDict -> ASN1 BER of Targets"""
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/uptane_mainrepo_targets.json', self)
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/uptane_director_targets.json', self)
 
   def test_15_delegated_uptane_partial_convert(self):
     """Test 15: only_signed conversion PyDict -> ASN1 BER of Snapshot"""
-    partial_ber_conversion_tester(
+    partial_der_conversion_tester(
         'tests/repository_data/uptane_mainrepo_role1.json', self)
     # No delegations for the Director, so no second case to test.
 
@@ -101,7 +101,7 @@ class TestASN1Conversion(unittest.TestCase):
 
 
 
-def partial_ber_conversion_tester(json_fname, self): # Clunky.
+def partial_der_conversion_tester(json_fname, self): # Clunky.
   """
   This function takes as a second parameter the unittest.TestCase object whose
   functions (assertTrue etc) it can use. This is awkward and inappropriate. :P
@@ -113,22 +113,22 @@ def partial_ber_conversion_tester(json_fname, self): # Clunky.
 
   role_signable_pydict = tuf.util.load_file(json_fname)
 
-  self.assertTrue(is_valid_nonempty_ber(
-      asn1_ber_codec.convert_signed_metadata_to_ber(
+  self.assertTrue(is_valid_nonempty_der(
+      asn1_codec.convert_signed_metadata_to_der(
       role_signable_pydict, only_signed=True)))
 
 
 
 
 
-def is_valid_nonempty_ber(ber_string):
+def is_valid_nonempty_der(der_string):
   """
   Currently a trivial test to see if the result is a non-empty byte string.
   """
-  if not ber_string:
+  if not der_string:
     return False
   else:
-    return repr(ber_string[0])[1:3] == '\\x'
+    return repr(der_string[0])[1:3] == '\\x'
 
 
 if __name__ == '__main__':

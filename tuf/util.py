@@ -40,7 +40,7 @@ import tuf.conf
 import tuf.formats
 import six
 
-import tuf.asn1_ber_codec as asn1_ber_codec
+import tuf.asn1_codec as asn1_codec
 
 
 # The algorithm used by the repository to generate the digests of the
@@ -904,18 +904,18 @@ def load_json_string(data):
 
 
 
-def load_ber_string(data):
+def load_der_string(data):
   """
   <Purpose>
-    Deserialize 'data' (BER string) to a Python object. This supports only
-    what tuf.asn1_ber_codec supports, which at the time of this writing is
+    Deserialize 'data' (DER string) to a Python object. This supports only
+    what tuf.asn1_codec supports, which at the time of this writing is
     signed role metadata (timestamp, snapshot, root, or targets) converted into
-    ASN.1 and then encoded as BER.
+    ASN.1 and then encoded as DER.
 
   <Arguments>
     data:
-      A BER string, as would be output by e.g.
-      asn1_ber_codec.convert_signed_metadata_to_ber()
+      A DER string, as would be output by e.g.
+      asn1_codec.convert_signed_metadata_to_der()
 
   <Exceptions>
     tuf.Error, if 'data' cannot be deserialized to a Python object.
@@ -927,10 +927,10 @@ def load_ber_string(data):
     Deserialized object.  For example, a dictionary.
   """
   try:
-    return asn1_ber_codec.convert_signed_ber_to_bersigned_json(data)
+    return asn1_codec.convert_signed_der_to_dersigned_json(data)
   except Exception as e:
     raise tuf.Error('An exception was encountered in an attempt to convert '
-        'the given data from BER to a Python dictionary containing role '
+        'the given data from DER to a Python dictionary containing role '
         'metadata. The exception reads: ' + repr(e))
 
 
@@ -993,15 +993,15 @@ def load_json_file(filepath):
 
 
 
-def load_ber_file(filepath):
+def load_der_file(filepath):
   """
   <Purpose>
-    Read in a BER file and output a Python dictionary in standard TUF
-    format containing the translated contents of the BER file.
+    Read in a DER file and output a Python dictionary in standard TUF
+    format containing the translated contents of the DER file.
 
   <Arguments>
     filepath:
-      Absolute path of BER file.
+      Absolute path of DER file.
 
   <Exceptions>
     tuf.FormatError: If 'filepath' is improperly formatted.
@@ -1016,7 +1016,7 @@ def load_ber_file(filepath):
   <Return>
     Python dictionary matching tuf.formats.SIGNABLE_SCHEMA where the 'signed'
     entry matches tuf.formats.TARGETS_SCHEMA, and the data comes from the
-    BER file whose filename was provided.
+    DER file whose filename was provided.
   """
 
   # Making sure that the format of 'filepath' is a path string.
@@ -1026,50 +1026,50 @@ def load_ber_file(filepath):
   # The file is mostly likely gzipped.
   if filepath.endswith('.gz'):
     logger.debug('gzip.open(' + str(filepath) + ')')
-    ber_fobj = six.StringIO(gzip.open(filepath).read()) # TODO: <~> MAKE SURE THIS STILL WORKS.
+    der_fobj = six.StringIO(gzip.open(filepath).read()) # TODO: <~> MAKE SURE THIS STILL WORKS.
 
   else:
     logger.debug('open(' + str(filepath) + ')')
-    ber_fobj = open(filepath, 'rb')
+    der_fobj = open(filepath, 'rb')
 
   try:
-    ber_data = ber_fobj.read()
+    der_data = der_fobj.read()
 
   except (ValueError, TypeError):
-    raise tuf.Error('Cannot read BER file: ' + repr(filepath))
+    raise tuf.Error('Cannot read DER file: ' + repr(filepath))
 
   finally:
-    ber_fobj.close()
+    der_fobj.close()
 
 
-  # Decode the BER into an abstract ASN.1 representation of its data,
+  # Decode the DER into an abstract ASN.1 representation of its data,
   # then convert that into a basic Python dictionary representation of the
   # data within.
-  #return asn1_ber_codec.convert_signed_ber_to_bersigned_json(ber_data)
-  return load_ber_string(ber_data)
+  #return asn1_codec.convert_signed_der_to_dersigned_json(der_data)
+  return load_der_string(der_data)
 
 
 
 
 def load_file(filepath):
   """
-  Loads the given BER or JSON file into TUF's standard Python dictionary
+  Loads the given DER or JSON file into TUF's standard Python dictionary
   format (return value conforms with tuf.formats.SIGNABLE_SCHEMA, with the
   value of 'signed' conforming to tuf.formats.ANYROLE_SCHEMA
 
-  A simple wrapper for load_ber_file and load_json_file. Please see comments in
+  A simple wrapper for load_der_file and load_json_file. Please see comments in
   those functions.
   """
 
-  if filepath.endswith('.ber'):
-    return load_ber_file(filepath)
+  if filepath.endswith('.der'):
+    return load_der_file(filepath)
 
   elif filepath.endswith('.json'):
     return load_json_file(filepath)
 
   else:
     raise tuf.Error('The provided file does not have a supported extension: '
-        '.ber or .json. Filepath: ' + repr(filepath))
+        '.der or .json. Filepath: ' + repr(filepath))
 
 
 
@@ -1077,29 +1077,29 @@ def load_file(filepath):
 
 def load_string(data):
   """
-  Loads the given BER or JSON string into TUF's standard Python dictionary
+  Loads the given DER or JSON string into TUF's standard Python dictionary
   format (return value conforms with tuf.formats.SIGNABLE_SCHEMA, with the
   value of 'signed' conforming to tuf.formats.ANYROLE_SCHEMA
 
-  A simple wrapper for load_ber_string and load_json_string. Please see
+  A simple wrapper for load_der_string and load_json_string. Please see
   comments in those functions.
   """
-  if tuf.conf.METADATA_FORMAT == 'ber':
-    return load_ber_string(data)
+  if tuf.conf.METADATA_FORMAT == 'der':
+    return load_der_string(data)
 
   elif tuf.conf.METADATA_FORMAT == 'json':
     return load_json_string(data)
 
   else:
-    raise tuf.Error('tuf.util.load_string() only supports ber or json, but '
+    raise tuf.Error('tuf.util.load_string() only supports DER or JSON, but '
         'tuf.conf.METADATA_FORMAT is set to neither. It is instead set to: ' +
         repr(tuf.conf.METADATA_FORMAT))
 
 
 
 
-# Moved convert_signed_ber_to_bersigned_json and
-# ensure_valid_metadata_type_for_asn1 into new module: tuf.asn1_ber_codec.py
+# Moved convert_signed_der_to_dersigned_json and
+# ensure_valid_metadata_type_for_asn1 into new module: tuf.asn1_codec.py
 
 
 

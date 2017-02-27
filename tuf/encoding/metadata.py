@@ -9,7 +9,7 @@ from __future__ import print_function
 
 from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
 
-from pyasn1.codec.ber import encoder, decoder
+from pyasn1.codec.der import encoder, decoder
 
 from tuf.encoding.metadataverificationmodule import *
 
@@ -21,8 +21,8 @@ import json
 
 def asn_to_json_metadata(get_json_signed, asn_metadata):
   asn_signed = asn_metadata['signed']
-  ber_signed = get_ber_signed(asn_signed)
-  ber_signed_digest = hashlib.sha256(ber_signed).hexdigest()
+  der_signed = get_der_signed(asn_signed)
+  der_signed_digest = hashlib.sha256(der_signed).hexdigest()
 
   json_signatures = []
   asn_signatures = asn_metadata['signatures']
@@ -32,8 +32,8 @@ def asn_to_json_metadata(get_json_signed, asn_metadata):
     asn_digest = asn_signature['hash']['digest']['octetString'].prettyPrint()
     assert asn_digest.startswith('0x')
     asn_digest = asn_digest[2:]
-    # NOTE: Ensure that hash(BER(Metadata.signed)==Metadata.signatures[i].hash).
-    assert asn_digest == ber_signed_digest
+    # NOTE: Ensure that hash(DER(Metadata.signed)==Metadata.signatures[i].hash).
+    assert asn_digest == der_signed_digest
 
     keyid = asn_signature['keyid']['octetString'].prettyPrint()
     assert keyid.startswith('0x')
@@ -50,7 +50,7 @@ def asn_to_json_metadata(get_json_signed, asn_metadata):
 
     json_signature = {
       # NOTE: Check that signatures are for hash instead of signed.
-      'hash': ber_signed_digest,
+      'hash': der_signed_digest,
       'keyid': keyid,
       'method': method,
       'sig': value
@@ -63,8 +63,8 @@ def asn_to_json_metadata(get_json_signed, asn_metadata):
   }
 
 
-def ber_to_json_metadata(get_json_signed, ber_metadata, asn1Spec):
-  asn_metadata = decoder.decode(ber_metadata, asn1Spec=asn1Spec())[0]
+def der_to_json_metadata(get_json_signed, der_metadata, asn1Spec):
+  asn_metadata = decoder.decode(der_metadata, asn1Spec=asn1Spec())[0]
   return asn_to_json_metadata(get_json_signed, asn_metadata)
 
 
@@ -72,18 +72,18 @@ def epoch_to_iso8601(timestamp):
   return datetime.utcfromtimestamp(timestamp).isoformat()+'Z'
 
 
-def get_asn_and_ber_signed(get_asn_signed, json_signed):
+def get_asn_and_der_signed(get_asn_signed, json_signed):
   asn_signed = get_asn_signed(json_signed)
-  ber_signed = get_ber_signed(asn_signed)
-  return asn_signed, ber_signed
+  der_signed = get_der_signed(asn_signed)
+  return asn_signed, der_signed
 
 
-def get_ber_signed(asn_signed):
+def get_der_signed(asn_signed):
   return encoder.encode(asn_signed)
 
 
-def identity_update_json_signature(ber_signed_digest, json_signature):
-  # NOTE: Replace this signature with sign(private_key, ber_signed_digest).
+def identity_update_json_signature(der_signed_digest, json_signature):
+  # NOTE: Replace this signature with sign(private_key, der_signed_digest).
   json_signature['sig'] = json_signature['sig']
 
 
@@ -92,10 +92,10 @@ def iso8601_to_epoch(datestring):
                                            "%Y-%m-%dT%H:%M:%SZ").timetuple())
 
 
-def json_to_asn_metadata(asn_signed, ber_signed, json_signatures, asn1Spec):
+def json_to_asn_metadata(asn_signed, der_signed, json_signatures, asn1Spec):
   metadata = asn1Spec()
   metadata['signed'] = asn_signed
-  signedDigest = hashlib.sha256(ber_signed).hexdigest()
+  signedDigest = hashlib.sha256(der_signed).hexdigest()
 
   asn_signatures = Signatures()\
                    .subtype(implicitTag=tag.Tag(tag.tagClassContext,
@@ -138,8 +138,8 @@ def json_to_asn_metadata(asn_signed, ber_signed, json_signatures, asn1Spec):
   return metadata
 
 
-def json_to_ber_metadata(asn_signed, ber_signed, json_signatures, asn1Spec):
-  metadata = json_to_asn_metadata(asn_signed, ber_signed, json_signatures,
+def json_to_der_metadata(asn_signed, der_signed, json_signatures, asn1Spec):
+  metadata = json_to_asn_metadata(asn_signed, der_signed, json_signatures,
                                   asn1Spec)
   return encoder.encode(metadata)
 
@@ -150,7 +150,7 @@ def pretty_print(json_metadata):
                    separators=(',', ': ')), end='')
 
 
-def test(json_filename, ber_filename, get_asn_signed, get_json_signed,
+def test(json_filename, der_filename, get_asn_signed, get_json_signed,
          update_json_signature, asn1Spec):
   # 1. Read from JSON.
   with open(json_filename, 'rb') as jsonFile:
@@ -159,19 +159,19 @@ def test(json_filename, ber_filename, get_asn_signed, get_json_signed,
   json_signatures = before_json['signatures']
 
   # 2. Write the signed encoding.
-  asn_signed, ber_signed = get_asn_and_ber_signed(get_asn_signed, json_signed)
-  ber_signed_digest = hashlib.sha256(ber_signed).hexdigest()
-  # NOTE: Use ber_signed_digest to *MODIFY* json_signatures.
+  asn_signed, der_signed = get_asn_and_der_signed(get_asn_signed, json_signed)
+  der_signed_digest = hashlib.sha256(der_signed).hexdigest()
+  # NOTE: Use der_signed_digest to *MODIFY* json_signatures.
   for json_signature in json_signatures:
-    update_json_signature(ber_signed_digest, json_signature)
-  with open (ber_filename, 'wb') as berFile:
-    ber_metadata = json_to_ber_metadata(asn_signed, ber_signed, json_signatures,
+    update_json_signature(der_signed_digest, json_signature)
+  with open (der_filename, 'wb') as derFile:
+    der_metadata = json_to_der_metadata(asn_signed, der_signed, json_signatures,
                                         asn1Spec)
-    berFile.write(ber_metadata)
+    derFile.write(der_metadata)
 
   # 3. Read it back to check the signed hash.
-  with open(ber_filename, 'rb') as berFile:
-    ber_metadata = berFile.read()
+  with open(der_filename, 'rb') as derFile:
+    der_metadata = derFile.read()
   # NOTE: In after_json, check that signatures match signed_hash.
-  after_json = ber_to_json_metadata(get_json_signed, ber_metadata, asn1Spec)
+  after_json = der_to_json_metadata(get_json_signed, der_metadata, asn1Spec)
   pretty_print(after_json)

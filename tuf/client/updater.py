@@ -275,7 +275,7 @@ class Updater(object):
 
     # Read in pinned.json.
     # Unique among TUF metadata, pinned.json currently remains in JSON, never
-    # BER. It is never transfered anywhere.
+    # DER. It is never transfered anywhere.
     pinned_metadata = tuf.util.load_json_file(pinned_metadata_fname)
 
     # Make sure the pinned file matches format expectations.
@@ -952,7 +952,7 @@ class SingleRepoUpdater(object):
         {tuf.conf.repository_directory}/metadata/<repository_name>previous
 
       and, at a minimum, the root metadata file must exist, with file extension
-      matching tuf.conf.METADATA_FORMAT (.json or .ber):
+      matching tuf.conf.METADATA_FORMAT (.json or .der):
 
         {tuf.conf.repository_directory}/metadata/<repository_name>/current/root.json
     
@@ -985,7 +985,7 @@ class SingleRepoUpdater(object):
       
       tuf.RepositoryError:
         If there is an error with the updater's repository files, such
-        as a missing root role file (root.json or root.ber, depending on
+        as a missing root role file (root.json or root.der, depending on
         tuf.conf.METADATA_EXTENSION)
 
     <Side Effects>
@@ -1558,7 +1558,7 @@ class SingleRepoUpdater(object):
     else:
       # Ensure the loaded 'metadata_signable' is properly formatted.  Raise
       # 'tuf.FormatError' if not.
-      tuf.formats.check_signable_object_format(metadata_signable) # TODO: <~> This needs some way of knowing that it has a piece of BER-signed data so that it can re-encode 'signed' as BER before checking it.
+      tuf.formats.check_signable_object_format(metadata_signable) # TODO: <~> This needs some way of knowing that it has a piece of DER-signed data so that it can re-encode 'signed' as DER before checking it.
 
     # Is 'metadata_signable' expired?
     self._ensure_not_expired(metadata_signable['signed'], metadata_role)

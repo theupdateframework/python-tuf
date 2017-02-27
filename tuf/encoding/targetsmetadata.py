@@ -364,6 +364,6 @@ def set_json_targets(json_signed, targetsMetadata):
 
 
 if __name__ == '__main__':
-  metadata.test('targets.json', 'targets.ber', get_asn_signed,
+  metadata.test('targets.json', 'targets.der', get_asn_signed,
                 get_json_signed, metadata.identity_update_json_signature,
                 Metadata)
