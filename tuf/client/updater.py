@@ -141,7 +141,7 @@ iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
 
 # The extension of TUF metadata.
-METADATA_EXTENSION = '.' + tuf.conf.METADATA_EXTENSION # '.json'
+METADATA_EXTENSION = '.' + tuf.conf.METADATA_FORMAT # '.json'
 
 
 class Updater(object):
@@ -244,7 +244,7 @@ class Updater(object):
     # Load pinned.json, which is required per TAP #4 and determines which
     # which targets should be sought from which repository(/ies).
     self._load_pinned_metadata(os.path.join(
-        client_repositories_directory, 'metadata', 'pinned.json'))
+        client_repositories_directory, 'metadata', 'pinned.json')) # Always JSON
 
     # This is where the SingleRepoUpdater objects are stored, indexed by
     # repository name.
@@ -950,8 +950,9 @@ class SingleRepoUpdater(object):
             
         {tuf.conf.repository_directory}/metadata/<repository_name>/current
         {tuf.conf.repository_directory}/metadata/<repository_name>previous
-      
-      and, at a minimum, the root metadata file must exist:
+
+      and, at a minimum, the root metadata file must exist, with file extension
+      matching tuf.conf.METADATA_FORMAT (.json or .ber):
 
         {tuf.conf.repository_directory}/metadata/<repository_name>/current/root.json
     
@@ -984,7 +985,8 @@ class SingleRepoUpdater(object):
       
       tuf.RepositoryError:
         If there is an error with the updater's repository files, such
-        as a missing 'root.json' file.
+        as a missing root role file (root.json or root.ber, depending on
+        tuf.conf.METADATA_EXTENSION)
 
     <Side Effects>
       The metadata files (e.g., 'root.json', 'targets.json') for the top- level
@@ -2655,13 +2657,16 @@ class SingleRepoUpdater(object):
       None.
     
     <Side Effects>
-      If there is no fileinfo currently loaded for 'metada_filename',
+      If there is no fileinfo currently loaded for 'metadata_filename',
       try to load it.
     
     <Returns>
       Boolean.  True if the fileinfo has changed, false otherwise.
     """
-       
+
+    if new_fileinfo is not None:
+      tuf.formats.FILEINFO_SCHEMA.check_match(new_fileinfo)
+
     # If there is no fileinfo currently stored for 'metadata_filename',
     # try to load the file, calculate the fileinfo, and store it.
     if metadata_filename not in self.fileinfo:
