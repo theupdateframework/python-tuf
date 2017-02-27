@@ -15,6 +15,12 @@
 #    2.1 Remove all PATTERN constraints on VisibleString definitions.
 #    2.2 Remove extraneous Module definitions: the full file is to be treated
 #        as one module.
+#        For example, remove sets of three lines like this:
+#           END
+#           MetadataModule DEFINITIONS AUTOMATIC TAGS ::=
+#           BEGIN
+#        When you're finished, there should be only one Module definitions
+#        statement and one END statement in the file.
 #
 # 3. Run pyasn1's asn1ate to generate the Python definitions from the
 #    consolidated ASN.1 definitions:
