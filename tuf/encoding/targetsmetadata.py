@@ -250,7 +250,9 @@ def set_json_keys(json_signed, delegations):
 
   for i in range(numberOfKeys):
     key = keys[i]
-    keyid = str(key['publicKeyid'])
+    keyid = key['publicKeyid']['octetString'].prettyPrint() #str(key['publicKeyid'])
+    assert keyid.startswith('0x')
+    keyid = keyid[2:]
     keytype = int(key['publicKeyType'])
     # FIXME: Only ed25519 keys allowed for now.
     assert keytype == 1
