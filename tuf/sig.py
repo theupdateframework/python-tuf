@@ -61,7 +61,7 @@ def get_signature_status(signable, role=None, repository_name='default'):
     generated using an unknown method.
 
     PLEASE NOTE that when running TUF with DER metadata (setting
-    tuf.conf.METADATA_FORMAT == 'DER'), this function can only be called
+    tuf.conf.METADATA_FORMAT == 'der'), this function can only be called
     on a SIGNABLE_SCHEMA in which the 'signed' entry is role metadata
     (i.e. 'signed' entry conforms to tuf.formats.ANYROLE_SCHEMA).
     This is because checking the signature of a signed metadata role in DER
