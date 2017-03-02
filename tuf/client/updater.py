@@ -450,7 +450,7 @@ class Updater(object):
         Determines the treatment of custom target info (the optional 'custom'
         field in tuf.formats.FILEINFO_SCHEMA) in the event that there are
         multi-repository delegations.
-        # TODO: <~> Support this for multi-role delegation as well for
+        # TODO: Support this for multi-role delegation as well for
         # consistency, even though there is no pressing need.
 
         The intention here is to optionally allow the client to pick through
@@ -491,7 +491,7 @@ class Updater(object):
         }
 
 
-        # TODO: <~> A new test case must be written for these scenarios.
+        # TODO: A new test case must be written for these scenarios.
 
 
     <Returns>

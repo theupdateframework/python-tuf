@@ -100,12 +100,6 @@ SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
 
 # The full list of supported TUF metadata extensions.
-# TODO: <~> TUF should be blind to Uptane. For now, the supported encodings
-# are 'json' and 'der', but DER is currently only supported for Targets
-# metadata, and only in an Uptane-compliant format. Support for DER needs to
-# be total, for all metadata types, and should not have non-TUF requirements
-# (e.g. Uptane pieces), nor should it break when Uptane pieces are present....
-# Hopefully, that's not too hard to achieve in the JSON-to-ASN.1 conversion.
 METADATA_EXTENSIONS = ['.json', '.der']
 
 
@@ -512,7 +506,7 @@ def _get_written_metadata(metadata_signable):
 
   elif tuf.conf.METADATA_FORMAT == 'der':
     written_metadata_content = asn1_codec.convert_signed_metadata_to_der(
-        metadata_signable) # TODO: <~> CURRENTLY WORKING HERE
+        metadata_signable)
   else:
     raise tuf.Error('Unsupported metadata format in configuration. Unable to '
         'write metadata in format: ' + repr(tuf.conf.METADATA_FORMAT))

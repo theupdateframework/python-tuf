@@ -737,7 +737,7 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
   # TODO: Consider canonical needs for DER.
-  # TODO: <~> Find way around having to use this flag. (Reason it is needed:
+  # TODO: Find way around having to use this flag. (Reason it is needed:
   # sometimes, even when tuf's metadata format (tuf.conf.METADATA_FORMAT) is
   # not set to JSON, we still want to sign basic python dictionaries (instead
   # of always signing things as DER, say). So we need a way of telling this
