@@ -67,10 +67,11 @@ def get_signature_status(signable, role=None, repository_name='default',
   <Purpose>
     Return a dictionary representing the status of the signatures listed in
     'signable'.  Given an object conformant to SIGNABLE_SCHEMA, a set of public
-    keys in 'tuf.keydb', a set of roles in 'tuf.roledb', and a role,
-    the status of these signatures can be determined.  This method will iterate
-    the signatures in 'signable' and enumerate all the keys that are valid,
-    invalid, unrecognized, unauthorized, or generated using an unknown method.
+    keys in 'tuf.keydb', a set of roles in 'tuf.roledb', and a role, the status
+    of these signatures can be determined.  This method will iterate the
+    signatures in 'signable' and enumerate all of the unique keys that are
+    valid, invalid, unrecognized, unauthorized, or generated using an unknown
+    method.
 
   <Arguments>
     signable:
@@ -151,7 +152,12 @@ def get_signature_status(signable, role=None, repository_name='default',
   signed = signable['signed']
   signatures = signable['signatures']
 
-  # Iterate the signatures and enumerate the signature_status fields.
+  # To avoid duplicates, maintain a list of unique keys that are loaded.
+  # Duplicates might occur if the same key (a valid, but different keyid) is
+  # loaded with a different KEYID hash algorithm.
+  loaded_keys = []
+
+  # Iterate signatures and enumerate the signature_status fields.
   # (i.e., good_sigs, bad_sigs, etc.).
   for signature in signatures:
     sig = signature['sig']
@@ -166,12 +172,17 @@ def get_signature_status(signable, role=None, repository_name='default',
       unknown_sigs.append(keyid)
       continue
 
+    # Has 'key' already been processed (via the same, or different, KEYID)?
+    if key['keyval'] in loaded_keys:
+      continue
+
     # Does the signature use an unknown key signing method?
     try:
       valid_sig = securesystemslib.keys.verify_signature(key, signature, signed)
 
     except securesystemslib.exceptions.UnknownMethodError:
       unknown_method_sigs.append(keyid)
+      loaded_keys.append(key['keyval'])
       continue
 
     # We are now dealing with either a trusted or untrusted key...
@@ -185,6 +196,7 @@ def get_signature_status(signable, role=None, repository_name='default',
 
           if keyid not in keyids:
             untrusted_sigs.append(keyid)
+            loaded_keys.append(key['keyval'])
             continue
 
         # Unknown role, re-raise exception.
@@ -194,14 +206,17 @@ def get_signature_status(signable, role=None, repository_name='default',
       # This is an unset role, thus an unknown signature.
       else:
         unknown_sigs.append(keyid)
+        loaded_keys.append(key['keyval'])
         continue
 
       # Identify good/authorized key.
       good_sigs.append(keyid)
+      loaded_keys.append(key['keyval'])
 
     else:
       # This is a bad signature for a trusted key.
       bad_sigs.append(keyid)
+      loaded_keys.append(key['keyval'])
 
   # Retrieve the threshold value for 'role'.  Raise
   # securesystemslib.exceptions.UnknownRoleError if we were given an invalid

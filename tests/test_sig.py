@@ -28,6 +28,7 @@ from __future__ import unicode_literals
 
 import unittest
 import logging
+import copy
 
 import tuf
 import tuf.log
@@ -201,9 +202,18 @@ class TestSig(unittest.TestCase):
     signable = {'signed' : 'test', 'signatures' : []}
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
-                                  KEYS[0], signable['signed']))
+        KEYS[0], signable['signed']))
+
+    copy_of_key = copy.deepcopy(KEYS[0])
+    copy_of_key['keyid'] = '123456'
+
+    signable['signatures'].append(securesystemslib.keys.create_signature(
+                                  copy_of_key, signable['signed']))
+    print('signable signatures: ' + repr(signable['signatures']))
 
     tuf.keydb.add_key(KEYS[0])
+    tuf.keydb.add_key(copy_of_key)
+
     threshold = 2
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid'],
@@ -211,6 +221,7 @@ class TestSig(unittest.TestCase):
     tuf.roledb.add_role('Root', roleinfo)
 
     sig_status = tuf.sig.get_signature_status(signable, 'Root')
+    print('sig_status: ' + repr(sig_status))
 
     self.assertEqual(2, sig_status['threshold'])
     self.assertEqual([KEYS[0]['keyid']], sig_status['good_sigs'])
