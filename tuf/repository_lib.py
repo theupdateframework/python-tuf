@@ -677,7 +677,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         repository_name=repository_name)
 
   else:
-    logger.debug('Cannot load the Timestamp  file: ' + repr(timestamp_filename))
+    logger.debug('Cannot load the Timestamp file: ' + repr(timestamp_filename))
 
   # Load 'snapshot.json'.  A consistent snapshot.json must be calculated if
   # 'consistent_snapshot' is True.
@@ -1963,7 +1963,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
           signable['signatures'].append(signature)
 
         except Exception as e:
-          logger.warning('Unable to create signature for keyid: ' + repr(keyid))
+          logger.warning('Unable to create signature for keyid: ' + repr(keyid) + '.  ' + str(e))
 
       else:
         logger.debug('Private key unset.  Skipping: ' + repr(keyid))
