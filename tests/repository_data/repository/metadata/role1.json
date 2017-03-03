@@ -3,14 +3,14 @@
   {
    "keyid": "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9",
    "method": "ed25519",
-   "sig": "e8f6db97fcad5eb2ca1cf5fc6b6d4579d026811581b0d2061af90c7cb26d966e15a06e7c596f663b05aa061308929f96136167359fc9d44919a36383403abd09"
+   "sig": "37e98c6b789b80daf2986dfd6033aa84be89fe296b1717a9e5844f05251273833995e80a8a996d51e5877de1e628c8a9ff6bb27123ed86c99092c37556d2e204"
   }
  ],
  "signed": {
   "_type": "Targets",
   "delegations": {
    "keys": {
-    "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9": {
+    "53bdf6f75bda58c33acf2d7262113b7cd013dfcd61bf5c45afcc7a5dce992f14": {
      "keyid_hash_algorithms": [
       "sha256",
       "sha512"
@@ -24,7 +24,7 @@
    "roles": [
     {
      "keyids": [
-      "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9"
+      "53bdf6f75bda58c33acf2d7262113b7cd013dfcd61bf5c45afcc7a5dce992f14"
      ],
      "name": "role2",
      "paths": [],
