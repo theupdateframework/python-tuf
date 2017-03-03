@@ -667,24 +667,31 @@ class Metadata(object):
     # 'tuf.keydb.py'.  Add 'key' to the list of recognized keys.
     # Keys may be shared, so do not raise an exception if 'key' has already
     # been loaded.
-    try:
-      tuf.keydb.add_key(key, repository_name=self._repository_name)
 
-    except securesystemslib.exceptions.KeyAlreadyExistsError:
-      logger.warning('Adding a verification key that has already been used.')
+    # Determine all of the keyids of 'key', so that the key's roleinfo contains
+    # the full list of recognized keyids.
+    junk, keyids = securesystemslib.keys.format_metadata_to_key(key)
+    for keyid in keyids:
 
-    keyid = key['keyid']
+      key['keyid'] = keyid
+      try:
+        tuf.keydb.add_key(key, repository_name=self._repository_name)
+
+      except securesystemslib.exceptions.KeyAlreadyExistsError:
+        logger.warning('Adding a verification key that has already been used.')
+
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
 
     previous_keyids = roleinfo['keyids']
 
     # Add 'key' to the role's entry in 'tuf.roledb.py' and avoid duplicates.
-    if keyid not in previous_keyids:
-      roleinfo['keyids'].append(keyid)
-      roleinfo['previous_keyids'] = previous_keyids
+    for keyid in keyids:
+      if keyid not in previous_keyids:
+        roleinfo['keyids'].append(keyid)
 
-      tuf.roledb.update_roleinfo(self._rolename, roleinfo,
-          repository_name=self._repository_name)
+    roleinfo['previous_keyids'] = previous_keyids
+    tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+        repository_name=self._repository_name)
 
 
 
@@ -726,6 +733,7 @@ class Metadata(object):
     securesystemslib.formats.ANYKEY_SCHEMA.check_match(key)
 
     keyid = key['keyid']
+
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
 
     if keyid in roleinfo['keyids']:
@@ -797,6 +805,14 @@ class Metadata(object):
       tuf.roledb.update_roleinfo(self.rolename, roleinfo,
           repository_name=self._repository_name)
 
+    #TODO: Raise a warning if the key to be loaded hasn't had its verification
+    # key added yet.
+    """
+    if key['keyid'] not in tuf.roledb.get_role_keyids(self.rolename,
+        repository_name=self._repository_name):
+      logger.info('Keyid (' + str(key['keyid'] + ') not recognized.'
+          ' A verification key for it has not been added to this role.'))
+    """
 
 
   def unload_signing_key(self, key):
@@ -2231,7 +2247,7 @@ class Targets(Metadata):
       delegations field of this Targets.  The delegation of 'rolename' is added
       and accessible (i.e., repository.targets(rolename)).
 
-      Actual metadata files are not create, only when repository.write() or
+      Actual metadata files are not created, only when repository.write() or
       repository.write_partial() is called.
 
       >>>
