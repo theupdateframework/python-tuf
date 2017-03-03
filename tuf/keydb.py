@@ -240,14 +240,17 @@ def add_key(key_dict, keyid=None, repository_name='default'):
       added to the 'default' repository.
 
   <Exceptions>
-    securesystemslib.exceptions.FormatError, if the arguments do not have the correct format.
+    securesystemslib.exceptions.FormatError, if the arguments do not have the
+    correct format.
 
-    securesystemslib.exceptions.Error, if 'keyid' does not match the keyid for 'rsakey_dict'.
+    securesystemslib.exceptions.Error, if 'keyid' does not match the keyid for
+    'rsakey_dict'.
 
-    securesystemslib.exceptions.KeyAlreadyExistsError, if 'rsakey_dict' is found in the key database.
+    securesystemslib.exceptions.KeyAlreadyExistsError, if 'rsakey_dict' is
+    found in the key database.
 
-    securesystemslib.exceptions.InvalidNameError, if 'repository_name' does not exist in the key
-    database.
+    securesystemslib.exceptions.InvalidNameError, if 'repository_name' does not
+    exist in the key database.
 
   <Side Effects>
     The keydb key database is modified.
@@ -272,12 +275,13 @@ def add_key(key_dict, keyid=None, repository_name='default'):
 
     # Check if each keyid found in 'key_dict' matches 'keyid'.
     if keyid != key_dict['keyid']:
-      raise securesystemslib.exceptions.Error('Incorrect keyid.  Got ' + key_dict['keyid'] + ' but expected ' + keyid)
+      raise securesystemslib.exceptions.Error('Incorrect keyid.'
+          '  Got ' + key_dict['keyid'] + ' but expected ' + keyid)
 
   # Ensure 'repository_name' is actually set in the key database.
   if repository_name not in _keydb_dict:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does not exist:'
-      ' ' + repr(repository_name))
+    raise securesystemslib.exceptions.InvalidNameError('Repository name'
+        ' does not exist: ' + repr(repository_name))
 
   # Check if the keyid belonging to 'key_dict' is not already
   # available in the key database before returning.
