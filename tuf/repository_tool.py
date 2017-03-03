@@ -805,14 +805,12 @@ class Metadata(object):
       tuf.roledb.update_roleinfo(self.rolename, roleinfo,
           repository_name=self._repository_name)
 
-    #TODO: Raise a warning if the key to be loaded hasn't had its verification
+    # Raise a warning if the key to be loaded hasn't had its verification
     # key added yet.
-    """
     if key['keyid'] not in tuf.roledb.get_role_keyids(self.rolename,
         repository_name=self._repository_name):
-      logger.info('Keyid (' + str(key['keyid'] + ') not recognized.'
+      logger.info('KEYID (' + str(key['keyid'] + ') not recognized.'
           ' A verification key for it has not been added to this role.'))
-    """
 
 
   def unload_signing_key(self, key):
