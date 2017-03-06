@@ -508,8 +508,8 @@ def _get_written_metadata(metadata_signable):
     written_metadata_content = asn1_codec.convert_signed_metadata_to_der(
         metadata_signable)
   else:
-    raise tuf.Error('Unsupported metadata format in configuration. Unable to '
-        'write metadata in format: ' + repr(tuf.conf.METADATA_FORMAT))
+    raise tuf.Error('Unsupported metadata format in tuf.conf.METADATA_FORMAT. '
+        'Unable to write metadata in format: ' + repr(tuf.conf.METADATA_FORMAT))
 
   return written_metadata_content
 
