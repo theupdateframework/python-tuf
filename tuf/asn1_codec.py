@@ -21,19 +21,19 @@ try:
   import pyasn1.type.univ as p_type_univ
 
   # ASN.1 data specification modules that convert ASN.1 to JSON and back.
-  import tuf.encoding.rootmetadata as root_asn1_spec
-  import tuf.encoding.snapshotmetadata as snapshot_asn1_spec
-  import tuf.encoding.timestampmetadata as timestamp_asn1_spec
-  import tuf.encoding.targetsmetadata as targets_asn1_spec
+  import tuf.encoding.rootmetadata as root_asn1_coder
+  import tuf.encoding.snapshotmetadata as snapshot_asn1_coder
+  import tuf.encoding.timestampmetadata as timestamp_asn1_coder
+  import tuf.encoding.targetsmetadata as targets_asn1_coder
   import tuf.encoding.metadataverificationmodule as metadata_asn1_spec
 
   # This maps metadata type ('_type') to the module that lays out the
   # ASN.1 format for that type.
   SUPPORTED_ASN1_METADATA_MODULES = {
-      'root': root_asn1_spec,
-      'snapshot': snapshot_asn1_spec,
-      'timestamp': timestamp_asn1_spec,
-      'targets': targets_asn1_spec}
+      'root': root_asn1_coder,
+      'snapshot': snapshot_asn1_coder,
+      'timestamp': timestamp_asn1_coder,
+      'targets': targets_asn1_coder}
 
 except ImportError:
   logger.warning('Minor: pyasn1 library not found. Proceeding using JSON only.')
@@ -46,7 +46,7 @@ else:
 
 
 
-def ensure_valid_metadata_type_for_asn1(metadata_type):
+def _ensure_valid_metadata_type_for_asn1(metadata_type):
   if metadata_type not in SUPPORTED_ASN1_METADATA_MODULES:
     # TODO: Choose/make better exception class.
     raise tuf.Error('This is not one of the metadata types configured for '
@@ -121,7 +121,7 @@ def convert_signed_der_to_dersigned_json(der_data):
 
   # Make sure it's a supported type of metadata for ASN.1 to Python dict
   # translation. (Throw an exception if not.)
-  ensure_valid_metadata_type_for_asn1(metadata_type)
+  _ensure_valid_metadata_type_for_asn1(metadata_type)
 
   # Handle for the corresponding module.
   relevant_asn_module = SUPPORTED_ASN1_METADATA_MODULES[metadata_type]
@@ -244,7 +244,7 @@ def convert_signed_metadata_to_der(
 
   # Ensure that the type is one of the supported metadata types, for which
   # a module exists that translates it to and from an ASN.1 format.
-  ensure_valid_metadata_type_for_asn1(metadata_type)
+  _ensure_valid_metadata_type_for_asn1(metadata_type)
 
   # Handle for the corresponding module.
   relevant_asn_module = SUPPORTED_ASN1_METADATA_MODULES[metadata_type]
