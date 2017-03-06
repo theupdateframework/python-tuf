@@ -881,7 +881,7 @@ def verify_signature(key_dict, signature, data, force_treat_as_pydict=False):
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
   # TODO: Consider canonical needs for DER.
-  # TODO: <~> Find way around having to use this flag. See similar comment
+  # TODO: Find way around having to use this flag. See similar comment
   # in create_signature() above for more information.
   if tuf.conf.METADATA_FORMAT == 'json'  or force_treat_as_pydict:
     data = tuf.formats.encode_canonical(data).encode('utf-8')

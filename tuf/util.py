@@ -924,7 +924,15 @@ def load_der_string(data):
     None.
 
   <Returns>
-    Deserialized object.  For example, a dictionary.
+    A Python dictionary deserialized from the DER data provided, in TUF's
+    standard format, conforming to tuf.formats.SIGNABLE_SCHEMA, where the
+    'signed' entry matches tuf.formats.ANYROLE_SCHEMA (though conversion of the
+    Mirrors role is not supported).
+
+    The signatures contained in the returned dictionary (the 'signatures'
+    entry), if any, will have been unchanged. If, for example, the signatures
+    were over a DER object, they will remain that way, even though the 'signed'
+    portion will no longer be in DER.
   """
   try:
     return asn1_codec.convert_signed_der_to_dersigned_json(data)
@@ -1014,9 +1022,16 @@ def load_der_file(filepath):
     None.
 
   <Return>
-    Python dictionary matching tuf.formats.SIGNABLE_SCHEMA where the 'signed'
-    entry matches tuf.formats.TARGETS_SCHEMA, and the data comes from the
-    DER file whose filename was provided.
+    A Python dictionary deserialized from the DER data in the DER file with
+    filename provided, in TUF's standard format, conforming to
+    tuf.formats.SIGNABLE_SCHEMA, where the 'signed' entry matches
+    tuf.formats.ANYROLE_SCHEMA (though conversion of the Mirrors role is not
+    supported).
+
+    The signatures contained in the returned dictionary (the 'signatures'
+    entry), if any, will have been unchanged. If, for example, the signatures
+    were over a DER object, they will remain that way, even though the 'signed'
+    portion will no longer be in DER.
   """
 
   # Making sure that the format of 'filepath' is a path string.
@@ -1055,7 +1070,7 @@ def load_file(filepath):
   """
   Loads the given DER or JSON file into TUF's standard Python dictionary
   format (return value conforms with tuf.formats.SIGNABLE_SCHEMA, with the
-  value of 'signed' conforming to tuf.formats.ANYROLE_SCHEMA
+  value of 'signed' conforming to tuf.formats.ANYROLE_SCHEMA).
 
   A simple wrapper for load_der_file and load_json_file. Please see comments in
   those functions.
@@ -1079,7 +1094,7 @@ def load_string(data):
   """
   Loads the given DER or JSON string into TUF's standard Python dictionary
   format (return value conforms with tuf.formats.SIGNABLE_SCHEMA, with the
-  value of 'signed' conforming to tuf.formats.ANYROLE_SCHEMA
+  value of 'signed' conforming to tuf.formats.ANYROLE_SCHEMA).
 
   A simple wrapper for load_der_string and load_json_string. Please see
   comments in those functions.
@@ -1094,12 +1109,6 @@ def load_string(data):
     raise tuf.Error('tuf.util.load_string() only supports DER or JSON, but '
         'tuf.conf.METADATA_FORMAT is set to neither. It is instead set to: ' +
         repr(tuf.conf.METADATA_FORMAT))
-
-
-
-
-# Moved convert_signed_der_to_dersigned_json and
-# ensure_valid_metadata_type_for_asn1 into new module: tuf.asn1_codec.py
 
 
 
