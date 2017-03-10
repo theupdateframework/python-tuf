@@ -21,11 +21,11 @@ try:
   import pyasn1.type.univ as p_type_univ
 
   # ASN.1 data specification modules that convert ASN.1 to JSON and back.
-  import tuf.encoding.rootmetadata as root_asn1_coder
-  import tuf.encoding.snapshotmetadata as snapshot_asn1_coder
-  import tuf.encoding.timestampmetadata as timestamp_asn1_coder
-  import tuf.encoding.targetsmetadata as targets_asn1_coder
-  import tuf.encoding.metadataverificationmodule as metadata_asn1_spec
+  import tuf.encoding.root_asn1_coder as root_asn1_coder
+  import tuf.encoding.snapshot_asn1_coder as snapshot_asn1_coder
+  import tuf.encoding.timestamp_asn1_coder as timestamp_asn1_coder
+  import tuf.encoding.targets_asn1_coder as targets_asn1_coder
+  import tuf.encoding.metadata_asn1_definitions as metadata_asn1_spec
 
   # This maps metadata type ('_type') to the module that lays out the
   # ASN.1 format for that type.
@@ -97,7 +97,7 @@ def convert_signed_der_to_dersigned_json(der_data):
 
   # TODO: The 'signed' component here should probably already be DER, since
   # that is what the signature is over. Because this would entail some changes
-  # changes to the ASN.1 data specifications in metadataverificationmodule.py,
+  # changes to the ASN.1 data specifications in metadata_asn1_definitions.py,
   # I'm not doing this yet (though I expect to).
   # So, for the time being, if we wanted to check the signature, we'd have to
   # encode this thing into DER again.

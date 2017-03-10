@@ -11,9 +11,9 @@
 
 """
 
-from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
+from pyasn1.type import univ, tag
 
-from tuf.encoding.metadataverificationmodule import *
+from tuf.encoding.metadata_asn1_definitions import *
 
 import tuf.conf
 import calendar
@@ -36,7 +36,10 @@ def get_asn_signed(pydict_signed):
 
   for filename, pydict_fileinfo in json_fileinfos.items():
 
-    if filename == 'root.' + tuf.conf.METADATA_FORMAT: # TODO: Consider checking the file itself to determine format... but have to make sure we only mess with the real root metadata role file. (Don't accidentally hit other metadata files?)
+    # TODO: Consider checking the file itself to determine format... but have
+    # to make sure we only mess with the real root metadata role file. (Don't
+    # accidentally hit other metadata files?)
+    if filename == 'root.' + tuf.conf.METADATA_FORMAT:
       # If we're dealing with the root metadata file, we expect hashes and
       # length in addition to just filename and version.
 
@@ -47,7 +50,8 @@ def get_asn_signed(pydict_signed):
       root_fileinfo['version'] = pydict_fileinfo['version']
 
       if 'length' not in pydict_fileinfo or 'hashes' not in pydict_fileinfo:
-        raise tuf.Error('ASN1 Conversion failure for Snapshot role: given ' # TODO: Better error
+        # TODO: Better error
+        raise tuf.Error('ASN1 Conversion failure for Snapshot role: given '
             'fileinfo for assumed root metadata file (filename: ' +
             repr(filename) + '), found either hashes or length missing.')
 
@@ -79,7 +83,8 @@ def get_asn_signed(pydict_signed):
       # version.
 
       if 'length' in pydict_fileinfo or 'hashes' in pydict_fileinfo:
-        raise tuf.Error('ASN1 Conversion failure for Snapshot role: given ' # TODO: Better error
+        # TODO: Better error
+        raise tuf.Error('ASN1 Conversion failure for Snapshot role: given '
             'fileinfo for assumed Targets or delegated metadata file '
             '(filename: ' +repr(filename) + '), found either hashes or length, '
             'which are not expected in Snapshot for a Targets role file.')
@@ -151,7 +156,12 @@ def get_json_signed(asn_metadata):
   # This change has to percolate across all modules, however.
   asn_signed = asn_metadata['signed'] # This should be the argument instead of asn_metadata.
 
-  pydict_signed['_type'] = 'Snapshot' # Should check this from the ASN, but... the ASN definitions don't actually USE a type, so I'm entirely basing the type encoded on the filename. This is bad, I think. Could it be a security issue to not sign the metadata type in there? The metadata types are pretty distinct, but... it's still best to fix this at some point.
+  # Should check this from the ASN, but... the ASN definitions don't actually
+  # USE a type, so I'm entirely basing the type encoded on the filename. This
+  # is bad, I think. Could it be a security issue to not sign the metadata type
+  # in there? The metadata types are pretty distinct, but... it's still best to
+  # fix this at some point.
+  pydict_signed['_type'] = 'Snapshot'
 
   pydict_signed['expires'] = datetime.utcfromtimestamp(
     asn_signed['expires']).isoformat()+'Z'

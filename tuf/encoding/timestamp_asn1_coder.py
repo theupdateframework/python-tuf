@@ -5,9 +5,9 @@
   Trishank Karthik Kuppusamy
 """
 
-from pyasn1.type import univ, char, namedtype, namedval, tag, constraint, useful
+from pyasn1.type import univ, tag
 
-from tuf.encoding.metadataverificationmodule import *
+from tuf.encoding.metadata_asn1_definitions import *
 
 import calendar
 from datetime import datetime #import datetime
