@@ -886,7 +886,7 @@ def load_json_string(data):
   deserialized_object = None
   
   try:
-    deserialized_object = json.loads(data.decode('utf-8'))
+    deserialized_object = json.loads(data)
 
   except TypeError:
     message = 'Invalid JSON string: ' + repr(data)
