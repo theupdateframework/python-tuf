@@ -125,8 +125,7 @@ def set_keys(json_signed, rootPublicKeyid, timestampPublicKeyid,
                          .subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                       tag.tagFormatSimple, 1))
   rootPublicKey['publicKeyid'] = keyid
-  rootPublicKeyType = \
-                json_signed['keys'][rootPublicKeyid]['keytype'].encode('ascii')
+  rootPublicKeyType = json_signed['keys'][rootPublicKeyid]['keytype']
   rootPublicKey['publicKeyType'] = int(PublicKeyType(rootPublicKeyType))
   rootPublicKeyValue = BinaryData()\
                        .subtype(explicitTag=tag.Tag(tag.tagClassContext,
@@ -148,8 +147,7 @@ def set_keys(json_signed, rootPublicKeyid, timestampPublicKeyid,
                          .subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                       tag.tagFormatSimple, 1))
   timestampPublicKey['publicKeyid'] = keyid
-  timestampPublicKeyType = \
-            json_signed['keys'][timestampPublicKeyid]['keytype'].encode('ascii')
+  timestampPublicKeyType = json_signed['keys'][timestampPublicKeyid]['keytype']
   timestampPublicKey['publicKeyType'] = \
                                       int(PublicKeyType(timestampPublicKeyType))
   timestampPublicKeyValue = \
@@ -171,8 +169,7 @@ def set_keys(json_signed, rootPublicKeyid, timestampPublicKeyid,
                          .subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                       tag.tagFormatSimple, 1))
   snapshotPublicKey['publicKeyid'] = keyid
-  snapshotPublicKeyType = \
-            json_signed['keys'][snapshotPublicKeyid]['keytype'].encode('ascii')
+  snapshotPublicKeyType = json_signed['keys'][snapshotPublicKeyid]['keytype']
   snapshotPublicKey['publicKeyType'] = \
                                       int(PublicKeyType(snapshotPublicKeyType))
   snapshotPublicKeyValue = \
@@ -194,8 +191,7 @@ def set_keys(json_signed, rootPublicKeyid, timestampPublicKeyid,
                          .subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                       tag.tagFormatSimple, 1))
   targetsPublicKey['publicKeyid'] = keyid
-  targetsPublicKeyType = \
-              json_signed['keys'][targetsPublicKeyid]['keytype'].encode('ascii')
+  targetsPublicKeyType = json_signed['keys'][targetsPublicKeyid]['keytype']
   targetsPublicKey['publicKeyType'] = \
                                       int(PublicKeyType(targetsPublicKeyType))
   targetsPublicKeyValue = BinaryData()\

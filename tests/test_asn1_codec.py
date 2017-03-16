@@ -127,8 +127,10 @@ def is_valid_nonempty_der(der_string):
   """
   if not der_string:
     return False
-  else:
+  elif sys.version_info.major < 3:
     return repr(der_string[0])[1:3] == '\\x'
+  else:
+    return isinstance(der_string, bytes)
 
 
 if __name__ == '__main__':

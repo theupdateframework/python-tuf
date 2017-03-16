@@ -85,8 +85,7 @@ def set_asn_keys(json_signed, delegations):
         hexValue=keyid).subtype(implicitTag=tag.Tag(tag.tagClassContext,
         tag.tagFormatSimple, 1))
 
-    key['publicKeyType'] = \
-                          int(PublicKeyType(keymeta['keytype'].encode('ascii')))
+    key['publicKeyType'] = int(PublicKeyType(keymeta['keytype']))
     value = BinaryData().subtype(explicitTag=tag.Tag(tag.tagClassContext,
                                                      tag.tagFormatConstructed,
                                                      2))
@@ -186,7 +185,7 @@ def set_asn_targets(json_signed, targetsMetadata):
 
     for hash_function, hash_value in filemeta['hashes'].items():
       hash = Hash()
-      hash['function'] = int(HashFunction(hash_function.encode('ascii')))
+      hash['function'] = int(HashFunction(hash_function))
       digest = BinaryData()\
                .subtype(explicitTag=tag.Tag(tag.tagClassContext,
                                             tag.tagFormatConstructed, 1))
