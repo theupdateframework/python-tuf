@@ -750,6 +750,11 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
   # I suppose....
   if tuf.conf.METADATA_FORMAT == 'json' or force_treat_as_pydict:
     data = tuf.formats.encode_canonical(data).encode('utf-8')
+  else:
+    # If we're using DER encoding, we can't run the canonicalizer on it, but
+    # we still need to encode it into utf-8 so that the crypto libraries don't
+    # choke on it. (ed25519 lib does otherwise, at least.)
+    data = data.encode('utf-8')
 
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
@@ -885,6 +890,11 @@ def verify_signature(key_dict, signature, data, force_treat_as_pydict=False):
   # in create_signature() above for more information.
   if tuf.conf.METADATA_FORMAT == 'json'  or force_treat_as_pydict:
     data = tuf.formats.encode_canonical(data).encode('utf-8')
+  else:
+    # If we're using DER encoding, we can't run the canonicalizer on it, but
+    # we still need to encode it into utf-8 so that the crypto libraries don't
+    # choke on it. (ed25519 lib does otherwise, at least.)
+    data = data.encode('utf-8')
 
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
