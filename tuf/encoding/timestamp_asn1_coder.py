@@ -4,6 +4,8 @@
 <Author>
   Trishank Karthik Kuppusamy
 """
+from __future__ import print_function
+from __future__ import unicode_literals
 
 from pyasn1.type import univ, tag
 
