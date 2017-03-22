@@ -691,6 +691,15 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
     data:
       Data object used by create_signature() to generate the signature.
 
+    force_treat_as_pydict: (optional; default False)
+      If True, then regardless of tuf.conf.METADATA_FORMAT, we will treat the
+      data provided as if it is a Python dictionary that must be canonicalized
+      and then encoded as utf-8 before it is checked against the signature.
+      Otherwise, behavior depends on tuf.conf.METADATA_FORMAT. If that is
+      'json', then the canonicalization and utf-8 encoding occurs. If it is
+      instead 'der', then neither occurs.
+
+
   <Exceptions>
     tuf.FormatError, if 'key_dict' is improperly formatted.
    
@@ -719,6 +728,8 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
   # 'tuf.conf.RSA_CRYPTO_LIBRARY' or 'tuf.conf.ED25519_CRYPTO_LIBRARY'. 
   check_crypto_libraries([key_dict['keytype']])
 
+  # Ensure that argument force_treat_as_pydict is boolean.
+  tuf.formats.BOOLEAN_SCHEMA.check_match(force_treat_as_pydict)
   # Signing the 'data' object requires a private key.
   # 'RSASSA-PSS' and 'ed25519' are the only signing methods currently
   # supported.  RSASSA-PSS keys and signatures can be generated and verified by
@@ -843,6 +854,14 @@ def verify_signature(key_dict, signature, data, force_treat_as_pydict=False):
       Data object used by tuf.rsa_key.create_signature() to generate
       'signature'.  'data' is needed here to verify the signature.
 
+    force_treat_as_pydict: (optional; default False)
+      If True, then regardless of tuf.conf.METADATA_FORMAT, we will treat the
+      data provided as if it is a Python dictionary that must be canonicalized
+      and then encoded as utf-8 before it is checked against the signature.
+      Otherwise, behavior depends on tuf.conf.METADATA_FORMAT. If that is
+      'json', then the canonicalization and utf-8 encoding occurs. If it is
+      instead 'der', then neither occurs.
+
   <Exceptions>
     tuf.FormatError, raised if either 'key_dict' or 'signature' are improperly
     formatted.
@@ -870,6 +889,8 @@ def verify_signature(key_dict, signature, data, force_treat_as_pydict=False):
   # Does 'signature' have the correct format?
   tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
   
+  # Ensure that argument force_treat_as_pydict is boolean.
+  tuf.formats.BOOLEAN_SCHEMA.check_match(force_treat_as_pydict)
   # Using the public key belonging to 'key_dict'
   # (i.e., rsakey_dict['keyval']['public']), verify whether 'signature'
   # was produced by key_dict's corresponding private key
