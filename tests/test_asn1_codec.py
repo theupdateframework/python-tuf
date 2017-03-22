@@ -3,6 +3,7 @@ import tuf.util
 import tuf.asn1_codec as asn1_codec
 import tuf.conf
 import unittest
+import sys # Python version
 
 tuf.conf.METADATA_FORMAT = 'json'
 
