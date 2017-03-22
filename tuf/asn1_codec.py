@@ -5,6 +5,9 @@
 <Purpose>
   Provides functions to allow use of ASN.1/DER-encoded metadata with TUF.
 """
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import tuf
 import tuf.conf
 import tuf.formats
