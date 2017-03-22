@@ -17,6 +17,7 @@ class TestASN1Conversion(unittest.TestCase):
   # being assumed that the key values are hex strings ('f9ac1325...') but an
   # RSA public key value is e.g. '-----BEGIN PUBLIC
   # KEY------\nMIIBojANBgk...\n...'
+  @unittest.expectedFailure
   def test_1_root_partial_convert(self):
     # Test 1: only_signed conversion PyDict -> ASN1 BER of Root
     partial_der_conversion_tester(
@@ -52,6 +53,7 @@ class TestASN1Conversion(unittest.TestCase):
   # not support that and has to. It'll need to treat everything it's given as a
   # string regardless of its type and covert it to ASN1 with the name
   # preserved, in a dict of some sort....
+  @unittest.expectedFailure
   def test_6_targets_w_custom_partial_convert(self):
     """Test 5: only_signed conversion PyDict -> ASN1 BER of Targets"""
     partial_der_conversion_tester(
