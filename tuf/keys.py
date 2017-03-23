@@ -694,7 +694,7 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
     force_treat_as_pydict: (optional; default False)
       If True, then regardless of tuf.conf.METADATA_FORMAT, we will treat the
       data provided as if it is a Python dictionary that must be canonicalized
-      and then encoded as utf-8 before it is checked against the signature.
+      and then encoded as utf-8 before it is signed.
       Otherwise, behavior depends on tuf.conf.METADATA_FORMAT. If that is
       'json', then the canonicalization and utf-8 encoding occurs. If it is
       instead 'der', then neither occurs.
@@ -728,7 +728,8 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
   # 'tuf.conf.RSA_CRYPTO_LIBRARY' or 'tuf.conf.ED25519_CRYPTO_LIBRARY'. 
   check_crypto_libraries([key_dict['keytype']])
 
-  # Ensure that argument force_treat_as_pydict is boolean.
+  # Ensure that optional arguments expected to be booleans are, and that they
+  # do not contradict each other.
   tuf.formats.BOOLEAN_SCHEMA.check_match(force_treat_as_pydict)
   # Signing the 'data' object requires a private key.
   # 'RSASSA-PSS' and 'ed25519' are the only signing methods currently
@@ -748,7 +749,7 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
   # TODO: Consider canonical needs for DER.
-  # TODO: Find way around having to use this flag. (Reason it is needed:
+  # TODO: Find way around having to use these flags. (Reason they're needed:
   # sometimes, even when tuf's metadata format (tuf.conf.METADATA_FORMAT) is
   # not set to JSON, we still want to sign basic python dictionaries (instead
   # of always signing things as DER, say). So we need a way of telling this
@@ -907,7 +908,7 @@ def verify_signature(key_dict, signature, data, force_treat_as_pydict=False):
   # resulting 'data' is a string encoded in UTF-8 and compatible with the input
   # expected by the cryptography functions called below.
   # TODO: Consider canonical needs for DER.
-  # TODO: Find way around having to use this flag. See similar comment
+  # TODO: Find way around having to use these flags. See similar comment
   # in create_signature() above for more information.
   if tuf.conf.METADATA_FORMAT == 'json'  or force_treat_as_pydict:
     data = tuf.formats.encode_canonical(data).encode('utf-8')
