@@ -40,6 +40,7 @@ import shutil
 import json
 import gzip
 import random
+import hashlib
 
 import tuf
 import tuf.formats

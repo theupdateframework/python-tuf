@@ -12,6 +12,7 @@ import tuf
 import tuf.conf
 import tuf.formats
 import logging
+import hashlib
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.asn1_codec')
