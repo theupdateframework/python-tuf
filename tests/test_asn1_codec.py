@@ -104,7 +104,7 @@ class TestASN1Conversion(unittest.TestCase):
 
 
 
-def partial_der_conversion_tester(json_fname, self): # Clunky.
+def partial_der_conversion_tester(json_fname, cls): # Clunky.
   """
   This function takes as a second parameter the unittest.TestCase object whose
   functions (assertTrue etc) it can use. This is awkward and inappropriate. :P
@@ -116,9 +116,19 @@ def partial_der_conversion_tester(json_fname, self): # Clunky.
 
   role_signable_pydict = tuf.util.load_file(json_fname)
 
-  self.assertTrue(is_valid_nonempty_der(
+  # Test each of the different kinds of conversions
+
+  # Convert and return only the 'signed' portion, the metadata payload itself,
+  # without including any signatures.
+  cls.assertTrue(is_valid_nonempty_der(
       asn1_codec.convert_signed_metadata_to_der(
       role_signable_pydict, only_signed=True)))
+
+  # Convert the full signable ('signed' and 'signatures'), maintaining the
+  # existing signature in a new format and encoding.
+  cls.assertTrue(is_valid_nonempty_der(
+      asn1_codec.convert_signed_metadata_to_der(
+      role_signable_pydict)))
 
 
 
