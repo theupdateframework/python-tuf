@@ -126,14 +126,26 @@ def partial_der_conversion_tester(json_fname, self): # Clunky.
 
 def is_valid_nonempty_der(der_string):
   """
-  Currently a trivial test to see if the result is a non-empty byte string.
+  Currently a hacky test to see if the result is a non-empty byte string.
+
+  This CAN raise false failures, stochastically, in Python2. In Python2,
+  where bytes and str are the same type, we check to see if, anywhere in the
+  string, there is a character requiring a \\x escape, as would almost
+  certainly happen in an adequately long DER string of bytes. As a result,
+  short or very regular strings may raise false failures in Python2.
+
+  The best way to really do this test is to decode the DER and see if
+  believable ASN.1 has come out of it.
   """
   if not der_string:
     return False
   elif sys.version_info.major < 3:
-    return repr(der_string[0])[1:3] == '\\x'
+    return '\\x' in repr(der_string)
   else:
     return isinstance(der_string, bytes)
+
+
+
 
 
 if __name__ == '__main__':
