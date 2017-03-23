@@ -396,6 +396,9 @@ def _remove_invalid_and_duplicate_signatures(
       # and using a parameter to get back only what it wants.
       signed = asn1_codec.convert_signed_metadata_to_der(
           signable, only_signed=True)
+      # If we're using DER, then what we validate should be the signature over
+      # the sha256 hash of the DER encoding.
+      signed = hashlib.sha256(signed).digest()
     keyid = signature['keyid']
     key = None
 
@@ -409,7 +412,13 @@ def _remove_invalid_and_duplicate_signatures(
       continue
     
     # Remove 'signature' from 'signable' if it is an invalid signature.
-    if not tuf.keys.verify_signature(key, signature, signed):
+    if tuf.conf.METADATA_FORMAT == 'der':
+      sig_is_valid = tuf.keys.verify_signature(
+          key, signature, signed, is_binary_data=True)
+    else:
+      sig_is_valid = tuf.keys.verify_signature(key, signature, signed)
+
+    if not sig_is_valid:
       signable['signatures'].remove(signature)
     
     # Although valid, it may still need removal if it is a duplicate.  Check
@@ -1887,8 +1896,14 @@ def sign_metadata(metadata_object, keyids, filename,
           # and using a parameter to only get back what it wants. Fix that,
           # starting by splitting convert_signed_metadata_to_der into multiple
           # modular functions.
-          signed = asn1_codec.convert_signed_metadata_to_der(signable, only_signed=True)
-        signature = tuf.keys.create_signature(key, signed)
+          signed = asn1_codec.convert_signed_metadata_to_der(
+              signable, only_signed=True)
+          signed = hashlib.sha256(signed).digest() # returns bytes, unlike hexdigest
+          signature = tuf.keys.create_signature(
+              key, signed, force_non_json=True, is_binary_data=True)
+        else:
+          signature = tuf.keys.create_signature(
+              key, signed, force_treat_as_pydict=False)
         signable['signatures'].append(signature)
       
       else:

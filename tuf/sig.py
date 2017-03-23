@@ -49,6 +49,8 @@ import tuf.keydb
 import tuf.roledb
 import tuf.asn1_codec as asn1_codec
 
+import hashlib
+
 def get_signature_status(signable, role=None, repository_name='default'):
   """
   <Purpose>
@@ -145,6 +147,10 @@ def get_signature_status(signable, role=None, repository_name='default'):
   if tuf.conf.METADATA_FORMAT == 'der':
     signed = asn1_codec.convert_signed_metadata_to_der(
         signable, only_signed=True)
+    # Replace signed with a hash of signed, since that's all we'll need to sign
+    # and we are not doing anything else with 'signed' here.
+    # Digest provides binary data.
+    signed = hashlib.sha256(signed).digest()
 
   # Iterate through the signatures and enumerate the signature_status fields.
   # (i.e., good_sigs, bad_sigs, etc.).
@@ -163,8 +169,12 @@ def get_signature_status(signable, role=None, repository_name='default'):
 
     # Identify key using an unknown key signing method.
     try:
-      valid_sig = tuf.keys.verify_signature(key, signature, signed)
-    
+      if tuf.conf.METADATA_FORMAT == 'der':
+        valid_sig = tuf.keys.verify_signature(
+            key, signature, signed, is_binary_data=True)
+      else:
+        valid_sig = tuf.keys.verify_signature(key, signature, signed)
+
     except tuf.UnknownMethodError:
       unknown_method_sigs.append(keyid)
       continue

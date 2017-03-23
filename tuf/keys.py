@@ -639,7 +639,9 @@ def check_crypto_libraries(required_libraries):
 
 
 
-def create_signature(key_dict, data, force_treat_as_pydict=False):
+def create_signature(
+    key_dict, data, force_treat_as_pydict=False, force_non_json=False,
+    is_binary_data=False):
   """
   <Purpose>
     Return a signature dictionary of the form:
@@ -696,8 +698,20 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
       data provided as if it is a Python dictionary that must be canonicalized
       and then encoded as utf-8 before it is signed.
       Otherwise, behavior depends on tuf.conf.METADATA_FORMAT. If that is
-      'json', then the canonicalization and utf-8 encoding occurs. If it is
-      instead 'der', then neither occurs.
+      'json', then the canonicalization occurs. If it is instead 'der', then
+      the canonicalization does not occur.
+
+    force_non_json: (optional, default False)
+      If True, then regardless of tuf.conf.METADATA_FORMAT, we will treat the
+      data provided as if it is not a Python dictionary and cannot be
+      canonicalized before it is signed.
+      Whether or not it is encoded as utf-8 depends on the format and
+      is_binary_data.
+
+    is_binary_data: (optional; default False)
+      If True, then regardless of tuf.conf.METADATA_FORMAT, we skip trying to
+      utf-8 encode the data, because it cannot necessarily be encoded as utf-8
+      and in any case is already encoded.
 
 
   <Exceptions>
@@ -730,7 +744,16 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
 
   # Ensure that optional arguments expected to be booleans are, and that they
   # do not contradict each other.
+  tuf.formats.BOOLEAN_SCHEMA.check_match(is_binary_data)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(force_non_json)
   tuf.formats.BOOLEAN_SCHEMA.check_match(force_treat_as_pydict)
+  if force_non_json * force_treat_as_pydict:
+    raise tuf.Error('Contradictory arguments: force_treat_as_pydict and '
+        'force_non_json are both True.')
+  elif force_treat_as_pydict * is_binary_data:
+    raise tuf.Error('Contradictory arguments: force_treat_as_pydict and '
+        'is_binary_data are both True.')
+
   # Signing the 'data' object requires a private key.
   # 'RSASSA-PSS' and 'ed25519' are the only signing methods currently
   # supported.  RSASSA-PSS keys and signatures can be generated and verified by
@@ -760,13 +783,14 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
   # JSON mode, which breaks it. (We end up with extraneous junk like
   # '{\\"a\\":1,\\"b\\":2} instead of '{"a":1,"b":2}'.) I could fix *that*,
   # I suppose....
-  if tuf.conf.METADATA_FORMAT == 'json' or force_treat_as_pydict:
-    data = tuf.formats.encode_canonical(data).encode('utf-8')
-  # elif not binary_data:
-  #   # If we're using DER encoding, we can't run the canonicalizer on it, but
-  #   # we still need to encode it into utf-8 so that the crypto libraries don't
-  #   # choke on it in Python3. (ed25519 lib does otherwise, at least.)
-  #   data = data.encode('utf-8')
+  if force_treat_as_pydict or \
+      tuf.conf.METADATA_FORMAT == 'json' and not force_non_json:
+    data = tuf.formats.encode_canonical(data)
+
+  if not is_binary_data:
+    # Even if we're not using the canonicalizer, if we don't have binary data
+    # already, we have to encode it before signing it.
+    data = data.encode('utf-8')
 
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
@@ -807,7 +831,9 @@ def create_signature(key_dict, data, force_treat_as_pydict=False):
 
 
 
-def verify_signature(key_dict, signature, data, force_treat_as_pydict=False):
+def verify_signature(
+    key_dict, signature, data, force_treat_as_pydict=False,
+    force_non_json=False, is_binary_data=False):
   """
   <Purpose>
     Determine whether the private key belonging to 'key_dict' produced
@@ -860,8 +886,20 @@ def verify_signature(key_dict, signature, data, force_treat_as_pydict=False):
       data provided as if it is a Python dictionary that must be canonicalized
       and then encoded as utf-8 before it is checked against the signature.
       Otherwise, behavior depends on tuf.conf.METADATA_FORMAT. If that is
-      'json', then the canonicalization and utf-8 encoding occurs. If it is
-      instead 'der', then neither occurs.
+      'json', then the canonicalization occurs. If it is instead 'der', then
+      the canonicalization does not occur.
+
+    force_non_json: (optional, default False)
+      If True, then regardless of tuf.conf.METADATA_FORMAT, we will treat the
+      data provided as if it is not a Python dictionary and cannot be
+      canonicalized before it is checked against the signature.
+      Whether or not it is encoded as utf-8 depends on the format and
+      is_binary_data.
+
+    is_binary_data: (optional; default False)
+      If True, then regardless of tuf.conf.METADATA_FORMAT, we skip trying to
+      utf-8 encode the data, because it cannot necessarily be encoded as utf-8
+      and in any case is already encoded.
 
   <Exceptions>
     tuf.FormatError, raised if either 'key_dict' or 'signature' are improperly
@@ -889,9 +927,19 @@ def verify_signature(key_dict, signature, data, force_treat_as_pydict=False):
 
   # Does 'signature' have the correct format?
   tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
-  
-  # Ensure that argument force_treat_as_pydict is boolean.
+
+  # Ensure that optional arguments expected to be booleans are, and that they
+  # do not contradict each other.
+  tuf.formats.BOOLEAN_SCHEMA.check_match(is_binary_data)
+  tuf.formats.BOOLEAN_SCHEMA.check_match(force_non_json)
   tuf.formats.BOOLEAN_SCHEMA.check_match(force_treat_as_pydict)
+  if force_non_json * force_treat_as_pydict:
+    raise tuf.Error('Contradictory arguments: force_treat_as_pydict and '
+        'force_non_json are both True.')
+  elif force_treat_as_pydict * is_binary_data:
+    raise tuf.Error('Contradictory arguments: force_treat_as_pydict and '
+        'is_binary_data are both True.')
+
   # Using the public key belonging to 'key_dict'
   # (i.e., rsakey_dict['keyval']['public']), verify whether 'signature'
   # was produced by key_dict's corresponding private key
@@ -910,13 +958,14 @@ def verify_signature(key_dict, signature, data, force_treat_as_pydict=False):
   # TODO: Consider canonical needs for DER.
   # TODO: Find way around having to use these flags. See similar comment
   # in create_signature() above for more information.
-  if tuf.conf.METADATA_FORMAT == 'json'  or force_treat_as_pydict:
-    data = tuf.formats.encode_canonical(data).encode('utf-8')
-  # elif not binary_data:
-  #   # If we're using DER encoding, we can't run the canonicalizer on it, but
-  #   # we still need to encode it into utf-8 so that the crypto libraries don't
-  #   # choke on it in Python3. (ed25519 lib does otherwise, at least.)
-  #   data = data.encode('utf-8')
+  if force_treat_as_pydict or \
+      tuf.conf.METADATA_FORMAT == 'json'  and not force_non_json:
+    data = tuf.formats.encode_canonical(data)
+
+  if not is_binary_data:
+    # Even if we're not using the canonicalizer, if we don't have binary data
+    # already, we have to encode it before signing it.
+    data = data.encode('utf-8')
 
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
