@@ -2,12 +2,23 @@ import tuf
 import tuf.util
 import tuf.asn1_codec as asn1_codec
 import tuf.conf
+import tuf.repository_tool as repo_tool # to import a key for a signing attempt
 import unittest
 import sys # Python version
+import os # getcwd()
 
 tuf.conf.METADATA_FORMAT = 'json'
 
 class TestASN1Conversion(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+
+    private_key_fname = os.path.join(
+        os.getcwd(), 'tests', 'repository_data', 'keystore', 'targets_key')
+
+    cls.test_signing_key = repo_tool.import_ed25519_privatekey_from_file(
+        private_key_fname, 'password')
 
 
   # THIS NEXT TEST fails because the TUF root.json test file in question here
@@ -146,6 +157,14 @@ def partial_der_conversion_tester(json_fname, cls): # Clunky.
   cls.assertTrue(is_valid_nonempty_der(
       asn1_codec.convert_signed_metadata_to_der(
       role_signable_pydict)))
+
+  # # Convert the full signable ('signed' and 'signatures'), but discarding the
+  # # original signatures and re-signing over, instead, the hash of the converted,
+  # # ASN.1/DER 'signed' element.
+  # cls.assertTrue(is_valid_nonempty_der(
+  #     asn1_codec.convert_signed_metadata_to_der(
+  #     role_signable_pydict, resign=True,
+  #     private_key=self.test_signing_key)))
 
 
 
