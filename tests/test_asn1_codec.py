@@ -158,13 +158,13 @@ def partial_der_conversion_tester(json_fname, cls): # Clunky.
       asn1_codec.convert_signed_metadata_to_der(
       role_signable_pydict)))
 
-  # # Convert the full signable ('signed' and 'signatures'), but discarding the
-  # # original signatures and re-signing over, instead, the hash of the converted,
-  # # ASN.1/DER 'signed' element.
-  # cls.assertTrue(is_valid_nonempty_der(
-  #     asn1_codec.convert_signed_metadata_to_der(
-  #     role_signable_pydict, resign=True,
-  #     private_key=self.test_signing_key)))
+  # Convert the full signable ('signed' and 'signatures'), but discarding the
+  # original signatures and re-signing over, instead, the hash of the converted,
+  # ASN.1/DER 'signed' element.
+  cls.assertTrue(is_valid_nonempty_der(
+      asn1_codec.convert_signed_metadata_to_der(
+      role_signable_pydict, resign=True,
+      private_key=cls.test_signing_key)))
 
 
 
