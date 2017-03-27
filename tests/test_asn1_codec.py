@@ -146,18 +146,25 @@ def partial_der_conversion_tester(json_fname, cls): # Clunky.
 
   # Test each of the different kinds of conversions
 
+
+  # Test type 1: only-signed
   # Convert and return only the 'signed' portion, the metadata payload itself,
   # without including any signatures.
-  cls.assertTrue(is_valid_nonempty_der(
-      asn1_codec.convert_signed_metadata_to_der(
-      role_signable_pydict, only_signed=True)))
+  role_signable_der = asn1_codec.convert_signed_metadata_to_der(
+      role_signable_pydict, only_signed=True)
+  cls.assertTrue(is_valid_nonempty_der(role_signable_der))
+  # TODO: Convert this 'signed'-only DER back to JSON and compare the 'signed'
+  # portion to the original 'signed' portion.
 
+
+  # Test type 2: full conversion
   # Convert the full signable ('signed' and 'signatures'), maintaining the
   # existing signature in a new format and encoding.
   cls.assertTrue(is_valid_nonempty_der(
       asn1_codec.convert_signed_metadata_to_der(
       role_signable_pydict)))
 
+  # Test type 3: full conversion with re-signing
   # Convert the full signable ('signed' and 'signatures'), but discarding the
   # original signatures and re-signing over, instead, the hash of the converted,
   # ASN.1/DER 'signed' element.
