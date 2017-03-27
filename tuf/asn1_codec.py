@@ -252,7 +252,7 @@ def convert_signed_metadata_to_der(
 
   # Handle for the corresponding module.
   relevant_asn_module = SUPPORTED_ASN1_METADATA_MODULES[metadata_type]
-  asn_signed = relevant_asn_module.get_asn_signed(json_signed) # Python3 breaks here.
+  asn_signed = relevant_asn_module.get_asn_signed(json_signed)
 
   if only_signed:
     # If the caller doesn't want any signatures included in the returned
