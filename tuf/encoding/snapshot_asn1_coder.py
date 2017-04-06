@@ -36,8 +36,9 @@ def get_asn_signed(pydict_signed):
   number_of_target_role_files = 0
   root_fileinfo = None
 
-  for filename, pydict_fileinfo in json_fileinfos.items():
-
+  sorted_filenames = sorted(json_fileinfos)
+  for filename in sorted_filenames:
+    pydict_fileinfo = json_fileinfos[filename]
     # TODO: Consider checking the file itself to determine format... but have
     # to make sure we only mess with the real root metadata role file. (Don't
     # accidentally hit other metadata files?)
@@ -63,7 +64,13 @@ def get_asn_signed(pydict_signed):
           implicitTag=tag.Tag(tag.tagClassContext,tag.tagFormatSimple, 4))
       number_of_hashes = 0
 
-      for hashtype, hashval in pydict_fileinfo['hashes'].items():
+      # We're going to generate a list of hashes from the dictionary of hashes.
+      # The DER will contain this list, and the order of items in this list will
+      # affect hashing of the DER, and therefore signature verification.
+      # We have to make the order deterministic.
+      sorted_hashtypes = sorted(pydict_fileinfo['hashes'])
+      for hashtype in sorted_hashtypes:
+        hashval = pydict_fileinfo['hashes'][hashtype]
         hash = Hash()
         hash['function'] = int(HashFunction(hashtype))
         hash['digest'] = BinaryData().subtype(explicitTag=tag.Tag(
