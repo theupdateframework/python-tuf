@@ -78,7 +78,10 @@ def set_asn_keys(json_signed, delegations):
                                                   tag.tagFormatSimple, 1))
   numberOfKeys = 0
 
-  for keyid, keymeta in json_signed['delegations']['keys'].items():
+  # Sort first to ensure a deterministic list in ASN.1.
+  sorted_keyids = sorted(json_signed['delegations']['keys'])
+  for keyid in sorted_keyids:
+    keymeta = json_signed['delegations']['keys'][keyid]
     key = PublicKey()
 
     key['publicKeyid'] = Keyid().subtype(explicitTag=tag.Tag(
@@ -110,14 +113,18 @@ def set_asn_roles(json_signed, delegations):
                                                           3))
   numberOfDelegations = 0
 
-  for json_role in json_signed['delegations']['roles']:
+  # Sort first to ensure a deterministic list in ASN.1.
+  sorted_json_roles = sorted(json_signed['delegations']['roles'])
+  for json_role in sorted_json_roles:
     pathsToRoles = PathsToRoles()
 
     paths = Paths().subtype(implicitTag=tag.Tag(tag.tagClassContext,
                                                 tag.tagFormatSimple, 1))
     numberOfPaths = 0
 
-    for json_path in json_role['paths']:
+    # Sort first to ensure a deterministic list in ASN.1.
+    sorted_paths = sorted(json_role['paths'])
+    for json_path in sorted_paths:
       path = Path(json_path)
       # Some damned bug in pyasn1 I could not care less to fix right now.
       paths.setComponentByPosition(numberOfPaths, path, False)
@@ -138,7 +145,9 @@ def set_asn_roles(json_signed, delegations):
                                                   tag.tagFormatSimple, 2))
     numberOfKeyids = 0
 
-    for json_keyid in json_role['keyids']:
+    # Sort first to ensure a deterministic list in ASN.1.
+    sorted_keyids = sorted(json_role['keyids'])
+    for json_keyid in sorted_keyids:
 
       keyid = Keyid().subtype(explicitTag=tag.Tag(
           tag.tagClassContext, tag.tagFormatConstructed, 0))
@@ -173,7 +182,11 @@ def set_asn_targets(json_signed, targetsMetadata):
                                                   tag.tagFormatSimple, 1))
   numberOfTargets = 0
 
-  for filename, filemeta in json_signed['targets'].items():
+  # Sort first to ensure a deterministic list in ASN.1.
+  sorted_filenames = sorted(json_signed['targets'])
+  for filename in sorted_filenames:
+    filemeta = json_signed['targets'][filename]
+
     targetAndCustom = TargetAndCustom()
 
     target = Target().subtype(implicitTag=tag.Tag(tag.tagClassContext,
@@ -185,7 +198,10 @@ def set_asn_targets(json_signed, targetsMetadata):
                                                   tag.tagFormatSimple, 3))
     numberOfHashes = 0
 
-    for hash_function, hash_value in filemeta['hashes'].items():
+    # Sort first to ensure a deterministic list in ASN.1.
+    sorted_hash_functions = sorted(filemeta['hashes'])
+    for hash_function in sorted_hash_functions:
+      hash_value = filemeta['hashes'][hash_function]
       hash = Hash()
       hash['function'] = int(HashFunction(hash_function))
       digest = BinaryData()\
@@ -209,7 +225,9 @@ def set_asn_targets(json_signed, targetsMetadata):
                                                     tag.tagFormatConstructed,
                                                     1))
 
-      for customkey in filemeta['custom']:
+      # Sort first to ensure a deterministic list in ASN.1.
+      sorted_customkeys = sorted(filemeta['custom'])
+      for customkey in sorted_customkeys:
         #
         #   # TODO: Support arbitrary custom keys....
         #
