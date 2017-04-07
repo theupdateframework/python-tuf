@@ -286,4 +286,4 @@ if __name__ == '__main__':
         sys.exit(UNKNOWN_ERROR)
 
   # Successfully updated the target file.
-  sys.exit(SUCESS)
+  sys.exit(SUCCESS)
