@@ -3,19 +3,19 @@
 """
 <Program>
   simple_server.py
- 
+
 <Author>
   Konstantin Andrianov.
 
 <Started>
   February 15, 2012.
-  
+
 <Copyright>
   See LICENSE for licensing information.
 
 <Purpose>
-  This is a basic server that was designed to be used in conjunction with 
-  test_download.py to test download.py module. 
+  This is a basic server that was designed to be used in conjunction with
+  test_download.py to test download.py module.
 
 <Reference>
   SimpleHTTPServer:
@@ -45,14 +45,17 @@ if len(sys.argv) > 1:
     PORT = int(sys.argv[1])
     if PORT < 30000 or PORT > 45000:
       raise ValueError
-  
+
   except ValueError:
     PORT = _port_gen()
+    print('PORT: ' + repr(PORT))
 
 else:
   PORT = _port_gen()
+  print('PORT: ' + repr(PORT))
 
 Handler = six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler
 httpd = six.moves.socketserver.TCPServer(('', PORT), Handler)
 
 httpd.serve_forever()
+print('Serving HTTTP content..')
