@@ -106,7 +106,7 @@ def update_client(target, repository_mirror, metadata_directory, targets_directo
     None.
   """
 
-  REPOSITORY_MIRROR = 'http://localhost:8001'
+  REPOSITORY_MIRROR = 'http://localhost:30001'
 
   # Do the arguments have the correct format?
   try:
