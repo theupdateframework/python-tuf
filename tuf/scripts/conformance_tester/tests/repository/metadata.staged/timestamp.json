@@ -1,0 +1,17 @@
+{
+ "signatures": [],
+ "signed": {
+  "_type": "Timestamp",
+  "expires": "2030-01-01T00:00:00Z",
+  "meta": {
+   "snapshot.json": {
+    "hashes": {
+     "sha256": "c15b14217a3ad50ae2c136109983b7269d3bda42c4e1e530e30e7b5854b53a11"
+    },
+    "length": 678,
+    "version": 1
+   }
+  },
+  "version": 2
+ }
+}
