@@ -365,3 +365,106 @@ def generate_rsa_signature(signed, rsakey_dict):
   signature = tuf.keys.create_signature(rsakey_dict, signed)
 
   return signature
+
+
+
+
+
+def sign_over_metadata(
+    key_dict, data,
+    metadata_format=tuf.conf.METADATA_FORMAT):
+  """
+  Higher level function that wraps tuf.keys.create_signature, and works
+  specifically with metadata that will be in JSON or ASN.1/DER format.
+
+  See tuf.keys.create_signature for overall functionality and the arguments
+  key_dict and data.
+
+  Optional argument:
+
+    metadata_format: (optional; default based on tuf.conf.METADATA_FORMAT)
+
+      If 'json', treats data as a JSON-friendly Python dictionary to be turned
+      into a canonical JSON string and then encoded as utf-8 before signing.
+      When operating TUF with DER metadata but checking the signature on some
+      piece of JSON for some reason, this should be manually set to 'json'. The
+      purpose of this canonicalization is to produce repeatable signatures
+      across different platforms and Python key dictionaries (avoiding things
+      like different signatures over the same dictionary).
+
+      If 'der', the data will be converted into ASN.1, encoded as DER,
+      and hashed. The signature is then checked against that hash.
+  """
+
+  tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
+  # TODO: Check format of data, based on metadata_format.
+  # TODO: Consider checking metadata_format redundantly. It's checked below.
+
+  if metadata_format == 'json':
+    data = tuf.formats.encode_canonical(data).encode('utf-8')
+
+  elif metadata_format == 'der':
+
+    # TODO: Have convert_signed_metadata_to_der take just the 'signed' element
+    # so we don't have to do this silly wrapping in an empty signable.
+    data = asn1_codec.convert_signed_metadata_to_der(
+        {'signed': data, 'signatures': []}, only_signed=True)
+    data = hashlib.sha256(data).digest()
+
+  else:
+    raise tuf.Error('Unsupported metadata format: ' + repr(metadata_format))
+
+
+  return tuf.keys.create_signature(key_dict, data)
+
+
+
+
+
+def verify_signature_over_metadata(
+    key_dict, signature, data, metadata_format=tuf.conf.METADATA_FORMAT):
+  """
+  Higher level function that wraps tuf.keys.verify_signature, and works
+  specifically with metadata that will be in JSON or ASN.1/DER format.
+
+  See tuf.keys.verify_signature for overall functionality and the arguments
+  key_dict, signature, and data.
+
+  Optional argument:
+
+    metadata_format: (optional; default based on tuf.conf.METADATA_FORMAT)
+
+      If 'json', treats data as a JSON-friendly Python dictionary to be turned
+      into a canonical JSON string and then encoded as utf-8 before checking
+      against the signature. When operating TUF with DER metadata but checking
+      the signature on some piece of JSON for some reason, this should be
+      manually set to 'json'. The purpose of this canonicalization is to
+      produce repeatable signatures across different platforms and Python key
+      dictionaries (avoiding things like different signatures over the same
+      dictionary).
+
+      If 'der', the data will be converted into ASN.1, encoded as DER,
+      and hashed. The signature is then checked against that hash.
+  """
+
+  tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
+  tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
+  # TODO: Check format of data, based on metadata_format.
+  # TODO: Consider checking metadata_format redundantly. It's checked below.
+
+  if metadata_format == 'json':
+    data = tuf.formats.encode_canonical(data).encode('utf-8')
+
+  elif metadata_format == 'der':
+
+    # TODO: Have convert_signed_metadata_to_der take just the 'signed' element
+    # so we don't have to do this silly wrapping in an empty signable.
+    data = asn1_codec.convert_signed_metadata_to_der(
+        {'signed': data, 'signatures': []}, only_signed=True)
+    data = hashlib.sha256(data).digest()
+
+  else:
+    raise tuf.Error('Unsupported metadata format: ' + repr(metadata_format))
+
+
+  return tuf.keys.verify_signature(key_dict, signature, data)
