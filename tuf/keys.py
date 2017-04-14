@@ -639,9 +639,7 @@ def check_crypto_libraries(required_libraries):
 
 
 
-def create_signature(
-    key_dict, data, force_treat_as_pydict=False, force_non_json=False,
-    is_binary_data=False):
+def create_signature(key_dict, data):
   """
   <Purpose>
     Return a signature dictionary of the form:
@@ -692,27 +690,8 @@ def create_signature(
 
     data:
       Data object used by create_signature() to generate the signature.
-
-    force_treat_as_pydict: (optional; default False)
-      If True, then regardless of tuf.conf.METADATA_FORMAT, we will treat the
-      data provided as if it is a Python dictionary that must be canonicalized
-      and then encoded as utf-8 before it is signed.
-      Otherwise, behavior depends on tuf.conf.METADATA_FORMAT. If that is
-      'json', then the canonicalization occurs. If it is instead 'der', then
-      the canonicalization does not occur.
-
-    force_non_json: (optional, default False)
-      If True, then regardless of tuf.conf.METADATA_FORMAT, we will treat the
-      data provided as if it is not a Python dictionary and cannot be
-      canonicalized before it is signed.
-      Whether or not it is encoded as utf-8 depends on the format and
-      is_binary_data.
-
-    is_binary_data: (optional; default False)
-      If True, then regardless of tuf.conf.METADATA_FORMAT, we skip trying to
-      utf-8 encode the data, because it cannot necessarily be encoded as utf-8
-      and in any case is already encoded.
-
+      This should be bytes(). If it is a string, it should already be encoded
+      (e.g. string.encode('utf-8')).
 
   <Exceptions>
     tuf.FormatError, if 'key_dict' is improperly formatted.
@@ -742,18 +721,6 @@ def create_signature(
   # 'tuf.conf.RSA_CRYPTO_LIBRARY' or 'tuf.conf.ED25519_CRYPTO_LIBRARY'. 
   check_crypto_libraries([key_dict['keytype']])
 
-  # Ensure that optional arguments expected to be booleans are, and that they
-  # do not contradict each other.
-  tuf.formats.BOOLEAN_SCHEMA.check_match(is_binary_data)
-  tuf.formats.BOOLEAN_SCHEMA.check_match(force_non_json)
-  tuf.formats.BOOLEAN_SCHEMA.check_match(force_treat_as_pydict)
-  if force_non_json * force_treat_as_pydict:
-    raise tuf.Error('Contradictory arguments: force_treat_as_pydict and '
-        'force_non_json are both True.')
-  elif force_treat_as_pydict * is_binary_data:
-    raise tuf.Error('Contradictory arguments: force_treat_as_pydict and '
-        'is_binary_data are both True.')
-
   # Signing the 'data' object requires a private key.
   # 'RSASSA-PSS' and 'ed25519' are the only signing methods currently
   # supported.  RSASSA-PSS keys and signatures can be generated and verified by
@@ -766,31 +733,6 @@ def create_signature(
   keyid = key_dict['keyid']
   method = None
   sig = None
-
-  # Convert 'data' to canonical JSON format so that repeatable signatures are
-  # generated across different platforms and Python key dictionaries.  The
-  # resulting 'data' is a string encoded in UTF-8 and compatible with the input
-  # expected by the cryptography functions called below.
-  # TODO: Consider canonical needs for DER.
-  # TODO: Find way around having to use these flags. (Reason they're needed:
-  # sometimes, even when tuf's metadata format (tuf.conf.METADATA_FORMAT) is
-  # not set to JSON, we still want to sign basic python dictionaries (instead
-  # of always signing things as DER, say). So we need a way of telling this
-  # function that even though tuf's metadata format is something else,
-  # we still need to do the canonical JSON encoding here.
-  # A better way of doing this might be doing the canonical encoding before data
-  # is passed here.... But then it may be done twice, if tuf happens to be in
-  # JSON mode, which breaks it. (We end up with extraneous junk like
-  # '{\\"a\\":1,\\"b\\":2} instead of '{"a":1,"b":2}'.) I could fix *that*,
-  # I suppose....
-  if force_treat_as_pydict or \
-      tuf.conf.METADATA_FORMAT == 'json' and not force_non_json:
-    data = tuf.formats.encode_canonical(data)
-
-  if not is_binary_data:
-    # Even if we're not using the canonicalizer, if we don't have binary data
-    # already, we have to encode it before signing it.
-    data = data.encode('utf-8')
 
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
@@ -831,9 +773,7 @@ def create_signature(
 
 
 
-def verify_signature(
-    key_dict, signature, data, force_treat_as_pydict=False,
-    force_non_json=False, is_binary_data=False):
+def verify_signature(key_dict, signature, data):
   """
   <Purpose>
     Determine whether the private key belonging to 'key_dict' produced
@@ -880,26 +820,8 @@ def verify_signature(
     data:
       Data object used by tuf.rsa_key.create_signature() to generate
       'signature'.  'data' is needed here to verify the signature.
-
-    force_treat_as_pydict: (optional; default False)
-      If True, then regardless of tuf.conf.METADATA_FORMAT, we will treat the
-      data provided as if it is a Python dictionary that must be canonicalized
-      and then encoded as utf-8 before it is checked against the signature.
-      Otherwise, behavior depends on tuf.conf.METADATA_FORMAT. If that is
-      'json', then the canonicalization occurs. If it is instead 'der', then
-      the canonicalization does not occur.
-
-    force_non_json: (optional, default False)
-      If True, then regardless of tuf.conf.METADATA_FORMAT, we will treat the
-      data provided as if it is not a Python dictionary and cannot be
-      canonicalized before it is checked against the signature.
-      Whether or not it is encoded as utf-8 depends on the format and
-      is_binary_data.
-
-    is_binary_data: (optional; default False)
-      If True, then regardless of tuf.conf.METADATA_FORMAT, we skip trying to
-      utf-8 encode the data, because it cannot necessarily be encoded as utf-8
-      and in any case is already encoded.
+      This should be bytes(). If it is a string, it should already be encoded
+      (e.g. string.encode('utf-8')).
 
   <Exceptions>
     tuf.FormatError, raised if either 'key_dict' or 'signature' are improperly
@@ -928,18 +850,6 @@ def verify_signature(
   # Does 'signature' have the correct format?
   tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
 
-  # Ensure that optional arguments expected to be booleans are, and that they
-  # do not contradict each other.
-  tuf.formats.BOOLEAN_SCHEMA.check_match(is_binary_data)
-  tuf.formats.BOOLEAN_SCHEMA.check_match(force_non_json)
-  tuf.formats.BOOLEAN_SCHEMA.check_match(force_treat_as_pydict)
-  if force_non_json * force_treat_as_pydict:
-    raise tuf.Error('Contradictory arguments: force_treat_as_pydict and '
-        'force_non_json are both True.')
-  elif force_treat_as_pydict * is_binary_data:
-    raise tuf.Error('Contradictory arguments: force_treat_as_pydict and '
-        'is_binary_data are both True.')
-
   # Using the public key belonging to 'key_dict'
   # (i.e., rsakey_dict['keyval']['public']), verify whether 'signature'
   # was produced by key_dict's corresponding private key
@@ -950,22 +860,6 @@ def verify_signature(
   public = key_dict['keyval']['public']
   keytype = key_dict['keytype']
   valid_signature = False
-  
-  # Convert 'data' to canonical JSON format so that repeatable signatures are
-  # generated across different platforms and Python key dictionaries.  The
-  # resulting 'data' is a string encoded in UTF-8 and compatible with the input
-  # expected by the cryptography functions called below.
-  # TODO: Consider canonical needs for DER.
-  # TODO: Find way around having to use these flags. See similar comment
-  # in create_signature() above for more information.
-  if force_treat_as_pydict or \
-      tuf.conf.METADATA_FORMAT == 'json'  and not force_non_json:
-    data = tuf.formats.encode_canonical(data)
-
-  if not is_binary_data:
-    # Even if we're not using the canonicalizer, if we don't have binary data
-    # already, we have to encode it before signing it.
-    data = data.encode('utf-8')
 
   # Call the appropriate cryptography libraries for the supported key types,
   # otherwise raise an exception.
