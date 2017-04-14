@@ -388,17 +388,6 @@ def _remove_invalid_and_duplicate_signatures(
   signature_keyids = []
 
   for signature in signable['signatures']:
-    signed = signable['signed']
-    if tuf.conf.METADATA_FORMAT == 'der': # Encode as DER before signing.
-      # TODO: These three lines, from signed = through this one, should be
-      # moved out of the for loop, to just before. There's no need to do them
-      # repeatedly. Also, this line is now clumsy, taking in more than it needs
-      # and using a parameter to get back only what it wants.
-      signed = asn1_codec.convert_signed_metadata_to_der(
-          signable, only_signed=True)
-      # If we're using DER, then what we validate should be the signature over
-      # the sha256 hash of the DER encoding.
-      signed = hashlib.sha256(signed).digest()
     keyid = signature['keyid']
     key = None
 

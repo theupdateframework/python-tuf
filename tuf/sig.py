@@ -140,18 +140,6 @@ def get_signature_status(signable, role=None, repository_name='default'):
   signed = signable['signed']
   signatures = signable['signatures']
 
-  # If we are using DER metadata, the 'signed' field must be converted into
-  # DER so that the signature (which was signed into DER) can match it.
-  # If the format or encoding are different, this verification will fail,
-  # since we're re-encoding to check the signature....
-  if tuf.conf.METADATA_FORMAT == 'der':
-    signed = asn1_codec.convert_signed_metadata_to_der(
-        signable, only_signed=True)
-    # Replace signed with a hash of signed, since that's all we'll need to sign
-    # and we are not doing anything else with 'signed' here.
-    # Digest provides binary data.
-    signed = hashlib.sha256(signed).digest()
-
   # Iterate through the signatures and enumerate the signature_status fields.
   # (i.e., good_sigs, bad_sigs, etc.).
   for signature in signatures:

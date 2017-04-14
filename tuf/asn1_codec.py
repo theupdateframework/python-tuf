@@ -278,13 +278,7 @@ def convert_signed_metadata_to_der(
     # Now sign the metadata. (This signs a cryptographic hash of the metadata.)
     # The returned value is a basic Python dict writable into JSON.
     # This is a signature over the hash of the DER encoding.
-    # Tell keys.create_signature that the data we're providing is not JSON so
-    # that it doesn't try to canonicalize it (and wrap the hash in double
-    # quotes).
-    # Because it is a hash in hexadecimal, neither is this raw binary data,
-    # so we don't use the binary_data=True flag.
-    pydict_signatures = [tuf.keys.create_signature(
-        private_key, hash_of_der, force_non_json=True, is_binary_data=True)]
+    pydict_signatures = [tuf.keys.create_signature(private_key, hash_of_der)]
 
   else:
     pydict_signatures = signed_metadata['signatures']
