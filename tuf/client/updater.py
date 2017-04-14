@@ -1550,7 +1550,7 @@ class SingleRepoUpdater(object):
 
     metadata = metadata_file_object.read()
     try:
-      metadata_signable = tuf.util.load_string(metadata) # TODO: <~> VERIFY THIS.
+      metadata_signable = tuf.util.load_string(metadata)
 
     except Exception as exception:
       raise tuf.InvalidMetadataJSONError(exception)
