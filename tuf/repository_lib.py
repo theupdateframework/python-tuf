@@ -401,11 +401,8 @@ def _remove_invalid_and_duplicate_signatures(
       continue
     
     # Remove 'signature' from 'signable' if it is an invalid signature.
-    if tuf.conf.METADATA_FORMAT == 'der':
-      sig_is_valid = tuf.keys.verify_signature(
-          key, signature, signed, is_binary_data=True)
-    else:
-      sig_is_valid = tuf.keys.verify_signature(key, signature, signed)
+    sig_is_valid = tuf.sig.verify_signature_over_metadata(
+        key, signature, signable['signed'])
 
     if not sig_is_valid:
       signable['signatures'].remove(signature)
@@ -1869,30 +1866,8 @@ def sign_metadata(metadata_object, keyids, filename,
     if key['keytype'] in SUPPORTED_KEY_TYPES:
       if 'private' in key['keyval']:
         signed = signable['signed']
-        if tuf.conf.METADATA_FORMAT == 'der':
-          # If we're using DER format, then we need to convert our current
-          # representation, a Python dictionary in TUF's customary format
-          # (per TUF's current specification) into ASN.1 and then encode it into
-          # DER. We have to do this before signing, as we want the signature to
-          # be over the finished DER encoding, which is what some clients may
-          # want to operate with (and check signatures on).
-          # TODO: The section of code here that deals with signed (two lines of
-          # code up) should be moved out of this for loop, as it does not change
-          # on each iteration (for each signature). There's no need to assign
-          # it to a temp multiple times, but it's even less ideal to convert
-          # it to DER multiple times.
-          # TODO: Also, this line is now clumsy, taking in more than it needs
-          # and using a parameter to only get back what it wants. Fix that,
-          # starting by splitting convert_signed_metadata_to_der into multiple
-          # modular functions.
-          signed = asn1_codec.convert_signed_metadata_to_der(
-              signable, only_signed=True)
-          signed = hashlib.sha256(signed).digest() # returns bytes, unlike hexdigest
-          signature = tuf.keys.create_signature(
-              key, signed, force_non_json=True, is_binary_data=True)
-        else:
-          signature = tuf.keys.create_signature(
-              key, signed, force_treat_as_pydict=False)
+        signature = tuf.sig.sign_over_metadata(key, signed)
+
         signable['signatures'].append(signature)
       
       else:

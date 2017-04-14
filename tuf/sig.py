@@ -157,11 +157,13 @@ def get_signature_status(signable, role=None, repository_name='default'):
 
     # Identify key using an unknown key signing method.
     try:
-      if tuf.conf.METADATA_FORMAT == 'der':
-        valid_sig = tuf.keys.verify_signature(
-            key, signature, signed, is_binary_data=True)
-      else:
-        valid_sig = tuf.keys.verify_signature(key, signature, signed)
+      # TODO: Consider more efficient measures. If the metadata format is
+      # ASN.1/DER ('der'), this line performs a conversion of the data into
+      # ASN.1/DER once per signature. It would be more efficient to do the
+      # conversion once before the loop, and manually use lower-level
+      # signature verification, but that would also be less clean.
+      # If we're using JSON, then this is equally efficient and still cleaner.
+      valid_sig = verify_signature_over_metadata(key, signature, signed)
 
     except tuf.UnknownMethodError:
       unknown_method_sigs.append(keyid)
