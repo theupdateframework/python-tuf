@@ -1,0 +1,29 @@
+{
+    "expiration_date": "05/20/2014",
+    "roles": {
+        "root": {
+            "threshold": 1,
+            "passwords": [
+                "root_password1", "root_password2", "root_password3"
+            ]
+	},
+        "targets": {
+            "threshold": 1,
+            "passwords": [
+                "targets_password"
+            ]
+	},
+        "release": {
+            "threshold": 1,
+            "passwords": [
+                "release_password"
+            ]
+	},
+        "timestamp": {
+            "threshold": 1,
+            "passwords": [
+                "timestamp_password"
+            ]
+	}
+    }
+}
