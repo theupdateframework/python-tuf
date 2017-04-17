@@ -1092,9 +1092,24 @@ def load_file(filepath):
 
 def load_string(data):
   """
-  Loads the given DER or JSON string into TUF's standard Python dictionary
+  Loads the given DER or JSON data into TUF's standard Python dictionary
   format (return value conforms with tuf.formats.SIGNABLE_SCHEMA, with the
   value of 'signed' conforming to tuf.formats.ANYROLE_SCHEMA).
+
+  In DER mode, takes bytes (encoded ASN.1/DER data).
+  In JSON mode, takes a string (already decoded)
+
+
+  Here are the constraints leading to this unusual coding:
+    - Keys are always loaded from JSON, not DER, by calling load_json_string
+      directly.
+    - DER can't be decoded into a string from bytes
+    - It is preferable not to have DER vs JSON conditionals in every piece of
+      code that loads metadata by calling load_string. (It is preferable for
+      load_string to do it.)
+
+  # TODO: Consider renaming this 'deserialize', since it may deal with 'strings'
+    or 'bytes' (making the existing name misleading).
 
   A simple wrapper for load_der_string and load_json_string. Please see
   comments in those functions.
@@ -1103,7 +1118,7 @@ def load_string(data):
     return load_der_string(data)
 
   elif tuf.conf.METADATA_FORMAT == 'json':
-    return load_json_string(data)
+    return load_json_string(data.decode('utf-8'))
 
   else:
     raise tuf.Error('tuf.util.load_string() only supports DER or JSON, but '
