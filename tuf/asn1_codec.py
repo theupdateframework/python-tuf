@@ -270,14 +270,13 @@ def convert_signed_metadata_to_der(
     # This hashing is redundant and temporary. Eventually, the hash will
     # consistently be performed in securesystemslib/keys.py in the
     # create_signature() function, so we shouldn't be taking a hash here.
-    # For the time being, I do this so that it always uses a hash even for ed25519
-    # and also so that the canonicalization that is currently called by
-    # create_signature() doesn't choke on the DER I want to sign.
+    # For the time being, I do this so that it always uses a hash even for
+    # ed25519.
     hash_of_der = hashlib.sha256(der_signed).digest()
 
-    # Now sign the metadata. (This signs a cryptographic hash of the metadata.)
-    # The returned value is a basic Python dict writable into JSON.
-    # This is a signature over the hash of the DER encoding.
+    # Now sign the metadata.
+    # The returned value is a basic Python dict writable into JSON, containing
+    # a signature over the cryptographic hash of the DER encoding.
     pydict_signatures = [tuf.keys.create_signature(private_key, hash_of_der)]
 
   else:

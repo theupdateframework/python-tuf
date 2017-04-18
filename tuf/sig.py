@@ -435,8 +435,9 @@ def sign_over_metadata(
     TypeError, if 'key_dict' contains an invalid keytype.
 
   <Side Effects>
-    The cryptography library specified in 'tuf.conf' called to perform the
-    actual signing routine.
+    The cryptography library specified in 'tuf.conf' is called to do the actual
+    verification. When in 'der' mode, argument data is converted into ASN.1/DER
+    in order to verify it. (Argument object is unchanged.)
 
   <Returns>
     A signature dictionary conformant to 'tuf.format.SIGNATURE_SCHEMA'. e.g.:
@@ -524,9 +525,9 @@ def verify_signature_over_metadata(
 
       In 'json' mode:
         'data' can be any data that can be processed by
-        tuf.formats.encode_canonical(data) can be signed. This function is
-        generally intended to verify signatures over metadata
-        (tuf.formats.ANYROLE_SCHEMA), but can be used more broadly.
+        tuf.formats.encode_canonical(data). This function is generally intended
+        to verify signatures over TUF metadata (tuf.formats.ANYROLE_SCHEMA),
+        but can be used more broadly when in 'json' mode.
 
     metadata_format: (optional; default based on tuf.conf.METADATA_FORMAT)
       If 'json', treats data as a JSON-friendly Python dictionary to be turned
@@ -553,7 +554,8 @@ def verify_signature_over_metadata(
 
   <Side Effects>
     The cryptography library specified in 'tuf.conf' is called to do the actual
-    verification.
+    verification. When in 'der' mode, argument data is converted into ASN.1/DER
+    in order to verify it. (Argument object is unchanged.)
 
   <Returns>
     Boolean.  True if the signature is valid, False otherwise.
