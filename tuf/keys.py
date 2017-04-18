@@ -694,8 +694,8 @@ def create_signature(key_dict, data):
       (e.g. string.encode('utf-8')).
 
   <Exceptions>
-    tuf.FormatError, if 'key_dict' is improperly formatted.
-   
+    tuf.FormatError, if 'key_dict' or 'data' is improperly formatted.
+
     tuf.UnsupportedLibraryError, if an unsupported or unavailable library is
     detected.
 
@@ -715,7 +715,10 @@ def create_signature(key_dict, data):
   # Raise 'tuf.FormatError' if the check fails.
   # The key type of 'key_dict' must be either 'rsa' or 'ed25519'.
   tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
-  
+
+  # Test to make sure data is binary. If not, raise tuf.FormatError()
+  tuf.formats.DATA_SCHEMA.check_match(data)
+
   # Raise 'tuf.UnsupportedLibraryError' if the following libraries, specified
   # in 'tuf.conf', are unsupported or unavailable:
   # 'tuf.conf.RSA_CRYPTO_LIBRARY' or 'tuf.conf.ED25519_CRYPTO_LIBRARY'. 
@@ -824,9 +827,9 @@ def verify_signature(key_dict, signature, data):
       (e.g. string.encode('utf-8')).
 
   <Exceptions>
-    tuf.FormatError, raised if either 'key_dict' or 'signature' are improperly
-    formatted.
-    
+    tuf.FormatError, raised if any of 'key_dict', 'data', or 'signature' are
+    improperly formatted.
+
     tuf.UnsupportedLibraryError, if an unsupported or unavailable library is
     detected.
     
@@ -849,6 +852,9 @@ def verify_signature(key_dict, signature, data):
 
   # Does 'signature' have the correct format?
   tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
+
+  # Test to make sure data is binary. If not, raise tuf.FormatError()
+  tuf.formats.DATA_SCHEMA.check_match(data)
 
   # Using the public key belonging to 'key_dict'
   # (i.e., rsakey_dict['keyval']['public']), verify whether 'signature'
