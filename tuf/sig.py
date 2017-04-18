@@ -485,19 +485,6 @@ def verify_signature_over_metadata(
 
     See tuf.keys.verify_signature for lower level details.
 
-    >>> data = 'The quick brown fox jumps over the lazy dog'
-    >>> signature = create_signature(ed25519_key, data)
-    >>> verify_signature(ed25519_key, signature, data)
-    True
-    >>> verify_signature(ed25519_key, signature, 'bad_data')
-    False
-    >>> rsa_key = generate_rsa_key()
-    >>> signature = create_signature(rsa_key, data)
-    >>> verify_signature(rsa_key, signature, data)
-    True
-    >>> verify_signature(rsa_key, signature, 'bad_data')
-    False
-
   <Arguments>
     key_dict:
       A dictionary containing the TUF keys and other identifying information.
