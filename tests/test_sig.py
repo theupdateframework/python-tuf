@@ -69,7 +69,7 @@ class TestSig(unittest.TestCase):
     # Should verify we are not adding a duplicate signature
     # when doing the following action.  Here we know 'signable'
     # has only one signature so it's okay.
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
 
     tuf.keydb.add_key(KEYS[0]) 
@@ -99,7 +99,7 @@ class TestSig(unittest.TestCase):
   def test_get_signature_status_bad_sig(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
     signable['signed'] += 'signature no longer matches signed data'
 
@@ -129,7 +129,7 @@ class TestSig(unittest.TestCase):
   def test_get_signature_status_unknown_method(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
     signable['signatures'][0]['method'] = 'fake-sig-method'
 
@@ -160,7 +160,7 @@ class TestSig(unittest.TestCase):
   def test_get_signature_status_single_key(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
 
     tuf.keydb.add_key(KEYS[0])
@@ -189,7 +189,7 @@ class TestSig(unittest.TestCase):
   def test_get_signature_status_below_threshold(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
 
     tuf.keydb.add_key(KEYS[0])
@@ -221,9 +221,9 @@ class TestSig(unittest.TestCase):
     signable = {'signed' : 'test', 'signatures' : []}
 
     # Two keys sign it, but only one of them will be trusted.
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[2], signable['signed']))
 
     tuf.keydb.add_key(KEYS[0])
@@ -258,9 +258,9 @@ class TestSig(unittest.TestCase):
 
     # Two keys sign it, but one of them is only trusted for a different
     # role.
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[1], signable['signed']))
 
     tuf.keydb.add_key(KEYS[0])
@@ -297,7 +297,7 @@ class TestSig(unittest.TestCase):
   def test_check_signatures_no_role(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
 
     tuf.keydb.add_key(KEYS[0])
@@ -315,7 +315,7 @@ class TestSig(unittest.TestCase):
 
   def test_verify_single_key(self):
     signable = {'signed' : 'test', 'signatures' : []}
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
 
     tuf.keydb.add_key(KEYS[0])
@@ -339,9 +339,9 @@ class TestSig(unittest.TestCase):
     signable = {'signed' : 'test', 'signatures' : []}
 
     # Two keys sign it, but only one of them will be trusted.
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[2], signable['signed']))
 
     tuf.keydb.add_key(KEYS[0])
@@ -361,11 +361,17 @@ class TestSig(unittest.TestCase):
     tuf.roledb.remove_role('Root')
 
 
-
+  # This test fails because the specialized function generate_rsa_signature is
+  # no longer supported in this fork. RSA signatures should be generated like
+  # any other signature.
+  # TODO: When merging, mind this difference. Uptane doesn't use this function,
+  # and Uptane is the customer of this fork. See that securesystemslib
+  # post-merge uses consistently structured signing code.
+  @unittest.expectedFailure
   def test_generate_rsa_signature(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
 
     self.assertEqual(1, len(signable['signatures']))
@@ -375,7 +381,7 @@ class TestSig(unittest.TestCase):
     returned_signature = tuf.sig.generate_rsa_signature(signable['signed'], KEYS[0]) 
     self.assertTrue(tuf.formats.SIGNATURE_SCHEMA.matches(returned_signature))
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[1], signable['signed']))
 
     self.assertEqual(2, len(signable['signatures']))
@@ -388,7 +394,7 @@ class TestSig(unittest.TestCase):
     # One untrusted key in 'signable'.    
     signable = {'signed' : 'test', 'signatures' : []}
 
-    signable['signatures'].append(tuf.keys.create_signature(
+    signable['signatures'].append(tuf.sig.sign_over_metadata(
                                   KEYS[0], signable['signed']))
 
     tuf.keydb.add_key(KEYS[1])
