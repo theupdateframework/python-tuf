@@ -38,7 +38,7 @@ logger = logging.getLogger('tuf.test_keys')
 
 KEYS = tuf.keys
 FORMAT_ERROR_MSG = 'tuf.FormatError was raised! Check object\'s format.'
-DATA = 'SOME DATA REQUIRING AUTHENTICITY.'
+DATA = 'SOME DATA REQUIRING AUTHENTICITY.'.encode('utf-8')
 
 
 
@@ -178,8 +178,13 @@ class TestKeys(unittest.TestCase):
   def test_create_signature(self):
     # Creating a signature for 'DATA'.
     rsa_signature = KEYS.create_signature(self.rsakey_dict, DATA)
-    ed25519_signature = KEYS.create_signature(self.ed25519key_dict, DATA) 
-    
+    ed25519_signature = KEYS.create_signature(self.ed25519key_dict, DATA)
+
+    # Ensure that tuf.FormatError is raised if non-binary data is passed to
+    # create_signature:
+    self.assertRaises(tuf.FormatError, KEYS.create_signature, self.rsakey_dict,
+        u'unicode_string')
+
     # Check format of output.
     self.assertEqual(None, 
                      tuf.formats.SIGNATURE_SCHEMA.check_match(rsa_signature),
@@ -214,13 +219,18 @@ class TestKeys(unittest.TestCase):
     verified = KEYS.verify_signature(self.ed25519key_dict, ed25519_signature, DATA)
     self.assertTrue(verified, "Incorrect signature.")
 
+    # Ensure that tuf.FormatError is raised if non-binary data is passed to
+    # verify_signature:
+    self.assertRaises(tuf.FormatError, KEYS.verify_signature, self.rsakey_dict,
+        rsa_signature, u'unicode_string')
+
     # Testing an invalid 'rsa_signature'. Same 'rsa_signature' is passed, with 
     # 'DATA' different than the original 'DATA' that was used 
     # in creating the 'rsa_signature'. Function should return 'False'.
     
     # Modifying 'DATA'.
-    _DATA = '1111' + DATA + '1111'
-  
+    _DATA = '1111'.encode('utf-8') + DATA + '1111'.encode('utf-8')
+
     # Verifying the 'signature' of modified '_DATA'.
     verified = KEYS.verify_signature(self.rsakey_dict, rsa_signature, _DATA)
     self.assertFalse(verified, 
