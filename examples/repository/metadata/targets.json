@@ -1,50 +1,60 @@
 {
  "signatures": [
   {
-   "keyid": "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b", 
-   "method": "ed25519", 
-   "sig": "e9fd40008fba263758a3ff1dc59f93e42a4910a282749af915fbbea1401178e5a012090c228f06db1deb75ad8ddd7e40635ac51d4b04301fce0fd720074e0209"
+   "keyid": "a0a0f0cf08daff7afd1eb6582756d43987aa73f028044836a5519259706ca19b",
+   "method": "ed25519",
+   "sig": "74ee9970ed709ab65586ef99c0005102676a92f11e2a448bb685875b641d2efe3fd2bdefaa90e1a050bfbb34163834aadb43d13ac0c7452aa7df27c454c34507"
   }
- ], 
+ ],
  "signed": {
-  "_type": "Targets", 
+  "_type": "Targets",
   "delegations": {
    "keys": {
-    "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba": {
-     "keytype": "ed25519", 
+    "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9": {
+     "keyid_hash_algorithms": [
+      "sha256",
+      "sha512"
+     ],
+     "keytype": "ed25519",
      "keyval": {
-      "public": "b6e40fb71a6041212a3d84331336ecaa1f48a0c523f80ccc762a034c727606fa"
+      "public": "3b11296fe2dba14a2ef204e542e9e4195293bcf3042655e3d7e4ef5afe3cf36a"
      }
     }
-   }, 
+   },
    "roles": [
     {
      "keyids": [
-      "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba"
-     ], 
-     "name": "targets/project", 
+      "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9"
+     ],
+     "name": "role1",
      "paths": [
-      "/project/file3.txt"
-     ], 
+      "/file3.txt"
+     ],
+     "terminating": false,
      "threshold": 1
     }
    ]
-  }, 
-  "expires": "2030-01-01T00:00:00Z", 
+  },
+  "expires": "2030-01-01T00:00:00Z",
   "targets": {
    "/file1.txt": {
+    "custom": {
+     "file_permissions": "664"
+    },
     "hashes": {
-     "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da"
-    }, 
+     "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da",
+     "sha512": "467430a68afae8e9f9c0771ea5d78bf0b3a0d79a2d3d3b40c69fde4dd42c461448aef76fcef4f5284931a1ffd0ac096d138ba3a0d6ca83fa8d7285a47a296f77"
+    },
     "length": 31
-   }, 
+   },
    "/file2.txt": {
     "hashes": {
-     "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99"
-    }, 
+     "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99",
+     "sha512": "052b49a21e03606b28942db69aa597530fe52d47ee3d748ba65afcd14b857738e36bc1714c4f4adde46c3e683548552fe5c96722e0e0da3acd9050c2524902d8"
+    },
     "length": 39
    }
-  }, 
+  },
   "version": 1
  }
 }
