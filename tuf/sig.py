@@ -140,18 +140,6 @@ def get_signature_status(signable, role=None, repository_name='default'):
   signed = signable['signed']
   signatures = signable['signatures']
 
-  # If we are using DER metadata, the 'signed' field must be converted into
-  # DER so that the signature (which was signed into DER) can match it.
-  # If the format or encoding are different, this verification will fail,
-  # since we're re-encoding to check the signature....
-  if tuf.conf.METADATA_FORMAT == 'der':
-    signed = asn1_codec.convert_signed_metadata_to_der(
-        signable, only_signed=True)
-    # Replace signed with a hash of signed, since that's all we'll need to sign
-    # and we are not doing anything else with 'signed' here.
-    # Digest provides binary data.
-    signed = hashlib.sha256(signed).digest()
-
   # Iterate through the signatures and enumerate the signature_status fields.
   # (i.e., good_sigs, bad_sigs, etc.).
   for signature in signatures:
@@ -169,11 +157,13 @@ def get_signature_status(signable, role=None, repository_name='default'):
 
     # Identify key using an unknown key signing method.
     try:
-      if tuf.conf.METADATA_FORMAT == 'der':
-        valid_sig = tuf.keys.verify_signature(
-            key, signature, signed, is_binary_data=True)
-      else:
-        valid_sig = tuf.keys.verify_signature(key, signature, signed)
+      # TODO: Consider more efficient measures. If the metadata format is
+      # ASN.1/DER ('der'), this line performs a conversion of the data into
+      # ASN.1/DER once per signature. It would be more efficient to do the
+      # conversion once before the loop, and manually use lower-level
+      # signature verification, but that would also be less clean.
+      # If we're using JSON, then this is equally efficient and still cleaner.
+      valid_sig = verify_signature_over_metadata(key, signature, signed)
 
     except tuf.UnknownMethodError:
       unknown_method_sigs.append(keyid)
@@ -377,3 +367,218 @@ def generate_rsa_signature(signed, rsakey_dict):
   signature = tuf.keys.create_signature(rsakey_dict, signed)
 
   return signature
+
+
+
+
+
+def sign_over_metadata(
+    key_dict, data,
+    metadata_format=tuf.conf.METADATA_FORMAT):
+  """
+  <Purpose>
+    Given a key and data, returns a signature over that data.
+
+    Higher level function that wraps tuf.keys.create_signature, and works
+    specifically with metadata that will be in JSON or ASN.1/DER format. See
+    tuf.keys.create_signature, which this function employs, for lower level
+    details.
+
+  <Arguments>
+    key_dict:
+      A dictionary containing the TUF keys.  An example RSA key dict has the
+      form:
+
+      {'keytype': 'rsa',
+       'keyid': 'f30a0870d026980100c0573bd557394f8c1bbd6...',
+       'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
+                  'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
+
+      The public and private keys are strings in PEM format.
+
+    data:
+      Data object used by create_signature() to generate the signature.
+      Acceptable format depends somewhat on tuf.conf.METADATA_FORMAT, or, if
+      the optional argument is provided, metadata_format.
+
+      This will be converted into a bytes object and passed down to
+      tuf.keys.create_signature().
+
+      In 'der' mode:
+        'data' is expected to be a dictionary compliant with
+        tuf.formats.ANYROLE_SCHEMA. ASN.1/DER conversion requires strictly
+        defined formats.
+
+      In 'json' mode:
+        'data' can be any data that can be processed by
+        tuf.formats.encode_canonical(data) can be signed. This function is
+        generally intended to sign metadata (tuf.formats.ANYROLE_SCHEMA), but
+        can be used more broadly.
+
+    metadata_format: (optional; default based on tuf.conf.METADATA_FORMAT)
+      If 'json', treats data as a JSON-friendly Python dictionary to be turned
+      into a canonical JSON string and then encoded as utf-8 before signing.
+      When operating TUF with DER metadata but checking the signature on some
+      piece of JSON for some reason, this should be manually set to 'json'. The
+      purpose of this canonicalization is to produce repeatable signatures
+      across different platforms and Python key dictionaries (avoiding things
+      like different signatures over the same dictionary).
+      If 'der', the data will be converted into ASN.1, encoded as DER,
+      and hashed. The signature is then checked against that hash.
+
+  <Exceptions>
+    tuf.FormatError, if 'key_dict' is improperly formatted.
+
+    tuf.UnsupportedLibraryError, if an unsupported or unavailable library is
+    detected.
+
+    TypeError, if 'key_dict' contains an invalid keytype.
+
+  <Side Effects>
+    The cryptography library specified in 'tuf.conf' is called to do the actual
+    verification. When in 'der' mode, argument data is converted into ASN.1/DER
+    in order to verify it. (Argument object is unchanged.)
+
+  <Returns>
+    A signature dictionary conformant to 'tuf.format.SIGNATURE_SCHEMA'. e.g.:
+    {'keyid': 'f30a0870d026980100c0573bd557394f8c1bbd6...',
+     'method': '...',
+     'sig': '...'}.
+
+  """
+
+  tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
+  # TODO: Check format of data, based on metadata_format.
+  # TODO: Consider checking metadata_format redundantly. It's checked below.
+
+  if metadata_format == 'json':
+    data = tuf.formats.encode_canonical(data).encode('utf-8')
+
+  elif metadata_format == 'der':
+
+    # TODO: Have convert_signed_metadata_to_der take just the 'signed' element
+    # so we don't have to do this silly wrapping in an empty signable.
+    data = asn1_codec.convert_signed_metadata_to_der(
+        {'signed': data, 'signatures': []}, only_signed=True)
+    data = hashlib.sha256(data).digest()
+
+  else:
+    raise tuf.Error('Unsupported metadata format: ' + repr(metadata_format))
+
+
+  return tuf.keys.create_signature(key_dict, data)
+
+
+
+
+
+def verify_signature_over_metadata(
+    key_dict, signature, data, metadata_format=tuf.conf.METADATA_FORMAT):
+  """
+  <Purpose>
+    Determine whether the private key belonging to 'key_dict' produced
+    'signature'. tuf.keys.verify_signature() will use the public key found in
+    'key_dict', the 'method' and 'sig' objects contained in 'signature',
+    and 'data' to complete the verification.
+
+    Higher level function that wraps tuf.keys.verify_signature, and works
+    specifically with metadata that will be in JSON or ASN.1/DER format.
+
+    See tuf.keys.verify_signature for lower level details.
+
+  <Arguments>
+    key_dict:
+      A dictionary containing the TUF keys and other identifying information.
+      If 'key_dict' is an RSA key, it has the form:
+
+      {'keytype': 'rsa',
+       'keyid': 'f30a0870d026980100c0573bd557394f8c1bbd6...',
+       'keyval': {'public': '-----BEGIN RSA PUBLIC KEY----- ...',
+                  'private': '-----BEGIN RSA PRIVATE KEY----- ...'}}
+
+      The public and private keys are strings in PEM format.
+
+    signature:
+      The signature dictionary produced by one of the key generation functions.
+      'signature' has the form:
+
+      {'keyid': 'f30a0870d026980100c0573bd557394f8c1bbd6...',
+       'method': 'method',
+       'sig': sig}.
+
+      Conformant to 'tuf.formats.SIGNATURE_SCHEMA'.
+
+    data:
+      Data object over which the validity of the provided signature will be
+      checked by verify_signature().
+
+      Acceptable format depends somewhat on tuf.conf.METADATA_FORMAT, or, if
+      the optional argument is provided, metadata_format.
+
+      This will be converted into a bytes object and passed down to
+      tuf.keys.verify_signature().
+
+      In 'der' mode:
+        'data' is expected to be a dictionary compliant with
+        tuf.formats.ANYROLE_SCHEMA. ASN.1/DER conversion requires strictly
+        defined formats.
+
+      In 'json' mode:
+        'data' can be any data that can be processed by
+        tuf.formats.encode_canonical(data). This function is generally intended
+        to verify signatures over TUF metadata (tuf.formats.ANYROLE_SCHEMA),
+        but can be used more broadly when in 'json' mode.
+
+    metadata_format: (optional; default based on tuf.conf.METADATA_FORMAT)
+      If 'json', treats data as a JSON-friendly Python dictionary to be turned
+      into a canonical JSON string and then encoded as utf-8 before checking
+      against the signature. When operating TUF with DER metadata but checking
+      the signature on some piece of JSON for some reason, this should be
+      manually set to 'json'. The purpose of this canonicalization is to
+      produce repeatable signatures across different platforms and Python key
+      dictionaries (avoiding things like different signatures over the same
+      dictionary).
+
+      If 'der', the data will be converted into ASN.1, encoded as DER,
+      and hashed. The signature is then checked against that hash.
+
+  <Exceptions>
+    tuf.FormatError, raised if either 'key_dict' or 'signature' are improperly
+    formatted.
+
+    tuf.UnsupportedLibraryError, if an unsupported or unavailable library is
+    detected.
+
+    tuf.UnknownMethodError.  Raised if the signing method used by
+    'signature' is not one supported.
+
+  <Side Effects>
+    The cryptography library specified in 'tuf.conf' is called to do the actual
+    verification. When in 'der' mode, argument data is converted into ASN.1/DER
+    in order to verify it. (Argument object is unchanged.)
+
+  <Returns>
+    Boolean.  True if the signature is valid, False otherwise.
+  """
+
+  tuf.formats.ANYKEY_SCHEMA.check_match(key_dict)
+  tuf.formats.SIGNATURE_SCHEMA.check_match(signature)
+  # TODO: Check format of data, based on metadata_format.
+  # TODO: Consider checking metadata_format redundantly. It's checked below.
+
+  if metadata_format == 'json':
+    data = tuf.formats.encode_canonical(data).encode('utf-8')
+
+  elif metadata_format == 'der':
+
+    # TODO: Have convert_signed_metadata_to_der take just the 'signed' element
+    # so we don't have to do this silly wrapping in an empty signable.
+    data = asn1_codec.convert_signed_metadata_to_der(
+        {'signed': data, 'signatures': []}, only_signed=True)
+    data = hashlib.sha256(data).digest()
+
+  else:
+    raise tuf.Error('Unsupported metadata format: ' + repr(metadata_format))
+
+
+  return tuf.keys.verify_signature(key_dict, signature, data)
