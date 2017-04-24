@@ -538,7 +538,8 @@ Version 1.0 (Draft)
    metadata are not listed in snapshot.json.
 
    CONSISTENT_SNAPSHOT is a boolean indicating whether the repository supports
-   consistent snapshots (section 7).
+   consistent snapshots.  Section 7 goes into more detail on the consequences
+   of enabling this setting on a repository.
 
    VERSION is an integer that is greater than 0.  Clients MUST NOT replace a
    metadata file with a version number less than the one currently trusted.
