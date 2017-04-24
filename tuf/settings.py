@@ -105,3 +105,7 @@ MAX_NUMBER_OF_DELEGATIONS = 2**5
 # a hard link to 2.root.json (for example).  This approach is more efficient in
 # terms of disk space usage.  By default, we use 'copy'.
 CONSISTENT_METHOD = 'copy'
+
+# A setting for the instances where a default hashing algorithm is needed.  For
+# example, digests of files can be generated, by default, with sha256.
+DEFAULT_HASH_ALGORITHM = 'sha256'
