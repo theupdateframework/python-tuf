@@ -72,7 +72,7 @@ tuf.log.set_console_log_level(logging.INFO)
 # The algorithm used by the repository to generate the digests of the
 # target filepaths, which are included in metadata files and may be prepended
 # to the filenames of consistent snapshots.
-HASH_FUNCTION = 'sha256'
+HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
 
 # The targets and metadata directory names.  Metadata files are written
 # to the staged metadata directory instead of the "live" one.
