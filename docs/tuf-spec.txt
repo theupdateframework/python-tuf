@@ -784,7 +784,7 @@ Version 1.0 (Draft)
    shell-style wildcards.  For example, the path pattern "targets/*.tgz" would
    match file paths "targets/foo.tgz" and "targets/bar.tgz", but not
    "targets/foo.txt".  Likewise, path pattern "foo-version-?.tgz" matches
-   foo-version-2.tgz", but not "foo-version-alpha.tgz".
+   foo-version-2.tgz" and "foo-version-a.tgz", but not "foo-version-alpha.tgz".
 
    Several schemes exist to resolve conflicts between delegated roles that
    share responsibility for overlapping target paths. One of the simplest of
