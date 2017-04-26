@@ -928,11 +928,12 @@ Version 1.0 (Draft)
 
 5.1. The client application
 
-    1. **Download the root metadata file**, up to some predetermined number of
-    bytes (because the size is unknown).
+    1. **Download the root metadata file**, up to some X number of bytes
+    (because the size is unknown). The value for X is set by the authors of the
+    application using TUF. For example, X may be tens of kilobytes.
 
-    1.1. **Check signatures.** It must have been signed by a threshold of keys
-    specified in the previous root metadata file.
+    1.1. **Check signatures.** The root metadata file must have been signed by
+    a threshold of keys specified in the previous root metadata file.
 
     1.2. **Check for a rollback attack.** The version number of the previous
     root metadata file must be less than or equal to the version number of this
@@ -947,14 +948,17 @@ Version 1.0 (Draft)
     compromised and recovered. A _fast-forward attack_ happens when attackers
     arbitrarily increase the version numbers of: (1) the timestamp metadata,
     (2) the snapshot metadata, and / or (3) the targets, or a delegated
-    targets, metadata file in the snapshot metadata. Please see the Mercury
-    paper for more details (to be published soon).
+    targets, metadata file in the snapshot metadata. Please see [the submitted
+    Mercury
+    draft](https://ssl.engineering.nyu.edu/papers/kuppusamy_usenix_17.pdf) for
+    more details.
 
-    2. **Download the timestamp metadata file**, up to some predetermined
-    number of bytes (because the size is unknown.)
+    2. **Download the timestamp metadata file**, up to Y number of bytes
+    (because the size is unknown.) The value for Y is set by the authors of the
+    application using TUF. For example, Y may be tens of kilobytes.
 
-    2.1. **Check signatures.** It must have been signed by a threshold of keys
-    specified in the root metadata file.
+    2.1. **Check signatures.** The timestamp metadata file must have been
+    signed by a threshold of keys specified in the root metadata file.
 
     2.2. **Check for a rollback attack.** The version number of the previous
     timestamp metadata file, if any, must be less than or equal to the version
@@ -969,8 +973,8 @@ Version 1.0 (Draft)
     3.1. **Check against timestamp metadata.** The hashes, and version number
     of this metadata file must match the timestamp metadata.
 
-    3.2. **Check signatures.** It must have been signed by a threshold of keys
-    specified in the previous root metadata file.
+    3.2. **Check signatures.** The snapshot metadata file must have been signed
+    by a threshold of keys specified in the previous root metadata file.
 
     3.3. **Check for a rollback attack.**
 
@@ -990,7 +994,8 @@ Version 1.0 (Draft)
 
     4. **Download and check the top-level targets metadata file**, up to either
     the number of bytes specified in the snapshot metadata file, or some
-    predetermined number.
+    Z number of bytes. The value for Z is set by the authors of the application
+    using TUF. For example, Z may be tens of kilobytes.
 
     4.1. **Check against snapshot metadata.** The hashes (if any), and version
     number of this metadata file must match the snapshot metadata. This is
@@ -1017,23 +1022,25 @@ Version 1.0 (Draft)
     4.5.2. Otherwise, recursively search the list of delegations in order of
     appearance.
 
-    4.5.2.1. If it is a multi-role delegation, recursively visit each role, and
-    check that each has signed exactly the same non-custom metadata (i.e.,
-    length and hashes) about the target (or the lack of it).
+    4.5.2.1. If the current delegation is a multi-role delegation, recursively
+    visit each role, and check that each has signed exactly the same non-custom
+    metadata (i.e., length and hashes) about the target (or the lack of any
+    such metadata).
 
-    4.5.2.2. If it is a terminating delegation, then jump to step 5.
+    4.5.2.2. If the current delegation is a terminating delegation, then jump
+    to step 5.
 
-    4.5.2.3. Otherwise, if it is a non-terminating delegation, continue
-    processing the next delegation, if any. Stop the search, and jump to step 5
-    as soon as a delegation returns a result.
+    4.5.2.3. Otherwise, if the current delegation is a non-terminating
+    delegation, continue processing the next delegation, if any. Stop the
+    search, and jump to step 5 as soon as a delegation returns a result.
 
     5. **Verify the desired target against its targets metadata.**
 
     5.1. If there is no targets metadata about this target, then report that
     there is no such target.
 
-    5.2. Otherwise, download the target (up to the number of bytes specified in
-    the targets metadata), and verify that its hashes match the targets
+    5.2. Otherwise, download the target (exactly the number of bytes specified
+    in the targets metadata), and verify that its hashes match the targets
     metadata.
 
    Note: If at any point in the above procedure there is a problem (i.e., if
@@ -1052,14 +1059,14 @@ Version 1.0 (Draft)
    updates are available and the update checking process stops.
 
    If the snapshot.json file has changed, the framework downloads the file and
-   verifies that it is properly signed by the snapshot role, is not expired, has
-   a newer timestamp than the last snapshot.json file seen, and matches the
-   description (hashes and size) in the timestamp.json file.  The framework then
-   checks which metadata files listed in snapshot.json differ from those
-   described in the last snapshot.json file the framework had seen.  If the
-   root.json file has changed, the framework updates this (following the same
-   security measures as with the other files) and starts the process over.  If
-   any other metadata files have changed, the framework downloads and checks
+   verifies that the file is properly signed by the snapshot role, is not
+   expired, has a newer timestamp than the last snapshot.json file seen, and
+   matches the description (hashes and size) in the timestamp.json file.  The
+   framework then checks which metadata files listed in snapshot.json differ
+   from those described in the last snapshot.json file the framework had seen.
+   If the root.json file has changed, the framework updates this (following the
+   same security measures as with the other files) and starts the process over.
+   If any other metadata files have changed, the framework downloads and checks
    those.
 
    By comparing the trusted targets from the old trusted metadata with the new
@@ -1069,7 +1076,7 @@ Version 1.0 (Draft)
 
    When the client code asks the framework to download a target file, the
    framework downloads the file from (potentially trying multiple mirrors),
-   checks the downloaded file to ensure that it matches the information
+   checks the downloaded file to ensure that the file matches the information
    described in the targets files, and then makes the file available to the
    client code.
 
