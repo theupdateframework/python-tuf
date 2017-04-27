@@ -2,7 +2,7 @@
 
 """
 <Program Name>
-  test_updater.py
+  compliant_updater.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>

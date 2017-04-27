@@ -1,7 +1,7 @@
 # Implementation of TAP 7 (conformance testing)
 
 
-`test_updater.py` is a program that performs a software update and
+`compliant_updater.py` is a program that performs a software update and
 follows the requirements outlined in [TAP
 7](https://github.com/theupdateframework/taps/blob/tap7/tap7.md).
 It serves as an example of what software updaters must do to
@@ -10,7 +10,7 @@ be considered tuf-compliant.
 Note: The example updater provided here is a work in progress and does
 not yet fully comply with TAP 7.
 
-`test_updater.py` presently exits with the following return values:
+`compliant_updater.py` presently exits with the following return values:
 
 ```
 return value      outcome
@@ -39,7 +39,7 @@ Attempt an update from the slow retrieval server.  The tuf-compliant updater
 should indicate that an error occurred and exit with a return value of 5.
 
 ```Bash
-$ python test_updater.py --file file1.txt --repo http://localhost:8001 --metadata /tmp/metadata --targets /tmp/targets
+$ python compliant_updater.py --file file1.txt --repo http://localhost:8001 --metadata /tmp/metadata --targets /tmp/targets
 Error: Download was too slow. Average speed: 0.0 bytes per second.
 
 $ echo $?
