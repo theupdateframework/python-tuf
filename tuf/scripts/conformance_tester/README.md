@@ -24,8 +24,8 @@ return value      outcome
 
 ### Test for detection of a slow retrieval attack
 Start the slow retrieval server from the
-scripts/conformance_tester/tests/repository directory, and indicate the port
-number and mode of operation as command-line options.
+`scripts/conformance_tester/tests/repository` directory, and indicate the port
+number and mode of operation on the command-line options.
 
 mode_1: Before sending any data, the server does nothing for a long time.
 
