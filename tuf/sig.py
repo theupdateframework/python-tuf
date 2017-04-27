@@ -231,8 +231,8 @@ def get_signature_status(signable, role=None, repository_name='default',
 
 
 
-def verify(signable, role, repository_name='default',
-           threshold=None, keyids=None):
+def verify(signable, role, repository_name='default', threshold=None,
+    keyids=None):
   """
   <Purpose>
     Verify whether the authorized signatures of 'signable' meet the minimum

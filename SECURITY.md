@@ -10,11 +10,11 @@ The following are some of the known attacks on software update systems, includin
 
 * **Rollback attacks**. An attacker presents a software update system with older files than those the client has already seen, causing the client to use files older than those the client knows about. 
 
-* **Fast-forward attacks**.  An attacker tricks a software update system into marking a file as newer (when in fact the
-latest version of the file is older than that indicated by the attacker, but newer than what the client has seen), and
-prevents the client from fetching the latest version of the file on the next update.  The client can be prevented from installing
-the latest version of the file in this case because it would refuse to install a file that is older than what it expects
-(i.e., to prevent a rollback attack).
+* **Fast-forward attacks**.  An attacker arbitrarily increases the version numbers of project metadata files in the snapshot
+metadata well beyond the current value, thus tricking a software update system into thinking any subsequent updates are trying
+to rollback the package to a previous, out-of-date version. In some situations, such as those where there is a maximum possible
+version number, the perpetrator could use a number so high that the system would never be able to match it with the one in the
+snapshot metadata, and thus new updates could never be downloaded.
 
 * **Indefinite freeze attacks**. An attacker continues to present a software update system with the same files the client has already seen. The result is that the client does not know that new files are available. 
 

@@ -118,6 +118,8 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
 
+    self.repository_name = 'test_repository'
+
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
     # The 'repository_data' directory is expected to exist in 'tuf.tests/'.
@@ -138,10 +140,10 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
     self.keystore_directory = \
       os.path.join(temporary_repository_root, 'keystore')
     self.client_directory = os.path.join(temporary_repository_root, 'client')
-    self.client_metadata = os.path.join(self.client_directory, 'metadata')
+    self.client_metadata = os.path.join(self.client_directory,
+        self.repository_name, 'metadata')
     self.client_metadata_current = os.path.join(self.client_metadata, 'current')
-    self.client_metadata_previous = \
-      os.path.join(self.client_metadata, 'previous')
+    self.client_metadata_previous = os.path.join(self.client_metadata, 'previous')
 
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
@@ -156,7 +158,7 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.settings.repository_directory = self.client_directory
+    tuf.settings.repositories_directory = self.client_directory
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
@@ -165,7 +167,6 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
 
     # Creating repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
-    self.repository_name = 'test_repository'
     self.repository_updater = updater.Updater(self.repository_name,
                                               self.repository_mirrors)
 

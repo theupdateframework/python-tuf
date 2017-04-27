@@ -644,15 +644,15 @@ class Updater(object):
 
     <Side Effects>
       The given configuration's 'repository_directory' and ssl_certificates
-      settings are set to 'tuf.settings.repository_directory' and
+      settings are set to 'tuf.settings.repositories_directory' and
       'tuf.settings.ssl_certificates', respectively.
 
     <Returns>
       None
     """
 
-    # Set the local repository directory containing the metadata files.
-    tuf.settings.repository_directory = self.configuration.repository_directory
+    # Set the local repositories directory containing the metadata files.
+    tuf.settings.repositories_directory = self.configuration.repository_directory
 
     # Set the local SSL certificates PEM file.
     tuf.settings.ssl_certificates = self.configuration.ssl_certificates

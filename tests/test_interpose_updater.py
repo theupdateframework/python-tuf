@@ -101,6 +101,8 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
 
+    self.repository_name = 'localhost'
+
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
     # The 'repository_data' directory is expected to exist in 'tuf.tests/'.
@@ -112,7 +114,7 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
     original_keystore = os.path.join(original_repository_files, 'keystore')
-    original_client = os.path.join(original_repository_files, 'client')
+    original_client = os.path.join(original_repository_files, 'client', 'test_repository')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
@@ -121,15 +123,15 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     self.keystore_directory = \
       os.path.join(temporary_repository_root, 'keystore')
     self.client_directory = os.path.join(temporary_repository_root, 'client')
-    self.client_metadata = os.path.join(self.client_directory, 'metadata')
+    self.client_metadata = os.path.join(self.client_directory,
+        self.repository_name, 'metadata')
     self.client_metadata_current = os.path.join(self.client_metadata, 'current')
-    self.client_metadata_previous = \
-      os.path.join(self.client_metadata, 'previous')
+    self.client_metadata_previous = os.path.join(self.client_metadata, 'previous')
 
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
     shutil.copytree(original_repository, self.repository_directory)
-    shutil.copytree(original_client, self.client_directory)
+    shutil.copytree(original_client, os.path.join(self.client_directory, self.repository_name))
     shutil.copytree(original_keystore, self.keystore_directory)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
@@ -141,8 +143,8 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.settings.repository_directory = self.client_directory
 
+    tuf.settings.repositories_directory = self.client_directory
     self.repository_mirrors = {'mirror': {'url_prefix': url_prefix,
                                            'metadata_path': 'metadata',
                                            'targets_path': 'targets',
@@ -355,6 +357,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
 
+    self.repository_name = 'localhost'
+
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
     # The 'repository_data' directory is expected to exist in 'tuf.tests/'.
@@ -366,7 +370,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
     original_keystore = os.path.join(original_repository_files, 'keystore')
-    original_client = os.path.join(original_repository_files, 'client')
+    original_client = os.path.join(original_repository_files, 'client', 'test_repository')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
@@ -377,13 +381,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.client_directory = os.path.join(temporary_repository_root, 'client')
     self.client_metadata = os.path.join(self.client_directory, 'metadata')
     self.client_metadata_current = os.path.join(self.client_metadata, 'current')
-    self.client_metadata_previous = \
-      os.path.join(self.client_metadata, 'previous')
+    self.client_metadata_previous = os.path.join(self.client_metadata, 'previous')
 
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
     shutil.copytree(original_repository, self.repository_directory)
-    shutil.copytree(original_client, self.client_directory)
+    shutil.copytree(original_client, os.path.join(self.client_directory, self.repository_name))
     shutil.copytree(original_keystore, self.keystore_directory)
 
     # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
@@ -395,7 +398,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Setting 'tuf.settings.repository_directory' with the temporary client
     # directory copied from the original repository files.
-    tuf.settings.repository_directory = self.client_directory
+    tuf.settings.repositories_directory = self.client_directory
 
     self.repository_mirrors = {'mirror': {'url_prefix': url_prefix,
                                           'metadata_path': 'metadata',
