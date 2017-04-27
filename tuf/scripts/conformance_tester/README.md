@@ -1,14 +1,16 @@
-# TAP 7 implementation
+# Implementation of TAP 7 (conformance testing)
 
-## Verifying that an updater conforms with the specification
 
-### Updater that is tuf-compliant
-`test_updater.py` is a program that performs a software update and follows the
-requirements outlined in [TAP
+`test_updater.py` is a program that performs a software update and
+follows the requirements outlined in [TAP
 7](https://github.com/theupdateframework/taps/blob/tap7/tap7.md).
-Note: This is a work in progress.
+It serves as an example of what software updaters must do to
+be considered tuf-compliant.
 
-It presently exits with the following return values:
+Note: The example updater provided here is a work in progress and does
+not yet fully comply with TAP 7.
+
+`test_updater.py` presently exits with the following return values:
 
 ```
 return value      outcome
@@ -17,9 +19,13 @@ return value      outcome
 5                 slow retrieval error
 ```
 
+
+## Verifying that an updater conforms with the specification
+
+### Test for detection of a slow retrieval attack
 Start the slow retrieval server from the
-scripts/conformance_tester/tests/repository directory, and indicate the port
-number and mode of operation as command-line options.
+`scripts/conformance_tester/tests/repository` directory, and indicate the port
+number and mode of operation on the command-line options.
 
 mode_1: Before sending any data, the server does nothing for a long time.
 
@@ -40,10 +46,12 @@ $ echo $?
 5
 ```
 
+### Test for a normal update. `
+TODO
 
 
 
-### Running the conformance testing tool
+## Running the conformance testing tool
 
 ```Bash
 TODO
