@@ -21,6 +21,32 @@ return value      outcome
 
 
 ## Verifying that an updater conforms with the specification
+Note that most of the following attacks will be be managed by the conformance
+tester.  For instance, although the slow retrieval server is manually started
+below, users will not be required to do so once the conformance tool is
+implemented.  The documentation here will be updated to remove
+or add text as progress is made.
+
+### Test for a normal update. `
+
+Start the simple server, on port 30001, that faithfully serves metadata.
+
+```Bash
+$ python simple_server.py 30001
+```
+
+Attempt a normal update.
+
+```Bash
+$ python compliant_updater.py
+  --repo http://localhost:30001
+  --metadata /tmp/test_repository
+  --targets /tmp/targets
+  --file file1.txt
+
+$ echo $?
+0
+```
 
 ### Test for detection of a slow retrieval attack
 Start the slow retrieval server from the
@@ -45,10 +71,6 @@ Error: Download was too slow. Average speed: 0.0 bytes per second.
 $ echo $?
 5
 ```
-
-### Test for a normal update. `
-TODO
-
 
 
 ## Running the conformance testing tool
