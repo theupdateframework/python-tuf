@@ -1,4 +1,4 @@
-#updater.py
+# updater.py
 **updater.py** is intended as the only TUF module that software update
 systems need to utilize for a low-level integration.  It provides a single
 class representing an updater that includes methods to download, install, and
@@ -152,7 +152,7 @@ for target in updated_target:
   target_custom_data = target['fileinfo']['custom']
 ```
 
-###A Simple Integration Example with basic_client.py
+### A Simple Integration Example with basic_client.py
 ``` Bash
 # Assume a simple TUF repository has been setup with 'tuf.repository_tool.py'.
 $ basic_client.py --repo http://localhost:8001
