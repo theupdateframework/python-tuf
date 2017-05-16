@@ -32,7 +32,7 @@ snapshot metadata, and thus new updates could never be downloaded.
 
 * **Vulnerability to key compromises**. An attacker who is able to compromise a single key or less than a given threshold of keys can compromise clients. This includes relying on a single online key (such as only being protected by SSL) or a single offline key (such as most software update systems use to sign files). 
 
-##Design Concepts
+## Design Concepts
 
 The design and implementation of TUF aims to be secure against all of the above attacks. A few general ideas drive much of the security of TUF.
 
