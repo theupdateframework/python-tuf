@@ -1,4 +1,4 @@
-#Security
+# Security
 
 Generally, a software update system is secure if it can be sure that it knows about the latest available updates in a timely manner, any files it downloads are the correct files, and no harm results from checking or downloading files. The details of making this happen are complicated by various attacks that can be carried out against software update systems.
 
