@@ -1002,12 +1002,14 @@ Version 1.0 (Draft)
    role.  When replacing root keys, an application will sign the new root.json
    file with both the new and old root keys. Any time such a change is
    required, the root.json file is versioned and accessible by version number,
-   e.g. 3.root.json. Clients update the set of trusted root keys by requesting
+   e.g., 3.root.json. Clients update the set of trusted root keys by requesting
    the current root.json and all previous root.json versions, until one is
-   found that has been signed by keys the client already trusts. This is to 
-   ensure that outdated clients remain able to update, without requiring all 
-   previous root keys to be kept to sign new root.json metadata.
-
+   found that has been signed by a threshold of keys that the client already
+   trusts. This is to ensure that outdated clients remain able to update,
+   without requiring all previous root keys to be kept to sign new root.json
+   metadata.  Before a new version of root (e.g., 2.root.json) can be trusted,
+   the client must validate it against the trusted keys and threshold set by
+   its previous version (i.e., 1.root.json).
 
    To replace a delegated developer key, the role that delegated to that key
    just replaces that key with another in the signed metadata where the
