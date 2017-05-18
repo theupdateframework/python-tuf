@@ -1008,6 +1008,23 @@ Version 1.0 (Draft)
    ensure that outdated clients remain able to update, without requiring all 
    previous root keys to be kept to sign new root.json metadata.
 
+   The exact steps to perform the root.json migration should be as follows:
+     
+   1. The client starts at version N of root.json
+
+   2. The client downloads version N + 1 of root.json
+
+   3. The client uses the keys and threshold defined in version N to
+      validate the signatures of N + 1
+
+   4. The client flushes all knowledge of root.json verion N then uses the
+      updated keys and threshold to validate the signatures of N + 1
+
+   5. Repeat until the client has reached the latest version of root.json
+
+   That is, if there is 1.root.json that has threshold 2 and 2.root.json that has
+   threshold 3, 2.root.json MUST be signed by at least 2 keys defined in
+   1.root.json and at least 3 keys defined in 3.root.json.
 
    To replace a delegated developer key, the role that delegated to that key
    just replaces that key with another in the signed metadata where the
