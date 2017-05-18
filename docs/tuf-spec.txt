@@ -978,11 +978,15 @@ Version 1.0 (Draft)
 
     3.3. **Check for a rollback attack.**
 
-    3.3.1. The version number of the previous snapshot metadata file, if any,
+    3.3.1. Note that the previous snapshot metadata file may be checked for
+    authenticity, but its expiration does not matter for the following
+    purposes.
+
+    3.3.2. The version number of the previous snapshot metadata file, if any,
     must be less than or equal to the version number of this snapshot metadata
     file.
 
-    3.3.2. The version number of the targets metadata file, and all delegated
+    3.3.3. The version number of the targets metadata file, and all delegated
     targets metadata files (if any), in the previous snapshot metadata file, if
     any, must be less than or equal to its version number in this snapshot
     metadata file. Furthermore, any targets metadata filename that was listed
