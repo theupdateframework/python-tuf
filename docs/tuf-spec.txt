@@ -1014,9 +1014,9 @@ Version 1.0 (Draft)
    root keys in the previous version of root.json, up to the threshold listed
    for root in the previous version of root.json. If this is not the case,
    clients will (correctly) not validate the new root.json file.  For example,
-   if there is 1.root.json that has threshold 2 and 2.root.json that has
+   if there is a 1.root.json that has threshold 2 and a 2.root.json that has
    threshold 3, 2.root.json MUST be signed by at least 2 keys defined in
-   1.root.json and at least 3 keys defined in 3.root.json.
+   1.root.json and at least 3 keys defined in 2.root.json.
    
    To replace a delegated developer key, the role that delegated to that key
    just replaces that key with another in the signed metadata where the
