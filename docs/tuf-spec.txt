@@ -932,6 +932,16 @@ Version 1.0 (Draft)
 
 5.1. The client application
 
+    0. **Load the previous root metadata file.** We assume that a good, trusted
+    copy of this file was shipped with the package manager / software updater
+    using an out-of-band process.
+
+    0.1. **Check signatures.** The previous root metadata file MUST have been
+    signed by a threshold of keys specified in the previous root metadata file.
+
+    0.2. **Check for a freeze attack.** The latest known time should be lower
+    than the expiration timestamp in this metadata file.
+
     1. **Download the root metadata file**, up to some X number of bytes
     (because the size is unknown). The value for X is set by the authors of the
     application using TUF. For example, X may be tens of kilobytes.
