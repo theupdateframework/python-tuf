@@ -1,6 +1,6 @@
                       The Update Framework Specification
 
-7 October 2016
+18 May 2017
 Version 1.0 (Draft)
 
 1. Introduction
@@ -8,6 +8,10 @@ Version 1.0 (Draft)
 1.1. Scope
 
    This document describes a framework for securing software update systems.
+
+   The keywords "MUST," "MUST NOT," "REQUIRED," "SHALL," "SHALL NOT," "SHOULD,"
+   "SHOULD NOT," "RECOMMENDED," "MAY," and "OPTIONAL" in this document are to be
+   interpreted as described in RFC 2119.
 
 1.2. Motivation
 
@@ -74,7 +78,7 @@ Version 1.0 (Draft)
 
    The framework will not have the responsibility of deciding on the correct
    course of action in all error situations, such as those that can occur when
-   certain attacks are being performed.  Instead, the framework will provide 
+   certain attacks are being performed.  Instead, the framework will provide
    the software update system the relevant information about any errors that
    require security decisions which are situation-specific.  How those errors
    are handled is up to the software update system.
@@ -134,31 +138,31 @@ Version 1.0 (Draft)
    the client system. That is, an attacker can provide arbitrary files in
    response to download requests and the files will not be detected as
    illegitimate.
-   
+
    Endless data attacks.  Attackers should not be able to respond to client
    requests with huge amounts of data (extremely large files) that interfere
    with the client's system.
-   
+
    Extraneous dependencies attacks.  Attackers should not be able to cause
    clients to download or install software dependencies that are not the
    intended dependencies.
-   
+
    Fast-forward attacks.  An attacker arbitrarily increases the version numbers
-   of project metadata files in the snapshot metadata well beyond the current 
+   of project metadata files in the snapshot metadata well beyond the current
    value, thus tricking a software update system into thinking any subsequent
    updates are trying to rollback the package to a previous, out-of-date version.
    In some situations, such as those where there is a maximum possible version
    number, the perpetrator could use a number so high that the system would
    never be able to match it with the one in the snapshot metadata, and thus
    new updates could never be downloaded.
-   
+
    Indefinite freeze attacks.  Attackers should not be able to respond to
    client requests with the same, outdated metadata without the client being
    aware of the problem.
-   
+
    Malicious mirrors preventing updates.  Repository mirrors should be unable
    to prevent updates from good mirrors.
-   
+
    Mix-and-match attacks.  Attackers should not be able to trick clients into
    using a combination of metadata that never existed together on the
    repository at the same time.
@@ -170,7 +174,7 @@ Version 1.0 (Draft)
    Slow retrieval attacks.  Attackers should not be able to prevent clients
    from being aware of interference with receiving updates by responding to
    client requests so slowly that automated updates never complete.
-   
+
    Vulnerability to key compromises. An attacker who is able to compromise a
    single key or less than a given threshold of keys can compromise clients.
    This includes relying on a single online key (such as only being protected
@@ -207,7 +211,7 @@ Version 1.0 (Draft)
    the file.  As providing additional information about
    target files may be important to some software update systems using the
    framework, additional arbitrary information can be provided with any target
-   file. This information will be included in signed metadata that describes 
+   file. This information will be included in signed metadata that describes
    the target files.
 
    The following are the high-level steps of using the framework from the
@@ -277,7 +281,7 @@ Version 1.0 (Draft)
    (that is, another set of keys and the threshold required for trust) is
    trusted to sign target file metadata.  Partial trust delegation is when the
    delegated role is only trusted for some of the target files that the
-   delegating role is trusted for. 
+   delegating role is trusted for.
 
    Delegated developer roles can further delegate trust to other delegated
    roles.  This provides for multiple levels of trust delegation where each
@@ -415,7 +419,7 @@ Version 1.0 (Draft)
    provides one signed metadata file.  As is the case with the directory
    structure of top-level metadata, the delegated files are relative to the
    base URL of metadata available from a given repository mirror.
-   
+
    A delegated role file is located at:
 
     /DELEGATED_ROLE.json
@@ -425,7 +429,7 @@ Version 1.0 (Draft)
    named ANOTHER_ROLE, that role's signed metadata file is made available at:
 
     /ANOTHER_ROLE.json
-    
+
 4. Document formats
 
    All of the formats described below include the ability to add more
@@ -443,7 +447,7 @@ Version 1.0 (Draft)
 4.2. File formats: general principles
 
    All signed metadata objects have the format:
-   
+
        { "signed" : ROLE,
          "signatures" : [
             { "keyid" : KEYID,
@@ -460,18 +464,18 @@ Version 1.0 (Draft)
    The current reference implementation of TUF defines two signing methods,
    although TUF is not restricted to any particular key signing method,
    key type, or cryptographic library:
-       
+
        "RSASSA-PSS" : RSA Probabilistic signature scheme with appendix.
                       The underlying hash function is SHA256.
-       
+
        "ed25519" : Elliptic curve digital signature algorithm based on Twisted
                   Edwards curves.
-       
-   RSASSA-PSS: https://tools.ietf.org/html/rfc3447#page-29 
+
+   RSASSA-PSS: https://tools.ietf.org/html/rfc3447#page-29
    ed25519: https://ed25519.cr.yp.to/
-   
+
    All keys have the format:
-   
+
       { "keytype" : KEYTYPE,
         "keyval" : KEYVAL }
 
@@ -480,9 +484,9 @@ Version 1.0 (Draft)
    KEYVAL.
 
    We define two keytypes at present: 'rsa' and 'ed25519'.
-   
+
    The 'rsa' format is:
-   
+
       { "keytype" : "rsa",
         "keyval" : { "public" : PUBLIC}
       }
@@ -491,16 +495,16 @@ Version 1.0 (Draft)
    must be at least 2048 bits.
 
    The 'ed25519' format is:
-   
+
       { "keytype" : "ed25519",
         "keyval" : { "public" : PUBLIC}
       }
 
    where PUBLIC is a 32-byte string.
-   
+
    The KEYID of a key is the hexdigest of the SHA-256 hash of the
    canonical JSON form of the key.
-   
+
    Metadata date-time data follows the ISO 8601 standard.  The expected format
    of the combined date and time string is "YYYY-MM-DDTHH:MM:SSZ".  Time is
    always in UTC, and the "Z" time zone designator is attached to indicate a
@@ -556,68 +560,68 @@ Version 1.0 (Draft)
    {
    "signatures": [
     {
-     "keyid": "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6", 
-     "method": "ed25519", 
+     "keyid": "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6",
+     "method": "ed25519",
      "sig": "a312b9c3cb4a1b693e8ebac5ee1ca9cc01f2661c14391917dcb111517f72370809
              f32c890c6b801e30158ac4efe0d4d87317223077784c7a378834249d048306"
     }
-   ], 
+   ],
    "signed": {
-    "_type": "Root", 
-    "consistent_snapshot": false, 
-    "expires": "2030-01-01T00:00:00Z", 
+    "_type": "Root",
+    "consistent_snapshot": false,
+    "expires": "2030-01-01T00:00:00Z",
     "keys": {
      "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4": {
-      "keytype": "ed25519", 
+      "keytype": "ed25519",
       "keyval": {
        "public": "72378e5bc588793e58f81c8533da64a2e8f1565c1fcc7f253496394ffc52542c"
       }
-     }, 
+     },
      "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b": {
-      "keytype": "ed25519", 
+      "keytype": "ed25519",
       "keyval": {
        "public": "68ead6e54a43f8f36f9717b10669d1ef0ebb38cee6b05317669341309f1069cb"
       }
-     }, 
+     },
      "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6": {
-      "keytype": "ed25519", 
+      "keytype": "ed25519",
       "keyval": {
        "public": "66dd78c5c2a78abc6fc6b267ff1a8017ba0e8bfc853dd97af351949bba021275"
       }
-     }, 
+     },
      "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309": {
-      "keytype": "ed25519", 
+      "keytype": "ed25519",
       "keyval": {
        "public": "01c61f8dc7d77fcef973f4267927541e355e8ceda757e2c402818dad850f856e"
       }
      }
-    }, 
+    },
     "roles": {
      "root": {
       "keyids": [
        "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6"
-      ], 
+      ],
       "threshold": 1
-     }, 
+     },
      "snapshot": {
       "keyids": [
        "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309"
-      ], 
+      ],
       "threshold": 1
-     }, 
+     },
      "targets": {
       "keyids": [
        "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b"
-      ], 
+      ],
       "threshold": 1
-     }, 
+     },
      "timestamp": {
       "keyids": [
        "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4"
-      ], 
+      ],
       "threshold": 1
      }
-    }, 
+    },
     "version": 1
    }
   }
@@ -648,7 +652,7 @@ Version 1.0 (Draft)
 
    METAPATH is the the metadata file's path on the repository relative to the
    metadata base URL.
-   
+
    The HASHES and LENGTH are the hashes and length of the file, both of which
    are only specified for the root file.  VERSION is listed for the root file
    and all other roles available on the repository.  LENGTH is an integer.
@@ -660,31 +664,31 @@ Version 1.0 (Draft)
    {
    "signatures": [
     {
-     "keyid": "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309", 
-     "method": "ed25519", 
+     "keyid": "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309",
+     "method": "ed25519",
      "sig": "f7f03b13e3f4a78a23561419fc0dd741a637e49ee671251be9f8f3fceedfc112e4
              4ee3aaff2278fad9164ab039118d4dc53f22f94900dae9a147aa4d35dcfc0f"
     }
-   ], 
+   ],
    "signed": {
-    "_type": "Snapshot", 
-    "expires": "2030-01-01T00:00:00Z", 
+    "_type": "Snapshot",
+    "expires": "2030-01-01T00:00:00Z",
     "meta": {
      "root.json": {
       "hashes": {
        "sha256": "52bbb30f683d166fae5c366e4582cfe8212aacbe1b21ae2026dae58ec55d3701"
-      }, 
+      },
       "length": 1831,
       "version": 1
-     }, 
+     },
      "targets.json": {
       "version": 1
-     }, 
+     },
      "project.json": {
       "version": 1
-      }, 
+      },
      }
-    }, 
+    },
     "version": 1
    }
 
@@ -734,7 +738,7 @@ Version 1.0 (Draft)
             "paths" : [ PATHPATTERN, ... ])
        }, ... ]
      }
-     
+
    ROLENAME is the full name of the delegated role.  For example,
    "targets/projects"
 
@@ -788,51 +792,51 @@ Version 1.0 (Draft)
    {
    "signatures": [
     {
-     "keyid": "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b", 
-     "method": "ed25519", 
+     "keyid": "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b",
+     "method": "ed25519",
      "sig": "e9fd40008fba263758a3ff1dc59f93e42a4910a282749af915fbbea1401178e5a0
              12090c228f06db1deb75ad8ddd7e40635ac51d4b04301fce0fd720074e0209"
     }
-   ], 
+   ],
    "signed": {
-    "_type": "Targets", 
+    "_type": "Targets",
     "delegations": {
      "keys": {
       "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba": {
-       "keytype": "ed25519", 
+       "keytype": "ed25519",
        "keyval": {
         "public": "b6e40fb71a6041212a3d84331336ecaa1f48a0c523f80ccc762a034c727606fa"
        }
       }
-     }, 
+     },
      "roles": [
       {
        "keyids": [
         "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba"
-       ], 
-       "name": "targets/project", 
+       ],
+       "name": "targets/project",
        "paths": [
         "/project/file3.txt"
-       ], 
+       ],
        "threshold": 1
       }
      ]
-    }, 
-    "expires": "2030-01-01T00:00:00Z", 
+    },
+    "expires": "2030-01-01T00:00:00Z",
     "targets": {
      "/file1.txt": {
       "hashes": {
        "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da"
-      }, 
+      },
       "length": 31
-     }, 
+     },
      "/file2.txt": {
       "hashes": {
        "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99"
-      }, 
+      },
       "length": 39
      }
-    }, 
+    },
     "version": 1
    }
    }
@@ -864,24 +868,24 @@ Version 1.0 (Draft)
    {
    "signatures": [
     {
-     "keyid": "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4", 
-     "method": "ed25519", 
+     "keyid": "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4",
+     "method": "ed25519",
      "sig": "90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaed
              f4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02"
     }
-   ], 
+   ],
    "signed": {
-    "_type": "Timestamp", 
-    "expires": "2030-01-01T00:00:00Z", 
+    "_type": "Timestamp",
+    "expires": "2030-01-01T00:00:00Z",
     "meta": {
      "snapshot.json": {
       "hashes": {
        "sha256": "c14aeb4ac9f4a8fc0d83d12482b9197452f6adf3eb710e3b1e2b79e8d14cb681"
-      }, 
+      },
       "length": 1007,
       "version": 1
      }
-    }, 
+    },
     "version": 1
    }
    }
@@ -932,7 +936,7 @@ Version 1.0 (Draft)
     (because the size is unknown). The value for X is set by the authors of the
     application using TUF. For example, X may be tens of kilobytes.
 
-    1.1. **Check signatures.** The root metadata file must have been signed by
+    1.1. **Check signatures.** The root metadata file MUST have been signed by
     a threshold of keys specified in the previous root metadata file.
 
     1.2. **Check for a rollback attack.** The version number of the previous
@@ -971,9 +975,9 @@ Version 1.0 (Draft)
     bytes specified in the timestamp metadata file.
 
     3.1. **Check against timestamp metadata.** The hashes, and version number
-    of this metadata file must match the timestamp metadata.
+    of this metadata file MUST match the timestamp metadata.
 
-    3.2. **Check signatures.** The snapshot metadata file must have been signed
+    3.2. **Check signatures.** The snapshot metadata file MUST have been signed
     by a threshold of keys specified in the previous root metadata file.
 
     3.3. **Check for a rollback attack.**
@@ -983,14 +987,14 @@ Version 1.0 (Draft)
     purposes.
 
     3.3.2. The version number of the previous snapshot metadata file, if any,
-    must be less than or equal to the version number of this snapshot metadata
+    MUST be less than or equal to the version number of this snapshot metadata
     file.
 
     3.3.3. The version number of the targets metadata file, and all delegated
     targets metadata files (if any), in the previous snapshot metadata file, if
-    any, must be less than or equal to its version number in this snapshot
+    any, MUST be less than or equal to its version number in this snapshot
     metadata file. Furthermore, any targets metadata filename that was listed
-    in the previous snapshot metadata file, if any, must continue to be listed
+    in the previous snapshot metadata file, if any, MUST continue to be listed
     in this snapshot metadata file.
 
     3.4. **Check for a freeze attack.** The latest downloaded time should be
@@ -1002,16 +1006,16 @@ Version 1.0 (Draft)
     using TUF. For example, Z may be tens of kilobytes.
 
     4.1. **Check against snapshot metadata.** The hashes (if any), and version
-    number of this metadata file must match the snapshot metadata. This is
+    number of this metadata file MUST match the snapshot metadata. This is
     done, in part, to prevent a mix-and-match attack by man-in-the-middle
     attackers.
 
-    4.2. **Check for an arbitrary software attack.** This metadata file must
+    4.2. **Check for an arbitrary software attack.** This metadata file MUST
     have been signed by a threshold of keys specified in the latest root
     metadata file.
 
     4.3. **Check for a rollback attack.** The version number of the previous
-    targets metadata file, if any, must be less than or equal to the version
+    targets metadata file, if any, MUST be less than or equal to the version
     number of this targets metadata file.
 
     4.4. **Check for a freeze attack.** The latest downloaded time should be
@@ -1095,7 +1099,7 @@ Version 1.0 (Draft)
    stored securely offline (e.g. encrypted and on a separate machine, in
    special-purpose hardware, etc.).  This document does not prescribe how keys
    should be encrypted and stored, and so it is left to implementers of
-   this document to decide how best to secure them. 
+   this document to decide how best to secure them.
 
    To replace a compromised root key or any other top-level role key, the root
    role signs a new root.json file that lists the updated trusted keys for the
@@ -1104,8 +1108,8 @@ Version 1.0 (Draft)
    required, the root.json file is versioned and accessible by version number,
    e.g. 3.root.json. Clients update the set of trusted root keys by requesting
    the current root.json and all previous root.json versions, until one is
-   found that has been signed by keys the client already trusts. This is to 
-   ensure that outdated clients remain able to update, without requiring all 
+   found that has been signed by keys the client already trusts. This is to
+   ensure that outdated clients remain able to update, without requiring all
    previous root keys to be kept to sign new root.json metadata.
 
 
@@ -1138,7 +1142,7 @@ Version 1.0 (Draft)
     Simply put, TUF should write every metadata file as such: if the
     file had the original name of filename.ext, then it should be written to
     disk as version_number.filename.ext, where version_number is an integer.
-     
+
     On the other hand, consistent target files should be written to disk as
     digest.filename.ext.  This means that if the referrer metadata lists N
     cryptographic hashes of the referred file, then there must be N identical
@@ -1213,4 +1217,3 @@ F.1. Support for bogus clocks.
    The framework may need to offer an application-enablable "no, my clock is
    _supposed_ to be wrong" mode, since others have noticed that many users seem
    to have incorrect clocks.
-
