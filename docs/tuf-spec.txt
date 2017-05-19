@@ -1032,10 +1032,15 @@ Version 1.0 (Draft)
     lower than the expiration timestamp in this metadata file.
 
     4.5. **Perform a preorder depth-first search for metadata about the desired
-    target.**
+    target, beginning with the top-level targets role.**
 
-    4.5.1. If this file contains metadata about the desired target, then go to
-    step 5.
+    4.5.1. If this role has been visited before, then skip this role (so that
+    cycles in the delegation graph are avoided).
+    Otherwise, if an application-specific maximum number of roles have been
+    visited, then go to step 5 (so that attackers cannot cause the client to
+    waste excessive bandwidth or time).
+    Otherwise, if this role contains metadata about the desired target, then go
+    to step 5.
 
     4.5.2. Otherwise, recursively search the list of delegations in order of
     appearance.
