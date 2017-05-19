@@ -944,7 +944,9 @@ Version 1.0 (Draft)
 
     1. **Download the root metadata file**, up to some X number of bytes
     (because the size is unknown). The value for X is set by the authors of the
-    application using TUF. For example, X may be tens of kilobytes.
+    application using TUF. For example, X may be tens of kilobytes. The
+    filename used to download the root metadata file is of the fixed form
+    FILENAME.EXT (e.g., root.json).
 
     1.1. **Check signatures.** The root metadata file MUST have been signed by
     a threshold of keys specified in the previous root metadata file.
@@ -969,7 +971,9 @@ Version 1.0 (Draft)
 
     2. **Download the timestamp metadata file**, up to Y number of bytes
     (because the size is unknown.) The value for Y is set by the authors of the
-    application using TUF. For example, Y may be tens of kilobytes.
+    application using TUF. For example, Y may be tens of kilobytes. The
+    filename used to download the timestamp metadata file is of the fixed form
+    FILENAME.EXT (e.g., timestamp.json).
 
     2.1. **Check signatures.** The timestamp metadata file must have been
     signed by a threshold of keys specified in the root metadata file.
@@ -983,6 +987,14 @@ Version 1.0 (Draft)
 
     3. **Download and check the snapshot metadata file**, up to the number of
     bytes specified in the timestamp metadata file.
+    If consistent snapshots are used (see Section 7), then the filename used to
+    download the snapshot metadata file is of the fixed form FILENAME.EXT
+    (e.g., snapshot.json).
+    Otherwise, the filename is of the form FILENAME.HASH.EXT (e.g.,
+    snapshot.c14aeb4ac9f4a8fc0d83d12482b9197452f6adf3eb710e3b1e2b79e8d14cb681.json),
+    where HASH is one of the hashes of the snapshot metadata file listed in the
+    timestamp metadata file.
+    In either case, the client MUST write the file to disk as FILENAME.EXT.
 
     3.1. **Check against timestamp metadata.** The hashes, and version number
     of this metadata file MUST match the timestamp metadata.
@@ -1014,6 +1026,13 @@ Version 1.0 (Draft)
     the number of bytes specified in the snapshot metadata file, or some
     Z number of bytes. The value for Z is set by the authors of the application
     using TUF. For example, Z may be tens of kilobytes.
+    If consistent snapshots are used (see Section 7), then the filename used to
+    download the targets metadata file is of the fixed form FILENAME.EXT
+    (e.g., targets.json).
+    Otherwise, the filename is of the form FILENAME.VERSION.EXT (e.g.,
+    targets.42.json), where VERSION is the version number of the targets
+    metadata file listed in the snapshot metadata file.
+    In either case, the client MUST write the file to disk as FILENAME.EXT.
 
     4.1. **Check against snapshot metadata.** The hashes (if any), and version
     number of this metadata file MUST match the snapshot metadata. This is
@@ -1171,33 +1190,7 @@ Version 1.0 (Draft)
 
 7.2. Reading consistent snapshots
 
-    We now explain how a client should read a self-contained consistent
-    snapshot.
-
-    If the root metadata (root.json) is either missing the Boolean
-    "consistent_snapshot" attribute or the attribute is set to False, then the
-    client should do nothing different from the workflow in Section 5.1.
-
-    Otherwise, the client must perform as follows:
-      1. It MUST first retrieve the root metadata from the repository without
-      modifying its filename (e.g., root.json), because its hashes are unknown
-      ahead of time.
-      2. Then it MUST first retrieve the timestamp metadata from the
-      repository without modifying its filename (e.g., timestamp.json), because
-      its hashes are unknown ahead of time.
-      3. Then it MUST download every subsequent metadata or target file as
-      follows: if the metadata or target file has the name FILENAME.EXT, then
-      the client must actually retrieve the file with the name
-      DIGEST.FILENAME.EXT, where digest is the hex digest of a cryptographic
-      hash of the referred file as listed by its referrer file.
-      Even though the modified filename does not include the name of the
-      cryptographic hash function used to produce the chosen digest value, the
-      choice of function follows from the selection of the digest (which
-      includes the name of the cryptographic function) from all digests in the
-      referred file.
-      4. Finally, the client must be careful to rename every metadata or target
-      file retrieved with the name DIGEST.FILENAME.EXT to the name
-      FILENAME.EXT.
+    See Section 5.1 for more details.
 
 F. Future directions and open questions
 
