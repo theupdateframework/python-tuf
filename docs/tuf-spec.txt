@@ -1076,35 +1076,6 @@ Version 1.0 (Draft)
    using the framework can decide how to proceed rather than automatically
    downloading a new Root file.
 
-   The client code instructs the framework to check for updates.  The framework
-   downloads the timestamp.json file from a mirror and checks that the file is
-   properly signed by the timestamp role, is not expired, and is not older than
-   the last timestamp.json file retrieved.  If the timestamp file lists the same
-   snapshot.json file as was previously seen, the client code is informed that no
-   updates are available and the update checking process stops.
-
-   If the snapshot.json file has changed, the framework downloads the file and
-   verifies that the file is properly signed by the snapshot role, is not
-   expired, has a newer timestamp than the last snapshot.json file seen, and
-   matches the description (hashes and size) in the timestamp.json file.  The
-   framework then checks which metadata files listed in snapshot.json differ
-   from those described in the last snapshot.json file the framework had seen.
-   If the root.json file has changed, the framework updates this (following the
-   same security measures as with the other files) and starts the process over.
-   If any other metadata files have changed, the framework downloads and checks
-   those.
-
-   By comparing the trusted targets from the old trusted metadata with the new
-   metadata, the framework is able to determine which target files have
-   changed. The framework ensures that any targets described in delegated
-   targets files are allowed to be provided by the delegated role.
-
-   When the client code asks the framework to download a target file, the
-   framework downloads the file from (potentially trying multiple mirrors),
-   checks the downloaded file to ensure that the file matches the information
-   described in the targets files, and then makes the file available to the
-   client code.
-
 6. Usage
 
    See https://www.theupdateframework.com/ for discussion of recommended usage
