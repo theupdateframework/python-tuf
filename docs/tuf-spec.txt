@@ -1057,9 +1057,12 @@ Version 1.0 (Draft)
     5.1. If there is no targets metadata about this target, then report that
     there is no such target.
 
-    5.2. Otherwise, download the target (exactly the number of bytes specified
-    in the targets metadata), and verify that its hashes match the targets
-    metadata.
+    5.2. Otherwise, download the target (up to the number of bytes specified in
+    the targets metadata), and verify that its hashes match the targets
+    metadata. (We download up to this number of bytes, because in some cases,
+    the exact number is unknown. This may happen, for example, if an external
+    program is used to compute the root hash of a tree of targets files, and
+    this program does not provide the total size of all of these files.)
 
    Note: If at any point in the above procedure there is a problem (i.e., if
    unexpired, signed, valid metadata cannot be retrieved from the repository),
