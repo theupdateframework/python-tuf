@@ -939,8 +939,8 @@ Version 1.0 (Draft)
     0.1. **Check signatures.** The previous root metadata file MUST have been
     signed by a threshold of keys specified in the previous root metadata file.
 
-    0.2. **Check for a freeze attack.** The latest known time should be lower
-    than the expiration timestamp in this metadata file.
+    0.2. Note that the expiration of the previous root metadata file does not
+    matter, because we will attempt to update it in the next step.
 
     1. **Download the root metadata file**, up to some X number of bytes
     (because the size is unknown). The value for X is set by the authors of the
