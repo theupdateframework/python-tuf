@@ -1,4 +1,4 @@
-#Security
+# Security
 
 Generally, a software update system is secure if it can be sure that it knows about the latest available updates in a timely manner, any files it downloads are the correct files, and no harm results from checking or downloading files. The details of making this happen are complicated by various attacks that can be carried out against software update systems.
 
@@ -32,7 +32,7 @@ snapshot metadata, and thus new updates could never be downloaded.
 
 * **Vulnerability to key compromises**. An attacker who is able to compromise a single key or less than a given threshold of keys can compromise clients. This includes relying on a single online key (such as only being protected by SSL) or a single offline key (such as most software update systems use to sign files). 
 
-##Design Concepts
+## Design Concepts
 
 The design and implementation of TUF aims to be secure against all of the above attacks. A few general ideas drive much of the security of TUF.
 
