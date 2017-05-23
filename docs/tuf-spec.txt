@@ -942,23 +942,39 @@ Version 1.0 (Draft)
     0.2. Note that the expiration of the previous root metadata file does not
     matter, because we will attempt to update it in the next step.
 
-    1. **Download the root metadata file**, up to some X number of bytes
-    (because the size is unknown). The value for X is set by the authors of the
-    application using TUF. For example, X may be tens of kilobytes. The
-    filename used to download the root metadata file is of the fixed form
-    FILENAME.EXT (e.g., root.json).
+    1. **Update the root metadata file.** Since it may now be signed using
+    entirely different keys, the client must somehow be able to establish a
+    trusted line of continuity to the latest set of keys (see Section 6.1). To
+    do so, the client MUST download intermediate root metadata files, until the
+    latest available one is reached.
 
-    1.1. **Check signatures.** The root metadata file MUST have been signed by
-    a threshold of keys specified in the previous root metadata file.
+    1.1. Let N denote the version number of the previous root metadata file.
 
-    1.2. **Check for a rollback attack.** The version number of the previous
+    1.2. **Try downloading version N+1 of the root metadata file**, up to some
+    X number of bytes (because the size is unknown). The value for X is set by
+    the authors of the application using TUF. For example, X may be tens of
+    kilobytes. The filename used to download the root metadata file is of the
+    fixed form VERSION.FILENAME.EXT (e.g., 42.root.json). If this file is not
+    available, then go to step 1.8.
+
+    1.3. **Check signatures.** Version N+1 of the root metadata file MUST have
+    been signed by: (1) a threshold of keys specified in the previous root
+    metadata file (version N), and (2) a threshold of keys specified in the
+    current root metadata file (version N+1).
+
+    1.4. **Check for a rollback attack.** The version number of the previous
     root metadata file must be less than or equal to the version number of this
-    root metadata file.
+    root metadata file. Effectively, this means checking that the version
+    number signed in the current root metadata file is indeed N+1.
 
-    1.3. **Check for a freeze attack.** The latest known time should be lower
-    than the expiration timestamp in this metadata file.
+    1.5. **Check for a freeze attack.** The latest known time should be lower
+    than the expiration timestamp in the current root metadata file.
 
-    1.4. **If the the timestamp and / or snapshot keys have been rotated, then
+    1.6. Set the previous to the current root metadata file.
+
+    1.7. Repeat steps 1.1 to 1.6.
+
+    1.8. **If the the timestamp and / or snapshot keys have been rotated, then
     delete the previous timestamp and snapshot metadata files.** This is done
     in order to recover from fast-forward attacks after the repository has been
     compromised and recovered. A _fast-forward attack_ happens when attackers
@@ -990,11 +1006,11 @@ Version 1.0 (Draft)
     If consistent snapshots are used (see Section 7), then the filename used to
     download the snapshot metadata file is of the fixed form FILENAME.EXT
     (e.g., snapshot.json).
-    Otherwise, the filename is of the form FILENAME.HASH.EXT (e.g.,
-    snapshot.c14aeb4ac9f4a8fc0d83d12482b9197452f6adf3eb710e3b1e2b79e8d14cb681.json),
-    where HASH is one of the hashes of the snapshot metadata file listed in the
-    timestamp metadata file.
-    In either case, the client MUST write the file to disk as FILENAME.EXT.
+    Otherwise, the filename is of the form VERSION.FILENAME.EXT (e.g.,
+    42.snapshot.json), where HASH is one of the hashes of the snapshot metadata
+    file listed in the timestamp metadata file.
+    In either case, the client MUST write the file to non-volatile storage as
+    FILENAME.EXT.
 
     3.1. **Check against timestamp metadata.** The hashes, and version number
     of this metadata file MUST match the timestamp metadata.
@@ -1029,10 +1045,11 @@ Version 1.0 (Draft)
     If consistent snapshots are used (see Section 7), then the filename used to
     download the targets metadata file is of the fixed form FILENAME.EXT
     (e.g., targets.json).
-    Otherwise, the filename is of the form FILENAME.VERSION.EXT (e.g.,
-    targets.42.json), where VERSION is the version number of the targets
+    Otherwise, the filename is of the form VERSION.FILENAME.EXT (e.g.,
+    42.targets.json), where VERSION is the version number of the targets
     metadata file listed in the snapshot metadata file.
-    In either case, the client MUST write the file to disk as FILENAME.EXT.
+    In either case, the client MUST write the file to non-volatile storage as
+    FILENAME.EXT.
 
     4.1. **Check against snapshot metadata.** The hashes (if any), and version
     number of this metadata file MUST match the snapshot metadata. This is
@@ -1087,6 +1104,15 @@ Version 1.0 (Draft)
     the exact number is unknown. This may happen, for example, if an external
     program is used to compute the root hash of a tree of targets files, and
     this program does not provide the total size of all of these files.)
+    If consistent snapshots are used (see Section 7), then the filename used to
+    download the target file is of the fixed form FILENAME.EXT
+    (e.g., foobar.tar.gz).
+    Otherwise, the filename is of the form HASH.FILENAME.EXT (e.g.,
+    c14aeb4ac9f4a8fc0d83d12482b9197452f6adf3eb710e3b1e2b79e8d14cb681.foobar.tar.gz),
+    where HASH is one of the hashes of the targets file listed in the targets
+    metadata file found earlier in step 4.
+    In either case, the client MUST write the file to non-volatile storage as
+    FILENAME.EXT.
 
 6. Usage
 
@@ -1110,8 +1136,8 @@ Version 1.0 (Draft)
    the current root.json and all previous root.json versions, until one is
    found that has been signed by keys the client already trusts. This is to
    ensure that outdated clients remain able to update, without requiring all
-   previous root keys to be kept to sign new root.json metadata.
-
+   previous root keys to be kept to sign new root.json metadata. See step 1 in
+   Section 5.1 for more details.
 
    To replace a delegated developer key, the role that delegated to that key
    just replaces that key with another in the signed metadata where the
@@ -1141,21 +1167,22 @@ Version 1.0 (Draft)
 
     Simply put, TUF should write every metadata file as such: if the
     file had the original name of filename.ext, then it should be written to
-    disk as version_number.filename.ext, where version_number is an integer.
+    non-volatile storage as version_number.filename.ext, where version_number
+    is an integer.
 
-    On the other hand, consistent target files should be written to disk as
-    digest.filename.ext.  This means that if the referrer metadata lists N
-    cryptographic hashes of the referred file, then there must be N identical
-    copies of the referred file, where each file will be distinguished only by
-    the value of the digest in its filename. The modified filename need not
-    include the name of the cryptographic hash function used to produce the
-    digest because, on a read, the choice of function follows from the
-    selection of a digest (which includes the name of the cryptographic
-    function) from all digests in the referred file.
+    On the other hand, consistent target files should be written to
+    non-volatile storage as digest.filename.ext.  This means that if the
+    referrer metadata lists N cryptographic hashes of the referred file, then
+    there must be N identical copies of the referred file, where each file will
+    be distinguished only by the value of the digest in its filename. The
+    modified filename need not include the name of the cryptographic hash
+    function used to produce the digest because, on a read, the choice of
+    function follows from the selection of a digest (which includes the name of
+    the cryptographic function) from all digests in the referred file.
 
     Additionally, the timestamp metadata (timestamp.json) should also be
-    written to disk whenever it is updated. It is optional for an
-    implementation to write identical copies at digest.timestamp.json for
+    written to non-volatile storage whenever it is updated. It is optional for
+    an implementation to write identical copies at digest.timestamp.json for
     record-keeping purposes, because a cryptographic hash of the timestamp
     metadata is usually not known in advance. The same step applies to the root
     metadata (root.json), although an implementation must write both root.json
