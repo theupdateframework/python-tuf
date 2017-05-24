@@ -1007,9 +1007,9 @@ Version 1.0 (Draft)
     used to download the snapshot metadata file is of the fixed form
     FILENAME.EXT (e.g., snapshot.json).
     Otherwise, the filename is of the form VERSION.FILENAME.EXT (e.g.,
-    42.snapshot.json), where HASH is one of the hashes of the snapshot metadata
-    file listed in the timestamp metadata file.
-    In either case, the client MUST write the file to non-volatile storage as
+    42.snapshot.json), where VERSION is the version number of the snapshot
+    metadata file listed in the timestamp metadata file.  In either case,
+    the client MUST write the file to non-volatile storage as
     FILENAME.EXT.
 
     3.1. **Check against timestamp metadata.** The hashes, and version number
