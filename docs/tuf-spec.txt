@@ -1003,9 +1003,9 @@ Version 1.0 (Draft)
 
     3. **Download and check the snapshot metadata file**, up to the number of
     bytes specified in the timestamp metadata file.
-    If consistent snapshots are used (see Section 7), then the filename used to
-    download the snapshot metadata file is of the fixed form FILENAME.EXT
-    (e.g., snapshot.json).
+    If consistent snapshots are not used (see Section 7), then the filename
+    used to download the snapshot metadata file is of the fixed form
+    FILENAME.EXT (e.g., snapshot.json).
     Otherwise, the filename is of the form VERSION.FILENAME.EXT (e.g.,
     42.snapshot.json), where HASH is one of the hashes of the snapshot metadata
     file listed in the timestamp metadata file.
@@ -1042,9 +1042,9 @@ Version 1.0 (Draft)
     the number of bytes specified in the snapshot metadata file, or some
     Z number of bytes. The value for Z is set by the authors of the application
     using TUF. For example, Z may be tens of kilobytes.
-    If consistent snapshots are used (see Section 7), then the filename used to
-    download the targets metadata file is of the fixed form FILENAME.EXT
-    (e.g., targets.json).
+    If consistent snapshots are not used (see Section 7), then the filename
+    used to download the targets metadata file is of the fixed form
+    FILENAME.EXT (e.g., targets.json).
     Otherwise, the filename is of the form VERSION.FILENAME.EXT (e.g.,
     42.targets.json), where VERSION is the version number of the targets
     metadata file listed in the snapshot metadata file.
@@ -1104,9 +1104,9 @@ Version 1.0 (Draft)
     the exact number is unknown. This may happen, for example, if an external
     program is used to compute the root hash of a tree of targets files, and
     this program does not provide the total size of all of these files.)
-    If consistent snapshots are used (see Section 7), then the filename used to
-    download the target file is of the fixed form FILENAME.EXT
-    (e.g., foobar.tar.gz).
+    If consistent snapshots are not used (see Section 7), then the filename
+    used to download the target file is of the fixed form FILENAME.EXT (e.g.,
+    foobar.tar.gz).
     Otherwise, the filename is of the form HASH.FILENAME.EXT (e.g.,
     c14aeb4ac9f4a8fc0d83d12482b9197452f6adf3eb710e3b1e2b79e8d14cb681.foobar.tar.gz),
     where HASH is one of the hashes of the targets file listed in the targets
