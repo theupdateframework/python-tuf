@@ -1035,8 +1035,8 @@ Version 1.0 (Draft)
     in the previous snapshot metadata file, if any, MUST continue to be listed
     in this snapshot metadata file.
 
-    3.4. **Check for a freeze attack.** The latest downloaded time should be
-    lower than the expiration timestamp in this metadata file.
+    3.4. **Check for a freeze attack.** The latest time should be lower than the
+    expiration timestamp in this metadata file.
 
     4. **Download and check the top-level targets metadata file**, up to either
     the number of bytes specified in the snapshot metadata file, or some
@@ -1064,8 +1064,8 @@ Version 1.0 (Draft)
     targets metadata file, if any, MUST be less than or equal to the version
     number of this targets metadata file.
 
-    4.4. **Check for a freeze attack.** The latest downloaded time should be
-    lower than the expiration timestamp in this metadata file.
+    4.4. **Check for a freeze attack.** The latest time should be lower than
+    the expiration timestamp in this metadata file.
 
     4.5. **Perform a preorder depth-first search for metadata about the desired
     target, beginning with the top-level targets role.**
