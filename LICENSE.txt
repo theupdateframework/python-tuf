@@ -1,33 +1,25 @@
-        This file contains the license for TUF: The Update Framework.
+The MIT License (MIT)
 
-         It also lists license information for components and source
-                   code used by TUF: The Update Framework.
+Copyright (c) 2010 New York University
 
-             If you got this file as a part of a larger bundle,
-        there may be other license terms that you should be aware of.
-
-===============================================================================
-TUF: The Update Framework is distributed under this license:
-
-Copyright (c) 2010, Justin Samuel and Justin Cappos.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and/or hardware specification (the “Work”) to deal in the Work
-without restriction, including without limitation the rights to use, copy,
-modify, merge, publish, distribute, sublicense, and/or sell copies of the Work,
-and to permit persons to whom the Work is furnished to do so, subject to the
-following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Work.
+copies or substantial portions of the Software.
 
-THE WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-ARISING FROM, OUT OF OR IN CONNECTION WITH THE WORK OR THE USE OR OTHER
-DEALINGS IN THE WORK.
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 ===============================================================================
 Many files are modified from Thandy and are licensed under the
 following license:
