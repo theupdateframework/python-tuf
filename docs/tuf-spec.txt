@@ -967,9 +967,6 @@ Version 1.0 (Draft)
     root metadata file. Effectively, this means checking that the version
     number signed in the current root metadata file is indeed N+1.
 
-    1.5. **Check for a freeze attack.** The latest known time should be lower
-    than the expiration timestamp in the current root metadata file.
-
     1.5. Note that the expiration of the current (intermediate) root metadata
     file does not matter yet, because we will check for it in step 1.8.
 
