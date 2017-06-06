@@ -988,69 +988,17 @@ For example, if Role A delegates to Role B, and Role B has keys X and Y, and if 
 
 # Consistent Snapshots
 
-So far, we have considered a TUF repository that is relatively static (in
-terms of how often metadata and target files are updated). The problem is
-that if the repository (which may be a community repository such as PyPI,
-RubyGems, CPAN, or SourceForge) is volatile, in the sense that the
-repository is continually producing new TUF metadata as well as its
-targets, then should clients read metadata while the same metadata is being
-written to, they would effectively see denial-of-service attacks.
-Therefore, the repository needs to be careful about how it writes metadata
-and targets. The high-level idea of the solution is that each snapshot will
-be contained in a so-called consistent snapshot. If a client is reading
-from one consistent snapshot, then the repository is free to write another
-consistent snapshot without interrupting that client. For more reasons on
-why we need consistent snapshots, please see
-https://github.com/theupdateframework/pep-on-pypi-with-tuf#why-do-we-need-consistent-snapshots
+Consistent snapshot is a mechanism that allows clients to continuously download and successfully verify metadata from a repository even as that repository continuously updates metadata.
 
-## Writing consistent snapshots
+Imagine the scenario where a client downloads `1.root.json`, verifies it, and moves on download the `targets.json`.
+If at this time, the server updates to `2.root.json` and replaces `targets.json` with a new metadata file, the client would not be able to verify the `targets.json` because it would not be signed with trusted keys.
 
-We now explain how a repository should write metadata and targets to
-produce self-contained consistent snapshots.
+If root metadata has `consistent_snapshot = true`, then all of the following properties MUST hold.
 
-Simply put, TUF should write every metadata file as such: if the
-file had the original name of filename.ext, then it should be written to
-non-volatile storage as version_number.filename.ext, where version_number
-is an integer.
-
-On the other hand, consistent target files should be written to
-non-volatile storage as digest.filename.ext.  This means that if the
-referrer metadata lists N cryptographic hashes of the referred file, then
-there must be N identical copies of the referred file, where each file will
-be distinguished only by the value of the digest in its filename. The
-modified filename need not include the name of the cryptographic hash
-function used to produce the digest because, on a read, the choice of
-function follows from the selection of a digest (which includes the name of
-the cryptographic function) from all digests in the referred file.
-
-Additionally, the timestamp metadata (timestamp.json) should also be
-written to non-volatile storage whenever it is updated. It is optional for
-an implementation to write identical copies at digest.timestamp.json for
-record-keeping purposes, because a cryptographic hash of the timestamp
-metadata is usually not known in advance. The same step applies to the root
-metadata (root.json), although an implementation must write both root.json
-and digest.root.json because it is possible to download root metadata both
-with and without known hashes. These steps are required because these are
-the only metadata files that may be requested without known hashes.
-
-Most importantly, no metadata file format must be updated to refer to the
-names of metadata or target files with their hashes included. In other
-words, if a metadata file A refers to another metadata or target file B as
-filename.ext, then the filename must remain as filename.ext and not
-digest.filename.ext. This rule is in place so that metadata signed by roles
-with offline keys will not be forced to sign for the metadata file whenever
-it is updated. In the next subsection, we will see how clients will
-reproduce the name of the intended file.
-
-Finally, the root metadata should write the Boolean "consistent_snapshot"
-attribute at the root level of its keys of attributes. If consistent
-snapshots are not written by the repository, then the attribute may either
-be left unspecified or be set to the False value.  Otherwise, it must be
-set to the True value.
-
-## Reading consistent snapshots
-
-TODO
+1. Metadata with the original name of `path/filename.ext` MUST be available at `path/version_number.filename.ext`.
+2. For each digest used to describe a target `path/target.ext`, the target MUST be available at `path/digest.filename.ext` where `digest` is the hexadecimal encoded output of the hash function.
+3. Root metadata MUST be available at `digest.root.json` for each digest algorithm the server supports where `digest` is the hexadecimal encoded output of the hash function.
+4. References to metadata files in other metadata MUST NOT include the digest prefix (e.g., `abcde.targets.json` at version 2 would only be referred to as `targets.json` and `2.targets.json`).
 
 # Configuring a TUF client
 
