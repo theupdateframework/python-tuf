@@ -145,6 +145,14 @@ according to the signed metadata.
 The application is not given access to the target until the security checks have been completed.
 At this point, the application has securely obtained a reference to the target and can do with it whatever it wishes.
 
+## Interoperability
+
+Because TUF does not aim to be a universal application and merely a framework, there is no expectation that any two TUF implementations are compatible with each other.
+This could be due to usage of different hash algorithms, types of signing keys, signing schemes, data interchange formats, and even within the data interchange formats, different encodings of data.
+
+This document does not define the TUF specification so that any client can talk with any server.
+The purpose is to define a series of operations that, if followed, make an application "TUF Compliant."
+
 # Data Interchange
 
 TUF MUST make metadata available as JSON as described in {{RFC7159}}.
@@ -186,6 +194,16 @@ For example, the `scrypt` hash function with parameters `n=10, r=8, p=1` and 256
 
 `HASH_VALUE` MUST be the encoded value of the output of the hash function with the input being the metadata converted to bytes.
 
+#### Verifying Against Hashes
+
+When a client verifies a target or metadata file against a `HASHES` object, the client MUST select `HASH_IDENTIFIER` candidates from a known, prioritized list of hashes.
+This list SHOULD be ordered according to some measure of the strength of the hash algorithm.
+For example, SHA-256 would be prioritized over SHA-1.
+
+The client picks the `HASH_IDENTIFIER` in `HASHES` with the highest priority and uses that algorithm to calculate the hash of the target or metadata file.
+If the hashes are no equal, then the client considered the target or metadata file invalid and returns control to the caller while signaling failure.
+The client MUST NOT fall back to a hash algorithm with lower priority if an algorithm with higher priority fails.
+
 ## Public Key Cryptography {#public_key_crypto}
 
 TUF uses public key cryptography to sign metadata about targets and other metadata.
@@ -208,10 +226,13 @@ All keys MUST have the format:
 where `KEYTYPE` is a string describing the type of the key.
 The type determines the interpretation of `KEYVAL`.
 
-We define two keytypes at present: 'rsa' and 'ed25519'.
+We define two key types at present: `rsa` and `ed25519`.
 RSA keys MUST be encoded with the PEM format.
 TODO should specify PKCS#1, PKCS#8, or SPKI.
-Ed25519 keys MUST be lower case hexadecimal encodings of the 32 bytes of the public key.
+
+Ed25519 keys MAY be lower case hexadecimal encodings of the 32 bytes of the public key.
+Ed25519 keys MAY be encoded using PKCS#8 or hexadecimal.
+TODO should specify format.
 
 Both RSA and Ed25519 keys MUST use the `KEYVAL` format below.
 
@@ -242,7 +263,7 @@ Likewise, an RSA key could be PEM encoded in both SPKI, PKCS#1, and PKCS#8 givin
 This would degrade TUF's security guarantees.
 
 A key's ID MUST be calculated by any client receiving metadata.
-If a calculated KEYID does not match the one provided, then that key MUST NOT be used for verifying metadata or targets.
+If a calculated `KEYID` does not match the one provided, then that key MUST NOT be used for verifying metadata or targets.
 Clients MUST ensure that for any key ID in any metadata, only one unique key has that key ID.
 
 ## Canonical JSON
@@ -272,7 +293,7 @@ All metadata provided by these roles is JSON and MUST use the following format:
 
 ~~~ json
 {
-  "signaures": [ SIGNATURE_OBJECT, ... ],
+  "signatures": [ SIGNATURE_OBJECT, ... ],
   "signed": { ... }
 }
 ~~~
@@ -448,14 +469,14 @@ If defined, `DELEGATIONS` is an object whose format MUST be the following:
       "keyids": [ KEYID, ... ],
       "threshold": THRESHOLD,
       ("path_hash_prefixes": [ HEX_DIGEST, ... ] |
-       "paths": [ PATHPATTERN, ... ])
+       "paths": [ PATH_PATTERN, ... ])
     },
     ...
   ]
 }
 ~~~
 
-`keys` is an objet whoes keys are key IDs calculated as described in {{calculating_key_ids}}.
+`keys` is an object whose keys are key IDs calculated as described in {{calculating_key_ids}}.
 The `KEY` object MUST be the format as described in {{encoding_public_keys}}.
 
 `ROLENAME` is the full name of the delegated role.
@@ -479,7 +500,7 @@ The `paths" list describes paths that the role is trusted to provide.
 Clients MUST check that a target is in one of the trusted paths of all roles in a delegation chain, not just in a trusted path of the role that describes
 the target file.
 
-The format of a `PATHPATTERN` may be either a path to a single file, or a path to a directory to indicate all files and/or subdirectories under that directory.
+The format of a `PATH_PATTERN` may be either a path to a single file, or a path to a directory to indicate all files and/or subdirectories under that directory.
 
 A path to a directory is used to indicate all possible targets sharing that directory as a prefix.
 For example, if the directory is `targets/A`, then targets which match that directory include `targets/A/B.pkg` and `targets/A/B/C.pkg`.
@@ -622,8 +643,8 @@ The `signed` portion of mirrors metadata MUST use the following format.
       "urlbase": URLBASE,
       "metapath": METAPATH,
       "targetspath": TARGETSPATH,
-      "metacontent": [ PATHPATTERN ... ] ,
-      "targetscontent": [ PATHPATTERN ... ] ,
+      "metacontent": [ PATH_PATTERN ... ] ,
+      "targetscontent": [ PATH_PATTERN ... ] ,
       ("custom": { ... })
     },
     ...
@@ -634,7 +655,7 @@ The `signed` portion of mirrors metadata MUST use the following format.
 URLBASE is the URL of the mirror which METAPATH and TARGETSPATH are relative to.
 All metadata files will be retrieved from METAPATH and all target files will be retrieved from TARGETSPATH.
 
-The lists of PATHPATTERN for "metacontent" and "targetscontent" describe the metadata files and target files available from the mirror.
+The lists of PATH_PATTERN for "metacontent" and "targetscontent" describe the metadata files and target files available from the mirror.
 
 The order of the list of mirrors is important.
 For any file to be downloaded, whether it is a metadata file or a target file, TUF on the client will give priority to the mirrors that are listed first.
@@ -666,7 +687,7 @@ TODO explain mixing of trusted content better
 
 ## Repository Layout
 
-Repositories use a filesystem like lay out.
+Repositories use a file system like layout.
 This is done for two purposes:
 
 - To give mirrors an easy way to mirror only some of the repository
@@ -698,7 +719,7 @@ The original, uncompressed file MUST always be made available.
 When the targets role delegates trust to other roles, each delegated role provides one signed metadata file.
 As is the case with the directory structure of top-level metadata, the delegated files are relative to the base URL of metadata available from a given repository mirror.
 
-A delegated targets metdata file for a role `DELEGATED_ROLE` MUST be available at the relative URL `/DELEGATED_ROLE.json`.
+A delegated targets metadata file for a role `DELEGATED_ROLE` MUST be available at the relative URL `/DELEGATED_ROLE.json`.
 If this role further delegates trust to a role named `ANOTHER_ROLE`, that role's signed metadata file MUST be available at the URL relative to the root `/ANOTHER_ROLE.json`.
 Roles MAY contain a slash (`/`) in their name.
 For example, the role `foo/bar` would have its metadata available at `/foo/bar.json`.
@@ -724,148 +745,187 @@ If there is a sufficient number of valid signatures, the client proceeds to {{up
 
 ### Update the Root Metadata {#update_root_metadata}
 
-The client MUST download the metadata `root.json`.
+The TUF client MUST have a known value `Y` that is the maximum size in bytes of a root metadata file.
+The client MUST download the metadata `root.json` up to `Y` bytes.
+If `Y` bytes is exceeded, the client MUST abort and report this error back to the application.
+
 If the client's current trusted version of the root metadata is at version `N` and the `root.json` version `M`, client MUST take the following steps.
 
-#### N = M
+If `N = M`, then the current metadata is up to date, and the client proceeds to {{update_timestamp_metadata}}.
 
-The current metadata is up to date, and the client proceeds to {{update_timestamp_metadata}}.
-
-#### N > M
-
-There current metadata is ahead of what the repository is reporting.
+If `N > M`, then the current metadata is ahead of what the repository is reporting.
 TODO explain steps.
 
-#### N &lt; M
+If `N < M`, then for every version `X` in the set `[N+1, N+2, ... , M-1, M]`, the client MUST take the following steps.
 
-For every version `X` in the set `(N, N+1, ... , M-1, M)`, the client MUST take the following steps.
+#### Download X.root.json
 
-##### Download X.root.json
-
-The TUF client MUST have a known value `Y` that is the maximum size in bytes of a root metadata file.
-
-The client downlods `X.root.json` up to `Y` bytes.
+If `X != M`, then the client downloads `X.root.json` up to `Y` bytes.
 If `Y` bytes is exceeded, the client MUST abort and report this error back to the application.
 If this file is not available, TODO.
 
-##### Verify X.root.json
+If `X = M`, then the client uses the `root.json` that it just downloaded for the next steps.
+
+#### Verify X.root.json
 
 The metadata `X.root.json` MUST have:
 
-1) A number `A` valid signatures from keys in `(X-1).root.json` where `A` is the threshold of the root role set in `(X-1).root.json`.
-   If `X = 1`, then only use the next step.
-2) A number `B` valid signatures from keys in `X.root.json` where `B` is the threshold of the root role set in `X.root.json`.
+1. A number `A` valid signatures from keys in `(X-1).root.json` where `A` is the threshold of the root role set in `(X-1).root.json`.
+2. A number `B` valid signatures from keys in `X.root.json` where `B` is the threshold of the root role set in `X.root.json`.
 
-TODO how to abort? Are we allowed to continue because it might rotate the keys where none of the tresholds of metadata are impacted by what the client currently knows?
+TODO how to abort? Are we allowed to continue because it might rotate the keys where none of the thresholds of metadata are impacted by what the client currently knows?
 
-##### Verify X.root.json is Version X
+#### Verify X.root.json is Version X
 
 If the version in the signed portion of the root metadata is not also `X`, then the client MUST (TODO) and abort(?).
 
-##### Verify X.root.json Has Not Expired
+#### Verify X.root.json Has Not Expired
 
 If `X = M` and current time is not before the `expires` field in the signed portion of the metadata, then the client MUST abort.
 TODO explain more?
 
-##### Set Root Metadata
+#### Set Root Metadata
 
 If this step has been reached, then the client MUST save the `X.root.json` as the latest trusted root metadata.
 
-##### Flush Old Metadata
+#### Flush Old Metadata
 
-For each non-root top-level role, iff any of the keys for the role have been rotated, then the client MUST flush all keys, metadata, and files associated with that role.
+For each non-root top-level role, if any of the keys for the role have been rotated, then the client MUST flush all keys, metadata, and files associated with that role.
 
 An explanation for this step can be found in the {{MERCURY}} paper.
 
-## Update the Timestamp Metadata {#update_timestamp_metadata}
-
-### Download the Timestamp Metadata
+### Update the Timestamp Metadata {#update_timestamp_metadata}
 
 The TUF client MUST have a known value `X` that is the maximum size in bytes of a timestamp metadata file.
 
-The client downlods `timestamp.json` up to `X` bytes.
+#### Download the Timestamp Metadata
+
+The client downloads `timestamp.json` up to `X` bytes.
 If `X` bytes is exceeded, the client MUST abort and report this error back to the application.
 If this file is not available, TODO.
 
-### Verify the Timestamp Metadata
-2.1. **Check signatures.** The timestamp metadata file must have been
-signed by a threshold of keys specified in the root metadata file.
+#### Verify the Timestamp Metadata
 
-2.2. **Check for a rollback attack.** The version number of the previous
-timestamp metadata file, if any, must be less than or equal to the version
-number of this timestamp metadata file.
+The client checks the validity of the signatures on the timestamp metadata.
+If the number of valid signatures is not greater than or equal to the threshold defined for the timestamp role in the root metadata file, then the client MUST abort.
 
-2.3. **Check for a freeze attack.** The latest known time should be lower
-than the expiration timestamp in this metadata file.
+#### Verify the Timestamp Metadata Was Not Rolled Back
 
-3. **Download and check the snapshot metadata file**, up to the number of
-bytes specified in the timestamp metadata file.
-If consistent snapshots are not used (see Section 7), then the filename
-used to download the snapshot metadata file is of the fixed form
-FILENAME.EXT (e.g., snapshot.json).
-Otherwise, the filename is of the form VERSION.FILENAME.EXT (e.g.,
-42.snapshot.json), where VERSION is the version number of the snapshot
-metadata file listed in the timestamp metadata file.  In either case,
-the client MUST write the file to non-volatile storage as
-FILENAME.EXT.
+If the client has previously trusted timestamp metadata, and the version number on the downloaded timestamp metadata is less than the previous version, then the client MUST abort.
 
-3.1. **Check against timestamp metadata.** The hashes, and version number
-of this metadata file MUST match the timestamp metadata.
+#### Verify the Timestamp Metadata Has Not Expired
 
-3.2. **Check signatures.** The snapshot metadata file MUST have been signed
-by a threshold of keys specified in the previous root metadata file.
+If the current time is not before the `expires` field in the signed portion of the metadata, then the client MUST abort.
+TODO explain more?
 
-3.3. **Check for a rollback attack.**
+#### Flush Old Timestamp Metadata
 
-3.3.1. Note that the previous snapshot metadata file may be checked for
-authenticity, but its expiration does not matter for the following
-purposes.
+The client MUST flush old instances of the timestamp metadata and untrust them.
 
-3.3.2. The version number of the previous snapshot metadata file, if any,
-MUST be less than or equal to the version number of this snapshot metadata
-file.
+#### Set Timestamp Metadata
 
-3.3.3. The version number of the targets metadata file, and all delegated
-targets metadata files (if any), in the previous snapshot metadata file, if
-any, MUST be less than or equal to its version number in this snapshot
-metadata file. Furthermore, any targets metadata filename that was listed
-in the previous snapshot metadata file, if any, MUST continue to be listed
-in this snapshot metadata file.
+The client MUST save the new timestamp metadata as trusted and use its values for subsequent operations.
 
-3.4. **Check for a freeze attack.** The latest known time should be lower
-than the expiration timestamp in this metadata file.
+### Update the Snapshot Metadata
 
-4. **Download and check the top-level targets metadata file**, up to either
-the number of bytes specified in the snapshot metadata file, or some
-Z number of bytes. The value for Z is set by the authors of the application
-using TUF. For example, Z may be tens of kilobytes.
-If consistent snapshots are not used (see Section 7), then the filename
-used to download the targets metadata file is of the fixed form
-FILENAME.EXT (e.g., targets.json).
-Otherwise, the filename is of the form VERSION.FILENAME.EXT (e.g.,
-42.targets.json), where VERSION is the version number of the targets
-metadata file listed in the snapshot metadata file.
-In either case, the client MUST write the file to non-volatile storage as
-FILENAME.EXT.
+TODO should there be a cap on the size of snapshot.json metadata file to prevent filling a disk if timestamp is compromised?
+The TUF client MAY have a known value `X` that is the maximum size in bytes of a snapshot metadata file.
 
-4.1. **Check against snapshot metadata.** The hashes (if any), and version
-number of this metadata file MUST match the snapshot metadata. This is
-done, in part, to prevent a mix-and-match attack by man-in-the-middle
-attackers.
+#### Download the Snapshot Metadata
 
-4.2. **Check for an arbitrary software attack.** This metadata file MUST
-have been signed by a threshold of keys specified in the latest root
-metadata file.
+If the root metadata has `consistent_snapshot = false`, then the client downloads `snapshot.json` up to the number of bytes specified in the timestamp metadata or `X`, whichever is smaller.
+If the file exceeds this size, then the client MUST abort.
 
-4.3. **Check for a rollback attack.** The version number of the previous
-targets metadata file, if any, MUST be less than or equal to the version
-number of this targets metadata file.
+If the root metadata has `consistent_snapshot = true`, then the clients downloads `Y.snapshot.json` up to the numbers of bytes specified in the timestamp metadata or `X`, whichever is smaller, where `Y` is the version number of the snapshot metadata found in the timestamp metadata.
 
-4.4. **Check for a freeze attack.** The latest known time should be lower
-than the expiration timestamp in this metadata file.
+#### Verify Downloaded Snapshot Metadata Matches Timestamp Metadata
 
-4.5. **Perform a preorder depth-first search for metadata about the desired
-target, beginning with the top-level targets role.**
+If the hashes and version number of the downloaded snapshot metadata file do not match what was found in the timestamp metadata, then the client MUST abort.
+The client MUST NOT parse the downloaded metadata until after this step has completed.
+
+#### Verify the Snapshot Metadata
+
+The client checks the validity of the signatures on the snapshot metadata.
+If the number of valid signatures is not greater than or equal to the threshold defined for the snapshot role in the root metadata file, then the client MUST abort.
+
+#### Verify the Snapshot Metadata Was Not Rolled Back
+
+If the client has previously trusted snapshot metadata, and the version number on the downloaded snapshot metadata is less than the previous version, then the client MUST abort.
+
+#### Verify the Snapshot Metadata Has Not Expired
+
+If the current time is not before the `expires` field in the signed portion of the metadata, then the client MUST abort.
+TODO explain more?
+
+#### Flush Old Targets Metadata
+
+For the target metadata and all targets delegations, the following MUST hold.
+
+1. The metadata path is present in the snapshot metadata
+2. The version number in the metadata is less than or equal to the version number of the metadata at the corresponding path in the snapshot metadata
+
+If any of these are not true, then the client MUST flush the metadata and delete any saved metadata files.
+
+### Update Targets Metadata
+
+The TUF client MAY have a known value `X` that is the maximum size in bytes of a targets metadata file.
+
+#### Download the Targets Metadata
+
+If the root metadata has `consistent_snapshot = false`, then the client downloads `targets.json` up to the number of bytes specified in the snapshot metadata or `X`, whichever is smaller.
+
+If the root metadata has `consistent_snapshot = true`, then the clients downloads `Y.targets.json` up to the numbers of bytes specified in the snapshot metadata or `X`, whichever is smaller, where `Y` is the version number of the snapshot metadata found in the timestamp metadata.
+
+#### Verify Downloaded Targets Metadata Matches Snapshot Metadata
+
+If the hashes and version number of the downloaded snapshot metadata file do not match what was found in the snapshot metadata, then the client MUST abort.
+The client MUST NOT parse the downloaded metadata until after this step has completed.
+
+#### Verify the Targets Metadata
+
+The client checks the validity of the signatures on the targets metadata.
+If the number of valid signatures is not greater than or equal to the threshold defined for the targets role in the root metadata file, then the client MUST abort.
+
+#### Verify the Targets Metadata Was Not Rolled Back
+
+If the client has previously trusted targets metadata, and the version number on the downloaded targets metadata is less than the previous version, then the client MUST abort
+
+#### Verify the Targets Metadata Has Not Expired
+
+If the current time is not before the expires field in the signed portion of the metadata, then the client MUST abort.
+TODO explain more?
+
+### Verify the Target
+
+The client will traverse the graph of the targets and targets delegation metadata until it finds a role that contains information about the given target.
+The client will use this information to verify the target.
+If the client successfully verifies the target, then the client will halt and return success.
+If the client fails to verify the target, then the client will resume traversing the graph where it left off.
+
+Because targets metadata is identical to targets delegation metadata, the following steps will simply use the term "targets metadata" for simplicity of language.
+Similarly, when the terms authorized keys and threshold are used, it should be remembered that the top-level targets role is authorized and has its threshold set by the root role.
+All other targets roles are authorized by and have their threshold set by their immediate parent target role.
+
+During the traversal of this graph, the client MUST maintain a list of vertices (roles) that have been visited before.
+The client MAY impose a maximum depth to search where depth is the number of edges (delegations) needed to reach a node from the top-level targets metadata.
+The graph traversal MUST be depth first.
+The graph traversal MUST start with the top-level targets role.
+
+TODO don't forget to include how to abort (delete downloaded target, if exists)
+
+#### Search for a Valid Target {#search_for_target}
+
+If the target metadata contains the target, the client MUST use the hashes and length to verify the target as described in {{verify_target}}.
+
+If the verification succeeds, then the client MUST break out of the traversal and return success to the caller.
+
+If the verification fails, and the delegation was marked as `terminating`, then the client MUST abort.
+
+If the verification fails, and the delegation was not marked as `terminating`, then the client adds this role to the list of visited roles and returns to {{search_for_target}}.
+
+TODO what is the case if the target exists in the metadata AND the delegations? Do we continue down or abort?
+
+##### Traverse the Delegations
 
 4.5.1. If this role has been visited before, then skip this role (so that
 cycles in the delegation graph are avoided).
@@ -890,7 +950,9 @@ to step 5.
 delegation, continue processing the next delegation, if any. Stop the
 search, and jump to step 5 as soon as a delegation returns a result.
 
-5. **Verify the desired target against its targets metadata.**
+#### Verify a Target {#verify_target}
+
+TODO
 
 5.1. If there is no targets metadata about this target, then report that
 there is no such target.
@@ -913,37 +975,16 @@ FILENAME.EXT.
 
 # Key Management and Migration
 
-All keys, except those for the timestamp and mirrors roles, should be
-stored securely offline (e.g. encrypted and on a separate machine, in
-special-purpose hardware, etc.).  This document does not prescribe how keys
-should be encrypted and stored, and so it is left to implementers of
-this document to decide how best to secure them.
+All keys, except those for the timestamp and mirrors roles, SHOULD be stored securely offline.
+These keys MAY be encrypted and on a separate machine or in special-purpose hardware.
 
-To replace a compromised root key or any other top-level role key, the root
-role signs a new root.json file that lists the updated trusted keys for the
-role.  When replacing root keys, an application will sign the new root.json
-file with both the new and old root keys. Any time such a change is
-required, the root.json file is versioned and accessible by version number,
-e.g., 3.root.json. Clients update the set of trusted root keys by requesting
-the current root.json and all previous root.json versions, until one is
-found that has been signed by a threshold of keys that the client already
-trusts. This is to ensure that outdated clients remain able to update,
-without requiring all previous root keys to be kept to sign new root.json
-metadata.
+To replace a compromised root key or any other top-level role key, the root role generates and signs new root metadata that lists the updated trusted keys for the role.
+When replacing root keys, the root will sign the new root metadata with both the new and old root keys.
+The threshold of root role in both the old and new root metadata MUST be met.
+All versions of the root metadata MUST be made available to clients at the path `X.root.json` where `X` is the root version number.
 
-In the event that the keys being updated are root keys, it is important to
-note that the new root.json must at least be signed by the keys listed as
-root keys in the previous version of root.json, up to the threshold listed
-for root in the previous version of root.json. If this is not the case,
-clients will (correctly) not validate the new root.json file.  For example,
-if there is a 1.root.json that has threshold 2 and a 2.root.json that has
-threshold 3, 2.root.json MUST be signed by at least 2 keys defined in
-1.root.json and at least 3 keys defined in 2.root.json. See step 1 in
-Section 5.1 for more details.
-
-To replace a delegated developer key, the role that delegated to that key
-just replaces that key with another in the signed metadata where the
-delegation is done.
+To replace keys in targets delegations, the role that delegated to the sub-role MUST replace keys in that role with all or partially new keys in the signed metadata.
+For example, if Role A delegates to Role B, and Role B has keys X and Y, and if Role B would like to revoke X and replace it with Z, then Role A signs metadata assigning keys Y and Z to Role B.
 
 # Consistent Snapshots
 
@@ -1016,6 +1057,8 @@ TODO
 TODO max root size
 
 TODO min download speed
+
+TODO protected storage of metadata/targets
 
 # Side Channel Attacks
 
