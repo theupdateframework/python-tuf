@@ -106,6 +106,8 @@ MAX_NUMBER_OF_DELEGATIONS = 2**5
 # terms of disk space usage.  By default, we use 'copy'.
 CONSISTENT_METHOD = 'copy'
 
-# A setting for the instances where a default hashing algorithm is needed.  For
-# example, digests of files can be generated, by default, with sha256.
+# A setting for the instances where a default hashing algorithm is needed.
+# This setting is currently used to calculate the path hash prefixes of hashed
+# bin delegations.  The other instances (e.g., digest of files) that require a
+# hashing algorithm rely on settings in the securesystemslib external library.
 DEFAULT_HASH_ALGORITHM = 'sha256'
