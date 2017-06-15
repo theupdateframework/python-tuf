@@ -105,7 +105,7 @@ setup(
     'Topic :: Security',
     'Topic :: Software Development'
   ],
-  install_requires = ['iso8601', 'six', 'securesystemslib>=0.10.2'],
+   install_requires = ['iso8601', 'six', 'securesystemslib>=0.10.5'],
   packages = find_packages(exclude=['tests']),
   scripts = [
     'tuf/scripts/basic_client.py',
