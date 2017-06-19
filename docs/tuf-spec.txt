@@ -989,14 +989,17 @@ Version 1.0 (Draft)
     root metadata file. Effectively, this means checking that the version
     number signed in the current root metadata file is indeed N+1.
 
-    1.5. **Check for a freeze attack.** The latest known time should be lower
-    than the expiration timestamp in the current root metadata file.
+    1.5. Note that the expiration of the current (intermediate) root metadata
+    file does not matter yet, because we will check for it in step 1.8.
 
     1.6. Set the previous to the current root metadata file.
 
-    1.7. Repeat steps 1.1 to 1.6.
+    1.7. Repeat steps 1.1 to 1.7.
 
-    1.8. **If the the timestamp and / or snapshot keys have been rotated, then
+    1.8. **Check for a freeze attack.** The latest known time should be lower
+    than the expiration timestamp in the current root metadata file.
+
+    1.9. **If the the timestamp and / or snapshot keys have been rotated, then
     delete the previous timestamp and snapshot metadata files.** This is done
     in order to recover from fast-forward attacks after the repository has been
     compromised and recovered. A _fast-forward attack_ happens when attackers
