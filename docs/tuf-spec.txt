@@ -268,7 +268,12 @@ Version 1.0 (Draft)
    configured repository.
 
    The root role's private keys must be kept very secure and thus should be
-   kept offline.
+   kept offline.  If less than a threshold of Root keys are compromised, the
+   repository should revoke trust on the compromised keys.  This can be
+   accomplished with a normal rotation of root keys, covered in section 6.1
+   (key management and migration). If a threshold of root keys is compromised,
+   the Root keys should be updated out-of-band, however, the threshold should
+   be chosen so that this is extremely unlikely.
 
 2.1.2 Targets role
 
