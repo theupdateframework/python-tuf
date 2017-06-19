@@ -1,6 +1,6 @@
                       The Update Framework Specification
 
-23 May 2017
+2 June 2017
 Version 1.0 (Draft)
 
 1. Introduction
@@ -522,6 +522,8 @@ Version 1.0 (Draft)
    The "signed" portion of root.json is as follows:
 
      { "_type" : "Root",
+       "compression_algorithms": [ COMPRESSION_ALGORITHM, ... ],
+       "consistent_snapshot": CONSISTENT_SNAPSHOT,
        "version" : VERSION,
        "expires" : EXPIRES,
        "keys" : {
@@ -533,6 +535,15 @@ Version 1.0 (Draft)
              "threshold" : THRESHOLD }
            , ... }
      }
+
+   COMPRESSION_ALGORITHM specifies one of the compression algorithms supported
+   by the repository.  Metadata files available on the repository may
+   optionally be compressed with this algorithm.  Compressed versions of
+   metadata are not listed in snapshot.json.
+
+   CONSISTENT_SNAPSHOT is a boolean indicating whether the repository supports
+   consistent snapshots.  Section 7 goes into more detail on the consequences
+   of enabling this setting on a repository.
 
    VERSION is an integer that is greater than 0.  Clients MUST NOT replace a
    metadata file with a version number less than the one currently trusted.
@@ -735,12 +746,25 @@ Version 1.0 (Draft)
            "keyids" : [ KEYID, ... ] ,
            "threshold" : THRESHOLD,
            ("path_hash_prefixes" : [ HEX_DIGEST, ... ] |
-            "paths" : [ PATHPATTERN, ... ])
+            "paths" : [ PATHPATTERN, ... ]),
+           "terminating": TERMINATING,
        }, ... ]
      }
 
-   ROLENAME is the full name of the delegated role.  For example,
-   "targets/projects"
+   ROLENAME is the name of the delegated role.  For example,
+   "projects".
+
+   TERMINATING is a boolean indicating whether subsequent delegations should be
+   considered.
+
+   As explained in the Diplomat paper
+   (https://github.com/theupdateframework/tuf/blob/develop/docs/papers/protect-community-repositories-nsdi2016.pdf),
+   terminating delegations instruct the client not to consider future trust
+   statements that match the delegation's pattern, which stops the delegation
+   processing once this delegation (and its descendants) have been processed.
+   A terminating delegation for a package causes any further statements about
+   a package that are not made by the delegated party or its descendants to
+   be ignored.
 
    In order to discuss target paths, a role MUST specify only one of the
    "path_hash_prefixes" or "paths" attributes, each of which we discuss next.
@@ -758,31 +782,24 @@ Version 1.0 (Draft)
    The "paths" list describes paths that the role is trusted to provide.
    Clients MUST check that a target is in one of the trusted paths of all roles
    in a delegation chain, not just in a trusted path of the role that describes
-   the target file.  The format of a PATHPATTERN may be either a path to a
-   single file, or a path to a directory to indicate all files and/or
-   subdirectories under that directory.
+   the target file.  PATHPATTERN can include shell-style wildcards and supports
+   the Unix filename pattern matching convention.  Its format may either
+   indicate a path to a single file, or to multiple paths with the use of
+   shell-style wildcards.  For example, the path pattern "targets/*.tgz" would
+   match file paths "targets/foo.tgz" and "targets/bar.tgz", but not
+   "targets/foo.txt".  Likewise, path pattern "foo-version-?.tgz" matches
+   foo-version-2.tgz" and "foo-version-a.tgz", but not "foo-version-alpha.tgz".
 
-   A path to a directory is used to indicate all possible targets sharing that
-   directory as a prefix; e.g. if the directory is "targets/A", then targets
-   which match that directory include "targets/A/B.json" and
-   "targets/A/B/C.json".
-
-   We are currently investigating a few "priority tag" schemes to resolve
-   conflicts between delegated roles that share responsibility for overlapping
-   target paths. One of the simplest of such schemes is for the client to
-   consider metadata in order of appearance of delegations; we treat the order
-   of delegations such that the first delegation is trusted more than the
-   second one, the second delegation is trusted more than the third one, and so
-   on. The metadata of the first delegation will override that of the second
-   delegation, the metadata of the second delegation will override that of the
-   third delegation, and so on. In order to accommodate this scheme, the
-   "roles" key in the DELEGATIONS object above points to an array, instead of a
-   hash table, of delegated roles.
-
-   Another priority tag scheme would have the clients prefer the delegated role
-   with the latest metadata for a conflicting target path. Similar ideas were
-   explored in the Stork package manager (University of Arizona Tech Report
-   08-04)[https://isis.poly.edu/~jcappos/papers/cappos_stork_dissertation_08.pdf].
+   Prioritized delegations allow clients to resolve conflicts between delegated
+   roles that share responsibility for overlapping target paths.  To resolve
+   conflicts, clients must consider metadata in order of appearance of delegations;
+   we treat the order of delegations such that the first delegation is trusted
+   over the second one, the second delegation is trusted more than the third
+   one, and so on. Likewise, the metadata of the first delegation will override that
+   of the second delegation, the metadata of the second delegation will override
+   that of the third one, etc. In order to accommodate prioritized
+   delegations, the "roles" key in the DELEGATIONS object above points to an array
+   of delegated roles, rather than to a hash table. 
 
    The metadata files for delegated target roles has the same format as the
    top-level targets.json metadata file.
@@ -814,7 +831,7 @@ Version 1.0 (Draft)
        "keyids": [
         "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba"
        ],
-       "name": "targets/project",
+       "name": "project",
        "paths": [
         "/project/file3.txt"
        ],
