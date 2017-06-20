@@ -271,10 +271,15 @@ Version 1.0 (Draft)
    kept offline.  If less than a threshold of Root keys are compromised, the
    repository should revoke trust on the compromised keys.  This can be
    accomplished with a normal rotation of root keys, covered in section 6.1
-   (key management and migration). If a threshold of root keys is compromised,
+   (Key management and migration). If a threshold of root keys is compromised,
    the Root keys should be updated out-of-band, however, the threshold should
-   be chosen so that this is extremely unlikely.
-
+   be chosen so that this is extremely unlikely.  In the unfortunate event that
+   a threshold of keys are compromised, it is safest to assume that attackers
+   have installed malware and taken over affected machines.  For this reason,
+   making it difficult for attackers to compromise all of the offline keys is
+   important because safely recovering from it is nearly impossible.
+   
+   
 2.1.2 Targets role
 
    The targets role's signature indicates which target files are trusted by
