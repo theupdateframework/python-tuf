@@ -396,8 +396,7 @@ Version 1.0 (Draft)
     /snapshot.json
 
          Signed by the snapshot role's keys.  Lists the version numbers of all
-         metadata files other than timestamp.json.  For the root role, the
-         hash(es), size, and version number are listed.
+         metadata files other than timestamp.json.
 
     /targets.json
 
@@ -665,8 +664,6 @@ Version 1.0 (Draft)
    METAFILES is an object whose format is the following:
 
      { METAPATH : {
-           "length" : LENGTH,
-           "hashes" : HASHES,
            "version" : VERSION }
        , ...
      }
@@ -674,11 +671,8 @@ Version 1.0 (Draft)
    METAPATH is the the metadata file's path on the repository relative to the
    metadata base URL.
 
-   The HASHES and LENGTH are the hashes and length of the file, both of which
-   are only specified for the root file.  VERSION is listed for the root file
-   and all other roles available on the repository.  LENGTH is an integer.
-   HASHES is a dictionary that specifies one or more hashes, including the
-   cryptographic hash function.  For example: { "sha256": HASH, ... }.
+   VERSION is listed for the root file
+   and all other roles available on the repository.
 
    A snapshot.json example file:
 
@@ -696,10 +690,6 @@ Version 1.0 (Draft)
     "expires": "2030-01-01T00:00:00Z",
     "meta": {
      "root.json": {
-      "hashes": {
-       "sha256": "52bbb30f683d166fae5c366e4582cfe8212aacbe1b21ae2026dae58ec55d3701"
-      },
-      "length": 1831,
       "version": 1
      },
      "targets.json": {
