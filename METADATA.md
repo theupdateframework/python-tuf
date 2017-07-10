@@ -27,8 +27,7 @@ Signed by: Root role.
 
 Specifies the other top-level roles. When specifying these roles, the trusted keys for each role are listed along with the minimum number of those keys which are required to sign the role's metadata. We call this number the signature threshold.
 
-Note:  Metadata content and name out-of-date.
-See [example](http://mirror1.poly.edu/test-pypi/metadata/root.txt).
+See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/root.json).
 
 ## Targets Metadata (targets.json)
 
@@ -38,21 +37,27 @@ The targets.json metadata file lists hashes and sizes of target files. Target fi
 
 This file can optionally define other roles to which it delegates trust. Delegating trust means that the delegated role is trusted for some or all of the target files available from the repository. When delegated roles are specified, they are specified in a similar way to how the Root role specifies the top-level roles: the trusted keys and signature threshold for each role is given. Additionally, one or more patterns are specified which indicate the target file paths for which clients should trust each delegated role.
 
-Note:  Metadata content and name out-of-date.
-See [example](http://mirror1.poly.edu/test-pypi/metadata/targets.txt).
+See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/targets.json).
 
-## Delegated Targets Metadata (targets/foo.json)
+## Delegated Targets Metadata (role1.json)
 
 Signed by: A delegated targets role.
 
 The metadata files provided by delegated targets roles follow exactly the same format as the metadata file provided by the top-level Targets role.
 
-The location of the metadata file for each delegated target role is based on the delegation ancestry of the role. If the top-level Targets role defines a role named foo, then the delegated target role's full name would be targets/foo and its metadata file will be available on the repository at the path targets/foo.json (this is relative to the base directory from which all metadata is available). This path is just the full name of the role followed by a file extension.
+When the targets role delegates trust to other roles, each delegated role provides one signed metadata file.  As is the
+case with the directory structure of top-level metadata, the delegated files are relative to the base URL of metadata available from a given repository mirror.
 
-If this delegated role foo further delegates to a role bar, then the result is a role whose full name is targets/foo/bar and whose signed metadata file is made available on the repository at targets/foo/bar.json.
+A delegated role file is located at:
 
-Note:  Metadata content and name out-of-date.
-See [example](http://mirror1.poly.edu/test-pypi/metadata/targets/unclaimed.txt).
+/DELEGATED_ROLE.json
+
+where DELEGATED_ROLE is the name of the delegated role that has been specified in targets.json.  If this role further delegates trust to a role named ANOTHER_ROLE, that role's signed metadata file is made available at:
+
+/ANOTHER_ROLE.json
+
+See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/role1.json).
+See [example of nested delegation](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/role2.json)
 
 ## snapshot Metadata (snapshot.json)
 
@@ -60,8 +65,7 @@ Signed by: Snapshot role.
 
 The snapshot.json metadata file lists hashes and sizes of all metadata files other than timestamp.json. This file ensures that clients will see a consistent view of the files on the repository. That is, metadata files (and thus target file) that existed on the repository at different times cannot be combined and presented to clients by an attacker.
 
-Note:  Metadata content and name out-of-date.
-​See [example](http://mirror1.poly.edu/test-pypi/metadata/release.txt).
+​See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/snapshot.json).
 
 ## Timestamp Metadata (timestamp.json)
 
@@ -74,8 +78,7 @@ There are two primary reasons why the timestamp.json file doesn't contain all of
 * The timestamp.json file is downloaded very frequently and so should be kept as small as possible, especially considering that the snapshot.json file grows in size in proportion to the number of delegated target roles.
 * As the Timestamp role's key is an online key and thus at high risk, separate keys should be used for signing the snapshot.json metadata file so that the Snapshot role's keys can be kept offline and thus more secure.
 
-Note:  Metadata content and name out-of-date.
-See [example](http://mirror1.poly.edu/test-pypi/metadata/timestamp.txt).
+See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/timestamp.json).
 
 ## Mirrors Metadata (mirrors.json)
 
