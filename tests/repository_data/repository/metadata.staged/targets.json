@@ -3,7 +3,7 @@
   {
    "keyid": "a0a0f0cf08daff7afd1eb6582756d43987aa73f028044836a5519259706ca19b",
    "method": "ed25519",
-   "sig": "74ee9970ed709ab65586ef99c0005102676a92f11e2a448bb685875b641d2efe3fd2bdefaa90e1a050bfbb34163834aadb43d13ac0c7452aa7df27c454c34507"
+   "sig": "2e83185591db167091cefde0c104e7b1fe3a74f52273aa2aa223170b1a873260bbb8ee82c3495eb2a9377e81146542c62688996e5a304d797cfaf0c9b8c3790e"
   }
  ],
  "signed": {
@@ -39,7 +39,7 @@
   "targets": {
    "/file1.txt": {
     "custom": {
-     "file_permissions": "664"
+     "file_permissions": "644"
     },
     "hashes": {
      "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da",
