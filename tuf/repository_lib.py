@@ -1548,14 +1548,11 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
   metadata_directory = _check_directory(metadata_directory)
 
-  # Set the fileinfo of 'root.json', and the versioninfo of
-  # 'targets.json'.  'fileinfodict' shall contain the version number of all
-  # available delegated roles on the repository.
+  # Snapshot's 'fileinfodict' shall contain the version number of Root,
+  # Targets, and all delegated roles fo the repository.
   fileinfodict = {}
-  root_path = os.path.join(metadata_directory, root_filename + '.json')
-  length, hashes = securesystemslib.util.get_file_details(root_path)
-  root_version = get_metadata_versioninfo('root', repository_name)
-  fileinfodict[ROOT_FILENAME] = tuf.formats.make_fileinfo(length, hashes, version=root_version['version'])
+  fileinfodict[ROOT_FILENAME] = get_metadata_versioninfo(root_filename,
+      repository_name)
   fileinfodict[TARGETS_FILENAME] = get_metadata_versioninfo(targets_filename,
       repository_name)
 
