@@ -1,3 +1,7 @@
+The TUF project is managed by Justin Cappos at NYU (jcappos@nyu.edu).
+
+Contributors:
+
 Arturo Filastò
 Benno Fünfstück
 David Halls
