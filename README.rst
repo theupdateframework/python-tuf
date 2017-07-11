@@ -148,7 +148,7 @@ https://updateframework.com
 
 Mailing List
 ------------
-Please visit `https://groups.google.com/forum/?fromgroups#!forum/theupdateframework <https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if you would like to contact the TUF team.  Questions, feedback, and suggestions are welcomed in this low-volume mailing list.
+Please visit `https://groups.google.com/forum/?fromgroups#!forum/theupdateframework <https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if you would like to contact the TUF team.  Questions, feedback, and suggestions are welcomed in this low-volume mailing list. 
 
 A group feed is available at: https://groups.google.com/forum/feed/theupdateframework/msgs/atom.xml?num=50
 
@@ -257,8 +257,11 @@ we provide for this purpose.
 Acknowledgements
 ----------------
 
+This project is managed by Prof. Justin Cappos and other members of the
+`Secure Systems Lab <https://ssl.engineering.nyu.edu/>`_ at NYU.
+
 This material is based upon work supported by the National Science
-Foundation under Grant No. CNS-1345049 and CNS-0959138. Any opinions,
+Foundation under Grant Nos. CNS-1345049 and CNS-0959138. Any opinions,
 findings, and conclusions or recommendations expressed in this material
 are those of the author(s) and do not necessarily reflect the views of
 the National Science Foundation.
