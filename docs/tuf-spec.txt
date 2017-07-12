@@ -1009,7 +1009,7 @@ Version 1.0 (Draft)
     filename used to download the timestamp metadata file is of the fixed form
     FILENAME.EXT (e.g., timestamp.json).
 
-    2.1. **Check signatures.** The timestamp metadata file must have been
+    2.1. **Check signatures.** The new timestamp metadata file must have been
     signed by a threshold of keys specified in the trusted root metadata file.
 
     2.2. **Check for a rollback attack.** The version number of the trusted
@@ -1017,7 +1017,9 @@ Version 1.0 (Draft)
     number of the new timestamp metadata file.
 
     2.3. **Check for a freeze attack.** The latest known time should be lower
-    than the expiration timestamp in this metadata file.
+    than the expiration timestamp in the new timestamp metadata file.  If so,
+    the new timestamp metadata file becomes the trusted timestamp
+    metadata file.
 
     3. **Download and check the snapshot metadata file**, up to the number of
     bytes specified in the timestamp metadata file.
@@ -1030,8 +1032,9 @@ Version 1.0 (Draft)
     the client MUST write the file to non-volatile storage as
     FILENAME.EXT.
 
-    3.1. **Check against timestamp metadata.** The hashes, and version number
-    of this metadata file MUST match the timestamp metadata.
+    3.1. **Check against timestamp metadata.** The hashes and version number
+    of the new snapshot metadata file MUST match the hashes and version number
+    listed in timestamp metadata.
 
     3.2. **Check signatures.** The snapshot metadata file MUST have been signed
     by a threshold of keys specified in the trusted root metadata file.
@@ -1054,7 +1057,9 @@ Version 1.0 (Draft)
     in the new snapshot metadata file.
 
     3.4. **Check for a freeze attack.** The latest known time should be lower
-    than the expiration timestamp in this metadata file.
+    than the expiration timestamp in the new snapshot metadata file.  If so,
+    the new snapshot metadata file becomes the trusted snapshot metadata
+    file.
 
     4. **Download and check the top-level targets metadata file**, up to either
     the number of bytes specified in the snapshot metadata file, or some
@@ -1070,20 +1075,21 @@ Version 1.0 (Draft)
     FILENAME.EXT.
 
     4.1. **Check against snapshot metadata.** The hashes (if any), and version
-    number of this metadata file MUST match the trusted snapshot metadata. This
-    is done, in part, to prevent a mix-and-match attack by man-in-the-middle
+    number of the new targets metadata file MUST match the trusted snapshot metadata.
+    This is done, in part, to prevent a mix-and-match attack by man-in-the-middle
     attackers.
 
-    4.2. **Check for an arbitrary software attack.** This metadata file MUST
-    have been signed by a threshold of keys specified in the trusted root
+    4.2. **Check for an arbitrary software attack.** The new targets metadata file
+    MUST have been signed by a threshold of keys specified in the trusted root
     metadata file.
 
     4.3. **Check for a rollback attack.** The version number of the trusted
     targets metadata file, if any, MUST be less than or equal to the version
-    number of this targets metadata file.
+    number of the new targets metadata file.
 
     4.4. **Check for a freeze attack.** The latest known time should be lower
-    than the expiration timestamp in this metadata file.
+    than the expiration timestamp in the new targets metadata file.  If so,
+    the new targets metadata file becomes the trusted targets metadata file.
 
     4.5. **Perform a preorder depth-first search for metadata about the desired
     target, beginning with the top-level targets role.**
