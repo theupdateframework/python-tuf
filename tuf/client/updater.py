@@ -450,7 +450,7 @@ class Updater(object):
           self._rebuild_key_and_role_db()
           self.consistent_snapshot = metadata_object['consistent_snapshot']
 
-        elif metadata_object['_type'] == 'Targets':
+        elif metadata_object['_type'] == 'targets':
           # TODO: Should we also remove the keys of the delegated roles?
           self._import_delegations(metadata_role)
 
