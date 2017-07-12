@@ -45,14 +45,14 @@ assert os.path.exists(delegation_key_file)
 # assigned verification keys, which clients use to verify the signatures created
 # by the corresponding private keys.
 project_public = import_rsa_publickey_from_file(project_key_file + '.pub')
-targets_public = import_rsa_publickey_from_file(targets_key_file + '.pub')
-delegation_public = import_rsa_publickey_from_file(delegation_key_file + '.pub')
+targets_public = import_ed25519_publickey_from_file(targets_key_file + '.pub')
+delegation_public = import_ed25519_publickey_from_file(delegation_key_file + '.pub')
 
 # Import the private keys.  These private keys are needed to generate the
 # signatures included in metadata.
 project_private = import_rsa_privatekey_from_file(project_key_file, 'password')
-targets_private = import_rsa_privatekey_from_file(targets_key_file, 'password')
-delegation_private = import_rsa_privatekey_from_file(delegation_key_file, 'password')
+targets_private = import_ed25519_privatekey_from_file(targets_key_file, 'password')
+delegation_private = import_ed25519_privatekey_from_file(delegation_key_file, 'password')
 
 os.mkdir("project")
 os.mkdir("project/targets")
