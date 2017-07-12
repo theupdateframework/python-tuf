@@ -1,13 +1,13 @@
 {
  "signatures": [
   {
-   "keyid": "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f",
-   "method": "RSASSA-PSS",
-   "sig": "27fe1879eb797bedc2036da8fdfd1336d8d23ca881ee03167d5a2f7c4c97cc1602d6899aaf776a5304861b497d76f9b150d72c52b768eaa424109794fab9140735d007d6c3bd3768ea54ac9b77594844a160218b0a477687e64ae817dbf31fa84dc3b0f8e30fd4ece1d89ef4657303d89ecc966c0b6a30befde027116e8634fa601a8922c0a77094b991ebe8d9fa8acf3ac43e86e89280e8803ef55b16600f4548910542fa94e87355281bb7a7f862bea182334972f7e3c7b6ae9e23d83afceb52a05a2e25cf0caadb1a0fdc9c4dcfd126a97ae51eb1cc353355394daedbb4608a0b8ae294a2ece4b7e52d2953329fc4571c43cbdfd5c7ce4fec4e6824ef4f1c"
+   "keyid": "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9",
+   "method": "ed25519",
+   "sig": "c074865e492079d212dca65c96fab54f6bfe765b536c8c3382ed278698e997cf9ccc4ba76c0b36872eea280fd3fa19bdafa891f7f2dc5a7d63a240ea9d99e507"
   }
  ],
  "signed": {
-  "_type": "Targets",
+  "_type": "targets",
   "delegations": {
    "keys": {},
    "roles": []
@@ -16,7 +16,8 @@
   "targets": {
    "prefix/file3.txt": {
     "hashes": {
-     "sha256": "141f740f53781d1ca54b8a50af22cbf74e44c21a998fa2a8a05aaac2c002886b"
+     "sha256": "141f740f53781d1ca54b8a50af22cbf74e44c21a998fa2a8a05aaac2c002886b",
+     "sha512": "ef5beafa16041bcdd2937140afebd485296cd54f7348ecd5a4d035c09759608de467a7ac0eb58753d0242df873c305e8bffad2454aa48f44480f15efae1cacd0"
     },
     "length": 28
    }
