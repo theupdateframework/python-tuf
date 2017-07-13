@@ -1,32 +1,36 @@
 {
  "signatures": [
   {
-   "keyid": "6986b667c736a3b37471e030cf4ce7aa6c7e0d530325e64c2660276b77be3754",
+   "keyid": "5602f4df0cd26b2112f0833b1ce8d5fcbb595754961d3a04f37b9815e2ced503",
    "method": "RSASSA-PSS",
-   "sig": "8eec37d8b76bb5cc45f9984e2c48eea2894165874a0d027c89a7829c7339166a8ee977c3e4b42bab5869cd105e151dac058f8953d1f423a9e21fc6bc4f879e72988bb69b8b673255a6c0cfe55ed799f3d11a413ffe85722b943c07c74b8f773f91e06f8b0fc085aefb23715bca7225422e26c132ea3f931334a12874735ac22bcc1f2051f87c51ea6849a6267d2fd1a03236dbc3a57929def3316723ff0e8939f615ca9e4e009bcd6ff689ef83e7a9761c1c6d2e4447caa87e95581c46771b7eb3bec82d7aad19de1cc7f1930bb7d40778d41056efb60631773a39fba2d1ca24a55de7f945729952d4cf704b169d98788d5ad35ec3086b228f5c34d3546f6b78"
+   "sig": "0d708d804e8181fea6dc0c4449e319e8a33f8dd83ad569d7d1d87fb094fbcf2816ae492250f3250a8b69b996e9f1b239dc1ba827cf3346df4c31e697a8f4e0d6ea86645d7d43ee867f8a8b5da8a997a12289d277051a1f25b1d7571978801cb1cb2c0b21b12052b3eb9590301bf2b5ecb3a95a447cf5e11be263160b62eec419754e2bdc51b24e57885caa55317ee1d929a90edab7793c3e5e0ae230db306aa8001ae49452b8f988b34ac33e64aaf07cca8c20edb2e5c580217705fa19e03cb8ea1f4ff79ba23b97f59e6a8cfbe7c57f43d0c3ab2ab11b9cf502a9df3c3af3e7f743dd0d827082a92076deac8a3b07d7903c9018259f62889ce56ef34c338f0a4ce9233a7aaa3128ed5901fe0bc445b3433c9bf3010564fdf0b9b29b901b354ae88015b60d2912b7362937c5ba7a289bc7a216b898c04994cbd643735e3fa9ec6f845fe34fefa85a8e5460b530b26e84a737f618b8b4f596a679a092fd97a72b9d4473133f06ac52ce13c9ebf792e077a2834a70fd54edba72fd493fce75a30a"
   }
  ],
  "signed": {
-  "_type": "Targets",
+  "_type": "targets",
   "delegations": {
    "keys": {
-    "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f": {
-     "keytype": "rsa",
+    "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9": {
+     "keyid_hash_algorithms": [
+      "sha256",
+      "sha512"
+     ],
+     "keytype": "ed25519",
      "keyval": {
-      "public": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqKdTRVn3mLQFUf02Rpug\nwVEU4yJtechILLb6nM7+urfwLe6f7EsNCDFhkiTP7vKuQywdLYrhwZKYZMDmaVnI\nq4d/tBLvb/jGY/IPFVvWbAOWtwWG7apiAFrcp3Idq6EKGaVVLn7tyv74+nisssYJ\ncVKodlkzpgX1Ibrdq73BUlAxhEQNDAUM5bzyJUW0BU4OSjUoFKCgc8BSkNcSLwXO\nRpyqAwDpPWiL68N1Dch7R9uD6GE9aREY9SKoYsNCvUOraIcme4fJZ3NmxpN3SVnX\ntepoiJo2iAtORtEI1yTCv/dOPap/iebveeCjn667HkMezJodSR8X3pMgMKMVyxhJ\ngwIDAQAB\n-----END PUBLIC KEY-----"
+      "public": "3b11296fe2dba14a2ef204e542e9e4195293bcf3042655e3d7e4ef5afe3cf36a"
      }
     }
    },
    "roles": [
     {
-     "backtrack": true,
      "keyids": [
-      "a404d46b042a2eb92f0cc4b28849f8e9107c9e185c45c8ece64a302626af805f"
+      "a0650f29dde63403cc4eec28a1c66f2262d6339434a01c63a881a48bedd9bca9"
      ],
      "name": "role1",
      "paths": [
       "/file3.txt"
      ],
+     "terminating": false,
      "threshold": 1
     }
    ]
@@ -35,13 +39,15 @@
   "targets": {
    "prefix/file1.txt": {
     "hashes": {
-     "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da"
+     "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da",
+     "sha512": "467430a68afae8e9f9c0771ea5d78bf0b3a0d79a2d3d3b40c69fde4dd42c461448aef76fcef4f5284931a1ffd0ac096d138ba3a0d6ca83fa8d7285a47a296f77"
     },
     "length": 31
    },
    "prefix/file2.txt": {
     "hashes": {
-     "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99"
+     "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99",
+     "sha512": "052b49a21e03606b28942db69aa597530fe52d47ee3d748ba65afcd14b857738e36bc1714c4f4adde46c3e683548552fe5c96722e0e0da3acd9050c2524902d8"
     },
     "length": 39
    }

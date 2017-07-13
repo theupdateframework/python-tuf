@@ -3,11 +3,11 @@
   {
    "keyid": "182216b8800c50ddf000043b31ddf90d815c754ab4e0b31a5952a839b371bed9",
    "method": "ed25519",
-   "sig": "c5e8f800926319008fc6398256db7a89c2bd7c3a9891390eaf2eed7df2c41caa168c81b648d86497897c5a8b9cb1e57ece99e323c5565429af9ce426ee1f7005"
+   "sig": "6eca4489663994600fe909355d040e23e69acb9f13b53773d29e4eec2f7238e8534d65999d7060e7c701c8fe3129f092e98b2574554ccda9f0158d47988cae03"
   }
  ],
  "signed": {
-  "_type": "Snapshot",
+  "_type": "snapshot",
   "expires": "2030-01-01T00:00:00Z",
   "meta": {
    "role1.json": {

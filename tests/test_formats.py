@@ -194,7 +194,7 @@ class TestFormats(unittest.TestCase):
                            'paths': ['path1/', 'path2']}}),
 
       'ROOT_SCHEMA': (tuf.formats.ROOT_SCHEMA,
-                      {'_type': 'Root',
+                      {'_type': 'root',
                        'version': 8,
                        'consistent_snapshot': False,
                        'compression_algorithms': ['gz'],
@@ -207,7 +207,7 @@ class TestFormats(unittest.TestCase):
                                           'paths': ['path1/', 'path2']}}}),
 
       'TARGETS_SCHEMA': (tuf.formats.TARGETS_SCHEMA,
-        {'_type': 'Targets',
+        {'_type': 'targets',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'targets': {'metadata/targets.json': {'length': 1024,
@@ -221,13 +221,13 @@ class TestFormats(unittest.TestCase):
                                     'paths': ['path1/', 'path2']}]}}),
 
       'SNAPSHOT_SCHEMA': (tuf.formats.SNAPSHOT_SCHEMA,
-        {'_type': 'Snapshot',
+        {'_type': 'snapshot',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'snapshot.json': {'version': 1024}}}),
 
       'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
-        {'_type': 'Timestamp',
+        {'_type': 'timestamp',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'metadattimestamp.json': {'length': 1024,
@@ -248,7 +248,7 @@ class TestFormats(unittest.TestCase):
          'custom': {'type': 'mirror'}}}),
 
       'MIRRORLIST_SCHEMA': (tuf.formats.MIRRORLIST_SCHEMA,
-        {'_type': 'Mirrors',
+        {'_type': 'mirrors',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'mirrors': [{'url_prefix': 'http://localhost:8001',
@@ -548,7 +548,7 @@ class TestFormats(unittest.TestCase):
 
   def test_make_signable(self):
     # Test conditions for expected make_signable() behavior.
-    root = {'_type': 'Root',
+    root = {'_type': 'root',
             'version': 8,
             'consistent_snapshot': False,
             'compression_algorithms': ['gz'],
@@ -680,13 +680,13 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid arguments.
     expected_rolename = tuf.formats.expected_meta_rolename
 
-    self.assertEqual('Root', expected_rolename('root'))
-    self.assertEqual('Targets', expected_rolename('targets'))
-    self.assertEqual('Snapshot', expected_rolename('snapshot'))
-    self.assertEqual('Timestamp', expected_rolename('timestamp'))
-    self.assertEqual('Mirrors', expected_rolename('mirrors'))
-    self.assertEqual('Targets Role', expected_rolename('targets role'))
-    self.assertEqual('Root', expected_rolename('Root'))
+    self.assertEqual('root', expected_rolename('Root'))
+    self.assertEqual('targets', expected_rolename('Targets'))
+    self.assertEqual('snapshot', expected_rolename('Snapshot'))
+    self.assertEqual('timestamp', expected_rolename('Timestamp'))
+    self.assertEqual('mirrors', expected_rolename('Mirrors'))
+    self.assertEqual('targets role', expected_rolename('Targets Role'))
+    self.assertEqual('root', expected_rolename('Root'))
 
     # Test conditions for invalid arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, expected_rolename, 123)
@@ -697,7 +697,7 @@ class TestFormats(unittest.TestCase):
 
   def test_check_signable_object_format(self):
     # Test condition for a valid argument.
-    root = {'_type': 'Root',
+    root = {'_type': 'root',
             'version': 8,
             'consistent_snapshot': False,
             'compression_algorithms': ['gz'],
@@ -714,7 +714,7 @@ class TestFormats(unittest.TestCase):
 
     # Test conditions for invalid arguments.
     check_signable = tuf.formats.check_signable_object_format
-    self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, 'Root')
+    self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, 'root')
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, 123)
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, tuf.formats.RootFile)
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, True)
@@ -724,9 +724,9 @@ class TestFormats(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, root)
     root['signed']['_type'] = saved_type
 
-    root['signed']['_type'] = 'root'
-    self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, root)
     root['signed']['_type'] = 'Root'
+    self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, root)
+    root['signed']['_type'] = 'root'
 
     del root['signed']['expires']
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, root)

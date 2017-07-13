@@ -278,8 +278,8 @@ Version 1.0 (Draft)
    have installed malware and taken over affected machines.  For this reason,
    making it difficult for attackers to compromise all of the offline keys is
    important because safely recovering from it is nearly impossible.
-   
-   
+
+
 2.1.2 Targets role
 
    The targets role's signature indicates which target files are trusted by
@@ -530,7 +530,7 @@ Version 1.0 (Draft)
 
    The "signed" portion of root.json is as follows:
 
-     { "_type" : "Root",
+     { "_type" : "root",
        "compression_algorithms": [ COMPRESSION_ALGORITHM, ... ],
        "consistent_snapshot": CONSISTENT_SNAPSHOT,
        "version" : VERSION,
@@ -587,7 +587,7 @@ Version 1.0 (Draft)
     }
    ],
    "signed": {
-    "_type": "Root",
+    "_type": "root",
     "consistent_snapshot": false,
     "expires": "2030-01-01T00:00:00Z",
     "keys": {
@@ -655,7 +655,7 @@ Version 1.0 (Draft)
 
    The "signed" portion of snapshot.json is as follows:
 
-     { "_type" : "Snapshot",
+     { "_type" : "snapshot",
        "version" : VERSION,
        "expires" : EXPIRES,
        "meta" : METAFILES
@@ -686,7 +686,7 @@ Version 1.0 (Draft)
     }
    ],
    "signed": {
-    "_type": "Snapshot",
+    "_type": "snapshot",
     "expires": "2030-01-01T00:00:00Z",
     "meta": {
      "root.json": {
@@ -707,7 +707,7 @@ Version 1.0 (Draft)
 
    The "signed" portion of targets.json is as follows:
 
-     { "_type" : "Targets",
+     { "_type" : "targets",
        "version" : VERSION,
        "expires" : EXPIRES,
        "targets" : TARGETS,
@@ -799,7 +799,7 @@ Version 1.0 (Draft)
    of the second delegation, the metadata of the second delegation will override
    that of the third one, etc. In order to accommodate prioritized
    delegations, the "roles" key in the DELEGATIONS object above points to an array
-   of delegated roles, rather than to a hash table. 
+   of delegated roles, rather than to a hash table.
 
    The metadata files for delegated target roles has the same format as the
    top-level targets.json metadata file.
@@ -816,7 +816,7 @@ Version 1.0 (Draft)
     }
    ],
    "signed": {
-    "_type": "Targets",
+    "_type": "targets",
     "delegations": {
      "keys": {
       "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba": {
@@ -870,7 +870,7 @@ Version 1.0 (Draft)
 
    The "signed" portion of timestamp.json is as follows:
 
-     { "_type" : "Timestamp",
+     { "_type" : "timestamp",
        "version" : VERSION,
        "expires" : EXPIRES,
        "meta" : METAFILES
@@ -892,7 +892,7 @@ Version 1.0 (Draft)
     }
    ],
    "signed": {
-    "_type": "Timestamp",
+    "_type": "timestamp",
     "expires": "2030-01-01T00:00:00Z",
     "meta": {
      "snapshot.json": {
@@ -915,7 +915,7 @@ Version 1.0 (Draft)
 
    The "signed" portion of mirrors.json is as follows:
 
-     { "_type" : "Mirrorlist",
+     { "_type" : "mirrors",
        "version" : VERSION,
        "expires" : EXPIRES,
        "mirrors" : [
@@ -1162,7 +1162,7 @@ Version 1.0 (Draft)
    trusts. This is to ensure that outdated clients remain able to update,
    without requiring all previous root keys to be kept to sign new root.json
    metadata.
-   
+
    In the event that the keys being updated are root keys, it is important to
    note that the new root.json must at least be signed by the keys listed as
    root keys in the previous version of root.json, up to the threshold listed
