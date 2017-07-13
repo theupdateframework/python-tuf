@@ -886,10 +886,6 @@ def get_role_paths(rolename, repository_name='default'):
   global _roledb_dict
   global _dirty_roles
 
-  if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does not' ' exist: ' +
-      repository_name)
-
   roleinfo = _roledb_dict[repository_name][rolename]
 
   # Paths won't exist for non-target roles.
