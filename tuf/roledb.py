@@ -810,8 +810,8 @@ def get_role_threshold(rolename, repository_name='default'):
     securesystemslib.exceptions.FormatError, if the arguments do not have the
     correct object format.
 
-    securesystemslib.exceptions.UnknownRoleError, if 'rolename' cannot be found
-    in in the role database.
+    tuf.exceptions.UnknownRoleError, if 'rolename' cannot be found
+    in the role database.
 
     securesystemslib.exceptions.InvalidNameError, if 'rolename' is incorrectly
     formatted, or 'repository_name' does not exist in the role database.
@@ -822,6 +822,7 @@ def get_role_threshold(rolename, repository_name='default'):
   <Returns>
     A threshold integer value.
   """
+
   # Raise 'securesystemslib.exceptions.FormatError' if 'repository_name' is
   # improperly formatted.
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
