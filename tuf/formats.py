@@ -74,7 +74,6 @@ from __future__ import unicode_literals
 import binascii
 import calendar
 import re
-import string
 import datetime
 import time
 
@@ -1098,7 +1097,7 @@ def expected_meta_rolename(meta_rolename):
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.NAME_SCHEMA.check_match(meta_rolename)
 
-  return string.lower(meta_rolename)
+  return meta_rolename.lower()
 
 
 
