@@ -946,10 +946,6 @@ def get_delegated_rolenames(rolename, repository_name='default'):
   global _roledb_dict
   global _dirty_roles
 
-  if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does not'
-      ' exist: ' + repository_name)
-
   # get_roleinfo() raises a 'securesystemslib.exceptions.InvalidNameError' if
   # 'repository_name' does not exist in the role database.
   roleinfo = get_roleinfo(rolename, repository_name)
