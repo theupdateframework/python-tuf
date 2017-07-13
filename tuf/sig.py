@@ -101,7 +101,7 @@ def get_signature_status(signable, role=None, repository_name='default',
     securesystemslib.exceptions.FormatError, if 'signable' does not have the
     correct format.
 
-    securesystemslib.exceptions.UnknownRoleError, if 'role' is not recognized.
+    tuf.exceptions.UnknownRoleError, if 'role' is not recognized.
 
   <Side Effects>
     None.
@@ -188,7 +188,7 @@ def get_signature_status(signable, role=None, repository_name='default',
             continue
 
         # Unknown role, re-raise exception.
-        except securesystemslib.exceptions.UnknownRoleError:
+        except tuf.exceptions.UnknownRoleError:
           raise
 
       # This is an unset role, thus an unknown signature.
@@ -211,7 +211,7 @@ def get_signature_status(signable, role=None, repository_name='default',
       threshold = \
         tuf.roledb.get_role_threshold(role, repository_name=repository_name)
 
-    except securesystemslib.exceptions.UnknownRoleError:
+    except tuf.exceptions.UnknownRoleError:
       raise
 
   else:
