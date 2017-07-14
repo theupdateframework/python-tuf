@@ -85,7 +85,7 @@ class Modified_TestCase(unittest.TestCase):
       try:
         # OSError will occur if the directory was already removed.
         cleanup_function()
-      
+
       except OSError:
         pass
 
@@ -93,11 +93,15 @@ class Modified_TestCase(unittest.TestCase):
 
   def make_temp_directory(self, directory=None):
     """Creates and returns an absolute path of a directory."""
+
     prefix = self.__class__.__name__+'_'
     temp_directory = tempfile.mkdtemp(prefix=prefix, dir=directory)
+
     def _destroy_temp_directory():
       shutil.rmtree(temp_directory)
+
     self._cleanup.append(_destroy_temp_directory)
+
     return temp_directory
 
 
