@@ -682,10 +682,7 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
   def connect(self):
 
     self.connection_kwargs = {}
-
-    # for > py2.5
-    if hasattr(self, 'timeout'):
-      self.connection_kwargs.update(timeout = self.timeout)
+    self.connection_kwargs.update(timeout = self.timeout)
 
     # for >= py2.7
     if hasattr(self, 'source_address'):
