@@ -312,6 +312,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(self.repository_updater.metadata['current']['role1'],
                      role1_meta['signed'])
 
+    # Verify that _load_metadata_from_file() doesn't raise an exception for
+    # improperly formatted metadata, and doesn't load the bad file.
+    with open(role1_filepath, 'a') as file_object:
+      file_object.write('bad JSON data')
+
+    self.repository_updater._load_metadata_from_file('current', 'role1')
+    self.assertEqual(len(self.repository_updater.metadata['current']), 5)
+
     # Test if we fail gracefully if we can't deserialize a meta file
     self.repository_updater._load_metadata_from_file('current', 'empty_file')
     self.assertFalse('empty_file' in self.repository_updater.metadata['current'])
