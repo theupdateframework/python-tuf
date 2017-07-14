@@ -51,6 +51,12 @@ class TestExceptions(unittest.TestCase):
     logger.error(bad_hash_error)
 
 
+  def test_decompression_error(self):
+    download_exception = tuf.exceptions.DownloadError()
+    decompression_error = tuf.exceptions.DecompressionError(download_exception)
+    logger.error(decompression_error)
+
+
 # Run the unit tests.
 if __name__ == '__main__':
   unittest.main()
