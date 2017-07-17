@@ -545,7 +545,6 @@ class Updater(object):
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          tuf.keydb.add_key(key, keyid, self.repository_name)
           for keyid in keyids:
             key['keyid'] = keyid
             tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
