@@ -333,14 +333,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  """
   def test_1__rebuild_key_and_role_db(self):
     # Setup
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     root_metadata = self.repository_updater.metadata['current']['root']
     root_threshold = root_metadata['roles']['root']['threshold']
-    print('\nnumber of root keys: ' + str(len(root_metadata['keys'].keys())))
-    print('\nKeys in root metadata: ' + repr(root_metadata['keys'].keys()))
     number_of_root_keys = len(root_metadata['keys'])
 
     self.assertEqual(root_roleinfo['threshold'], root_threshold)
@@ -348,7 +345,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # keys multiplied by the number of keyid hash algorithms), to include the
     # delegated targets key.  The delegated roles of 'targets.json' are also
     # loaded when the repository object is instantiated.
-    print('\ndifference: ' + repr(list(set(tuf.keydb._keydb_dict[self.repository_name].keys()) - set(root_metadata['keys'].keys()))))
     self.assertEqual(number_of_root_keys * 2 + 1, len(tuf.keydb._keydb_dict[self.repository_name]))
 
     # Test: normal case.
@@ -371,7 +367,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     root_roleinfo = tuf.roledb.get_roleinfo('root', self.repository_name)
     self.assertEqual(root_roleinfo['threshold'], 8)
     self.assertEqual(number_of_root_keys * 2 - 2, len(tuf.keydb._keydb_dict[self.repository_name]))
-  """
 
 
 
@@ -467,14 +462,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  """
   def test_2__import_delegations(self):
     # Setup.
     # In order to test '_import_delegations' the parent of the delegation
     # has to be in Repository.metadata['current'], but it has to be inserted
     # there without using '_load_metadata_from_file()' since it calls
     # '_import_delegations()'.
-    repository_name = self.repository_updater.updater_name
+    repository_name = self.repository_updater.repository_name
     tuf.keydb.clear_keydb(repository_name)
     tuf.roledb.clear_roledb(repository_name)
 
@@ -484,10 +478,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._rebuild_key_and_role_db()
 
     self.assertEqual(len(tuf.roledb._roledb_dict[repository_name]), 4)
+
     # Take into account the number of keyids algorithms supported by default,
     # which this test condition expects to be two (sha256 and sha512).
-    print('\nkeydb_dict len: ' + repr(len(tuf.keydb._keydb_dict[repository_name].keys())))
-    print('\nkeydb_dict: ' + repr(tuf.keydb._keydb_dict[repository_name].keys()))
     self.assertEqual(4 * 2, len(tuf.keydb._keydb_dict[repository_name]))
 
     # Test: pass a role without delegations.
@@ -550,7 +543,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Verify that _import_delegations() raises an exception if it fails to add
     # one of the roles loaded from parent role's 'delegations'.
-  """
 
 
 
