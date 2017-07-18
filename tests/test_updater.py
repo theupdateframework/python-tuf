@@ -1399,6 +1399,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                      self.repository_updater._soft_check_file_length,
                      temp_file_object, 1)
 
+    # Verify that an exception is not raised if the file length <= the observed
+    # file length.
+    temp_file_object.seek(0)
+    self.repository_updater._soft_check_file_length(temp_file_object, 3)
+    temp_file_object.seek(0)
+    self.repository_updater._soft_check_file_length(temp_file_object, 4)
+
+
 
 
   def test_10__targets_of_role(self):
