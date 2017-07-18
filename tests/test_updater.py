@@ -533,9 +533,23 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater.metadata['current']['targets']\
       ['delegations']['keys'][existing_keyid]['keytype'] = 'ed25519'
 
-    # Verify that _import_delegations() raises an exception if it fails to add
-    # one of the roles loaded from parent role's 'delegations'.
+    # Verify that _import_delegations() raises an exception if one of the
+    # delegated keys is malformed.
+    valid_keyval = self.repository_updater.metadata['current']['targets']\
+      ['delegations']['keys'][existing_keyid]['keyval']
 
+    self.repository_updater.metadata['current']['targets']\
+      ['delegations']['keys'][existing_keyid]['keyval'] = 1
+    self.assertRaises(securesystemslib.exceptions.FormatError, self.repository_updater._import_delegations, 'targets')
+
+    self.repository_updater.metadata['current']['targets']\
+      ['delegations']['keys'][existing_keyid]['keyval'] = valid_keyval
+
+    # Verify that _import_delegations() raises an exception if one of the
+    # delegated roles is malformed.
+    self.repository_updater.metadata['current']['targets']\
+      ['delegations']['roles'][0]['name'] = 1
+    self.assertRaises(securesystemslib.exceptions.FormatError, self.repository_updater._import_delegations, 'targets')
 
 
 
