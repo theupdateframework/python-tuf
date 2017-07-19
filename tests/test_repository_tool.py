@@ -84,6 +84,9 @@ class TestRepository(unittest.TestCase):
 
 
   def setUp(self):
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
+
     tuf.roledb.create_roledb('test_repository')
     tuf.keydb.create_keydb('test_repository')
 

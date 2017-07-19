@@ -810,8 +810,8 @@ def get_role_threshold(rolename, repository_name='default'):
     securesystemslib.exceptions.FormatError, if the arguments do not have the
     correct object format.
 
-    securesystemslib.exceptions.UnknownRoleError, if 'rolename' cannot be found
-    in in the role database.
+    tuf.exceptions.UnknownRoleError, if 'rolename' cannot be found
+    in the role database.
 
     securesystemslib.exceptions.InvalidNameError, if 'rolename' is incorrectly
     formatted, or 'repository_name' does not exist in the role database.
@@ -822,6 +822,7 @@ def get_role_threshold(rolename, repository_name='default'):
   <Returns>
     A threshold integer value.
   """
+
   # Raise 'securesystemslib.exceptions.FormatError' if 'repository_name' is
   # improperly formatted.
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
@@ -885,10 +886,6 @@ def get_role_paths(rolename, repository_name='default'):
   global _roledb_dict
   global _dirty_roles
 
-  if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does not' ' exist: ' +
-      repository_name)
-
   roleinfo = _roledb_dict[repository_name][rolename]
 
   # Paths won't exist for non-target roles.
@@ -948,10 +945,6 @@ def get_delegated_rolenames(rolename, repository_name='default'):
 
   global _roledb_dict
   global _dirty_roles
-
-  if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    raise securesystemslib.exceptions.InvalidNameError('Repository name does not'
-      ' exist: ' + repository_name)
 
   # get_roleinfo() raises a 'securesystemslib.exceptions.InvalidNameError' if
   # 'repository_name' does not exist in the role database.

@@ -3126,9 +3126,12 @@ def load_repository(repository_directory, repository_name='default'):
     # The repository maintainer should have also been made aware of the
     # duplicate key when it was added.
     for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
-      key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
+      key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)
       try:
-        tuf.keydb.add_key(key_object, repository_name=repository_name)
+        for keyid in keyids:
+          key_object['keyid'] = keyid
+          tuf.keydb.add_key(key_object, keyid=None,
+              repository_name=repository_name)
 
       except securesystemslib.exceptions.KeyAlreadyExistsError:
         pass

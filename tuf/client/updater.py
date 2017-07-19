@@ -540,12 +540,11 @@ class Updater(object):
     # Iterate the keys of the delegated roles of 'parent_role' and load them.
     for keyid, keyinfo in six.iteritems(keys_info):
       if keyinfo['keytype'] in ['rsa', 'ed25519']:
-        key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo)
 
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          tuf.keydb.add_key(key, keyid, self.repository_name)
+          key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo)
           for keyid in keyids:
             key['keyid'] = keyid
             tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
@@ -575,7 +574,7 @@ class Updater(object):
         logger.warning('Role already exists: ' + rolename)
 
       except:
-        logger.exception('Failed to add delegated role: ' + rolename + '.')
+        logger.exception('Failed to add delegated role: ' + repr(rolename) + '.')
         raise
 
 

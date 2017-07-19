@@ -1018,6 +1018,11 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     repo_lib.write_metadata_file(signable, root_file, 8, ['gz'], False)
 
+    # Attempt to load a repository that contains a compressed Root file.
+    repository = repo_tool.create_new_repository(repository_directory, repository_name)
+    filenames = repo_lib.get_metadata_filenames(metadata_directory)
+    repo_lib._load_top_level_metadata(repository, filenames, repository_name)
+
     # Remove compressed metadata so that we can test for loading of a
     # repository with no compression enabled.
     for role_file in os.listdir(metadata_directory):
