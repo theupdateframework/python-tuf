@@ -3142,6 +3142,58 @@ def load_repository(repository_directory, repository_name='default'):
 
 
 
+def dump_signable_metadata(metadata_filepath):
+  """
+  <Purpose>
+    Dump the "signed" portion of metadata. It is the portion that is normally
+    signed by the repository tool, which is in canonicalized JSON form.
+    This function is intented for external tools that wish to independently
+    sign metadata.
+
+    The normal workflow for this use case is to:
+    (1) call dump_signable_metadata(metadata_filepath)
+    (2) sign the output with an external tool
+    (3) call append_signature(metadata_filepath)
+
+  <Arguments>
+    metadata_filepath:
+      The path to the metadata file.  For example,
+      repository/metadata/root.json.
+
+  <Exceptions>
+    securesystemslib.exceptions.FormatError, if the arguments are improperly
+    formatted.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    Metadata content that is normally signed by the repository tool (i.e., the
+    "signed" portion of a metadata file).
+  """
+
+  # Are the argument properly formatted?
+  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_filepath)
+
+  signable = securesystemslib.util.load_json_file(metadata_filepath)
+
+  # Is 'signable' a valid metadata file?
+  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+
+  return securesystemslib.formats.encode_canonical(signable['signed'])
+
+
+
+
+
+def append_signature(metadata_filepath):
+  """
+
+  """
+
+  pass
+
+
 if __name__ == '__main__':
   # The interactive sessions of the documentation strings can
   # be tested by running repository_tool.py as a standalone module:
