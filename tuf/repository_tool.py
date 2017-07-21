@@ -3153,7 +3153,7 @@ def dump_signable_metadata(metadata_filepath):
     The normal workflow for this use case is to:
     (1) call dump_signable_metadata(metadata_filepath)
     (2) sign the output with an external tool
-    (3) call append_signature(metadata_filepath)
+    (3) call append_signature(signature, metadata_filepath)
 
   <Arguments>
     metadata_filepath:
