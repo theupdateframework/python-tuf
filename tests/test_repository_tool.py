@@ -1761,6 +1761,20 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     repository.dirty_roles()
 
 
+
+  def test_dump_signable_metadata(self):
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+
+    metadata_directory = os.path.join('repository_data',
+                                      'repository', 'metadata')
+    targets_metadata_file = os.path.join(metadata_directory, 'targets.json')
+    metadata_content = repo_tool.dump_signable_metadata(targets_metadata_file)
+
+    # Test for invalid targets metadata file..
+    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.dump_signable_metadata, 1)
+    self.assertRaises(IOError, repo_tool.dump_signable_metadata, 'bad file path')
+
+
 # Run the test cases.
 if __name__ == '__main__':
   unittest.main()
