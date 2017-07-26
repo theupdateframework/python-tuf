@@ -1763,16 +1763,43 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
   def test_dump_signable_metadata(self):
-    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-
     metadata_directory = os.path.join('repository_data',
                                       'repository', 'metadata')
     targets_metadata_file = os.path.join(metadata_directory, 'targets.json')
+
     metadata_content = repo_tool.dump_signable_metadata(targets_metadata_file)
 
-    # Test for invalid targets metadata file..
+    # Test for an invalid targets metadata file..
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.dump_signable_metadata, 1)
     self.assertRaises(IOError, repo_tool.dump_signable_metadata, 'bad file path')
+
+
+
+  def test_append_signature(self):
+    metadata_directory = os.path.join('repository_data',
+                                      'repository', 'metadata')
+    targets_metadata_path = os.path.join(metadata_directory, 'targets.json')
+
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    tmp_targets_metadata_path = os.path.join(temporary_directory, 'targets.json')
+    shutil.copyfile(targets_metadata_path, tmp_targets_metadata_path)
+
+    # Test for normal case.
+    targets_metadata = securesystemslib.util.load_json_file(tmp_targets_metadata_path)
+    num_signatures = len(targets_metadata['signatures'])
+    signature = targets_metadata['signatures'][0]
+
+    repo_tool.append_signature(signature, tmp_targets_metadata_path)
+
+    targets_metadata = securesystemslib.util.load_json_file(tmp_targets_metadata_path)
+    self.assertTrue(num_signatures, len(targets_metadata['signatures']))
+
+    # Test for invalid arguments.
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_tool.append_signature, 1, tmp_targets_metadata_path)
+
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_tool.append_signature, signature, 1)
 
 
 # Run the test cases.
