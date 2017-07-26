@@ -3164,6 +3164,8 @@ def dump_signable_metadata(metadata_filepath):
     securesystemslib.exceptions.FormatError, if the arguments are improperly
     formatted.
 
+    IOError, if 'metadata_filepath' cannot be opened.
+
   <Side Effects>
     None.
 
