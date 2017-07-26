@@ -51,7 +51,7 @@ in interactive mode:
 
 ```Bash
 $ python
-Python 2.7.3 (default, Sep 26 2013, 20:08:41) 
+Python 2.7.3 (default, Sep 26 2013, 20:08:41)
 [GCC 4.6.3] on linux2
 Type "help", "copyright", "credits" or "license" for more information.
 >>> from tuf.repository_tool import *
@@ -115,11 +115,11 @@ text without prepended symbols is the output of a command.
 # "keystore/root_key" and the public key to "keystore/root_key.pub" (both saved
 # to the current working directory).  The 'keystore' directory can be manually
 # created in the current directory to store the keys created in these examples.
-# If 'keystore' directory does not exist, it will be created. 
+# If 'keystore' directory does not exist, it will be created.
 >>> generate_and_write_rsa_keypair("keystore/root_key", bits=2048, password="password")
 
-# If the key length is unspecified, it defaults to 3072 bits. A length of less 
-# than 2048 bits raises an exception. A password may be supplied as an 
+# If the key length is unspecified, it defaults to 3072 bits. A length of less
+# than 2048 bits raises an exception. A password may be supplied as an
 # argument, otherwise a user prompt is presented.
 >>> generate_and_write_rsa_keypair("keystore/root_key2")
 Enter a password for the RSA key:
@@ -161,7 +161,7 @@ which cryptography library is used.
 # Generate and write an Ed25519 key pair.  The private key is saved encrypted.
 # A 'password' argument may be supplied, otherwise a prompt is presented.
 >>> generate_and_write_ed25519_keypair('keystore/ed25519_key')
-Enter a password for the Ed25519 key: 
+Enter a password for the Ed25519 key:
 Confirm:
 
 # Import the ed25519 public key just created . . .
@@ -169,7 +169,7 @@ Confirm:
 
 # and its corresponding private key.
 >>> private_ed25519_key = import_ed25519_privatekey_from_file('keystore/ed25519_key')
-Enter a password for the encrypted Ed25519 key: 
+Enter a password for the encrypted Ed25519 key:
 ```
 
 ### Create Top-level Metadata ###
@@ -179,7 +179,7 @@ on a TUF repository.  The following sub-sections demonstrate the
 required roles.  The top-level roles to be created are `root`, `timestamp`,
 `snapshot`, and `target`.
 
-We begin with `root`, the locus of trust that specifies the public keys of the 
+We begin with `root`, the locus of trust that specifies the public keys of the
 top-level roles, including itself.
 
 
@@ -246,7 +246,7 @@ Dirty roles: ['root']
 #### Create Timestamp, Snapshot, Targets
 Now that `root.json` has been set, the other top-level roles may be created.
 The signing keys added to these roles must correspond to the public keys
-specified by the Root role.  
+specified by the Root role.
 
 On the client side, `root.json` must always exist.  The other top-level roles,
 created next, are requested by repository clients in (Root -> Timestamp ->
@@ -260,7 +260,7 @@ secure manner.
 >>> import datetime
 
 # Generate keys for the remaining top-level roles.  The root keys have been set above.
-# The password argument may be omitted if a password prompt is needed. 
+# The password argument may be omitted if a password prompt is needed.
 >>> generate_and_write_rsa_keypair("keystore/targets_key", password="password")
 >>> generate_and_write_rsa_keypair("keystore/snapshot_key", password="password")
 >>> generate_and_write_rsa_keypair("keystore/timestamp_key", password="password")
@@ -426,6 +426,29 @@ new metadata to disk.
 >>> repository.writeall()
 ```
 
+#### Dump Metadata and Append Signature ####
+
+The following two functions are intended for those that wish to independently
+sign metadata.  Repository maintainers can dump the portion of metadata that is
+normally signed, sign it with an external signing tool, and append the
+signature to already existing metadata.
+
+First, the signable portion of metadata can be generated
+as follows:
+
+```Python
+>>> signable_content = dump_signable_metadata('targets.json')
+```
+
+The externally generated signature can then be appended to metadata:
+```Python
+>>> append_signature(signature, 'targets.json')
+```
+
+Note that the format of the signature is the format expected in metadata, which
+is a dictionary that contains a KEYID, the signature itself, etc.  See the
+specification and METADATA.md for a detailed example.
+
 ### Delegations ###
 All of the target files available on the software repository created so far
 have been added to one role (the top-level Targets role).  However, what if
@@ -494,14 +517,14 @@ In summary, the five steps a repository maintainer follows to create a TUF
 repository are:
 
 1.  Create a directory for the software repository that holds the TUF metadata and the target files.
-2.  Create top-level roles (`root.json`, `snapshot.json`, `targets.json`, and `timestamp.json`.) 
+2.  Create top-level roles (`root.json`, `snapshot.json`, `targets.json`, and `timestamp.json`.)
 3.  Add target files to the `targets` role.
 4.  Optionally, create delegated roles to distribute target files.
 5.  Write the changes.
 
 The repository tool saves repository changes to a `metadata.staged` directory.
 Repository maintainers may push finalized changes to the "live" repository by
-copying the staged directory to its destination. 
+copying the staged directory to its destination.
 ```Bash
 # Copy the staged metadata directory changes to the live repository.
 $ cp -r "repository/metadata.staged/" "repository/metadata/"
@@ -528,7 +551,7 @@ target file names specified in metadata do not contain digests in their names.)
 The repository maintainer is responsible for the duration of multiple versions
 of metadata and target files available on a repository.  Generating consistent
 metadata and target files on the repository is enabled by setting the
-`consistent_snapshot` argument of writeall() or write(): 
+`consistent_snapshot` argument of writeall() or write():
 ```Python
 >>> repository.writeall(consistent_snapshot=True)
 ```
@@ -647,7 +670,7 @@ $ mv 'repository/targets/file2.txt' 'repository/targets/file2.txt.backup'
 $ echo 'bad_target' > 'repository/targets/file2.txt'
 ```
 
-We next reset our local timestamp (so that a new update is prompted), and 
+We next reset our local timestamp (so that a new update is prompted), and
 the target files previously downloaded by the client.
 ```Bash
 $ rm -rf "client/targets/" "client/metadata/current/timestamp.json"
@@ -694,7 +717,7 @@ indicates when metadata should no longer be trusted.
 In the following simulation, the client first tries to perform an update.
 
 ```Bash
-$ python basic_client.py --repo http://localhost:8001 
+$ python basic_client.py --repo http://localhost:8001
 ```
 
 According to the logger (`tuf.log` file in the current working directory),
@@ -734,7 +757,7 @@ $ cp repository/metadata/timestamp.json /tmp
 We should next generate a new Timestamp file on the repository side.
 ```Bash
 $ python
->>> from tuf.repository_tool import * 
+>>> from tuf.repository_tool import *
 >>> repository = load_repository('repository')
 >>> repository.timestamp.version
 1
@@ -742,7 +765,7 @@ $ python
 >>> repository.dirty_roles()
 Dirty roles: [u'timestamp']
 >>> private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
-Enter a password for the encrypted RSA file: 
+Enter a password for the encrypted RSA file:
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 >>> repository.write('timestamp')
 
@@ -809,7 +832,7 @@ expected size, and no more.  The target file available on the software
 repository does contain more data than expected, though.
 
 ```Bash
-$ python basic_client.py --repo http://localhost:8001 
+$ python basic_client.py --repo http://localhost:8001
 ```
 
 At this point, part of the "file1.txt" file should have been fetched.  That is,
@@ -818,14 +841,14 @@ appended data ignored.  If we inspect the logger, we'd disover the following:
 
 ```Bash
 [2016-10-06 21:37:39,092 UTC] [tuf.download] [INFO] [_download_file:235@download.py]
-Downloading: u'http://localhost:8001/targets/file1.txt'                         
-                                                                                 
+Downloading: u'http://localhost:8001/targets/file1.txt'
+
 [2016-10-06 21:37:39,145 UTC] [tuf.download] [INFO] [_check_downloaded_length:610@download.py]
-Downloaded 31 bytes out of the expected 31 bytes.                               
-                                                                                 
+Downloaded 31 bytes out of the expected 31 bytes.
+
 [2016-10-06 21:37:39,145 UTC] [tuf.client.updater] [INFO] [_get_file:1372@updater.py]
-Not decompressing http://localhost:8001/targets/file1.txt                       
-                                                                                 
+Not decompressing http://localhost:8001/targets/file1.txt
+
 [2016-10-06 21:37:39,145 UTC] [tuf.client.updater] [INFO] [_check_hashes:778@updater.py]
 The file's sha256 hash is correct: 65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da
 ```
