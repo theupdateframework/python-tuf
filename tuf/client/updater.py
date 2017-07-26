@@ -1134,14 +1134,14 @@ class Updater(object):
 
 
 
-  def _verify_root_chain_link(self, role, current, next):
-    if role != 'root':
+  def _verify_root_chain_link(self, rolename, current, next):
+    if rolename != 'root':
       return True
 
-    current_role = current['roles'][role]
+    current_role = current['roles'][rolename]
 
     # Verify next metadata with current keys/threshold
-    valid = tuf.sig.verify(next, role, self.repository_name,
+    valid = tuf.sig.verify(next, rolename, self.repository_name,
                            current_role['threshold'], current_role['keyids'])
 
     if not valid:
