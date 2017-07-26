@@ -1448,6 +1448,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                      2)
 
 
+
   def test_10__visit_child_role(self):
     # Call _visit_child_role and test the dict keys: 'paths',
     # 'path_hash_prefixes', and if both are missing.
@@ -1480,6 +1481,25 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.exceptions.InvalidMetadataJSONError,
         self.repository_updater._verify_uncompressed_metadata_file,
         metadata_file_object, 'root')
+
+
+
+  def test_12__verify_root_chain_link(self):
+    # Test for an invalid signature in the chain link.
+    # current = (i.e., 1.root.json)
+    # next = signable for the next metadata in the chain (i.e., 2.root.json)
+    rolename = 'root'
+    current_root = self.repository_updater.metadata['current']['root']
+
+    targets_path = os.path.join(self.repository_directory, 'metadata', 'targets.json')
+
+    # 'next_invalid_root' is a Targets signable, as written to disk.
+    # We use the Targets metadata here to ensure the signatures are invalid.
+    next_invalid_root = securesystemslib.util.load_json_file(targets_path)
+
+    self.assertRaises(securesystemslib.exceptions.BadSignatureError,
+        self.repository_updater._verify_root_chain_link, rolename, current_root,
+        next_invalid_root)
 
 
 
