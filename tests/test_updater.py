@@ -1448,6 +1448,17 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_11__verify_uncompressed_metadata_file(self):
+    # Test for invalid metadata content.
+    metadata_file_object = securesystemslib.util.TempFile()
+    metadata_file_object.write(b'X')
+    metadata_file_object.seek(0)
+
+    self.assertRaises(tuf.exceptions.InvalidMetadataJSONError,
+        self.repository_updater._verify_uncompressed_metadata_file,
+        metadata_file_object, 'root')
+
+
 
 def _load_role_keys(keystore_directory):
 
