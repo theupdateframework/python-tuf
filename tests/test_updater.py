@@ -1480,6 +1480,45 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_13__get_file(self):
+    # Test for an "unsafe" download, where the file is downloaded up to
+    # a required length (and no more).  The "safe" download approach
+    # downloads an exact required length.
+    targets_path = os.path.join(self.repository_directory, 'metadata', 'targets.json')
+
+    file_size, file_hashes = securesystemslib.util.get_file_details(targets_path)
+    file_type = 'meta'
+
+    def verify_target_file(targets_path):
+      # Every target file must have its length and hashes inspected.
+      self.repository_updater._hard_check_file_length(targets_path, file_size)
+      self.repository_updater._check_hashes(targets_path, file_hashes)
+
+    def verify_compressed_file(file_object):
+      pass
+
+    self.repository_updater._get_file('targets.json.gz', verify_target_file,
+        file_type, file_size, compression='gzip',
+        verify_compressed_file_function=verify_compressed_file,
+        download_safely=False)
+
+    # Test verify_compressed_file_function=None.
+    self.repository_updater._get_file('targets.json.gz', verify_target_file,
+        file_type, file_size, compression='gzip',
+        verify_compressed_file_function=None,
+        download_safely=False)
+
+
+
+  def test_14__targets_of_role(self):
+    # Test case where a list of targets is given.  By default, the 'targets'
+    # parameter is None.
+    targets = [{'filepath': 'file1.txt', 'fileinfo': {'length': 1, 'hashes': {'sha256': 'abc'}}}]
+    self.repository_updater._targets_of_role('targets',
+        targets=targets, skip_refresh=False)
+
+
+
 def _load_role_keys(keystore_directory):
 
   # Populating 'self.role_keys' by importing the required public and private
