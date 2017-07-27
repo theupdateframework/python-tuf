@@ -2085,6 +2085,9 @@ class Updater(object):
     if targets is None:
       targets = []
 
+    else:
+      logger.debug('The list of targets prepopulated: ' + repr(targets))
+
     targets_of_role = list(targets)
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
 
