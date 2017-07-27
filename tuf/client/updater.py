@@ -1216,9 +1216,10 @@ class Updater(object):
 
     for file_mirror in file_mirrors:
       try:
-        # TODO: Instead of the more fragile 'download_safely' switch, unroll the
-        # function into two separate ones: one for "safe" download, and the other one
-        # for "unsafe" download? This should induce safer and more readable code.
+        # TODO: Instead of the more fragile 'download_safely' switch, unroll
+        # the function into two separate ones: one for "safe" download, and the
+        # other one for "unsafe" download? This should induce safer and more
+        # readable code.
         if download_safely:
           file_object = tuf.download.safe_download(file_mirror,
                                                    file_length)
@@ -2159,6 +2160,9 @@ class Updater(object):
 
     if targets is None:
       targets = []
+
+    else:
+      logger.debug('The list of targets prepopulated: ' + repr(targets))
 
     targets_of_role = list(targets)
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
