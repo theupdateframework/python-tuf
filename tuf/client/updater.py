@@ -736,8 +736,8 @@ class Updater(object):
       # in the latest root.json after running through the intermediates with
       # _update_metadata().
       self.consistent_snapshot = True
-      self._update_metadata('root', tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH, version=version,
-                            compression_algorithm=compression_algorithm)
+      self._update_metadata('root', tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH,
+          version=version, compression_algorithm=compression_algorithm)
 
 
 
@@ -1534,7 +1534,7 @@ class Updater(object):
     # should always be 'snapshot'.  'snapshot.json' specifies all roles
     # provided by a repository, including their version numbers.
     if metadata_role == 'snapshot' or metadata_role.startswith('targets'):
-      if 'gzip' in self.metadata['current']['root']['compression_algorithms']:
+      if 'gz' in self.metadata['current']['root']['compression_algorithms']:
         compression = 'gzip'
         gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
         logger.debug('Compressed version of ' +
@@ -1547,13 +1547,10 @@ class Updater(object):
 
     # The file lengths of metadata are unknown, only their version numbers are
     # known.  Set an upper limit for the length of the downloaded file for each
-    # expected role.  Note: The Timestamp role is not updated via this
-    # function.
+    # expected role.  Note: The Timestamp and Root roles are not updated via
+    # this function.
     if metadata_role == 'snapshot':
       upperbound_filelength = tuf.settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
-
-    elif metadata_role == 'root':
-      upperbound_filelength = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
 
     # The metadata is considered Targets (or delegated Targets metadata).
     else:
@@ -1797,6 +1794,10 @@ class Updater(object):
       if algorithm in current_fileinfo['hashes']:
         if hash_value == current_fileinfo['hashes'][algorithm]:
           return False
+
+      else:
+        logger.debug('Skipping algorithm in new fileinfo that wasn\'t'
+          ' previously specified in current fileinfo: ' + repr(algorithm))
 
     return True
 
@@ -2087,6 +2088,9 @@ class Updater(object):
     if rolename + '.json' in self.metadata['current']['snapshot']['meta']:
       roles_to_update.append(rolename)
 
+    else:
+      logger.debug(repr(rolename) + ' not specified in current Snapshot.')
+
     if refresh_all_delegated_roles:
 
       for role in six.iterkeys(self.metadata['current']['snapshot']['meta']):
@@ -2100,6 +2104,7 @@ class Updater(object):
             roles_to_update.append(role)
 
         else:
+          logger.debug('Skipping invalid metadata file: ' + repr(role))
           continue
 
     # If there is nothing to refresh, we are done.
@@ -2162,7 +2167,7 @@ class Updater(object):
       targets = []
 
     else:
-      logger.debug('The list of targets prepopulated: ' + repr(targets))
+      logger.debug('The list of targets is prepopulated: ' + repr(targets))
 
     targets_of_role = list(targets)
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
