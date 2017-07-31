@@ -412,6 +412,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(len(versioninfo_dict), 3)
     self.assertEqual(versioninfo_dict['bad_role.json'], None)
 
+    # Verify that the versioninfo specified in Timestamp is used if the Snapshot
+    # role hasn't been downloaded yet.
+    del self.repository_updater.metadata['current']['snapshot']
+    self.assertRaises(self.repository_updater._update_versioninfo('snapshot.json'))
+    self.assertEqual(versioninfo_dict['snapshot.json']['version'], 1)
+
 
 
 
@@ -465,6 +471,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
                                                              new_root_fileinfo))
 
+      # Verify that _fileinfo_has_changed() returns True if no fileinfo (or set
+      # to None) exists for some role.
+      self.assertTrue(self.repository_updater._fileinfo_has_changed('bad.json',
+          new_root_fileinfo))
+
+      saved_fileinfo = self.repository_updater.fileinfo['root.json']
+      self.repository_updater.fileinfo['root.json'] = None
+      self.assertTrue(self.repository_updater._fileinfo_has_changed('root.json',
+          new_root_fileinfo))
+
+
+      self.repository_updater.fileinfo['root.json'] = saved_fileinfo
+      new_root_fileinfo['hashes']['sha666'] = '666'
+      self.repository_updater._fileinfo_has_changed('root.json',
+          new_root_fileinfo)
 
 
 
@@ -892,7 +913,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater.metadata['current']['snapshot']['meta']['targets.json']
     self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
+    # Test for non-existing rolename.
+    self.repository_updater._refresh_targets_metadata('bad_rolename',
+        refresh_all_delegated_roles=False)
 
+    # Test that non-json metadata in Snapshot is ignored.
+    self.repository_updater.metadata['current']['snapshot']['meta']['bad_role.xml'] = {}
+    self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
 
 
