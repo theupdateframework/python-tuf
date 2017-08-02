@@ -1,7 +1,7 @@
 # <p align="center">The Update Framework Specification
 
-### 2 June 2017
-#### Version 1.0 (Draft)
+Last modified: 2 June 2017
+Version: 1.0 (Draft)
 
 ## **1. Introduction**
 * **1.1. Scope**
@@ -121,7 +121,7 @@
 
    - **1.5.2. Goals to protect against specific attacks**
 
-      Note: When saying the framework protects against an attack,it means 
+      Note: When saying the framework protects against an attack,it means
       the attack will not be successful.  It does not mean that a client will
       always be able to successfully update during an attack.  Fundamentally, an
       attacker positioned to intercept and modify a client's communication will
@@ -213,7 +213,7 @@
    error-free case.
 
    Polling:
-      - Periodically, the software update system using the framework
+        Periodically, the software update system using the framework
         instructs the framework to check each repository for updates.
         If the framework reports to the application code that there are
         updates, the application code determines whether it wants to
@@ -222,7 +222,7 @@
         available by the framework.
 
    Fetching:
-      - For each file that the application wants, it asks the framework to
+        For each file that the application wants, it asks the framework to
         download the file.  The framework downloads the file and performs
         security checks to ensure that the downloaded file is exactly what is
         expected according to the signed metadata.  The application code is
@@ -253,7 +253,7 @@
    All roles can use one or more keys and require a threshold of signatures of
    the role's keys in order to trust a given metadata file.
 
-  - **2.1.1. Root Role** 
+  - **2.1.1. Root Role**
 
       + The root role delegates trust to specific keys trusted for all other
    top-level roles used in the system.
@@ -479,8 +479,9 @@
 
    All keys have the format:
 
-      { "keytype" : KEYTYPE,
-        "keyval" : KEYVAL }
+        { "keytype" : KEYTYPE,
+          "keyval" : KEYVAL
+        }
 
    where KEYTYPE is a string describing the type of the key and how it's
    used to sign documents.  The type determines the interpretation of
@@ -490,18 +491,18 @@
 
    The 'rsa' format is:
 
-      { "keytype" : "rsa",
-        "keyval" : { "public" : PUBLIC}
-      }
+        { "keytype" : "rsa",
+          "keyval" : { "public" : PUBLIC}
+        }
 
    where PUBLIC is in PEM format and a string.  All RSA keys
    must be at least 2048 bits.
 
    The 'ed25519' format is:
 
-      { "keytype" : "ed25519",
-        "keyval" : { "public" : PUBLIC}
-      }
+        { "keytype" : "ed25519",
+          "keyval" : { "public" : PUBLIC}
+        }
 
    where PUBLIC is a 32-byte string.
 
@@ -524,20 +525,20 @@
 
    The "signed" portion of root.json is as follows:
 
-     { "_type" : "root",
-       "compression_algorithms": [ COMPRESSION_ALGORITHM, ... ],
-       "consistent_snapshot": CONSISTENT_SNAPSHOT,
-       "version" : VERSION,
-       "expires" : EXPIRES,
-       "keys" : {
-           KEYID : KEY
-           , ... },
-       "roles" : {
-           ROLE : {
-             "keyids" : [ KEYID, ... ] ,
-             "threshold" : THRESHOLD }
-           , ... }
-     }
+       { "_type" : "root",
+         "compression_algorithms": [ COMPRESSION_ALGORITHM, ... ],
+         "consistent_snapshot": CONSISTENT_SNAPSHOT,
+         "version" : VERSION,
+         "expires" : EXPIRES,
+         "keys" : {
+             KEYID : KEY
+             , ... },
+         "roles" : {
+             ROLE : {
+               "keyids" : [ KEYID, ... ] ,
+               "threshold" : THRESHOLD }
+             , ... }
+       }
 
    COMPRESSION_ALGORITHM specifies one of the compression algorithms supported
    by the repository.  Metadata files available on the repository may
@@ -571,74 +572,74 @@
 
    A root.json example file:
 
-   {
-   "signatures": [
-    {
-     "keyid": "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6",
-     "method": "ed25519",
-     "sig": "a312b9c3cb4a1b693e8ebac5ee1ca9cc01f2661c14391917dcb111517f72370809
-             f32c890c6b801e30158ac4efe0d4d87317223077784c7a378834249d048306"
-    }
-   ],
-   "signed": {
-    "_type": "root",
-    "consistent_snapshot": false,
-    "expires": "2030-01-01T00:00:00Z",
-    "keys": {
-     "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4": {
-      "keytype": "ed25519",
-      "keyval": {
-       "public": "72378e5bc588793e58f81c8533da64a2e8f1565c1fcc7f253496394ffc52542c"
+       {
+       "signatures": [
+        {
+         "keyid": "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6",
+         "method": "ed25519",
+         "sig": "a312b9c3cb4a1b693e8ebac5ee1ca9cc01f2661c14391917dcb111517f72370809
+                 f32c890c6b801e30158ac4efe0d4d87317223077784c7a378834249d048306"
+        }
+       ],
+       "signed": {
+        "_type": "root",
+        "consistent_snapshot": false,
+        "expires": "2030-01-01T00:00:00Z",
+        "keys": {
+         "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4": {
+          "keytype": "ed25519",
+          "keyval": {
+           "public": "72378e5bc588793e58f81c8533da64a2e8f1565c1fcc7f253496394ffc52542c"
+          }
+         },
+         "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b": {
+          "keytype": "ed25519",
+          "keyval": {
+           "public": "68ead6e54a43f8f36f9717b10669d1ef0ebb38cee6b05317669341309f1069cb"
+          }
+         },
+         "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6": {
+          "keytype": "ed25519",
+          "keyval": {
+           "public": "66dd78c5c2a78abc6fc6b267ff1a8017ba0e8bfc853dd97af351949bba021275"
+          }
+         },
+         "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309": {
+          "keytype": "ed25519",
+          "keyval": {
+           "public": "01c61f8dc7d77fcef973f4267927541e355e8ceda757e2c402818dad850f856e"
+          }
+         }
+        },
+        "roles": {
+         "root": {
+          "keyids": [
+           "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6"
+          ],
+          "threshold": 1
+         },
+         "snapshot": {
+          "keyids": [
+           "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309"
+          ],
+          "threshold": 1
+         },
+         "targets": {
+          "keyids": [
+           "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b"
+          ],
+          "threshold": 1
+         },
+         "timestamp": {
+          "keyids": [
+           "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4"
+          ],
+          "threshold": 1
+         }
+        },
+        "version": 1
+       }
       }
-     },
-     "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b": {
-      "keytype": "ed25519",
-      "keyval": {
-       "public": "68ead6e54a43f8f36f9717b10669d1ef0ebb38cee6b05317669341309f1069cb"
-      }
-     },
-     "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6": {
-      "keytype": "ed25519",
-      "keyval": {
-       "public": "66dd78c5c2a78abc6fc6b267ff1a8017ba0e8bfc853dd97af351949bba021275"
-      }
-     },
-     "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309": {
-      "keytype": "ed25519",
-      "keyval": {
-       "public": "01c61f8dc7d77fcef973f4267927541e355e8ceda757e2c402818dad850f856e"
-      }
-     }
-    },
-    "roles": {
-     "root": {
-      "keyids": [
-       "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6"
-      ],
-      "threshold": 1
-     },
-     "snapshot": {
-      "keyids": [
-       "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309"
-      ],
-      "threshold": 1
-     },
-     "targets": {
-      "keyids": [
-       "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b"
-      ],
-      "threshold": 1
-     },
-     "timestamp": {
-      "keyids": [
-       "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4"
-      ],
-      "threshold": 1
-     }
-    },
-    "version": 1
-   }
-  }
 
 * **4.4. File formats: snapshot.json**
 
@@ -649,18 +650,18 @@
 
    The "signed" portion of snapshot.json is as follows:
 
-     { "_type" : "snapshot",
-       "version" : VERSION,
-       "expires" : EXPIRES,
-       "meta" : METAFILES
-     }
+       { "_type" : "snapshot",
+         "version" : VERSION,
+         "expires" : EXPIRES,
+         "meta" : METAFILES
+       }
 
    METAFILES is an object whose format is the following:
 
-     { METAPATH : {
-           "version" : VERSION }
-       , ...
-     }
+       { METAPATH : {
+             "version" : VERSION }
+         , ...
+       }
 
    METAPATH is the the metadata file's path on the repository relative to the
    metadata base URL.
@@ -670,52 +671,52 @@
 
    A snapshot.json example file:
 
-   {
-   "signatures": [
-    {
-     "keyid": "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309",
-     "method": "ed25519",
-     "sig": "f7f03b13e3f4a78a23561419fc0dd741a637e49ee671251be9f8f3fceedfc112e4
-             4ee3aaff2278fad9164ab039118d4dc53f22f94900dae9a147aa4d35dcfc0f"
-    }
-   ],
-   "signed": {
-    "_type": "snapshot",
-    "expires": "2030-01-01T00:00:00Z",
-    "meta": {
-     "root.json": {
-      "version": 1
-     },
-     "targets.json": {
-      "version": 1
-     },
-     "project.json": {
-      "version": 1
-      },
-     }
-    },
-    "version": 1
-   }
+       {
+       "signatures": [
+        {
+         "keyid": "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309",
+         "method": "ed25519",
+         "sig": "f7f03b13e3f4a78a23561419fc0dd741a637e49ee671251be9f8f3fceedfc112e4
+                 4ee3aaff2278fad9164ab039118d4dc53f22f94900dae9a147aa4d35dcfc0f"
+        }
+       ],
+       "signed": {
+        "_type": "snapshot",
+        "expires": "2030-01-01T00:00:00Z",
+        "meta": {
+         "root.json": {
+          "version": 1
+         },
+         "targets.json": {
+          "version": 1
+         },
+         "project.json": {
+          "version": 1
+          },
+         }
+        "version": 1
+        },
+       }
 
 * **4.5. File formats: targets.json and delegated target roles**
 
    The "signed" portion of targets.json is as follows:
 
-     { "_type" : "targets",
-       "version" : VERSION,
-       "expires" : EXPIRES,
-       "targets" : TARGETS,
-       ("delegations" : DELEGATIONS)
-     }
+       { "_type" : "targets",
+         "version" : VERSION,
+         "expires" : EXPIRES,
+         "targets" : TARGETS,
+         ("delegations" : DELEGATIONS)
+       }
 
    TARGETS is an object whose format is the following:
 
-     { TARGETPATH : {
-           "length" : LENGTH,
-           "hashes" : HASHES,
-           ("custom" : { ... }) }
-       , ...
-     }
+       { TARGETPATH : {
+             "length" : LENGTH,
+             "hashes" : HASHES,
+             ("custom" : { ... }) }
+         , ...
+       }
 
    Each key of the TARGETS object is a TARGETPATH.  A TARGETPATH is a path to
    a file that is relative to a mirror's base URL of targets.
@@ -732,18 +733,18 @@
 
    DELEGATIONS is an object whose format is the following:
 
-     { "keys" : {
-           KEYID : KEY,
-           ... },
-       "roles" : [{
-           "name": ROLENAME,
-           "keyids" : [ KEYID, ... ] ,
-           "threshold" : THRESHOLD,
-           ("path_hash_prefixes" : [ HEX_DIGEST, ... ] |
-            "paths" : [ PATHPATTERN, ... ]),
-           "terminating": TERMINATING,
-       }, ... ]
-     }
+       { "keys" : {
+             KEYID : KEY,
+             ... },
+         "roles" : [{
+             "name": ROLENAME,
+             "keyids" : [ KEYID, ... ] ,
+             "threshold" : THRESHOLD,
+             ("path_hash_prefixes" : [ HEX_DIGEST, ... ] |
+              "paths" : [ PATHPATTERN, ... ]),
+             "terminating": TERMINATING,
+         }, ... ]
+       }
 
    ROLENAME is the name of the delegated role.  For example,
    "projects".
@@ -751,13 +752,14 @@
    TERMINATING is a boolean indicating whether subsequent delegations should be
    considered.
 
-   As explained in the [Diplomat paper](https://github.com/theupdateframework/tuf/blob/develop/docs/papers/protect-community-repositories-nsdi2016.pdf),
+   As explained in the [Diplomat
+   paper](https://github.com/theupdateframework/tuf/blob/develop/docs/papers/protect-community-repositories-nsdi2016.pdf),
    terminating delegations instruct the client not to consider future trust
    statements that match the delegation's pattern, which stops the delegation
    processing once this delegation (and its descendants) have been processed.
-   A terminating delegation for a package causes any further statements about
-   a package that are not made by the delegated party or its descendants to
-   be ignored.
+   A terminating delegation for a package causes any further statements about a
+   package that are not made by the delegated party or its descendants to be
+   ignored.
 
    In order to discuss target paths, a role MUST specify only one of the
    "path_hash_prefixes" or "paths" attributes, each of which we discuss next.
@@ -799,57 +801,57 @@
 
    A targets.json example file:
 
-   {
-   "signatures": [
-    {
-     "keyid": "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b",
-     "method": "ed25519",
-     "sig": "e9fd40008fba263758a3ff1dc59f93e42a4910a282749af915fbbea1401178e5a0
-             12090c228f06db1deb75ad8ddd7e40635ac51d4b04301fce0fd720074e0209"
-    }
-   ],
-   "signed": {
-    "_type": "targets",
-    "delegations": {
-     "keys": {
-      "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba": {
-       "keytype": "ed25519",
-       "keyval": {
-        "public": "b6e40fb71a6041212a3d84331336ecaa1f48a0c523f80ccc762a034c727606fa"
+       {
+       "signatures": [
+        {
+         "keyid": "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b",
+         "method": "ed25519",
+         "sig": "e9fd40008fba263758a3ff1dc59f93e42a4910a282749af915fbbea1401178e5a0
+                 12090c228f06db1deb75ad8ddd7e40635ac51d4b04301fce0fd720074e0209"
+        }
+       ],
+       "signed": {
+        "_type": "targets",
+        "delegations": {
+         "keys": {
+          "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba": {
+           "keytype": "ed25519",
+           "keyval": {
+            "public": "b6e40fb71a6041212a3d84331336ecaa1f48a0c523f80ccc762a034c727606fa"
+           }
+          }
+         },
+         "roles": [
+          {
+           "keyids": [
+            "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba"
+           ],
+           "name": "project",
+           "paths": [
+            "/project/file3.txt"
+           ],
+           "threshold": 1
+          }
+         ]
+        },
+        "expires": "2030-01-01T00:00:00Z",
+        "targets": {
+         "/file1.txt": {
+          "hashes": {
+           "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da"
+          },
+          "length": 31
+         },
+         "/file2.txt": {
+          "hashes": {
+           "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99"
+          },
+          "length": 39
+         }
+        },
+        "version": 1
+        }
        }
-      }
-     },
-     "roles": [
-      {
-       "keyids": [
-        "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba"
-       ],
-       "name": "project",
-       "paths": [
-        "/project/file3.txt"
-       ],
-       "threshold": 1
-      }
-     ]
-    },
-    "expires": "2030-01-01T00:00:00Z",
-    "targets": {
-     "/file1.txt": {
-      "hashes": {
-       "sha256": "65b8c67f51c993d898250f40aa57a317d854900b3a04895464313e48785440da"
-      },
-      "length": 31
-     },
-     "/file2.txt": {
-      "hashes": {
-       "sha256": "452ce8308500d83ef44248d8e6062359211992fd837ea9e370e561efb1a4ca99"
-      },
-      "length": 39
-     }
-    },
-    "version": 1
-   }
-   }
 
 * **4.6. File formats: timestamp.json**
 
@@ -863,11 +865,11 @@
 
    The "signed" portion of timestamp.json is as follows:
 
-     { "_type" : "timestamp",
-       "version" : VERSION,
-       "expires" : EXPIRES,
-       "meta" : METAFILES
-     }
+       { "_type" : "timestamp",
+         "version" : VERSION,
+         "expires" : EXPIRES,
+         "meta" : METAFILES
+       }
 
    METAFILES is the same is described for the snapshot.json file.  In the case
    of the timestamp.json file, this will commonly only include a description of
@@ -875,30 +877,30 @@
 
    A signed timestamp.json example file:
 
-   {
-   "signatures": [
-    {
-     "keyid": "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4",
-     "method": "ed25519",
-     "sig": "90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaed
-             f4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02"
-    }
-   ],
-   "signed": {
-    "_type": "timestamp",
-    "expires": "2030-01-01T00:00:00Z",
-    "meta": {
-     "snapshot.json": {
-      "hashes": {
-       "sha256": "c14aeb4ac9f4a8fc0d83d12482b9197452f6adf3eb710e3b1e2b79e8d14cb681"
-      },
-      "length": 1007,
-      "version": 1
-     }
-    },
-    "version": 1
-   }
-   }
+       {
+       "signatures": [
+        {
+         "keyid": "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4",
+         "method": "ed25519",
+         "sig": "90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaed
+                 f4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02"
+        }
+       ],
+       "signed": {
+        "_type": "timestamp",
+        "expires": "2030-01-01T00:00:00Z",
+        "meta": {
+         "snapshot.json": {
+          "hashes": {
+           "sha256": "c14aeb4ac9f4a8fc0d83d12482b9197452f6adf3eb710e3b1e2b79e8d14cb681"
+          },
+          "length": 1007,
+          "version": 1
+         }
+        },
+        "version": 1
+        }
+       }
 
 * **4.7. File formats: mirrors.json**
 
