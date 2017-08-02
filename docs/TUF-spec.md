@@ -212,25 +212,25 @@
    viewpoint of a software update system using the framework.  This is an
    error-free case.
 
-      Polling:
-        - Periodically, the software update system using the framework
-          instructs the framework to check each repository for updates.
-          If the framework reports to the application code that there are
-          updates, the application code determines whether it wants to
-          download the updated target files.  Only target files that are
-          trusted (referenced by properly signed and timely metadata) are made
-          available by the framework.
+   Polling:
+      - Periodically, the software update system using the framework
+        instructs the framework to check each repository for updates.
+        If the framework reports to the application code that there are
+        updates, the application code determines whether it wants to
+        download the updated target files.  Only target files that are
+        trusted (referenced by properly signed and timely metadata) are made
+        available by the framework.
 
-      Fetching:
-        - For each file that the application wants, it asks the framework to
-          download the file.  The framework downloads the file and performs
-          security checks to ensure that the downloaded file is exactly what is
-          expected according to the signed metadata.  The application code is
-          not given access to the file until the security checks have been
-          completed.  The application asks the framework to copy the downloaded
-          file to a location specified by the application.  At this point, the
-          application has securely obtained the target file and can do with it
-          whatever it wishes.
+   Fetching:
+      - For each file that the application wants, it asks the framework to
+        download the file.  The framework downloads the file and performs
+        security checks to ensure that the downloaded file is exactly what is
+        expected according to the signed metadata.  The application code is
+        not given access to the file until the security checks have been
+        completed.  The application asks the framework to copy the downloaded
+        file to a location specified by the application.  At this point, the
+        application has securely obtained the target file and can do with it
+        whatever it wishes.
 
 * **2.1. Roles and PKI**
 
@@ -253,15 +253,15 @@
    All roles can use one or more keys and require a threshold of signatures of
    the role's keys in order to trust a given metadata file.
 
-  > *2.1.1. Root Role* 
+  - **2.1.1. Root Role** 
 
-    * The root role delegates trust to specific keys trusted for all other
+      + The root role delegates trust to specific keys trusted for all other
    top-level roles used in the system.
 
-    * The client-side of the framework must ship with trusted root keys for each
+      + The client-side of the framework must ship with trusted root keys for each
    configured repository.
 
-    * The root role's private keys must be kept very secure and thus should be
+      + The root role's private keys must be kept very secure and thus should be
    kept offline.  If less than a threshold of Root keys are compromised, the
    repository should revoke trust on the compromised keys.  This can be
    accomplished with a normal rotation of root keys, covered in section 6.1
@@ -274,28 +274,29 @@
    important because safely recovering from it is nearly impossible.
 
 
-  > *2.1.2 Targets role*
+  - **2.1.2 Targets role**
 
-   * The targets role's signature indicates which target files are trusted by clients.  The targets role signs metadata that describes these files, not
-  the actual target files themselves.
+      The targets role's signature indicates which target files are trusted by
+      clients.  The targets role signs metadata that describes these files, not
+      the actual target files themselves.
 
-   * In addition, the targets role can delegate full or partial trust to other
+      In addition, the targets role can delegate full or partial trust to other
   roles.  Delegating trust means that the targets role indicates another role
   (that is, another set of keys and the threshold required for trust) is
   trusted to sign target file metadata.  Partial trust delegation is when the
   delegated role is only trusted for some of the target files that the
   delegating role is trusted for.
 
-   * Delegated developer roles can further delegate trust to other delegated
+      Delegated developer roles can further delegate trust to other delegated
   roles.  This provides for multiple levels of trust delegation where each
   role can delegate full or partial trust for the target files they are
   trusted for.  The delegating role in these cases is still trusted.  That is,
   a role does not become untrusted when it has delegated trust.
 
-   *Delegated trust can be revoked at any time by the delegating role signing
+      Delegated trust can be revoked at any time by the delegating role signing
   new metadata that indicates the delegated role is no longer trusted.
 
- > *2.1.3 Snapshot role*
+ - **2.1.3 Snapshot role**
 
    The snapshot role signs a metadata file that provides information about the
    latest version of all of the other metadata on the repository (excluding the
@@ -303,7 +304,7 @@
    which metadata files have been updated and also prevents mix-and-match
    attacks.
 
- > *2.1.4 Timestamp role*
+ - **2.1.4 Timestamp role**
 
    To prevent an adversary from replaying an out-of-date signed metadata file
    whose signature has not yet expired, an automated process periodically signs
@@ -907,7 +908,8 @@
 
    The "signed" portion of mirrors.json is as follows:
 
-     { "_type" : "mirrors",
+
+      { "_type" : "mirrors",
        "version" : VERSION,
        "expires" : EXPIRES,
        "mirrors" : [
@@ -918,7 +920,7 @@
             "targetscontent" : [ PATHPATTERN ... ] ,
             ("custom" : { ... }) }
           , ... ]
-     }
+      }
 
    URLBASE is the URL of the mirror which METAPATH and TARGETSPATH are relative
    to.  All metadata files will be retrieved from METAPATH and all target files
@@ -1234,7 +1236,7 @@
     For more details on how this would apply on a community repository, please
     see https://github.com/theupdateframework/pep-on-pypi-with-tuf#producing-consistent-snapshots
 
-* **.2. Reading consistent snapshots**
+* **7.2. Reading consistent snapshots**
 
     See Section 5.1 for more details.
 
