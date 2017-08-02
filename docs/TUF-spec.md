@@ -106,96 +106,91 @@
 
    The framework must be easy to integrate with software update systems.
 
-   > *1.5.1 Goals for implementation*
+   - **1.5.1 Goals for implementation**
 
-    * The client side of the framework must be straightforward to implement in any
+      + The client side of the framework must be straightforward to implement in any
    programming language and for any platform with the requisite networking and
    crypto support.
 
-    * The framework should be easily customizable for use with any crypto
-   libraries.
-
-    * The process by which developers push updates to the repository must be
+      +  The process by which developers push updates to the repository must be
    simple.
 
-    * The repository must serve only static files and be easy to mirror.
-
-    * The framework must be secure to use in environments that lack support for
+      + The framework must be secure to use in environments that lack support for
    SSL (TLS).  This does not exclude the optional use of SSL when available,
    but the framework will be designed without it.
 
-   > *1.5.2. Goals to protect against specific attacks*
+   - **1.5.2. Goals to protect against specific attacks**
 
-   > Note: When saying the framework protects against an attack,it means 
-   the attack will not be successful.  It does not mean that a client will
-   always be able to successfully update during an attack.  Fundamentally, an
-   attacker positioned to intercept and modify a client's communication will
-   always be able to perform a denial of service.  The part we have control
-   over is not allowing an inability to update to go unnoticed.
+      Note: When saying the framework protects against an attack,it means 
+      the attack will not be successful.  It does not mean that a client will
+      always be able to successfully update during an attack.  Fundamentally, an
+      attacker positioned to intercept and modify a client's communication will
+      always be able to perform a denial of service.  The part we have control
+      over is not allowing an inability to update to go unnoticed.
 
-    * **Arbitrary installation attacks.** An attacker installs anything they want on
-   the client system. That is, an attacker can provide arbitrary files in
-   response to download requests and the files will not be detected as
-   illegitimate.
+      + **Arbitrary installation attacks.** An attacker installs anything they want on
+      the client system. That is, an attacker can provide arbitrary files in
+      response to download requests and the files will not be detected as
+      illegitimate.
 
-    * **Endless data attacks.**  Attackers should not be able to respond to client
-   requests with huge amounts of data (extremely large files) that interfere
-   with the client's system.
+      + **Endless data attacks.**  Attackers should not be able to respond to client
+      requests with huge amounts of data (extremely large files) that interfere
+      with the client's system.
 
-    * **Extraneous dependencies attacks.**  Attackers should not be able to cause
-   clients to download or install software dependencies that are not the
-   intended dependencies.
+      + **Extraneous dependencies attacks.**  Attackers should not be able to cause
+      clients to download or install software dependencies that are not the
+      intended dependencies.
 
-    * **Fast-forward attacks.**  An attacker arbitrarily increases the version numbers
-   of project metadata files in the snapshot metadata well beyond the current
-   value, thus tricking a software update system into thinking any subsequent
-   updates are trying to rollback the package to a previous, out-of-date version.
-   In some situations, such as those where there is a maximum possible version
-   number, the perpetrator could use a number so high that the system would
-   never be able to match it with the one in the snapshot metadata, and thus
-   new updates could never be downloaded.
+      + **Fast-forward attacks.**  An attacker arbitrarily increases the version numbers
+      of project metadata files in the snapshot metadata well beyond the current
+      value, thus tricking a software update system into thinking any subsequent
+      updates are trying to rollback the package to a previous, out-of-date version.
+      In some situations, such as those where there is a maximum possible version
+      number, the perpetrator could use a number so high that the system would
+      never be able to match it with the one in the snapshot metadata, and thus
+      new updates could never be downloaded.
 
-    * **Indefinite freeze attacks.**  Attackers should not be able to respond to
-   client requests with the same, outdated metadata without the client being
-   aware of the problem.
+      + **Indefinite freeze attacks.**  Attackers should not be able to respond to
+      client requests with the same, outdated metadata without the client being
+      aware of the problem.
 
-    * **Malicious mirrors preventing updates.**  Repository mirrors should be unable
-   to prevent updates from good mirrors.
+      + **Malicious mirrors preventing updates.**  Repository mirrors should be unable
+      to prevent updates from good mirrors.
 
-    * **Mix-and-match attacks.**  Attackers should not be able to trick clients into
-   using a combination of metadata that never existed together on the
-   repository at the same time.
+      + **Mix-and-match attacks.**  Attackers should not be able to trick clients into
+      using a combination of metadata that never existed together on the
+      repository at the same time.
 
-    * **Rollback attacks.**  Attackers should not be able to trick clients into
-   installing software that is older than that which the client previously knew
-   to be available.
+      + **Rollback attacks.**  Attackers should not be able to trick clients into
+      installing software that is older than that which the client previously knew
+      to be available.
 
-    * **Slow retrieval attacks.**  Attackers should not be able to prevent clients
-   from being aware of interference with receiving updates by responding to
-   client requests so slowly that automated updates never complete.
+      + **Slow retrieval attacks.**  Attackers should not be able to prevent clients
+      from being aware of interference with receiving updates by responding to
+      client requests so slowly that automated updates never complete.
 
-    * **Vulnerability to key compromises.** An attacker who is able to compromise a
-   single key or less than a given threshold of keys can compromise clients.
-   This includes relying on a single online key (such as only being protected
-   by SSL) or a single offline key (such as most software update systems use to
-   sign files).
+      + **Vulnerability to key compromises.** An attacker who is able to compromise a
+      single key or less than a given threshold of keys can compromise clients.
+      This includes relying on a single online key (such as only being protected
+      by SSL) or a single offline key (such as most software update systems use to
+      sign files).
 
-    * **Wrong software installation.**  An attacker provides a client with a trusted
-   file that is not the one the client wanted.
+      + **Wrong software installation.**  An attacker provides a client with a trusted
+      file that is not the one the client wanted.
 
-   > *1.5.3. Goals for PKIs*
+   - **1.5.3. Goals for PKIs**
 
-   * Software update systems using the framework's client code interface should
-   never have to directly manage keys.
+      * Software update systems using the framework's client code interface should
+      never have to directly manage keys.
 
-    * All keys must be easily and safely revocable.  Trusting new keys for a role
-   must be easy.
+      * All keys must be easily and safely revocable.  Trusting new keys for a role
+      must be easy.
 
-    * For roles where trust delegation is meaningful, a role should be able to
-   delegate full or limited trust to another role.
+      * For roles where trust delegation is meaningful, a role should be able to
+      delegate full or limited trust to another role.
 
-    * The root of trust must not rely on external PKI.  That is, no authority will
-   be derived from keys outside of the framework.
+      * The root of trust must not rely on external PKI.  That is, no authority will
+      be derived from keys outside of the framework.
 
 ## **2. System overview**
 
