@@ -1,6 +1,7 @@
 # <p align="center">The Update Framework Specification
 
 Last modified: 2 June 2017
+
 Version: 1.0 (Draft)
 
 ## **1. Introduction**
@@ -212,25 +213,25 @@ Version: 1.0 (Draft)
    viewpoint of a software update system using the framework.  This is an
    error-free case.
 
-   Polling:
-        Periodically, the software update system using the framework
-        instructs the framework to check each repository for updates.
-        If the framework reports to the application code that there are
-        updates, the application code determines whether it wants to
-        download the updated target files.  Only target files that are
-        trusted (referenced by properly signed and timely metadata) are made
-        available by the framework.
+       Polling:
+            Periodically, the software update system using the framework
+            instructs the framework to check each repository for updates.  If
+            the framework reports to the application code that there are
+            updates, the application code determines whether it wants to
+            download the updated target files.  Only target files that are
+            trusted (referenced by properly signed and timely metadata) are
+            made available by the framework.
 
-   Fetching:
-        For each file that the application wants, it asks the framework to
-        download the file.  The framework downloads the file and performs
-        security checks to ensure that the downloaded file is exactly what is
-        expected according to the signed metadata.  The application code is
-        not given access to the file until the security checks have been
-        completed.  The application asks the framework to copy the downloaded
-        file to a location specified by the application.  At this point, the
-        application has securely obtained the target file and can do with it
-        whatever it wishes.
+       Fetching:
+            For each file that the application wants, it asks the framework to
+            download the file.  The framework downloads the file and performs
+            security checks to ensure that the downloaded file is exactly what
+            is expected according to the signed metadata.  The application code
+            is not given access to the file until the security checks have been
+            completed.  The application asks the framework to copy the
+            downloaded file to a location specified by the application.  At
+            this point, the application has securely obtained the target file
+            and can do with it whatever it wishes.
 
 * **2.1. Roles and PKI**
 
@@ -312,7 +313,7 @@ Version: 1.0 (Draft)
    though this timestamp key must be kept online, the risk posed to clients by
    compromise of this key is minimal.
 
- > *2.1.5 Mirrors role*
+ - **2.1.5 Mirrors role**
 
    Every repository has one or more mirrors from which files can be downloaded
    by clients.  A software update system using the framework may choose to
@@ -369,14 +370,14 @@ Version: 1.0 (Draft)
      - To specify which parts of the repository a given role has authority
        to sign/provide.
 
- > *3.1.1 Target files*
+ + **3.1.1 Target files**
 
    The filenames and the directory structure of target files available from
    a repository are not specified by the framework.  The names of these files
    and directories are completely at the discretion of the application using
    the framework.
 
- > *3.1.2 Metadata files*
+ + **3.1.2 Metadata files**
 
    The filenames and directory structure of repository metadata are strictly
    defined.  The following are the metadata files of top-level roles relative
@@ -416,7 +417,7 @@ Version: 1.0 (Draft)
    snapshot.json.gz).  The original (uncompressed) file should always be made
    available, as well.
 
-  > *3.1.2.1 Metadata files for targets delegation*
+  + **3.1.2.1 Metadata files for targets delegation**
 
    When the targets role delegates trust to other roles, each delegated role
    provides one signed metadata file.  As is the case with the directory
@@ -475,6 +476,7 @@ Version: 1.0 (Draft)
                   Edwards curves.
 
    RSASSA-PSS: https://tools.ietf.org/html/rfc3447#page-29
+
    ed25519: https://ed25519.cr.yp.to/
 
    All keys have the format:
@@ -1175,20 +1177,20 @@ Version: 1.0 (Draft)
 
 ## **7. Consistent Snapshots**
 
-    So far, we have considered a TUF repository that is relatively static (in
-    terms of how often metadata and target files are updated). The problem is
-    that if the repository (which may be a community repository such as PyPI,
-    RubyGems, CPAN, or SourceForge) is volatile, in the sense that the
-    repository is continually producing new TUF metadata as well as its
-    targets, then should clients read metadata while the same metadata is being
-    written to, they would effectively see denial-of-service attacks.
-    Therefore, the repository needs to be careful about how it writes metadata
-    and targets. The high-level idea of the solution is that each snapshot will
-    be contained in a so-called consistent snapshot. If a client is reading
-    from one consistent snapshot, then the repository is free to write another
-    consistent snapshot without interrupting that client. For more reasons on
-    why we need consistent snapshots, please see
-    https://github.com/theupdateframework/pep-on-pypi-with-tuf#why-do-we-need-consistent-snapshots
+   So far, we have considered a TUF repository that is relatively static (in
+   terms of how often metadata and target files are updated). The problem is
+   that if the repository (which may be a community repository such as PyPI,
+   RubyGems, CPAN, or SourceForge) is volatile, in the sense that the
+   repository is continually producing new TUF metadata as well as its targets,
+   then should clients read metadata while the same metadata is being written
+   to, they would effectively see denial-of-service attacks.  Therefore, the
+   repository needs to be careful about how it writes metadata and targets. The
+   high-level idea of the solution is that each snapshot will be contained in a
+   so-called consistent snapshot. If a client is reading from one consistent
+   snapshot, then the repository is free to write another consistent snapshot
+   without interrupting that client. For more reasons on why we need consistent
+   snapshots, please see
+   https://github.com/theupdateframework/pep-on-pypi-with-tuf#why-do-we-need-consistent-snapshots
 
 * **7.1. Writing consistent snapshots**
 
