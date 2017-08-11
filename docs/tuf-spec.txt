@@ -1,1 +1,1 @@
-tuf-spec.md
+The TUF specification file has been moved to https://github.com/theupdateframework/tuf/blob/develop/docs/tuf-spec.md
