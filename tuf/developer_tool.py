@@ -764,7 +764,7 @@ def _save_project_configuration(metadata_directory, targets_directory,
   for key in public_keys:
     key_info = tuf.keydb.get_key(key)
     key_metadata = format_keyval_to_metadata(key_info['keytype'],
-                                             key_info['keyval'])
+        key_info['scheme'], key_info['keyval'])
     project_config['public_keys'][key] = key_metadata
 
   # Save the actual file.
