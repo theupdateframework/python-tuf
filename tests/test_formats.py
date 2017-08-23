@@ -66,7 +66,7 @@ class TestFormats(unittest.TestCase):
       'KEYIDS_SCHEMA': (securesystemslib.formats.KEYIDS_SCHEMA,
                         ['123456789abcdef', '123456789abcdef']),
 
-      'SIG_METHOD_SCHEMA': (securesystemslib.formats.SIG_METHOD_SCHEMA, 'ed25519'),
+      'SIG_SCHEME_SCHEMA': (securesystemslib.formats.SIG_SCHEME_SCHEMA, 'rsassa-pss-sha256'),
 
       'RELPATH_SCHEMA': (securesystemslib.formats.RELPATH_SCHEMA, 'metadata/root/'),
 
@@ -105,11 +105,13 @@ class TestFormats(unittest.TestCase):
 
       'KEY_SCHEMA': (securesystemslib.formats.KEY_SCHEMA,
                      {'keytype': 'rsa',
+                      'scheme': 'rsassa-pss-sha256',
                       'keyval': {'public': 'pubkey',
                                  'private': 'privkey'}}),
 
       'RSAKEY_SCHEMA': (securesystemslib.formats.RSAKEY_SCHEMA,
                         {'keytype': 'rsa',
+                         'scheme': 'rsassa-pss-sha256',
                          'keyid': '123456789abcdef',
                          'keyval': {'public': 'pubkey',
                                     'private': 'privkey'}}),
@@ -138,7 +140,6 @@ class TestFormats(unittest.TestCase):
 
       'SIGNATURE_SCHEMA': (securesystemslib.formats.SIGNATURE_SCHEMA,
                            {'keyid': '123abc',
-                            'method': 'evp',
                             'sig': 'A4582BCF323BCEF'}),
 
       'SIGNATURESTATUS_SCHEMA': (securesystemslib.formats.SIGNATURESTATUS_SCHEMA,
@@ -147,21 +148,22 @@ class TestFormats(unittest.TestCase):
                                   'bad_sigs': ['123abc'],
                                   'unknown_sigs': ['123abc'],
                                   'untrusted_sigs': ['123abc'],
-                                  'unknown_method_sigs': ['123abc']}),
+                                  'unknown_signing_schemes': ['123abc']}),
 
       'SIGNABLE_SCHEMA': (tuf.formats.SIGNABLE_SCHEMA,
                           {'signed': 'signer',
                            'signatures': [{'keyid': '123abc',
-                                           'method': 'evp',
                                            'sig': 'A4582BCF323BCEF'}]}),
 
       'KEYDICT_SCHEMA': (securesystemslib.formats.KEYDICT_SCHEMA,
                          {'123abc': {'keytype': 'rsa',
+                                     'scheme': 'rsassa-pss-sha256',
                                      'keyval': {'public': 'pubkey',
                                                 'private': 'privkey'}}}),
 
       'KEYDB_SCHEMA': (securesystemslib.formats.KEYDB_SCHEMA,
                        {'123abc': {'keytype': 'rsa',
+                                   'scheme': 'rsassa-pss-sha256',
                                    'keyid': '123456789abcdef',
                                    'keyval': {'public': 'pubkey',
                                               'private': 'privkey'}}}),
@@ -200,6 +202,7 @@ class TestFormats(unittest.TestCase):
                        'compression_algorithms': ['gz'],
                        'expires': '1985-10-21T13:20:00Z',
                        'keys': {'123abc': {'keytype': 'rsa',
+                                           'scheme': 'rsassa-pss-sha256',
                                            'keyval': {'public': 'pubkey',
                                                       'private': 'privkey'}}},
                        'roles': {'root': {'keyids': ['123abc'],
@@ -214,6 +217,7 @@ class TestFormats(unittest.TestCase):
                                               'hashes': {'sha256': 'ABCD123'},
                                               'custom': {'type': 'metadata'}}},
          'delegations': {'keys': {'123abc': {'keytype':'rsa',
+                                             'scheme': 'rsassa-pss-sha256',
                                              'keyval': {'public': 'pubkey',
                                                         'private': 'privkey'}}},
                          'roles': [{'name': 'root', 'keyids': ['123abc'],
@@ -260,6 +264,8 @@ class TestFormats(unittest.TestCase):
     # Iterate 'valid_schemas', ensuring each 'valid_schema' correctly matches
     # its respective 'schema_type'.
     for schema_name, (schema_type, valid_schema) in six.iteritems(valid_schemas):
+      if not schema_type.matches(valid_schema):
+        print('bad schema: ' + repr(valid_schema))
       self.assertEqual(True, schema_type.matches(valid_schema))
 
     # Test conditions for invalid schemas.
@@ -337,6 +343,7 @@ class TestFormats(unittest.TestCase):
     expires = '1985-10-21T13:20:00Z'
 
     keydict = {'123abc': {'keytype': 'rsa',
+                          'scheme': 'rsassa-pss-sha256',
                           'keyval': {'public': 'pubkey',
                                      'private': 'privkey'}}}
 
@@ -430,6 +437,7 @@ class TestFormats(unittest.TestCase):
                                          'custom': {'type': 'metadata'}}}
 
     delegations = {'keys': {'123abc': {'keytype':'rsa',
+                                       'scheme': 'rsassa-pss-sha256',
                                        'keyval': {'public': 'pubkey',
                                                   'private': 'privkey'}}},
                    'roles': [{'name': 'root', 'keyids': ['123abc'],
@@ -554,6 +562,7 @@ class TestFormats(unittest.TestCase):
             'compression_algorithms': ['gz'],
             'expires': '1985-10-21T13:20:00Z',
             'keys': {'123abc': {'keytype': 'rsa',
+                                'scheme': 'rsassa-pss-sha256',
                                 'keyval': {'public': 'pubkey',
                                            'private': 'privkey'}}},
             'roles': {'root': {'keyids': ['123abc'],
@@ -703,6 +712,7 @@ class TestFormats(unittest.TestCase):
             'compression_algorithms': ['gz'],
             'expires': '1985-10-21T13:20:00Z',
             'keys': {'123abc': {'keytype': 'rsa',
+                                'scheme': 'rsassa-pss-sha256',
                                 'keyval': {'public': 'pubkey',
                                            'private': 'privkey'}}},
             'roles': {'root': {'keyids': ['123abc'],

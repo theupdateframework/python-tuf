@@ -1318,8 +1318,10 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
         if key['keytype'] in ['rsa', 'ed25519']:
           keytype = key['keytype']
           keyval = key['keyval']
+          scheme = key['scheme']
           keydict[keyid] = \
-            securesystemslib.keys.format_keyval_to_metadata(keytype, keyval, private=False)
+            securesystemslib.keys.format_keyval_to_metadata(keytype,
+                scheme, keyval, private=False)
 
         # This is not a recognized key.  Raise an exception.
         else:

@@ -70,7 +70,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['bad_sigs'])
     self.assertEqual([], sig_status['unknown_sigs'])
     self.assertEqual([], sig_status['untrusted_sigs'])
-    self.assertEqual([], sig_status['unknown_method_sigs'])
+    self.assertEqual([], sig_status['unknown_signing_schemes'])
 
     # A valid signable, but non-existent role argument.
     self.assertRaises(tuf.exceptions.UnknownRoleError,
@@ -116,7 +116,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual([KEYS[0]['keyid']], sig_status['bad_sigs'])
     self.assertEqual([], sig_status['unknown_sigs'])
     self.assertEqual([], sig_status['untrusted_sigs'])
-    self.assertEqual([], sig_status['unknown_method_sigs'])
+    self.assertEqual([], sig_status['unknown_signing_schemes'])
 
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
 
@@ -126,20 +126,21 @@ class TestSig(unittest.TestCase):
     tuf.roledb.remove_role('Root')
 
 
-  def test_get_signature_status_unknown_method(self):
+  def test_get_signature_status_unknown_signing_scheme(self):
     signable = {'signed' : 'test', 'signatures' : []}
 
     signable['signatures'].append(securesystemslib.keys.create_signature(
                                   KEYS[0], signable['signed']))
-    signable['signatures'][0]['method'] = 'fake-sig-method'
 
+    valid_scheme = KEYS[0]['scheme']
+    KEYS[0]['scheme'] = 'unknown_signing_scheme'
     tuf.keydb.add_key(KEYS[0])
     threshold = 1
     roleinfo = tuf.formats.make_role_metadata(
         [KEYS[0]['keyid']], threshold)
-    tuf.roledb.add_role('Root', roleinfo)
+    tuf.roledb.add_role('root', roleinfo)
 
-    sig_status = tuf.sig.get_signature_status(signable, 'Root')
+    sig_status = tuf.sig.get_signature_status(signable, 'root')
 
     self.assertEqual(1, sig_status['threshold'])
     self.assertEqual([], sig_status['good_sigs'])
@@ -147,14 +148,15 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['unknown_sigs'])
     self.assertEqual([], sig_status['untrusted_sigs'])
     self.assertEqual([KEYS[0]['keyid']],
-                    sig_status['unknown_method_sigs'])
+                    sig_status['unknown_signing_schemes'])
 
-    self.assertFalse(tuf.sig.verify(signable, 'Root'))
+    self.assertFalse(tuf.sig.verify(signable, 'root'))
 
     # Done.  Let's remove the added key(s) from the key database.
+    KEYS[0]['scheme'] = valid_scheme
     tuf.keydb.remove_key(KEYS[0]['keyid'])
     # Remove the role.
-    tuf.roledb.remove_role('Root')
+    tuf.roledb.remove_role('root')
 
 
   def test_get_signature_status_single_key(self):
@@ -177,7 +179,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['bad_sigs'])
     self.assertEqual([], sig_status['unknown_sigs'])
     self.assertEqual([], sig_status['untrusted_sigs'])
-    self.assertEqual([], sig_status['unknown_method_sigs'])
+    self.assertEqual([], sig_status['unknown_signing_schemes'])
 
     self.assertTrue(tuf.sig.verify(signable, 'Root'))
 
@@ -189,7 +191,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['bad_sigs'])
     self.assertEqual([KEYS[0]['keyid']], sig_status['unknown_sigs'])
     self.assertEqual([], sig_status['untrusted_sigs'])
-    self.assertEqual([], sig_status['unknown_method_sigs'])
+    self.assertEqual([], sig_status['unknown_signing_schemes'])
 
     # Done.  Let's remove the added key(s) from the key database.
     tuf.keydb.remove_key(KEYS[0]['keyid'])
@@ -217,7 +219,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['bad_sigs'])
     self.assertEqual([], sig_status['unknown_sigs'])
     self.assertEqual([], sig_status['untrusted_sigs'])
-    self.assertEqual([], sig_status['unknown_method_sigs'])
+    self.assertEqual([], sig_status['unknown_signing_schemes'])
 
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
 
@@ -252,7 +254,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['bad_sigs'])
     self.assertEqual([KEYS[2]['keyid']], sig_status['unknown_sigs'])
     self.assertEqual([], sig_status['untrusted_sigs'])
-    self.assertEqual([], sig_status['unknown_method_sigs'])
+    self.assertEqual([], sig_status['unknown_signing_schemes'])
 
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
 
@@ -291,7 +293,7 @@ class TestSig(unittest.TestCase):
     self.assertEqual([], sig_status['bad_sigs'])
     self.assertEqual([], sig_status['unknown_sigs'])
     self.assertEqual([KEYS[1]['keyid']], sig_status['untrusted_sigs'])
-    self.assertEqual([], sig_status['unknown_method_sigs'])
+    self.assertEqual([], sig_status['unknown_signing_schemes'])
 
     self.assertFalse(tuf.sig.verify(signable, 'Root'))
 
