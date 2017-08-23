@@ -148,7 +148,7 @@ https://updateframework.com
 
 Mailing List
 ------------
-Please visit `https://groups.google.com/forum/?fromgroups#!forum/theupdateframework <https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if you would like to contact the TUF team.  Questions, feedback, and suggestions are welcomed in this low-volume mailing list. 
+Please visit `https://groups.google.com/forum/?fromgroups#!forum/theupdateframework <https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if you would like to contact the TUF team.  Questions, feedback, and suggestions are welcomed in this low-volume mailing list.
 
 A group feed is available at: https://groups.google.com/forum/feed/theupdateframework/msgs/atom.xml?num=50
 
@@ -252,6 +252,15 @@ we provide for this purpose.
 
 - `Creating a TUF Repository  <https://github.com/theupdateframework/tuf/tree/develop/tuf/README.md>`_
 
+License
+-------
+
+This work is `dual-licensed <https://en.wikipedia.org/wiki/Multi-licensing>`_
+and distributed under the (1) MIT License and (2) Apache License, Version 2.0.
+Please see `LICENSE-MIT.txt
+<https://github.com/theupdateframework/tuf/tree/develop/tuf/LICENSE-MIT.txt>`_
+and `LICENSE-APACHE.txt
+<https://github.com/theupdateframework/tuf/tree/develop/tuf/LICENSE-MIT.txt>`_.
 
 
 Acknowledgements
