@@ -2329,7 +2329,8 @@ class Targets(Metadata):
     for key in public_keys:
       keyid = key['keyid']
       key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(key['keytype'],
-        key['keyval'])
+          key['scheme'], key['keyval'])
+
       # Update 'keyids' and 'keydict'.
       new_keydict = {keyid: key_metadata_format}
       keydict.update(new_keydict)

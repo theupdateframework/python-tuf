@@ -70,14 +70,13 @@ def get_signature_status(signable, role=None, repository_name='default',
     keys in 'tuf.keydb', a set of roles in 'tuf.roledb', and a role,
     the status of these signatures can be determined.  This method will iterate
     the signatures in 'signable' and enumerate all the keys that are valid,
-    invalid, unrecognized, unauthorized, or generated using an unknown method.
+    invalid, unrecognized, or unauthorized.
 
   <Arguments>
     signable:
       A dictionary containing a list of signatures and a 'signed' identifier.
       signable = {'signed': 'signer',
                   'signatures': [{'keyid': keyid,
-                                  'method': 'evp',
                                   'sig': sig}]}
 
       Conformant to tuf.formats.SIGNABLE_SCHEMA.
@@ -132,19 +131,24 @@ def get_signature_status(signable, role=None, repository_name='default',
 
   # The fields of the signature_status dict, where each field stores keyids.  A
   # description of each field:
-  # good_sigs = keys confirmed to have produced 'sig' and 'method' using
-  # 'signed', which are associated with 'role';
+  #
+  # good_sigs = keys confirmed to have produced 'sig' using 'signed', which are
+  # associated with 'role';
+  #
   # bad_sigs = negation of good_sigs;
+  #
   # unknown_sigs = keys not found in the 'keydb' database;
+  #
   # untrusted_sigs = keys that are not in the list of keyids associated with
   # 'role';
-  # unknown_method_sigs = keys found to have used an unsupported method
-  # of generating signatures.
+  #
+  # unknown_signing_scheme = signing schemes specified in keys that are
+  # unsupported;
   good_sigs = []
   bad_sigs = []
   unknown_sigs = []
   untrusted_sigs = []
-  unknown_method_sigs = []
+  unknown_signing_schemes = []
 
   # Extract the relevant fields from 'signable' that will allow us to identify
   # the different classes of keys (i.e., good_sigs, bad_sigs, etc.).
@@ -156,7 +160,6 @@ def get_signature_status(signable, role=None, repository_name='default',
   for signature in signatures:
     sig = signature['sig']
     keyid = signature['keyid']
-    method = signature['method']
 
     # Does the signature use an unrecognized key?
     try:
@@ -166,12 +169,12 @@ def get_signature_status(signable, role=None, repository_name='default',
       unknown_sigs.append(keyid)
       continue
 
-    # Does the signature use an unknown key signing method?
+    # Does the signature use an unknown/unsupported signing scheme?
     try:
       valid_sig = securesystemslib.keys.verify_signature(key, signature, signed)
 
-    except securesystemslib.exceptions.UnknownMethodError:
-      unknown_method_sigs.append(keyid)
+    except securesystemslib.exceptions.UnsupportedAlgorithmError:
+      unknown_signing_schemes.append(keyid)
       continue
 
     # We are now dealing with either a trusted or untrusted key...
@@ -223,7 +226,7 @@ def get_signature_status(signable, role=None, repository_name='default',
   signature_status['bad_sigs'] = bad_sigs
   signature_status['unknown_sigs'] = unknown_sigs
   signature_status['untrusted_sigs'] = untrusted_sigs
-  signature_status['unknown_method_sigs'] = unknown_method_sigs
+  signature_status['unknown_signing_schemes'] = unknown_signing_schemes
 
   return signature_status
 
