@@ -274,8 +274,10 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Invalid public key imported (contains unexpected keytype.)
     keytype = imported_ed25519_key['keytype']
     keyval = imported_ed25519_key['keyval']
+    scheme = imported_ed25519_key['scheme']
     ed25519key_metadata_format = \
-      securesystemslib.keys.format_keyval_to_metadata(keytype, keyval, private=False)
+      securesystemslib.keys.format_keyval_to_metadata(keytype, scheme,
+          keyval, private=False)
 
     ed25519key_metadata_format['keytype'] = 'invalid_keytype'
     with open(ed25519_keypath + '.pub', 'wb') as file_object:
