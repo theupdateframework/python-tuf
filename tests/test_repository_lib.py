@@ -71,6 +71,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Create a temporary directory to store the repository, metadata, and target
     # files.  'temporary_directory' must be deleted in TearDownClass() so that
     # temporary files are always removed, even when exceptions occur.
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
     cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
 
 
@@ -83,6 +85,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # Remove the temporary repository directory, which should contain all the
     # metadata, targets, and key files generated for the test cases.
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
     shutil.rmtree(cls.temporary_directory)
 
 
