@@ -465,7 +465,6 @@ Version: **1.0 (Draft)**
        { "signed" : ROLE,
          "signatures" : [
             { "keyid" : KEYID,
-              "method" : METHOD,
               "sig" : SIGNATURE }
             , ... ]
        }
@@ -499,11 +498,14 @@ Version: **1.0 (Draft)**
    used to sign documents.  The type determines the interpretation of
    KEYVAL.
 
-   We define two keytypes at present: 'rsa' and 'ed25519'.
+   We define two keytypes below: 'rsa' and 'ed25519'.  However, TUF places no
+   restrictions on cryptographic keys.  Adopters can use any particular keytype,
+   signing scheme, and cryptographic library.
 
    The 'rsa' format is:
 
         { "keytype" : "rsa",
+          "scheme" : "rsassa-pss-sha256",
           "keyval" : { "public" : PUBLIC}
         }
 
@@ -513,6 +515,7 @@ Version: **1.0 (Draft)**
    The 'ed25519' format is:
 
         { "keytype" : "ed25519",
+          "scheme" : "ed25519",
           "keyval" : { "public" : PUBLIC}
         }
 
@@ -600,24 +603,28 @@ Version: **1.0 (Draft)**
         "keys": {
          "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4": {
           "keytype": "ed25519",
+          "scheme": "ed25519",
           "keyval": {
            "public": "72378e5bc588793e58f81c8533da64a2e8f1565c1fcc7f253496394ffc52542c"
           }
          },
          "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b": {
           "keytype": "ed25519",
+          "scheme": "ed25519",
           "keyval": {
            "public": "68ead6e54a43f8f36f9717b10669d1ef0ebb38cee6b05317669341309f1069cb"
           }
          },
          "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6": {
           "keytype": "ed25519",
+          "scheme": "ed25519",
           "keyval": {
            "public": "66dd78c5c2a78abc6fc6b267ff1a8017ba0e8bfc853dd97af351949bba021275"
           }
          },
          "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309": {
           "keytype": "ed25519",
+          "scheme": "ed25519",
           "keyval": {
            "public": "01c61f8dc7d77fcef973f4267927541e355e8ceda757e2c402818dad850f856e"
           }
@@ -687,7 +694,6 @@ Version: **1.0 (Draft)**
        "signatures": [
         {
          "keyid": "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309",
-         "method": "ed25519",
          "sig": "f7f03b13e3f4a78a23561419fc0dd741a637e49ee671251be9f8f3fceedfc112e4
                  4ee3aaff2278fad9164ab039118d4dc53f22f94900dae9a147aa4d35dcfc0f"
         }
@@ -817,7 +823,6 @@ Version: **1.0 (Draft)**
        "signatures": [
         {
          "keyid": "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b",
-         "method": "ed25519",
          "sig": "e9fd40008fba263758a3ff1dc59f93e42a4910a282749af915fbbea1401178e5a0
                  12090c228f06db1deb75ad8ddd7e40635ac51d4b04301fce0fd720074e0209"
         }
@@ -828,6 +833,7 @@ Version: **1.0 (Draft)**
          "keys": {
           "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba": {
            "keytype": "ed25519",
+           "scheme": "ed25519",
            "keyval": {
             "public": "b6e40fb71a6041212a3d84331336ecaa1f48a0c523f80ccc762a034c727606fa"
            }
@@ -893,7 +899,6 @@ Version: **1.0 (Draft)**
        "signatures": [
         {
          "keyid": "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4",
-         "method": "ed25519",
          "sig": "90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaed
                  f4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02"
         }
