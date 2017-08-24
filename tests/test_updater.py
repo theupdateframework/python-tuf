@@ -1492,15 +1492,12 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
                      '/file3.txt', targets_role['delegations']), child_role['name'])
 
     # Test path hash prefixes.
-    print('attempting test for path hash prefix')
     child_role['path_hash_prefixes'] = ['8baf', '0000']
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
                      '/file3.txt', targets_role['delegations']), child_role['name'])
 
     '''
     # Test for forbidden target.
-    print('attempting test for forbidden target')
-    print('child role: ' + repr(child_role))
     self.repository_updater._visit_child_role(child_role,
         '/target.exe', targets_role['delegations'])
 
