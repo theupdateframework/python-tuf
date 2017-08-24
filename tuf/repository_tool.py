@@ -3042,7 +3042,7 @@ def load_repository(repository_directory, repository_name='default'):
     for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
       key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)
       try:
-        for keyid in keyids:
+        for keyid in keyids: # pragma: no branch
           key_object['keyid'] = keyid
           tuf.keydb.add_key(key_object, keyid=None,
               repository_name=repository_name)
