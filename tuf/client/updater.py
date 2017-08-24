@@ -2447,7 +2447,6 @@ class Updater(object):
     # the target with the name 'target_filepath'.
     child_role_is_relevant = False
 
-    print('child_role_paths: ' + repr(child_role_paths))
     if child_role_path_hash_prefixes is not None:
       target_filepath_hash = self._get_target_hash(target_filepath)
       for child_role_path_hash_prefix in child_role_path_hash_prefixes:
@@ -2463,14 +2462,10 @@ class Updater(object):
         # shell-style wildcards).  The child role 'child_role_name' is added if
         # 'target_filepath' is equal or matches 'child_role_path'.  Explicit
         # filepaths are also added.
-        print('Checking if path is relevant: ' + repr(target_filepath))
-        print('child_role_path: ' + repr(child_role_path))
         if fnmatch.fnmatch(target_filepath, child_role_path):
-          print('child role is relevant')
           child_role_is_relevant = True
 
         else:
-          print('path is relevant: ' + repr(target_filepath))
           logger.debug('Target path' + repr(target_filepath) + ' does not'
             ' match child role path ' + repr(child_role_path))
 
@@ -2478,18 +2473,15 @@ class Updater(object):
       # 'role_name' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
-      print('neither')
       raise securesystemslib.exceptions.FormatError(repr(child_role_name) + ' has neither '
                                 '"paths" nor "path_hash_prefixes".')
 
     if child_role_is_relevant:
-        print('child role is relevant')
         logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
                      repr(target_filepath))
         return child_role_name
 
     else:
-      print('child role does not have target')
       logger.debug('Child role ' + repr(child_role_name) + \
                    ' does not have target ' + repr(target_filepath))
       return None
