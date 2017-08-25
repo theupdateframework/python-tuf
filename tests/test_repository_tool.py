@@ -227,7 +227,6 @@ class TestRepository(unittest.TestCase):
     repository.targets('role1').load_signing_key(role1_privkey)
 
     # (6) Write repository.
-    repository.targets.compressions = ['gz']
     repository.writeall()
 
     # Verify that the expected metadata is written.
@@ -239,10 +238,6 @@ class TestRepository(unittest.TestCase):
       tuf.formats.check_signable_object_format(role_signable)
 
       self.assertTrue(os.path.exists(role_filepath))
-
-      if role == 'targets.json':
-        compressed_filepath = role_filepath + '.gz'
-        self.assertTrue(os.path.exists(compressed_filepath))
 
     # Verify the 'role1.json' delegation is also written.
     role1_filepath = os.path.join(metadata_directory, 'role1.json')
@@ -373,8 +368,7 @@ class TestRepository(unittest.TestCase):
     self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name))
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repository.writeall, 3, False)
-    self.assertRaises(securesystemslib.exceptions.FormatError, repository.writeall, False, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError, repository.writeall, 3)
 
 
 
@@ -448,7 +442,7 @@ class TestMetadata(unittest.TestCase):
         roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                     'signatures': [], 'version': 0,
                     'consistent_snapshot': False,
-                    'compressions': [''], 'expires': expiration,
+                    'expires': expiration,
                     'partial_loaded': False}
 
         tuf.roledb.add_role(self._rolename, roleinfo,
@@ -573,24 +567,6 @@ class TestMetadata(unittest.TestCase):
 
 
 
-  def test_compressions(self):
-    # Test default case, where only uncompressed metadata is supported.
-    self.assertEqual(self.metadata.compressions, [''])
-
-    # Test compressions getter after a compressions algorithm is added.
-    self.metadata.compressions = ['gz']
-
-    self.assertEqual(self.metadata.compressions, ['', 'gz'])
-
-
-    # Test improperly formatted argument.
-    try:
-      self.metadata.compressions = 3
-    except securesystemslib.exceptions.FormatError:
-      pass
-    else:
-      self.fail('Setter failed to detect improperly formatted compressions')
-
 
 
   def test_add_verification_key(self):
@@ -608,8 +584,7 @@ class TestMetadata(unittest.TestCase):
     expiration = expiration.isoformat() + 'Z'
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0,
-                'consistent_snapshot': False,
-                'compressions': [''], 'expires': expiration,
+                'consistent_snapshot': False, 'expires': expiration,
                 'partial_loaded': False}
 
     tuf.roledb.add_role('Root', roleinfo, 'test_repository')
