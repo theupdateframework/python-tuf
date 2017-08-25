@@ -96,9 +96,6 @@ TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
 # Supported key types.
 SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 
-# The recognized compression extensions.
-SUPPORTED_COMPRESSION_EXTENSIONS = ['.gz']
-
 # The full list of supported TUF metadata extensions.
 METADATA_EXTENSIONS = ['.json.gz', '.json']
 
@@ -107,12 +104,9 @@ SNAPSHOT_ROLE_EXTENSIONS = ['.json']
 
 
 def _generate_and_write_metadata(rolename, metadata_filename,
-                                 targets_directory, metadata_directory,
-                                 consistent_snapshot=False, filenames=None,
-                                 compression_algorithms=['gz'],
-                                 allow_partially_signed=False,
-                                 increment_version_number=True,
-                                 repository_name='default'):
+  targets_directory, metadata_directory, consistent_snapshot=False,
+  filenames=None, allow_partially_signed=False, increment_version_number=True,
+  repository_name='default'):
   """
   Non-public function that can generate and write the metadata for the
   specified 'rolename'.  It also increments the version number of 'rolename' if
@@ -131,7 +125,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   # Generate the appropriate role metadata for 'rolename'.
   if rolename == 'root':
     metadata = generate_root_metadata(roleinfo['version'], roleinfo['expires'],
-        consistent_snapshot, compression_algorithms, repository_name)
+        consistent_snapshot, repository_name)
 
     _log_warning_if_expires_soon(ROOT_FILENAME, roleinfo['expires'],
                                  ROOT_EXPIRES_WARN_SECONDS)
@@ -221,7 +215,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
       if rolename == 'root':
         consistent_snapshot = True
       filename = write_metadata_file(signable, metadata_filename,
-          metadata['version'], compression_algorithms, consistent_snapshot)
+          metadata['version'], consistent_snapshot)
 
     # 'signable' contains an invalid threshold of signatures.
     else:
@@ -247,13 +241,11 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     # <version>.root.json and root.json).
     if rolename == 'root':
        filename = write_metadata_file(signable, metadata_filename,
-                           metadata['version'], compression_algorithms,
-                           consistent_snapshot=True)
+          metadata['version'], consistent_snapshot=True)
 
     else:
       filename = write_metadata_file(signable, metadata_filename,
-                          metadata['version'], compression_algorithms,
-                          consistent_snapshot)
+          metadata['version'], consistent_snapshot)
 
   return signable, filename
 
@@ -580,9 +572,6 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         logger.debug('Found a Root signature that is already loaded:'
           ' ' + repr(signature))
 
-    if os.path.exists(root_filename + '.gz'):
-      roleinfo['compressions'].append('gz')
-
     else:
       logger.debug('A compressed Root file was not found.')
 
@@ -620,11 +609,6 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     roleinfo = tuf.roledb.get_roleinfo('timestamp', repository_name)
     roleinfo['expires'] = timestamp_metadata['expires']
     roleinfo['version'] = timestamp_metadata['version']
-    if os.path.exists(timestamp_filename + '.gz'):
-      roleinfo['compressions'].append('gz')
-
-    else:
-      logger.debug('A compressed Timestamp file was not found.')
 
     if _metadata_is_partially_loaded('timestamp', signable, roleinfo, repository_name):
       roleinfo['partial_loaded'] = True
@@ -665,11 +649,6 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     roleinfo = tuf.roledb.get_roleinfo('snapshot', repository_name)
     roleinfo['expires'] = snapshot_metadata['expires']
     roleinfo['version'] = snapshot_metadata['version']
-    if os.path.exists(snapshot_filename + '.gz'):
-      roleinfo['compressions'].append('gz')
-
-    else:
-      logger.debug('A compressed Snapshot file was not loaded.')
 
     if _metadata_is_partially_loaded('snapshot', signable, roleinfo, repository_name):
       roleinfo['partial_loaded'] = True
@@ -708,11 +687,6 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     roleinfo['version'] = targets_metadata['version']
     roleinfo['expires'] = targets_metadata['expires']
     roleinfo['delegations'] = targets_metadata['delegations']
-    if os.path.exists(targets_filename + '.gz'):
-      roleinfo['compressions'].append('gz')
-
-    else:
-      logger.debug('Compressed Targets file cannot be loaded.')
 
     if _metadata_is_partially_loaded('targets', signable, roleinfo, repository_name):
       roleinfo['partial_loaded'] = True
@@ -1226,7 +1200,7 @@ def get_target_hash(target_filepath):
 
 
 def generate_root_metadata(version, expiration_date, consistent_snapshot,
-    compression_algorithms=['gz'], repository_name='default'):
+  repository_name='default'):
   """
   <Purpose>
     Create the root metadata.  'tuf.roledb.py' and 'tuf.keydb.py'
@@ -1247,11 +1221,6 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
       Boolean.  If True, a file digest is expected to be prepended to the
       filename of any target file located in the targets directory.  Each digest
       is stripped from the target filename and listed in the snapshot metadata.
-
-    compression_algorithms:
-      A list of compression algorithms to use when generating the compressed
-      metadata files for the repository.  The root file specifies the
-      algorithms used by the repository.
 
     repository_name:
       The name of the repository.  If not supplied, 'rolename' is added to the
@@ -1280,7 +1249,6 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version)
   securesystemslib.formats.ISO8601_DATETIME_SCHEMA.check_match(expiration_date)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
-  tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   # The role and key dictionaries to be saved in the root metadata object.
@@ -1343,9 +1311,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
   # Generate the root metadata object.
   root_metadata = tuf.formats.RootFile.make_metadata(version, expiration_date,
-                                                     keydict, roledict,
-                                                     consistent_snapshot,
-                                                     compression_algorithms)
+      keydict, roledict, consistent_snapshot)
 
   return root_metadata
 
@@ -1754,16 +1720,10 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
 
 
 
-def write_metadata_file(metadata, filename, version_number,
-    compression_algorithms, consistent_snapshot):
+def write_metadata_file(metadata, filename, version_number, consistent_snapshot):
   """
   <Purpose>
-    If necessary, write the 'metadata' signable object to 'filename', and the
-    compressed version of the metadata file if 'compression' is set.
-
-    Note:  Compression algorithms like gzip attach a timestamp to compressed
-    files, so a metadata file compressed multiple times may generate different
-    digests even though the uncompressed content has not changed.
+    If necessary, write the 'metadata' signable object to 'filename'.
 
   <Arguments>
     metadata:
@@ -1772,27 +1732,22 @@ def write_metadata_file(metadata, filename, version_number,
 
     filename:
       The filename of the metadata to be written (e.g., 'root.json').
-      If a compression algorithm is specified in 'compression_algorithms', the
-      compression extention is appended to 'filename'.
 
     version_number:
       The version number of the metadata file to be written.  The version
       number is needed for consistent snapshots, which prepend the version
       number to 'filename'.
 
-    compression_algorithms:
-      Specify the algorithms, as a list of strings, used to compress the
-      'metadata'; The only currently available compression option is 'gz'
-      (gzip).
-
     consistent_snapshot:
       Boolean that determines whether the metadata file's digest should be
       prepended to the filename.
 
   <Exceptions>
-    securesystemslib.exceptions.FormatError, if the arguments are improperly formatted.
+    securesystemslib.exceptions.FormatError, if the arguments are improperly
+    formatted.
 
-    securesystemslib.exceptions.Error, if the directory of 'filename' does not exist.
+    securesystemslib.exceptions.Error, if the directory of 'filename' does not
+    exist.
 
     Any other runtime (e.g., IO) exception.
 
@@ -1811,7 +1766,6 @@ def write_metadata_file(metadata, filename, version_number,
   tuf.formats.SIGNABLE_SCHEMA.check_match(metadata)
   securesystemslib.formats.PATH_SCHEMA.check_match(filename)
   tuf.formats.METADATAVERSION_SCHEMA.check_match(version_number)
-  tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
   securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
 
   # Verify the directory of 'filename', and convert 'filename' to its absolute
@@ -1878,110 +1832,16 @@ def write_metadata_file(metadata, filename, version_number,
       os.link(written_consistent_filename, written_filename)
 
     else:
-      raise securesystemslib.exceptions.InvalidConfigurationError('The consistent method specified'
-        ' in tuf.settings.py is not supported, try either "copy" or "hard_link"')
+      raise securesystemslib.exceptions.InvalidConfigurationError('The'
+        ' consistent method specified in tuf.settings.py is not supported, try'
+        ' either "copy" or "hard_link"')
 
   else:
     logger.debug('Not creating a consistent snapshot for ' + repr(written_filename))
     logger.debug('Saving ' + repr(written_filename))
     file_object.move(written_filename)
 
-  # Generate the compressed versions of 'metadata', if necessary.  A compressed
-  # file may be written (without needing to write the uncompressed version) if
-  # the repository maintainer adds compression after writing the uncompressed
-  # version.
-  for compression_algorithm in compression_algorithms:
-    file_object = None
-
-    # Ignore the empty string that signifies non-compression.  The uncompressed
-    # file was previously written above, if necessary.
-    if not len(compression_algorithm):
-      continue
-
-    elif compression_algorithm == 'gz':
-      file_object = securesystemslib.util.TempFile()
-      compressed_filename = filename + '.gz'
-
-      # Instantiate a gzip object, but save compressed content to
-      # 'file_object' (i.e., GzipFile instance is based on its 'fileobj'
-      # argument).
-      gzip_object = gzip.GzipFile(fileobj=file_object, mode='wb')
-      try:
-        gzip_object.write(file_content)
-
-      finally:
-        gzip_object.close()
-
-    # This else clause should not be reached because the
-    # 'compression_algorithms' list is validated against the
-    # COMPRESSIONS_SCHEMA above.
-    else: # pragma: no cover
-      raise securesystemslib.exceptions.FormatError('Unknown compression algorithm:'
-        ' ' + repr(compression_algorithm))
-
-    # Save the compressed version, ensuring an unchanged file is not re-saved.
-    # Re-saving the same compressed version may cause its digest to
-    # unexpectedly change (gzip includes a timestamp) even though content has
-    # not changed.
-    _write_compressed_metadata(file_object, compressed_filename,
-                               True, consistent_snapshot,
-                               version_number)
   return written_filename
-
-
-
-
-
-def _write_compressed_metadata(file_object, compressed_filename,
-                               write_new_metadata, consistent_snapshot, version_number):
-  """
-  Write compressed versions of metadata, ensuring compressed file that have
-  not changed are not re-written, the digest of the compressed file is properly
-  added to the compressed filename, and consistent snapshots are also saved.
-  Ensure compressed files are written to a temporary location, and then
-  moved to their destinations.
-  """
-
-  # If a consistent snapshot is unneeded, 'file_object' may be simply moved
-  # 'compressed_filename' if not already written.
-  if not consistent_snapshot:
-    if write_new_metadata or not os.path.exists(compressed_filename):
-      file_object.move(compressed_filename)
-
-    # The temporary file must be closed if 'file_object.move()' is not used.
-    # securesystemslib.util.TempFile() automatically closes the temp file when move() is
-    # called
-    else:
-      file_object.close_temp_file()
-
-  # consistent snapshots = True.  Ensure the version number is included in the
-  # compressed filename written, provided it does not already exist.
-  else:
-    compressed_content = file_object.read()
-    consistent_filename = None
-    version_and_filename = None
-
-    # Attach the version number to the compressed, consistent snapshot filename.
-    dirname, basename = os.path.split(compressed_filename)
-
-    for compression_extension in SUPPORTED_COMPRESSION_EXTENSIONS:
-      if basename.endswith(compression_extension):
-        basename = basename.split(compression_extension, 1)[0]
-        version_and_filename = str(version_number) + '.' + basename + compression_extension
-        consistent_filename = os.path.join(dirname, version_and_filename)
-
-      else:
-        logger.debug('Skipping compression extension: ' + repr(compression_extension))
-
-    # Move the 'securesystemslib.util.TempFile' object to one of the filenames so that it is
-    # saved and the temporary file closed.
-    if not os.path.exists(consistent_filename):
-      logger.debug('Saving ' + repr(consistent_filename))
-      file_object.move(consistent_filename)
-
-    else:
-      logger.debug('Skipping already written compressed file:'
-        ' ' + repr(consistent_filename))
 
 
 
