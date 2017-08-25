@@ -134,7 +134,6 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
 
     roleinfo['signatures'] = []
     roleinfo['signing_keyids'] = []
-    roleinfo['compressions'] = ['']
     roleinfo['partial_loaded'] = False
 
     if rolename.startswith('targets'):

@@ -545,10 +545,7 @@ class TestRoledb(unittest.TestCase):
     compression_algorithms = ['gz']
 
     root_metadata = tuf.formats.RootFile.make_metadata(version,
-                                                       expires,
-                                                       keydict, roledict,
-                                                       consistent_snapshot,
-                                                       compression_algorithms)
+        expires, keydict, roledict, consistent_snapshot)
     self.assertEqual(None,
                      tuf.roledb.create_roledb_from_root_metadata(root_metadata))
 
@@ -594,12 +591,9 @@ class TestRoledb(unittest.TestCase):
     # Generate 'root_metadata' to verify that 'release' and 'root' are added
     # to the role database.
     root_metadata = tuf.formats.RootFile.make_metadata(version,
-                                                       expires,
-                                                       keydict, roledict,
-                                                       consistent_snapshot,
-                                                       compression_algorithms)
+        expires, keydict, roledict, consistent_snapshot)
     self.assertEqual(None,
-                     tuf.roledb.create_roledb_from_root_metadata(root_metadata))
+        tuf.roledb.create_roledb_from_root_metadata(root_metadata))
 
     # Ensure only 'root' and 'release' were added to the role database.
     self.assertEqual(2, len(tuf.roledb._roledb_dict['default']))
