@@ -358,11 +358,9 @@ class TestFormats(unittest.TestCase):
     ROOT_SCHEMA = tuf.formats.ROOT_SCHEMA
 
     self.assertTrue(ROOT_SCHEMA.matches(make_metadata(version, expires,
-                                                      keydict, roledict,
-                                                      consistent_snapshot,
-                                                      compression_algorithms)))
+        keydict, roledict, consistent_snapshot)))
     metadata = make_metadata(version, expires, keydict, roledict,
-                             consistent_snapshot, compression_algorithms)
+        consistent_snapshot)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.RootFile))
 
     # Test conditions for invalid arguments.
@@ -372,26 +370,14 @@ class TestFormats(unittest.TestCase):
     bad_roledict = 123
     bad_compression_algorithms = ['nozip']
 
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, bad_version,
-                                                      expires,
-                                                      keydict, roledict,
-                                                      consistent_snapshot,
-                                                      compression_algorithms)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version,
-                                                      bad_expires,
-                                                      keydict, roledict,
-                                                      consistent_snapshot,
-                                                      compression_algorithms)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version,
-                                                      expires,
-                                                      bad_keydict, roledict,
-                                                      consistent_snapshot,
-                                                      compression_algorithms)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version,
-                                                      expires,
-                                                      keydict, bad_roledict,
-                                                      consistent_snapshot,
-                                                      compression_algorithms)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
+        bad_version, expires, keydict, roledict, consistent_snapshot)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
+        version, bad_expires, keydict, roledict, consistent_snapshot)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
+        version, expires, bad_keydict, roledict, consistent_snapshot)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
+        version, expires, keydict, bad_roledict, consistent_snapshot)
 
     self.assertRaises(securesystemslib.exceptions.FormatError, from_metadata, 'bad')
 
