@@ -382,11 +382,9 @@ class TestRepository(unittest.TestCase):
     # Verify the expected filenames.  get_filepaths_in_directory() returns
     # a list of absolute paths.
     metadata_files = repo.get_filepaths_in_directory(metadata_directory)
-    expected_files = ['1.root.json', '1.root.json.gz', 'root.json',
-                      'targets.json', 'targets.json.gz', 'snapshot.json',
-                      'snapshot.json.gz', 'timestamp.json',
-                      'timestamp.json.gz', 'role1.json', 'role1.json.gz',
-                      'role2.json', 'role2.json.gz']
+    expected_files = ['1.root.json', 'root.json',
+                      'targets.json', 'snapshot.json',
+                      'timestamp.json', 'role1.json', 'role2.json']
 
     basenames = []
     for filepath in metadata_files:
@@ -1682,11 +1680,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     with open(bad_root_content, 'wb') as file_object:
       file_object.write(b'bad')
-
-    # Remove the compressed version of role1 to test whether the
-    # load_repository() complains or not (it logs a message).
-    role1_path = os.path.join(metadata_directory, 'role1.json.gz')
-    os.remove(role1_path)
 
     repository = repo_tool.load_repository(repository_directory)
     self.assertTrue(isinstance(repository, repo_tool.Repository))
