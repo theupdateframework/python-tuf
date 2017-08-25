@@ -199,7 +199,6 @@ class TestFormats(unittest.TestCase):
                       {'_type': 'root',
                        'version': 8,
                        'consistent_snapshot': False,
-                       'compression_algorithms': ['gz'],
                        'expires': '1985-10-21T13:20:00Z',
                        'keys': {'123abc': {'keytype': 'rsa',
                                            'scheme': 'rsassa-pss-sha256',
@@ -351,8 +350,6 @@ class TestFormats(unittest.TestCase):
                          'threshold': 1,
                          'paths': ['path1/', 'path2']}}
 
-    compression_algorithms = ['gz']
-
     make_metadata = tuf.formats.RootFile.make_metadata
     from_metadata = tuf.formats.RootFile.from_metadata
     ROOT_SCHEMA = tuf.formats.ROOT_SCHEMA
@@ -368,7 +365,6 @@ class TestFormats(unittest.TestCase):
     bad_expires = 'eight'
     bad_keydict = 123
     bad_roledict = 123
-    bad_compression_algorithms = ['nozip']
 
     self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
         bad_version, expires, keydict, roledict, consistent_snapshot)
@@ -545,7 +541,6 @@ class TestFormats(unittest.TestCase):
     root = {'_type': 'root',
             'version': 8,
             'consistent_snapshot': False,
-            'compression_algorithms': ['gz'],
             'expires': '1985-10-21T13:20:00Z',
             'keys': {'123abc': {'keytype': 'rsa',
                                 'scheme': 'rsassa-pss-sha256',
@@ -695,7 +690,6 @@ class TestFormats(unittest.TestCase):
     root = {'_type': 'root',
             'version': 8,
             'consistent_snapshot': False,
-            'compression_algorithms': ['gz'],
             'expires': '1985-10-21T13:20:00Z',
             'keys': {'123abc': {'keytype': 'rsa',
                                 'scheme': 'rsassa-pss-sha256',
