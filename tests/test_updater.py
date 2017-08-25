@@ -688,18 +688,16 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # version is installed if the compressed one is downloaded.
     self.assertFalse('targets' in self.repository_updater.metadata['current'])
     self.repository_updater._update_metadata('targets',
-                                             DEFAULT_TARGETS_FILELENGTH,
-                                             targets_versioninfo['version'],
-                                             'gzip')
+        DEFAULT_TARGETS_FILELENGTH, targets_versioninfo['version'])
     self.assertTrue('targets' in self.repository_updater.metadata['current'])
     self.assertEqual(targets_versioninfo['version'],
-              self.repository_updater.metadata['current']['targets']['version'])
+        self.repository_updater.metadata['current']['targets']['version'])
 
     # Test: Invalid / untrusted version numbers.
     # Invalid version number for the uncompressed version of 'targets.json'.
     self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
-                      self.repository_updater._update_metadata,
-                      'targets', DEFAULT_TARGETS_FILELENGTH, 88)
+        self.repository_updater._update_metadata,
+        'targets', DEFAULT_TARGETS_FILELENGTH, 88)
 
     # Verify that the specific exception raised is correct for the previous
     # case.
@@ -711,19 +709,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
 
-    # Invalid version number for the compressed version of 'targets.json'
-    self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
-                      self.repository_updater._update_metadata,
-                      'targets', DEFAULT_TARGETS_FILELENGTH, 88,
-                      'gzip')
-
     # Verify that the specific exception raised is correct for the previous
     # case.  The version number is checked, so the specific error in
     # this case should be 'securesystemslib.exceptions.BadVersionNumberError'.
     try:
       self.repository_updater._update_metadata('targets',
                                                DEFAULT_TARGETS_FILELENGTH,
-                                               88, 'gzip')
+                                               88)
 
     except tuf.exceptions.NoWorkingMirrorError as e:
       for mirror_error in six.itervalues(e.mirror_errors):
