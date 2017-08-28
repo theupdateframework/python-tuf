@@ -694,7 +694,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         self.repository_updater.metadata['current']['targets']['version'])
 
     # Test: Invalid / untrusted version numbers.
-    # Invalid version number for the uncompressed version of 'targets.json'.
+    # Invalid version number for 'targets.json'.
     self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
         self.repository_updater._update_metadata,
         'targets', DEFAULT_TARGETS_FILELENGTH, 88)
@@ -720,6 +720,37 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     except tuf.exceptions.NoWorkingMirrorError as e:
       for mirror_error in six.itervalues(e.mirror_errors):
         assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
+
+
+
+
+
+  def test_3__get_metadata_file(self):
+
+    valid_tuf_version = tuf.formats.TUF_VERSION_NUMBER
+    tuf.formats.TUF_VERSION_NUMBER = '2'
+
+    repository = repo_tool.load_repository(self.repository_directory)
+
+    repository.root.load_signing_key(self.role_keys['root']['private'])
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.writeall()
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    upperbound_filelength = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
+    self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
+        self.repository_updater._get_metadata_file, 'root', 'root.json',
+        upperbound_filelength, 1)
+
+    # Reset the TUF_VERSION_NUMBER so that subsequent unit tests use the
+    # expected value.
+    tuf.formats.TUF_VERSION_NUMBER = valid_tuf_version
 
 
 
