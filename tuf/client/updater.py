@@ -1071,8 +1071,8 @@ class Updater(object):
         # version number of new metadata equals our expected major version
         # number, the new metadata is safe to parse.
         try:
-          spec_version_parsed = metadata_signable['spec_version'].split('.')
-          if int(spec_version_parsed[0]) != SUPPORTE_MAJOR_VERSION:
+          spec_version_parsed = metadata_signable['signed']['spec_version'].split('.')
+          if int(spec_version_parsed[0]) != SUPPORTED_MAJOR_VERSION:
             raise securesystemslib.exceptions.BadVersionNumberError('Downloaded'
               ' metadata that specifies an unsupported spec_version.  Supported'
               ' major version number: ' + repr(SUPPORTED_MAJOR_VERSION))
