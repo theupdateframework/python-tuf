@@ -749,19 +749,17 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     root_signable = securesystemslib.util.load_json_file(root_filename)
 
     output_filename = os.path.join(temporary_directory, 'root.json')
-    compression_algorithms = ['gz']
     version_number = root_signable['signed']['version'] + 1
 
     self.assertFalse(os.path.exists(output_filename))
     repo_lib.write_metadata_file(root_signable, output_filename, version_number,
-        compression_algorithms, consistent_snapshot=False)
+        consistent_snapshot=False)
     self.assertTrue(os.path.exists(output_filename))
-    self.assertTrue(os.path.exists(output_filename + '.gz'))
 
     # Attempt to over-write the previously written metadata file.  An exception
     # is not raised in this case, only a debug message is logged.
     repo_lib.write_metadata_file(root_signable, output_filename, version_number,
-        compression_algorithms, consistent_snapshot=False)
+        consistent_snapshot=False)
 
     # Try to write a consistent metadate file. An exception is not raised in
     # this case.  For testing purposes, root.json should be a hard link to the
@@ -769,7 +767,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # the latest consistent files.
     tuf.settings.CONSISTENT_METHOD = 'hard_link'
     repo_lib.write_metadata_file(root_signable, output_filename, version_number,
-        compression_algorithms, consistent_snapshot=True)
+        consistent_snapshot=True)
 
     # Test if the consistent files are properly named
     # Filename format of a consistent file: <version number>.rolename.json
@@ -780,9 +778,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Try to add more consistent metadata files.
     version_number += 1
     repo_lib.write_metadata_file(root_signable, output_filename,
-                                 version_number,
-                                 compression_algorithms,
-                                 consistent_snapshot=True)
+        version_number, consistent_snapshot=True)
 
     # Test if the the latest root.json points to the expected consistent file
     # and consistent metadata do not all point to the same root.json
@@ -796,76 +792,34 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     tuf.settings.CONSISTENT_METHOD = 'somebadidea'
     self.assertRaises(securesystemslib.exceptions.InvalidConfigurationError,
         repo_lib.write_metadata_file, root_signable, output_filename,
-        version_number, compression_algorithms, consistent_snapshot=True)
+        version_number, consistent_snapshot=True)
 
     # Try to create a link to root.json when root.json doesn't exist locally.
     # repository_lib should log a message if this is the case.
     tuf.settings.CONSISTENT_METHOD = 'hard_link'
     os.remove(output_filename)
     repo_lib.write_metadata_file(root_signable, output_filename, version_number,
-        compression_algorithms, consistent_snapshot=True)
+        consistent_snapshot=True)
 
     # Reset CONSISTENT_METHOD so that subsequent tests work as expected.
     tuf.settings.CONSISTENT_METHOD = 'copy'
 
-    # Test for unknown compression algorithm.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.write_metadata_file,
-        root_signable, output_filename, version_number, compression_algorithms=['bad_algo'],
-        consistent_snapshot=False)
-
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.write_metadata_file,
-                      3, output_filename, version_number,
-                      compression_algorithms, False)
+        3, output_filename, version_number, False)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.write_metadata_file,
-                      root_signable, 3, version_number, compression_algorithms,
-                      False)
+        root_signable, 3, version_number, False)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.write_metadata_file,
-                      root_signable, output_filename, '3',
-                      compression_algorithms, False)
+        root_signable, output_filename, '3', False)
     self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.write_metadata_file,
-                      root_signable, output_filename, version_number,
-                      compression_algorithms, 3)
+        root_signable, output_filename, version_number, 3)
 
-
-
-  def test__write_compressed_metadata(self):
-    # Test for invalid 'compressed_filename' argument and set
-    # 'write_new_metadata' to False.
-    file_object = securesystemslib.util.TempFile()
-    existing_filename = os.path.join('repository_data', 'repository',
-                                     'metadata', 'root.json')
-
-    write_new_metadata = False
-    repo_lib._write_compressed_metadata(file_object,
-                                        compressed_filename=existing_filename,
-                                        write_new_metadata=write_new_metadata,
-                                        consistent_snapshot=False,
-                                        version_number=8)
-
-    # Test writing of compressed metadata when consistent snapshots is enabled.
-    file_object = securesystemslib.util.TempFile()
-    shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.json.gz'))
-    shutil.copy(existing_filename, os.path.join(self.temporary_directory, '8.root.json.zip'))
-    shutil.copy(existing_filename, os.path.join(self.temporary_directory, 'root.json.zip'))
-    compressed_filename = os.path.join(self.temporary_directory, 'root.json.gz')
-
-    # For testing purposes, add additional compression algorithms to
-    # repo_lib.SUPPORTED_COMPRESSION_EXTENSIONS.
-    repo_lib.SUPPORTED_COMPRESSION_EXTENSIONS = ['gz', 'zip', 'bz2']
-    repo_lib._write_compressed_metadata(file_object,
-                                        compressed_filename=compressed_filename,
-                                        write_new_metadata=True,
-                                        consistent_snapshot=True,
-                                        version_number=8)
-    repo_lib.SUPPORTED_COMPRESSION_EXTENSIONS = ['gz']
 
 
   def test_create_tuf_client_directory(self):
     # Test normal case.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
-    repository_directory = os.path.join('repository_data',
-                                        'repository')
+    repository_directory = os.path.join('repository_data', 'repository')
     client_directory = os.path.join(temporary_directory, 'client')
 
     repo_lib.create_tuf_client_directory(repository_directory, client_directory)
@@ -881,15 +835,16 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.create_tuf_client_directory,
-                      3, client_directory)
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_lib.create_tuf_client_directory,
-                      repository_directory, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_lib.create_tuf_client_directory, 3, client_directory)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_lib.create_tuf_client_directory, repository_directory, 3)
 
 
     # Test invalid argument (i.e., client directory already exists.)
-    self.assertRaises(securesystemslib.exceptions.RepositoryError, repo_lib.create_tuf_client_directory,
-                      repository_directory, client_directory)
+    self.assertRaises(securesystemslib.exceptions.RepositoryError,
+        repo_lib.create_tuf_client_directory, repository_directory,
+        client_directory)
 
     # Test invalid client metadata directory (i.e., non-errno.EEXIST exceptions
     # should be re-raised.)
@@ -903,7 +858,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     os.chmod(client_directory, current_client_directory_mode & ~stat.S_IWUSR)
 
     self.assertRaises(OSError, repo_lib.create_tuf_client_directory,
-                      repository_directory, client_directory)
+        repository_directory, client_directory)
 
     # Reset the client directory's mode.
     os.chmod(client_directory, current_client_directory_mode)
@@ -912,7 +867,8 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
   def test__check_directory(self):
     # Test for non-existent directory.
-    self.assertRaises(securesystemslib.exceptions.Error, repo_lib._check_directory, 'non-existent')
+    self.assertRaises(securesystemslib.exceptions.Error,
+        repo_lib._check_directory, 'non-existent')
 
 
 
@@ -954,8 +910,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     repo_lib._generate_and_write_metadata('obsolete_role', obsolete_metadata,
         targets_directory, metadata_directory, consistent_snapshot=False,
-        filenames=None, compression_algorithms=['gz'],
-        repository_name=repository_name)
+        filenames=None, repository_name=repository_name)
 
     snapshot_filepath = os.path.join('repository_data', 'repository',
                                      'metadata', 'snapshot.json')
@@ -1022,19 +977,12 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     signable = securesystemslib.util.load_json_file(os.path.join(metadata_directory, 'root.json'))
     signable['signatures'].append(signable['signatures'][0])
 
-    repo_lib.write_metadata_file(signable, root_file, 8, ['gz'], False)
+    repo_lib.write_metadata_file(signable, root_file, 8, False)
 
     # Attempt to load a repository that contains a compressed Root file.
     repository = repo_tool.create_new_repository(repository_directory, repository_name)
     filenames = repo_lib.get_metadata_filenames(metadata_directory)
     repo_lib._load_top_level_metadata(repository, filenames, repository_name)
-
-    # Remove compressed metadata so that we can test for loading of a
-    # repository with no compression enabled.
-    for role_file in os.listdir(metadata_directory):
-      if role_file.endswith('.json.gz'):
-        role_filename = os.path.join(metadata_directory, role_file)
-        os.remove(role_filename)
 
     filenames = repo_lib.get_metadata_filenames(metadata_directory)
     repository = repo_tool.create_new_repository(repository_directory, repository_name)

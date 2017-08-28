@@ -147,10 +147,6 @@ METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=0)
 # A value that is either True or False, on or off, etc.
 BOOLEAN_SCHEMA = SCHEMA.Boolean()
 
-# List of supported compression extensions.
-COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
-  SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
-
 # A string representing a role's name.
 ROLENAME_SCHEMA = SCHEMA.AnyString()
 
@@ -268,13 +264,6 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
 # as requiring them to be a power of 2.
 NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
-# Supported compression extension (e.g., 'gz').
-COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
-
-# List of supported compression extensions.
-COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
-  SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
-
 # The fileinfo format of targets specified in the repository and
 # developer tools.  The second element of this list holds custom data about the
 # target, such as file permissions, author(s), last modified, etc.
@@ -295,7 +284,6 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
   expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
   signatures = SCHEMA.Optional(securesystemslib.formats.SIGNATURES_SCHEMA),
-  compressions = SCHEMA.Optional(COMPRESSIONS_SCHEMA),
   paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
@@ -313,7 +301,6 @@ ROOT_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('root'),
   version = METADATAVERSION_SCHEMA,
   consistent_snapshot = BOOLEAN_SCHEMA,
-  compression_algorithms = COMPRESSIONS_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)
@@ -532,16 +519,13 @@ class TimestampFile(MetaFile):
 
 
 class RootFile(MetaFile):
-  def __init__(self, version, expires, keys, roles, consistent_snapshot,
-               compression_algorithms):
+  def __init__(self, version, expires, keys, roles, consistent_snapshot):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
     self.info['keys'] = keys
     self.info['roles'] = roles
     self.info['consistent_snapshot'] = consistent_snapshot
-    self.info['compression_algorithms'] = compression_algorithms
-
 
   @staticmethod
   def from_metadata(object):
@@ -554,22 +538,19 @@ class RootFile(MetaFile):
     keys = object['keys']
     roles = object['roles']
     consistent_snapshot = object['consistent_snapshot']
-    compression_algorithms = object['compression_algorithms']
 
-    return RootFile(version, expires, keys, roles, consistent_snapshot,
-                    compression_algorithms)
+    return RootFile(version, expires, keys, roles, consistent_snapshot)
 
 
   @staticmethod
   def make_metadata(version, expiration_date, keydict, roledict,
-                    consistent_snapshot, compression_algorithms):
+                    consistent_snapshot):
     result = {'_type' : 'root'}
     result['version'] = version
     result['expires'] = expiration_date
     result['keys'] = keydict
     result['roles'] = roledict
     result['consistent_snapshot'] = consistent_snapshot
-    result['compression_algorithms'] = compression_algorithms
 
     # Is 'result' a Root metadata file?
     # Raise 'securesystemslib.exceptions.FormatError' if not.

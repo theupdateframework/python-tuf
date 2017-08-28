@@ -134,9 +134,6 @@ from tuf.repository_tool import TARGETS_DIRECTORY_NAME
 # The full list of supported TUF metadata extensions.
 from tuf.repository_lib import METADATA_EXTENSIONS
 
-# The recognized compression extensions.
-from tuf.repository_lib import SUPPORTED_COMPRESSION_EXTENSIONS
-
 # Supported key types.
 from tuf.repository_lib import SUPPORTED_KEY_TYPES
 
@@ -525,9 +522,8 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
   if tuf.sig.verify(signable, rolename, repository_name) or write_partial:
     _remove_invalid_and_duplicate_signatures(signable, repository_name)
-    compressions = roleinfo['compressions']
     filename = write_metadata_file(signable, metadata_filename,
-        metadata['version'], compressions, False)
+        metadata['version'], False)
 
   # 'signable' contains an invalid threshold of signatures.
   else:
@@ -912,7 +908,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
   for role in targets_metadata['delegations']['roles']:
     rolename = role['name']
     roleinfo = {'name': role['name'], 'keyids': role['keyids'],
-                'threshold': role['threshold'], 'compressions': [''],
+                'threshold': role['threshold'],
                 'signing_keyids': [], 'signatures': [], 'partial_loaded':False,
                 'delegations': {'keys':{}, 'roles':[]}
                 }
@@ -967,9 +963,6 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       roleinfo['delegations'] = metadata_object['delegations']
       roleinfo['partial_loaded'] = False
 
-      if os.path.exists(metadata_path+'.gz'):
-        roleinfo['compressions'].append('gz')
-
       # If the metadata was partially loaded, update the roleinfo flag.
       if _metadata_is_partially_loaded(metadata_name, signable, roleinfo,
           repository_name=repository_name):
@@ -1003,8 +996,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
         rolename = role['name']
         roleinfo = {'name': role['name'], 'keyids': role['keyids'],
                     'threshold': role['threshold'],
-                    'compressions': [''], 'signing_keyids': [],
-                    'signatures': [],
+                    'signing_keyids': [], 'signatures': [],
                     'partial_loaded': False,
                     'delegations': {'keys': {},
                                     'roles': []}}

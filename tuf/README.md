@@ -202,8 +202,8 @@ top-level roles, including itself.
 
 # A role's verification key(s) (to be more precise, the verification key's
 # keyid) may be queried.  Other attributes include: signing_keys, version,
-# signatures, expiration, threshold, delegations (attribute available only to a
-# Targets role), and compressions.
+# signatures, expiration, threshold, and delegations (attribute available only
+# to a Targets role).
 >>> repository.root.keys
 ['b23514431a53676595922e955c2d547293da4a7917e3ca243a175e72bbf718df']
 
