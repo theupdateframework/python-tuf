@@ -647,6 +647,7 @@ class TargetsFile(MetaFile):
     result['version'] = version
     result['expires'] = expiration_date
     result['targets'] = {}
+
     if filedict is not None:
       result['targets'] = filedict
     if delegations is not None:
