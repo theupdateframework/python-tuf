@@ -420,13 +420,6 @@ Version: **1.0 (Draft)**
          Signed by the mirrors role's keys.  Lists information about available
          mirrors and the content available from each mirror.
 
-   An implementation of the framework may optionally choose to make available
-   any metadata files in compressed (e.g. gzip'd) format.  In doing so, the
-   filename of the compressed file should be the same as the original with the
-   addition of the file name extension for the compression type (e.g.
-   snapshot.json.gz).  The original (uncompressed) file should always be made
-   available, as well.
-
   + **3.1.2.1 Metadata files for targets delegation**
 
    When the targets role delegates trust to other roles, each delegated role
@@ -541,7 +534,6 @@ Version: **1.0 (Draft)**
    The "signed" portion of root.json is as follows:
 
        { "_type" : "root",
-         "compression_algorithms": [ COMPRESSION_ALGORITHM, ... ],
          "consistent_snapshot": CONSISTENT_SNAPSHOT,
          "version" : VERSION,
          "expires" : EXPIRES,
@@ -554,11 +546,6 @@ Version: **1.0 (Draft)**
                "threshold" : THRESHOLD }
              , ... }
        }
-
-   COMPRESSION_ALGORITHM specifies one of the compression algorithms supported
-   by the repository.  Metadata files available on the repository may
-   optionally be compressed with this algorithm.  Compressed versions of
-   metadata are not listed in snapshot.json.
 
    CONSISTENT_SNAPSHOT is a boolean indicating whether the repository supports
    consistent snapshots.  Section 7 goes into more detail on the consequences
