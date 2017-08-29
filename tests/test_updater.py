@@ -1495,6 +1495,22 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
+  def test_10__preorder_depth_first_walk(self):
+
+    # Test that infinit loop is prevented if the target file is not found and
+    # the max number of delegations is reached.
+    valid_max_number_of_delegations = tuf.settings.MAX_NUMBER_OF_DELEGATIONS
+    tuf.settings.MAX_NUMBER_OF_DELEGATIONS = 0
+    self.assertEqual(None, self.repository_updater._preorder_depth_first_walk('unknown.txt'))
+
+    # Reset
+    tuf.settings.MAX_NUMBER_OF_DELEGATIONS = valid_max_number_of_delegations
+
+
+
+
+
+
   def test_10__visit_child_role(self):
     # Call _visit_child_role and test the dict keys: 'paths',
     # 'path_hash_prefixes', and if both are missing.
@@ -1506,21 +1522,18 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     child_role = role1['delegations']['roles'][0]
     child_role['paths'] = ['/target.exe']
 
-    '''
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
-                     '/file3.txt', targets_role['delegations']), child_role['name'])
+                     '/target.exe', targets_role['delegations']), child_role['name'])
 
     # Test path hash prefixes.
     child_role['path_hash_prefixes'] = ['8baf', '0000']
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
                      '/file3.txt', targets_role['delegations']), child_role['name'])
 
-    '''
     # Test for forbidden target.
     self.repository_updater._visit_child_role(child_role,
         '/target.exe', targets_role['delegations'])
 
-    '''
     # Test if unequal path_hash_prefixes are skipped.
     child_role['path_hash_prefixes'] = ['bad', 'bad']
     self.assertEqual(None, self.repository_updater._visit_child_role(child_role,
@@ -1531,7 +1544,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     del child_role['path_hash_prefixes']
     self.assertRaises(securesystemslib.exceptions.FormatError, self.repository_updater._visit_child_role,
                       child_role, targets_role['delegations'], child_role['name'])
-    '''
+
 
 
   def test_11__verify_uncompressed_metadata_file(self):
