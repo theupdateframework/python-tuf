@@ -1073,13 +1073,15 @@ class Updater(object):
         try:
           spec_version_parsed = metadata_signable['signed']['spec_version'].split('.')
           if int(spec_version_parsed[0]) != SUPPORTED_MAJOR_VERSION:
-            raise securesystemslib.exceptions.BadVersionNumberError('Downloaded'
-              ' metadata that specifies an unsupported spec_version.  Supported'
+            raise securesystemslib.exceptions.BadVersionNumberError(repr(remote_filename) + ' '
+              'specified an unsupported'
+              ' spec_version: ' + repr(spec_version_parsed) + '.  Supported'
               ' major version number: ' + repr(SUPPORTED_MAJOR_VERSION))
 
         except (ValueError, TypeError):
-          raise securesystemslib.excep4tions.FormatError('Improperly'
-            ' formatted spec_version, which must be in major.minor.fix format')
+          raise securesystemslib.exceptions.FormatError('Improperly'
+            ' formatted spec_version, which must be in major.minor.fix format'
+            ' Found incorrect spec_version: ' + repr(spec_version_parsed))
 
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number for
