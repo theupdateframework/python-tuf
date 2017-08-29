@@ -752,10 +752,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.formats.TUF_VERSION_NUMBER = '2'
 
     repository = repo_tool.load_repository(self.repository_directory)
-
-    repository.root.load_signing_key(self.role_keys['root']['private'])
-    repository.targets.load_signing_key(self.role_keys['targets']['private'])
-    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
     repository.writeall()
 
@@ -764,10 +760,33 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
                     os.path.join(self.repository_directory, 'metadata'))
 
-    upperbound_filelength = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
-    self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
-        self.repository_updater._get_metadata_file, 'root', 'root.json',
-        upperbound_filelength, 1)
+    upperbound_filelength = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+    try:
+      self.repository_updater._get_metadata_file('timestamp', 'timestamp.json',
+      upperbound_filelength, 1)
+
+    except tuf.exceptions.NoWorkingMirrorError as e:
+      for mirror_error in six.itervalues(e.mirror_errors):
+        assert isinstance(mirror_error, securesystemslib.exceptions.BadVersionNumberError)
+
+    # Test for an improperly formatted TUF version number.
+    tuf.formats.TUF_VERSION_NUMBER = 'BAD'
+    repository = repo_tool.load_repository(self.repository_directory)
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.writeall()
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory, 'metadata.staged'),
+                    os.path.join(self.repository_directory, 'metadata'))
+
+    try:
+      self.repository_updater._get_metadata_file('timestamp', 'timestamp.json',
+      upperbound_filelength, 1)
+
+    except tuf.exceptions.NoWorkingMirrorError as e:
+      for mirror_error in six.itervalues(e.mirror_errors):
+        assert isinstance(mirror_error, securesystemslib.exceptions.FormatError)
 
     # Reset the TUF_VERSION_NUMBER so that subsequent unit tests use the
     # expected value.
