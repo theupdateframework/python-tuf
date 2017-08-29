@@ -247,7 +247,6 @@ class Repository(object):
       repo_lib._generate_and_write_metadata(dirty_rolename, dirty_filename,
           self._targets_directory, self._metadata_directory,
           consistent_snapshot, filenames,
-          compression_algorithms=compression_algorithms,
           repository_name=self._repository_name)
 
     # Metadata should be written in (delegated targets -> root -> targets ->
@@ -259,14 +258,13 @@ class Repository(object):
       repo_lib._generate_and_write_metadata('root', filenames['root'],
           self._targets_directory, self._metadata_directory,
           consistent_snapshot, filenames,
-          compression_algorithms=compression_algorithms,
           repository_name=self._repository_name)
 
     # Generate the 'targets.json' metadata file.
     if 'targets' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('targets', filenames['targets'],
           self._targets_directory, self._metadata_directory,
-          consistent_snapshot, compression_algorithms=compression_algorithms,
+          consistent_snapshot,
           repository_name=self._repository_name)
 
     # Generate the 'snapshot.json' metadata file.
@@ -274,14 +272,13 @@ class Repository(object):
       snapshot_signable, junk = repo_lib._generate_and_write_metadata('snapshot',
           filenames['snapshot'], self._targets_directory,
           self._metadata_directory, consistent_snapshot, filenames,
-          compression_algorithms=compression_algorithms,
           repository_name=self._repository_name)
 
     # Generate the 'timestamp.json' metadata file.
     if 'timestamp' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
           self._targets_directory, self._metadata_directory, consistent_snapshot,
-          filenames, compression_algorithms=compression_algorithms,
+          filenames,
           repository_name=self._repository_name)
 
     tuf.roledb.unmark_dirty(dirty_rolenames, self._repository_name)
