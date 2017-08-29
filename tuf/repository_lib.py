@@ -1552,6 +1552,11 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
           fileinfodict[metadata_name] = get_metadata_versioninfo(rolename,
               repository_name)
 
+      else:
+        logger.debug('Metadata file has an unsupported file'
+            ' extension: ' + metadata_filename)
+        continue
+
   # Generate the Snapshot metadata object.
   snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,
                                                              expiration_date,
