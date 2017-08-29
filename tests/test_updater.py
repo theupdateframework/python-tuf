@@ -1579,7 +1579,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       self.repository_updater._hard_check_file_length(targets_path, file_size)
       self.repository_updater._check_hashes(targets_path, file_hashes)
 
+    self.repository_updater._get_file('targets.json', verify_target_file,
+        file_type, file_size, download_safely=True)
 
+    self.repository_updater._get_file('targets.json', verify_target_file,
+        file_type, file_size, download_safely=False)
 
 
 
