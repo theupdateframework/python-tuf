@@ -149,18 +149,6 @@ class UnsupportedLibraryError(Error):
   pass
 
 
-class DecompressionError(Error):
-  """Indicate that some error happened while decompressing a file."""
-
-  def __init__(self, exception):
-    # Store the original exception.
-    self.exception = exception
-
-  def __str__(self):
-    # Show the original exception.
-    return repr(self.exception)
-
-
 class DownloadError(Error):
   """Indicate an error occurred while attempting to download a file."""
   pass

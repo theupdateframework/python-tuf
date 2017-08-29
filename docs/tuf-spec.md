@@ -420,13 +420,6 @@ Version: **1.0 (Draft)**
          Signed by the mirrors role's keys.  Lists information about available
          mirrors and the content available from each mirror.
 
-   An implementation of the framework may optionally choose to make available
-   any metadata files in compressed (e.g. gzip'd) format.  In doing so, the
-   filename of the compressed file should be the same as the original with the
-   addition of the file name extension for the compression type (e.g.
-   snapshot.json.gz).  The original (uncompressed) file should always be made
-   available, as well.
-
   + **3.1.2.1 Metadata files for targets delegation**
 
    When the targets role delegates trust to other roles, each delegated role
@@ -541,7 +534,7 @@ Version: **1.0 (Draft)**
    The "signed" portion of root.json is as follows:
 
        { "_type" : "root",
-         "compression_algorithms": [ COMPRESSION_ALGORITHM, ... ],
+         "spec_version" : SPEC_VERSION,
          "consistent_snapshot": CONSISTENT_SNAPSHOT,
          "version" : VERSION,
          "expires" : EXPIRES,
@@ -555,10 +548,12 @@ Version: **1.0 (Draft)**
              , ... }
        }
 
-   COMPRESSION_ALGORITHM specifies one of the compression algorithms supported
-   by the repository.  Metadata files available on the repository may
-   optionally be compressed with this algorithm.  Compressed versions of
-   metadata are not listed in snapshot.json.
+   SPEC_VERSION is the version number of the specification.  Metadata is
+   written according to version "spec_version" of the specification, and
+   clients MUST verify that "spec_version" matches the expected version number.
+   Adopters are free to determine what is considered a match (e.g., the version
+   number must exactly exactly, or perhaps only the major version number
+   (major.minor.fix).
 
    CONSISTENT_SNAPSHOT is a boolean indicating whether the repository supports
    consistent snapshots.  Section 7 goes into more detail on the consequences
@@ -598,6 +593,7 @@ Version: **1.0 (Draft)**
        ],
        "signed": {
         "_type": "root",
+        "spec_version": "1",
         "consistent_snapshot": false,
         "expires": "2030-01-01T00:00:00Z",
         "keys": {
@@ -670,6 +666,7 @@ Version: **1.0 (Draft)**
    The "signed" portion of snapshot.json is as follows:
 
        { "_type" : "snapshot",
+         "spec_version" : SPEC_VERSION,
          "version" : VERSION,
          "expires" : EXPIRES,
          "meta" : METAFILES
@@ -700,6 +697,7 @@ Version: **1.0 (Draft)**
        ],
        "signed": {
         "_type": "snapshot",
+        "spec_version": "1",
         "expires": "2030-01-01T00:00:00Z",
         "meta": {
          "root.json": {
@@ -721,6 +719,7 @@ Version: **1.0 (Draft)**
    The "signed" portion of targets.json is as follows:
 
        { "_type" : "targets",
+         "spec_version" : SPEC_VERSION,
          "version" : VERSION,
          "expires" : EXPIRES,
          "targets" : TARGETS,
@@ -829,6 +828,7 @@ Version: **1.0 (Draft)**
        ],
        "signed": {
         "_type": "targets",
+        "spec_version": "1",
         "delegations": {
          "keys": {
           "ce3e02e72980b09ca6f5efa68197130b381921e5d0675e2e0c8f3c47e0626bba": {
@@ -884,6 +884,7 @@ Version: **1.0 (Draft)**
    The "signed" portion of timestamp.json is as follows:
 
        { "_type" : "timestamp",
+         "spec_version" : SPEC_VERSION,
          "version" : VERSION,
          "expires" : EXPIRES,
          "meta" : METAFILES
@@ -905,6 +906,7 @@ Version: **1.0 (Draft)**
        ],
        "signed": {
         "_type": "timestamp",
+        "spec_version": "1",
         "expires": "2030-01-01T00:00:00Z",
         "meta": {
          "snapshot.json": {
@@ -929,6 +931,7 @@ Version: **1.0 (Draft)**
 
 
       { "_type" : "mirrors",
+       "spec_version" : SPEC_VERSION,
        "version" : VERSION,
        "expires" : EXPIRES,
        "mirrors" : [

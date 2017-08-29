@@ -85,6 +85,13 @@ import securesystemslib.schema as SCHEMA
 
 import six
 
+
+# TUF specification version.  The constant should be updated when the version
+# number of the specification changes.  All metadata should list this version
+# number.
+TUF_VERSION_NUMBER = '1.0'
+SPECIFICATION_VERSION_SCHEMA = SCHEMA.AnyString()
+
 # A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator
 # for the zero UTC offset is always used (i.e., a numerical offset is not
 # supported.)  Example: '2015-10-21T13:20:00Z'.  Note:  This is a simple format
@@ -146,10 +153,6 @@ METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=0)
 
 # A value that is either True or False, on or off, etc.
 BOOLEAN_SCHEMA = SCHEMA.Boolean()
-
-# List of supported compression extensions.
-COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
-  SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
 
 # A string representing a role's name.
 ROLENAME_SCHEMA = SCHEMA.AnyString()
@@ -268,13 +271,6 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
 # as requiring them to be a power of 2.
 NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
-# Supported compression extension (e.g., 'gz').
-COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
-
-# List of supported compression extensions.
-COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
-  SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
-
 # The fileinfo format of targets specified in the repository and
 # developer tools.  The second element of this list holds custom data about the
 # target, such as file permissions, author(s), last modified, etc.
@@ -295,7 +291,6 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
   expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
   signatures = SCHEMA.Optional(securesystemslib.formats.SIGNATURES_SCHEMA),
-  compressions = SCHEMA.Optional(COMPRESSIONS_SCHEMA),
   paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
@@ -311,9 +306,9 @@ SIGNABLE_SCHEMA = SCHEMA.Object(
 ROOT_SCHEMA = SCHEMA.Object(
   object_name = 'ROOT_SCHEMA',
   _type = SCHEMA.String('root'),
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = METADATAVERSION_SCHEMA,
   consistent_snapshot = BOOLEAN_SCHEMA,
-  compression_algorithms = COMPRESSIONS_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)
@@ -322,6 +317,7 @@ ROOT_SCHEMA = SCHEMA.Object(
 TARGETS_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETS_SCHEMA',
   _type = SCHEMA.String('targets'),
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   targets = FILEDICT_SCHEMA,
@@ -334,6 +330,7 @@ SNAPSHOT_SCHEMA = SCHEMA.Object(
   _type = SCHEMA.String('snapshot'),
   version = securesystemslib.formats.METADATAVERSION_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   meta = FILEINFODICT_SCHEMA)
 
 # Timestamp role: indicates the latest version of the snapshot file.
@@ -458,7 +455,6 @@ def make_signable(object):
 
 
 
-
 class MetaFile(object):
   """
   <Purpose>
@@ -519,6 +515,7 @@ class TimestampFile(MetaFile):
   @staticmethod
   def make_metadata(version, expiration_date, filedict):
     result = {'_type' : 'timestamp'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['meta'] = filedict
@@ -532,16 +529,13 @@ class TimestampFile(MetaFile):
 
 
 class RootFile(MetaFile):
-  def __init__(self, version, expires, keys, roles, consistent_snapshot,
-               compression_algorithms):
+  def __init__(self, version, expires, keys, roles, consistent_snapshot):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
     self.info['keys'] = keys
     self.info['roles'] = roles
     self.info['consistent_snapshot'] = consistent_snapshot
-    self.info['compression_algorithms'] = compression_algorithms
-
 
   @staticmethod
   def from_metadata(object):
@@ -554,22 +548,19 @@ class RootFile(MetaFile):
     keys = object['keys']
     roles = object['roles']
     consistent_snapshot = object['consistent_snapshot']
-    compression_algorithms = object['compression_algorithms']
 
-    return RootFile(version, expires, keys, roles, consistent_snapshot,
-                    compression_algorithms)
+    return RootFile(version, expires, keys, roles, consistent_snapshot)
 
 
   @staticmethod
-  def make_metadata(version, expiration_date, keydict, roledict,
-                    consistent_snapshot, compression_algorithms):
+  def make_metadata(version, expiration_date, keydict, roledict, consistent_snapshot):
     result = {'_type' : 'root'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['keys'] = keydict
     result['roles'] = roledict
     result['consistent_snapshot'] = consistent_snapshot
-    result['compression_algorithms'] = compression_algorithms
 
     # Is 'result' a Root metadata file?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
@@ -604,6 +595,7 @@ class SnapshotFile(MetaFile):
   @staticmethod
   def make_metadata(version, expiration_date, versiondict):
     result = {'_type' : 'snapshot'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['meta'] = versiondict
@@ -651,9 +643,11 @@ class TargetsFile(MetaFile):
         ' empty targets metadata.')
 
     result = {'_type' : 'targets'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['targets'] = {}
+
     if filedict is not None:
       result['targets'] = filedict
     if delegations is not None:

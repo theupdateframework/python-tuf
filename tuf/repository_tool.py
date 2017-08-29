@@ -186,7 +186,7 @@ class Repository(object):
 
 
 
-  def writeall(self, consistent_snapshot=False, compression_algorithms=['gz']):
+  def writeall(self, consistent_snapshot=False):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files.
@@ -201,11 +201,6 @@ class Repository(object):
         <version_number>.root.json, <version_number>.targets.json.gz,
         <version_number>.README.json
         Example: 13.root.json'
-
-      compression_algorithms:
-        A list of compression algorithms.  Each of these algorithms will be
-        used to compress all of the metadata available on the repository.
-        By default, all metadata is compressed with gzip.
 
     <Exceptions>
       tuf.exceptions.UnsignedMetadataError, if any of the top-level
@@ -224,7 +219,6 @@ class Repository(object):
     # 'securesystemslib.exceptions.FormatError' if any are improperly
     # formatted.
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
-    tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
 
     # At this point, tuf.keydb and tuf.roledb must be fully populated,
     # otherwise writeall() throws a 'tuf.exceptions.UnsignedMetadataError' for
@@ -557,8 +551,8 @@ class Metadata(object):
     top-level roles: Root, Targets, Snapshot, and Timestamp.  The Metadata
     class provides methods that are needed by all top-level roles, such as
     adding and removing public keys, private keys, and signatures.  Metadata
-    attributes, such as rolename, version, threshold, expiration, key list, and
-    compressions, is also provided by the Metadata base class.
+    attributes, such as rolename, version, threshold, expiration, and key list
+    are also provided by the Metadata base class.
 
   <Arguments>
     None.
@@ -1325,87 +1319,6 @@ class Metadata(object):
 
 
 
-  @property
-  def compressions(self):
-    """
-    <Purpose>
-      A getter method that returns a list of the file compression algorithms
-      used when the metadata is written to disk.  If ['gz'] is set for the
-      'targets.json' role, the metadata files 'targets.json' and
-      'targets.json.gz' are written.
-
-      >>>
-      >>>
-      >>>
-
-    <Arguments>
-      None.
-
-    <Exceptions>
-      None.
-
-    <Side Effects>
-      None.
-
-    <Returns>
-      A list of compression algorithms, conformant to
-      'tuf.formats.COMPRESSIONS_SCHEMA'.
-    """
-
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
-    compressions = roleinfo['compressions']
-
-    return compressions
-
-
-
-  @compressions.setter
-  def compressions(self, compression_list):
-    """
-    <Purpose>
-      A setter method for the file compression algorithms used when the
-      metadata is written to disk.  If ['gz'] is set for the 'targets.json' role
-      the metadata files 'targets.json' and 'targets.json.gz' are written.
-
-      >>>
-      >>>
-      >>>
-
-    <Arguments>
-      compression_list:
-        A list of file compression algorithms, conformant to
-        'tuf.formats.COMPRESSIONS_SCHEMA'.
-
-    <Exceptions>
-      securesystemslib.exceptions.FormatError, if 'compression_list' is
-      improperly formatted.
-
-    <Side Effects>
-      Updates the role's compression algorithms listed in 'tuf.roledb.py'.
-
-    <Returns>
-      None.
-    """
-
-    # Does 'compression_name' have the correct format?
-    # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.  Raise
-    # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_list)
-
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
-
-    # Add the compression algorithms of 'compression_list' to the role's
-    # entry in 'tuf.roledb.py'.
-    for compression in compression_list:
-      if compression not in roleinfo['compressions']:
-        roleinfo['compressions'].append(compression)
-
-    tuf.roledb.update_roleinfo(self.rolename, roleinfo,
-        repository_name=self._repository_name)
-
-
-
 
 
 class Root(Metadata):
@@ -1460,8 +1373,7 @@ class Root(Metadata):
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0, 'consistent_snapshot': False,
-                'compressions': [''], 'expires': expiration,
-                'partial_loaded': False}
+                'expires': expiration, 'partial_loaded': False}
     try:
       tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
 
@@ -1528,8 +1440,8 @@ class Timestamp(Metadata):
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                'signatures': [], 'version': 0, 'compressions': [''],
-                'expires': expiration, 'partial_loaded': False}
+                'signatures': [], 'version': 0, 'expires': expiration,
+                'partial_loaded': False}
 
     try:
       tuf.roledb.add_role(self.rolename, roleinfo, self._repository_name)
@@ -1591,8 +1503,8 @@ class Snapshot(Metadata):
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                'signatures': [], 'version': 0, 'compressions': [''],
-                'expires': expiration, 'partial_loaded': False}
+                'signatures': [], 'version': 0, 'expires': expiration,
+                'partial_loaded': False}
 
     try:
       tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
@@ -1696,7 +1608,7 @@ class Targets(Metadata):
     # If 'roleinfo' is not provided, set an initial default.
     if roleinfo is None:
       roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                  'version': 0, 'compressions': [''], 'expires': expiration,
+                  'version': 0, 'expires': expiration,
                   'signatures': [], 'paths': {}, 'path_hash_prefixes': [],
                   'partial_loaded': False, 'delegations': {'keys': {},
                                                            'roles': []}}
@@ -2371,7 +2283,7 @@ class Targets(Metadata):
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
-                'threshold': threshold, 'version': 0, 'compressions': [''],
+                'threshold': threshold, 'version': 0,
                 'expires': expiration, 'signatures': [], 'partial_loaded': False,
                 'paths': relative_targetpaths, 'delegations': {'keys': {},
                 'roles': []}}
@@ -3096,7 +3008,6 @@ def load_repository(repository_directory, repository_name='default'):
                 'signing_keyids': [],
                 'signatures': [],
                 'partial_loaded': False,
-                'compressions': [],
                 'paths': {},
                }
 
@@ -3107,12 +3018,6 @@ def load_repository(repository_directory, repository_name='default'):
     for filepath, fileinfo in six.iteritems(metadata_object['targets']):
       roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
     roleinfo['delegations'] = metadata_object['delegations']
-
-    if os.path.exists(metadata_path + '.gz'):
-      roleinfo['compressions'].append('gz')
-
-    else:
-      logger.debug('A compressed version does not exist.')
 
     tuf.roledb.add_role(metadata_name, roleinfo, repository_name)
     loaded_metadata.append(metadata_name)

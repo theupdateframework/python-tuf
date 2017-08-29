@@ -179,7 +179,6 @@ class TestRepository(unittest.TestCase):
     repository.targets('role1').load_signing_key(role1_privkey)
 
     # (6) Write repository.
-    repository.targets.compressions = ['gz']
     repository.writeall()
 
     self.assertTrue(os.path.exists(os.path.join(metadata_directory, 'root.json')))
