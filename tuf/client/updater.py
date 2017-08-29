@@ -140,6 +140,10 @@ logger = logging.getLogger('tuf.client.updater')
 iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
 
+# Metadata includes the specification version number that it follows.
+# All downloaded metadata must be equal to our supported major version of 1.
+# For example, "1.4.3" and "1.0.0" are supported.  "2.0.0" is not supported.
+SUPPORTED_MAJOR_VERSION = 1
 
 class Updater(object):
   """
@@ -1060,6 +1064,23 @@ class Updater(object):
         metadata_signable = \
           securesystemslib.util.load_json_string(file_object.read().decode('utf-8'))
 
+        # Determine if the specification version number is supported.  It is
+        # assumed that "spec_version" is in (major.minor.fix) format, (for
+        # example: "1.4.3") and that releases with the same major version
+        # number maintain backwards compatibility.  Consequently, if the major
+        # version number of new metadata equals our expected major version
+        # number, the new metadata is safe to parse.
+        try:
+          spec_version_parsed = metadata_signable['signed']['spec_version'].split('.')
+          if int(spec_version_parsed[0]) != SUPPORTED_MAJOR_VERSION:
+            raise securesystemslib.exceptions.BadVersionNumberError('Downloaded'
+              ' metadata that specifies an unsupported spec_version.  Supported'
+              ' major version number: ' + repr(SUPPORTED_MAJOR_VERSION))
+
+        except (ValueError, TypeError):
+          raise securesystemslib.excep4tions.FormatError('Improperly'
+            ' formatted spec_version, which must be in major.minor.fix format')
+
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number for
         # 'metadata_role'.
@@ -1261,7 +1282,7 @@ class Updater(object):
 
     # Construct the metadata filename as expected by the download/mirror modules.
     metadata_filename = metadata_role + '.json'
-    uncompressed_metadata_filename = metadata_filename
+    metadata_filename = metadata_filename
 
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
@@ -1332,7 +1353,7 @@ class Updater(object):
     logger.debug('Updated ' + repr(current_filepath) + '.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    self._update_versioninfo(uncompressed_metadata_filename)
+    self._update_versioninfo(metadata_filename)
 
     # Ensure the role and key information of the top-level roles is also updated
     # according to the newly-installed Root metadata.
@@ -1403,7 +1424,7 @@ class Updater(object):
       None.
     """
 
-    uncompressed_metadata_filename = metadata_role + '.json'
+    metadata_filename = metadata_role + '.json'
     expected_versioninfo = None
     expected_fileinfo = None
 
@@ -1427,25 +1448,26 @@ class Updater(object):
     # strictly greater than its currently trusted version number.
     expected_versioninfo = self.metadata['current'][referenced_metadata] \
                                         ['meta'] \
-                                        [uncompressed_metadata_filename]
+                                        [metadata_filename]
 
-    if not self._versioninfo_has_been_updated(uncompressed_metadata_filename,
+    if not self._versioninfo_has_been_updated(metadata_filename,
                                               expected_versioninfo):
-      logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
+      logger.info(repr(metadata_filename) + ' up-to-date.')
 
-      # Since we have not downloaded a new version of this metadata, we
-      # should check to see if our local version is stale and notify the user
-      # if so. This raises tuf.exceptions.ExpiredMetadataError if the metadata we
-      # have is expired. Resolves issue #322.
+      # Since we have not downloaded a new version of this metadata, we should
+      # check to see if our local version is stale and notify the user if so.
+      # This raises tuf.exceptions.ExpiredMetadataError if the metadata we have
+      # is expired. Resolves issue #322.
       self._ensure_not_expired(self.metadata['current'][metadata_role],
                                metadata_role)
+
       # TODO: If 'metadata_role' is root or snapshot, we should verify that
       # root's hash matches what's in snapshot, and that snapshot hash matches
       # what's listed in timestamp.json.
 
       return
 
-    logger.debug('Metadata ' + repr(uncompressed_metadata_filename) + ' has changed.')
+    logger.debug('Metadata ' + repr(metadata_filename) + ' has changed.')
 
     # The file lengths of metadata are unknown, only their version numbers are
     # known.  Set an upper limit for the length of the downloaded file for each
