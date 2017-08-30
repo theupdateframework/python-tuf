@@ -12,7 +12,7 @@ Version: **1.0 (Draft)**
 - [Detailed Workflows](#5-detailed-workflows)
 - [Usage](#6-usage)
 - [Consistent Snapshots](#7-consistent-snapshots)
-- [Future Directions and Open Questions](#f-fugure-directions-and-open-questions)
+- [Future Directions and Open Questions](#f-future-directions-and-open-questions)
 
 ## **1. Introduction**
 * **1.1. Scope**
