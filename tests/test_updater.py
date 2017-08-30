@@ -72,6 +72,7 @@ import tuf.formats
 import tuf.keydb
 import tuf.roledb
 import tuf.repository_tool as repo_tool
+import tuf.repository_lib as repo_lib
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.client.updater as updater
 
@@ -1503,8 +1504,36 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.settings.MAX_NUMBER_OF_DELEGATIONS = 0
     self.assertEqual(None, self.repository_updater._preorder_depth_first_walk('unknown.txt'))
 
-    # Reset
+    # Reset the setting for max number of delegations so that subsequent unit
+    # tests reference the expected setting.
     tuf.settings.MAX_NUMBER_OF_DELEGATIONS = valid_max_number_of_delegations
+
+    # Attempt to create a circular delegation, where the top-level Targets
+    # role performs a delegation to itself.  The updater should ignore
+    # the delegation and not raise an exception.
+
+    targets_path = os.path.join(self.client_metadata_current, 'targets.json')
+    targets_metadata = securesystemslib.util.load_json_file(targets_path)
+    targets_metadata['signed']['delegations']['roles'][0]['paths'] = ['/file8.txt']
+    with open(targets_path, 'w') as file_object:
+      file_object.write(repo_lib._get_written_metadata(targets_metadata))
+
+    role1_path = os.path.join(self.client_metadata_current, 'role1.json')
+    role1_metadata = securesystemslib.util.load_json_file(role1_path)
+    role1_metadata['signed']['delegations']['roles'][0]['name'] = 'targets'
+    role1_metadata['signed']['delegations']['roles'][0]['paths'] = ['/file8.txt']
+    with open(role1_path, 'w') as file_object:
+      file_object.write(repo_lib._get_written_metadata(role1_metadata))
+
+    role2_path = os.path.join(self.client_metadata_current, 'role2.json')
+    role2_metadata = securesystemslib.util.load_json_file(role2_path)
+    role2_metadata['signed']['delegations']['roles'] = role1_metadata['signed']['delegations']['roles']
+    role2_metadata['signed']['delegations']['roles'][0]['paths'] = ['/file8.txt']
+    with open(role2_path, 'w') as file_object:
+      file_object.write(repo_lib._get_written_metadata(role2_metadata))
+
+    logger.debug('attempting circular delegation')
+    self.repository_updater._preorder_depth_first_walk('/file8.txt')
 
 
 
