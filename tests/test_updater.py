@@ -1508,10 +1508,9 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # tests reference the expected setting.
     tuf.settings.MAX_NUMBER_OF_DELEGATIONS = valid_max_number_of_delegations
 
-    # Attempt to create a circular delegation, where the top-level Targets
-    # role performs a delegation to itself.  The updater should ignore
-    # the delegation and not raise an exception.
-
+    # Attempt to create a circular delegation, where role1 performs a
+    # delegation to the top-level Targets role.  The updater should ignore the
+    # delegation and not raise an exception.
     targets_path = os.path.join(self.client_metadata_current, 'targets.json')
     targets_metadata = securesystemslib.util.load_json_file(targets_path)
     targets_metadata['signed']['delegations']['roles'][0]['paths'] = ['/file8.txt']
@@ -1533,7 +1532,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       file_object.write(repo_lib._get_written_metadata(role2_metadata))
 
     logger.debug('attempting circular delegation')
-    self.repository_updater._preorder_depth_first_walk('/file8.txt')
+    self.assertEqual(None, self.repository_updater._preorder_depth_first_walk('/file8.txt'))
 
 
 
