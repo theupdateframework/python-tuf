@@ -2299,8 +2299,10 @@ class Updater(object):
       delegations = role_metadata.get('delegations', {})
       child_roles = delegations.get('roles', [])
       target = self._get_target_from_targets_role(role_name, targets,
-                                                  target_filepath)
+          target_filepath)
+
       # After preorder check, add current role to set of visited roles.
+      logger.debug('Adding a visited role: ' + repr(role_name))
       visited_role_names.add(role_name)
 
       # And also decrement number of visited roles.
@@ -2338,8 +2340,8 @@ class Updater(object):
 
     if target is None and number_of_delegations == 0 and len(role_names) > 0:
       logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
-                   'but allowed to visit at most ' +
-                   repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
+          'but allowed to visit at most ' +
+          repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
     return target
 
@@ -2468,15 +2470,16 @@ class Updater(object):
           child_role_is_relevant = True
 
         else:
-          logger.debug('Target path' + repr(target_filepath) + ' does not'
-            ' match child role path ' + repr(child_role_path))
+          logger.debug('Target path ' + repr(target_filepath) + ' does not'
+            ' match delegated role path ' + repr(child_role_path) + ' of'
+            ' child role ' + repr(child_role_name))
 
     else:
       # 'role_name' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
       raise securesystemslib.exceptions.FormatError(repr(child_role_name) + ' has neither '
-                                '"paths" nor "path_hash_prefixes".')
+          '"paths" nor "path_hash_prefixes".')
 
     if child_role_is_relevant:
         logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
