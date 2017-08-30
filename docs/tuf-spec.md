@@ -9,10 +9,10 @@ Version: **1.0 (Draft)**
 - [System Overview](#2-system-overview)
 - [The Repository](#3-the-repository)
 - [Document Formats](#4-document-formats)
-- [Detailed Workflows](5-detailed-workflows)
-- [Usage](6-usage)
+- [Detailed Workflows](#5-detailed-workflows)
+- [Usage](#6-usage)
 - [Consistent Snapshots](#7-consistent-snapshots)
-- [Future Directions and Open Questions](#f-fugure-directions-and-open-questions)
+- [Future Directions and Open Questions](#f-future-directions-and-open-questions)
 
 ## **1. Introduction**
 * **1.1. Scope**
