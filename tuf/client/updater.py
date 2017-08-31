@@ -1073,15 +1073,13 @@ class Updater(object):
         try:
           spec_version_parsed = metadata_signable['signed']['spec_version'].split('.')
           if int(spec_version_parsed[0]) != SUPPORTED_MAJOR_VERSION:
-            raise securesystemslib.exceptions.BadVersionNumberError(repr(remote_filename) + ' '
-              'specified an unsupported'
-              ' spec_version: ' + repr(spec_version_parsed) + '.  Supported'
+            raise securesystemslib.exceptions.BadVersionNumberError('Downloaded'
+              ' metadata that specifies an unsupported spec_version.  Supported'
               ' major version number: ' + repr(SUPPORTED_MAJOR_VERSION))
 
         except (ValueError, TypeError):
-          raise securesystemslib.exceptions.FormatError('Improperly'
-            ' formatted spec_version, which must be in major.minor.fix format'
-            ' Found incorrect spec_version: ' + repr(spec_version_parsed))
+          raise securesystemslib.excep4tions.FormatError('Improperly'
+            ' formatted spec_version, which must be in major.minor.fix format')
 
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number for
@@ -1136,14 +1134,14 @@ class Updater(object):
 
 
 
-  def _verify_root_chain_link(self, rolename, current, next):
-    if rolename != 'root':
+  def _verify_root_chain_link(self, role, current, next):
+    if role != 'root':
       return True
 
-    current_role = current['roles'][rolename]
+    current_role = current['roles'][role]
 
     # Verify next metadata with current keys/threshold
-    valid = tuf.sig.verify(next, rolename, self.repository_name,
+    valid = tuf.sig.verify(next, role, self.repository_name,
                            current_role['threshold'], current_role['keyids'])
 
     if not valid:
@@ -1473,10 +1471,13 @@ class Updater(object):
 
     # The file lengths of metadata are unknown, only their version numbers are
     # known.  Set an upper limit for the length of the downloaded file for each
-    # expected role.  Note: The Timestamp and Root roles are not updated via
-    # this function.
+    # expected role.  Note: The Timestamp role is not updated via this
+    # function.
     if metadata_role == 'snapshot':
       upperbound_filelength = tuf.settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
+
+    elif metadata_role == 'root':
+      upperbound_filelength = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
 
     # The metadata is considered Targets (or delegated Targets metadata).
     else:
@@ -1720,10 +1721,6 @@ class Updater(object):
       if algorithm in current_fileinfo['hashes']:
         if hash_value == current_fileinfo['hashes'][algorithm]:
           return False
-
-      else:
-        logger.debug('Skipping algorithm in new fileinfo that wasn\'t'
-          ' previously specified in current fileinfo: ' + repr(algorithm))
 
     return True
 
@@ -2014,9 +2011,6 @@ class Updater(object):
     if rolename + '.json' in self.metadata['current']['snapshot']['meta']:
       roles_to_update.append(rolename)
 
-    else:
-      logger.debug(repr(rolename) + ' not specified in current Snapshot.')
-
     if refresh_all_delegated_roles:
 
       for role in six.iterkeys(self.metadata['current']['snapshot']['meta']):
@@ -2030,7 +2024,6 @@ class Updater(object):
             roles_to_update.append(role)
 
         else:
-          logger.debug('Skipping invalid metadata file: ' + repr(role))
           continue
 
     # If there is nothing to refresh, we are done.
@@ -2091,9 +2084,6 @@ class Updater(object):
 
     if targets is None:
       targets = []
-
-    else:
-      logger.debug('The list of targets is prepopulated: ' + repr(targets))
 
     targets_of_role = list(targets)
     logger.debug('Getting targets of role: ' + repr(rolename) + '.')
@@ -2299,10 +2289,8 @@ class Updater(object):
       delegations = role_metadata.get('delegations', {})
       child_roles = delegations.get('roles', [])
       target = self._get_target_from_targets_role(role_name, targets,
-          target_filepath)
-
+                                                  target_filepath)
       # After preorder check, add current role to set of visited roles.
-      logger.debug('Adding a visited role: ' + repr(role_name))
       visited_role_names.add(role_name)
 
       # And also decrement number of visited roles.
@@ -2340,8 +2328,8 @@ class Updater(object):
 
     if target is None and number_of_delegations == 0 and len(role_names) > 0:
       logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
-          'but allowed to visit at most ' +
-          repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
+                   'but allowed to visit at most ' +
+                   repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
     return target
 
@@ -2447,7 +2435,7 @@ class Updater(object):
     child_role_paths = child_role.get('paths')
     child_role_path_hash_prefixes = child_role.get('path_hash_prefixes')
 
-    # A boolean indicator that tell us whether 'child_role' has been delegated
+    # A boolean indicator that tells us whether 'child_role' has been delegated
     # the target with the name 'target_filepath'.
     child_role_is_relevant = False
 
@@ -2470,18 +2458,30 @@ class Updater(object):
           child_role_is_relevant = True
 
         else:
-          logger.debug('Target path ' + repr(target_filepath) + ' does not'
-            ' match delegated role path ' + repr(child_role_path) + ' of'
-            ' child role ' + repr(child_role_name))
+          logger.debug('Target path' + repr(target_filepath) + ' does not'
+            ' match child role path ' + repr(child_role_path))
 
     else:
       # 'role_name' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
       raise securesystemslib.exceptions.FormatError(repr(child_role_name) + ' has neither '
-          '"paths" nor "path_hash_prefixes".')
+                                '"paths" nor "path_hash_prefixes".')
 
     if child_role_is_relevant:
+      # Is the child role allowed by its parent role to specify this path
+      # in its metadata?
+      try:
+        securesystemslib.util.ensure_all_targets_allowed(child_role_name,
+          [target_filepath], parent_delegations)
+
+      except tuf.exceptions.ForbiddenTargetError:
+        logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
+                     repr(target_filepath) + ', but is not allowed to sign for'
+                     ' it according to its delegating role.')
+        return None
+
+      else:
         logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
                      repr(target_filepath))
         return child_role_name

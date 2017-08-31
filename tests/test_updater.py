@@ -1562,10 +1562,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._visit_child_role(child_role,
         '/target.exe', targets_role['delegations'])
 
-    # Test if unequal path_hash_prefixes are skipped.
+    # Verify that unequal path_hash_prefixes are skipped.
     child_role['path_hash_prefixes'] = ['bad', 'bad']
     self.assertEqual(None, self.repository_updater._visit_child_role(child_role,
-        '/file3.txt', targets_role['delegations']))
+        '/target.exe', targets_role['delegations']))
 
     # Test if both 'path' and 'path_hash_prefixes' are missing.
     del child_role['paths']
