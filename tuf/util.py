@@ -888,10 +888,10 @@ def load_json_string(data):
   try:
     deserialized_object = json.loads(data)
 
-  except TypeError:
-    message = 'Invalid JSON string: ' + repr(data)
-    raise tuf.Error(message)
-  
+  except TypeError as e:
+    raise tuf.Error('Invalid JSON string. Error reads: {{' + repr(e) + '}}. '
+        'Data provided: ' + repr(data))
+
   except ValueError:
     message = 'Cannot deserialize to a Python object: ' + repr(data)
     raise tuf.Error(message)
