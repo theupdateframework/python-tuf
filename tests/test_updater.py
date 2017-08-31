@@ -961,6 +961,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
         refresh_all_delegated_roles=False)
 
     # Test that non-json metadata in Snapshot is ignored.
+    print('attempting non-json file test')
     self.repository_updater.metadata['current']['snapshot']['meta']['bad_role.xml'] = {}
     self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
@@ -1544,11 +1545,14 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # 'path_hash_prefixes', and if both are missing.
 
     targets_role = self.repository_updater.metadata['current']['targets']
-    targets_role['delegations']['roles'][0]['paths'] = ['/*.txt']
-    self.repository_updater._load_metadata_from_file('current', 'role1')
-    role1 = self.repository_updater.metadata['current']['role1']
-    child_role = role1['delegations']['roles'][0]
-    child_role['paths'] = ['/target.exe']
+    targets_role['delegations']['roles'][0]['paths'] = ['/*.txt', '/target.exe']
+    child_role = targets_role['delegations']['roles'][0]
+
+    role1_path = os.path.join(self.client_metadata_current, 'role1.json')
+    role1_metadata = securesystemslib.util.load_json_file(role1_path)
+    role1_metadata['signed']['delegations']['roles'][0]['paths'] = ['/*.exe']
+    with open(role1_path, 'w') as file_object:
+      file_object.write(repo_lib._get_written_metadata(role1_metadata))
 
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
                      '/target.exe', targets_role['delegations']), child_role['name'])
@@ -1565,7 +1569,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify that unequal path_hash_prefixes are skipped.
     child_role['path_hash_prefixes'] = ['bad', 'bad']
     self.assertEqual(None, self.repository_updater._visit_child_role(child_role,
-        '/target.exe', targets_role['delegations']))
+        '/unknown.exe', targets_role['delegations']))
 
     # Test if both 'path' and 'path_hash_prefixes' are missing.
     del child_role['paths']
