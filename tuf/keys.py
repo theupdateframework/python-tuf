@@ -856,6 +856,16 @@ def verify_signature(key_dict, signature, data):
   # Test to make sure data is binary. If not, raise tuf.FormatError()
   tuf.formats.DATA_SCHEMA.check_match(data)
 
+  # If the signature claims to be from a different key than the provided key,
+  # then the signature is invalid regardless of whether or not the signature
+  # value itself ('sig') could have been produced by signing the data with the
+  # given key. Otherwise, there may be minor upstream security issues, like
+  # allowing an attacker to match a signature against many possible keyids.
+  # Additionally, such a match would be unintuitive and so possibly break
+  # upstream assumptions.
+  if key_dict['keyid'] != signature['keyid']:
+    return False
+
   # Using the public key belonging to 'key_dict'
   # (i.e., rsakey_dict['keyval']['public']), verify whether 'signature'
   # was produced by key_dict's corresponding private key
