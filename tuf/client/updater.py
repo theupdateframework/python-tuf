@@ -1078,7 +1078,7 @@ class Updater(object):
               ' major version number: ' + repr(SUPPORTED_MAJOR_VERSION))
 
         except (ValueError, TypeError):
-          raise securesystemslib.excep4tions.FormatError('Improperly'
+          raise securesystemslib.exceptions.FormatError('Improperly'
             ' formatted spec_version, which must be in major.minor.fix format')
 
         # If the version number is unspecified, ensure that the version number
