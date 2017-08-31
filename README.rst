@@ -104,7 +104,7 @@ The following papers provide detailed information on securing software
 updater systems, TUF's design and implementation details, attacks on
 package managers, and package management security:
 
-- `Mercury: Bandwidth-effective Prevention of Rollback Attacks Against Community Repositories
+-  `Mercury: Bandwidth-Effective Prevention of Rollback Attacks Against Community Repositories
    <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/prevention-rollback-attacks-atc2017.pdf?raw=true>`_
 
 -  `Diplomat: Using Delegations to Protect Community Repositories
