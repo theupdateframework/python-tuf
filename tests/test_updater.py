@@ -1553,10 +1553,15 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
         '/target.exe'), child_role['name'])
 
-    # Test path hash prefixes.
+    # Test for a valid path hash prefix...
     child_role['path_hash_prefixes'] = ['8baf']
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
         '/file3.txt'), child_role['name'])
+
+    # ... and an invalid one, as well.
+    child_role['path_hash_prefixes'] = ['badd']
+    self.assertEqual(self.repository_updater._visit_child_role(child_role,
+        '/file3.txt'), None)
 
     # Test for a forbidden target.
     del child_role['path_hash_prefixes']

@@ -2466,7 +2466,7 @@ class Updater(object):
           'has neither a "paths" nor "path_hash_prefixes".  At least'
           ' one of these attributes must be present.')
 
-
+    return None
 
 
 
