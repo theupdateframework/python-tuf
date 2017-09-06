@@ -820,6 +820,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     target3 = os.path.join(self.repository_directory, 'targets', 'file3.txt')
 
     repository.targets.add_target(target3)
+    repository.root.version = repository.root.version + 1
+    repository.root.load_signing_key(self.role_keys['root']['private'])
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -838,6 +840,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._update_metadata('timestamp', DEFAULT_TIMESTAMP_FILELENGTH)
     self.repository_updater._update_metadata_if_changed('snapshot', 'timestamp')
     self.repository_updater._update_metadata_if_changed('targets')
+    self.repository_updater._update_metadata_if_changed('root')
     targets_path = os.path.join(self.client_metadata_current, 'targets.json')
     self.assertTrue(os.path.exists(targets_path))
     self.assertTrue(self.repository_updater.metadata['current']['targets'])
@@ -845,8 +848,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test for an invalid 'referenced_metadata' argument.
     self.assertRaises(tuf.exceptions.RepositoryError,
-                      self.repository_updater._update_metadata_if_changed,
-                      'snapshot', 'bad_role')
+        self.repository_updater._update_metadata_if_changed, 'snapshot', 'bad_role')
 
 
 
@@ -951,17 +953,11 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify that client's metadata files were refreshed successfully.
     self.assertEqual(len(self.repository_updater.metadata['current']), 6)
 
-    # Test for compressed metadata roles.
-    self.repository_updater.metadata['current']['snapshot']['meta']['targets.json.gz'] = \
-      self.repository_updater.metadata['current']['snapshot']['meta']['targets.json']
-    self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
-
     # Test for non-existing rolename.
     self.repository_updater._refresh_targets_metadata('bad_rolename',
         refresh_all_delegated_roles=False)
 
     # Test that non-json metadata in Snapshot is ignored.
-    print('attempting non-json file test')
     self.repository_updater.metadata['current']['snapshot']['meta']['bad_role.xml'] = {}
     self.repository_updater._refresh_targets_metadata(refresh_all_delegated_roles=True)
 
@@ -1555,27 +1551,27 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
       file_object.write(repo_lib._get_written_metadata(role1_metadata))
 
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
-                     '/target.exe', targets_role['delegations']), child_role['name'])
+        '/target.exe'), child_role['name'])
 
     # Test path hash prefixes.
-    child_role['path_hash_prefixes'] = ['8baf', '0000']
+    child_role['path_hash_prefixes'] = ['8baf']
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
-                     '/file3.txt', targets_role['delegations']), child_role['name'])
+        '/file3.txt'), child_role['name'])
 
-    # Test for forbidden target.
-    self.repository_updater._visit_child_role(child_role,
-        '/target.exe', targets_role['delegations'])
+    # Test for a forbidden target.
+    del child_role['path_hash_prefixes']
+    self.repository_updater._visit_child_role(child_role, '/forbidden.tgz')
 
     # Verify that unequal path_hash_prefixes are skipped.
     child_role['path_hash_prefixes'] = ['bad', 'bad']
     self.assertEqual(None, self.repository_updater._visit_child_role(child_role,
-        '/unknown.exe', targets_role['delegations']))
+        '/unknown.exe'))
 
     # Test if both 'path' and 'path_hash_prefixes' are missing.
     del child_role['paths']
     del child_role['path_hash_prefixes']
     self.assertRaises(securesystemslib.exceptions.FormatError, self.repository_updater._visit_child_role,
-                      child_role, targets_role['delegations'], child_role['name'])
+        child_role, child_role['name'])
 
 
 
