@@ -1078,7 +1078,7 @@ class Updater(object):
               ' major version number: ' + repr(SUPPORTED_MAJOR_VERSION))
 
         except (ValueError, TypeError):
-          raise securesystemslib.excep4tions.FormatError('Improperly'
+          raise securesystemslib.exceptions.FormatError('Improperly'
             ' formatted spec_version, which must be in major.minor.fix format')
 
         # If the version number is unspecified, ensure that the version number
@@ -1366,7 +1366,7 @@ class Updater(object):
 
 
   def _update_metadata_if_changed(self, metadata_role,
-                                  referenced_metadata='snapshot'):
+    referenced_metadata='snapshot'):
     """
     <Purpose>
       Non-public method that updates the metadata for 'metadata_role' if it has
@@ -1971,7 +1971,7 @@ class Updater(object):
 
 
   def _refresh_targets_metadata(self, rolename='targets',
-                                refresh_all_delegated_roles=False):
+    refresh_all_delegated_roles=False):
     """
     <Purpose>
       Non-public method that refreshes the targets metadata of 'rolename'.  If
@@ -2301,8 +2301,7 @@ class Updater(object):
         child_roles_to_visit = []
         # NOTE: This may be a slow operation if there are many delegated roles.
         for child_role in child_roles:
-          child_role_name = self._visit_child_role(child_role, target_filepath,
-                                                   delegations)
+          child_role_name = self._visit_child_role(child_role, target_filepath)
           if child_role['terminating'] and child_role_name is not None:
             logger.debug('Adding child role ' + repr(child_role_name))
             logger.debug('Not backtracking to other roles.')
@@ -2387,11 +2386,11 @@ class Updater(object):
 
 
 
-  def _visit_child_role(self, child_role, target_filepath, parent_delegations):
+  def _visit_child_role(self, child_role, target_filepath):
     """
     <Purpose>
-      Non-public method that determines whether the given 'child_role' has been
-      delegated the target with the name 'target_filepath'.
+      Non-public method that determines whether the given 'target_filepath'
+      is an allowed path of 'child_role'.
 
       Ensure that we explore only delegated roles trusted with the target.  The
       metadata for 'child_role' should have been refreshed prior to this point,
@@ -2399,7 +2398,7 @@ class Updater(object):
       verified (as intended).  The paths/targets that 'child_role' is allowed
       to specify in its metadata depends on the delegating role, and thus is
       left to the caller to verify.  We verify here that 'target_filepath'
-      is an allowed path according to its parent role ('parent_delegations').
+      is an allowed path according to the delegated 'child_role'.
 
       TODO: Should the TUF spec restrict the repository to one particular
       algorithm?  Should we allow the repository to specify in the role
@@ -2408,15 +2407,11 @@ class Updater(object):
     <Arguments>
       child_role:
         The delegation targets role object of 'child_role', containing its
-        paths, path_hash_prefixes, keys and so on.
+        paths, path_hash_prefixes, keys, and so on.
 
       target_filepath:
         The path to the target file on the repository. This will be relative to
         the 'targets' (or equivalent) directory on a given mirror.
-
-      parent_delegations:
-        The 'delegations' entry of 'child_role's delegating role.  A delegating
-        role specifies the paths/targets that a child role is trusted to sign.
 
     <Exceptions>
       None.
@@ -2435,63 +2430,43 @@ class Updater(object):
     child_role_paths = child_role.get('paths')
     child_role_path_hash_prefixes = child_role.get('path_hash_prefixes')
 
-    # A boolean indicator that tell us whether 'child_role' has been delegated
-    # the target with the name 'target_filepath'.
-    child_role_is_relevant = False
-
     if child_role_path_hash_prefixes is not None:
       target_filepath_hash = self._get_target_hash(target_filepath)
       for child_role_path_hash_prefix in child_role_path_hash_prefixes:
         if target_filepath_hash.startswith(child_role_path_hash_prefix):
-          child_role_is_relevant = True
+          return child_role_name
 
         else:
           continue
 
     elif child_role_paths is not None:
+      # Is 'child_role_name' allowed to sign for 'target_filepath'?
       for child_role_path in child_role_paths:
         # A child role path may be an explicit path or pattern (Unix
-        # shell-style wildcards).  The child role 'child_role_name' is added if
-        # 'target_filepath' is equal or matches 'child_role_path'.  Explicit
-        # filepaths are also added.
+        # shell-style wildcards).  The child role 'child_role_name' is returned
+        # if 'target_filepath' is equal to or matches 'child_role_path'.
+        # Explicit filepaths are also considered matches.
         if fnmatch.fnmatch(target_filepath, child_role_path):
-          child_role_is_relevant = True
+         logger.debug('Child role ' + repr(child_role_name) + ' is allowed to'
+            ' sign for ' + repr(target_filepath))
+
+         return child_role_name
 
         else:
-          logger.debug('Target path' + repr(target_filepath) + ' does not'
-            ' match child role path ' + repr(child_role_path))
+          logger.debug('The given target path' + repr(target_filepath) + ' is'
+              ' not an allowed trusted path of ' + repr(child_role_path))
+
+          continue
 
     else:
       # 'role_name' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
-      raise securesystemslib.exceptions.FormatError(repr(child_role_name) + ' has neither '
-                                '"paths" nor "path_hash_prefixes".')
+      raise securesystemslib.exceptions.FormatError(repr(child_role_name) + ' '
+          'has neither a "paths" nor "path_hash_prefixes".  At least'
+          ' one of these attributes must be present.')
 
-    if child_role_is_relevant:
-      # Is the child role allowed by its parent role to specify this path
-      # in its metadata?
-      try:
-        securesystemslib.util.ensure_all_targets_allowed(child_role_name,
-          [target_filepath], parent_delegations)
-
-      except tuf.exceptions.ForbiddenTargetError:
-        logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
-                     repr(target_filepath) + ', but is not allowed to sign for'
-                     ' it according to its delegating role.')
-        return None
-
-      else:
-        logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
-                     repr(target_filepath))
-        return child_role_name
-
-    else:
-      logger.debug('Child role ' + repr(child_role_name) + \
-                   ' does not have target ' + repr(target_filepath))
-      return None
-
-
+    return None
 
 
 

@@ -602,8 +602,16 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     repository_junk = repo_tool.load_repository(repository_directory)
 
+    # For testing purposes, store an invalid metadata file in the metadata directory
+    # to verify that it isn't loaded by generate_snapshot_metadata().  Unknown
+    # metadata file extensions should be ignored.
+    invalid_metadata_file = os.path.join(metadata_directory, 'role_file.xml')
+    with open(invalid_metadata_file, 'w') as file_object:
+      file_object.write('bad extension on metadata file')
+
     root_filename = 'root'
     targets_filename = 'targets'
+
     snapshot_metadata = \
       repo_lib.generate_snapshot_metadata(metadata_directory, version,
                                           expiration_date, root_filename,

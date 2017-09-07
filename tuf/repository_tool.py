@@ -246,7 +246,8 @@ class Repository(object):
                                     dirty_rolename + METADATA_EXTENSION)
       repo_lib._generate_and_write_metadata(dirty_rolename, dirty_filename,
           self._targets_directory, self._metadata_directory,
-          consistent_snapshot, filenames, repository_name=self._repository_name)
+          consistent_snapshot, filenames,
+          repository_name=self._repository_name)
 
     # Metadata should be written in (delegated targets -> root -> targets ->
     # snapshot -> timestamp) order.  Begin by generating the 'root.json'
@@ -256,13 +257,15 @@ class Repository(object):
     if 'root' in dirty_rolenames or consistent_snapshot:
       repo_lib._generate_and_write_metadata('root', filenames['root'],
           self._targets_directory, self._metadata_directory,
-          consistent_snapshot, filenames, repository_name=self._repository_name)
+          consistent_snapshot, filenames,
+          repository_name=self._repository_name)
 
     # Generate the 'targets.json' metadata file.
     if 'targets' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('targets', filenames['targets'],
           self._targets_directory, self._metadata_directory,
-          consistent_snapshot, repository_name=self._repository_name)
+          consistent_snapshot,
+          repository_name=self._repository_name)
 
     # Generate the 'snapshot.json' metadata file.
     if 'snapshot' in dirty_rolenames:
@@ -275,7 +278,8 @@ class Repository(object):
     if 'timestamp' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
           self._targets_directory, self._metadata_directory, consistent_snapshot,
-          filenames, repository_name=self._repository_name)
+          filenames,
+          repository_name=self._repository_name)
 
     tuf.roledb.unmark_dirty(dirty_rolenames, self._repository_name)
 
@@ -331,7 +335,8 @@ class Repository(object):
 
     repo_lib._generate_and_write_metadata(rolename, rolename_filename,
         self._targets_directory, self._metadata_directory, consistent_snapshot,
-        filenames=filenames, allow_partially_signed=True,
+        filenames=filenames,
+        allow_partially_signed=True,
         increment_version_number=increment_version_number,
         repository_name=self._repository_name)
 
@@ -3034,7 +3039,7 @@ def load_repository(repository_directory, repository_name='default'):
     for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
       key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)
       try:
-        for keyid in keyids:
+        for keyid in keyids: # pragma: no branch
           key_object['keyid'] = keyid
           tuf.keydb.add_key(key_object, keyid=None,
               repository_name=repository_name)
