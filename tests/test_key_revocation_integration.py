@@ -43,13 +43,7 @@ import logging
 import random
 import subprocess
 import sys
-
-# 'unittest2' required for testing under Python < 2.7.
-if sys.version_info >= (2, 7):
-  import unittest
-
-else:
-  import unittest2 as unittest
+import unittest
 
 import tuf
 import tuf.log

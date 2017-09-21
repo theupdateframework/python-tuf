@@ -36,6 +36,7 @@ import subprocess
 import logging
 import time
 import shutil
+import unittest
 
 import tuf
 import tuf.log
@@ -44,13 +45,6 @@ import tuf.client.updater as updater
 import tuf.settings
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
-
-# 'unittest2' required for testing under Python < 2.7.
-if sys.version_info >= (2, 7):
-  import unittest
-
-else:
-  import unittest2 as unittest
 
 logger = logging.getLogger('test_multiple_repositories_integration')
 repo_tool.disable_console_log_messages()

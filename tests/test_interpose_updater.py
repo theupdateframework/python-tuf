@@ -32,6 +32,7 @@ import logging
 import time
 import copy
 import json
+import unittest
 
 import tuf
 import tuf.roledb
@@ -42,13 +43,6 @@ import tuf.interposition.configuration as configuration
 import tuf.unittest_toolbox as unittest_toolbox
 
 import securesystemslib
-
-if sys.version_info >= (2, 7):
-  import unittest
-
-else:
-  import unittest2 as unittest
-
 
 logger = logging.getLogger('tuf.test_interpose_updater')
 
