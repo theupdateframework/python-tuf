@@ -1,11 +1,13 @@
 language: python
-
+dist: trusty
 sudo: false
-
 cache: pip
+python: 3.6
 
-python:
-  - "3.5"
+env:
+  - TOXENV=py27
+  - TOXENV=py34
+  - TOXENV=py36
 
 before_script:
   - pip install -U pip wheel tox
@@ -13,7 +15,7 @@ before_script:
 script: tox
 
 after_success:
-  - cd tests 
+  - cd tests
   - coveralls
   - cd -
 
