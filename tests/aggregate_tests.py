@@ -36,13 +36,6 @@ import unittest
 import glob
 import random
 
-# 'unittest2' required for testing under Python < 2.7.
-if sys.version_info >= (2, 7):
-  import unittest
-
-else:
-  import unittest2 as unittest
-
 # Generate a list of pathnames that match a pattern (i.e., that begin with
 # 'test_' and end with '.py'.  A shell-style wildcard is used with glob() to
 # match desired filenames.  All the tests matching the pattern will be loaded
