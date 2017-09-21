@@ -35,13 +35,6 @@ import shutil
 import sys
 import errno
 
-# 'unittest2' required for testing under Python < 2.7.
-if sys.version_info >= (2, 7):
-  import unittest
-
-else:
-  import unittest2 as unittest
-
 import tuf
 import tuf.log
 import tuf.formats
