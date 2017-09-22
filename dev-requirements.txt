@@ -18,7 +18,7 @@
 cffi==1.7.0
 pycrypto==2.6.1
 pynacl==1.0.1
-cryptography==1.4.0
+cryptography==2.0.3
 securesystemslib==0.10.7
 
 # Testing requirements.  The rest of the testing dependencies available in
