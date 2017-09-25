@@ -140,10 +140,6 @@ logger = logging.getLogger('tuf.client.updater')
 iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
 
-# The extension of TUF metadata.
-METADATA_EXTENSION = '.' + tuf.conf.METADATA_FORMAT # '.json'
-
-
 class Updater(object):
   """
   <Purpose>
@@ -986,7 +982,7 @@ class SingleRepoUpdater(object):
       tuf.RepositoryError:
         If there is an error with the updater's repository files, such
         as a missing root role file (root.json or root.der, depending on
-        tuf.conf.METADATA_EXTENSION)
+        tuf.conf.METADATA_FORMAT)
 
     <Side Effects>
       The metadata files (e.g., 'root.json', 'targets.json') for the top- level
@@ -1136,7 +1132,7 @@ class SingleRepoUpdater(object):
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
-    metadata_filename = metadata_role + METADATA_EXTENSION
+    metadata_filename = metadata_role + '.' + tuf.conf.METADATA_FORMAT
     metadata_filepath = os.path.join(metadata_directory, metadata_filename)
     
     # Ensure the metadata path is valid/exists, else ignore the call. 
@@ -2015,7 +2011,7 @@ class SingleRepoUpdater(object):
       None.
     """
 
-    metadata_filename = metadata_role + METADATA_EXTENSION
+    metadata_filename = metadata_role + '.' + tuf.conf.METADATA_FORMAT
 
 
     uncompressed_metadata_filename = metadata_filename
@@ -2171,7 +2167,7 @@ class SingleRepoUpdater(object):
       """
 
       # Construct the metadata filename as expected by the download/mirror modules.
-      metadata_filename = metadata_role + METADATA_EXTENSION
+      metadata_filename = metadata_role + '.' + tuf.conf.METADATA_FORMAT
       uncompressed_metadata_filename = metadata_filename
      
       # The 'snapshot' or Targets metadata may be compressed.  Add the appropriate
@@ -2345,7 +2341,7 @@ class SingleRepoUpdater(object):
       None.
     """
         
-    uncompressed_metadata_filename = metadata_role + METADATA_EXTENSION
+    uncompressed_metadata_filename = metadata_role + '.' + tuf.conf.METADATA_FORMAT
     expected_versioninfo = None
     expected_fileinfo = None
 
@@ -2583,7 +2579,7 @@ class SingleRepoUpdater(object):
    
     # Extract the version information from the trusted snapshot role and save
     # it to the 'self.versioninfo' store.
-    if metadata_filename == 'timestamp' + METADATA_EXTENSION: # Clumsy
+    if metadata_filename == 'timestamp.' + tuf.conf.METADATA_FORMAT: # Clumsy
       trusted_versioninfo = \
         self.metadata['current']['timestamp']['version']
 
@@ -2592,7 +2588,7 @@ class SingleRepoUpdater(object):
     # downloading timestamp.json.  Note: Clients are allowed to have only
     # root.json initially, and perform a refresh of top-level metadata to
     # obtain the remaining roles.
-    elif metadata_filename == 'snapshot' + METADATA_EXTENSION: # Clumsy
+    elif metadata_filename == 'snapshot.' + tuf.conf.METADATA_FORMAT: # Clumsy
 
       # Verify the version number of the currently trusted snapshot.json in
       # snapshot.json itself.  Checking the version number specified in
@@ -2604,7 +2600,7 @@ class SingleRepoUpdater(object):
       
       except KeyError:
         trusted_versioninfo = self.metadata[
-            'current']['timestamp']['meta']['snapshot' + METADATA_EXTENSION] # Clumsy.
+            'current']['timestamp']['meta']['snapshot.' + tuf.conf.METADATA_FORMAT] # Clumsy.
 
     else:
       
@@ -2613,7 +2609,7 @@ class SingleRepoUpdater(object):
         # extension.  Strip the '.json' extension when checking if
         # 'metadata_filename' currently exists.
         targets_version_number = \
-          self.metadata['current'][metadata_filename[:-len(METADATA_EXTENSION)]]['version']
+          self.metadata['current'][metadata_filename[:-len('.' + tuf.conf.METADATA_FORMAT)]]['version']
         trusted_versioninfo = \
           tuf.formats.make_versioninfo(targets_version_number)
       
@@ -2774,7 +2770,7 @@ class SingleRepoUpdater(object):
     """
 
     # Get the 'current' and 'previous' full file paths for 'metadata_role'
-    metadata_filepath = metadata_role + METADATA_EXTENSION
+    metadata_filepath = metadata_role + '.' + tuf.conf.METADATA_FORMAT
     previous_filepath = os.path.join(self.metadata_directory['previous'],
                                      metadata_filepath)
     current_filepath = os.path.join(self.metadata_directory['current'],
@@ -2981,7 +2977,8 @@ class SingleRepoUpdater(object):
 
     roles_to_update = []
    
-    if rolename + METADATA_EXTENSION in self.metadata['current']['snapshot']['meta']:
+    if rolename + '.' + tuf.conf.METADATA_FORMAT in self.metadata[
+        'current']['snapshot']['meta']:
       roles_to_update.append(rolename)
     
     if refresh_all_delegated_roles:
@@ -2991,8 +2988,8 @@ class SingleRepoUpdater(object):
         # roles (e.g., django.json, unclaimed.json).
         # Remove the 'targets' role because it gets updated when the targets.json
         # file is updated in _update_metadata_if_changed('targets') and root.
-        if role.endswith(METADATA_EXTENSION):
-          role = role[:-len(METADATA_EXTENSION)]
+        if role.endswith('.' + tuf.conf.METADATA_FORMAT):
+          role = role[:-len('.' + tuf.conf.METADATA_FORMAT)]
           if role not in ['root', 'targets', rolename]:
             roles_to_update.append(role)
         
