@@ -1073,8 +1073,10 @@ class SingleRepoUpdater(object):
     # Raise an exception if the repository is missing the required 'root'
     # metadata.
     if 'root' not in self.metadata['current']:
-      raise tuf.RepositoryError('No root of trust! Could not find the'
-        ' "root.json" file.')
+      raise tuf.RepositoryError('No root of trust for repository ' +
+        repr(self.repository_name) + '! Could not find the'
+        ' "root.' + tuf.conf.METADATA_FORMAT + '" file at ' +
+        self.metadata_directory['current'])
 
 
 
