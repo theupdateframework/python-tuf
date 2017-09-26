@@ -86,6 +86,12 @@ from tuf.repository_lib import DEFAULT_RSA_KEY_BITS as DEFAULT_RSA_KEY_BITS
 from tuf.repository_tool import HASH_FUNCTION as HASH_FUNCTION
 
 # The extension of TUF metadata.
+# TODO: This derives from setting tuf.conf.METADATA_FORMAT, which can change,
+# so this should not be cached this way. Should use
+# '.' + tuf.conf.METADATA_FORMAT, and import normally rather than using a from
+# import statement, which will copy the value rather than keep them in sync.
+# The same goes for TARGETS_FILENAME below, which also uses
+# tuf.conf.METADATA_FORMAT indirectly.
 from tuf.repository_lib  import METADATA_EXTENSION as METADATA_EXTENSION
 
 # The metadata filename for the targets metadata information.

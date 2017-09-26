@@ -73,6 +73,10 @@ iso8601_logger.disabled = True
 DEFAULT_RSA_KEY_BITS = 3072
 
 # The extension of TUF metadata.
+# TODO: This derives from setting tuf.conf.METADATA_FORMAT, which can change,
+# so this should not be cached this way. Should use
+# '.' + tuf.conf.METADATA_FORMAT, and import normally to keep them in sync.
+# A similar problem arises for the ROOT_FILENAME (etc) values below. ):
 METADATA_EXTENSION = '.' + tuf.conf.METADATA_FORMAT # '.json'
 
 # The targets and metadata directory names.  Metadata files are written

@@ -352,6 +352,12 @@ class TestKeyRevocation(unittest_toolbox.Modified_TestCase):
  
 
   def test_root_key_revocation(self):
+
+    # TODO: <~> This test function is wrong. It's likely that at the time of
+    # forking, it was incomplete or something.
+    # I have to rewrite it.
+
+
     # First verify that the Root role is properly signed.  Calling
     # refresh() should not raise an exception.
     self.repository_updater.refresh()
