@@ -1,10 +1,18 @@
-#!/usr/bin/env python
+"""
+<Name>
+  tuf/encoding/timestamp_asn1_coder.py
+
+<Purpose>
+  This module contains conversion functions (get_asn_signed and get_json_signed)
+  for converting Timestamp role metadata to and from TUF's standard
+  Python dictionary metadata format (usually serialized as JSON) and an ASN.1
+  format that conforms to pyasn1 specifications and Uptane's ASN.1 definitions.
+
+<Functions>
+  get_asn_signed(pydict_signed)
+  get_json_signed(asn_signed)
 
 """
-<Author>
-  Trishank Karthik Kuppusamy
-"""
-from __future__ import print_function
 from __future__ import unicode_literals
 
 from pyasn1.type import univ, tag

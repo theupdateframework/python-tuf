@@ -1,4 +1,7 @@
 """
+<Name>
+  tuf/encoding/snapshot_asn1_coder.py
+
 <Purpose>
   This module contains conversion functions (get_asn_signed and get_json_signed)
   for converting Snapshot metadata from TUF's standard Python dictionary
@@ -10,7 +13,6 @@
   get_json_signed(asn_signed)    # TODO: Rename to get_pydict_signed in all mods
 
 """
-from __future__ import print_function
 from __future__ import unicode_literals
 
 from pyasn1.type import univ, tag
