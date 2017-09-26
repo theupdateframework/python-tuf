@@ -15,7 +15,7 @@ class TestASN1Conversion(unittest.TestCase):
   def setUpClass(cls):
 
     private_key_fname = os.path.join(
-        os.getcwd(), 'tests', 'repository_data', 'keystore', 'targets_key')
+        os.getcwd(), 'repository_data', 'keystore', 'targets_key')
 
     cls.test_signing_key = repo_tool.import_ed25519_privatekey_from_file(
         private_key_fname, 'password')
@@ -32,35 +32,35 @@ class TestASN1Conversion(unittest.TestCase):
   def test_1_root_partial_convert(self):
     # Test 1: only_signed conversion PyDict -> ASN1 BER of Root
     partial_der_conversion_tester(
-        'tests/repository_data/repository/metadata/root.json', self)
+        'repository_data/repository/metadata/root.json', self)
 
 
 
   def test_2_tuf_sample_timestamp_partial_convert(self):
     """Test 2: only_signed conversion PyDict -> ASN1 BER of Timestamp"""
     partial_der_conversion_tester(
-        'tests/repository_data/repository/metadata/timestamp.json', self)
+        'repository_data/repository/metadata/timestamp.json', self)
 
 
 
   def test_3_snapshot_partial_convert(self):
     # Test 3: only_signed conversion PyDict -> ASN1 BER of Snapshot
     partial_der_conversion_tester(
-        'tests/repository_data/repository/metadata/snapshot.json', self)
+        'repository_data/repository/metadata/snapshot.json', self)
 
 
 
   def test_4_simple_targets_partial_convert(self):
     """Test 4: only_signed conversion PyDict -> ASN1 BER of simple Targets"""
     partial_der_conversion_tester(
-        'tests/repository_data/targets_simpler.json', self)
+        'repository_data/targets_simpler.json', self)
 
 
 
   def test_5_delegated_partial_convert(self):
     """Test 5: only_signed conversion PyDict -> ASN1 BER of delegated role"""
     partial_der_conversion_tester(
-        'tests/repository_data/repository/metadata/role1.json', self)
+        'repository_data/repository/metadata/role1.json', self)
 
 
 
@@ -77,7 +77,7 @@ class TestASN1Conversion(unittest.TestCase):
   def test_6_targets_w_custom_partial_convert(self):
     """Test 5: only_signed conversion PyDict -> ASN1 BER of Targets"""
     partial_der_conversion_tester(
-        'tests/repository_data/repository/metadata/targets.json', self)
+        'repository_data/repository/metadata/targets.json', self)
 
 
 
@@ -86,43 +86,43 @@ class TestASN1Conversion(unittest.TestCase):
   def test_11_root_uptane_partial_convert(self):
     """Test 11: only_signed conversion PyDict -> ASN1 BER of Root"""
     partial_der_conversion_tester(
-        'tests/repository_data/uptane_mainrepo_root.json', self)
+        'repository_data/uptane_mainrepo_root.json', self)
     partial_der_conversion_tester(
-        'tests/repository_data/uptane_director_root.json', self)
+        'repository_data/uptane_director_root.json', self)
 
 
 
   def test_12_snapshot_uptane_partial_convert(self):
     """Test 12: only_signed conversion PyDict -> ASN1 BER of Snapshot"""
     partial_der_conversion_tester(
-        'tests/repository_data/uptane_mainrepo_snapshot.json', self)
+        'repository_data/uptane_mainrepo_snapshot.json', self)
     partial_der_conversion_tester(
-        'tests/repository_data/uptane_director_snapshot.json', self)
+        'repository_data/uptane_director_snapshot.json', self)
 
 
 
   def test_13_timestamp_uptane_partial_convert(self):
     """Test 13: only_signed conversion PyDict -> ASN1 BER of Snapshot"""
     partial_der_conversion_tester(
-        'tests/repository_data/uptane_mainrepo_snapshot.json', self)
+        'repository_data/uptane_mainrepo_snapshot.json', self)
     partial_der_conversion_tester(
-        'tests/repository_data/uptane_director_snapshot.json', self)
+        'repository_data/uptane_director_snapshot.json', self)
 
 
 
   def test_14_targets_uptane_partial_convert(self):
     """Test 14: only_signed conversion PyDict -> ASN1 BER of Targets"""
     partial_der_conversion_tester(
-        'tests/repository_data/uptane_mainrepo_targets.json', self)
+        'repository_data/uptane_mainrepo_targets.json', self)
     partial_der_conversion_tester(
-        'tests/repository_data/uptane_director_targets.json', self)
+        'repository_data/uptane_director_targets.json', self)
 
 
 
   def test_15_delegated_uptane_partial_convert(self):
     """Test 15: only_signed conversion PyDict -> ASN1 BER of Snapshot"""
     partial_der_conversion_tester(
-        'tests/repository_data/uptane_mainrepo_role1.json', self)
+        'repository_data/uptane_mainrepo_role1.json', self)
     # No delegations for the Director, so no second case to test.
 
 
