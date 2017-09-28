@@ -56,17 +56,10 @@ import random
 import subprocess
 import sys
 import errno
-
-# 'unittest2' required for testing under Python < 2.7.
-if sys.version_info >= (2, 7):
-  import unittest
-
-else:
-  import unittest2 as unittest
+import unittest
 
 import tuf
 import tuf.exceptions
-
 import tuf.log
 import tuf.formats
 import tuf.keydb
@@ -317,8 +310,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Verify that _load_metadata_from_file() doesn't raise an exception for
     # improperly formatted metadata, and doesn't load the bad file.
-    with open(role1_filepath, 'a') as file_object:
-      file_object.write('bad JSON data')
+    with open(role1_filepath, 'ab') as file_object:
+      file_object.write(b'bad JSON data')
 
     self.repository_updater._load_metadata_from_file('current', 'role1')
     self.assertEqual(len(self.repository_updater.metadata['current']), 5)
@@ -416,7 +409,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Verify that the versioninfo specified in Timestamp is used if the Snapshot
     # role hasn't been downloaded yet.
     del self.repository_updater.metadata['current']['snapshot']
-    self.assertRaises(self.repository_updater._update_versioninfo('snapshot.json'))
+    #self.assertRaises(self.repository_updater._update_versioninfo('snapshot.json'))
+    self.repository_updater._update_versioninfo('snapshot.json')
     self.assertEqual(versioninfo_dict['snapshot.json']['version'], 1)
 
 
@@ -1325,8 +1319,8 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
 
-    with open(target1, 'a') as file_object:
-      file_object.write('append extra text')
+    with open(target1, 'ab') as file_object:
+      file_object.write(b'append extra text')
 
     length, hashes = securesystemslib.util.get_file_details(target1)
 
@@ -1511,21 +1505,21 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     targets_path = os.path.join(self.client_metadata_current, 'targets.json')
     targets_metadata = securesystemslib.util.load_json_file(targets_path)
     targets_metadata['signed']['delegations']['roles'][0]['paths'] = ['/file8.txt']
-    with open(targets_path, 'w') as file_object:
+    with open(targets_path, 'wb') as file_object:
       file_object.write(repo_lib._get_written_metadata(targets_metadata))
 
     role1_path = os.path.join(self.client_metadata_current, 'role1.json')
     role1_metadata = securesystemslib.util.load_json_file(role1_path)
     role1_metadata['signed']['delegations']['roles'][0]['name'] = 'targets'
     role1_metadata['signed']['delegations']['roles'][0]['paths'] = ['/file8.txt']
-    with open(role1_path, 'w') as file_object:
+    with open(role1_path, 'wb') as file_object:
       file_object.write(repo_lib._get_written_metadata(role1_metadata))
 
     role2_path = os.path.join(self.client_metadata_current, 'role2.json')
     role2_metadata = securesystemslib.util.load_json_file(role2_path)
     role2_metadata['signed']['delegations']['roles'] = role1_metadata['signed']['delegations']['roles']
     role2_metadata['signed']['delegations']['roles'][0]['paths'] = ['/file8.txt']
-    with open(role2_path, 'w') as file_object:
+    with open(role2_path, 'wb') as file_object:
       file_object.write(repo_lib._get_written_metadata(role2_metadata))
 
     logger.debug('attempting circular delegation')
@@ -1547,7 +1541,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     role1_path = os.path.join(self.client_metadata_current, 'role1.json')
     role1_metadata = securesystemslib.util.load_json_file(role1_path)
     role1_metadata['signed']['delegations']['roles'][0]['paths'] = ['/*.exe']
-    with open(role1_path, 'w') as file_object:
+    with open(role1_path, 'wb') as file_object:
       file_object.write(repo_lib._get_written_metadata(role1_metadata))
 
     self.assertEqual(self.repository_updater._visit_child_role(child_role,
