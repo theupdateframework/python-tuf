@@ -66,7 +66,7 @@ class TestFormats(unittest.TestCase):
       'KEYIDS_SCHEMA': (securesystemslib.formats.KEYIDS_SCHEMA,
                         ['123456789abcdef', '123456789abcdef']),
 
-      'SIG_METHOD_SCHEMA': (securesystemslib.formats.SIG_METHOD_SCHEMA, 'ed25519'),
+      'SIG_SCHEME_SCHEMA': (securesystemslib.formats.SIG_SCHEME_SCHEMA, 'rsassa-pss-sha256'),
 
       'RELPATH_SCHEMA': (securesystemslib.formats.RELPATH_SCHEMA, 'metadata/root/'),
 
@@ -105,11 +105,13 @@ class TestFormats(unittest.TestCase):
 
       'KEY_SCHEMA': (securesystemslib.formats.KEY_SCHEMA,
                      {'keytype': 'rsa',
+                      'scheme': 'rsassa-pss-sha256',
                       'keyval': {'public': 'pubkey',
                                  'private': 'privkey'}}),
 
       'RSAKEY_SCHEMA': (securesystemslib.formats.RSAKEY_SCHEMA,
                         {'keytype': 'rsa',
+                         'scheme': 'rsassa-pss-sha256',
                          'keyid': '123456789abcdef',
                          'keyval': {'public': 'pubkey',
                                     'private': 'privkey'}}),
@@ -138,7 +140,6 @@ class TestFormats(unittest.TestCase):
 
       'SIGNATURE_SCHEMA': (securesystemslib.formats.SIGNATURE_SCHEMA,
                            {'keyid': '123abc',
-                            'method': 'evp',
                             'sig': 'A4582BCF323BCEF'}),
 
       'SIGNATURESTATUS_SCHEMA': (securesystemslib.formats.SIGNATURESTATUS_SCHEMA,
@@ -147,21 +148,22 @@ class TestFormats(unittest.TestCase):
                                   'bad_sigs': ['123abc'],
                                   'unknown_sigs': ['123abc'],
                                   'untrusted_sigs': ['123abc'],
-                                  'unknown_method_sigs': ['123abc']}),
+                                  'unknown_signing_schemes': ['123abc']}),
 
       'SIGNABLE_SCHEMA': (tuf.formats.SIGNABLE_SCHEMA,
                           {'signed': 'signer',
                            'signatures': [{'keyid': '123abc',
-                                           'method': 'evp',
                                            'sig': 'A4582BCF323BCEF'}]}),
 
       'KEYDICT_SCHEMA': (securesystemslib.formats.KEYDICT_SCHEMA,
                          {'123abc': {'keytype': 'rsa',
+                                     'scheme': 'rsassa-pss-sha256',
                                      'keyval': {'public': 'pubkey',
                                                 'private': 'privkey'}}}),
 
       'KEYDB_SCHEMA': (securesystemslib.formats.KEYDB_SCHEMA,
                        {'123abc': {'keytype': 'rsa',
+                                   'scheme': 'rsassa-pss-sha256',
                                    'keyid': '123456789abcdef',
                                    'keyval': {'public': 'pubkey',
                                               'private': 'privkey'}}}),
@@ -194,12 +196,13 @@ class TestFormats(unittest.TestCase):
                            'paths': ['path1/', 'path2']}}),
 
       'ROOT_SCHEMA': (tuf.formats.ROOT_SCHEMA,
-                      {'_type': 'Root',
+                      {'_type': 'root',
+                       'spec_version': '1.0',
                        'version': 8,
                        'consistent_snapshot': False,
-                       'compression_algorithms': ['gz'],
                        'expires': '1985-10-21T13:20:00Z',
                        'keys': {'123abc': {'keytype': 'rsa',
+                                           'scheme': 'rsassa-pss-sha256',
                                            'keyval': {'public': 'pubkey',
                                                       'private': 'privkey'}}},
                        'roles': {'root': {'keyids': ['123abc'],
@@ -207,13 +210,15 @@ class TestFormats(unittest.TestCase):
                                           'paths': ['path1/', 'path2']}}}),
 
       'TARGETS_SCHEMA': (tuf.formats.TARGETS_SCHEMA,
-        {'_type': 'Targets',
+        {'_type': 'targets',
+         'spec_version': '1.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'targets': {'metadata/targets.json': {'length': 1024,
                                               'hashes': {'sha256': 'ABCD123'},
                                               'custom': {'type': 'metadata'}}},
          'delegations': {'keys': {'123abc': {'keytype':'rsa',
+                                             'scheme': 'rsassa-pss-sha256',
                                              'keyval': {'public': 'pubkey',
                                                         'private': 'privkey'}}},
                          'roles': [{'name': 'root', 'keyids': ['123abc'],
@@ -221,13 +226,15 @@ class TestFormats(unittest.TestCase):
                                     'paths': ['path1/', 'path2']}]}}),
 
       'SNAPSHOT_SCHEMA': (tuf.formats.SNAPSHOT_SCHEMA,
-        {'_type': 'Snapshot',
+        {'_type': 'snapshot',
+         'spec_version': '1.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'snapshot.json': {'version': 1024}}}),
 
       'TIMESTAMP_SCHEMA': (tuf.formats.TIMESTAMP_SCHEMA,
-        {'_type': 'Timestamp',
+        {'_type': 'timestamp',
+         'spec_version': '1.0',
          'version': 8,
          'expires': '1985-10-21T13:20:00Z',
          'meta': {'metadattimestamp.json': {'length': 1024,
@@ -248,8 +255,9 @@ class TestFormats(unittest.TestCase):
          'custom': {'type': 'mirror'}}}),
 
       'MIRRORLIST_SCHEMA': (tuf.formats.MIRRORLIST_SCHEMA,
-        {'_type': 'Mirrors',
+        {'_type': 'mirrors',
          'version': 8,
+         'spec_version': '1.0',
          'expires': '1985-10-21T13:20:00Z',
          'mirrors': [{'url_prefix': 'http://localhost:8001',
          'metadata_path': 'metadata/',
@@ -260,6 +268,8 @@ class TestFormats(unittest.TestCase):
     # Iterate 'valid_schemas', ensuring each 'valid_schema' correctly matches
     # its respective 'schema_type'.
     for schema_name, (schema_type, valid_schema) in six.iteritems(valid_schemas):
+      if not schema_type.matches(valid_schema):
+        print('bad schema: ' + repr(valid_schema))
       self.assertEqual(True, schema_type.matches(valid_schema))
 
     # Test conditions for invalid schemas.
@@ -330,6 +340,7 @@ class TestFormats(unittest.TestCase):
 
 
 
+
   def test_RootFile(self):
     # Test conditions for valid instances of 'tuf.formats.RootFile'.
     version = 8
@@ -337,6 +348,7 @@ class TestFormats(unittest.TestCase):
     expires = '1985-10-21T13:20:00Z'
 
     keydict = {'123abc': {'keytype': 'rsa',
+                          'scheme': 'rsassa-pss-sha256',
                           'keyval': {'public': 'pubkey',
                                      'private': 'privkey'}}}
 
@@ -344,18 +356,14 @@ class TestFormats(unittest.TestCase):
                          'threshold': 1,
                          'paths': ['path1/', 'path2']}}
 
-    compression_algorithms = ['gz']
-
     make_metadata = tuf.formats.RootFile.make_metadata
     from_metadata = tuf.formats.RootFile.from_metadata
     ROOT_SCHEMA = tuf.formats.ROOT_SCHEMA
 
     self.assertTrue(ROOT_SCHEMA.matches(make_metadata(version, expires,
-                                                      keydict, roledict,
-                                                      consistent_snapshot,
-                                                      compression_algorithms)))
+        keydict, roledict, consistent_snapshot)))
     metadata = make_metadata(version, expires, keydict, roledict,
-                             consistent_snapshot, compression_algorithms)
+        consistent_snapshot)
     self.assertTrue(isinstance(from_metadata(metadata), tuf.formats.RootFile))
 
     # Test conditions for invalid arguments.
@@ -363,28 +371,15 @@ class TestFormats(unittest.TestCase):
     bad_expires = 'eight'
     bad_keydict = 123
     bad_roledict = 123
-    bad_compression_algorithms = ['nozip']
 
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, bad_version,
-                                                      expires,
-                                                      keydict, roledict,
-                                                      consistent_snapshot,
-                                                      compression_algorithms)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version,
-                                                      bad_expires,
-                                                      keydict, roledict,
-                                                      consistent_snapshot,
-                                                      compression_algorithms)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version,
-                                                      expires,
-                                                      bad_keydict, roledict,
-                                                      consistent_snapshot,
-                                                      compression_algorithms)
-    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata, version,
-                                                      expires,
-                                                      keydict, bad_roledict,
-                                                      consistent_snapshot,
-                                                      compression_algorithms)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
+        bad_version, expires, keydict, roledict, consistent_snapshot)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
+        version, bad_expires, keydict, roledict, consistent_snapshot)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
+        version, expires, bad_keydict, roledict, consistent_snapshot)
+    self.assertRaises(securesystemslib.exceptions.FormatError, make_metadata,
+        version, expires, keydict, bad_roledict, consistent_snapshot)
 
     self.assertRaises(securesystemslib.exceptions.FormatError, from_metadata, 'bad')
 
@@ -430,6 +425,7 @@ class TestFormats(unittest.TestCase):
                                          'custom': {'type': 'metadata'}}}
 
     delegations = {'keys': {'123abc': {'keytype':'rsa',
+                                       'scheme': 'rsassa-pss-sha256',
                                        'keyval': {'public': 'pubkey',
                                                   'private': 'privkey'}}},
                    'roles': [{'name': 'root', 'keyids': ['123abc'],
@@ -548,12 +544,13 @@ class TestFormats(unittest.TestCase):
 
   def test_make_signable(self):
     # Test conditions for expected make_signable() behavior.
-    root = {'_type': 'Root',
+    root = {'_type': 'root',
+            'spec_version': '1.0',
             'version': 8,
             'consistent_snapshot': False,
-            'compression_algorithms': ['gz'],
             'expires': '1985-10-21T13:20:00Z',
             'keys': {'123abc': {'keytype': 'rsa',
+                                'scheme': 'rsassa-pss-sha256',
                                 'keyval': {'public': 'pubkey',
                                            'private': 'privkey'}}},
             'roles': {'root': {'keyids': ['123abc'],
@@ -570,6 +567,8 @@ class TestFormats(unittest.TestCase):
     # Test conditions for miscellaneous arguments.
     self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.formats.make_signable('123')))
     self.assertTrue(SIGNABLE_SCHEMA.matches(tuf.formats.make_signable(123)))
+
+
 
 
 
@@ -680,13 +679,13 @@ class TestFormats(unittest.TestCase):
     # Test conditions for valid arguments.
     expected_rolename = tuf.formats.expected_meta_rolename
 
-    self.assertEqual('Root', expected_rolename('root'))
-    self.assertEqual('Targets', expected_rolename('targets'))
-    self.assertEqual('Snapshot', expected_rolename('snapshot'))
-    self.assertEqual('Timestamp', expected_rolename('timestamp'))
-    self.assertEqual('Mirrors', expected_rolename('mirrors'))
-    self.assertEqual('Targets Role', expected_rolename('targets role'))
-    self.assertEqual('Root', expected_rolename('Root'))
+    self.assertEqual('root', expected_rolename('Root'))
+    self.assertEqual('targets', expected_rolename('Targets'))
+    self.assertEqual('snapshot', expected_rolename('Snapshot'))
+    self.assertEqual('timestamp', expected_rolename('Timestamp'))
+    self.assertEqual('mirrors', expected_rolename('Mirrors'))
+    self.assertEqual('targets role', expected_rolename('Targets Role'))
+    self.assertEqual('root', expected_rolename('Root'))
 
     # Test conditions for invalid arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError, expected_rolename, 123)
@@ -697,12 +696,13 @@ class TestFormats(unittest.TestCase):
 
   def test_check_signable_object_format(self):
     # Test condition for a valid argument.
-    root = {'_type': 'Root',
+    root = {'_type': 'root',
+            'spec_version': '1.0',
             'version': 8,
             'consistent_snapshot': False,
-            'compression_algorithms': ['gz'],
             'expires': '1985-10-21T13:20:00Z',
             'keys': {'123abc': {'keytype': 'rsa',
+                                'scheme': 'rsassa-pss-sha256',
                                 'keyval': {'public': 'pubkey',
                                            'private': 'privkey'}}},
             'roles': {'root': {'keyids': ['123abc'],
@@ -714,7 +714,7 @@ class TestFormats(unittest.TestCase):
 
     # Test conditions for invalid arguments.
     check_signable = tuf.formats.check_signable_object_format
-    self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, 'Root')
+    self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, 'root')
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, 123)
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, tuf.formats.RootFile)
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, True)
@@ -724,9 +724,9 @@ class TestFormats(unittest.TestCase):
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, root)
     root['signed']['_type'] = saved_type
 
-    root['signed']['_type'] = 'root'
-    self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, root)
     root['signed']['_type'] = 'Root'
+    self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, root)
+    root['signed']['_type'] = 'root'
 
     del root['signed']['expires']
     self.assertRaises(securesystemslib.exceptions.FormatError, check_signable, root)

@@ -42,13 +42,7 @@ import json
 import subprocess
 import logging
 import sys
-
-# 'unittest2' required for testing under Python < 2.7.
-if sys.version_info >= (2, 7):
-  import unittest
-
-else:
-  import unittest2 as unittest
+import unittest
 
 import tuf
 import tuf.formats
@@ -272,7 +266,8 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     tuf.formats.check_signable_object_format(metadata)
 
     with open(metadata_path, 'wb') as file_object:
-      json.dumps(metadata, file_object, indent=1, sort_keys=True).encode('utf-8')
+      file_object.write(json.dumps(metadata, indent=1,
+          separators=(',', ': '), sort_keys=True).encode('utf-8'))
 
     # Verify that the malicious 'targets.json' is not downloaded.  Perform
     # a refresh of top-level metadata to demonstrate that the malicious

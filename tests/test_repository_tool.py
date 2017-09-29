@@ -35,13 +35,6 @@ import shutil
 import sys
 import errno
 
-# 'unittest2' required for testing under Python < 2.7.
-if sys.version_info >= (2, 7):
-  import unittest
-
-else:
-  import unittest2 as unittest
-
 import tuf
 import tuf.log
 import tuf.formats
@@ -84,6 +77,9 @@ class TestRepository(unittest.TestCase):
 
 
   def setUp(self):
+    tuf.roledb.clear_roledb(clear_all=True)
+    tuf.keydb.clear_keydb(clear_all=True)
+
     tuf.roledb.create_roledb('test_repository')
     tuf.keydb.create_keydb('test_repository')
 
@@ -224,7 +220,6 @@ class TestRepository(unittest.TestCase):
     repository.targets('role1').load_signing_key(role1_privkey)
 
     # (6) Write repository.
-    repository.targets.compressions = ['gz']
     repository.writeall()
 
     # Verify that the expected metadata is written.
@@ -236,10 +231,6 @@ class TestRepository(unittest.TestCase):
       tuf.formats.check_signable_object_format(role_signable)
 
       self.assertTrue(os.path.exists(role_filepath))
-
-      if role == 'targets.json':
-        compressed_filepath = role_filepath + '.gz'
-        self.assertTrue(os.path.exists(compressed_filepath))
 
     # Verify the 'role1.json' delegation is also written.
     role1_filepath = os.path.join(metadata_directory, 'role1.json')
@@ -370,8 +361,7 @@ class TestRepository(unittest.TestCase):
     self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name))
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repository.writeall, 3, False)
-    self.assertRaises(securesystemslib.exceptions.FormatError, repository.writeall, False, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError, repository.writeall, 3)
 
 
 
@@ -385,11 +375,9 @@ class TestRepository(unittest.TestCase):
     # Verify the expected filenames.  get_filepaths_in_directory() returns
     # a list of absolute paths.
     metadata_files = repo.get_filepaths_in_directory(metadata_directory)
-    expected_files = ['1.root.json', '1.root.json.gz', 'root.json',
-                      'targets.json', 'targets.json.gz', 'snapshot.json',
-                      'snapshot.json.gz', 'timestamp.json',
-                      'timestamp.json.gz', 'role1.json', 'role1.json.gz',
-                      'role2.json', 'role2.json.gz']
+    expected_files = ['1.root.json', 'root.json',
+                      'targets.json', 'snapshot.json',
+                      'timestamp.json', 'role1.json', 'role2.json']
 
     basenames = []
     for filepath in metadata_files:
@@ -445,7 +433,7 @@ class TestMetadata(unittest.TestCase):
         roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                     'signatures': [], 'version': 0,
                     'consistent_snapshot': False,
-                    'compressions': [''], 'expires': expiration,
+                    'expires': expiration,
                     'partial_loaded': False}
 
         tuf.roledb.add_role(self._rolename, roleinfo,
@@ -570,24 +558,6 @@ class TestMetadata(unittest.TestCase):
 
 
 
-  def test_compressions(self):
-    # Test default case, where only uncompressed metadata is supported.
-    self.assertEqual(self.metadata.compressions, [''])
-
-    # Test compressions getter after a compressions algorithm is added.
-    self.metadata.compressions = ['gz']
-
-    self.assertEqual(self.metadata.compressions, ['', 'gz'])
-
-
-    # Test improperly formatted argument.
-    try:
-      self.metadata.compressions = 3
-    except securesystemslib.exceptions.FormatError:
-      pass
-    else:
-      self.fail('Setter failed to detect improperly formatted compressions')
-
 
 
   def test_add_verification_key(self):
@@ -605,8 +575,7 @@ class TestMetadata(unittest.TestCase):
     expiration = expiration.isoformat() + 'Z'
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0,
-                'consistent_snapshot': False,
-                'compressions': [''], 'expires': expiration,
+                'consistent_snapshot': False, 'expires': expiration,
                 'partial_loaded': False}
 
     tuf.roledb.add_role('Root', roleinfo, 'test_repository')
@@ -1705,11 +1674,6 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     with open(bad_root_content, 'wb') as file_object:
       file_object.write(b'bad')
 
-    # Remove the compressed version of role1 to test whether the
-    # load_repository() complains or not (it logs a message).
-    role1_path = os.path.join(metadata_directory, 'role1.json.gz')
-    os.remove(role1_path)
-
     repository = repo_tool.load_repository(repository_directory)
     self.assertTrue(isinstance(repository, repo_tool.Repository))
 
@@ -1756,6 +1720,47 @@ class TestRepositoryToolFunctions(unittest.TestCase):
 
     # dirty_roles() only logs the list of dirty roles.
     repository.dirty_roles()
+
+
+
+  def test_dump_signable_metadata(self):
+    metadata_directory = os.path.join('repository_data',
+                                      'repository', 'metadata')
+    targets_metadata_file = os.path.join(metadata_directory, 'targets.json')
+
+    metadata_content = repo_tool.dump_signable_metadata(targets_metadata_file)
+
+    # Test for an invalid targets metadata file..
+    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.dump_signable_metadata, 1)
+    self.assertRaises(IOError, repo_tool.dump_signable_metadata, 'bad file path')
+
+
+
+  def test_append_signature(self):
+    metadata_directory = os.path.join('repository_data',
+                                      'repository', 'metadata')
+    targets_metadata_path = os.path.join(metadata_directory, 'targets.json')
+
+    temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
+    tmp_targets_metadata_path = os.path.join(temporary_directory, 'targets.json')
+    shutil.copyfile(targets_metadata_path, tmp_targets_metadata_path)
+
+    # Test for normal case.
+    targets_metadata = securesystemslib.util.load_json_file(tmp_targets_metadata_path)
+    num_signatures = len(targets_metadata['signatures'])
+    signature = targets_metadata['signatures'][0]
+
+    repo_tool.append_signature(signature, tmp_targets_metadata_path)
+
+    targets_metadata = securesystemslib.util.load_json_file(tmp_targets_metadata_path)
+    self.assertTrue(num_signatures, len(targets_metadata['signatures']))
+
+    # Test for invalid arguments.
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_tool.append_signature, 1, tmp_targets_metadata_path)
+
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_tool.append_signature, signature, 1)
 
 
 # Run the test cases.

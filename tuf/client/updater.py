@@ -140,6 +140,10 @@ logger = logging.getLogger('tuf.client.updater')
 iso8601_logger = logging.getLogger('iso8601')
 iso8601_logger.disabled = True
 
+# Metadata includes the specification version number that it follows.
+# All downloaded metadata must be equal to our supported major version of 1.
+# For example, "1.4.3" and "1.0.0" are supported.  "2.0.0" is not supported.
+SUPPORTED_MAJOR_VERSION = 1
 
 class Updater(object):
   """
@@ -450,7 +454,7 @@ class Updater(object):
           self._rebuild_key_and_role_db()
           self.consistent_snapshot = metadata_object['consistent_snapshot']
 
-        elif metadata_object['_type'] == 'Targets':
+        elif metadata_object['_type'] == 'targets':
           # TODO: Should we also remove the keys of the delegated roles?
           self._import_delegations(metadata_role)
 
@@ -540,12 +544,11 @@ class Updater(object):
     # Iterate the keys of the delegated roles of 'parent_role' and load them.
     for keyid, keyinfo in six.iteritems(keys_info):
       if keyinfo['keytype'] in ['rsa', 'ed25519']:
-        key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo)
 
         # We specify the keyid to ensure that it's the correct keyid
         # for the key.
         try:
-          tuf.keydb.add_key(key, keyid, self.repository_name)
+          key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo)
           for keyid in keyids:
             key['keyid'] = keyid
             tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
@@ -575,7 +578,7 @@ class Updater(object):
         logger.warning('Role already exists: ' + rolename)
 
       except:
-        logger.exception('Failed to add delegated role: ' + rolename + '.')
+        logger.exception('Failed to add delegated role: ' + repr(rolename) + '.')
         raise
 
 
@@ -688,7 +691,7 @@ class Updater(object):
 
 
 
-  def _update_root_metadata(self, current_root_metadata, compression_algorithm=None):
+  def _update_root_metadata(self, current_root_metadata):
     """
     <Purpose>
       The root file must be signed by the current root threshold and keys as
@@ -705,9 +708,6 @@ class Updater(object):
       current_root_metadata:
         The currently held version of root.
 
-      compresison_algorithm:
-        The compression algorithm used to compress remote metadata.
-
     <Side Effects>
       Updates the root metadata files with the latest information.
 
@@ -718,8 +718,7 @@ class Updater(object):
     # Retrieve the latest, remote root.json.
     latest_root_metadata_file = \
       self._get_metadata_file('root', 'root.json',
-                              tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH, None,
-                              compression_algorithm=compression_algorithm)
+        tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH, None)
     latest_root_metadata = \
       securesystemslib.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
 
@@ -737,8 +736,8 @@ class Updater(object):
       # in the latest root.json after running through the intermediates with
       # _update_metadata().
       self.consistent_snapshot = True
-      self._update_metadata('root', tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH, version=version,
-                            compression_algorithm=compression_algorithm)
+      self._update_metadata('root', tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH,
+          version=version)
 
 
 
@@ -926,18 +925,13 @@ class Updater(object):
       self._hard_check_file_length(target_file_object, file_length)
       self._check_hashes(target_file_object, file_hashes)
 
-    # Target files, unlike metadata files, are not decompressed; the
-    # 'compression' argument to _get_file() is needed only for decompression of
-    # metadata.  Target files may be compressed or uncompressed.
     if self.consistent_snapshot:
       target_digest = random.choice(list(file_hashes.values()))
       dirname, basename = os.path.split(target_filepath)
       target_filepath = os.path.join(dirname, target_digest + '.' + basename)
 
     return self._get_file(target_filepath, verify_target_file,
-                          'target', file_length, compression=None,
-                          verify_compressed_file_function=None,
-                          download_safely=True)
+        'target', file_length, download_safely=True)
 
 
 
@@ -1016,8 +1010,7 @@ class Updater(object):
 
 
   def _get_metadata_file(self, metadata_role, remote_filename,
-                         upperbound_filelength, expected_version,
-                         compression_algorithm):
+    upperbound_filelength, expected_version):
     """
     <Purpose>
       Non-public method that tries downloading, up to a certain length, a
@@ -1039,10 +1032,6 @@ class Updater(object):
       expected_version:
         The expected and required version number of the 'metadata_role' file
         downloaded.  'expected_version' is an integer.
-
-      compression_algorithm:
-        The name of the compression algorithm (e.g., 'gzip').  The algorithm is
-        needed if the remote metadata file is compressed.
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
@@ -1069,18 +1058,28 @@ class Updater(object):
         file_object = tuf.download.unsafe_download(file_mirror,
                                                    upperbound_filelength)
 
-        if compression_algorithm is not None:
-          logger.info('Decompressing ' + str(file_mirror))
-          file_object.decompress_temp_file_object(compression_algorithm)
-
-        else:
-          logger.info('Not decompressing ' + str(file_mirror))
-
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
         # uncompressed version).
         metadata_signable = \
           securesystemslib.util.load_json_string(file_object.read().decode('utf-8'))
+
+        # Determine if the specification version number is supported.  It is
+        # assumed that "spec_version" is in (major.minor.fix) format, (for
+        # example: "1.4.3") and that releases with the same major version
+        # number maintain backwards compatibility.  Consequently, if the major
+        # version number of new metadata equals our expected major version
+        # number, the new metadata is safe to parse.
+        try:
+          spec_version_parsed = metadata_signable['signed']['spec_version'].split('.')
+          if int(spec_version_parsed[0]) != SUPPORTED_MAJOR_VERSION:
+            raise securesystemslib.exceptions.BadVersionNumberError('Downloaded'
+              ' metadata that specifies an unsupported spec_version.  Supported'
+              ' major version number: ' + repr(SUPPORTED_MAJOR_VERSION))
+
+        except (ValueError, TypeError):
+          raise securesystemslib.exceptions.FormatError('Improperly'
+            ' formatted spec_version, which must be in major.minor.fix format')
 
         # If the version number is unspecified, ensure that the version number
         # downloaded is greater than the currently trusted version number for
@@ -1154,8 +1153,7 @@ class Updater(object):
 
 
   def _get_file(self, filepath, verify_file_function, file_type,
-                file_length, compression=None,
-                verify_compressed_file_function=None, download_safely=True):
+    file_length, download_safely=True):
     """
     <Purpose>
       Non-public method that tries downloading, up to a certain length, a
@@ -1181,15 +1179,6 @@ class Updater(object):
       file_length:
         The expected length, or upper bound, of the target or metadata file to
         be downloaded.
-
-      compression:
-        The name of the compression algorithm (e.g., 'gzip'), if the metadata
-        file is compressed.
-
-      verify_compressed_file_function:
-        If compression is specified, in the case of metadata files, this
-        callable function may be set to perform verification of the compressed
-        version of the metadata file.  Decompressed metadata is also verified.
 
       download_safely:
         A boolean switch to toggle safe or unsafe download of the file.
@@ -1217,24 +1206,16 @@ class Updater(object):
 
     for file_mirror in file_mirrors:
       try:
-        # TODO: Instead of the more fragile 'download_safely' switch, unroll the
-        # function into two separate ones: one for "safe" download, and the other one
-        # for "unsafe" download? This should induce safer and more readable code.
+        # TODO: Instead of the more fragile 'download_safely' switch, unroll
+        # the function into two separate ones: one for "safe" download, and the
+        # other one for "unsafe" download? This should induce safer and more
+        # readable code.
         if download_safely:
           file_object = tuf.download.safe_download(file_mirror,
                                                    file_length)
         else:
           file_object = tuf.download.unsafe_download(file_mirror,
                                                      file_length)
-
-        if compression is not None:
-          if verify_compressed_file_function is not None:
-            verify_compressed_file_function(file_object)
-          logger.info('Decompressing ' + str(file_mirror))
-          file_object.decompress_temp_file_object(compression)
-
-        else:
-          logger.info('Not decompressing ' + str(file_mirror))
 
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
@@ -1262,8 +1243,7 @@ class Updater(object):
 
 
 
-  def _update_metadata(self, metadata_role, upperbound_filelength, version=None,
-                       compression_algorithm=None):
+  def _update_metadata(self, metadata_role, upperbound_filelength, version=None):
     """
     <Purpose>
       Non-public method that downloads, verifies, and 'installs' the metadata
@@ -1285,12 +1265,6 @@ class Updater(object):
         The expected and required version number of the 'metadata_role' file
         downloaded.  'expected_version' is an integer.
 
-      compression_algorithm:
-        A string designating the compression type of 'metadata_role'.
-        The 'snapshot' metadata file may be optionally downloaded and stored in
-        compressed form.  Currently, only metadata files compressed with 'gzip'
-        are considered.  Any other string is ignored.
-
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
         The metadata cannot be updated. This is not specific to a single
@@ -1308,12 +1282,7 @@ class Updater(object):
 
     # Construct the metadata filename as expected by the download/mirror modules.
     metadata_filename = metadata_role + '.json'
-    uncompressed_metadata_filename = metadata_filename
-
-    # The 'snapshot' or Targets metadata may be compressed.  Add the appropriate
-    # extension to 'metadata_filename'.
-    if compression_algorithm == 'gzip':
-      metadata_filename = metadata_filename + '.gz'
+    metadata_filename = metadata_filename
 
     # Attempt a file download from each mirror until the file is downloaded and
     # verified.  If the signature of the downloaded file is valid, proceed,
@@ -1330,10 +1299,6 @@ class Updater(object):
     # for each other. In this case, we will download the metadata up to the
     # best length we can get for it, not request a specific version, but
     # perform the rest of the checks (e.g., signature verification).
-    #
-    # Note also that we presently support decompression of only "safe"
-    # metadata, but this is easily extend to "unsafe" metadata as well as
-    # "safe" targets.
 
     remote_filename = metadata_filename
     filename_version = ''
@@ -1345,8 +1310,7 @@ class Updater(object):
 
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
-                              upperbound_filelength, version,
-                              compression_algorithm)
+        upperbound_filelength, version)
 
     # The metadata has been verified. Move the metadata file into place.
     # First, move the 'current' metadata file to the 'previous' directory
@@ -1371,16 +1335,7 @@ class Updater(object):
     metadata_signable = \
       securesystemslib.util.load_json_string(metadata_file_object.read().decode('utf-8'))
 
-    if compression_algorithm == 'gzip':
-      current_uncompressed_filepath = \
-        os.path.join(self.metadata_directory['current'],
-                     uncompressed_metadata_filename)
-      current_uncompressed_filepath = \
-        os.path.abspath(current_uncompressed_filepath)
-      metadata_file_object.move(current_uncompressed_filepath)
-
-    else:
-      metadata_file_object.move(current_filepath)
+    metadata_file_object.move(current_filepath)
 
     # Extract the metadata object so we can store it to the metadata store.
     # 'current_metadata_object' set to 'None' if there is not an object
@@ -1398,7 +1353,7 @@ class Updater(object):
     logger.debug('Updated ' + repr(current_filepath) + '.')
     self.metadata['previous'][metadata_role] = current_metadata_object
     self.metadata['current'][metadata_role] = updated_metadata_object
-    self._update_versioninfo(uncompressed_metadata_filename)
+    self._update_versioninfo(metadata_filename)
 
     # Ensure the role and key information of the top-level roles is also updated
     # according to the newly-installed Root metadata.
@@ -1411,7 +1366,7 @@ class Updater(object):
 
 
   def _update_metadata_if_changed(self, metadata_role,
-                                  referenced_metadata='snapshot'):
+    referenced_metadata='snapshot'):
     """
     <Purpose>
       Non-public method that updates the metadata for 'metadata_role' if it has
@@ -1469,7 +1424,7 @@ class Updater(object):
       None.
     """
 
-    uncompressed_metadata_filename = metadata_role + '.json'
+    metadata_filename = metadata_role + '.json'
     expected_versioninfo = None
     expected_fileinfo = None
 
@@ -1493,57 +1448,26 @@ class Updater(object):
     # strictly greater than its currently trusted version number.
     expected_versioninfo = self.metadata['current'][referenced_metadata] \
                                         ['meta'] \
-                                        [uncompressed_metadata_filename]
+                                        [metadata_filename]
 
-    if not self._versioninfo_has_been_updated(uncompressed_metadata_filename,
+    if not self._versioninfo_has_been_updated(metadata_filename,
                                               expected_versioninfo):
-      logger.info(repr(uncompressed_metadata_filename) + ' up-to-date.')
+      logger.info(repr(metadata_filename) + ' up-to-date.')
 
-      # Since we have not downloaded a new version of this metadata, we
-      # should check to see if our local version is stale and notify the user
-      # if so. This raises tuf.exceptions.ExpiredMetadataError if the metadata we
-      # have is expired. Resolves issue #322.
+      # Since we have not downloaded a new version of this metadata, we should
+      # check to see if our local version is stale and notify the user if so.
+      # This raises tuf.exceptions.ExpiredMetadataError if the metadata we have
+      # is expired. Resolves issue #322.
       self._ensure_not_expired(self.metadata['current'][metadata_role],
                                metadata_role)
+
       # TODO: If 'metadata_role' is root or snapshot, we should verify that
       # root's hash matches what's in snapshot, and that snapshot hash matches
       # what's listed in timestamp.json.
 
       return
 
-    logger.debug('Metadata ' + repr(uncompressed_metadata_filename) + ' has changed.')
-
-    # There might be a compressed version of 'snapshot.json' or Targets
-    # metadata available for download.  Check the 'meta' field of
-    # 'referenced_metadata' to see if it is listed when 'metadata_role'
-    # is 'snapshot'.  The full rolename for delegated Targets metadata
-    # must begin with 'targets/'.  The snapshot role lists all the Targets
-    # metadata available on the repository, including any that may be in
-    # compressed form.
-    #
-    # In addition to validating the fileinfo (i.e., file lengths and hashes)
-    # of the uncompressed metadata, the compressed version is also verified to
-    # match its respective fileinfo.  Verifying the compressed fileinfo ensures
-    # untrusted data is not decompressed prior to verifying hashes, or
-    # decompressing a file that may be invalid or partially intact.
-    compression = None
-
-    # Check for the availability of compressed versions of 'snapshot.json',
-    # 'targets.json', and delegated Targets (that also start with 'targets').
-    # For 'targets.json' and delegated metadata, 'referenced_metata'
-    # should always be 'snapshot'.  'snapshot.json' specifies all roles
-    # provided by a repository, including their version numbers.
-    if metadata_role == 'snapshot' or metadata_role.startswith('targets'):
-      if 'gzip' in self.metadata['current']['root']['compression_algorithms']:
-        compression = 'gzip'
-        gzip_metadata_filename = uncompressed_metadata_filename + '.gz'
-        logger.debug('Compressed version of ' +
-          repr(uncompressed_metadata_filename) + ' is available at ' +
-          repr(gzip_metadata_filename) + '.')
-
-      else:
-        logger.debug('Compressed version of ' +
-          repr(uncompressed_metadata_filename) + ' not available.')
+    logger.debug('Metadata ' + repr(metadata_filename) + ' has changed.')
 
     # The file lengths of metadata are unknown, only their version numbers are
     # known.  Set an upper limit for the length of the downloaded file for each
@@ -1561,7 +1485,7 @@ class Updater(object):
 
     try:
       self._update_metadata(metadata_role, upperbound_filelength,
-                            expected_versioninfo['version'], compression)
+          expected_versioninfo['version'])
 
     except:
       # The current metadata we have is not current but we couldn't get new
@@ -2047,7 +1971,7 @@ class Updater(object):
 
 
   def _refresh_targets_metadata(self, rolename='targets',
-                                refresh_all_delegated_roles=False):
+    refresh_all_delegated_roles=False):
     """
     <Purpose>
       Non-public method that refreshes the targets metadata of 'rolename'.  If
@@ -2377,8 +2301,7 @@ class Updater(object):
         child_roles_to_visit = []
         # NOTE: This may be a slow operation if there are many delegated roles.
         for child_role in child_roles:
-          child_role_name = self._visit_child_role(child_role, target_filepath,
-                                                   delegations)
+          child_role_name = self._visit_child_role(child_role, target_filepath)
           if child_role['terminating'] and child_role_name is not None:
             logger.debug('Adding child role ' + repr(child_role_name))
             logger.debug('Not backtracking to other roles.')
@@ -2463,11 +2386,11 @@ class Updater(object):
 
 
 
-  def _visit_child_role(self, child_role, target_filepath, parent_delegations):
+  def _visit_child_role(self, child_role, target_filepath):
     """
     <Purpose>
-      Non-public method that determines whether the given 'child_role' has been
-      delegated the target with the name 'target_filepath'.
+      Non-public method that determines whether the given 'target_filepath'
+      is an allowed path of 'child_role'.
 
       Ensure that we explore only delegated roles trusted with the target.  The
       metadata for 'child_role' should have been refreshed prior to this point,
@@ -2475,7 +2398,7 @@ class Updater(object):
       verified (as intended).  The paths/targets that 'child_role' is allowed
       to specify in its metadata depends on the delegating role, and thus is
       left to the caller to verify.  We verify here that 'target_filepath'
-      is an allowed path according to its parent role ('parent_delegations').
+      is an allowed path according to the delegated 'child_role'.
 
       TODO: Should the TUF spec restrict the repository to one particular
       algorithm?  Should we allow the repository to specify in the role
@@ -2484,15 +2407,11 @@ class Updater(object):
     <Arguments>
       child_role:
         The delegation targets role object of 'child_role', containing its
-        paths, path_hash_prefixes, keys and so on.
+        paths, path_hash_prefixes, keys, and so on.
 
       target_filepath:
         The path to the target file on the repository. This will be relative to
         the 'targets' (or equivalent) directory on a given mirror.
-
-      parent_delegations:
-        The 'delegations' entry of 'child_role's delegating role.  A delegating
-        role specifies the paths/targets that a child role is trusted to sign.
 
     <Exceptions>
       None.
@@ -2511,63 +2430,43 @@ class Updater(object):
     child_role_paths = child_role.get('paths')
     child_role_path_hash_prefixes = child_role.get('path_hash_prefixes')
 
-    # A boolean indicator that tell us whether 'child_role' has been delegated
-    # the target with the name 'target_filepath'.
-    child_role_is_relevant = False
-
     if child_role_path_hash_prefixes is not None:
       target_filepath_hash = self._get_target_hash(target_filepath)
       for child_role_path_hash_prefix in child_role_path_hash_prefixes:
         if target_filepath_hash.startswith(child_role_path_hash_prefix):
-          child_role_is_relevant = True
+          return child_role_name
 
         else:
           continue
 
     elif child_role_paths is not None:
+      # Is 'child_role_name' allowed to sign for 'target_filepath'?
       for child_role_path in child_role_paths:
         # A child role path may be an explicit path or pattern (Unix
-        # shell-style wildcards).  The child role 'child_role_name' is added if
-        # 'target_filepath' is equal or matches 'child_role_path'.  Explicit
-        # filepaths are also added.
+        # shell-style wildcards).  The child role 'child_role_name' is returned
+        # if 'target_filepath' is equal to or matches 'child_role_path'.
+        # Explicit filepaths are also considered matches.
         if fnmatch.fnmatch(target_filepath, child_role_path):
-          child_role_is_relevant = True
+         logger.debug('Child role ' + repr(child_role_name) + ' is allowed to'
+            ' sign for ' + repr(target_filepath))
+
+         return child_role_name
 
         else:
-          logger.debug('Target path' + repr(target_filepath) + ' does not'
-            ' match child role path ' + repr(child_role_path))
+          logger.debug('The given target path' + repr(target_filepath) + ' is'
+              ' not an allowed trusted path of ' + repr(child_role_path))
+
+          continue
 
     else:
       # 'role_name' should have been validated when it was downloaded.
       # The 'paths' or 'path_hash_prefixes' fields should not be missing,
       # so we raise a format error here in case they are both missing.
-      raise securesystemslib.exceptions.FormatError(repr(child_role_name) + ' has neither '
-                                '"paths" nor "path_hash_prefixes".')
+      raise securesystemslib.exceptions.FormatError(repr(child_role_name) + ' '
+          'has neither a "paths" nor "path_hash_prefixes".  At least'
+          ' one of these attributes must be present.')
 
-    if child_role_is_relevant:
-      # Is the child role allowed by its parent role to specify this path
-      # in its metadata?
-      try:
-        securesystemslib.util.ensure_all_targets_allowed(child_role_name,
-          [target_filepath], parent_delegations)
-
-      except tuf.exceptions.ForbiddenTargetError:
-        logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
-                     repr(target_filepath) + ', but is not allowed to sign for'
-                     ' it according to its delegating role.')
-        return None
-
-      else:
-        logger.debug('Child role ' + repr(child_role_name) + ' has target ' + \
-                     repr(target_filepath))
-        return child_role_name
-
-    else:
-      logger.debug('Child role ' + repr(child_role_name) + \
-                   ' does not have target ' + repr(target_filepath))
-      return None
-
-
+    return None
 
 
 

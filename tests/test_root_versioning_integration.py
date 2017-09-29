@@ -27,12 +27,7 @@ import logging
 import tempfile
 import shutil
 import sys
-
-# 'unittest2' required for testing under Python < 2.7.
-if sys.version_info >= (2, 7):
-  import unittest
-else:
-  import unittest2 as unittest
+import unittest
 
 import tuf
 import tuf.log
@@ -179,7 +174,6 @@ class TestRepository(unittest.TestCase):
     repository.targets('role1').load_signing_key(role1_privkey)
 
     # (6) Write repository.
-    repository.targets.compressions = ['gz']
     repository.writeall()
 
     self.assertTrue(os.path.exists(os.path.join(metadata_directory, 'root.json')))

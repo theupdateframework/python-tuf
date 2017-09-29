@@ -311,13 +311,9 @@ class TestKeydb(unittest.TestCase):
     version = 8
     consistent_snapshot = False
     expires = '1985-10-21T01:21:00Z'
-    compression_algorithms = ['gz']
 
-    root_metadata = tuf.formats.RootFile.make_metadata(version,
-                                                       expires,
-                                                       keydict, roledict,
-                                                       consistent_snapshot,
-                                                       compression_algorithms)
+    root_metadata = tuf.formats.RootFile.make_metadata(version, expires,
+        keydict, roledict, consistent_snapshot)
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
     tuf.keydb.create_keydb_from_root_metadata(root_metadata)
 
@@ -331,17 +327,17 @@ class TestKeydb(unittest.TestCase):
 
     # Test conditions for arguments with invalid formats.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, None)
+        tuf.keydb.create_keydb_from_root_metadata, None)
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, '')
+        tuf.keydb.create_keydb_from_root_metadata, '')
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, 123)
+        tuf.keydb.create_keydb_from_root_metadata, 123)
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, ['123'])
+        tuf.keydb.create_keydb_from_root_metadata, ['123'])
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, {'bad': '123'})
+        tuf.keydb.create_keydb_from_root_metadata, {'bad': '123'})
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      tuf.keydb.create_keydb_from_root_metadata, root_metadata, 123)
+        tuf.keydb.create_keydb_from_root_metadata, root_metadata, 123)
 
     # Verify that a keydb cannot be created for a non-existent repository name.
     tuf.keydb.create_keydb_from_root_metadata(root_metadata, 'non-existent')
@@ -367,13 +363,9 @@ class TestKeydb(unittest.TestCase):
     keydict[keyid3] = rsakey3
     version = 8
     expires = '1985-10-21T01:21:00Z'
-    compression_algorithms = ['gz']
 
-    root_metadata = tuf.formats.RootFile.make_metadata(version,
-                                                       expires,
-                                                       keydict, roledict,
-                                                       consistent_snapshot,
-                                                       compression_algorithms)
+    root_metadata = tuf.formats.RootFile.make_metadata(version, expires,
+        keydict, roledict, consistent_snapshot)
     self.assertEqual(None, tuf.keydb.create_keydb_from_root_metadata(root_metadata))
 
     # Ensure only 'keyid2' was added to the keydb database.  'keyid' and

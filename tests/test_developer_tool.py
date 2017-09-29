@@ -22,6 +22,7 @@ import unittest
 import logging
 import tempfile
 import shutil
+import unittest
 
 import tuf
 import tuf.log
@@ -346,10 +347,6 @@ class TestProject(unittest.TestCase):
 
     # + backup the name.
     name_backup = project._project_name
-
-    # Set the compressions.  We will be checking this part here too.
-    project.compressions = ['gz']
-    project('delegation').compressions = project.compressions
 
     # Write and reload.
     self.assertRaises(securesystemslib.exceptions.Error, project.write)

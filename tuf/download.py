@@ -44,7 +44,7 @@ import securesystemslib.util
 import six
 
 # 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
-# for Python 2.6 and 2.7.
+# for Python 2.7.
 try:
   from ssl import match_hostname, CertificateError
 
@@ -682,10 +682,7 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
   def connect(self):
 
     self.connection_kwargs = {}
-
-    # for > py2.5
-    if hasattr(self, 'timeout'):
-      self.connection_kwargs.update(timeout = self.timeout)
+    self.connection_kwargs.update(timeout = self.timeout)
 
     # for >= py2.7
     if hasattr(self, 'source_address'):

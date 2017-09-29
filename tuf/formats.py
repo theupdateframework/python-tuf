@@ -74,7 +74,6 @@ from __future__ import unicode_literals
 import binascii
 import calendar
 import re
-import string
 import datetime
 import time
 
@@ -85,6 +84,13 @@ import securesystemslib.formats
 import securesystemslib.schema as SCHEMA
 
 import six
+
+
+# TUF specification version.  The constant should be updated when the version
+# number of the specification changes.  All metadata should list this version
+# number.
+TUF_VERSION_NUMBER = '1.0'
+SPECIFICATION_VERSION_SCHEMA = SCHEMA.AnyString()
 
 # A datetime in 'YYYY-MM-DDTHH:MM:SSZ' ISO 8601 format.  The "Z" zone designator
 # for the zero UTC offset is always used (i.e., a numerical offset is not
@@ -147,10 +153,6 @@ METADATAVERSION_SCHEMA = SCHEMA.Integer(lo=0)
 
 # A value that is either True or False, on or off, etc.
 BOOLEAN_SCHEMA = SCHEMA.Boolean()
-
-# List of supported compression extensions.
-COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
-  SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
 
 # A string representing a role's name.
 ROLENAME_SCHEMA = SCHEMA.AnyString()
@@ -269,13 +271,6 @@ DELEGATIONS_SCHEMA = SCHEMA.Object(
 # as requiring them to be a power of 2.
 NUMBINS_SCHEMA = SCHEMA.Integer(lo=1)
 
-# Supported compression extension (e.g., 'gz').
-COMPRESSION_SCHEMA = SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')])
-
-# List of supported compression extensions.
-COMPRESSIONS_SCHEMA = SCHEMA.ListOf(
-  SCHEMA.OneOf([SCHEMA.String(''), SCHEMA.String('gz')]))
-
 # The fileinfo format of targets specified in the repository and
 # developer tools.  The second element of this list holds custom data about the
 # target, such as file permissions, author(s), last modified, etc.
@@ -296,7 +291,6 @@ ROLEDB_SCHEMA = SCHEMA.Object(
   version = SCHEMA.Optional(METADATAVERSION_SCHEMA),
   expires = SCHEMA.Optional(ISO8601_DATETIME_SCHEMA),
   signatures = SCHEMA.Optional(securesystemslib.formats.SIGNATURES_SCHEMA),
-  compressions = SCHEMA.Optional(COMPRESSIONS_SCHEMA),
   paths = SCHEMA.Optional(SCHEMA.OneOf([RELPATHS_SCHEMA, PATH_FILEINFO_SCHEMA])),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
   delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
@@ -311,10 +305,10 @@ SIGNABLE_SCHEMA = SCHEMA.Object(
 # Root role: indicates root keys and top-level roles.
 ROOT_SCHEMA = SCHEMA.Object(
   object_name = 'ROOT_SCHEMA',
-  _type = SCHEMA.String('Root'),
+  _type = SCHEMA.String('root'),
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = METADATAVERSION_SCHEMA,
   consistent_snapshot = BOOLEAN_SCHEMA,
-  compression_algorithms = COMPRESSIONS_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)
@@ -322,7 +316,8 @@ ROOT_SCHEMA = SCHEMA.Object(
 # Targets role: Indicates targets and delegates target paths to other roles.
 TARGETS_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETS_SCHEMA',
-  _type = SCHEMA.String('Targets'),
+  _type = SCHEMA.String('targets'),
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   targets = FILEDICT_SCHEMA,
@@ -332,15 +327,16 @@ TARGETS_SCHEMA = SCHEMA.Object(
 # timestamp).
 SNAPSHOT_SCHEMA = SCHEMA.Object(
   object_name = 'SNAPSHOT_SCHEMA',
-  _type = SCHEMA.String('Snapshot'),
+  _type = SCHEMA.String('snapshot'),
   version = securesystemslib.formats.METADATAVERSION_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
+  spec_version = SPECIFICATION_VERSION_SCHEMA,
   meta = FILEINFODICT_SCHEMA)
 
 # Timestamp role: indicates the latest version of the snapshot file.
 TIMESTAMP_SCHEMA = SCHEMA.Object(
   object_name = 'TIMESTAMP_SCHEMA',
-  _type = SCHEMA.String('Timestamp'),
+  _type = SCHEMA.String('timestamp'),
   version = securesystemslib.formats.METADATAVERSION_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
   meta = securesystemslib.formats.FILEDICT_SCHEMA)
@@ -380,7 +376,7 @@ MIRRORDICT_SCHEMA = SCHEMA.DictOf(
 # serve.
 MIRRORLIST_SCHEMA = SCHEMA.Object(
   object_name = 'MIRRORLIST_SCHEMA',
-  _type = SCHEMA.String('Mirrors'),
+  _type = SCHEMA.String('mirrors'),
   version = METADATAVERSION_SCHEMA,
   expires = securesystemslib.formats.ISO8601_DATETIME_SCHEMA,
   mirrors = SCHEMA.ListOf(MIRROR_SCHEMA))
@@ -459,7 +455,6 @@ def make_signable(object):
 
 
 
-
 class MetaFile(object):
   """
   <Purpose>
@@ -519,7 +514,8 @@ class TimestampFile(MetaFile):
 
   @staticmethod
   def make_metadata(version, expiration_date, filedict):
-    result = {'_type' : 'Timestamp'}
+    result = {'_type' : 'timestamp'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['meta'] = filedict
@@ -533,16 +529,13 @@ class TimestampFile(MetaFile):
 
 
 class RootFile(MetaFile):
-  def __init__(self, version, expires, keys, roles, consistent_snapshot,
-               compression_algorithms):
+  def __init__(self, version, expires, keys, roles, consistent_snapshot):
     self.info = {}
     self.info['version'] = version
     self.info['expires'] = expires
     self.info['keys'] = keys
     self.info['roles'] = roles
     self.info['consistent_snapshot'] = consistent_snapshot
-    self.info['compression_algorithms'] = compression_algorithms
-
 
   @staticmethod
   def from_metadata(object):
@@ -555,22 +548,19 @@ class RootFile(MetaFile):
     keys = object['keys']
     roles = object['roles']
     consistent_snapshot = object['consistent_snapshot']
-    compression_algorithms = object['compression_algorithms']
 
-    return RootFile(version, expires, keys, roles, consistent_snapshot,
-                    compression_algorithms)
+    return RootFile(version, expires, keys, roles, consistent_snapshot)
 
 
   @staticmethod
-  def make_metadata(version, expiration_date, keydict, roledict,
-                    consistent_snapshot, compression_algorithms):
-    result = {'_type' : 'Root'}
+  def make_metadata(version, expiration_date, keydict, roledict, consistent_snapshot):
+    result = {'_type' : 'root'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['keys'] = keydict
     result['roles'] = roledict
     result['consistent_snapshot'] = consistent_snapshot
-    result['compression_algorithms'] = compression_algorithms
 
     # Is 'result' a Root metadata file?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
@@ -604,7 +594,8 @@ class SnapshotFile(MetaFile):
 
   @staticmethod
   def make_metadata(version, expiration_date, versiondict):
-    result = {'_type' : 'Snapshot'}
+    result = {'_type' : 'snapshot'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['meta'] = versiondict
@@ -651,10 +642,12 @@ class TargetsFile(MetaFile):
       raise securesystemslib.exceptions.Error('We don\'t allow completely'
         ' empty targets metadata.')
 
-    result = {'_type' : 'Targets'}
+    result = {'_type' : 'targets'}
+    result['spec_version'] = TUF_VERSION_NUMBER
     result['version'] = version
     result['expires'] = expiration_date
     result['targets'] = {}
+
     if filedict is not None:
       result['targets'] = filedict
     if delegations is not None:
@@ -688,11 +681,11 @@ class MirrorsFile(MetaFile):
 
 # A dict holding the recognized schemas for the top-level roles.
 SCHEMAS_BY_TYPE = {
-  'Root' : ROOT_SCHEMA,
-  'Targets' : TARGETS_SCHEMA,
-  'Snapshot' : SNAPSHOT_SCHEMA,
-  'Timestamp' : TIMESTAMP_SCHEMA,
-  'Mirrors' : MIRRORLIST_SCHEMA}
+  'root' : ROOT_SCHEMA,
+  'targets' : TARGETS_SCHEMA,
+  'snapshot' : SNAPSHOT_SCHEMA,
+  'timestamp' : TIMESTAMP_SCHEMA,
+  'mirrors' : MIRRORLIST_SCHEMA}
 
 # A dict holding the recognized class names for the top-level roles.
 # That is, the role classes listed in this module (e.g., class TargetsFile()).
@@ -1098,7 +1091,7 @@ def expected_meta_rolename(meta_rolename):
   # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
   securesystemslib.formats.NAME_SCHEMA.check_match(meta_rolename)
 
-  return string.capwords(meta_rolename)
+  return meta_rolename.lower()
 
 
 

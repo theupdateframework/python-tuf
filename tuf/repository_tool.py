@@ -69,10 +69,9 @@ logger = logging.getLogger('tuf.repository_tool')
 tuf.log.add_console_handler()
 tuf.log.set_console_log_level(logging.INFO)
 
-# The algorithm used by the repository to generate the digests of the
-# target filepaths, which are included in metadata files and may be prepended
-# to the filenames of consistent snapshots.
-HASH_FUNCTION = 'sha256'
+# The algorithm used by the repository to generate the path hash prefixes
+# of hashed bin delegations.  Please see delegate_hashed_bins()
+HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
 
 # The targets and metadata directory names.  Metadata files are written
 # to the staged metadata directory instead of the "live" one.
@@ -187,7 +186,7 @@ class Repository(object):
 
 
 
-  def writeall(self, consistent_snapshot=False, compression_algorithms=['gz']):
+  def writeall(self, consistent_snapshot=False):
     """
     <Purpose>
       Write all the JSON Metadata objects to their corresponding files.
@@ -202,11 +201,6 @@ class Repository(object):
         <version_number>.root.json, <version_number>.targets.json.gz,
         <version_number>.README.json
         Example: 13.root.json'
-
-      compression_algorithms:
-        A list of compression algorithms.  Each of these algorithms will be
-        used to compress all of the metadata available on the repository.
-        By default, all metadata is compressed with gzip.
 
     <Exceptions>
       tuf.exceptions.UnsignedMetadataError, if any of the top-level
@@ -225,7 +219,6 @@ class Repository(object):
     # 'securesystemslib.exceptions.FormatError' if any are improperly
     # formatted.
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(consistent_snapshot)
-    tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_algorithms)
 
     # At this point, tuf.keydb and tuf.roledb must be fully populated,
     # otherwise writeall() throws a 'tuf.exceptions.UnsignedMetadataError' for
@@ -253,7 +246,8 @@ class Repository(object):
                                     dirty_rolename + METADATA_EXTENSION)
       repo_lib._generate_and_write_metadata(dirty_rolename, dirty_filename,
           self._targets_directory, self._metadata_directory,
-          consistent_snapshot, filenames, repository_name=self._repository_name)
+          consistent_snapshot, filenames,
+          repository_name=self._repository_name)
 
     # Metadata should be written in (delegated targets -> root -> targets ->
     # snapshot -> timestamp) order.  Begin by generating the 'root.json'
@@ -263,13 +257,15 @@ class Repository(object):
     if 'root' in dirty_rolenames or consistent_snapshot:
       repo_lib._generate_and_write_metadata('root', filenames['root'],
           self._targets_directory, self._metadata_directory,
-          consistent_snapshot, filenames, repository_name=self._repository_name)
+          consistent_snapshot, filenames,
+          repository_name=self._repository_name)
 
     # Generate the 'targets.json' metadata file.
     if 'targets' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('targets', filenames['targets'],
           self._targets_directory, self._metadata_directory,
-          consistent_snapshot, repository_name=self._repository_name)
+          consistent_snapshot,
+          repository_name=self._repository_name)
 
     # Generate the 'snapshot.json' metadata file.
     if 'snapshot' in dirty_rolenames:
@@ -282,7 +278,8 @@ class Repository(object):
     if 'timestamp' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
           self._targets_directory, self._metadata_directory, consistent_snapshot,
-          filenames, repository_name=self._repository_name)
+          filenames,
+          repository_name=self._repository_name)
 
     tuf.roledb.unmark_dirty(dirty_rolenames, self._repository_name)
 
@@ -338,7 +335,8 @@ class Repository(object):
 
     repo_lib._generate_and_write_metadata(rolename, rolename_filename,
         self._targets_directory, self._metadata_directory, consistent_snapshot,
-        filenames=filenames, allow_partially_signed=True,
+        filenames=filenames,
+        allow_partially_signed=True,
         increment_version_number=increment_version_number,
         repository_name=self._repository_name)
 
@@ -550,8 +548,8 @@ class Metadata(object):
     top-level roles: Root, Targets, Snapshot, and Timestamp.  The Metadata
     class provides methods that are needed by all top-level roles, such as
     adding and removing public keys, private keys, and signatures.  Metadata
-    attributes, such as rolename, version, threshold, expiration, key list, and
-    compressions, is also provided by the Metadata base class.
+    attributes, such as rolename, version, threshold, expiration, and key list
+    are also provided by the Metadata base class.
 
   <Arguments>
     None.
@@ -1318,87 +1316,6 @@ class Metadata(object):
 
 
 
-  @property
-  def compressions(self):
-    """
-    <Purpose>
-      A getter method that returns a list of the file compression algorithms
-      used when the metadata is written to disk.  If ['gz'] is set for the
-      'targets.json' role, the metadata files 'targets.json' and
-      'targets.json.gz' are written.
-
-      >>>
-      >>>
-      >>>
-
-    <Arguments>
-      None.
-
-    <Exceptions>
-      None.
-
-    <Side Effects>
-      None.
-
-    <Returns>
-      A list of compression algorithms, conformant to
-      'tuf.formats.COMPRESSIONS_SCHEMA'.
-    """
-
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
-    compressions = roleinfo['compressions']
-
-    return compressions
-
-
-
-  @compressions.setter
-  def compressions(self, compression_list):
-    """
-    <Purpose>
-      A setter method for the file compression algorithms used when the
-      metadata is written to disk.  If ['gz'] is set for the 'targets.json' role
-      the metadata files 'targets.json' and 'targets.json.gz' are written.
-
-      >>>
-      >>>
-      >>>
-
-    <Arguments>
-      compression_list:
-        A list of file compression algorithms, conformant to
-        'tuf.formats.COMPRESSIONS_SCHEMA'.
-
-    <Exceptions>
-      securesystemslib.exceptions.FormatError, if 'compression_list' is
-      improperly formatted.
-
-    <Side Effects>
-      Updates the role's compression algorithms listed in 'tuf.roledb.py'.
-
-    <Returns>
-      None.
-    """
-
-    # Does 'compression_name' have the correct format?
-    # Ensure the arguments have the appropriate number of objects and object
-    # types, and that all dict keys are properly named.  Raise
-    # 'securesystemslib.exceptions.FormatError' if any are improperly formatted.
-    tuf.formats.COMPRESSIONS_SCHEMA.check_match(compression_list)
-
-    roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
-
-    # Add the compression algorithms of 'compression_list' to the role's
-    # entry in 'tuf.roledb.py'.
-    for compression in compression_list:
-      if compression not in roleinfo['compressions']:
-        roleinfo['compressions'].append(compression)
-
-    tuf.roledb.update_roleinfo(self.rolename, roleinfo,
-        repository_name=self._repository_name)
-
-
-
 
 
 class Root(Metadata):
@@ -1453,8 +1370,7 @@ class Root(Metadata):
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                 'signatures': [], 'version': 0, 'consistent_snapshot': False,
-                'compressions': [''], 'expires': expiration,
-                'partial_loaded': False}
+                'expires': expiration, 'partial_loaded': False}
     try:
       tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
 
@@ -1521,8 +1437,8 @@ class Timestamp(Metadata):
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                'signatures': [], 'version': 0, 'compressions': [''],
-                'expires': expiration, 'partial_loaded': False}
+                'signatures': [], 'version': 0, 'expires': expiration,
+                'partial_loaded': False}
 
     try:
       tuf.roledb.add_role(self.rolename, roleinfo, self._repository_name)
@@ -1584,8 +1500,8 @@ class Snapshot(Metadata):
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                'signatures': [], 'version': 0, 'compressions': [''],
-                'expires': expiration, 'partial_loaded': False}
+                'signatures': [], 'version': 0, 'expires': expiration,
+                'partial_loaded': False}
 
     try:
       tuf.roledb.add_role(self._rolename, roleinfo, self._repository_name)
@@ -1689,7 +1605,7 @@ class Targets(Metadata):
     # If 'roleinfo' is not provided, set an initial default.
     if roleinfo is None:
       roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
-                  'version': 0, 'compressions': [''], 'expires': expiration,
+                  'version': 0, 'expires': expiration,
                   'signatures': [], 'paths': {}, 'path_hash_prefixes': [],
                   'partial_loaded': False, 'delegations': {'keys': {},
                                                            'roles': []}}
@@ -2322,7 +2238,8 @@ class Targets(Metadata):
     for key in public_keys:
       keyid = key['keyid']
       key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(key['keytype'],
-        key['keyval'])
+          key['scheme'], key['keyval'])
+
       # Update 'keyids' and 'keydict'.
       new_keydict = {keyid: key_metadata_format}
       keydict.update(new_keydict)
@@ -2363,7 +2280,7 @@ class Targets(Metadata):
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
-                'threshold': threshold, 'version': 0, 'compressions': [''],
+                'threshold': threshold, 'version': 0,
                 'expires': expiration, 'signatures': [], 'partial_loaded': False,
                 'paths': relative_targetpaths, 'delegations': {'keys': {},
                 'roles': []}}
@@ -3088,7 +3005,6 @@ def load_repository(repository_directory, repository_name='default'):
                 'signing_keyids': [],
                 'signatures': [],
                 'partial_loaded': False,
-                'compressions': [],
                 'paths': {},
                }
 
@@ -3099,12 +3015,6 @@ def load_repository(repository_directory, repository_name='default'):
     for filepath, fileinfo in six.iteritems(metadata_object['targets']):
       roleinfo['paths'].update({filepath: fileinfo.get('custom', {})})
     roleinfo['delegations'] = metadata_object['delegations']
-
-    if os.path.exists(metadata_path + '.gz'):
-      roleinfo['compressions'].append('gz')
-
-    else:
-      logger.debug('A compressed version does not exist.')
 
     tuf.roledb.add_role(metadata_name, roleinfo, repository_name)
     loaded_metadata.append(metadata_name)
@@ -3127,9 +3037,12 @@ def load_repository(repository_directory, repository_name='default'):
     # The repository maintainer should have also been made aware of the
     # duplicate key when it was added.
     for key_metadata in six.itervalues(metadata_object['delegations']['keys']):
-      key_object, junk = securesystemslib.keys.format_metadata_to_key(key_metadata)
+      key_object, keyids = securesystemslib.keys.format_metadata_to_key(key_metadata)
       try:
-        tuf.keydb.add_key(key_object, repository_name=repository_name)
+        for keyid in keyids: # pragma: no branch
+          key_object['keyid'] = keyid
+          tuf.keydb.add_key(key_object, keyid=None,
+              repository_name=repository_name)
 
       except securesystemslib.exceptions.KeyAlreadyExistsError:
         pass
@@ -3138,6 +3051,113 @@ def load_repository(repository_directory, repository_name='default'):
 
 
 
+
+
+def dump_signable_metadata(metadata_filepath):
+  """
+  <Purpose>
+    Dump the "signed" portion of metadata. It is the portion that is normally
+    signed by the repository tool, which is in canonicalized JSON form.
+    This function is intented for external tools that wish to independently
+    sign metadata.
+
+    The normal workflow for this use case is to:
+    (1) call dump_signable_metadata(metadata_filepath)
+    (2) sign the output with an external tool
+    (3) call append_signature(signature, metadata_filepath)
+
+  <Arguments>
+    metadata_filepath:
+      The path to the metadata file.  For example,
+      repository/metadata/root.json.
+
+  <Exceptions>
+    securesystemslib.exceptions.FormatError, if the arguments are improperly
+    formatted.
+
+    IOError, if 'metadata_filepath' cannot be opened.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    Metadata content that is normally signed by the repository tool (i.e., the
+    "signed" portion of a metadata file).
+  """
+
+  # Are the argument properly formatted?
+  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_filepath)
+
+  signable = securesystemslib.util.load_json_file(metadata_filepath)
+
+  # Is 'signable' a valid metadata file?
+  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+
+  return securesystemslib.formats.encode_canonical(signable['signed'])
+
+
+
+
+
+def append_signature(signature, metadata_filepath):
+  """
+  <Purpose>
+    Append 'signature' to the metadata at 'metadata_filepath'.  The signature
+    is assumed to be valid, and externally generated by signing the output of
+    dump_signable_metadata(metadata_filepath).  This function is intended for
+    external tools that wish to independently sign metadata.
+
+    The normal workflow for this use case is to:
+    (1) call dump_signable_metadata(metadata_filepath)
+    (2) sign the output with an external tool
+    (3) call append_signature(signature, metadata_filepath)
+
+  <Arguments>
+    signature:
+      A TUF signature structure that contains the KEYID, signing method, and
+      the signature.  It conforms to securesystemslib.formats.SIGNATURE_SCHEMA.
+
+      For example:
+
+      {
+       "keyid": "a0a0f0cf08...",
+       "method": "ed25519",
+       "sig": "14f6e6566ec13..."
+      }
+
+    metadata_filepath:
+      The path to the metadata file.  For example,
+      repository/metadata/root.json.
+
+  <Exceptions>
+    securesystemslib.exceptions.FormatError, if the arguments are improperly
+    formatted.
+
+  <Side Effects>
+    'metadata_filepath' is overwritten.
+
+  <Returns>
+    None.
+  """
+
+  # Are the arguments properly formatted?
+  securesystemslib.formats.SIGNATURE_SCHEMA.check_match(signature)
+  securesystemslib.formats.PATH_SCHEMA.check_match(metadata_filepath)
+
+  signable = securesystemslib.util.load_json_file(metadata_filepath)
+
+  # Is 'signable' a valid metadata file?
+  tuf.formats.SIGNABLE_SCHEMA.check_match(signable)
+
+  signable['signatures'].append(signature)
+
+  file_object = securesystemslib.util.TempFile()
+
+  written_metadata_content = json.dumps(signable, indent=1,
+      separators=(',', ': '), sort_keys=True).encode('utf-8')
+
+  file_object.write(written_metadata_content)
+  file_object.move(metadata_filepath)
 
 
 if __name__ == '__main__':

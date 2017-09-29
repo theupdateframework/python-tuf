@@ -1,86 +1,87 @@
 {
  "signatures": [
   {
-   "keyid": "5602f4df0cd26b2112f0833b1ce8d5fcbb595754961d3a04f37b9815e2ced503",
-   "method": "RSASSA-PSS",
-   "sig": "7965740b0a73d11b0b96c959f3c509107c065fe210487d92718a870f177b387c33737dc27a984689aeccff2184e967a8574ce6f065138687c8c106838fd07a0297d19beb553cf91fbdff6fab35928c2cbdb3cbbc8f8334ac21ee588e86a08cbee406cb0da49fd1908ca5418279f2ed474c54f88dc632a4812064ec708c9cc84712b4e1e688e71b31cc51cff4780dadb3d4350dda96a64c6839dc9be6e18c0a9468df42afea94ef0e9bf4fdb447e0aae24a7c7e60b0f0e53da6f2f9cc21ce2fc633dfadb4a280f97b1ed942c03779c59bef5a28661dada107f36c43ae8004befce217faeb8ca9fe8160a9318ee10c8cab8de84ed4e72a7e36707d85bd969a11fc11baf1475300d902caf8515e3abacd0bcdccdd48126cb118bee785b286ee45d28f4cbf9469403f0121f5774357b6542efdd95be7c5c93cef0f1fef7cc5adac65a8915386f3189e4577e12dbecbb7bcc5e5558748a70f99b85e7afce5ec08eeef4e886f4209cb511bd0a953d2fea72241f6f38ddcf436567cdb395b4c7beace0e"
+   "keyid": "4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb",
+   "sig": "344e2399b982470a06bbaeb7cd52eb58dfa7fba65d179a737b3655ce79fe722480f9515163010b714debd46a3f9bd60cd04c3c3093c050a9bb6b6fdd3dd1e902b3871198bf13c7c4ace9813527ac0b6f2d7652c64d7993ef88328bc82bea69ffec13dfd545e3ff0d327613b4eea6ad2c50baffd4d7233104427d0c6066fbec5f0091a8004c7f40c0ee59abf4955ab8682d8401f09adb42b0e8897c96ac7eb37843287c60b631ee67187d01e5b3936d84a36881c8e9726dc30bc62442f3849d94c96c62eb0aa66c9d3869e403940f8f7df527b2d3aa109cbf37d1349a8043395c6d2ad3550a64db0eaa39d45d6e30ea7fd06457bf0f033afba6796fbb7160e094e67da21c2f8da2220d10cef5df691f1f919ff14fb00e2b4057d5c099ce8b2d5d2a9e233dc7eb1dc77b24f4f22b219e67e45b3592a1ac873e96456078d82a12c085186f6b50131f2bad32f6bdf3359b141fb898819c98866f55eff686ad5cda01d2661dff6c39b66e5d83dfb65bb276ea4164b1f86c3371dbe635b31c118067ee"
   }
  ],
  "signed": {
-  "_type": "Root",
-  "compression_algorithms": [
-   "gz"
-  ],
+  "_type": "root",
   "consistent_snapshot": false,
   "expires": "2030-01-01T00:00:00Z",
   "keys": {
-   "182216b8800c50ddf000043b31ddf90d815c754ab4e0b31a5952a839b371bed9": {
-    "keyid_hash_algorithms": [
-     "sha256",
-     "sha512"
-    ],
-    "keytype": "ed25519",
-    "keyval": {
-     "public": "e8bd29d20025d3ac755a27b8d8efe185e368244000d9d3b76e32afb968cb0ea8"
-    }
-   },
-   "3f09f6468a522bea0364a23315872d8400875dfdb24ff4ecd32f27164d5c23c1": {
-    "keyid_hash_algorithms": [
-     "sha256",
-     "sha512"
-    ],
-    "keytype": "ed25519",
-    "keyval": {
-     "public": "52de9284608be6b718a9d88c7c5d8d9d93b33732e00d670dd4ebe4bce8bbc83c"
-    }
-   },
-   "5602f4df0cd26b2112f0833b1ce8d5fcbb595754961d3a04f37b9815e2ced503": {
+   "4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb": {
     "keyid_hash_algorithms": [
      "sha256",
      "sha512"
     ],
     "keytype": "rsa",
     "keyval": {
-     "public": "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEAsDqUoiFJZX+5gm5pyI1l\nVc/N3yjJVOIl9GyiK0mRyzV3IzUQzhjq8nhk0eLfzXw2XwIAYOJC6dR/tGRG4JDx\nJkez5FFH4zLosr/XzT7CG5zxJ3kKICLD1v9rZQr5ZgARQDOpkxzPz46rGnE0sHd7\nMpnpPMScA1pMIzwM1RoPS4ntZipI1cl9M7HMQ6mkBp8/DNKCqaDWixJqaGgWrhhK\nhI/1mzBliMKriNxPKSCGVlOk/QpZft+y1fs42s0DMd5BOFBo+ZcoXLYRncg9S3A2\nxx/jT69Bt3ceiAZqnp7f6M+ZzoUifSelaoL7QIYg/GkEl+0oxTD0yRphGiCKwn9c\npSbn7NgnbjqSgIMeEtlf/5Coyrs26pyFf/9GbusddPSxxxwIJ/7IJuF7P1Yy0WpZ\nkMeY83h9n2IdnEYi+rpdbLJPQd7Fpu2xrdA3Fokj8AvCpcmxn8NIXZuK++r8/xsE\nAUL30HH7dgVn50AvdPaJnqAORT3OlabW0DK9prcwKnyzAgMBAAE=\n-----END PUBLIC KEY-----"
-    }
+     "public": "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEA0GjPoVrjS9eCqzoQ8VRe\nPkC0cI6ktiEgqPfHESFzyxyjC490Cuy19nuxPcJuZfN64MC48oOkR+W2mq4pM51i\nxmdG5xjvNOBRkJ5wUCc8fDCltMUTBlqt9y5eLsf/4/EoBU+zC4SW1iPU++mCsity\nfQQ7U6LOn3EYCyrkH51hZ/dvKC4o9TPYMVxNecJ3CL1q02Q145JlyjBTuM3Xdqsa\nndTHoXSRPmmzgB/1dL/c4QjMnCowrKW06mFLq9RAYGIaJWfM/0CbrOJpVDkATmEc\nMdpGJYDfW/sRQvRdlHNPo24ZW7vkQUCqdRxvnTWkK5U81y7RtjLt1yskbWXBIbOV\nz94GXsgyzANyCT9qRjHXDDz2mkLq+9I2iKtEqaEePcWRu3H6RLahpM/TxFzw684Y\nR47weXdDecPNxWyiWiyMGStRFP4Cg9trcwAGnEm1w8R2ggmWphznCd5dXGhPNjfA\na82yNFY8ubnOUVJOf0nXGg3Edw9iY3xyjJb2+nrsk5f3AgMBAAE=\n-----END PUBLIC KEY-----"
+    },
+    "scheme": "rsassa-pss-sha256"
    },
-   "a0a0f0cf08daff7afd1eb6582756d43987aa73f028044836a5519259706ca19b": {
+   "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d": {
     "keyid_hash_algorithms": [
      "sha256",
      "sha512"
     ],
     "keytype": "ed25519",
     "keyval": {
-     "public": "0692a846935833d685168ae8c98fee951d52d8aa76685b8ba55b8e1eada217c2"
-    }
+     "public": "edcd0a32a07dce33f7c7873aaffbff36d20ea30787574ead335eefd337e4dacd"
+    },
+    "scheme": "ed25519"
+   },
+   "65171251a9aff5a8b3143a813481cb07f6e0de4eb197c767837fe4491b739093": {
+    "keyid_hash_algorithms": [
+     "sha256",
+     "sha512"
+    ],
+    "keytype": "ed25519",
+    "keyval": {
+     "public": "89f28bd4ede5ec3786ab923fd154f39588d20881903e69c7b08fb504c6750815"
+    },
+    "scheme": "ed25519"
+   },
+   "8a1c4a3ac2d515dec982ba9910c5fd79b91ae57f625b9cff25d06bf0a61c1758": {
+    "keyid_hash_algorithms": [
+     "sha256",
+     "sha512"
+    ],
+    "keytype": "ed25519",
+    "keyval": {
+     "public": "82ccf6ac47298ff43bfa0cd639868894e305a99c723ff0515ae2e9856eb5bbf4"
+    },
+    "scheme": "ed25519"
    }
   },
   "roles": {
    "root": {
     "keyids": [
-     "5602f4df0cd26b2112f0833b1ce8d5fcbb595754961d3a04f37b9815e2ced503"
+     "4e777de0d275f9d28588dd9a1606cc748e548f9e22b6795b7cb3f63f98035fcb"
     ],
     "threshold": 1
    },
    "snapshot": {
     "keyids": [
-     "182216b8800c50ddf000043b31ddf90d815c754ab4e0b31a5952a839b371bed9"
+     "59a4df8af818e9ed7abe0764c0b47b4240952aa0d179b5b78346c470ac30278d"
     ],
     "threshold": 1
    },
    "targets": {
     "keyids": [
-     "a0a0f0cf08daff7afd1eb6582756d43987aa73f028044836a5519259706ca19b"
+     "65171251a9aff5a8b3143a813481cb07f6e0de4eb197c767837fe4491b739093"
     ],
     "threshold": 1
    },
    "timestamp": {
     "keyids": [
-     "3f09f6468a522bea0364a23315872d8400875dfdb24ff4ecd32f27164d5c23c1"
+     "8a1c4a3ac2d515dec982ba9910c5fd79b91ae57f625b9cff25d06bf0a61c1758"
     ],
     "threshold": 1
    }
   },
+  "spec_version": "1.0",
   "version": 1
  }
 }

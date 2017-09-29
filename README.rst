@@ -104,6 +104,9 @@ The following papers provide detailed information on securing software
 updater systems, TUF's design and implementation details, attacks on
 package managers, and package management security:
 
+-  `Mercury: Bandwidth-Effective Prevention of Rollback Attacks Against Community Repositories
+   <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/prevention-rollback-attacks-atc2017.pdf?raw=true>`_
+
 -  `Diplomat: Using Delegations to Protect Community Repositories
    <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/protect-community-repositories-nsdi2016.pdf?raw=true>`_
 
@@ -252,13 +255,25 @@ we provide for this purpose.
 
 - `Creating a TUF Repository  <https://github.com/theupdateframework/tuf/tree/develop/tuf/README.md>`_
 
+License
+-------
+
+This work is `dual-licensed <https://en.wikipedia.org/wiki/Multi-licensing>`_
+and distributed under the (1) MIT License and (2) Apache License, Version 2.0.
+Please see `LICENSE-MIT.txt
+<https://github.com/theupdateframework/tuf/tree/develop/tuf/LICENSE-MIT.txt>`_
+and `LICENSE-APACHE.txt
+<https://github.com/theupdateframework/tuf/tree/develop/tuf/LICENSE-MIT.txt>`_.
 
 
 Acknowledgements
 ----------------
 
+This project is managed by Prof. Justin Cappos and other members of the
+`Secure Systems Lab <https://ssl.engineering.nyu.edu/>`_ at NYU.
+
 This material is based upon work supported by the National Science
-Foundation under Grant No. CNS-1345049 and CNS-0959138. Any opinions,
+Foundation under Grant Nos. CNS-1345049 and CNS-0959138. Any opinions,
 findings, and conclusions or recommendations expressed in this material
 are those of the author(s) and do not necessarily reflect the views of
 the National Science Foundation.
