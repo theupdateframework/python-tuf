@@ -458,21 +458,19 @@ Version: **1.0 (Draft)**
        { "signed" : ROLE,
          "signatures" : [
             { "keyid" : KEYID,
-              "method": METHOD,
               "sig" : SIGNATURE }
             , ... ]
        }
 
    where: ROLE is a dictionary whose "_type" field describes the role type.
           KEYID is the identifier of the key signing the ROLE dictionary.
-          METHOD is the key signing method used to generate the signature.
           SIGNATURE is a signature of the canonical JSON form of ROLE.
 
-   The current reference implementation of TUF defines two signing methods,
-   although TUF is not restricted to any particular key signing method,
+   The current reference implementation defines two signature schdemes,
+   although TUF is not restricted to any particular signature scheme,
    key type, or cryptographic library:
 
-       "RSASSA-PSS" : RSA Probabilistic signature scheme with appendix.
+       "RSASSA-PSS-SHA256" : RSA Probabilistic signature scheme with appendix.
                       The underlying hash function is SHA256.
 
        "ed25519" : Elliptic curve digital signature algorithm based on Twisted
@@ -485,6 +483,7 @@ Version: **1.0 (Draft)**
    All keys have the format:
 
         { "keytype" : KEYTYPE,
+          "scheme" : SCHEME,
           "keyval" : KEYVAL
         }
 
@@ -587,7 +586,6 @@ Version: **1.0 (Draft)**
        "signatures": [
         {
          "keyid": "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6",
-         "method": "ed25519",
          "sig": "a312b9c3cb4a1b693e8ebac5ee1ca9cc01f2661c14391917dcb111517f72370809
                  f32c890c6b801e30158ac4efe0d4d87317223077784c7a378834249d048306"
         }
@@ -692,7 +690,6 @@ Version: **1.0 (Draft)**
        "signatures": [
         {
          "keyid": "fce9cf1cc86b0945d6a042f334026f31ed8e4ee1510218f198e8d3f191d15309",
-         "method": "ed25519",
          "sig": "f7f03b13e3f4a78a23561419fc0dd741a637e49ee671251be9f8f3fceedfc112e4
                  4ee3aaff2278fad9164ab039118d4dc53f22f94900dae9a147aa4d35dcfc0f"
         }
@@ -824,7 +821,6 @@ Version: **1.0 (Draft)**
        "signatures": [
         {
          "keyid": "93ec2c3dec7cc08922179320ccd8c346234bf7f21705268b93e990d5273a2a3b",
-         "method": "ed25519",
          "sig": "e9fd40008fba263758a3ff1dc59f93e42a4910a282749af915fbbea1401178e5a0
                  12090c228f06db1deb75ad8ddd7e40635ac51d4b04301fce0fd720074e0209"
         }
@@ -903,7 +899,6 @@ Version: **1.0 (Draft)**
        "signatures": [
         {
          "keyid": "1a2b4110927d4cba257262f614896179ff85ca1f1353a41b5224ac474ca71cb4",
-         "method": "ed25519",
          "sig": "90d2a06c7a6c2a6a93a9f5771eb2e5ce0c93dd580bebc2080d10894623cfd6eaed
                  f4df84891d5aa37ace3ae3736a698e082e12c300dfe5aee92ea33a8f461f02"
         }
