@@ -464,14 +464,13 @@ Version: **1.0 (Draft)**
 
    where: ROLE is a dictionary whose "_type" field describes the role type.
           KEYID is the identifier of the key signing the ROLE dictionary.
-          METHOD is the key signing method used to generate the signature.
           SIGNATURE is a signature of the canonical JSON form of ROLE.
 
-   The current reference implementation of TUF defines two signing methods,
-   although TUF is not restricted to any particular key signing method,
+   The current reference implementation defines two signature schemes,
+   although TUF is not restricted to any particular signature scheme,
    key type, or cryptographic library:
 
-       "RSASSA-PSS" : RSA Probabilistic signature scheme with appendix.
+       "RSASSA-PSS-SHA256" : RSA Probabilistic signature scheme with appendix.
                       The underlying hash function is SHA256.
 
        "ed25519" : Elliptic curve digital signature algorithm based on Twisted
@@ -484,6 +483,7 @@ Version: **1.0 (Draft)**
    All keys have the format:
 
         { "keytype" : KEYTYPE,
+          "scheme" : SCHEME,
           "keyval" : KEYVAL
         }
 
@@ -586,7 +586,6 @@ Version: **1.0 (Draft)**
        "signatures": [
         {
          "keyid": "f2d5020d08aea06a0a9192eb6a4f549e17032ebefa1aa9ac167c1e3e727930d6",
-         "method": "ed25519",
          "sig": "a312b9c3cb4a1b693e8ebac5ee1ca9cc01f2661c14391917dcb111517f72370809
                  f32c890c6b801e30158ac4efe0d4d87317223077784c7a378834249d048306"
         }
