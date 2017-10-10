@@ -466,7 +466,7 @@ Version: **1.0 (Draft)**
           KEYID is the identifier of the key signing the ROLE dictionary.
           SIGNATURE is a signature of the canonical JSON form of ROLE.
 
-   The current reference implementation defines two signature schdemes,
+   The current reference implementation defines two signature schemes,
    although TUF is not restricted to any particular signature scheme,
    key type, or cryptographic library:
 
