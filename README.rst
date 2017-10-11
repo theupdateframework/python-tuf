@@ -141,7 +141,7 @@ trustworthy, TUF hands them over to your software update system. See
 
 TUF specification document is also available:
 
--  `The Update Framework Specification <https://github.com/theupdateframework/tuf/tree/develop/docs/tuf-spec.txt?raw=true>`_
+-  `The Update Framework Specification <https://github.com/theupdateframework/specification/blob/master/tuf-spec.md>`_
 
 TUF Home Page
 -------------
