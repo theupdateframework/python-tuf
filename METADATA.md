@@ -13,7 +13,7 @@ Required:
 * Root
 * Targets
 * Snapshot
-* Timestamp 
+* Timestamp
 
 Optional:
 
@@ -27,7 +27,7 @@ Signed by: Root role.
 
 Specifies the other top-level roles. When specifying these roles, the trusted keys for each role are listed along with the minimum number of those keys which are required to sign the role's metadata. We call this number the signature threshold.
 
-See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/root.json).
+See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/root.json) of Root metadata.
 
 ## Targets Metadata (targets.json)
 
@@ -37,7 +37,7 @@ The targets.json metadata file lists hashes and sizes of target files. Target fi
 
 This file can optionally define other roles to which it delegates trust. Delegating trust means that the delegated role is trusted for some or all of the target files available from the repository. When delegated roles are specified, they are specified in a similar way to how the Root role specifies the top-level roles: the trusted keys and signature threshold for each role is given. Additionally, one or more patterns are specified which indicate the target file paths for which clients should trust each delegated role.
 
-See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/targets.json).
+See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/targets.json) of Targets metadata.
 
 ## Delegated Targets Metadata (role1.json)
 
@@ -56,8 +56,10 @@ where DELEGATED_ROLE is the name of the delegated role that has been specified i
 
 /ANOTHER_ROLE.json
 
-See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/role1.json).
-See [example of nested delegation](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/role2.json)
+See
+[example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/role1.json)
+of delegated Targets metadata and [example of a nested
+delegation](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/role2.json)
 
 ## snapshot Metadata (snapshot.json)
 
@@ -65,7 +67,7 @@ Signed by: Snapshot role.
 
 The snapshot.json metadata file lists hashes and sizes of all metadata files other than timestamp.json. This file ensures that clients will see a consistent view of the files on the repository. That is, metadata files (and thus target file) that existed on the repository at different times cannot be combined and presented to clients by an attacker.
 
-​See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/snapshot.json).
+​See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/snapshot.json) of Snapshot metadata.
 
 ## Timestamp Metadata (timestamp.json)
 
@@ -78,7 +80,7 @@ There are two primary reasons why the timestamp.json file doesn't contain all of
 * The timestamp.json file is downloaded very frequently and so should be kept as small as possible, especially considering that the snapshot.json file grows in size in proportion to the number of delegated target roles.
 * As the Timestamp role's key is an online key and thus at high risk, separate keys should be used for signing the snapshot.json metadata file so that the Snapshot role's keys can be kept offline and thus more secure.
 
-See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/timestamp.json).
+See [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/timestamp.json) of Timestamp metadata.
 
 ## Mirrors Metadata (mirrors.json)
 
@@ -86,4 +88,5 @@ Optionally signed by: Mirrors role.
 
 The mirrors.json file provides an optional way to provide mirror list updates to TUF clients. Mirror lists can alternatively be provided directly by the software update system and obtained in any way the system sees fit, including being hard coded if that is what an applications wants to do.
 
-No example available. At the time of writing, this hasn't been implemented in TUF. Currently mirrors are specified by the client code. 
+No example available. At the time of writing, this hasn't been implemented in
+TUF. Currently mirrors are specified by the client code.
