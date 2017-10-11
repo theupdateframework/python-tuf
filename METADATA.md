@@ -58,7 +58,7 @@ where DELEGATED_ROLE is the name of the delegated role that has been specified i
 
 See
 [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/role1.json)
-of delegated Targets metadata and [example] (https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/role2.json) of a nested delegation.
+of delegated Targets metadata and [example](https://raw.githubusercontent.com/theupdateframework/tuf/develop/tests/repository_data/repository/metadata/role2.json) of a nested delegation.
 
 ## snapshot Metadata (snapshot.json)
 
