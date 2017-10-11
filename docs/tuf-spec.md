@@ -470,15 +470,20 @@ Version: **1.0 (Draft)**
    although TUF is not restricted to any particular signature scheme,
    key type, or cryptographic library:
 
-       "RSASSA-PSS-SHA256" : RSA Probabilistic signature scheme with appendix.
-                      The underlying hash function is SHA256.
+       "rsassa-pss-sha256" : RSA Probabilistic signature scheme with appendix.
+          The underlying hash function is SHA256.
 
        "ed25519" : Elliptic curve digital signature algorithm based on Twisted
-                  Edwards curves.
+          Edwards curves.
 
-   RSASSA-PSS: https://tools.ietf.org/html/rfc3447#page-29
+        "ecdsa-sha2-nistp256" : Elliptic Curve Digital Signature Algorithm
+           with NIST P-256 curve signing and SHA-256 hashing.
+
+   rsassa-pss: https://tools.ietf.org/html/rfc3447#page-29
 
    ed25519: https://ed25519.cr.yp.to/
+
+   ecdsa: https://en.wikipedia.org/wiki/Elliptic_Curve_Digital_Signature_Algorithm
 
    All keys have the format:
 
@@ -491,9 +496,9 @@ Version: **1.0 (Draft)**
    used to sign documents.  The type determines the interpretation of
    KEYVAL.
 
-   We define two keytypes below: 'rsa' and 'ed25519'.  However, TUF places no
-   restrictions on cryptographic keys.  Adopters can use any particular keytype,
-   signing scheme, and cryptographic library.
+   We define three keytypes below: 'rsa', 'ed25519', and 'ecdsa'.  However, TUF
+   places no restrictions on cryptographic keys.  Adopters can use any
+   particular keytype, signing scheme, and cryptographic library.
 
    The 'rsa' format is:
 
@@ -513,6 +518,15 @@ Version: **1.0 (Draft)**
         }
 
    where PUBLIC is a 32-byte string.
+
+   The 'ecdsa' format is:
+
+        { "keytype" : "ecdsa-sha2-nistp256",
+          "scheme" : "ecdsa-sha2-nistp256",
+          "keyval" : { "public" : PUBLIC}
+        }
+
+   where PUBLIC is in PEM format and a string.
 
    The KEYID of a key is the hexdigest of the SHA-256 hash of the
    canonical JSON form of the key.
