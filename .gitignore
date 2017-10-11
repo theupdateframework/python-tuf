@@ -1,6 +1,7 @@
 # root level directories
 dist/*
 build/*
+env/*
 
 # global file patterns
 *.log
@@ -13,3 +14,4 @@ build/*
 .tox/*
 tests/htmlcov/*
 .DS_Store
+.python-version
