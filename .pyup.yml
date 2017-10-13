@@ -1,0 +1,40 @@
+# configure updates globally
+# default: all
+# allowed: all, insecure, False
+update: all
+
+# set the default branch
+# default: empty, the default branch on GitHub
+branch: develop
+
+# update schedule
+# default: empty
+# allowed: "every day", "every week", ..
+schedule: "every day"
+
+# configure dependency pinning globally
+# default: True
+# allowed: True, False
+pin: True
+
+# search for requirement files
+# default: True
+# allowed: True, False
+search: False
+
+# Specify requirement files by hand, default is empty
+# default: empty
+# allowed: list
+requirements:
+  - dev-requirements.txt:
+      # update all dependencies and pin them
+      update: all
+      pin: True
+
+# configure the branch prefix the bot is using
+# default: pyup-
+branch_prefix: pyup-
+
+# allow to close stale PRs
+# default: True
+close_prs: True
