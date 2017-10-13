@@ -22,4 +22,4 @@ securesystemslib==0.10.7
 
 # Testing requirements.  The rest of the testing dependencies available in
 # 'tox.ini'
-tox
+tox==2.9.1
