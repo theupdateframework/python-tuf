@@ -4,7 +4,7 @@ A Framework for Securing Software Update Systems
 .. image:: https://travis-ci.org/theupdateframework/tuf.svg?branch=develop
    :target: https://travis-ci.org/theupdateframework/tuf
 
-.. image:: https://coveralls.io/repos/theupdateframework/tuf/badge.png?branch=develop
+.. image:: https://coveralls.io/repos/theupdateframework/tuf/badge.svg?branch=develop
    :target: https://coveralls.io/r/theupdateframework/tuf?branch=develop
 
 .. image:: https://pyup.io/repos/github/theupdateframework/tuf/shield.svg
