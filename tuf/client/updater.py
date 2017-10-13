@@ -214,6 +214,10 @@ class MultiRepoUpdater(object):
       available.
     """
 
+    # TAP 4 requires that the following attributes be present in mappings:
+    # "paths", "repositories", "terminating", and "threshold".
+    # TODO: Add a schema check for self.map_file.
+
     # {"repository_name": [mirror URLs, ...], ...}
     repository_names_to_mirrors = self.map_file['repositories']
     repositories_directory = tuf.settings.repositories_directory
@@ -221,10 +225,12 @@ class MultiRepoUpdater(object):
     for repository_name in repository_names_to_mirrors:
       logger.debug('Interrogating repository: ' + repr(repository_name))
       # Each repository must cache its metadata in a separate location.
-      repository_directory = os.path.join(repositories_directory, repository_name)
+      repository_directory = os.path.join(repositories_directory,
+          repository_name)
       if not os.path.isdir(repository_directory):
         raise tuf.exceptions.Error('The metadata directory'
-            ' for ' + repr(repository_name) + ' must exist at ' + repr(repository_directory))
+            ' for ' + repr(repository_name) + ' must exist'
+            ' at ' + repr(repository_directory))
 
       else:
         logger.debug('Found local directory for ' + repr(repository_name))
@@ -233,13 +239,15 @@ class MultiRepoUpdater(object):
       root_file = os.path.join(repository_directory, 'metadata',
           'current', 'root.json')
       if not os.path.isfile(root_file):
-        raise tuf.exceptions.Error('The Root file must exist at ' + repr(root_file))
+        raise tuf.exceptions.Error('The Root file must exist'
+            ' at ' + repr(root_file))
 
       else:
         logger.debug('Found local Root file at ' + repr(root_file))
 
     # Iterate mappings.
-    # [{"paths": [], "repositories": [], "terminating": Boolean}, ...]
+    # [{"paths": [], "repositories": [], "terminating": Boolean, "threshold":
+    # NUM}, ...]
     for mapping in self.map_file['mapping']:
       logger.debug('Interrogating mappings..' + repr(mapping))
       # If this mapping is relevant to the target...
@@ -284,7 +292,8 @@ class MultiRepoUpdater(object):
 
   def paths_match_target(self, paths, target_filename):
     for path in paths:
-      logger.debug('Interrogating path ' + repr(path) + 'for target: ' + repr(target_filename))
+      logger.debug('Interrogating path ' + repr(path) + 'for'
+          ' target: ' + repr(target_filename))
       if fnmatch.fnmatch(target_filename, path):
         logger.debug('Found a match for ' + repr(target_filename))
         return True
@@ -307,8 +316,9 @@ class MultiRepoUpdater(object):
     updater = self.repository_names_to_updaters.get(repository_name)
 
     if not updater:
-      # Create repository mirrors object needed by the tuf.client.updater.Updater().
-      # Each 'repository_name' can have more than one mirror.
+      # Create repository mirrors object needed by the
+      # tuf.client.updater.Updater().  Each 'repository_name' can have more
+      # than one mirror.
       mirrors = {}
       for url in repository_names_to_mirrors[repository_name]:
         mirrors[url] = {
