@@ -15,7 +15,7 @@
 # tools.  Client must also install cryptography to verify RSASSA-PSS
 # signatures.  The minimal install can only verify ed25519 signatures.  Pinned
 # packages: http://nvie.com/posts/pin-your-packages/
-cffi==1.7.0
+cffi==1.11.2
 pynacl==1.0.1
 cryptography==2.0.3
 securesystemslib==0.10.7
