@@ -17,7 +17,7 @@
 # packages: http://nvie.com/posts/pin-your-packages/
 cffi==1.11.2
 pynacl==1.1.2
-cryptography==2.0.3
+cryptography==2.1.1
 securesystemslib==0.10.7
 
 # Testing requirements.  The rest of the testing dependencies available in
