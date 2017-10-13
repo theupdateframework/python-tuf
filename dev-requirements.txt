@@ -6,17 +6,16 @@
 # "develop mode").  The current working directory must contain 'setup.py'.
 --editable .
 
-# Install PyNaCl for generation and verification of ed25519 keys and signatures.
-# It also includes protection against side-channel attacks.
-# NOTE: TUF only uses the pure Python implementation of ed25519 for signature
+# Install PyNaCl for generation and verification of ed25519 keys and
+# signatures.  It also includes protection against side-channel attacks.  NOTE:
+# TUF only uses the pure Python implementation of ed25519 for signature
 # verification.  PyNaCl is required for ed25519 key and signature generation
-# with the TUF repository tools.  Also install PyCrypto for RSA key & signature
-# support, and general-purpose cryptography needed by the repository tools.
-# Client must also install PyCrypto to verify RSASSA-PSS signatures.  The
-# minimal install can only verify ed25519 signatures.  Pinned packages:
-# http://nvie.com/posts/pin-your-packages/
+# with the TUF repository tools.  Also install cryptography for RSA key &
+# signature support, and general-purpose cryptography needed by the repository
+# tools.  Client must also install cryptography to verify RSASSA-PSS
+# signatures.  The minimal install can only verify ed25519 signatures.  Pinned
+# packages: http://nvie.com/posts/pin-your-packages/
 cffi==1.7.0
-pycrypto==2.6.1
 pynacl==1.0.1
 cryptography==2.0.3
 securesystemslib==0.10.7
