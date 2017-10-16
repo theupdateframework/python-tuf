@@ -227,6 +227,7 @@ class MultiRepoUpdater(object):
       # Each repository must cache its metadata in a separate location.
       repository_directory = os.path.join(repositories_directory,
           repository_name)
+
       if not os.path.isdir(repository_directory):
         raise tuf.exceptions.Error('The metadata directory'
             ' for ' + repr(repository_name) + ' must exist'
@@ -238,6 +239,7 @@ class MultiRepoUpdater(object):
       # The latest known root metadata file must already be on disk.
       root_file = os.path.join(repository_directory, 'metadata',
           'current', 'root.json')
+
       if not os.path.isfile(root_file):
         raise tuf.exceptions.Error('The Root file must exist'
             ' at ' + repr(root_file))
@@ -252,6 +254,7 @@ class MultiRepoUpdater(object):
       logger.debug('Interrogating mappings..' + repr(mapping))
       # If this mapping is relevant to the target...
       if self.paths_match_target(mapping['paths'], target_filename):
+        targetinfo_and_updaters = []
         targetinfos = []
 
         # Use the *unmodified* TUF updater for a single repository to fetch the
@@ -260,15 +263,38 @@ class MultiRepoUpdater(object):
           logger.debug('Updating from repository...')
           targetinfo, updater = self._update_from_repository(repository_name,
               repository_names_to_mirrors, target_filename)
+
           logger.debug('Adding targetinfo: ' + repr(targetinfo))
           targetinfos.append(targetinfo)
+          targetinfo_and_updaters.append((targetinfo, updater))
 
-        # If the targetinfo on each repository is equal to the others, and it
-        # is not empty, then return the targetinfo.
-        logger.debug('Verifying that all targetinfo are equal')
-        if self._targets_are_equal_and_not_empty(targetinfos):
 
-          return targetinfo, updater
+        # If the targetinfo on each repository is equal to a threshold of
+        # others, and it is not empty, then return the targetinfo.
+        logger.debug('Verifying that a threshold of targetinfo are equal')
+
+        # Is the list of targetinfo empty?  If so, continue to the next
+        # mapping.
+        if len(targetinfos) == 0:
+          continue
+
+        else:
+          # Is there a threshold of matching targetinfo?
+          for targetinfo in targetinfos:
+            if targetinfos.count(targetinfo) >= mapping['threshold']:
+              # Yes, but first compile a list of updaters that provide the
+              # matching targetinfo before returning..
+              updaters = []
+              for target_info, updater in targetinfo_and_updaters:
+                if target_info == targetinfo:
+                  updaters.append(updater)
+
+                else:
+                  continue
+
+              # We now have a threshold of matching targetinfo, along with
+              # the updaters that provide it.
+              return targetinfo, updaters
 
       else:
         continue
@@ -351,58 +377,12 @@ class MultiRepoUpdater(object):
     # Set the repository directory containing the metadata.
     updater = self.get_updater(repository_name, repository_names_to_mirrors)
 
+    # Get one valid target info from the Updater object.
     try:
       return updater.get_one_valid_targetinfo(target_filename), updater
 
     except:
       return None
-
-
-
-
-
-  def _targets_are_equal_and_not_empty(self, targetinfos):
-    """
-    If not empty, check only that length and hashes are equal; ignore custom
-    targets metadata.
-    """
-
-    # Target is empty.
-    if len(targetinfos) == 0:
-      return False
-
-    else:
-      prev_targetinfo = targetinfos[0]
-
-    # Target is empty.
-    if not prev_targetinfo:
-      return False
-
-    else:
-      for curr_targetinfo in targetinfos[1:]:
-        # Target is empty.
-        if not curr_targetinfo:
-          return False
-
-        else:
-          prev_length = prev_targetinfo['fileinfo']['length']
-          curr_length = curr_targetinfo['fileinfo']['length']
-          if prev_length != curr_length:
-            return False
-
-          prev_hashes = prev_targetinfo['fileinfo']['hashes']
-          curr_hashes = curr_targetinfo['fileinfo']['hashes']
-          if prev_hashes.keys() != curr_hashes.keys():
-            return False
-
-          for function, prev_digest in prev_hashes.items():
-            if prev_digest != curr_hashes[function]:
-              return False
-
-          prev_targetinfo = curr_targetinfo
-
-    # If we are here, then all the targets are equal.
-    return True
 
 
 
@@ -2590,8 +2570,8 @@ class Updater(object):
 
     if target is None and number_of_delegations == 0 and len(role_names) > 0:
       logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
-                   'but allowed to visit at most ' +
-                   repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
+          'but allowed to visit at most ' +
+          repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
     return target
 
