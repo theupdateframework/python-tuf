@@ -257,6 +257,13 @@ TARGETINFO_SCHEMA = SCHEMA.Object(
 # A list of TARGETINFO_SCHEMA.
 TARGETINFOS_SCHEMA = SCHEMA.ListOf(TARGETINFO_SCHEMA)
 
+# A Dict containing the map file's "mapping" attribute.
+MAPPING_SCHEMA = SCHEMA.Oject(
+  paths = RELPATHS_SCHEMA,
+  repositories = SCHEMA.ListOf(NAME_SCHEMA),
+  terminating = BOOLEAN_SCHEMA,
+  threshold = THRESHOLD_SCHEMA)
+
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 

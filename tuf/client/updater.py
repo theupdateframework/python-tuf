@@ -196,7 +196,11 @@ class MultiRepoUpdater(object):
   def get_one_valid_targetinfo(self, target_filename):
     """
     <Purpose>
-      Return the targetinfo, if any, for the given 'target_filename'.
+      Get one valid targetinfo, if any, for the given 'target_filename'.  The
+      map file controls which targetinfo is returned (see TAP 4).  Return
+      (targetinfo, [updater1, updater2, ...]), where the first item of the
+      tuple is the valid 'targetinfo', and the second a list of one or more
+      updaters that provide the expected target file for 'targetinfo'.
 
     <Arguments>
       target_filename:
@@ -214,9 +218,13 @@ class MultiRepoUpdater(object):
       available.
     """
 
+    # Is the argument properly formatted?  If not, raise
+    # 'tuf.exceptions.FormatError'.
+    tuf.formats.RELPATH_SCHEMA.check_match(target_Filename)
+
     # TAP 4 requires that the following attributes be present in mappings:
     # "paths", "repositories", "terminating", and "threshold".
-    # TODO: Add a schema check for self.map_file.
+    tuf.formats.MAPPING_SCHEMA.check_match(self.map_file['mapping'])
 
     # {"repository_name": [mirror URLs, ...], ...}
     repository_names_to_mirrors = self.map_file['repositories']
