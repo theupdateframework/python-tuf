@@ -262,10 +262,12 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
       file_object.write(json.dumps(map_file))
 
     multi_repo_updater = updater.MultiRepoUpdater(self.map_file)
-    targetinfo, my_updater = multi_repo_updater.get_one_valid_targetinfo('file3.txt')
+    targetinfo, my_updaters = multi_repo_updater.get_one_valid_targetinfo('file3.txt')
 
-
-    my_updater.download_target(targetinfo, self.temporary_directory)
+    my_updaters[0].download_target(targetinfo, self.temporary_directory)
+    self.assertTrue(os.path.exists(os.path.join(self.temporary_directory, 'file3.txt')))
+    updater2_directory =  os.path.join(self.temporary_directory, 'updater2')
+    my_updaters[1].download_target(targetinfo, updater2_directory)
     self.assertTrue(os.path.exists(os.path.join(self.temporary_directory, 'file3.txt')))
 
 
