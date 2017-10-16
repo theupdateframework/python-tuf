@@ -186,7 +186,7 @@ class MultiRepoUpdater(object):
     try:
       self.map_file = securesystemslib.util.load_json_file(map_file)
 
-    except (securesystemslib.exceptions.Error) as e:
+    except (securesystemslib.exceptions.Error, IOError) as e:
       raise tuf.exceptions.Error('Cannot load the map file: ' + str(e))
 
 
