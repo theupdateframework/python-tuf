@@ -1791,6 +1791,8 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     map_file = os.path.join(self.client_directory, 'map.json')
     multi_repo_updater = updater.MultiRepoUpdater(map_file)
 
+
+
   def test_paths_match_target(self):
     map_file = os.path.join(self.client_directory, 'map.json')
     multi_repo_updater = updater.MultiRepoUpdater(map_file)
@@ -1798,6 +1800,38 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     self.assertTrue(multi_repo_updater.paths_match_target(paths, 'bar-1.0.tgz'))
     self.assertTrue(multi_repo_updater.paths_match_target(paths, 'file1.txt'))
     self.assertFalse(multi_repo_updater.paths_match_target(paths, 'baz-1.0.tgz'))
+
+
+
+  def test_get_one_valid_targetinfo(self):
+    map_file = os.path.join(self.client_directory, 'map.json')
+    multi_repo_updater = updater.MultiRepoUpdater(map_file)
+
+    # Verify the multi repo updater refuses to save targetinfo if
+    # required local repositories are missing.
+    repo_dir = os.path.join(tuf.settings.repositories_directory,
+        'test_repository')
+    backup_repo_dir = os.path.join(tuf.settings.repositories_directory,
+        'test_repository.backup')
+    shutil.move(repo_dir, backup_repo_dir)
+    self.assertRaises(tuf.exceptions.Error,
+        multi_repo_updater.get_one_valid_targetinfo, 'file3.txt')
+
+    # Restore the client's repository directory.
+    shutil.move(backup_repo_dir, repo_dir)
+
+    # Verify that the Root file must exist.
+    print('testing missing root!')
+    root_filepath = os.path.join(repo_dir, 'metadata', 'current', 'root.json')
+    backup_root_filepath = os.path.join(root_filepath, root_filepath + '.backup')
+    shutil.move(root_filepath, backup_root_filepath)
+    self.assertRaises(tuf.exceptions.Error,
+        multi_repo_updater.get_one_valid_targetinfo, 'file3.txt')
+
+    # Restore the Root file.
+    shutil.move(backup_root_filepath, root_filepath)
+
+
 
 
 
