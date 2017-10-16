@@ -261,6 +261,9 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     with open(self.map_file, 'w') as file_object:
       file_object.write(json.dumps(map_file))
 
+    # Try to load a non-existent map file.
+    self.assertRaises(tuf.exceptions.Error, updater.MultiRepoUpdater, 'bad_path')
+
     multi_repo_updater = updater.MultiRepoUpdater(self.map_file)
     targetinfo, my_updaters = multi_repo_updater.get_one_valid_targetinfo('file3.txt')
 

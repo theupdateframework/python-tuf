@@ -1770,7 +1770,6 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-
   # UNIT TESTS.
   def test__init__(self):
     # The client's repository requires a metadata directory (and the 'current'
@@ -1792,6 +1791,13 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     map_file = os.path.join(self.client_directory, 'map.json')
     multi_repo_updater = updater.MultiRepoUpdater(map_file)
 
+  def test_paths_match_target(self):
+    map_file = os.path.join(self.client_directory, 'map.json')
+    multi_repo_updater = updater.MultiRepoUpdater(map_file)
+    paths = ['foo*.tgz', 'bar*.tgz', 'file1.txt']
+    self.assertTrue(multi_repo_updater.paths_match_target(paths, 'bar-1.0.tgz'))
+    self.assertTrue(multi_repo_updater.paths_match_target(paths, 'file1.txt'))
+    self.assertFalse(multi_repo_updater.paths_match_target(paths, 'baz-1.0.tgz'))
 
 
 
