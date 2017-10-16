@@ -220,7 +220,7 @@ class MultiRepoUpdater(object):
 
     # Is the argument properly formatted?  If not, raise
     # 'tuf.exceptions.FormatError'.
-    tuf.formats.RELPATH_SCHEMA.check_match(target_Filename)
+    tuf.formats.RELPATH_SCHEMA.check_match(target_filename)
 
     # TAP 4 requires that the following attributes be present in mappings:
     # "paths", "repositories", "terminating", and "threshold".
