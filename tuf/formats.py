@@ -258,9 +258,9 @@ TARGETINFO_SCHEMA = SCHEMA.Object(
 TARGETINFOS_SCHEMA = SCHEMA.ListOf(TARGETINFO_SCHEMA)
 
 # A Dict containing the map file's "mapping" attribute.
-MAPPING_SCHEMA = SCHEMA.Oject(
+MAPPING_SCHEMA = SCHEMA.Object(
   paths = RELPATHS_SCHEMA,
-  repositories = SCHEMA.ListOf(NAME_SCHEMA),
+  repositories = SCHEMA.ListOf(SCHEMA.AnyString()),
   terminating = BOOLEAN_SCHEMA,
   threshold = THRESHOLD_SCHEMA)
 
