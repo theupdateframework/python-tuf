@@ -207,7 +207,10 @@ class MultiRepoUpdater(object):
         The relative path of the target file to update.
 
     <Exceptions>
-      tuf.FormatError, if the argument is improperly formatted.
+      tuf.exceptions.FormatError, if the argument is improperly formatted.
+
+      tuf.exceptions.Error, if a required local metadata directory, or
+      the Root file, do not exist.
 
     <Side Effects>
       None.
@@ -248,7 +251,9 @@ class MultiRepoUpdater(object):
       root_file = os.path.join(repository_directory, 'metadata',
           'current', 'root.json')
 
+      print('testing root_file: ' + repr(root_file))
       if not os.path.isfile(root_file):
+        print('Root file does not exist!')
         raise tuf.exceptions.Error('The Root file must exist'
             ' at ' + repr(root_file))
 
@@ -265,8 +270,8 @@ class MultiRepoUpdater(object):
         targetinfo_and_updaters = []
         targetinfos = []
 
-        # Use the *unmodified* TUF updater for a single repository to fetch the
-        # targetinfo from each repository.
+        # Update the targetinfo from each repository using the underlying
+        # Updater() instance.
         for repository_name in mapping['repositories']:
           logger.debug('Updating from repository...')
           targetinfo, updater = self._update_from_repository(repository_name,
@@ -291,7 +296,7 @@ class MultiRepoUpdater(object):
           for targetinfo in targetinfos:
             if targetinfos.count(targetinfo) >= mapping['threshold']:
               # Yes, but first compile a list of updaters that provide the
-              # matching targetinfo before returning..
+              # matching targetinfo..
               updaters = []
               for target_info, updater in targetinfo_and_updaters:
                 if target_info == targetinfo:
@@ -300,8 +305,9 @@ class MultiRepoUpdater(object):
                 else:
                   continue
 
-              # We now have a threshold of matching targetinfo, along with
-              # the updaters that provide it.
+              # We now have a targetinfo (that matches across a threshold
+              # repositories as instructed by the map file), along with the
+              # updaters that provide it.
               return targetinfo, updaters
 
       else:

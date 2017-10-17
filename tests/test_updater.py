@@ -130,7 +130,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
-    self.repository_name = 'test_repository'
+    self.repository_name = 'test_repository1'
 
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
@@ -225,7 +225,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # 'tuf.client.updater.py' requires that the client's repositories directory
     # be configured in 'tuf.settings.py'.
     tuf.settings.repositories_directory = None
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
     # Restore 'tuf.settings.repositories_directory' to the original client
     # directory.
@@ -235,7 +235,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: empty client repository (i.e., no metadata directory).
     metadata_backup = self.client_metadata + '.backup'
     shutil.move(self.client_metadata, metadata_backup)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
     # Restore the client's metadata directory.
     shutil.move(metadata_backup, self.client_metadata)
@@ -248,7 +248,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     shutil.move(self.client_metadata_current, current_backup)
     shutil.move(self.client_metadata_previous, previous_backup)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
 
     # Restore the client's previous directory.  The required 'current' directory
@@ -257,7 +257,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: repository with only a '{repository_directory}/metadata/previous'
     # directory.
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
     # Restore the client's current directory.
     shutil.move(current_backup, self.client_metadata_current)
@@ -265,7 +265,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: repository with a '{repository_directory}/metadata/current'
     # directory, but the 'previous' directory is missing.
     shutil.move(self.client_metadata_previous, previous_backup)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
     shutil.move(previous_backup, self.client_metadata_previous)
 
@@ -273,13 +273,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     client_root_file = os.path.join(self.client_metadata_current, 'root.json')
     backup_root_file = client_root_file + '.backup'
     shutil.move(client_root_file, backup_root_file)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
     # Restore the client's 'root.json file.
     shutil.move(backup_root_file, client_root_file)
 
     # Test: Normal 'tuf.client.updater.Updater' instantiation.
-    updater.Updater('test_repository', self.repository_mirrors)
+    updater.Updater('test_repository1', self.repository_mirrors)
 
 
 
@@ -1697,7 +1697,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
 
-    self.repository_name = 'test_repository'
+    self.repository_name = 'test_repository1'
     self.repository_name2 = 'test_repository2'
 
     # Copy the original repository files provided in the test folder so that
@@ -1810,9 +1810,9 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # Verify the multi repo updater refuses to save targetinfo if
     # required local repositories are missing.
     repo_dir = os.path.join(tuf.settings.repositories_directory,
-        'test_repository')
+        'test_repository1')
     backup_repo_dir = os.path.join(tuf.settings.repositories_directory,
-        'test_repository.backup')
+        'test_repository1.backup')
     shutil.move(repo_dir, backup_repo_dir)
     self.assertRaises(tuf.exceptions.Error,
         multi_repo_updater.get_one_valid_targetinfo, 'file3.txt')
@@ -1821,7 +1821,6 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     shutil.move(backup_repo_dir, repo_dir)
 
     # Verify that the Root file must exist.
-    print('testing missing root!')
     root_filepath = os.path.join(repo_dir, 'metadata', 'current', 'root.json')
     backup_root_filepath = os.path.join(root_filepath, root_filepath + '.backup')
     shutil.move(root_filepath, backup_root_filepath)
