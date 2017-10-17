@@ -108,7 +108,7 @@ class TestUpdaterController(unittest_toolbox.Modified_TestCase):
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
     original_keystore = os.path.join(original_repository_files, 'keystore')
-    original_client = os.path.join(original_repository_files, 'client', 'test_repository')
+    original_client = os.path.join(original_repository_files, 'client', 'test_repository1')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
@@ -364,7 +364,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
     original_keystore = os.path.join(original_repository_files, 'keystore')
-    original_client = os.path.join(original_repository_files, 'client', 'test_repository')
+    original_client = os.path.join(original_repository_files, 'client', 'test_repository1')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.

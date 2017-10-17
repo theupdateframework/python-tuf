@@ -70,7 +70,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # The original repository, keystore, and client directories will be copied
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
-    original_client = os.path.join(original_repository_files, 'client', 'test_repository')
+    original_client = os.path.join(original_repository_files, 'client', 'test_repository1')
     original_keystore = os.path.join(original_repository_files, 'keystore')
     original_map_file = os.path.join(original_repository_files, 'map.json')
 
@@ -85,8 +85,8 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # directory copied from the original repository files.
     tuf.settings.repositories_directory = self.temporary_repository_root
 
-    repository_name = 'repository1'
-    repository_name2 = 'repository2'
+    repository_name = 'test_repository1'
+    repository_name2 = 'test_repository2'
     self.client_directory = os.path.join(self.temporary_repository_root, repository_name)
     self.client_directory2 = os.path.join(self.temporary_repository_root, repository_name2)
 
@@ -177,41 +177,41 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
       logger.info('Server 2 process ' + str(self.server_process2.pid) + ' terminated.')
       self.server_process2.kill()
 
-    # updater.Updater() populates the roledb with the name "test_repository"
+    # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
 
 
   def test_update(self):
-    self.assertEqual('repository1', str(self.repository_updater))
-    self.assertEqual('repository2', str(self.repository_updater2))
+    self.assertEqual('test_repository1', str(self.repository_updater))
+    self.assertEqual('test_repository2', str(self.repository_updater2))
 
     self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
-        sorted(tuf.roledb.get_rolenames('repository1')))
+        sorted(tuf.roledb.get_rolenames('test_repository1')))
 
     self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
-        sorted(tuf.roledb.get_rolenames('repository2')))
+        sorted(tuf.roledb.get_rolenames('test_repository2')))
 
     self.repository_updater.refresh()
 
     self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
-        sorted(tuf.roledb.get_rolenames('repository1')))
+        sorted(tuf.roledb.get_rolenames('test_repository1')))
     self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
-        sorted(tuf.roledb.get_rolenames('repository2')))
+        sorted(tuf.roledb.get_rolenames('test_repository2')))
 
     # 'role1.json' should be downloaded, because it provides info for the
     # requested 'file3.txt'.
     valid_targetinfo = self.repository_updater.get_one_valid_targetinfo('/file3.txt')
 
     self.assertEqual(sorted(['role2', 'role1', 'root', 'snapshot', 'targets', 'timestamp']),
-        sorted(tuf.roledb.get_rolenames('repository1')))
+        sorted(tuf.roledb.get_rolenames('test_repository1')))
 
 
 
   def test_repository_tool(self):
-    repository_name = 'repository1'
-    repository_name2 = 'repository2'
+    repository_name = 'test_repository1'
+    repository_name2 = 'test_repository2'
 
     self.assertEqual(repository_name, str(self.repository_updater))
     self.assertEqual(repository_name2, str(self.repository_updater2))
