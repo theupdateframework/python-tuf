@@ -251,9 +251,7 @@ class MultiRepoUpdater(object):
       root_file = os.path.join(repository_directory, 'metadata',
           'current', 'root.json')
 
-      print('testing root_file: ' + repr(root_file))
       if not os.path.isfile(root_file):
-        print('Root file does not exist!')
         raise tuf.exceptions.Error('The Root file must exist'
             ' at ' + repr(root_file))
 
