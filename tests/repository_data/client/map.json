@@ -5,8 +5,8 @@
     "*3.txt"
    ],
    "repositories": [
-    "repository1",
-    "repository2"
+    "test_repository1",
+    "test_repository2"
    ],
    "terminating": false,
    "threshold": 1
@@ -16,17 +16,17 @@
     "*"
    ],
    "repositories": [
-    "repository2"
+    "test_repository2"
    ],
    "terminating": true,
    "threshold": 1
   }
  ],
  "repositories": {
-  "repository1": [
+  "test_repository1": [
    "http://localhost:30001"
   ],
-  "repository2": [
+  "test_repository2": [
    "http://localhost:30002"
   ]
  }
