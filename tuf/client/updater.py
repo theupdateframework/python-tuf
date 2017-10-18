@@ -293,10 +293,13 @@ class MultiRepoUpdater(object):
         # others, and it is not empty, then return the targetinfo.
         logger.debug('Verifying that a threshold of targetinfo are equal')
 
-        # Is the list of targetinfo empty?  If so, continue to the next
-        # mapping.
+        # Is the list of targetinfo empty?  If so, log that none of the
+        # repositories in this mapping provided valid targetinfo, and fall out
+        # of the for loop.  Once out of the mapping for loop, verify whether
+        # this is a terminating mapping.
         if len(targetinfos) == 0:
-          continue
+          logger.debug('None of the repositories in the matching mapping'
+              ' provided valid targetinfo.')
 
         else:
           # Is there a threshold of matching targetinfo?
@@ -391,6 +394,9 @@ class MultiRepoUpdater(object):
       else:
         self.repository_names_to_updaters[repository_name] = updater
 
+    else:
+      logger.debug('Found an updater for ' + repr(repository_name))
+
     return updater
 
 
@@ -406,9 +412,10 @@ class MultiRepoUpdater(object):
       raise tuf.exceptions.Error('Cannot load updater'
           ' for ' + repr(repository_name))
 
-    # Get one valid target info from the Updater object.  Raises
-    # 'tuf.exceptions.UnknownTargetError'.
-    return updater.get_one_valid_targetinfo(target_filename), updater
+    else:
+      # Get one valid target info from the Updater object.  Raises
+      # 'tuf.exceptions.UnknownTargetError'.
+      return updater.get_one_valid_targetinfo(target_filename), updater
 
 
 
