@@ -209,16 +209,19 @@ class MultiRepoUpdater(object):
     <Exceptions>
       tuf.exceptions.FormatError, if the argument is improperly formatted.
 
-      tuf.exceptions.Error, if a required local metadata directory, or
-      the Root file, do not exist.
+      tuf.exceptions.Error, if the required local metadata directory or the
+      Root file does not exist.
+
+      tuf.exceptions.UnknownTargetError, if the repositories in the map file do
+      not agree on the target, or none of them have signed for the target.
 
     <Side Effects>
       None.
 
     <Returns>
-      The targetinfo (conformant with tuf.formats.TARGETINFO_SCHEMA) for
-      'target_filename', if available.  Return None if no targetinfo is
-      available.
+      A (targetinfo, [updater1, updater2, ...]) tuple.  The targetinfo
+      (conformant with tuf.formats.TARGETINFO_SCHEMA) is for 'target_filename',
+      if available.
     """
 
     # Is the argument properly formatted?  If not, raise
@@ -263,6 +266,7 @@ class MultiRepoUpdater(object):
     # NUM}, ...]
     for mapping in self.map_file['mapping']:
       logger.debug('Interrogating mappings..' + repr(mapping))
+
       # If this mapping is relevant to the target...
       if self.paths_match_target(mapping['paths'], target_filename):
         targetinfo_and_updaters = []
@@ -272,8 +276,13 @@ class MultiRepoUpdater(object):
         # Updater() instance.
         for repository_name in mapping['repositories']:
           logger.debug('Updating from repository...')
-          targetinfo, updater = self._update_from_repository(repository_name,
-              repository_names_to_mirrors, target_filename)
+
+          try:
+            targetinfo, updater = self._update_from_repository(repository_name,
+                repository_names_to_mirrors, target_filename)
+
+          except (tuf.exceptions.UnknownTargetError, tuf.exceptions.Error) as e:
+            continue
 
           logger.debug('Adding targetinfo: ' + repr(targetinfo))
           targetinfos.append(targetinfo)
@@ -308,6 +317,7 @@ class MultiRepoUpdater(object):
               # updaters that provide it.
               return targetinfo, updaters
 
+      # The mapping is irrelevant to the target file.  Try the next one, if any.
       else:
         continue
 
@@ -317,13 +327,16 @@ class MultiRepoUpdater(object):
       # case, are we allowed to continue to the next mapping?  Let's check
       # the terminating entry.
       if mapping['terminating']:
-        return None
+        raise tuf.exceptions.UnknownTargetError('The repositories in the map'
+            ' file do not agree on the target, or none of them have signed'
+            ' for the target.')
 
     # If we are here, it means either there were no mappings, or none of the
     # mappings provided the target.
     logger.debug('Did not find the target.')
-    return None
-
+    raise tuf.exceptions.UnknownTargetError('The repositories in the map'
+        ' file do not agree on the target, or none of them have signed'
+        ' for the target.')
 
 
 
@@ -389,12 +402,13 @@ class MultiRepoUpdater(object):
     # Set the repository directory containing the metadata.
     updater = self.get_updater(repository_name, repository_names_to_mirrors)
 
-    # Get one valid target info from the Updater object.
-    try:
-      return updater.get_one_valid_targetinfo(target_filename), updater
+    if not updater:
+      raise tuf.exceptions.Error('Cannot load updater'
+          ' for ' + repr(repository_name))
 
-    except:
-      return None
+    # Get one valid target info from the Updater object.  Raises
+    # 'tuf.exceptions.UnknownTargetError'.
+    return updater.get_one_valid_targetinfo(target_filename), updater
 
 
 
