@@ -1839,8 +1839,38 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # Restore the Root file.
     shutil.move(backup_root_filepath, root_filepath)
 
+    # Verify that a targetinfo is not returned for a non-existent target.
+    multi_repo_updater.map_file['mapping'][1]['terminating'] = False
     self.assertRaises(tuf.exceptions.UnknownTargetError,
         multi_repo_updater.get_one_valid_targetinfo, 'non-existent.txt')
+    multi_repo_updater.map_file['mapping'][1]['terminating'] = True
+
+    # Test for a mapping that sets terminating = True, and that occurs before
+    # the final mapping.
+    multi_repo_updater.map_file['mapping'][0]['terminating'] = True
+    self.assertRaises(tuf.exceptions.UnknownTargetError,
+        multi_repo_updater.get_one_valid_targetinfo, 'bad3.txt')
+
+
+
+  def test_get_updater(self):
+    map_file = os.path.join(self.client_directory, 'map.json')
+    multi_repo_updater = updater.MultiRepoUpdater(map_file)
+
+    # Test for a non-existent repository name.
+    self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name',
+        multi_repo_updater.map_file['repositories']))
+
+    # Test get_updater indirectly via the "private" _update_from_repository().
+    self.assertRaises(tuf.exceptions.Error,
+        multi_repo_updater._update_from_repository, 'bad_repo_name',
+        multi_repo_updater.map_file['repositories'],
+        'file3.txt')
+
+    # Test for a repository that doesn't exist.
+    multi_repo_updater.map_file['repositories']['bad_repo_name'] = ['https://bogus:30002']
+    self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name',
+        multi_repo_updater.map_file['repositories']))
 
 
 
