@@ -295,7 +295,7 @@ class MultiRepoUpdater(object):
 
         # Is the list of targetinfo empty?  If so, log that none of the
         # repositories in this mapping provided valid targetinfo, and fall out
-        # of the for loop.  Once out of the mapping for loop, verify whether
+        # of the for loop.  Once out of the mapping for-loop, verify whether
         # this is a terminating mapping.
         if len(targetinfos) == 0:
           logger.debug('None of the repositories in the matching mapping'
@@ -366,6 +366,10 @@ class MultiRepoUpdater(object):
 
 
   def get_updater(self, repository_name, repository_names_to_mirrors):
+    """
+    TODO: Add docstring.
+    """
+
     # NOTE: Do not refresh metadata for a repository that has been visited.
     updater = self.repository_names_to_updaters.get(repository_name)
 
@@ -374,25 +378,29 @@ class MultiRepoUpdater(object):
       # tuf.client.updater.Updater().  Each 'repository_name' can have more
       # than one mirror.
       mirrors = {}
-      for url in repository_names_to_mirrors[repository_name]:
-        mirrors[url] = {
-          'url_prefix': url,
-          'metadata_path': 'metadata',
-          'targets_path': 'targets',
-          'confined_target_dirs': ['']}
 
-      # NOTE: State (e.g., keys) should NOT be shared across different updater
-      # instances.
-      updater = tuf.client.updater.Updater(repository_name, mirrors)
-
-      try:
-        updater.refresh()
-
-      except:
+      if repository_name not in repository_names_to_mirrors:
         return None
 
       else:
-        self.repository_names_to_updaters[repository_name] = updater
+        for url in repository_names_to_mirrors[repository_name]:
+          mirrors[url] = {
+            'url_prefix': url,
+            'metadata_path': 'metadata',
+            'targets_path': 'targets',
+            'confined_target_dirs': ['']}
+
+        try:
+          # NOTE: State (e.g., keys) should NOT be shared across different
+          # updater instances.
+          updater = tuf.client.updater.Updater(repository_name, mirrors)
+          updater.refresh()
+
+        except:
+          return None
+
+        else:
+          self.repository_names_to_updaters[repository_name] = updater
 
     else:
       logger.debug('Found an updater for ' + repr(repository_name))
@@ -405,6 +413,7 @@ class MultiRepoUpdater(object):
 
   def _update_from_repository(self, repository_name, repository_names_to_mirrors,
       target_filename):
+
     # Set the repository directory containing the metadata.
     updater = self.get_updater(repository_name, repository_names_to_mirrors)
 
