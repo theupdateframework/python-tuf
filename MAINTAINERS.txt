@@ -1,0 +1,8 @@
+The TUF project is managed by Justin Cappos at NYU (jcappos@nyu.edu).
+
+Maintainers:
+
+Vladimir Diaz (vladimir.diaz@nyu.edu)
+Sebastien Awwad (sebastien.awwad@nyu.edu)
+Lukas Puehringer (lukas.puehringer@nyu.edu)
+
