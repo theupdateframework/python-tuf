@@ -320,6 +320,12 @@ class MultiRepoUpdater(object):
               # updaters that provide it.
               return targetinfo, updaters
 
+            # All of the targetinfo did not match.  Break out of the
+            # targetsinfo for-loop and check the mapping's "terminating"
+            # attribute.
+            else:
+              break
+
       # The mapping is irrelevant to the target file.  Try the next one, if any.
       else:
         continue
@@ -333,6 +339,10 @@ class MultiRepoUpdater(object):
         raise tuf.exceptions.UnknownTargetError('The repositories in the map'
             ' file do not agree on the target, or none of them have signed'
             ' for the target.')
+
+      else:
+        logger.debug('The mapping was irrelevant to the targets, and'
+            ' "terminating" was set to False.'
 
     # If we are here, it means either there were no mappings, or none of the
     # mappings provided the target.
@@ -367,8 +377,43 @@ class MultiRepoUpdater(object):
 
   def get_updater(self, repository_name, repository_names_to_mirrors):
     """
-    TODO: Add docstring.
+    <Purpose>
+      Get the updater instance corresponding to 'repository_name'.
+
+    <Arguments>
+      repository_name:
+        The name of the repository as it appears in the map file.  For example,
+        "Django" and "PyPI" in the "repositories" entry of the map file.
+
+        "repositories": {
+            "Django": ["https://djangoproject.com/"],
+            "PyPI":   ["https://pypi.python.org/"]
+        }
+
+      repository_names_to_mirrors:
+        The "repositories" entry of the map file, with the following format:
+
+        "repositories": {
+            "Django": ["https://djangoproject.com/"],
+            "PyPI":   ["https://pypi.python.org/"]
+        }
+
+    <Exceptions>
+      tuf.exceptions.FormatError, if any of the arguments are improperly
+      formatted.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      Returns the Updater() instance for 'repository_name'.  If the instance
+      does not exist, return None.
     """
+
+    # Are the arguments properly formatted?  If not, raise
+    # 'tuf.exceptions.FormatError'.
+    tuf.formats.NAME_SCHEMA.check_match(repository_name)
+    tuf.formats.REPO_NAMES_TO_MIRRORS_SCHEMA.check_match(repository_names_to_mirrors)
 
     # NOTE: Do not refresh metadata for a repository that has been visited.
     updater = self.repository_names_to_updaters.get(repository_name)
