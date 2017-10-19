@@ -1845,7 +1845,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
         multi_repo_updater.get_one_valid_targetinfo, 'non-existent.txt')
     multi_repo_updater.map_file['mapping'][1]['terminating'] = True
 
-    # Test for a mapping that sets terminating = True, and that occurs before
+    # Test for a mapping that sets terminating = True, and that appears before
     # the final mapping.
     multi_repo_updater.map_file['mapping'][0]['terminating'] = True
     self.assertRaises(tuf.exceptions.UnknownTargetError,

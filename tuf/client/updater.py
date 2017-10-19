@@ -342,7 +342,7 @@ class MultiRepoUpdater(object):
 
       else:
         logger.debug('The mapping was irrelevant to the targets, and'
-            ' "terminating" was set to False.'
+            ' "terminating" was set to False.')
 
     # If we are here, it means either there were no mappings, or none of the
     # mappings provided the target.

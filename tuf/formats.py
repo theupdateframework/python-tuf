@@ -268,7 +268,7 @@ REPO_NAMES_TO_MIRRORS_SCHEMA = SCHEMA.DictOf(
 # A Dict containing the map file's "mapping" attribute.
 MAPPING_SCHEMA = SCHEMA.ListOf(SCHEMA.Object(
   paths = RELPATHS_SCHEMA,
-  repositories = REPO_NAMES_TO_MIRRORS_SCHEMA,
+  repositories = SCHEMA.ListOf(securesystemslib.formats.URL_SCHEMA),
   terminating = BOOLEAN_SCHEMA,
   threshold = THRESHOLD_SCHEMA))
 
