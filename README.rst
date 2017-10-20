@@ -1,5 +1,3 @@
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield)
-
 A Framework for Securing Software Update Systems
 ------------------------------------------------
 
@@ -16,6 +14,10 @@ A Framework for Securing Software Update Systems
 .. image:: https://pyup.io/repos/github/theupdateframework/tuf/python-3-shield.svg
      :target: https://pyup.io/repos/github/theupdateframework/tuf/
      :alt: Python 3
+
+..  image:: https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield
+     :target: https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield
+     :alt: FOSSA
 
 .. image:: /docs/images/banner_readme.JPG
 
