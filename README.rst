@@ -1,3 +1,5 @@
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield)
+
 A Framework for Securing Software Update Systems
 ------------------------------------------------
 
@@ -297,3 +299,7 @@ Foundation under Grant Nos. CNS-1345049 and CNS-0959138. Any opinions,
 findings, and conclusions or recommendations expressed in this material
 are those of the author(s) and do not necessarily reflect the views of
 the National Science Foundation.
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_large)
