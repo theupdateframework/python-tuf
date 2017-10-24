@@ -1839,6 +1839,11 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # Restore the Root file.
     shutil.move(backup_root_filepath, root_filepath)
 
+    # Test that the first mapping is skipped if it's irrelevant to the target
+    # file.
+    self.assertRaises(tuf.exceptions.UnknownTargetError,
+        multi_repo_updater.get_one_valid_targetinfo, 'non-existent.txt')
+
     # Verify that a targetinfo is not returned for a non-existent target.
     multi_repo_updater.map_file['mapping'][1]['terminating'] = False
     self.assertRaises(tuf.exceptions.UnknownTargetError,
@@ -1850,6 +1855,49 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     multi_repo_updater.map_file['mapping'][0]['terminating'] = True
     self.assertRaises(tuf.exceptions.UnknownTargetError,
         multi_repo_updater.get_one_valid_targetinfo, 'bad3.txt')
+    multi_repo_updater.map_file['mapping'][0]['terminating'] = False
+
+    # Verify the case where two repositories provide different targetinfo.
+    # First, have 'role1' sign for a different 'file1.txt' (currently signed
+    # only by the Targets role).
+    repository = repo_tool.load_repository(self.repository_directory2)
+
+    # Test for the case where multiple repos sign for the same target.
+    #self.assertTrue(tuf.formats.TARGETINFO_SCHEMA.matches(
+    #    multi_repo_updater.get_one_valid_targetinfo('file1.txt')))
+    multi_repo_updater.get_one_valid_targetinfo('file1.txt')
+
+    # Modify file1.txt so that different a length and hashes are added signed
+    # role1.
+    target1 = os.path.join(self.repository_directory2, 'targets', 'file1.txt')
+    with open(target1, 'ab') as file_object:
+      file_object.write(b'append extra text')
+    repository.targets.remove_target(target1)
+    repository.targets.add_target(target1)
+
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.writeall()
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory2, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory2, 'metadata.staged'),
+        os.path.join(self.repository_directory2, 'metadata'))
+
+    targets_file = securesystemslib.util.load_json_file(
+        os.path.join(self.repository_directory2, 'metadata', 'targets.json'))
+
+    targets_file2 = securesystemslib.util.load_json_file(
+        os.path.join(self.repository_directory, 'metadata', 'targets.json'))
+
+    multi_repo_updater.get_one_valid_targetinfo('file1.txt')
+
+    multi_repo_updater.map_file['mapping'][0]['threshold'] = 2
+    self.assertRaises(tuf.exceptions.UnknownTargetError,
+        multi_repo_updater.get_one_valid_targetinfo, 'file1.txt')
+
+
 
 
 

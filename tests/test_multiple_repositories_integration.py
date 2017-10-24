@@ -269,9 +269,6 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
     my_updaters[0].download_target(targetinfo, self.temporary_directory)
     self.assertTrue(os.path.exists(os.path.join(self.temporary_directory, 'file3.txt')))
-    updater2_directory =  os.path.join(self.temporary_directory, 'updater2')
-    my_updaters[1].download_target(targetinfo, updater2_directory)
-    self.assertTrue(os.path.exists(os.path.join(self.temporary_directory, 'file3.txt')))
 
 
 
