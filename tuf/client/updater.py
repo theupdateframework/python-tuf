@@ -250,7 +250,7 @@ class MultiRepoUpdater(object):
       else:
         logger.debug('Found local directory for ' + repr(repository_name))
 
-      # The latest known root metadata file must already be on disk.
+      # The latest known root metadata file must also exist on disk.
       root_file = os.path.join(repository_directory, 'metadata',
           'current', 'root.json')
 
@@ -272,10 +272,11 @@ class MultiRepoUpdater(object):
         targetinfo_and_updaters = []
         targetinfos = []
 
-        # Update the targetinfo from each repository using the underlying
-        # Updater() instance.
+        # Retrieve the targetinfo from each repository using the
+        # underlying Updater() instance.
         for repository_name in mapping['repositories']:
-          logger.debug('Updating from repository...')
+          logger.debug('Retrieving targetinfo for ' + repr(target_filename) +
+              ' from repository...')
 
           try:
             targetinfo, updater = self._update_from_repository(repository_name,
@@ -284,29 +285,30 @@ class MultiRepoUpdater(object):
           except (tuf.exceptions.UnknownTargetError, tuf.exceptions.Error) as e:
             continue
 
-          logger.debug('Adding targetinfo: ' + repr(targetinfo))
+          logger.debug('Adding targetinfo: ' + repr(targetinfo) + ' for'
+              ' updater ' + repr(updater.repository_name))
           targetinfos.append(targetinfo)
           targetinfo_and_updaters.append((targetinfo, updater))
 
-
         # If the targetinfo on each repository is equal to a threshold of
         # others, and it is not empty, then return the targetinfo.
-        logger.debug('Verifying that a threshold of targetinfo are equal')
+        logger.debug('Verifying that a threshold of targetinfo are equal...')
 
         # Is the list of targetinfo empty?  If so, log that none of the
         # repositories in this mapping provided valid targetinfo, and fall out
-        # of the for loop.  Once out of the mapping for-loop, verify whether
+        # of the for-loop.  Once out of the mapping for-loop, verify whether
         # this is a terminating mapping.
         if len(targetinfos) == 0:
           logger.debug('None of the repositories in the matching mapping'
               ' provided valid targetinfo.')
 
         else:
-          # Is there a threshold of matching targetinfo?
+          # Is there a threshold of matching targetinfo that we can return?
           for targetinfo in targetinfos:
             if targetinfos.count(targetinfo) >= mapping['threshold']:
               # Yes, but first compile a list of updaters that provide the
-              # matching targetinfo..
+              # matching targetinfo.
+              logger.debug('Found a threshold of matching targetinfo!')
               updaters = []
               for target_info, updater in targetinfo_and_updaters:
                 if target_info == targetinfo:
@@ -315,9 +317,11 @@ class MultiRepoUpdater(object):
                 else:
                   continue
 
-              # We now have a targetinfo (that matches across a threshold
+              # We now have a targetinfo (that matches across a threshold of
               # repositories as instructed by the map file), along with the
-              # updaters that provide it.
+              # updaters that sign for it.
+              logger.debug('Returning updaters for targetinfo: ' +
+                  repr(targetinfo))
               return targetinfo, updaters
 
             # All of the targetinfo did not match.  Break out of the
@@ -330,23 +334,25 @@ class MultiRepoUpdater(object):
       else:
         continue
 
-      # If we are here, it means either the mapping is irrelevant to the
-      # target, or the targets were missing from all repositories in this
-      # mapping, or the targets on all repositories did not match. In that
-      # case, are we allowed to continue to the next mapping?  Let's check
-      # the terminating entry.
+      # If we are here, it means either (1) the mapping is irrelevant to the
+      # target, (2) the targets were missing from all repositories in this
+      # mapping, or (3) the targets on all repositories did not match. In
+      # whichever case, are we allowed to continue to the next mapping?  Let's
+      # check the terminating entry!
       if mapping['terminating']:
         raise tuf.exceptions.UnknownTargetError('The repositories in the map'
             ' file do not agree on the target, or none of them have signed'
             ' for the target.')
 
+      # The mapping did not pan out for the requested target, try the next one.
       else:
         logger.debug('The mapping was irrelevant to the targets, and'
             ' "terminating" was set to False.')
+        continue
 
     # If we are here, it means either there were no mappings, or none of the
     # mappings provided the target.
-    logger.debug('Did not find the target.')
+    logger.debug('Did not find valid targetinfo for ' + repr(target_filename))
     raise tuf.exceptions.UnknownTargetError('The repositories in the map'
         ' file do not agree on the target, or none of them have signed'
         ' for the target.')
@@ -438,8 +444,9 @@ class MultiRepoUpdater(object):
         try:
           # NOTE: State (e.g., keys) should NOT be shared across different
           # updater instances.
+          logger.debug('Adding updater for ' + repr(repository_name))
           updater = tuf.client.updater.Updater(repository_name, mirrors)
-          updater.refresh()
+          #updater.refresh()
 
         except:
           return None
@@ -450,6 +457,7 @@ class MultiRepoUpdater(object):
     else:
       logger.debug('Found an updater for ' + repr(repository_name))
 
+    updater.refresh()
     return updater
 
 
@@ -1891,6 +1899,10 @@ class Updater(object):
       return True
 
     current_versioninfo = self.versioninfo[metadata_filename]
+
+    logger.debug('New version for ' + repr(metadata_filename) +
+        ': ' + repr(new_versioninfo['version']) + '.  Old version: ' +
+        repr(current_versioninfo['version']))
 
     if new_versioninfo['version'] > current_versioninfo['version']:
       return True
