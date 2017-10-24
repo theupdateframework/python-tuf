@@ -2,7 +2,7 @@
  "mapping": [
   {
    "paths": [
-    "*3.txt"
+    "*1.txt"
    ],
    "repositories": [
     "test_repository1",
@@ -13,7 +13,7 @@
   },
   {
    "paths": [
-    "*"
+    "*3.txt"
    ],
    "repositories": [
     "test_repository2"
