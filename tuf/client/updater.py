@@ -304,7 +304,10 @@ class MultiRepoUpdater(object):
 
         else:
           # Is there a threshold of matching targetinfo that we can return?
-          for targetinfo in targetinfos:
+          for targetinfo in targetinfos: # pragma: no branch
+            # Note: The last line of this loop includes a break, which prevents
+            # the loop from fully iterating targetinfos; allow partial
+            # branching for coverage.
             if targetinfos.count(targetinfo) >= mapping['threshold']:
               # Yes, but first compile a list of updaters that provide the
               # matching targetinfo.
@@ -324,7 +327,7 @@ class MultiRepoUpdater(object):
                   repr(targetinfo))
               return targetinfo, updaters
 
-            # All of the targetinfo did not match.  Break out of the
+            # All of the targetinfo did not match.  Fall out of the
             # targetsinfo for-loop and check the mapping's "terminating"
             # attribute.
             else:
@@ -421,7 +424,6 @@ class MultiRepoUpdater(object):
     tuf.formats.NAME_SCHEMA.check_match(repository_name)
     tuf.formats.REPO_NAMES_TO_MIRRORS_SCHEMA.check_match(repository_names_to_mirrors)
 
-    # NOTE: Do not refresh metadata for a repository that has been visited.
     updater = self.repository_names_to_updaters.get(repository_name)
 
     if not updater:
@@ -457,6 +459,7 @@ class MultiRepoUpdater(object):
     else:
       logger.debug('Found an updater for ' + repr(repository_name))
 
+    # Ensure the updater's metadata is the latest before returning it.
     updater.refresh()
     return updater
 
