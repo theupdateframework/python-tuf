@@ -285,9 +285,9 @@ License
 This work is `dual-licensed <https://en.wikipedia.org/wiki/Multi-licensing>`_
 and distributed under the (1) MIT License and (2) Apache License, Version 2.0.
 Please see `LICENSE-MIT.txt
-<https://github.com/theupdateframework/tuf/tree/develop/tuf/LICENSE-MIT.txt>`_
+<https://github.com/theupdateframework/tuf/blob/develop/LICENSE-MIT.txt>`_
 and `LICENSE-APACHE.txt
-<https://github.com/theupdateframework/tuf/tree/develop/tuf/LICENSE-APACHE.txt>`_.
+<https://github.com/theupdateframework/tuf/blob/develop/LICENSE-APACHE.txt>`_.
 
 
 Acknowledgements
