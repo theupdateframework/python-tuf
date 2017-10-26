@@ -199,6 +199,10 @@ Instructions for Contributors
 
 Note: Development of TUF occurs on the "develop" branch of this repository.
 
+Contributions can be made by submitting GitHub pull requests.  Submitted code should
+follow our `code style guidelines <https://github.com/secure-systems-lab/code-style-guidelines>`_,
+which provide examples of what to do (or not to do) when writing Python code.
+
 To facilitate development and installation of edited version of the code base,
 developers are encouraged to install `Virtualenv <https://virtualenv.pypa.io/en/latest/index.html>`_,
 which is a tool to create isolated Python environments.  It includes
