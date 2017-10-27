@@ -203,6 +203,10 @@ Instructions for Contributors
 
 Note: Development of TUF occurs on the "develop" branch of this repository.
 
+Contributions can be made by submitting GitHub pull requests.  Submitted code should
+follow our `code style guidelines <https://github.com/secure-systems-lab/code-style-guidelines>`_,
+which provide examples of what to do (or not to do) when writing Python code.
+
 To facilitate development and installation of edited version of the code base,
 developers are encouraged to install `Virtualenv <https://virtualenv.pypa.io/en/latest/index.html>`_,
 which is a tool to create isolated Python environments.  It includes
@@ -285,9 +289,9 @@ License
 This work is `dual-licensed <https://en.wikipedia.org/wiki/Multi-licensing>`_
 and distributed under the (1) MIT License and (2) Apache License, Version 2.0.
 Please see `LICENSE-MIT.txt
-<https://github.com/theupdateframework/tuf/tree/develop/tuf/LICENSE-MIT.txt>`_
+<https://github.com/theupdateframework/tuf/blob/develop/LICENSE-MIT.txt>`_
 and `LICENSE-APACHE.txt
-<https://github.com/theupdateframework/tuf/tree/develop/tuf/LICENSE-APACHE.txt>`_.
+<https://github.com/theupdateframework/tuf/blob/develop/LICENSE-APACHE.txt>`_.
 
 
 Acknowledgements
