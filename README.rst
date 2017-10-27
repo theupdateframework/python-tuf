@@ -15,6 +15,10 @@ A Framework for Securing Software Update Systems
      :target: https://pyup.io/repos/github/theupdateframework/tuf/
      :alt: Python 3
 
+..  image:: https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield
+     :target: https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield
+     :alt: FOSSA
+
 .. image:: /docs/images/banner_readme.JPG
 
 The Update Framework (TUF) helps developers to secure new or existing
