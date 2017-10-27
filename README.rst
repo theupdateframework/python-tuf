@@ -3,21 +3,27 @@ A Framework for Securing Software Update Systems
 
 .. image:: https://travis-ci.org/theupdateframework/tuf.svg?branch=develop
    :target: https://travis-ci.org/theupdateframework/tuf
+   :alt: Travis
 
 .. image:: https://coveralls.io/repos/theupdateframework/tuf/badge.svg?branch=develop
    :target: https://coveralls.io/r/theupdateframework/tuf?branch=develop
+   :alt: Coveralls
 
 .. image:: https://pyup.io/repos/github/theupdateframework/tuf/shield.svg
-     :target: https://pyup.io/repos/github/theupdateframework/tuf/
-     :alt: Updates
+   :target: https://pyup.io/repos/github/theupdateframework/tuf/
+   :alt: Pyup
 
 .. image:: https://pyup.io/repos/github/theupdateframework/tuf/python-3-shield.svg
-     :target: https://pyup.io/repos/github/theupdateframework/tuf/
-     :alt: Python 3
+   :target: https://pyup.io/repos/github/theupdateframework/tuf/
+   :alt: Python 3
 
-..  image:: https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield
-     :target: https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield
-     :alt: FOSSA
+.. image:: https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield
+   :target: https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield
+   :alt: FOSSA
+
+.. image:: https://bestpractices.coreinfrastructure.org/projects/1351/badge
+   :target: https://bestpractices.coreinfrastructure.org/projects/1351
+   :alt: CII
 
 .. image:: /docs/images/banner_readme.JPG
 
