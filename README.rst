@@ -167,20 +167,43 @@ TUF Home Page
 The home page for the TUF project can be found at:
 https://updateframework.com
 
+Security Issues and Bugs
+------------------------
+
+Security issues can be reported by emailing jcappos@nyu.edu.
+
+At a minimum, the report must contain the following:
+
+* Description of the vulnerability.
+* Steps to reproduce the issue.
+
+Optionally, reports that are emailed can be encrypted with PGP.  You should use
+PGP key fingerprint E9C0 59EC 0D32 64FA B35F  94AD 465B F9F6 F8EB 475.
+
+Please do not use the GitHub issue tracker to submit vulnerability reports.
+The issue tracker is intended for bug reports and to make feature requests.
+Major feature requests, such as design changes to the specification, should
+be proposed via TUF Augmentation Proposals, which are discussed below.
+
 Mailing List
 ------------
-Please visit `https://groups.google.com/forum/?fromgroups#!forum/theupdateframework <https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if you would like to contact the TUF team.  Questions, feedback, and suggestions are welcomed in this low-volume mailing list.
+Please visit
+`https://groups.google.com/forum/?fromgroups#!forum/theupdateframework
+<https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if
+you would like to contact the TUF team.  Questions, feedback, and suggestions
+are welcomed in this low-volume mailing list.
 
-A group feed is available at: https://groups.google.com/forum/feed/theupdateframework/msgs/atom.xml?num=50
+A group feed is available at:
+https://groups.google.com/forum/feed/theupdateframework/msgs/atom.xml?num=50
 
 What is a TAP?
 --------------
 
-A TAP (TUF Augmentation Proposal) is a design document providing information to the
-TUF community, or describing a new feature for TUF or its processes or environment.
-We intend TAPs to be the primary mechanisms for proposing major new features, for
-collecting community input on an issue, and for documenting the design decisions
-that have gone into TUF.
+A TAP (TUF Augmentation Proposal) is a design document providing information to
+the TUF community, or describing a new feature for TUF or its processes or
+environment.  We intend TAPs to be the primary mechanisms for proposing major
+new features, for collecting community input on an issue, and for documenting
+the design decisions that have gone into TUF.
 
 Please visit the `TAPs GitHub repo <https://github.com/theupdateframework/taps>`_
 to review design changes that have been proposed to date, or to submit
@@ -209,9 +232,10 @@ Instructions for Contributors
 
 Note: Development of TUF occurs on the "develop" branch of this repository.
 
-Contributions can be made by submitting GitHub pull requests.  Submitted code should
-follow our `code style guidelines <https://github.com/secure-systems-lab/code-style-guidelines>`_,
-which provide examples of what to do (or not to do) when writing Python code.
+Contributions can be made by submitting GitHub pull requests.  Submitted code
+should follow our `code style guidelines
+<https://github.com/secure-systems-lab/code-style-guidelines>`_, which provide
+examples of what to do (or not to do) when writing Python code.
 
 To facilitate development and installation of edited version of the code base,
 developers are encouraged to install `Virtualenv <https://virtualenv.pypa.io/en/latest/index.html>`_,
