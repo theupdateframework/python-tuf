@@ -170,7 +170,7 @@ https://updateframework.com
 Security Issues and Bugs
 ------------------------
 
-Security issues can be reported by emailing jcappos@nyu.edu.
+Security issues can be reported by emailing justincappos@gmail.com.
 
 At a minimum, the report must contain the following:
 
