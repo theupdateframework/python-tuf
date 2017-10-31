@@ -237,10 +237,11 @@ should follow our `code style guidelines
 <https://github.com/secure-systems-lab/code-style-guidelines>`_, which provide
 examples of what to do (or not to do) when writing Python code.
 
-Contributors must also indicate acceptance of the Developer Certificate of
-Origin (DCO) when making a contribution to the project.  Acceptance of the DCO
-can be established by appending a ``Signed-off-by: Your Name
-<example@domain.com>`` to the Git commit message.  For example:
+Contributors must also indicate acceptance of the `Developer Certificate of
+Origin <https://developercertificate.org/>`_  (DCO) when making a contribution
+to the project.  Acceptance of the DCO can be established by appending a
+``Signed-off-by: Your Name <example@domain.com>`` to the Git commit message.
+For example:
 
 ::
 
