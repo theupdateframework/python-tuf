@@ -16,7 +16,7 @@
 # signatures.  The minimal install can only verify ed25519 signatures.  Pinned
 # packages: http://nvie.com/posts/pin-your-packages/
 cffi==1.11.2
-pynacl==1.1.2
+pynacl==1.2.0
 cryptography==2.1.2
 securesystemslib==0.10.7
 
