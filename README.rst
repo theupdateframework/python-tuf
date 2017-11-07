@@ -36,6 +36,10 @@ The framework can be easily integrated (or implemented in the native
 programming languages of these update systems) due to its concise,
 self-contained architecture and specification.
 
+TUF is hosted by the `Cloud Native Computing Foundation
+<https://www.cncf.io/>`_ (CNCF) and follows the `CNCF Code of Conduct
+<https://github.com/cncf/foundation/blob/master/code-of-conduct.md>`_.
+
 What Is a Software Update System?
 ---------------------------------
 
