@@ -1,8 +1,5 @@
 cryptography
 pynacl
-pycrypto
 securesystemslib
 six
 iso8601
-coverage
-coveralls
