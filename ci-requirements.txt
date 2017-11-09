@@ -1,0 +1,7 @@
+cryptography
+pynacl
+securesystemslib
+six
+iso8601
+coverage
+coveralls
