@@ -98,14 +98,6 @@ SNAPSHOT_EXPIRATION = 604800
 # Initial 'timestamp.json' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
 
-try:
-  securesystemslib.keys.check_crypto_libraries(['rsa', 'ed25519', 'general'])
-
-except securesystemslib.exceptions.UnsupportedLibraryError: #pragma: no cover
-  logger.warn('Warning: The repository and developer tools require'
-    ' additional libraries, which can be installed as follows:'
-    '\n $ pip install tuf[tools]')
-
 
 class Repository(object):
   """
