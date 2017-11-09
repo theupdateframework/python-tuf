@@ -97,7 +97,6 @@ setup(
     'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
@@ -105,7 +104,7 @@ setup(
     'Topic :: Security',
     'Topic :: Software Development'
   ],
-   install_requires = ['iso8601', 'six', 'securesystemslib>=0.10.7'],
+   install_requires = ['iso8601>=0.1.12', 'six>=1.11.0', 'securesystemslib>=0.10.8'],
   packages = find_packages(exclude=['tests']),
   scripts = [
     'tuf/scripts/basic_client.py',
