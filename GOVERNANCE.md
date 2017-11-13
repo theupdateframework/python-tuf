@@ -4,7 +4,7 @@ project consists of the TUF
 [specification](https://github.com/theupdateframework/specification) and
 [reference implementation](https://github.com/theupdateframework/tuf).
 
-## Maintainership and Benovolent Dictator for Life
+## Maintainership and Consensus Builder
 The project is maintained by the people indicated in
 [MAINTAINERS.md](MAINTAINERS.md).  A maintainer is expected to (1) submit and
 review GitHub pull requests and (2) open issues or [submit vulnerability
