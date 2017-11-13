@@ -1,4 +1,12 @@
 # Changelog
+## v0.10.1
+
+*
+
+*
+
+*
+
 
 ## v0.10.0
 @vladimir-v-diaz vladimir-v-diaz released this on Jan 22, 2016 · 879 commits to develop since this release
