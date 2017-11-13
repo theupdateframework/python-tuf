@@ -10,8 +10,7 @@ The project is maintained by the people indicated in
 review GitHub pull requests and (2) open issues or [submit vulnerability
 reports](https://github.com/theupdateframework/tuf#security-issues-and-bugs).
 A maintainer has the authority to approve or reject pull requests submitted by
-contributors.  The project's [Benevolent Dictator For
-Life](https://en.wikipedia.org/wiki/Benevolent_dictator_for_life) (BDFL) is
+contributors.  The project's Consensus Builder (CB) is
 Justin Cappos <jcappos@nyu.edu, @JustinCappos>.
 
 ## Contributions
@@ -34,7 +33,7 @@ Proposal](https://github.com/theupdateframework/taps) (TAP).  It is a design
 document providing information to the TUF community, or describing a new
 feature for TUF or its processes or environment.
 
-A TAP can be approved or rejected by the BDFL after it has been reviewed and
+A TAP can be approved or rejected by the CB after it has been reviewed and
 discussed.  Discussions take place on the project's [mailing
 list](https://groups.google.com/forum/?fromgroups#!forum/theupdateframework) or
 the TAPs GitHub issue tracker.
@@ -42,7 +41,7 @@ the TAPs GitHub issue tracker.
 ## Changes in maintainership
 
 A contributor to the project must express interest in becoming a maintainer.
-The BDFL has the authority to add or remove maintainers.
+The CB has the authority to add or remove maintainers.
 
 ## Changes in governance
-The BDFL supervises changes in governance.
+The CB supervises changes in governance.
