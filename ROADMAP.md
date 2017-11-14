@@ -28,17 +28,17 @@ Pre-release v0.10.1 shipped on November 13, 2017.
 
 In no particular order...
 
-- [ ] CII Best Practices badge.
+- [ ] [CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/1351) badge.
   - [ ] silver badge
   - [ ] gold badge
 
-- [ ] TAP 3: Multi-role delegations.
+- [ ] [TAP 3: Multi-role delegations](https://github.com/theupdateframework/taps/blob/master/tap3.md).
 
-- [ ] TAP 4: Multiple repository consensus on entrusted targets.
+- [ ] [TAP 4: Multiple repository consensus on entrusted targets](https://github.com/theupdateframework/taps/blob/master/tap4.md).
 
-- [ ] TAP 5: Setting URLs for roles in the Root metadata file.
+- [ ] [TAP 5: Setting URLs for roles in the Root metadata file](https://github.com/theupdateframework/taps/blob/master/tap5.md).
 
-- [ ] TAP 8: Key rotation and explicit self-revocation.
+- [ ] [TAP 8: Key rotation and explicit self-revocation](https://github.com/theupdateframework/taps/blob/master/tap8.md).
 
 - [ ] CLI tool and quickstart guide.
 
