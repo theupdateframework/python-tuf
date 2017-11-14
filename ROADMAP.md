@@ -7,16 +7,16 @@ A new release of the project is expected every 3 months.  The release cycle,
 upcoming tasks, and any stated goals are subject to change.  The antipicated
 release dates are as follows:
 
-January 2018
+**January** 2018
 
-April 2018
+**April** 2018
 
-July 2018
+**July** 2018
 
-October 2018
+**October** 2018
 
 
-## Latest Release
+## Latest release
 Pre-release v0.10.1 shipped on November 13, 2017.
 * [Release notes](https://github.com/theupdateframework/tuf/releases/tag/v0.10.1)
 * [Download](https://github.com/theupdateframework/tuf/releases/tag/v0.10.1)
