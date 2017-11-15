@@ -12,7 +12,9 @@ env:
 before_script:
   - pip install -U pip wheel tox
 
-script: tox
+script:
+  - pylint tuf
+  - tox
 
 after_success:
   - cd tests
