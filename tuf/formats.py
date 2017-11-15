@@ -465,7 +465,7 @@ class MetaFile(object):
     between Metadata File objects.
   """
 
-  info = None
+  info = {}
 
   def __eq__(self, other):
     return isinstance(other, MetaFile) and self.info == other.info

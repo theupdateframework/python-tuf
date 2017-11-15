@@ -432,7 +432,7 @@ class Project(Targets):
 
       except securesystemslib.exceptions.Error as e:
         signable = e[1]
-        self._log_status(self._project_name, signable, repository_name)
+        self._log_status(self._project_name, signable, self._repository_name)
         return
 
     finally:

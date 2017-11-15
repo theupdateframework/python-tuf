@@ -2173,8 +2173,10 @@ class Updater(object):
   def get_one_valid_targetinfo(self, target_filepath):
     """
     <Purpose>
-      Return the target information of 'target_filepath', and update its
-      corresponding metadata, if necessary.
+      Return the target information for 'target_filepath', and update its
+      corresponding metadata, if necessary.  'target_filepath' must match
+      exactly as it appears in metadata, and should not contain URL encoding
+      escapes.
 
     <Arguments>
       target_filepath:
@@ -2202,10 +2204,6 @@ class Updater(object):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
-    # 'target_filepath' might contain URL encoding escapes.
-    # http://docs.python.org/2/library/urllib.html#urllib.unquote
-    target_filepath = six.moves.urllib.parse.unquote(target_filepath)
-
     if not target_filepath.startswith('/'):
       target_filepath = '/' + target_filepath
 
@@ -2214,8 +2212,9 @@ class Updater(object):
 
     # Raise an exception if the target information could not be retrieved.
     if target is None:
-      logger.error(target_filepath + ' not found.')
-      raise tuf.exceptions.UnknownTargetError(target_filepath + ' not found.')
+      logger.error(repr(target_filepath) + ' not found.')
+      raise tuf.exceptions.UnknownTargetError(repr(target_filepath) + ' not'
+          ' found.')
 
     # Otherwise, return the found target.
     else:
