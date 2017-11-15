@@ -11,8 +11,11 @@ env:
 
 before_script:
   - pip install -U pip wheel tox
+  - pip install -U pip wheel pylint
 
-script: tox
+script:
+  - pylint tuf
+  - tox
 
 after_success:
   - cd tests
@@ -22,3 +25,4 @@ after_success:
 branches:
   only:
     - develop
+    - pylint

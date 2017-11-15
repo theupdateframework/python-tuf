@@ -651,7 +651,7 @@ def _check_downloaded_length(total_downloaded, required_length,
         logger.debug('Good average download speed: ' +
                      repr(average_download_speed) + ' bytes per second')
 
-      raise securesystemslib.exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
+      raise tuf.exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
 
     else:
       # We specifically disabled strict checking of required length, but we
