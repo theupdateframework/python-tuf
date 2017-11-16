@@ -112,7 +112,6 @@ import logging
 import os
 import shutil
 import time
-import random
 import fnmatch
 
 import tuf
@@ -926,7 +925,7 @@ class Updater(object):
       self._check_hashes(target_file_object, file_hashes)
 
     if self.consistent_snapshot:
-      target_digest = random.choice(list(file_hashes.values()))
+      target_digest = file_hashes.values().pop()
       dirname, basename = os.path.split(target_filepath)
       target_filepath = os.path.join(dirname, target_digest + '.' + basename)
 

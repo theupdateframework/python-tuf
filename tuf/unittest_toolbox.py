@@ -144,6 +144,6 @@ class Modified_TestCase(unittest.TestCase):
 
     rand_str = ''
     for letter in range(length):
-      rand_str += random.choice('abcdefABCDEF'+string.digits)
+      rand_str += random.SystemRandom().choice('abcdefABCDEF' + string.digits)
 
     return rand_str

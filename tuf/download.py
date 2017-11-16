@@ -219,11 +219,14 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     contents of 'url'.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
+    tuf.exceptions.DownloadLengthMismatchError, if there was a
     mismatch of observed vs expected lengths while downloading the file.
 
     securesystemslib.exceptions.FormatError, if any of the arguments are
     improperly formatted.
+
+    tuf.exceptions.Error, if the certificates pointed to by
+    tuf.settings.ssl_certificates cannot be loaded.
 
     Any other unforeseen runtime exception.
 
@@ -268,7 +271,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
                              STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH,
                              average_download_speed=average_download_speed)
 
-  except:
+  except Exception:
     # Close 'temp_file'.  Any written data is lost.
     temp_file.close_temp_file()
     logger.exception('Could not download URL: ' + repr(url))
@@ -417,20 +420,26 @@ def _get_opener(scheme=None):
   Build a urllib2 opener based on whether the user now wants SSL.
 
   https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L178
+  Raises tuf.exceptions.Error if tuf.settings.ssl_certificates is not a valid
+  file.
   """
 
   if scheme == "https":
-    assert os.path.isfile(tuf.settings.ssl_certificates)
+    if not os.path.isfile(tuf.settings.ssl_certificates):
+      raise tuf.exceptions.Error('The SSL certificate specified in'
+          ' tuf.settings.ssl_certificates is not a valid file.'
+          ' ssl_certificates set to: ' + repr(tuf.settings.ssl_certificates))
 
-    # If we are going over https, use an opener which will provide SSL
-    # certificate verification.
-    https_handler = VerifiedHTTPSHandler()
-    opener = six.moves.urllib.request.build_opener(https_handler)
+    else:
+      # If we are going over https, use an opener which will provide SSL
+      # certificate verification.
+      https_handler = VerifiedHTTPSHandler()
+      opener = six.moves.urllib.request.build_opener(https_handler)
 
-    # Strip out HTTPHandler to prevent MITM spoof.
-    for handler in opener.handlers:
-      if isinstance(handler, six.moves.urllib.request.HTTPHandler):
-        opener.handlers.remove(handler)
+      # Strip out HTTPHandler to prevent MITM spoof.
+      for handler in opener.handlers:
+        if isinstance(handler, six.moves.urllib.request.HTTPHandler):
+          opener.handlers.remove(handler)
 
   else:
     # Otherwise, use the default opener.
@@ -458,7 +467,8 @@ def _open_connection(url):
       URL string (e.g., 'http://...' or 'ftp://...' or 'file://...')
 
   <Exceptions>
-    None.
+    tuf.exceptions.Error, if the certificates pointed by
+    tuf.settings.ssl_certificates cannot be loaded.
 
   <Side Effects>
     Opens a connection to a remote server.
@@ -515,12 +525,12 @@ def _get_content_length(connection):
     reported_length = int(reported_length, 10)
 
     # Make sure that it is a nonnegative integer.
-    assert reported_length > -1
+    if not reported_length > -1:
+      raise tuf.exception.Error('A non-positive length was reported.')
 
-  except:
-    message = \
-      'Could not get content length about ' + str(connection) + ' from server.'
-    logger.exception(message)
+  except Exception as e:
+    logger.exception('Could not get content length'
+        ' about ' + str(connection) + ' from server: ' + str(e))
     reported_length = None
 
   finally:
@@ -677,6 +687,8 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
   A connection that wraps connections with ssl certificate verification.
 
   https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L72
+  Raise tuf.exeptions.Error if the certificates specified in
+  tuf.settings.ssl_certificates cannot be loaded.
   """
 
   def connect(self):
@@ -696,16 +708,22 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
       self._tunnel()
 
     # set location of certificate authorities
-    assert os.path.isfile(tuf.settings.ssl_certificates)
-    cert_path = tuf.settings.ssl_certificates
+    if not os.path.isfile(tuf.settings.ssl_certificates):
+      raise tuf.exceptions.Error('The SSL certificate specified in'
+          ' tuf.settings.ssl_certificates is not a valid file.'
+          ' ssl_certificates set to: ' + repr(tuf.settings.ssl_certificates))
+
+    else:
+      cert_path = tuf.settings.ssl_certificates
 
     # TODO: Disallow SSLv2.
     # http://docs.python.org/dev/library/ssl.html#protocol-versions
     # TODO: Select the right ciphers.
     # http://docs.python.org/dev/library/ssl.html#cipher-selection
+    # PROTOCOL_SSLv23, the default value for 'ssl_version', is deprecated in
+    # Python 2.7.13, but becomes an alias for PROTOCOL_TLS.
     self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file,
-                                cert_reqs=ssl.CERT_REQUIRED,
-                                ca_certs=cert_path)
+        cert_reqs=ssl.CERT_REQUIRED, ca_certs=cert_path, ssl_version=PROTOCOL_SSLv23)
 
     match_hostname(self.sock.getpeercert(), self.host)
 
