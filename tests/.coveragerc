@@ -4,7 +4,6 @@ branch = True
 [report]
 exclude_lines =
     pragma: no cover
-    def check_crypto_libraries
     def __str__
     if __name__ == .__main__.:
 
