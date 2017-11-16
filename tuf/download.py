@@ -526,7 +526,7 @@ def _get_content_length(connection):
 
     # Make sure that it is a nonnegative integer.
     if not reported_length > -1:
-      raise tuf.exception.Error('A non-positive length was reported.')
+      raise tuf.exceptions.Error('A non-positive length was reported.')
 
   except Exception as e:
     logger.exception('Could not get content length'
@@ -720,10 +720,10 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
     # http://docs.python.org/dev/library/ssl.html#protocol-versions
     # TODO: Select the right ciphers.
     # http://docs.python.org/dev/library/ssl.html#cipher-selection
-    # PROTOCOL_SSLv23, the default value for 'ssl_version', is deprecated in
-    # Python 2.7.13, but becomes an alias for PROTOCOL_TLS.
+    # ssl.PROTOCOL_SSLv23, the default value for 'ssl_version', is deprecated in
+    # Python 2.7.13, but becomes an alias for ssl.PROTOCOL_TLS.
     self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file,
-        cert_reqs=ssl.CERT_REQUIRED, ca_certs=cert_path, ssl_version=PROTOCOL_SSLv23)
+        cert_reqs=ssl.CERT_REQUIRED, ca_certs=cert_path, ssl_version=ssl.PROTOCOL_SSLv23)
 
     match_hostname(self.sock.getpeercert(), self.host)
 
