@@ -1,7 +1,6 @@
 [run]
 branch = True
 
-
 [report]
 exclude_lines =
     pragma: no cover
@@ -14,4 +13,3 @@ omit =
 
     # Command-line tool and integration example that calls core TUF.
     */tuf/scripts/basic_client.py
-    */tuf/scripts/tufcli.py
