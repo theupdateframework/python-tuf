@@ -4,12 +4,9 @@ branch = True
 [report]
 exclude_lines =
     pragma: no cover
-    def check_crypto_libraries
     def __str__
     if __name__ == .__main__.:
 
 omit =
-    */tuf/interposition/*
-
     # Command-line tool and integration example that calls core TUF.
     */tuf/scripts/basic_client.py
