@@ -7,7 +7,7 @@ extension-pkg-whitelist=
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=CVS, interposition
+ignore=CVS
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
@@ -50,7 +50,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=parameter-unpacking, unpacking-in-except, long-suffix, old-ne-operator, old-octal-literal, import-star-module-level, raw-checker-failed, bad-inline-option, locally-disabled, locally-enabled, file-ignored, suppressed-message, useless-suppression, deprecated-pragma, apply-builtin, basestring-builtin, buffer-builtin, cmp-builtin, coerce-builtin, execfile-builtin, file-builtin, long-builtin, raw_input-builtin, reduce-builtin, standarderror-builtin, unicode-builtin, xrange-builtin, coerce-method, delslice-method, getslice-method, setslice-method, no-absolute-import, old-division, dict-iter-method, dict-view-method, next-method-called, metaclass-assignment, indexing-exception, raising-string, reload-builtin, oct-method, hex-method, nonzero-method, cmp-method, input-builtin, round-builtin, intern-builtin, unichr-builtin, map-builtin-not-iterating, zip-builtin-not-iterating, range-builtin-not-iterating, filter-builtin-not-iterating, using-cmp-argument, eq-without-hash, div-method, idiv-method, rdiv-method, exception-message-attribute, invalid-str-codec, sys-max-int, deprecated-str-translate-call, global-statement, C, R, W
+disable=parameter-unpacking, unpacking-in-except, long-suffix, old-ne-operator, old-octal-literal, import-star-module-level, raw-checker-failed, bad-inline-option, locally-disabled, locally-enabled, file-ignored, suppressed-message, useless-suppression, deprecated-pragma, apply-builtin, basestring-builtin, buffer-builtin, cmp-builtin, coerce-builtin, execfile-builtin, file-builtin, long-builtin, raw_input-builtin, reduce-builtin, standarderror-builtin, unicode-builtin, xrange-builtin, coerce-method, delslice-method, getslice-method, setslice-method, no-absolute-import, old-division, dict-iter-method, dict-view-method, next-method-called, metaclass-assignment, indexing-exception, raising-string, reload-builtin, oct-method, hex-method, nonzero-method, cmp-method, input-builtin, round-builtin, intern-builtin, unichr-builtin, map-builtin-not-iterating, zip-builtin-not-iterating, range-builtin-not-iterating, filter-builtin-not-iterating, using-cmp-argument, eq-without-hash, div-method, idiv-method, rdiv-method, exception-message-attribute, invalid-str-codec, sys-max-int, deprecated-str-translate-call, global-statement, C, R
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -323,7 +323,7 @@ callbacks=cb_,_cb
 
 # A regular expression matching the name of dummy variables (i.e. expectedly
 # not used).
-dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_
+dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_|junk
 
 # Argument names that match this expression will be ignored. Default to name
 # with leading underscore
