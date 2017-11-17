@@ -12,9 +12,11 @@ env:
 before_script:
   - pip install -U pip wheel tox
   - pip install -U pip wheel pylint
+  - pip install -U pip wheel bandit
 
 script:
   - pylint tuf
+  - bandit -r tuf
   - tox
 
 after_success:
@@ -26,3 +28,4 @@ branches:
   only:
     - develop
     - pylint
+    - bandit

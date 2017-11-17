@@ -39,7 +39,6 @@ import tempfile
 import shutil
 import json
 import gzip
-import random
 
 import tuf
 import tuf.formats
@@ -630,7 +629,10 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
   # The Snapshot and Root roles are both accessed by their hashes.
   if consistent_snapshot:
     snapshot_hashes = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['hashes']
-    snapshot_hash = random.choice(list(snapshot_hashes.values()))
+
+    # Note: values() does not return a list in Python 3.  Use list() on
+    # values() for Python 2+3 compatibility.
+    snapshot_hash = list(snapshot_hashes.values()).pop()
     snapshot_version = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['version']
 
     dirname, basename = os.path.split(snapshot_filename)
