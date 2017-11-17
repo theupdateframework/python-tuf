@@ -30,15 +30,10 @@ from __future__ import unicode_literals
 
 import os
 import errno
-import sys
 import time
-import datetime
-import getpass
 import logging
-import tempfile
 import shutil
 import json
-import gzip
 
 import tuf
 import tuf.formats
@@ -239,7 +234,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     # Root should always be written as if consistent_snapshot is True (i.e.,
     # <version>.root.json and root.json).
     if rolename == 'root':
-       filename = write_metadata_file(signable, metadata_filename,
+      filename = write_metadata_file(signable, metadata_filename,
           metadata['version'], consistent_snapshot=True)
 
     else:
@@ -252,7 +247,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
 
 
-def _metadata_is_partially_loaded(rolename, signable, roleinfo, repository_name):
+def _metadata_is_partially_loaded(rolename, signable, repository_name):
   """
   Non-public function that determines whether 'rolename' is loaded with
   at least zero good signatures, but an insufficient threshold (which means
@@ -417,7 +412,7 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
   # delegated by Targets) would be located in the
   # '{repository_directory}/metadata/' directory.
   if os.path.exists(metadata_directory) and os.path.isdir(metadata_directory):
-    for directory_path, junk_directories, files in os.walk(metadata_directory):
+    for directory_path, junk, files in os.walk(metadata_directory):
 
       # 'files' here is a list of target file names.
       for basename in files:
@@ -439,7 +434,6 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         # metadata might co-exist if write() and
         # write(consistent_snapshot=True) are mixed, so ensure only
         # '<version_number>.filename' metadata is stripped.
-        embedded_version_number = None
 
         # Should we check if 'consistent_snapshot' is True? It might have been
         # set previously, but 'consistent_snapshot' can potentially be False
@@ -447,8 +441,8 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         # have a prepended version number even though the repository is now
         # a non-consistent one.
         if metadata_name not in snapshot_metadata['meta']:
-          metadata_name, embedded_version_number = \
-            _strip_version_number(metadata_name, consistent_snapshot)
+          metadata_name, junk = _strip_version_number(metadata_name,
+            consistent_snapshot)
 
         else:
           logger.debug(repr(metadata_name) + ' found in the snapshot role.')
@@ -457,8 +451,6 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
 
         # Strip filename extensions.  The role database does not include the
         # metadata extension.
-        metadata_name_extension = metadata_name
-
         for metadata_extension in METADATA_EXTENSIONS: #pragma: no branch
           if metadata_name.endswith(metadata_extension):
             metadata_name = metadata_name[:-len(metadata_extension)]
@@ -515,20 +507,20 @@ def _strip_version_number(metadata_filename, consistent_snapshot):
   """
 
   # Strip the version number if 'consistent_snapshot' is True.
-  # Example: '10.django.json'  --> 'django.json'
+  # Example: '10.django.json' --> 'django.json'
   if consistent_snapshot:
-   dirname, basename = os.path.split(metadata_filename)
-   version_number, basename = basename.split('.', 1)
-   stripped_metadata_filename = os.path.join(dirname, basename)
+    dirname, basename = os.path.split(metadata_filename)
+    version_number, basename = basename.split('.', 1)
+    stripped_metadata_filename = os.path.join(dirname, basename)
 
-   if not version_number.isdigit():
-    return metadata_filename, ''
+    if not version_number.isdigit():
+      return metadata_filename, ''
 
-   else:
-    return stripped_metadata_filename, version_number
+    else:
+      return stripped_metadata_filename, version_number
 
   else:
-   return metadata_filename, ''
+    return metadata_filename, ''
 
 
 
@@ -577,7 +569,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     # By default, roleinfo['partial_loaded'] of top-level roles should be set
     # to False in 'create_roledb_from_root_metadata()'.  Update this field, if
     # necessary, now that we have its signable object.
-    if _metadata_is_partially_loaded('root', signable, roleinfo, repository_name):
+    if _metadata_is_partially_loaded('root', signable, repository_name):
       roleinfo['partial_loaded'] = True
 
     else:
@@ -609,7 +601,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     roleinfo['expires'] = timestamp_metadata['expires']
     roleinfo['version'] = timestamp_metadata['version']
 
-    if _metadata_is_partially_loaded('timestamp', signable, roleinfo, repository_name):
+    if _metadata_is_partially_loaded('timestamp', signable, repository_name):
       roleinfo['partial_loaded'] = True
 
     else:
@@ -652,7 +644,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     roleinfo['expires'] = snapshot_metadata['expires']
     roleinfo['version'] = snapshot_metadata['version']
 
-    if _metadata_is_partially_loaded('snapshot', signable, roleinfo, repository_name):
+    if _metadata_is_partially_loaded('snapshot', signable, repository_name):
       roleinfo['partial_loaded'] = True
 
     else:
@@ -690,7 +682,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     roleinfo['expires'] = targets_metadata['expires']
     roleinfo['delegations'] = targets_metadata['delegations']
 
-    if _metadata_is_partially_loaded('targets', signable, roleinfo, repository_name):
+    if _metadata_is_partially_loaded('targets', signable, repository_name):
       roleinfo['partial_loaded'] = True
 
     else:
