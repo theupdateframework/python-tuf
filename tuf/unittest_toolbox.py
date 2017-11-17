@@ -131,7 +131,7 @@ class Modified_TestCase(unittest.TestCase):
 
     rand_path = '/' + self.random_string(length)
 
-    for _ in range(2):
+    for junk in range(2):
       rand_path = os.path.join(rand_path, self.random_string(length))
 
     return rand_path
@@ -143,7 +143,7 @@ class Modified_TestCase(unittest.TestCase):
     """Generate a random string of specified length."""
 
     rand_str = ''
-    for _ in range(length):
+    for junk in range(length):
       rand_str += random.SystemRandom().choice('abcdefABCDEF' + string.digits)
 
     return rand_str
