@@ -158,7 +158,6 @@ def get_signature_status(signable, role=None, repository_name='default',
   # Iterate the signatures and enumerate the signature_status fields.
   # (i.e., good_sigs, bad_sigs, etc.).
   for signature in signatures:
-    sig = signature['sig']
     keyid = signature['keyid']
 
     # Does the signature use an unrecognized key?
