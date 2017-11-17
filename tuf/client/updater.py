@@ -925,7 +925,9 @@ class Updater(object):
       self._check_hashes(target_file_object, file_hashes)
 
     if self.consistent_snapshot:
-      target_digest = file_hashes.values().pop()
+      # Note: values() does not return a list in Python 3.  Use list()
+      # on values() for Python 2+3 compatibility.
+      target_digest = list(file_hashes.values()).pop()
       dirname, basename = os.path.split(target_filepath)
       target_filepath = os.path.join(dirname, target_digest + '.' + basename)
 
