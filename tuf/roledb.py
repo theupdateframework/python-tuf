@@ -779,7 +779,7 @@ def get_role_keyids(rolename, repository_name='default'):
   # securesystemslib.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
 
-  global _roledb_dit
+  global _roledb_dict
   global _dirty_roles
 
   roleinfo = _roledb_dict[repository_name][rolename]

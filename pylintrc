@@ -7,7 +7,7 @@ extension-pkg-whitelist=
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=CVS, interposition
+ignore=CVS
 
 # Add files or directories matching the regex patterns to the blacklist. The
 # regex matches against base names, not paths.
@@ -50,7 +50,7 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=parameter-unpacking, unpacking-in-except, old-raise-syntax, backtick, long-suffix, old-ne-operator, old-octal-literal, import-star-module-level, raw-checker-failed, bad-inline-option, locally-disabled, locally-enabled, file-ignored, suppressed-message, useless-suppression, deprecated-pragma, apply-builtin, basestring-builtin, buffer-builtin, cmp-builtin, coerce-builtin, execfile-builtin, file-builtin, long-builtin, raw_input-builtin, reduce-builtin, standarderror-builtin, unicode-builtin, xrange-builtin, coerce-method, delslice-method, getslice-method, setslice-method, no-absolute-import, old-division, dict-iter-method, dict-view-method, next-method-called, metaclass-assignment, indexing-exception, raising-string, reload-builtin, oct-method, hex-method, nonzero-method, cmp-method, input-builtin, round-builtin, intern-builtin, unichr-builtin, map-builtin-not-iterating, zip-builtin-not-iterating, range-builtin-not-iterating, filter-builtin-not-iterating, using-cmp-argument, eq-without-hash, div-method, idiv-method, rdiv-method, exception-message-attribute, invalid-str-codec, sys-max-int, bad-python3-import, deprecated-string-function, deprecated-str-translate-call, global-statement, C, F, I, R, W
+disable=parameter-unpacking, unpacking-in-except, long-suffix, old-ne-operator, old-octal-literal, import-star-module-level, raw-checker-failed, bad-inline-option, locally-disabled, locally-enabled, file-ignored, suppressed-message, useless-suppression, deprecated-pragma, apply-builtin, basestring-builtin, buffer-builtin, cmp-builtin, coerce-builtin, execfile-builtin, file-builtin, long-builtin, raw_input-builtin, reduce-builtin, standarderror-builtin, unicode-builtin, xrange-builtin, coerce-method, delslice-method, getslice-method, setslice-method, no-absolute-import, old-division, dict-iter-method, dict-view-method, next-method-called, metaclass-assignment, indexing-exception, raising-string, reload-builtin, oct-method, hex-method, nonzero-method, cmp-method, input-builtin, round-builtin, intern-builtin, unichr-builtin, map-builtin-not-iterating, zip-builtin-not-iterating, range-builtin-not-iterating, filter-builtin-not-iterating, using-cmp-argument, eq-without-hash, div-method, idiv-method, rdiv-method, exception-message-attribute, invalid-str-codec, sys-max-int, deprecated-str-translate-call, global-statement, broad-except, C, R
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -225,7 +225,7 @@ logging-modules=logging
 [MISCELLANEOUS]
 
 # List of note tags to take in consideration, separated by a comma.
-notes=FIXME,XXX,TODO
+notes=XXX,
 
 
 [SIMILARITIES]
@@ -237,7 +237,7 @@ ignore-comments=yes
 ignore-docstrings=yes
 
 # Ignore imports when computing similarities.
-ignore-imports=no
+ignore-imports=yes
 
 # Minimum lines number of a similarity.
 min-similarity-lines=4
@@ -323,7 +323,7 @@ callbacks=cb_,_cb
 
 # A regular expression matching the name of dummy variables (i.e. expectedly
 # not used).
-dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_
+dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_|junk
 
 # Argument names that match this expression will be ignored. Default to name
 # with leading underscore
@@ -344,7 +344,7 @@ defining-attr-methods=__init__,__new__,setUp
 
 # List of member names, which should be excluded from the protected access
 # warning.
-exclude-protected=_asdict,_fields,_replace,_source,_make
+exclude-protected=_asdict, _fields, _replace, _source, _make, _generate_and_write_metadata, _delete_obsolete_metadata, _log_status_of_top_level_roles, _load_top_level_metadata, _strip_version_number, _delegated_roles
 
 # List of valid names for the first argument in a class method.
 valid-classmethod-first-arg=cls

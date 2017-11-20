@@ -131,6 +131,18 @@ import securesystemslib.util
 import six
 import iso8601
 
+# The Timestamp role does not have signed metadata about it; otherwise we
+# would need an infinite regress of metadata. Therefore, we use some
+# default, but sane, upper file length for its metadata.
+DEFAULT_TIMESTAMP_UPPERLENGTH = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+
+# The Root role may be updated without knowing its version number if
+# top-level metadata cannot be safely downloaded (e.g., keys may have been
+# revoked, thus requiring a new Root file that includes the updated keys)
+# and 'unsafely_update_root_if_necessary' is True.
+# We use some default, but sane, upper file length for its metadata.
+DEFAULT_ROOT_UPPERLENGTH = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
+
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.client.updater')
 
@@ -638,18 +650,6 @@ class Updater(object):
     # Raise 'securesystemslib.exceptions.FormatError' if the check fail.
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(unsafely_update_root_if_necessary)
 
-    # The Timestamp role does not have signed metadata about it; otherwise we
-    # would need an infinite regress of metadata. Therefore, we use some
-    # default, but sane, upper file length for its metadata.
-    DEFAULT_TIMESTAMP_UPPERLENGTH = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
-
-    # The Root role may be updated without knowing its version number if
-    # top-level metadata cannot be safely downloaded (e.g., keys may have been
-    # revoked, thus requiring a new Root file that includes the updated keys)
-    # and 'unsafely_update_root_if_necessary' is True.
-    # We use some default, but sane, upper file length for its metadata.
-    DEFAULT_ROOT_UPPERLENGTH = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
-
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
@@ -716,8 +716,8 @@ class Updater(object):
 
     # Retrieve the latest, remote root.json.
     latest_root_metadata_file = \
-      self._get_metadata_file('root', 'root.json',
-        tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH, None)
+      self._get_metadata_file('root', 'root.json', DEFAULT_ROOT_UPPERLENGTH,
+        None)
     latest_root_metadata = \
       securesystemslib.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
 
@@ -735,8 +735,7 @@ class Updater(object):
       # in the latest root.json after running through the intermediates with
       # _update_metadata().
       self.consistent_snapshot = True
-      self._update_metadata('root', tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH,
-          version=version)
+      self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH, version=version)
 
 
 
@@ -1427,7 +1426,6 @@ class Updater(object):
 
     metadata_filename = metadata_role + '.json'
     expected_versioninfo = None
-    expected_fileinfo = None
 
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.
@@ -1478,7 +1476,7 @@ class Updater(object):
       upperbound_filelength = tuf.settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
 
     elif metadata_role == 'root':
-      upperbound_filelength = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
+      upperbound_filelength = DEFAULT_ROOT_UPPERLENGTH
 
     # The metadata is considered Targets (or delegated Targets metadata).
     else:
@@ -2447,10 +2445,10 @@ class Updater(object):
         # if 'target_filepath' is equal to or matches 'child_role_path'.
         # Explicit filepaths are also considered matches.
         if fnmatch.fnmatch(target_filepath, child_role_path):
-         logger.debug('Child role ' + repr(child_role_name) + ' is allowed to'
+          logger.debug('Child role ' + repr(child_role_name) + ' is allowed to'
             ' sign for ' + repr(target_filepath))
 
-         return child_role_name
+          return child_role_name
 
         else:
           logger.debug('The given target path' + repr(target_filepath) + ' is'

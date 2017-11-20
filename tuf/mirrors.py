@@ -97,7 +97,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   in_confined_directory = securesystemslib.util.file_in_confined_directories
 
   list_of_mirrors = []
-  for mirror_name, mirror_info in six.iteritems(mirrors_dict):
+  for junk, mirror_info in six.iteritems(mirrors_dict):
     if file_type == 'meta':
       base = mirror_info['url_prefix'] + '/' + mirror_info['metadata_path']
 

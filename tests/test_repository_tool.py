@@ -562,8 +562,7 @@ class TestMetadata(unittest.TestCase):
 
   def test_add_verification_key(self):
     # Add verification key and verify that it was added via (role).keys.
-    key_path = os.path.join('repository_data',
-                            'keystore', 'snapshot_key.pub')
+    key_path = os.path.join('repository_data', 'keystore', 'snapshot_key.pub')
     key_object = repo_tool.import_ed25519_publickey_from_file(key_path)
     self.metadata.add_verification_key(key_object)
 

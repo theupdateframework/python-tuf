@@ -15,11 +15,11 @@ before_script:
   - pip install -U pip wheel bandit
 
 script:
-  - pylint tuf
   - bandit -r tuf
   - tox
 
 after_success:
+  - pylint tuf
   - cd tests
   - coveralls
   - cd -
