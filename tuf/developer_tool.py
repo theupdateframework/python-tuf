@@ -265,7 +265,6 @@ class Project(Targets):
         self._repository_name)
 
     for delegated_rolename in delegated_rolenames:
-      roleinfo = tuf.roledb.get_roleinfo(delegated_rolename, self._repository_name)
       delegated_filename = os.path.join(self._metadata_directory,
           delegated_rolename + METADATA_EXTENSION)
 
@@ -425,7 +424,7 @@ class Project(Targets):
         return
 
       try:
-        signable, filename =  _generate_and_write_metadata(self._project_name,
+        signable, junk =  _generate_and_write_metadata(self._project_name,
             filenames['targets'], False, targets_directory, metadata_directory,
             False, self._repository_name)
         self._log_status(self._project_name, signable, self._repository_name)
@@ -621,7 +620,7 @@ def create_new_project(project_name, metadata_directory,
     layout_type = 'repo-like'
 
   if targets_directory is not None:
-    securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory);
+    securesystemslib.formats.PATH_SCHEMA.check_match(targets_directory)
 
   if key is not None:
     securesystemslib.formats.KEY_SCHEMA.check_match(key)
@@ -670,7 +669,7 @@ def create_new_project(project_name, metadata_directory,
   # TODO: Add check for expected number of keys for the project (must be 1) and
   # its delegated roles (may be greater than one.)
   if key is not None:
-    project.add_verification_key(key);
+    project.add_verification_key(key)
 
   # Save the layout information.
   project.layout_type = layout_type
@@ -836,7 +835,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       project_configuration['targets_location'])
 
   if project_configuration['layout_type'] == 'flat':
-    project_directory, relative_junk = os.path.split(project_directory)
+    project_directory, junk = os.path.split(project_directory)
     targets_directory = project_configuration['targets_location']
 
     if new_targets_location is not None:
@@ -894,7 +893,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
 
   # Check if the loaded metadata was partially written and update the
   # flag in 'roledb.py'.
-  if _metadata_is_partially_loaded(project_name, signable, roleinfo,
+  if _metadata_is_partially_loaded(project_name, signable,
       repository_name=repository_name):
     roleinfo['partial_loaded'] = True
 
@@ -964,7 +963,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       roleinfo['partial_loaded'] = False
 
       # If the metadata was partially loaded, update the roleinfo flag.
-      if _metadata_is_partially_loaded(metadata_name, signable, roleinfo,
+      if _metadata_is_partially_loaded(metadata_name, signable,
           repository_name=repository_name):
         roleinfo['partial_loaded'] = True
 
