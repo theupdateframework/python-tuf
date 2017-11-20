@@ -36,11 +36,6 @@ class Error(Exception):
   pass
 
 
-class Warning(Warning):
-  """TUF's warning category class.  It is used by the 'warnings' module."""
-  pass
-
-
 class FormatError(Error):
   """Indicate an error while validating an object's format."""
   pass
@@ -50,6 +45,8 @@ class InvalidMetadataJSONError(FormatError):
   """Indicate that a metadata file is not valid JSON."""
 
   def __init__(self, exception):
+    super(InvalidMetadataJSONError, self).__init__()
+
     # Store the original exception.
     self.exception = exception
 
@@ -67,6 +64,8 @@ class BadHashError(Error):
   """Indicate an error while checking the value a hash object."""
 
   def __init__(self, expected_hash, observed_hash):
+    super(BadHashError, self).__init__()
+
     self.expected_hash = expected_hash
     self.observed_hash = observed_hash
 
@@ -113,6 +112,8 @@ class ReplayedMetadataError(RepositoryError):
   """Indicate that some metadata has been replayed to the client."""
 
   def __init__(self, metadata_role, previous_version, current_version):
+    super(ReplayedMetadataError, self).__init__()
+
     self.metadata_role = metadata_role
     self.previous_version = previous_version
     self.current_version = current_version
@@ -133,6 +134,8 @@ class BadSignatureError(CryptoError):
   """Indicate that some metadata file has a bad signature."""
 
   def __init__(self, metadata_role_name):
+    super(BadSignatureError, self).__init__()
+
     self.metadata_role_name = metadata_role_name
 
   def __str__(self):
@@ -158,6 +161,8 @@ class DownloadLengthMismatchError(DownloadError):
   """Indicate that a mismatch of lengths was seen while downloading a file."""
 
   def __init__(self, expected_length, observed_length):
+    super(DownloadLengthMismatchError, self).__init__()
+
     self.expected_length = expected_length #bytes
     self.observed_length = observed_length #bytes
 
@@ -170,6 +175,8 @@ class SlowRetrievalError(DownloadError):
   """"Indicate that downloading a file took an unreasonably long time."""
 
   def __init__(self, average_download_speed):
+    super(SlowRetrievalError, self).__init__()
+
     self.__average_download_speed = average_download_speed #bytes/second
 
   def __str__(self):
@@ -206,6 +213,8 @@ class UnsignedMetadataError(Error):
   """Indicate metadata object with insufficient threshold of signatures."""
 
   def __init__(self, message, signable):
+    super(UnsignedMetadataError, self).__init__()
+
     self.exception_message = message
     self.signable = signable
 
@@ -222,6 +231,8 @@ class NoWorkingMirrorError(Error):
   """
 
   def __init__(self, mirror_errors):
+    super(NoWorkingMirrorError, self).__init__()
+
     # Dictionary of URL strings to Exception instances
     self.mirror_errors = mirror_errors
 
@@ -233,7 +244,7 @@ class NoWorkingMirrorError(Error):
         # http://docs.python.org/2/library/urlparse.html#urlparse.urlparse
         mirror_url_tokens = six.moves.urllib.parse.urlparse(mirror_url)
 
-      except:
+      except Exception:
         logger.exception('Failed to parse mirror URL: ' + repr(mirror_url))
         mirror_netloc = mirror_url
 
