@@ -620,16 +620,12 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
   # 'consistent_snapshot' is True.
   # The Snapshot and Root roles are both accessed by their hashes.
   if consistent_snapshot:
-    snapshot_hashes = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['hashes']
-
-    # Note: values() does not return a list in Python 3.  Use list() on
-    # values() for Python 2+3 compatibility.
-    snapshot_hash = list(snapshot_hashes.values()).pop()
     snapshot_version = timestamp_metadata['meta'][SNAPSHOT_FILENAME]['version']
 
     dirname, basename = os.path.split(snapshot_filename)
     basename = basename.split(METADATA_EXTENSION, 1)[0]
-    snapshot_filename = os.path.join(dirname, str(snapshot_version) + '.' + basename + METADATA_EXTENSION)
+    snapshot_filename = os.path.join(dirname,
+        str(snapshot_version) + '.' + basename + METADATA_EXTENSION)
 
   if os.path.exists(snapshot_filename):
     signable = securesystemslib.util.load_json_file(snapshot_filename)
@@ -1529,8 +1525,8 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
   for metadata_filename in os.listdir(metadata_directory):
     # Strip the version number if 'consistent_snapshot' is True.
     # Example:  '10.django.json'  --> 'django.json'
-    metadata_name, version_number_junk = \
-      _strip_version_number(metadata_filename, consistent_snapshot)
+    metadata_name, junk = _strip_version_number(metadata_filename,
+        consistent_snapshot)
 
     # All delegated roles are added to the snapshot file.
     for metadata_extension in SNAPSHOT_ROLE_EXTENSIONS:
@@ -1699,7 +1695,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
           signature = securesystemslib.keys.create_signature(key, signed)
           signable['signatures'].append(signature)
 
-        except Exception as e:
+        except Exception:
           logger.warning('Unable to create signature for keyid: ' + repr(keyid))
 
       else:
