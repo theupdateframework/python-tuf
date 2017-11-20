@@ -35,7 +35,6 @@ import logging
 import time
 import timeit
 import ssl
-import time
 
 import tuf
 
@@ -46,10 +45,10 @@ import six
 # 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
 # for Python 2.7.
 try:
-  from ssl import match_hostname, CertificateError
+  from ssl import match_hostname
 
 except ImportError: # pragma: no cover
-  from securesystemslib._vendor.ssl_match_hostname import match_hostname, CertificateError
+  from securesystemslib._vendor.ssl_match_hostname import match_hostname
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
