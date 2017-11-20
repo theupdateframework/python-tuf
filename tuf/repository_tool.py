@@ -36,7 +36,6 @@ import logging
 import tempfile
 import shutil
 import json
-import random
 
 import tuf
 import tuf.formats
@@ -45,15 +44,6 @@ import tuf.sig
 import tuf.log
 import tuf.exceptions
 import tuf.repository_lib as repo_lib
-
-from tuf.repository_lib import generate_and_write_rsa_keypair
-from tuf.repository_lib import generate_and_write_ed25519_keypair
-from tuf.repository_lib import import_rsa_publickey_from_file
-from tuf.repository_lib import import_ed25519_publickey_from_file
-from tuf.repository_lib import import_rsa_privatekey_from_file
-from tuf.repository_lib import import_ed25519_privatekey_from_file
-from tuf.repository_lib import create_tuf_client_directory
-from tuf.repository_lib import disable_console_log_messages
 
 import securesystemslib.keys
 import securesystemslib.formats
@@ -2955,8 +2945,8 @@ def load_repository(repository_directory, repository_name='default'):
     # Example:  '10.django.json' --> 'django.json'
     consistent_snapshot = \
       metadata_role.endswith('root.json') or consistent_snapshot == True
-    metadata_name, version_number_junk = \
-      repo_lib._strip_version_number(metadata_name, consistent_snapshot)
+    metadata_name, junk = repo_lib._strip_version_number(metadata_name,
+      consistent_snapshot)
 
     if metadata_name.endswith(METADATA_EXTENSION):
       extension_length = len(METADATA_EXTENSION)
@@ -3150,6 +3140,35 @@ def append_signature(signature, metadata_filepath):
 
   file_object.write(written_metadata_content)
   file_object.move(metadata_filepath)
+
+
+# Wrapper functions that we wish to make available here from repository_lib.py.
+# Users are expected to call functions provided by repository_tool.py.  We opt
+# for this approach, as opposed to using import statements to achieve the
+# equivalent, to avoid linter warnings for unused imports.
+def generate_and_write_rsa_keypair(filepath, bits, password):
+  repo_lib.generate_and_write_rsa_keypair(filepath, bits, password)
+
+def generate_and_write_ed25519_keypair(filepath, password):
+  repo_lib.generate_and_write_ed25519_keypair(filepath, password)
+
+def import_rsa_publickey_from_file(filepath):
+  repo_lib.import_rsa_publickey_from_file(filepath)
+
+def import_ed25519_publickey_from_file(filepath):
+  repo_lib.import_ed25519_publickey_from_file(filepath)
+
+def import_rsa_privatekey_from_file(filepath, password):
+  repo_lib.import_rsa_privatekey_from_file(filepath, password)
+
+def import_ed25519_privatekey_from_file(filepath, password):
+  repo_lib.import_ed25519_privatekey_from_file(filepath, password)
+
+def create_tuf_client_directory(repository_directory, client_directory):
+  repo_lib.create_tuf_client_directory(repository_directory, client_directory)
+
+def disable_console_log_messages():
+  repo_lib.disable_console_log_messages()
 
 
 if __name__ == '__main__':
