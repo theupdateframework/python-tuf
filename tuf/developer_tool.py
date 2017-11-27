@@ -109,10 +109,10 @@ class Project(Targets):
     Simplify the publishing process of third-party projects by handling all of
     the bookkeeping, signature handling, and integrity checks of delegated TUF
     metadata.  'repository_tool.py' is responsible for publishing and
-    maintaining metadata of the top-level roles, and 'developer_tool.py' is used
-    by projects that have been delegated responsibility for a delegated projects
-    role.  Metadata created by this module may then be added to other metadata
-    available in a TUF repository.
+    maintaining metadata of the top-level roles, and 'developer_tool.py' is
+    used by projects that have been delegated responsibility for a delegated
+    projects role.  Metadata created by this module may then be added to other
+    metadata available in a TUF repository.
 
     Project() is the representation of a project's metadata file(s), with the
     ability to modify this data in an OOP manner.  Project owners do not have to
@@ -260,7 +260,7 @@ class Project(Targets):
 
 
 
-  def add_verification_key(self, key):
+  def add_verification_key(self, key, expires=None):
     """
       <Purpose>
         Function as a thin wrapper call for the project._targets call
@@ -294,7 +294,7 @@ class Project(Targets):
       raise securesystemslib.exceptions.Error("This project already contains a key.")
 
     try:
-      super(Project, self).add_verification_key(key)
+      super(Project, self).add_verification_key(key, expires)
 
     except securesystemslib.exceptions.FormatError:
       raise
