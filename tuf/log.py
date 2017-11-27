@@ -166,7 +166,7 @@ class ConsoleFilter(logging.Filter):
       # file logging handler, the user may always consult the file log for the
       # original exception traceback. The exc_info is explained here:
       # http://docs.python.org/2/library/sys.html#sys.exc_info
-      exc_type, exc_value, exc_traceback = record.exc_info
+      exc_type, junk, junk = record.exc_info
 
       # Simply set the class name as the exception text.
       record.exc_text = exc_type.__name__
@@ -316,10 +316,10 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
     # Get our filter for the console handler.
     console_filter = ConsoleFilter()
     console_format_string = '%(message)s'
-    formatter = logging.Formatter(console_format_string)
+    console_formatter = logging.Formatter(console_format_string)
 
     console_handler.setLevel(log_level)
-    console_handler.setFormatter(formatter)
+    console_handler.setFormatter(console_formatter)
     console_handler.addFilter(console_filter)
     logger.addHandler(console_handler)
     logger.debug('Added a console handler.')

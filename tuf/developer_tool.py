@@ -30,7 +30,6 @@ from __future__ import division
 
 import os
 import errno
-import sys
 import logging
 import shutil
 import tempfile
@@ -42,6 +41,7 @@ import tuf.keydb
 import tuf.roledb
 import tuf.sig
 import tuf.log
+import tuf.repository_lib as repo_lib
 import tuf.repository_tool
 
 import securesystemslib
@@ -50,48 +50,20 @@ import securesystemslib.keys
 
 import six
 
-# These imports provide the interface for 'developer_tool.py', since the imports
-# are made there.
+# These imports provide the interface for 'developer_tool.py', since the
+# imports are made there.
 from securesystemslib.keys import format_keyval_to_metadata
-from securesystemslib.keys import format_metadata_to_key
 
 from tuf.repository_tool import Targets
-from tuf.repository_lib import get_metadata_fileinfo
-from tuf.repository_lib import get_metadata_filenames
-from tuf.repository_tool import generate_and_write_rsa_keypair
-from tuf.repository_tool import import_rsa_publickey_from_file
-from tuf.repository_tool import import_rsa_privatekey_from_file
-from tuf.repository_tool import generate_and_write_ed25519_keypair
-from tuf.repository_tool import import_ed25519_publickey_from_file
-from tuf.repository_tool import import_ed25519_privatekey_from_file
-from tuf.repository_lib import _remove_invalid_and_duplicate_signatures
-from tuf.repository_lib import disable_console_log_messages
 from tuf.repository_lib import _check_role_keys
-from tuf.repository_lib import _delete_obsolete_metadata
 from tuf.repository_lib import generate_targets_metadata
-from tuf.repository_lib import sign_metadata
-from tuf.repository_lib import write_metadata_file
 from tuf.repository_lib import _metadata_is_partially_loaded
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.developer_tool')
 
-# Recommended RSA key sizes:
-# http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
-# According to the document above, revised May 6, 2003, RSA keys of size 3072
-# provide security through 2031 and beyond.  2048-bit keys are the recommended
-# minimum and are good from the present through 2030.
-from tuf.repository_lib import DEFAULT_RSA_KEY_BITS as DEFAULT_RSA_KEY_BITS
-
-# The algorithm used by the developer tools to generate the hashes of the
-# target filepaths.
-from tuf.repository_tool import HASH_FUNCTION as HASH_FUNCTION
-
 # The extension of TUF metadata.
-from tuf.repository_lib  import METADATA_EXTENSION as METADATA_EXTENSION
-
-# The metadata filename for the targets metadata information.
-from tuf.repository_lib import TARGETS_FILENAME as TARGETS_FILENAME
+from tuf.repository_lib import METADATA_EXTENSION as METADATA_EXTENSION
 
 # Project configuration filename. This file is intended to hold all of the
 # supporting information about the project that's not contained in a usual
@@ -127,15 +99,8 @@ PROJECT_FILENAME = 'project.cfg'
 
 # The targets and metadata directory names.  Metadata files are written
 # to the staged metadata directory instead of the "live" one.
-from tuf.repository_tool import METADATA_STAGED_DIRECTORY_NAME
 from tuf.repository_tool import METADATA_DIRECTORY_NAME
 from tuf.repository_tool import TARGETS_DIRECTORY_NAME
-
-# The full list of supported TUF metadata extensions.
-from tuf.repository_lib import METADATA_EXTENSIONS
-
-# Supported key types.
-from tuf.repository_lib import SUPPORTED_KEY_TYPES
 
 
 class Project(Targets):
@@ -144,10 +109,10 @@ class Project(Targets):
     Simplify the publishing process of third-party projects by handling all of
     the bookkeeping, signature handling, and integrity checks of delegated TUF
     metadata.  'repository_tool.py' is responsible for publishing and
-    maintaining metadata of the top-level roles, and 'developer_tool.py' is used
-    by projects that have been delegated responsibility for a delegated projects
-    role.  Metadata created by this module may then be added to other metadata
-    available in a TUF repository.
+    maintaining metadata of the top-level roles, and 'developer_tool.py' is
+    used by projects that have been delegated responsibility for a delegated
+    projects role.  Metadata created by this module may then be added to other
+    metadata available in a TUF repository.
 
     Project() is the representation of a project's metadata file(s), with the
     ability to modify this data in an OOP manner.  Project owners do not have to
@@ -205,11 +170,11 @@ class Project(Targets):
     securesystemslib.formats.PATH_SCHEMA.check_match(file_prefix)
     securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
-    self._metadata_directory = metadata_directory
-    self._targets_directory = targets_directory
-    self._project_name = project_name
-    self._prefix = file_prefix
-    self._repository_name = repository_name
+    self.metadata_directory = metadata_directory
+    self.targets_directory = targets_directory
+    self.project_name = project_name
+    self.prefix = file_prefix
+    self.repository_name = repository_name
 
     # Layout type defaults to "flat" unless explicitly specified in
     # create_new_project().
@@ -217,7 +182,7 @@ class Project(Targets):
 
     # Set the top-level Targets object.  Set the rolename to be the project's
     # name.
-    super(Project, self).__init__(self._targets_directory, project_name)
+    super(Project, self).__init__(self.targets_directory, project_name)
 
 
 
@@ -261,11 +226,11 @@ class Project(Targets):
     # any of the project roles are missing signatures, keys, etc.
 
     # Write the metadata files of all the delegated roles of the project.
-    delegated_rolenames = tuf.roledb.get_delegated_rolenames(self._project_name,
-        self._repository_name)
+    delegated_rolenames = tuf.roledb.get_delegated_rolenames(self.project_name,
+        self.repository_name)
 
     for delegated_rolename in delegated_rolenames:
-      delegated_filename = os.path.join(self._metadata_directory,
+      delegated_filename = os.path.join(self.metadata_directory,
           delegated_rolename + METADATA_EXTENSION)
 
       # Ensure the parent directories of 'metadata_filepath' exist, otherwise an
@@ -274,29 +239,28 @@ class Project(Targets):
       securesystemslib.util.ensure_parent_dir(delegated_filename)
 
       _generate_and_write_metadata(delegated_rolename, delegated_filename,
-          write_partial, self._targets_directory, self._metadata_directory,
-          prefix=self._prefix, repository_name=self._repository_name)
+          write_partial, self.targets_directory, prefix=self.prefix,
+          repository_name=self.repository_name)
 
 
     # Generate the 'project_name' metadata file.
-    targets_filename = self._project_name + METADATA_EXTENSION
-    targets_filename = os.path.join(self._metadata_directory, targets_filename)
-    project_signable, targets_filename = _generate_and_write_metadata(self._project_name,
-        targets_filename, write_partial, self._targets_directory,
-        self._metadata_directory, prefix=self._prefix,
-        repository_name=self._repository_name)
+    targets_filename = self.project_name + METADATA_EXTENSION
+    targets_filename = os.path.join(self.metadata_directory, targets_filename)
+    junk, targets_filename = _generate_and_write_metadata(self.project_name,
+        targets_filename, write_partial, self.targets_directory,
+        prefix=self.prefix, repository_name=self.repository_name)
 
     # Save configuration information that is not stored in the project's
     # metadata
-    _save_project_configuration(self._metadata_directory,
-        self._targets_directory, self.keys, self._prefix, self.threshold,
-        self.layout_type, self._project_name)
+    _save_project_configuration(self.metadata_directory,
+        self.targets_directory, self.keys, self.prefix, self.threshold,
+        self.layout_type, self.project_name)
 
 
 
 
 
-  def add_verification_key(self, key):
+  def add_verification_key(self, key, expires=None):
     """
       <Purpose>
         Function as a thin wrapper call for the project._targets call
@@ -330,7 +294,7 @@ class Project(Targets):
       raise securesystemslib.exceptions.Error("This project already contains a key.")
 
     try:
-      super(Project, self).add_verification_key(key)
+      super(Project, self).add_verification_key(key, expires)
 
     except securesystemslib.exceptions.FormatError:
       raise
@@ -369,36 +333,35 @@ class Project(Targets):
     try:
       temp_project_directory = tempfile.mkdtemp()
       metadata_directory = os.path.join(temp_project_directory,
-          self._metadata_directory[1:])
+          self.metadata_directory[1:])
 
-      targets_directory = self._targets_directory
+      targets_directory = self.targets_directory
 
       os.makedirs(metadata_directory)
 
       # TODO: We should do the schema check.
       filenames = {}
-      filenames['targets'] = os.path.join(metadata_directory, self._project_name)
+      filenames['targets'] = os.path.join(metadata_directory, self.project_name)
 
       # Delegated roles.
-      delegated_roles = tuf.roledb.get_delegated_rolenames(self._project_name,
-          self._repository_name)
+      delegated_roles = tuf.roledb.get_delegated_rolenames(self.project_name,
+          self.repository_name)
       insufficient_keys = []
       insufficient_signatures = []
 
       for delegated_role in delegated_roles:
         try:
-          _check_role_keys(delegated_role, self._repository_name)
+          _check_role_keys(delegated_role, self.repository_name)
 
         except securesystemslib.exceptions.InsufficientKeysError:
           insufficient_keys.append(delegated_role)
           continue
 
-        roleinfo = tuf.roledb.get_roleinfo(delegated_role, self._repository_name)
         try:
-          signable =  _generate_and_write_metadata(delegated_role,
-              filenames['targets'], False, targets_directory, metadata_directory,
-              False, repository_name=self._repository_name)
-          self._log_status(delegated_role, signable[0], self._repository_name)
+          signable = _generate_and_write_metadata(delegated_role,
+              filenames['targets'], False, targets_directory, False,
+              repository_name=self.repository_name)
+          self._log_status(delegated_role, signable[0], self.repository_name)
 
         except securesystemslib.exceptions.Error:
           insufficient_signatures.append(delegated_role)
@@ -417,21 +380,21 @@ class Project(Targets):
 
       # Targets role.
       try:
-        _check_role_keys(self.rolename, self._repository_name)
+        _check_role_keys(self.rolename, self.repository_name)
 
       except securesystemslib.exceptions.InsufficientKeysError as e:
         logger.info(str(e))
         return
 
       try:
-        signable, junk =  _generate_and_write_metadata(self._project_name,
+        signable, junk =  _generate_and_write_metadata(self.project_name,
             filenames['targets'], False, targets_directory, metadata_directory,
-            False, self._repository_name)
-        self._log_status(self._project_name, signable, self._repository_name)
+            self.repository_name)
+        self._log_status(self.project_name, signable, self.repository_name)
 
       except securesystemslib.exceptions.Error as e:
         signable = e[1]
-        self._log_status(self._project_name, signable, self._repository_name)
+        self._log_status(self.project_name, signable, self.repository_name)
         return
 
     finally:
@@ -459,8 +422,7 @@ class Project(Targets):
 
 
 def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
-    targets_directory, metadata_directory, filenames=None, prefix='',
-    repository_name='default'):
+    targets_directory, prefix='', repository_name='default'):
   """
     Non-public function that can generate and write the metadata of the
     specified 'rolename'.  It also increments version numbers if:
@@ -483,15 +445,14 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
 
   # Prepend the prefix to the project's filepath to avoid signature errors in
   # upstream.
-  target_filepaths = metadata['targets'].items()
   for element in list(metadata['targets']):
-    junk_path, relative_target = os.path.split(element)
-    prefixed_path = os.path.join(prefix,relative_target)
+    junk, relative_target = os.path.split(element)
+    prefixed_path = os.path.join(prefix, relative_target)
     metadata['targets'][prefixed_path] = metadata['targets'][element]
     if prefix != '':
       del(metadata['targets'][element])
 
-  signable = sign_metadata(metadata, roleinfo['signing_keyids'],
+  signable = repo_lib.sign_metadata(metadata, roleinfo['signing_keyids'],
       metadata_filename, repository_name)
 
   # Check if the version number of 'rolename' may be automatically incremented,
@@ -499,29 +460,29 @@ def _generate_and_write_metadata(rolename, metadata_filename, write_partial,
   # written with write() / write_partial().
   # Increment the version number if this is the first partial write.
   if write_partial:
-    temp_signable = sign_metadata(metadata, [], metadata_filename,
+    temp_signable = repo_lib.sign_metadata(metadata, [], metadata_filename,
         repository_name)
     temp_signable['signatures'].extend(roleinfo['signatures'])
     status = tuf.sig.get_signature_status(temp_signable, rolename,
         repository_name)
     if len(status['good_sigs']) == 0:
       metadata['version'] = metadata['version'] + 1
-      signable = sign_metadata(metadata, roleinfo['signing_keyids'],
+      signable = repo_lib.sign_metadata(metadata, roleinfo['signing_keyids'],
           metadata_filename, repository_name)
 
   # non-partial write()
   else:
     if tuf.sig.verify(signable, rolename, repository_name):
       metadata['version'] = metadata['version'] + 1
-      signable = sign_metadata(metadata, roleinfo['signing_keyids'],
+      signable = repo_lib.sign_metadata(metadata, roleinfo['signing_keyids'],
           metadata_filename, repository_name)
 
   # Write the metadata to file if contains a threshold of signatures.
   signable['signatures'].extend(roleinfo['signatures'])
 
   if tuf.sig.verify(signable, rolename, repository_name) or write_partial:
-    _remove_invalid_and_duplicate_signatures(signable, repository_name)
-    filename = write_metadata_file(signable, metadata_filename,
+    repo_lib._remove_invalid_and_duplicate_signatures(signable, repository_name)
+    filename = repo_lib.write_metadata_file(signable, metadata_filename,
         metadata['version'], False)
 
   # 'signable' contains an invalid threshold of signatures.
@@ -738,9 +699,9 @@ def _save_project_configuration(metadata_directory, targets_directory,
   # If it is, the .cfg file should be saved in the previous directory.
   if layout_type == 'repo-like':
     cfg_file_directory = os.path.dirname(metadata_directory)
-    absolute_location, targets_directory = os.path.split(targets_directory)
+    junk, targets_directory = os.path.split(targets_directory)
 
-  absolute_location, metadata_directory = os.path.split(metadata_directory)
+  junk, metadata_directory = os.path.split(metadata_directory)
 
   # Can the file be opened?
   project_filename = os.path.join(cfg_file_directory, PROJECT_FILENAME)
@@ -860,7 +821,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
       repository_name)
 
   project.threshold = project_configuration['threshold']
-  project._prefix = project_configuration['prefix']
+  project.prefix = project_configuration['prefix']
   project.layout_type = project_configuration['layout_type']
 
   # Traverse the public keys and add them to the project.
@@ -1002,7 +963,7 @@ def load_project(project_directory, prefix='', new_targets_location=None,
         tuf.roledb.add_role(rolename, roleinfo, repository_name=repository_name)
 
   if new_prefix:
-    project._prefix = new_prefix
+    project.prefix = new_prefix
 
   return project
 
@@ -1029,6 +990,35 @@ def _strip_prefix_from_targets_metadata(targets_metadata, prefix):
 
   return targets_metadata
 
+
+
+# Wrapper functions that we wish to make available here from repository_lib.py.
+# Users are expected to call functions provided by repository_tool.py.  We opt
+# for this approach, as opposed to using import statements to achieve the
+# equivalent, to avoid linter warnings for unused imports.
+def generate_and_write_rsa_keypair(filepath, bits, password):
+  return repo_lib.generate_and_write_rsa_keypair(filepath, bits, password)
+
+def generate_and_write_ed25519_keypair(filepath, password):
+  return repo_lib.generate_and_write_ed25519_keypair(filepath, password)
+
+def import_rsa_publickey_from_file(filepath):
+  return repo_lib.import_rsa_publickey_from_file(filepath)
+
+def import_ed25519_publickey_from_file(filepath):
+  return repo_lib.import_ed25519_publickey_from_file(filepath)
+
+def import_rsa_privatekey_from_file(filepath, password):
+  return repo_lib.import_rsa_privatekey_from_file(filepath, password)
+
+def import_ed25519_privatekey_from_file(filepath, password):
+  return repo_lib.import_ed25519_privatekey_from_file(filepath, password)
+
+def create_tuf_client_directory(repository_directory, client_directory):
+  return repo_lib.create_tuf_client_directory(repository_directory, client_directory)
+
+def disable_console_log_messages():
+  return repo_lib.disable_console_log_messages()
 
 
 

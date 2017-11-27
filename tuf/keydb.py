@@ -202,7 +202,7 @@ def remove_keydb(repository_name):
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
-    logger.warn('Repository name does not exist: ' + repr(repository_name))
+    logger.warning('Repository name does not exist: ' + repr(repository_name))
     return
 
   if repository_name == 'default':

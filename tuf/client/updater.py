@@ -560,8 +560,8 @@ class Updater(object):
         # for the key.
         try:
           key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo)
-          for keyid in keyids:
-            key['keyid'] = keyid
+          for key_id in keyids:
+            key['keyid'] = key_id
             tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
 
         except securesystemslib.exceptions.KeyAlreadyExistsError:
@@ -1134,15 +1134,17 @@ class Updater(object):
 
 
 
-  def _verify_root_chain_link(self, role, current, next):
-    if role != 'root':
+  def _verify_root_chain_link(self, rolename, current_root_metadata,
+    next_root_metadata):
+
+    if rolename != 'root':
       return True
 
-    current_role = current['roles'][role]
+    current_root_role = current_root_metadata['roles'][rolename]
 
     # Verify next metadata with current keys/threshold
-    valid = tuf.sig.verify(next, role, self.repository_name,
-                           current_role['threshold'], current_role['keyids'])
+    valid = tuf.sig.verify(next_root_metadata, rolename, self.repository_name,
+        current_root_role['threshold'], current_root_role['keyids'])
 
     if not valid:
       raise securesystemslib.exceptions.BadSignatureError('Root is not signed'
@@ -1235,8 +1237,8 @@ class Updater(object):
       return file_object
 
     else:
-      logger.error('Failed to update {0} from all mirrors: {1}'.format(
-                   filepath, file_mirror_errors))
+      logger.error('Failed to update ' + repr(filepath) + ' from'
+          ' all mirrors: ' + repr(file_mirror_errors))
       raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
 
 
@@ -1316,7 +1318,7 @@ class Updater(object):
     # First, move the 'current' metadata file to the 'previous' directory
     # if it exists.
     current_filepath = os.path.join(self.metadata_directory['current'],
-                                    metadata_filename)
+                metadata_filename)
     current_filepath = os.path.abspath(current_filepath)
     securesystemslib.util.ensure_parent_dir(current_filepath)
 
@@ -1344,7 +1346,7 @@ class Updater(object):
     current_metadata_object = self.metadata['current'].get(metadata_role)
 
     self._verify_root_chain_link(metadata_role, current_metadata_object,
-                                      metadata_signable)
+        metadata_signable)
 
     # Finally, update the metadata and fileinfo stores, and rebuild the
     # key and role info for the top-level roles if 'metadata_role' is root.

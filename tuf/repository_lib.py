@@ -563,9 +563,6 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
         logger.debug('Found a Root signature that is already loaded:'
           ' ' + repr(signature))
 
-    else:
-      logger.debug('A compressed Root file was not found.')
-
     # By default, roleinfo['partial_loaded'] of top-level roles should be set
     # to False in 'create_roledb_from_root_metadata()'.  Update this field, if
     # necessary, now that we have its signable object.
@@ -1747,8 +1744,7 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
     Any other runtime (e.g., IO) exception.
 
   <Side Effects>
-    The 'filename' (or the compressed filename) file is created, or overwritten
-    if it exists.
+    The 'filename' file is created, or overwritten if it exists.
 
   <Returns>
     The filename of the written file.
@@ -1779,10 +1775,9 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
   # not been previously written or has changed).  It is now assumed that the
   # caller intends to write changes that have been marked as dirty.
 
-  # The 'metadata' object is written to 'file_object', including compressed
-  # versions.  To avoid partial metadata from being written, 'metadata' is
-  # first written to a temporary location (i.e., 'file_object') and then
-  # moved to 'filename'.
+  # The 'metadata' object is written to 'file_object'.  To avoid partial
+  # metadata from being written, 'metadata' is first written to a temporary
+  # location (i.e., 'file_object') and then moved to 'filename'.
   file_object = securesystemslib.util.TempFile()
 
   # Serialize 'metadata' to the file-like object and then write
