@@ -530,10 +530,9 @@ def _get_content_length(connection):
   except Exception as e:
     logger.exception('Could not get content length'
         ' about ' + str(connection) + ' from server: ' + str(e))
-    reported_length = None
+    return None
 
-  finally:
-    return reported_length
+  return reported_length
 
 
 
@@ -692,14 +691,14 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
 
   def connect(self):
 
-    self.connection_kwargs = {}
-    self.connection_kwargs.update(timeout = self.timeout)
+    connection_kwargs = {}
+    connection_kwargs.update(timeout = self.timeout)
 
     # for >= py2.7
     if hasattr(self, 'source_address'):
-      self.connection_kwargs.update(source_address = self.source_address)
+      connection_kwargs.update(source_address = self.source_address)
 
-    sock = socket.create_connection((self.host, self.port), **self.connection_kwargs)
+    sock = socket.create_connection((self.host, self.port), **connection_kwargs)
 
     # for >= py2.7
     if getattr(self, '_tunnel_host', None):
@@ -722,7 +721,8 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
     # ssl.PROTOCOL_SSLv23, the default value for 'ssl_version', is deprecated in
     # Python 2.7.13, but becomes an alias for ssl.PROTOCOL_TLS.
     self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file,
-        cert_reqs=ssl.CERT_REQUIRED, ca_certs=cert_path, ssl_version=ssl.PROTOCOL_SSLv23)
+        cert_reqs=ssl.CERT_REQUIRED, ca_certs=cert_path,
+        ssl_version=ssl.PROTOCOL_SSLv23)
 
     match_hostname(self.sock.getpeercert(), self.host)
 
