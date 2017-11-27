@@ -223,7 +223,7 @@ def remove_roledb(repository_name):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    logger.warn('Repository name does not exist:'
+    logger.warning('Repository name does not exist:'
       ' ' + repr(repository_name))
     return
 
