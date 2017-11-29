@@ -44,7 +44,12 @@ In no particular order...
 
 - [ ] Generalize metadata format in specification.
 
-- [ ] Support quantum crypto.
+- [ ] Support post quantum resilient crypto.
+
+- [ ] Resolve TODOs in the code.
+
+- [ ] Support Python's multilingual internationalization and localization
+services.
 
 - [ ] 100% code coverage.
 
