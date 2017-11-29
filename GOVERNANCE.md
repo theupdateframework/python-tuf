@@ -23,10 +23,13 @@ guidelines](https://github.com/secure-systems-lab/code-style-guidelines), and
 must unit test any new software feature or change.  Submitted pull requests
 undergo review and automated testing, including, but not limited to:
 
-* Unit and build testing via Travis CI
-* Static Analysis
-* Checks for Signed-off-by commits
-* Review by one or more maintainers
+* Unit and build testing via [Travis CI](https://travis-ci.org/) and
+[Tox](https://tox.readthedocs.io/en/latest/).
+* Static code analysis via [Pylint](https://www.pylint.org/) and
+[Bandit](https://wiki.openstack.org/wiki/Security/Projects/Bandit).
+* Checks for Signed-off-by commits via [Probot: DCO](https://github.com/probot/dco).
+* Review by one or more
+[maintainers](https://github.com/theupdateframework/tuf/blob/develop/MAINTAINERS.txt).
 
 A contributor can propose changes to the specification with a [TUF Augmentation
 Proposal](https://github.com/theupdateframework/taps) (TAP).  It is a design
