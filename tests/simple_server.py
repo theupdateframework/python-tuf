@@ -1,21 +1,24 @@
 #!/usr/bin/env python
 
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program>
   simple_server.py
- 
+
 <Author>
   Konstantin Andrianov.
 
 <Started>
   February 15, 2012.
-  
+
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt or LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
-  This is a basic server that was designed to be used in conjunction with 
-  test_download.py to test download.py module. 
+  This is a basic server that was designed to be used in conjunction with
+  test_download.py to test download.py module.
 
 <Reference>
   SimpleHTTPServer:
@@ -45,7 +48,7 @@ if len(sys.argv) > 1:
     PORT = int(sys.argv[1])
     if PORT < 30000 or PORT > 45000:
       raise ValueError
-  
+
   except ValueError:
     PORT = _port_gen()
 

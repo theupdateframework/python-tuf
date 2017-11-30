@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2013 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   repository_tool.py
@@ -11,7 +14,7 @@
   October 19, 2013
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Provide a tool that can create a TUF repository.  It can be used with the

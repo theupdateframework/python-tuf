@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   slow_retrieval_server.py
@@ -11,7 +14,7 @@
   March 13, 2012.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Server that throttles data by sending one byte at a time (specified time
@@ -54,19 +57,19 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
       data = None
       with open(filepath, 'r') as fileobj:
         data = fileobj.read()
-      
+
       self.send_response(200)
       self.send_header('Content-length', str(len(data)))
       self.end_headers()
-      
+
       if self.server.test_mode == 'mode_1':
         # Before sending any data, the server does nothing for a long time.
-        DELAY = 40 
+        DELAY = 40
         time.sleep(DELAY)
         self.wfile.write(data)
 
         return
-      
+
       # 'mode_2'
       else:
         DELAY = 1
@@ -78,7 +81,7 @@ class Handler(six.moves.BaseHTTPServer.BaseHTTPRequestHandler):
         for i in range(len(data)):
           self.wfile.write(data[i].encode('utf-8'))
           time.sleep(DELAY)
-        
+
         return
 
     except IOError as e:

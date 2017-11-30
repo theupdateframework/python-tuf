@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   exceptions.py
@@ -9,7 +14,7 @@
   January 10, 2017
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Define TUF Exceptions.
