@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2014 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   test_developer_tool.py.
@@ -8,8 +11,11 @@
   Santiago Torres Arias <torresariass@gmail.com>
   Zane Fisher <zanefisher@gmail.com>
 
+<Started>
+  January 22, 2014.
+
 <Copyright>
-  See LICENSE for licensing inforation.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing inforation.
 
 <Purpose>
   Unit test for the 'developer_tool.py' module.

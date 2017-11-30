@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2013 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   test_extraneous_dependencies_attack.py
@@ -15,10 +18,11 @@
     than verifying text output), use pre-generated repository files, and
     discontinue use of the old repository tools.  Modify the previous scenario
     simulated for the mix-and-match attack.  The metadata that specified the
-    dependencies of a project modified (previously a text file.) -vladimir.v.diaz
+    dependencies of a project modified (previously a text file.)
+    -vladimir.v.diaz
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Simulate an extraneous dependencies attack.  The client attempts to download
