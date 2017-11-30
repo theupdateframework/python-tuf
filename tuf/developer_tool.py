@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2014 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   developer_tool.py
@@ -14,7 +17,7 @@
   January 22, 2014.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENCE-MIT.txt OR LICENCE-APACHE.txt for licensing information.
 
 <Purpose>
   See 'tuf/README-developer-tools.md' for a complete guide on using
