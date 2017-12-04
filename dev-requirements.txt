@@ -2,9 +2,6 @@
 # development, and installation.  It can be executed as follows:
 # $ pip install --requirement dev-requirements.txt
 # 
-# pip install TUF (minimal install) in editable mode (i.e., setuptools
-# "develop mode").  The current working directory must contain 'setup.py'.
---editable .
 
 # Install PyNaCl for generation and verification of ed25519 keys and signatures.
 # It also includes protection against side-channel attacks.
@@ -17,9 +14,14 @@
 # http://nvie.com/posts/pin-your-packages/
 cffi==1.7.0
 pycrypto==2.6.1
-pynacl==1.0.1
-cryptography==1.4.0
+pynacl==1.2.0
+cryptography==2.1.4
+pyasn1==0.2.2
 
 # Testing requirements.  The rest of the testing dependencies available in
 # 'tox.ini'
-tox
+tox==2.9.1
+
+# pip install TUF (minimal install) in editable mode (i.e., setuptools
+# "develop mode").  The current working directory must contain 'setup.py'.
+--editable .
