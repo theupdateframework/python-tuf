@@ -107,17 +107,30 @@ FILEINFODICT_SCHEMA = SCHEMA.DictOf(
 # A string representing a role's name.
 ROLENAME_SCHEMA = SCHEMA.AnyString()
 
-# Role object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1,
-# 'paths':[filepaths..]} format.
+# A string representing a delegation's name.
+DLGTNAME_SCHEMA = SCHEMA.AnyString()
+
+# An Integer represenign minimum roles needed.
+MINROLES_SCHEMA = SCHEMA.Integer()
+
+#Role Info Object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1}
+ROLEINFO_SCHEMA = SCHEMA.Object(
+    rolename = SCHEMA.Optional(securesystemslib.formats.ROLENAME_SCHEMA),
+    keyids = securesystemslib.formats.KEYIDS_SCHEMA,
+    threshold = securesystemslib.formats.THRESHOLD_SCHEMA
+)
+ROLESINFO_SCHEMA = SCHEMA.ListOf(ROLEINFO_SCHEMA)
+# Role object in {'name': DELEGATION-NAM,'paths':[filepaths..],
+# "terminating":BOOLEAN, "min_roles_in_agreement": NUM_ROLES} format. (TAP3)
 ROLE_SCHEMA = SCHEMA.Object(
   object_name = 'ROLE_SCHEMA',
-  name = SCHEMA.Optional(securesystemslib.formats.ROLENAME_SCHEMA),
-  keyids = securesystemslib.formats.KEYIDS_SCHEMA,
-  threshold = securesystemslib.formats.THRESHOLD_SCHEMA,
+  name = SCHEMA.Optional(DLGTNAME_SCHEMA),
+  min_roles_in_agreement = SCHEMA.Optional(MINROLES_SCHEMA),
   terminating = SCHEMA.Optional(securesystemslib.formats.BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(securesystemslib.formats.RELPATHS_SCHEMA),
-  path_hash_prefixes = SCHEMA.Optional(securesystemslib.formats.PATH_HASH_PREFIXES_SCHEMA))
-
+  path_hash_prefixes = SCHEMA.Optional(securesystemslib.formats.PATH_HASH_PREFIXES_SCHEMA),
+  roleinfo = SCHEMA.Optional(ROLESINFO_SCHEMA)
+  )
 # A dict of roles where the dict keys are role names and the dict values holding
 # the role data/information.
 ROLEDICT_SCHEMA = SCHEMA.DictOf(
@@ -208,13 +221,12 @@ PATH_HASH_PREFIXES_SCHEMA = SCHEMA.ListOf(PATH_HASH_PREFIX_SCHEMA)
 # 'paths':[filepaths..]} format.
 ROLE_SCHEMA = SCHEMA.Object(
   object_name = 'ROLE_SCHEMA',
-  name = SCHEMA.Optional(ROLENAME_SCHEMA),
-  keyids = KEYIDS_SCHEMA,
-  threshold = THRESHOLD_SCHEMA,
+  name = SCHEMA.Optional(DLGTNAME_SCHEMA),
   backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
-  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA))
-
+  path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
+  roleinfo = SCHEMA.Optional(ROLESINFO_SCHEMA)
+)
 # A dict of roles where the dict keys are role names and the dict values holding
 # the role data/information.
 ROLEDICT_SCHEMA = SCHEMA.DictOf(
