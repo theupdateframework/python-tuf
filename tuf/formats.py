@@ -120,8 +120,8 @@ MINROLES_SCHEMA = SCHEMA.Integer()
 ROLEINFO_SCHEMA = SCHEMA.Object(
     rolename = SCHEMA.Optional(securesystemslib.formats.ROLENAME_SCHEMA),
     keyids = securesystemslib.formats.KEYIDS_SCHEMA,
-    threshold = securesystemslib.formats.THRESHOLD_SCHEMA
-)
+    threshold = securesystemslib.formats.THRESHOLD_SCHEMA)
+
 ROLESINFO_SCHEMA = SCHEMA.ListOf(ROLEINFO_SCHEMA)
 # Role object in {'name': DELEGATION-NAM,'paths':[filepaths..],
 # "terminating":BOOLEAN, "min_roles_in_agreement": NUM_ROLES} format. (TAP3)
@@ -132,8 +132,8 @@ ROLE_SCHEMA = SCHEMA.Object(
   terminating = SCHEMA.Optional(securesystemslib.formats.BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(securesystemslib.formats.RELPATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(securesystemslib.formats.PATH_HASH_PREFIXES_SCHEMA),
-  roleinfo = SCHEMA.Optional(ROLESINFO_SCHEMA)
-  )
+  roleinfo = SCHEMA.Optional(ROLESINFO_SCHEMA))
+
 # A dict of roles where the dict keys are role names and the dict values holding
 # the role data/information.
 ROLEDICT_SCHEMA = SCHEMA.DictOf(
@@ -228,8 +228,7 @@ ROLE_SCHEMA = SCHEMA.Object(
   backtrack = SCHEMA.Optional(BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(RELPATHS_SCHEMA),
   path_hash_prefixes = SCHEMA.Optional(PATH_HASH_PREFIXES_SCHEMA),
-  roleinfo = SCHEMA.Optional(ROLESINFO_SCHEMA)
-)
+  roleinfo = SCHEMA.Optional(ROLESINFO_SCHEMA))
 # A dict of roles where the dict keys are role names and the dict values holding
 # the role data/information.
 ROLEDICT_SCHEMA = SCHEMA.DictOf(
@@ -326,7 +325,15 @@ ROOT_SCHEMA = SCHEMA.Object(
   keys = KEYDICT_SCHEMA,
   roles = ROLEDICT_SCHEMA)
 
-# Targets role: Indicates targets and delegates target paths to other roles.
+SIMPLEKEY_SCHEMA = SCHEMA.Object(
+    keytype = SCHEMA.AnyString(),
+    keyval = KEYVAL_SCHEMA)
+
+KEYFORDEL_SCHEMA = SCHEMA.DictOf(
+    KEYID_SCHEMA,
+    SIMPLEKEY_SCHEMA)
+
+# Targets role: Indicates targests and delegates target paths to other roles.
 TARGETS_SCHEMA = SCHEMA.Object(
   object_name = 'TARGETS_SCHEMA',
   _type = SCHEMA.String('targets'),
@@ -334,7 +341,8 @@ TARGETS_SCHEMA = SCHEMA.Object(
   version = METADATAVERSION_SCHEMA,
   expires = ISO8601_DATETIME_SCHEMA,
   targets = FILEDICT_SCHEMA,
-  delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA))
+  delegations = SCHEMA.Optional(DELEGATIONS_SCHEMA),
+  keys_for_delegations = SCHEMA.Optional(KEYFORDEL_SCHEMA))
 
 # Snapshot role: indicates the latest versions of all metadata (except
 # timestamp).
