@@ -10,9 +10,8 @@ env:
   - TOXENV=py36
 
 before_script:
-  - pip install -U pip wheel pylint
-  - pip install -U pip wheel bandit
-  - pip install -U pip wheel tox
+  - pip install -U pip wheel
+  - pip wheel pylint bandit tox
 
 script:
   - pylint tuf
