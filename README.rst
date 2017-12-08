@@ -3,9 +3,27 @@ A Framework for Securing Software Update Systems
 
 .. image:: https://travis-ci.org/theupdateframework/tuf.svg?branch=develop
    :target: https://travis-ci.org/theupdateframework/tuf
+   :alt: Travis
 
 .. image:: https://coveralls.io/repos/theupdateframework/tuf/badge.svg?branch=develop
    :target: https://coveralls.io/r/theupdateframework/tuf?branch=develop
+   :alt: Coveralls
+
+.. image:: https://pyup.io/repos/github/theupdateframework/tuf/shield.svg
+   :target: https://pyup.io/repos/github/theupdateframework/tuf/
+   :alt: Pyup
+
+.. image:: https://pyup.io/repos/github/theupdateframework/tuf/python-3-shield.svg
+   :target: https://pyup.io/repos/github/theupdateframework/tuf/
+   :alt: Python 3
+
+.. image:: https://app.fossa.io/api/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf.svg?type=shield
+   :target: https://app.fossa.io/projects/git%2Bgithub.com%2Ftheupdateframework%2Ftuf?ref=badge_shield
+   :alt: FOSSA
+
+.. image:: https://bestpractices.coreinfrastructure.org/projects/1351/badge
+   :target: https://bestpractices.coreinfrastructure.org/projects/1351
+   :alt: CII
 
 .. image:: https://pyup.io/repos/github/theupdateframework/tuf/shield.svg
      :target: https://pyup.io/repos/github/theupdateframework/tuf/
@@ -25,6 +43,10 @@ framework that developers can integrate with any software update system.
 The framework can be easily integrated (or implemented in the native
 programming languages of these update systems) due to its concise,
 self-contained architecture and specification.
+
+TUF is hosted by the `Cloud Native Computing Foundation
+<https://www.cncf.io/>`_ (CNCF) and follows the `CNCF Code of Conduct
+<https://github.com/cncf/foundation/blob/master/code-of-conduct.md>`_.
 
 What Is a Software Update System?
 ---------------------------------
@@ -157,20 +179,43 @@ TUF Home Page
 The home page for the TUF project can be found at:
 https://updateframework.com
 
+Security Issues and Bugs
+------------------------
+
+Security issues can be reported by emailing justincappos@gmail.com.
+
+At a minimum, the report must contain the following:
+
+* Description of the vulnerability.
+* Steps to reproduce the issue.
+
+Optionally, reports that are emailed can be encrypted with PGP.  You should use
+PGP key fingerprint E9C0 59EC 0D32 64FA B35F  94AD 465B F9F6 F8EB 475.
+
+Please do not use the GitHub issue tracker to submit vulnerability reports.
+The issue tracker is intended for bug reports and to make feature requests.
+Major feature requests, such as design changes to the specification, should
+be proposed via TUF Augmentation Proposals, which are discussed below.
+
 Mailing List
 ------------
-Please visit `https://groups.google.com/forum/?fromgroups#!forum/theupdateframework <https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if you would like to contact the TUF team.  Questions, feedback, and suggestions are welcomed in this low-volume mailing list.
+Please visit
+`https://groups.google.com/forum/?fromgroups#!forum/theupdateframework
+<https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if
+you would like to contact the TUF team.  Questions, feedback, and suggestions
+are welcomed in this low-volume mailing list.
 
-A group feed is available at: https://groups.google.com/forum/feed/theupdateframework/msgs/atom.xml?num=50
+A group feed is available at:
+https://groups.google.com/forum/feed/theupdateframework/msgs/atom.xml?num=50
 
 What is a TAP?
 --------------
 
-A TAP (TUF Augmentation Proposal) is a design document providing information to the
-TUF community, or describing a new feature for TUF or its processes or environment.
-We intend TAPs to be the primary mechanisms for proposing major new features, for
-collecting community input on an issue, and for documenting the design decisions
-that have gone into TUF.
+A TAP (TUF Augmentation Proposal) is a design document providing information to
+the TUF community, or describing a new feature for TUF or its processes or
+environment.  We intend TAPs to be the primary mechanisms for proposing major
+new features, for collecting community input on an issue, and for documenting
+the design decisions that have gone into TUF.
 
 Please visit the `TAPs GitHub repo <https://github.com/theupdateframework/taps>`_
 to review design changes that have been proposed to date, or to submit
@@ -178,6 +223,29 @@ your own new feature.
 
 Installation
 ------------
+
+pip is the recommended installer.  The project can be installed either locally
+or from the Python Package Index.  All `TUF releases
+<https://github.com/theupdateframework/tuf/releases>`_ are cryptographically
+signed, with GPG signatures available on both GitHub and `PyPI
+<https://pypi.python.org/pypi/tuf/>`_.
+
+The latest release and its packaging information, such as who signed the
+release and their PGP fingerprint, can also be found on our 1-year `roadmap
+<https://github.com/theupdateframework/tuf/blob/develop/ROADMAP.md>`_.
+
+Assuming you trust the maintainer's PGP key, the detached ASC signature
+can be downloaded and verified.  For example:
+
+::
+
+   $ gpg --verify securesystemslib-0.10.8.tar.gz.asc
+   gpg: assuming signed data in 'securesystemslib-0.10.8.tar.gz'
+   gpg: Signature made Wed Nov  8 15:21:47 2017 EST
+   gpg:                using RSA key 3E87BB339378BC7B3DD0E5B25DEE9B97B0E2289A
+   gpg: Good signature from "Vladimir Diaz (Vlad) <vladimir.v.diaz@gmail.com>" [ultimate]
+
+Installation instructions:
 
 ::
 
@@ -198,6 +266,69 @@ Instructions for Contributors
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Note: Development of TUF occurs on the "develop" branch of this repository.
+
+Contributions can be made by submitting GitHub pull requests.  Submitted code
+should follow our `code style guidelines
+<https://github.com/secure-systems-lab/code-style-guidelines>`_, which provide
+examples of what to do (or not to do) when writing Python code.
+
+Contributors must also indicate acceptance of the `Developer Certificate of
+Origin <https://developercertificate.org/>`_  (DCO) when making a contribution
+to the project.  Acceptance of the DCO can be established by appending a
+``Signed-off-by: Your Name <example@domain.com>`` to the Git commit message.
+For example:
+
+::
+
+    Commit message
+
+    Signed-off-by: Vladimir Diaz <vladimir.v.diaz@gmail.com>
+
+The required ``Signed-off-by`` text can be automatically appended to the commit
+message via the ``-s`` command-line option to ``git commit``:
+
+::
+
+  $ git commit -s -m "Commit message"
+
+The full text of the DCO:
+
+::
+
+    Developer Certificate of Origin
+    Version 1.1
+
+    Copyright (C) 2004, 2006 The Linux Foundation and its contributors.
+    1 Letterman Drive
+    Suite D4700
+    San Francisco, CA, 94129
+
+    Everyone is permitted to copy and distribute verbatim copies of this
+    license document, but changing it is not allowed.
+
+    Developer's Certificate of Origin 1.1
+
+    By making a contribution to this project, I certify that:
+
+    (a) The contribution was created in whole or in part by me and I have the
+    right to submit it under the open source license indicated in the file; or
+
+    (b) The contribution is based upon previous work that, to the best of my
+    knowledge, is covered under an appropriate open source license and I have
+    the right under that license to submit that work with modifications,
+    whether created in whole or in part by me, under the same open source
+    license (unless I am permitted to submit under a different license), as
+    indicated in the file; or
+
+    (c) The contribution was provided directly to me by some other person who
+    certified (a), (b) or (c) and I have not modified it.
+
+    (d) I understand and agree that this project and the contribution are
+    public and that a record of the contribution (including all personal
+    information I submit with it, including my sign-off) is maintained
+    indefinitely and may be redistributed consistent with this project or the
+    open source license(s) involved.
+
 
 To facilitate development and installation of edited version of the code base,
 developers are encouraged to install `Virtualenv <https://virtualenv.pypa.io/en/latest/index.html>`_,
@@ -281,9 +412,9 @@ License
 This work is `dual-licensed <https://en.wikipedia.org/wiki/Multi-licensing>`_
 and distributed under the (1) MIT License and (2) Apache License, Version 2.0.
 Please see `LICENSE-MIT.txt
-<https://github.com/theupdateframework/tuf/tree/develop/tuf/LICENSE-MIT.txt>`_
+<https://github.com/theupdateframework/tuf/blob/develop/LICENSE-MIT.txt>`_
 and `LICENSE-APACHE.txt
-<https://github.com/theupdateframework/tuf/tree/develop/tuf/LICENSE-APACHE.txt>`_.
+<https://github.com/theupdateframework/tuf/blob/develop/LICENSE-APACHE.txt>`_.
 
 
 Acknowledgements

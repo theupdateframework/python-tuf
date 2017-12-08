@@ -10,9 +10,14 @@ env:
   - TOXENV=py36
 
 before_script:
+  - pip install -U pip wheel pylint
+  - pip install -U pip wheel bandit
   - pip install -U pip wheel tox
 
-script: tox
+script:
+  - pylint tuf
+  - bandit -r tuf
+  - tox
 
 after_success:
   - cd tests
@@ -22,3 +27,5 @@ after_success:
 branches:
   only:
     - develop
+    - pylint
+    - bandit

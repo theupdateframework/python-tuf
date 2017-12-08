@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2014 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   test_repository_lib.py
@@ -11,7 +14,7 @@
   June 1, 2014.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Unit test for 'repository_lib.py'.
@@ -316,34 +319,33 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     with open(invalid_keyfile, 'wb') as file_object:
       file_object.write(b'bad keyfile')
 
-    self.assertRaises(securesystemslib.exceptions.Error, repo_lib.import_ed25519_privatekey_from_file,
-                      invalid_keyfile, 'pw')
+    self.assertRaises(securesystemslib.exceptions.Error,
+        repo_lib.import_ed25519_privatekey_from_file, invalid_keyfile, 'pw')
 
     # Invalid private key imported (contains unexpected keytype.)
     imported_ed25519_key['keytype'] = 'invalid_keytype'
 
-    # Use 'pycrypto_keys.py' to bypass the key format validation performed by
+    # Use 'pyca_crypto_keys.py' to bypass the key format validation performed by
     # 'keys.py'.
     salt, iterations, derived_key = \
-      securesystemslib.pycrypto_keys._generate_derived_key('pw')
+      securesystemslib.pyca_crypto_keys._generate_derived_key('pw')
 
     # Store the derived key info in a dictionary, the object expected
     # by the non-public _encrypt() routine.
     derived_key_information = {'salt': salt, 'iterations': iterations,
-                               'derived_key': derived_key}
+        'derived_key': derived_key}
 
     # Convert the key object to json string format and encrypt it with the
     # derived key.
     encrypted_key = \
-      securesystemslib.pycrypto_keys._encrypt(json.dumps(imported_ed25519_key),
-                                 derived_key_information)
+      securesystemslib.pyca_crypto_keys._encrypt(
+          json.dumps(imported_ed25519_key), derived_key_information)
 
     with open(ed25519_keypath, 'wb') as file_object:
-      file_object.write(encrypted_key.encode('utf-8'))
+        file_object.write(encrypted_key.encode('utf-8'))
 
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      repo_lib.import_ed25519_privatekey_from_file,
-                      ed25519_keypath, 'pw')
+        repo_lib.import_ed25519_privatekey_from_file, ed25519_keypath, 'pw')
 
 
 

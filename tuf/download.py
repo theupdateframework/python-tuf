@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   download.py
@@ -10,7 +15,7 @@
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Download metadata and target files and check their validity.  The hash and
@@ -35,7 +40,6 @@ import logging
 import time
 import timeit
 import ssl
-import time
 
 import tuf
 
@@ -46,10 +50,10 @@ import six
 # 'ssl.match_hostname' was added in Python 3.2.  The vendored version is needed
 # for Python 2.7.
 try:
-  from ssl import match_hostname, CertificateError
+  from ssl import match_hostname
 
 except ImportError: # pragma: no cover
-  from securesystemslib._vendor.ssl_match_hostname import match_hostname, CertificateError
+  from securesystemslib._vendor.ssl_match_hostname import match_hostname
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.download')
@@ -219,11 +223,14 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
     contents of 'url'.
 
   <Exceptions>
-    tuf.ssl_commons.exceptions.DownloadLengthMismatchError, if there was a
+    tuf.exceptions.DownloadLengthMismatchError, if there was a
     mismatch of observed vs expected lengths while downloading the file.
 
     securesystemslib.exceptions.FormatError, if any of the arguments are
     improperly formatted.
+
+    tuf.exceptions.Error, if the certificates pointed to by
+    tuf.settings.ssl_certificates cannot be loaded.
 
     Any other unforeseen runtime exception.
 
@@ -268,7 +275,7 @@ def _download_file(url, required_length, STRICT_REQUIRED_LENGTH=True):
                              STRICT_REQUIRED_LENGTH=STRICT_REQUIRED_LENGTH,
                              average_download_speed=average_download_speed)
 
-  except:
+  except Exception:
     # Close 'temp_file'.  Any written data is lost.
     temp_file.close_temp_file()
     logger.exception('Could not download URL: ' + repr(url))
@@ -417,20 +424,26 @@ def _get_opener(scheme=None):
   Build a urllib2 opener based on whether the user now wants SSL.
 
   https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L178
+  Raises tuf.exceptions.Error if tuf.settings.ssl_certificates is not a valid
+  file.
   """
 
   if scheme == "https":
-    assert os.path.isfile(tuf.settings.ssl_certificates)
+    if not os.path.isfile(tuf.settings.ssl_certificates):
+      raise tuf.exceptions.Error('The SSL certificate specified in'
+          ' tuf.settings.ssl_certificates is not a valid file.'
+          ' ssl_certificates set to: ' + repr(tuf.settings.ssl_certificates))
 
-    # If we are going over https, use an opener which will provide SSL
-    # certificate verification.
-    https_handler = VerifiedHTTPSHandler()
-    opener = six.moves.urllib.request.build_opener(https_handler)
+    else:
+      # If we are going over https, use an opener which will provide SSL
+      # certificate verification.
+      https_handler = VerifiedHTTPSHandler()
+      opener = six.moves.urllib.request.build_opener(https_handler)
 
-    # Strip out HTTPHandler to prevent MITM spoof.
-    for handler in opener.handlers:
-      if isinstance(handler, six.moves.urllib.request.HTTPHandler):
-        opener.handlers.remove(handler)
+      # Strip out HTTPHandler to prevent MITM spoof.
+      for handler in opener.handlers:
+        if isinstance(handler, six.moves.urllib.request.HTTPHandler):
+          opener.handlers.remove(handler)
 
   else:
     # Otherwise, use the default opener.
@@ -458,7 +471,8 @@ def _open_connection(url):
       URL string (e.g., 'http://...' or 'ftp://...' or 'file://...')
 
   <Exceptions>
-    None.
+    tuf.exceptions.Error, if the certificates pointed by
+    tuf.settings.ssl_certificates cannot be loaded.
 
   <Side Effects>
     Opens a connection to a remote server.
@@ -515,16 +529,15 @@ def _get_content_length(connection):
     reported_length = int(reported_length, 10)
 
     # Make sure that it is a nonnegative integer.
-    assert reported_length > -1
+    if not reported_length > -1:
+      raise tuf.exceptions.Error('A non-positive length was reported.')
 
-  except:
-    message = \
-      'Could not get content length about ' + str(connection) + ' from server.'
-    logger.exception(message)
-    reported_length = None
+  except Exception as e:
+    logger.exception('Could not get content length'
+        ' about ' + str(connection) + ' from server: ' + str(e))
+    return None
 
-  finally:
-    return reported_length
+  return reported_length
 
 
 
@@ -651,7 +664,7 @@ def _check_downloaded_length(total_downloaded, required_length,
         logger.debug('Good average download speed: ' +
                      repr(average_download_speed) + ' bytes per second')
 
-      raise securesystemslib.exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
+      raise tuf.exceptions.DownloadLengthMismatchError(required_length, total_downloaded)
 
     else:
       # We specifically disabled strict checking of required length, but we
@@ -677,18 +690,20 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
   A connection that wraps connections with ssl certificate verification.
 
   https://github.com/pypa/pip/blob/d0fa66ecc03ab20b7411b35f7c7b423f31f77761/pip/download.py#L72
+  Raise tuf.exeptions.Error if the certificates specified in
+  tuf.settings.ssl_certificates cannot be loaded.
   """
 
   def connect(self):
 
-    self.connection_kwargs = {}
-    self.connection_kwargs.update(timeout = self.timeout)
+    connection_kwargs = {}
+    connection_kwargs.update(timeout = self.timeout)
 
     # for >= py2.7
     if hasattr(self, 'source_address'):
-      self.connection_kwargs.update(source_address = self.source_address)
+      connection_kwargs.update(source_address = self.source_address)
 
-    sock = socket.create_connection((self.host, self.port), **self.connection_kwargs)
+    sock = socket.create_connection((self.host, self.port), **connection_kwargs)
 
     # for >= py2.7
     if getattr(self, '_tunnel_host', None):
@@ -696,16 +711,23 @@ class VerifiedHTTPSConnection(six.moves.http_client.HTTPSConnection):
       self._tunnel()
 
     # set location of certificate authorities
-    assert os.path.isfile(tuf.settings.ssl_certificates)
-    cert_path = tuf.settings.ssl_certificates
+    if not os.path.isfile(tuf.settings.ssl_certificates):
+      raise tuf.exceptions.Error('The SSL certificate specified in'
+          ' tuf.settings.ssl_certificates is not a valid file.'
+          ' ssl_certificates set to: ' + repr(tuf.settings.ssl_certificates))
+
+    else:
+      cert_path = tuf.settings.ssl_certificates
 
     # TODO: Disallow SSLv2.
     # http://docs.python.org/dev/library/ssl.html#protocol-versions
     # TODO: Select the right ciphers.
     # http://docs.python.org/dev/library/ssl.html#cipher-selection
+    # ssl.PROTOCOL_SSLv23, the default value for 'ssl_version', is deprecated in
+    # Python 2.7.13, but becomes an alias for ssl.PROTOCOL_TLS.
     self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file,
-                                cert_reqs=ssl.CERT_REQUIRED,
-                                ca_certs=cert_path)
+        cert_reqs=ssl.CERT_REQUIRED, ca_certs=cert_path,
+        ssl_version=ssl.PROTOCOL_SSLv23)
 
     match_hostname(self.sock.getpeercert(), self.host)
 

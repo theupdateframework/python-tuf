@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   keydb.py
@@ -9,7 +14,7 @@
   March 21, 2012.  Based on a previous version of this module by Geremy Condra.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Represent a collection of keys and their organization.  This module ensures
@@ -109,7 +114,7 @@ def create_keydb_from_root_metadata(root_metadata, repository_name='default'):
   # Iterate the keys found in 'root_metadata' by converting them to
   # 'RSAKEY_SCHEMA' if their type is 'rsa', and then adding them to the
   # key database.
-  for keyid_in_root_metadata, key_metadata in six.iteritems(root_metadata['keys']):
+  for junk, key_metadata in six.iteritems(root_metadata['keys']):
     if key_metadata['keytype'] in _SUPPORTED_KEY_TYPES:
       # 'key_metadata' is stored in 'KEY_SCHEMA' format.  Call
       # create_from_metadata_format() to get the key in 'RSAKEY_SCHEMA'
@@ -202,7 +207,7 @@ def remove_keydb(repository_name):
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
   if repository_name not in _keydb_dict:
-    logger.warn('Repository name does not exist: ' + repr(repository_name))
+    logger.warning('Repository name does not exist: ' + repr(repository_name))
     return
 
   if repository_name == 'default':

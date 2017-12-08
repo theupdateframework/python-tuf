@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   log.py
@@ -9,7 +14,7 @@
   April 4, 2012.  Based on a previous version of this module by Geremy Condra.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   A central location for all logging-related configuration.  This module should
@@ -82,7 +87,8 @@ _DEFAULT_FILE_LOG_LEVEL = logging.DEBUG
 
 # Set the format for logging messages.
 # Example format for '_FORMAT_STRING':
-# [2013-08-13 15:21:18,068 localtime] [tuf] [INFO][_update_metadata:851@updater.py]
+# [2013-08-13 15:21:18,068 localtime] [tuf]
+# [INFO][_update_metadata:851@updater.py]
 _FORMAT_STRING = '[%(asctime)s UTC] [%(name)s] [%(levelname)s] '+\
   '[%(funcName)s:%(lineno)s@%(filename)s]\n%(message)s\n'
 
@@ -165,7 +171,7 @@ class ConsoleFilter(logging.Filter):
       # file logging handler, the user may always consult the file log for the
       # original exception traceback. The exc_info is explained here:
       # http://docs.python.org/2/library/sys.html#sys.exc_info
-      exc_type, exc_value, exc_traceback = record.exc_info
+      exc_type, junk, junk = record.exc_info
 
       # Simply set the class name as the exception text.
       record.exc_text = exc_type.__name__
@@ -315,10 +321,10 @@ def add_console_handler(log_level=_DEFAULT_CONSOLE_LOG_LEVEL):
     # Get our filter for the console handler.
     console_filter = ConsoleFilter()
     console_format_string = '%(message)s'
-    formatter = logging.Formatter(console_format_string)
+    console_formatter = logging.Formatter(console_format_string)
 
     console_handler.setLevel(log_level)
-    console_handler.setFormatter(formatter)
+    console_handler.setFormatter(console_formatter)
     console_handler.addFilter(console_filter)
     logger.addHandler(console_handler)
     logger.debug('Added a console handler.')

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   test_replay_attack.py
@@ -17,10 +20,10 @@
     -vladimir.v.diaz
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
-  Simulate a replay, or rollback,  attack.  In a replay attack, a client is
+  Simulate a replay, or rollback, attack.  In a replay attack, a client is
   tricked into installing software that is older than that which the client
   previously knew to be available.
 

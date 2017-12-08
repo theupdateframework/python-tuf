@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
+# Copyright 2014 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program>
   simple_https_server.py
- 
+
 <Author>
   Vladimir Diaz.
 
@@ -11,17 +14,17 @@
   June 17, 2014
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Provide a simple https server that can be used by the unit tests.  For
   example, 'download.py' can connect to the https server started by this module
   to verify that https downloads are permitted.
-  
+
 <Reference>
   ssl.wrap_socket:
     https://docs.python.org/2/library/ssl.html#functions-constants-and-exceptions
-  
+
   SimpleHTTPServer:
     http://docs.python.org/library/simplehttpserver.html#module-SimpleHTTPServer
 """
@@ -50,7 +53,7 @@ if len(sys.argv) > 1:
     PORT = int(sys.argv[1])
     if PORT < 30000 or PORT > 45000:
       raise ValueError
-  
+
   except ValueError:
     PORT = _generate_random_port()
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2013 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   repository_tool.py
@@ -11,7 +14,7 @@
   October 19, 2013
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Provide a tool that can create a TUF repository.  It can be used with the
@@ -36,7 +39,6 @@ import logging
 import tempfile
 import shutil
 import json
-import random
 
 import tuf
 import tuf.formats
@@ -45,15 +47,6 @@ import tuf.sig
 import tuf.log
 import tuf.exceptions
 import tuf.repository_lib as repo_lib
-
-from tuf.repository_lib import generate_and_write_rsa_keypair
-from tuf.repository_lib import generate_and_write_ed25519_keypair
-from tuf.repository_lib import import_rsa_publickey_from_file
-from tuf.repository_lib import import_ed25519_publickey_from_file
-from tuf.repository_lib import import_rsa_privatekey_from_file
-from tuf.repository_lib import import_ed25519_privatekey_from_file
-from tuf.repository_lib import create_tuf_client_directory
-from tuf.repository_lib import disable_console_log_messages
 
 import securesystemslib.keys
 import securesystemslib.formats
@@ -97,14 +90,6 @@ SNAPSHOT_EXPIRATION = 604800
 
 # Initial 'timestamp.json' expiration time of 1 day.
 TIMESTAMP_EXPIRATION = 86400
-
-try:
-  securesystemslib.keys.check_crypto_libraries(['rsa', 'ed25519', 'general'])
-
-except securesystemslib.exceptions.UnsupportedLibraryError: #pragma: no cover
-  logger.warn('Warning: The repository and developer tools require'
-    ' additional libraries, which can be installed as follows:'
-    '\n $ pip install tuf[tools]')
 
 
 class Repository(object):
@@ -2963,8 +2948,8 @@ def load_repository(repository_directory, repository_name='default'):
     # Example:  '10.django.json' --> 'django.json'
     consistent_snapshot = \
       metadata_role.endswith('root.json') or consistent_snapshot == True
-    metadata_name, version_number_junk = \
-      repo_lib._strip_version_number(metadata_name, consistent_snapshot)
+    metadata_name, junk = repo_lib._strip_version_number(metadata_name,
+      consistent_snapshot)
 
     if metadata_name.endswith(METADATA_EXTENSION):
       extension_length = len(METADATA_EXTENSION)
@@ -3158,6 +3143,35 @@ def append_signature(signature, metadata_filepath):
 
   file_object.write(written_metadata_content)
   file_object.move(metadata_filepath)
+
+
+# Wrapper functions that we wish to make available here from repository_lib.py.
+# Users are expected to call functions provided by repository_tool.py.  We opt
+# for this approach, as opposed to using import statements to achieve the
+# equivalent, to avoid linter warnings for unused imports.
+def generate_and_write_rsa_keypair(filepath, bits, password):
+  return repo_lib.generate_and_write_rsa_keypair(filepath, bits, password)
+
+def generate_and_write_ed25519_keypair(filepath, password):
+  return repo_lib.generate_and_write_ed25519_keypair(filepath, password)
+
+def import_rsa_publickey_from_file(filepath):
+  return repo_lib.import_rsa_publickey_from_file(filepath)
+
+def import_ed25519_publickey_from_file(filepath):
+  return repo_lib.import_ed25519_publickey_from_file(filepath)
+
+def import_rsa_privatekey_from_file(filepath, password):
+  return repo_lib.import_rsa_privatekey_from_file(filepath, password)
+
+def import_ed25519_privatekey_from_file(filepath, password):
+  return repo_lib.import_ed25519_privatekey_from_file(filepath, password)
+
+def create_tuf_client_directory(repository_directory, client_directory):
+  return repo_lib.create_tuf_client_directory(repository_directory, client_directory)
+
+def disable_console_log_messages():
+  return repo_lib.disable_console_log_messages()
 
 
 if __name__ == '__main__':

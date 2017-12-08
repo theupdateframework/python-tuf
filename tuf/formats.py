@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   formats.py
@@ -12,7 +15,7 @@
   Refactored April 30, 2012. -vladimir.v.diaz
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   A central location for all format-related checking of TUF objects.
@@ -73,12 +76,10 @@ from __future__ import unicode_literals
 
 import binascii
 import calendar
-import re
 import datetime
 import time
 
 import tuf
-import tuf.formats
 
 import securesystemslib.formats
 import securesystemslib.schema as SCHEMA
@@ -436,11 +437,11 @@ RECEIVECONFIG_SCHEMA = SCHEMA.Object(
 
 
 
-def make_signable(object):
+def make_signable(role_schema):
   """
   <Purpose>
-    Return the role metadata 'object' in 'SIGNABLE_SCHEMA' format.
-    'object' is added to the 'signed' key, and an empty list
+    Return the role metadata 'role_schema' in 'SIGNABLE_SCHEMA' format.
+    'role_schema' is added to the 'signed' key, and an empty list
     initialized to the 'signatures' key.  The caller adds signatures
     to this second field.
     Note: check_signable_object_format() should be called after
@@ -449,7 +450,7 @@ def make_signable(object):
     a supported role metadata).
 
   <Arguments>
-    object:
+    role_schema:
       A role schema dict (e.g., 'ROOT_SCHEMA', 'SNAPSHOT_SCHEMA').
 
   <Exceptions>
@@ -462,11 +463,11 @@ def make_signable(object):
     A dict in 'SIGNABLE_SCHEMA' format.
   """
 
-  if not isinstance(object, dict) or 'signed' not in object:
-    return { 'signed' : object, 'signatures' : [] }
+  if not isinstance(role_schema, dict) or 'signed' not in role_schema:
+    return { 'signed' : role_schema, 'signatures' : [] }
 
   else:
-    return object
+    return role_schema
 
 
 
@@ -480,7 +481,7 @@ class MetaFile(object):
     between Metadata File objects.
   """
 
-  info = None
+  info = {}
 
   def __eq__(self, other):
     return isinstance(other, MetaFile) and self.info == other.info
@@ -515,14 +516,14 @@ class TimestampFile(MetaFile):
 
 
   @staticmethod
-  def from_metadata(object):
-    # Is 'object' a Timestamp metadata file?
+  def from_metadata(timestamp_metadata):
+    # Is 'timestamp_metadata' a Timestamp metadata file?
     # Raise securesystemslib.exceptions.FormatError if not.
-    TIMESTAMP_SCHEMA.check_match(object)
+    TIMESTAMP_SCHEMA.check_match(timestamp_metadata)
 
-    version = object['version']
-    expires = object['expires']
-    filedict = object['meta']
+    version = timestamp_metadata['version']
+    expires = timestamp_metadata['expires']
+    filedict = timestamp_metadata['meta']
 
     return TimestampFile(version, expires, filedict)
 
@@ -553,16 +554,16 @@ class RootFile(MetaFile):
     self.info['consistent_snapshot'] = consistent_snapshot
 
   @staticmethod
-  def from_metadata(object):
-    # Is 'object' a Root metadata file?
+  def from_metadata(root_metadata):
+    # Is 'root_metadata' a Root metadata file?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
-    tuf.formats.ROOT_SCHEMA.check_match(object)
+    tuf.formats.ROOT_SCHEMA.check_match(root_metadata)
 
-    version = object['version']
-    expires = object['expires']
-    keys = object['keys']
-    roles = object['roles']
-    consistent_snapshot = object['consistent_snapshot']
+    version = root_metadata['version']
+    expires = root_metadata['expires']
+    keys = root_metadata['keys']
+    roles = root_metadata['roles']
+    consistent_snapshot = root_metadata['consistent_snapshot']
 
     return RootFile(version, expires, keys, roles, consistent_snapshot)
 
@@ -595,14 +596,14 @@ class SnapshotFile(MetaFile):
 
 
   @staticmethod
-  def from_metadata(object):
-    # Is 'object' a Snapshot metadata file?
+  def from_metadata(snapshot_metadata):
+    # Is 'snapshot_metadata' a Snapshot metadata file?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
-    SNAPSHOT_SCHEMA.check_match(object)
+    SNAPSHOT_SCHEMA.check_match(snapshot_metadata)
 
-    version = object['version']
-    expires = object['expires']
-    versiondict = object['meta']
+    version = snapshot_metadata['version']
+    expires = snapshot_metadata['expires']
+    versiondict = snapshot_metadata['meta']
 
     return SnapshotFile(version, expires, versiondict)
 
@@ -638,15 +639,15 @@ class TargetsFile(MetaFile):
 
 
   @staticmethod
-  def from_metadata(object):
-    # Is 'object' a Targets metadata file?
+  def from_metadata(targets_metadata):
+    # Is 'targets_metadata' a Targets metadata file?
     # Raise securesystemslib.exceptions.FormatError if not.
-    tuf.formats.TARGETS_SCHEMA.check_match(object)
+    tuf.formats.TARGETS_SCHEMA.check_match(targets_metadata)
 
-    version = object['version']
-    expires = object['expires']
-    filedict = object.get('targets')
-    delegations = object.get('delegations')
+    version = targets_metadata['version']
+    expires = targets_metadata['expires']
+    filedict = targets_metadata.get('targets')
+    delegations = targets_metadata.get('delegations')
 
     return TargetsFile(version, expires, filedict, delegations)
 
@@ -684,7 +685,7 @@ class MirrorsFile(MetaFile):
 
 
   @staticmethod
-  def from_metadata(object):
+  def from_metadata(mirrors_metadata):
     raise NotImplementedError
 
 
@@ -1110,10 +1111,10 @@ def expected_meta_rolename(meta_rolename):
 
 
 
-def check_signable_object_format(object):
+def check_signable_object_format(signable):
   """
   <Purpose>
-    Ensure 'object' is properly formatted, conformant to
+    Ensure 'signable' is properly formatted, conformant to
     'SIGNABLE_SCHEMA'.  Return the signing role on
     success.  Note: The 'signed' field of a 'SIGNABLE_SCHEMA' is checked
     against securesystemslib.schema.Any().  The 'signed' field, however, should
@@ -1122,11 +1123,11 @@ def check_signable_object_format(object):
     function determines exactly which schema is listed in the 'signed' field.
 
   <Arguments>
-    object:
-     The object compare against 'SIGNABLE.SCHEMA'.
+    signable:
+     The signable object compared against 'SIGNABLE.SCHEMA'.
 
   <Exceptions>
-    securesystemslib.exceptions.FormatError, if 'object' does not have the
+    securesystemslib.exceptions.FormatError, if 'signable' does not have the
     correct format.
 
   <Side Effects>
@@ -1137,16 +1138,16 @@ def check_signable_object_format(object):
     The role string is returned with characters all lower case.
   """
 
-  # Does 'object' have the correct type?
-  # This check ensures 'object' conforms to
+  # Does 'signable' have the correct type?
+  # This check ensures 'signable' conforms to
   # 'SIGNABLE_SCHEMA'.
-  SIGNABLE_SCHEMA.check_match(object)
+  SIGNABLE_SCHEMA.check_match(signable)
 
   try:
-    role_type = object['signed']['_type']
+    role_type = signable['signed']['_type']
 
   except (KeyError, TypeError):
-    raise securesystemslib.exceptions.FormatError('Untyped object')
+    raise securesystemslib.exceptions.FormatError('Untyped signable object.')
 
   try:
     schema = SCHEMAS_BY_TYPE[role_type]
@@ -1155,9 +1156,9 @@ def check_signable_object_format(object):
     raise securesystemslib.exceptions.FormatError('Unrecognized'
       ' type ' + repr(role_type))
 
-  # 'securesystemslib.exceptions.FormatError' raised if 'object' does not have a
-  # properly formatted role schema.
-  schema.check_match(object['signed'])
+  # 'securesystemslib.exceptions.FormatError' raised if 'signable' does not
+  # have a properly formatted role schema.
+  schema.check_match(signable['signed'])
 
   return role_type.lower()
 

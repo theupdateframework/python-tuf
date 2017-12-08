@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   updater.py
@@ -10,7 +15,7 @@
   July 2012.  Based on a previous version of this module. (VLAD)
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   'updater.py' is intended to be the only TUF module that software update
@@ -112,7 +117,6 @@ import logging
 import os
 import shutil
 import time
-import random
 import fnmatch
 
 import tuf
@@ -131,6 +135,18 @@ import securesystemslib.keys
 import securesystemslib.util
 import six
 import iso8601
+
+# The Timestamp role does not have signed metadata about it; otherwise we
+# would need an infinite regress of metadata. Therefore, we use some
+# default, but sane, upper file length for its metadata.
+DEFAULT_TIMESTAMP_UPPERLENGTH = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
+
+# The Root role may be updated without knowing its version number if
+# top-level metadata cannot be safely downloaded (e.g., keys may have been
+# revoked, thus requiring a new Root file that includes the updated keys)
+# and 'unsafely_update_root_if_necessary' is True.
+# We use some default, but sane, upper file length for its metadata.
+DEFAULT_ROOT_UPPERLENGTH = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.client.updater')
@@ -890,8 +906,8 @@ class Updater(object):
         # for the key.
         try:
           key, keyids = securesystemslib.keys.format_metadata_to_key(keyinfo)
-          for keyid in keyids:
-            key['keyid'] = keyid
+          for key_id in keyids:
+            key['keyid'] = key_id
             tuf.keydb.add_key(key, keyid=None, repository_name=self.repository_name)
 
         except securesystemslib.exceptions.KeyAlreadyExistsError:
@@ -980,18 +996,6 @@ class Updater(object):
     # Raise 'securesystemslib.exceptions.FormatError' if the check fail.
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(unsafely_update_root_if_necessary)
 
-    # The Timestamp role does not have signed metadata about it; otherwise we
-    # would need an infinite regress of metadata. Therefore, we use some
-    # default, but sane, upper file length for its metadata.
-    DEFAULT_TIMESTAMP_UPPERLENGTH = tuf.settings.DEFAULT_TIMESTAMP_REQUIRED_LENGTH
-
-    # The Root role may be updated without knowing its version number if
-    # top-level metadata cannot be safely downloaded (e.g., keys may have been
-    # revoked, thus requiring a new Root file that includes the updated keys)
-    # and 'unsafely_update_root_if_necessary' is True.
-    # We use some default, but sane, upper file length for its metadata.
-    DEFAULT_ROOT_UPPERLENGTH = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
-
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
     # is insufficient trusted signatures for the specified metadata.
@@ -1058,8 +1062,8 @@ class Updater(object):
 
     # Retrieve the latest, remote root.json.
     latest_root_metadata_file = \
-      self._get_metadata_file('root', 'root.json',
-        tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH, None)
+      self._get_metadata_file('root', 'root.json', DEFAULT_ROOT_UPPERLENGTH,
+        None)
     latest_root_metadata = \
       securesystemslib.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
 
@@ -1077,8 +1081,7 @@ class Updater(object):
       # in the latest root.json after running through the intermediates with
       # _update_metadata().
       self.consistent_snapshot = True
-      self._update_metadata('root', tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH,
-          version=version)
+      self._update_metadata('root', DEFAULT_ROOT_UPPERLENGTH, version=version)
 
 
 
@@ -1267,7 +1270,9 @@ class Updater(object):
       self._check_hashes(target_file_object, file_hashes)
 
     if self.consistent_snapshot:
-      target_digest = random.choice(list(file_hashes.values()))
+      # Note: values() does not return a list in Python 3.  Use list()
+      # on values() for Python 2+3 compatibility.
+      target_digest = list(file_hashes.values()).pop()
       dirname, basename = os.path.split(target_filepath)
       target_filepath = os.path.join(dirname, target_digest + '.' + basename)
 
@@ -1475,15 +1480,17 @@ class Updater(object):
 
 
 
-  def _verify_root_chain_link(self, role, current, next):
-    if role != 'root':
+  def _verify_root_chain_link(self, rolename, current_root_metadata,
+    next_root_metadata):
+
+    if rolename != 'root':
       return True
 
-    current_role = current['roles'][role]
+    current_root_role = current_root_metadata['roles'][rolename]
 
     # Verify next metadata with current keys/threshold
-    valid = tuf.sig.verify(next, role, self.repository_name,
-                           current_role['threshold'], current_role['keyids'])
+    valid = tuf.sig.verify(next_root_metadata, rolename, self.repository_name,
+        current_root_role['threshold'], current_root_role['keyids'])
 
     if not valid:
       raise securesystemslib.exceptions.BadSignatureError('Root is not signed'
@@ -1576,8 +1583,8 @@ class Updater(object):
       return file_object
 
     else:
-      logger.error('Failed to update {0} from all mirrors: {1}'.format(
-                   filepath, file_mirror_errors))
+      logger.error('Failed to update ' + repr(filepath) + ' from'
+          ' all mirrors: ' + repr(file_mirror_errors))
       raise tuf.exceptions.NoWorkingMirrorError(file_mirror_errors)
 
 
@@ -1657,7 +1664,7 @@ class Updater(object):
     # First, move the 'current' metadata file to the 'previous' directory
     # if it exists.
     current_filepath = os.path.join(self.metadata_directory['current'],
-                                    metadata_filename)
+                metadata_filename)
     current_filepath = os.path.abspath(current_filepath)
     securesystemslib.util.ensure_parent_dir(current_filepath)
 
@@ -1685,7 +1692,7 @@ class Updater(object):
     current_metadata_object = self.metadata['current'].get(metadata_role)
 
     self._verify_root_chain_link(metadata_role, current_metadata_object,
-                                      metadata_signable)
+        metadata_signable)
 
     # Finally, update the metadata and fileinfo stores, and rebuild the
     # key and role info for the top-level roles if 'metadata_role' is root.
@@ -1767,7 +1774,6 @@ class Updater(object):
 
     metadata_filename = metadata_role + '.json'
     expected_versioninfo = None
-    expected_fileinfo = None
 
     # Ensure the referenced metadata has been loaded.  The 'root' role may be
     # updated without having 'snapshot' available.
@@ -1818,7 +1824,7 @@ class Updater(object):
       upperbound_filelength = tuf.settings.DEFAULT_SNAPSHOT_REQUIRED_LENGTH
 
     elif metadata_role == 'root':
-      upperbound_filelength = tuf.settings.DEFAULT_ROOT_REQUIRED_LENGTH
+      upperbound_filelength = DEFAULT_ROOT_UPPERLENGTH
 
     # The metadata is considered Targets (or delegated Targets metadata).
     else:
@@ -2518,8 +2524,10 @@ class Updater(object):
   def get_one_valid_targetinfo(self, target_filepath):
     """
     <Purpose>
-      Return the target information of 'target_filepath', and update its
-      corresponding metadata, if necessary.
+      Return the target information for 'target_filepath', and update its
+      corresponding metadata, if necessary.  'target_filepath' must match
+      exactly as it appears in metadata, and should not contain URL encoding
+      escapes.
 
     <Arguments>
       target_filepath:
@@ -2547,10 +2555,6 @@ class Updater(object):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.RELPATH_SCHEMA.check_match(target_filepath)
 
-    # 'target_filepath' might contain URL encoding escapes.
-    # http://docs.python.org/2/library/urllib.html#urllib.unquote
-    target_filepath = six.moves.urllib.parse.unquote(target_filepath)
-
     if not target_filepath.startswith('/'):
       target_filepath = '/' + target_filepath
 
@@ -2559,8 +2563,9 @@ class Updater(object):
 
     # Raise an exception if the target information could not be retrieved.
     if target is None:
-      logger.error(target_filepath + ' not found.')
-      raise tuf.exceptions.UnknownTargetError(target_filepath + ' not found.')
+      logger.error(repr(target_filepath) + ' not found.')
+      raise tuf.exceptions.UnknownTargetError(repr(target_filepath) + ' not'
+          ' found.')
 
     # Otherwise, return the found target.
     else:
@@ -2792,8 +2797,10 @@ class Updater(object):
         # if 'target_filepath' is equal to or matches 'child_role_path'.
         # Explicit filepaths are also considered matches.
         if fnmatch.fnmatch(target_filepath, child_role_path):
-         logger.debug('Child role ' + repr(child_role_name) + ' is allowed to'
+          logger.debug('Child role ' + repr(child_role_name) + ' is allowed to'
             ' sign for ' + repr(target_filepath))
+
+          return child_role_name
 
         else:
           logger.debug('The given target path' + repr(target_filepath) + ' is'

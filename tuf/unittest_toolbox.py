@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program>
   unittest_toolbox.py
@@ -9,7 +14,7 @@
   March 26, 2012.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Provides an array of various methods for unit testing.  Use it instead of
@@ -26,7 +31,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import sys
 import shutil
 import unittest
 import tempfile
@@ -130,8 +134,9 @@ class Modified_TestCase(unittest.TestCase):
   def random_path(self, length = 7):
     """Generate a 'random' path consisting of random n-length strings."""
 
-    rand_path = '/'+self.random_string(length)
-    for i in range(2):
+    rand_path = '/' + self.random_string(length)
+
+    for junk in range(2):
       rand_path = os.path.join(rand_path, self.random_string(length))
 
     return rand_path
@@ -143,7 +148,7 @@ class Modified_TestCase(unittest.TestCase):
     """Generate a random string of specified length."""
 
     rand_str = ''
-    for letter in range(length):
-      rand_str += random.choice('abcdefABCDEF'+string.digits)
+    for junk in range(length):
+      rand_str += random.SystemRandom().choice('abcdefABCDEF' + string.digits)
 
     return rand_str

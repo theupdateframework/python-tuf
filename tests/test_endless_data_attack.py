@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   test_endless_data_attack.py
@@ -17,7 +20,7 @@
     -vladimir.v.diaz
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Simulate an endless data attack, where an updater client tries to download a

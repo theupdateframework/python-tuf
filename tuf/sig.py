@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   sig.py
@@ -9,7 +14,7 @@
   February 28, 2012.   Based on a previous version by Geremy Condra.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Survivable key compromise is one feature of a secure update system
@@ -158,7 +163,6 @@ def get_signature_status(signable, role=None, repository_name='default',
   # Iterate the signatures and enumerate the signature_status fields.
   # (i.e., good_sigs, bad_sigs, etc.).
   for signature in signatures:
-    sig = signature['sig']
     keyid = signature['keyid']
 
     # Does the signature use an unrecognized key?

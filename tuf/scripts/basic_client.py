@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   basic_client.py
@@ -11,7 +14,7 @@
   September 2012
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Provide a basic TUF client that can update all of the metatada and target

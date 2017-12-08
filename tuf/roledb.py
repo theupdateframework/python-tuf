@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   roledb.py
@@ -9,7 +14,7 @@
   March 21, 2012.  Based on a previous version of this module by Geremy Condra.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Represent a collection of roles and their organization.  The caller may
@@ -223,7 +228,7 @@ def remove_roledb(repository_name):
   global _dirty_roles
 
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
-    logger.warn('Repository name does not exist:'
+    logger.warning('Repository name does not exist:'
       ' ' + repr(repository_name))
     return
 
@@ -779,7 +784,7 @@ def get_role_keyids(rolename, repository_name='default'):
   # securesystemslib.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
 
-  global _roledb_dit
+  global _roledb_dict
   global _dirty_roles
 
   roleinfo = _roledb_dict[repository_name][rolename]

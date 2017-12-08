@@ -16,10 +16,15 @@
 # signatures.  The minimal install can only verify ed25519 signatures.  Pinned
 # packages: http://nvie.com/posts/pin-your-packages/
 cffi==1.11.2
-pynacl==1.1.2
-cryptography==2.1.2
-securesystemslib==0.10.7
+six=1.11.0
+iso8601=0.1.12
+pynacl==1.2.1
+cryptography==2.1.4
+securesystemslib==0.10.8
 
 # Testing requirements.  The rest of the testing dependencies available in
 # 'tox.ini'
 tox==2.9.1
+
+# Linting requirements.
+pylint==1.7.4

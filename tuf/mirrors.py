@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   mirrors.py
@@ -10,7 +15,7 @@
   March 12, 2012.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Extract a list of mirror urls corresponding to the file type and the location
@@ -97,7 +102,7 @@ def get_list_of_mirrors(file_type, file_path, mirrors_dict):
   in_confined_directory = securesystemslib.util.file_in_confined_directories
 
   list_of_mirrors = []
-  for mirror_name, mirror_info in six.iteritems(mirrors_dict):
+  for junk, mirror_info in six.iteritems(mirrors_dict):
     if file_type == 'meta':
       base = mirror_info['url_prefix'] + '/' + mirror_info['metadata_path']
 

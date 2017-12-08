@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2015 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program Name>
   test_init.py
@@ -11,7 +14,7 @@
   March 30, 2015.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   Test cases for __init__.py (mainly the exceptions defined there).

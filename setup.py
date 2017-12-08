@@ -1,4 +1,7 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
+
+# Copyright 2013 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
 
 """
 <Program Name>
@@ -11,7 +14,7 @@
   March 2013.
 
 <Copyright>
-  See LICENSE for licensing information.
+  See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
 
 <Purpose>
   BUILD SOURCE DISTRIBUTION
@@ -77,7 +80,7 @@ with open('README.rst') as file_object:
 
 setup(
   name = 'tuf',
-  version = '0.10.0',
+  version = '0.10.1',
   description = 'A secure updater framework for Python',
   long_description = long_description,
   author = 'https://www.updateframework.com',
@@ -87,7 +90,8 @@ setup(
   classifiers = [
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
-    'License :: Freely Distributable',
+    'License :: OSI Approved :: MIT License',
+    'License :: OSI Approved :: Apache Software License',
     'Natural Language :: English',
     'Operating System :: POSIX',
     'Operating System :: POSIX :: Linux',
@@ -97,7 +101,6 @@ setup(
     'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3',
-    'Programming Language :: Python :: 3.3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
@@ -105,11 +108,10 @@ setup(
     'Topic :: Security',
     'Topic :: Software Development'
   ],
-   install_requires = ['iso8601', 'six', 'securesystemslib>=0.10.7'],
+  install_requires = ['iso8601>=0.1.12', 'six>=1.11.0', 'securesystemslib>=0.10.8'],
   packages = find_packages(exclude=['tests']),
   scripts = [
     'tuf/scripts/basic_client.py',
-    'tuf/scripts/tufcli.py',
     'tuf/scripts/simple_server.py'
   ]
 )
