@@ -1593,7 +1593,7 @@ class Targets(Metadata):
                   'version': 0, 'expires': expiration,
                   'signatures': [], 'paths': {}, 'path_hash_prefixes': [],
                   'partial_loaded': False, 'delegations': {'keys': {},
-                                                           'roles': []}}
+                                                           'roles': []}, 'keys_for_delegations':{}}
 
     # Add the new role to the 'tuf.roledb'.
     try:
@@ -2284,7 +2284,8 @@ class Targets(Metadata):
     roleinfo = {'name': rolename,
                 'keyids': roleinfo['keyids'],
                 'threshold': roleinfo['threshold'],
-                'terminating': terminating,
+                'terminating': terminating
+                'min_roles_in_agreement':roleinfo['min_roles_in_agreement'],
                 'paths': list(roleinfo['paths'].keys())}
 
     if restricted_paths is not None:

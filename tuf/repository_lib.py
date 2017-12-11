@@ -115,6 +115,8 @@ def _generate_and_write_metadata(rolename, metadata_filename,
   # Retrieve the roleinfo of 'rolename' to extract the needed metadata
   # attributes, such as version number, expiration, etc.
   roleinfo = tuf.roledb.get_roleinfo(rolename, repository_name)
+
+
   previous_keyids = roleinfo.get('previous_keyids', [])
   previous_threshold = roleinfo.get('previous_threshold', 1)
   signing_keyids = list(set(roleinfo['signing_keyids'] + previous_keyids))
@@ -158,7 +160,7 @@ def _generate_and_write_metadata(rolename, metadata_filename,
 
     metadata = generate_targets_metadata(targets_directory, roleinfo['paths'],
         roleinfo['version'], roleinfo['expires'], roleinfo['delegations'],
-        consistent_snapshot)
+        consistent_snapshot, roleinfo['keys_for_delegations'])
 
   # Before writing 'rolename' to disk, automatically increment its version
   # number (if 'increment_version_number' is True) so that the caller does not
@@ -677,7 +679,7 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     roleinfo['version'] = targets_metadata['version']
     roleinfo['expires'] = targets_metadata['expires']
     roleinfo['delegations'] = targets_metadata['delegations']
-
+    roleinfo['keys_for_delegations'] = targets_metadata['keys_for_delegations']
     if _metadata_is_partially_loaded('targets', signable, repository_name):
       roleinfo['partial_loaded'] = True
 
@@ -1311,7 +1313,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
 def generate_targets_metadata(targets_directory, target_files, version,
                               expiration_date, delegations=None,
-                              write_consistent_targets=False):
+                              write_consistent_targets=False, keys_for_delegations=None):
   """
   <Purpose>
     Generate the targets metadata object. The targets in 'target_files' must
@@ -1428,7 +1430,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
   targets_metadata = tuf.formats.TargetsFile.make_metadata(version,
                                                            expiration_date,
                                                            filedict,
-                                                           delegations)
+                                                           delegations, keys_for_delegations)
 
   return targets_metadata
 

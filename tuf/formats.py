@@ -631,7 +631,7 @@ class SnapshotFile(MetaFile):
 
 
 class TargetsFile(MetaFile):
-  def __init__(self, version, expires, filedict=None, delegations=None):
+  def __init__(self, version, expires, filedict=None, delegations=None, keys_for_delegations=None):
     if filedict is None:
       filedict = {}
     if delegations is None:
@@ -641,6 +641,7 @@ class TargetsFile(MetaFile):
     self.info['expires'] = expires
     self.info['targets'] = filedict
     self.info['delegations'] = delegations
+    self.info['keys_for_delegations'] = keys_for_delegations
 
 
   @staticmethod
@@ -653,12 +654,13 @@ class TargetsFile(MetaFile):
     expires = targets_metadata['expires']
     filedict = targets_metadata.get('targets')
     delegations = targets_metadata.get('delegations')
+    keys_for_delegations = targets_metadata.get('keys_for_delegations')
 
-    return TargetsFile(version, expires, filedict, delegations)
+    return TargetsFile(version, expires, filedict, delegations, keys_for_delegations)
 
 
   @staticmethod
-  def make_metadata(version, expiration_date, filedict=None, delegations=None):
+  def make_metadata(version, expiration_date, filedict=None, delegations=None, keys_for_delegations=None):
     if filedict is None and delegations is None:
       raise securesystemslib.exceptions.Error('We don\'t allow completely'
         ' empty targets metadata.')
@@ -673,7 +675,8 @@ class TargetsFile(MetaFile):
       result['targets'] = filedict
     if delegations is not None:
       result['delegations'] = delegations
-
+    if keys_for_delegations is not None:
+      result['keys_for_delegations'] = keys_for_delegations
     # Is 'result' a Targets metadata file?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
     tuf.formats.TARGETS_SCHEMA.check_match(result)
