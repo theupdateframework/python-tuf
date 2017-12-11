@@ -298,7 +298,7 @@ class MultiRepoUpdater(object):
             targetinfo, updater = self._update_from_repository(repository_name,
                 repository_names_to_mirrors, target_filename)
 
-          except (tuf.exceptions.UnknownTargetError, tuf.exceptions.Error) as e:
+          except (tuf.exceptions.UnknownTargetError, tuf.exceptions.Error):
             continue
 
           logger.debug('Adding targetinfo: ' + repr(targetinfo) + ' for'
@@ -466,9 +466,8 @@ class MultiRepoUpdater(object):
           # updater instances.
           logger.debug('Adding updater for ' + repr(repository_name))
           updater = tuf.client.updater.Updater(repository_name, mirrors)
-          #updater.refresh()
 
-        except:
+        except Exception:
           return None
 
         else:
