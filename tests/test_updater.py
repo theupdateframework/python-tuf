@@ -133,7 +133,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
-    self.repository_name = 'test_repository'
+    self.repository_name = 'test_repository1'
 
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
@@ -228,7 +228,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # 'tuf.client.updater.py' requires that the client's repositories directory
     # be configured in 'tuf.settings.py'.
     tuf.settings.repositories_directory = None
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
     # Restore 'tuf.settings.repositories_directory' to the original client
     # directory.
@@ -238,7 +238,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: empty client repository (i.e., no metadata directory).
     metadata_backup = self.client_metadata + '.backup'
     shutil.move(self.client_metadata, metadata_backup)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
     # Restore the client's metadata directory.
     shutil.move(metadata_backup, self.client_metadata)
@@ -251,7 +251,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     shutil.move(self.client_metadata_current, current_backup)
     shutil.move(self.client_metadata_previous, previous_backup)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
 
     # Restore the client's previous directory.  The required 'current' directory
@@ -260,7 +260,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: repository with only a '{repository_directory}/metadata/previous'
     # directory.
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
     # Restore the client's current directory.
     shutil.move(current_backup, self.client_metadata_current)
@@ -268,7 +268,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     # Test: repository with a '{repository_directory}/metadata/current'
     # directory, but the 'previous' directory is missing.
     shutil.move(self.client_metadata_previous, previous_backup)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
     shutil.move(previous_backup, self.client_metadata_previous)
 
@@ -276,13 +276,13 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     client_root_file = os.path.join(self.client_metadata_current, 'root.json')
     backup_root_file = client_root_file + '.backup'
     shutil.move(client_root_file, backup_root_file)
-    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository',
+    self.assertRaises(tuf.exceptions.RepositoryError, updater.Updater, 'test_repository1',
                       self.repository_mirrors)
     # Restore the client's 'root.json file.
     shutil.move(backup_root_file, client_root_file)
 
     # Test: Normal 'tuf.client.updater.Updater' instantiation.
-    updater.Updater('test_repository', self.repository_mirrors)
+    updater.Updater('test_repository1', self.repository_mirrors)
 
 
 
@@ -1059,8 +1059,7 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test: invalid target path.
     self.assertRaises(tuf.exceptions.UnknownTargetError,
-                      self.repository_updater.get_one_valid_targetinfo,
-                      self.random_path())
+        self.repository_updater.get_one_valid_targetinfo, self.random_path())
 
     # Test updater.get_one_valid_targetinfo() backtracking behavior (enabled by
     # default.)
@@ -1628,8 +1627,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     self.repository_updater._get_file('targets.json', verify_target_file,
         file_type, file_size, download_safely=False)
 
-
-
   def test_14__targets_of_role(self):
     # Test case where a list of targets is given.  By default, the 'targets'
     # parameter is None.
@@ -1642,117 +1639,111 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
-  @classmethod
-  def setUpClass(cls):
-    # setUpClass() is called before tests in an individual class are executed.
-
-    # Create a temporary directory to store the repository, metadata, and target
-    # files.  'temporary_directory' must be deleted in TearDownModule() so that
-    # temporary files are always removed, even when exceptions occur.
-    cls.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
-
-    # Launch a SimpleHTTPServer (serves files in the current directory).
-    # Test cases will request metadata and target files that have been
-    # pre-generated in 'tuf/tests/repository_data', which will be served
-    # by the SimpleHTTPServer launched here.  The test cases of 'test_updater.py'
-    # assume the pre-generated metadata files have a specific structure, such
-    # as a delegated role 'targets/role1', three target files, five key files,
-    # etc.
-    cls.SERVER_PORT = 8001
-    cls.SERVER_PORT2 = 8002
-    command = ['python', 'simple_server.py', str(cls.SERVER_PORT)]
-    command2 = ['python', 'simple_server.py', str(cls.SERVER_PORT2)]
-    cls.server_process = subprocess.Popen(command, stderr=subprocess.PIPE)
-    cls.server_process2 = subprocess.Popen(command2, stderr=subprocess.PIPE)
-    logger.info('\n\tServer process started.')
-    logger.info('\tServer process id: ' + str(cls.server_process.pid))
-    logger.info('\tServing on port: ' + str(cls.SERVER_PORT))
-    cls.url = 'http://localhost:' + str(cls.SERVER_PORT) + os.path.sep
-
-    logger.info('\n\tServer process started.')
-    logger.info('\tServer process id: ' + str(cls.server_process2.pid))
-    logger.info('\tServing on port: ' + str(cls.SERVER_PORT2))
-    cls.url2 = 'http://localhost:' + str(cls.SERVER_PORT2) + os.path.sep
-
-    # NOTE: Following error is raised if a delay is not applied:
-    # <urlopen error [Errno 111] Connection refused>
-    time.sleep(1)
-
-
-
-  @classmethod
-  def tearDownClass(cls):
-    # tearDownModule() is called after all the tests have run.
-    # http://docs.python.org/2/library/unittest.html#class-and-module-fixtures
-
-    # Remove the temporary repository directory, which should contain all the
-    # metadata, targets, and key files generated for the test cases.
-    shutil.rmtree(cls.temporary_directory)
-
-    # Kill the SimpleHTTPServer process.
-    if cls.server_process.returncode is None:
-      logger.info('\tServer process ' + str(cls.server_process.pid) + ' terminated.')
-      cls.server_process.kill()
-
-
-
   def setUp(self):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
 
-    self.repository_name = 'test_repository'
-    self.repository_name2 = 'test_repository2'
+    self.temporary_directory = tempfile.mkdtemp(dir=os.getcwd())
 
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
-    # The 'repository_data' directory is expected to exist in 'tuf.tests/'.
+    # The 'repository_data' directory is expected to exist in 'tuf/tests/'.
     original_repository_files = os.path.join(os.getcwd(), 'repository_data')
-    temporary_repository_root = \
-      self.make_temp_directory(directory=self.temporary_directory)
+
+    self.temporary_repository_root = self.make_temp_directory(directory=
+        self.temporary_directory)
 
     # The original repository, keystore, and client directories will be copied
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
+    original_client = os.path.join(original_repository_files, 'client', 'test_repository1')
     original_keystore = os.path.join(original_repository_files, 'keystore')
-    original_client = os.path.join(original_repository_files, 'client')
+    original_map_file = os.path.join(original_repository_files, 'map.json')
 
     # Save references to the often-needed client repository directories.
     # Test cases need these references to access metadata and target files.
-    self.repository_directory = \
-      os.path.join(temporary_repository_root, 'repository')
-    self.keystore_directory = \
-      os.path.join(temporary_repository_root, 'keystore')
+    self.repository_directory = os.path.join(self.temporary_repository_root,
+        'repository_server1')
+    self.repository_directory2 = os.path.join(self.temporary_repository_root,
+        'repository_server2')
 
-    self.client_directory = os.path.join(temporary_repository_root,
-        'client')
-    self.client_metadata = os.path.join(self.client_directory,
-        self.repository_name, 'metadata')
-    self.client_metadata_current = os.path.join(self.client_metadata,
-        'current')
-    self.client_metadata_previous = os.path.join(self.client_metadata,
-        'previous')
+    # Setting 'tuf.settings.repositories_directory' with the temporary client
+    # directory copied from the original repository files.
+    tuf.settings.repositories_directory = self.temporary_repository_root
+
+    repository_name = 'test_repository1'
+    repository_name2 = 'test_repository2'
+
+    self.client_directory = os.path.join(self.temporary_repository_root,
+        repository_name)
+    self.client_directory2 = os.path.join(self.temporary_repository_root,
+        repository_name2)
+
+    self.keystore_directory = os.path.join(self.temporary_repository_root,
+        'keystore')
+    self.map_file = os.path.join(self.client_directory, 'map.json')
+    self.map_file2 = os.path.join(self.client_directory2, 'map.json')
 
     # Copy the original 'repository', 'client', and 'keystore' directories
     # to the temporary repository the test cases can use.
     shutil.copytree(original_repository, self.repository_directory)
+    shutil.copytree(original_repository, self.repository_directory2)
     shutil.copytree(original_client, self.client_directory)
+    shutil.copytree(original_client, self.client_directory2)
+    shutil.copyfile(original_map_file, self.map_file)
+    shutil.copyfile(original_map_file, self.map_file2)
     shutil.copytree(original_keystore, self.keystore_directory)
 
-    # 'path/to/tmp/repository' -> 'localhost:8001/tmp/repository'.
-    repository_basepath = self.repository_directory[len(os.getcwd()):]
-    url_prefix = \
-      'http://localhost:' + str(self.SERVER_PORT) + repository_basepath
+    # Launch a SimpleHTTPServer (serves files in the current directory).
+    # Test cases will request metadata and target files that have been
+    # pre-generated in 'tuf/tests/repository_data', which will be served by the
+    # SimpleHTTPServer launched here.  The test cases of this unit test assume
+    # the pre-generated metadata files have a specific structure, such
+    # as a delegated role 'targets/role1', three target files, five key files,
+    # etc.
+    self.SERVER_PORT = 30001
+    self.SERVER_PORT2 = 30002
 
-    # Setting 'tuf.settings.repository_directory' with the temporary client
-    # directory copied from the original repository files.
-    tuf.settings.repositories_directory = self.client_directory
+    command = ['simple_server.py', str(self.SERVER_PORT)]
+    command2 = ['simple_server.py', str(self.SERVER_PORT2)]
+
+    self.server_process = subprocess.Popen(command, stderr=subprocess.PIPE,
+        cwd=self.repository_directory)
+
+    logger.debug('Server process started.')
+    logger.debug('Server process id: ' + str(self.server_process.pid))
+    logger.debug('Serving on port: ' + str(self.SERVER_PORT))
+
+    self.server_process2 = subprocess.Popen(command2, stderr=subprocess.PIPE,
+        cwd=self.repository_directory2)
+
+    logger.debug('Server process 2 started.')
+    logger.debug('Server 2 process id: ' + str(self.server_process2.pid))
+    logger.debug('Serving 2 on port: ' + str(self.SERVER_PORT2))
+    self.url = 'http://localhost:' + str(self.SERVER_PORT) + os.path.sep
+    self.url2 = 'http://localhost:' + str(self.SERVER_PORT2) + os.path.sep
+
+    # NOTE: Following error is raised if a delay is not applied:
+    # <urlopen error [Errno 111] Connection refused>
+    time.sleep(.8)
+
+    url_prefix = 'http://localhost:' + str(self.SERVER_PORT)
+    url_prefix2 = 'http://localhost:' + str(self.SERVER_PORT2)
 
     self.repository_mirrors = {'mirror1': {'url_prefix': url_prefix,
-                                           'metadata_path': 'metadata',
-                                           'targets_path': 'targets',
-                                           'confined_target_dirs': ['']}}
+        'metadata_path': 'metadata', 'targets_path': 'targets',
+        'confined_target_dirs': ['']}}
 
-    self.map_file = os.path.join(self.client_directory, 'map.json')
+    self.repository_mirrors2 = {'mirror1': {'url_prefix': url_prefix2,
+        'metadata_path': 'metadata', 'targets_path': 'targets',
+        'confined_target_dirs': ['']}}
+
+    # Create the repository instances.  The test cases will use these client
+    # updaters to refresh metadata, fetch target files, etc.
+    self.repository_updater = updater.Updater(repository_name,
+        self.repository_mirrors)
+    self.repository_updater2 = updater.Updater(repository_name2,
+        self.repository_mirrors2)
 
     # Creating a repository instance.  The test cases will use this client
     # updater to refresh metadata, fetch target files, etc.
@@ -1766,11 +1757,26 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
 
   def tearDown(self):
-    # We are inheriting from custom class.
+    # Modified_TestCase.tearDown() automatically deletes temporary files and
+    # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
+
+    # Remove the temporary repository directory, which should contain all the
+    # metadata, targets, and key files generated of all the test cases.
+    shutil.rmtree(self.temporary_directory)
+
+    # Kill the SimpleHTTPServer process.
+    if self.server_process.returncode is None:
+      logger.info('Server process ' + str(self.server_process.pid) + ' terminated.')
+      self.server_process.kill()
+
+    if self.server_process2.returncode is None:
+      logger.info('Server 2 process ' + str(self.server_process2.pid) + ' terminated.')
+      self.server_process2.kill()
+
+    # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
-
 
 
 
@@ -1796,6 +1802,124 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     multi_repo_updater = updater.MultiRepoUpdater(map_file)
 
 
+
+  def test_paths_match_target(self):
+    map_file = os.path.join(self.client_directory, 'map.json')
+    multi_repo_updater = updater.MultiRepoUpdater(map_file)
+    paths = ['foo*.tgz', 'bar*.tgz', 'file1.txt']
+    self.assertTrue(multi_repo_updater.paths_match_target(paths, 'bar-1.0.tgz'))
+    self.assertTrue(multi_repo_updater.paths_match_target(paths, 'file1.txt'))
+    self.assertFalse(multi_repo_updater.paths_match_target(paths, 'baz-1.0.tgz'))
+
+
+
+  def test_get_one_valid_targetinfo(self):
+    map_file = os.path.join(self.client_directory, 'map.json')
+    multi_repo_updater = updater.MultiRepoUpdater(map_file)
+
+    # Verify the multi repo updater refuses to save targetinfo if
+    # required local repositories are missing.
+    repo_dir = os.path.join(tuf.settings.repositories_directory,
+        'test_repository1')
+    backup_repo_dir = os.path.join(tuf.settings.repositories_directory,
+        'test_repository1.backup')
+    shutil.move(repo_dir, backup_repo_dir)
+    self.assertRaises(tuf.exceptions.Error,
+        multi_repo_updater.get_one_valid_targetinfo, 'file3.txt')
+
+    # Restore the client's repository directory.
+    shutil.move(backup_repo_dir, repo_dir)
+
+    # Verify that the Root file must exist.
+    root_filepath = os.path.join(repo_dir, 'metadata', 'current', 'root.json')
+    backup_root_filepath = os.path.join(root_filepath, root_filepath + '.backup')
+    shutil.move(root_filepath, backup_root_filepath)
+    self.assertRaises(tuf.exceptions.Error,
+        multi_repo_updater.get_one_valid_targetinfo, 'file3.txt')
+
+    # Restore the Root file.
+    shutil.move(backup_root_filepath, root_filepath)
+
+    # Test that the first mapping is skipped if it's irrelevant to the target
+    # file.
+    self.assertRaises(tuf.exceptions.UnknownTargetError,
+        multi_repo_updater.get_one_valid_targetinfo, 'non-existent.txt')
+
+    # Verify that a targetinfo is not returned for a non-existent target.
+    multi_repo_updater.map_file['mapping'][1]['terminating'] = False
+    self.assertRaises(tuf.exceptions.UnknownTargetError,
+        multi_repo_updater.get_one_valid_targetinfo, 'non-existent.txt')
+    multi_repo_updater.map_file['mapping'][1]['terminating'] = True
+
+    # Test for a mapping that sets terminating = True, and that appears before
+    # the final mapping.
+    multi_repo_updater.map_file['mapping'][0]['terminating'] = True
+    self.assertRaises(tuf.exceptions.UnknownTargetError,
+        multi_repo_updater.get_one_valid_targetinfo, 'bad3.txt')
+    multi_repo_updater.map_file['mapping'][0]['terminating'] = False
+
+    # Verify the case where two repositories provide different targetinfo.
+    # First, have 'role1' sign for a different 'file1.txt' (currently signed
+    # only by the Targets role).
+    repository = repo_tool.load_repository(self.repository_directory2)
+
+    # Test for the case where multiple repos sign for the same target.
+    #self.assertTrue(tuf.formats.TARGETINFO_SCHEMA.matches(
+    #    multi_repo_updater.get_one_valid_targetinfo('file1.txt')))
+    multi_repo_updater.get_one_valid_targetinfo('file1.txt')
+
+    # Modify file1.txt so that different a length and hashes are added signed
+    # role1.
+    target1 = os.path.join(self.repository_directory2, 'targets', 'file1.txt')
+    with open(target1, 'ab') as file_object:
+      file_object.write(b'append extra text')
+    repository.targets.remove_target(target1)
+    repository.targets.add_target(target1)
+
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.writeall()
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory2, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory2, 'metadata.staged'),
+        os.path.join(self.repository_directory2, 'metadata'))
+
+    targets_file = securesystemslib.util.load_json_file(
+        os.path.join(self.repository_directory2, 'metadata', 'targets.json'))
+
+    targets_file2 = securesystemslib.util.load_json_file(
+        os.path.join(self.repository_directory, 'metadata', 'targets.json'))
+
+    multi_repo_updater.get_one_valid_targetinfo('file1.txt')
+
+    multi_repo_updater.map_file['mapping'][0]['threshold'] = 2
+    self.assertRaises(tuf.exceptions.UnknownTargetError,
+        multi_repo_updater.get_one_valid_targetinfo, 'file1.txt')
+
+
+
+
+
+  def test_get_updater(self):
+    map_file = os.path.join(self.client_directory, 'map.json')
+    multi_repo_updater = updater.MultiRepoUpdater(map_file)
+
+    # Test for a non-existent repository name.
+    self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name',
+        multi_repo_updater.map_file['repositories']))
+
+    # Test get_updater indirectly via the "private" _update_from_repository().
+    self.assertRaises(tuf.exceptions.Error,
+        multi_repo_updater._update_from_repository, 'bad_repo_name',
+        multi_repo_updater.map_file['repositories'],
+        'file3.txt')
+
+    # Test for a repository that doesn't exist.
+    multi_repo_updater.map_file['repositories']['bad_repo_name'] = ['https://bogus:30002']
+    self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name',
+        multi_repo_updater.map_file['repositories']))
 
 
 

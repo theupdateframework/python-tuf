@@ -202,7 +202,7 @@ class MultiRepoUpdater(object):
     try:
       self.map_file = securesystemslib.util.load_json_file(map_file)
 
-    except (securesystemslib.exceptions.Error) as e:
+    except (securesystemslib.exceptions.Error, IOError) as e:
       raise tuf.exceptions.Error('Cannot load the map file: ' + str(e))
 
 
@@ -212,23 +212,41 @@ class MultiRepoUpdater(object):
   def get_one_valid_targetinfo(self, target_filename):
     """
     <Purpose>
-      Return the targetinfo, if any, for the given 'target_filename'.
+      Get one valid targetinfo, if any, for the given 'target_filename'.  The
+      map file controls which targetinfo is returned (see TAP 4).  Return
+      (targetinfo, [updater1, updater2, ...]), where the first item of the
+      tuple is the valid 'targetinfo', and the second a list of one or more
+      updaters that provide the expected target file for 'targetinfo'.
 
     <Arguments>
       target_filename:
         The relative path of the target file to update.
 
     <Exceptions>
-      tuf.FormatError, if the argument is improperly formatted.
+      tuf.exceptions.FormatError, if the argument is improperly formatted.
+
+      tuf.exceptions.Error, if the required local metadata directory or the
+      Root file does not exist.
+
+      tuf.exceptions.UnknownTargetError, if the repositories in the map file do
+      not agree on the target, or none of them have signed for the target.
 
     <Side Effects>
       None.
 
     <Returns>
-      The targetinfo (conformant with tuf.formats.TARGETINFO_SCHEMA) for
-      'target_filename', if available.  Return None if no targetinfo is
-      available.
+      A (targetinfo, [updater1, updater2, ...]) tuple.  The targetinfo
+      (conformant with tuf.formats.TARGETINFO_SCHEMA) is for 'target_filename',
+      if available.
     """
+
+    # Is the argument properly formatted?  If not, raise
+    # 'tuf.exceptions.FormatError'.
+    tuf.formats.RELPATH_SCHEMA.check_match(target_filename)
+
+    # TAP 4 requires that the following attributes be present in mappings:
+    # "paths", "repositories", "terminating", and "threshold".
+    tuf.formats.MAPPING_SCHEMA.check_match(self.map_file['mapping'])
 
     # {"repository_name": [mirror URLs, ...], ...}
     repository_names_to_mirrors = self.map_file['repositories']
@@ -237,62 +255,126 @@ class MultiRepoUpdater(object):
     for repository_name in repository_names_to_mirrors:
       logger.debug('Interrogating repository: ' + repr(repository_name))
       # Each repository must cache its metadata in a separate location.
-      repository_directory = os.path.join(repositories_directory, repository_name)
+      repository_directory = os.path.join(repositories_directory,
+          repository_name)
+
       if not os.path.isdir(repository_directory):
         raise tuf.exceptions.Error('The metadata directory'
-            ' for ' + repr(repository_name) + ' must exist at ' + repr(repository_directory))
+            ' for ' + repr(repository_name) + ' must exist'
+            ' at ' + repr(repository_directory))
 
       else:
         logger.debug('Found local directory for ' + repr(repository_name))
 
-      # The latest known root metadata file must already be on disk.
+      # The latest known root metadata file must also exist on disk.
       root_file = os.path.join(repository_directory, 'metadata',
           'current', 'root.json')
+
       if not os.path.isfile(root_file):
-        raise tuf.exceptions.Error('The Root file must exist at ' + repr(root_file))
+        raise tuf.exceptions.Error('The Root file must exist'
+            ' at ' + repr(root_file))
 
       else:
         logger.debug('Found local Root file at ' + repr(root_file))
 
     # Iterate mappings.
-    # [{"paths": [], "repositories": [], "terminating": Boolean}, ...]
+    # [{"paths": [], "repositories": [], "terminating": Boolean, "threshold":
+    # NUM}, ...]
     for mapping in self.map_file['mapping']:
       logger.debug('Interrogating mappings..' + repr(mapping))
+
       # If this mapping is relevant to the target...
       if self.paths_match_target(mapping['paths'], target_filename):
+        targetinfo_and_updaters = []
         targetinfos = []
 
-        # Use the *unmodified* TUF updater for a single repository to fetch the
-        # targetinfo from each repository.
+        # Retrieve the targetinfo from each repository using the
+        # underlying Updater() instance.
         for repository_name in mapping['repositories']:
-          logger.debug('Updating from repository...')
-          targetinfo, updater = self._update_from_repository(repository_name,
-              repository_names_to_mirrors, target_filename)
-          logger.debug('Adding targetinfo: ' + repr(targetinfo))
+          logger.debug('Retrieving targetinfo for ' + repr(target_filename) +
+              ' from repository...')
+
+          try:
+            targetinfo, updater = self._update_from_repository(repository_name,
+                repository_names_to_mirrors, target_filename)
+
+          except (tuf.exceptions.UnknownTargetError, tuf.exceptions.Error) as e:
+            continue
+
+          logger.debug('Adding targetinfo: ' + repr(targetinfo) + ' for'
+              ' updater ' + repr(updater.repository_name))
           targetinfos.append(targetinfo)
+          targetinfo_and_updaters.append((targetinfo, updater))
 
-        # If the targetinfo on each repository is equal to the others, and it
-        # is not empty, then return the targetinfo.
-        logger.debug('Verifying that all targetinfo are equal')
-        if self._targets_are_equal_and_not_empty(targetinfos):
+        # If the targetinfo on each repository is equal to a threshold of
+        # others, and it is not empty, then return the targetinfo.
+        logger.debug('Verifying that a threshold of targetinfo are equal...')
 
-          return targetinfo, updater
+        # Is the list of targetinfo empty?  If so, log that none of the
+        # repositories in this mapping provided valid targetinfo, and fall out
+        # of the for-loop.  Once out of the mapping for-loop, verify whether
+        # this is a terminating mapping.
+        if len(targetinfos) == 0:
+          logger.debug('None of the repositories in the matching mapping'
+              ' provided valid targetinfo.')
 
+        else:
+          # Is there a threshold of matching targetinfo that we can return?
+          for targetinfo in targetinfos: # pragma: no branch
+            # Note: The last line of this loop includes a break, which prevents
+            # the loop from fully iterating targetinfos; allow partial
+            # branching for coverage.
+            if targetinfos.count(targetinfo) >= mapping['threshold']:
+              # Yes, but first compile a list of updaters that provide the
+              # matching targetinfo.
+              logger.debug('Found a threshold of matching targetinfo!')
+              updaters = []
+              for target_info, updater in targetinfo_and_updaters:
+                if target_info == targetinfo:
+                  updaters.append(updater)
+
+                else:
+                  continue
+
+              # We now have a targetinfo (that matches across a threshold of
+              # repositories as instructed by the map file), along with the
+              # updaters that sign for it.
+              logger.debug('Returning updaters for targetinfo: ' +
+                  repr(targetinfo))
+              return targetinfo, updaters
+
+            # All of the targetinfo did not match.  Fall out of the
+            # targetsinfo for-loop and check the mapping's "terminating"
+            # attribute.
+            else:
+              break
+
+      # The mapping is irrelevant to the target file.  Try the next one, if any.
       else:
         continue
 
-      # If we are here, it means either the mapping is irrelevant to the
-      # target, or the targets were missing from all repositories in this
-      # mapping, or the targets on all repositories did not match. In that
-      # case, are we allowed to continue to the next mapping?  Let's check
-      # the terminating entry.
+      # If we are here, it means either (1) the mapping is irrelevant to the
+      # target, (2) the targets were missing from all repositories in this
+      # mapping, or (3) the targets on all repositories did not match. In
+      # whichever case, are we allowed to continue to the next mapping?  Let's
+      # check the terminating entry!
       if mapping['terminating']:
-        return None
+        raise tuf.exceptions.UnknownTargetError('The repositories in the map'
+            ' file do not agree on the target, or none of them have signed'
+            ' for the target.')
+
+      # The mapping did not pan out for the requested target, try the next one.
+      else:
+        logger.debug('The mapping was irrelevant to the targets, and'
+            ' "terminating" was set to False.')
+        continue
 
     # If we are here, it means either there were no mappings, or none of the
     # mappings provided the target.
-    logger.debug('Did not find the target.')
-    return None
+    logger.debug('Did not find valid targetinfo for ' + repr(target_filename))
+    raise tuf.exceptions.UnknownTargetError('The repositories in the map'
+        ' file do not agree on the target, or none of them have signed'
+        ' for the target.')
 
 
 
@@ -300,7 +382,9 @@ class MultiRepoUpdater(object):
 
   def paths_match_target(self, paths, target_filename):
     for path in paths:
-      logger.debug('Interrogating path ' + repr(path) + 'for target: ' + repr(target_filename))
+      logger.debug('Interrogating path ' + repr(path) + 'for'
+          ' target: ' + repr(target_filename))
+
       if fnmatch.fnmatch(target_filename, path):
         logger.debug('Found a match for ' + repr(target_filename))
         return True
@@ -319,33 +403,82 @@ class MultiRepoUpdater(object):
 
 
   def get_updater(self, repository_name, repository_names_to_mirrors):
-    # NOTE: Do not refresh metadata for a repository that has been visited.
+    """
+    <Purpose>
+      Get the updater instance corresponding to 'repository_name'.
+
+    <Arguments>
+      repository_name:
+        The name of the repository as it appears in the map file.  For example,
+        "Django" and "PyPI" in the "repositories" entry of the map file.
+
+        "repositories": {
+            "Django": ["https://djangoproject.com/"],
+            "PyPI":   ["https://pypi.python.org/"]
+        }
+
+      repository_names_to_mirrors:
+        The "repositories" entry of the map file, with the following format:
+
+        "repositories": {
+            "Django": ["https://djangoproject.com/"],
+            "PyPI":   ["https://pypi.python.org/"]
+        }
+
+    <Exceptions>
+      tuf.exceptions.FormatError, if any of the arguments are improperly
+      formatted.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      Returns the Updater() instance for 'repository_name'.  If the instance
+      does not exist, return None.
+    """
+
+    # Are the arguments properly formatted?  If not, raise
+    # 'tuf.exceptions.FormatError'.
+    tuf.formats.NAME_SCHEMA.check_match(repository_name)
+    tuf.formats.REPO_NAMES_TO_MIRRORS_SCHEMA.check_match(repository_names_to_mirrors)
+
     updater = self.repository_names_to_updaters.get(repository_name)
 
     if not updater:
-      # Create repository mirrors object needed by the tuf.client.updater.Updater().
-      # Each 'repository_name' can have more than one mirror.
+      # Create repository mirrors object needed by the
+      # tuf.client.updater.Updater().  Each 'repository_name' can have more
+      # than one mirror.
       mirrors = {}
-      for url in repository_names_to_mirrors[repository_name]:
-        mirrors[url] = {
-          'url_prefix': url,
-          'metadata_path': 'metadata',
-          'targets_path': 'targets',
-          'confined_target_dirs': ['']}
 
-      # NOTE: State (e.g., keys) should NOT be shared across different updater
-      # instances.
-      updater = tuf.client.updater.Updater(repository_name, mirrors)
-
-      try:
-        updater.refresh()
-
-      except:
+      if repository_name not in repository_names_to_mirrors:
         return None
 
       else:
-        self.repository_names_to_updaters[repository_name] = updater
+        for url in repository_names_to_mirrors[repository_name]:
+          mirrors[url] = {
+            'url_prefix': url,
+            'metadata_path': 'metadata',
+            'targets_path': 'targets',
+            'confined_target_dirs': ['']}
 
+        try:
+          # NOTE: State (e.g., keys) should NOT be shared across different
+          # updater instances.
+          logger.debug('Adding updater for ' + repr(repository_name))
+          updater = tuf.client.updater.Updater(repository_name, mirrors)
+          #updater.refresh()
+
+        except:
+          return None
+
+        else:
+          self.repository_names_to_updaters[repository_name] = updater
+
+    else:
+      logger.debug('Found an updater for ' + repr(repository_name))
+
+    # Ensure the updater's metadata is the latest before returning it.
+    updater.refresh()
     return updater
 
 
@@ -354,61 +487,18 @@ class MultiRepoUpdater(object):
 
   def _update_from_repository(self, repository_name, repository_names_to_mirrors,
       target_filename):
+
     # Set the repository directory containing the metadata.
     updater = self.get_updater(repository_name, repository_names_to_mirrors)
 
-    try:
+    if not updater:
+      raise tuf.exceptions.Error('Cannot load updater'
+          ' for ' + repr(repository_name))
+
+    else:
+      # Get one valid target info from the Updater object.  Raises
+      # 'tuf.exceptions.UnknownTargetError'.
       return updater.get_one_valid_targetinfo(target_filename), updater
-
-    except:
-      return None
-
-
-
-
-
-  def _targets_are_equal_and_not_empty(self, targetinfos):
-    """
-    If not empty, check only that length and hashes are equal; ignore custom
-    targets metadata.
-    """
-
-    # Target is empty.
-    if len(targetinfos) == 0:
-      return False
-
-    else:
-      prev_targetinfo = targetinfos[0]
-
-    # Target is empty.
-    if not prev_targetinfo:
-      return False
-
-    else:
-      for curr_targetinfo in targetinfos[1:]:
-        # Target is empty.
-        if not curr_targetinfo:
-          return False
-
-        else:
-          prev_length = prev_targetinfo['fileinfo']['length']
-          curr_length = curr_targetinfo['fileinfo']['length']
-          if prev_length != curr_length:
-            return False
-
-          prev_hashes = prev_targetinfo['fileinfo']['hashes']
-          curr_hashes = curr_targetinfo['fileinfo']['hashes']
-          if prev_hashes.keys() != curr_hashes.keys():
-            return False
-
-          for function, prev_digest in prev_hashes.items():
-            if prev_digest != curr_hashes[function]:
-              return False
-
-          prev_targetinfo = curr_targetinfo
-
-    # If we are here, then all the targets are equal.
-    return True
 
 
 
@@ -1821,6 +1911,10 @@ class Updater(object):
 
     current_versioninfo = self.versioninfo[metadata_filename]
 
+    logger.debug('New version for ' + repr(metadata_filename) +
+        ': ' + repr(new_versioninfo['version']) + '.  Old version: ' +
+        repr(current_versioninfo['version']))
+
     if new_versioninfo['version'] > current_versioninfo['version']:
       return True
 
@@ -2585,8 +2679,8 @@ class Updater(object):
 
     if target is None and number_of_delegations == 0 and len(role_names) > 0:
       logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
-                   'but allowed to visit at most ' +
-                   repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
+          'but allowed to visit at most ' +
+          repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
     return target
 

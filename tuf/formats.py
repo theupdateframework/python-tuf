@@ -258,6 +258,21 @@ TARGETINFO_SCHEMA = SCHEMA.Object(
 # A list of TARGETINFO_SCHEMA.
 TARGETINFOS_SCHEMA = SCHEMA.ListOf(TARGETINFO_SCHEMA)
 
+# A string representing a named oject.
+NAME_SCHEMA = SCHEMA.AnyString()
+
+# A dict of repository names to mirrors.
+REPO_NAMES_TO_MIRRORS_SCHEMA = SCHEMA.DictOf(
+  key_schema = NAME_SCHEMA,
+  value_schema = SCHEMA.ListOf(securesystemslib.formats.URL_SCHEMA))
+
+# A Dict containing the map file's "mapping" attribute.
+MAPPING_SCHEMA = SCHEMA.ListOf(SCHEMA.Object(
+  paths = RELPATHS_SCHEMA,
+  repositories = SCHEMA.ListOf(securesystemslib.formats.URL_SCHEMA),
+  terminating = BOOLEAN_SCHEMA,
+  threshold = THRESHOLD_SCHEMA))
+
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
 

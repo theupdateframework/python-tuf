@@ -49,7 +49,10 @@ import securesystemslib
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
 
+import securesystemslib
+
 logger = logging.getLogger('test_multiple_repositories_integration')
+
 repo_tool.disable_console_log_messages()
 
 
@@ -72,7 +75,7 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # The original repository, keystore, and client directories will be copied
     # for each test case.
     original_repository = os.path.join(original_repository_files, 'repository')
-    original_client = os.path.join(original_repository_files, 'client', 'test_repository')
+    original_client = os.path.join(original_repository_files, 'client', 'test_repository1')
     original_keystore = os.path.join(original_repository_files, 'keystore')
     original_map_file = os.path.join(original_repository_files, 'map.json')
 
@@ -87,8 +90,8 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # directory copied from the original repository files.
     tuf.settings.repositories_directory = self.temporary_repository_root
 
-    repository_name = 'repository1'
-    repository_name2 = 'repository2'
+    repository_name = 'test_repository1'
+    repository_name2 = 'test_repository2'
     self.client_directory = os.path.join(self.temporary_repository_root, repository_name)
     self.client_directory2 = os.path.join(self.temporary_repository_root, repository_name2)
 
@@ -179,41 +182,42 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
       logger.info('Server 2 process ' + str(self.server_process2.pid) + ' terminated.')
       self.server_process2.kill()
 
-    # updater.Updater() populates the roledb with the name "test_repository"
+    # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
 
 
   def test_update(self):
-    self.assertEqual('repository1', str(self.repository_updater))
-    self.assertEqual('repository2', str(self.repository_updater2))
+    self.assertEqual('test_repository1', str(self.repository_updater))
+    self.assertEqual('test_repository2', str(self.repository_updater2))
 
     self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
-        sorted(tuf.roledb.get_rolenames('repository1')))
+        sorted(tuf.roledb.get_rolenames('test_repository1')))
 
     self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
-        sorted(tuf.roledb.get_rolenames('repository2')))
+        sorted(tuf.roledb.get_rolenames('test_repository2')))
 
     self.repository_updater.refresh()
 
     self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
-        sorted(tuf.roledb.get_rolenames('repository1')))
+        sorted(tuf.roledb.get_rolenames('test_repository1')))
     self.assertEqual(sorted(['role1', 'root', 'snapshot', 'targets', 'timestamp']),
-        sorted(tuf.roledb.get_rolenames('repository2')))
+        sorted(tuf.roledb.get_rolenames('test_repository2')))
 
     # 'role1.json' should be downloaded, because it provides info for the
     # requested 'file3.txt'.
     valid_targetinfo = self.repository_updater.get_one_valid_targetinfo('/file3.txt')
 
     self.assertEqual(sorted(['role2', 'role1', 'root', 'snapshot', 'targets', 'timestamp']),
-        sorted(tuf.roledb.get_rolenames('repository1')))
+        sorted(tuf.roledb.get_rolenames('test_repository1')))
+
 
 
 
   def test_repository_tool(self):
-    repository_name = 'repository1'
-    repository_name2 = 'repository2'
+    repository_name = 'test_repository1'
+    repository_name2 = 'test_repository2'
 
     self.assertEqual(repository_name, str(self.repository_updater))
     self.assertEqual(repository_name2, str(self.repository_updater2))
@@ -263,11 +267,13 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     with open(self.map_file, 'w') as file_object:
       file_object.write(json.dumps(map_file))
 
+    # Try to load a non-existent map file.
+    self.assertRaises(tuf.exceptions.Error, updater.MultiRepoUpdater, 'bad_path')
+
     multi_repo_updater = updater.MultiRepoUpdater(self.map_file)
-    targetinfo, my_updater = multi_repo_updater.get_one_valid_targetinfo('file3.txt')
+    targetinfo, my_updaters = multi_repo_updater.get_one_valid_targetinfo('file3.txt')
 
-
-    my_updater.download_target(targetinfo, self.temporary_directory)
+    my_updaters[0].download_target(targetinfo, self.temporary_directory)
     self.assertTrue(os.path.exists(os.path.join(self.temporary_directory, 'file3.txt')))
 
 

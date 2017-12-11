@@ -1,1 +1,33 @@
-{"repositories": {"repository1": ["http://localhost:30001"], "repository2": ["http://localhost:30002"]}, "mapping": [{"paths": ["*3.txt"], "terminating": false, "repositories": ["repository1", "repository2"]}, {"paths": ["*"], "repositories": ["repository2"]}]}
+{
+ "mapping": [
+  {
+   "paths": [
+    "*1.txt"
+   ],
+   "repositories": [
+    "test_repository1",
+    "test_repository2"
+   ],
+   "terminating": false,
+   "threshold": 1
+  },
+  {
+   "paths": [
+    "*3.txt"
+   ],
+   "repositories": [
+    "test_repository2"
+   ],
+   "terminating": true,
+   "threshold": 1
+  }
+ ],
+ "repositories": {
+  "test_repository1": [
+   "http://localhost:30001"
+  ],
+  "test_repository2": [
+   "http://localhost:30002"
+  ]
+ }
+}
