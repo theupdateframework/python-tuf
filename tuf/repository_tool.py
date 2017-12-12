@@ -554,7 +554,7 @@ class Metadata(object):
     self._repository_name = None
 
 
-  def add_verification_key(self, key, expires=None):
+  def add_verification_key(self,  key,expires=None, TAP3 = False):
     """
     <Purpose>
       Add 'key' to the role.  Adding a key, which should contain only the
@@ -659,13 +659,24 @@ class Metadata(object):
     keyid = key['keyid']
     roleinfo = tuf.roledb.get_roleinfo(self.rolename, self._repository_name)
 
-    previous_keyids = roleinfo['keyids']
 
+    if(TAP3 is True):
+        for role in roleinfo["roleinfo"]:
+            if(rolename == role["rolename"]):
+                index = roleinfo["roleinfo"].index(role)
+                previous_keyids = role['keyids']
+    else:
+        previous_keyids = roleinfo['keyids']
     # Add 'key' to the role's entry in 'tuf.roledb.py' and avoid duplicates.
-    if keyid not in previous_keyids:
+    if keyid not in previous_keyids and "keyids" in roleinfo.keys():
       roleinfo['keyids'].append(keyid)
       roleinfo['previous_keyids'] = previous_keyids
+      tuf.roledb.update_roleinfo(self._rolename, roleinfo,
+          repository_name=self._repository_name)
 
+    elif TAP3 is True and keyid not in previous_keyids:
+      roleinfo['roleinfo'][index]['keyids'].append(keyid)
+      roleinfo['roleinfo'][index]['previous_keyids'] = previous_keyids
       tuf.roledb.update_roleinfo(self._rolename, roleinfo,
           repository_name=self._repository_name)
 
@@ -1554,7 +1565,7 @@ class Targets(Metadata):
   """
 
   def __init__(self, targets_directory, rolename='targets', roleinfo=None,
-               parent_targets_object=None, repository_name='default'):
+               parent_targets_object=None, repository_name='default', TAP3 = False):
 
     # Do the arguments have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
@@ -1589,11 +1600,19 @@ class Targets(Metadata):
 
     # If 'roleinfo' is not provided, set an initial default.
     if roleinfo is None:
-      roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
+        if(TAP3 is True):
+            roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
+                    'version': 0, 'expires': expiration,
+                    'signatures': [], 'paths': {}, 'path_hash_prefixes': [],
+                    'partial_loaded': False, 'delegations': {'keys': {},
+                               'roles': []}, 'keys_for_delegations':{}}
+        else:
+            roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
                   'version': 0, 'expires': expiration,
                   'signatures': [], 'paths': {}, 'path_hash_prefixes': [],
                   'partial_loaded': False, 'delegations': {'keys': {},
-                                                           'roles': []}, 'keys_for_delegations':{}}
+                                                           'roles': []}}
+
 
     # Add the new role to the 'tuf.roledb'.
     try:
@@ -2123,8 +2142,8 @@ class Targets(Metadata):
 
 
 
-  def delegate(self, rolename, public_keys, list_of_targets, threshold=1,
-               terminating=False, restricted_paths=None, path_hash_prefixes=None):
+  def delegate(self, rolename, public_keys, list_of_targets, NUM_ROLES = None,
+               threshold=1,terminating=False, restricted_paths=None, path_hash_prefixes=None, delegationname = None, TAP3 = False):
     """
     <Purpose>
       Create a new delegation, where 'rolename' is a child delegation of this
@@ -2263,12 +2282,22 @@ class Targets(Metadata):
     expiration = \
       tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
-
-    roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
+    if (TAP3):
+        #These fields indicate that TAP3 will be used.
+        roleinfo = {'name': delegationname, 'roleinfo':[{'keyids': keyids, 'threshold': threshold, 'rolename': rolename}],
+            'signing_keyids': [], 'version': 0,
+            'expires': expiration, 'signatures': [], 'partial_loaded': False,
+            'paths': relative_targetpaths, 'delegations': {'keys': {},
+            'roles': []}, 'min_roles_in_agreement':0}
+        
+    else:
+        roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
                 'threshold': threshold, 'version': 0,
                 'expires': expiration, 'signatures': [], 'partial_loaded': False,
                 'paths': relative_targetpaths, 'delegations': {'keys': {},
                 'roles': []}}
+
+
 
     # The new targets object is added as an attribute to this Targets object.
     new_targets_object = Targets(self._targets_directory, rolename, roleinfo,
@@ -2281,12 +2310,19 @@ class Targets(Metadata):
 
     # Update the roleinfo of this role.  A ROLE_SCHEMA object requires only
     # 'keyids', 'threshold', and 'paths'.
-    roleinfo = {'name': rolename,
+    if(TAP3):
+        roleinfo = {'name': delegationname,
+                    'roleinfo': roleinfo['roleinfo'],
+                    'terminating': terminating,
+                    'min_roles_in_agreement':roleinfo['min_roles_in_agreement'],
+                    'paths': list(roleinfo['paths'].keys())}
+    else:
+        roleinfo = {'name': rolename,
                 'keyids': roleinfo['keyids'],
                 'threshold': roleinfo['threshold'],
-                'terminating': terminating
-                'min_roles_in_agreement':roleinfo['min_roles_in_agreement'],
+                'terminating': terminating,
                 'paths': list(roleinfo['paths'].keys())}
+
 
     if restricted_paths is not None:
       roleinfo['paths'] = relative_restricted_paths
@@ -2928,6 +2964,7 @@ def load_repository(repository_directory, repository_name='default'):
 
   # Load the metadata of the top-level roles (i.e., Root, Timestamp, Targets,
   # and Snapshot).
+
   repository, consistent_snapshot = repo_lib._load_top_level_metadata(repository,
     filenames, repository_name)
 

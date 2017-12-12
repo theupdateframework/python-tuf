@@ -157,10 +157,14 @@ def _generate_and_write_metadata(rolename, metadata_filename,
     if rolename == 'targets':
       _log_warning_if_expires_soon(TARGETS_FILENAME, roleinfo['expires'],
           TARGETS_EXPIRES_WARN_SECONDS)
-
+    #If targets metadata follows TAP3, it will have this key
+    if('keys_for_delegations' in roleinfo.keys()):
+        keysForDel = roleinfo['keys_for_delegations']
+    else:
+        keysForDel = None
     metadata = generate_targets_metadata(targets_directory, roleinfo['paths'],
         roleinfo['version'], roleinfo['expires'], roleinfo['delegations'],
-        consistent_snapshot, roleinfo['keys_for_delegations'])
+        consistent_snapshot, keysForDel)
 
   # Before writing 'rolename' to disk, automatically increment its version
   # number (if 'increment_version_number' is True) so that the caller does not
@@ -552,8 +556,11 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
 
     # Initialize the key and role metadata of the top-level roles.
     signable = securesystemslib.util.load_json_file(root_filename)
+    
+
     tuf.formats.check_signable_object_format(signable)
     root_metadata = signable['signed']
+
     tuf.keydb.create_keydb_from_root_metadata(root_metadata, repository_name)
     tuf.roledb.create_roledb_from_root_metadata(root_metadata, repository_name)
 
@@ -679,7 +686,13 @@ def _load_top_level_metadata(repository, top_level_filenames, repository_name):
     roleinfo['version'] = targets_metadata['version']
     roleinfo['expires'] = targets_metadata['expires']
     roleinfo['delegations'] = targets_metadata['delegations']
-    roleinfo['keys_for_delegations'] = targets_metadata['keys_for_delegations']
+    try:
+        roleinfo['keys_for_delegations'] = targets_metadata['keys_for_delegations']
+    except KeyError:
+
+        #For Pre-Tap3 Formats, as per design, all Tap3 conforment
+        #will have "keys_for_delegations"
+        roleinfo['keys_for_delegations'] = None
     if _metadata_is_partially_loaded('targets', signable, repository_name):
       roleinfo['partial_loaded'] = True
 

@@ -118,7 +118,7 @@ MINROLES_SCHEMA = SCHEMA.Integer()
 
 #Role Info Object in {'keyids': [keydids..], 'name': 'ABC', 'threshold': 1}
 ROLEINFO_SCHEMA = SCHEMA.Object(
-    rolename = SCHEMA.Optional(securesystemslib.formats.ROLENAME_SCHEMA),
+    rolename = SCHEMA.Optional(ROLENAME_SCHEMA),
     keyids = securesystemslib.formats.KEYIDS_SCHEMA,
     threshold = securesystemslib.formats.THRESHOLD_SCHEMA)
 
@@ -128,6 +128,9 @@ ROLESINFO_SCHEMA = SCHEMA.ListOf(ROLEINFO_SCHEMA)
 ROLE_SCHEMA = SCHEMA.Object(
   object_name = 'ROLE_SCHEMA',
   name = SCHEMA.Optional(DLGTNAME_SCHEMA),
+  #Added optional fields for non target metadata/preTap3 targs meta data
+  keyids = SCHEMA.Optional(securesystemslib.formats.KEYIDS_SCHEMA),
+  threshold = SCHEMA.Optional(securesystemslib.formats.THRESHOLD_SCHEMA),
   min_roles_in_agreement = SCHEMA.Optional(MINROLES_SCHEMA),
   terminating = SCHEMA.Optional(securesystemslib.formats.BOOLEAN_SCHEMA),
   paths = SCHEMA.Optional(securesystemslib.formats.RELPATHS_SCHEMA),
@@ -966,7 +969,8 @@ def make_versioninfo(version_number):
 
 
 def make_role_metadata(keyids, threshold, name=None, paths=None,
-                       path_hash_prefixes=None):
+                       path_hash_prefixes=None, delegation = None,
+                       NUM_ROLES = None, TAP3 = False):
   """
   <Purpose>
     Create a dictionary conforming to 'tuf.formats.ROLE_SCHEMA',
@@ -1007,14 +1011,32 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
     A properly formatted role meta dict, conforming to
     'ROLE_SCHEMA'.
   """
+  securesystemslib.formats.KEYIDS_SCHEMA.check_match(keyids)
+  securesystemslib.formats.THRESHOLD_SCHEMA.check_match(threshold)
 
   role_meta = {}
-  role_meta['keyids'] = keyids
-  role_meta['threshold'] = threshold
+  if(TAP3 is True):
 
-  if name is not None:
+    role_meta["roleinfo"] = []
+    role_entry = {}
+    role_entry['keyids'] = keyids
+    role_entry['threshold'] = threshold
+  else:
+    role_meta['keyids'] = keyids
+    role_meta['threshold'] = threshold
+  if name is not None and TAP3 is True:
+    ROLENAME_SCHEMA.check_match(name)
+    role_entry["rolename"] = name
+    role_meta["roleinfo"].append(role_entry)
+  if name is not None and TAP3 is False:
+    ROLENAME_SCHEMA.check_match(name)
     role_meta['name'] = name
-
+  if delegation is not None and TAP3 is True:
+    DLGTNAME_SCHEMA.check_match(name)
+    role_meta['name'] = delegation
+  if NUM_ROLES is not None and TAP3 is True:
+    MINROLES_SCHEMA.check_match(NUM_ROLES)
+    role_meta['min_roles_in_agreement'] = NUM_ROLES
   # According to the specification, the 'paths' and 'path_hash_prefixes' must
   # be mutually exclusive. However, at the time of writing we do not always
   # ensure that this is the case with the schema checks (see #83). Therefore,
@@ -1029,10 +1051,11 @@ def make_role_metadata(keyids, threshold, name=None, paths=None,
   elif paths is not None:
     role_meta['paths'] = paths
 
+
   # Does 'role_meta' have the correct type?
   # This check ensures 'role_meta' conforms to tuf.formats.ROLE_SCHEMA.
   ROLE_SCHEMA.check_match(role_meta)
-
+  
   return role_meta
 
 

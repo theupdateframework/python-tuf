@@ -639,7 +639,7 @@ class TestFormats(unittest.TestCase):
     bad_threshold = 'bad'
     bad_paths = 'bad'
     bad_name = 123
-
+    
     self.assertRaises(securesystemslib.exceptions.FormatError, make_role, bad_keyids, threshold)
     self.assertRaises(securesystemslib.exceptions.FormatError, make_role, keyids, bad_threshold)
 

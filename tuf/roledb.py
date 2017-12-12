@@ -130,8 +130,10 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
 
   # Iterate the roles found in 'root_metadata' and add them to '_roledb_dict'.
   # Duplicates are avoided.
+
   for rolename, roleinfo in six.iteritems(root_metadata['roles']):
     if rolename == 'root':
+     
       roleinfo['version'] = root_metadata['version']
       roleinfo['expires'] = root_metadata['expires']
       roleinfo['previous_keyids'] = roleinfo['keyids']
@@ -260,6 +262,7 @@ def add_role(rolename, roleinfo, repository_name='default'):
        'paths': ['path/to/target1', 'path/to/target2', ...],
        'path_hash_prefixes': ['a324fcd...', ...],
        'delegations': {'keys': }
+
 
       The 'paths', 'path_hash_prefixes', and 'delegations' dict keys are
       optional.
