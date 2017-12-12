@@ -133,7 +133,7 @@ def create_roledb_from_root_metadata(root_metadata, repository_name='default'):
 
   for rolename, roleinfo in six.iteritems(root_metadata['roles']):
     if rolename == 'root':
-     
+
       roleinfo['version'] = root_metadata['version']
       roleinfo['expires'] = root_metadata['expires']
       roleinfo['previous_keyids'] = roleinfo['keyids']
@@ -243,7 +243,7 @@ def remove_roledb(repository_name):
 
 
 
-def add_role(rolename, roleinfo, repository_name='default'):
+def add_role(rolename, roleinfo, repository_name='default', delName = None, TAP3 = False):
   """
   <Purpose>
     Add to the role database the 'roleinfo' associated with 'rolename'.
@@ -295,7 +295,8 @@ def add_role(rolename, roleinfo, repository_name='default'):
   # This check will ensure 'rolename' has the appropriate number of objects
   # and object types, and that all dict keys are properly named.
   tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
-
+  if delName is not None:
+      tuf.formats.DLGTNAME_SCHEMA.check_match(delName)
   # Does 'roleinfo' have the correct object format?
   tuf.formats.ROLEDB_SCHEMA.check_match(roleinfo)
 
@@ -677,8 +678,15 @@ def get_rolenames(repository_name='default'):
   if repository_name not in _roledb_dict or repository_name not in _dirty_roles:
     raise securesystemslib.exceptions.InvalidNameError('Repository name does'
       ' not' ' exist: ' + repository_name)
-
-  return list(_roledb_dict[repository_name].keys())
+  try:
+      roleNames = []
+      for repo in _roledb_dict[repository_name].keys():
+          for roleinfo in _roledb_dict[repository_name][repo]:
+              for info in roleinfo['roleinfo']:
+                  roleNames.append(info['rolename'])
+      return roleNames
+  except:
+      return list(_roledb_dict[repository_name].keys())
 
 
 
@@ -699,10 +707,14 @@ def get_roleinfo(rolename, repository_name='default'):
     The 'signatures', 'paths', 'path_hash_prefixes', and 'delegations' dict keys
     are optional.
 
+    if the roleinfo follows TAP3, we will get the roleinfo of a delgation name.
+
+
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'snapshot', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp'). This will act as a delegatio name
+      if the format follows TAP3.
 
     repository_name:
       The name of the repository to get the role info.  If not supplied, the
@@ -743,7 +755,7 @@ def get_roleinfo(rolename, repository_name='default'):
 
 
 
-def get_role_keyids(rolename, repository_name='default'):
+def get_role_keyids(rolename, repository_name='default', delName = None):
   """
   <Purpose>
     Return a list of the keyids associated with 'rolename'.  Keyids are used as
@@ -756,6 +768,12 @@ def get_role_keyids(rolename, repository_name='default'):
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
       (e.g., 'root', 'snapshot', 'timestamp').
+
+    delName:
+      An object representing the Delegation's name, conformant to 'DLGTNAME_SCHEMA'
+      (e.g., 'DELEGATION-1'), which is used in TAP3 formatting to determine what
+      roles fall under what delegation.
+
 
     repository_name:
       The name of the repository to get the role keyids.  If not supplied, the
@@ -790,15 +808,24 @@ def get_role_keyids(rolename, repository_name='default'):
   global _roledb_dict
   global _dirty_roles
 
-  roleinfo = _roledb_dict[repository_name][rolename]
 
-  return roleinfo['keyids']
+  if delName is not None:
+      roleinfo = _roledb_dict[repository_name][delName]
+      keyids = []
+      for roles in roleinfo['roleinfo']:
+          if(rolename == roles['rolename']):
+              keyids=roles['keyids']
+      return keyids
+
+  else:
+      roleinfo = _roledb_dict[repository_name][rolename]
+      return roleinfo['keyids']
 
 
 
 
 
-def get_role_threshold(rolename, repository_name='default'):
+def get_role_threshold(rolename, repository_name='default', delName = None):
   """
   <Purpose>
     Return the threshold value of the role associated with 'rolename'.
@@ -807,6 +834,11 @@ def get_role_threshold(rolename, repository_name='default'):
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
       (e.g., 'root', 'snapshot', 'timestamp').
+
+    delName:
+      An object representing the Delegation's name, conformant to 'DLGTNAME_SCHEMA'
+      (e.g., 'DELEGATION-1'), which is used in TAP3 formatting to determine what
+      roles fall under what delegation.
 
     repository_name:
       The name of the repository to get the role threshold.  If not supplied,
@@ -842,9 +874,16 @@ def get_role_threshold(rolename, repository_name='default'):
   global _roledb_dict
   global _dirty_roles
 
-  roleinfo = _roledb_dict[repository_name][rolename]
 
-  return roleinfo['threshold']
+  if delName is not None:
+      roleinfo = _roledb_dict[repository_name][delName]
+      for roleinf in roleinfo['roleinfo']:
+          if(rolename == roleinf['rolename']):
+              threshold = roleinf['threshold']
+              return threshold
+  else:
+      roleinfo = _roledb_dict[repository_name][rolename]
+      return roleinfo['threshold']
 
 
 
@@ -858,7 +897,8 @@ def get_role_paths(rolename, repository_name='default'):
   <Arguments>
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
-      (e.g., 'root', 'snapshot', 'timestamp').
+      (e.g., 'root', 'snapshot', 'timestamp'), If the entry uses TAP3 format,
+      the variable rolename should be the delegation name instead.
 
     repository_name:
       The name of the repository to get the role paths.  If not supplied, the
@@ -906,7 +946,7 @@ def get_role_paths(rolename, repository_name='default'):
 
 
 
-def get_delegated_rolenames(rolename, repository_name='default'):
+def get_delegated_rolenames(rolename, repository_name='default', delName = None):
   """
   <Purpose>
     Return the delegations of a role.  If 'rolename' is 'tuf' and the role
@@ -917,7 +957,7 @@ def get_delegated_rolenames(rolename, repository_name='default'):
     rolename:
       An object representing the role's name, conformant to 'ROLENAME_SCHEMA'
       (e.g., 'root', 'snapshot', 'timestamp').
-
+      If data follows TAP3 format, rolename will be treated as Delegation Name.
     repository_name:
       The name of the repository to get the delegated rolenames.  If not
       supplied, the 'default' repository is searched.
@@ -949,17 +989,24 @@ def get_delegated_rolenames(rolename, repository_name='default'):
   # securesystemslib.exceptions.UnknownRoleError, or
   # securesystemslib.exceptions.InvalidNameError.
   _check_rolename(rolename, repository_name)
-
+  if(delName is not None):
+      tuf.formats.DLGTNAME_SCHEMA.check_match(delName)
   global _roledb_dict
   global _dirty_roles
 
   # get_roleinfo() raises a 'securesystemslib.exceptions.InvalidNameError' if
   # 'repository_name' does not exist in the role database.
-  roleinfo = get_roleinfo(rolename, repository_name)
-  delegated_roles = []
 
-  for delegated_role in roleinfo['delegations']['roles']:
-    delegated_roles.append(delegated_role['name'])
+  delegated_roles = []
+  if(delName is not None):
+      roleinfo = get_roleinfo(delName, repository_name)
+      for delegated_role in roleinfo['delegations']['roles']:
+          for roleinfo in delegated_role['roleinfo']:
+              delegated_roles.append(roleinfo['rolename'])
+  else:
+      roleinfo = get_roleinfo(rolename, repository_name)
+      for delegated_role in roleinfo['delegations']['roles']:
+          delegated_roles.append(delegated_role['name'])
 
   return delegated_roles
 

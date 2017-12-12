@@ -586,9 +586,18 @@ class Updater(object):
       try:
         # NOTE: tuf.roledb.add_role will take care of the case where rolename
         # is None.
-        rolename = roleinfo.get('name')
-        logger.debug('Adding delegated role: ' + str(rolename) + '.')
-        tuf.roledb.add_role(rolename, roleinfo, self.repository_name)
+        try:
+            delName = roleinfo.get('name')
+            rolein = roleinfo.get('roleinfo')
+            for entry in rolein:
+                rolename = entry['rolename']
+                tuf.roledb.add_role(rolename, roleinfo, delName = delName, TAP3 = True, repository_name = self.repository_name)
+
+        except:
+            
+            rolename = roleinfo.get('name')
+            logger.debug('Adding delegated role: ' + str(rolename) + '.')
+            tuf.roledb.add_role(rolename, roleinfo, self.repository_name)
 
       except tuf.exceptions.RoleAlreadyExistsError:
         logger.warning('Role already exists: ' + rolename)
