@@ -193,13 +193,11 @@ class MultiRepoUpdater(object):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     securesystemslib.formats.PATH_SCHEMA.check_match(map_file)
 
-    # The map file dictionary that associates targets with repositories.
-    self.map_file = {}
-
     # A dictionary mapping repositories to TUF updaters.
     self.repository_names_to_updaters = {}
 
     try:
+      # The map file dictionary that associates targets with repositories.
       self.map_file = securesystemslib.util.load_json_file(map_file)
 
     except (securesystemslib.exceptions.Error, IOError) as e:
@@ -372,6 +370,7 @@ class MultiRepoUpdater(object):
     # If we are here, it means either there were no mappings, or none of the
     # mappings provided the target.
     logger.debug('Did not find valid targetinfo for ' + repr(target_filename))
+
     raise tuf.exceptions.UnknownTargetError('The repositories in the map'
         ' file do not agree on the target, or none of them have signed'
         ' for the target.')
