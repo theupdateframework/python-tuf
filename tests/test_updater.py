@@ -1864,18 +1864,16 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     repository = repo_tool.load_repository(self.repository_directory2)
 
     # Test for the case where multiple repos sign for the same target.
-    #self.assertTrue(tuf.formats.TARGETINFO_SCHEMA.matches(
-    #    multi_repo_updater.get_one_valid_targetinfo('file1.txt')))
-    multi_repo_updater.get_one_valid_targetinfo('file1.txt')
+    targetinfo, junk = multi_repo_updater.get_one_valid_targetinfo('file1.txt')
+    self.assertTrue(tuf.formats.TARGETINFO_SCHEMA.matches(targetinfo))
 
-    # Modify file1.txt so that different a length and hashes are added signed
-    # role1.
+    # Modify file1.txt so that different length and hashes are reported
+    # by the two repositories.
     target1 = os.path.join(self.repository_directory2, 'targets', 'file1.txt')
     with open(target1, 'ab') as file_object:
       file_object.write(b'append extra text')
     repository.targets.remove_target(target1)
     repository.targets.add_target(target1)
-
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
     repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
@@ -1886,14 +1884,9 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     shutil.copytree(os.path.join(self.repository_directory2, 'metadata.staged'),
         os.path.join(self.repository_directory2, 'metadata'))
 
-    targets_file = securesystemslib.util.load_json_file(
-        os.path.join(self.repository_directory2, 'metadata', 'targets.json'))
-
-    targets_file2 = securesystemslib.util.load_json_file(
-        os.path.join(self.repository_directory, 'metadata', 'targets.json'))
-
-    multi_repo_updater.get_one_valid_targetinfo('file1.txt')
-
+    # Ensure the threshold is modified to 2 (assumed to be 1, by default) and
+    # verify that get_one_valid_targetinfo() raises an UnknownTargetError
+    # despite both repos signing for file1.txt.
     multi_repo_updater.map_file['mapping'][0]['threshold'] = 2
     self.assertRaises(tuf.exceptions.UnknownTargetError,
         multi_repo_updater.get_one_valid_targetinfo, 'file1.txt')
