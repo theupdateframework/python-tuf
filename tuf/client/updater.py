@@ -250,6 +250,9 @@ class MultiRepoUpdater(object):
     repository_names_to_mirrors = self.map_file['repositories']
     repositories_directory = tuf.settings.repositories_directory
 
+    # Iterate 'repository_names_to_mirrors' and verify that the expected local
+    # files and directories exist.  TAP 4 requires a separate local directory
+    # for each repository.
     for repository_name in repository_names_to_mirrors:
       logger.debug('Interrogating repository: ' + repr(repository_name))
       # Each repository must cache its metadata in a separate location.
