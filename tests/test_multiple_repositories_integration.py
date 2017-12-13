@@ -90,10 +90,13 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # directory copied from the original repository files.
     tuf.settings.repositories_directory = self.temporary_repository_root
 
-    repository_name = 'test_repository1'
-    repository_name2 = 'test_repository2'
-    self.client_directory = os.path.join(self.temporary_repository_root, repository_name)
-    self.client_directory2 = os.path.join(self.temporary_repository_root, repository_name2)
+    self.repository_name = 'test_repository1'
+    self.repository_name2 = 'test_repository2'
+
+    self.client_directory = os.path.join(self.temporary_repository_root,
+        self.repository_name)
+    self.client_directory2 = os.path.join(self.temporary_repository_root,
+        self.repository_name2)
 
     self.keystore_directory = os.path.join(self.temporary_repository_root, 'keystore')
     self.map_file = os.path.join(self.client_directory, 'map.json')
@@ -158,9 +161,9 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
     # Create the repository instances.  The test cases will use these client
     # updaters to refresh metadata, fetch target files, etc.
-    self.repository_updater = updater.Updater(repository_name,
+    self.repository_updater = updater.Updater(self.repository_name,
         self.repository_mirrors)
-    self.repository_updater2 = updater.Updater(repository_name2,
+    self.repository_updater2 = updater.Updater(self.repository_name2,
         self.repository_mirrors2)
 
 
@@ -216,21 +219,23 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
 
 
   def test_repository_tool(self):
-    repository_name = 'test_repository1'
-    repository_name2 = 'test_repository2'
 
-    self.assertEqual(repository_name, str(self.repository_updater))
-    self.assertEqual(repository_name2, str(self.repository_updater2))
+    self.assertEqual(self.repository_name, str(self.repository_updater))
+    self.assertEqual(self.repository_name2, str(self.repository_updater2))
 
-    repository = repo_tool.load_repository(self.repository_directory, repository_name)
-    repository2 = repo_tool.load_repository(self.repository_directory2, repository_name2)
+    repository = repo_tool.load_repository(self.repository_directory,
+        self.repository_name)
+    repository2 = repo_tool.load_repository(self.repository_directory2,
+        self.repository_name2)
 
     repository.timestamp.version = 88
-    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name))
-    self.assertEqual([], tuf.roledb.get_dirty_roles(repository_name2))
+    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(
+        self.repository_name))
+    self.assertEqual([], tuf.roledb.get_dirty_roles(self.repository_name2))
 
     repository2.timestamp.version = 100
-    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(repository_name2))
+    self.assertEqual(['timestamp'], tuf.roledb.get_dirty_roles(
+        self.repository_name2))
 
     key_file = os.path.join(self.keystore_directory, 'timestamp_key')
     timestamp_private = repo_tool.import_ed25519_privatekey_from_file(key_file, "password")
@@ -254,16 +259,18 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     logger.info('Downloading timestamp from server 1.')
     self.repository_updater.refresh()
 
-    self.assertEqual(88, self.repository_updater.metadata['current']['timestamp']['version'])
+    self.assertEqual(
+        88, self.repository_updater.metadata['current']['timestamp']['version'])
     logger.info('Downloading timestamp from server 2.')
     self.repository_updater2.refresh()
 
-    self.assertEqual(100, self.repository_updater2.metadata['current']['timestamp']['version'])
+    self.assertEqual(
+        100, self.repository_updater2.metadata['current']['timestamp']['version'])
 
     # Test the behavior of the multi-repository updater.
     map_file = securesystemslib.util.load_json_file(self.map_file)
-    map_file['repositories'][repository_name] = ['http://localhost:' + str(self.SERVER_PORT)]
-    map_file['repositories'][repository_name2] = ['http://localhost:' + str(self.SERVER_PORT2)]
+    map_file['repositories'][self.repository_name] = ['http://localhost:' + str(self.SERVER_PORT)]
+    map_file['repositories'][self.repository_name2] = ['http://localhost:' + str(self.SERVER_PORT2)]
     with open(self.map_file, 'w') as file_object:
       file_object.write(json.dumps(map_file))
 
