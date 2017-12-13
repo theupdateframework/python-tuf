@@ -19,7 +19,7 @@
 
 <Reference>
   SimpleHTTPServer:
-    http://docs.python.org/library/simplehttpserver.html#module-SimpleHTTPServer
+    https://docs.python.org/2/library/simplehttpserver.html
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
