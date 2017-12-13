@@ -285,7 +285,7 @@ class MultiRepoUpdater(object):
       logger.debug('Interrogating mappings..' + repr(mapping))
 
       # If this mapping is relevant to the target...
-      if self._paths_match_target(mapping['paths'], target_filename):
+      if self._target_matches_path_pattern(target_filename, mapping['paths']):
         targetinfo_and_updaters = []
         targetinfos = []
 
@@ -381,12 +381,12 @@ class MultiRepoUpdater(object):
 
 
 
-  def _paths_match_target(self, paths, target_filename):
-    for path in paths:
-      logger.debug('Interrogating path ' + repr(path) + 'for'
+  def _target_matches_path_pattern(self, target_filename, path_patterns):
+    for path_pattern in path_patterns:
+      logger.debug('Interrogating pattern ' + repr(path_pattern) + 'for'
           ' target: ' + repr(target_filename))
 
-      if fnmatch.fnmatch(target_filename, path):
+      if fnmatch.fnmatch(target_filename, path_pattern):
         logger.debug('Found a match for ' + repr(target_filename))
         return True
 
