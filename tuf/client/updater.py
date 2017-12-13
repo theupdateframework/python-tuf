@@ -939,7 +939,7 @@ class Updater(object):
       except tuf.exceptions.RoleAlreadyExistsError:
         logger.warning('Role already exists: ' + rolename)
 
-      except:
+      except Exception:
         logger.exception('Failed to add delegated role: ' + repr(rolename) + '.')
         raise
 
@@ -1852,7 +1852,7 @@ class Updater(object):
       self._update_metadata(metadata_role, upperbound_filelength,
           expected_versioninfo['version'])
 
-    except:
+    except Exception:
       # The current metadata we have is not current but we couldn't get new
       # metadata. We shouldn't use the old metadata anymore.  This will get rid
       # of in-memory knowledge of the role and delegated roles, but will leave
