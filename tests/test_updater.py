@@ -1803,13 +1803,16 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
 
 
-  def test_paths_match_target(self):
+  def test__target_matches_path_pattern(self):
     map_file = os.path.join(self.client_directory, 'map.json')
     multi_repo_updater = updater.MultiRepoUpdater(map_file)
     paths = ['foo*.tgz', 'bar*.tgz', 'file1.txt']
-    self.assertTrue(multi_repo_updater.paths_match_target(paths, 'bar-1.0.tgz'))
-    self.assertTrue(multi_repo_updater.paths_match_target(paths, 'file1.txt'))
-    self.assertFalse(multi_repo_updater.paths_match_target(paths, 'baz-1.0.tgz'))
+    self.assertTrue(
+        multi_repo_updater._target_matches_path_pattern('bar-1.0.tgz', paths))
+    self.assertTrue(
+        multi_repo_updater._target_matches_path_pattern('file1.txt', paths))
+    self.assertFalse(
+        multi_repo_updater._target_matches_path_pattern('baz-1.0.tgz', paths))
 
 
 
