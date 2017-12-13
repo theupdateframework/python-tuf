@@ -314,6 +314,7 @@ class MultiRepoUpdater(object):
         if len(targetinfos) == 0:
           logger.debug('None of the repositories in the matching mapping'
               ' provided valid targetinfo.')
+          continue
 
         else:
           # Iterate targetinfos and return the targetinfo that is equal to a
