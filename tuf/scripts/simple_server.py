@@ -38,11 +38,12 @@ import six
 PORT = 0
 
 def _port_gen():
-  return random.SystemRandom.randint(30000, 45000)
+  return random.SystemRandom().randint(30000, 45000)
 
 if len(sys.argv) > 1:
   try:
     PORT = int(sys.argv[1])
+    # Enforce arbitrarily chosen port range.
     if PORT < 30000 or PORT > 45000:
       raise ValueError
 
