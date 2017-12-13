@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Copyright 2012 - 2017, New York University and the TUF contributors
+# SPDX-License-Identifier: MIT OR Apache-2.0
+
 """
 <Program>
   simple_server.py
@@ -43,6 +46,7 @@ def _port_gen():
 if len(sys.argv) > 1:
   try:
     PORT = int(sys.argv[1])
+
     # Enforce arbitrarily chosen port range.
     if PORT < 30000 or PORT > 45000:
       raise ValueError
@@ -53,7 +57,10 @@ if len(sys.argv) > 1:
 else:
   PORT = _port_gen()
 
-Handler = six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler
-httpd = six.moves.socketserver.TCPServer(('', PORT), Handler)
 
-httpd.serve_forever()
+if __name__ == '__main__':
+
+  Handler = six.moves.SimpleHTTPServer.SimpleHTTPRequestHandler
+  httpd = six.moves.socketserver.TCPServer(('', PORT), Handler)
+
+  httpd.serve_forever()
