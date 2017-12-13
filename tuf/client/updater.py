@@ -446,15 +446,16 @@ class MultiRepoUpdater(object):
     updater = self.repository_names_to_updaters.get(repository_name)
 
     if not updater:
-      # Create repository mirrors object needed by the
-      # tuf.client.updater.Updater().  Each 'repository_name' can have more
-      # than one mirror.
-      mirrors = {}
 
       if repository_name not in repository_names_to_mirrors:
         return None
 
       else:
+        # Create repository mirrors object needed by the
+        # tuf.client.updater.Updater().  Each 'repository_name' can have more
+        # than one mirror.
+        mirrors = {}
+
         for url in repository_names_to_mirrors[repository_name]:
           mirrors[url] = {
             'url_prefix': url,
@@ -485,8 +486,8 @@ class MultiRepoUpdater(object):
 
 
 
-  def _update_from_repository(self, repository_name, repository_names_to_mirrors,
-      target_filename):
+  def _update_from_repository(
+      self, repository_name, repository_names_to_mirrors, target_filename):
 
     # Set the repository directory containing the metadata.
     updater = self.get_updater(repository_name, repository_names_to_mirrors)
