@@ -307,10 +307,6 @@ class MultiRepoUpdater(object):
           targetinfos.append(targetinfo)
           targetinfo_and_updaters.append((targetinfo, updater))
 
-        # If the targetinfo on each repository is equal to a threshold of
-        # others, and it is not empty, then return the targetinfo.
-        logger.debug('Verifying that a threshold of targetinfo are equal...')
-
         # Is the list of targetinfo empty?  If so, log that none of the
         # repositories in this mapping provided valid targetinfo, and fall out
         # of the for-loop.  Once out of the mapping for-loop, verify whether
@@ -320,7 +316,10 @@ class MultiRepoUpdater(object):
               ' provided valid targetinfo.')
 
         else:
-          # Is there a threshold of matching targetinfo that we can return?
+          # Iterate targetinfos and return the targetinfo that is equal to a
+          # threshold of others.
+          logger.debug('Verifying that a threshold of targetinfo are equal...')
+
           for targetinfo in targetinfos: # pragma: no branch
             # Note: The last line of this loop includes a break, which prevents
             # the loop from fully iterating targetinfos; allow partial
