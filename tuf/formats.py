@@ -266,12 +266,19 @@ REPO_NAMES_TO_MIRRORS_SCHEMA = SCHEMA.DictOf(
   key_schema = NAME_SCHEMA,
   value_schema = SCHEMA.ListOf(securesystemslib.formats.URL_SCHEMA))
 
-# A Dict containing the map file's "mapping" attribute.
+# An object containing the map file's "mapping" attribute.
 MAPPING_SCHEMA = SCHEMA.ListOf(SCHEMA.Object(
   paths = RELPATHS_SCHEMA,
   repositories = SCHEMA.ListOf(securesystemslib.formats.URL_SCHEMA),
   terminating = BOOLEAN_SCHEMA,
   threshold = THRESHOLD_SCHEMA))
+
+# A dict containing the map file (named 'map.json', by default).  The format of
+# the map file is covered in TAP 4: Multiple repository consensus on entrusted
+# targets.
+MAPFILE_SCHEMA = SCHEMA.Object(
+  repositories = REPO_NAMES_TO_MIRRORS_SCHEMA,
+  mapping = MAPPING_SCHEMA)
 
 # Like ROLEDICT_SCHEMA, except that ROLE_SCHEMA instances are stored in order.
 ROLELIST_SCHEMA = SCHEMA.ListOf(ROLE_SCHEMA)
