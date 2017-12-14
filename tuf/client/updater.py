@@ -168,10 +168,10 @@ class MultiRepoUpdater(object):
     repositories.  Which repositories to query is determined by the map
     file (i.e,. map.json).
 
-    See TAP 4 for more information on the map file and requesting updates from
-    multiple repositories.  TAP 4 describes how users may specify that a
-    certain repository should be used for some targets, while other
-    repositories should be used for other targets.
+    See TAP 4 for more information on the map file and how to request updates
+    from multiple repositories.  TAP 4 describes how users may specify that a
+    particular threshold of repositories be used for some targets, while a
+    different threshold of repositories be used for others.
 
   <Arguments>
     map_file:
