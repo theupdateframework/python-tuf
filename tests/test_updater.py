@@ -1797,7 +1797,17 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     # directory.
     tuf.settings.repositories_directory = self.client_directory
 
-    # Test for valid instantiation.
+    # Test for a non-existent map file.
+    self.assertRaises(tuf.exceptions.Error, updater.MultiRepoUpdater,
+        'non-existent.json')
+
+    # Test for a map file that doesn't contain the required fields.
+    root_filepath = os.path.join(
+        self.repository_directory, 'metadata', 'root.json')
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        updater.MultiRepoUpdater, root_filepath)
+
+    # Test for a valid instantiation.
     map_file = os.path.join(self.client_directory, 'map.json')
     multi_repo_updater = updater.MultiRepoUpdater(map_file)
 
