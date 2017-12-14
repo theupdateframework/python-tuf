@@ -119,8 +119,13 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     # the pre-generated metadata files have a specific structure, such
     # as a delegated role 'targets/role1', three target files, five key files,
     # etc.
-    self.SERVER_PORT = random.randint(30000, 45000)
-    self.SERVER_PORT2 = random.randint(30000, 45000)
+    self.SERVER_PORT = random.SystemRandom().randint(30000, 45000)
+    self.SERVER_PORT2 = random.SystemRandom().randint(30000, 45000)
+
+    # Avoid duplicate port numbers, to prevent multiple localhosts from
+    # listening on the same port.
+    while self.SERVER_PORT == self.SERVER_PORT2:
+      self.SERVER_PORT2 = random.SystemRandom().randint(30000, 45000)
 
     command = ['simple_server.py', str(self.SERVER_PORT)]
     command2 = ['simple_server.py', str(self.SERVER_PORT2)]
