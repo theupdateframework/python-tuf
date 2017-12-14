@@ -179,6 +179,9 @@ class MultiRepoUpdater(object):
       repositories to query given a target file.
 
   <Exceptions>
+    securesystemslib.exceptions.FormatError, if the map file is improperly
+    formatted.
+
     tuf.exceptions.Error, if the map file cannot be loaded.
 
   <Side Effects>
@@ -203,7 +206,8 @@ class MultiRepoUpdater(object):
     except (securesystemslib.exceptions.Error, IOError) as e:
       raise tuf.exceptions.Error('Cannot load the map file: ' + str(e))
 
-
+    # Raise tuf.exceptions.FormatError if the map file is improperly formatted.
+    tuf.formats.MAPFILE_SCHEMA.check_match(self.map_file)
 
 
 
