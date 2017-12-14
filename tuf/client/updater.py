@@ -192,8 +192,9 @@ class MultiRepoUpdater(object):
   """
 
   def __init__(self, map_file):
-    # Does 'map_file' have the correct format?
-    # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
+    # Is 'map_file' a path?  If not, raise
+    # 'securesystemslib.exceptions.FormatError'.  The actual content of the map
+    # file is validated later on in this method.
     securesystemslib.formats.PATH_SCHEMA.check_match(map_file)
 
     # A dictionary mapping repositories to TUF updaters.
@@ -206,7 +207,8 @@ class MultiRepoUpdater(object):
     except (securesystemslib.exceptions.Error, IOError) as e:
       raise tuf.exceptions.Error('Cannot load the map file: ' + str(e))
 
-    # Raise tuf.exceptions.FormatError if the map file is improperly formatted.
+    # Raise securesystemslib.exceptions.FormatError if the map file is
+    # improperly formatted.
     tuf.formats.MAPFILE_SCHEMA.check_match(self.map_file)
 
 
