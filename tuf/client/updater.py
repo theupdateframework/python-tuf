@@ -298,13 +298,19 @@ class MultiRepoUpdater(object):
     for mapping in self.map_file['mapping']:
       logger.debug('Interrogating mappings..' + repr(mapping))
 
-      # If this mapping is relevant to the target...
-      if self._target_matches_path_pattern(target_filename, mapping['paths']):
+      if not self._target_matches_path_pattern(
+          target_filename, mapping['paths']):
+        # The mapping is irrelevant to the target file.  Try the next one, if
+        # any.
+        continue
+
+      # This mapping is relevant to the target...
+      else:
         targetinfo_and_updaters = []
         targetinfos = []
 
-        # Retrieve the targetinfo from each repository using the
-        # underlying Updater() instance.
+        # Retrieve the targetinfo from each repository using the underlying
+        # Updater() instance.
         for repository_name in mapping['repositories']:
           logger.debug('Retrieving targetinfo for ' + repr(target_filename) +
               ' from repository...')
@@ -321,52 +327,37 @@ class MultiRepoUpdater(object):
           targetinfos.append(targetinfo)
           targetinfo_and_updaters.append((targetinfo, updater))
 
-        # Is the list of targetinfo empty?  If so, log that none of the
-        # repositories in this mapping provided valid targetinfo, and fall out
-        # of the for-loop.  Once out of the mapping for-loop, verify whether
-        # this is a terminating mapping.
-        if len(targetinfos) == 0:
-          logger.debug('None of the repositories in the matching mapping'
-              ' provided valid targetinfo.')
-          continue
+        # Iterate targetinfos and return the targetinfo that is equal to a
+        # threshold of others.
+        logger.debug('Verifying that a threshold of targetinfo are equal...')
 
-        else:
-          # Iterate targetinfos and return the targetinfo that is equal to a
-          # threshold of others.
-          logger.debug('Verifying that a threshold of targetinfo are equal...')
+        for targetinfo in targetinfos: # pragma: no branch
+          # Note: The last line of this loop includes a break, which prevents
+          # the loop from fully iterating targetinfos; allow partial
+          # branching for coverage.
+          if targetinfos.count(targetinfo) >= mapping['threshold']:
+            # Yes, but first compile a list of updaters that provide the
+            # matching targetinfo.
+            logger.debug('Found a threshold of matching targetinfo!')
+            updaters = []
+            for target_info, updater in targetinfo_and_updaters:
+              if target_info == targetinfo:
+                updaters.append(updater)
 
-          for targetinfo in targetinfos: # pragma: no branch
-            # Note: The last line of this loop includes a break, which prevents
-            # the loop from fully iterating targetinfos; allow partial
-            # branching for coverage.
-            if targetinfos.count(targetinfo) >= mapping['threshold']:
-              # Yes, but first compile a list of updaters that provide the
-              # matching targetinfo.
-              logger.debug('Found a threshold of matching targetinfo!')
-              updaters = []
-              for target_info, updater in targetinfo_and_updaters:
-                if target_info == targetinfo:
-                  updaters.append(updater)
+              else:
+                continue
 
-                else:
-                  continue
+            # We now have a targetinfo (that matches across a threshold of
+            # repositories as instructed by the map file), along with the
+            # updaters that sign for it.
+            logger.debug('Returning updaters for targetinfo: ' +
+                repr(targetinfo))
+            return targetinfo, updaters
 
-              # We now have a targetinfo (that matches across a threshold of
-              # repositories as instructed by the map file), along with the
-              # updaters that sign for it.
-              logger.debug('Returning updaters for targetinfo: ' +
-                  repr(targetinfo))
-              return targetinfo, updaters
-
-            # All of the targetinfo did not match.  Fall out of the
-            # targetsinfo for-loop and check the mapping's "terminating"
-            # attribute.
-            else:
-              break
-
-      # The mapping is irrelevant to the target file.  Try the next one, if any.
-      else:
-        continue
+          # All of the targetinfo did not match.  Fall out of the targetsinfo
+          # for-loop and check the mapping's "terminating" attribute.
+          else:
+            break
 
       # If we are here, it means either (1) the mapping is irrelevant to the
       # target, (2) the targets were missing from all repositories in this
