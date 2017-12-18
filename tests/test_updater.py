@@ -1913,8 +1913,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
     multi_repo_updater = updater.MultiRepoUpdater(map_file)
 
     # Test for a non-existent repository name.
-    self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name',
-        multi_repo_updater.map_file['repositories']))
+    self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name')
 
     # Test get_updater indirectly via the "private" _update_from_repository().
     self.assertRaises(tuf.exceptions.Error,
