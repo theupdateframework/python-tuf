@@ -161,6 +161,7 @@ iso8601_logger.disabled = True
 # For example, "1.4.3" and "1.0.0" are supported.  "2.0.0" is not supported.
 SUPPORTED_MAJOR_VERSION = 1
 
+
 class MultiRepoUpdater(object):
   """
   <Purpose>
@@ -211,6 +212,15 @@ class MultiRepoUpdater(object):
     # improperly formatted.
     tuf.formats.MAPFILE_SCHEMA.check_match(self.map_file)
 
+    # Save the the "repositories" entry of the map file, with the following
+    # example format:
+    #
+    #  "repositories": {
+    #      "Django": ["https://djangoproject.com/"],
+    #      "PyPI":   ["https://pypi.python.org/"]
+    #  }
+    self.repository_names_to_mirrors = self.map_file['repositories']
+
 
 
   def get_one_valid_targetinfo(self, target_filename):
@@ -252,14 +262,12 @@ class MultiRepoUpdater(object):
     # "paths", "repositories", "terminating", and "threshold".
     tuf.formats.MAPPING_SCHEMA.check_match(self.map_file['mapping'])
 
-    # {"repository_name": [mirror URLs, ...], ...}
-    repository_names_to_mirrors = self.map_file['repositories']
     repositories_directory = tuf.settings.repositories_directory
 
-    # Iterate 'repository_names_to_mirrors' and verify that the expected local
-    # files and directories exist.  TAP 4 requires a separate local directory
-    # for each repository.
-    for repository_name in repository_names_to_mirrors:
+    # Iterate 'self.repository_names_to_mirrors' and verify that the expected
+    # local files and directories exist.  TAP 4 requires a separate local
+    # directory for each repository.
+    for repository_name in self.repository_names_to_mirrors:
       logger.debug('Interrogating repository: ' + repr(repository_name))
       # Each repository must cache its metadata in a separate location.
       repository_directory = os.path.join(repositories_directory,
@@ -274,12 +282,12 @@ class MultiRepoUpdater(object):
         logger.debug('Found local directory for ' + repr(repository_name))
 
       # The latest known root metadata file must also exist on disk.
-      root_file = os.path.join(repository_directory, 'metadata',
-          'current', 'root.json')
+      root_file = os.path.join(
+          repository_directory, 'metadata', 'current', 'root.json')
 
       if not os.path.isfile(root_file):
-        raise tuf.exceptions.Error('The Root file must exist'
-            ' at ' + repr(root_file))
+        raise tuf.exceptions.Error(
+            'The Root file must exist at ' + repr(root_file))
 
       else:
         logger.debug('Found local Root file at ' + repr(root_file))
@@ -302,8 +310,8 @@ class MultiRepoUpdater(object):
               ' from repository...')
 
           try:
-            targetinfo, updater = self._update_from_repository(repository_name,
-                repository_names_to_mirrors, target_filename)
+            targetinfo, updater = self._update_from_repository(
+                repository_name, target_filename)
 
           except (tuf.exceptions.UnknownTargetError, tuf.exceptions.Error):
             continue
@@ -410,7 +418,7 @@ class MultiRepoUpdater(object):
 
 
 
-  def get_updater(self, repository_name, repository_names_to_mirrors):
+  def get_updater(self, repository_name):
     """
     <Purpose>
       Get the updater instance corresponding to 'repository_name'.
@@ -419,14 +427,6 @@ class MultiRepoUpdater(object):
       repository_name:
         The name of the repository as it appears in the map file.  For example,
         "Django" and "PyPI" in the "repositories" entry of the map file.
-
-        "repositories": {
-            "Django": ["https://djangoproject.com/"],
-            "PyPI":   ["https://pypi.python.org/"]
-        }
-
-      repository_names_to_mirrors:
-        The "repositories" entry of the map file, with the following format:
 
         "repositories": {
             "Django": ["https://djangoproject.com/"],
@@ -448,13 +448,12 @@ class MultiRepoUpdater(object):
     # Are the arguments properly formatted?  If not, raise
     # 'tuf.exceptions.FormatError'.
     tuf.formats.NAME_SCHEMA.check_match(repository_name)
-    tuf.formats.REPO_NAMES_TO_MIRRORS_SCHEMA.check_match(repository_names_to_mirrors)
 
     updater = self.repository_names_to_updaters.get(repository_name)
 
     if not updater:
 
-      if repository_name not in repository_names_to_mirrors:
+      if repository_name not in self.repository_names_to_mirrors:
         return None
 
       else:
@@ -463,7 +462,7 @@ class MultiRepoUpdater(object):
         # than one mirror.
         mirrors = {}
 
-        for url in repository_names_to_mirrors[repository_name]:
+        for url in self.repository_names_to_mirrors[repository_name]:
           mirrors[url] = {
             'url_prefix': url,
             'metadata_path': 'metadata',
@@ -493,19 +492,19 @@ class MultiRepoUpdater(object):
 
 
 
-  def _update_from_repository(
-      self, repository_name, repository_names_to_mirrors, target_filename):
+  def _update_from_repository(self, repository_name, target_filename):
 
     # Set the repository directory containing the metadata.
-    updater = self.get_updater(repository_name, repository_names_to_mirrors)
+    updater = self.get_updater(repository_name)
 
     if not updater:
-      raise tuf.exceptions.Error('Cannot load updater'
-          ' for ' + repr(repository_name))
+      raise tuf.exceptions.Error(
+          'Cannot load updater for ' + repr(repository_name))
 
     else:
-      # Get one valid target info from the Updater object.  Raises
-      # 'tuf.exceptions.UnknownTargetError'.
+      # Get one valid target info from the Updater object.
+      # 'tuf.exceptions.UnknownTargetError' raised by get_one_valid_targetinfo
+      # if a valid target cannot be found.
       return updater.get_one_valid_targetinfo(target_filename), updater
 
 
