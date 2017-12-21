@@ -118,6 +118,7 @@ import os
 import shutil
 import time
 import fnmatch
+import copy
 
 import tuf
 import tuf.download
@@ -223,7 +224,7 @@ class MultiRepoUpdater(object):
 
 
 
-  def get_valid_targetinfo(self, target_filename):
+  def get_valid_targetinfo(self, target_filename, match_custom_field=True):
     """
     <Purpose>
       Get valid targetinfo, if any, for the given 'target_filename'.  The map
@@ -235,6 +236,11 @@ class MultiRepoUpdater(object):
     <Arguments>
       target_filename:
         The relative path of the target file to update.
+
+      match_custom_field:
+        Boolean that indicates whether the optional custom field in targetinfo
+        should match across the targetinfo provided by the threshold of
+        repositories.
 
     <Exceptions>
       tuf.exceptions.FormatError, if the argument is improperly formatted.
@@ -284,7 +290,8 @@ class MultiRepoUpdater(object):
       else:
         # Do the repositories in the mapping provide a threshold of matching
         # targetinfo?
-        valid_targetinfo = self._matching_targetinfo(target_filename, mapping)
+        valid_targetinfo = self._matching_targetinfo(target_filename,
+            mapping, match_custom_field)
 
         if valid_targetinfo:
           return valid_targetinfo
@@ -350,7 +357,8 @@ class MultiRepoUpdater(object):
 
 
 
-  def _matching_targetinfo(self, target_filename, mapping):
+  def _matching_targetinfo(
+      self, target_filename, mapping, match_custom_field=True):
     valid_targetinfo = {}
 
     # Retrieve the targetinfo from each repository using the underlying
@@ -369,19 +377,19 @@ class MultiRepoUpdater(object):
       valid_targetinfo[updater] = targetinfo
 
       matching_targetinfo = {}
-      matches = 0
       logger.debug('Verifying that a threshold of targetinfo are equal...')
 
-      for valid_updater, valid_targetinfo in six.iteritems(valid_targetinfo):
-        if targetinfo != valid_targetinfo:
+      for valid_updater, compared_targetinfo in six.iteritems(valid_targetinfo):
+
+        if not self._targetinfo_match(
+            targetinfo, compared_targetinfo, match_custom_field):
           continue
 
         else:
 
-          matching_targetinfo[updater] = targetinfo
-          matches = matches + 1
+          matching_targetinfo[valid_updater] = targetinfo
 
-          if not matches >= mapping['threshold']:
+          if not len(matching_targetinfo) >= mapping['threshold']:
             continue
 
           else:
@@ -395,6 +403,23 @@ class MultiRepoUpdater(object):
             return matching_targetinfo
 
     return None
+
+
+
+
+
+  def _targetinfo_match(self, targetinfo1, targetinfo2, match_custom_field=True):
+    if match_custom_field:
+      return (targetinfo1 == targetinfo2)
+
+    else:
+      targetinfo1_without_custom = copy.deepcopy(targetinfo1)
+      targetinfo2_without_custom = copy.deepcopy(targetinfo2)
+      targetinfo1_without_custom['fileinfo'].pop('custom', None)
+      targetinfo2_without_custom['fileinfo'].pop('custom', None)
+
+      return (targetinfo1_without_custom == targetinfo2_without_custom)
+
 
 
 
