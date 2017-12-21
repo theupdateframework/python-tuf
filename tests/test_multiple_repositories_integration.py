@@ -49,6 +49,7 @@ import securesystemslib
 import tuf.unittest_toolbox as unittest_toolbox
 import tuf.repository_tool as repo_tool
 
+import six
 import securesystemslib
 
 logger = logging.getLogger('test_multiple_repositories_integration')
@@ -283,10 +284,11 @@ class TestMultipleRepositoriesIntegration(unittest_toolbox.Modified_TestCase):
     self.assertRaises(tuf.exceptions.Error, updater.MultiRepoUpdater, 'bad_path')
 
     multi_repo_updater = updater.MultiRepoUpdater(self.map_file)
-    targetinfo, my_updaters = multi_repo_updater.get_one_valid_targetinfo('file3.txt')
+    valid_targetinfo = multi_repo_updater.get_valid_targetinfo('file3.txt')
 
-    my_updaters[0].download_target(targetinfo, self.temporary_directory)
-    self.assertTrue(os.path.exists(os.path.join(self.temporary_directory, 'file3.txt')))
+    for my_updater, my_targetinfo in six.iteritems(valid_targetinfo):
+      my_updater.download_target(my_targetinfo, self.temporary_directory)
+      self.assertTrue(os.path.exists(os.path.join(self.temporary_directory, 'file3.txt')))
 
 
 
