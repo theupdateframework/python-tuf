@@ -1871,17 +1871,39 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
         multi_repo_updater.get_valid_targetinfo, 'bad3.txt')
     multi_repo_updater.map_file['mapping'][0]['terminating'] = False
 
-    # Verify the case where two repositories provide different targetinfo.
-    # First, have 'role1' sign for a different 'file1.txt' (currently signed
-    # only by the Targets role).
-    repository = repo_tool.load_repository(self.repository_directory2)
-
     # Test for the case where multiple repos sign for the same target.
     valid_targetinfo = multi_repo_updater.get_valid_targetinfo('file1.txt')
-    # TODO self.assertTrue(tuf.formats.TARGETINFO_SCHEMA.matches(targetinfo))
 
-    # Modify file1.txt so that different length and hashes are reported
-    # by the two repositories.
+    multi_repo_updater.map_file['mapping'][0]['threshold'] = 2
+    valid_targetinfo = multi_repo_updater.get_valid_targetinfo('file1.txt')
+
+    # Verify that valid targetinfo is matched for two repositories that provide
+    # different custom field.  Make sure to set the 'match_custom_field'
+    # argument to 'False' when calling get_valid_targetinfo().
+    repository = repo_tool.load_repository(self.repository_directory2)
+    target1 = os.path.join(self.repository_directory2, 'targets', 'file1.txt')
+    repository.targets.remove_target(target1)
+    custom_field = {"custom": "my_custom_data"}
+    repository.targets.add_target(target1, custom_field)
+    repository.targets.load_signing_key(self.role_keys['targets']['private'])
+    repository.snapshot.load_signing_key(self.role_keys['snapshot']['private'])
+    repository.timestamp.load_signing_key(self.role_keys['timestamp']['private'])
+    repository.writeall()
+
+    # Move the staged metadata to the "live" metadata.
+    shutil.rmtree(os.path.join(self.repository_directory2, 'metadata'))
+    shutil.copytree(os.path.join(self.repository_directory2, 'metadata.staged'),
+        os.path.join(self.repository_directory2, 'metadata'))
+
+    # Do we get the expected match for the two targetinfo that only differ
+    # by the custom field?
+    valid_targetinfo = multi_repo_updater.get_valid_targetinfo(
+        'file1.txt', match_custom_field=False)
+
+    # Verify the case where two repositories provide different targetinfo.
+    # Modify file1.txt so that different length and hashes are reported by the
+    # two repositories.
+    repository = repo_tool.load_repository(self.repository_directory2)
     target1 = os.path.join(self.repository_directory2, 'targets', 'file1.txt')
     with open(target1, 'ab') as file_object:
       file_object.write(b'append extra text')
@@ -1920,8 +1942,7 @@ class TestMultiRepoUpdater(unittest_toolbox.Modified_TestCase):
 
     # Test for a repository that doesn't exist.
     multi_repo_updater.map_file['repositories']['bad_repo_name'] = ['https://bogus:30002']
-    self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name',
-        multi_repo_updater.map_file['repositories']))
+    self.assertEqual(None, multi_repo_updater.get_updater('bad_repo_name'))
 
 
 
