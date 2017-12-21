@@ -379,6 +379,12 @@ class MultiRepoUpdater(object):
       matching_targetinfo = {}
       logger.debug('Verifying that a threshold of targetinfo are equal...')
 
+      # Iterate 'valid_targetinfo', looking for a threshold number of matches
+      # for 'targetinfo'.  The first targetinfo to reach the required threshold
+      # is returned.  For example, suppose the following list of targetinfo and
+      # a threshold of 2:
+      # [A, B, C, B, A, C]
+      # In this case, targetinfo B is returned.
       for valid_updater, compared_targetinfo in six.iteritems(valid_targetinfo):
 
         if not self._targetinfo_match(
