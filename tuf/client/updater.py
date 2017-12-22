@@ -118,6 +118,7 @@ import os
 import shutil
 import time
 import fnmatch
+import copy
 
 import tuf
 import tuf.download
@@ -160,6 +161,388 @@ iso8601_logger.disabled = True
 # All downloaded metadata must be equal to our supported major version of 1.
 # For example, "1.4.3" and "1.0.0" are supported.  "2.0.0" is not supported.
 SUPPORTED_MAJOR_VERSION = 1
+
+
+class MultiRepoUpdater(object):
+  """
+  <Purpose>
+    Provide a way for clients to request a target file from multiple
+    repositories.  Which repositories to query is determined by the map
+    file (i.e,. map.json).
+
+    See TAP 4 for more information on the map file and how to request updates
+    from multiple repositories.  TAP 4 describes how users may specify that a
+    particular threshold of repositories be used for some targets, while a
+    different threshold of repositories be used for others.
+
+  <Arguments>
+    map_file:
+      The path of the map file.  The map file is needed to determine which
+      repositories to query given a target file.
+
+  <Exceptions>
+    securesystemslib.exceptions.FormatError, if the map file is improperly
+    formatted.
+
+    tuf.exceptions.Error, if the map file cannot be loaded.
+
+  <Side Effects>
+    None.
+
+  <Returns>
+    None.
+  """
+
+  def __init__(self, map_file):
+    # Is 'map_file' a path?  If not, raise
+    # 'securesystemslib.exceptions.FormatError'.  The actual content of the map
+    # file is validated later on in this method.
+    securesystemslib.formats.PATH_SCHEMA.check_match(map_file)
+
+    # A dictionary mapping repositories to TUF updaters.
+    self.repository_names_to_updaters = {}
+
+    try:
+      # The map file dictionary that associates targets with repositories.
+      self.map_file = securesystemslib.util.load_json_file(map_file)
+
+    except (securesystemslib.exceptions.Error, IOError) as e:
+      raise tuf.exceptions.Error('Cannot load the map file: ' + str(e))
+
+    # Raise securesystemslib.exceptions.FormatError if the map file is
+    # improperly formatted.
+    tuf.formats.MAPFILE_SCHEMA.check_match(self.map_file)
+
+    # Save the the "repositories" entry of the map file, with the following
+    # example format:
+    #
+    #  "repositories": {
+    #      "Django": ["https://djangoproject.com/"],
+    #      "PyPI":   ["https://pypi.python.org/"]
+    #  }
+    self.repository_names_to_mirrors = self.map_file['repositories']
+
+
+
+  def get_valid_targetinfo(self, target_filename, match_custom_field=True):
+    """
+    <Purpose>
+      Get valid targetinfo, if any, for the given 'target_filename'.  The map
+      file controls the targetinfo returned (see TAP 4).  Return a dict of the
+      form {updater1: targetinfo, updater2: targetinfo, ...}, where the dict
+      keys are updater objects, and the dict values the matching targetinfo for
+      'target_filename'.
+
+    <Arguments>
+      target_filename:
+        The relative path of the target file to update.
+
+      match_custom_field:
+        Boolean that indicates whether the optional custom field in targetinfo
+        should match across the targetinfo provided by the threshold of
+        repositories.
+
+    <Exceptions>
+      tuf.exceptions.FormatError, if the argument is improperly formatted.
+
+      tuf.exceptions.Error, if the required local metadata directory or the
+      Root file does not exist.
+
+      tuf.exceptions.UnknownTargetError, if the repositories in the map file do
+      not agree on the target, or none of them have signed for the target.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      A dict of the form: {updater1: targetinfo, updater2: targetinfo, ...}.
+      The targetinfo (conformant with tuf.formats.TARGETINFO_SCHEMA) is for
+      'target_filename'.
+    """
+
+    # Is the argument properly formatted?  If not, raise
+    # 'tuf.exceptions.FormatError'.
+    tuf.formats.RELPATH_SCHEMA.check_match(target_filename)
+
+    # TAP 4 requires that the following attributes be present in mappings:
+    # "paths", "repositories", "terminating", and "threshold".
+    tuf.formats.MAPPING_SCHEMA.check_match(self.map_file['mapping'])
+
+    # Set the top-level directory containing the metadata for each repository.
+    repositories_directory = tuf.settings.repositories_directory
+
+    # Verify that the required local directories exist for each repository.
+    self._verify_metadata_directories(repositories_directory)
+
+    # Iterate mappings.
+    # [{"paths": [], "repositories": [], "terminating": Boolean, "threshold":
+    # NUM}, ...]
+    for mapping in self.map_file['mapping']:
+
+      logger.debug('Interrogating mappings..' + repr(mapping))
+      if not self._target_matches_path_pattern(
+          target_filename, mapping['paths']):
+        # The mapping is irrelevant to the target file.  Try the next one, if
+        # any.
+        continue
+
+      # The mapping is relevant to the target...
+      else:
+        # Do the repositories in the mapping provide a threshold of matching
+        # targetinfo?
+        valid_targetinfo = self._matching_targetinfo(target_filename,
+            mapping, match_custom_field)
+
+        if valid_targetinfo:
+          return valid_targetinfo
+
+        else:
+          # If we are here, it means either (1) the mapping is irrelevant to
+          # the target, (2) the targets were missing from all repositories in
+          # this mapping, or (3) the targets on all repositories did not match.
+          # Whatever the case may be, are we allowed to continue to the next
+          # mapping?  Let's check the terminating entry!
+          if not mapping['terminating']:
+            logger.debug('The mapping was irrelevant to the target, and'
+                ' "terminating" was set to False.  Trying the next mapping...')
+            continue
+
+          else:
+            raise tuf.exceptions.UnknownTargetError('The repositories in the'
+                ' mapping do not agree on the target, or none of them have'
+                ' signed for the target, and "terminating" was set to True.')
+
+    # If we are here, it means either there were no mappings, or none of the
+    # mappings provided the target.
+    logger.debug('Did not find valid targetinfo for ' + repr(target_filename))
+    raise tuf.exceptions.UnknownTargetError('The repositories in the map'
+        ' file do not agree on the target, or none of them have signed'
+        ' for the target.')
+
+
+
+
+
+  def _verify_metadata_directories(self, repositories_directory):
+    # Iterate 'self.repository_names_to_mirrors' and verify that the expected
+    # local files and directories exist.  TAP 4 requires a separate local
+    # directory for each repository.
+    for repository_name in self.repository_names_to_mirrors:
+
+      logger.debug('Interrogating repository: ' + repr(repository_name))
+      # Each repository must cache its metadata in a separate location.
+      repository_directory = os.path.join(repositories_directory,
+          repository_name)
+
+      if not os.path.isdir(repository_directory):
+        raise tuf.exceptions.Error('The metadata directory'
+            ' for ' + repr(repository_name) + ' must exist'
+            ' at ' + repr(repository_directory))
+
+      else:
+        logger.debug('Found local directory for ' + repr(repository_name))
+
+      # The latest known root metadata file must also exist on disk.
+      root_file = os.path.join(
+          repository_directory, 'metadata', 'current', 'root.json')
+
+      if not os.path.isfile(root_file):
+        raise tuf.exceptions.Error(
+            'The Root file must exist at ' + repr(root_file))
+
+      else:
+        logger.debug('Found local Root file at ' + repr(root_file))
+
+
+
+
+
+  def _matching_targetinfo(
+      self, target_filename, mapping, match_custom_field=True):
+    valid_targetinfo = {}
+
+    # Retrieve the targetinfo from each repository using the underlying
+    # Updater() instance.
+    for repository_name in mapping['repositories']:
+      logger.debug('Retrieving targetinfo for ' + repr(target_filename) +
+          ' from repository...')
+
+      try:
+        targetinfo, updater = self._update_from_repository(
+            repository_name, target_filename)
+
+      except (tuf.exceptions.UnknownTargetError, tuf.exceptions.Error):
+        continue
+
+      valid_targetinfo[updater] = targetinfo
+
+      matching_targetinfo = {}
+      logger.debug('Verifying that a threshold of targetinfo are equal...')
+
+      # Iterate 'valid_targetinfo', looking for a threshold number of matches
+      # for 'targetinfo'.  The first targetinfo to reach the required threshold
+      # is returned.  For example, suppose the following list of targetinfo and
+      # a threshold of 2:
+      # [A, B, C, B, A, C]
+      # In this case, targetinfo B is returned.
+      for valid_updater, compared_targetinfo in six.iteritems(valid_targetinfo):
+
+        if not self._targetinfo_match(
+            targetinfo, compared_targetinfo, match_custom_field):
+          continue
+
+        else:
+
+          matching_targetinfo[valid_updater] = targetinfo
+
+          if not len(matching_targetinfo) >= mapping['threshold']:
+            continue
+
+          else:
+            logger.debug('Found a threshold of matching targetinfo!')
+            # We now have a targetinfo (that matches across a threshold of
+            # repositories as instructed by the map file), along with the
+            # updaters that sign for it.
+            logger.debug(
+                'Returning updaters for targetinfo: ' + repr(targetinfo))
+
+            return matching_targetinfo
+
+    return None
+
+
+
+
+
+  def _targetinfo_match(self, targetinfo1, targetinfo2, match_custom_field=True):
+    if match_custom_field:
+      return (targetinfo1 == targetinfo2)
+
+    else:
+      targetinfo1_without_custom = copy.deepcopy(targetinfo1)
+      targetinfo2_without_custom = copy.deepcopy(targetinfo2)
+      targetinfo1_without_custom['fileinfo'].pop('custom', None)
+      targetinfo2_without_custom['fileinfo'].pop('custom', None)
+
+      return (targetinfo1_without_custom == targetinfo2_without_custom)
+
+
+
+
+
+  def _target_matches_path_pattern(self, target_filename, path_patterns):
+    for path_pattern in path_patterns:
+      logger.debug('Interrogating pattern ' + repr(path_pattern) + 'for'
+          ' target: ' + repr(target_filename))
+
+      if fnmatch.fnmatch(target_filename, path_pattern):
+        logger.debug('Found a match for ' + repr(target_filename))
+        return True
+
+      else:
+        logger.debug('Continue searching for relevant paths.')
+        continue
+
+    # If we are here, then none of the paths are relevant to the target.
+    logger.debug('None of the paths are relevant.')
+    return False
+
+
+
+
+
+
+  def get_updater(self, repository_name):
+    """
+    <Purpose>
+      Get the updater instance corresponding to 'repository_name'.
+
+    <Arguments>
+      repository_name:
+        The name of the repository as it appears in the map file.  For example,
+        "Django" and "PyPI" in the "repositories" entry of the map file.
+
+        "repositories": {
+            "Django": ["https://djangoproject.com/"],
+            "PyPI":   ["https://pypi.python.org/"]
+        }
+
+    <Exceptions>
+      tuf.exceptions.FormatError, if any of the arguments are improperly
+      formatted.
+
+    <Side Effects>
+      None.
+
+    <Returns>
+      Returns the Updater() instance for 'repository_name'.  If the instance
+      does not exist, return None.
+    """
+
+    # Are the arguments properly formatted?  If not, raise
+    # 'tuf.exceptions.FormatError'.
+    tuf.formats.NAME_SCHEMA.check_match(repository_name)
+
+    updater = self.repository_names_to_updaters.get(repository_name)
+
+    if not updater:
+
+      if repository_name not in self.repository_names_to_mirrors:
+        return None
+
+      else:
+        # Create repository mirrors object needed by the
+        # tuf.client.updater.Updater().  Each 'repository_name' can have more
+        # than one mirror.
+        mirrors = {}
+
+        for url in self.repository_names_to_mirrors[repository_name]:
+          mirrors[url] = {
+            'url_prefix': url,
+            'metadata_path': 'metadata',
+            'targets_path': 'targets',
+            'confined_target_dirs': ['']}
+
+        try:
+          # NOTE: State (e.g., keys) should NOT be shared across different
+          # updater instances.
+          logger.debug('Adding updater for ' + repr(repository_name))
+          updater = tuf.client.updater.Updater(repository_name, mirrors)
+
+        except Exception:
+          return None
+
+        else:
+          self.repository_names_to_updaters[repository_name] = updater
+
+    else:
+      logger.debug('Found an updater for ' + repr(repository_name))
+
+    # Ensure the updater's metadata is the latest before returning it.
+    updater.refresh()
+    return updater
+
+
+
+
+
+  def _update_from_repository(self, repository_name, target_filename):
+
+    updater = self.get_updater(repository_name)
+
+    if not updater:
+      raise tuf.exceptions.Error(
+          'Cannot load updater for ' + repr(repository_name))
+
+    else:
+      # Get one valid target info from the Updater object.
+      # 'tuf.exceptions.UnknownTargetError' raised by get_one_valid_targetinfo
+      # if a valid target cannot be found.
+      return updater.get_one_valid_targetinfo(target_filename), updater
+
+
+
+
 
 class Updater(object):
   """
@@ -433,7 +816,8 @@ class Updater(object):
 
     # Ensure we have a valid metadata set.
     if metadata_set not in ['current', 'previous']:
-      raise securesystemslib.exceptions.Error('Invalid metadata set: ' + repr(metadata_set))
+      raise securesystemslib.exceptions.Error(
+          'Invalid metadata set: ' + repr(metadata_set))
 
     # Save and construct the full metadata path.
     metadata_directory = self.metadata_directory[metadata_set]
@@ -445,7 +829,8 @@ class Updater(object):
       # Load the file.  The loaded object should conform to
       # 'tuf.formats.SIGNABLE_SCHEMA'.
       try:
-        metadata_signable = securesystemslib.util.load_json_file(metadata_filepath)
+        metadata_signable = securesystemslib.util.load_json_file(
+            metadata_filepath)
 
       # Although the metadata file may exist locally, it may not
       # be a valid json file.  On the next refresh cycle, it will be
@@ -593,7 +978,7 @@ class Updater(object):
       except tuf.exceptions.RoleAlreadyExistsError:
         logger.warning('Role already exists: ' + rolename)
 
-      except:
+      except Exception:
         logger.exception('Failed to add delegated role: ' + repr(rolename) + '.')
         raise
 
@@ -653,7 +1038,8 @@ class Updater(object):
     # number of objects and object types, and that all dict
     # keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if the check fail.
-    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(unsafely_update_root_if_necessary)
+    securesystemslib.formats.BOOLEAN_SCHEMA.check_match(
+        unsafely_update_root_if_necessary)
 
     # Update the top-level metadata.  The _update_metadata_if_changed() and
     # _update_metadata() calls below do NOT perform an update if there
@@ -690,7 +1076,7 @@ class Updater(object):
     # fileinfo referenced there matches what was fetched earlier in
     # _update_root_metadata() or make another attempt to download root.json.
     self._update_metadata_if_changed('snapshot',
-                                     referenced_metadata='timestamp')
+        referenced_metadata='timestamp')
     self._update_metadata_if_changed('targets')
 
 
@@ -720,11 +1106,11 @@ class Updater(object):
     """
 
     # Retrieve the latest, remote root.json.
-    latest_root_metadata_file = \
-      self._get_metadata_file('root', 'root.json', DEFAULT_ROOT_UPPERLENGTH,
-        None)
-    latest_root_metadata = \
-      securesystemslib.util.load_json_string(latest_root_metadata_file.read().decode('utf-8'))
+    latest_root_metadata_file = self._get_metadata_file(
+        'root', 'root.json', DEFAULT_ROOT_UPPERLENGTH, None)
+
+    latest_root_metadata = securesystemslib.util.load_json_string(
+        latest_root_metadata_file.read().decode('utf-8'))
 
 
     next_version = current_root_metadata['version'] + 1
@@ -755,8 +1141,9 @@ class Updater(object):
 
     <Arguments>
       file_object:
-        A 'securesystemslib.util.TempFile' file-like object.  'file_object' ensures that a
-        read() without a size argument properly reads the entire file.
+        A 'securesystemslib.util.TempFile' file-like object.  'file_object'
+        ensures that a read() without a size argument properly reads the entire
+        file.
 
       trusted_hashes:
         A dictionary with hash-algorithm names as keys and hashes as dict values.
@@ -782,9 +1169,12 @@ class Updater(object):
 
       # Raise an exception if any of the hashes are incorrect.
       if trusted_hash != computed_hash:
-        raise securesystemslib.exceptions.BadHashError(trusted_hash, computed_hash)
+        raise securesystemslib.exceptions.BadHashError(trusted_hash,
+            computed_hash)
+
       else:
-        logger.info('The file\'s ' + algorithm + ' hash is correct: ' + trusted_hash)
+        logger.info('The file\'s ' + algorithm + ' hash is'
+            ' correct: ' + trusted_hash)
 
 
 
@@ -818,8 +1208,9 @@ class Updater(object):
       None.
     """
 
-    # Read the entire contents of 'file_object', a 'securesystemslib.util.TempFile' file-like
-    # object that ensures the entire file is read.
+    # Read the entire contents of 'file_object', a
+    # 'securesystemslib.util.TempFile' file-like object that ensures the entire
+    # file is read.
     observed_length = len(file_object.read())
 
     # Return and log a message if the length 'file_object' is equal to
@@ -828,10 +1219,11 @@ class Updater(object):
     # file length.
     if observed_length != trusted_file_length:
       raise tuf.exceptions.DownloadLengthMismatchError(trusted_file_length,
-                                            observed_length)
+          observed_length)
+
     else:
-      logger.debug('Observed length ('+str(observed_length)+\
-                   ') == trusted length ('+str(trusted_file_length)+')')
+      logger.debug('Observed length (' + str(observed_length) +\
+          ') == trusted length (' + str(trusted_file_length) + ')')
 
 
 
@@ -877,10 +1269,11 @@ class Updater(object):
     # ensures that an upper bound restricts how large a file is downloaded.
     if observed_length > trusted_file_length:
       raise tuf.exceptions.DownloadLengthMismatchError(trusted_file_length,
-                                            observed_length)
+          observed_length)
+
     else:
-      logger.debug('Observed length ('+str(observed_length)+\
-                   ') <= trusted length ('+str(trusted_file_length)+')')
+      logger.debug('Observed length (' + str(observed_length) +\
+          ') <= trusted length (' + str(trusted_file_length) + ')')
 
 
 
@@ -889,9 +1282,9 @@ class Updater(object):
   def _get_target_file(self, target_filepath, file_length, file_hashes):
     """
     <Purpose>
-      Non-public method that safely (i.e., the file length and hash are strictly
-      equal to the trusted) downloads a target file up to a certain length, and
-      checks its hashes thereafter.
+      Non-public method that safely (i.e., the file length and hash are
+      strictly equal to the trusted) downloads a target file up to a certain
+      length, and checks its hashes thereafter.
 
     <Arguments>
       target_filepath:
@@ -943,7 +1336,7 @@ class Updater(object):
 
 
   def _verify_uncompressed_metadata_file(self, metadata_file_object,
-                                         metadata_role):
+      metadata_role):
     """
     <Purpose>
       Non-public method that verifies an uncompressed metadata file.  An
@@ -952,8 +1345,9 @@ class Updater(object):
 
     <Arguments>
       metadata_file_object:
-        A 'securesystemslib.util.TempFile' instance containing the metadata file.
-        'metadata_file_object' ensures the entire file is returned with read().
+        A 'securesystemslib.util.TempFile' instance containing the metadata
+        file.  'metadata_file_object' ensures the entire file is returned with
+        read().
 
       metadata_role:
         The role name of the metadata (e.g., 'root', 'targets',
@@ -1004,8 +1398,8 @@ class Updater(object):
     # metadata.
 
     # Verify the signature on the downloaded metadata object.
-
-    valid = tuf.sig.verify(metadata_signable, metadata_role, self.repository_name)
+    valid = tuf.sig.verify(metadata_signable, metadata_role,
+        self.repository_name)
 
     if not valid:
       raise securesystemslib.exceptions.BadSignatureError(metadata_role)
@@ -1049,11 +1443,13 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A 'securesystemslib.util.TempFile' file-like object containing the metadata.
+      A 'securesystemslib.util.TempFile' file-like object containing the
+      metadata.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors('meta', remote_filename,
-                                                   self.mirrors)
+        self.mirrors)
+
     # file_mirror (URL): error (Exception)
     file_mirror_errors = {}
     file_object = None
@@ -1061,7 +1457,7 @@ class Updater(object):
     for file_mirror in file_mirrors:
       try:
         file_object = tuf.download.unsafe_download(file_mirror,
-                                                   upperbound_filelength)
+            upperbound_filelength)
 
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
@@ -1100,7 +1496,8 @@ class Updater(object):
               ' number MUST be: ' + repr(expected_version))
 
         # The caller does not know which version to download.  Verify that the
-        # downloaded version is at least greater than the one locally available.
+        # downloaded version is at least greater than the one locally
+        # available.
         else:
           # Verify that the version number of the locally stored
           # 'timestamp.json', if available, is less than what was downloaded.
@@ -1112,8 +1509,8 @@ class Updater(object):
               self.metadata['current'][metadata_role]['version']
 
             if version_downloaded < current_version:
-              raise tuf.exceptions.ReplayedMetadataError(metadata_role, version_downloaded,
-                                              current_version)
+              raise tuf.exceptions.ReplayedMetadataError(metadata_role,
+                  version_downloaded, current_version)
 
           except KeyError:
             logger.info(metadata_role + ' not available locally.')
@@ -1159,8 +1556,8 @@ class Updater(object):
 
 
 
-  def _get_file(self, filepath, verify_file_function, file_type,
-    file_length, download_safely=True):
+  def _get_file(self, filepath, verify_file_function, file_type, file_length,
+      download_safely=True):
     """
     <Purpose>
       Non-public method that tries downloading, up to a certain length, a
@@ -1201,12 +1598,13 @@ class Updater(object):
       file and returned.
 
     <Returns>
-      A 'securesystemslib.util.TempFile' file-like object containing the metadata
-      or target.
+      A 'securesystemslib.util.TempFile' file-like object containing the
+      metadata or target.
     """
 
     file_mirrors = tuf.mirrors.get_list_of_mirrors(file_type, filepath,
-                                                   self.mirrors)
+        self.mirrors)
+
     # file_mirror (URL): error (Exception)
     file_mirror_errors = {}
     file_object = None
@@ -1218,11 +1616,10 @@ class Updater(object):
         # other one for "unsafe" download? This should induce safer and more
         # readable code.
         if download_safely:
-          file_object = tuf.download.safe_download(file_mirror,
-                                                   file_length)
+          file_object = tuf.download.safe_download(file_mirror, file_length)
+
         else:
-          file_object = tuf.download.unsafe_download(file_mirror,
-                                                     file_length)
+          file_object = tuf.download.unsafe_download(file_mirror, file_length)
 
         # Verify 'file_object' according to the callable function.
         # 'file_object' is also verified if decompressed above (i.e., the
@@ -1287,7 +1684,8 @@ class Updater(object):
       None.
     """
 
-    # Construct the metadata filename as expected by the download/mirror modules.
+    # Construct the metadata filename as expected by the download/mirror
+    # modules.
     metadata_filename = metadata_role + '.json'
     metadata_filename = metadata_filename
 
@@ -1313,7 +1711,8 @@ class Updater(object):
     if self.consistent_snapshot and version:
       filename_version = version
       dirname, basename = os.path.split(remote_filename)
-      remote_filename = os.path.join(dirname, str(filename_version) + '.' + basename)
+      remote_filename = os.path.join(
+          dirname, str(filename_version) + '.' + basename)
 
     metadata_file_object = \
       self._get_metadata_file(metadata_role, remote_filename,
@@ -1328,7 +1727,7 @@ class Updater(object):
     securesystemslib.util.ensure_parent_dir(current_filepath)
 
     previous_filepath = os.path.join(self.metadata_directory['previous'],
-                                     metadata_filename)
+        metadata_filename)
     previous_filepath = os.path.abspath(previous_filepath)
 
     if os.path.exists(current_filepath):
@@ -1379,10 +1778,10 @@ class Updater(object):
       Non-public method that updates the metadata for 'metadata_role' if it has
       changed.  With the exception of the 'timestamp' role, all the top-level
       roles are updated by this method.  The 'timestamp' role is always
-      downloaded from a mirror without first checking if it has been updated; it
-      is updated in refresh() by calling _update_metadata('timestamp').  This
-      method is also called for delegated role metadata, which are referenced by
-      'snapshot'.
+      downloaded from a mirror without first checking if it has been updated;
+      it is updated in refresh() by calling _update_metadata('timestamp').
+      This method is also called for delegated role metadata, which are
+      referenced by 'snapshot'.
 
       If the metadata needs to be updated but an update cannot be obtained,
       this method will delete the file (with the exception of the root
@@ -1413,8 +1812,8 @@ class Updater(object):
 
     <Exceptions>
       tuf.exceptions.NoWorkingMirrorError:
-        If 'metadata_role' could not be downloaded after determining that it had
-        changed.
+        If 'metadata_role' could not be downloaded after determining that it
+        had changed.
 
       tuf.exceptions.RepositoryError:
         If the referenced metadata is missing.
@@ -1453,11 +1852,10 @@ class Updater(object):
     # metadata.  The metadata is considered updated if its version number is
     # strictly greater than its currently trusted version number.
     expected_versioninfo = self.metadata['current'][referenced_metadata] \
-                                        ['meta'] \
-                                        [metadata_filename]
+        ['meta'][metadata_filename]
 
     if not self._versioninfo_has_been_updated(metadata_filename,
-                                              expected_versioninfo):
+        expected_versioninfo):
       logger.info(repr(metadata_filename) + ' up-to-date.')
 
       # Since we have not downloaded a new version of this metadata, we should
@@ -1465,7 +1863,7 @@ class Updater(object):
       # This raises tuf.exceptions.ExpiredMetadataError if the metadata we have
       # is expired. Resolves issue #322.
       self._ensure_not_expired(self.metadata['current'][metadata_role],
-                               metadata_role)
+          metadata_role)
 
       # TODO: If 'metadata_role' is root or snapshot, we should verify that
       # root's hash matches what's in snapshot, and that snapshot hash matches
@@ -1493,7 +1891,7 @@ class Updater(object):
       self._update_metadata(metadata_role, upperbound_filelength,
           expected_versioninfo['version'])
 
-    except:
+    except Exception:
       # The current metadata we have is not current but we couldn't get new
       # metadata. We shouldn't use the old metadata anymore.  This will get rid
       # of in-memory knowledge of the role and delegated roles, but will leave
@@ -1503,7 +1901,8 @@ class Updater(object):
       # need to, but we need to check the trust implications of the current
       # implementation.
       self._delete_metadata(metadata_role)
-      logger.error('Metadata for ' + repr(metadata_role) + ' cannot be updated.')
+      logger.error('Metadata for ' + repr(metadata_role) + ' cannot'
+          ' be updated.')
       raise
 
     else:
@@ -1568,6 +1967,10 @@ class Updater(object):
 
     current_versioninfo = self.versioninfo[metadata_filename]
 
+    logger.debug('New version for ' + repr(metadata_filename) +
+        ': ' + repr(new_versioninfo['version']) + '.  Old version: ' +
+        repr(current_versioninfo['version']))
+
     if new_versioninfo['version'] > current_versioninfo['version']:
       return True
 
@@ -1609,7 +2012,8 @@ class Updater(object):
 
     # Save the path to the current metadata file for 'metadata_filename'.
     current_filepath = os.path.join(self.metadata_directory['current'],
-                                    metadata_filename)
+        metadata_filename)
+
     # If the path is invalid, simply return and leave versioninfo unset.
     if not os.path.exists(current_filepath):
       self.versioninfo[metadata_filename] = None
@@ -1634,7 +2038,8 @@ class Updater(object):
       # client's copy of snapshot.json.
       try:
         timestamp_version_number = self.metadata['current']['snapshot']['version']
-        trusted_versioninfo = tuf.formats.make_versioninfo(timestamp_version_number)
+        trusted_versioninfo = tuf.formats.make_versioninfo(
+            timestamp_version_number)
 
       except KeyError:
         trusted_versioninfo = \
@@ -1765,7 +2170,8 @@ class Updater(object):
 
     # Save the path to the current metadata file for 'metadata_filename'.
     current_filepath = os.path.join(self.metadata_directory['current'],
-                                    metadata_filename)
+        metadata_filename)
+
     # If the path is invalid, simply return and leave fileinfo unset.
     if not os.path.exists(current_filepath):
       self.fileinfo[metadata_filename] = None
@@ -1773,7 +2179,8 @@ class Updater(object):
 
     # Extract the file information from the actual file and save it
     # to the fileinfo store.
-    file_length, hashes = securesystemslib.util.get_file_details(current_filepath)
+    file_length, hashes = securesystemslib.util.get_file_details(
+        current_filepath)
     metadata_fileinfo = tuf.formats.make_fileinfo(file_length, hashes)
     self.fileinfo[metadata_filename] = metadata_fileinfo
 
@@ -2264,10 +2671,11 @@ class Updater(object):
     number_of_delegations = tuf.settings.MAX_NUMBER_OF_DELEGATIONS
 
     # Ensure the client has the most up-to-date version of 'targets.json'.
-    # Raise 'tuf.exceptions.NoWorkingMirrorError' if the changed metadata cannot be
-    # successfully downloaded and 'tuf.exceptions.RepositoryError' if the referenced
-    # metadata is missing.  Target methods such as this one are called after
-    # the top-level metadata have been refreshed (i.e., updater.refresh()).
+    # Raise 'tuf.exceptions.NoWorkingMirrorError' if the changed metadata
+    # cannot be successfully downloaded and 'tuf.exceptions.RepositoryError' if
+    # the referenced metadata is missing.  Target methods such as this one are
+    # called after the top-level metadata have been refreshed (i.e.,
+    # updater.refresh()).
     self._update_metadata_if_changed('targets')
 
     # Preorder depth-first traversal of the graph of target delegations.
@@ -2287,7 +2695,8 @@ class Updater(object):
       # _refresh_targets_metadata() does not refresh 'targets.json', it
       # expects _update_metadata_if_changed() to have already refreshed it,
       # which this function has checked above.
-      self._refresh_targets_metadata(role_name, refresh_all_delegated_roles=False)
+      self._refresh_targets_metadata(role_name,
+          refresh_all_delegated_roles=False)
 
       role_metadata = current_metadata[role_name]
       targets = role_metadata['targets']
@@ -2332,8 +2741,8 @@ class Updater(object):
 
     if target is None and number_of_delegations == 0 and len(role_names) > 0:
       logger.debug(repr(len(role_names)) + ' roles left to visit, ' +
-                   'but allowed to visit at most ' +
-                   repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
+          'but allowed to visit at most ' +
+          repr(tuf.settings.MAX_NUMBER_OF_DELEGATIONS) + ' delegations.')
 
     return target
 
@@ -2721,14 +3130,14 @@ class Updater(object):
     # '_get_target_file()' checks every mirror and returns the first target
     # that passes verification.
     target_file_object = self._get_target_file(target_filepath, trusted_length,
-                                               trusted_hashes)
+        trusted_hashes)
 
     # We acquired a target file object from a mirror.  Move the file into place
     # (i.e., locally to 'destination_directory').  Note: join() discards
     # 'destination_directory' if 'target_path' contains a leading path
     # separator (i.e., is treated as an absolute path).
     destination = os.path.join(destination_directory,
-                               target_filepath.lstrip(os.sep))
+        target_filepath.lstrip(os.sep))
     destination = os.path.abspath(destination)
     target_dirpath = os.path.dirname(destination)
 

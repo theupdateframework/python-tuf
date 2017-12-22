@@ -1,0 +1,33 @@
+{
+ "mapping": [
+  {
+   "paths": [
+    "*1.txt"
+   ],
+   "repositories": [
+    "test_repository1",
+    "test_repository2"
+   ],
+   "terminating": false,
+   "threshold": 1
+  },
+  {
+   "paths": [
+    "*3.txt"
+   ],
+   "repositories": [
+    "test_repository2"
+   ],
+   "terminating": true,
+   "threshold": 1
+  }
+ ],
+ "repositories": {
+  "test_repository1": [
+   "http://localhost:30001"
+  ],
+  "test_repository2": [
+   "http://localhost:30002"
+  ]
+ }
+}

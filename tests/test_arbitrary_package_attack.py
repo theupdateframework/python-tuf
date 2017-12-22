@@ -113,7 +113,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     # We are inheriting from custom class.
     unittest_toolbox.Modified_TestCase.setUp(self)
 
-    self.repository_name = 'test_repository'
+    self.repository_name = 'test_repository1'
 
     # Copy the original repository files provided in the test folder so that
     # any modifications made to repository files are restricted to the copies.
@@ -162,7 +162,7 @@ class TestArbitraryPackageAttack(unittest_toolbox.Modified_TestCase):
     # Modified_TestCase.tearDown() automatically deletes temporary files and
     # directories that may have been created during each test case.
     unittest_toolbox.Modified_TestCase.tearDown(self)
-    # updater.Updater() populates the roledb with the name "test_repository"
+    # updater.Updater() populates the roledb with the name "test_repository1"
     tuf.roledb.clear_roledb(clear_all=True)
     tuf.keydb.clear_keydb(clear_all=True)
 
