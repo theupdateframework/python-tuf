@@ -1782,9 +1782,8 @@ class Targets(Metadata):
 
     <Exceptions>
       securesystemslib.exceptions.Error, if a restricted path in
-      'restricted_paths' is not a string path, doesn't live under the
-      repository's targets directory, or if 'child_rolename' has not been
-      delegated yet.
+      'restricted_paths' is not a string path, or if 'child_rolename' has not
+      been delegated yet.
 
     <Side Effects>
       Modifies this Targets' delegations field.
@@ -1815,8 +1814,8 @@ class Targets(Metadata):
       # Append a trailing path separator with os.path.join(path, '').
       targets_directory = os.path.join(self._targets_directory, '')
       if not restricted_path.startswith(targets_directory):
-        raise securesystemslib.exceptions.Error(repr(restricted_path) + ' does'
-          ' not live under the repository\'s targets'
+        logger.debug(repr(restricted_path) + ' does not live under the'
+            ' repository\'s targets'
           ' directory: ' + repr(self._targets_directory))
 
       relative_paths.append(restricted_path[len(self._targets_directory):])
@@ -2124,7 +2123,7 @@ class Targets(Metadata):
 
 
   def delegate(self, rolename, public_keys, list_of_targets, threshold=1,
-               terminating=False, restricted_paths=None, path_hash_prefixes=None):
+      terminating=False, restricted_paths=None, path_hash_prefixes=None):
     """
     <Purpose>
       Create a new delegation, where 'rolename' is a child delegation of this
@@ -2150,7 +2149,11 @@ class Targets(Metadata):
 
       list_of_targets:
         A list of target filepaths that are added to the paths of 'rolename'.
-        'list_of_targets' is a list of target filepaths, and can be empty.
+        'list_of_targets' is a list of target filepaths, can be empty, and each
+        filepath must full under the repository's targets directory.  The list
+        of targets should also exist at the specified paths, otherwise
+        non-existent target paths will not be added when the targets file is
+        written to disk with writeall() or write().
 
       threshold:
         The threshold number of keys of 'rolename'.
@@ -2167,8 +2170,9 @@ class Targets(Metadata):
         file specified by 'target/other_role'.
 
       restricted_paths:
-        A list of restricted directory or file paths of 'rolename'.  Any target
-        files added to 'rolename' must fall under one of the restricted paths.
+        A list of delegated paths, or glob patterns, of 'rolename'.  Any target
+        files added to 'rolename' must match one of the restricted glob
+        patterns.
 
       path_hash_prefixes:
         A list of hash prefixes in
@@ -2222,8 +2226,8 @@ class Targets(Metadata):
     # Add all the keys in 'public_keys' to tuf.keydb.
     for key in public_keys:
       keyid = key['keyid']
-      key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(key['keytype'],
-          key['scheme'], key['keyval'])
+      key_metadata_format = securesystemslib.keys.format_keyval_to_metadata(
+          key['keytype'], key['scheme'], key['keyval'])
 
       # Update 'keyids' and 'keydict'.
       new_keydict = {keyid: key_metadata_format}
@@ -2251,9 +2255,8 @@ class Targets(Metadata):
     if restricted_paths is not None:
       for path in restricted_paths:
         if not path.startswith(self._targets_directory + os.sep):
-          raise securesystemslib.exceptions.Error(repr(path) + ' is not under'
-            ' the repository\'s targets'
-            ' directory: ' +repr(self._targets_directory))
+          logger.debug(repr(path) + ' is not under the repository\'s targets'
+            ' directory: ' + repr(self._targets_directory))
 
         # Append a trailing path separator with os.path.join(path, '').
         relative_restricted_paths.append(path[targets_directory_length:])
