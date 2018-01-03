@@ -2239,14 +2239,15 @@ class Targets(Metadata):
     relative_targetpaths = {}
     targets_directory_length = len(self._targets_directory)
 
-    for target in list_of_targets:
-      target = os.path.abspath(target)
-      if not target.startswith(self._targets_directory + os.sep):
-        raise securesystemslib.exceptions.Error(repr(target) + ' is not under'
-          ' the repository\'s targets'
-          ' directory: ' + repr(self._targets_directory))
+    if list_of_targets:
+      for target in list_of_targets:
+        target = os.path.abspath(target)
+        if not target.startswith(self._targets_directory + os.sep):
+          raise securesystemslib.exceptions.Error(repr(target) + ' is not under'
+            ' the repository\'s targets'
+            ' directory: ' + repr(self._targets_directory))
 
-      relative_targetpaths.update({target[targets_directory_length:]: {}})
+        relative_targetpaths.update({target[targets_directory_length:]: {}})
 
     # Verify whether each path in 'paths' falls under the repository's targets
     # directory.
@@ -2548,9 +2549,9 @@ class Targets(Metadata):
 
       # Delegate from the "unclaimed" targets role to each 'bin_rolename'
       # (i.e., outer_bin_index).
-      self.delegate(bin_rolename, keys_of_hashed_bins,
-                    list_of_targets=bin_rolename_targets,
-                    path_hash_prefixes=path_hash_prefixes)
+      self.delegate(bin_rolename, keys_of_hashed_bins, [],
+          list_of_targets=bin_rolename_targets,
+          path_hash_prefixes=path_hash_prefixes)
       logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_rolename))
 
 
