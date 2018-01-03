@@ -357,10 +357,12 @@ the target filepaths to metadata.
 ['repository/targets/file2.txt', 'repository/targets/file1.txt', 'repository/targets/file3.txt']
 
 # Add the list of target paths to the metadata of the top-level Targets role.
-# Any target file paths that might already exist are NOT replaced.
+# Any target file paths that might already exist are NOT replaced, and
 # add_targets() does not create or move target files on the file system.  Any
 # target paths added to a role must fall under the expected targets directory,
-# otherwise an exception is raised.
+# otherwise an exception is raised. The targets added to a role should actually
+# exist once writeall() or write() is called, so that the hash and size of
+# these targets can be included in Targets metadata.
 >>> repository.targets.add_targets(list_of_targets)
 
 # Individual target files may also be added to roles, including custom data
