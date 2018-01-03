@@ -6,7 +6,7 @@ project consists of the TUF
 
 ## Maintainership and Consensus Builder
 The project is maintained by the people indicated in
-[MAINTAINERS.md](MAINTAINERS.md).  A maintainer is expected to (1) submit and
+[MAINTAINERS.txt](MAINTAINERS.txt).  A maintainer is expected to (1) submit and
 review GitHub pull requests and (2) open issues or [submit vulnerability
 reports](https://github.com/theupdateframework/tuf#security-issues-and-bugs).
 A maintainer has the authority to approve or reject pull requests submitted by
