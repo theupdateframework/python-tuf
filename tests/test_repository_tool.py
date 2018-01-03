@@ -1208,10 +1208,10 @@ class TestTargets(unittest.TestCase):
                       path_hash_prefixes=path_hash_prefixes)
 
     # Test for targets that do not exist under the targets directory.
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.delegate, rolename,
-                      public_keys, list_of_targets, threshold,
-                      terminating=False, restricted_paths=['non-existent.txt'],
-                      path_hash_prefixes=path_hash_prefixes)
+    # An exception should be raised for non-existent delegated paths.
+    self.targets_object.delegate(rolename, public_keys, list_of_targets,
+        threshold, terminating=False, restricted_paths=['non-existent.txt'],
+        path_hash_prefixes=path_hash_prefixes)
 
 
     # Test improperly formatted arguments.
@@ -1494,14 +1494,14 @@ class TestTargets(unittest.TestCase):
         self.targets_object.add_restricted_paths, restricted_paths,
         'non_delegated_rolename')
 
-    # Non-existent 'restricted_paths'.
-    self.assertRaises(securesystemslib.exceptions.Error,
-        self.targets_object.add_restricted_paths, ['/non-existent'], 'tuf')
+    # add_restricted_paths() should not raise an exception for non-existent
+    # paths, which is previously did.
+    self.targets_object.add_restricted_paths(['/non-existent'], 'tuf')
 
-    # Directory not under the repository's targets directory.
+    # add_restricted_paths() should not raise an exception for directories that
+    # do not fall under the repository's targets directory.
     repository_directory = os.path.join('repository_data', 'repository')
-    self.assertRaises(securesystemslib.exceptions.Error,
-        self.targets_object.add_restricted_paths, [repository_directory], 'tuf')
+    self.targets_object.add_restricted_paths([repository_directory], 'tuf')
 
 
 
