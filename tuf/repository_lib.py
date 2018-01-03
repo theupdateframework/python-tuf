@@ -94,7 +94,7 @@ TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
 SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 
 # The full list of supported TUF metadata extensions.
-METADATA_EXTENSIONS = ['.json.gz', '.json']
+METADATA_EXTENSIONS = ['.json']
 
 # The supported extensions of roles listed in Snapshot metadata.
 SNAPSHOT_ROLE_EXTENSIONS = ['.json']
