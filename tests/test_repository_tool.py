@@ -1437,15 +1437,15 @@ class TestTargets(unittest.TestCase):
                       self.targets_object.remove_target_from_bin, 3)
 
     # Invalid target file path argument.
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.remove_target_from_bin,
-                      '/non-existent')
+    self.assertRaises(securesystemslib.exceptions.Error,
+        self.targets_object.remove_target_from_bin, '/non-existent')
 
 
 
-  def test_add_restricted_paths(self):
+  def test_add_paths(self):
     # Test normal case.
-    # Perform a delegation so that add_restricted_paths() has a child role
-    # to restrict.
+    # Perform a delegation so that add_paths() has a child role to delegate a
+    # path to.
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
@@ -1464,8 +1464,8 @@ class TestTargets(unittest.TestCase):
 
     restricted_path = os.path.join(self.targets_directory, 'tuf_files')
     os.mkdir(restricted_path)
-    restricted_paths = [restricted_path + '/*']
-    self.targets_object.add_restricted_paths(restricted_paths, 'tuf')
+    paths = [restricted_path + '/*']
+    self.targets_object.add_paths(paths, 'tuf')
 
     # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains
     # the expected restricted paths of the delegated role.  Only
@@ -1475,31 +1475,30 @@ class TestTargets(unittest.TestCase):
     delegated_role = targets_object_roleinfo['delegations']['roles'][0]
     self.assertEqual(['/tuf_files/*'], delegated_role['paths'])
 
-    # Try to add a restricted path that has already been set.
-    # add_restricted_paths() should simply log a message in this case.
-    self.targets_object.add_restricted_paths(restricted_paths, 'tuf')
+    # Try to add a delegated path that has already been set.
+    # add_paths() should simply log a message in this case.
+    self.targets_object.add_paths(paths, 'tuf')
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-        self.targets_object.add_restricted_paths, 3, 'tuf')
+        self.targets_object.add_paths, 3, 'tuf')
     self.assertRaises(securesystemslib.exceptions.FormatError,
-        self.targets_object.add_restricted_paths, restricted_paths, 3)
+        self.targets_object.add_paths, paths, 3)
 
 
     # Test invalid arguments.
     # A non-delegated child role.
     self.assertRaises(securesystemslib.exceptions.Error,
-        self.targets_object.add_restricted_paths, restricted_paths,
-        'non_delegated_rolename')
+        self.targets_object.add_paths, paths, 'non_delegated_rolename')
 
-    # add_restricted_paths() should not raise an exception for non-existent
+    # add_paths() should not raise an exception for non-existent
     # paths, which is previously did.
-    self.targets_object.add_restricted_paths(['/non-existent'], 'tuf')
+    self.targets_object.add_paths(['/non-existent'], 'tuf')
 
-    # add_restricted_paths() should not raise an exception for directories that
+    # add_paths() should not raise an exception for directories that
     # do not fall under the repository's targets directory.
     repository_directory = os.path.join('repository_data', 'repository')
-    self.targets_object.add_restricted_paths([repository_directory], 'tuf')
+    self.targets_object.add_paths([repository_directory], 'tuf')
 
 
 
