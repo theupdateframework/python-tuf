@@ -476,8 +476,8 @@ targets and generate signed metadata.
 
 # Make a delegation from "targets" to "unclaimed", initially containing zero
 # targets.
-# delegate(rolename, list_of_public_keys, list_of_file_paths, threshold,
-#          restricted_paths, path_hash_prefixes)
+# delegate(rolename, list_of_public_keys, paths, threshold=1,
+#     list_of_targets=None, path_hash_prefixes=None)
 >>> repository.targets.delegate("unclaimed", [public_unclaimed_key], [])
 
 # Load the private key of "unclaimed" so that unclaimed's metadata can be
