@@ -1758,32 +1758,33 @@ class Targets(Metadata):
 
 
 
-  def add_restricted_paths(self, restricted_paths, child_rolename):
+  def add_paths(self, paths, child_rolename):
     """
     <Purpose>
-      Add 'restricted_paths' to the restricted paths of 'child_rolename'.
-      The updater client verifies the target paths specified by child roles, and
-      searches for targets by visiting these restricted paths.  A child role may
-      only provide targets specifically listed in the delegations field of the
-      parent, or a target that matches a restricted path.
+      Add 'paths' to the delegated paths for 'child_rolename'.  'paths' can be
+      a list of either file paths or glob patterns.  The updater client
+      verifies the target paths specified by child roles, and searches for
+      targets by visiting these delegated paths.  A child role may only provide
+      targets specifically listed in the delegations field of the parent role,
+      or a target that matches a delegated path.
 
       >>>
       >>>
       >>>
 
     <Arguments>
-      restricted_paths:
-        A list of paths that 'child_rolename' should be restricted to.
+      paths:
+        A list of glob patterns, or file paths, that 'child_rolename' is
+        trusted to provide.
 
       child_rolename:
-        The child delegation that requires an update to its restricted paths,
-        as listed in the parent role's delegations (e.g., 'Django' in
-        'unclaimed').
+        The child delegation that requires an update to its delegated or
+        trusted paths, as listed in the parent role's delegations (e.g.,
+        'Django' in 'unclaimed').
 
     <Exceptions>
-      securesystemslib.exceptions.Error, if a restricted path in
-      'restricted_paths' is not a string path, or if 'child_rolename' has not
-      been delegated yet.
+      securesystemslib.exceptions.Error, if a delegated path in 'paths' is not
+      a string path, or if 'child_rolename' has not been delegated yet.
 
     <Side Effects>
       Modifies this Targets' delegations field.
@@ -1796,11 +1797,11 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATHS_SCHEMA.check_match(restricted_paths)
+    securesystemslib.formats.PATHS_SCHEMA.check_match(paths)
     tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
     # A list of relative and verified paths to be added to the child role's
-    # entry in the parent's delegations.
+    # entry in the parent's delegations field.
     relative_paths = []
 
     # Ensure that 'child_rolename' exists, otherwise it will not have an entry
@@ -1809,32 +1810,32 @@ class Targets(Metadata):
       raise securesystemslib.exceptions.Error(repr(child_rolename) + ' does'
         ' not exist.')
 
-    for restricted_path in restricted_paths:
-      # Do the restricted paths fall under the repository's targets directory?
+    for path in paths:
+      # Do the delegated paths fall under the repository's targets directory?
       # Append a trailing path separator with os.path.join(path, '').
       targets_directory = os.path.join(self._targets_directory, '')
-      if not restricted_path.startswith(targets_directory):
-        logger.debug(repr(restricted_path) + ' does not live under the'
+      if not path.startswith(targets_directory):
+        logger.debug(repr(path) + ' does not live under the'
             ' repository\'s targets'
           ' directory: ' + repr(self._targets_directory))
 
-      relative_paths.append(restricted_path[len(self._targets_directory):])
+      relative_paths.append(path[len(self._targets_directory):])
 
     # Get the current role's roleinfo, so that its delegations field can be
     # updated.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
 
-    # Update the restricted paths of 'child_rolename' to add relative paths.
+    # Update the delegated paths of 'child_rolename' to add relative paths.
     for role in roleinfo['delegations']['roles']:
       if role['name'] == child_rolename:
-        restricted_paths = role['paths']
+        delegated_paths = role['paths']
 
     for relative_path in relative_paths:
-      if relative_path not in restricted_paths:
-        restricted_paths.append(relative_path)
+      if relative_path not in delegated_paths:
+        delegated_paths.append(relative_path)
 
       else:
-        logger.debug(repr(relative_path) + ' is already a restricted path.')
+        logger.debug(repr(relative_path) + ' is already a delegated path.')
 
     tuf.roledb.update_roleinfo(self._rolename, roleinfo,
         repository_name=self._repository_name)
