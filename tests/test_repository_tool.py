@@ -961,12 +961,11 @@ class TestTargets(unittest.TestCase):
     public_keys = [public_key]
     threshold = 1
 
-    self.targets_object.delegate('tuf', public_keys, [target1_filepath],
-                                 threshold, restricted_paths=None,
-                                 path_hash_prefixes=None)
-    self.targets_object.delegate('warehouse', public_keys, [target2_filepath],
-                                 threshold, restricted_paths=None,
-                                 path_hash_prefixes=None)
+    self.targets_object.delegate('tuf', public_keys, [], threshold, False,
+        [target1_filepath], path_hash_prefixes=None)
+
+    self.targets_object.delegate('warehouse', public_keys, [], threshold, False,
+        [target2_filepath], path_hash_prefixes=None)
 
     # Test that get_delegated_rolenames returns the expected delegations.
     expected_delegated_rolenames = ['targets/tuf/', 'targets/warehouse']
@@ -1000,13 +999,11 @@ class TestTargets(unittest.TestCase):
     # Set needed arguments by delegate().
     public_keys = [public_key]
     rolename = 'tuf'
-    list_of_targets = [target1_filepath]
+    paths = [target1_filepath]
     threshold = 1
 
-    self.targets_object.delegate(rolename, public_keys, list_of_targets,
-                                 threshold, terminating=False,
-                                 restricted_paths=None,
-                                 path_hash_prefixes=None)
+    self.targets_object.delegate(rolename, public_keys, paths, threshold,
+        terminating=False, list_of_targets=None, path_hash_prefixes=None)
 
     # Test that a valid Targets() object is returned by delegations().
     for delegated_object in self.targets_object.delegations:
@@ -1021,8 +1018,7 @@ class TestTargets(unittest.TestCase):
   def test_add_delegated_role(self):
     # Test for invalid targets object.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      self.targets_object.add_delegated_role, 'targets',
-                                                             'bad_object')
+        self.targets_object.add_delegated_role, 'targets', 'bad_object')
 
 
 
@@ -1518,12 +1514,11 @@ class TestTargets(unittest.TestCase):
     # Set needed arguments by delegate().
     public_keys = [public_key]
     rolename = 'tuf'
-    list_of_targets = [target1_filepath]
+    paths = [target1_filepath]
     threshold = 1
 
-    self.targets_object.delegate(rolename, public_keys, list_of_targets,
-                                 threshold, restricted_paths=None,
-                                 path_hash_prefixes=None)
+    self.targets_object.delegate(rolename, public_keys, [], threshold, False,
+        paths, path_hash_prefixes=None)
 
     # Test revoke()
     self.targets_object.revoke('tuf')
