@@ -1077,10 +1077,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
 
     repository.targets.delegate('role3', [self.role_keys['targets']['public']],
-                                [], restricted_paths=[foo_pattern])
+        [foo_pattern])
 
     repository.targets.delegate('role4', [self.role_keys['targets']['public']],
-                                [foo_package], restricted_paths=[foo_pattern])
+        [foo_pattern], list_of_targets=[foo_package])
 
     repository.targets.load_signing_key(self.role_keys['targets']['private'])
     repository.targets('role3').load_signing_key(self.role_keys['targets']['private'])
@@ -1112,9 +1112,10 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
 
     # Ensure we delegate in trusted order (i.e., 'role2' has higher priority.)
     repository.targets.delegate('role3', [self.role_keys['targets']['public']],
-                                [], terminating=True, restricted_paths=[foo_pattern])
+        [foo_pattern], terminating=True, list_of_targets=[])
+
     repository.targets.delegate('role4', [self.role_keys['targets']['public']],
-                                [foo_package], restricted_paths=[foo_pattern])
+        [foo_pattern], list_of_targets=[foo_package])
 
     repository.targets('role3').load_signing_key(self.role_keys['targets']['private'])
     repository.targets('role4').load_signing_key(self.role_keys['targets']['private'])

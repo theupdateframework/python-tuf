@@ -1758,32 +1758,33 @@ class Targets(Metadata):
 
 
 
-  def add_restricted_paths(self, restricted_paths, child_rolename):
+  def add_paths(self, paths, child_rolename):
     """
     <Purpose>
-      Add 'restricted_paths' to the restricted paths of 'child_rolename'.
-      The updater client verifies the target paths specified by child roles, and
-      searches for targets by visiting these restricted paths.  A child role may
-      only provide targets specifically listed in the delegations field of the
-      parent, or a target that matches a restricted path.
+      Add 'paths' to the delegated paths for 'child_rolename'.  'paths' can be
+      a list of either file paths or glob patterns.  The updater client
+      verifies the target paths specified by child roles, and searches for
+      targets by visiting these delegated paths.  A child role may only provide
+      targets specifically listed in the delegations field of the parent role,
+      or a target that matches a delegated path.
 
       >>>
       >>>
       >>>
 
     <Arguments>
-      restricted_paths:
-        A list of paths that 'child_rolename' should be restricted to.
+      paths:
+        A list of glob patterns, or file paths, that 'child_rolename' is
+        trusted to provide.
 
       child_rolename:
-        The child delegation that requires an update to its restricted paths,
-        as listed in the parent role's delegations (e.g., 'Django' in
-        'unclaimed').
+        The child delegation that requires an update to its delegated or
+        trusted paths, as listed in the parent role's delegations (e.g.,
+        'Django' in 'unclaimed').
 
     <Exceptions>
-      securesystemslib.exceptions.Error, if a restricted path in
-      'restricted_paths' is not a string path, or if 'child_rolename' has not
-      been delegated yet.
+      securesystemslib.exceptions.Error, if a delegated path in 'paths' is not
+      a string path, or if 'child_rolename' has not been delegated yet.
 
     <Side Effects>
       Modifies this Targets' delegations field.
@@ -1796,11 +1797,11 @@ class Targets(Metadata):
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
-    securesystemslib.formats.PATHS_SCHEMA.check_match(restricted_paths)
+    securesystemslib.formats.PATHS_SCHEMA.check_match(paths)
     tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
     # A list of relative and verified paths to be added to the child role's
-    # entry in the parent's delegations.
+    # entry in the parent's delegations field.
     relative_paths = []
 
     # Ensure that 'child_rolename' exists, otherwise it will not have an entry
@@ -1809,32 +1810,32 @@ class Targets(Metadata):
       raise securesystemslib.exceptions.Error(repr(child_rolename) + ' does'
         ' not exist.')
 
-    for restricted_path in restricted_paths:
-      # Do the restricted paths fall under the repository's targets directory?
+    for path in paths:
+      # Do the delegated paths fall under the repository's targets directory?
       # Append a trailing path separator with os.path.join(path, '').
       targets_directory = os.path.join(self._targets_directory, '')
-      if not restricted_path.startswith(targets_directory):
-        logger.debug(repr(restricted_path) + ' does not live under the'
+      if not path.startswith(targets_directory):
+        logger.debug(repr(path) + ' does not live under the'
             ' repository\'s targets'
           ' directory: ' + repr(self._targets_directory))
 
-      relative_paths.append(restricted_path[len(self._targets_directory):])
+      relative_paths.append(path[len(self._targets_directory):])
 
     # Get the current role's roleinfo, so that its delegations field can be
     # updated.
     roleinfo = tuf.roledb.get_roleinfo(self._rolename, self._repository_name)
 
-    # Update the restricted paths of 'child_rolename' to add relative paths.
+    # Update the delegated paths of 'child_rolename' to add relative paths.
     for role in roleinfo['delegations']['roles']:
       if role['name'] == child_rolename:
-        restricted_paths = role['paths']
+        delegated_paths = role['paths']
 
     for relative_path in relative_paths:
-      if relative_path not in restricted_paths:
-        restricted_paths.append(relative_path)
+      if relative_path not in delegated_paths:
+        delegated_paths.append(relative_path)
 
       else:
-        logger.debug(repr(relative_path) + ' is already a restricted path.')
+        logger.debug(repr(relative_path) + ' is already a delegated path.')
 
     tuf.roledb.update_roleinfo(self._rolename, roleinfo,
         repository_name=self._repository_name)
@@ -2122,8 +2123,8 @@ class Targets(Metadata):
 
 
 
-  def delegate(self, rolename, public_keys, list_of_targets, threshold=1,
-      terminating=False, restricted_paths=None, path_hash_prefixes=None):
+  def delegate(self, rolename, public_keys, paths, threshold=1,
+      terminating=False, list_of_targets=None, path_hash_prefixes=None):
     """
     <Purpose>
       Create a new delegation, where 'rolename' is a child delegation of this
@@ -2131,8 +2132,8 @@ class Targets(Metadata):
       delegations field of this Targets.  The delegation of 'rolename' is added
       and accessible (i.e., repository.targets(rolename)).
 
-      Actual metadata files are not create, only when repository.write() or
-      repository.write_partial() is called.
+      Actual metadata files are not created, only when repository.writeall() or
+      repository.write() is called.
 
       >>>
       >>>
@@ -2147,13 +2148,10 @@ class Targets(Metadata):
         may contain any of the supported key types: RSAKEY_SCHEMA,
         ED25519KEY_SCHEMA, etc.
 
-      list_of_targets:
-        A list of target filepaths that are added to the paths of 'rolename'.
-        'list_of_targets' is a list of target filepaths, can be empty, and each
-        filepath must full under the repository's targets directory.  The list
-        of targets should also exist at the specified paths, otherwise
-        non-existent target paths will not be added when the targets file is
-        written to disk with writeall() or write().
+      paths:
+        The delegated paths, or glob patterns, for 'rolename'.  Any
+        target paths added to 'rolename' must match one of the glob patterns
+        in 'paths'.
 
       threshold:
         The threshold number of keys of 'rolename'.
@@ -2169,10 +2167,13 @@ class Targets(Metadata):
         has listed it, updater.target() should backtrack and return the target
         file specified by 'target/other_role'.
 
-      restricted_paths:
-        A list of delegated paths, or glob patterns, of 'rolename'.  Any target
-        files added to 'rolename' must match one of the restricted glob
-        patterns.
+      list_of_targets:
+        A list of target filepaths that are added to the paths of 'rolename'.
+        'list_of_targets' is a list of target filepaths, can be empty, and each
+        filepath must full under the repository's targets directory.  The list
+        of targets should also exist at the specified paths, otherwise
+        non-existent target paths might not be added when the targets file is
+        written to disk with writeall() or write().
 
       path_hash_prefixes:
         A list of hash prefixes in
@@ -2203,12 +2204,12 @@ class Targets(Metadata):
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
     tuf.formats.ROLENAME_SCHEMA.check_match(rolename)
     securesystemslib.formats.ANYKEYLIST_SCHEMA.check_match(public_keys)
-    securesystemslib.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
+    securesystemslib.formats.RELPATHS_SCHEMA.check_match(paths)
     securesystemslib.formats.THRESHOLD_SCHEMA.check_match(threshold)
     securesystemslib.formats.BOOLEAN_SCHEMA.check_match(terminating)
 
-    if restricted_paths is not None:
-      securesystemslib.formats.RELPATHS_SCHEMA.check_match(restricted_paths)
+    if list_of_targets is not None:
+      securesystemslib.formats.RELPATHS_SCHEMA.check_match(list_of_targets)
 
     if path_hash_prefixes is not None:
       securesystemslib.formats.PATH_HASH_PREFIXES_SCHEMA.check_match(path_hash_prefixes)
@@ -2239,27 +2240,28 @@ class Targets(Metadata):
     relative_targetpaths = {}
     targets_directory_length = len(self._targets_directory)
 
-    for target in list_of_targets:
-      target = os.path.abspath(target)
-      if not target.startswith(self._targets_directory + os.sep):
-        raise securesystemslib.exceptions.Error(repr(target) + ' is not under'
-          ' the repository\'s targets'
-          ' directory: ' + repr(self._targets_directory))
+    if list_of_targets:
+      for target in list_of_targets:
+        target = os.path.abspath(target)
+        if not target.startswith(self._targets_directory + os.sep):
+          raise securesystemslib.exceptions.Error(repr(target) + ' is not under'
+            ' the repository\'s targets'
+            ' directory: ' + repr(self._targets_directory))
 
-      relative_targetpaths.update({target[targets_directory_length:]: {}})
+        relative_targetpaths.update({target[targets_directory_length:]: {}})
 
-    # Ensure the paths of 'restricted_paths' all fall under the repository's
-    # targets.
-    relative_restricted_paths = []
+    # Verify whether each path in 'paths' falls under the repository's targets
+    # directory.
+    relative_paths = []
 
-    if restricted_paths is not None:
-      for path in restricted_paths:
+    if paths is not None:
+      for path in paths:
         if not path.startswith(self._targets_directory + os.sep):
           logger.debug(repr(path) + ' is not under the repository\'s targets'
             ' directory: ' + repr(self._targets_directory))
 
         # Append a trailing path separator with os.path.join(path, '').
-        relative_restricted_paths.append(path[targets_directory_length:])
+        relative_paths.append(path[targets_directory_length:])
 
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
@@ -2290,8 +2292,8 @@ class Targets(Metadata):
                 'terminating': terminating,
                 'paths': list(roleinfo['paths'].keys())}
 
-    if restricted_paths is not None:
-      roleinfo['paths'] = relative_restricted_paths
+    if paths is not None:
+      roleinfo['paths'] = relative_paths
 
     if path_hash_prefixes is not None:
       roleinfo['path_hash_prefixes'] = path_hash_prefixes
@@ -2548,9 +2550,9 @@ class Targets(Metadata):
 
       # Delegate from the "unclaimed" targets role to each 'bin_rolename'
       # (i.e., outer_bin_index).
-      self.delegate(bin_rolename, keys_of_hashed_bins,
-                    list_of_targets=bin_rolename_targets,
-                    path_hash_prefixes=path_hash_prefixes)
+      self.delegate(bin_rolename, keys_of_hashed_bins, [],
+          list_of_targets=bin_rolename_targets,
+          path_hash_prefixes=path_hash_prefixes)
       logger.debug('Delegated from ' + repr(self.rolename) + ' to ' + repr(bin_rolename))
 
 

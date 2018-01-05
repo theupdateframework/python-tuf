@@ -961,12 +961,11 @@ class TestTargets(unittest.TestCase):
     public_keys = [public_key]
     threshold = 1
 
-    self.targets_object.delegate('tuf', public_keys, [target1_filepath],
-                                 threshold, restricted_paths=None,
-                                 path_hash_prefixes=None)
-    self.targets_object.delegate('warehouse', public_keys, [target2_filepath],
-                                 threshold, restricted_paths=None,
-                                 path_hash_prefixes=None)
+    self.targets_object.delegate('tuf', public_keys, [], threshold, False,
+        [target1_filepath], path_hash_prefixes=None)
+
+    self.targets_object.delegate('warehouse', public_keys, [], threshold, False,
+        [target2_filepath], path_hash_prefixes=None)
 
     # Test that get_delegated_rolenames returns the expected delegations.
     expected_delegated_rolenames = ['targets/tuf/', 'targets/warehouse']
@@ -1000,13 +999,11 @@ class TestTargets(unittest.TestCase):
     # Set needed arguments by delegate().
     public_keys = [public_key]
     rolename = 'tuf'
-    list_of_targets = [target1_filepath]
+    paths = [target1_filepath]
     threshold = 1
 
-    self.targets_object.delegate(rolename, public_keys, list_of_targets,
-                                 threshold, terminating=False,
-                                 restricted_paths=None,
-                                 path_hash_prefixes=None)
+    self.targets_object.delegate(rolename, public_keys, paths, threshold,
+        terminating=False, list_of_targets=None, path_hash_prefixes=None)
 
     # Test that a valid Targets() object is returned by delegations().
     for delegated_object in self.targets_object.delegations:
@@ -1021,8 +1018,7 @@ class TestTargets(unittest.TestCase):
   def test_add_delegated_role(self):
     # Test for invalid targets object.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      self.targets_object.add_delegated_role, 'targets',
-                                                             'bad_object')
+        self.targets_object.add_delegated_role, 'targets', 'bad_object')
 
 
 
@@ -1183,70 +1179,73 @@ class TestTargets(unittest.TestCase):
     rolename = 'tuf'
     list_of_targets = [target1_filepath, target2_filepath]
     threshold = 1
-    restricted_paths = [self.targets_directory + '/*']
+    paths = [self.targets_directory + '/*']
     path_hash_prefixes = ['e3a3', '8fae', 'd543']
 
-    self.targets_object.delegate(rolename, public_keys, list_of_targets,
-                                 threshold, terminating=False,
-                                 restricted_paths=restricted_paths,
-                                 path_hash_prefixes=path_hash_prefixes)
+    self.targets_object.delegate(rolename, public_keys, paths,
+        threshold, terminating=False, list_of_targets=list_of_targets,
+        path_hash_prefixes=path_hash_prefixes)
 
     self.assertEqual(self.targets_object.get_delegated_rolenames(),
                      ['tuf'])
 
     # Try to delegate to a role that has already been delegated.
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.delegate, rolename,
-                      public_keys, list_of_targets, threshold, terminating=False,
-                      restricted_paths=restricted_paths,
-                      path_hash_prefixes=path_hash_prefixes)
+    self.assertRaises(securesystemslib.exceptions.Error,
+        self.targets_object.delegate, rolename, public_keys, paths, threshold,
+        terminating=False, list_of_targets=list_of_targets,
+        path_hash_prefixes=path_hash_prefixes)
 
     # Test for targets that do not exist under the targets directory.
     self.targets_object.revoke(rolename)
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.delegate, rolename,
-                      public_keys, ['non-existent.txt'], threshold,
-                      terminating=False, restricted_paths=restricted_paths,
-                      path_hash_prefixes=path_hash_prefixes)
+    self.assertRaises(securesystemslib.exceptions.Error,
+        self.targets_object.delegate, rolename, public_keys, paths, threshold,
+        terminating=False, list_of_targets=['non-existent.txt'],
+        path_hash_prefixes=path_hash_prefixes)
 
     # Test for targets that do not exist under the targets directory.
-    # An exception should be raised for non-existent delegated paths.
-    self.targets_object.delegate(rolename, public_keys, list_of_targets,
-        threshold, terminating=False, restricted_paths=['non-existent.txt'],
+    # An exception should not be raised for non-existent delegated paths.
+    self.targets_object.delegate(rolename, public_keys, ['non-existent.txt'],
+        threshold, terminating=False, list_of_targets=list_of_targets,
         path_hash_prefixes=path_hash_prefixes)
 
 
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.delegate,
-                      3, public_keys, list_of_targets, threshold,
-                      restricted_paths, path_hash_prefixes)
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.delegate,
-                      rolename, 3, list_of_targets, threshold,
-                      restricted_paths, path_hash_prefixes)
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.delegate,
-                      rolename, public_keys, 3, threshold,
-                      restricted_paths, path_hash_prefixes)
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.delegate,
-                      rolename, public_keys, list_of_targets, '3',
-                      restricted_paths, path_hash_prefixes)
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.delegate,
-                      rolename, public_keys, list_of_targets, threshold,
-                      3, path_hash_prefixes)
-    self.assertRaises(securesystemslib.exceptions.FormatError, self.targets_object.delegate,
-                      rolename, public_keys, list_of_targets, threshold,
-                      restricted_paths, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.delegate, 3, public_keys, paths, threshold,
+        list_of_targets, path_hash_prefixes)
 
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.delegate, rolename, 3, paths, threshold,
+        list_of_targets, path_hash_prefixes)
+
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.delegate, rolename, public_keys, 3, threshold,
+        list_of_targets, path_hash_prefixes)
+
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.delegate, rolename, public_keys, paths, '3',
+        list_of_targets, path_hash_prefixes)
+
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.delegate, rolename, public_keys, paths, threshold,
+        3, path_hash_prefixes)
+
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        self.targets_object.delegate, rolename, public_keys, paths, threshold,
+        list_of_targets, 3)
 
     # Test invalid arguments (e.g., already delegated 'rolename', non-existent
     # files, etc.).
     # Test duplicate 'rolename' delegation, which should have been delegated
     # in the normal case above.
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.delegate,
-                      rolename, public_keys, list_of_targets, threshold,
-                      restricted_paths, path_hash_prefixes)
+    self.assertRaises(securesystemslib.exceptions.Error,
+        self.targets_object.delegate, rolename, public_keys, paths, threshold,
+        list_of_targets, path_hash_prefixes)
 
     # Test non-existent target paths.
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.delegate,
-                      rolename, public_keys, ['/non-existent'], threshold,
-                      restricted_paths, path_hash_prefixes)
+    self.assertRaises(securesystemslib.exceptions.Error,
+        self.targets_object.delegate, rolename, public_keys, [], threshold,
+        ['/non-existent'], path_hash_prefixes)
 
 
 
@@ -1319,7 +1318,7 @@ class TestTargets(unittest.TestCase):
     # to contain a hash prefix of 'e', and should be available at:
     # repository.targets('e').
     self.targets_object.delegate_hashed_bins(list_of_targets, public_keys,
-                                             number_of_bins=16)
+        number_of_bins=16)
 
     # Ensure each hashed bin initially contains zero targets.
     for delegation in self.targets_object.delegations:
@@ -1438,15 +1437,15 @@ class TestTargets(unittest.TestCase):
                       self.targets_object.remove_target_from_bin, 3)
 
     # Invalid target file path argument.
-    self.assertRaises(securesystemslib.exceptions.Error, self.targets_object.remove_target_from_bin,
-                      '/non-existent')
+    self.assertRaises(securesystemslib.exceptions.Error,
+        self.targets_object.remove_target_from_bin, '/non-existent')
 
 
 
-  def test_add_restricted_paths(self):
+  def test_add_paths(self):
     # Test normal case.
-    # Perform a delegation so that add_restricted_paths() has a child role
-    # to restrict.
+    # Perform a delegation so that add_paths() has a child role to delegate a
+    # path to.
     keystore_directory = os.path.join('repository_data', 'keystore')
     public_keypath = os.path.join(keystore_directory, 'snapshot_key.pub')
     public_key = repo_tool.import_ed25519_publickey_from_file(public_keypath)
@@ -1456,9 +1455,8 @@ class TestTargets(unittest.TestCase):
     rolename = 'tuf'
     threshold = 1
 
-    self.targets_object.delegate(rolename, public_keys, [],
-                                 threshold, restricted_paths=None,
-                                 path_hash_prefixes=None)
+    self.targets_object.delegate(rolename, public_keys, [], threshold,
+        list_of_targets=None, path_hash_prefixes=None)
 
     # Delegate an extra role for test coverage (i.e., check that restricted
     # paths are not added to a child role not requested.)
@@ -1466,8 +1464,8 @@ class TestTargets(unittest.TestCase):
 
     restricted_path = os.path.join(self.targets_directory, 'tuf_files')
     os.mkdir(restricted_path)
-    restricted_paths = [restricted_path + '/*']
-    self.targets_object.add_restricted_paths(restricted_paths, 'tuf')
+    paths = [restricted_path + '/*']
+    self.targets_object.add_paths(paths, 'tuf')
 
     # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains
     # the expected restricted paths of the delegated role.  Only
@@ -1477,31 +1475,30 @@ class TestTargets(unittest.TestCase):
     delegated_role = targets_object_roleinfo['delegations']['roles'][0]
     self.assertEqual(['/tuf_files/*'], delegated_role['paths'])
 
-    # Try to add a restricted path that has already been set.
-    # add_restricted_paths() should simply log a message in this case.
-    self.targets_object.add_restricted_paths(restricted_paths, 'tuf')
+    # Try to add a delegated path that has already been set.
+    # add_paths() should simply log a message in this case.
+    self.targets_object.add_paths(paths, 'tuf')
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-        self.targets_object.add_restricted_paths, 3, 'tuf')
+        self.targets_object.add_paths, 3, 'tuf')
     self.assertRaises(securesystemslib.exceptions.FormatError,
-        self.targets_object.add_restricted_paths, restricted_paths, 3)
+        self.targets_object.add_paths, paths, 3)
 
 
     # Test invalid arguments.
     # A non-delegated child role.
     self.assertRaises(securesystemslib.exceptions.Error,
-        self.targets_object.add_restricted_paths, restricted_paths,
-        'non_delegated_rolename')
+        self.targets_object.add_paths, paths, 'non_delegated_rolename')
 
-    # add_restricted_paths() should not raise an exception for non-existent
+    # add_paths() should not raise an exception for non-existent
     # paths, which is previously did.
-    self.targets_object.add_restricted_paths(['/non-existent'], 'tuf')
+    self.targets_object.add_paths(['/non-existent'], 'tuf')
 
-    # add_restricted_paths() should not raise an exception for directories that
+    # add_paths() should not raise an exception for directories that
     # do not fall under the repository's targets directory.
     repository_directory = os.path.join('repository_data', 'repository')
-    self.targets_object.add_restricted_paths([repository_directory], 'tuf')
+    self.targets_object.add_paths([repository_directory], 'tuf')
 
 
 
@@ -1516,12 +1513,11 @@ class TestTargets(unittest.TestCase):
     # Set needed arguments by delegate().
     public_keys = [public_key]
     rolename = 'tuf'
-    list_of_targets = [target1_filepath]
+    paths = [target1_filepath]
     threshold = 1
 
-    self.targets_object.delegate(rolename, public_keys, list_of_targets,
-                                 threshold, restricted_paths=None,
-                                 path_hash_prefixes=None)
+    self.targets_object.delegate(rolename, public_keys, [], threshold, False,
+        paths, path_hash_prefixes=None)
 
     # Test revoke()
     self.targets_object.revoke('tuf')
