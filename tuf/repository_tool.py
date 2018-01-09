@@ -162,6 +162,14 @@ class Repository(object):
     self._targets_directory = targets_directory
     self._repository_name = repository_name
 
+    try:
+      tuf.roledb.create_roledb(repository_name)
+      tuf.keydb.create_keydb(repository_name)
+
+    except securesystemslib.exceptions.InvalidNameError:
+      logger.debug(repr(repository_name) + ' already exists.  Overwriting'
+          ' its contents.')
+
     # Set the top-level role objects.
     self.root = Root(self._repository_name)
     self.snapshot = Snapshot(self._repository_name)
@@ -2869,7 +2877,7 @@ def create_new_repository(repository_directory, repository_name='default'):
   # have been set and contain default values (e.g., Root roles has a threshold
   # of 1, expires 1 year into the future, etc.)
   repository = Repository(repository_directory, metadata_directory,
-                          targets_directory, repository_name)
+      targets_directory, repository_name)
 
   return repository
 
@@ -2889,8 +2897,8 @@ def load_repository(repository_directory, repository_name='default'):
       sub-directories.
 
     repository_name:
-      The name of the repository.  If not supplied, 'rolename' is added to the
-      'default' repository.
+      The name of the repository.  If not supplied, 'default' is used as the
+      repository name.
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if 'repository_directory' or any of
@@ -2912,7 +2920,6 @@ def load_repository(repository_directory, repository_name='default'):
   securesystemslib.formats.PATH_SCHEMA.check_match(repository_directory)
   securesystemslib.formats.NAME_SCHEMA.check_match(repository_name)
 
-  # Load top-level metadata.
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,
     METADATA_STAGED_DIRECTORY_NAME)
@@ -2921,7 +2928,7 @@ def load_repository(repository_directory, repository_name='default'):
   # The Repository() object loaded (i.e., containing all the metadata roles
   # found) and returned.
   repository = Repository(repository_directory, metadata_directory,
-                          targets_directory, repository_name)
+      targets_directory, repository_name)
 
   filenames = repo_lib.get_metadata_filenames(metadata_directory)
 
