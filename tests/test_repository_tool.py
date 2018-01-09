@@ -1604,10 +1604,14 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue(os.path.exists(metadata_directory))
     self.assertTrue(os.path.exists(targets_directory))
 
+    # Test for a repository name that doesn't exist yet.  Note:
+    # The 'test_repository' repository name is created in setup() before this
+    # test case is run.
+    repository = repo_tool.create_new_repository(repository_directory, 'my-repo')
 
     # Test improperly formatted arguments.
     self.assertRaises(securesystemslib.exceptions.FormatError,
-                      repo_tool.create_new_repository, 3, repository_name)
+        repo_tool.create_new_repository, 3, repository_name)
 
     # For testing purposes, try to create a repository directory that
     # fails due to a non-errno.EEXIST exception raised.  create_new_repository()
@@ -1656,7 +1660,7 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     # Test normal case.
     temporary_directory = tempfile.mkdtemp(dir=self.temporary_directory)
     original_repository_directory = os.path.join('repository_data',
-                                                 'repository')
+        'repository')
 
     repository_directory = os.path.join(temporary_directory, 'repository')
     metadata_directory = os.path.join(repository_directory, 'metadata.staged')
@@ -1694,25 +1698,28 @@ class TestRepositoryToolFunctions(unittest.TestCase):
     self.assertTrue('/file2.txt' in repository.targets.target_files)
     self.assertTrue('/file3.txt' in repository.targets('role1').target_files)
 
+    # Test for a non-default repository name.
+    repository = repo_tool.load_repository(repository_directory, 'my-repo')
+
     # Test improperly formatted arguments.
-    self.assertRaises(securesystemslib.exceptions.FormatError, repo_tool.load_repository, 3)
+    self.assertRaises(securesystemslib.exceptions.FormatError,
+        repo_tool.load_repository, 3)
 
 
     # Test for invalid 'repository_directory' (i.e., does not contain the
     # minimum required metadata.
-    root_filepath = \
-      os.path.join(repository_directory,
-                   repo_tool.METADATA_STAGED_DIRECTORY_NAME, 'root.json')
+    root_filepath = os.path.join(repository_directory,
+        repo_tool.METADATA_STAGED_DIRECTORY_NAME, 'root.json')
     os.remove(root_filepath)
-    self.assertRaises(securesystemslib.exceptions.RepositoryError, repo_tool.load_repository,
-                      repository_directory)
+    self.assertRaises(securesystemslib.exceptions.RepositoryError,
+        repo_tool.load_repository, repository_directory)
 
 
 
   def test_dirty_roles(self):
     repository_name = 'test_repository'
     original_repository_directory = os.path.join('repository_data',
-                                                 'repository')
+        'repository')
     repository = repo_tool.load_repository(original_repository_directory,
         repository_name)
 
