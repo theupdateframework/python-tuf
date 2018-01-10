@@ -746,16 +746,12 @@ def _log_warning_if_expires_soon(rolename, expires_iso8601_timestamp,
 
 
 def generate_and_write_rsa_keypair(filepath, bits=DEFAULT_RSA_KEY_BITS,
-                                   password=None):
+    password=None):
   """
   <Purpose>
     Generate an RSA key file, create an encrypted PEM string (using 'password'
     as the pass phrase), and store it in 'filepath'.  The public key portion of
-    the generated RSA key is stored in <'filepath'>.pub.  Which cryptography
-    library performs the cryptographic decryption is determined by the string
-    set in 'settings.RSA_CRYPTO_LIBRARY'.  PyCrypto currently supported.  The
-    PEM private key is encrypted with 3DES and CBC the mode of operation.  The
-    password is strengthened with PBKDF1-MD5.
+    the generated RSA key is stored in <'filepath'>.pub.
 
   <Arguments>
     filepath:
@@ -790,13 +786,6 @@ def import_rsa_privatekey_from_file(filepath, password=None):
   <Purpose>
     Import the encrypted PEM file in 'filepath', decrypt it, and return the key
     object in 'securesystemslib.RSAKEY_SCHEMA' format.
-
-    Which cryptography library performs the cryptographic decryption is
-    determined by the string set in 'settings.RSA_CRYPTO_LIBRARY'.  PyCrypto
-    currently supported.
-
-    The PEM private key is encrypted with 3DES and CBC the mode of operation.
-    The password is strengthened with PBKDF1-MD5.
 
   <Arguments>
     filepath:
@@ -834,11 +823,6 @@ def import_rsa_publickey_from_file(filepath):
     key, specifically 'securesystemslib.RSAKEY_SCHEMA'.  If the RSA PEM
     in 'filepath' contains a private key, it is discarded.
 
-    Which cryptography library performs the cryptographic decryption is
-    determined by the string set in 'settings.RSA_CRYPTO_LIBRARY'.  PyCrypto
-    currently supported.  If the RSA PEM in 'filepath' contains a private key,
-    it is discarded.
-
   <Arguments>
     filepath:
       <filepath>.pub file, an RSA PEM file.
@@ -871,9 +855,8 @@ def generate_and_write_ed25519_keypair(filepath, password=None):
     library performs the cryptographic decryption is determined by the string
     set in 'settings.ED25519_CRYPTO_LIBRARY'.
 
-    PyCrypto currently supported.  The Ed25519 private key is encrypted with
-    AES-256 and CTR the mode of operation.  The password is strengthened with
-    PBKDF2-HMAC-SHA256.
+    The Ed25519 private key is encrypted with AES-256 and CTR the mode of
+    operation.  The password is strengthened with PBKDF2-HMAC-SHA256.
 
   <Arguments>
     filepath:
@@ -946,12 +929,8 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
     Import the encrypted ed25519 TUF key file in 'filepath', decrypt it, and
     return the key object in 'securesystemslib.ED25519KEY_SCHEMA' format.
 
-    Which cryptography library performs the cryptographic decryption is
-    determined by the string set in 'settings.ED25519_CRYPTO_LIBRARY'.  PyCrypto
-    currently supported.
-
-    The TUF private key (may also contain the public part) is encrypted with AES
-    256 and CTR the mode of operation.  The password is strengthened with
+    The TUF private key (may also contain the public part) is encrypted with
+    AES 256 and CTR the mode of operation.  The password is strengthened with
     PBKDF2-HMAC-SHA256.
 
   <Arguments>
@@ -983,7 +962,6 @@ def import_ed25519_privatekey_from_file(filepath, password=None):
 
   return securesystemslib.interface.import_ed25519_privatekey_from_file(
       filepath, password)
-
 
 
 
@@ -1101,8 +1079,8 @@ def get_metadata_fileinfo(filename, custom=None):
   # dictionary that a client might define to include additional
   # file information, such as the file's author, version/revision
   # numbers, etc.
-  filesize, filehashes = \
-    securesystemslib.util.get_file_details(filename, securesystemslib.settings.HASH_ALGORITHMS)
+  filesize, filehashes = securesystemslib.util.get_file_details(filename,
+      securesystemslib.settings.HASH_ALGORITHMS)
 
   return tuf.formats.make_fileinfo(filesize, filehashes, custom=custom)
 
@@ -1310,8 +1288,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
 
 
 def generate_targets_metadata(targets_directory, target_files, version,
-                              expiration_date, delegations=None,
-                              write_consistent_targets=False):
+    expiration_date, delegations=None, write_consistent_targets=False):
   """
   <Purpose>
     Generate the targets metadata object. The targets in 'target_files' must
@@ -1351,7 +1328,8 @@ def generate_targets_metadata(targets_directory, target_files, version,
     securesystemslib.exceptions.FormatError, if an error occurred trying to
     generate the targets metadata object.
 
-    securesystemslib.exceptions.Error, if any of the target files cannot be read.
+    securesystemslib.exceptions.Error, if any of the target files cannot be
+    read.
 
   <Side Effects>
     The target files are read and file information generated about them.  If
@@ -1426,9 +1404,7 @@ def generate_targets_metadata(targets_directory, target_files, version,
 
   # Generate the targets metadata object.
   targets_metadata = tuf.formats.TargetsFile.make_metadata(version,
-                                                           expiration_date,
-                                                           filedict,
-                                                           delegations)
+      expiration_date, filedict, delegations)
 
   return targets_metadata
 
@@ -1549,8 +1525,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
   # Generate the Snapshot metadata object.
   snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,
-                                                             expiration_date,
-                                                             fileinfodict)
+      expiration_date, fileinfodict)
 
   return snapshot_metadata
 
@@ -1618,8 +1593,7 @@ def generate_timestamp_metadata(snapshot_filename, version, expiration_date,
 
   # Generate the timestamp metadata object.
   timestamp_metadata = tuf.formats.TimestampFile.make_metadata(version,
-                                                               expiration_date,
-                                                               snapshot_fileinfo)
+      expiration_date, snapshot_fileinfo)
 
   return timestamp_metadata
 
@@ -1783,10 +1757,10 @@ def write_metadata_file(metadata, filename, version_number, consistent_snapshot)
   # location (i.e., 'file_object') and then moved to 'filename'.
   file_object = securesystemslib.util.TempFile()
 
-  # Serialize 'metadata' to the file-like object and then write
-  # 'file_object' to disk.  The dictionary keys of 'metadata' are sorted
-  # and indentation is used.  The 'securesystemslib.util.TempFile' file-like object is
-  # automically closed after the final move.
+  # Serialize 'metadata' to the file-like object and then write 'file_object'
+  # to disk.  The dictionary keys of 'metadata' are sorted and indentation is
+  # used.  The 'securesystemslib.util.TempFile' file-like object is automically
+  # closed after the final move.
   file_object.write(file_content)
 
   if consistent_snapshot:
@@ -1897,8 +1871,9 @@ def _log_status_of_top_level_roles(targets_directory, metadata_directory,
           metadata_directory, repository_name=repository_name)
     _log_status('root', signable, repository_name)
 
-  # 'tuf.exceptions.UnsignedMetadataError' raised if metadata contains an invalid threshold
-  # of signatures.  log the valid/threshold message, where valid < threshold.
+  # 'tuf.exceptions.UnsignedMetadataError' raised if metadata contains an
+  # invalid threshold of signatures.  log the valid/threshold message, where
+  # valid < threshold.
   except tuf.exceptions.UnsignedMetadataError as e:
     _log_status('root', e.signable, repository_name)
     return
@@ -2028,10 +2003,11 @@ def create_tuf_client_directory(repository_directory, client_directory):
       and target files downloaded from a TUF repository.
 
   <Exceptions>
-    securesystemslib.exceptions.FormatError, if the arguments are improperly formatted.
+    securesystemslib.exceptions.FormatError, if the arguments are improperly
+    formatted.
 
-    securesystemslib.exceptions.RepositoryError, if the metadata directory in 'client_directory'
-    already exists.
+    securesystemslib.exceptions.RepositoryError, if the metadata directory in
+    'client_directory' already exists.
 
   <Side Effects>
     Copies metadata files and directories from 'repository_directory' to
@@ -2053,13 +2029,13 @@ def create_tuf_client_directory(repository_directory, client_directory):
   # the repository's root file must be copied.
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,
-                                    METADATA_DIRECTORY_NAME)
+      METADATA_DIRECTORY_NAME)
 
   # Set the client's metadata directory, which will store the metadata copied
   # from the repository directory set above.
   client_directory = os.path.abspath(client_directory)
   client_metadata_directory = os.path.join(client_directory,
-                                           METADATA_DIRECTORY_NAME)
+      METADATA_DIRECTORY_NAME)
 
   # If the client's metadata directory does not already exist, create it and
   # any of its parent directories, otherwise raise an exception.  An exception
