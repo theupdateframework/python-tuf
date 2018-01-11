@@ -50,7 +50,7 @@ import tuf.repository_lib as repo_lib
 
 import securesystemslib.keys
 import securesystemslib.formats
-import securesystemslib.interface
+import securesystemslib.keys
 import iso8601
 import six
 
@@ -3158,35 +3158,40 @@ def append_signature(signature, metadata_filepath):
   file_object.move(metadata_filepath)
 
 
-# Wrapper functions that we wish to make available here from repository_lib.py
-# and securesystemslib.interface.
+# Wrapper functions that we wish to make available here from securesystemslib.
 # Users are expected to call functions provided by repository_tool.py.  We opt
 # for this approach, instead of using the import statements to achieve the
 # equivalent, to avoid linter warnings for unused imports.
-def generate_and_write_rsa_keypair(filepath, bits, password):
-  return repo_lib.generate_and_write_rsa_keypair(filepath, bits, password)
-
 def generate_and_write_ed25519_keypair(filepath, password):
   return repo_lib.generate_and_write_ed25519_keypair(filepath, password)
 
-def import_rsa_publickey_from_file(filepath):
-  return repo_lib.import_rsa_publickey_from_file(filepath)
+def generate_ed25519_key():
+  return securesystemslib.keys.generate_ed25519_key()
 
 def import_ed25519_publickey_from_file(filepath):
   return repo_lib.import_ed25519_publickey_from_file(filepath)
 
-def import_rsa_privatekey_from_file(filepath, password):
-  return repo_lib.import_rsa_privatekey_from_file(filepath, password)
-
 def import_ed25519_privatekey_from_file(filepath, password):
   return repo_lib.import_ed25519_privatekey_from_file(filepath, password)
 
-def create_tuf_client_directory(repository_directory, client_directory):
-  return repo_lib.create_tuf_client_directory(repository_directory, client_directory)
+def generate_and_write_rsa_keypair(filepath, bits, password):
+  return repo_lib.generate_and_write_rsa_keypair(filepath, bits, password)
 
-def disable_console_log_messages():
-  return repo_lib.disable_console_log_messages()
+def generate_rsa_key():
+  return securesystemslib.keys.generate_rsa_key()
 
+def import_rsa_publickey_from_file(filepath):
+  return repo_lib.import_rsa_publickey_from_file(filepath)
+
+def import_rsa_privatekey_from_file(filepath, password):
+  return repo_lib.import_rsa_privatekey_from_file(filepath, password)
+
+def generate_and_write_ecdsa_keypair(filepath, password=None):
+  return securesystemslib.interface.generate_and_write_ecdsa_keypair(
+      filepath, password)
+
+def generate_ecdsa_key():
+  return securesystemslib.keys.generate_ecdsa_key()
 
 def import_ecdsa_privatekey_from_file(filepath, password):
   return securesystemslib.interface.import_ecdsa_privatekey_from_file(
@@ -3195,9 +3200,12 @@ def import_ecdsa_privatekey_from_file(filepath, password):
 def import_ecdsa_publickey_from_file(filepath):
   return securesystemslib.interface.import_ecdsa_privatekey_from_file(filepath)
 
-def generate_and_write_ecdsa_keypair(filepath, password=None):
-  return securesystemslib.interface.generate_and_write_ecdsa_keypair(
-      filepath, password)
+def create_tuf_client_directory(repository_directory, client_directory):
+  return repo_lib.create_tuf_client_directory(
+      repository_directory, client_directory)
+
+def disable_console_log_messages():
+  return repo_lib.disable_console_log_messages()
 
 
 
