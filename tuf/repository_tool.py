@@ -50,7 +50,6 @@ import tuf.repository_lib as repo_lib
 
 import securesystemslib.keys
 import securesystemslib.formats
-import securesystemslib.keys
 import iso8601
 import six
 
@@ -3160,7 +3159,7 @@ def append_signature(signature, metadata_filepath):
 
 # Wrapper functions that we wish to make available here from securesystemslib.
 # Users are expected to call functions provided by repository_tool.py.  We opt
-# for this approach, instead of using the import statements to achieve the
+# for wrapper functions, instead of using the import statements to achieve the
 # equivalent, to avoid linter warnings for unused imports.
 def generate_and_write_ed25519_keypair(filepath, password):
   return repo_lib.generate_and_write_ed25519_keypair(filepath, password)
@@ -3206,7 +3205,7 @@ def import_ecdsa_publickey_from_file(filepath):
   return securesystemslib.interface.import_ecdsa_privatekey_from_file(filepath)
 
 def import_ecdsakey_from_pem(pem):
-  return securesystems.keys.import_ecdsakey_from_pem(pem)
+  return securesystemslib.keys.import_ecdsakey_from_pem(pem)
 
 def create_tuf_client_directory(repository_directory, client_directory):
   return repo_lib.create_tuf_client_directory(
