@@ -3174,6 +3174,8 @@ def import_ed25519_publickey_from_file(filepath):
 def import_ed25519_privatekey_from_file(filepath, password):
   return repo_lib.import_ed25519_privatekey_from_file(filepath, password)
 
+# NOTE: securesystemslib cannot presently import an Ed25519 key from PEM.
+
 def generate_and_write_rsa_keypair(filepath, bits, password):
   return repo_lib.generate_and_write_rsa_keypair(filepath, bits, password)
 
@@ -3185,6 +3187,9 @@ def import_rsa_publickey_from_file(filepath):
 
 def import_rsa_privatekey_from_file(filepath, password):
   return repo_lib.import_rsa_privatekey_from_file(filepath, password)
+
+def import_rsakey_from_pem(pem):
+  return securesystemslib.keys.import_rsakey_from_pem(pem)
 
 def generate_and_write_ecdsa_keypair(filepath, password=None):
   return securesystemslib.interface.generate_and_write_ecdsa_keypair(
@@ -3199,6 +3204,9 @@ def import_ecdsa_privatekey_from_file(filepath, password):
 
 def import_ecdsa_publickey_from_file(filepath):
   return securesystemslib.interface.import_ecdsa_privatekey_from_file(filepath)
+
+def import_ecdsakey_from_pem(pem):
+  return securesystems.keys.import_ecdsakey_from_pem(pem)
 
 def create_tuf_client_directory(repository_directory, client_directory):
   return repo_lib.create_tuf_client_directory(
