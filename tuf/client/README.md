@@ -53,11 +53,12 @@ can decide how to proceed rather than automatically downloading a new Root file.
 # client is required to import.  The client will utilize a single class
 # from this module.
 import tuf.client.updater
+import tuf.settings
 
 # The only other module the client interacts with is 'settings'.  The
 # client accesses this module solely to set the repository directory.
 # This directory will hold the files downloaded from a remote repository.
-settings.repository_directory = 'path/to/local_repository'
+tuf.settings.repositories_directory = 'path/to/local_repository'
 
 # Next, the client creates a dictionary object containing the repository
 # mirrors.  The client may download content from any one of these mirrors.
@@ -70,7 +71,7 @@ settings.repository_directory = 'path/to/local_repository'
 # interpreted as no confinement.  In other words, the client can download
 # targets from any directory or subdirectories.  If the client had chosen
 # 'targets1/', they would have been confined to the '/targets/targets1/'
-# directory on the 'http://localhost:8001' mirror. 
+# directory on the 'http://localhost:8001' mirror.
 repository_mirrors = {'mirror1': {'url_prefix': 'http://localhost:8001',
                                   'metadata_path': 'metadata',
                                   'targets_path': 'targets',
@@ -112,8 +113,8 @@ updater.remove_obsolete_targets(destination_directory)
 
 ### Download Target Files of a Role
 ```Python
-# Example demonstrating an update that only downloads the targets of            
-# a specific role (i.e., 'targets/django').                                     
+# Example demonstrating an update that only downloads the targets of
+# a specific role (i.e., 'targets/django').
 
 # Refresh the metadata of the top-level roles (i.e., Root, Targets, Snapshot, Timestamp).
 updater.refresh()
@@ -121,18 +122,18 @@ updater.refresh()
 # Update the 'targets/django' role, and determine the target files that have changed.
 # targets_of_role() refreshes the minimum metadata needed to download the target files
 # of the specified role (e.g., R1->R4->R5, where R2 and R3 are excluded).
-targets_of_django = updater.targets_of_role('targets/django')                     
+targets_of_django = updater.targets_of_role('targets/django')
 updated_targets = updater.updated_targets(targets_of_django, destination_directory)
-                                                                                 
-for target in updated_targets:                                                  
-  updater.download_target(target, destination_directory)                        
+
+for target in updated_targets:
+  updater.download_target(target, destination_directory)
 ```
 
 ### Download Specific Target File
 ```Python
-# Example demonstrating an update that downloads a specific target.             
+# Example demonstrating an update that downloads a specific target.
 
-# Refresh the metadata of the top-level roles (i.e., Root, Targets, Snapshot, Timestamp).           
+# Refresh the metadata of the top-level roles (i.e., Root, Targets, Snapshot, Timestamp).
 updater.refresh()
 
 # get_one_valid_targetinfo() updates role metadata when required.  In other
@@ -140,8 +141,8 @@ updater.refresh()
 # get_one_valid_targetinfo() will try to fetch / update it.
 target = updater.get_one_valid_targetinfo('LICENSE.txt')
 updated_target = updater.updated_targets([target], destination_directory)
-                                                                                 
-for target in updated_target:                                                   
+
+for target in updated_target:
   updater.download_target(target, destination_directory)
   # Client code here may also reference target information (including 'custom')
   # by directly accessing the dictionary entries of the target.  The 'custom'
