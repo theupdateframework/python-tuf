@@ -449,11 +449,11 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
         # Strip metadata extension from filename.  The role database does not
         # include the metadata extension.
         if metadata_name.endswith(METADATA_EXTENSION):
-          metadata_name = metadata_name[:-len(metadata_extension)]
+          metadata_name = metadata_name[:-len(METADATA_EXTENSION)]
 
         else:
           logger.debug(repr(metadata_name) + ' does not match'
-            ' supported extension ' + repr(metadata_extension))
+            ' supported extension ' + repr(METADATA_EXTENSION))
 
         if metadata_name in ['root', 'targets', 'snapshot', 'timestamp']:
           return
@@ -1522,7 +1522,7 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
 
     # All delegated roles are added to the snapshot file.
     if metadata_filename.endswith(METADATA_EXTENSION):
-      rolename = metadata_filename[:-len(metadata_extension)]
+      rolename = metadata_filename[:-len(METADATA_EXTENSION)]
 
       # Obsolete role files may still be found.  Ensure only roles loaded
       # in the roledb are included in the Snapshot metadata.  Since the
