@@ -698,20 +698,6 @@ class TestUpdater(unittest_toolbox.Modified_TestCase):
     loaded_targets_version = targets_signable['signed']['version']
     self.assertEqual(targets_versioninfo['version'], loaded_targets_version)
 
-    # Remove the 'targets.json' metadata so that the compressed version may be
-    # tested next.
-    del self.repository_updater.metadata['current']['targets']
-    os.remove(targets_filepath)
-
-    # Verify 'targets.json.gz' is properly intalled.  Note: The uncompressed
-    # version is installed if the compressed one is downloaded.
-    self.assertFalse('targets' in self.repository_updater.metadata['current'])
-    self.repository_updater._update_metadata('targets',
-        DEFAULT_TARGETS_FILELENGTH, targets_versioninfo['version'])
-    self.assertTrue('targets' in self.repository_updater.metadata['current'])
-    self.assertEqual(targets_versioninfo['version'],
-        self.repository_updater.metadata['current']['targets']['version'])
-
     # Test: Invalid / untrusted version numbers.
     # Invalid version number for 'targets.json'.
     self.assertRaises(tuf.exceptions.NoWorkingMirrorError,
