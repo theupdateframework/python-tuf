@@ -191,8 +191,7 @@ class Repository(object):
       consistent_snapshot:
         A boolean indicating whether written metadata and target files should
         include a version number in the filename (i.e.,
-        <version_number>.root.json, <version_number>.targets.json.gz,
-        <version_number>.README.json
+        <version_number>.root.json, <version_number>.README.json
         Example: 13.root.json'
 
     <Exceptions>
@@ -300,8 +299,7 @@ class Repository(object):
       consistent_snapshot:
         A boolean indicating whether written metadata and target files should
         include a version number in the filename (i.e.,
-        <version_number>.root.json, <version_number>.targets.json.gz,
-        <version_number>.README.json
+        <version_number>.root.json, <version_number>.README.json
         Example: 13.root.json'
 
       increment_version_number:
