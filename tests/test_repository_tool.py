@@ -1202,8 +1202,10 @@ class TestTargets(unittest.TestCase):
         terminating=False, list_of_targets=['non-existent.txt'],
         path_hash_prefixes=path_hash_prefixes)
 
-    # Test for targets that do not exist under the targets directory.
-    # An exception should not be raised for non-existent delegated paths.
+    # Test for delegated paths that do not exist.
+    # An exception should not be raised for non-existent delegated paths, since
+    # these paths may not necessarily exist when the delegation is done,
+    # and also because the delegated paths can be glob patterns.
     self.targets_object.delegate(rolename, public_keys, ['non-existent.txt'],
         threshold, terminating=False, list_of_targets=list_of_targets,
         path_hash_prefixes=path_hash_prefixes)
