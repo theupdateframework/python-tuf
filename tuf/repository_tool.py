@@ -462,7 +462,7 @@ class Repository(object):
 
   @staticmethod
   def get_filepaths_in_directory(files_directory, recursive_walk=False,
-                                 followlinks=True):
+      followlinks=True):
     """
     <Purpose>
       Walk the given 'files_directory' and build a list of target files found.
@@ -1789,8 +1789,8 @@ class Targets(Metadata):
         'Django' in 'unclaimed').
 
     <Exceptions>
-      securesystemslib.exceptions.Error, if a delegated path in 'paths' is not
-      a string path, or if 'child_rolename' has not been delegated yet.
+      securesystemslib.exceptions.Error, if a path or glob pattern in 'paths'
+      is not a string, or if 'child_rolename' has not been delegated yet.
 
     <Side Effects>
       Modifies this Targets' delegations field.
@@ -1806,8 +1806,8 @@ class Targets(Metadata):
     securesystemslib.formats.PATHS_SCHEMA.check_match(paths)
     tuf.formats.ROLENAME_SCHEMA.check_match(child_rolename)
 
-    # A list of relative and verified paths to be added to the child role's
-    # entry in the parent's delegations field.
+    # A list of relative and verified paths or glob patterns to be added to the
+    # child role's entry in the parent's delegations field.
     relative_paths = []
 
     # Ensure that 'child_rolename' exists, otherwise it will not have an entry
@@ -1817,11 +1817,14 @@ class Targets(Metadata):
         ' not exist.')
 
     for path in paths:
-      # Do the delegated paths fall under the repository's targets directory?
-      # Append a trailing path separator with os.path.join(path, '').
+      # Are the delegated paths or glob patterns located in the repository's
+      # targets directory?  If so, log it - the paths don't necessarily need to
+      # be located in the repository's directory.
+      # Append a trailing path separator with
+      # os.path.join(path, '').
       targets_directory = os.path.join(self._targets_directory, '')
       if not path.startswith(targets_directory):
-        logger.debug(repr(path) + ' does not live under the'
+        logger.debug(repr(path) + ' is not located in the'
             ' repository\'s targets'
           ' directory: ' + repr(self._targets_directory))
 
@@ -1851,8 +1854,8 @@ class Targets(Metadata):
   def add_target(self, filepath, custom=None):
     """
     <Purpose>
-      Add a filepath (must be under the repository's targets directory) to the
-      Targets object.
+      Add a filepath (must be located in the repository's targets directory) to
+      the Targets object.
 
       This method does not actually create 'filepath' on the file system.
       'filepath' must already exist on the file system.  If 'filepath'
@@ -1875,7 +1878,7 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if 'filepath' is improperly
       formatted.
 
-      securesystemslib.exceptions.Error, if 'filepath' is not found under the
+      securesystemslib.exceptions.Error, if 'filepath' is not located in the
       repository's targets directory.
 
     <Side Effects>
@@ -1899,10 +1902,10 @@ class Targets(Metadata):
 
     filepath = os.path.abspath(filepath)
 
-    # Ensure 'filepath' is found under the repository's targets directory.
+    # Ensure 'filepath' is located in the repository's targets directory.
     if not filepath.startswith(self._targets_directory):
-      raise securesystemslib.exceptions.Error(repr(filepath) + ' does not exist'
-        ' under the repository\'s targets directory:'
+      raise securesystemslib.exceptions.Error(repr(filepath) + ' is not located'
+        ' in the repository\'s targets directory:'
         ' ' + repr(self._targets_directory))
 
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
@@ -1956,8 +1959,8 @@ class Targets(Metadata):
       formatted.
 
       securesystemslib.exceptions.Error, if any of the paths listed in
-      'list_of_targets' is not found under the repository's targets directory
-      or is invalid.
+      'list_of_targets' is not located in the repository's targets directory or
+      is invalid.
 
     <Side Effects>
       This Targets' roleinfo is updated with the paths in 'list_of_targets'.
@@ -1976,18 +1979,18 @@ class Targets(Metadata):
     targets_directory_length = len(self._targets_directory)
     relative_list_of_targets = []
 
-    # Ensure the paths in 'list_of_targets' are valid and fall under the
+    # Ensure the paths in 'list_of_targets' are valid and are located in the
     # repository's targets directory.  The paths of 'list_of_targets' will be
     # verified as allowed paths according to this Targets parent role when
-    # write() is called.  Not verifying filepaths here allows the freedom to add
-    # targets and parent restrictions in any order, and minimize the number of
-    # times these checks are performed.
+    # write() or writeall() is called.  Not verifying filepaths here allows the
+    # freedom to add targets and parent restrictions in any order, and minimize
+    # the number of times these checks are performed.
     for target in list_of_targets:
       filepath = os.path.abspath(target)
 
       if not filepath.startswith(self._targets_directory+os.sep):
         raise securesystemslib.exceptions.Error(repr(filepath) + ' is not'
-          ' under the Repository\'s targets'
+          ' located in the Repository\'s targets'
           ' directory: ' + repr(self._targets_directory))
 
       if os.path.isfile(filepath):
@@ -2031,7 +2034,7 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if 'filepath' is improperly
       formatted.
 
-      securesystemslib.exceptions.Error, if 'filepath' is not under the
+      securesystemslib.exceptions.Error, if 'filepath' is not located in the
       repository's targets directory, or not found.
 
     <Side Effects>
@@ -2050,10 +2053,10 @@ class Targets(Metadata):
     filepath = os.path.abspath(filepath)
     targets_directory_length = len(self._targets_directory)
 
-    # Ensure 'filepath' is under the repository targets directory.
+    # Ensure 'filepath' is located in the repository targets directory.
     if not filepath.startswith(self._targets_directory + os.sep):
-      raise securesystemslib.exceptions.Error(repr(filepath) + ' is not under'
-        ' the Repository\'s targets directory: ' + repr(self._targets_directory))
+      raise securesystemslib.exceptions.Error(repr(filepath) + ' is not located'
+        ' in the Repository\'s targets directory: ' + repr(self._targets_directory))
 
     # The relative filepath is listed in 'paths'.
     relative_filepath = filepath[targets_directory_length:]
@@ -2155,9 +2158,9 @@ class Targets(Metadata):
         ED25519KEY_SCHEMA, etc.
 
       paths:
-        The delegated paths, or glob patterns, for 'rolename'.  Any
-        target paths added to 'rolename' must match one of the glob patterns
-        in 'paths'.
+        The paths, or glob patterns, delegated to 'rolename'.  Any targets
+        added to 'rolename' must match one of the paths or glob patterns in
+        'paths'.
 
       threshold:
         The threshold number of keys of 'rolename'.
@@ -2176,8 +2179,8 @@ class Targets(Metadata):
       list_of_targets:
         A list of target filepaths that are added to the paths of 'rolename'.
         'list_of_targets' is a list of target filepaths, can be empty, and each
-        filepath must full under the repository's targets directory.  The list
-        of targets should also exist at the specified paths, otherwise
+        filepath must be located in the repository's targets directory.  The
+        list of targets should also exist at the specified paths, otherwise
         non-existent target paths might not be added when the targets file is
         written to disk with writeall() or write().
 
@@ -2191,9 +2194,9 @@ class Targets(Metadata):
       securesystemslib.exceptions.FormatError, if any of the arguments are
       improperly formatted.
 
-      securesystemslib.exceptions.Error, if the delegated role already exists or
-      if any of the arguments is an invalid path (i.e., not under the
-      repository's targets directory).
+      securesystemslib.exceptions.Error, if the delegated role already exists
+      or if any target in 'list_of_targets' is an invalid path (i.e., not
+      located in the repository's targets directory).
 
     <Side Effects>
       A new Target object is created for 'rolename' that is accessible to the
@@ -2241,8 +2244,8 @@ class Targets(Metadata):
       keydict.update(new_keydict)
       keyids.append(keyid)
 
-    # Ensure the paths of 'list_of_targets' all fall under the repository's
-    # targets.
+    # Ensure the paths of 'list_of_targets' are located in the repository's
+    # targets directory.
     relative_targetpaths = {}
     targets_directory_length = len(self._targets_directory)
 
@@ -2250,20 +2253,20 @@ class Targets(Metadata):
       for target in list_of_targets:
         target = os.path.abspath(target)
         if not target.startswith(self._targets_directory + os.sep):
-          raise securesystemslib.exceptions.Error(repr(target) + ' is not under'
-            ' the repository\'s targets'
+          raise securesystemslib.exceptions.Error(repr(target) + ' is not'
+            ' located in the repository\'s targets'
             ' directory: ' + repr(self._targets_directory))
 
         relative_targetpaths.update({target[targets_directory_length:]: {}})
 
-    # Verify whether each path in 'paths' falls under the repository's targets
-    # directory.
+    # Verify whether each path in 'paths' is located in the repository's
+    # targets directory.
     relative_paths = []
 
     if paths is not None:
       for path in paths:
         if not path.startswith(self._targets_directory + os.sep):
-          logger.debug(repr(path) + ' is not under the repository\'s targets'
+          logger.debug(repr(path) + ' is not loated in the repository\'s targets'
             ' directory: ' + repr(self._targets_directory))
 
         # Append a trailing path separator with os.path.join(path, '').
@@ -2439,7 +2442,7 @@ class Targets(Metadata):
       formatted.
 
       securesystemslib.exceptions.Error, if 'number_of_bins' is not a power of
-      2, or one of the targets in 'list_of_targets' is not located under the
+      2, or one of the targets in 'list_of_targets' is not located in the
       repository's targets directory.
 
     <Side Effects>
@@ -2489,17 +2492,17 @@ class Targets(Metadata):
     for bin_index in six.moves.xrange(total_hash_prefixes):
       target_paths_in_bin[bin_index] = []
 
-    # Assign every path to its bin.  Ensure every target is located under the
+    # Assign every path to its bin.  Ensure every target is located in the
     # repository's targets directory.
     for target_path in list_of_targets:
       target_path = os.path.abspath(target_path)
       if not target_path.startswith(self._targets_directory + os.sep):
         raise securesystemslib.exceptions.Error('A path in "list of'
-          ' targets" does not live under the repository\'s targets'
+          ' targets" is not located in the repository\'s targets'
           ' directory: ' + repr(target_path))
 
       else:
-        logger.debug(repr(target_path) + ' lives under the repository\'s'
+        logger.debug(repr(target_path) + ' is located in the repository\'s'
           ' targets directory.')
 
       # Determine the hash prefix of 'target_path' by computing the digest of
@@ -2566,19 +2569,19 @@ class Targets(Metadata):
   def add_target_to_bin(self, target_filepath):
     """
     <Purpose>
-      Add the fileinfo of 'target_filepath' to the expected hashed bin, if
-      the bin is available.  The hashed bin should have been created by
-      {targets_role}.delegate_hashed_bins().  Assuming the target filepath
-      falls under the repository's targets directory, determine the filepath's
+      Add the fileinfo of 'target_filepath' to the expected hashed bin, if the
+      bin is available.  The hashed bin should have been created by
+      {targets_role}.delegate_hashed_bins().  Assuming the target filepath is
+      located in the repository's targets directory, determine the filepath's
       hash prefix, locate the expected bin (if any), and then add the fileinfo
-      to the expected bin.  Example:  'targets/foo.tar.gz' may be added to
-      the 'targets/unclaimed/58-5f.json' role's list of targets by calling this
+      to the expected bin.  Example:  'targets/foo.tar.gz' may be added to the
+      'targets/unclaimed/58-5f.json' role's list of targets by calling this
       method.
 
     <Arguments>
       target_filepath:
         The filepath of the target to be added to a hashed bin.  The filepath
-        must fall under repository's targets directory.
+        must be located in the repository's targets directory.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
@@ -2611,17 +2614,17 @@ class Targets(Metadata):
     <Purpose>
       Remove the fileinfo of 'target_filepath' from the expected hashed bin, if
       the bin is available.  The hashed bin should have been created by
-      {targets_role}.delegate_hashed_bins().  Assuming the target filepath
-      falls under the repository's targets directory, determine the filepath's
+      {targets_role}.delegate_hashed_bins().  Assuming the target filepath is
+      located in the repository's targets directory, determine the filepath's
       hash prefix, locate the expected bin (if any), and then remove the
       fileinfo from the expected bin.  Example:  'targets/foo.tar.gz' may be
-      removed from the '58-5f.json' role's list of targets by
-      calling this method.
+      removed from the '58-5f.json' role's list of targets by calling this
+      method.
 
     <Arguments>
       target_filepath:
         The filepath of the target to be added to a hashed bin.  The filepath
-        must fall under repository's targets directory.
+        must be located in the repository's targets directory.
 
     <Exceptions>
       securesystemslib.exceptions.FormatError, if 'target_filepath' is
@@ -2652,7 +2655,7 @@ class Targets(Metadata):
   def _locate_and_update_target_in_bin(self, target_filepath, method_name):
     """
     <Purpose>
-      Assuming the target filepath falls under the repository's targets
+      Assuming the target filepath are located in the repository's targets
       directory, determine the filepath's hash prefix, locate the expected bin
       (if any), and then call the 'method_name' method of the expected hashed
       bin role.
@@ -2660,7 +2663,8 @@ class Targets(Metadata):
     <Arguments>
       target_filepath:
         The filepath of the target that may be specified in one of the hashed
-        bins.  'target_filepath' must fall under repository's targets directory.
+        bins.  'target_filepath' must be located in the repository's targets
+        directory.
 
       method_name:
         A supported method, in string format, of the Targets() class.  For
@@ -2707,11 +2711,12 @@ class Targets(Metadata):
       raise securesystemslib.exceptions.Error(self.rolename + ' has not'
         ' delegated to hashed bins.')
 
-    # Ensure the filepath falls under the repository's targets directory.
+    # Ensure 'target_filepath' is located in the repository's targets
+    # directory.
     filepath = os.path.abspath(target_filepath)
     if not filepath.startswith(self._targets_directory + os.sep):
-      raise securesystemslib.exceptions.Error(repr(filepath) + ' is not under'
-        ' the Repository\'s targets directory: ' + repr(self._targets_directory))
+      raise securesystemslib.exceptions.Error(repr(filepath) + ' is not located'
+        ' in the repository\'s targets directory: ' + repr(self._targets_directory))
 
     # Determine the hash prefix of 'target_path' by computing the digest of
     # its path relative to the targets directory.  Example:
