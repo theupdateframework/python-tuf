@@ -93,12 +93,6 @@ TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
 # Supported key types.
 SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
 
-# The full list of supported TUF metadata extensions.
-METADATA_EXTENSIONS = ['.json']
-
-# The supported extensions of roles listed in Snapshot metadata.
-SNAPSHOT_ROLE_EXTENSIONS = ['.json']
-
 
 def _generate_and_write_metadata(rolename, metadata_filename,
   targets_directory, metadata_directory, consistent_snapshot=False,
@@ -452,16 +446,14 @@ def _delete_obsolete_metadata(metadata_directory, snapshot_metadata,
 
 
 
-        # Strip filename extensions.  The role database does not include the
-        # metadata extension.
-        for metadata_extension in METADATA_EXTENSIONS: #pragma: no branch
-          if metadata_name.endswith(metadata_extension):
-            metadata_name = metadata_name[:-len(metadata_extension)]
-            break
+        # Strip metadata extension from filename.  The role database does not
+        # include the metadata extension.
+        if metadata_name.endswith(METADATA_EXTENSION):
+          metadata_name = metadata_name[:-len(METADATA_EXTENSION)]
 
-          else:
-            logger.debug(repr(metadata_name) + ' does not match'
-              ' supported extension ' + repr(metadata_extension))
+        else:
+          logger.debug(repr(metadata_name) + ' does not match'
+            ' supported extension ' + repr(METADATA_EXTENSION))
 
         if metadata_name in ['root', 'targets', 'snapshot', 'timestamp']:
           return
@@ -1505,23 +1497,21 @@ def generate_snapshot_metadata(metadata_directory, version, expiration_date,
         consistent_snapshot)
 
     # All delegated roles are added to the snapshot file.
-    for metadata_extension in SNAPSHOT_ROLE_EXTENSIONS:
-      if metadata_filename.endswith(metadata_extension):
-        rolename = metadata_filename[:-len(metadata_extension)]
+    if metadata_filename.endswith(METADATA_EXTENSION):
+      rolename = metadata_filename[:-len(METADATA_EXTENSION)]
 
-        # Obsolete role files may still be found.  Ensure only roles loaded
-        # in the roledb are included in the Snapshot metadata.  Since the
-        # snapshot and timestamp roles are not listed in snapshot.json, do not
-        # list these roles found in the metadata directory.
-        if tuf.roledb.role_exists(rolename, repository_name) and \
-            rolename not in ['root', 'snapshot', 'timestamp', 'targets']:
-          fileinfodict[metadata_name] = get_metadata_versioninfo(rolename,
-              repository_name)
+      # Obsolete role files may still be found.  Ensure only roles loaded
+      # in the roledb are included in the Snapshot metadata.  Since the
+      # snapshot and timestamp roles are not listed in snapshot.json, do not
+      # list these roles found in the metadata directory.
+      if tuf.roledb.role_exists(rolename, repository_name) and \
+          rolename not in ['root', 'snapshot', 'timestamp', 'targets']:
+        fileinfodict[metadata_name] = get_metadata_versioninfo(rolename,
+            repository_name)
 
-      else:
-        logger.debug('Metadata file has an unsupported file'
-            ' extension: ' + metadata_filename)
-        continue
+    else:
+      logger.debug('Metadata file has an unsupported file'
+          ' extension: ' + metadata_filename)
 
   # Generate the Snapshot metadata object.
   snapshot_metadata = tuf.formats.SnapshotFile.make_metadata(version,

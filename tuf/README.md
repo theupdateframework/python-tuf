@@ -585,9 +585,9 @@ The `delegate_hashed_bins()` method has the following form:
 delegate_hashed_bins(list_of_targets, keys_of_hashed_bins, number_of_bins)
 ```
 
-A complete example of retrieving target paths to add to hashed bins,
-performing the hashed bin delegations, signing them, and finally adding
-restricted paths for some role is provided next.
+We next provide a complete example of retrieving target paths to add to hashed
+bins, performing the hashed bin delegations, signing them, and delegating paths
+to some role.
 ```Python
 # Get a list of target paths for the hashed bins.
 >>> targets = \
