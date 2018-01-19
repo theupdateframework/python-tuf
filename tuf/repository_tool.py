@@ -3167,51 +3167,53 @@ def append_signature(signature, metadata_filepath):
 # Users are expected to call functions provided by repository_tool.py.  We opt
 # for wrapper functions, instead of using the import statements to achieve the
 # equivalent, to avoid linter warnings for unused imports.
-def generate_and_write_ed25519_keypair(filepath, password):
+def generate_and_write_ed25519_keypair(filepath, password=None):
   return repo_lib.generate_and_write_ed25519_keypair(filepath, password)
 
-def generate_ed25519_key():
-  return securesystemslib.keys.generate_ed25519_key()
+def generate_ed25519_key(scheme='ed25519'):
+  return securesystemslib.keys.generate_ed25519_key(scheme)
 
 def import_ed25519_publickey_from_file(filepath):
   return repo_lib.import_ed25519_publickey_from_file(filepath)
 
-def import_ed25519_privatekey_from_file(filepath, password):
+def import_ed25519_privatekey_from_file(filepath, password=None):
   return repo_lib.import_ed25519_privatekey_from_file(filepath, password)
 
 # NOTE: securesystemslib cannot presently import an Ed25519 key from PEM.
 
-def generate_and_write_rsa_keypair(filepath, bits, password):
+def generate_and_write_rsa_keypair(filepath,
+    bits=repo_lib.DEFAULT_RSA_KEY_BITS, password=None):
   return repo_lib.generate_and_write_rsa_keypair(filepath, bits, password)
 
-def generate_rsa_key():
-  return securesystemslib.keys.generate_rsa_key()
+def generate_rsa_key(bits=securesystemslib.keys._DEFAULT_RSA_KEY_BITS,
+    scheme='rsassa-pss-sha256'):
+  return securesystemslib.keys.generate_rsa_key(bits, scheme)
 
 def import_rsa_publickey_from_file(filepath):
   return repo_lib.import_rsa_publickey_from_file(filepath)
 
-def import_rsa_privatekey_from_file(filepath, password):
+def import_rsa_privatekey_from_file(filepath, password=None):
   return repo_lib.import_rsa_privatekey_from_file(filepath, password)
 
-def import_rsakey_from_pem(pem):
-  return securesystemslib.keys.import_rsakey_from_pem(pem)
+def import_rsakey_from_pem(pem, scheme='rsassa-pss-sha256'):
+  return securesystemslib.keys.import_rsakey_from_pem(pem, scheme)
 
-def generate_and_write_ecdsa_keypair(filepath, password=None):
+def generate_and_write_ecdsa_keypair(filepath=None, password=None):
   return securesystemslib.interface.generate_and_write_ecdsa_keypair(
       filepath, password)
 
-def generate_ecdsa_key():
-  return securesystemslib.keys.generate_ecdsa_key()
+def generate_ecdsa_key(scheme='ecdsa-sha2-nistp256'):
+  return securesystemslib.keys.generate_ecdsa_key(scheme)
 
-def import_ecdsa_privatekey_from_file(filepath, password):
+def import_ecdsa_privatekey_from_file(filepath, password=None):
   return securesystemslib.interface.import_ecdsa_privatekey_from_file(
       filepath, password)
 
 def import_ecdsa_publickey_from_file(filepath):
   return securesystemslib.interface.import_ecdsa_privatekey_from_file(filepath)
 
-def import_ecdsakey_from_pem(pem):
-  return securesystemslib.keys.import_ecdsakey_from_pem(pem)
+def import_ecdsakey_from_pem(pem, scheme='ecdsa-sha2-nistp256'):
+  return securesystemslib.keys.import_ecdsakey_from_pem(pem, scheme)
 
 def create_tuf_client_directory(repository_directory, client_directory):
   return repo_lib.create_tuf_client_directory(
