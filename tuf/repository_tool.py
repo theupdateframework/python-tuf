@@ -1787,8 +1787,12 @@ class Targets(Metadata):
         'Django' in 'unclaimed').
 
     <Exceptions>
-      securesystemslib.exceptions.Error, if a path or glob pattern in 'paths'
-      is not a string, or if 'child_rolename' has not been delegated yet.
+      securesystemslib.exceptions.FormatError, if a path or glob pattern in
+      'paths' is not a string, or if 'child_rolename' is not a formatted
+      rolename.
+
+      securesystemslib.exceptions.Error, if 'child_rolename' has not been
+      delegated yet.
 
     <Side Effects>
       Modifies this Targets' delegations field.
@@ -1797,7 +1801,7 @@ class Targets(Metadata):
       None.
     """
 
-    # Does 'filepath' have the correct format?
+    # Do the argument have the correct format?
     # Ensure the arguments have the appropriate number of objects and object
     # types, and that all dict keys are properly named.
     # Raise 'securesystemslib.exceptions.FormatError' if there is a mismatch.
