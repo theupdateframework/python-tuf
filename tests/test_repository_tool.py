@@ -1460,17 +1460,17 @@ class TestTargets(unittest.TestCase):
     self.targets_object.delegate(rolename, public_keys, [], threshold,
         list_of_targets=None, path_hash_prefixes=None)
 
-    # Delegate an extra role for test coverage (i.e., check that restricted
-    # paths are not added to a child role not requested.)
+    # Delegate an extra role for test coverage (i.e., to later verify that
+    # delegated paths are not added to a child role that was not requested).
     self.targets_object.delegate('junk_role', public_keys, [])
 
-    restricted_path = os.path.join(self.targets_directory, 'tuf_files')
-    os.mkdir(restricted_path)
-    paths = [restricted_path + '/*']
+    delegated_path = os.path.join(self.targets_directory, 'tuf_files')
+    os.mkdir(delegated_path)
+    paths = [delegated_path + '/*']
     self.targets_object.add_paths(paths, 'tuf')
 
-    # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains
-    # the expected restricted paths of the delegated role.  Only
+    # Retrieve 'targets_object' roleinfo, and verify the roleinfo contains the
+    # expected delegated paths of the delegated role.
     targets_object_roleinfo = tuf.roledb.get_roleinfo(self.targets_object.rolename,
         'test_repository')
 

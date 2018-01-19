@@ -12,7 +12,7 @@
 - [Managing Targets](#managing_targets)
 
 <a name="overview">
-## Overview 
+## Overview
 The Update Framework (TUF) is a Python-based security system for software
 updates. In order to prevent your users from downloading vulnerable or malicious
 code disguised as updates to your software, TUF requires that each update you
@@ -56,7 +56,7 @@ is the private key.
 >>> generate_and_write_rsa_keypair("path/to/key")
 Enter a password for the RSA key:
 Confirm:
->>> 
+>>>
 ```
 
 We can also use the bits parameter to set a different key length (the default
@@ -131,7 +131,7 @@ public key by the server (upon uploading) and by the clients (when updating).
 
 <a name="signing_and_writing_the_metadata">
 ### Signing and Writing the Metadata ###
-In order to sign the metadata, we need to import the private key corresponding 
+In order to sign the metadata, we need to import the private key corresponding
 to the public key we added to the project. One the key is loaded to the project,
 it will automatically be used to sign the metadata whenever it is written.
 
@@ -160,14 +160,14 @@ several contributors, you may want to consider adding
 
 <a name="loading_an_existing_project">
 ## Loading an Existing Project
-To make changes to existing metadata, we will need the Project again. We can 
-restore it with the load_project() function.  
+To make changes to existing metadata, we will need the Project again. We can
+restore it with the load_project() function.
 
 ```
 >>> from tuf.developer_tool import *
 >>> project = load_project("local/path/to/metadata")
 ```
-Each time the project is loaded anew, the necessary private keys must also be 
+Each time the project is loaded anew, the necessary private keys must also be
 loaded in order to sign metadata.
 
 ```
@@ -205,21 +205,21 @@ contain any number of public keys. We can also add keys to the role after
 creating it using the [add\_verification\_key()](#adding_a_key_to_a_delegation)
 method.
 
-### Restricted Paths
+### Delegated Paths
 
 By default, a delegated role is permitted to add and modify targets anywhere in
-the Project's targets directory. We can assign restricted paths to a delegated
-role to limit this permission.
+the Project's targets directory. We can delegate trust of paths to a role to
+limit this permission.
 
 ```
->>> project.add_restricted_paths(["restricted/filepath"], "newrole")
+>>> project.add_paths(["delegated/filepath"], "newrole")
 ```
 
 This will prevent the delegated role from signing targets whose local filepaths
-do not begin with "restricted/filepath". We can assign several restricted
-filepaths to a role by adding them to the list in the first parameter, or by
-invoking the method again. A role with multiple restricted paths can add
-targets to any of them.
+do not begin with "delegated/filepath". We can delegate several filepaths to a
+role by adding them to the list in the first parameter, or by invoking the
+method again. A role with multiple delegated paths can add targets to any of
+them.
 
 Note that this method is invoked from the parent role (in this case, the Project)
 and takes the delegated role name as an argument.
@@ -248,16 +248,16 @@ Delegations can be revoked, removing the delegated role from the project.
 ```
 
 <a name="managing_keys">
-## Managing Keys 
+## Managing Keys
 This section describes the key-related functions and parameters not covered in
 the [Creating a Simple Project](#creating_a_simple_project) section.
 
 ### Additional Parameters for Key Generation
-When generating keys, it is possible to specify the length of the key in bits 
+When generating keys, it is possible to specify the length of the key in bits
 and its password as parameters:
 
 ```
->>> generate_and_write_rsa_keypair("path/to/key",bits=2048, password="pw")
+>>> generate_and_write_rsa_keypair("path/to/key", bits=2048, password="pw")
 ```
 The bits parameter defaults to 3072, and values below 2048 will raise an error.
 The password parameter is only intended to be used in scripts.
