@@ -1494,11 +1494,11 @@ class TestTargets(unittest.TestCase):
         self.targets_object.add_paths, paths, 'non_delegated_rolename')
 
     # add_paths() should not raise an exception for non-existent
-    # paths, which is previously did.
+    # paths, which it previously did.
     self.targets_object.add_paths(['/non-existent'], 'tuf')
 
-    # add_paths() should not raise an exception for directories that
-    # do not fall under the repository's targets directory.
+    # add_paths() should not raise an exception for paths that
+    # are not located in the repository's targets directory.
     repository_directory = os.path.join('repository_data', 'repository')
     self.targets_object.add_paths([repository_directory], 'tuf')
 
