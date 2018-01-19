@@ -1765,12 +1765,12 @@ class Targets(Metadata):
   def add_paths(self, paths, child_rolename):
     """
     <Purpose>
-      Add 'paths' to the delegated paths for 'child_rolename'.  'paths' can be
-      a list of either file paths or glob patterns.  The updater client
-      verifies the target paths specified by child roles, and searches for
-      targets by visiting these delegated paths.  A child role may only provide
-      targets specifically listed in the delegations field of the parent role,
-      or a target that matches a delegated path.
+      Add 'paths' to the delegated paths of 'child_rolename'.  'paths' can be a
+      list of either file paths or glob patterns.  The updater client verifies
+      the target paths specified by child roles, and searches for targets by
+      visiting these delegated paths.  A child role may only provide targets
+      specifically listed in the delegations field of the delegating role, or a
+      target that matches a delegated path.
 
       >>>
       >>>
@@ -1821,9 +1821,8 @@ class Targets(Metadata):
     for path in paths:
       # Are the delegated paths or glob patterns located in the repository's
       # targets directory?  If so, log it - the paths don't necessarily need to
-      # be located in the repository's directory.
-      # Append a trailing path separator with
-      # os.path.join(path, '').
+      # be located in the repository's directory.  Append a trailing path
+      # separator with os.path.join(path, '').
       targets_directory = os.path.join(self._targets_directory, '')
       if not path.startswith(targets_directory):
         logger.debug(repr(path) + ' is not located in the'
@@ -1839,14 +1838,14 @@ class Targets(Metadata):
     # Update the delegated paths of 'child_rolename' to add relative paths.
     for role in roleinfo['delegations']['roles']:
       if role['name'] == child_rolename:
-        delegated_paths = role['paths']
+        for relative_path in relative_paths:
+          if relative_path not in role['paths']:
+            role['paths'].append(relative_path)
 
-    for relative_path in relative_paths:
-      if relative_path not in delegated_paths:
-        delegated_paths.append(relative_path)
-
+          else:
+            logger.debug(repr(relative_path) + ' is already a delegated path.')
       else:
-        logger.debug(repr(relative_path) + ' is already a delegated path.')
+        logger.debug(repr(role['name']) + ' does not match child rolename.')
 
     tuf.roledb.update_roleinfo(self._rolename, roleinfo,
         repository_name=self._repository_name)
@@ -2265,14 +2264,13 @@ class Targets(Metadata):
     # targets directory.
     relative_paths = []
 
-    if paths is not None:
-      for path in paths:
-        if not path.startswith(self._targets_directory + os.sep):
-          logger.debug(repr(path) + ' is not loated in the repository\'s'
-            ' targets directory: ' + repr(self._targets_directory))
+    for path in paths:
+      if not path.startswith(self._targets_directory + os.sep):
+        logger.debug(repr(path) + ' is not loated in the repository\'s'
+          ' targets directory: ' + repr(self._targets_directory))
 
-        # Append a trailing path separator with os.path.join(path, '').
-        relative_paths.append(path[targets_directory_length:])
+      # Append a trailing path separator with os.path.join(path, '').
+      relative_paths.append(path[targets_directory_length:])
 
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
@@ -2303,10 +2301,10 @@ class Targets(Metadata):
                 'terminating': terminating,
                 'paths': list(roleinfo['paths'].keys())}
 
-    if paths is not None:
+    if paths:
       roleinfo['paths'] = relative_paths
 
-    if path_hash_prefixes is not None:
+    if path_hash_prefixes:
       roleinfo['path_hash_prefixes'] = path_hash_prefixes
       # A role in a delegations must list either 'path_hash_prefixes'
       # or 'paths'.
