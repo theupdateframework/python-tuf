@@ -2160,8 +2160,11 @@ class Targets(Metadata):
 
       paths:
         The paths, or glob patterns, delegated to 'rolename'.  Any targets
-        added to 'rolename' must match one of the paths or glob patterns in
-        'paths'.
+        added to 'rolename', via add_targets() or 'list_of_targets', must
+        match one of the paths or glob patterns in 'paths'.  Apart from the
+        public keys of 'rolename', the delegated 'paths' is often known and
+        specified when a delegation is first performed.  If the delegator
+        is unsure of which 'paths' to delegate, 'paths' can be set to [''].
 
       threshold:
         The threshold number of keys of 'rolename'.
@@ -2178,7 +2181,7 @@ class Targets(Metadata):
         file specified by 'target/other_role'.
 
       list_of_targets:
-        A list of target filepaths that are added to the paths of 'rolename'.
+        A list of target filepaths that are added to 'rolename'.
         'list_of_targets' is a list of target filepaths, can be empty, and each
         filepath must be located in the repository's targets directory.  The
         list of targets should also exist at the specified paths, otherwise
