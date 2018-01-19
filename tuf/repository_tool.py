@@ -235,7 +235,7 @@ class Repository(object):
         continue
 
       dirty_filename = os.path.join(self._metadata_directory,
-                                    dirty_rolename + METADATA_EXTENSION)
+          dirty_rolename + METADATA_EXTENSION)
       repo_lib._generate_and_write_metadata(dirty_rolename, dirty_filename,
           self._targets_directory, self._metadata_directory,
           consistent_snapshot, filenames,
@@ -270,8 +270,7 @@ class Repository(object):
     if 'timestamp' in dirty_rolenames:
       repo_lib._generate_and_write_metadata('timestamp', filenames['timestamp'],
           self._targets_directory, self._metadata_directory, consistent_snapshot,
-          filenames,
-          repository_name=self._repository_name)
+          filenames, repository_name=self._repository_name)
 
     tuf.roledb.unmark_dirty(dirty_rolenames, self._repository_name)
 
@@ -320,14 +319,13 @@ class Repository(object):
                                      rolename + METADATA_EXTENSION)
 
     filenames = {'root': os.path.join(self._metadata_directory, repo_lib.ROOT_FILENAME),
-                 'targets': os.path.join(self._metadata_directory, repo_lib.TARGETS_FILENAME),
-                 'snapshot': os.path.join(self._metadata_directory, repo_lib.SNAPSHOT_FILENAME),
-                 'timestamp': os.path.join(self._metadata_directory, repo_lib.TIMESTAMP_FILENAME)}
+        'targets': os.path.join(self._metadata_directory, repo_lib.TARGETS_FILENAME),
+         'snapshot': os.path.join(self._metadata_directory, repo_lib.SNAPSHOT_FILENAME),
+         'timestamp': os.path.join(self._metadata_directory, repo_lib.TIMESTAMP_FILENAME)}
 
     repo_lib._generate_and_write_metadata(rolename, rolename_filename,
         self._targets_directory, self._metadata_directory, consistent_snapshot,
-        filenames=filenames,
-        allow_partially_signed=True,
+        filenames=filenames, allow_partially_signed=True,
         increment_version_number=increment_version_number,
         repository_name=self._repository_name)
 
@@ -372,7 +370,7 @@ class Repository(object):
       temp_repository_directory = tempfile.mkdtemp()
       targets_directory = self._targets_directory
       metadata_directory = os.path.join(temp_repository_directory,
-                                        METADATA_STAGED_DIRECTORY_NAME)
+          METADATA_STAGED_DIRECTORY_NAME)
       os.mkdir(metadata_directory)
 
       # Verify the top-level roles and log the results.
@@ -634,7 +632,7 @@ class Metadata(object):
     # Raise 'securesystemslib.exceptions.FormatError' if not.
     if not isinstance(expires, datetime.datetime):
       raise securesystemslib.exceptions.FormatError(repr(expires) + ' is not a'
-        ' datetime.datetime() object.')
+          ' datetime.datetime() object.')
 
     # Truncate the microseconds value to produce a correct schema string
     # of the form 'yyyy-mm-ddThh:mm:ssZ'.
@@ -646,7 +644,7 @@ class Metadata(object):
 
     if expires < current_datetime:
       raise securesystemslib.exceptions.Error(repr(key) + ' has already'
-        ' expired.')
+          ' expired.')
 
     # Update the key's 'expires' entry.
     expires = expires.isoformat() + 'Z'
@@ -1251,8 +1249,8 @@ class Metadata(object):
     # Is 'datetime_object' a datetime.datetime() object?
     # Raise 'securesystemslib.exceptions.FormatError' if not.
     if not isinstance(datetime_object, datetime.datetime):
-      raise securesystemslib.exceptions.FormatError(repr(datetime_object) + ' is'
-        ' not a datetime.datetime() object.')
+      raise securesystemslib.exceptions.FormatError(
+          repr(datetime_object) + ' is not a datetime.datetime() object.')
 
     # truncate the microseconds value to produce a correct schema string
     # of the form yyyy-mm-ddThh:mm:ssZ
@@ -1355,8 +1353,8 @@ class Root(Metadata):
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + ROOT_EXPIRATION))
+    expiration = tuf.formats.unix_timestamp_to_datetime(
+        int(time.time() + ROOT_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
@@ -1423,8 +1421,8 @@ class Timestamp(Metadata):
 
     # By default, 'root' metadata is set to expire 1 year from the current
     # time.  The expiration may be modified.
-    expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TIMESTAMP_EXPIRATION))
+    expiration = tuf.formats.unix_timestamp_to_datetime(
+        int(time.time() + TIMESTAMP_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
@@ -1486,8 +1484,8 @@ class Snapshot(Metadata):
 
     # By default, 'snapshot' metadata is set to expire 1 week from the current
     # time.  The expiration may be modified.
-    expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + SNAPSHOT_EXPIRATION))
+    expiration = tuf.formats.unix_timestamp_to_datetime(
+        int(time.time() + SNAPSHOT_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'keyids': [], 'signing_keyids': [], 'threshold': 1,
@@ -1589,8 +1587,8 @@ class Targets(Metadata):
 
     # By default, Targets objects are set to expire 3 months from the current
     # time.  May be later modified.
-    expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+    expiration = tuf.formats.unix_timestamp_to_datetime(
+        int(time.time() + TARGETS_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
     # If 'roleinfo' is not provided, set an initial default.
@@ -1647,7 +1645,7 @@ class Targets(Metadata):
 
     else:
       raise securesystemslib.exceptions.UnknownRoleError(repr(rolename) + ' has'
-        ' not been delegated by ' + repr(self.rolename))
+          ' not been delegated by ' + repr(self.rolename))
 
 
 
@@ -1686,7 +1684,7 @@ class Targets(Metadata):
 
     if not isinstance(targets_object, Targets):
       raise securesystemslib.exceptions.FormatError(repr(targets_object) + ' is'
-        ' not a Targets object.')
+          ' not a Targets object.')
 
 
     if rolename in self._delegated_roles:
@@ -1814,7 +1812,7 @@ class Targets(Metadata):
     # in the parent role's delegations field.
     if not tuf.roledb.role_exists(child_rolename, self._repository_name):
       raise securesystemslib.exceptions.Error(repr(child_rolename) + ' does'
-        ' not exist.')
+          ' not exist.')
 
     for path in paths:
       # Are the delegated paths or glob patterns located in the repository's
@@ -1826,7 +1824,7 @@ class Targets(Metadata):
       if not path.startswith(targets_directory):
         logger.debug(repr(path) + ' is not located in the'
             ' repository\'s targets'
-          ' directory: ' + repr(self._targets_directory))
+            ' directory: ' + repr(self._targets_directory))
 
       relative_paths.append(path[len(self._targets_directory):])
 
@@ -1905,8 +1903,7 @@ class Targets(Metadata):
     # Ensure 'filepath' is located in the repository's targets directory.
     if not filepath.startswith(self._targets_directory):
       raise securesystemslib.exceptions.Error(repr(filepath) + ' is not located'
-        ' in the repository\'s targets directory:'
-        ' ' + repr(self._targets_directory))
+          ' in the repository\'s targets directory: ' + repr(self._targets_directory))
 
     # Add 'filepath' (i.e., relative to the targets directory) to the role's
     # list of targets.  'filepath' will not be verified as an allowed path
@@ -1934,7 +1931,7 @@ class Targets(Metadata):
 
     else:
       raise securesystemslib.exceptions.Error(repr(filepath) + ' is not'
-        ' a valid file.')
+          ' a valid file.')
 
 
 
@@ -2055,8 +2052,9 @@ class Targets(Metadata):
 
     # Ensure 'filepath' is located in the repository targets directory.
     if not filepath.startswith(self._targets_directory + os.sep):
-      raise securesystemslib.exceptions.Error(repr(filepath) + ' is not located'
-        ' in the Repository\'s targets directory: ' + repr(self._targets_directory))
+      raise securesystemslib.exceptions.Error(
+          repr(filepath) + ' is not located in the Repository\'s targets'
+          ' directory: ' + repr(self._targets_directory))
 
     # The relative filepath is listed in 'paths'.
     relative_filepath = filepath[targets_directory_length:]
@@ -2226,7 +2224,7 @@ class Targets(Metadata):
     # Check if 'rolename' is not already a delegation.
     if tuf.roledb.role_exists(rolename, self._repository_name):
       raise securesystemslib.exceptions.Error(repr(rolename) + ' already'
-        ' delegated.')
+          ' delegated.')
 
     # Keep track of the valid keyids (added to the new Targets object) and
     # their keydicts (added to this Targets delegations).
@@ -2253,9 +2251,9 @@ class Targets(Metadata):
       for target in list_of_targets:
         target = os.path.abspath(target)
         if not target.startswith(self._targets_directory + os.sep):
-          raise securesystemslib.exceptions.Error(repr(target) + ' is not'
-            ' located in the repository\'s targets'
-            ' directory: ' + repr(self._targets_directory))
+          raise securesystemslib.exceptions.Error(
+              repr(target) + ' is not located in the repository\'s targets'
+              ' directory: ' + repr(self._targets_directory))
 
         relative_targetpaths.update({target[targets_directory_length:]: {}})
 
@@ -2266,16 +2264,16 @@ class Targets(Metadata):
     if paths is not None:
       for path in paths:
         if not path.startswith(self._targets_directory + os.sep):
-          logger.debug(repr(path) + ' is not loated in the repository\'s targets'
-            ' directory: ' + repr(self._targets_directory))
+          logger.debug(repr(path) + ' is not loated in the repository\'s'
+            ' targets directory: ' + repr(self._targets_directory))
 
         # Append a trailing path separator with os.path.join(path, '').
         relative_paths.append(path[targets_directory_length:])
 
     # Create a new Targets object for the 'rolename' delegation.  An initial
     # expiration is set (3 months from the current time).
-    expiration = \
-      tuf.formats.unix_timestamp_to_datetime(int(time.time() + TARGETS_EXPIRATION))
+    expiration = tuf.formats.unix_timestamp_to_datetime(
+        int(time.time() + TARGETS_EXPIRATION))
     expiration = expiration.isoformat() + 'Z'
 
     roleinfo = {'name': rolename, 'keyids': keyids, 'signing_keyids': [],
@@ -2395,7 +2393,7 @@ class Targets(Metadata):
 
 
   def delegate_hashed_bins(self, list_of_targets, keys_of_hashed_bins,
-                           number_of_bins=1024):
+      number_of_bins=1024):
     """
     <Purpose>
       Distribute a large number of target files over multiple delegated roles
@@ -2477,7 +2475,7 @@ class Targets(Metadata):
     # (total_hash_prefixes / number_of_bins) hash prefixes.
     if total_hash_prefixes % number_of_bins != 0:
       raise securesystemslib.exceptions.Error('The "number_of_bins" argument'
-        ' must be a power of 2.')
+          ' must be a power of 2.')
 
     logger.info('Creating hashed bin delegations.')
     logger.info(repr(len(list_of_targets)) + ' total targets.')
@@ -2498,12 +2496,12 @@ class Targets(Metadata):
       target_path = os.path.abspath(target_path)
       if not target_path.startswith(self._targets_directory + os.sep):
         raise securesystemslib.exceptions.Error('A path in "list of'
-          ' targets" is not located in the repository\'s targets'
-          ' directory: ' + repr(target_path))
+            ' targets" is not located in the repository\'s targets'
+            ' directory: ' + repr(target_path))
 
       else:
         logger.debug(repr(target_path) + ' is located in the repository\'s'
-          ' targets directory.')
+            ' targets directory.')
 
       # Determine the hash prefix of 'target_path' by computing the digest of
       # its path relative to the targets directory.  Example:
@@ -2700,7 +2698,7 @@ class Targets(Metadata):
 
     else:
       raise securesystemslib.exceptions.Error(self.rolename + ' has not'
-        ' delegated to any roles.')
+          ' delegated to any roles.')
 
     # Set 'prefix_length' if this Targets object has delegated to hashed bins,
     # otherwise raise an exception.
@@ -2715,8 +2713,9 @@ class Targets(Metadata):
     # directory.
     filepath = os.path.abspath(target_filepath)
     if not filepath.startswith(self._targets_directory + os.sep):
-      raise securesystemslib.exceptions.Error(repr(filepath) + ' is not located'
-        ' in the repository\'s targets directory: ' + repr(self._targets_directory))
+      raise securesystemslib.exceptions.Error(
+          repr(filepath) + ' is not located in the repository\'s targets'
+          ' directory: ' + repr(self._targets_directory))
 
     # Determine the hash prefix of 'target_path' by computing the digest of
     # its path relative to the targets directory.  Example:
@@ -2749,7 +2748,7 @@ class Targets(Metadata):
 
     else:
       raise securesystemslib.exceptions.Error(target_filepath + ' not found'
-        ' in any of the bins.')
+          ' in any of the bins.')
 
 
 
@@ -2845,10 +2844,9 @@ def create_new_repository(repository_directory, repository_name='default'):
   # staged one so that the "live" repository is not affected.  The
   # staged metadata changes may be moved over to "live" after all updated
   # have been completed.
-  metadata_directory = \
-    os.path.join(repository_directory, METADATA_STAGED_DIRECTORY_NAME)
-  targets_directory = \
-    os.path.join(repository_directory, TARGETS_DIRECTORY_NAME)
+  metadata_directory = os.path.join(repository_directory,
+      METADATA_STAGED_DIRECTORY_NAME)
+  targets_directory = os.path.join(repository_directory, TARGETS_DIRECTORY_NAME)
 
   # Try to create the metadata directory that will hold all of the metadata
   # files, such as 'root.json' and 'snapshot.json'.
@@ -2925,7 +2923,7 @@ def load_repository(repository_directory, repository_name='default'):
 
   repository_directory = os.path.abspath(repository_directory)
   metadata_directory = os.path.join(repository_directory,
-    METADATA_STAGED_DIRECTORY_NAME)
+      METADATA_STAGED_DIRECTORY_NAME)
   targets_directory = os.path.join(repository_directory, TARGETS_DIRECTORY_NAME)
 
   # The Repository() object loaded (i.e., containing all the metadata roles
@@ -2972,7 +2970,7 @@ def load_repository(repository_directory, repository_name='default'):
 
     else:
       logger.debug('Skipping file with unsupported metadata'
-        ' extension: ' + repr(metadata_path))
+          ' extension: ' + repr(metadata_path))
       continue
 
     # Skip top-level roles, only interested in delegated roles now that the
@@ -2994,7 +2992,7 @@ def load_repository(repository_directory, repository_name='default'):
 
     except (securesystemslib.exceptions.Error, ValueError, IOError):
       logger.debug('Tried to load metadata with invalid JSON'
-        ' content: ' + repr(metadata_path))
+          ' content: ' + repr(metadata_path))
       continue
 
     metadata_object = signable['signed']
@@ -3027,7 +3025,7 @@ def load_repository(repository_directory, repository_name='default'):
     targets_objects[metadata_name] = new_targets_object
 
     targets_object._delegated_roles[(os.path.basename(metadata_name))] = \
-                          new_targets_object
+        new_targets_object
 
     # Extract the keys specified in the delegations field of the Targets
     # role.  Add 'key_object' to the list of recognized keys.  Keys may be
