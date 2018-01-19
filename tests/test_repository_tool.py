@@ -1202,8 +1202,10 @@ class TestTargets(unittest.TestCase):
         terminating=False, list_of_targets=['non-existent.txt'],
         path_hash_prefixes=path_hash_prefixes)
 
-    # Test for targets that do not exist under the targets directory.
-    # An exception should not be raised for non-existent delegated paths.
+    # Test for delegated paths that do not exist.
+    # An exception should not be raised for non-existent delegated paths, since
+    # these paths may not necessarily exist when the delegation is done,
+    # and also because the delegated paths can be glob patterns.
     self.targets_object.delegate(rolename, public_keys, ['non-existent.txt'],
         threshold, terminating=False, list_of_targets=list_of_targets,
         path_hash_prefixes=path_hash_prefixes)
@@ -1492,11 +1494,11 @@ class TestTargets(unittest.TestCase):
         self.targets_object.add_paths, paths, 'non_delegated_rolename')
 
     # add_paths() should not raise an exception for non-existent
-    # paths, which is previously did.
+    # paths, which it previously did.
     self.targets_object.add_paths(['/non-existent'], 'tuf')
 
-    # add_paths() should not raise an exception for directories that
-    # do not fall under the repository's targets directory.
+    # add_paths() should not raise an exception for paths that
+    # are not located in the repository's targets directory.
     repository_directory = os.path.join('repository_data', 'repository')
     self.targets_object.add_paths([repository_directory], 'tuf')
 
