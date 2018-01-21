@@ -20,7 +20,7 @@ six==1.11.0
 iso8601==0.1.12
 pynacl==1.2.1
 cryptography==2.1.4
-securesystemslib==0.10.8
+securesystemslib==0.10.9
 
 # Testing requirements.  The rest of the testing dependencies available in
 # 'tox.ini'
