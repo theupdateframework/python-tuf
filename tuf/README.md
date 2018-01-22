@@ -1,4 +1,4 @@
-# Repository Management #
+# Repository management tutorial #
 
 ## Table of Contents ##
 - [How to Create and Modify a TUF Repository](#how-to-create-and-modify-a-tuf-repository)
@@ -31,9 +31,10 @@ server side must be modified to include a minimum of four top-level metadata
 (root.json, targets.json, snapshot.json, and timestamp.json).  No additional
 software is required to convert a software repository to a TUF one.  The
 repository tool that generates the required TUF metadata for a software
-repository is the focus of this document.  In addition, the update procedure of
-a TUF integration is demonstrated, and some malicious updates are attempted to
-show how TUF protects against these attacks.
+repository is the focus of this tutorial.
+
+There is also separate document that [demonstrates how TUF protects against
+malicious updates](ATTACKS.md).
 
 The [repository tool](repository_tool.py) contains functions to generate all of
 the files needed to populate and manage a TUF repository.  The tool may either

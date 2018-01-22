@@ -19,7 +19,7 @@ in TUF metadata.
 
 The following demonstration requires and operates on the repository created in
 the [repository management
-tutorial](https://github.com/theupdateframework/tuf/blob/develop/tuf/README.md)
+tutorial](https://github.com/theupdateframework/tuf/blob/develop/tuf/README.md).
 
 ### Arbitrary Package Attack ###
 In an arbitrary package attack, an  attacker installs anything they want on the
