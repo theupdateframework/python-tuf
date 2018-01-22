@@ -637,6 +637,11 @@ Run the local TUF repository server.
 $ cd "repository/"; python -m SimpleHTTPServer 8001
 ```
 
+If running Python 3:
+```Bash
+$ cd "repository/"; python3 -m http.server 8001
+```
+
 Retrieve targets from the TUF repository and save them to `client/`.  The
 `basic_client.py` script is available in the 'scripts' directory.  In the
 following example, it is copied to the 'client' directory and executed from
