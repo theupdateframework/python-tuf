@@ -12,10 +12,14 @@
 
 ## Blocking Malicious Updates ##
 TUF protects against a number of attacks, some of which include rollback,
-arbitrary package, and mix and match attacks.  We begin this section on
+arbitrary package, and mix and match attacks.  We begin this document on
 blocking malicious updates by demonstrating how the client rejects a target
 file downloaded from the software repository that doesn't match what is listed
 in TUF metadata.
+
+The following demonstration requires and operates on the repository created in
+the [repository management
+tutorial](https://github.com/theupdateframework/tuf/blob/develop/tuf/README.md)
 
 ### Arbitrary Package Attack ###
 In an arbitrary package attack, an  attacker installs anything they want on the
