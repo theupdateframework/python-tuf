@@ -30,11 +30,10 @@ integrating TUF on the client side.  Second, the software repository on the
 server side must be modified to include a minimum of four top-level metadata
 (root.json, targets.json, snapshot.json, and timestamp.json).  No additional
 software is required to convert a software repository to a TUF one.  The
-repository tool that generates the required TUF metadata for a software
-repository is the focus of this tutorial.
-
-There is also separate document that [demonstrates how TUF protects against
-malicious updates](ATTACKS.md).
+low-level repository tool that generates the required TUF metadata for a
+software repository is the focus of this tutorial.  There is also separate
+document that [demonstrates how TUF protects against malicious
+updates](ATTACKS.md).
 
 The [repository tool](repository_tool.py) contains functions to generate all of
 the files needed to populate and manage a TUF repository.  The tool may either
