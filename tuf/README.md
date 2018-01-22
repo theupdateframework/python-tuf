@@ -122,8 +122,7 @@ text without prepended symbols is the output of a command.
 # than 2048 bits raises an exception. A password may be supplied as an
 # argument, otherwise a user prompt is presented.
 >>> generate_and_write_rsa_keypair("keystore/root_key2")
-Enter a password for the RSA key:
-Confirm:
+Enter a password for the RSA key (/path/to/keystore/root_key2):
 ```
 The following four key files should now exist:
 
@@ -131,6 +130,13 @@ The following four key files should now exist:
 2.  **root_key.pub**
 3.  **root_key2**
 4.  **root_key2.pub**
+
+If a filepath is not given, the KEYID of the generated key is used as the
+filename.  The key files are written to the current working directory.
+```
+>>> generate_and_write_rsa_keypair()
+Enter a password for the encrypted RSA key (/path/to/keystore/b5b8de8aeda674bce948fbe82cab07e309d6775fc0ec299199d16746dc2bd54c):
+```
 
 ### Import RSA Keys ###
 ```python
@@ -142,17 +148,17 @@ The following four key files should now exist:
 # Import an existing private key.  Importing a private key requires a password,
 # whereas importing a public key does not.
 >>> private_root_key = import_rsa_privatekey_from_file("keystore/root_key")
-Enter a password for the encrypted RSA key:
+Enter a password for the encrypted RSA key (/path/to/keystore/root_key):
 ```
-`import_rsa_privatekey_from_file()` raises a `tuf.ssl_commons.exceptions.CryptoError` exception if the
-key / password is invalid:
+
+`import_rsa_privatekey_from_file()` raises a
+`securesystemslib.exceptions.CryptoError` exception if the key / password is
+invalid:
 
 ```
-tuf.ssl_commons.exceptions.CryptoError: RSA (public, private) tuple cannot
-be generated from the encrypted PEM string: Bad decrypt. Incorrect password?
+securesystemslib.exceptions.CryptoError: RSA (public, private) tuple cannot be
+generated from the encrypted PEM string: Bad decrypt. Incorrect password?
 ```
-Note: The specific message provided by the exception might differ depending on
-which cryptography library is used.
 
 ### Create and Import Ed25519 Keys ###
 ```Python
@@ -161,15 +167,14 @@ which cryptography library is used.
 # Generate and write an Ed25519 key pair.  The private key is saved encrypted.
 # A 'password' argument may be supplied, otherwise a prompt is presented.
 >>> generate_and_write_ed25519_keypair('keystore/ed25519_key')
-Enter a password for the Ed25519 key:
-Confirm:
+Enter a password for the Ed25519 key (/path/to/keystore/ed25519_key):
 
 # Import the ed25519 public key just created . . .
 >>> public_ed25519_key = import_ed25519_publickey_from_file('keystore/ed25519_key.pub')
 
 # and its corresponding private key.
 >>> private_ed25519_key = import_ed25519_privatekey_from_file('keystore/ed25519_key')
-Enter a password for the encrypted Ed25519 key:
+Enter a password for the encrypted Ed25519 key (/path/to/keystore/ed25519_key):
 ```
 
 Note: Methods are also available to generate and write keys from memory.
@@ -281,13 +286,13 @@ secure manner.
 
 # Import the signing keys of the remaining top-level roles.  Prompt for passwords.
 >>> private_targets_key = import_rsa_privatekey_from_file("keystore/targets_key")
-Enter a password for the encrypted RSA key:
+Enter a password for the encrypted RSA key (/path/to/keystore/targets_key):
 
 >>> private_snapshot_key = import_rsa_privatekey_from_file("keystore/snapshot_key")
-Enter a password for the encrypted RSA key:
+Enter a password for the encrypted RSA key (/path/to/keystore/snapshot_key):
 
 >>> private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
-Enter a password for the encrypted RSA key:
+Enter a password for the encrypted RSA key (/path/to/keystore/timestamp_key):
 
 # Load the signing keys of the remaining roles so that valid signatures are
 # generated when repository.writeall() is called.
@@ -394,18 +399,18 @@ metadata.  `snapshot.json` keys must be loaded and its metadata signed because
 # The private key of the updated targets metadata must be loaded before it can
 # be signed and written (Note the load_repository() call above).
 >>> private_targets_key = import_rsa_privatekey_from_file("keystore/targets_key")
-Enter a password for the encrypted RSA key:
+Enter a password for the encrypted RSA key (/path/to/keystore/targets_key):
 
 >>> repository.targets.load_signing_key(private_targets_key)
 
 # Due to the load_repository() and new versions of metadata, we must also load
 # the private keys of Snapshot and Timestamp to generate a valid set of metadata.
 >>> private_snapshot_key = import_rsa_privatekey_from_file("keystore/snapshot_key")
-Enter a password for the encrypted RSA key:
+Enter a password for the encrypted RSA key (/path/to/keystore/snapshot_key):
 >>> repository.snapshot.load_signing_key(private_snapshot_key)
 
 >>> private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
-Enter a password for the encrypted RSA key:
+Enter a password for the encrypted RSA key (/path/to/keystore/timestamp_key):
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 
 # Which roles are dirty?
@@ -491,7 +496,7 @@ targets and generate signed metadata.
 # Load the private key of "unclaimed" so that unclaimed's metadata can be
 # signed, and valid metadata created.
 >>> private_unclaimed_key = import_rsa_privatekey_from_file("keystore/unclaimed_key")
-Enter a password for the encrypted RSA key:
+Enter a password for the encrypted RSA key (/path/to/keystore/unclaimed_key):
 
 >>> repository.targets("unclaimed").load_signing_key(private_unclaimed_key)
 
@@ -775,7 +780,7 @@ $ python
 >>> repository.dirty_roles()
 Dirty roles: [u'timestamp']
 >>> private_timestamp_key = import_rsa_privatekey_from_file("keystore/timestamp_key")
-Enter a password for the encrypted RSA file:
+Enter a password for the encrypted RSA file (/path/to/keystore/timestamp_key):
 >>> repository.timestamp.load_signing_key(private_timestamp_key)
 >>> repository.write('timestamp')
 
