@@ -132,7 +132,7 @@ The following four key files should now exist:
 4.  **root_key2.pub**
 
 If a filepath is not given, the KEYID of the generated key is used as the
-filename.  The key files are writtent to the current working directory.
+filename.  The key files are written to the current working directory.
 ```
 >>> generate_and_write_rsa_keypair()
 Enter a password for the encrypted RSA key (/path/to/keystore/b5b8de8aeda674bce948fbe82cab07e309d6775fc0ec299199d16746dc2bd54c):
