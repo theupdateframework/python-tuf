@@ -63,9 +63,9 @@ tuf.log.add_console_handler()
 tuf.log.set_console_log_level(logging.INFO)
 
 # Recommended RSA key sizes:
-# http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
-# According to the document above, revised May 6, 2003, RSA keys of
-# size 3072 provide security through 2031 and beyond.
+# https://en.wikipedia.org/wiki/Key_size#Asymmetric_algorithm_key_lengths
+# Based on the above, RSA keys of size 3072 are expected to provide security
+# through 2031 and beyond.
 DEFAULT_RSA_KEY_BITS=3072
 
 # The algorithm used by the repository to generate the path hash prefixes
