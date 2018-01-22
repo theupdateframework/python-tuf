@@ -172,6 +172,14 @@ Confirm:
 Enter a password for the encrypted Ed25519 key:
 ```
 
+Note: Methods are also available to generate and write keys from memory.
+* generate_ed25519_key()
+* generate_ecdsa_key()
+* generate_rsa_key()
+
+* import_ecdsakey_from_pem(pem)
+* import_rsakey_from_pem(pem)
+
 ### Create Top-level Metadata ###
 The [metadata document](../METADATA.md) outlines the JSON files that must exist
 on a TUF repository.  The following sub-sections demonstrate the
