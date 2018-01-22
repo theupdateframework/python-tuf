@@ -62,6 +62,12 @@ logger = logging.getLogger('tuf.repository_tool')
 tuf.log.add_console_handler()
 tuf.log.set_console_log_level(logging.INFO)
 
+# Recommended RSA key sizes:
+# http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
+# According to the document above, revised May 6, 2003, RSA keys of
+# size 3072 provide security through 2031 and beyond.
+DEFAULT_RSA_KEY_BITS=3072
+
 # The algorithm used by the repository to generate the path hash prefixes
 # of hashed bin delegations.  Please see delegate_hashed_bins()
 HASH_FUNCTION = tuf.settings.DEFAULT_HASH_ALGORITHM
@@ -3185,8 +3191,7 @@ def generate_and_write_rsa_keypair(filepath,
     bits=repo_lib.DEFAULT_RSA_KEY_BITS, password=None):
   return repo_lib.generate_and_write_rsa_keypair(filepath, bits, password)
 
-def generate_rsa_key(bits=securesystemslib.keys._DEFAULT_RSA_KEY_BITS,
-    scheme='rsassa-pss-sha256'):
+def generate_rsa_key(bits=DEFAULT_RSA_KEY_BITS, scheme='rsassa-pss-sha256'):
   return securesystemslib.keys.generate_rsa_key(bits, scheme)
 
 def import_rsa_publickey_from_file(filepath):
