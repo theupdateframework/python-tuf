@@ -25,7 +25,7 @@ A Framework for Securing Software Update Systems
    :target: https://bestpractices.coreinfrastructure.org/projects/1351
    :alt: CII
 
-.. image:: docs/images/banner_readme.SVG
+.. image:: https://raw.githubusercontent.com/theupdateframework/artwork/master/tuf-logo.svg
 
 The Update Framework (TUF) helps developers to secure new or existing
 software update systems, which are often found to be vulnerable to many
