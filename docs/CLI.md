@@ -140,6 +140,11 @@ For example, to delegate trust of `/foo*.gz` packages to the `foo` role:
 $ repo.py --delegate "/foo*.tgz" --delegatee foo --pubkeys ./keystore/foo.pub
 ```
 
+Note that multiple roles can delegate to the same role; the delegation graph
+does not have to be a tree. Roles A and B might independently delegate paths to
+the same role, C.
+Cycles are detected and cut short in the depth first traversal the updater
+performs to search for metadata about a target.
 
 
 ## Revoke trust ##

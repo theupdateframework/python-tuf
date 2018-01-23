@@ -463,7 +463,7 @@ specification and [METADATA.md](METADATA.md) for a detailed example.
 All of the target files available on the software repository created so far
 have been added to one role (the top-level Targets role).  However, what if
 multiple developers are responsible for the files of a project?  What if
-responsiblity separation is desired?  Performing a delegation, where one role
+responsibility separation is desired?  Performing a delegation, where one role
 delegates trust of some paths to another role, is an option for integrators
 that require additional roles on top of the top-level roles available by
 default.
@@ -508,6 +508,13 @@ Dirty roles: ['timestamp', 'snapshot', 'targets', 'unclaimed']
 # and "timestamp".
 >>> repository.writeall()
 ```
+
+Note that multiple roles can delegate to the same role; the delegation graph
+does not have to be a tree. Roles A and B might independently delegate paths to
+the same role, C.
+Cycles are detected and cut short in the depth first traversal the updater
+performs to search for metadata about a target.
+
 
 #### Revoke Delegated Role ####
 ```python
