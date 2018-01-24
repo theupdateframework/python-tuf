@@ -39,8 +39,8 @@ TUF addresses this widespread problem by providing a comprehensive, flexible
 security framework that developers can integrate with any software update
 system.  The framework can be easily integrated (or implemented in the native
 programming languages of these update systems) due to its concise,
-self-contained architecture and specification.  Developers have so far
-implemented the framework in the Go (`1
+self-contained architecture and specification.  `Adopters <ADOPTERS.rst>`_ have
+so far implemented the framework in the Go (`1
 <https://github.com/theupdateframework/notary>`_, `2
 <https://github.com/flynn/go-tuf>`_), `Haskell
 <https://www.well-typed.com/blog/2015/07/hackage-security-alpha/>`_, `Python
@@ -56,14 +56,14 @@ Documentation
 -------------
 * `Overview <docs/OVERVIEW.rst>`_
 * `Specification <https://github.com/theupdateframework/specification/blob/master/tuf-spec.md>`_
-* `Installation <docs/INSTALLATION.rst>`_
-* `Contributors <docs/CONTRIBUTORS.rst>`_
+* `Getting Started <docs/GETTING_STARTED.rst>
+* `Governance <docs/GOVERNANCE.rst>`_
 
 Contact
 -------
 Please contact us via our `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_.
-Questions, feedback, and suggestions are welcomed in this low-volume mailing
+Questions, feedback, and suggestions are welcomed on this low-volume mailing
 list.
 
 Security Issues and Bugs

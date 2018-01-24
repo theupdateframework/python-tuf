@@ -77,7 +77,7 @@ still at risk in many ways, including:
 
 These are just some of the attacks software update systems are
 vulnerable to when only using signed files. See
-`Security <https://github.com/theupdateframework/tuf/tree/develop/SECURITY.md>`_ for a full list of attacks and updater
+`Security <SECURITY.md>`_ for a full list of attacks and updater
 weaknesses TUF is designed to prevent.
 
 The following papers provide detailed information on securing software
@@ -85,19 +85,19 @@ updater systems, TUF's design and implementation details, attacks on
 package managers, and package management security:
 
 -  `Mercury: Bandwidth-Effective Prevention of Rollback Attacks Against Community Repositories
-   <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/prevention-rollback-attacks-atc2017.pdf?raw=true>`_
+   <papers/prevention-rollback-attacks-atc2017.pdf?raw=true>`_
 
 -  `Diplomat: Using Delegations to Protect Community Repositories
-   <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/protect-community-repositories-nsdi2016.pdf?raw=true>`_
+   <papers/protect-community-repositories-nsdi2016.pdf?raw=true>`_
 
 -  `Survivable Key Compromise in Software Update
-   Systems <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/survivable-key-compromise-ccs2010.pdf?raw=true>`_
+   Systems <papers/survivable-key-compromise-ccs2010.pdf?raw=true>`_
 
 -  `A Look In the Mirror: Attacks on Package
-   Managers <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/package-management-security-tr08-02.pdf?raw=true>`_
+   Managers <papers/package-management-security-tr08-02.pdf?raw=true>`_
 
 -  `Package Management
-   Security <https://github.com/theupdateframework/tuf/tree/develop/docs/papers/attacks-on-package-managers-ccs2008.pdf?raw=true>`_
+   Security <papers/attacks-on-package-managers-ccs2008.pdf?raw=true>`_
 
 What TUF Does
 -------------
@@ -117,9 +117,4 @@ software update system can then ask TUF to download these files. TUF
 downloads them and checks them against the TUF metadata that it also
 downloads from the repository. If the downloaded target files are
 trustworthy, TUF hands them over to your software update system. See
-`Metadata <https://github.com/theupdateframework/tuf/tree/develop/METADATA.md>`_ for more information and examples.
-
-TUF specification document is also available:
-
--  `The Update Framework Specification <https://github.com/theupdateframework/specification/blob/master/tuf-spec.md>`_
-
+`Metadata <METADATA.md>`_ for more information and examples.

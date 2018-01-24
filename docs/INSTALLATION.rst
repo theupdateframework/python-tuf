@@ -9,7 +9,7 @@ signed, with GPG signatures available on both GitHub and `PyPI
 
 The latest release and its packaging information, such as who signed the
 release and their PGP fingerprint, can also be found on our 1-year `roadmap
-<https://github.com/theupdateframework/tuf/blob/develop/ROADMAP.md>`_.
+<ROADMAP.md>`_.
 
 Assuming you trust the maintainer's PGP key, the detached ASC signature
 can be downloaded and verified.  For example:
