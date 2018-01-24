@@ -26,6 +26,7 @@ A Framework for Securing Software Update Systems
    :alt: CII
 
 .. raw:: html
+
    <img
    src="https://github.com/theupdateframework/artwork/blob/master/tuf-logo-text.svg"
    height="200px">
