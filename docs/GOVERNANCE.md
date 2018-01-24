@@ -6,7 +6,7 @@ project consists of the TUF
 
 ## Maintainership and Consensus Builder
 The project is maintained by the people indicated in
-[MAINTAINERS.txt](MAINTAINERS.txt).  A maintainer is expected to (1) submit and
+[MAINTAINERS](MAINTAINERS.txt).  A maintainer is expected to (1) submit and
 review GitHub pull requests and (2) open issues or [submit vulnerability
 reports](https://github.com/theupdateframework/tuf#security-issues-and-bugs).
 A maintainer has the authority to approve or reject pull requests submitted by
@@ -15,7 +15,7 @@ Justin Cappos <jcappos@nyu.edu, @JustinCappos>.
 
 ## Contributions
 [A contributor can submit GitHub pull
-requests](https://github.com/theupdateframework/tuf#instructions-for-contributors)
+requests](CONTRIBUTORS.rst)
 to the project's repositories.  They must follow the project's [code of
 conduct](CODE-OF-CONDUCT.md), the [developer certificate of
 origin](https://developercertificate.org/), the [code style
@@ -29,14 +29,14 @@ undergo review and automated testing, including, but not limited to:
 [Bandit](https://wiki.openstack.org/wiki/Security/Projects/Bandit).
 * Checks for Signed-off-by commits via [Probot: DCO](https://github.com/probot/dco).
 * Review by one or more
-[maintainers](https://github.com/theupdateframework/tuf/blob/develop/MAINTAINERS.txt).
+[maintainers](MAINTAINERS.txt).
 
 A contributor can propose changes to the specification with a [TUF Augmentation
 Proposal](https://github.com/theupdateframework/taps) (TAP).  It is a design
 document providing information to the TUF community, or describing a new
 feature for TUF or its processes or environment.
 
-A TAP can be approved or rejected by the CB after it has been reviewed and
+A [TAP](TAP.rst) can be approved or rejected by the CB after it has been reviewed and
 discussed.  Discussions take place on the project's [mailing
 list](https://groups.google.com/forum/?fromgroups#!forum/theupdateframework) or
 the TAPs GitHub issue tracker.
