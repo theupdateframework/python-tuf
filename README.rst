@@ -26,10 +26,9 @@ A Framework for Securing Software Update Systems
    :alt: CII
 
 .. raw:: html
-
-   <img
+   <p style="text-align:center;"> <img
    src="https://github.com/theupdateframework/artwork/blob/master/tuf-logo-text.svg"
-   height="300px" align="middle">
+   height="200px"> </p>
 
 ---------------------------------------------------------------
 
@@ -52,11 +51,11 @@ TUF is hosted by the `Cloud Native Computing Foundation
 <https://www.cncf.io/>`_ (CNCF) and follows the `CNCF Code of Conduct
 <https://github.com/cncf/foundation/blob/master/code-of-conduct.md>`_.
 
-Documents
----------------------------------------------------------------
+Documentation
+-------------
 `Overview <docs/OVERVIEW.rst>`_
 
-`Specification <docs/tuf-spec.md>`_
+`Specification <https://github.com/theupdateframework/specification/blob/master/tuf-spec.md>`_
 
 `Installation <docs/INSTALLATION.rst>`_
 
@@ -94,10 +93,8 @@ License
 
 This work is `dual-licensed <https://en.wikipedia.org/wiki/Multi-licensing>`_
 and distributed under the (1) MIT License and (2) Apache License, Version 2.0.
-Please see `LICENSE-MIT.txt
-<https://github.com/theupdateframework/tuf/blob/develop/LICENSE-MIT.txt>`_
-and `LICENSE-APACHE.txt
-<https://github.com/theupdateframework/tuf/blob/develop/LICENSE-APACHE.txt>`_.
+Please see `LICENSE-MIT.txt <docs/LICENSE-MIT.txt>`_ and `LICENSE-APACHE.txt
+<docs/LICENSE-APACHE.txt>`_.
 
 
 Acknowledgements
