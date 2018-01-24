@@ -25,11 +25,11 @@ A Framework for Securing Software Update Systems
    :target: https://bestpractices.coreinfrastructure.org/projects/1351
    :alt: CII
 
-.. image:: /docs/images/banner_readme.JPG
-   :height: 100 px
-   :width: 100 px
----------------------------------------------------------------
+.. raw:: html
 
+   <img src="https://github.com/theupdateframework/artwork/blob/master/tuf-logo-text.svg" height="100px">
+
+---------------------------------------------------------------
 
 The Update Framework (TUF) helps developers to secure new or existing software
 update systems, which are often found to be vulnerable to many known attacks.
@@ -37,11 +37,19 @@ TUF addresses this widespread problem by providing a comprehensive, flexible
 security framework that developers can integrate with any software update
 system.  The framework can be easily integrated (or implemented in the native
 programming languages of these update systems) due to its concise,
-self-contained architecture and specification.
+self-contained architecture and specification.  Developers have so far
+implemented the framework in the Go, Haskell, Python, Ruby, and Rust
+programming languages.
 
 TUF is hosted by the `Cloud Native Computing Foundation
 <https://www.cncf.io/>`_ (CNCF) and follows the `CNCF Code of Conduct
 <https://github.com/cncf/foundation/blob/master/code-of-conduct.md>`_.
+
+Overview
+Specification
+Installation
+Contributors
+
 
 Mailing List
 ------------
