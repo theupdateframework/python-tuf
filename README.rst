@@ -41,17 +41,18 @@ system.  The framework can be easily integrated (or implemented in the native
 programming languages of these update systems) due to its concise,
 self-contained architecture and specification.  Developers have so far
 implemented the framework in the Go
-(`1<https://github.com/theupdateframework/notary>`_,
-`2<https://github.com/flynn/go-tuf>`_),
-`Haskell<https://www.well-typed.com/blog/2015/07/hackage-security-alpha/>`_,
-`Python<https://github.com/theupdateframework/tuf>`_,
-`Ruby<https://medium.com/square-corner-blog/securing-rubygems-with-tuf-part-1-d374fdd05d85>`_,
-and `Rust<https://github.com/heartsucker/rust-tuf>`_ programming languages.
+(`1 <https://github.com/theupdateframework/notary>`_,
+`2 <https://github.com/flynn/go-tuf>`_),
+`Haskell <https://www.well-typed.com/blog/2015/07/hackage-security-alpha/>`_,
+`Python <https://github.com/theupdateframework/tuf>`_,
+`Ruby <https://medium.com/square-corner-blog/securing-rubygems-with-tuf-part-1-d374fdd05d85>`_,
+and `Rust <https://github.com/heartsucker/rust-tuf>`_ programming languages.
 
 TUF is hosted by the `Cloud Native Computing Foundation
 <https://www.cncf.io/>`_ (CNCF) and follows the `CNCF Code of Conduct
 <https://github.com/cncf/foundation/blob/master/code-of-conduct.md>`_.
 
+Documents
 ---------------------------------------------------------------
 `Overview <docs/OVERVIEW.rst>`_
 
@@ -61,9 +62,7 @@ TUF is hosted by the `Cloud Native Computing Foundation
 
 `Contributors <docs/CONTRIBUTORS.rst>`_
 
---------------------------------------------------------------
-
-Mailing List
+Contact
 ------------
 Please visit our `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if
