@@ -56,7 +56,7 @@ Documentation
 -------------
 * `Overview <docs/OVERVIEW.rst>`_
 * `Specification <https://github.com/theupdateframework/specification/blob/master/tuf-spec.md>`_
-* `Getting Started <docs/GETTING_STARTED.rst>
+* `Getting Started <docs/GETTING_STARTED.rst>`_
 * `Governance <docs/GOVERNANCE.rst>`_
 
 Contact
