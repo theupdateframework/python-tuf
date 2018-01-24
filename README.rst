@@ -26,25 +26,25 @@ A Framework for Securing Software Update Systems
    :alt: CII
 
 .. raw:: html
-   <p style="text-align:center;"> <img
+   <img
    src="https://github.com/theupdateframework/artwork/blob/master/tuf-logo-text.svg"
-   height="200px"> </p>
+   height="200px">
 
 ---------------------------------------------------------------
 
-The Update Framework (TUF) helps developers to secure new or existing software
+The Update Framework (TUF) helps developers secure new or existing software
 update systems, which are often found to be vulnerable to many known attacks.
 TUF addresses this widespread problem by providing a comprehensive, flexible
 security framework that developers can integrate with any software update
 system.  The framework can be easily integrated (or implemented in the native
 programming languages of these update systems) due to its concise,
 self-contained architecture and specification.  Developers have so far
-implemented the framework in the Go
-(`1 <https://github.com/theupdateframework/notary>`_,
-`2 <https://github.com/flynn/go-tuf>`_),
-`Haskell <https://www.well-typed.com/blog/2015/07/hackage-security-alpha/>`_,
-`Python <https://github.com/theupdateframework/tuf>`_,
-`Ruby <https://medium.com/square-corner-blog/securing-rubygems-with-tuf-part-1-d374fdd05d85>`_,
+implemented the framework in the Go (`1
+<https://github.com/theupdateframework/notary>`_, `2
+<https://github.com/flynn/go-tuf>`_), `Haskell
+<https://www.well-typed.com/blog/2015/07/hackage-security-alpha/>`_, `Python
+<https://github.com/theupdateframework/tuf>`_, `Ruby
+<https://medium.com/square-corner-blog/securing-rubygems-with-tuf-part-1-d374fdd05d85>`_,
 and `Rust <https://github.com/heartsucker/rust-tuf>`_ programming languages.
 
 TUF is hosted by the `Cloud Native Computing Foundation
@@ -53,22 +53,17 @@ TUF is hosted by the `Cloud Native Computing Foundation
 
 Documentation
 -------------
-`Overview <docs/OVERVIEW.rst>`_
-
-`Specification <https://github.com/theupdateframework/specification/blob/master/tuf-spec.md>`_
-
-`Installation <docs/INSTALLATION.rst>`_
-
-`Contributors <docs/CONTRIBUTORS.rst>`_
+* `Overview <docs/OVERVIEW.rst>`_
+* `Specification <https://github.com/theupdateframework/specification/blob/master/tuf-spec.md>`_
+* `Installation <docs/INSTALLATION.rst>`_
+* `Contributors <docs/CONTRIBUTORS.rst>`_
 
 Contact
-------------
-Please visit our `mailing list
-<https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if
-you would like to contact us.  Questions, feedback, and suggestions are
-welcomed in this low-volume mailing list.  A `group feed
-<https://groups.google.com/forum/feed/theupdateframework/msgs/atom.xml?num=50>`_
-is available.
+-------
+Please contact us via our `mailing list
+<https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_.
+Questions, feedback, and suggestions are welcomed in this low-volume mailing
+list.
 
 Security Issues and Bugs
 ------------------------
