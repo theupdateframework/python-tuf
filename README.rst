@@ -82,7 +82,7 @@ PGP key fingerprint E9C0 59EC 0D32 64FA B35F  94AD 465B F9F6 F8EB 475A.
 Please do not use the GitHub issue tracker to submit vulnerability reports.
 The issue tracker is intended for bug reports and to make feature requests.
 Major feature requests, such as design changes to the specification, should
-be proposed via TUF Augmentation Proposals, which are discussed below.
+be proposed via a `TUF Augmentation Proposal <docs/TAP.rst>`_.
 
 License
 -------
