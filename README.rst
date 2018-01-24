@@ -27,7 +27,9 @@ A Framework for Securing Software Update Systems
 
 .. raw:: html
 
-   <img src="https://github.com/theupdateframework/artwork/blob/master/tuf-logo-text.svg" height="100px">
+   <img
+   src="https://github.com/theupdateframework/artwork/blob/master/tuf-logo-text.svg"
+   height="300px" align="middle">
 
 ---------------------------------------------------------------
 
@@ -38,27 +40,35 @@ security framework that developers can integrate with any software update
 system.  The framework can be easily integrated (or implemented in the native
 programming languages of these update systems) due to its concise,
 self-contained architecture and specification.  Developers have so far
-implemented the framework in the Go, Haskell, Python, Ruby, and Rust
-programming languages.
+implemented the framework in the Go
+(`1<https://github.com/theupdateframework/notary>`_,
+`2<https://github.com/flynn/go-tuf>`_),
+`Haskell<https://www.well-typed.com/blog/2015/07/hackage-security-alpha/>`_,
+`Python<https://github.com/theupdateframework/tuf>`_,
+`Ruby<https://medium.com/square-corner-blog/securing-rubygems-with-tuf-part-1-d374fdd05d85>`_,
+and `Rust<https://github.com/heartsucker/rust-tuf>`_ programming languages.
 
 TUF is hosted by the `Cloud Native Computing Foundation
 <https://www.cncf.io/>`_ (CNCF) and follows the `CNCF Code of Conduct
 <https://github.com/cncf/foundation/blob/master/code-of-conduct.md>`_.
 
-Overview
-Specification
-Installation
-Contributors
+---------------------------------------------------------------
+`Overview <docs/OVERVIEW.rst>`_
 
+`Specification <docs/tuf-spec.md>`_
+
+`Installation <docs/INSTALLATION.rst>`_
+
+`Contributors <docs/CONTRIBUTORS.rst>`_
+
+--------------------------------------------------------------
 
 Mailing List
 ------------
 Please visit our `mailing list
 <https://groups.google.com/forum/?fromgroups#!forum/theupdateframework>`_ if
 you would like to contact us.  Questions, feedback, and suggestions are
-welcomed in this low-volume mailing list.
-
-A `group feed
+welcomed in this low-volume mailing list.  A `group feed
 <https://groups.google.com/forum/feed/theupdateframework/msgs/atom.xml?num=50>`_
 is available.
 
