@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 
-# Copyright 2012 - 2017, New York University and the TUF contributors
+# Copyright 2012 - 2018, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 """
 <Program Name>
-  basic_client.py
+  client.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
 <Started>
-  September 2012
+  September 2012.
 
 <Copyright>
   See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
@@ -41,8 +41,8 @@
   Framework without the need to modify the original application.
 
 <Usage>
-  $ python basic_client.py --repo http://localhost:8001
-  $ python basic_client.py --repo http://localhost:8001 --verbose 3
+  $ python client.py --repo http://localhost:8001
+  $ python client.py --repo http://localhost:8001 --verbose 3
 
 <Options>
   --verbose:
@@ -73,7 +73,7 @@ import tuf.log
 import securesystemslib
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.basic_client')
+logger = logging.getLogger('tuf.scripts.client')
 
 
 def update_client(repository_mirror):
@@ -156,10 +156,10 @@ def parse_options():
   <Purpose>
     Parse the command-line options and set the logging level
     as specified by the user through the --verbose option.
-    'basic_client' expects the '--repo' to be set by the user.
+    'client' expects the '--repo' to be set by the user.
 
     Example:
-      $ python basic_client.py --repo http://localhost:8001
+      $ python client.py --repo http://localhost:8001
 
     If the required option is unset, a parser error is printed
     and the scripts exits.
