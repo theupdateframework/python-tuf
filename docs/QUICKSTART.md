@@ -4,19 +4,23 @@ Note: A work in progress.  Only examples are given here, for now.
 
 A full working example in four steps.
 
+(1)
 ```Bash
 $ repo.py --init
 ```
 
+(2)
 ```Bash
 $ repo.py --add foo.tar.gz
 ```
 
+(3)
 ```Bash
 $ cd "repository/"
 $ python -m SimpleHTTPServer 8001
 ```
 
+(4)
 ```Bash
 $ cd "client/"
 $ client.py --repo http://localhost:8001 foo.tar.gz
