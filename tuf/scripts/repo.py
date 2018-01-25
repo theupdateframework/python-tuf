@@ -17,47 +17,43 @@
   See LICENSE for licensing information.
 
 <Purpose>
-  Provide a command line interface to the repository tool
-  (i.e., tuf.repository_tool.py).  This CLI removes the need to write code,
-  which is required by the repository and developer tools.  It's main focus
-  is on repository operations, such as initializing and updating a TUF
-  repository.
+  Provide a command-line interface to create and modify TUF repositories.  The
+  CLI removes the need to write Python code when creating or modifying
+  repositories, which is the case with repository_tool.py and
+  developer_tool.py.
 
 <Usage>
-  $ repo.py --init </path/to/repo> [--consistent-snapshot=false]
-  $ repo.py --gen-key <role> --keytype <keytype> --keystore </path/to/keystore> [--expires=<days>]
-  $ repo.py --add <target> --repo <path/to/repo>
-  $ repo.py --remove <target> --repo <path/to/repo>
-  $ repo.py --snapshot <path/to/repo>
-  $ repo.py --timestamp <path/to/repo>
-  $ repo.py --sign <role> --repo <path/to/repo>
-  $ repo.py --commit <path/to/repo>
-  $ repo.py --regenerate <path/to/repo>
-  $ repo.py --clean --repo
+  $ repo.py --init [/path/to/repo] [--consistent_snapshot=false, bare=False]
 
-<Options>
-  --init
+  # Not implemented yet:
+  $ repo.py gen-key <role> --keytype <keytype> --keystore </path/to/keystore> [--expires=<days>]
+  $ repo add <target> --repo </path/to/repo>
+  $ repo remove <target> --repo </path/to/repo>
+  $ repo snapshot </path/to/repo>
+  $ repo timestamp </path/to/repo>
+  $ repo sign <role> --repo </path/to/repo>
+  $ repo commit </path/to/repo>
+  $ repo regenerate </path/to/repo>
+  $ repo clean --repo
 
-  --gen-key
+<Arguments>
+  --init, -i:
+    Initialize a TUF repository.  By default, repo.py creates one key per
+    role, and consistent snapshots is disabled.
 
-  --add
-
-  --remove
-
-  --snapshot
-
-  --timestamp
-
-  --sign
-
-  --commit
-
-  --regenerate
-
-  --clean
-
-  --verbose:
+  --verbose, -v:
     Set the verbosity level of logging messages.  Accepts values 1-5.
+
+  # Not implemented yet:
+  gen-key
+  add
+  remove
+  snapshot
+  timestamp
+  sign
+  commit
+  regenerate
+  clean
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -69,79 +65,65 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import sys
-import optparse
 import logging
+import argparse
 
 import tuf
 import tuf.log
 import tuf.formats
-
 from tuf.repository_tool import *
+
+import securesystemslib
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.script.repo')
 
+PROG_NAME = 'repo.py'
 
-def update_repository(repository_path, command, command_arguments):
+
+def process_repository(parsed_args):
   """
   <Purpose>
-    Update or create the repository found in 'repository_path'.  What to
-    update is determined by the 'command,' which can correspond to one of the
-    supported repository tool functions.
+    Create or modify the repository.
 
   <Arguments>
-    repository_path:
-
-    command:
-
-    command_arguments:
+    parsed_args:
 
   <Exceptions>
     securesystemslib.exceptions.FormatError, if any of the arugments are
     improperly formatted.
 
   <Side Effects>
-    The TUF repository at 'repository_path' is either created or modified.
+    None.
 
   <Returns>
     None.
   """
 
-  # Do the arguments have the correct format?
-  tuf.ssl_crypto.formats.URL_SCHEMA.check_match(repository_path)
-  tuf.ssl_crypto.formats.NAME_SCHEMA.check_match(command)
-  tuf.formats.COMMAND_SCHEMA.check_match(command_arguments)
+  # Do we have a valid argparse Namespace?
+  if not isinstance(parsed_args, argparse.Namespace):
+    raise tuf.exception.Error('Invalid namespace.')
 
-  # Set the local repository directory containing all of the metadata files.
-  settings.repository_directory = repository_path
+  else:
+    logger.debug('We have a valid argparse Namespace: ' + repr(parsed_args))
 
-  if command == 'init':
-    repository = create_new_repository(repository_path)
-
-    # Import the root key(s).
-    try:
-      if command_arguments['keytype'] == 'ed25519':
-        repository.root.load_signing_key
-
-    # Write the changes to the staged repository directory.
-    repository.write(consistent_snapshot=command_arguments['consistent_snapshot'])
+  print('parsed_args: ' + repr(parsed_args))
 
 
-  elif command = 'gen-key':
-    command_arguments
-
-
-def parse_options():
+def parse_arguments():
   """
   <Purpose>
-    Parse the command-line options and set the logging level
-    as specified by the user through the --verbose option.
-    The 'tuf' command expects the repository path to be set by the user.
+    Parse the command-line arguments.  Set the logging level as specified via
+    the --verbose argument (2, by default).
 
     Example:
-      $ python --init ./repository --consistent-snapshot=false --verbose 3
+      # Create a TUF repository in the current working directory.  The
+      # top-level roles are created, each containing one key.
+      $ repo.py --init
 
-    If a required option is unset, a parser error is printed and the scripts
+      $ repo.py --init /path/to/repository --bare True --consistent-snapshot False --verbose 3
+
+    If a required argument is unset, a parser error is printed and the script
     exits.
 
   <Arguments>
@@ -156,100 +138,106 @@ def parse_options():
   <Returns>
     A tuple ('options.REPOSITORY_PATH', command, command_arguments).  'command'
     'command_arguments' correspond to a repository tool fuction.
-
   """
 
-  parser = optparse.OptionParser()
+  parser = argparse.ArgumentParser(
+      description='Create or modify a TUF repository.')
 
-  # Add the options supported by 'repo.py' to the option parser.
-  parser.add_option('--verbose', dest='VERBOSE', type=int, default=2,
-                    help='Set the verbosity level of logging messages.'
-                         'The lower the setting, the greater the verbosity.')
+  # Add the parser arguments supported by PROG_NAME.
+  parser.add_argument('-v', '--verbose', type=int, default=2,
+      choices=range(0, 6), help='Set the verbosity level of logging messages.'
+      ' The lower the setting, the greater the verbosity.  Supported logging'
+      ' levels: 0=UNSET, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR,'
+      ' 5=CRITICAL')
 
-  parser.add_option('--init', dest='INIT', type='string', default='.',
-                    help='')
+  parser.add_argument('-i', '--init', nargs='?', const='.',
+      help='Create a repository.')
 
-  parser.add_option('--gen-key', dest='GEN-KEY', type='string', default='.',
-                    help='')
+  parser.add_argument('--consistent_snapshots', type=bool,
+      choices=[True, False], default=False, help='Enable consistent snapshots.')
 
-  parser.add_option('--keytype', dest='KEYTYPE', type='string', default='ed25519',
-                    help='')
+  parser.add_argument('-b', '--bare', type=bool, default=False,
+      choices=[True, False],
+      help='If initializing a repository, ' + repr(PROG_NAME) + ' should not'
+      ' create nor set keys for any of the top-level roles.')
 
-  parser.add_option('--expires', dest='EXPIRES', type=int, default=365,
-                    help='')
+  """
+  parser.add_argument('gen-key', dest='GEN-KEY', type='string', default='.',
+      help='')
 
-  parser.add_option('--add', dest='ADD', type='string', default='',
-                    help='')
+  parser.add_argument('keytype', dest='KEYTYPE', type='string', default='ed25519',
+      help='')
 
-  parser.add_option('--remove', dest='REMOVE', type='string', default='',
-                    help='')
+  parser.add_argument('expires', dest='EXPIRES', type=int, default=365,
+      help='')
 
-  parser.add_option('--snapshot', dest='SNAPSHOT', type='string', default='.',
-                    help='')
+  parser.add_argument('--add', dest='ADD', type='string', default='',
+      help='')
 
-  parser.add_option('--timestamp', dest='TIMESTAMP', type='string', default='.',
-                    help='')
+  parser.add_argument('--remove', dest='REMOVE', type='string', default='',
+      help='')
 
-  parser.add_option('--sign', dest='SIGN', type='string', default='.',
-                    help='')
+  parser.add_argument('--snapshot', dest='SNAPSHOT', type='string', default='.',
+      help='')
 
-  parser.add_option('--commit', dest='COMMIT', type='string', default='.',
-                    help='')
+  parser.add_argument('--timestamp', dest='TIMESTAMP', type='string', default='.',
+      help='')
 
-  parser.add_option('--regenerate', dest='REGENERATE', type='string', default='.',
-                    help='')
+  parser.add_argument('--sign', dest='SIGN', type='string', default='.',
+      help='')
 
-  parser.add_option('--clean', dest='CLEAN', type='string', default='.',
-                    help='')
+  parser.add_argument('--commit', dest='COMMIT', type='string', default='.',
+      help='')
 
-  options, args = parser.parse_args()
+  parser.add_argument('--regenerate', dest='REGENERATE', type='string', default='.',
+      help='')
+
+  parser.add_argument('--clean', dest='CLEAN', type='string', default='.',
+      help='')
+  """
+
+  parsed_args = parser.parse_args()
 
   # Set the logging level.
-  if options.VERBOSE == 5:
+  if parsed_args.verbose == 5:
     tuf.log.set_log_level(logging.CRITICAL)
 
-  elif options.VERBOSE == 4:
+  elif parsed_args.verbose == 4:
     tuf.log.set_log_level(logging.ERROR)
 
-  elif options.VERBOSE == 3:
+  elif parsed_args.verbose == 3:
     tuf.log.set_log_level(logging.WARNING)
 
-  elif options.VERBOSE == 2:
+  elif parsed_args.verbose == 2:
     tuf.log.set_log_level(logging.INFO)
 
-  elif options.VERBOSE == 1:
+  elif parsed_args.verbose == 1:
     tuf.log.set_log_level(logging.DEBUG)
 
   else:
     tuf.log.set_log_level(logging.NOTSET)
 
-  # Ensure the repository path was set by the user.
-  if options.REPOSITORY_PATH is None:
-    parser.error('The repository path is unknown.')
-
-  # Return a tuple containing the repository path, command, and command
-  # arguments needed by the repository tool.
-  return options.REPOSITORY_PATH, command, command_options
+  return parsed_args
 
 
 
 if __name__ == '__main__':
 
-  # Parse the options and set the logging level.
-  repository_path, command, command_arguments = parse_options()
+  # Parse the arguments and set the logging level.
+  parsed_args = parse_arguments()
 
-  # Update the repository depending on the option specified on the command
-  # line.  For example,
-  # tuf.repository_tool.generate_and_write_ed25519_keypair('./path/to/keystore/root')
+  # Create or modify the repository depending on the option specified on the
+  # command line.  For example,
+  # tuf.repository_tool.generate_and_write_ed25519_keypair('/path/to/keystore/root')
   # is called if the user invokes:
-  # $ tuf --gen-key root --keystore ./path/to/keystore --keytype ed25519
+  # $ repo.py --gen-key root keystore /path/to/keystore keytype ed25519
 
   try:
-    update_repository(repository_path, command, command_arguments)
+    process_repository(parsed_args)
 
-  except (securesystemslib.exceptions.Error) as e:
+  except (tuf.exceptions.Error) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')
     sys.exit(1)
 
-  # Successfully updated the local repository.
+  # Successfully created or updated the TUF repository.
   sys.exit(0)
