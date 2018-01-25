@@ -2,6 +2,27 @@
 
 Note: A work in progress.  Only examples are given here, for now.
 
+A full working example in four steps.
+
+```Bash
+$ repo.py --init
+```
+
+```Bash
+$ repo.py --add foo.tar.gz
+```
+
+```Bash
+$ cd "repository/"
+$ python -m SimpleHTTPServer 8001
+```
+
+```Bash
+$ cd "client/"
+$ client.py --repo http://localhost:8001 foo.tar.gz
+```
+
+
 ## Create a TUF repository.
 
 Examples:
