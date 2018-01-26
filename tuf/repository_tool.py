@@ -3215,7 +3215,7 @@ def import_ecdsa_privatekey_from_file(filepath, password=None):
       filepath, password)
 
 def import_ecdsa_publickey_from_file(filepath):
-  return securesystemslib.interface.import_ecdsa_privatekey_from_file(filepath)
+  return securesystemslib.interface.import_ecdsa_publickey_from_file(filepath)
 
 def import_ecdsakey_from_pem(pem, scheme='ecdsa-sha2-nistp256'):
   return securesystemslib.keys.import_ecdsakey_from_pem(pem, scheme)
