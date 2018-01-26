@@ -1,3 +1,3 @@
-[Quickstart](../doc/QUICKSTART.md)
+[Quickstart](../docs/QUICKSTART.md)
 
-[Tutorial](../doc/TUTORIAL.md)
+[Tutorial](../docs/TUTORIAL.md)
