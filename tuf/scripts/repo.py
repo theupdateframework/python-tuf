@@ -153,11 +153,12 @@ def parse_arguments():
   parser.add_argument('-i', '--init', nargs='?', const='.',
       help='Create a repository.')
 
-  parser.add_argument('--consistent_snapshots', type=bool,
-      choices=[True, False], default=False, help='Enable consistent snapshots.')
+  parser.add_argument('--consistent_snapshots', type=bool, nargs='?',
+      choices=[True, False], const=True, default=False,
+      help='Enable consistent snapshots.')
 
-  parser.add_argument('-b', '--bare', type=bool, default=False,
-      choices=[True, False],
+  parser.add_argument('-b', '--bare', type=bool, nargs='?', const=True,
+      default=False, choices=[True, False],
       help='If initializing a repository, ' + repr(PROG_NAME) + ' should not'
       ' create nor set keys for any of the top-level roles.')
 
