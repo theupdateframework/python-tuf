@@ -125,6 +125,15 @@ def process_arguments(parsed_arguments):
   if parsed_arguments.init:
     init_repo(parsed_arguments)
 
+  if parsed_arguments.clean:
+    clean_repo(parsed_arguments)
+
+
+def clean_repo(parsed_arguments):
+  repo_dir = os.path.join(parsed_arguments.clean, DEFAULT_REPO_PATH)
+  client_dir = os.path.join(parsed_arguments.clean, DEFAULT_CLIENT_PATH)
+  shutil.rmtree(repo_dir)
+  shutil.rmtree(client_dir)
 
 
 
@@ -139,8 +148,9 @@ def init_repo(parsed_arguments):
     set_top_level_keys(repository)
     repository.writeall(
         consistent_snapshot=parsed_arguments.consistent_snapshot)
+
   else:
-    repository.write('root')
+    repository.write('root', consistent_snapshot=parsed_arguments.consistent_snapshot)
     repository.write('targets')
     repository.write('snapshot')
     repository.write('timestamp')
@@ -209,15 +219,15 @@ def set_top_level_keys(repository):
 def parse_arguments():
   """
   <Purpose>
-    Parse the command-line arguments.  Set the logging level as specified via
-    the --verbose argument (2, by default).
+    Parse the command-line arguments.  Also set the logging level, as specified
+    via the --verbose argument (2, by default).
 
     Example:
       # Create a TUF repository in the current working directory.  The
       # top-level roles are created, each containing one key.
       $ repo.py --init
 
-      $ repo.py --init /path/to/repository --bare True --consistent-snapshot False --verbose 3
+      $ repo.py --init /path/to/repository --bare --consistent-snapshot --verbose 3
 
     If a required argument is unset, a parser error is printed and the script
     exits.
@@ -256,12 +266,14 @@ def parse_arguments():
 
   parser.add_argument('--consistent_snapshot', type=bool, nargs='?',
       choices=[True, False], const=True, default=False,
-      help='Enable consistent snapshots.')
+      help='Enable consistent snapshot.')
 
+  parser.add_argument('-c', '--clean', type=str, nargs='?', const='.',
+      help='Erase the repository directory.')
 
   """
-  parser.add_argument('--add', dest='ADD', type='string', default='',
-      help='')
+  parser.add_argument('-a', '--add', dest='ADD', type='string', default='',
+      help='Add a target file.')
 
   parser.add_argument('--remove', dest='REMOVE', type='string', default='',
       help='')
@@ -276,9 +288,6 @@ def parse_arguments():
       help='')
 
   parser.add_argument('--sign', dest='SIGN', type='string', default='.',
-      help='')
-
-  parser.add_argument('--clean', dest='CLEAN', type='string', default='.',
       help='')
   """
 
