@@ -1,55 +1,31 @@
 # Quickstart #
 
-Note: A work in progress.  Only examples are given here, for now.
+Note: This is a work in progress.  Only examples are given here, for now.
 
-A full working example in four steps.
+The following is a workflow example in four steps.
 
-(1)
+Step (1) - Create a repo
 ```Bash
 $ repo.py --init
 ```
 
-(2)
+Step (2) - Add a target file
 ```Bash
 $ repo.py --add foo.tar.gz
 ```
 
-(3)
+Step (3) - Serve the repo
 ```Bash
-$ cd "repository/"
+$ cd "repo/"
 $ python -m SimpleHTTPServer 8001
 ```
 
-(4)
+Step (4) - Fetch a target file from repo
 ```Bash
 $ cd "client/"
 $ client.py --repo http://localhost:8001 foo.tar.gz
 ```
 
-
-## Create a TUF repository.
-
-Examples:
-
-Create a TUF repository in the current working directory.  A cryptographic key
-is created and set for each top-level role.  The Targets role does not sign for
-any targets nor does it delegate trust to any roles.
-
-```Bash
-$ repo.py --init
-```
-
-Create a TUF repository at `./repository`.
-```Bash
-$ repo.py --init repository/
-```
-
-Create a TUF repository in the current working directory.  A cryptographic key
-is *not* created nor set for each top-level role.
-```Bash
-$ repo.py --init --bare True
-```
-
-```Bash
-$ repo.py --init --consistent_snapshots True
-```
+See [CLI.md](CLI.md) for more examples.  A [Tutorial](../tuf/README.md) is also
+available, and designed for users that want more control over the creation
+process.
