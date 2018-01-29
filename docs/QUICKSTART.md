@@ -1,8 +1,8 @@
 # Quickstart #
 
-Note: This is a work in progress.  Only examples are given here, for now.
+Note: This is a work in progress and subject to change.
 
-The following is a workflow example in four steps:
+The following is a basic workflow in four steps:
 
 **Step (1)** - Create a repo
 ```Bash
