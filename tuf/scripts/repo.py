@@ -94,6 +94,7 @@ DEFAULT_TIMESTAMP_KEY = 'keystore/timestamp_key'
 DEFAULT_STAGED_DIR = 'metadata.staged'
 DEFAULT_METADATA_DIR = 'metadata'
 
+
 def process_arguments(parsed_arguments):
   """
   <Purpose>
@@ -128,13 +129,59 @@ def process_arguments(parsed_arguments):
   if parsed_arguments.clean:
     clean_repo(parsed_arguments)
 
+  if parsed_arguments.add:
+    add_targets(parsed_arguments)
+
 
 def clean_repo(parsed_arguments):
   repo_dir = os.path.join(parsed_arguments.clean, DEFAULT_REPO_PATH)
   client_dir = os.path.join(parsed_arguments.clean, DEFAULT_CLIENT_PATH)
-  shutil.rmtree(repo_dir)
-  shutil.rmtree(client_dir)
+  shutil.rmtree(repo_dir, ignore_errors=True)
+  shutil.rmtree(client_dir, ignore_errors=True)
 
+
+def write_to_live_repo():
+  staged_meta_directory = os.path.join(DEFAULT_REPO_PATH, DEFAULT_STAGED_DIR)
+  live_meta_directory = os.path.join(DEFAULT_REPO_PATH, DEFAULT_METADATA_DIR)
+
+  shutil.rmtree(live_meta_directory, ignore_errors=True)
+  shutil.copytree(staged_meta_directory, live_meta_directory)
+
+
+
+def add_targets(parsed_arguments):
+  target_paths = os.path.join(parsed_arguments.add)
+
+  repo_targets_path = os.path.join(DEFAULT_REPO_PATH, 'targets')
+  repository = repo_tool.load_repository(DEFAULT_REPO_PATH)
+
+  for target_path in target_paths:
+    if not os.path.exists(target_path):
+      print(repr(target_path) + ' does not exist.  Skipping.')
+
+    else:
+      shutil.copy(target_path, repo_targets_path)
+      repository.targets.add_target(
+          os.path.join(repo_targets_path, os.path.basename(target_path)))
+
+  targets_private = repo_tool.import_ecdsa_privatekey_from_file(
+      DEFAULT_TARGETS_KEY, 'pw')
+
+  # Make a new release.
+  snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
+      DEFAULT_SNAPSHOT_KEY, 'pw')
+
+  timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
+      DEFAULT_TIMESTAMP_KEY, 'pw')
+
+  repository.targets.load_signing_key(targets_private)
+  repository.snapshot.load_signing_key(snapshot_private)
+  repository.timestamp.load_signing_key(timestamp_private)
+
+  repository.writeall()
+
+  # Move staged metadata directory to "live" metadata directory.
+  write_to_live_repo()
 
 
 def init_repo(parsed_arguments):
@@ -155,10 +202,7 @@ def init_repo(parsed_arguments):
     repository.write('snapshot')
     repository.write('timestamp')
 
-  # Move staged metadata directory to "live" metadata directory.
-  staged_meta_directory = os.path.join(DEFAULT_REPO_PATH, DEFAULT_STAGED_DIR)
-  live_meta_directory = os.path.join(DEFAULT_REPO_PATH, DEFAULT_METADATA_DIR)
-  shutil.copytree(staged_meta_directory, live_meta_directory)
+  write_to_live_repo()
 
   # Create the client files.  The client directory contains the required
   # directory structure and metadata files for clients to successfully perform
@@ -271,10 +315,13 @@ def parse_arguments():
   parser.add_argument('-c', '--clean', type=str, nargs='?', const='.',
       help='Erase the repository directory.')
 
-  """
-  parser.add_argument('-a', '--add', dest='ADD', type='string', default='',
-      help='Add a target file.')
+  parser.add_argument('-a', '--add', type=str, nargs='+',
+      help='Add one or more target files.')
 
+  parser.add_argument('--role', nargs='?', type=str, const='targets',
+      default='targets', help="Specify a role.")
+
+  """
   parser.add_argument('--remove', dest='REMOVE', type='string', default='',
       help='')
 
