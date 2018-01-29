@@ -23,37 +23,10 @@
   developer_tool.py.
 
 <Usage>
-  $ repo.py --init [/path/to/repo] [--consistent_snapshot, --bare]
-
-  # Not implemented yet:
-  $ repo.py gen-key <role> --keytype <keytype> --keystore </path/to/keystore> [--expires=<days>]
-  $ repo add <target> --repo </path/to/repo>
-  $ repo remove <target> --repo </path/to/repo>
-  $ repo snapshot </path/to/repo>
-  $ repo timestamp </path/to/repo>
-  $ repo sign <role> --repo </path/to/repo>
-  $ repo commit </path/to/repo>
-  $ repo regenerate </path/to/repo>
-  $ repo clean --repo
-
-<Arguments>
-  --init, -i:
-    Initialize a TUF repository.  By default, repo.py creates one key per
-    role, and consistent snapshots is disabled.
-
-  --verbose, -v:
-    Set the verbosity level of logging messages.  Accepts values 1-5.
-
-  # Not implemented yet:
-  gen-key
-  add
-  remove
-  snapshot
-  timestamp
-  sign
-  commit
-  regenerate
-  clean
+  $ repo.py --init [--consistent_snapshot, --bare]
+  $ repo.py --add <target> --role <rolename>
+  $ repo.py --verbose
+  $ repo.py --clean
 """
 
 # Help with Python 3 compatibility, where the print statement is a function, an
@@ -83,16 +56,19 @@ logger = logging.getLogger('tuf.script.repo')
 repo_tool.disable_console_log_messages()
 
 PROG_NAME = 'repo.py'
-DEFAULT_REPO_PATH = 'repo'
-DEFAULT_CLIENT_PATH = 'client'
 
-DEFAULT_ROOT_KEY = 'keystore/root_key'
-DEFAULT_TARGETS_KEY = 'keystore/targets_key'
-DEFAULT_SNAPSHOT_KEY = 'keystore/snapshot_key'
-DEFAULT_TIMESTAMP_KEY = 'keystore/timestamp_key'
+DEFAULT_REPO_PATH = 'tufrepo'
+DEFAULT_CLIENT_PATH = 'tufclient'
+DEFAULT_KEYSTORE = 'tufkeystore'
+
+DEFAULT_ROOT_KEY = 'root_key'
+DEFAULT_TARGETS_KEY = 'targets_key'
+DEFAULT_SNAPSHOT_KEY = 'snapshot_key'
+DEFAULT_TIMESTAMP_KEY = 'timestamp_key'
 
 DEFAULT_STAGED_DIR = 'metadata.staged'
 DEFAULT_METADATA_DIR = 'metadata'
+
 
 
 def process_arguments(parsed_arguments):
@@ -102,7 +78,7 @@ def process_arguments(parsed_arguments):
 
   <Arguments>
     parsed_args:
-
+      The parsed arguments returned by argparse.
   <Exceptions>
     securesystemslib.exceptions.FormatError, if any of the arugments are
     improperly formatted.
@@ -121,8 +97,6 @@ def process_arguments(parsed_arguments):
   else:
     logger.debug('We have a valid argparse Namespace: ' + repr(parsed_arguments))
 
-  # TODO print('parsed_args: ' + repr(parsed_arguments))
-
   if parsed_arguments.init:
     init_repo(parsed_arguments)
 
@@ -133,11 +107,16 @@ def process_arguments(parsed_arguments):
     add_targets(parsed_arguments)
 
 
+
 def clean_repo(parsed_arguments):
   repo_dir = os.path.join(parsed_arguments.clean, DEFAULT_REPO_PATH)
   client_dir = os.path.join(parsed_arguments.clean, DEFAULT_CLIENT_PATH)
+  keystore_dir = os.path.join(parsed_arguments.clean, DEFAULT_KEYSTORE)
+
   shutil.rmtree(repo_dir, ignore_errors=True)
   shutil.rmtree(client_dir, ignore_errors=True)
+  shutil.rmtree(keystore_dir, ignore_errors=True)
+
 
 
 def write_to_live_repo():
@@ -165,14 +144,14 @@ def add_targets(parsed_arguments):
           os.path.join(repo_targets_path, os.path.basename(target_path)))
 
   targets_private = repo_tool.import_ecdsa_privatekey_from_file(
-      DEFAULT_TARGETS_KEY, 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), 'pw')
 
   # Make a new release.
   snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
-      DEFAULT_SNAPSHOT_KEY, 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), 'pw')
 
   timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
-      DEFAULT_TIMESTAMP_KEY, 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), 'pw')
 
   repository.targets.load_signing_key(targets_private)
   repository.snapshot.load_signing_key(snapshot_private)
@@ -182,6 +161,7 @@ def add_targets(parsed_arguments):
 
   # Move staged metadata directory to "live" metadata directory.
   write_to_live_repo()
+
 
 
 def init_repo(parsed_arguments):
@@ -217,33 +197,37 @@ def set_top_level_keys(repository):
   Generate, write, and set the top-level keys.  'repository' is modifed.
   """
 
-  repo_tool.generate_and_write_ecdsa_keypair(DEFAULT_ROOT_KEY, password='pw')
-  repo_tool.generate_and_write_ecdsa_keypair(DEFAULT_TARGETS_KEY, password='pw')
-  repo_tool.generate_and_write_ecdsa_keypair(DEFAULT_SNAPSHOT_KEY, password='pw')
-  repo_tool.generate_and_write_ecdsa_keypair(DEFAULT_TIMESTAMP_KEY, password='pw')
+  repo_tool.generate_and_write_ecdsa_keypair(
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY), password='pw')
+  repo_tool.generate_and_write_ecdsa_keypair(
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), password='pw')
+  repo_tool.generate_and_write_ecdsa_keypair(
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), password='pw')
+  repo_tool.generate_and_write_ecdsa_keypair(
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), password='pw')
 
   # Import the public keys.  They are needed so that metadata roles are
   # assigned verification keys, which clients need in order to verify the
   # signatures created by the corresponding private keys.
   root_public = repo_tool.import_ecdsa_publickey_from_file(
-      DEFAULT_ROOT_KEY + '.pub')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY) + '.pub')
   targets_public = repo_tool.import_ecdsa_publickey_from_file(
-      DEFAULT_TARGETS_KEY + '.pub')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY) + '.pub')
   snapshot_public = repo_tool.import_ecdsa_publickey_from_file(
-      DEFAULT_SNAPSHOT_KEY + '.pub')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY) + '.pub')
   timestamp_public = repo_tool.import_ecdsa_publickey_from_file(
-      DEFAULT_TIMESTAMP_KEY + '.pub')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY) + '.pub')
 
   # Import the private keys.  They are needed to generate the signatures
   # included in metadata.
   root_private = repo_tool.import_ecdsa_privatekey_from_file(
-      DEFAULT_ROOT_KEY, 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY), 'pw')
   targets_private = repo_tool.import_ecdsa_privatekey_from_file(
-      DEFAULT_TARGETS_KEY, 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), 'pw')
   snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
-      DEFAULT_SNAPSHOT_KEY, 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), 'pw')
   timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
-      DEFAULT_TIMESTAMP_KEY, 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), 'pw')
 
   # Add the verification keys to the top-level roles.
   repository.root.add_verification_key(root_public)
@@ -271,7 +255,7 @@ def parse_arguments():
       # top-level roles are created, each containing one key.
       $ repo.py --init
 
-      $ repo.py --init /path/to/repository --bare --consistent-snapshot --verbose 3
+      $ repo.py --init --bare --consistent-snapshot --verbose 3
 
     If a required argument is unset, a parser error is printed and the script
     exits.
@@ -321,22 +305,6 @@ def parse_arguments():
   parser.add_argument('--role', nargs='?', type=str, const='targets',
       default='targets', help="Specify a role.")
 
-  """
-  parser.add_argument('--remove', dest='REMOVE', type='string', default='',
-      help='')
-
-  parser.add_argument('gen-key', dest='GEN-KEY', type='string', default='.',
-      help='')
-
-  parser.add_argument('--snapshot', dest='SNAPSHOT', type='string', default='.',
-      help='')
-
-  parser.add_argument('--timestamp', dest='TIMESTAMP', type='string', default='.',
-      help='')
-
-  parser.add_argument('--sign', dest='SIGN', type='string', default='.',
-      help='')
-  """
 
   parsed_args = parser.parse_args()
 
@@ -369,10 +337,10 @@ if __name__ == '__main__':
   parsed_arguments = parse_arguments()
 
   # Create or modify the repository depending on the option specified on the
-  # command line.  For example,
-  # tuf.repository_tool.generate_and_write_ed25519_keypair('/path/to/keystore/root')
-  # is called if the user invokes:
-  # $ repo.py --gen-key root keystore /path/to/keystore keytype ed25519
+  # command line.  For example, the following adds the 'foo.bar.gz' to the
+  # default repository and updates the relevant metadata (i.e., Targets,
+  # Snapshot, and Timestamp metadata are updated):
+  # $ repo.py --add foo.bar.gz
 
   try:
     process_arguments(parsed_arguments)
