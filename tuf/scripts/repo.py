@@ -24,7 +24,7 @@
 
 <Usage>
   $ repo.py --init [--consistent_snapshot, --bare]
-  $ repo.py --add <target> --role <rolename>
+  $ repo.py --add <target>
   $ repo.py --verbose
   $ repo.py --clean
 """
@@ -74,14 +74,16 @@ DEFAULT_METADATA_DIR = 'metadata'
 def process_arguments(parsed_arguments):
   """
   <Purpose>
-    Create or modify the repository.
+    Create or modify the repository.  Which operation is executed depends
+    on 'parsed_arguments'.
 
   <Arguments>
-    parsed_args:
-      The parsed arguments returned by argparse.
+    parsed_arguments:
+      The parsed arguments returned by argparse.parse_args().
+
   <Exceptions>
-    securesystemslib.exceptions.FormatError, if any of the arugments are
-    improperly formatted.
+    securesystemslib.exceptions.Error, if any of the arguments are
+    improperly formatted or if any of the argument could not be processed.
 
   <Side Effects>
     None.
@@ -97,6 +99,8 @@ def process_arguments(parsed_arguments):
   else:
     logger.debug('We have a valid argparse Namespace: ' + repr(parsed_arguments))
 
+  # TODO: Process all of the supported command-line actions.  --init, --clean,
+  # --add are currently implemented.
   if parsed_arguments.init:
     init_repo(parsed_arguments)
 
