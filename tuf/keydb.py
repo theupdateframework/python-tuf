@@ -50,7 +50,7 @@ import six
 import securesystemslib
 
 # List of strings representing the key types supported by TUF.
-_SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
+_SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
 
 # See 'log.py' to learn how logging is handled in TUF.
 logger = logging.getLogger('tuf.keydb')
