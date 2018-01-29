@@ -1,6 +1,7 @@
 # CLI examples #
 
-Note: This is a work in progress.  Only examples are given here, for now.
+Note: This is a work in progress and subject to change.  Only examples are
+given here, for now.
 
 ## Create a repository ##
 
@@ -38,4 +39,16 @@ $ repo.py --init --consistent_snapshots
 
 
 
+
 ## Add a target file ##
+```Bash
+$ repo.py --add <foo.tar.gz>
+```
+
+
+
+
+## Remove the files created via `repo.py --init`.
+```Bash
+$ repo.py --clean
+```
