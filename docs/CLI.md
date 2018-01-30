@@ -1,7 +1,6 @@
 # CLI examples #
 
-Note: This is a work in progress and subject to change.  Only examples are
-given here, for now.
+Note: This is a work in progress and subject to change.
 
 ## Create a repository ##
 
@@ -12,15 +11,8 @@ any targets nor does it delegate trust to any roles.
 ```Bash
 $ repo.py --init
 ```
-
-
-
-Create a TUF repository at `./repo`.
-```Bash
-$ repo.py --init repo/
-```
-
-
+Note: Support for arbitrary repo paths will be added in the near future.
+`$ repo.py --init --path </path/to/repo>`
 
 By default, `pw` is used to encrypt the top-level key files.  Instead, the user
 can be prompted for a password.
@@ -41,18 +33,18 @@ Create a TUF repository with [consistent
 snapshots](https://github.com/theupdateframework/specification/blob/master/tuf-spec.md#7-consistent-snapshots)
 enabled.  If enabled, all target filenames have their hash prepended.
 ```Bash
-$ repo.py --init --consistent_snapshots
+$ repo.py --init --consistent_snapshot
 ```
 
 
 
 
-## Add a target file ##
+## Add a target file.  More than one target file may be specified. ##
 ```Bash
-$ repo.py --add <foo.tar.gz>
+$ repo.py --add <foo.tar.gz> <bar.tar.gz>
 ```
-
-
+Note: Support for directories will be added in the near future.
+`$ repo.py --add </path/to/dir> [--recursive]`
 
 
 ## Remove the files created via `repo.py --init`.
