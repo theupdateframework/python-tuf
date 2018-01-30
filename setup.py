@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2013 - 2017, New York University and the TUF contributors
+# Copyright 2013 - 2018, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 """
@@ -111,7 +111,8 @@ setup(
   install_requires = ['iso8601>=0.1.12', 'six>=1.11.0', 'securesystemslib>=0.10.9'],
   packages = find_packages(exclude=['tests']),
   scripts = [
-    'tuf/scripts/basic_client.py',
-    'tuf/scripts/simple_server.py'
+    'tuf/scripts/repo.py',
+    'tuf/scripts/client.py',
+    'tuf/scripts/simple_server.py',
   ]
 )

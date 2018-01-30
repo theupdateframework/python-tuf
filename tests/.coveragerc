@@ -8,5 +8,6 @@ exclude_lines =
     if __name__ == .__main__.:
 
 omit =
-    # Command-line tool and integration example that calls core TUF.
-    */tuf/scripts/basic_client.py
+    # Command-line scripts.
+    */tuf/scripts/client.py
+    */tuf/scripts/repo.py

@@ -1,17 +1,17 @@
 #!/usr/bin/env python
 
-# Copyright 2012 - 2017, New York University and the TUF contributors
+# Copyright 2012 - 2018, New York University and the TUF contributors
 # SPDX-License-Identifier: MIT OR Apache-2.0
 
 """
 <Program Name>
-  basic_client.py
+  client.py
 
 <Author>
   Vladimir Diaz <vladimir.v.diaz@gmail.com>
 
 <Started>
-  September 2012
+  September 2012.
 
 <Copyright>
   See LICENSE-MIT.txt OR LICENSE-APACHE.txt for licensing information.
@@ -41,8 +41,8 @@
   Framework without the need to modify the original application.
 
 <Usage>
-  $ python basic_client.py --repo http://localhost:8001
-  $ python basic_client.py --repo http://localhost:8001 --verbose 3
+  $ client.py --repo http://localhost:8001 <target>
+  $ client.py --repo http://localhost:8001 --verbose 3 <target>
 
 <Options>
   --verbose:
@@ -62,7 +62,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import sys
-import optparse
+import argparse
 import logging
 
 import tuf
@@ -73,10 +73,10 @@ import tuf.log
 import securesystemslib
 
 # See 'log.py' to learn how logging is handled in TUF.
-logger = logging.getLogger('tuf.basic_client')
+logger = logging.getLogger('tuf.scripts.client')
 
 
-def update_client(repository_mirror):
+def update_client(parsed_arguments):
   """
   <Purpose>
     Perform an update of the metadata and target files located at
@@ -87,55 +87,55 @@ def update_client(repository_mirror):
     the 'root.json' metadata file.
 
   <Arguments>
-    repository_mirror:
-      The URL to the repository mirror hosting the metadata and target
-      files.  E.g., 'http://localhost:8001'
+    parsed_arguments:
+      An argparse Namespace object, containing the parsed arguments.
 
   <Exceptions>
-    tuf.exceptions.RepositoryError, if 'repository_mirror' is
-    improperly formatted.
+    tuf.exceptions.Error, if 'parsed_arguments' is not a Namespace object.
 
   <Side Effects>
-    Connects to a repository mirror and updates the metadata files and
-    any target files.  Obsolete targets are also removed locally.
+    Connects to a repository mirror and updates the local metadata files and
+    any target files.  Obsolete, local targets are also removed.
 
   <Returns>
     None.
   """
 
-  # Does 'repository_mirror' have the correct format?
-  try:
-    securesystemslib.formats.URL_SCHEMA.check_match(repository_mirror)
+  if not isinstance(parsed_arguments, argparse.Namespace):
+    raise tuf.exceptions.Error('Invalid namespace object.')
 
-  except tuf.securesystemslib.exceptions.FormatError:
-    raise tuf.exceptions.RepositoryError('The repository mirror'
-      ' supplied is invalid.')
+  else:
+    logger.debug('We have a valid argparse Namespace object.')
 
-  # Set the local repository directory containing all of the metadata files.
-  tuf.settings.repository_directory = '.'
+  # Set the local repositories directory containing all of the metadata files.
+  tuf.settings.repositories_directory = '.'
 
   # Set the repository mirrors.  This dictionary is needed by the Updater
   # class of updater.py.
-  repository_mirrors = {'mirror': {'url_prefix': repository_mirror,
-                                  'metadata_path': 'metadata',
-                                  'targets_path': 'targets',
-                                  'confined_target_dirs': ['']}}
+  repository_mirrors = {'mirror': {'url_prefix': parsed_arguments.repo,
+      'metadata_path': 'metadata', 'targets_path': 'targets',
+      'confined_target_dirs': ['']}}
 
   # Create the repository object using the repository name 'repository'
   # and the repository mirrors defined above.
-  updater = tuf.client.updater.Updater('repository', repository_mirrors)
+  updater = tuf.client.updater.Updater('tufrepo', repository_mirrors)
 
   # The local destination directory to save the target files.
-  destination_directory = './targets'
+  destination_directory = './tuftargets'
 
-  # Refresh the repository's top-level roles, store the target information for
-  # all the targets tracked, and determine which of these targets have been
-  # updated.
+  # Refresh the repository's top-level roles...
   updater.refresh(unsafely_update_root_if_necessary=False)
-  all_targets = updater.all_targets()
-  updated_targets = updater.updated_targets(all_targets, destination_directory)
 
-  # Download each of these updated targets and save them locally.
+  # ... and store the target information for the target file specified on the
+  # command line, and determine which of these targets have been updated.
+  target_fileinfo = []
+  for target in parsed_arguments.targets:
+    target_fileinfo.append(updater.get_one_valid_targetinfo(target))
+
+  updated_targets = updater.updated_targets(target_fileinfo, destination_directory)
+
+  # Retrieve each of these updated targets and save them to the destination
+  # directory.
   for target in updated_targets:
     try:
       updater.download_target(target, destination_directory)
@@ -151,15 +151,15 @@ def update_client(repository_mirror):
 
 
 
-def parse_options():
+def parse_arguments():
   """
   <Purpose>
     Parse the command-line options and set the logging level
     as specified by the user through the --verbose option.
-    'basic_client' expects the '--repo' to be set by the user.
+    'client' expects the '--repo' to be set by the user.
 
-    Example:
-      $ python basic_client.py --repo http://localhost:8001
+    Exampl:
+      $ client.py --repo http://localhost:8001 <target>
 
     If the required option is unset, a parser error is printed
     and the scripts exits.
@@ -174,55 +174,64 @@ def parse_options():
     Sets the logging level for TUF logging.
 
   <Returns>
-    The 'options.REPOSITORY_MIRROR' string.
+    The parsed_arguments (i.e., a argparse Namespace object).
   """
 
-  parser = optparse.OptionParser()
+  parser = argparse.ArgumentParser(
+    description='Retrieve file from TUF repository.')
 
   # Add the options supported by 'basic_client' to the option parser.
-  parser.add_option('--verbose', dest='VERBOSE', type=int, default=2,
-                    help='Set the verbosity level of logging messages.'
-                         'The lower the setting, the greater the verbosity.')
+  parser.add_argument('-v', '--verbose', type=int, default=2,
+      choices=range(0, 6), help='Set the verbosity level of logging messages.'
+      ' The lower the setting, the greater the verbosity.  Supported logging'
+      ' levels: 0=UNSET, 1=DEBUG, 2=INFO, 3=WARNING, 4=ERROR,'
+      ' 5=CRITICAL')
 
-  parser.add_option('--repo', dest='REPOSITORY_MIRROR', type='string',
-                    help='Specifiy the repository mirror\'s URL prefix '
-                    '(e.g., http://www.example.com:8001/tuf/).'
-                    ' The client will download updates from this mirror.')
+  parser.add_argument('-r', '--repo', type=str, required=True,
+      help='Specify the repository mirror URL prefix'
+      ' (e.g., http://www.example.com:8001/tuf/).  The client retrieves'
+      ' updates from this mirror.')
 
-  options, args = parser.parse_args()
+  parser.add_argument('targets', nargs='+', help='Specify the target files to'
+      ' retrieve from the remote TUF repository.')
+
+  parsed_arguments = parser.parse_args()
+
+  print('parsed_arguments: ' + repr(parsed_arguments))
 
   # Set the logging level.
-  if options.VERBOSE == 5:
+  if parsed_arguments.verbose == 5:
     tuf.log.set_log_level(logging.CRITICAL)
-  elif options.VERBOSE == 4:
+
+  elif parsed_arguments.verbose == 4:
     tuf.log.set_log_level(logging.ERROR)
-  elif options.VERBOSE == 3:
+
+  elif parsed_arguments.verbose == 3:
     tuf.log.set_log_level(logging.WARNING)
-  elif options.VERBOSE == 2:
+
+  elif parsed_arguments.verbose == 2:
     tuf.log.set_log_level(logging.INFO)
-  elif options.VERBOSE == 1:
+
+  elif parsed_arguments.verbose == 1:
     tuf.log.set_log_level(logging.DEBUG)
+
   else:
     tuf.log.set_log_level(logging.NOTSET)
 
-  # Ensure the '--repo' option was set by the user.
-  if options.REPOSITORY_MIRROR is None:
-    parser.error('"--repo" must be set on the command-line.')
-
   # Return the repository mirror containing the metadata and target files.
-  return options.REPOSITORY_MIRROR
+  return parsed_arguments
 
 
 
 if __name__ == '__main__':
 
-  # Parse the options and set the logging level.
-  repository_mirror = parse_options()
+  # Parse the command-line arguments and set the logging level.
+  parsed_arguments = parse_arguments()
 
   # Perform an update of all the files in the 'targets' directory located in
   # the current directory.
   try:
-    update_client(repository_mirror)
+    update_client(parsed_arguments)
 
   except (tuf.exceptions.NoWorkingMirrorError, tuf.exceptions.RepositoryError) as e:
     sys.stderr.write('Error: ' + str(e) + '\n')

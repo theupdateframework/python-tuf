@@ -91,7 +91,7 @@ TARGETS_EXPIRES_WARN_SECONDS = 864000
 TIMESTAMP_EXPIRES_WARN_SECONDS = 86400
 
 # Supported key types.
-SUPPORTED_KEY_TYPES = ['rsa', 'ed25519']
+SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
 
 
 def _generate_and_write_metadata(rolename, metadata_filename,
@@ -1243,7 +1243,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
       if keyid not in keydict:
 
         # This appears to be a new keyid.  Generate the key for it.
-        if key['keytype'] in ['rsa', 'ed25519']:
+        if key['keytype'] in ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']:
           keytype = key['keytype']
           keyval = key['keyval']
           scheme = key['scheme']
@@ -1254,7 +1254,7 @@ def generate_root_metadata(version, expiration_date, consistent_snapshot,
         # This is not a recognized key.  Raise an exception.
         else:
           raise securesystemslib.exceptions.Error('Unsupported keytype:'
-          ' ' + keyid)
+          ' ' + key['keytype'])
 
       # Do we have a duplicate?
       if keyid in keyids:
@@ -1667,7 +1667,7 @@ def sign_metadata(metadata_object, keyids, filename, repository_name):
 
     else:
       raise securesystemslib.exceptions.Error('The keydb contains a key with'
-        ' an invalid key type.')
+        ' an invalid key type.' + repr(key['keytype']))
 
   # Raise 'securesystemslib.exceptions.FormatError' if the resulting 'signable'
   # is not formatted correctly.
