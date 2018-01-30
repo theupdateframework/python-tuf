@@ -22,6 +22,13 @@ $ repo.py --init repo/
 
 
 
+By default, `pw` is used to encrypt the top-level key files.  Instead, the user
+can be prompted for a password.
+```Bash
+$ repo.py --init --pw
+```
+
+
 Create a TUF repository in the current working directory.  A cryptographic key
 is *not* created nor set for each top-level role.
 ```Bash
