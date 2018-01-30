@@ -45,7 +45,7 @@ $ repo.py --init --consistent_snapshot
 
 
 
-## Add a target file. ##
+## Add a target file ##
 
 More than one target file may be specified.
 ```Bash
@@ -55,6 +55,13 @@ Note: Support for directories will be added in the near future.
 `$ repo.py --add </path/to/dir> [--recursive]`
 
 
+## Verbosity ##
+
+Modify the verbosity of the logger.  Logger messages are saved to `tuf.log` in
+the current working directory.
+```Bash
+$ repo.py --verbose
+```
 
 ## Clean ##
 
