@@ -133,7 +133,7 @@ def write_to_live_repo():
 
 
 
-def get_password(prompt='Password: ', confirm=True):
+def get_password(prompt='Password: ', confirm=False):
   """
     Return the password entered by the user.  If 'confirm' is True, the user is
     asked to enter the previously entered password once again.  If they match,
@@ -174,13 +174,19 @@ def add_targets(parsed_arguments):
       repository.targets.add_target(
           os.path.join(repo_targets_path, os.path.basename(target_path)))
 
+  # Examples of how the --pw command-line option is interpreted:
+  # repo.py --init': parsed_arguments.pw = 'pw'
+  # repo.py --init --pw my_pw: parsed_arguments.pw = 'my_pw'
+  # repo.py --init --pw: The user is prompted for a password, here.
+  if not parsed_arguments.pw:
+    parsed_arguments.pw = get_password(prompt='Enter a password for the'
+        ' top-level role keys: ', confirm=True)
+
+  # Load the top-level, non-root, keys to make a new release.
   targets_private = repo_tool.import_ecdsa_privatekey_from_file(
       os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), parsed_arguments.pw)
-
-  # Make a new release.
   snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
       os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), parsed_arguments.pw)
-
   timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
       os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), parsed_arguments.pw)
 
@@ -227,6 +233,14 @@ def set_top_level_keys(repository):
   """
   Generate, write, and set the top-level keys.  'repository' is modified.
   """
+
+  # Examples of how the --pw command-line option is interpreted:
+  # repo.py --init': parsed_arguments.pw = 'pw'
+  # repo.py --init --pw my_pw: parsed_arguments.pw = 'my_pw'
+  # repo.py --init --pw: The user is prompted for a password, here.
+  if not parsed_arguments.pw:
+    parsed_arguments.pw = get_password(prompt='Enter a password for the'
+        ' top-level role keys: ', confirm=True)
 
   repo_tool.generate_and_write_ecdsa_keypair(
       os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY), password=parsed_arguments.pw)
@@ -336,9 +350,8 @@ def parse_arguments():
   parser.add_argument('--role', nargs='?', type=str, const='targets',
       default='targets', help='Specify a role.')
 
-  parser.add_argument('--pw', nargs='?', type=get_password, const='pw',
-      help='Specify a password for the default, top-level key'
-      ' files.')
+  parser.add_argument('--pw', nargs='?', default='pw',
+      help='Specify a password for the top-level key files.')
 
   parsed_args = parser.parse_args()
 
