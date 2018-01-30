@@ -42,6 +42,7 @@ import sys
 import logging
 import argparse
 import shutil
+import getpass
 
 import tuf
 import tuf.log
@@ -132,6 +133,32 @@ def write_to_live_repo():
 
 
 
+def get_password(prompt='Password: ', confirm=True):
+  """
+    Return the password entered by the user.  If 'confirm' is True, the user is
+    asked to enter the previously entered password once again.  If they match,
+    the password is returned to the caller.
+  """
+
+  while True:
+    # getpass() prompts the user for a password without echoing
+    # the user input.
+    password = getpass.getpass(prompt, sys.stderr)
+
+    if not confirm:
+      return password
+
+    else:
+      password2 = getpass.getpass('Confirm: ', sys.stderr)
+
+    if password == password2:
+      return password
+
+    else:
+      print('Mismatch; try again.')
+
+
+
 def add_targets(parsed_arguments):
   target_paths = os.path.join(parsed_arguments.add)
 
@@ -148,14 +175,14 @@ def add_targets(parsed_arguments):
           os.path.join(repo_targets_path, os.path.basename(target_path)))
 
   targets_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), parsed_arguments.pw)
 
   # Make a new release.
   snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), parsed_arguments.pw)
 
   timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), parsed_arguments.pw)
 
   repository.targets.load_signing_key(targets_private)
   repository.snapshot.load_signing_key(snapshot_private)
@@ -198,17 +225,17 @@ def init_repo(parsed_arguments):
 
 def set_top_level_keys(repository):
   """
-  Generate, write, and set the top-level keys.  'repository' is modifed.
+  Generate, write, and set the top-level keys.  'repository' is modified.
   """
 
   repo_tool.generate_and_write_ecdsa_keypair(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY), password='pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY), password=parsed_arguments.pw)
   repo_tool.generate_and_write_ecdsa_keypair(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), password='pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), password=parsed_arguments.pw)
   repo_tool.generate_and_write_ecdsa_keypair(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), password='pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), password=parsed_arguments.pw)
   repo_tool.generate_and_write_ecdsa_keypair(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), password='pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), password=parsed_arguments.pw)
 
   # Import the public keys.  They are needed so that metadata roles are
   # assigned verification keys, which clients need in order to verify the
@@ -225,13 +252,13 @@ def set_top_level_keys(repository):
   # Import the private keys.  They are needed to generate the signatures
   # included in metadata.
   root_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY), 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY), parsed_arguments.pw)
   targets_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TARGETS_KEY), parsed_arguments.pw)
   snapshot_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_SNAPSHOT_KEY), parsed_arguments.pw)
   timestamp_private = repo_tool.import_ecdsa_privatekey_from_file(
-      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), 'pw')
+      os.path.join(DEFAULT_KEYSTORE, DEFAULT_TIMESTAMP_KEY), parsed_arguments.pw)
 
   # Add the verification keys to the top-level roles.
   repository.root.add_verification_key(root_public)
@@ -307,8 +334,11 @@ def parse_arguments():
       help='Add one or more target files.')
 
   parser.add_argument('--role', nargs='?', type=str, const='targets',
-      default='targets', help="Specify a role.")
+      default='targets', help='Specify a role.')
 
+  parser.add_argument('--pw', nargs='?', type=get_password, const='pw',
+      help='Specify a password for the default, top-level key'
+      ' files.')
 
   parsed_args = parser.parse_args()
 
