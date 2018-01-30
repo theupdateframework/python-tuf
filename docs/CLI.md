@@ -57,10 +57,10 @@ Note: Support for directories will be added in the near future.
 
 ## Verbosity ##
 
-Modify the verbosity of the logger.  Logger messages are saved to `tuf.log` in
-the current working directory.
+Set the verbosity of the logger (2, by default).  Logger messages are saved to
+`tuf.log` in the current working directory.
 ```Bash
-$ repo.py --verbose
+$ repo.py --verbose <0-5>
 ```
 
 ## Clean ##
