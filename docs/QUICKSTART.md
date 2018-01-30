@@ -30,6 +30,6 @@ $ client.py --repo http://localhost:8001 foo.tar.gz
 ```
 
 
-See [CLI.md](CLI.md) for more examples.  A [tutorial](../tuf/README.md) is also
+See [CLI.md](CLI.md) for more examples.  A [tutorial](TUTORIAL.md) is also
 available, and intended for users that want more control over the creation
 process.
