@@ -45,8 +45,9 @@ $ repo.py --init --consistent_snapshot
 
 
 
+## Add a target file ##
 
-## Add a target file.  More than one target file may be specified. ##
+More than one target file may be specified.
 ```Bash
 $ repo.py --add <foo.tar.gz> <bar.tar.gz>
 ```
@@ -54,7 +55,17 @@ Note: Support for directories will be added in the near future.
 `$ repo.py --add </path/to/dir> [--recursive]`
 
 
-## Remove the files created via `repo.py --init`.
+## Verbosity ##
+
+Set the verbosity of the logger (2, by default).  Logger messages are saved to
+`tuf.log` in the current working directory.
+```Bash
+$ repo.py --verbose <0-5>
+```
+
+## Clean ##
+
+Remove the files created via `repo.py --init`.
 ```Bash
 $ repo.py --clean
 ```
