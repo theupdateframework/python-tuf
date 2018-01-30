@@ -16,7 +16,7 @@ $ repo.py --add foo.tar.gz
 
 **Step (3)** - Serve the repo
 ```Bash
-$ cd "repo/"
+$ cd "tufrepo/"
 $ python -m SimpleHTTPServer 8001
 
 or with Python 3...
@@ -25,11 +25,11 @@ $ python3 -m http.server 8001
 
 **Step (4)** - Retrieve a target file
 ```Bash
-$ cd "client/"
+$ cd "tufclient/"
 $ client.py --repo http://localhost:8001 foo.tar.gz
 ```
 
 
 See [CLI.md](CLI.md) for more examples.  A [tutorial](../tuf/README.md) is also
-available, and designed for users that want more control over the creation
+available, and intended for users that want more control over the creation
 process.
