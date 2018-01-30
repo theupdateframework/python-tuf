@@ -14,10 +14,17 @@ $ repo.py --init
 Note: Support for arbitrary repo paths will be added in the near future.
 `$ repo.py --init --path </path/to/repo>`
 
-By default, `pw` is used to encrypt the top-level key files.  Instead, the user
-can be prompted for a password.
+By default, `pw` is used to encrypt the top-level key files created with
+--init.  Instead, the user can enter a password on the command line, or be
+prompted for one.
+```Bash
+$ repo.py --init --pw my_pw
+```
+
 ```Bash
 $ repo.py --init --pw
+Enter a password for the top-level role keys:
+Confirm:
 ```
 
 
