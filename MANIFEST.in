@@ -1,8 +1,4 @@
-include AUTHORS.txt
-include LICENSE.txt
-include METADATA.md
 include README.rst
-include SECURITY.md
 include tox.ini
 include tests/repository_data/keystore/delegation_key
 include tests/repository_data/keystore/root_key
@@ -11,6 +7,8 @@ include tests/repository_data/keystore/targets_key
 include tests/repository_data/keystore/timestamp_key
 
 recursive-include docs *.txt
+recursive-include docs *.md
+recursive-include docs *.rst
 recursive-include docs/papers *.pdf
 recursive-include docs/images *.png
 recursive-include tuf/scripts *.py
