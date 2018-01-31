@@ -1,4 +1,70 @@
 # Changelog
+
+## v0.10.2
+
+Note: This is a backwards-incompatible pre-release.
+
+* Support TAP 4 (multiple repository concensus on entrusted targets).
+  https://github.com/theupdateframework/taps/blob/master/tap4.md
+
+* Add quick start guide.
+
+* Add CLI (repo.py) to create and modify repositories.
+
+* Refactor client CLI (client.py).
+
+* Add pyup.io to manage dependencies.
+
+* Update all dependencies to their latest versions.
+
+* Add Pylint and Bandit (security) linters to Travis CI.  Fix issues reported
+  by both linters.
+
+* Tidy up documenation and directory structure.
+
+* Add option to exclude custom field when returning valid targetinfo with
+  MultiRepoUpdater.get_valid_targetinfo().
+
+* Fix PGP key fingerprint provided for security vulnerability reports.
+
+* Modify API for creating delegations.
+
+* Add wrapper functions for securesystemslib functions.
+
+* Fix bug: non-default repository names raises an exception.
+
+* Refactor modules for inconsistent use of whitespace and indentation.
+
+* Add cryptographic functions to read and write keys from memory.
+
+* Add full support for ECDSA keys.  List `ecdsa-sha2-nistp256` in specification.
+
+* Remove example metadata.  Documentation now points to up-to-date metadata
+  in the tests directory.
+
+* Remove all references to PyCrypto.
+
+* Add copyright and license to all modules.
+
+* Add README for the unit tests.
+
+* Remove remnants of the compressed metadata feature (now discontinued).
+
+* Fix minor issues such as broken links, typos, etc.
+
+* Update configuration files to fix issues, such as duplicate upgrade commands,
+  badges, etc.
+
+* Revise policy on static code analysis, CI, etc.
+
+* Earn CII Best Practices Badge.
+
+* Reach 98% score for CII Silver Badge.
+
+* Remove obsolete code, such as tufcli.py, interposition,
+  check_crypto_libraries(), etc.
+
+
 ## v0.10.1
 
 Note: This is a backwards-incompatible pre-release.
