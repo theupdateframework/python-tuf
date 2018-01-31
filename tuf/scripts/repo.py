@@ -133,32 +133,6 @@ def write_to_live_repo():
 
 
 
-def get_password(prompt='Password: ', confirm=False):
-  """
-    Return the password entered by the user.  If 'confirm' is True, the user is
-    asked to enter the previously entered password once again.  If they match,
-    the password is returned to the caller.
-  """
-
-  while True:
-    # getpass() prompts the user for a password without echoing
-    # the user input.
-    password = getpass.getpass(prompt, sys.stderr)
-
-    if not confirm:
-      return password
-
-    else:
-      password2 = getpass.getpass('Confirm: ', sys.stderr)
-
-    if password == password2:
-      return password
-
-    else:
-      print('Mismatch; try again.')
-
-
-
 def add_targets(parsed_arguments):
   target_paths = os.path.join(parsed_arguments.add)
 
@@ -179,8 +153,8 @@ def add_targets(parsed_arguments):
   # repo.py --init --pw my_pw: parsed_arguments.pw = 'my_pw'
   # repo.py --init --pw: The user is prompted for a password, here.
   if not parsed_arguments.pw:
-    parsed_arguments.pw = get_password(prompt='Enter a password for the'
-        ' top-level role keys: ', confirm=True)
+    parsed_arguments.pw = securesystemslib.interface.get_password(
+        prompt='Enter a password for the top-level role keys: ', confirm=True)
 
   # Load the top-level, non-root, keys to make a new release.
   targets_private = repo_tool.import_ecdsa_privatekey_from_file(
@@ -239,8 +213,8 @@ def set_top_level_keys(repository):
   # repo.py --init --pw my_pw: parsed_arguments.pw = 'my_pw'
   # repo.py --init --pw: The user is prompted for a password, here.
   if not parsed_arguments.pw:
-    parsed_arguments.pw = get_password(prompt='Enter a password for the'
-        ' top-level role keys: ', confirm=True)
+    parsed_arguments.pw = securesystemslib.interface.get_password(
+        prompt='Enter a password for the top-level role keys: ', confirm=True)
 
   repo_tool.generate_and_write_ecdsa_keypair(
       os.path.join(DEFAULT_KEYSTORE, DEFAULT_ROOT_KEY), password=parsed_arguments.pw)
