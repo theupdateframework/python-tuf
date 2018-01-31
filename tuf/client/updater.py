@@ -2867,7 +2867,7 @@ class Updater(object):
           return child_role_name
 
         else:
-          logger.debug('The given target path' + repr(target_filepath) + ' is'
+          logger.debug('The given target path ' + repr(target_filepath) + ' is'
               ' not an allowed trusted path of ' + repr(child_role_path))
 
           continue
