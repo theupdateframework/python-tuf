@@ -115,6 +115,7 @@ text without prepended symbols is the output of a command.
 # argument, otherwise a user prompt is presented.
 >>> generate_and_write_rsa_keypair("keystore/root_key2")
 Enter a password for the RSA key (/path/to/keystore/root_key2):
+Confirm:
 ```
 The following four key files should now exist:
 
@@ -128,6 +129,7 @@ filename.  The key files are written to the current working directory.
 ```
 >>> generate_and_write_rsa_keypair()
 Enter a password for the encrypted RSA key (/path/to/keystore/b5b8de8aeda674bce948fbe82cab07e309d6775fc0ec299199d16746dc2bd54c):
+Confirm:
 ```
 
 ### Import RSA Keys ###
@@ -160,6 +162,7 @@ generated from the encrypted PEM string: Bad decrypt. Incorrect password?
 # A 'password' argument may be supplied, otherwise a prompt is presented.
 >>> generate_and_write_ed25519_keypair('keystore/ed25519_key')
 Enter a password for the Ed25519 key (/path/to/keystore/ed25519_key):
+Confirm:
 
 # Import the ed25519 public key just created . . .
 >>> public_ed25519_key = import_ed25519_publickey_from_file('keystore/ed25519_key.pub')
